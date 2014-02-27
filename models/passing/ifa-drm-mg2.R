@@ -1,7 +1,6 @@
 library(OpenMx)
 library(rpf)
 
-mxOption(NULL, 'loglikelihoodScale', -2)  # default
 set.seed(9)
 
 numItems <- 20
@@ -56,8 +55,24 @@ groups <- paste("g", 1:3, sep="")
 
 # load flexmirt fit and compare TODO
 
-if (1) {
   # Cannot test derivatives at starting values because Hessian starts very close to singular.
+  
+plan <- mxComputeSequence(steps=list(
+  mxComputeEM(paste(groups, 'expectation', sep='.'),
+              mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+              mxComputeOnce('fitfunction', fit=TRUE,
+                            free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+              information=TRUE, info.method="hessian"),
+  mxComputeStandardError(),
+  mxComputeHessianQuality()))
+
+if(0) {
+  plan <- mxComputeEM(paste(groups, 'expectation', sep='.'),
+                      mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+                      mxComputeOnce('fitfunction', fit=TRUE,
+                                    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+                      information=TRUE, info.method="meat", semDebug=TRUE, semMethod=seq(.001, .02, length.out=30))
+}
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
@@ -65,25 +80,70 @@ if (1) {
 		      mxComputeEM(paste(groups, 'expectation', sep='.'),
 		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
 		                  mxComputeOnce('fitfunction', fit=TRUE,
-		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))))
+		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+                      information=TRUE, tolerance=1e-5),
+          mxComputeStandardError(),
+          mxComputeHessianQuality())))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
   grpModel <- mxRun(grpModel)
-  #grpModel@output$minimum TODO
+
+#dm <- grpModel@compute@steps[[1]]@debug$rateMatrix
+
+plot_em_map <- function(model, cem) {
+  require(ggplot2)
+  phl <- cem@debug$paramHistLen
+  probeOffset <- cem@debug$probeOffset
+  semDiff <- cem@debug$semDiff
+
+  modelfit <- NULL
+  result <- data.frame()
+  for (vx in 1:length(model@output$estimate)) {
+    len <- phl[vx]
+    offset <- probeOffset[1:len, vx]
+    dd <- semDiff[1:(len-1), vx]
+    mid <- offset[1:(len-1)] + diff(offset)/2
+    upper <- 20
+    mask <- abs(diff(offset)) < .01 & dd < upper
+    df <- data.frame(mid=mid[mask], diff=dd[mask])
+    m1 <- lm(diff ~ 1 + I(1/mid^2), data=df)
+    modelfit <- c(modelfit, summary(m1)$r.squ)
+    df$model <- predict(m1)
+    result <- rbind(result, cbind(vx=vx, vname=names(model@output$estimate)[vx], df))
+  }
+  print(mean(modelfit))
+  ggplot(subset(result, vx %in% order(modelfit)[1:9])) +
+    geom_point(aes(mid, diff), size=2) + geom_line(aes(mid, model), color="green") +
+    facet_wrap(~vname) + labs(x="x midpoint") + ylim(0,5)
+}
+
+if (0) {
+  plot_em_map(grpModel, grpModel@compute)
+}
+
+omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$mean@values, -.834, .01)
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
   
-  mxOption(NULL, 'loglikelihoodScale', 1)
-  i1 <- mxModel(grpModel,
+#  cat(deparse(round(grpModel@output$standardErrors, 3)))
+  semse <- c(0.069, 0.077, 0.074, 0.077, 0.094, 0.097, 0.125,  0.111, 0.069, 0.074,
+             0.132, 0.116, 0.08, 0.081, 0.209, 0.163,  0.102, 0.133, 0.114, 0.107,
+             0.205, 0.151, 0.068, 0.077, 0.073,  0.138, 0.078, 0.081, 0.088, 0.087,
+             0.061, 0.068, 0.125, 0.11,  0.084, 0.09, 0.094, 0.094, 0.092, 0.089,
+             0.11, 0.399, 0.068,  0.055)
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .01)
+  omxCheckCloseEnough(grpModel@output$conditionNumber, 165, 5)
+  
+i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
+                  mxComputeOnce(paste(groups, 'expectation', sep='.')),
                   mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
-                  mxComputeStandardError(),
-                  mxComputeHessianQuality())))
-  i1 <- mxRun(i1)
+                mxComputeStandardError(),
+                mxComputeHessianQuality())))
+i1 <- mxRun(i1)
   
   #cat(deparse(round(i1@output$standardErrors,3)))
   se <- c(0.071, 0.078, 0.076, 0.079, 0.097, 0.099, 0.132,  0.117, 0.075,
@@ -93,18 +153,6 @@ if (1) {
           0.098, 0.096, 0.093, 0.12, 0.512, 0.072,  0.057)
   omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
   omxCheckCloseEnough(i1@output$conditionNumber, 281, 1)
-
-  mxOption(NULL, 'loglikelihoodScale', -2)
-  i1 <- mxModel(grpModel,
-                mxComputeSequence(steps=list(
-                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
-                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
-                  mxComputeStandardError(),
-                  mxComputeHessianQuality())))
-  i1 <- mxRun(i1)
-  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
-  omxCheckCloseEnough(i1@output$conditionNumber, 281, 1)
-}
 
 if (0) {
   library(mirt)

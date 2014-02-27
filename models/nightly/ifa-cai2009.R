@@ -119,7 +119,7 @@ if (1) {
   
   i1 <- mxModel(cModel,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce(paste(groups, 'expectation', sep='.'), context="EM"),
+                  mxComputeOnce(paste(groups, 'expectation', sep='.')),
                   mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                   mxComputeStandardError(),
                   mxComputeHessianQuality())))
@@ -137,13 +137,17 @@ if (1) {
 }
 
 omxIFAComputePlan <- function(groups) {
-  mxComputeEM(paste(groups, 'expectation', sep='.'),
-	      mstep.fit = mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-	      fit = mxComputeOnce('fitfunction', fit=TRUE,
-		  free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')), verbose=1L)
+  mxComputeSequence(steps=list(
+    mxComputeEM(paste(groups, 'expectation', sep='.'),
+                mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+                mxComputeOnce('fitfunction', fit=TRUE,
+                              free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+                tolerance=1e-5, information=TRUE),
+    mxComputeStandardError(),
+    mxComputeHessianQuality()
+  ))
 }
 
-if(1) {
 	# Now actually fit the model.
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
@@ -154,9 +158,9 @@ if(1) {
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
   # NPSOL options:
-  grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
-  grpModel <- mxOption(grpModel, "Verify level", '-1')
-  grpModel <- mxOption(grpModel, "Function precision", '1.0E-7')
+#   grpModel <- mxOption(grpModel, "Analytic Gradients", 'Yes')
+#   grpModel <- mxOption(grpModel, "Verify level", '-1')
+#   grpModel <- mxOption(grpModel, "Function precision", '1.0E-7')
   
   grpModel <- mxRun(grpModel)
     
@@ -165,5 +169,18 @@ if(1) {
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$cov@values, fm$G1$cov, .01)
+  
+  semse <- c(0.084, 0.105, 0.078, 0.134, 0.201, 0.1, 0.154, 0.196,  0.106, 0.176,
+             0.132, 0.121, 0.11, 0.149, 0.094, 0.133, 0.122,  0.092, 0.199, 0.232,
+             0.125, 0.125, 0.26, 0.141, 0.138, 0.171,  0.102, 0.214, 0.193, 0.128,
+             0.086, 0.115, 0.078, 0.142, 0.211,  0.14, 0.102, 0.162, 0.127, 0.156,
+             0.1, 0.408, 0.243, 0.289, 0.181,  0.238, 0.128, 0.146, 0.262, 0.1, 0.143,
+             0.202, 0.1, 0.181, 0.193,  0.129)
+  # cat(deparse(round(grpModel@output$standardErrors,3)))
+  # max(abs(c(grpModel@output$standardErrors) - semse))
+  
+  # These are extremely sensitive to small differences in model estimation.
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .05)
+  omxCheckCloseEnough(grpModel@output$conditionNumber, 250, 100)
+  
   print(grpModel@output$backendTime)
-}

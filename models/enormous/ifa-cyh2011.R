@@ -10,8 +10,8 @@ mk.model <- function(model.name, numItems, latent.free) {
   spec[1:numItems] <- rpf.grm(factors = 2)
   
   dims <- (1 + numItems/4)
-  design <- matrix(c(rep(1,numItems),
-                     kronecker(2:dims,rep(1,4))), byrow=TRUE, ncol=numItems)
+  design <- matrix(as.integer(c(rep(1L,numItems),
+                     kronecker(2L:dims,rep(1L,4)))), byrow=TRUE, ncol=numItems)
   
   ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                      values=c(1.4,1,0),
@@ -23,7 +23,6 @@ mk.model <- function(model.name, numItems, latent.free) {
       ip.mat@labels[px,ix] <- name
     }
   }
-  eip.mat <- mxAlgebra(ItemParam, name="EItemParam")
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
   cov.mat.free <- FALSE
@@ -33,24 +32,14 @@ mk.model <- function(model.name, numItems, latent.free) {
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=cov.mat.free)
   
-  m1 <- mxModel(model=model.name, ip.mat, eip.mat, m.mat, cov.mat,
+  m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxExpectationBA81(
                   ItemSpec=spec,
-                  design=design,
-                  EItemParam="EItemParam", ItemParam="ItemParam",
+                  design=design, ItemParam="ItemParam",
                   mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
                 mxFitFunctionML())
   m1
-}
-
-omxIFAComputePlan <- function(groups) {
-  mxComputeIterate(steps=list(
-    mxComputeOnce(paste(groups, 'expectation', sep='.'), context='EM'),
-    mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-    mxComputeOnce(paste(groups, 'expectation', sep=".")),
-    mxComputeOnce(adjustStart=TRUE, 'fitfunction')
-  ))
 }
 
 g2.mean <- c(1, -.5, 0, .5)
@@ -61,9 +50,7 @@ correct <- matrix(c(1, 1.4, 1.7, 2, 1.4, 1.7, 2, 1, 1.7, 2, 1, 1.4, 2, 1, 1.4, 1
 
 groups <- paste("g", 1:2, sep="")
 
-fit1 <- function(seed) {
-  result <- list(seed=seed)
-  
+fit1 <- function(seed, ntarget) {
   set.seed(seed)
 
   g1 <- mk.model("g1", 16, FALSE)
@@ -73,67 +60,142 @@ fit1 <- function(seed) {
   data.g2 <- rpf.sample(1000, g2@expectation@ItemSpec, correct[,1:12], g2@expectation@design,
                         mean=g2.mean, cov=g2.cov)
   
+  if (0) {
+    # groups are swapped in my flexmirt specs
+    write.table(sapply(data.g1, unclass)-1, file=paste("cyh",seed,"g2.csv",sep="-"),
+                quote=FALSE, row.names=FALSE, col.names=FALSE)
+    write.table(sapply(data.g2, unclass)-1, file=paste("cyh",seed,"g1.csv",sep="-"),
+                quote=FALSE, row.names=FALSE, col.names=FALSE)
+  }
+  
   g1 <- mxModel(g1, mxData(observed=data.g1, type="raw"))
   g2 <- mxModel(g2, mxData(observed=data.g2, type="raw"))
   
+  omxIFAComputePlan <- function(groups) {
+    mxComputeSequence(steps=list(
+      mxComputeEM(paste(groups, 'expectation', sep='.'),
+                  mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+                  mxComputeOnce('fitfunction', free.set=apply(expand.grid(groups, c('mean','cov')),
+                                                              1, paste, collapse='.'), fit=TRUE),
+                  information=TRUE, info.method="hessian", noiseTarget=ntarget, agileMaxIter=3L),
+      mxComputeStandardError(forcePositiveDefinite=TRUE),
+      mxComputeHessianQuality()))
+  }
+
   grpModel <- mxModel(model="groupModel", g1, g2,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       omxIFAComputePlan(groups))
 
-  grpModel <- mxRun(grpModel)
-  
-  result$cpuTime <- grpModel@output$cpuTime
-  result$LL <- grpModel@output$Minus2LogLikelihood
-  result$param <- grpModel@submodels$g1@matrices$ItemParam@values
-  result$mean <- grpModel@submodels$g2@matrices$mean@values
-  result$cov <- grpModel@submodels$g2@matrices$cov@values
-  result
-}
-
-mc.estimate <- function (bank, sl) {
-  example <- bank[[1]][[sl]]
-  bias <- matrix(0, nrow=dim(example)[1], ncol=dim(example)[2])
-  for (sx in 1:length(bank)) {
-    bias <- bias + bank[[sx]][[sl]]
-  }
-  bias / length(bank)
-}
-
-bank <- list()
-#setwd("/opt/OpenMx")
-rda <- "ifa-cyh2011.rda"
-if (file.exists(rda)) load(rda)
-for (seed in 1:500) {
-  if (length(bank)) {
-    if (any(seed == sapply(bank, function (b) b$seed))) next;
-  }
-  bi <- length(bank) + 1
-  bank[[bi]] <- fit1(seed)
-  save(bank, file=rda)
+  grpModel <- try(mxRun(grpModel, silent=TRUE), silent=TRUE)
+  if (inherits(grpModel, "try-error")) return(NULL)
 
   if (0) {
-    cur <- bank[[bi]]
-    print(cor(c(cur$param, cur$mean, diag(cur$cov)), c(correct, g2.mean, diag(g2.cov))))
+    i1 <- mxModel(grpModel,
+                  mxComputeSequence(steps=list(
+                    mxComputeOnce(paste(groups, 'expectation', sep='.')),
+                    mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                    mxComputeStandardError(),
+                    mxComputeHessianQuality())))
+    i1 <- mxRun(i1, silent=TRUE)
   }
+  
+  got <- cbind(grpModel@output$estimate,
+               grpModel@output$standardErrors)
+  colnames(got) <- c("est", "sem")
+  
+  sem.condnum <- grpModel@output$conditionNumber
+  
+  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum)),
+       got=got,
+       em=grpModel@compute@steps[[1]]@output,
+       cpuTime=grpModel@output$cpuTime,
+       ev=grpModel@compute@steps[[2]]@output$eigenvalues)
 }
 
-if (1) {
-  bias <- c(mc.estimate(bank, 'param') - correct,
-            mc.estimate(bank, 'mean') - g2.mean,
-            mc.estimate(bank, 'cov') - g2.cov)
-  omxCheckTrue(abs(bias) < .061)
+estmask <- rep(TRUE, 500)
+emp <- list()
+
+if (0) {
+  meat.condnum <- sapply(bank, function (t) t$condnum['meat'])
+  estmask <- !is.na(meat.condnum) & meat.condnum < 2300
+  emp <- list(bias=apply(diff[,estmask], 1, mean), se=apply(diff[,estmask], 1, sd))
+} else {
+  emp <- list(se=c(c(0.08944, 0.11908, 0.08761, 0.14751, 0.2364, 0.11452,  0.14415,
+                     0.16342, 0.10032, 0.16025, 0.13619, 0.11682, 0.11997,  0.15394,
+                     0.09972, 0.12668, 0.1275, 0.09362, 0.197, 0.25594, 0.117,  0.10577,
+                     0.18637, 0.10332, 0.14281, 0.20174, 0.10412, 0.16481,  0.16631, 0.10784,
+                     0.08349, 0.13497, 0.07527, 0.15189, 0.3054,  0.13913, 0.26249, 0.33094,
+                     0.15823, 0.1349, 0.27334, 0.09186,  0.15155, 0.20331, 0.09334, 0.17177,
+                     0.18151, 0.1149, 0.1202,  0.17129, 0.15999, 0.16465, 0.09639, 0.26893, 0.31799, 0.26872 )))
+  estmask[c(62,  133,  140, 184,  356,  380,  408 )] <- FALSE
+}
+
+to.rd <- function(bank, type) {
+  se <- sapply(bank[estmask[1:length(bank)]], function (t) t$got[,type])
+  mask <- apply(se, 2, function(c) all(!is.na(c)))
+  rd <- apply(se[,mask], 2, function (c) (c - emp$se)/emp$se)
+  rd
 }
 
 if (0) {
-  require(ggplot2)
-  sbank <- bank[300:800]
-  df <- rbind(
-    data.frame(true=c(correct), bias=c(mc.estimate(sbank, 'param') - correct),
-               type=c("primary", "specific", "diff")),
-    data.frame(true=c(g2.mean), bias=c(mc.estimate(sbank, 'mean') - g2.mean), type="mean"),
-    data.frame(true=diag(g2.cov), bias=diag(mc.estimate(sbank, 'cov') - g2.cov), type="var"))
-  
-  df$type <- factor(df$type)
-  ggplot(df, aes(true, bias, color=type)) + geom_point(size=3) + xlab("true parameter value") +
-     ylab(paste("bias (", length(sbank), "replications)"))
+  setwd("/opt/OpenMx")
+  rda <- "cyh2011.rda"
+  save(mbank, file=rda)
+  if (file.exists(rda)) load(rda)
+}
+
+mbank <- list()
+Targets <- seq(-4.7, -1.5, .1)
+for (seed in 249:500) {
+  if (!estmask[seed]) next
+  rds <- matrix(NA, length(Targets), 6)
+  rds[,1] <- Targets
+  for (tx in 1:length(Targets)) {
+    if (length(mbank) < tx) mbank[[tx]] <- list()
+    mbank[[tx]][[seed]] <- fit1(seed, exp(Targets[tx]))
+    if (seed >= 3) {
+      rd <- to.rd(mbank[[tx]], "sem")
+      bank <- mbank[[tx]][estmask[1:seed]]
+      rds[tx,2:6] <- c(norm(apply(rd, 1, mean),"2"),
+                       norm(apply(rd, 1, sd), "2"),
+                       mean(sapply(bank, function (t) t$em$semProbeCount / nrow(rd))),
+                       mean(sapply(bank, function (t) t$condnum['sem'])),
+                       mean(sapply(bank, function (t) ifelse(t$ev[1] < 0,
+                                                                    which(order(abs(t$ev))==1) / length(t$ev), NA)), na.rm=TRUE))
+    }
+  }
+  print(seed)
+  print(rds)
+}
+
+est <- sapply(bank, function (t) t$got[,'est'])
+diff <- apply(est, 2, function(c) (c - c(correct, g2.mean, diag(g2.cov))))
+
+if (0) {
+  which(!estmask) #   62  133  184  356
+  hist(emp$bias)
+  hist(check.se("sem"))
+  hist(check.se("pdse"))
+  hist(check.rd("meat"))
+  hist(check.rd("sem"))
+  hist(check.rd("pdse"))
+  norm(check.rd("meat"), "2")  # 0.313
+  norm(check.rd("sem"), "2")
+  #exp(-.5) was 0.3
+  #exp(-1) was 1.02
+  #exp(-2) was 0.83
+  #exp(-2.5) was .607
+  #exp(-2.75) was .479
+  #exp(-3) was 0.37
+  #exp(-3.25) was 0.394
+  #exp(-3.5) was 0.44
+  norm(check.rd("pdse"), "2")
+  fivenum(sapply(bank, function (t) t$em$semProbeCount) / length(c(correct, g2.mean, diag(g2.cov))))
+  #exp(-2) 237 were non-pd
+  #exp(-3) 296 non-pd
+  sum(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
+  which(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
+  sum(sapply(bank, function (t) any(is.na(t$got[,'pdse']))))
+  # target=exp(-4), 1 10 23 25 27 28 31 38 61 64 65 68 72 73 78 90
+  # target=exp(-4.5), 10 38 61 68 90
 }

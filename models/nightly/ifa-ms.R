@@ -65,9 +65,13 @@ if (1) {
   omxCheckCloseEnough(cM@fitfunction@result, 50661.38, .01)
 }
 
-plan <- mxComputeSequence(steps=list(mxComputeEM('expectation',
-                                      mxComputeNewtonRaphson(free.set='ItemParam'),
-                                      mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")))))
+plan <- mxComputeSequence(steps=list(
+  mxComputeEM('expectation',
+              mxComputeNewtonRaphson(free.set='ItemParam'),
+              mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
+              information=TRUE),
+  mxComputeStandardError(),
+  mxComputeHessianQuality()))
 
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),
@@ -79,6 +83,20 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2@output$minimum, 50661.377, .01)
+
+omxCheckCloseEnough(m2@output$conditionNumber, 1640, 50)
+#cat(deparse(round(c(m2@output$standardErrors), 3)))
+
+semse <- c(0.022, 0.095, 0.116, 0.116, 0.108, 0.176, 0.222, 0.305, 0.382,  0.359, 0.244,
+           0.215, 0.105, 0.082, 0.067, 0.07, 0.185, 0.215,  0.134, 0.061, 0.071, 0.25,
+           0.244, 0.231, 0.155, 0.328, 0.209,  0.177, 0.16, 0.211, 0.176, 0.182, 0.185,
+           0.187, 0.189, 0.201,  0.194, 0.174, 0.161, 0.2, 0.234, 0.409, 0.236, 0.179,
+           0.154,  0.064, 0.078, 0.092, 0.084, 0.074, 0.092, 0.584, 0.493, 0.441,  0.362,
+           0.1, 0.097, 0.079, 0.085, 0.113, 0.115, 0.102, 0.111,  0.079, 0.082, 0.076,
+           0.092, 0.541, 0.607, 0.554, 0.337, 0.081,  0.083, 0.083, 0.098, 0.072, 0.084,
+           0.103, 0.138, 0.084, 0.103,  0.141, 0.178)
+omxCheckCloseEnough(c(m2@output$standardErrors), semse, .01) # similar to flexMIRT
+omxCheckCloseEnough(m2@compute@steps[[1]]@output$semProbeCount / length(semse), 3, .1)
 
 #print(m2@matrices$ItemParam@values - fmfit)
 print(m2@output$backendTime)

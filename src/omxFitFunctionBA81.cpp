@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,10 @@
 #include "omxBuffer.h"
 
 struct BA81FitState {
-
+	//private:
+	void copyEstimates(BA81Expect *estate);
+	void recordHGterm(int hoffset, int at1, int at2);
+	//public:
 	int haveLatentMap;
 	std::vector<int> latentMap;
 	bool freeLatents;
@@ -35,12 +38,11 @@ struct BA81FitState {
 	size_t numFreeParam;
 	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
 	std::vector<int> paramPerItem;       // itemParam->cols
-	std::vector<int> paramFlavor;        // freeParam
+	std::vector<int> paramFlavor;        // numFreeParam
 	std::vector<int> paramMap;           // itemParam->cols * itemDerivPadSize -> index of free parameter
 	std::vector<int> itemGradMap;        // index of gradient -> index of free parameter
-	std::vector<int> paramLocations;     // param# -> count of appearances in ItemParam
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows
-	std::vector<int> ihessDivisor;       // freeParam * freeParam
+	std::vector<int> ihessDivisor;       // numFreeParam * numFreeParam
 	std::vector< matrixVectorProdTerm > hgProd;
 
 	omxMatrix *itemParam;
@@ -49,7 +51,6 @@ struct BA81FitState {
 
 	BA81FitState();
 	~BA81FitState();
-	void copyEstimates(BA81Expect *estate);
 };
 
 // writes to upper triangle of full matrix
@@ -75,6 +76,18 @@ void BA81FitState::copyEstimates(BA81Expect *estate)
 	omxCopyMatrix(latentCov, estate->latentCovOut);
 }
 
+void BA81FitState::recordHGterm(int hoffset, int at1, int at2)
+{
+	//mxLog("? H %d * g %d = p %d", hoffset, at2, at1);
+	matrixVectorProdTerm mvpt(hoffset, at2, at1);
+	hgProd.push_back(mvpt);
+
+	if (at1 != at2) {
+		matrixVectorProdTerm mvpt(hoffset, at1, at2);
+		hgProd.push_back(mvpt);
+	}
+}
+
 static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 {
 	FreeVarGroup *fvg = fc->varGroup;
@@ -85,12 +98,13 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	int covNum = estate->latentCovOut->matrixNumber;
 	int maxAbilities = estate->maxAbilities;
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	const size_t numFreeParams = state->numFreeParam;
 
 	if (state->haveLatentMap == fc->varGroup->id) return;
 	if (estate->verbose) mxLog("%s: rebuild latent parameter map for %d", oo->matrix->name, fc->varGroup->id);
 
 	state->freeLatents = false;
-	latentMap.assign(numLatents, -1);
+	latentMap.assign(numLatents + triangleLoc1(numLatents), -1);
 
 	int numParam = int(fvg->vars.size());
 	for (int px=0; px < numParam; px++) {
@@ -125,6 +139,24 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 		}
 	}
 	state->haveLatentMap = fc->varGroup->id;
+
+	for (int p1=0; p1 < numLatents; p1++) {
+		int at1 = latentMap[p1];
+		if (at1 < 0) continue;
+
+		for (int p2=0; p2 <= p1; p2++) {
+			int at2 = latentMap[p2];
+			if (at2 < 0) continue;
+
+			if (at1 < at2) std::swap(at1, at2);  // lower triangle
+
+			int at = numLatents + triangleLoc1(p1) + p2;
+			int hoffset = at1 * numFreeParams + at2;
+			latentMap[at] = hoffset;
+
+			// ihessDivisor TODO
+		}
+	}
 }
 
 static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
@@ -141,8 +173,8 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	state->paramMap.assign(size, -1);  // matrix location to free param index
 	state->itemParamFree.assign(itemParam->rows * itemParam->cols, FALSE);
 
-	size_t numFreeParams = state->numFreeParam = fvg->vars.size();
-	state->paramLocations.assign(numFreeParams, 0);
+	const size_t numFreeParams = state->numFreeParam;
+	std::vector<int> paramLocations(numFreeParams);
 	state->paramFlavor.assign(numFreeParams, -1);
 
 	int totalParam = 0;
@@ -158,39 +190,39 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 	for (size_t px=0; px < numFreeParams; px++) {
 		omxFreeVar *fv = fvg->vars[px];
-		state->paramLocations[px] = int(fv->locations.size());
+		paramLocations[px] = int(fv->locations.size());
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = ~loc->matrix;
-			if (matNum == itemParam->matrixNumber) {
-				int at = loc->col * state->itemDerivPadSize + loc->row;
-				state->paramMap[at] = px;
-				state->itemParamFree[loc->col * itemParam->rows + loc->row] = TRUE;
+			if (matNum != itemParam->matrixNumber) continue;
 
-				const double *spec = estate->itemSpec[loc->col];
-				int id = spec[RPF_ISpecID];
-				int flavor;
-				double upper, lower;
-				(*rpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
-				if (state->paramFlavor[px] < 0) {
-					state->paramFlavor[px] = flavor;
-				} else if (state->paramFlavor[px] != flavor) {
-					error("Cannot equate %s with %s[%d,%d]", fv->name,
-					      itemParam->name, loc->row, loc->col);
+			int at = loc->col * state->itemDerivPadSize + loc->row;
+			state->paramMap[at] = px;
+			state->itemParamFree[loc->col * itemParam->rows + loc->row] = TRUE;
+
+			const double *spec = estate->itemSpec[loc->col];
+			int id = spec[RPF_ISpecID];
+			int flavor;
+			double upper, lower;
+			(*rpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
+			if (state->paramFlavor[px] < 0) {
+				state->paramFlavor[px] = flavor;
+			} else if (state->paramFlavor[px] != flavor) {
+				error("Cannot equate %s with %s[%d,%d]", fv->name,
+				      itemParam->name, loc->row, loc->col);
+			}
+			if (fv->lbound == NEG_INF && isfinite(lower)) {
+				fv->lbound = lower;
+				if (fc->est[px] < fv->lbound) {
+					error("Starting value %s %f less than lower bound %f",
+					      fv->name, fc->est[px], lower);
 				}
-				if (fv->lbound == NEG_INF && isfinite(lower)) {
-					fv->lbound = lower;
-					if (fc->est[px] < fv->lbound) {
-						error("Starting value %s %f less than lower bound %f",
-						      fv->name, fc->est[px], lower);
-					}
-				}
-				if (fv->ubound == INF && isfinite(upper)) {
-					fv->ubound = upper;
-					if (fc->est[px] > fv->ubound) {
-						error("Starting value %s %f greater than upper bound %f",
-						      fv->name, fc->est[px], upper);
-					}
+			}
+			if (fv->ubound == INF && isfinite(upper)) {
+				fv->ubound = upper;
+				if (fc->est[px] > fv->ubound) {
+					error("Starting value %s %f greater than upper bound %f",
+					      fv->name, fc->est[px], upper);
 				}
 			}
 		}
@@ -224,19 +256,12 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
 				int hoffset = at1 * numFreeParams + at2;
 
-				//mxLog("? H %d * g %d = p %d", hoffset, at2, at1);
-				matrixVectorProdTerm mvpt(hoffset, at2, at1);
-				state->hgProd.push_back(mvpt);
-
-				if (at1 != at2) {
-					matrixVectorProdTerm mvpt(hoffset, at1, at2);
-					state->hgProd.push_back(mvpt);
-				}
+				state->recordHGterm(hoffset, at1, at2);
 
 				state->paramMap[at] = numFreeParams + hoffset;
 
 				state->ihessDivisor[at] =
-					state->paramLocations[at1] * state->paramLocations[at2];
+					paramLocations[at1] * paramLocations[at2];
 			}
 		}
 	}
@@ -635,7 +660,8 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	}
 
 	state->ElatentVersion = estate->ElatentVersion;
-	//fc->log("setLatentStartingValues", FF_COMPUTE_ESTIMATE);
+
+	if (estate->verbose) mxLog("%s: set latent parameters", oo->matrix->name);
 }
 
 static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece,
@@ -780,22 +806,6 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	if (estate->verbose) mxLog("%s: cross product approximation", oo->matrix->name);
-
-	if (fc->infoMethod == INFO_METHOD_HESSIAN) {
-		if (state->freeLatents) {
-			omxRaiseErrorf(globalState, "Hessian not available with free latents");
-			return FALSE;
-		}
-
-		ba81ComputeEMFit(oo, FF_COMPUTE_HESSIAN, fc);
-		return TRUE;
-	}
-
-	if (fc->infoMethod != INFO_METHOD_MEAT) {
-		omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
-			       fc->infoMethod);
-		return FALSE;
-	}
 
 	ba81OutcomeProb(estate, FALSE, FALSE);
 
@@ -996,11 +1006,92 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 	return TRUE;
 }
 
+static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
+{
+	const double Scale = Global->llScale;
+	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	const int maxAbilities = estate->maxAbilities;
+	omxMatrix *cov = estate->latentCovOut;
+	omxData *data = estate->data;
+	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	std::vector<int> &latentMap = state->latentMap;
+
+	if (estate->verbose) mxLog("%s: latentHessian", oo->matrix->name);
+
+	omxBuffer<double> icovBuffer(maxAbilities * maxAbilities);
+	memcpy(icovBuffer.data(), cov->data, sizeof(double) * maxAbilities * maxAbilities);
+	Matrix icovMat(icovBuffer.data(), maxAbilities, maxAbilities);
+	int info = InvertSymmetricPosDef(icovMat, 'U');
+	if (info) return;
+
+	for (int m1=0; m1 < maxAbilities; ++m1) {
+		for (int m2=0; m2 < m1; ++m2) {
+			icovBuffer[m2 * maxAbilities + m1] = icovBuffer[m1 * maxAbilities + m2];
+		}
+	}
+
+	int px=numLatents;
+	for (int m1=0; m1 < maxAbilities; ++m1) {
+		for (int m2=0; m2 <= m1; ++m2) {
+			int to = latentMap[px];
+			++px;
+			if (to < 0) continue;
+			fc->hess[to] -= Scale * data->rows * icovBuffer[m1 * maxAbilities + m2];
+		}
+	}
+
+	std::vector<double> term1(maxAbilities * maxAbilities);
+	std::vector<double> term2(maxAbilities * maxAbilities);
+
+	int f1=0;
+	for (int r1=0; r1 < maxAbilities; ++r1) {
+		for (int c1=0; c1 <= r1; ++c1) {
+			memcpy(term1.data()      + c1 * maxAbilities,
+			       icovBuffer.data() + r1 * maxAbilities, maxAbilities * sizeof(double));
+			if (r1 != c1) {
+				memcpy(term1.data()      + r1 * maxAbilities,
+				       icovBuffer.data() + c1 * maxAbilities, maxAbilities * sizeof(double));
+			}
+			int f2 = f1;
+			for (int r2=r1; r2 < maxAbilities; ++r2) {
+				for (int c2 = (r1==r2? c1 : 0); c2 <= r2; ++c2) {
+					memcpy(term2.data()      + c2 * maxAbilities,
+					       icovBuffer.data() + r2 * maxAbilities, maxAbilities * sizeof(double));
+					if (r2 != c2) {
+						memcpy(term2.data()      + r2 * maxAbilities,
+						       icovBuffer.data() + c2 * maxAbilities, maxAbilities * sizeof(double));
+					}
+
+					double tr = 0;
+					for (int d1=0; d1 < maxAbilities; ++d1) {
+						for (int d2=0; d2 < maxAbilities; ++d2) {
+							tr += term1[d2 * maxAbilities + d1] * term2[d1 * maxAbilities + d2];
+						}
+					}
+					int to = latentMap[numLatents + triangleLoc1(f2 + maxAbilities) + f1 + maxAbilities];
+					if (to >= 0) {
+						fc->hess[to] += Scale * (data->rows - 2) * -.5 * tr;
+					}
+
+					OMXZERO(term2.data() + c2 * maxAbilities, maxAbilities);
+					if (c2 != r2) OMXZERO(term2.data() + r2 * maxAbilities, maxAbilities);
+					++f2;
+				}
+			}
+			OMXZERO(term1.data() + c1 * maxAbilities, maxAbilities);
+			if (c1 != r1) OMXZERO(term1.data() + r1 * maxAbilities, maxAbilities);
+			++f1;
+		}
+	}
+}
+
 static double
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		buildItemParamMap(oo, fc);
@@ -1022,7 +1113,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			omxExpectationCompute(oo->expectation, NULL);
-			// schilling_bock_2005_rescale(oo, fc); seems counterproductive
 			return 0;
 		}
 
@@ -1030,7 +1120,15 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildLatentParamMap(oo, fc);
 			buildItemParamMap(oo, fc);
 			ba81SetupQuadrature(oo->expectation);
-			if (!xpd(oo, fc)) {
+
+			if (fc->infoMethod == INFO_METHOD_HESSIAN) {
+				ba81ComputeEMFit(oo, FF_COMPUTE_HESSIAN, fc);
+				if (state->freeLatents) {
+					CDlatentHessian(oo, fc);
+				}
+			} else {
+				omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+					       fc->infoMethod);
 				return INFINITY;
 			}
 			return 0;
@@ -1051,11 +1149,16 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_INFO) {
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
+			ba81SetupQuadrature(oo->expectation);
 
 			if (state->freeLatents) {
-				omxRaiseErrorf(globalState, "Cannot approximate latent parameter gradients");
+				if (fc->infoMethod == INFO_METHOD_MEAT) {
+					if (!xpd(oo, fc)) return INFINITY;
+				} else {
+					omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+						       fc->infoMethod);
+				}
 			} else {
-				ba81SetupQuadrature(oo->expectation);
 				sandwich(oo, fc);
 			}
 		}

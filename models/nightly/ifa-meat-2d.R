@@ -62,7 +62,7 @@ for (seed in 1:trials) {
                                   ItemParam="ItemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation', context="EM"),
+                  mxComputeOnce('expectation'),
                   mxComputeOnce('fitfunction', gradient=TRUE, information=TRUE, info.method="meat"))))
   
   objective1 <- function(x) {

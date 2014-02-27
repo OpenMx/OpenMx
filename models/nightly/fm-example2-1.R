@@ -3,6 +3,9 @@
 library(OpenMx)
 library(rpf)
 
+Scale <- -2
+mxOption(NULL, 'loglikelihoodScale', Scale)
+
 set.seed(1)
 m2.data <- suppressWarnings(try(read.table("models/nightly/data/g341-19.dat"), silent=TRUE))
 if (is(m2.data, "try-error")) m2.data <- read.table("data/g341-19.dat")
@@ -38,35 +41,28 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 				    mxComputeEM('expectation',
 				                mxComputeNewtonRaphson(free.set='ItemParam'),
 				                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
-				                information=TRUE, semDebug=TRUE),  #, verbose=2L, semDebug=TRUE
+				                information=TRUE, semDebug=TRUE, info.method="hessian"),
 				    mxComputeStandardError(),
 				    mxComputeHessianQuality())))
 
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
-omxCheckCloseEnough(m2@output$minimum, 33408.05, .01)
-#omxCheckTrue(m2@output$infoDefinite)
-#omxCheckCloseEnough(m2@output$conditionNumber, 61, 1)
-
+omxCheckCloseEnough(m2@output$minimum, Scale * 33408.05/-2, .01)
+omxCheckTrue(m2@output$infoDefinite)
+omxCheckCloseEnough(m2@output$conditionNumber, 51, 1)
 #cat(deparse(round(c(m2@output$standardErrors),3)))
-# se <- c(0.145, 0.091, 0.215, 0.174, 0.118, 0.077, 0.145, 0.093,
-#         0.118,  0.077, 0.208, 0.143, 0.408, 0.353, 0.144, 0.097,
-#         0.369, 0.269,  0.205, 0.148, 0.121, 0.07, 0.137, 0.073)
-# omxCheckCloseEnough(c(m2@output$standardErrors), se, .04)
+
+se <- c(0.071, 0.047, 0.109, 0.113, 0.062, 0.043, 0.073, 0.052, 0.063,
+        0.044, 0.098, 0.086, 0.181, 0.233, 0.075, 0.061, 0.153, 0.166,
+        0.102, 0.096, 0.064, 0.044, 0.069, 0.045)
+omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
 #max(abs(c(m2@output$standardErrors) - se))
 
 m3 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation', context="EM"),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"))))
+                mxComputeOnce('fitfunction', information=TRUE, info.method="hessian"))))
 m3 <- mxRun(m3, silent=TRUE)
-
-m4 <- mxModel(m2,
-              mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"))))
-m4 <- mxRun(m4, silent=TRUE)
-omxCheckCloseEnough(max(abs(m3@output$hessian - m4@output$hessian)), 0, 1e-12)
 
 m5 <- mxModel(m2,
               mxComputeSequence(steps=list(
@@ -78,29 +74,56 @@ m5 <- mxRun(m5, silent=TRUE)
 omxCheckTrue(m5@output$infoDefinite)
 omxCheckCloseEnough(m5@output$conditionNumber, 51, 1)
 
-if(0) {
-  is.symm <- function(a) max(abs(a- t(a)))
-  dm  <- m2@compute@steps[[1]]@debug$rateMatrix
-  dm1 <- (dm + t(dm)) / 2
-  is.symm(dm1)
-  dm2 <- diag(dim(dm)[1]) - dm1
-  is.symm(dm2)
-  H <- m3@output$hessian
-  is.symm(H)
-  iH <- solve(H)
-  is.symm(iH)
-  is.symm(solve(dm2))
-  emHess <- iH %*% solve(dm2)
-  emHess1 <- (emHess + t(emHess))/2
-  emHess2 <- solve(dm2 %*% H)
-  is.symm(emHess2)
-  eigen(emHess)$val
-  kappa(emHess, exact=TRUE)
-  kappa(emHess1, exact=TRUE)
-  sqrt(2*diag(emHess)) - m2@output$standardErrors
-  
-  max(abs(diag(emHess) - diag(solve(m5@output$hessian))))
-  
-  #print(m2@matrices$ItemParam@values - fmfit)
-  print(m2@output$backendTime)
+if (0) {
+  probe <- function(pt) {
+    ip.mat@values[,] <- pt
+    m6 <-mxModel(m2, ip.mat,
+                 mxComputeSequence(steps=list(
+                   mxComputeOnce('expectation', context=""),
+                   mxComputeOnce('fitfunction', fit=TRUE))))
+    m6 <- mxRun(m6, silent=TRUE)
+    fit <- m6@output$minimum
+    fit
+  }
+  require(numDeriv)
+  H.nd <- hessian(probe, m2@matrices$ItemParam@values, method.args=list(r=2))
 }
+
+quantifyAsymmetry <- function(info) {
+  sym1 <- (info + t(info))/2
+  sym2 <- try(chol(solve(sym1)), silent=TRUE)
+  if (inherits(sym2, "try-error")) return(NA)
+  asymV <- (info - t(info))/2
+  norm(sym2 %*% asymV %*% sym2, type="2")
+}
+  
+if(1) {
+  iinfo <- m2@compute@steps[[1]]@debug$inputInfo
+#  print(iinfo[1:5,1:5])
+  dm  <- m2@compute@steps[[1]]@debug$rateMatrix
+#  print(dm[1:5,1:5])
+  #  dm1 <- (dm + t(dm)) / 2
+  dm1 <- t(dm)   # without averaging with transpose
+  dm2 <- diag(dim(dm)[1]) - dm1
+  H <- m3@output$hessian
+  tmp <- (dm2 %*% H)
+  emHess <- solve(tmp)
+  tmp2 <- (tmp + t(tmp))/2
+  emHess2 <- solve(tmp2)
+  kappa(emHess2, exact=TRUE)
+  omxCheckCloseEnough(max(abs(m2@output$ihessian - emHess2)), 0, 1e-4)
+  #  sv <- svd(emHess)$d
+#  max(sv)/min(sv)
+  omxCheckCloseEnough(kappa(emHess, exact=TRUE), 51, 1)
+#  kappa(m2@output$ihessian, exact=TRUE)
+  
+  omxCheckCloseEnough(max(abs(diag(emHess) - diag(solve(m5@output$hessian)))), 0, .001)
+  omxCheckCloseEnough(quantifyAsymmetry(emHess), .071, .05)
+  omxCheckCloseEnough(quantifyAsymmetry(emHess2), 0, 1e-6)
+  #hist(abs(diag(emHess) - diag(solve(m5@output$hessian))))
+  
+  omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2@output$standardErrors)), 0, 3e-5)
+  #print(m2@matrices$ItemParam@values - fmfit)
+}
+
+print(m2@output$backendTime)

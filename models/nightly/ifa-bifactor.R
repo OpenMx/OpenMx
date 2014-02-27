@@ -103,7 +103,7 @@ omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 2)
 
 i1 <- mxModel(m1,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context="EM"),
+                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
@@ -118,14 +118,6 @@ se <- c(0.195, 0.275, 0.129, 0.12, 0.123, 0.083, 0.336, 0.196,  0.137, 0.157,
         0.125, 0.179, 0.178, 0.107, 0.151, 0.135, 0.101)
 omxCheckCloseEnough(i1@output$conditionNumber, 59, 1)
 omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)
-em.meat <- i1@output$hessian
-
-i1 <- mxModel(m1,
-              mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"))))
-i1 <- mxRun(i1, silent=TRUE)
-omxCheckCloseEnough(max(abs(i1@output$hessian - em.meat)), 0, .001)
 
 i2 <- mxModel(m1,
               mxComputeSequence(steps=list(

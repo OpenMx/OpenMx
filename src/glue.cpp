@@ -94,8 +94,11 @@ SEXP MxRList::asR()
 	PROTECT(names = allocVector(STRSXP, len));
 	PROTECT(ans = allocVector(VECSXP, len));
 	for (int lx=0; lx < len; ++lx) {
-		SET_STRING_ELT(names, lx, (*this)[lx].first);
-		SET_VECTOR_ELT(ans,   lx, (*this)[lx].second);
+		SEXP p1 = (*this)[lx].first;
+		SEXP p2 = (*this)[lx].second;
+		if (!p1 || !p2) error("Attempt to return NULL pointer to R");
+		SET_STRING_ELT(names, lx, p1);
+		SET_VECTOR_ELT(ans,   lx, p2);
 	}
 	namesgets(ans, names);
 	return ans;
