@@ -504,6 +504,7 @@ setClass(Class = "MxComputeEM",
 	     noiseTolerance="numeric",
 	     info.method="character",
 	     semFixSymmetry="logical",
+	     semForcePD="logical",
 	     agileMaxIter="integer"))
 
 setMethod("assignId", signature("MxComputeEM"),
@@ -566,7 +567,7 @@ setMethod("updateFromBackend", signature("MxComputeEM"),
 setMethod("initialize", "MxComputeEM",
 	  function(.Object, what, mstep.fit, fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
-		   semMethod, info.method, semFixSymmetry, agileMaxIter) {
+		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD) {
 		  .Object@name <- 'compute'
 		  .Object@what <- what
 		  .Object@mstep.fit <- mstep.fit
@@ -583,15 +584,18 @@ setMethod("initialize", "MxComputeEM",
 		  .Object@info.method <- info.method
 		  .Object@semFixSymmetry <- semFixSymmetry
 		  .Object@agileMaxIter <- agileMaxIter
+		  .Object@semForcePD <- semForcePD
 		  .Object
 	  })
 
 mxComputeEM <- function(expectation, mstep.fit, fit, maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-3), noiseTolerance=exp(1.5),
-			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L) {
+			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
+			semForcePD=TRUE) {
+	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
 	new("MxComputeEM", what=expectation, mstep.fit, fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
-	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter)
+	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD)
 }
 
 displayMxComputeEM <- function(opt) {
@@ -678,15 +682,12 @@ mxComputeNumericDeriv <- function(free.set=NULL, fitfunction='fitfunction',
 #----------------------------------------------------
 
 setClass(Class = "MxComputeStandardError",
-	 representation = representation(
-	     forcePositiveDefinite = "logical"),
 	 contains = "ComputeOperation")
 
 setMethod("initialize", "MxComputeStandardError",
-	  function(.Object, free.set, forcePositiveDefinite) {
+	  function(.Object, free.set) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
-		  .Object@forcePositiveDefinite <- forcePositiveDefinite
 		  .Object
 	  })
 
@@ -696,8 +697,8 @@ setMethod("initialize", "MxComputeStandardError",
 ##' @aliases
 ##' MxComputeStandardError-class
 
-mxComputeStandardError <- function(free.set=NULL, forcePositiveDefinite=TRUE) {
-	new("MxComputeStandardError", free.set, forcePositiveDefinite)
+mxComputeStandardError <- function(free.set=NULL) {
+	new("MxComputeStandardError", free.set)
 }
 
 #----------------------------------------------------

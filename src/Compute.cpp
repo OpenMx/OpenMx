@@ -795,9 +795,11 @@ class ComputeEM : public omxCompute {
 	int semMethodLen;
 	bool semDebug;
 	bool semFixSymmetry;
+	bool semForcePD;
 	int agileMaxIter;
 	SEXP rateMatrix; //debug
 	SEXP inputInfoMatrix; //debug
+	SEXP origEigenvalues; //debug
 	std::vector<Ramsay1975*> ramsay;
 	double noiseTarget;
 	double noiseTolerance;
@@ -831,10 +833,7 @@ const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) c
 
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
-	bool forcePD;
-	bool ihessToSE(FitContext *fc);
  public:
-	virtual void initFromFrontend(SEXP rObj);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -1015,6 +1014,78 @@ omxComputeIterate::~omxComputeIterate()
 	}
 }
 
+static void forcePD1(FitContext *fc, int numParams, double *ev)
+{
+	double *target = fc->ihess;
+	omxBuffer<double> hessWork(numParams * numParams);
+	memcpy(hessWork.data(), target, sizeof(double) * numParams * numParams);
+
+	char jobz = 'V';
+	char range = 'A';
+	char uplo = 'U';
+	double abstol = 0;
+	int m;
+	omxBuffer<double> w(numParams);
+	omxBuffer<double> z(numParams * numParams);
+	double optWork;
+	int optIwork;
+	int lwork = -1;
+	int liwork = -1;
+	int info;
+	double realIgn = 0;
+	int intIgn = 0;
+	omxBuffer<int> isuppz(numParams * 2);
+
+	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
+
+	lwork = optWork;
+	omxBuffer<double> work(lwork);
+	liwork = optIwork;
+	omxBuffer<int> iwork(liwork);
+	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
+	if (info < 0) {
+		error("dsyevr %d", info);
+	} else if (info) {
+		return;
+	}
+
+	std::vector<double> evalDiag(numParams * numParams);
+	double minEV = 0;
+	double maxEV = 0;
+	if (ev) memcpy(ev, w.data(), sizeof(double) * numParams);
+	for (int px=0; px < numParams; ++px) {
+		// record how many eigenvalues are zeroed TODO
+		if (w[px] < 0) {
+			continue;
+		}
+		evalDiag[px * numParams + px] = w[px];
+		if (w[px] > 0) {
+			if (minEV == 0) minEV = w[px];
+			else minEV = std::min(minEV, w[px]);
+			maxEV = std::max(maxEV, w[px]);
+		}
+	}
+
+	//fc->infoDefinite = true;  actually we don't know!
+	fc->infoCondNum = maxEV/minEV;
+
+	Matrix evMat(z.data(), numParams, numParams);
+	Matrix edMat(evalDiag.data(), numParams, numParams);
+	omxBuffer<double> prod1(numParams * numParams);
+	Matrix p1Mat(prod1.data(), numParams, numParams);
+	SymMatrixMultiply('R', 'U', 1.0, 0, edMat, evMat, p1Mat);
+	char transa = 'N';
+	char transb = 'T';
+	double alpha = 1.0;
+	double beta = 0;
+	F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
+			prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
+}
+
 void ComputeEM::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
@@ -1063,6 +1134,9 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("semFixSymmetry")));
 	semFixSymmetry = asLogical(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("semForcePD")));
+	semForcePD = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("ramsay")));
 	useRamsay = asLogical(slotValue);
@@ -1477,17 +1551,32 @@ void ComputeEM::compute(FitContext *fc)
 
 	SymMatrixMultiply('L', 'U', 1, 0, hessMat, rijMat, infoMat);  // result not symmetric!
 
-	if (semFixSymmetry) MeanSymmetric(infoMat);
-
-	Matrix ihessMat(fc->ihess, freeVars, freeVars);
-	int singular = MatrixSolve(infoMat, ihessMat, true); // can use symmetric invert if semFixSymmetry TODO
+	int singular;
+	if (semFixSymmetry) {
+		MeanSymmetric(infoMat);
+		singular = InvertSymmetricIndef(infoMat, 'U');
+		memcpy(fc->ihess, infoBuf.data(), sizeof(double) * freeVars * freeVars);
+	} else {
+		Matrix ihessMat(fc->ihess, freeVars, freeVars);
+		singular = MatrixSolve(infoMat, ihessMat, true);
+	}
 	if (singular) {
 		if (verbose >= 1) mxLog("ComputeEM: SEM Hessian is singular %d", singular);
 		return;
 	}
 
+	if (semForcePD) {
+		double *oev = NULL;
+		if (semDebug) {
+			origEigenvalues = allocVector(REALSXP, freeVars);
+			oev = REAL(origEigenvalues);
+		}
+		forcePD1(fc, freeVars, oev);
+	} else {
+		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
+	}
+
 	fc->wanted = wanted | FF_COMPUTE_IHESSIAN;
-	//fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
 	//pda(fc->ihess, freeVars, freeVars);
 }
 
@@ -1539,6 +1628,8 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			dbg.push_back(std::make_pair(mkChar("inputInfo"), inputInfoMatrix));
 		if (rateMatrix)
 			dbg.push_back(std::make_pair(mkChar("rateMatrix"), rateMatrix));
+		if (origEigenvalues)
+			dbg.push_back(std::make_pair(mkChar("origEigenvalues"), origEigenvalues));
 
 		slots->push_back(std::make_pair(mkChar("debug"), dbg.asR()));
 	}
@@ -1756,17 +1847,12 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	omxPopulateFitFunction(algebra, out);
 }
 
-void ComputeStandardError::initFromFrontend(SEXP rObj)
+void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
-	super::initFromFrontend(rObj);
+	fc->allocStderrs();  // at least report NAs
 
-	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("forcePositiveDefinite")));
-	forcePD = asLogical(slotValue);
-}
+	if (!fc->invertHessian()) return;
 
-bool ComputeStandardError::ihessToSE(FitContext *fc)
-{
 	int numParams = int(fc->varGroup->vars.size());
 
 	const double scale = fabs(Global->llScale);
@@ -1774,111 +1860,11 @@ bool ComputeStandardError::ihessToSE(FitContext *fc)
 	// This function calculates the standard errors from the Hessian matrix
 	// sqrt(scale * diag(solve(hessian)))
 
-	bool posdef = true;
 	for(int i = 0; i < numParams; i++) {
 		double got = fc->ihess[i * numParams + i];
-		if (got <= 0) {
-			posdef = false;
-			continue;
-		}
+		if (got <= 0) continue;
 		fc->stderrs[i] = sqrt(scale * got);
 	}
-
-	return posdef;
-}
-
-static void forcePD1(FitContext *fc, int numParams, double *ev)
-{
-	double *target = fc->ihess;
-	omxBuffer<double> hessWork(numParams * numParams);
-	memcpy(hessWork.data(), target, sizeof(double) * numParams * numParams);
-
-	char jobz = 'V';
-	char range = 'A';
-	char uplo = 'L';
-	double abstol = 0;
-	int m;
-	omxBuffer<double> w(numParams);
-	omxBuffer<double> z(numParams * numParams);
-	double optWork;
-	int optIwork;
-	int lwork = -1;
-	int liwork = -1;
-	int info;
-	double realIgn = 0;
-	int intIgn = 0;
-	omxBuffer<int> isuppz(numParams * 2);
-
-	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
-
-	lwork = optWork;
-	omxBuffer<double> work(lwork);
-	liwork = optIwork;
-	omxBuffer<int> iwork(liwork);
-	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
-	if (info < 0) {
-		error("dsyevr %d", info);
-	} else if (info) {
-		return;
-	}
-
-	std::vector<double> evalDiag(numParams * numParams);
-	double minEV = 0;
-	double maxEV = 0;
-	memcpy(ev, w.data(), sizeof(double) * numParams);
-	for (int px=0; px < numParams; ++px) {
-		// record how many eigenvalues are zeroed TODO
-		if (w[px] < 0) {
-			continue;
-		}
-		evalDiag[px * numParams + px] = w[px];
-		if (w[px] > 0) {
-			if (minEV == 0) minEV = w[px];
-			else minEV = std::min(minEV, w[px]);
-			maxEV = std::max(maxEV, w[px]);
-		}
-	}
-
-	fc->infoDefinite = true;
-	fc->infoCondNum = maxEV/minEV;
-
-	Matrix evMat(z.data(), numParams, numParams);
-	Matrix edMat(evalDiag.data(), numParams, numParams);
-	omxBuffer<double> prod1(numParams * numParams);
-	Matrix p1Mat(prod1.data(), numParams, numParams);
-	SymMatrixMultiply('R', 'U', 1.0, 0, edMat, evMat, p1Mat);
-	char transa = 'N';
-	char transb = 'T';
-	double alpha = 1.0;
-	double beta = 0;
-	F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
-			prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
-}
-
-void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
-{
-	fc->allocStderrs();  // at least report NAs
-
-	if (!fc->invertHessian()) return;
-
-	//bool posdef = ihessToSE(fc);
-
-	int numParams = int(fc->varGroup->vars.size());
-
-	SEXP Rev;
-	PROTECT(Rev = allocVector(REALSXP, numParams));
-	if (/*!posdef &&*/ forcePD) {
-		forcePD1(fc, numParams, REAL(Rev));
-		ihessToSE(fc);
-	}
-
-	MxRList out;
-	out.push_back(std::make_pair(mkChar("eigenvalues"), Rev));
-	slots->push_back(std::make_pair(mkChar("output"), out.asR()));
 }
 
 /*
@@ -1906,7 +1892,9 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
-	if (fc->infoDefinite != NA_LOGICAL) return; // already set elsewhere
+	// memcmp is required here because NaN != NaN always
+	if (fc->infoDefinite != NA_LOGICAL ||
+	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) return; // already set elsewhere
 
 	int numParams = int(fc->varGroup->vars.size());
 
