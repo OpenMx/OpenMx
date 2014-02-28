@@ -40,7 +40,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, fixed = FALSE)
 }
 
 \details{
-The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxAlgebraObjective} function. The \code{mxAlgebraObjective} function must reference the \code{MxAlgebra} object to be evaluated by name.
+The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxFitFunctionAlgebra} function. The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
 
 The following operators and functions are supported in mxAlgebra:
 
@@ -54,7 +54,7 @@ Operators
 \item{\code{+}}{Addition}
 \item{\code{-}}{Subtraction}
 \item{\code{\%*\%}}{Matrix Multiplication}
-\item{\code{*}}{Element or dot product}
+\item{\code{*}}{Element product}
 \item{\code{/}}{Element division}
 \item{\code{\%x\%}}{Kronecker product}
 \item{\code{\%&\%}}{Quadratic product}
@@ -112,7 +112,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxAlgebraObjective} for an objective functions which takes an  MxAlgebra or MxMatrix object as the function to be minimized. 
+\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxFitFunctionAlgebra} for an objective function which takes an  MxAlgebra or MxMatrix object as the function to be minimized. 
 \link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'expression' argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
