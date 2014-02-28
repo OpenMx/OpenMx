@@ -756,8 +756,8 @@ class omxComputeOnce : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
+	std::vector< const char* > predict;
 	int verbose;
-	const char *context;
 	bool mac;
 	bool fit;
 	bool gradient;
@@ -778,6 +778,7 @@ class omxComputeOnce : public omxCompute {
 class ComputeEM : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxExpectation* > expectations;
+	const char *predict;
 	omxCompute *fit1;
 	omxCompute *fit2;
 	int EMcycles;
@@ -814,7 +815,7 @@ class ComputeEM : public omxCompute {
 	size_t maxHistLen;
 	int semProbeCount;
 
-	void setExpectationContext(const char *context);
+	void setExpectationPrediction(const char *context);
 	void probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
 	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			double *stdDiff, bool *mengOK);
@@ -1098,6 +1099,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("information")));
 	information = asLogical(slotValue);
+	infoMethod = INFO_METHOD_DEFAULT;
 
 	if (information) {
 		PROTECT(slotValue = GET_SLOT(rObj, install("info.method")));
@@ -1153,7 +1155,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	noiseTolerance = REAL(slotValue)[0];
 	if (noiseTolerance < 1) error("noiseTolerance must be >=1");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
 	for (int wx=0; wx < length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
 		omxExpectation *expectation = globalState->expectationList[objNum];
@@ -1162,7 +1164,16 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		expectations.push_back(expectation);
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("completed.fit")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("predict")));
+	{
+		// Should accept a vector here TODO
+		if (length(slotValue) != 1) error("Not implemented");
+		SEXP elem;
+		PROTECT(elem = STRING_ELT(slotValue, 0));
+		predict = CHAR(elem);
+	}
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("mstep")));
 	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
@@ -1178,11 +1189,11 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	semTolerance = sqrt(tolerance);  // override needed?
 }
 
-void ComputeEM::setExpectationContext(const char *context)
+void ComputeEM::setExpectationPrediction(const char *context)
 {
 	for (size_t wx=0; wx < expectations.size(); ++wx) {
 		omxExpectation *expectation = expectations[wx];
-		if (verbose >= 4) mxLog("ComputeEM: expectation[%lu] %s context %s", wx, expectation->name, context);
+		if (verbose >= 4) mxLog("ComputeEM: expectation[%lu] %s predict %s", wx, expectation->name, context);
 		omxExpectationCompute(expectation, context);
 	}
 }
@@ -1198,7 +1209,7 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->est[vx] += offset;
 	fc->copyParamToModel(globalState);
 
-	setExpectationContext("EM");
+	setExpectationPrediction(predict);
 	FitContext *emfc = new FitContext(fc, fit1->varGroup);
 	emfc->copyParamToModel(globalState);
 	fit1->compute(emfc);
@@ -1206,7 +1217,7 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 
 	const size_t extraVars = fit2->varGroup->vars.size();
 	if (extraVars) {
-		setExpectationContext("observed");
+		setExpectationPrediction("nothing");
 		if (0) {
 			// do we need to completely optimize the latent parameter?
 			int iter = 0;
@@ -1296,7 +1307,7 @@ void ComputeEM::compute(FitContext *fc)
 				tolerance, useRamsay, information, ramsay.size());
 
 	while (1) {
-		setExpectationContext("EM");
+		setExpectationPrediction(predict);
 
 		{
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
@@ -1310,7 +1321,7 @@ void ComputeEM::compute(FitContext *fc)
 			fc1->updateParentAndFree();
 		}
 
-		setExpectationContext("observed");
+		setExpectationPrediction("nothing");
 		{
 			FitContext *context = fc;
 			if (fc->varGroup != fit2->varGroup) {
@@ -1531,7 +1542,7 @@ void ComputeEM::compute(FitContext *fc)
 
 	// if (infoMethod == HESSIAN) we already have it  TODO
 
-	setExpectationContext("EM");
+	setExpectationPrediction(predict);
 	fc->wanted = 0;
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
@@ -1679,7 +1690,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("from")));
 	for (int wx=0; wx < length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
 		if (objNum >= 0) {
@@ -1700,56 +1711,46 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
 
-	context = "observed";
+	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
+	if (algebras.size()) {
+		for (int wx=0; wx < length(slotValue); ++wx) {
+			SEXP elem;
+			PROTECT(elem = STRING_ELT(slotValue, wx));
+			const char *what = CHAR(elem);
+			if      (strcmp(what, "maxAbsChange")==0) mac = true;
+			else if (strcmp(what, "fit")         ==0) fit = true;
+			else if (strcmp(what, "gradient")    ==0) gradient = true;
+			else if (strcmp(what, "hessian")     ==0) hessian = true;
+			else if (strcmp(what, "information") ==0) infoMat = true;
+			else if (strcmp(what, "ihessian")    ==0) ihessian = true;
+			else omxRaiseErrorf(globalState, "mxComputeOnce: don't know how to compute %s", what);
+		}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("context")));
-	if (length(slotValue) == 0) {
-		// OK
-	} else if (length(slotValue) == 1) {
-		SEXP elem;
-		PROTECT(elem = STRING_ELT(slotValue, 0));
-		context = CHAR(elem);
+		if (hessian && infoMat) error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
+	} else {
+		for (int wx=0; wx < length(slotValue); ++wx) {
+			SEXP elem;
+			PROTECT(elem = STRING_ELT(slotValue, wx));
+			predict.push_back(CHAR(elem));
+		}
 	}
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("maxAbsChange")));
-	mac = asLogical(slotValue);
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("fit")));
-	fit = asLogical(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install(".is.bestfit")));
 	isBestFit = asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("gradient")));
-	gradient = asLogical(slotValue);
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("hessian")));
-	hessian = asLogical(slotValue);
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("information")));
-	infoMat = asLogical(slotValue);
-
-	if (hessian && infoMat) error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
-
-	if (infoMat) {
-		const char *iMethod = "";
-		PROTECT(slotValue = GET_SLOT(rObj, install("info.method")));
-		if (length(slotValue) == 0) {
-			// OK
-		} else if (length(slotValue) == 1) {
-			SEXP elem;
-			PROTECT(elem = STRING_ELT(slotValue, 0));
-			iMethod = CHAR(elem);
+	PROTECT(slotValue = GET_SLOT(rObj, install("how")));
+	if (length(slotValue) > 1) {
+		omxRaiseErrorf(globalState, "mxComputeOnce: more than one method specified");
+	} else if (length(slotValue) == 1) {
+		SEXP elem;
+		PROTECT(elem = STRING_ELT(slotValue, 0));
+		const char *iMethod = CHAR(elem);
+		if (infoMat) {
+			infoMethod = stringToInfoMethod(iMethod);
+		} else {
+			omxRaiseErrorf(globalState, "mxComputeOnce: unknown method %s requested", iMethod);
 		}
-
-		infoMethod = stringToInfoMethod(iMethod);
 	}
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("ihessian")));
-	ihessian = asLogical(slotValue);
-
-	PROTECT(slotValue = GET_SLOT(rObj, install("hgprod")));
-	hgprod = asLogical(slotValue);
 
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {
 		omxFitFunction *ff = algebras[0]->fitFunction;
@@ -1831,10 +1832,11 @@ void omxComputeOnce::compute(FitContext *fc)
 			}
 		}
 	} else if (expectations.size()) {
+		if (predict.size() > 1) error("Not implemented");
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
-			if (verbose) mxLog("ComputeOnce: expectation[%lu] %p context %s", wx, expectation, context);
-			omxExpectationCompute(expectation, context);
+			if (verbose) mxLog("ComputeOnce: expectation[%lu] %p predict %s", wx, expectation, predict[0]);
+			omxExpectationCompute(expectation, predict[0]);
 		}
 	}
 }

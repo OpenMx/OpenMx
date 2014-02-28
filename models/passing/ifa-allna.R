@@ -33,7 +33,7 @@ mkmodel <- function(data) {
           mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
                             ItemSpec=items, design=design, ItemParam="ItemParam", qpoints=29),
           mxFitFunctionML(),
-          mxComputeOnce('expectation', context='EM'))
+          mxComputeOnce('expectation', 'scores'))
 }
 
 tdata <- data

@@ -57,7 +57,7 @@ if (1) {
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
                       mxComputeOnce('expectation'),
-                      mxComputeOnce('fitfunction', fit=TRUE))))
+                      mxComputeOnce('fitfunction', 'fit'))))
   cModel <- mxRun(cModel)
   omxCheckCloseEnough(cModel@fitfunction@result, 2733.844, .001)
 }
@@ -68,7 +68,7 @@ if (1) {
                 mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
-                mxComputeOnce('expectation', context='EM'))
+                mxComputeOnce('expectation', 'scores'))
   m2 <- mxRun(m2)
   omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
                       c(-6.20509, -4.8708, -3.63479, -2.5941, -1.00029), .01)
@@ -77,9 +77,9 @@ if (1) {
   omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 1667, .1)
 }
 
-plan <- mxComputeEM('expectation',
+plan <- mxComputeEM('expectation', 'scores',
                       mxComputeNewtonRaphson(free.set='itemParam'),
-                      mxComputeOnce('fitfunction', fit=TRUE,
+                      mxComputeOnce('fitfunction', 'fit',
                                     free.set=c("mean", "cov")))
 
 m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,

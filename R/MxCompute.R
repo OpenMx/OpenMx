@@ -102,23 +102,16 @@ setMethod("convertForBackend", signature("ComputeOperation"),
 setClass(Class = "MxComputeOnce",
 	 contains = "ComputeOperation",
 	 representation = representation(
-	   what = "MxCharOrNumber",
-	   verbose = "integer",
-	   context = "character",
-	   maxAbsChange = "logical",
-	   fit = "logical",
-	   gradient = "logical",
-	   hessian = "logical",
-	     information = "logical",
-	     info.method = "MxOptionalChar",
-	   ihessian = "logical",
-	   hgprod = "logical",
+	     from = "MxCharOrNumber",
+	     what = "character",
+	     how = "MxOptionalChar",
+	     verbose = "integer",
 	     .is.bestfit="logical"))
 
 setMethod("qualifyNames", signature("MxComputeOnce"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('what')) {
+		for (sl in c('from')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
@@ -128,76 +121,58 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod()
 		name <- .Object@name
-		if (any(!is.integer(.Object@what))) {
-			expNum <- match(.Object@what, names(flatModel@expectations))
-			algNum <- match(.Object@what, append(names(flatModel@algebras),
+		if (any(!is.integer(.Object@from))) {
+			expNum <- match(.Object@from, names(flatModel@expectations))
+			algNum <- match(.Object@from, append(names(flatModel@algebras),
 							     names(flatModel@fitfunctions)))
 			if (any(is.na(expNum)) && any(is.na(algNum))) {
 				stop(paste("Can only apply MxComputeOnce to MxAlgebra or MxExpectation not",
-					   deparse(.Object@what)))
+					   deparse(.Object@from)))
 			}
 			if (!any(is.na(expNum))) {
 					# Usually negative numbers indicate matrices; not here
-				.Object@what <- - expNum
+				.Object@from <- - expNum
 			} else {
 				if (any(algNum > length(flatModel@algebras)) && length(algNum) > 1) {
 					stop("MxComputeOnce cannot evaluate more than 1 fit function")
 				}
-				.Object@what <- algNum - 1L
+				.Object@from <- algNum - 1L
 			}
-		}
-		if (length(.Object@what) == 0) warning("MxComputeOnce with nothing will have no effect")
-		if (all(.Object@what >= 0) && !.Object@maxAbsChange && !.Object@fit && !.Object@gradient &&
-			    !.Object@hessian && !.Object@information && !.Object@ihessian && !.Object@hgprod) {
-			warning("MxComputeOnce with no action")
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, what, free.set, context, maxAbsChange, fit, gradient,
-		   hessian, information, info.method, ihessian, hgprod, verbose, .is.bestfit) {
+	  function(.Object, from, what, how, free.set, verbose, .is.bestfit) {
 		  .Object@name <- 'compute'
+		  .Object@from <- from
 		  .Object@what <- what
-		  .Object@verbose = verbose
+		  .Object@how <- how
 		  .Object@free.set <- free.set
-		  .Object@context <- context
-		  .Object@maxAbsChange <- maxAbsChange
-		  .Object@fit <- fit
-		  .Object@gradient <- gradient
-		  .Object@hessian <- hessian
-		  .Object@information <- information
-		  .Object@info.method <- info.method
-		  .Object@ihessian <- ihessian
-		  .Object@hgprod <- hgprod
+		  .Object@verbose = verbose
 		  .Object@.is.bestfit <- .is.bestfit
 		  .Object
 	  })
 
 ##' Compute something once
 ##'
+##' Some models are optimized for a sparse Hessian. Therefore, it can
+##' be much more efficient to compute the inverse Hessian in
+##' comparison to computing the Hessian and then inverting it.
+##'
 ##' The information matrix is only valid when parameters are at the
 ##' maximum likelihood estimate. The information matrix is returned in
 ##' model@output$hessian. You cannot request both the information
 ##' matrix and the Hessian. The information matrix is invarient to the
 ##' sign of the log likelihood scale whereas the Hessian is not.
+##' Use the \code{how} parameter to specify which approximation to use
+##' (one of "default", "hessian", "sandwich", "bread", and "meat").
 ##'
-##' Some models are optimized for a sparse Hessian. Therefore, it can
-##' be much more efficient to compute the inverse Hessian in
-##' comparison to computing the Hessian and then inverting it.
-##' 
-##' @param what what to compute (a vector of expectation or algebra names)
+##' @param from the object to perform the computation (a vector of expectation or algebra names)
+##' @param what what to compute (defaults is "nothing")
+##' @param how how to compute it (optional)
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param free.set names of matrices containing free variables (defaults to all free variables)
-##' @param context set the context for expectations
-##' @param maxAbsChange compute the maximum absolute change metric
-##' @param fit compute the fit statistic (often in log likelihood units)
-##' @param gradient compute the analytic gradient
-##' @param hessian compute the analytic Hessian
-##' @param information compute the analytic information matrix
-##' @param info.method which analytic method to use to compute the information
-##' matrix (one of "hessian", "sandwich", "bread", and "meat")
-##' @param ihessian compute the analytic inverse Hessian
-##' @param hgprod not implemented
 ##' @param verbose the level of debugging output
 ##' @param .is.bestfit do not use; for backward compatibility
 ##' @aliases
@@ -215,12 +190,13 @@ setMethod("initialize", "MxComputeOnce",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$fit  # 972.15
 
-mxComputeOnce <- function(what, free.set=NULL, context="observed",
-			  maxAbsChange=FALSE, fit=FALSE, gradient=FALSE,
-			  hessian=FALSE, information=FALSE, info.method=NULL,
-			  ihessian=FALSE, hgprod=FALSE, verbose=0L, .is.bestfit=FALSE) {
-	new("MxComputeOnce", what, free.set, context, maxAbsChange, fit, gradient,
-	    hessian, information, info.method, ihessian, hgprod, verbose, .is.bestfit)
+mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
+			  free.set=NULL, verbose=0L, .is.bestfit=FALSE) {
+	if (length(from) == 0) warning("mxComputeOnce from nothing will have no effect")
+	if (length(what) > 1 && !missing(how)) {
+		stop("mxComputeOnce: when how is specified, you can only compute one thing at a time")
+	}
+	new("MxComputeOnce", from, what, how, free.set, verbose, .is.bestfit)
 }
 
 #----------------------------------------------------
@@ -507,8 +483,9 @@ setMethod("show",  "MxComputeIterate", function(object) displayMxComputeIterate(
 setClass(Class = "MxComputeEM",
 	 contains = "ComputeOperation",
 	 representation = representation(
-	     what = "MxCharOrNumber",
-	     completed.fit = "MxCompute",
+	     expectation = "MxCharOrNumber",
+	     predict = "character",
+	     mstep = "MxCompute",
 	     observed.fit = "MxCompute",
 	     maxIter = "integer",
 	     tolerance = "numeric",
@@ -526,7 +503,7 @@ setClass(Class = "MxComputeEM",
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id) {
-		.Object@completed.fit <- assignId(.Object@completed.fit, id)
+		.Object@mstep <- assignId(.Object@mstep, id)
 		.Object@observed.fit <- assignId(.Object@observed.fit, id + 1L)
 		.Object@id <- id + 2L
 		.Object
@@ -535,7 +512,7 @@ setMethod("assignId", signature("MxComputeEM"),
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
 		result <- callNextMethod()
-		for (step in c(.Object@completed.fit, .Object@observed.fit)) {
+		for (step in c(.Object@mstep, .Object@observed.fit)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
 		}
@@ -545,10 +522,10 @@ setMethod("getFreeVarGroup", signature("MxComputeEM"),
 setMethod("qualifyNames", signature("MxComputeEM"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('what')) {
+		for (sl in c('expectation')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
-		for (sl in c('completed.fit', 'observed.fit')) {
+		for (sl in c('mstep', 'observed.fit')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
@@ -558,16 +535,16 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 	function(.Object, flatModel, model) {
 		.Object <- callNextMethod()
 		name <- .Object@name
-		if (any(!is.integer(.Object@what))) {
-			expNum <- match(.Object@what, names(flatModel@expectations))
+		if (any(!is.integer(.Object@expectation))) {
+			expNum <- match(.Object@expectation, names(flatModel@expectations))
 			if (any(is.na(expNum))) {
 				stop(paste("Can only apply MxComputeEM to MxExpectation",
-					   deparse(.Object@what)))
+					   deparse(.Object@expectation)))
 			}
-			.Object@what <- expNum - 1L
+			.Object@expectation <- expNum - 1L
 		}
-		if (length(.Object@what) == 0) warning("MxComputeEM with nothing will have no effect")
-		for (sl in c('completed.fit', 'observed.fit')) {
+		if (length(.Object@expectation) == 0) warning("MxComputeEM with nothing will have no effect")
+		for (sl in c('mstep', 'observed.fit')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		.Object
@@ -576,18 +553,19 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 setMethod("updateFromBackend", signature("MxComputeEM"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
-		.Object@completed.fit <- updateFromBackend(.Object@completed.fit, computes)
+		.Object@mstep <- updateFromBackend(.Object@mstep, computes)
 		.Object@observed.fit <- updateFromBackend(.Object@observed.fit, computes)
 		.Object
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, what, completed.fit, observed.fit, maxIter, tolerance,
+	  function(.Object, expectation, predict, mstep, observed.fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
 		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD) {
 		  .Object@name <- 'compute'
-		  .Object@what <- what
-		  .Object@completed.fit <- completed.fit
+		  .Object@expectation <- expectation
+		  .Object@predict <- predict
+		  .Object@mstep <- mstep
 		  .Object@observed.fit <- observed.fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
@@ -605,12 +583,16 @@ setMethod("initialize", "MxComputeEM",
 		  .Object
 	  })
 
-mxComputeEM <- function(expectation, completed.fit, observed.fit, maxIter=500L, tolerance=1e-4,
+mxComputeEM <- function(expectation, predict, mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-3), noiseTolerance=exp(1.5),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
 			semForcePD=TRUE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeEM does not accept values for the '...' argument")
+	}
 	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
-	new("MxComputeEM", what=expectation, completed.fit, observed.fit, maxIter=maxIter,
+	new("MxComputeEM", expectation, predict, mstep, observed.fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
 	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD)
 }

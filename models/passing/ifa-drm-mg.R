@@ -28,9 +28,9 @@ if(1) {
 		      mxExpectationBA81(mean="mean", cov="cov",
 					ItemSpec=items, ItemParam="itemParam"),
 		      mxFitFunctionML(),
-		      mxComputeEM('expectation',
+		      mxComputeEM('expectation', 'scores',
 				  mxComputeNewtonRaphson(free.set='itemParam'),
-				  mxComputeOnce('fitfunction', free.set=c("mean", "cov"), fit=TRUE)))
+				  mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))))
 	
 	if (0) {
 		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
@@ -43,7 +43,7 @@ if(1) {
 						    scores="full"),
 				  mxComputeSequence(steps=list(
 						      mxComputeOnce('expectation'),
-						      mxComputeOnce('fitfunction', fit=TRUE))))
+						      mxComputeOnce('fitfunction', 'fit'))))
 		cModel <- mxRun(cModel)
 		cModel@matrices$cov@values - fm$G1$cov
 		cModel@output$minimum
@@ -81,8 +81,8 @@ if (1) {
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation', context='EM'),
-                  mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE, ihessian=TRUE)
+                  mxComputeOnce('expectation', 'scores'),
+                  mxComputeOnce('fitfunction', c('gradient', 'hessian', 'ihessian'))
                 )))
   m2 <- mxRun(m2)
   omxCheckCloseEnough(m2@output$ihessian, solve(m2@output$hessian), 1e-4)
@@ -92,9 +92,9 @@ if (1) {
                 mxExpectationBA81(mean="mean", cov="cov",
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
-                mxComputeEM('expectation',
+                mxComputeEM('expectation', 'scores',
 			    mxComputeNewtonRaphson(free.set='itemParam'),
-			    mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))))
+			    mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))))
 
   m2 <- mxRun(m2)
   omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)

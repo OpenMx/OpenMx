@@ -33,7 +33,7 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov", qpoints=31),
               mxFitFunctionML(),
-	      mxComputeOnce('expectation', context='EM'))
+	      mxComputeOnce('expectation', 'scores'))
 m2 <- mxRun(m2)
 omxCheckCloseEnough(sum(m2@expectation@debug$patternLikelihood), -2032.9, .1)
 omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
@@ -48,11 +48,10 @@ em.tbl <- rbind(apply(em.ex[1,,], 2, sum)[1:numItems],
 omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table), em.tbl, .01)
 
 testDeriv <- mxModel(m2,
-	      mxComputeIterate(steps=list(
-				 mxComputeOnce('expectation', context='EM'),
-				 mxComputeOnce('fitfunction', fit=TRUE,
-					       gradient=TRUE, hessian=TRUE, ihessian=TRUE)
-				 )))
+	      mxComputeIterate(list(
+		  mxComputeOnce('expectation', 'scores'),
+		  mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian'))
+		  )))
 testDeriv <- mxRun(testDeriv)
 omxCheckCloseEnough(testDeriv@fitfunction@result, 2*3221.826, .01)
 omxCheckCloseEnough(fivenum(testDeriv@output$gradient), 2*c(-128.034, -8.294, 10.7, 25.814, 107.966), .01)
@@ -67,9 +66,9 @@ m2 <- mxModel(m2,
                 mean="mean", cov="cov",
                 qpoints=31,
                 scores="full"),
-	      mxComputeEM('expectation',
+	      mxComputeEM('expectation', 'scores',
 			  mxComputeNewtonRaphson(free.set='itemParam'),
-			  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)))
+			  mxComputeOnce('fitfunction', 'fit', free.set=c("mean","cov"))))
 
 # 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 # 	m2 <- mxOption(m2, "Verify level", '-1')
@@ -91,8 +90,8 @@ omxCheckCloseEnough(cor(c(scores[,1]), ability), .737, .01)
 #mxOption(NULL, 'loglikelihoodScale', -2)
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context="EM"),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="hessian"),
+                mxComputeOnce('expectation', 'scores'),
+                mxComputeOnce('fitfunction', 'information', "hessian"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)
@@ -105,7 +104,7 @@ omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)
@@ -116,7 +115,7 @@ omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)
 i2 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich"),
+                mxComputeOnce('fitfunction', 'information', "sandwich"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)

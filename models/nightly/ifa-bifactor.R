@@ -54,7 +54,7 @@ m1 <- mxModel(model="bifactor",
           mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
 			    ItemSpec=items, design=design, ItemParam="ItemParam", qpoints=29),
 	      mxFitFunctionML(),
-	      mxComputeOnce('expectation', context='EM'))
+	      mxComputeOnce('expectation', 'scores'))
 m1 <- mxRun(m1)
 
 omxCheckCloseEnough(sum(m1@expectation@debug$patternLikelihood), -12629.4, .1)
@@ -66,8 +66,8 @@ omxCheckCloseEnough(fivenum(m1@expectation@debug$em.expected),
 
 m1 <- mxModel(m1,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context='EM'),
-                mxComputeOnce('fitfunction', fit=TRUE, gradient=TRUE, hessian=TRUE)
+                mxComputeOnce('expectation', 'scores'),
+                mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian'))
               )))
 m1 <- mxRun(m1)
 omxCheckCloseEnough(m1@fitfunction@result, 2*11850.68, .01)
@@ -82,9 +82,9 @@ m1 <- mxModel(m1,
                                 design=design,
                                 ItemParam="ItemParam",
                                 qpoints=29, scores="full"),
-              mxComputeEM('expectation',
+              mxComputeEM('expectation', 'scores',
 			  mxComputeNewtonRaphson(free.set='ItemParam'),
-			  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)
+			  mxComputeOnce('fitfunction', 'fit', free.set=c("mean","cov"))
 				 ))
 
 m1 <- mxRun(m1, silent=TRUE)
@@ -104,7 +104,7 @@ omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 2)
 i1 <- mxModel(m1,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)
@@ -122,7 +122,7 @@ omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)
 i2 <- mxModel(m1,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="sandwich"),
+                mxComputeOnce('fitfunction', 'information', "sandwich"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)

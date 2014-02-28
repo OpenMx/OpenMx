@@ -38,9 +38,9 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
 	      mxComputeSequence(steps=list(
-				    mxComputeEM('expectation',
+				    mxComputeEM('expectation', 'scores',
 				                mxComputeNewtonRaphson(free.set='ItemParam'),
-				                mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
+				                mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov")),
 				                information=TRUE, semDebug=TRUE, info.method="hessian"),
 				    mxComputeStandardError(),
 				    mxComputeHessianQuality())))
@@ -60,8 +60,8 @@ omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
 
 m3 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context="EM"),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="hessian"))))
+                mxComputeOnce('expectation', 'scores'),
+                mxComputeOnce('fitfunction', 'information', "hessian"))))
 m3 <- mxRun(m3, silent=TRUE)
 
 m5 <- mxModel(m2,
@@ -80,7 +80,7 @@ if (0) {
     m6 <-mxModel(m2, ip.mat,
                  mxComputeSequence(steps=list(
                    mxComputeOnce('expectation'),
-                   mxComputeOnce('fitfunction', fit=TRUE))))
+                   mxComputeOnce('fitfunction', 'fit'))))
     m6 <- mxRun(m6, silent=TRUE)
     fit <- m6@output$minimum
     fit

@@ -60,13 +60,15 @@ m1 <- mxModel(model="2dim",
 	    qpoints=29,
 	    scores="full"),
           mxFitFunctionML(),
-              mxComputeEM('expectation',
+              mxComputeEM('expectation', 'scores',
 			  mxComputeNewtonRaphson(free.set='ItemParam'),
-			  mxComputeOnce('fitfunction', free.set=c('mean','cov'), fit=TRUE)))
+			  mxComputeOnce('fitfunction', 'fit', free.set=c('mean','cov'))))
 
+if(0){
 	m1 <- mxOption(m1, "Analytic Gradients", 'Yes')
 	m1 <- mxOption(m1, "Verify level", '-1')
-m1 <- mxOption(m1, "Function precision", '1.0E-5')
+	m1 <- mxOption(m1, "Function precision", '1.0E-5')
+}
 
 m1 <- mxRun(m1, silent=TRUE)
 

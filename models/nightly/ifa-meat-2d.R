@@ -61,9 +61,9 @@ for (seed in 1:trials) {
                                   ItemSpec=items,
                                   ItemParam="ItemParam"),
                 mxFitFunctionML(),
-                mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', gradient=TRUE, information=TRUE, info.method="meat"))))
+                mxComputeSequence(list(
+		    mxComputeOnce('expectation'),
+		    mxComputeOnce('fitfunction', 'gradient'))))
   
   objective1 <- function(x) {
     ip.mat@values[,1:2] <- x[1:6]
@@ -75,7 +75,7 @@ for (seed in 1:trials) {
     m1.probe <- mxModel(m1, ip.mat, m.mat, cov.mat,
                         mxComputeSequence(steps=list(
                           mxComputeOnce('expectation'),
-                          mxComputeOnce('fitfunction', fit=TRUE))))
+                          mxComputeOnce('fitfunction', 'fit'))))
     m1.probe <- mxRun(m1.probe, silent=TRUE)
     got <- m1.probe@output$minimum
     #  print(got)

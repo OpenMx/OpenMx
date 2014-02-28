@@ -58,28 +58,28 @@ groups <- paste("g", 1:3, sep="")
   # Cannot test derivatives at starting values because Hessian starts very close to singular.
   
 plan <- mxComputeSequence(steps=list(
-  mxComputeEM(paste(groups, 'expectation', sep='.'),
+  mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
               mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-              mxComputeOnce('fitfunction', fit=TRUE,
+              mxComputeOnce('fitfunction', 'fit',
                             free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
-              information=TRUE, info.method="hessian"),
+              information=TRUE),
   mxComputeStandardError(),
   mxComputeHessianQuality()))
 
 if(0) {
   plan <- mxComputeEM(paste(groups, 'expectation', sep='.'),
                       mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-                      mxComputeOnce('fitfunction', fit=TRUE,
+                      mxComputeOnce('fitfunction', 'fit',
                                     free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
                       information=TRUE, info.method="meat", semDebug=TRUE, semMethod=seq(.001, .02, length.out=30))
 }
   
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeSequence(steps=list(
-		      mxComputeEM(paste(groups, 'expectation', sep='.'),
+                      mxComputeSequence(list(
+		      mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
 		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-		                  mxComputeOnce('fitfunction', fit=TRUE,
+		                  mxComputeOnce('fitfunction', 'fit',
 		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
                       information=TRUE, tolerance=1e-5),
           mxComputeStandardError(),
@@ -140,7 +140,7 @@ omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(
                   mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                  mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1)

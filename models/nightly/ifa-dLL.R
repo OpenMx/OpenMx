@@ -79,8 +79,8 @@ if (0) {   # enable to generate answer file
         m2@matrices$itemParam@values[1:np,ii] <- param
         lModel <- mxModel(m2,
                           mxComputeSequence(steps=list(
-                            mxComputeOnce('expectation', context='EM'),
-                            mxComputeOnce('fitfunction', fit=TRUE)
+                            mxComputeOnce('expectation', 'scores'),
+                            mxComputeOnce('fitfunction', 'fit')
                           )))
         fit <- mxRun(lModel, silent=TRUE)
         fit@output$minimum
@@ -106,8 +106,8 @@ if (is(ans, "try-error")) ans <- read.table("data/dLL.csv")
 
 m2 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation', context='EM'),
-                mxComputeOnce('fitfunction', gradient=TRUE, hessian=TRUE)
+                mxComputeOnce('expectation', 'scores'),
+                mxComputeOnce('fitfunction', c('gradient', 'hessian'))
               )))
 
 if (1) {  # enable to examine the RMSE by item model
@@ -214,8 +214,8 @@ if (0) {
       m2@matrices$itemParam@values[1:np,ii] <- param
       lModel <- mxModel(m2,
                         mxComputeSequence(steps=list(
-                          mxComputeOnce('expectation', context='EM'),
-                          mxComputeOnce('fitfunction', fit=TRUE)
+                          mxComputeOnce('expectation', 'scores'),
+                          mxComputeOnce('fitfunction', 'fit')
                         )))
       fit <- mxRun(lModel, silent=TRUE)
       ll <- fit@output$minimum

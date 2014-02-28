@@ -59,16 +59,16 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov"))
+                  mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))
                 )))
   cM <- mxRun(cM, silent=TRUE)
   omxCheckCloseEnough(cM@fitfunction@result, 50661.38, .01)
 }
 
 plan <- mxComputeSequence(steps=list(
-  mxComputeEM('expectation',
+  mxComputeEM('expectation', 'scores',
               mxComputeNewtonRaphson(free.set='ItemParam'),
-              mxComputeOnce('fitfunction', fit=TRUE, free.set=c("mean", "cov")),
+              mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov")),
               information=TRUE),
   mxComputeStandardError(),
   mxComputeHessianQuality()))
@@ -106,7 +106,7 @@ n <- apply(!is.na(m2.data), 2, sum)
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)

@@ -997,9 +997,13 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 	}
 	for (size_t d1=0; d1 < numParam; ++d1) {
 		fc->grad[d1] += thrGrad[d1];
-		for (size_t d2=0; d2 < numParam; ++d2) {
-			int cell = d1 * numParam + d2;
-			fc->infoB[cell] += thrMeat[cell];
+	}
+	if (fc->infoB) {
+		for (size_t d1=0; d1 < numParam; ++d1) {
+			for (size_t d2=0; d2 < numParam; ++d2) {
+				int cell = d1 * numParam + d2;
+				fc->infoB[cell] += thrMeat[cell];
+			}
 		}
 	}
 
@@ -1146,18 +1150,17 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			return 0;
 		}
 
-		if (want & FF_COMPUTE_INFO) {
+		if (want & (FF_COMPUTE_INFO | FF_COMPUTE_GRADIENT)) {
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
 			ba81SetupQuadrature(oo->expectation);
 
 			if (state->freeLatents) {
-				if (fc->infoMethod == INFO_METHOD_MEAT) {
-					if (!xpd(oo, fc)) return INFINITY;
-				} else {
+				if (want & FF_COMPUTE_INFO && fc->infoMethod != INFO_METHOD_MEAT) {
 					omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
 						       fc->infoMethod);
 				}
+				if (!xpd(oo, fc)) return INFINITY;
 			} else {
 				sandwich(oo, fc);
 			}

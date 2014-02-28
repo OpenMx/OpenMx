@@ -761,12 +761,13 @@ ba81compute(omxExpectation *oo, const char *context)
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 
 	if (context) {
-		if (strcmp(context, "EM")==0) {
+		if (strcmp(context, "scores")==0) {
 			state->type = EXPECTATION_AUGMENTED;
-		} else if (strcmp(context, "observed")==0) {
+		} else if (strcmp(context, "nothing")==0) {
 			state->type = EXPECTATION_OBSERVED;
 		} else {
-			omxRaiseErrorf(globalState, "Unknown context '%s'", context);
+			omxRaiseErrorf(globalState, "%s: don't know how to predict '%s'",
+				       oo->name, context);
 		}
 		return;
 	}

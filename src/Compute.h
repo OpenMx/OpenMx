@@ -52,6 +52,7 @@ enum ComputeInform {
 };
 
 enum ComputeInfoMethod {
+	INFO_METHOD_DEFAULT,
 	INFO_METHOD_HESSIAN,
 	INFO_METHOD_SANDWICH,
 	INFO_METHOD_BREAD,

@@ -37,7 +37,7 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov"),
               mxFitFunctionML(),
-              mxComputeOnce('expectation', context='EM')
+              mxComputeOnce('expectation', 'scores')
               )
 m2 <- mxRun(m2)
 omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
@@ -46,9 +46,9 @@ omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 512000, .1)
 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),
-	      mxComputeEM('expectation',
+	      mxComputeEM('expectation', 'scores',
 			  mxComputeNewtonRaphson(free.set='itemParam'),
-			  mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE)))
+			  mxComputeOnce('fitfunction', 'fit', free.set=c("mean","cov"))))
 
 m2 <- mxRun(m2)
 

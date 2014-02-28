@@ -112,7 +112,7 @@ if (1) {
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeSequence(steps=list(
                         mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', fit=TRUE,
+                        mxComputeOnce('fitfunction', 'fit',
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel.fit <- mxRun(cModel)
     omxCheckCloseEnough(cModel.fit@fitfunction@result, correct.LL, 1e-4)
@@ -120,7 +120,7 @@ if (1) {
   i1 <- mxModel(cModel,
                 mxComputeSequence(steps=list(
                   mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                  mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
+                  mxComputeOnce('fitfunction', 'information', "meat"),
                   mxComputeStandardError(),
                   mxComputeHessianQuality())))
   i1 <- mxRun(i1)
@@ -138,9 +138,9 @@ if (1) {
 
 omxIFAComputePlan <- function(groups) {
   mxComputeSequence(steps=list(
-    mxComputeEM(paste(groups, 'expectation', sep='.'),
+    mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                 mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                mxComputeOnce('fitfunction', fit=TRUE,
+                mxComputeOnce('fitfunction', 'fit',
                               free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
                 tolerance=1e-5, information=TRUE),
     mxComputeStandardError(),
