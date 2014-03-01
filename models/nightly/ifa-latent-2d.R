@@ -58,15 +58,15 @@ m2 <- mxModel(model="latent",
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
                 mxComputeIterate(steps=list(
-                  mxComputeOnce('fitfunction', fit=TRUE)
+                  mxComputeOnce('fitfunction', "fit")
                   )),
-                mxComputeOnce('expectation', context='EM'),
-                mxComputeOnce('fitfunction', information=TRUE, info.method="hessian")
+                mxComputeOnce('expectation', 'scores'),
+                mxComputeOnce('fitfunction', 'information', "hessian")
                 )))
 m2 <- mxRun(m2, silent=TRUE)
 
 if (1) {
-  omxCheckCloseEnough(-2 * compute.factored.ll(m2, data) /  m2@output$minimum, 1, .02)
+  omxCheckCloseEnough(-2 * compute.factored.ll(m2, data) /  m2@output$fit, 1, .02)
 }
 
 tri1 <- function(k) k*(k+1)/2
