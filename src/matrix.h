@@ -40,6 +40,7 @@ void freeMatrices();
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
+void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum);
 Matrix MatrixInvert(Matrix inMat);
 int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);

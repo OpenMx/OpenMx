@@ -1015,78 +1015,6 @@ omxComputeIterate::~omxComputeIterate()
 	}
 }
 
-static void forcePD1(FitContext *fc, int numParams, double *ev)
-{
-	double *target = fc->ihess;
-	omxBuffer<double> hessWork(numParams * numParams);
-	memcpy(hessWork.data(), target, sizeof(double) * numParams * numParams);
-
-	char jobz = 'V';
-	char range = 'A';
-	char uplo = 'U';
-	double abstol = 0;
-	int m;
-	omxBuffer<double> w(numParams);
-	omxBuffer<double> z(numParams * numParams);
-	double optWork;
-	int optIwork;
-	int lwork = -1;
-	int liwork = -1;
-	int info;
-	double realIgn = 0;
-	int intIgn = 0;
-	omxBuffer<int> isuppz(numParams * 2);
-
-	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
-
-	lwork = optWork;
-	omxBuffer<double> work(lwork);
-	liwork = optIwork;
-	omxBuffer<int> iwork(liwork);
-	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
-	if (info < 0) {
-		error("dsyevr %d", info);
-	} else if (info) {
-		return;
-	}
-
-	std::vector<double> evalDiag(numParams * numParams);
-	double minEV = 0;
-	double maxEV = 0;
-	if (ev) memcpy(ev, w.data(), sizeof(double) * numParams);
-	for (int px=0; px < numParams; ++px) {
-		// record how many eigenvalues are zeroed TODO
-		if (w[px] < 0) {
-			continue;
-		}
-		evalDiag[px * numParams + px] = w[px];
-		if (w[px] > 0) {
-			if (minEV == 0) minEV = w[px];
-			else minEV = std::min(minEV, w[px]);
-			maxEV = std::max(maxEV, w[px]);
-		}
-	}
-
-	//fc->infoDefinite = true;  actually we don't know!
-	fc->infoCondNum = maxEV/minEV;
-
-	Matrix evMat(z.data(), numParams, numParams);
-	Matrix edMat(evalDiag.data(), numParams, numParams);
-	omxBuffer<double> prod1(numParams * numParams);
-	Matrix p1Mat(prod1.data(), numParams, numParams);
-	SymMatrixMultiply('R', 'U', 1.0, 0, edMat, evMat, p1Mat);
-	char transa = 'N';
-	char transb = 'T';
-	double alpha = 1.0;
-	double beta = 0;
-	F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
-			prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
-}
-
 void ComputeEM::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
@@ -1582,7 +1510,8 @@ void ComputeEM::compute(FitContext *fc)
 			origEigenvalues = allocVector(REALSXP, freeVars);
 			oev = REAL(origEigenvalues);
 		}
-		forcePD1(fc, freeVars, oev);
+		Matrix mat(fc->ihess, freeVars, freeVars);
+		InplaceForcePosSemiDef(mat, oev, &fc->infoCondNum);
 	} else {
 		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
 	}
