@@ -31,6 +31,7 @@ setClass(Class = "MxExpectationBA81",
 #	   patternLikelihood = "numeric",  # to debug
 #	   em.expected = "numeric",        # to debug
 	     debugInternal="logical",
+	     sampleCov="logical",
 	   dims = "character",
 	   numStats = "numeric",
 	   verbose = "logical",
@@ -40,7 +41,7 @@ setClass(Class = "MxExpectationBA81",
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, design,
-		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
+		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal, sampleCov,
 		   name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
@@ -55,6 +56,7 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@cov <- cov
 	    .Object@verbose <- verbose
 	    .Object@debugInternal <- debugInternal
+	    .Object@sampleCov <- sampleCov
             return(.Object)
           }
 )
@@ -131,7 +133,8 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
-			      scores="omit", verbose=FALSE, EItemParam=NULL, debugInternal=FALSE) {
+			      scores="omit", verbose=FALSE, EItemParam=NULL, debugInternal=FALSE,
+			      sampleCov=TRUE) {
 
 	if (packageVersion("rpf") < "0.15") stop("Please install 'rpf' version 0.15 or newer")
 	if (missing(qpoints)) qpoints <- 49
@@ -157,5 +160,5 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 	}
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
-		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal))
+		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal, sampleCov))
 }

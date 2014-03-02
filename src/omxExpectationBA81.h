@@ -87,6 +87,7 @@ struct BA81Expect {
 	enum score_option scores;
 	bool verbose;
 	bool debugInternal;
+	bool sampleCov;
 };
 
 extern const struct rpf *rpf_model;

@@ -1237,6 +1237,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	PROTECT(tmp = GET_SLOT(rObj, install("verbose")));
 	state->verbose = asLogical(tmp);
 
+	PROTECT(tmp = GET_SLOT(rObj, install("sampleCov")));
+	state->sampleCov = asLogical(tmp);
+
 	PROTECT(tmp = GET_SLOT(rObj, install("debugInternal")));
 	state->debugInternal = asLogical(tmp);
 

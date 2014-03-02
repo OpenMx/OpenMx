@@ -66,7 +66,7 @@ mkgroup <- function(model.name, data, latent.free) {
   m1 <- mxModel(model=model.name,
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
+                mxExpectationBA81(mean="mean", cov="cov", sampleCov=FALSE,
                                   ItemSpec=items,
                                   ItemParam="ItemParam",
                                   qpoints=21, qwidth=5),

@@ -25,7 +25,7 @@ if(1) {
 
 	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
 		      mxData(observed=data, type="raw"),
-		      mxExpectationBA81(mean="mean", cov="cov",
+		      mxExpectationBA81(mean="mean", cov="cov", sampleCov=FALSE,
 					ItemSpec=items, ItemParam="itemParam"),
 		      mxFitFunctionML(),
 		      mxComputeEM('expectation', 'scores',
