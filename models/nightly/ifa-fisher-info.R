@@ -39,8 +39,8 @@ compute.gradient <- function(v) {
                                   ItemSpec=spec, ItemParam="ItemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation', context="EM"),
-                  mxComputeOnce('fitfunction', gradient=TRUE))))
+                  mxComputeOnce('expectation', 'scores'),
+                  mxComputeOnce('fitfunction', 'gradient'))))
   m1.fit <- mxRun(m1, silent=TRUE)
   
   ref <- m1.fit@expectation@debug$patternLikelihood
