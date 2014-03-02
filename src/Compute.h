@@ -59,6 +59,7 @@ enum ComputeInfoMethod {
 	INFO_METHOD_MEAT
 };
 
+// Used to optimize a sparse Hessian-gradient product
 struct matrixVectorProdTerm {
 	int hentry;
 	int gentry;

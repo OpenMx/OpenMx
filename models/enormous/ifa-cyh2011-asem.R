@@ -1,5 +1,3 @@
-# This is a replication of Cai, Yang, & Hansen (2011) simulation study #1.
-
 #options(error = utils::recover)
 library(OpenMx)
 library(rpf)
@@ -50,7 +48,7 @@ correct <- matrix(c(1, 1.4, 1.7, 2, 1.4, 1.7, 2, 1, 1.7, 2, 1, 1.4, 2, 1, 1.4, 1
 
 groups <- paste("g", 1:2, sep="")
 
-fit1 <- function(seed) {
+fit1 <- function(seed, ntarget) {
   set.seed(seed)
 
   g1 <- mk.model("g1", 16, FALSE)
@@ -73,12 +71,12 @@ fit1 <- function(seed) {
   
   omxIFAComputePlan <- function(groups) {
     mxComputeSequence(steps=list(
-      mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
+      mxComputeEM(paste(groups, 'expectation', sep='.'),
                   mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                  mxComputeOnce('fitfunction', 'fit', free.set=apply(expand.grid(groups, c('mean','cov')),
-                                                              1, paste, collapse='.')),
-                  tolerance=1e-5, information=TRUE),
-      mxComputeStandardError(),
+                  mxComputeOnce('fitfunction', free.set=apply(expand.grid(groups, c('mean','cov')),
+                                                              1, paste, collapse='.'), fit=TRUE),
+                  information=TRUE, info.method="hessian", noiseTarget=ntarget, agileMaxIter=3L),
+      mxComputeStandardError(forcePositiveDefinite=TRUE),
       mxComputeHessianQuality()))
   }
 
@@ -89,89 +87,113 @@ fit1 <- function(seed) {
   grpModel <- try(mxRun(grpModel, silent=TRUE), silent=TRUE)
   if (inherits(grpModel, "try-error")) return(NULL)
 
+  if (0) {
     i1 <- mxModel(grpModel,
                   mxComputeSequence(steps=list(
                     mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                    mxComputeOnce('fitfunction', 'information', "meat"),
+                    mxComputeOnce('fitfunction', information=TRUE, info.method="meat"),
                     mxComputeStandardError(),
                     mxComputeHessianQuality())))
     i1 <- mxRun(i1, silent=TRUE)
+  }
   
   got <- cbind(grpModel@output$estimate,
-               grpModel@output$standardErrors,
-               i1@output$standardErrors)
-  colnames(got) <- c("est", "sem", "meat")
+               grpModel@output$standardErrors)
+  colnames(got) <- c("est", "sem")
   
   sem.condnum <- grpModel@output$conditionNumber
   
-  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum), meat=i1@output$conditionNumber),
+  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum)),
        got=got,
        em=grpModel@compute@steps[[1]]@output,
-       cpuTime=grpModel@output$cpuTime)
+       cpuTime=grpModel@output$cpuTime,
+       ev=grpModel@compute@steps[[2]]@output$eigenvalues)
 }
 
-to.rd <- function(bank, type, emp) {
-  se <- sapply(bank, function (t) t$got[,type])
+estmask <- rep(TRUE, 500)
+emp <- list()
+
+if (0) {
+  meat.condnum <- sapply(bank, function (t) t$condnum['meat'])
+  estmask <- !is.na(meat.condnum) & meat.condnum < 2300
+  emp <- list(bias=apply(diff[,estmask], 1, mean), se=apply(diff[,estmask], 1, sd))
+} else {
+  emp <- list(se=c(c(0.08944, 0.11908, 0.08761, 0.14751, 0.2364, 0.11452,  0.14415,
+                     0.16342, 0.10032, 0.16025, 0.13619, 0.11682, 0.11997,  0.15394,
+                     0.09972, 0.12668, 0.1275, 0.09362, 0.197, 0.25594, 0.117,  0.10577,
+                     0.18637, 0.10332, 0.14281, 0.20174, 0.10412, 0.16481,  0.16631, 0.10784,
+                     0.08349, 0.13497, 0.07527, 0.15189, 0.3054,  0.13913, 0.26249, 0.33094,
+                     0.15823, 0.1349, 0.27334, 0.09186,  0.15155, 0.20331, 0.09334, 0.17177,
+                     0.18151, 0.1149, 0.1202,  0.17129, 0.15999, 0.16465, 0.09639, 0.26893, 0.31799, 0.26872 )))
+  estmask[c(62,  133,  140, 184,  356,  380,  408 )] <- FALSE
+}
+
+to.rd <- function(bank, type) {
+  se <- sapply(bank[estmask[1:length(bank)]], function (t) t$got[,type])
   mask <- apply(se, 2, function(c) all(!is.na(c)))
   rd <- apply(se[,mask], 2, function (c) (c - emp$se)/emp$se)
   rd
 }
 
-se.bias <- function(bank, type, emp) {
-  se <- sapply(bank, function (t) t$got[,type])
-  mask <- apply(se, 2, function(c) all(!is.na(c)))
-  bias <- apply(se[,mask], 2, function (c) (c - emp$se))
-  bias
-}
-
-bank <- list()
-
-for (seed in 1:500) {
-  bank[[seed]] <- fit1(seed)
-  print(seed)
-}
-
 if (0) {
   setwd("/opt/OpenMx")
   rda <- "cyh2011.rda"
-  save(bank, file=rda)
+  save(mbank, file=rda)
   if (file.exists(rda)) load(rda)
 }
 
-cputime <- sapply(bank, function (t) t$cpuTime)
-est <- sapply(bank, function (t) t$got[,'est'])
-diff <- apply(est, 2, function(c) (c - c(correct, g2.mean, diag(g2.cov))))
-meat.condnum <- sapply(bank, function (t) t$condnum['meat'])
-sem.condnum <- sapply(bank, function (t) t$condnum['sem'])
-estmask <- !is.na(sem.condnum) & !is.na(meat.condnum) & meat.condnum < 2300
-emp <- list(bias=apply(diff[,estmask], 1, mean), se=apply(diff[,estmask], 1, sd))
-
-if (0) {
-  hist(cputime)
-  which(!estmask) #   62  133  184  356
-  hist(emp$bias)
-  round(emp$bias[order(emp$bias)],3)
-  hist(apply(to.rd(bank[estmask], "sem", emp), 1, mean))
-  hist(apply(to.rd(bank[estmask], "meat", emp), 1, mean))
-  hist(apply(se.bias(bank[estmask], "sem", emp), 1, mean))
-  hist(apply(se.bias(bank[estmask], "meat", emp), 1, mean))
-  fivenum(sapply(bank, function (t) t$em$semProbeCount) / length(c(correct, g2.mean, diag(g2.cov))))
-  sum(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
-  which(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
-  plot(log(meat.condnum[estmask]), log(sem.condnum[estmask]))
+mbank <- list()
+Targets <- seq(-4.7, -1.5, .1)
+for (seed in 249:500) {
+  if (!estmask[seed]) next
+  rds <- matrix(NA, length(Targets), 6)
+  rds[,1] <- Targets
+  for (tx in 1:length(Targets)) {
+    if (length(mbank) < tx) mbank[[tx]] <- list()
+    mbank[[tx]][[seed]] <- fit1(seed, exp(Targets[tx]))
+    if (seed >= 3) {
+      rd <- to.rd(mbank[[tx]], "sem")
+      bank <- mbank[[tx]][estmask[1:seed]]
+      rds[tx,2:6] <- c(norm(apply(rd, 1, mean),"2"),
+                       norm(apply(rd, 1, sd), "2"),
+                       mean(sapply(bank, function (t) t$em$semProbeCount / nrow(rd))),
+                       mean(sapply(bank, function (t) t$condnum['sem'])),
+                       mean(sapply(bank, function (t) ifelse(t$ev[1] < 0,
+                                                                    which(order(abs(t$ev))==1) / length(t$ev), NA)), na.rm=TRUE))
+    }
+  }
+  print(seed)
+  print(rds)
 }
 
+est <- sapply(bank, function (t) t$got[,'est'])
+diff <- apply(est, 2, function(c) (c - c(correct, g2.mean, diag(g2.cov))))
+
 if (0) {
-  # sample covariance
-  omxCheckCloseEnough(norm(emp$bias, "2"), 0.15317, .001)
-  omxCheckCloseEnough(norm(emp$se, "2"), 1.268, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .3353, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .3904, .001)
-} else {
-  # population covariance
-  omxCheckCloseEnough(norm(emp$bias, "2"), 0.14211, .001)
-  omxCheckCloseEnough(norm(emp$se, "2"), 1.2709, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .3141, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .377039, .001)
-  omxCheckCloseEnough(cor(log(meat.condnum[estmask]), log(sem.condnum[estmask])), .36, .02)
+  which(!estmask) #   62  133  184  356
+  hist(emp$bias)
+  hist(check.se("sem"))
+  hist(check.se("pdse"))
+  hist(check.rd("meat"))
+  hist(check.rd("sem"))
+  hist(check.rd("pdse"))
+  norm(check.rd("meat"), "2")  # 0.313
+  norm(check.rd("sem"), "2")
+  #exp(-.5) was 0.3
+  #exp(-1) was 1.02
+  #exp(-2) was 0.83
+  #exp(-2.5) was .607
+  #exp(-2.75) was .479
+  #exp(-3) was 0.37
+  #exp(-3.25) was 0.394
+  #exp(-3.5) was 0.44
+  norm(check.rd("pdse"), "2")
+  fivenum(sapply(bank, function (t) t$em$semProbeCount) / length(c(correct, g2.mean, diag(g2.cov))))
+  #exp(-2) 237 were non-pd
+  #exp(-3) 296 non-pd
+  sum(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
+  which(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
+  sum(sapply(bank, function (t) any(is.na(t$got[,'pdse']))))
+  # target=exp(-4), 1 10 23 25 27 28 31 38 61 64 65 68 72 73 78 90
+  # target=exp(-4.5), 10 38 61 68 90
 }

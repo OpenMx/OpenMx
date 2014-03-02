@@ -24,6 +24,11 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
+struct LatentParamLoc {
+	bool mean;     // false=cov
+	int row, col;
+};
+
 struct BA81FitState {
 	//private:
 	void copyEstimates(BA81Expect *estate);
@@ -31,6 +36,7 @@ struct BA81FitState {
 	//public:
 	int haveLatentMap;
 	std::vector<int> latentMap;
+	std::vector< LatentParamLoc > latentLoc;
 	bool freeLatents;
 	int ElatentVersion;
 
@@ -45,6 +51,7 @@ struct BA81FitState {
 	std::vector<int> ihessDivisor;       // numFreeParam * numFreeParam
 	std::vector< matrixVectorProdTerm > hgProd;
 
+	// The following are only used to compute FF_COMPUTE_MAXABSCHANGE
 	omxMatrix *itemParam;
 	omxMatrix *latentMean;
 	omxMatrix *latentCov;
@@ -93,9 +100,10 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
+	std::vector< LatentParamLoc > &latentLoc = state->latentLoc;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	int meanNum = estate->latentMeanOut->matrixNumber;
-	int covNum = estate->latentCovOut->matrixNumber;
+	int meanNum = ~estate->latentMeanOut->matrixNumber;
+	int covNum = ~estate->latentCovOut->matrixNumber;
 	int maxAbilities = estate->maxAbilities;
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	const size_t numFreeParams = state->numFreeParam;
@@ -105,15 +113,20 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 
 	state->freeLatents = false;
 	latentMap.assign(numLatents + triangleLoc1(numLatents), -1);
+	LatentParamLoc nullLoc = { false, -1, -1 };
+	latentLoc.assign(fvg->vars.size(), nullLoc);
 
 	int numParam = int(fvg->vars.size());
 	for (int px=0; px < numParam; px++) {
 		omxFreeVar *fv = fvg->vars[px];
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
-			int matNum = ~loc->matrix;
+			int matNum = loc->matrix;
 			if (matNum == meanNum) {
 				latentMap[loc->row + loc->col] = px;
+				latentLoc[px].mean = true;
+				latentLoc[px].row = loc->row * loc->col;
+				latentLoc[px].col = 1;
 				state->freeLatents = true;
 			} else if (matNum == covNum) {
 				int a1 = loc->row;
@@ -134,6 +147,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					error("In covariance matrix, %s and %s must be constrained equal to preserve symmetry",
 					      fvg->vars[latentMap[cell]]->name, fv->name);
 				}
+				latentLoc[px].mean = false;
+				latentLoc[px].row = a1;
+				latentLoc[px].col = a2;
 				state->freeLatents = true;
 			}
 		}
@@ -154,7 +170,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 			int hoffset = at1 * numFreeParams + at2;
 			latentMap[at] = hoffset;
 
-			// ihessDivisor TODO
+			// ihessDivisor for S-EM TODO
 		}
 	}
 }
@@ -637,25 +653,73 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
-	std::vector<double> &ElatentMean = estate->ElatentMean;
-	std::vector<double> &ElatentCov = estate->ElatentCov;
+	std::vector< LatentParamLoc > &latentLoc = state->latentLoc;
+	std::vector<double> latentMean(estate->ElatentMean);
+	std::vector<int> meanSampleSize(latentMean.size(), estate->data->rows);
+	std::vector<double> latentCov(estate->ElatentCov);
+	std::vector<int> covSampleSize(latentCov.size(), estate->data->rows);
 	int maxAbilities = estate->maxAbilities;
+	const int meanNum = ~estate->latentMeanOut->matrixNumber;
+	const int covNum = ~estate->latentCovOut->matrixNumber;
 
-	if (!estate->Qpoint.size()) return; // if evaluating fit without estimating model
 	if (state->ElatentVersion == estate->ElatentVersion) return;
 
 	fc->changedEstimates = true;
 
+	FreeVarGroup *fvg = fc->varGroup;
+	const int numParam = int(fvg->vars.size());
+	const char *expType = oo->expectation->expType;
+
+	// This is an inefficient way to handle equality constraints because
+	// every location that is equated recalculates its estimate. TODO
+	for (int px=0; px < numParam; px++) {
+		LatentParamLoc &ll = latentLoc[px];
+		if (ll.row == -1) continue;
+		omxFreeVar *fv = fvg->vars[px];
+		for (size_t lx=0; lx < fv->locations.size(); lx++) {
+			omxFreeVarLocation *loc = &fv->locations[lx];
+			int matNum = loc->matrix;
+			if (matNum == meanNum || matNum == covNum) continue;
+			omxMatrix *matrix = globalState->matrixList[loc->matrix];
+			if (!matrix->expectation || matrix->expectation->expType != expType) continue;
+			BA81Expect *estate2 = (BA81Expect *) matrix->expectation->argStruct;
+			int maxAbilities2 = estate2->maxAbilities;
+			if (matrix == estate2->latentMeanOut) {
+				// disallow mean:cov equating TODO
+				latentMean[ll.row] += estate2->ElatentMean[loc->row * loc->col];
+				meanSampleSize[ll.row] += estate2->data->rows;
+			} else if (matrix == estate2->latentCovOut) {
+				if (loc->row < loc->col) continue;
+				int dest = ll.row * maxAbilities + ll.col;
+				latentCov[dest] += estate2->ElatentCov[loc->row * maxAbilities2 + loc->col];
+				covSampleSize[dest] += estate2->data->rows;
+			}
+		}
+	}
+
+	for (int d1=0; d1 < maxAbilities; d1++) {
+		latentMean[d1] /= meanSampleSize[d1];
+	}
+
+	// optimize for the two-tier case TODO
+	for (int d1=0; d1 < maxAbilities; d1++) {
+		for (int d2=0; d2 <= d1; d2++) {
+			int cell = d2 * maxAbilities + d1;
+			double nn = covSampleSize[cell];
+			latentCov[cell] = latentCov[cell] / nn - latentMean[d1] * latentMean[d2];
+		}
+	}
+
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {
 		if (latentMap[a1] >= 0) {
 			int to = latentMap[a1];
-			fc->est[to] = ElatentMean[a1];
+			fc->est[to] = latentMean[a1];
 		}
 
 		for (int a2 = 0; a2 <= a1; ++a2) {
 			int to = latentMap[maxAbilities + triangleLoc1(a1) + a2];
 			if (to < 0) continue;
-			fc->est[to] = ElatentCov[a1 * maxAbilities + a2];
+			fc->est[to] = latentCov[a2 * maxAbilities + a1];
 		}
 	}
 
@@ -1144,7 +1208,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			buildLatentParamMap(oo, fc);
-			if (state->freeLatents) {
+			// Qpoint.size()==0 when evaluating fit without estimating model
+			if (state->freeLatents && estate->Qpoint.size()) {
 				setLatentStartingValues(oo, fc);
 			}
 			return 0;

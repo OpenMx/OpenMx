@@ -87,6 +87,10 @@ struct omxMatrix {						// A matrix
 	int *populateToRow, *populateToCol;
 
 	const char* name;
+
+	// Currently, this is only used by BA81 expectations to deal with
+	// equality constraints among latent distribution parameters.
+	struct omxExpectation *expectation;       // weak reference
 };
 
 /* Initialize and Destroy */

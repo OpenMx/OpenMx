@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -430,6 +430,7 @@ static void ba81Estep1(omxExpectation *oo)
 	std::vector<double> &ElatentCov = state->ElatentCov;
 	
 	{
+		// unpack compressed triangular storage
 		double *latentDist1 = latentDist.data();
 		for (int d1=0; d1 < maxAbilities; d1++) {
 			int cx = maxAbilities + triangleLoc1(d1);
@@ -448,28 +449,6 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 		}
 	}
-
-	//pda(ElatentMean.data(), 1, state->maxAbilities);
-	//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
-
-	for (int d1=0; d1 < maxAbilities; d1++) {
-		ElatentMean[d1] /= data->rows;
-	}
-
-	for (int d1=0; d1 < primaryDims; d1++) {
-		for (int d2=0; d2 <= d1; d2++) {
-			int cell = d2 * maxAbilities + d1;
-			int tcell = d1 * maxAbilities + d2;
-			ElatentCov[tcell] = ElatentCov[cell] =
-				ElatentCov[cell] / data->rows - ElatentMean[d1] * ElatentMean[d2];
-		}
-	}
-	for (int sdim=primaryDims; sdim < maxAbilities; sdim++) {
-		int cell = sdim * maxAbilities + sdim;
-		ElatentCov[cell] = ElatentCov[cell] / data->rows - ElatentMean[sdim] * ElatentMean[sdim];
-	}
-
-	// (mirt) need to check for negative eigenvalues in the cov matrix when more than 1 factor? TODO
 
 	if (state->verbose) {
 		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
@@ -1033,8 +1012,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) error("Failed to retrieve mean matrix");
+	state->latentMeanOut->expectation = oo;
+
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 	if (!state->latentCovOut) error("Failed to retrieve cov matrix");
+	state->latentCovOut->expectation = oo;
 
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
