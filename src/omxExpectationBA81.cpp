@@ -23,6 +23,7 @@
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
 #include "omxBuffer.h"
+#include "matrix.h"
 
 const struct rpf *rpf_model = NULL;
 int rpf_numModels;
@@ -469,6 +470,7 @@ static int getLatentVersion(BA81Expect *state)
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
 void ba81SetupQuadrature(omxExpectation* oo)
 {
+	const bool forcePositiveSemiDefinite = false;
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 	if (state->Qpoint.size() == 0 && latentClean) return;
@@ -531,6 +533,14 @@ void ba81SetupQuadrature(omxExpectation* oo)
 			priCovData[d1 * priDims + d2] = omxMatrixElement(state->latentCovOut, d1, d2);
 		}
 	}
+	if (forcePositiveSemiDefinite) {
+		if (priDims == 1) {
+			if (priCovData[0] < BA81_MIN_VARIANCE) priCovData[0] = BA81_MIN_VARIANCE;
+		} else {
+			Matrix mat(priCovData.data(), priDims, priDims);
+			InplaceForcePosSemiDef(mat, NULL, NULL);
+		}
+	}
 
 	const double Largest = state->LargestDouble;
 	double totalArea = 0;
@@ -555,6 +565,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		int covCell = (priDims + sgroup) * state->maxAbilities + priDims + sgroup;
 		double mean = state->latentMeanOut->data[priDims + sgroup];
 		double var = state->latentCovOut->data[covCell];
+		if (forcePositiveSemiDefinite && var < BA81_MIN_VARIANCE) var = BA81_MIN_VARIANCE;
 		//mxLog("setup[%d] %.2f %.2f", sx, mean, var);
 		for (int qx=0; qx < state->quadGridSize; qx++) {
 			double den = dnorm(state->Qpoint[qx], mean, sqrt(var), FALSE);

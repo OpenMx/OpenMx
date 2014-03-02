@@ -137,7 +137,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					latentMap[cell] = px;
 
 					if (a1 == a2 && fv->lbound == NEG_INF) {
-						fv->lbound = 1e-6;  // variance must be positive
+						fv->lbound = BA81_MIN_VARIANCE;  // variance must be positive
 						if (fc->est[px] < fv->lbound) {
 							error("Starting value for variance %s is negative", fv->name);
 						}
