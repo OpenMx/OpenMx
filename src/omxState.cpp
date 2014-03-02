@@ -381,8 +381,9 @@ void mxLogBig(const std::string str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
 	ssize_t wrote = 0;
+	int maxRetries = 20;
 #pragma omp critical(stderp)
-	{while (1) {
+	{while (--maxRetries > 0) {
 		ssize_t got = write(2, str.data() + wrote, len - wrote);
 		if (got == EINTR) continue;
 		if (got <= 0) error("mxLogBig failed with errno=%d", got);
@@ -404,9 +405,10 @@ void mxLog(const char* msg, ...)   // thread-safe
 
 	int len = snprintf(buf2, maxLen, "[%d] %s\n", omx_absolute_thread_num(), buf1);
 
+	int maxRetries = 20;
 	ssize_t wrote = 0;
 #pragma omp critical(stderp)
-	{while (1) {
+	{while (--maxRetries > 0) {
 		ssize_t got = write(2, buf2 + wrote, len - wrote);
 		if (got == EINTR) continue;
 		if (got <= 0) error("mxLog failed with errno=%d", got);
