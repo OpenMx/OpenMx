@@ -85,7 +85,7 @@ struct BA81Expect {
 	int latentParamVersion;
 	enum expectation_type type;
 	enum score_option scores;
-	bool verbose;
+	int verbose;
 	bool debugInternal;
 };
 

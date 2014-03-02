@@ -182,7 +182,8 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
 	if (state->haveItemMap == fc->varGroup->id) return;
-	if (estate->verbose) mxLog("%s: rebuild item parameter map for %d", oo->matrix->name, fc->varGroup->id);
+	if (estate->verbose >= 1) mxLog("%s: rebuild item parameter map for var group %d",
+					oo->matrix->name, fc->varGroup->id);
 
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
@@ -300,7 +301,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	const int do_fit = want & FF_COMPUTE_FIT;
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
-	if (estate->verbose) mxLog("%s: em.fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
+	if (estate->verbose >= 2) mxLog("%s: em.fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
 	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
 
@@ -432,7 +433,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose) mxLog("%s: sandwich", oo->matrix->name);
+	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->matrix->name);
 
 	ba81OutcomeProb(estate, FALSE, FALSE);
 
@@ -725,7 +726,12 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 
 	state->ElatentVersion = estate->ElatentVersion;
 
-	if (estate->verbose) mxLog("%s: set latent parameters", oo->matrix->name);
+	if (estate->verbose >= 1) {
+		//pda(latentMean.data(), 1, maxAbilities);
+		//pda(latentCov.data(), maxAbilities, maxAbilities);
+		mxLog("%s: set latent parameters for version %d",
+		      oo->matrix->name, estate->ElatentVersion);
+	}
 }
 
 static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece,
@@ -869,7 +875,7 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose) mxLog("%s: cross product approximation", oo->matrix->name);
+	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->matrix->name);
 
 	ba81OutcomeProb(estate, FALSE, FALSE);
 
@@ -1085,7 +1091,7 @@ static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	std::vector<int> &latentMap = state->latentMap;
 
-	if (estate->verbose) mxLog("%s: latentHessian", oo->matrix->name);
+	if (estate->verbose >= 1) mxLog("%s: latentHessian", oo->matrix->name);
 
 	omxBuffer<double> icovBuffer(maxAbilities * maxAbilities);
 	memcpy(icovBuffer.data(), cov->data, sizeof(double) * maxAbilities * maxAbilities);
@@ -1260,7 +1266,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 				got += numIdentical[ux] * (log(patternLik[ux]) - LogLargest);
 			}
-			if (estate->verbose) mxLog("%s: fit (%d/%d excluded)",
+			if (estate->verbose >= 1) mxLog("%s: fit (%d/%d excluded)",
 						   oo->matrix->name, estate->excludedPatterns, numUnique);
 			//mxLog("fit %.4f", -2 * got);
 			return Global->llScale * got;

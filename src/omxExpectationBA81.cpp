@@ -450,8 +450,8 @@ static void ba81Estep1(omxExpectation *oo)
 		}
 	}
 
-	if (state->verbose) {
-		mxLog("%s: lxk(%d) patternLik (%d/%d excluded) ElatentMean ElatentCov",
+	if (state->verbose >= 1) {
+		mxLog("%s: lxk(item version %d) patternLik (%d/%d excluded)",
 		      oo->name, omxGetMatrixVersion(state->itemParam),
 		      state->excludedPatterns, numUnique);
 		//pda(ElatentMean.data(), 1, state->maxAbilities);
@@ -473,7 +473,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 	if (state->Qpoint.size() == 0 && latentClean) return;
 
-	if (state->verbose) {
+	if (state->verbose >= 1) {
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
 	}
 
@@ -617,7 +617,7 @@ static void
 EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
 {
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	if (state->verbose) mxLog("%s: EAP", oo->name);
+	if (state->verbose >= 1) mxLog("%s: EAP", oo->name);
 
 	const int numUnique = state->numUnique;
 	const int numSpecific = state->numSpecific;
@@ -754,7 +754,7 @@ ba81compute(omxExpectation *oo, const char *context)
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam) && latentClean;
 
-	if (state->verbose) {
+	if (state->verbose >= 1) {
 		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean)",
 		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean);
 	}
@@ -1235,7 +1235,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	PROTECT(tmp = GET_SLOT(rObj, install("verbose")));
-	state->verbose = asLogical(tmp);
+	state->verbose = asInteger(tmp);
 
 	PROTECT(tmp = GET_SLOT(rObj, install("debugInternal")));
 	state->debugInternal = asLogical(tmp);

@@ -33,7 +33,7 @@ setClass(Class = "MxExpectationBA81",
 	     debugInternal="logical",
 	   dims = "character",
 	   numStats = "numeric",
-	   verbose = "logical",
+	   verbose = "integer",
 	     output = "list",
 	     debug = "list"),
          contains = "MxBaseExpectation")
@@ -131,7 +131,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
-			      scores="omit", verbose=FALSE, EItemParam=NULL, debugInternal=FALSE) {
+			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE) {
 
 	if (packageVersion("rpf") < "0.15") stop("Please install 'rpf' version 0.15 or newer")
 	if (missing(qpoints)) qpoints <- 49
