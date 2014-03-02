@@ -5,8 +5,6 @@ library(OpenMx)
 library(rpf)
 library(mvtnorm)
 
-sampleCov <- TRUE
-
 mk.model <- function(model.name, numItems, latent.free) {
   spec <- list()
   spec[1:numItems] <- rpf.grm(factors = 2)
@@ -36,8 +34,9 @@ mk.model <- function(model.name, numItems, latent.free) {
   
   m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxExpectationBA81(
-                  ItemSpec=spec, design=design, ItemParam="ItemParam",
-                  mean="mean", cov="cov", sampleCov=sampleCov,
+                  ItemSpec=spec,
+                  design=design, ItemParam="ItemParam",
+                  mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
                 mxFitFunctionML())
   m1
@@ -162,17 +161,8 @@ if (0) {
   plot(log(meat.condnum[estmask]), log(sem.condnum[estmask]))
 }
 
-if (sampleCov) {
-  # sample covariance
-  omxCheckCloseEnough(norm(emp$bias, "2"), 0.15317, .001)
-  omxCheckCloseEnough(norm(emp$se, "2"), 1.268, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .3353, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .3904, .001)
-} else {
-  # population covariance
-  omxCheckCloseEnough(norm(emp$bias, "2"), 0.149048, .001)
-  omxCheckCloseEnough(norm(emp$se, "2"), 1.26545, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .319647, .001)
-  omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .33625, .001)
-  omxCheckCloseEnough(cor(log(meat.condnum[estmask]), log(sem.condnum[estmask])), .46, .02)
-}
+omxCheckCloseEnough(norm(emp$bias, "2"), 0.14211, .001)
+omxCheckCloseEnough(norm(emp$se, "2"), 1.2709, .001)
+omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .3141, .001)
+omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .377039, .001)
+omxCheckCloseEnough(cor(log(meat.condnum[estmask]), log(sem.condnum[estmask])), .36, .02)

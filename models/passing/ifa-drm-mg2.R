@@ -42,7 +42,7 @@ mkgroup <- function(model.name, data, latent.free) {
                 mxExpectationBA81(
                   ItemSpec=items,
                   ItemParam="ItemParam",
-                  mean="mean", cov="cov", sampleCov=FALSE),
+                  mean="mean", cov="cov"),
                 mxFitFunctionML())
   m1
 }

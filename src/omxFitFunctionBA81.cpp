@@ -706,12 +706,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 		for (int d2=0; d2 <= d1; d2++) {
 			int cell = d2 * maxAbilities + d1;
 			double nn = covSampleSize[cell];
-			if (estate->sampleCov) {
-				latentCov[cell] =
-					latentCov[cell] / (nn-1) - latentMean[d1] * latentMean[d2] * nn / (nn-1);
-			} else {
-				latentCov[cell] = latentCov[cell] / nn - latentMean[d1] * latentMean[d2];
-			}
+			latentCov[cell] = latentCov[cell] / nn - latentMean[d1] * latentMean[d2];
 		}
 	}
 

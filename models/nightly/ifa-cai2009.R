@@ -69,7 +69,7 @@ mk.model <- function(model.name, data, latent.free) {
                   ItemSpec=spec,
                   design=design,
                   ItemParam="ItemParam",
-                  mean="mean", cov="cov", sampleCov=FALSE,
+                  mean="mean", cov="cov",
                   qpoints=21, qwidth=5),
                 mxFitFunctionML())
   m1
