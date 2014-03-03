@@ -1641,8 +1641,9 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	verbose = asInteger(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
+	int whatLen = length(slotValue);
 	if (algebras.size()) {
-		for (int wx=0; wx < length(slotValue); ++wx) {
+		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
 			PROTECT(elem = STRING_ELT(slotValue, wx));
 			const char *what = CHAR(elem);
@@ -1657,7 +1658,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 
 		if (hessian && infoMat) error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
 	} else {
-		for (int wx=0; wx < length(slotValue); ++wx) {
+		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
 			PROTECT(elem = STRING_ELT(slotValue, wx));
 			predict.push_back(CHAR(elem));
@@ -1667,6 +1668,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	PROTECT(slotValue = GET_SLOT(rObj, install(".is.bestfit")));
 	isBestFit = asLogical(slotValue);
 
+	bool howConflict = false;
 	PROTECT(slotValue = GET_SLOT(rObj, install("how")));
 	if (length(slotValue) > 1) {
 		omxRaiseErrorf(globalState, "mxComputeOnce: more than one method specified");
@@ -1676,9 +1678,17 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		const char *iMethod = CHAR(elem);
 		if (infoMat) {
 			infoMethod = stringToInfoMethod(iMethod);
+			if (infoMethod == INFO_METHOD_MEAT && gradient && whatLen == 2) {
+				//OK
+			} else if (whatLen > 1) {
+				howConflict = true;
+			}
 		} else {
 			omxRaiseErrorf(globalState, "mxComputeOnce: unknown method %s requested", iMethod);
 		}
+	}
+	if (howConflict) {
+		omxRaiseErrorf(globalState, "mxComputeOnce: when how is specified, you can only compute one thing at a time");
 	}
 
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {

@@ -193,9 +193,6 @@ setMethod("initialize", "MxComputeOnce",
 mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 			  free.set=NULL, verbose=0L, .is.bestfit=FALSE) {
 	if (length(from) == 0) warning("mxComputeOnce from nothing will have no effect")
-	if (length(what) > 1 && !missing(how)) {
-		stop("mxComputeOnce: when how is specified, you can only compute one thing at a time")
-	}
 	new("MxComputeOnce", from, what, how, free.set, verbose, .is.bestfit)
 }
 
