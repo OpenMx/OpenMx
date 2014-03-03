@@ -139,16 +139,28 @@ if (0) {
 }
 
 cputime <- sapply(bank, function (t) t$cpuTime)
-est <- sapply(bank, function (t) t$got[,'est'])
-diff <- apply(est, 2, function(c) (c - c(correct, g2.mean, diag(g2.cov))))
 meat.condnum <- sapply(bank, function (t) t$condnum['meat'])
 sem.condnum <- sapply(bank, function (t) t$condnum['sem'])
-estmask <- !is.na(sem.condnum) & !is.na(meat.condnum) & meat.condnum < 2300
+converged <- !is.na(sem.condnum) & !is.na(meat.condnum)
+saddle <- converged & (meat.condnum > 2300 | sem.condnum > 1e5)
+estmask <- converged & !saddle
+
+omxCheckCloseEnough(sum(!estmask), 33, .1)
+
+est <- sapply(bank, function (t) t$got[,'est'])
+diff <- apply(est, 2, function(c) (c - c(correct, g2.mean, diag(g2.cov))))
 emp <- list(bias=apply(diff[,estmask], 1, mean), se=apply(diff[,estmask], 1, sd))
+
+# maybe these are too precise to reproduce?
+omxCheckCloseEnough(norm(emp$bias, "2"), 0.14211, .01)
+omxCheckCloseEnough(norm(emp$se, "2"), 1.26, .015)
+omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .31584, .001)
+omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .31811, .001)
+omxCheckCloseEnough(cor(log(meat.condnum[estmask]), log(sem.condnum[estmask])), .4594, .01)
 
 if (0) {
   hist(cputime)
-  which(!estmask) #   62  133  184  356
+  which(!estmask)
   hist(emp$bias)
   round(emp$bias[order(emp$bias)],3)
   hist(apply(to.rd(bank[estmask], "sem", emp), 1, mean))
@@ -159,10 +171,5 @@ if (0) {
   sum(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
   which(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
   plot(log(meat.condnum[estmask]), log(sem.condnum[estmask]))
+  head(order(-apply(to.rd(bank[estmask], "sem", emp), 2, norm, type="2"))) #worst
 }
-
-omxCheckCloseEnough(norm(emp$bias, "2"), 0.14211, .001)
-omxCheckCloseEnough(norm(emp$se, "2"), 1.2709, .001)
-omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "meat", emp), 1, mean), "2"), .3141, .001)
-omxCheckCloseEnough(norm(apply(to.rd(bank[estmask], "sem", emp), 1, mean), "2"), .377039, .001)
-omxCheckCloseEnough(cor(log(meat.condnum[estmask]), log(sem.condnum[estmask])), .36, .02)
