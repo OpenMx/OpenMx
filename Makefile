@@ -309,7 +309,7 @@ test-csolnp:
 	IMX_OPT_ENGINE=CSOLNP $(REXEC) --vanilla --slave -f $(TESTFILE) --args csolnp
 
 torture:
-	$(REXEC) -d "gdb --batch --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
+	$(REXEC) -d "gdb --nx --batch --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
 	$(REXEC) --vanilla --slave -f $(TESTFILE) --args nightly
