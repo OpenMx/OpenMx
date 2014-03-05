@@ -7,7 +7,7 @@ numItems <- 20
 i1 <- rpf.grm(outcomes=2)
 items <- list()
 items[1:numItems] <- i1
-correct <- matrix(NA, 4, numItems)
+correct <- matrix(NA, 2, numItems)
 for (x in 1:numItems) correct[,x] <- rpf.rparam(i1)
 
 data.g1 <- rpf.sample(500, items, correct)
