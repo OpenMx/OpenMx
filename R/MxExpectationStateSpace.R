@@ -122,13 +122,14 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 
 checkSSMNotMissing <- function(matrixobj, matrixname, modelname){
 	if(is.null(matrixobj)){
-		msg <- paste("The", matrixname, "matrix of model",
+		msg <- paste("The", matrixname, "matrix of the state space expectation in model",
 			modelname, "is missing.")
 		stop(msg, call. = FALSE)
 	}
 }
 
-# TODO: Add lots of error checking.
+# TODO: Allow subsets of the matrices to be specified
+#  by filling in default matrices.
 setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"), 
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
@@ -210,20 +211,37 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 			# 3.
 			if( ncol(bMatrix) != ncol(dMatrix) ){
 				msg <- paste("The B and D matrices of model",
-				omxQuotes(modelname), "do not have the same number of columns")
-			stop(msg, call. = FALSE)
+					omxQuotes(modelname), "do not have the same number of columns,",
+					ncol(bMatrix), "and", ncol(dMatrix), "respectively")
+				stop(msg, call. = FALSE)
 			}
 			if( ncol(bMatrix) != nrow(uMatrix) ){
-				msg <- paste("The number of columns of the B matrix",
-				"does not match the number of rows of u matrix in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
+				msg <- paste("The number of columns of the B matrix (",
+					ncol(bMatrix), ") ",
+					"does not match the number of rows of u matrix (",
+					nrow(uMatrix), ") in model ",
+					omxQuotes(modelname), sep="")
+				stop(msg, call. = FALSE)
 			}
 			# 4.
 			if( ncol(uMatrix) != 1 ){
 				msg <- paste("The u matrix of model",
-				omxQuotes(modelname), "is not a column vector (Nx1 matrix).")
-			stop(msg, call. = FALSE)
+					omxQuotes(modelname), "is not a column vector (Nx1 matrix).")
+				stop(msg, call. = FALSE)
+			}
+			# 5a.
+			if( nrow(aMatrix) != nrow(bMatrix) ){
+				msg <- paste("The A and B matrices of model",
+					omxQuotes(modelname), "do not have the same number of rows,",
+					nrow(aMatrix), "and", nrow(bMatrix), "respectively")
+				stop(msg, call. = FALSE)
+			}
+			# 5b.
+			if( nrow(cMatrix) != nrow(dMatrix)){
+				msg <- paste("The C and D matrices of model",
+					omxQuotes(modelname), "do not have the same number of rows,",
+					nrow(cMatrix), "and", nrow(dMatrix), "respectively")
+				stop(msg, call. = FALSE)
 			}
 		}
 		
