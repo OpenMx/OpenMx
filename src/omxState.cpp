@@ -387,7 +387,7 @@ void mxLogBig(const std::string str)   // thread-safe
 	{
 		while (--maxRetries > 0) {
 			got = write(2, str.data() + wrote, len - wrote);
-			if (got == EINTR) continue;
+			if (got == -EINTR) continue;
 			if (got <= 0) break;
 			wrote += got;
 			if (wrote == len) break;
@@ -417,7 +417,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 	{
 		while (--maxRetries > 0) {
 			got = write(2, buf2 + wrote, len - wrote);
-			if (got == EINTR) continue;
+			if (got == -EINTR) continue;
 			if (got <= 0) break;
 			wrote += got;
 			if (wrote == len) break;
