@@ -265,6 +265,10 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 #endif
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	omxProcessMxExpectationEntities(expectList);
+	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxDataEntities(data);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
     
@@ -275,10 +279,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
-
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxExpectationEntities(expectList);
 	if (isErrorRaised(globalState)) error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
