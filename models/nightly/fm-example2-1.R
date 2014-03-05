@@ -94,7 +94,7 @@ quantifyAsymmetry <- function(info) {
   sym2 <- try(chol(solve(sym1)), silent=TRUE)
   if (inherits(sym2, "try-error")) return(NA)
   asymV <- (info - t(info))/2
-  norm(sym2 %*% asymV %*% sym2, type="2")
+  max(svd(sym2 %*% asymV %*% sym2, 0, 0)$d)
 }
   
 if(1) {
