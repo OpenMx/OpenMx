@@ -1130,6 +1130,10 @@ static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
 			int f2 = f1;
 			for (int r2=r1; r2 < maxAbilities; ++r2) {
 				for (int c2 = (r1==r2? c1 : 0); c2 <= r2; ++c2) {
+					int to = latentMap[numLatents + triangleLoc1(f2 + maxAbilities) + f1 + maxAbilities];
+					++f2;
+					if (to < 0) continue;
+
 					memcpy(term2.data()      + c2 * maxAbilities,
 					       icovBuffer.data() + r2 * maxAbilities, maxAbilities * sizeof(double));
 					if (r2 != c2) {
@@ -1143,14 +1147,15 @@ static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
 							tr += term1[d2 * maxAbilities + d1] * term2[d1 * maxAbilities + d2];
 						}
 					}
-					int to = latentMap[numLatents + triangleLoc1(f2 + maxAbilities) + f1 + maxAbilities];
-					if (to >= 0) {
-						fc->hess[to] += Scale * (data->rows - 2) * -.5 * tr;
-					}
+					// Simulation suggests the sample size should be
+					// data->rows-2 but this is tedious to accomodate
+					// when there are latent distribution parameter
+					// equality constraints. Whether the sample size is adjusted
+					// or not seems to make no detectable difference in tests.
+					fc->hess[to] += Scale * data->rows * -.5 * tr;
 
 					OMXZERO(term2.data() + c2 * maxAbilities, maxAbilities);
 					if (c2 != r2) OMXZERO(term2.data() + r2 * maxAbilities, maxAbilities);
-					++f2;
 				}
 			}
 			OMXZERO(term1.data() + c1 * maxAbilities, maxAbilities);
