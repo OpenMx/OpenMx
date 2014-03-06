@@ -170,17 +170,17 @@ omxIFAComputePlan <- function(groups) {
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel@submodels$g1@matrices$cov@values, fm$G1$cov, .01)
   
-  semse <- c(0.084, 0.105, 0.078, 0.134, 0.201, 0.1, 0.154, 0.196,  0.106, 0.176,
-             0.132, 0.121, 0.11, 0.149, 0.094, 0.133, 0.122,  0.092, 0.199, 0.232,
-             0.125, 0.125, 0.26, 0.141, 0.138, 0.171,  0.102, 0.214, 0.193, 0.128,
-             0.086, 0.115, 0.078, 0.142, 0.211,  0.14, 0.102, 0.162, 0.127, 0.156,
-             0.1, 0.408, 0.243, 0.289, 0.181,  0.238, 0.128, 0.146, 0.262, 0.1, 0.143,
-             0.202, 0.1, 0.181, 0.193,  0.129)
+  semse <- c(0.085, 0.106, 0.078, 0.135, 0.201, 0.1, 0.156, 0.197,  0.107, 0.179,
+             0.132, 0.121, 0.11, 0.149, 0.094, 0.133, 0.122,  0.093, 0.207, 0.241,
+             0.127, 0.125, 0.261, 0.14, 0.139, 0.171,  0.102, 0.216, 0.193, 0.128,
+             0.086, 0.115, 0.078, 0.143, 0.212,  0.141, 0.105, 0.165, 0.129, 0.163,
+             0.101, 0.41, 0.244, 0.293,  0.181, 0.238, 0.128, 0.146, 0.262, 0.1,
+             0.144, 0.202, 0.101,  0.182, 0.193, 0.129)
   # cat(deparse(round(grpModel@output$standardErrors,3)))
   # max(abs(c(grpModel@output$standardErrors) - semse))
   
   # These are extremely sensitive to small differences in model estimation.
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .05)
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .01)
   omxCheckCloseEnough(log(grpModel@output$conditionNumber), 5.5, 1)
   
   print(grpModel@output$backendTime)

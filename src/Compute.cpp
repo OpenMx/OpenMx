@@ -173,11 +173,6 @@ void FitContext::updateParent()
 
 			if (++s1 == svars) break;
 		}
-		if (wanted & FF_COMPUTE_PARAMFLAVOR) {
-			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
-				parent->flavor[mapToParent[s1]] = flavor[s1];
-			}
-		}
 		if (stderrs) {
 			parent->allocStderrs();
 			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
@@ -545,6 +540,15 @@ Ramsay1975::Ramsay1975(FitContext *fc, int flavor, double caution, int verbose,
 	prevAdj2.resize(numParam);
 	prevEst.resize(numParam);
 	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
+
+	int varcount = 0;
+	for (size_t px=0; px < numParam; ++px) {
+		if (fc->flavor[px] == flavor) ++varcount;
+	}
+	if (verbose >= 2) {
+		mxLog("Ramsay[%d]: %d parameters, caution %f, min caution %f",
+		      flavor, varcount, caution, minCaution);
+	}
 }
 
 void Ramsay1975::recordEstimate(int px, double newEst)
@@ -566,7 +570,7 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 	
 	if (verbose >= 4) {
 		std::string buf;
-		buf += string_snprintf("~%d~%s: %.4f -> %.4f", px, fv->name, prevEst[px], param);
+		buf += string_snprintf("Ramsay[%d]: %d~%s %.4f -> %.4f", flavor, px, fv->name, prevEst[px], param);
 		if (hitBound) {
 			buf += string_snprintf(" wanted %.4f but hit bound", newEst);
 		}
@@ -584,6 +588,7 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 void Ramsay1975::apply()
 {
 	for (size_t px=0; px < numParam; ++px) {
+		if (fc->flavor[px] != flavor) continue;
 		recordEstimate(px, (1 - caution) * fc->est[px] + caution * prevEst[px]);
 	}
 }
@@ -704,6 +709,7 @@ void omxCompute::initFromFrontend(SEXP rObj)
 			}
 		}
 	}
+	//mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
 }
 
 class ComputeContainer : public omxCompute {
@@ -1222,17 +1228,36 @@ void ComputeEM::compute(FitContext *fc)
 
 	OMXZERO(fc->flavor, freeVars);
 
-	FitContext *tmp = new FitContext(fc, fit1->varGroup);
-	for (int vx=0; vx < freeVarsFit1; ++vx) {
-		fc->flavor[tmp->mapToParent[vx]] = 1;
-	}
-	tmp->updateParentAndFree();
+	{
+		int overlap = 0;
+		FitContext *tmp = new FitContext(fc, fit1->varGroup);
+		for (int vx=0; vx < freeVarsFit1; ++vx) {
+			fc->flavor[tmp->mapToParent[vx]] = 1;
+		}
+		delete tmp;
 
-	ramsay.push_back(new Ramsay1975(fc, int(ramsay.size()), 0, verbose, -1.25)); // other param
-	ramsay.push_back(new Ramsay1975(fc, int(ramsay.size()), 0, verbose, -1));    // EM param
+		tmp = new FitContext(fc, fit2->varGroup);
+		for (size_t vx=0; vx < fit2->varGroup->vars.size(); ++vx) {
+			int to = tmp->mapToParent[vx];
+			if (fc->flavor[to] != 0) ++overlap;
+			fc->flavor[to] = 2;
+		}
+		delete tmp;
+
+		int omitted = 0;
+		for (size_t vx=0; vx < freeVars; ++vx) {
+			if (fc->flavor[vx] == 0) ++omitted;
+		}
+		if (overlap || omitted) {
+			//error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
+		}
+	}
 
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g ramsay=%d info=%d flavors=%ld",
 				tolerance, useRamsay, information, ramsay.size());
+
+	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
+	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
 
 	while (1) {
 		setExpectationPrediction(predict);
