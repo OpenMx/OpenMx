@@ -101,4 +101,4 @@ sigma.coef <- function(Icov) {
 
 Icov <- solve(m2@matrices$cov@values)
 omxCheckCloseEnough(m2@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
-omxCheckCloseEnough(m2@output$hessian[3:5,3:5], -2 * (numPeople-2) * -.5 * sigma.coef(Icov), .001)
+omxCheckCloseEnough(m2@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
