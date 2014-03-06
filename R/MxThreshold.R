@@ -185,6 +185,22 @@ generateThresholdColumns <- function(flatModel, model, labelsData, covarianceCol
 	return(list(thresholdColumns, thresholdLevels))
 }
 
+generateDataThresholdColumns <- function(covarianceColumnNames, thresholdsMatrix) {
+	covarianceLength <- length(covarianceColumnNames)
+	thresholdColumns <- replicate(covarianceLength, as.integer(NA))
+	thresholdLevels <- replicate(covarianceLength, as.integer(NA))
+	
+	thresholdColumnNames <- dimnames(thresholdsMatrix)[[2]]
+	for(i in 1:length(thresholdColumnNames)) {
+		oneThresholdName <- thresholdColumnNames[[i]]
+		numThresholds <- sum(!is.na(thresholdsMatrix[,i]))
+		columnIndex <- match(oneThresholdName, covarianceColumnNames)
+		thresholdColumns[[columnIndex]] <- as.integer(i - 1)
+		thresholdLevels[[columnIndex]] <- as.integer(numThresholds)
+	}
+	return(list(thresholdColumns, thresholdLevels))
+}
+
 verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, threshName) {
 	if (single.na(threshName)) {
 		return()

@@ -114,6 +114,9 @@ convertDatasets <- function(model, defVars, modeloptions) {
 	
 	if(!is.null(model@data) && !single.na(model@data@thresholds)) {
 		verifyThresholdNames(model@data@thresholds, model@data@observed, model@name)
+		retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(model@data@observed)[[2]], thresholdsMatrix=model@data@thresholds)
+		model@data@thresholdColumns <- retval[[1]]
+		model@data@thresholdLevels <- retval[[2]]
 	}
 	if (length(model@submodels) > 0) {
 		model@submodels <- lapply(model@submodels, convertDatasets,
