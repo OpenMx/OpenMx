@@ -54,8 +54,8 @@ Operators
 \item{\code{+}}{Addition}
 \item{\code{-}}{Subtraction}
 \item{\code{\%*\%}}{Matrix Multiplication}
-\item{\code{*}}{Element product}
-\item{\code{/}}{Element division}
+\item{\code{*}}{Elementwise product}
+\item{\code{/}}{Elementwise division}
 \item{\code{\%x\%}}{Kronecker product}
 \item{\code{\%&\%}}{Quadratic product}
 }
