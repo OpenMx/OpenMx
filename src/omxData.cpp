@@ -166,6 +166,10 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
             od->thresholdCols[i].matrix = od->obsThresholdsMat;
             od->thresholdCols[i].column = columns[i];
             od->thresholdCols[i].numThresholds = levels[i];
+			if(OMX_DEBUG) { mxLog("omxData observed thresholds SOURCE column %d.", i); }
+			if(OMX_DEBUG) {omxPrintMatrix(od->thresholdCols[i].matrix, "...Thresholds matrix"); }
+			if(OMX_DEBUG) { mxLog("omxData observed thresholds DEST column %d.", od->thresholdCols[i].column); }
+			if(OMX_DEBUG) { mxLog("omxData observed thresholds numThresholds %d.", od->thresholdCols[i].numThresholds); }
         }
 	}
 

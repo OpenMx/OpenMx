@@ -56,13 +56,13 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
     if(oo->argStruct == NULL) return;
-
+//Introduce memory leak by not destroying the P matrix.  Try and error found that freeing P caused an error.  Without freeing P sometimes the return to R finishes successfully and sometimes not.
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
     omxFreeMatrixData(owo->observedFlattened);
     omxFreeMatrixData(owo->expectedFlattened);
     omxFreeMatrixData(owo->weights);
     omxFreeMatrixData(owo->B);
-    omxFreeMatrixData(owo->P);
+    //omxFreeMatrixData(owo->P);
 }
 
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
@@ -113,7 +113,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
     } else {
         // ULS Case: Memcpy faster than dgemv.
         // TODO: Better to use an omxMatrix duplicator here.
-        memcpy(P, B, B->cols*sizeof(double));
+        memcpy(P, B, B->cols*sizeof(double)); //omxCopyMatrix()
     }
 
     sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
@@ -149,6 +149,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
 	}
 	
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weightInt, "...WLS Weight Matrix: W"); }
 	PROTECT(weightExt = allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
 	for(int row = 0; row < weightInt->rows; row++)
 		for(int col = 0; col < weightInt->cols; col++)
@@ -171,7 +172,8 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	} else {
 		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
 	}
-    
+	
+	if(OMX_DEBUG) { mxLog("Installing populated WLS Attributes."); }
 	setAttrib(algebra, install("expCov"), expCovExt);
 	setAttrib(algebra, install("expMean"), expMeanExt);
 	setAttrib(algebra, install("weights"), weightExt);
@@ -180,7 +182,8 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	setAttrib(algebra, install("SaturatedLikelihood"), ScalarReal(0));
 	setAttrib(algebra, install("IndependenceLikelihood"), ScalarReal(0));
 	setAttrib(algebra, install("ADFMisfit"), ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
-
+	
+	if(OMX_DEBUG) { mxLog("Unprotecting WLS Attributes."); }
 	UNPROTECT(4);
 }
 
@@ -218,6 +221,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	}
 
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
+	oo->argStruct = (void*)newObj;
 	
     if(OMX_DEBUG) { mxLog("WLS being intialized is at %p (within %p).", oo, newObj); }
 
@@ -239,7 +243,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     newObj->weights = weights;
     newObj->n = omxDataNumObs(dataMat);
     newObj->nThresholds = omxDataNumFactor(dataMat);
-	UNPROTECT(1);
+	//UNPROTECT(1); //MDH: Why is this here?!?
 	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
@@ -278,8 +282,9 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
             vectorSize = vectorSize + newObj->observedThresholds[i].numThresholds;
         }
     }
+	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 
-    if(weights != NULL && weights->rows != weights->cols && weights->cols != vectorSize) {
+    if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
         omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
          "Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
      return;
@@ -297,6 +302,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     flattenDataToVector(newObj->observedCov, newObj->observedMeans, newObj->observedThresholds, newObj->nThresholds, newObj->observedFlattened);
     flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedThresholds, newObj->nThresholds, newObj->expectedFlattened);
 
-    oo->argStruct = (void*)newObj;
+    //oo->argStruct = (void*)newObj; //MDH: move this earlier?
 
 }
