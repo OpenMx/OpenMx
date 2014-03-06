@@ -42,7 +42,8 @@ struct BA81FitState {
 
 	int haveItemMap;
 	size_t numFreeParam;
-	int itemDerivPadSize;     // maxParam + maxParam*(1+maxParam)/2
+	int itemDerivPadSize;                // maxParam + maxParam*(1+maxParam)/2
+	bool freeItemParams;
 	std::vector<int> paramPerItem;       // itemParam->cols
 	std::vector<int> paramFlavor;        // numFreeParam
 	std::vector<int> paramMap;           // itemParam->cols * itemDerivPadSize -> index of free parameter
@@ -187,6 +188,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
+	state->freeItemParams = false;
 	state->paramMap.assign(size, -1);  // matrix location to free param index
 	state->itemParamFree.assign(itemParam->rows * itemParam->cols, FALSE);
 
@@ -216,6 +218,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			int at = loc->col * state->itemDerivPadSize + loc->row;
 			state->paramMap[at] = px;
 			state->itemParamFree[loc->col * itemParam->rows + loc->row] = TRUE;
+			state->freeItemParams = true;
 
 			const double *spec = estate->itemSpec[loc->col];
 			int id = spec[RPF_ISpecID];
@@ -914,7 +917,7 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 	const int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	const int totalOutcomes = estate->totalOutcomes;
-	const size_t numItems = estate->itemSpec.size();
+	const size_t numItems = state->freeItemParams? estate->itemSpec.size() : 0;
 	const size_t numParam = fc->varGroup->vars.size();
 	std::vector<double> thrGrad(numThreads * numParam);
 	std::vector<double> thrMeat(numThreads * numParam * numParam);
