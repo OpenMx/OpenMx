@@ -163,7 +163,12 @@ omxIFAComputePlan <- function(groups) {
 #   grpModel <- mxOption(grpModel, "Function precision", '1.0E-7')
   
   grpModel <- mxRun(grpModel)
-    
+
+emstat <- grpModel@compute@steps[[1]]@output
+omxCheckCloseEnough(emstat$EMcycles, 256, 2)
+omxCheckCloseEnough(emstat$totalMstep, 1455, 50)
+omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
+
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
   omxCheckCloseEnough(grpModel@submodels$g2@matrices$ItemParam@values,
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)

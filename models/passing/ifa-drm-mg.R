@@ -54,8 +54,12 @@ if(1) {
 		m2 <- mxOption(m2, "Verify level", '-1')
 		m2 <- mxOption(m2, "Function precision", '1.0E-5')
 		m2 <- mxRun(m2)
-		
-		omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)
+
+emstat <- m2@compute@output
+omxCheckCloseEnough(emstat$EMcycles, 36, 1)
+omxCheckCloseEnough(emstat$totalMstep, 94, 2)
+
+omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)
 		omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
 		
 					#print(m2@matrices$itemParam@values)
@@ -97,6 +101,9 @@ if (1) {
 			    mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))))
 
   m2 <- mxRun(m2)
+  emstat <- m2@compute@output
+  omxCheckCloseEnough(emstat$EMcycles, 38, 1)
+  omxCheckCloseEnough(emstat$totalMstep, 503, 10)
   omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)
   omxCheckCloseEnough(m2@matrices$itemParam@values[1,], rep(2.133, numItems), .002)
   # correct values are from flexMIRT

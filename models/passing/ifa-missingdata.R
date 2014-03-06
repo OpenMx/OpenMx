@@ -90,10 +90,13 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
               mxFitFunctionML(),
               plan)
 
-	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
-	m2 <- mxOption(m2, "Verify level", '-1')
-m2 <- mxOption(m2, "Function precision", '1.0E-5')
+# 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
+# 	m2 <- mxOption(m2, "Verify level", '-1')
+# m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
+emstat <- m2@compute@output
+omxCheckCloseEnough(emstat$EMcycles, 32, 1)
+omxCheckCloseEnough(emstat$totalMstep, 147, 5)
 
 omxCheckCloseEnough(m2@output$minimum, 2733.845, .01)
 got <- cor(c(m2@matrices$itemParam@values[c(1,4,5),]),

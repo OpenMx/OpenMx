@@ -88,6 +88,11 @@ m1 <- mxModel(m1,
 				 ))
 
 m1 <- mxRun(m1, silent=TRUE)
+
+emstat <- m1@compute@output
+omxCheckCloseEnough(emstat$EMcycles, 60, 2)
+omxCheckCloseEnough(emstat$totalMstep, 224, 20)
+
 #print(correct.mat)
 #print(m1@matrices$ItemParam@values)
 omxCheckCloseEnough(m1@output$minimum, 20859.87, .01)

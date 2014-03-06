@@ -120,7 +120,6 @@ if (1) {
   omxCheckCloseEnough(cModel.fit@output$fit, correct.LL, .01)
 }
 
-if (1) {
   g1 <- mkgroup("g1", data.g1, FALSE)
   g2 <- mkgroup("g2", data.g2, TRUE)
   g3 <- mkgroup("g3", data.g3, TRUE)
@@ -133,9 +132,13 @@ if (1) {
 						free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))
 
   grpModel <- mxRun(grpModel, silent=TRUE)
+  
+emstat <- grpModel@compute@output
+omxCheckCloseEnough(emstat$EMcycles, 98, 2)
+omxCheckCloseEnough(emstat$totalMstep, 1023, 100)
+
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
   omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$mean@values), c(-.507, .703), .01)
   omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$cov@values), c(1.877, .491, .491, 2.05), .01)
   omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$mean@values), c(-.028, -.827), .01)
   omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$cov@values), c(.892, -.422, -.422, .836), .01)
-}

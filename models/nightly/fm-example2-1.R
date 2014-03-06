@@ -47,6 +47,12 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
+
+emstat <- m2@compute@steps[[1]]@output
+omxCheckCloseEnough(emstat$EMcycles, 17, 1)
+omxCheckCloseEnough(emstat$totalMstep, 133, 10)
+omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
+
 omxCheckCloseEnough(m2@output$minimum, Scale * 33408.05/-2, .01)
 omxCheckTrue(m2@output$infoDefinite)
 omxCheckCloseEnough(m2@output$conditionNumber, 51, 1)

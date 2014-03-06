@@ -71,6 +71,10 @@ m2 <- mxModel(m2,
 				  
 m2 <- mxRun(m2)
 
+emstat <- m2@compute@steps[[1]]@output
+omxCheckCloseEnough(emstat$EMcycles, 14, 1)
+omxCheckCloseEnough(emstat$totalMstep, 127, 5)
+
 #print(m2@matrices$itemParam@values)
 #print(correct.mat)
 omxCheckCloseEnough(m2@fitfunction@result, 13969.747, .01)

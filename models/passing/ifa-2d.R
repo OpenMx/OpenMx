@@ -71,6 +71,9 @@ if(0){
 }
 
 m1 <- mxRun(m1, silent=TRUE)
+emstat <- m1@compute@output
+omxCheckCloseEnough(emstat$EMcycles, 174, 5)
+omxCheckCloseEnough(emstat$totalMstep, 771, 20)
 
 					#print(m1@matrices$ItemParam@values)
 					#print(correct.mat)
