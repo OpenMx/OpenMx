@@ -83,9 +83,9 @@ m1 <- mxModel(m1,
                                 ItemParam="ItemParam",
                                 qpoints=29, scores="full"),
               mxComputeEM('expectation', 'scores',
-			  mxComputeNewtonRaphson(free.set='ItemParam'),
-			  mxComputeOnce('fitfunction', 'fit', free.set=c("mean","cov"))
-				 ))
+                          mxComputeNewtonRaphson(free.set='ItemParam'),
+                          mxComputeNothing(),
+                          mxComputeOnce('fitfunction', 'fit')))
 
 m1 <- mxRun(m1, silent=TRUE)
 

@@ -38,7 +38,8 @@ enum omxFFCompute {
 	// estimation method. The information matrix is -1 * Hessian.
 
 	FF_COMPUTE_INFO         = 1<<9,   // Fisher information
-	FF_COMPUTE_BESTFIT      = 1<<10
+	FF_COMPUTE_BESTFIT      = 1<<10,
+	FF_COMPUTE_STARTING     = 1<<11   // for special hacks, not for routine use
 };
 
 typedef struct omxMatrix omxMatrix;

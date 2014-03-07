@@ -46,9 +46,10 @@ omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 512000, .1)
 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),
-	      mxComputeEM('expectation', 'scores',
-			  mxComputeNewtonRaphson(free.set='itemParam'),
-			  mxComputeOnce('fitfunction', 'fit', free.set=c("mean","cov"))))
+              mxComputeEM('expectation', 'scores',
+                          mxComputeNewtonRaphson(free.set='itemParam'),
+                          mxComputeNothing(),
+                          mxComputeOnce('fitfunction', 'fit')))
 
 m2 <- mxRun(m2)
 

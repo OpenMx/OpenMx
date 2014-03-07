@@ -100,8 +100,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
     
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-	fc->maybeCopyParamToModel(globalState);
-    
+
 	if (fitMatrix->fitFunction && fitMatrix->fitFunction->usesChildModels)
 		omxFitFunctionCreateChildren(globalState);
     

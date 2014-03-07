@@ -120,17 +120,26 @@ if (1) {
   omxCheckCloseEnough(cModel.fit@output$fit, correct.LL, .01)
 }
 
-  g1 <- mkgroup("g1", data.g1, FALSE)
+latent.vargroup <- apply(expand.grid(groups[-1], c('mean','cov')),
+                         1, paste, collapse='.')
+
+g1 <- mkgroup("g1", data.g1, FALSE)
   g2 <- mkgroup("g2", data.g2, TRUE)
   g3 <- mkgroup("g3", data.g3, TRUE)
-  
+
+  # Copy latent distribution parameters from current estimates without transformation.
+  latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
+                                                      "latentDistribution", "copy"),  # c('mean','covariance')
+                                        mxComputeOnce('fitfunction', "starting")),
+                                   free.set=latent.vargroup)
+
   grpModel <- mxModel(model="groupModel", g1, g2, g3,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-				  mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-				  mxComputeOnce('fitfunction', 'fit',
-						free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))))
-
+                                  mxComputeNewtonRaphson(paste(groups, 'ItemParam', sep=".")),
+                                  latent.plan,
+                                  mxComputeOnce('fitfunction', 'fit')))
+  
   grpModel <- mxRun(grpModel, silent=TRUE)
   
 emstat <- grpModel@compute@output
@@ -142,3 +151,4 @@ omxCheckCloseEnough(emstat$totalMstep, 816, 100)
   omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$cov@values), c(1.877, .491, .491, 2.05), .01)
   omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$mean@values), c(-.028, -.827), .01)
   omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$cov@values), c(.892, -.422, -.422, .836), .01)
+

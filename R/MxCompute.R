@@ -471,6 +471,7 @@ setClass(Class = "MxComputeEM",
 	     expectation = "MxCharOrNumber",
 	     predict = "character",
 	     mstep = "MxCompute",
+	     post.mstep = "MxCompute",
 	     observed.fit = "MxCompute",
 	     maxIter = "integer",
 	     tolerance = "numeric",
@@ -490,7 +491,7 @@ setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id, defaultFreeSet) {
 		if (length(.Object@free.set) == 1 && is.na(.Object@free.set)) .Object@free.set <- defaultFreeSet
 		defaultFreeSet <- .Object@free.set
-		for (sl in c('mstep', 'observed.fit')) {
+		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
 		}
@@ -501,7 +502,7 @@ setMethod("assignId", signature("MxComputeEM"),
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
 		result <- callNextMethod()
-		for (step in c(.Object@mstep, .Object@observed.fit)) {
+		for (step in c(.Object@mstep, .Object@post.mstep, .Object@observed.fit)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
 		}
@@ -514,7 +515,7 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 		for (sl in c('expectation')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
-		for (sl in c('mstep', 'observed.fit')) {
+		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
@@ -532,7 +533,7 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 			.Object@expectation <- expNum - 1L
 		}
 		if (length(.Object@expectation) == 0) warning("MxComputeEM with nothing will have no effect")
-		for (sl in c('mstep', 'observed.fit')) {
+		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		.Object
@@ -541,19 +542,21 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 setMethod("updateFromBackend", signature("MxComputeEM"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
-		.Object@mstep <- updateFromBackend(.Object@mstep, computes)
-		.Object@observed.fit <- updateFromBackend(.Object@observed.fit, computes)
+		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, expectation, predict, mstep, observed.fit, maxIter, tolerance,
+	  function(.Object, expectation, predict, mstep, post.mstep, observed.fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
 		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set) {
 		  .Object@name <- 'compute'
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
 		  .Object@mstep <- mstep
+		  .Object@post.mstep <- post.mstep
 		  .Object@observed.fit <- observed.fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
@@ -572,7 +575,7 @@ setMethod("initialize", "MxComputeEM",
 		  .Object
 	  })
 
-mxComputeEM <- function(expectation, predict, mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
+mxComputeEM <- function(expectation, predict, mstep, post.mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-3), noiseTolerance=exp(1.5),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
 			semForcePD=TRUE, free.set=NA_character_) {
@@ -581,7 +584,7 @@ mxComputeEM <- function(expectation, predict, mstep, observed.fit, ..., maxIter=
 		stop("mxComputeEM does not accept values for the '...' argument")
 	}
 	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
-	new("MxComputeEM", expectation, predict, mstep, observed.fit, maxIter=maxIter,
+	new("MxComputeEM", expectation, predict, mstep, post.mstep, observed.fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
 	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set)
 }

@@ -758,6 +758,12 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 
 	if (what) {
+		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
+			omxCopyMatrix(state->latentMeanOut, state->estLatentMean);
+			omxCopyMatrix(state->latentCovOut, state->estLatentCov);
+			return;
+		}
+
 		if (strcmp(what, "scores")==0) {
 			state->type = EXPECTATION_AUGMENTED;
 		} else if (strcmp(what, "nothing")==0) {

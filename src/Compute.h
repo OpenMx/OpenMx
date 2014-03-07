@@ -114,7 +114,6 @@ class FitContext {
 	int iterations;
 	enum ComputeInform inform;
 	int wanted;
-	bool changedEstimates; // only used for FF_COMPUTE_PREOPTIMIZE
 
 	void init();
 	FitContext(std::vector<double> &startingValues);

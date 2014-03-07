@@ -137,11 +137,16 @@ if (1) {
 }
 
 omxIFAComputePlan <- function(groups) {
+  latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
+                                                      "latentDistribution", "copy"),  # c('mean','covariance')
+                                        mxComputeOnce('fitfunction', "starting")),
+                                   free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.'))
+
   mxComputeSequence(steps=list(
     mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                 mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                mxComputeOnce('fitfunction', 'fit',
-                              free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+                latent.plan,
+                mxComputeOnce('fitfunction', 'fit'),
                 tolerance=1e-5, information=TRUE),
     mxComputeStandardError(),
     mxComputeHessianQuality()

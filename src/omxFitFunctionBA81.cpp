@@ -782,7 +782,7 @@ static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
 	derivCoef[1] = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
 }
 
-static void xpd_finish_1pat(const double weight, const int numIdentical, const size_t numItems,
+static void gradCov_finish_1pat(const double weight, const int numIdentical, const size_t numItems,
 			    const int numLatents, const size_t numParam,
 			    BA81FitState *state, BA81Expect *estate, omxMatrix *itemParam,
 			    std::vector<double> &deriv0, std::vector<double> &latentGrad,
@@ -815,7 +815,7 @@ static void xpd_finish_1pat(const double weight, const int numIdentical, const s
 	addSymOuterProd(fabs(Scale) * numIdentical, patGrad.data(), numParam, meat);
 }
 
-static bool xpd(omxFitFunction *oo, FitContext *fc)
+static bool gradCov(omxFitFunction *oo, FitContext *fc)
 {
 	const double Scale = Global->llScale;
 	omxExpectation *expectation = oo->expectation;
@@ -917,7 +917,7 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 				}
 			}
 
-			xpd_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
+			gradCov_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	} else {
@@ -994,7 +994,7 @@ static bool xpd(omxFitFunction *oo, FitContext *fc)
 			}
 			patternLik[px] = patternLik1;
 
-			xpd_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
+			gradCov_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	}
@@ -1163,12 +1163,9 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		return got;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
 
-		if (want & FF_COMPUTE_PREOPTIMIZE) {
+		if (want == FF_COMPUTE_STARTING) {
 			buildLatentParamMap(oo, fc);
-			// Qpoint.size()==0 when evaluating fit without estimating model
-			if (state->freeLatents && estate->Qpoint.size()) {
-				setLatentStartingValues(oo, fc);
-			}
+			if (state->freeLatents) setLatentStartingValues(oo, fc);
 			return 0;
 		}
 
@@ -1182,7 +1179,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
 						       fc->infoMethod);
 				}
-				if (!xpd(oo, fc)) return INFINITY;
+				if (!gradCov(oo, fc)) return INFINITY;
 			} else {
 				sandwich(oo, fc);
 			}
@@ -1217,10 +1214,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 				got += numIdentical[ux] * (log(patternLik[ux]) - LogLargest);
 			}
-			if (estate->verbose >= 1) mxLog("%s: fit (%d/%d excluded)",
-						   oo->matrix->name, estate->excludedPatterns, numUnique);
-			//mxLog("fit %.4f", -2 * got);
-			return Global->llScale * got;
+			double fit = Global->llScale * got;
+			if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
+							oo->matrix->name, fit, estate->excludedPatterns, numUnique);
+			return fit;
 		}
 
 		return 0;

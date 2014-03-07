@@ -220,7 +220,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-	fc->maybeCopyParamToModel(globalState);
 
 	iter = 0;
 	int sinceRestart = 0;

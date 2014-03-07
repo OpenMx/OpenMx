@@ -15,7 +15,6 @@ correct[4,] <- 1
 
 data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 
-if(1) {
 	ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
 			   values=c(1,0,0, 1),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
@@ -24,13 +23,16 @@ if(1) {
 	cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
 
 	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
-		      mxData(observed=data, type="raw"),
-		      mxExpectationBA81(mean="mean", cov="cov",
-					ItemSpec=items, ItemParam="itemParam"),
-		      mxFitFunctionML(),
-		      mxComputeEM('expectation', 'scores',
-				  mxComputeNewtonRaphson(free.set='itemParam'),
-				  mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))))
+	              mxData(observed=data, type="raw"),
+	              mxExpectationBA81(mean="mean", cov="cov",
+	                                ItemSpec=items, ItemParam="itemParam"),
+	              mxFitFunctionML(),
+	              mxComputeEM('expectation', 'scores',
+	                          mxComputeNewtonRaphson(free.set='itemParam'),
+	                          mxComputeSequence(list(mxComputeOnce('expectation', "latentDistribution", "copy"),
+	                                                 mxComputeOnce('fitfunction', "starting")),
+	                                            free.set='cov'),
+	                          mxComputeOnce('fitfunction', 'fit')))
 	
 	if (0) {
 		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
@@ -49,17 +51,16 @@ if(1) {
 		cModel@output$minimum
 	}
 
-	if(1) {
-		m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
-		m2 <- mxOption(m2, "Verify level", '-1')
-		m2 <- mxOption(m2, "Function precision", '1.0E-5')
+# 		m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
+# 		m2 <- mxOption(m2, "Verify level", '-1')
+# 		m2 <- mxOption(m2, "Function precision", '1.0E-5')
 		m2 <- mxRun(m2)
 
 emstat <- m2@compute@output
-omxCheckCloseEnough(emstat$EMcycles, 36, 1)
-omxCheckCloseEnough(emstat$totalMstep, 94, 2)
+omxCheckCloseEnough(emstat$EMcycles, 12, 1)
+omxCheckCloseEnough(emstat$totalMstep, 35, 2)
 
-omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)
+omxCheckCloseEnough(m2@output$fit, 14129.94, .01)
 		omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
 		
 					#print(m2@matrices$itemParam@values)
@@ -67,8 +68,6 @@ omxCheckCloseEnough(m2@fitfunction@result, 14129.94, .01)
 		got <- cor(c(m2@matrices$itemParam@values),
 			   c(correct))
 		omxCheckCloseEnough(got, .994, .01)
-	}
-}
 
 if (1) {
   ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
@@ -97,8 +96,9 @@ if (1) {
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeEM('expectation', 'scores',
-			    mxComputeNewtonRaphson(free.set='itemParam'),
-			    mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))))
+                            mxComputeNewtonRaphson(free.set='itemParam'),
+                            mxComputeNothing(),
+                            mxComputeOnce('fitfunction', 'fit')))
 
   m2 <- mxRun(m2)
   emstat <- m2@compute@output

@@ -44,7 +44,6 @@ void FitContext::init()
 	infoB = NULL;
 	ihess = new double[numParam * numParam];
 	stderrs = NULL;
-	changedEstimates = false;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
 }
@@ -311,14 +310,6 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 void FitContext::copyParamToModel(omxState* os)
 {
 	copyParamToModel(os, est);
-}
-
-void FitContext::maybeCopyParamToModel(omxState* os)
-{
-	if (changedEstimates) {
-		copyParamToModel(os, est);
-		changedEstimates = false;
-	}
 }
 
 void FitContext::copyParamToModel(omxState* os, double *at)
@@ -775,6 +766,7 @@ class omxComputeOnce : public omxCompute {
 	const char *how;
 	int verbose;
 	bool mac;
+	bool starting;
 	bool fit;
 	bool gradient;
 	bool hessian;
@@ -795,8 +787,9 @@ class ComputeEM : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxExpectation* > expectations;
 	const char *predict;
-	omxCompute *fit1;
+	omxCompute *fit1;  // maybe rename to stage1, stage2, stage3 TODO
 	omxCompute *fit2;
+	omxCompute *fit3;
 	int EMcycles;
 	int maxIter;
 	int mstepIter;
@@ -1122,10 +1115,15 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("observed.fit")));
+	PROTECT(slotValue = GET_SLOT(rObj, install("post.mstep")));
 	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
 	fit2 = omxNewCompute(globalState, CHAR(s4class));
 	fit2->initFromFrontend(slotValue);
+
+	PROTECT(slotValue = GET_SLOT(rObj, install("observed.fit")));
+	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
+	fit3 = omxNewCompute(globalState, CHAR(s4class));
+	fit3->initFromFrontend(slotValue);
 
 	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
 	verbose = asInteger(slotValue);
@@ -1154,38 +1152,11 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->copyParamToModel(globalState);
 
 	setExpectationPrediction(predict);
-	FitContext *emfc = new FitContext(fc, fit1->varGroup);
-	emfc->copyParamToModel(globalState);
-	fit1->compute(emfc);
-	emfc->updateParentAndFree();
+	fit1->compute(fc);
+	setExpectationPrediction("nothing");
 
 	const size_t extraVars = fit2->varGroup->vars.size();
-	if (extraVars) {
-		setExpectationPrediction("nothing");
-		if (0) {
-			// do we need to completely optimize the latent parameter?
-			int iter = 0;
-			double prevFit = 0;
-			while (iter < maxIter / 10) {
-				FitContext *fc2 = new FitContext(fc, fit2->varGroup);
-				fc2->copyParamToModel(globalState);
-				fit2->compute(fc2);
-				double change = fabs(prevFit - fc2->fit);
-				prevFit = fc2->fit;
-				mxLog("%d %f", iter, change);
-				if (iter && change < tolerance) break;
-				fc2->updateParentAndFree();
-				++iter;
-
-			}
-		}
-		if (1) {
-			FitContext *fc2 = new FitContext(fc, fit2->varGroup);
-			omxFitFunction *ff2 = fit2->getFitFunction();
-			if (ff2) omxFitFunctionCompute(ff2, FF_COMPUTE_PREOPTIMIZE, fc2);
-			fc2->updateParentAndFree();
-		}
-	}
+	if (extraVars) fit2->compute(fc);
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of param %d offset %.6f",
 				paramHistLen[vx], vx, offset);
@@ -1263,16 +1234,18 @@ void ComputeEM::computeImpl(FitContext *fc)
 		}
 	}
 
-	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g ramsay=%d info=%d flavors=%ld",
-				tolerance, useRamsay, information, ramsay.size());
+	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g ramsay=%d info=%d",
+				tolerance, useRamsay, information);
 
 	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
 	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
 
 	while (1) {
+		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
 		setExpectationPrediction(predict);
 
 		{
+			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
 			fit1->compute(fc1);
 			if (fc1->inform == INFORM_ITERATION_LIMIT) {
@@ -1286,17 +1259,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		setExpectationPrediction("nothing");
 		{
-			FitContext *context = new FitContext(fc, fit2->varGroup);
+			if (verbose >= 4) mxLog("ComputeEM[%d]: post M-step", EMcycles);
+			fit2->compute(fc);
 
-			// For IFA, PREOPTIMIZE updates latent distribution parameters
-			omxFitFunction *ff2 = fit2->getFitFunction();
-			if (ff2) omxFitFunctionCompute(ff2, FF_COMPUTE_PREOPTIMIZE, context);
-
-			if (!useRamsay) {
-				fc->maybeCopyParamToModel(globalState);
-			} else {
-				context->updateParent();
-
+			if (useRamsay) {
 				bool wantRestart;
 				if (EMcycles > 3 && EMcycles % 3 == 0) {
 					for (size_t rx=0; rx < ramsay.size(); ++rx) {
@@ -1306,11 +1272,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 				for (size_t rx=0; rx < ramsay.size(); ++rx) {
 					ramsay[rx]->apply();
 				}
-				fc->copyParamToModel(globalState);
 			}
-
-			fit2->compute(context);
-			if (context != fc) context->updateParentAndFree();
+			fc->copyParamToModel(globalState);
+			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
+			fit3->compute(fc);
 		}
 
 		totalMstepIter += mstepIter;
@@ -1507,6 +1472,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
 	omxFitFunctionCompute(fit1->getFitFunction(), FF_COMPUTE_INFO, fc);
+	// fit2 also TODO
 	fc->postInfo();
 
 	double *hess = fc->hess;
@@ -1556,9 +1522,10 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 {
 	super::collectResults(fc, lcr, out);
 
-	std::vector< omxCompute* > clist(2);
+	std::vector< omxCompute* > clist(3);
 	clist[0] = fit1;
 	clist[1] = fit2;
+	clist[2] = fit3;
 
 	collectResultsHelper(fc, clist, lcr, out);
 }
@@ -1622,6 +1589,7 @@ ComputeEM::~ComputeEM()
 
 	delete fit1;
 	delete fit2;
+	delete fit3;
 
 	for (size_t hx=0; hx < estHistory.size(); ++hx) {
 		delete [] estHistory[hx];
@@ -1680,6 +1648,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			PROTECT(elem = STRING_ELT(slotValue, wx));
 			const char *what = CHAR(elem);
 			if      (strcmp(what, "maxAbsChange")==0) mac = true;
+			else if (strcmp(what, "starting")    ==0) starting = true;
 			else if (strcmp(what, "fit")         ==0) fit = true;
 			else if (strcmp(what, "gradient")    ==0) gradient = true;
 			else if (strcmp(what, "hessian")     ==0) hessian = true;
@@ -1755,6 +1724,9 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 	if (algebras.size()) {
 		int want = 0;
 		size_t numParam = fc->varGroup->vars.size();
+		if (starting) {
+			want |= FF_COMPUTE_STARTING;
+		}
 		if (mac) {
 			want |= FF_COMPUTE_MAXABSCHANGE;
 			fc->mac = 0;
@@ -1794,8 +1766,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 						   algebra->fitFunction, want);
 
 				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-				fc->maybeCopyParamToModel(globalState);
-
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
 				if (infoMat) {

@@ -21,6 +21,8 @@ if (0) {
   write.table(sapply(data.g3, unclass)-1, file="drm-mg2-g3.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
 }
 
+# This create an IFA model for each group. Item parameters are
+# constrained equal across groups.
 mkgroup <- function(model.name, data, latent.free) {
   ip.mat <- mxMatrix(name="ItemParam", nrow=2, ncol=numItems,
                      values=c(1,0), free=TRUE)
@@ -33,16 +35,21 @@ mkgroup <- function(model.name, data, latent.free) {
   }
   
   dims <- 1
-  m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
-  cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
-                      free=latent.free)
+  m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0)
+  cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims))
+
+  mean <- "mean"
+  cov <- "cov"
+  if (latent.free) {
+    lm <- paste(model.name, "latent", sep="")
+    mean <- paste(lm, "expMean", sep=".")
+    cov <- paste(lm, "expCov", sep=".")
+  }
   
   m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(
-                  ItemSpec=items,
-                  ItemParam="ItemParam",
-                  mean="mean", cov="cov"),
+                mxExpectationBA81(ItemSpec=items, ItemParam="ItemParam", mean=mean, cov=cov,
+                                  verbose=ifelse(latent.free, 0L, 0L)),
                 mxFitFunctionML())
   m1
 }
@@ -53,45 +60,75 @@ g3 <- mkgroup("g3", data.g3, TRUE)
 
 groups <- paste("g", 1:3, sep="")
 
-# load flexmirt fit and compare TODO
-
-  # Cannot test derivatives at starting values because Hessian starts very close to singular.
-  
-plan <- mxComputeSequence(steps=list(
-  mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-              mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-              mxComputeOnce('fitfunction', 'fit',
-                            free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
-              information=TRUE),
-  mxComputeStandardError(),
-  mxComputeHessianQuality()))
+# Cannot test derivatives at starting values because Hessian starts very close to singular.
 
 if(0) {
+  # for S-EM debugging
   plan <- mxComputeEM(paste(groups, 'expectation', sep='.'),
                       mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
                       mxComputeOnce('fitfunction', 'fit',
                                     free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
                       information=TRUE, info.method="meat", semDebug=TRUE, semMethod=seq(.001, .02, length.out=30))
 }
-  
-  grpModel <- mxModel(model="groupModel", g1, g2, g3,
-                      mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeSequence(list(
-		      mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-		                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-		                  mxComputeOnce('fitfunction', 'fit',
-		                                free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
-                      information=TRUE, tolerance=1e-5),
-          mxComputeStandardError(),
-          mxComputeHessianQuality())))
-  
+
+# This create a latent distribution model that can be used to impose
+# equality constraints on latent distribution parameters.
+mklatent <- function(name) {
+  m1 <- mxModel(paste(name, "latent", sep=""),
+          mxMatrix(nrow=1, ncol=1, free=T, values=0, name="expMean"),
+          mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="expCov"))
+  if (0) {
+    m1 <- mxModel(m1,
+                  mxData(observed=paste(name, "expectation", sep="."), type="cov"),
+                  mxExpectationNormal(covariance="expCov", means="expMean"),
+                  mxFitFunctionML())
+  }
+  m1
+}
+
+latent <- mxModel("latent",
+                  mxFitFunctionMultigroup(paste(paste(groups[-1],"latent",sep=""), "fitfunction", sep=".")))
+
+g2.latent <- mklatent("g2")
+g3.latent <- mklatent("g3")
+
+latent.vargroup <- apply(expand.grid(paste(groups[-1], "latent", sep=""), c('expMean','expCov')),
+                         1, paste, collapse='.')
+
+latent.plan <- NULL  # need a plan for latent distribution parameters
+
+if (1) {
+  # Copy latent distribution parameters from current estimates without transformation.
+  latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
+                                                      "latentDistribution", "copy"),  # c('mean','covariance')
+                                        mxComputeOnce('fitfunction', "starting")),
+                                   free.set=latent.vargroup)
+  # reaches -2LL 30112.522171 (with parameters far away from the flexMIRT solution)
+} else {
+  # Obtain latent distribution parameters via mxExpectationNormal.
+  # This permits equality constraints (and potentially more complex latent structure).
+  latent.plan <- mxComputeGradientDescent(latent.vargroup, fitfunction="latent.fitfunction")
+  # reaches -2LL 30114.960469 (with parameters close to the flexMIRT solution)
+}
+
+grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, #latent,
+                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                    mxComputeSequence(list(
+                      mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
+                                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+                                  latent.plan,
+                                  mxComputeOnce('fitfunction', 'fit'),
+                                  information=TRUE, tolerance=1e-4),
+                      mxComputeStandardError(),
+                      mxComputeHessianQuality())))
+
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
-  grpModel <- mxRun(grpModel)
+grpModel <- mxRun(grpModel)
 
 #dm <- grpModel@compute@steps[[1]]@debug$rateMatrix
 
-plot_em_map <- function(model, cem) {
+plot_em_map <- function(model, cem) {   # for S-EM debugging
   require(ggplot2)
   phl <- cem@debug$paramHistLen
   probeOffset <- cem@debug$probeOffset
@@ -123,10 +160,10 @@ if (0) {
 }
 
 omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
-  omxCheckCloseEnough(grpModel@submodels$g2@matrices$mean@values, -.834, .01)
-  omxCheckCloseEnough(grpModel@submodels$g2@matrices$cov@values, 3.93, .01)
-  omxCheckCloseEnough(grpModel@submodels$g3@matrices$mean@values, .933, .01)
-  omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
+  omxCheckCloseEnough(grpModel@submodels$g2latent@matrices$expMean@values, -.834, .01)
+  omxCheckCloseEnough(grpModel@submodels$g2latent@matrices$expCov@values, 3.93, .01)
+  omxCheckCloseEnough(grpModel@submodels$g3latent@matrices$expMean@values, .933, .01)
+  omxCheckCloseEnough(grpModel@submodels$g3latent@matrices$expCov@values, .444, .01)
 
 emstat <- grpModel@compute@steps[[1]]@output
 omxCheckCloseEnough(emstat$EMcycles, 88, 2)
@@ -157,7 +194,7 @@ i1 <- mxRun(i1)
           0.087, 0.095, 0.09, 0.064, 0.07, 0.135, 0.115,  0.091, 0.095, 0.097,
           0.098, 0.096, 0.093, 0.12, 0.512, 0.072,  0.057)
   omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
-  omxCheckCloseEnough(i1@output$conditionNumber, 281, 1)
+  omxCheckCloseEnough(log(i1@output$conditionNumber), 5.6, .2)
 
 if (0) {
   library(mirt)
