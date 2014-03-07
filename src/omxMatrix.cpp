@@ -69,6 +69,8 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
+	if (!isColMajor) error("All matrices should be column major"); // remove option TODO
+
 	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
 	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix %p to (%d, %d) with state at %p.", om, nrows, ncols, os); }
 
@@ -112,12 +114,11 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 
 }
 
-omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
+omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os)
+{
+	if (om) error("om must be NULL");  // remove this argument TODO
 
-	if(om == NULL) {
-		om = (omxMatrix*) Calloc(1, omxMatrix);
-	}
-
+	om = (omxMatrix*) Calloc(1, omxMatrix);
 	om = omxInitMatrix(om, nrows, ncols, isColMajor, os);
 	om->isTemporary = TRUE;
 	
@@ -252,7 +253,7 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	omxMatrix* newMat = NULL;
 	int l,k;
 
-	newMat = omxInitMatrix(newMat, nrows, nrows, FALSE, state);
+	newMat = omxInitMatrix(newMat, nrows, nrows, TRUE, state);
 	for(k =0; k < newMat->rows; k++) {
 		for(l = 0; l < newMat->cols; l++) {
 			if(l == k) {
@@ -269,7 +270,7 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	omxMatrix* newMat;
     
 	if(src == NULL) return NULL;
-	newMat = omxInitMatrix(NULL, src->rows, src->cols, FALSE, newState);
+	newMat = omxInitMatrix(NULL, src->rows, src->cols, TRUE, newState);
 	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
@@ -405,7 +406,7 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	omxMatrix *om = NULL;
-	om = omxInitMatrix(NULL, 0, 0, FALSE, state);
+	om = omxInitMatrix(NULL, 0, 0, TRUE, state);
 	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
 }
 
@@ -428,7 +429,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
 
 	if(om == NULL) {
-		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
+		om = omxInitMatrix(NULL, 0, 0, TRUE, state);
 	}
 
 	if(isMatrix(matrix)) {
