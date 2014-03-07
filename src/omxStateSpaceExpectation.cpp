@@ -36,7 +36,7 @@
 #include "omxStateSpaceExpectation.h"
 
 
-void omxCallStateSpaceExpectation(omxExpectation* ox, const char *) {
+void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	

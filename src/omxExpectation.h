@@ -63,7 +63,7 @@ struct omxExpectation {					// An Expectation
 	/* Fields unique to Expectation Functions */
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
-	void (*computeFun)(omxExpectation* ox, const char *context);
+	void (*computeFun)(omxExpectation* ox, const char *what, const char *how);
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
 	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
 	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);  // TODO remove
@@ -111,7 +111,11 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 
 /* Expectation-specific implementations of matrix functions */
 void omxExpectationRecompute(omxExpectation *ox);
-void omxExpectationCompute(omxExpectation *ox, const char *context);
+void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how);
+
+static inline void omxExpectationCompute(omxExpectation *ox, const char *what)
+{ omxExpectationCompute(ox, what, NULL); }
+
 	omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState);
 	
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation

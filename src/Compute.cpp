@@ -772,6 +772,7 @@ class omxComputeOnce : public omxCompute {
 	std::vector< omxMatrix* > algebras;
 	std::vector< omxExpectation* > expectations;
 	std::vector< const char* > predict;
+	const char *how;
 	int verbose;
 	bool mac;
 	bool fit;
@@ -1706,16 +1707,21 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	} else if (length(slotValue) == 1) {
 		SEXP elem;
 		PROTECT(elem = STRING_ELT(slotValue, 0));
-		const char *iMethod = CHAR(elem);
-		if (infoMat) {
-			infoMethod = stringToInfoMethod(iMethod);
-			if (infoMethod == INFO_METHOD_MEAT && gradient && whatLen == 2) {
-				//OK
-			} else if (whatLen > 1) {
-				howConflict = true;
+		if (algebras.size()) {
+			const char *iMethod = CHAR(elem);
+			if (infoMat) {
+				infoMethod = stringToInfoMethod(iMethod);
+				if (infoMethod == INFO_METHOD_MEAT && gradient && whatLen == 2) {
+					//OK
+				} else if (whatLen > 1) {
+					howConflict = true;
+				}
+			} else {
+				omxRaiseErrorf(globalState, "mxComputeOnce: unknown method %s requested", iMethod);
 			}
 		} else {
-			omxRaiseErrorf(globalState, "mxComputeOnce: unknown method %s requested", iMethod);
+			how = CHAR(elem);
+			if (whatLen > 1) howConflict = true;
 		}
 	}
 	if (howConflict) {
@@ -1806,7 +1812,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
 			if (verbose) mxLog("ComputeOnce: expectation[%lu] %p predict %s", wx, expectation, predict[0]);
-			omxExpectationCompute(expectation, predict[0]);
+			omxExpectationCompute(expectation, predict[0], how);
 		}
 	}
 }

@@ -75,7 +75,7 @@ void omxExpectationRecompute(omxExpectation *ox) {
 	omxExpectationCompute(ox, NULL);
 }
 
-void omxExpectationCompute(omxExpectation *ox, const char *context)
+void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how)
 {
 	if (!ox) return;
 
@@ -83,7 +83,7 @@ void omxExpectationCompute(omxExpectation *ox, const char *context)
 	    mxLog("Expectation compute: %p", ox);
 	}
 
-	ox->computeFun(ox, context);
+	ox->computeFun(ox, what, how);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {

@@ -23,7 +23,7 @@
 #include "omxFIMLFitFunction.h"
 #include "omxNormalExpectation.h"
 
-void omxComputeNormalExpectation(omxExpectation* ox, const char *) {
+void omxComputeNormalExpectation(omxExpectation* ox, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("Normal Expectation calculating."); }
 
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
