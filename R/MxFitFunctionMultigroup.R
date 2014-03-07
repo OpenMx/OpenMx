@@ -56,7 +56,24 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 		return(.Object)
 })
 
-
+##' Aggregate fit statistics from submodels
+##'
+##' This is a very simple fit function that sums the fit statistics
+##' from other fit functions, typically in submodels. It is almost
+##' equivalent to,
+##'
+##' \code{mxAlgebra(model1.objective + model2.objective, name="alg")}
+##'
+##' and
+##'
+##' \code{mxFitFunctionAlgebra("alg")}
+##'
+##' However, in addition to the fit statistic, mxFitFunctionMultigroup
+##' also aggregates analytic derivative calculations.
+##'
+##' @param groups vector of fit function names
+##' @aliases
+##' MxFitFunctionMultigroup-class
 mxFitFunctionMultigroup <- function(groups) {
 	return(new("MxFitFunctionMultigroup", groups))
 }

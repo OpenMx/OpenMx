@@ -126,7 +126,9 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/mxComputeStandardError.Rd \
 	man/mxComputeGradientDescent.Rd \
 	man/mxComputeNewtonRaphson.Rd \
-	man/mxComputeNumericDeriv.Rd
+	man/mxComputeNumericDeriv.Rd \
+	man/mxFitFunctionMultigroup.Rd \
+	man/mxComputeNothing.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)
