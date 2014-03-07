@@ -70,7 +70,7 @@ class omxComputeNumericDeriv : public omxCompute {
  public:
 	omxComputeNumericDeriv();
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -292,7 +292,7 @@ void omxComputeNumericDeriv::initFromFrontend(SEXP rObj)
 	if (stepSize <= 0) error("stepSize must be positive");
 }
 
-void omxComputeNumericDeriv::compute(FitContext *fc)
+void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	fitContext = fc;
 	numParams = int(fc->varGroup->vars.size());

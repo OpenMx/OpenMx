@@ -40,7 +40,7 @@ public:
 	virtual ~ComputeNR();
 	virtual void initFromFrontend(SEXP rObj);
 	virtual omxFitFunction *getFitFunction();
-	virtual void compute(FitContext *fc);
+	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 };
@@ -182,7 +182,7 @@ double ComputeNR::getMaxCaution() const
 	return caution;
 }
 
-void ComputeNR::compute(FitContext *fc)
+void ComputeNR::computeImpl(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
 

@@ -79,8 +79,8 @@ omxCheckCloseEnough(emstat$totalMstep, 771, 20)
 					#print(correct.mat)
 # sometimes found as low as .89, maybe solution is unstable
 omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-			c(correct.mat)), .9, .06)
+			c(correct.mat)), .91, .07)
 scores.out <- m1@expectation@output$scores
 max.se <- max(scores.out[,3:4])
 omxCheckCloseEnough(sum(abs(scores.out[,1:2] - t(ability)) < max.se) / (numPeople*2), .797, .02)
-omxCheckCloseEnough(.672, cor(c(scores.out[,1:2]), c(t(ability))), .01)
+omxCheckCloseEnough(.689, cor(c(scores.out[,1:2]), c(t(ability))), .02)

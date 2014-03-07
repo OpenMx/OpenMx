@@ -109,8 +109,8 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	const size_t numFreeParams = state->numFreeParam;
 
-	if (state->haveLatentMap == fc->varGroup->id) return;
-	if (estate->verbose) mxLog("%s: rebuild latent parameter map for %d", oo->matrix->name, fc->varGroup->id);
+	if (state->haveLatentMap == fc->varGroup->id[0]) return;
+	if (estate->verbose) mxLog("%s: rebuild latent parameter map for %d", oo->matrix->name, fc->varGroup->id[0]);
 
 	state->freeLatents = false;
 	latentMap.assign(numLatents + triangleLoc1(numLatents), -1);
@@ -155,7 +155,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 			}
 		}
 	}
-	state->haveLatentMap = fc->varGroup->id;
+	state->haveLatentMap = fc->varGroup->id[0];
 
 	for (int p1=0; p1 < numLatents; p1++) {
 		int at1 = latentMap[p1];
@@ -182,9 +182,9 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 
-	if (state->haveItemMap == fc->varGroup->id) return;
+	if (state->haveItemMap == fc->varGroup->id[0]) return;
 	if (estate->verbose >= 1) mxLog("%s: rebuild item parameter map for var group %d",
-					oo->matrix->name, fc->varGroup->id);
+					oo->matrix->name, fc->varGroup->id[0]);
 
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
@@ -286,7 +286,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		}
 	}
 
-	state->haveItemMap = fc->varGroup->id;
+	state->haveItemMap = fc->varGroup->id[0];
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 

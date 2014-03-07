@@ -127,7 +127,9 @@ void omxCompleteMxFitFunction(SEXP algList)
 		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));             // The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxMatrix *fm = globalState->algebraList[index];
-			setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
+			if (!fm->fitFunction->freeVarGroup) {
+				setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
+			}
 			omxCompleteFitFunction(fm);
 		}
 		UNPROTECT(1);
@@ -275,11 +277,11 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 	{
 		FreeVarGroup *fvg = new FreeVarGroup;
-		fvg->id = FREEVARGROUP_ALL;   // all variables
+		fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
 		Global->freeGroup.push_back(fvg);
 
 		fvg = new FreeVarGroup;
-		fvg->id = FREEVARGROUP_NONE;  // no variables
+		fvg->id.push_back(FREEVARGROUP_NONE);  // no variables
 		Global->freeGroup.push_back(fvg);
 	}
 
@@ -351,6 +353,8 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 		}*/
 		(*startingValues)[fx] = sv;
 	}
+
+	Global->deduplicateVarGroups();
 }
 
 /*

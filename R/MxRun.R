@@ -70,7 +70,7 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
-	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L)
+	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
 	flatModel <- imxFlattenModel(model, namespace)	
 	omxCheckNamespace(model, namespace)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
@@ -139,7 +139,7 @@ runHelper <- function(model, frontendStart,
 				compute <- mxComputeSequence(steps)
 			}
 		}
-		compute <- assignId(compute, 1L)
+		compute <- assignId(compute, 1L, '.')
 		flatModel@compute <- compute
 	}
 

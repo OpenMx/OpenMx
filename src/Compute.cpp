@@ -116,7 +116,8 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 
 		if (++d1 == dvars) break;
 	}
-	if (d1 != dvars) error("Parent free parameter group is not a superset");
+	if (d1 != dvars) error("Parent free parameter group (id=%d) is not a superset of %d",
+			       src->id[0], dest->id[0]);
 
 	wanted = parent->wanted;
 	infoDefinite = parent->infoDefinite;
@@ -691,25 +692,33 @@ void omxCompute::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
 	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
-	if (length(slotValue) == 1) {
-		computeId = INTEGER(slotValue)[0];
-		varGroup = Global->findVarGroup(computeId);
-	}
+	if (length(slotValue) != 1) error("MxCompute has no ID");
+
+	computeId = INTEGER(slotValue)[0];
+	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		if (!R_has_slot(rObj, install("free.set"))) {
+		PROTECT(slotValue = GET_SLOT(rObj, install("free.set")));
+		if (length(slotValue) == 0) {
+			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
+		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
 			varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 		} else {
-			PROTECT(slotValue = GET_SLOT(rObj, install("free.set")));
-			if (length(slotValue) != 0) {
-				// it's a free.set with no free variables
-				varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
-			} else {
-				varGroup = Global->freeGroup[FREEVARGROUP_ALL];
-			}
+			warning("MxCompute ID %d references matrix '%s' in its free.set "
+				"but this matrix contains no free parameters",
+				computeId, CHAR(STRING_ELT(slotValue, 0)));
+			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		}
 	}
 	//mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
+}
+
+void omxCompute::compute(FitContext *fc)
+{
+	FitContext *narrow = fc;
+	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
+	computeImpl(narrow);
+	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 }
 
 class ComputeContainer : public omxCompute {
@@ -742,7 +751,7 @@ class omxComputeSequence : public ComputeContainer {
 
  public:
 	virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc);
 	virtual ~omxComputeSequence();
 };
 
@@ -754,7 +763,7 @@ class omxComputeIterate : public ComputeContainer {
 
  public:
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc);
 	virtual ~omxComputeIterate();
 };
 
@@ -777,7 +786,7 @@ class omxComputeOnce : public omxCompute {
  public:
         virtual void initFromFrontend(SEXP rObj);
         virtual omxFitFunction *getFitFunction();
-        virtual void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -828,7 +837,7 @@ class ComputeEM : public omxCompute {
 
  public:
         virtual void initFromFrontend(SEXP rObj);
-        virtual void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus();
@@ -920,7 +929,7 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 	}
 }
 
-void omxComputeSequence::compute(FitContext *fc)
+void omxComputeSequence::computeImpl(FitContext *fc)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		FitContext *context = fc;
@@ -969,7 +978,7 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 	verbose = asInteger(slotValue);
 }
 
-void omxComputeIterate::compute(FitContext *fc)
+void omxComputeIterate::computeImpl(FitContext *fc)
 {
 	int iter = 0;
 	double prevFit = 0;
@@ -1213,7 +1222,7 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 				p1, p2, *mengOK, diff / freeVars, *stdDiff);
 }
 
-void ComputeEM::compute(FitContext *fc)
+void ComputeEM::computeImpl(FitContext *fc)
 {
 	const double Scale = fabs(Global->llScale);
 	double prevFit = 0;
@@ -1249,7 +1258,7 @@ void ComputeEM::compute(FitContext *fc)
 			if (fc->flavor[vx] == 0) ++omitted;
 		}
 		if (overlap || omitted) {
-			//error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
+			error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
 		}
 	}
 
@@ -1276,10 +1285,7 @@ void ComputeEM::compute(FitContext *fc)
 
 		setExpectationPrediction("nothing");
 		{
-			FitContext *context = fc;
-			if (fc->varGroup != fit2->varGroup) {
-				context = new FitContext(fc, fit2->varGroup);
-			}
+			FitContext *context = new FitContext(fc, fit2->varGroup);
 
 			// For IFA, PREOPTIMIZE updates latent distribution parameters
 			omxFitFunction *ff2 = fit2->getFitFunction();
@@ -1738,7 +1744,7 @@ omxFitFunction *omxComputeOnce::getFitFunction()
 	}
 }
 
-void omxComputeOnce::compute(FitContext *fc)
+void omxComputeOnce::computeImpl(FitContext *fc)
 {
 	if (algebras.size()) {
 		int want = 0;

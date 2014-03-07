@@ -27,7 +27,10 @@ FreeVarGroup *omxGlobal::findVarGroup(int id)
 {
 	size_t numGroups = Global->freeGroup.size();
 	for (size_t vx=0; vx < numGroups; ++vx) {
-		if (Global->freeGroup[vx]->id == id) return Global->freeGroup[vx];
+		std::vector<int> &ids = Global->freeGroup[vx]->id;
+		for (size_t ix=0; ix < ids.size(); ++ix) {
+			if (ids[ix] == id) return Global->freeGroup[vx];
+		}
 	}
 	return NULL;
 }
@@ -38,9 +41,19 @@ FreeVarGroup *omxGlobal::findOrCreateVarGroup(int id)
 	if (old) return old;
 
 	FreeVarGroup *fvg = new FreeVarGroup;
-	fvg->id = id;
+	fvg->id.push_back(id);
 	Global->freeGroup.push_back(fvg);
 	return fvg;
+}
+
+bool FreeVarGroup::hasSameVars(FreeVarGroup *g2)
+{
+	if (vars.size() != g2->vars.size()) return false;
+
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		if (vars[vx] != g2->vars[vx]) return false;
+	}
+	return true;
 }
 
 void FreeVarGroup::cacheDependencies()
@@ -64,6 +77,7 @@ void FreeVarGroup::cacheDependencies()
 		}
 	}
 
+	// Everything is set up. This is a good place to log.
 	//log();
 }
 
@@ -98,7 +112,11 @@ void FreeVarGroup::log()
 	size_t numAlgs = os->algebraList.size();
 	std::string str;
 
-	str += string_snprintf("FreeVarGroup(id=%d) with %lu variables:", id, vars.size());
+	str += string_snprintf("FreeVarGroup(id=%d", id[0]);
+	for (size_t ix=1; ix < id.size(); ++ix) {
+		str += string_snprintf(",%d", id[ix]);
+	}
+	str += string_snprintf(") with %lu variables:", vars.size());
 
 	for (size_t vx=0; vx < vars.size(); ++vx) {
 		str += " ";
@@ -132,6 +150,20 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	numChildren = 0;
 	llScale = -2.0;
+}
+
+void omxGlobal::deduplicateVarGroups()
+{
+	for (size_t g1=0; g1 < freeGroup.size(); ++g1) {
+		for (size_t g2=freeGroup.size()-1; g2 > g1; --g2) {
+			if (freeGroup[g1]->hasSameVars(freeGroup[g2])) {
+				freeGroup[g1]->id.insert(freeGroup[g1]->id.end(),
+							 freeGroup[g2]->id.begin(), freeGroup[g2]->id.end());
+				delete freeGroup[g2];
+				freeGroup.erase(freeGroup.begin() + g2);
+			}
+		}
+	}
 }
 
 /* Initialize and Destroy */

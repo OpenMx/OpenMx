@@ -314,7 +314,7 @@ static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
 	if (ox->freeVarGroup && ox->freeVarGroup != fvg) {
 		warning("setFreeVarGroup called with different group (%d vs %d) on %s",
-			ox->name, ox->freeVarGroup->id, fvg->id);
+			ox->name, ox->freeVarGroup->id[0], fvg->id[0]);
 	}
 	ox->freeVarGroup = fvg;
 }

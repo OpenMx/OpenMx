@@ -155,7 +155,8 @@ class omxCompute {
 	omxCompute();
         virtual void initFromFrontend(SEXP rObj);
         virtual omxFitFunction *getFitFunction() { return NULL; }
-        virtual void compute(FitContext *fc) {};
+        void compute(FitContext *fc);
+        virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute();

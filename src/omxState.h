@@ -87,14 +87,17 @@ struct omxFreeVar {
 #define FREEVARGROUP_INVALID -2
 
 struct FreeVarGroup {
-	int id;
+	std::vector<int> id;
 	std::vector< omxFreeVar* > vars;
+
+	// see cacheDependencies
 	std::vector<bool> dependencies;
 	std::vector<bool> locations;
 
 	void cacheDependencies();
 	void markDirty(omxState *os);
 	void log();
+	bool hasSameVars(FreeVarGroup *g2);
 };
 
 #define NEG_INF -2e20
@@ -157,6 +160,7 @@ class omxGlobal {
 	FreeVarGroup *findVarGroup(int id);
 
 	omxGlobal();
+	void deduplicateVarGroups();
 	~omxGlobal();
 };
 

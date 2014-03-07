@@ -66,6 +66,9 @@ buildFreeVarGroupList <- function(flatModel) {
 	if (is.null(flatModel@compute)) return()
 	got <- getFreeVarGroup(flatModel@compute)
 	if (length(got)) {
+		if (anyDuplicated(unlist(got[seq(1,length(got),2)]))) {
+			stop("free.set IDs are not unique") #for debugging
+		}
 		members <- unlist(got[seq(2,length(got),2)])
 		recog <- match(members, names(flatModel@matrices))
 		if (any(is.na(recog))) {
