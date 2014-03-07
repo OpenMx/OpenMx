@@ -165,8 +165,8 @@ omxIFAComputePlan <- function(groups) {
   grpModel <- mxRun(grpModel)
 
 emstat <- grpModel@compute@steps[[1]]@output
-omxCheckCloseEnough(emstat$EMcycles, 256, 2)
-omxCheckCloseEnough(emstat$totalMstep, 1455, 50)
+omxCheckCloseEnough(emstat$EMcycles, 154, 2)
+omxCheckCloseEnough(emstat$totalMstep, 933, 50)
 omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
 
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
@@ -185,7 +185,7 @@ omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
   # max(abs(c(grpModel@output$standardErrors) - semse))
   
   # These are extremely sensitive to small differences in model estimation.
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .01)
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .02)
   omxCheckCloseEnough(log(grpModel@output$conditionNumber), 5.5, 1)
   
   print(grpModel@output$backendTime)

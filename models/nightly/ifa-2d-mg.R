@@ -134,8 +134,8 @@ if (1) {
   grpModel <- mxRun(grpModel, silent=TRUE)
   
 emstat <- grpModel@compute@output
-omxCheckCloseEnough(emstat$EMcycles, 98, 2)
-omxCheckCloseEnough(emstat$totalMstep, 1023, 100)
+omxCheckCloseEnough(emstat$EMcycles, 74, 2)
+omxCheckCloseEnough(emstat$totalMstep, 816, 100)
 
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
   omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$mean@values), c(-.507, .703), .01)

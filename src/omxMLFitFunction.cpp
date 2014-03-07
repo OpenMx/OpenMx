@@ -256,6 +256,8 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 
 void omxInitMLFitFunction(omxFitFunction* oo)
 {
+	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
+
 	omxExpectation *expectation = oo->expectation;
 	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
 		omxInitFitFunctionBA81(oo);
@@ -270,8 +272,6 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	
 	/* Read and set expectation */
 	omxSetMLFitFunctionCalls(oo);
-
-	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
 
 	omxData* dataMat = oo->expectation->data;
 

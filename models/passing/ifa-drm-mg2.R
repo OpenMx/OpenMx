@@ -129,8 +129,8 @@ omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
   omxCheckCloseEnough(grpModel@submodels$g3@matrices$cov@values, .444, .01)
 
 emstat <- grpModel@compute@steps[[1]]@output
-omxCheckCloseEnough(emstat$EMcycles, 154, 2)
-omxCheckCloseEnough(emstat$totalMstep, 4871, 100)
+omxCheckCloseEnough(emstat$EMcycles, 88, 2)
+omxCheckCloseEnough(emstat$totalMstep, 3417, 100)
 omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
   
 #  cat(deparse(round(grpModel@output$standardErrors, 3)))
@@ -139,8 +139,8 @@ omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
              0.205, 0.151, 0.068, 0.077, 0.073,  0.138, 0.078, 0.081, 0.088, 0.087,
              0.061, 0.068, 0.125, 0.11,  0.084, 0.09, 0.094, 0.094, 0.092, 0.089,
              0.11, 0.399, 0.068,  0.055)
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .01)
-  omxCheckCloseEnough(grpModel@output$conditionNumber, 165, 5)
+  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .02)
+  omxCheckCloseEnough(grpModel@output$conditionNumber, 158, 10)
   
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(

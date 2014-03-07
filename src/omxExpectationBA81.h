@@ -23,7 +23,6 @@
 
 enum score_option {
 	SCORES_OMIT,
-	SCORES_UNIQUE,
 	SCORES_FULL
 };
 
@@ -76,10 +75,11 @@ struct BA81Expect {
 	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
 	double *expected;                     // totalOutcomes * totalQuadPoints
 	int ElatentVersion;
-	std::vector<double> ElatentMean;      // maxAbilities
-	std::vector<double> ElatentCov;       // maxAbilities * maxAbilities
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;
+	omxMatrix *estLatentMean;
+	omxMatrix *estLatentCov;
+	omxMatrix *numObsMat; // this is dumb
 
 	int itemParamVersion;
 	int latentParamVersion;

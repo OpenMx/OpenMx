@@ -657,81 +657,24 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
-	std::vector< LatentParamLoc > &latentLoc = state->latentLoc;
-	std::vector<double> latentMean(estate->ElatentMean);
-	std::vector<int> meanSampleSize(latentMean.size(), estate->data->rows);
-	std::vector<double> latentCov(estate->ElatentCov);
-	std::vector<int> covSampleSize(latentCov.size(), estate->data->rows);
 	int maxAbilities = estate->maxAbilities;
-	const int meanNum = ~estate->latentMeanOut->matrixNumber;
-	const int covNum = ~estate->latentCovOut->matrixNumber;
-
-	if (state->ElatentVersion == estate->ElatentVersion) return;
-
-	fc->changedEstimates = true;
-
-	FreeVarGroup *fvg = fc->varGroup;
-	const int numParam = int(fvg->vars.size());
-	const char *expType = oo->expectation->expType;
-
-	// This is an inefficient way to handle equality constraints because
-	// every location that is equated recalculates its estimate. TODO
-	for (int px=0; px < numParam; px++) {
-		LatentParamLoc &ll = latentLoc[px];
-		if (ll.row == -1) continue;
-		omxFreeVar *fv = fvg->vars[px];
-		for (size_t lx=0; lx < fv->locations.size(); lx++) {
-			omxFreeVarLocation *loc = &fv->locations[lx];
-			int matNum = loc->matrix;
-			if (matNum == meanNum || matNum == covNum) continue;
-			omxMatrix *matrix = globalState->matrixList[loc->matrix];
-			if (!matrix->expectation || matrix->expectation->expType != expType) continue;
-			BA81Expect *estate2 = (BA81Expect *) matrix->expectation->argStruct;
-			int maxAbilities2 = estate2->maxAbilities;
-			if (matrix == estate2->latentMeanOut) {
-				// disallow mean:cov equating TODO
-				latentMean[ll.row] += estate2->ElatentMean[loc->row * loc->col];
-				meanSampleSize[ll.row] += estate2->data->rows;
-			} else if (matrix == estate2->latentCovOut) {
-				if (loc->row < loc->col) continue;
-				int dest = ll.row * maxAbilities + ll.col;
-				latentCov[dest] += estate2->ElatentCov[loc->row * maxAbilities2 + loc->col];
-				covSampleSize[dest] += estate2->data->rows;
-			}
-		}
-	}
-
-	for (int d1=0; d1 < maxAbilities; d1++) {
-		latentMean[d1] /= meanSampleSize[d1];
-	}
-
-	// optimize for the two-tier case TODO
-	for (int d1=0; d1 < maxAbilities; d1++) {
-		for (int d2=0; d2 <= d1; d2++) {
-			int cell = d2 * maxAbilities + d1;
-			double nn = covSampleSize[cell];
-			latentCov[cell] = latentCov[cell] / nn - latentMean[d1] * latentMean[d2];
-		}
-	}
+	omxMatrix *estMean = estate->estLatentMean;
+	omxMatrix *estCov = estate->estLatentCov;
 
 	for (int a1 = 0; a1 < maxAbilities; ++a1) {
 		if (latentMap[a1] >= 0) {
 			int to = latentMap[a1];
-			fc->est[to] = latentMean[a1];
+			fc->est[to] = omxVectorElement(estMean, a1);
 		}
 
 		for (int a2 = 0; a2 <= a1; ++a2) {
 			int to = latentMap[maxAbilities + triangleLoc1(a1) + a2];
 			if (to < 0) continue;
-			fc->est[to] = latentCov[a2 * maxAbilities + a1];
+			fc->est[to] = omxMatrixElement(estCov, a1, a2);
 		}
 	}
 
-	state->ElatentVersion = estate->ElatentVersion;
-
 	if (estate->verbose >= 1) {
-		//pda(latentMean.data(), 1, maxAbilities);
-		//pda(latentCov.data(), maxAbilities, maxAbilities);
 		mxLog("%s: set latent parameters for version %d",
 		      oo->matrix->name, estate->ElatentVersion);
 	}
@@ -1342,5 +1285,4 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	state->latentMean = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	state->latentCov = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
 	state->copyEstimates(estate);
-	state->ElatentVersion = -1;
 }

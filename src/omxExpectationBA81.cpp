@@ -427,27 +427,31 @@ static void ba81Estep1(omxExpectation *oo)
 	//mxLog("raw latent after weighting");
 	//pda(latentDist, numLatents, numUnique);
 
-	std::vector<double> &ElatentMean = state->ElatentMean;
-	std::vector<double> &ElatentCov = state->ElatentCov;
-	
 	{
-		// unpack compressed triangular storage
+		omxMatrix *meanOut = state->estLatentMean;
+		omxMatrix *covOut = state->estLatentCov;
+		const int nn = data->rows;
+
 		double *latentDist1 = latentDist.data();
 		for (int d1=0; d1 < maxAbilities; d1++) {
+			omxSetVectorElement(meanOut, d1, latentDist1[d1] / nn);
+		}
+
+		for (int d1=0; d1 < primaryDims; d1++) {
 			int cx = maxAbilities + triangleLoc1(d1);
-			if (d1 < primaryDims) {
-				ElatentMean[d1] = latentDist1[d1];
-				for (int d2=0; d2 <= d1; d2++) {
-					int cell = d2 * maxAbilities + d1;
-					ElatentCov[cell] = latentDist1[cx];
-					++cx;
-				}
-			} else {
-				ElatentMean[d1] = latentDist1[d1];
-				int cell = d1 * maxAbilities + d1;
-				int loc = maxAbilities + triangleLoc0(d1);
-				ElatentCov[cell] = latentDist1[loc];
+			for (int d2=0; d2 <= d1; d2++) {
+				double cov = (latentDist1[cx] / nn -
+					      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d2));
+				omxSetMatrixElement(covOut, d1, d2, cov);
+				if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
+				++cx;
 			}
+		}
+		for (int d1=primaryDims; d1 < maxAbilities; d1++) {
+			int loc = maxAbilities + triangleLoc0(d1);
+			double cov = (latentDist1[loc] / nn -
+				      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d1));
+			omxSetMatrixElement(covOut, d1, d1, cov);
 		}
 	}
 
@@ -455,8 +459,10 @@ static void ba81Estep1(omxExpectation *oo)
 		mxLog("%s: lxk(item version %d) patternLik (%d/%d excluded)",
 		      oo->name, omxGetMatrixVersion(state->itemParam),
 		      state->excludedPatterns, numUnique);
-		//pda(ElatentMean.data(), 1, state->maxAbilities);
-		//pda(ElatentCov.data(), state->maxAbilities, state->maxAbilities);
+		if (state->verbose >= 2) {
+			omxPrint(state->estLatentMean, "mean");
+			omxPrint(state->estLatentCov, "cov");
+		}
 	}
 
 	++state->ElatentVersion;
@@ -477,6 +483,10 @@ void ba81SetupQuadrature(omxExpectation* oo)
 
 	if (state->verbose >= 1) {
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
+		if (state->verbose >= 2) {
+			pda(state->latentMeanOut->data, 1, state->maxAbilities);
+			pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
+		}
 	}
 
 	int gridsize = state->targetQpoints;
@@ -523,9 +533,6 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	}
 
 	state->priQarea.resize(state->totalPrimaryPoints);
-
-	//pda(state->latentMeanOut->data, 1, state->maxAbilities);
-	//pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
 
 	omxBuffer<double> priCovData(priDims * priDims);
 	for (int d1=0; d1 < priDims; ++d1) {
@@ -770,7 +777,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean);
 	}
 
-	ba81SetupQuadrature(oo);
+	if (!latentClean) ba81SetupQuadrature(oo);
 
 	if (!itemClean) {
 		ba81OutcomeProb(state, TRUE, FALSE);
@@ -839,10 +846,10 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 		SEXP Rmean, Rcov;
 		PROTECT(Rmean = allocVector(REALSXP, maxAbilities));
-		memcpy(REAL(Rmean), state->ElatentMean.data(), maxAbilities * sizeof(double));
+		memcpy(REAL(Rmean), state->estLatentMean->data, maxAbilities * sizeof(double));
 
 		PROTECT(Rcov = allocMatrix(REALSXP, maxAbilities, maxAbilities));
-		memcpy(REAL(Rcov), state->ElatentCov.data(), maxAbilities * maxAbilities * sizeof(double));
+		memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
 
 		dbg.push_back(std::make_pair(mkChar("mean"), Rmean));
 		dbg.push_back(std::make_pair(mkChar("cov"), Rcov));
@@ -928,6 +935,9 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeAllMatrixData(state->latentMeanOut);
 	omxFreeAllMatrixData(state->latentCovOut);
 	omxFreeAllMatrixData(state->itemParam);
+	omxFreeAllMatrixData(state->estLatentMean);
+	omxFreeAllMatrixData(state->estLatentCov);
+	omxFreeAllMatrixData(state->numObsMat);
 	Free(state->numIdentical);
 	Free(state->rowMap);
 	Free(state->patternLik);
@@ -1031,6 +1041,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
+	state->itemParam->expectation = oo;
 
 	PROTECT(tmp = GET_SLOT(rObj, install("EItemParam")));
 	if (!isNull(tmp)) {
@@ -1260,13 +1271,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	PROTECT(tmp = GET_SLOT(rObj, install("scores")));
 	const char *score_option = CHAR(asChar(tmp));
 	if (strcmp(score_option, "omit")==0) state->scores = SCORES_OMIT;
-	if (strcmp(score_option, "unique")==0) state->scores = SCORES_UNIQUE;
 	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 
 	state->ElatentVersion = 0;
-	state->ElatentMean.resize(state->maxAbilities);
-	state->ElatentCov.resize(state->maxAbilities * state->maxAbilities);
-
-	// verify data bounded between 1 and numOutcomes TODO
-	// hm, looks like something could be added to omxData for column summary stats?
+	state->estLatentMean = omxInitTemporaryMatrix(NULL, state->maxAbilities, 1, TRUE, currentState);
+	state->estLatentCov = omxInitTemporaryMatrix(NULL, state->maxAbilities, state->maxAbilities, TRUE, currentState);
+	omxCopyMatrix(state->estLatentMean, state->latentMeanOut); // rename matrices TODO
+	omxCopyMatrix(state->estLatentCov, state->latentCovOut);
+	state->numObsMat = omxInitTemporaryMatrix(NULL, 1, 1, TRUE, currentState);
+	omxSetVectorElement(state->numObsMat, 0, data->rows);
 }

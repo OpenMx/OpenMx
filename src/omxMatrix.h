@@ -90,6 +90,11 @@ struct omxMatrix {						// A matrix
 
 	// Currently, this is only used by BA81 expectations to deal with
 	// equality constraints among latent distribution parameters.
+	// This should really be a vector because more than one expectation
+	// can "own" the same matrix. However, we can't use nice C++
+	// std::vector here until the allocation model of omxMatrix
+	// is cleaned up. Currently, we allocate omxMatrix from both
+	// R and the regular C allocator.
 	struct omxExpectation *expectation;       // weak reference
 };
 
