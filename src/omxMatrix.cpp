@@ -70,8 +70,9 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
 	if (!isColMajor) error("All matrices should be column major"); // remove option TODO
+	if (om) error("om is always NULL"); // remove argument TODO
 
-	if(om == NULL) om = (omxMatrix*) R_alloc(1, sizeof(omxMatrix));
+	om = (omxMatrix*) Calloc(1, omxMatrix);
 	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix %p to (%d, %d) with state at %p.", om, nrows, ncols, os); }
 
 	om->hasMatrixNumber = 0;
@@ -118,8 +119,7 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 {
 	if (om) error("om must be NULL");  // remove this argument TODO
 
-	om = (omxMatrix*) Calloc(1, omxMatrix);
-	om = omxInitMatrix(om, nrows, ncols, isColMajor, os);
+	om = omxInitMatrix(NULL, nrows, ncols, isColMajor, os);
 	om->isTemporary = TRUE;
 	
 	return(om);
@@ -253,7 +253,7 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	omxMatrix* newMat = NULL;
 	int l,k;
 
-	newMat = omxInitMatrix(newMat, nrows, nrows, TRUE, state);
+	newMat = omxInitMatrix(NULL, nrows, nrows, TRUE, state);
 	for(k =0; k < newMat->rows; k++) {
 		for(l = 0; l < newMat->cols; l++) {
 			if(l == k) {
@@ -428,9 +428,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
 
-	if(om == NULL) {
-		om = omxInitMatrix(NULL, 0, 0, TRUE, state);
-	}
+	if (!om) error("fillMatrixHelperFunction: matrix must be allocated already");
 
 	if(isMatrix(matrix)) {
 		SEXP matrixDims;
