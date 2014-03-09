@@ -152,7 +152,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		}
 	}
 
-	if(OMX_DEBUG) { mxLog("Hessian estimation: Populating Hessian (%p) at ([%d, %d] = %d) with value %f...", hessian, i, i, i*numParams+i, Haprox[0]); }
+	if(OMX_DEBUG) { mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...", i, i, i*numParams+i, Haprox[0]); }
 	gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
 	hessian[i*numParams + i] = Haprox[0];
 
@@ -213,7 +213,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		}
 	}
 
-	if(OMX_DEBUG) {mxLog("Hessian estimation: Populating Hessian (%p) at ([%d, %d] = %d and %d) with value %f...", hessian, i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
+	if(OMX_DEBUG) {mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d and %d) with value %f...", i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
 	hessian[i*numParams+l] = Haprox[0];
 	hessian[l*numParams+i] = Haprox[0];
 

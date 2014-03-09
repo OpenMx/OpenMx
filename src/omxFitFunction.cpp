@@ -64,12 +64,8 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
     
 	/* Completely destroy the fit function structures */
-	if(OMX_DEBUG) {mxLog("Freeing fit function object at %p.", off);}
 	if(off->matrix != NULL) {
-		if(off->destructFun != NULL) {
-			if(OMX_DEBUG) {mxLog("Calling fit function destructor for %p.", off);}
-			off->destructFun(off);
-		}
+		if (off->destructFun) off->destructFun(off);
 		off->matrix = NULL;
 	}
 }
@@ -105,10 +101,6 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (!off->initialized) error("FitFunction not initialized");
-
-	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("FitFunction compute: %p (needed: %s).", off, (omxMatrixIsDirty(off->matrix)?"Yes":"No"));
-	}
 
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;

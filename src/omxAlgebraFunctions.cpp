@@ -296,14 +296,10 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitTemporaryMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: os = %p, step = %ld.", result->currentState, intermediate->currentState->computeCount);}
-
-	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying result matrix.(%p, %p)", result->algebra, result->fitFunction);}
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: step = %ld.", intermediate->currentState->computeCount);}
 
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
-
-	if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: Matrix Quadratic Product: Readying intermediate Matrix.(%p, %p)", intermediate->algebra, intermediate->fitFunction);}
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: premul.");}

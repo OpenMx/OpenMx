@@ -41,8 +41,8 @@ omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 
 	if(oa->algArgs != NULL) {
 		if (oa->numArgs < numArgs)
-			error("omxAlgebra %p: %d args requested but %d available",
-			      oa, numArgs, oa->numArgs);
+			error("omxAlgebra: %d args requested but %d available",
+			      numArgs, oa->numArgs);
 		return;
 	}
 
@@ -66,15 +66,10 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
 	}
 	
-	if(OMX_DEBUG) { 
-		mxLog("Initializing algebra %p with %p.", oa, om);
-	}
-	
 	omxAlgebraAllocArgs(oa, 0);
 	oa->funWrapper = NULL;
 	oa->matrix = om;
 	om->algebra = oa;
-
 }
 
 void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
@@ -90,17 +85,8 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
-	if(OMX_DEBUG) { 
-	    mxLog("Freeing algebra at %p with %d args.", 
-	        oa, oa->numArgs); 
-	}
-	
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG) {
-			mxLog("Freeing argument %d at %p.",
-				j, oa->algArgs[j]);
-		}
 		omxFreeAllMatrixData(oa->algArgs[j]);
 		oa->algArgs[j] = NULL;
 	}
@@ -110,12 +96,12 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 
 void omxAlgebraRecompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("Algebra compute (%s): %p.", 
-			oa->matrix->name, oa->matrix);
+		mxLog("Algebra compute (%s)", oa->matrix->name);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at %p (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d (%s need it)",
+					      j, (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxRecompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -141,12 +127,12 @@ void omxAlgebraRecompute(omxAlgebra *oa) {
 
 void omxAlgebraForceCompute(omxAlgebra *oa) {
 	if(OMX_DEBUG_ALGEBRA) { 
-		mxLog("Algebra compute (%s): %p.", 
-			oa->matrix->name, oa->matrix);
+		mxLog("Algebra compute (%s)", oa->matrix->name);
 	}
 		
 	for(int j = 0; j < oa->numArgs; j++) {
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d at %p (Which %s need it).", j, oa->algArgs[j], (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Recomputing arg %d (%s need it)",
+					      j, (omxNeedsUpdate(oa->algArgs[j])?"does":"does not")); }
 		omxForceCompute(oa->algArgs[j]);
 	}
    // Recompute happens in handleFreeVars, for now.
@@ -211,14 +197,11 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 		omxInitAlgebraWithMatrix(oa, om);
 		if(OMX_DEBUG) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
-		if(OMX_DEBUG) {mxLog("Table Entry %d (at %p) is %s.", value, entry, entry->opName);}
+		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			PROTECT(algebraArg = VECTOR_ELT(algebra, j+1));
 				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
-				if(OMX_DEBUG) {
-					mxLog("fillFromMxAlgebra got %p from helper, arg %d.", oa->algArgs[j], j);
-				}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
@@ -268,10 +251,6 @@ void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 }
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
-	if(OMX_DEBUG) {
-		mxLog("Attaching pointer to matrix.");
-	}
-
 	int value = 0;
 	omxMatrix* output = NULL;
 
@@ -280,9 +259,6 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		PROTECT(intMatrix = AS_INTEGER(matrix));
 		value = INTEGER(intMatrix)[0];
 		if(value == NA_INTEGER) {
-			if(OMX_DEBUG) {
-				mxLog("  Null integer matrix.  Skipping.");
-			}
 			return NULL;
 		}
 	} else if (IS_NUMERIC(matrix)) {
@@ -290,33 +266,19 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		PROTECT(numericMatrix = AS_NUMERIC(matrix));
 		value = (int) REAL(numericMatrix)[0];
 		if(value == NA_INTEGER) {
-			if(OMX_DEBUG) {
-				mxLog("   Null numeric matrix.  Skipping.");
-			}
 			return NULL;
 		}
 	} else if (matrix == R_NilValue) {
 		return NULL;
 	} else if (isString(matrix)) {
-	  const int MaxErrorLen = 250;
-	  char err[MaxErrorLen];
-	  snprintf(err, MaxErrorLen, "Internal error: string passed to omxMatrixLookupFromState1, did you forget to call imxLocateIndex?");
-	  omxRaiseError(os, -1, err);
-	  return NULL;
+		error("Internal error: string passed to omxMatrixLookupFromState1, did you forget to call imxLocateIndex?");
 	} else {
 		error("Internal error: unknown type passed to omxMatrixLookupFromState1");
 	}		
-	if(OMX_DEBUG) {
-		mxLog("  Pointer is %d.", value);
-	}
-	if (value >= 0) {										// Pre-existing algebra.  A-ok.
+	if (value >= 0) {
 		output = os->algebraList[value];
-	} else {												// Pre-existing matrix.  A-ok.
-		output = os->matrixList[~value];						// Value invert for matrices.
-	}
-	
-	if(OMX_DEBUG) {
-		mxLog("Attached.");
+	} else {
+		output = os->matrixList[~value];
 	}
 	
 	return output;

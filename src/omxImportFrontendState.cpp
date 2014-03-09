@@ -41,10 +41,6 @@ void omxProcessMxDataEntities(SEXP data) {
 	for(int index = 0; index < length(data); index++) {
 		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc, globalState);
-		if(OMX_DEBUG) {
-			mxLog("Data initialized at %p = (%d x %d).",
-				globalState->dataList[index], globalState->dataList[index]->rows, globalState->dataList[index]->cols);
-		}
 	}
 }
 
@@ -61,10 +57,6 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
 		globalState->matrixList.push_back(mat);
 		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
-		if(OMX_DEBUG) {
-			mxLog("Matrix initialized at %p = (%d x %d).",
-				globalState->matrixList[index], globalState->matrixList[index]->rows, globalState->matrixList[index]->cols);
-		}
 		if (isErrorRaised(globalState)) return;
 	}
 }
@@ -146,12 +138,6 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
 		ex->name = CHAR(STRING_ELT(eNames, index));
 		globalState->expectationList.push_back(ex);
-		if(OMX_DEBUG) {
-			mxLog("%s incomplete expectation set up at %p.",
-				(globalState->expectationList[index]->expType
-					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
-					 globalState->expectationList[index]);
-		}
 		if (isErrorRaised(globalState)) return;
 	}
 }
@@ -162,12 +148,6 @@ void omxCompleteMxExpectationEntities() {
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
-		if(OMX_DEBUG) {
-			mxLog("%s expectation completed at %p.",
-				(globalState->expectationList[index]->expType
-					== NULL ? "Untyped" : globalState->expectationList[index]->expType),
-					 globalState->expectationList[index]);
-		}
 		if (isErrorRaised(globalState)) return;
 	}
 }

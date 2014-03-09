@@ -133,7 +133,7 @@ void initFitMultigroup(omxFitFunction *oo)
 void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *fit)
 {
 	if (oo->initFun != initFitMultigroup) error("%s is not the multigroup fit", oo->fitType);
-	if (!oo->initialized) error("Fit %p not initialized", oo);
+	if (!oo->initialized) error("Fit not initialized", oo);
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
 	mg->fits.push_back(fit->matrix);

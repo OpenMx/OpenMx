@@ -123,7 +123,6 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 
 	globalState = new omxState;
 	omxInitState(globalState);
-	if(OMX_DEBUG) { mxLog("Created state object at %p.", globalState);}
 
 	/* Retrieve All Matrices From the MatList */
 
@@ -135,8 +134,8 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
 		globalState->matrixList.push_back(args[k]);
 		if(OMX_DEBUG) {
-			mxLog("Matrix initialized at %p = (%d x %d).",
-				globalState->matrixList[k], globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
+			mxLog("Matrix[%d] initialized (%d x %d)",
+				k, globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
 		}
 	}
 
@@ -256,7 +255,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
 	omxInitState(globalState);
-	if(OMX_DEBUG) { mxLog("Created state object at %p.", globalState);}
 
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);

@@ -223,8 +223,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
 	oo->argStruct = (void*)newObj;
 	
-    if(OMX_DEBUG) { mxLog("WLS being intialized is at %p (within %p).", oo, newObj); }
-
     /* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");

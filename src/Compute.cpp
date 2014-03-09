@@ -315,9 +315,6 @@ void FitContext::copyParamToModel(omxState* os)
 void FitContext::copyParamToModel(omxState* os, double *at)
 {
 	size_t numParam = varGroup->vars.size();
-	if(OMX_DEBUG) {
-		mxLog("Copying %lu free parameter estimates to model %p", numParam, os);
-	}
 
 	if(numParam == 0) return;
 
@@ -1747,9 +1744,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
-				if (verbose) mxLog("ComputeOnce: fit %p want %d",
-						   algebra->fitFunction, want);
-
 				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 				omxFitFunctionCompute(algebra->fitFunction, want, fc);
 				fc->fit = algebra->data[0];
@@ -1758,7 +1752,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 				}
 				fc->fixHessianSymmetry(want);
 			} else {
-				if (verbose) mxLog("ComputeOnce: algebra %p", algebra);
 				omxForceCompute(algebra);
 			}
 		}
@@ -1766,7 +1759,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (predict.size() > 1) error("Not implemented");
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
-			if (verbose) mxLog("ComputeOnce: expectation[%lu] %p predict %s", wx, expectation, predict[0]);
 			omxExpectationCompute(expectation, predict[0], how);
 		}
 	}

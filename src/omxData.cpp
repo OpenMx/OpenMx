@@ -34,8 +34,6 @@ omxData* omxInitData(omxState* os) {
 
 	od->currentState = os;
 
-	if(OMX_DEBUG) {mxLog("Data's state object is at %p.", od->currentState);}
-
 	if (os != globalState) error("Too late to create omxData");
 	os->dataList.push_back(od);
 
@@ -293,7 +291,6 @@ omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
 	if(om == NULL) {
 		om = omxInitMatrix(om, numRows, numRows, TRUE, od->currentState);
 	}
-	if(OMX_DEBUG) {mxLog("Acov Data created at %p (%p).  Returning.", om, om->data);}
 	omxCopyMatrix(om, od->acovMat);//omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
 	return om;
 }

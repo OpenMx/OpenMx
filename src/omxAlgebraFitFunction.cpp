@@ -57,9 +57,6 @@ void omxInitAlgebraFitFunction(omxFitFunction* off) {
 	omxAlgebraFitFunction *newObj = (omxAlgebraFitFunction*) R_alloc(1, sizeof(omxAlgebraFitFunction));
 	PROTECT(newptr = GET_SLOT(rObj, install("algebra")));
 	newObj->algebra = omxMatrixLookupFromState1(newptr, off->matrix->currentState);
-	if(OMX_DEBUG) {
-		mxLog("Algebra Fit Function Bound to Algebra %p", newObj->algebra);
-	}
 	
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;

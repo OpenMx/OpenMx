@@ -427,8 +427,6 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->r;
 	}
 	
-	if(OMX_DEBUG) { mxLog("Returning %p.", retval); }
-
 	return retval;
 }
 

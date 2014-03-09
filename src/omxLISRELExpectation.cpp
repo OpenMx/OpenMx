@@ -509,7 +509,5 @@ omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* 
 		// Once implemented, change compute function and return pvec
 	}
 	
-	if(OMX_DEBUG) { mxLog("Returning %p.", retval); }
-
 	return retval;
 }

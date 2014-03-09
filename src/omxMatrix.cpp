@@ -38,31 +38,22 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
 	std::string buf;
-	buf += string_snprintf("[%d] %s: (%d x %d) [%s-major] SEXP %p\n%s = matrix(c(",
+	buf += string_snprintf("[%d] %s = matrix(c(    # %dx%d",
 			       omx_absolute_thread_num(),
-			       header, source->rows, source->cols, (source->colMajor?"col":"row"),
-			       source->owner, header);
+			       header, source->rows, source->cols);
 
-	int first=TRUE;
-	if(source->colMajor) {
-		for(int j = 0; j < source->rows; j++) {
-			buf += "\n";
-			for(int k = 0; k < source->cols; k++) {
-				if (first) first=FALSE;
-				else buf += ",";
-				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
-			}
-		}
-	} else {
-		for(int j = 0; j < source->cols; j++) {
-			buf += "\n";
-			for(int k = 0; k < source->rows; k++) {
-				if (first) first=FALSE;
-				else buf += ",";
-				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
-			}
+	if(!source->colMajor) error("All matrices are column major");
+
+	bool first = true;
+	for(int j = 0; j < source->rows; j++) {
+		buf += "\n";
+		for(int k = 0; k < source->cols; k++) {
+			if (first) first=false;
+			else buf += ",";
+			buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
 		}
 	}
+
 	buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
 	mxLogBig(buf);
 }
@@ -73,7 +64,6 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	if (om) error("om is always NULL"); // remove argument TODO
 
 	om = (omxMatrix*) Calloc(1, omxMatrix);
-	if(OMX_DEBUG_MATRIX) { mxLog("Initializing matrix %p to (%d, %d) with state at %p.", om, nrows, ncols, os); }
 
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
@@ -128,14 +118,6 @@ omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned 
 
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
-
-	if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) {
-		const char *oname = "?";
-		if (orig->name) oname = orig->name;
-		const char *dname = "?";
-		if (dest->name) dname = dest->name;
-		mxLog("omxCopyMatrix from %s (%p) to %s (%p)", oname, orig, dname, dest);
-	}
 
 	int regenerateMemory = TRUE;
 	int numPopLocs = orig->numPopulateLocations;
@@ -192,7 +174,6 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 void omxFreeMatrixData(omxMatrix * om) {
 
 	if(!om->owner && om->data != NULL) {
-		if(OMX_DEBUG_MATRIX) { mxLog("Freeing matrix data at %p", om->data); }
 		Free(om->data);
 	}
 	om->owner = NULL;
@@ -202,11 +183,6 @@ void omxFreeMatrixData(omxMatrix * om) {
 void omxFreeAllMatrixData(omxMatrix *om) {
     
     if(om == NULL) return;
-
-	if(OMX_DEBUG) { 
-	    mxLog("Freeing matrix at %p with data = %p, algebra %p, and fit function %p.", 
-		  om, om->data, om->algebra, om->fitFunction);
-	}
 
 	omxFreeMatrixData(om);
 
@@ -595,7 +571,6 @@ void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
 void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
 {
     // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
-//	if(OMX_DEBUG_MATRIX) { mxLog("Removing %d rows and %d columns from %p.", numRowsRemoved, numColsRemoved, om);}
 
 	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
 
@@ -642,7 +617,6 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Self-aliased matrix access.");}
 						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
 					} else {
-						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Matrix %p re-aliasing to %p.", om, om->aliasedPtr);}
 						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
 					}
 					nextRow++;
@@ -697,7 +671,7 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	const char *name = "?";
 	if (matrix->name) name = matrix->name;
 	if (OMX_DEBUG_ALGEBRA) {
-		mxLog("Matrix %s (%p) %s update", name, matrix, yes? "needs" : "does not need");
+		mxLog("Matrix %s %s update", name, yes? "needs" : "does not need");
 	}
 	return yes;
 }
