@@ -348,7 +348,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	FitContext fc(startingValues);
 
 	if (topCompute && !isErrorRaised(globalState)) {
-		// switch varGroup, if necessary TODO
 		topCompute->compute(&fc);
 	}
 

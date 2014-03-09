@@ -656,12 +656,7 @@ void omxCompute::collectResultsHelper(FitContext *fc, std::vector< omxCompute* >
 {
 	for (std::vector< omxCompute* >::iterator it = clist.begin(); it != clist.end(); ++it) {
 		omxCompute *c1 = *it;
-		FitContext *context = fc;
-		if (fc->varGroup != c1->varGroup) {
-			context = new FitContext(fc, c1->varGroup);
-		}
-		c1->collectResults(context, lcr, out);
-		if (context != fc) context->updateParentAndFree();
+		c1->collectResults(fc, lcr, out);
 	}
 }
 
@@ -926,12 +921,7 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 void omxComputeSequence::computeImpl(FitContext *fc)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
-		FitContext *context = fc;
-		if (fc->varGroup != clist[cx]->varGroup) {
-			context = new FitContext(fc, clist[cx]->varGroup);
-		}
-		clist[cx]->compute(context);
-		if (context != fc) context->updateParentAndFree();
+		clist[cx]->compute(fc);
 		if (isErrorRaised(globalState)) break;
 	}
 }
@@ -979,12 +969,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 	double mac = tolerance * 10;
 	while (1) {
 		for (size_t cx=0; cx < clist.size(); ++cx) {
-			FitContext *context = fc;
-			if (fc->varGroup != clist[cx]->varGroup) {
-				context = new FitContext(fc, clist[cx]->varGroup);
-			}
-			clist[cx]->compute(context);
-			if (context != fc) context->updateParentAndFree();
+			clist[cx]->compute(fc);
 			if (isErrorRaised(globalState)) break;
 		}
 		if (fc->wanted & FF_COMPUTE_MAXABSCHANGE) {
