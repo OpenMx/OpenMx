@@ -40,6 +40,9 @@ struct omxAlgebra {						// A matrix
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
+
+	// for debug output
+	const omxAlgebraTableEntry *oate;
 };
 
 /* Initialize and Destroy */

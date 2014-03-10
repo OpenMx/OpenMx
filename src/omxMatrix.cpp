@@ -376,7 +376,16 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 void omxMarkDirty(omxMatrix *om) { om->version += 1; }
-void omxMarkClean(omxMatrix *om) { om->version += 1; om->cleanVersion = om->version; }
+
+void omxMarkClean(omxMatrix *om) {
+	om->version += 1;
+	om->cleanVersion = om->version;
+	if (OMX_DEBUG_ALGEBRA) {
+		const char *name = "?";
+		if (om->name) name = om->name;
+		mxLog("Matrix %s is clean (version %d)", name, om->version);
+	}
+}
 
 omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
 	unsigned short hasMatrixNumber, int matrixNumber) {
@@ -668,9 +677,9 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	} else {
 		yes = TRUE;
 	}
-	const char *name = "?";
-	if (matrix->name) name = matrix->name;
 	if (OMX_DEBUG_ALGEBRA) {
+		const char *name = "?";
+		if (matrix->name) name = matrix->name;
 		mxLog("Matrix %s %s update", name, yes? "needs" : "does not need");
 	}
 	return yes;

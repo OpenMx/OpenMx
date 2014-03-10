@@ -168,9 +168,11 @@ checkEvaluation <- function(model, flatModel) {
 	labelsData <- imxGenerateLabels(model)
 	cache <- new.env(parent = emptyenv())
 	cache <- checkMatrixEvaluation(model, flatModel, labelsData, cache)
-	tuple <- checkAlgebraEvaluation(model, flatModel, labelsData, cache)
-	flatModel <- tuple[[1]]
-	cache <- tuple[[2]]
+	if (1) {
+		tuple <- checkAlgebraEvaluation(model, flatModel, labelsData, cache)
+		flatModel <- tuple[[1]]
+		cache <- tuple[[2]]
+	}
 	checkConstraintEvaluation(model, flatModel, labelsData, cache)
 	return(flatModel)
 }
@@ -193,6 +195,7 @@ checkAlgebraEvaluation <- function(model, flatModel, labelsData, cache) {
 		result <- tuple[[1]]
 		cache <- tuple[[2]]
 		algebra@initial <- as.matrix(result)
+		algebra@initial[,] <- NA  # don't rely on R to evaluate our algebra
 		flatModel@algebras[[i]] <- algebra
 	}
 	return(list(flatModel, cache))

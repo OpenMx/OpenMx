@@ -78,12 +78,12 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			// delay until expectations are ready
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula;
+			omxMatrix *amat = globalState->algebraList[index];
 			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));
-			omxFillMatrixFromRPrimitive(globalState->algebraList[index],
-				initialValue, globalState, 1, index);
+			omxFillMatrixFromRPrimitive(amat, initialValue, globalState, 1, index);
 			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
-			omxFillMatrixFromMxAlgebra(globalState->algebraList[index],
-				formula, CHAR(STRING_ELT(algListNames, index)));
+			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)));
+			omxMarkDirty(amat);
 		}
 		if (isErrorRaised(globalState)) return;
 	}

@@ -308,13 +308,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
-	for(size_t index = 0; index < globalState->matrixList.size(); index++) {
-		omxMarkDirty(globalState->matrixList[index]);
-	}
-	for(size_t index = 0; index < globalState->algebraList.size(); index++) {
-		omxMarkDirty(globalState->algebraList[index]);
-	}
-
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
