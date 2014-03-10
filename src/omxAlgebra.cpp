@@ -121,6 +121,12 @@ static void dispatchOp(omxAlgebra *oa)
 	}
 }
 
+void omxAlgebraInitialCompute(omxAlgebra *oa)
+{
+	for(int j = 0; j < oa->numArgs; j++) omxInitialCompute(oa->algArgs[j]);
+	dispatchOp(oa);
+}
+
 void omxAlgebraRecompute(omxAlgebra *oa)
 {
 	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j]);

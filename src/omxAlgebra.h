@@ -64,6 +64,7 @@ struct omxAlgebra {						// A matrix
 	void omxAlgebraRecompute(omxAlgebra *oa);
 	void omxAlgebraForceCompute(omxAlgebra *oa);
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
+void omxAlgebraInitialCompute(omxAlgebra *oa);
 
 void omxAlgebraPrint(omxAlgebra *source, const char* d);
 

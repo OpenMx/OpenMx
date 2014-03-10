@@ -702,7 +702,12 @@ void omxRecompute(omxMatrix *matrix)
 
 void omxInitialCompute(omxMatrix *matrix)
 {
-	maybeCompute(matrix, 0);
+	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
+	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	else if(matrix->algebra != NULL) omxAlgebraInitialCompute(matrix->algebra);
+	else if(matrix->fitFunction != NULL) {
+		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
+	}
 }
 
 void omxForceCompute(omxMatrix *matrix) {
