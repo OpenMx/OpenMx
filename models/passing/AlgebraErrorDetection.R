@@ -18,7 +18,7 @@ foo <- mxAlgebra(A + B, 'foo')
 A <- mxMatrix('Full', 1, 2, name = 'A')
 B <- mxMatrix('Full', 2, 1, name = 'B')
 model <- mxModel('model', A, B, foo)
-omxCheckError(mxRun(model), 
+omxCheckError(mxEval(foo, model, compute=TRUE),
 	paste("The following error occurred while",
 	"evaluating the subexpression 'model.A + model.B'",
 	"during the evaluation of 'foo' in model 'model' : non-conformable arrays"))

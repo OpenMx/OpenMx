@@ -113,6 +113,7 @@ omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* 
 	} else if(!strncmp("pvec", component, 4)) {
 		// Once implemented, change compute function and return pvec
 	}
+	if (retval) omxRecompute(retval);
 	
 	return retval;
 }
