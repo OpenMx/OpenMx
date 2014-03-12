@@ -97,14 +97,14 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
 OMXINLINE static int
 triangleLoc1(int diag)
 {
-	//if (diag < 1) error("Out of domain");
+	//if (diag < 1) Rf_error("Out of domain");
 	return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
 }
 
 OMXINLINE static int
 triangleLoc0(int diag)
 {
-	//if (diag < 0) error("Out of domain");
+	//if (diag < 0) Rf_error("Out of domain");
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
 }
 
@@ -129,8 +129,8 @@ decodeLocation(long qx, const int dims, const long grid, int *quad)
 OMXINLINE static
 int sIndex(BA81Expect *state, int sx, int qx)
 {
-	//if (sx < 0 || sx >= state->numSpecific) error("Out of domain");
-	//if (qx < 0 || qx >= state->quadGridSize) error("Out of domain");
+	//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
+	//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
 	return qx * state->numSpecific + sx;
 }
 

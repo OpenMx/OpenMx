@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 #include "omxExpectation.h"
 #include "omxMLFitFunction.h"
@@ -70,10 +64,10 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
-	out->push_back(std::make_pair(mkChar("SaturatedLikelihood"),
-				      ScalarReal(saturated_out)));
-	out->push_back(std::make_pair(mkChar("IndependenceLikelihood"),
-				      ScalarReal(independence_out)));
+	out->push_back(std::make_pair(Rf_mkChar("SaturatedLikelihood"),
+				      Rf_ScalarReal(saturated_out)));
+	out->push_back(std::make_pair(Rf_mkChar("IndependenceLikelihood"),
+				      Rf_ScalarReal(independence_out)));
 }
 
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
@@ -154,7 +148,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
 	/* Calculate C = Observed * expected^(-1) */
 
-	// Stop gcc from issuing a warning
+	// Stop gcc from issuing a Rf_warning
 	int majority = *(scov->majority) == 'n' ? scov->rows : scov->cols;
 
 	/*  TODO:  Make sure leading edges are being appropriately calculated, and sub them back into this */
@@ -209,39 +203,39 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
 	SEXP expCovExt, expMeanExt, gradients;
-	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
 			REAL(expCovExt)[col * expCovInt->rows + row] =
 				omxMatrixElement(expCovInt, row, col);
 
 	if (expMeanInt != NULL) {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
 		for(int row = 0; row < expMeanInt->rows; row++)
 			for(int col = 0; col < expMeanInt->cols; col++)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}   
 
 	if (0) {
 		// TODO, fix for new gradient internal API
 	} else {
-		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
+		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 0, 0));
 	}
     
-	setAttrib(algebra, install("expCov"), expCovExt);
-	setAttrib(algebra, install("expMean"), expMeanExt);
-	setAttrib(algebra, install("gradients"), gradients);
+	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
+	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
-	setAttrib(algebra, install("SaturatedLikelihood"), ScalarReal(saturated_out));
-	setAttrib(algebra, install("IndependenceLikelihood"), ScalarReal(independence_out));
+	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(saturated_out));
+	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(independence_out));
 
-	UNPROTECT(3);
+	Rf_unprotect(3);
 }
 
 void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
@@ -256,7 +250,7 @@ void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
 
 void omxInitMLFitFunction(omxFitFunction* oo)
 {
-	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
+	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
 
 	omxExpectation *expectation = oo->expectation;
 	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
@@ -365,16 +359,16 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, double*)) {
     if(strncmp("omxMLFitFunction", oo->fitType, 16)) {
-        char errorstr[250];
-        sprintf(errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with FitFunction of type %s", oo->fitType);
-        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        char Rf_errorstr[250];
+        sprintf(Rf_errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with FitFunction of type %s", oo->fitType);
+        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
         return;
     }
     
     if(derivativeFun == NULL) {
-        char errorstr[250];
-        sprintf(errorstr, "Programmer error: ML gradient given NULL gradient function.");
-        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        char Rf_errorstr[250];
+        sprintf(Rf_errorstr, "Programmer Rf_error: ML gradient given NULL gradient function.");
+        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
         return;
     }
     
@@ -389,9 +383,9 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
     }
     
     if(derivativeFun == NULL) {
-        char errorstr[250];
-        sprintf(errorstr, "Programmer error: ML gradient components given NULL gradient function.");
-        omxRaiseError(oo->matrix->currentState, -2, errorstr);
+        char Rf_errorstr[250];
+        sprintf(Rf_errorstr, "Programmer Rf_error: ML gradient components given NULL gradient function.");
+        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
         return;
     }
     
@@ -473,7 +467,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise Rf_error
         free(errstr);
         return;                                                                     // Leave output untouched
     }
@@ -486,7 +480,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise Rf_error
         free(errstr);
         return;
     }

@@ -30,12 +30,6 @@
 #ifndef _OMXMATRIX_H_
 #define _OMXMATRIX_H_
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include "omxBLAS.h"
 
@@ -212,8 +206,8 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 static OMXINLINE double *omxMatrixColumn(omxMatrix *om, int col) {
-  if (!om->colMajor) error("omxMatrixColumn requires colMajor order");
-  if (col < 0 || col >= om->cols) error(0, col, om->rows, om->cols);
+  if (!om->colMajor) Rf_error("omxMatrixColumn requires colMajor order");
+  if (col < 0 || col >= om->cols) Rf_error(0, col, om->rows, om->cols);
   return om->data + col * om->rows;
 }
 
@@ -278,7 +272,7 @@ static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, om
 		// mxLog("DGEMV: %c, %d, %d, %f, 0x%x, %d, 0x%x, %d, 0x%x, %d\n", *(transposeMat?mat->minority:mat->majority), (nrows), (ncols), 
         	// alpha, mat->data, (mat->leading), vec->data, onei, beta, result->data, onei); //:::DEBUG:::
 		if((transposeMat && nrows != nVecEl) || (!transposeMat && ncols != nVecEl)) {
-			error("Mismatch in vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", (transposeMat?"transposed":""), mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+			Rf_error("Mismatch in vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", (transposeMat?"transposed":""), mat->rows, mat->cols, nVecEl); // :::DEBUG:::
 		}
 	}
 	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), 
@@ -296,7 +290,7 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
 		if(mat->cols != nVecEl) {
-			error("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+			Rf_error("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
 		}
 	}
 
@@ -337,13 +331,13 @@ static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              /
 }
 
 static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
-	// TODO: Add error checking, and/or adjustments for row vs. column majority.
+	// TODO: Add Rf_error checking, and/or adjustments for row vs. column majority.
 	// N.B. Not fully tested.
 	char u = 'U'; //l = 'L'; //U for storing upper triangle
 	F77_CALL(dpotrf)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
-	// TODO: Add error checking, and/or adjustments for row vs. column majority.
+	// TODO: Add Rf_error checking, and/or adjustments for row vs. column majority.
 	// N.B. Not fully tested.
 	char u = 'U'; //l = 'L'; // U for storing upper triangle
 	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);

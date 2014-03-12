@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
@@ -66,29 +60,29 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	expMeanInt = argStruct->means;
 	rowLikelihoodsInt = argStruct->rowLikelihoods;
 
-	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
 			REAL(expCovExt)[col * expCovInt->rows + row] =
 				omxMatrixElement(expCovInt, row, col);
 	if (expMeanInt != NULL) {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
 		for(int row = 0; row < expMeanInt->rows; row++)
 			for(int col = 0; col < expMeanInt->cols; col++)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}
-	PROTECT(rowLikelihoodsExt = allocVector(REALSXP, rowLikelihoodsInt->rows));
+	Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
 	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
 		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
 
-	setAttrib(algebra, install("expCov"), expCovExt);
-	setAttrib(algebra, install("expMean"), expMeanExt);
-	setAttrib(algebra, install("likelihoods"), rowLikelihoodsExt);
+	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
+	Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 
-	UNPROTECT(3); // expCovExp, expCovInt, rowLikelihoodsExt
+	Rf_unprotect(3); // expCovExp, expCovInt, rowLikelihoodsExt
 }
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *off, int *numReturns)
@@ -132,11 +126,11 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	/* Fill in Definition Var Estimates */
 	for(int k = 0; k < numDefs; k++) {
 		if(defVars[k].source != data) {
-			error("Internal error: definition variable population into incorrect data source");
+			Rf_error("Internal Rf_error: definition variable population into incorrect data source");
 		}
 		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
 		if(ISNA(newDefVar)) {
-			error("Error: NA value for a definition variable is Not Yet Implemented.");
+			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
 		}
 		if(newDefVar == oldDefs[k]) {
 			continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
@@ -475,7 +469,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 	SEXP rObj = off->rObj;
 
-	SEXP nextMatrix;
 	int numOrdinal = 0, numContinuous = 0;
 	omxMatrix *cov, *means;
 
@@ -531,14 +524,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
 	}
-	PROTECT(nextMatrix = AS_INTEGER(GET_SLOT(rObj, install("vector")))); // preparing the object by using the vector to populate and the flag
-	newObj->returnRowLikelihoods = INTEGER(nextMatrix)[0];
+	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	if(newObj->returnRowLikelihoods) {
-	   omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE); // 1=column matrix, FALSE=discards memory as this is a one time resize
-    }
+		omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE);
+	}
     newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
     newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	UNPROTECT(1); // nextMatrix
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");

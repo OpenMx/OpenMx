@@ -193,14 +193,14 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         
 	int np = pars.cols;
     
-	// [0] length of pars
+	// [0] Rf_length of pars
 	// [1] has function gradient?
 	// [2] has hessian?
 	// [3] has ineq?
-	// [4] ineq length
+	// [4] ineq Rf_length
 	// [5] has jacobian (inequality)
 	// [6] has eq?
-	// [7] eq length
+	// [7] eq Rf_length
 	// [8] has jacobian (equality)
 	// [9] has upper / lower bounds
 	// [10] has either lower/upper bounds or ineq
@@ -1139,7 +1139,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             }// end while(go >= tol)
             
 			if (minit >= 10){
-				printf("m2 solnp error message being reported.");
+				printf("m2 solnp Rf_error message being reported.");
 				putchar('\n');
 			}
 			int h;
@@ -1949,7 +1949,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 	hessv = multiplyByScalar2D(hessv, M(vscale,0,0));
     
 	if (verbose >= 1 && reduce > tol) {
-		printf("m3 solnp error message being reported.");
+		printf("m3 solnp Rf_error message being reported.");
 		putchar('\n');
 	}
 	

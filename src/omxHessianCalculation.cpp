@@ -26,13 +26,6 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
-
 #include "omxDefines.h"
 #include "glue.h"
 #include "omxState.h"
@@ -229,7 +222,7 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 	int offset = 0;
 	// gcc does not detect the usage of the following variable
 	// in the omp parallel pragma, and marks the variable as
-	// unused, so the attribute is placed to silence the warning.
+	// unused, so the attribute is placed to silence the Rf_warning.
     int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
 
 	// There must be a way to avoid constructing the
@@ -280,23 +273,23 @@ void omxComputeNumericDeriv::initFromFrontend(SEXP rObj)
 
 	SEXP slotValue;
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("iterations")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("iterations")));
 	numIter = INTEGER(slotValue)[0];
-	if (numIter < 2) error("stepSize must be 2 or greater");
+	if (numIter < 2) Rf_error("stepSize must be 2 or greater");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("parallel")));
-	parallel = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("parallel")));
+	parallel = Rf_asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("stepSize")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
 	stepSize = REAL(slotValue)[0];
-	if (stepSize <= 0) error("stepSize must be positive");
+	if (stepSize <= 0) Rf_error("stepSize must be positive");
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	fitContext = fc;
 	numParams = int(fc->varGroup->vars.size());
-	if (numParams <= 0) error("Model has no free parameters");
+	if (numParams <= 0) Rf_error("Model has no free parameters");
 
 	if (parallel) omxFitFunctionCreateChildren(globalState);
 
@@ -357,20 +350,20 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
 	SEXP calculatedHessian;
-	PROTECT(calculatedHessian = allocMatrix(REALSXP, numParams, numParams));
+	Rf_protect(calculatedHessian = Rf_allocMatrix(REALSXP, numParams, numParams));
 	memcpy(REAL(calculatedHessian), fc->hess, sizeof(double) * numParams * numParams);
 
-	result->push_back(std::make_pair(mkChar("calculatedHessian"), calculatedHessian));
+	result->push_back(std::make_pair(Rf_mkChar("calculatedHessian"), calculatedHessian));
 
 	MxRList out;
-	out.push_back(std::make_pair(mkChar("probeCount"), ScalarInteger(totalProbeCount)));
-	slots->push_back(std::make_pair(mkChar("output"), out.asR()));
+	out.push_back(std::make_pair(Rf_mkChar("probeCount"), Rf_ScalarInteger(totalProbeCount)));
+	slots->push_back(std::make_pair(Rf_mkChar("output"), out.asR()));
 }
 
 omxCompute *newComputeNumericDeriv()
 {
 	if (globalState->numConstraints != 0) {
-		error("Cannot compute estimated Hessian with constraints (%d constraints found)",
+		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
 		      globalState->numConstraints);
 	}
 	return new omxComputeNumericDeriv;

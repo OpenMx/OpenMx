@@ -17,12 +17,6 @@
 #ifndef _OMX_R_FITFUNCTION_
 #define _OMX_R_FITFUNCTION_
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 
 typedef struct omxRFitFunction {

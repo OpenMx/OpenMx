@@ -102,7 +102,7 @@ void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
 	
 	omxRecompute(LX);
 	omxRecompute(LY);
-	*/ //This block of code works fine but because I do not use any of it later, it throws a huge block of warnings about unused variables.
+	*/ //This block of code works fine but because I do not use any of it later, it throws a huge block of Rf_warnings about unused variables.
 	// In general, I do not yet understand what this function needs to do.
 	
 	/*
@@ -118,13 +118,13 @@ void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
 	// Ax = ZSZ' = Covariance matrix including latent variables
 	
 	SEXP expCovExt;
-	PROTECT(expCovExt = allocMatrix(REALSXP, Ax->rows, Ax->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 	for(int row = 0; row < Ax->rows; row++)
 		for(int col = 0; col < Ax->cols; col++)
 			REAL(expCovExt)[col * Ax->rows + row] =
 				omxMatrixElement(Ax, row, col);
-	setAttrib(algebra, install("UnfilteredExpCov"), expCovExt);
-	UNPROTECT(1);
+	setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
+	Rf_unprotect(1);
 	*/
 }
 
@@ -318,7 +318,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	double oned = 1.0, zerod=0.0;
 	
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
-		error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
+		Rf_error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
 	if(Cov == NULL && Means == NULL) {
@@ -333,7 +333,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
 	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
 	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
-	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
+	// 		Rf_error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
 	omxShallowInverse(numIters, A, Z, Ax, I );
@@ -452,10 +452,10 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	
 	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("depth")));
 	LISobj->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", LISobj->numIters); }
-	UNPROTECT(1);
+	Rf_unprotect(1);
 	
 	
 	/* Initialize the place holder matrices used in calculations */

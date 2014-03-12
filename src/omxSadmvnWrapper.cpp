@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
@@ -39,9 +33,9 @@ void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov,
    	//	Infin	int*		Array of flags: 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
    	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
    	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-   	//	Abseps	double		Absolute error tolerance.  Yick.
-   	//	Releps	double		Relative error tolerance.  Use EPSILON.
-   	//	Error	&double		On return: absolute real error, 99% confidence
+   	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
+   	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
+   	//	Error	&double		On return: absolute real Rf_error, 99% confidence
    	//	Value	&double		On return: evaluated value
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
    	// TODO: Separate block diagonal covariance matrices into pieces for integration separately

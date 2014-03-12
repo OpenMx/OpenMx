@@ -15,9 +15,9 @@
  */
 
 #include <ctype.h>
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
@@ -433,7 +433,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 {
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
-	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
     
     GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;

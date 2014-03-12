@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 #include "omxWLSFitFunction.h"
 
@@ -56,7 +50,7 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
     if(oo->argStruct == NULL) return;
-//Introduce memory leak by not destroying the P matrix.  Try and error found that freeing P caused an error.  Without freeing P sometimes the return to R finishes successfully and sometimes not.
+//Introduce memory leak by not destroying the P matrix.  Try and Rf_error found that freeing P caused an Rf_error.  Without freeing P sometimes the return to R finishes successfully and sometimes not.
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
     omxFreeMatrixData(owo->observedFlattened);
     omxFreeMatrixData(owo->expectedFlattened);
@@ -133,24 +127,24 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	omxMatrix *weightInt = argStruct->weights;			// Expected means
 
 	SEXP expCovExt, expMeanExt, weightExt, gradients;
-	PROTECT(expCovExt = allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
 			REAL(expCovExt)[col * expCovInt->rows + row] =
 				omxMatrixElement(expCovInt, row, col);
 
 	if (expMeanInt != NULL) {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
 		for(int row = 0; row < expMeanInt->rows; row++)
 			for(int col = 0; col < expMeanInt->cols; col++)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weightInt, "...WLS Weight Matrix: W"); }
-	PROTECT(weightExt = allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
+	Rf_protect(weightExt = Rf_allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
 	for(int row = 0; row < weightInt->rows; row++)
 		for(int col = 0; col < weightInt->cols; col++)
 			REAL(weightExt)[col * weightInt->rows + row] = weightInt->data[col * weightInt->rows + row];
@@ -164,27 +158,27 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 			gradient[loc] = NA_REAL;
 		}
 		//oo->gradientFun(oo, gradient);
-		PROTECT(gradients = allocMatrix(REALSXP, 1, nLocs));
+		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 1, nLocs));
 
 		for(int loc = 0; loc < nLocs; loc++)
 			REAL(gradients)[loc] = gradient[loc];
 		 */
 	} else {
-		PROTECT(gradients = allocMatrix(REALSXP, 0, 0));
+		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 0, 0));
 	}
 	
 	if(OMX_DEBUG) { mxLog("Installing populated WLS Attributes."); }
-	setAttrib(algebra, install("expCov"), expCovExt);
-	setAttrib(algebra, install("expMean"), expMeanExt);
-	setAttrib(algebra, install("weights"), weightExt);
-	setAttrib(algebra, install("gradients"), gradients);
+	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
+	Rf_setAttrib(algebra, Rf_install("weights"), weightExt);
+	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
-	setAttrib(algebra, install("SaturatedLikelihood"), ScalarReal(0));
-	setAttrib(algebra, install("IndependenceLikelihood"), ScalarReal(0));
-	setAttrib(algebra, install("ADFMisfit"), ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
+	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
+	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
+	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
 	
 	if(OMX_DEBUG) { mxLog("Unprotecting WLS Attributes."); }
-	UNPROTECT(4);
+	Rf_unprotect(4);
 }
 
 void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
@@ -206,7 +200,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	omxSetWLSFitFunctionCalls(oo);
 	
 	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
-	if (!oo->expectation) { error("%s requires an expectation", oo->fitType); }
+	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
 	
 	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
     omxData* dataMat = oo->expectation->data;
@@ -241,7 +235,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     newObj->weights = weights;
     newObj->n = omxDataNumObs(dataMat);
     newObj->nThresholds = omxDataNumFactor(dataMat);
-	//UNPROTECT(1); //MDH: Why is this here?!?
+	//Rf_unprotect(1); //MDH: Why is this here?!?
 	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
@@ -289,7 +283,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     }
 
 	
-	// FIXME: More error checking for incoming Fit Functions
+	// FIXME: More Rf_error checking for incoming Fit Functions
 
 	/* Temporary storage for calculation */
 	newObj->observedFlattened = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);

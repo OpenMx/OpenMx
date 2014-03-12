@@ -79,22 +79,22 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 
 	if (!fitMatrix->fitFunction->hessianAvailable ||
 	    !fitMatrix->fitFunction->gradientAvailable) {
-		error("Newton-Raphson requires derivatives");
+		Rf_error("Newton-Raphson requires derivatives");
 	}
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) error("tolerance must be positive");
+	if (tolerance <= 0) Rf_error("tolerance must be positive");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("carefully")));
-	carefully = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("carefully")));
+	carefully = Rf_asLogical(slotValue);
 }
 
 omxFitFunction *ComputeNR::getFitFunction()
@@ -188,7 +188,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 	size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
-		error("Model has no free parameters");
+		Rf_error("Model has no free parameters");
 		return;
 	}
 
@@ -209,7 +209,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	for (size_t px=0; px < numParam; ++px) {
 		// global namespace for flavors? TODO
 		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
-			error("Invalid parameter flavor %d", fc->flavor[px]);
+			Rf_error("Invalid parameter flavor %d", fc->flavor[px]);
 		}
 		while (int(ramsay.size()) < fc->flavor[px]+1) {
 			const double minCaution = 0; // doesn't make sense to go faster
@@ -443,11 +443,11 @@ void ComputeNR::computeImpl(FitContext *fc)
 void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (Global->numIntervals) {
-		warning("Confidence intervals are not implemented for Newton-Raphson");
+		Rf_warning("Confidence intervals are not implemented for Newton-Raphson");
 	}  
 
 	omxPopulateFitFunction(fitMatrix, out);
 
-	slots->push_back(std::make_pair(mkChar("inform"), ScalarInteger(inform)));
-	slots->push_back(std::make_pair(mkChar("iterations"), ScalarInteger(iter)));
+	slots->push_back(std::make_pair(Rf_mkChar("inform"), Rf_ScalarInteger(inform)));
+	slots->push_back(std::make_pair(Rf_mkChar("iterations"), Rf_ScalarInteger(iter)));
 }

@@ -44,7 +44,7 @@ struct omxFitFunctionTableEntry {
 static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
 {
 	if (ff->freeVarGroup && ff->freeVarGroup != fvg) {
-		warning("%s: setFreeVarGroup called with different group (%d vs %d)",
+		Rf_warning("%s: setFreeVarGroup called with different group (%d vs %d)",
 			ff->matrix->name, ff->freeVarGroup->id[0], fvg->id[0]);
 	}
 	ff->freeVarGroup = fvg;
@@ -100,7 +100,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (!off->initialized) error("FitFunction not initialized");
+	if (!off->initialized) Rf_error("FitFunction not initialized");
 
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;
@@ -138,7 +138,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 		}
 	}
 
-	if (obj->initFun == NULL) error("Fit function %s not implemented", fitType);
+	if (obj->initFun == NULL) Rf_error("Fit function %s not implemented", fitType);
 }
 
 void omxCompleteFitFunction(omxMatrix *om)
@@ -148,7 +148,7 @@ void omxCompleteFitFunction(omxMatrix *om)
 	SEXP rObj = obj->rObj;
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
 	if (LENGTH(slotValue) == 1) {
 		int expNumber = INTEGER(slotValue)[0];	
 		if(expNumber != NA_INTEGER) {
@@ -157,11 +157,11 @@ void omxCompleteFitFunction(omxMatrix *om)
 			omxCompleteExpectation(obj->expectation);
 		}
 	}
-	UNPROTECT(1);	/* slotValue */
+	Rf_unprotect(1);	/* slotValue */
 	
 	obj->initFun(obj);
 
-	if(obj->computeFun == NULL) error("Failed to initialize fit function %s", obj->fitType); 
+	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 
 	
 	omxMarkDirty(obj->matrix);
 	obj->initialized = TRUE;
@@ -181,9 +181,9 @@ void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
 /* Helper functions */
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* slotName) {
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install(slotName)));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install(slotName)));
 	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
-	UNPROTECT(1);
+	Rf_unprotect(1);
 	return newMatrix;
 }
 

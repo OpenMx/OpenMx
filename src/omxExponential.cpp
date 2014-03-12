@@ -80,13 +80,13 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	double e = floor(log2(maxRowSum));
 	int j = (int) (e + 1);
 	if (j < 0) j = 0;
-	int length = nrow * ncol;
+	int Rf_length = nrow * ncol;
 
 	omxMatrix *normInMat = omxInitTemporaryMatrix(NULL, nrow, ncol, 1, inMat->currentState);
 	omxCopyMatrix(normInMat, inMat);
 
 	double multipleOfTwo = pow(2.0, j);
-	for(int i = 0; i < length; i++) {
+	for(int i = 0; i < Rf_length; i++) {
 		omxSetVectorElement(normInMat, i, omxVectorElement(normInMat, i) / multipleOfTwo);
 	}
 
@@ -101,7 +101,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 			omxSetMatrixElement(D, row, col, omxMatrixElement(D, row, col) - 0.5 * element);
 		}
 	}
-	for(int i = 0; i < length; i++) {
+	for(int i = 0; i < Rf_length; i++) {
 		omxSetVectorElement(normInMat, i, omxVectorElement(inMat, i) / multipleOfTwo);
 	}
 
@@ -115,7 +115,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 			&(tempA->cols), &(normInMat->cols), &one, normInMat->data, &(normInMat->leading), 
 			tempA->data, &(tempA->leading), &zero, tempResult->data, &(tempResult->leading));
 		omxCopyMatrix(tempA, tempResult);
-		for(int i = 0; i < length; i++) {
+		for(int i = 0; i < Rf_length; i++) {
 			omxSetVectorElement(tempResult, i, omxVectorElement(tempResult, i) * constant);
 		}
 		for(int i = 0; i < nrow; i++) {

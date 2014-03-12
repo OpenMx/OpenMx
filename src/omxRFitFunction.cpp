@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxAlgebraFunctions.h"
 #include "omxRFitFunction.h"
 #include "omxOpenmpWrap.h"
@@ -27,7 +21,7 @@
 #include "Compute.h"
 
 void omxDestroyRFitFunction(omxFitFunction *off) {
-	UNPROTECT(4); 			// fitfun, model, flatModel, and state
+	Rf_unprotect(4); 			// fitfun, model, flatModel, and state
 }
 
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
@@ -37,26 +31,26 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
 	SEXP theCall, theReturn;
-	PROTECT(theCall = allocVector(LANGSXP, 3));
+	Rf_protect(theCall = Rf_allocVector(LANGSXP, 3));
 	SETCAR(theCall, rFitFunction->fitfun);
 	SETCADR(theCall, rFitFunction->model);
 	SETCADDR(theCall, rFitFunction->state);
 
-	PROTECT(theReturn = eval(theCall, R_GlobalEnv));
+	Rf_protect(theReturn = Rf_eval(theCall, R_GlobalEnv));
 
 	if (LENGTH(theReturn) < 1) {
 		// seems impossible, but report it if it happens
 		omxRaiseErrorf(currentState, "FitFunction returned nothing");
 	} else if (LENGTH(theReturn) == 1) {
-		oo->matrix->data[0] = asReal(theReturn);
+		oo->matrix->data[0] = Rf_asReal(theReturn);
 	} else if (LENGTH(theReturn) == 2) {
-		oo->matrix->data[0] = asReal(VECTOR_ELT(theReturn, 0));
-		REPROTECT(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
+		oo->matrix->data[0] = Rf_asReal(VECTOR_ELT(theReturn, 0));
+		R_Reprotect(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
 	} else if (LENGTH(theReturn) > 2) {
 		omxRaiseErrorf(currentState, "FitFunction returned more than 2 arguments");
 	}
 
-	UNPROTECT(2); // theCall and theReturn
+	Rf_unprotect(2); // theCall and theReturn
 }
 
 void omxInitRFitFunction(omxFitFunction* oo) {
@@ -72,10 +66,10 @@ void omxInitRFitFunction(omxFitFunction* oo) {
 	oo->destructFun = omxDestroyRFitFunction;
 	oo->argStruct = (void*) newObj;
 	
-	PROTECT(newObj->fitfun = GET_SLOT(rObj, install("fitfun")));
-	PROTECT_WITH_INDEX(newObj->model = GET_SLOT(rObj, install("model")), &(newObj->modelIndex));
-	PROTECT(newObj->flatModel = GET_SLOT(rObj, install("flatModel")));
-	PROTECT_WITH_INDEX(newObj->state = GET_SLOT(rObj, install("state")), &(newObj->stateIndex));
+	Rf_protect(newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun")));
+	R_ProtectWithIndex(newObj->model = R_do_slot(rObj, Rf_install("model")), &(newObj->modelIndex));
+	Rf_protect(newObj->flatModel = R_do_slot(rObj, Rf_install("flatModel")));
+	R_ProtectWithIndex(newObj->state = R_do_slot(rObj, Rf_install("state")), &(newObj->stateIndex));
 
 }
 

@@ -18,9 +18,9 @@
 #include <sys/types.h>
 #include <errno.h>
 
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
@@ -42,7 +42,7 @@
 #include "npsolswitch.h"
 
 static SEXP has_NPSOL()
-{ return ScalarLogical(HAS_NPSOL); }
+{ return Rf_ScalarLogical(HAS_NPSOL); }
 
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 10},
@@ -76,14 +76,14 @@ void R_unload_OpenMx(DllInfo *) {
 }
 #endif
 
-void string_to_try_error( const std::string& str )
+void string_to_try_Rf_error( const std::string& str )
 {
-	error("%s", str.c_str());
+	Rf_error("%s", str.c_str());
 }
 
-void exception_to_try_error( const std::exception& ex )
+void exception_to_try_Rf_error( const std::exception& ex )
 {
-	string_to_try_error(ex.what());
+	string_to_try_Rf_error(ex.what());
 }
 
 SEXP MxRList::asR()
@@ -91,16 +91,16 @@ SEXP MxRList::asR()
 	// detect duplicate keys? TODO
 	SEXP names, ans;
 	int len = size();
-	PROTECT(names = allocVector(STRSXP, len));
-	PROTECT(ans = allocVector(VECSXP, len));
+	Rf_protect(names = Rf_allocVector(STRSXP, len));
+	Rf_protect(ans = Rf_allocVector(VECSXP, len));
 	for (int lx=0; lx < len; ++lx) {
 		SEXP p1 = (*this)[lx].first;
 		SEXP p2 = (*this)[lx].second;
-		if (!p1 || !p2) error("Attempt to return NULL pointer to R");
+		if (!p1 || !p2) Rf_error("Attempt to return NULL pointer to R");
 		SET_STRING_ELT(names, lx, p1);
 		SET_VECTOR_ELT(ans,   lx, p2);
 	}
-	namesgets(ans, names);
+	Rf_namesgets(ans, names);
 	return ans;
 }
 
@@ -126,11 +126,11 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 
 	/* Retrieve All Matrices From the MatList */
 
-	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", length(matList));}
+	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
 
-	omxMatrix *args[length(matList)];
-	for(k = 0; k < length(matList); k++) {
-		PROTECT(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
+	omxMatrix *args[Rf_length(matList)];
+	for(k = 0; k < Rf_length(matList); k++) {
+		Rf_protect(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
 		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
 		globalState->matrixList.push_back(args[k]);
 		if(OMX_DEBUG) {
@@ -139,10 +139,10 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 		}
 	}
 
-	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, length(matList), globalState);
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, Rf_length(matList), globalState);
 
 	if(algebra==NULL) {
-		error(globalState->statusMsg);
+		Rf_error(globalState->statusMsg);
 	}
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
@@ -150,7 +150,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 
 	omxRecompute(algebra);
 
-	PROTECT(ans = allocMatrix(REALSXP, algebra->rows, algebra->cols));
+	Rf_protect(ans = Rf_allocMatrix(REALSXP, algebra->rows, algebra->cols));
 	for(l = 0; l < algebra->rows; l++)
 		for(j = 0; j < algebra->cols; j++)
 			REAL(ans)[j * algebra->rows + l] =
@@ -167,7 +167,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 	omxFreeState(globalState);
 	delete Global;
 
-	if(output[0]) error(output);
+	if(output[0]) Rf_error(output);
 
 	return ans;
 }
@@ -177,9 +177,9 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 	try {
 		return omxCallAlgebra2(matList, algNum, options);
 	} catch( std::exception& __ex__ ) {
-		exception_to_try_error( __ex__ );
+		exception_to_try_Rf_error( __ex__ );
 	} catch(...) {
-		string_to_try_error( "c++ exception (unknown reason)" );
+		string_to_try_Rf_error( "c++ exception (unknown reason)" );
 	}
 }
 
@@ -199,7 +199,7 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 		newVal = atoi(str);
 	}
 	if (!understood) {
-		warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
+		Rf_warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
 		return;
 	}
 	if(OMX_DEBUG) { mxLog("%s=%d", key, newVal); }
@@ -210,12 +210,12 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		     int *analyticGradients)
 {
-		int numOptions = length(options);
+		int numOptions = Rf_length(options);
 		SEXP optionNames;
-		PROTECT(optionNames = GET_NAMES(options));
+		Rf_protect(optionNames = Rf_getAttrib(options, R_NamesSymbol));
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
-			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
+			const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
 			if (matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
 				int newvalue = atoi(nextOptionValue);
 				if (newvalue > 0) *ciMaxIterations = newvalue;
@@ -226,14 +226,14 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 				*numThreads = atoi(nextOptionValue);
 				if (*numThreads < 1) {
-					warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
+					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
 			} else {
 				// ignore
 			}
 		}
-		UNPROTECT(1); // optionNames
+		Rf_unprotect(1); // optionNames
 }
 
 SEXP omxBackend2(SEXP constraints, SEXP matList,
@@ -244,8 +244,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
-//	if(!isVector(matList)) error ("matList must be a list");
-//	if(!isVector(algList)) error ("algList must be a list");
+//	if(!isVector(matList)) Rf_error ("matList must be a list");
+//	if(!isVector(algList)) Rf_error ("algList must be a list");
 
 	omxManageProtectInsanity protectManager;
 
@@ -264,44 +264,44 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxExpectationEntities(expectList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxDataEntities(data);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
     
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxMatrixEntities(matList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxAlgebraEntities(algList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxFitFunction(algList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxComputeEntities(computeList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxExpectationEntities();
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxFitFunction(algList);
-	if (isErrorRaised(globalState)) error(globalState->statusMsg);
+	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	// This is the chance to check for matrix
-	// conformability, etc.  Any errors encountered should
-	// be reported using R's error() function, not
+	// conformability, etc.  Any Rf_errors encountered should
+	// be reported using R's Rf_error() function, not
 	// omxRaiseErrorf.
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
@@ -318,8 +318,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	  The rest of the list will be processed here.
 	*/
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	for(int j = 0; j < length(matList); j++) {
-		PROTECT(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+	for(int j = 0; j < Rf_length(matList); j++) {
+		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
 		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
 	}
 
@@ -343,7 +343,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	SEXP evaluations;
-	PROTECT(evaluations = NEW_NUMERIC(2));
+	Rf_protect(evaluations = Rf_allocVector(REALSXP,2));
 
 	REAL(evaluations)[0] = globalState->computeCount;
 
@@ -366,22 +366,22 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 		if (cResult.size()) {
 			SEXP computes;
-			PROTECT(computes = NEW_LIST(cResult.size() * 2));
+			Rf_protect(computes = Rf_allocVector(VECSXP, cResult.size() * 2));
 			for (size_t cx=0; cx < cResult.size(); ++cx) {
 				std::pair<int, MxRList*> c1 = cResult[cx];
-				SET_VECTOR_ELT(computes, cx*2, ScalarInteger(c1.first));
+				SET_VECTOR_ELT(computes, cx*2, Rf_ScalarInteger(c1.first));
 				SET_VECTOR_ELT(computes, cx*2+1, c1.second->asR());
 				delete c1.second;
 			}
-			result.push_back(std::make_pair(mkChar("computes"), computes));
+			result.push_back(std::make_pair(Rf_mkChar("computes"), computes));
 		}
 
 		if (fc.wanted & FF_COMPUTE_FIT) {
-			result.push_back(std::make_pair(mkChar("fit"), ScalarReal(fc.fit)));
-			result.push_back(std::make_pair(mkChar("Minus2LogLikelihood"), ScalarReal(fc.fit)));
+			result.push_back(std::make_pair(Rf_mkChar("fit"), Rf_ScalarReal(fc.fit)));
+			result.push_back(std::make_pair(Rf_mkChar("Minus2LogLikelihood"), Rf_ScalarReal(fc.fit)));
 		}
 		if (fc.wanted & FF_COMPUTE_BESTFIT) {
-			result.push_back(std::make_pair(mkChar("minimum"), ScalarReal(fc.fit)));
+			result.push_back(std::make_pair(Rf_mkChar("minimum"), Rf_ScalarReal(fc.fit)));
 		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
@@ -389,59 +389,59 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			// move other global reporting here TODO
 
 			SEXP estimate;
-			PROTECT(estimate = allocVector(REALSXP, numFree));
+			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
 			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
-			result.push_back(std::make_pair(mkChar("estimate"), estimate));
+			result.push_back(std::make_pair(Rf_mkChar("estimate"), estimate));
 
 			if (fc.wanted & FF_COMPUTE_GRADIENT) {
 				SEXP Rgradient;
-				PROTECT(Rgradient = allocVector(REALSXP, numFree));
+				Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
 				memcpy(REAL(Rgradient), fc.grad, sizeof(double) * numFree);
-				result.push_back(std::make_pair(mkChar("gradient"), Rgradient));
+				result.push_back(std::make_pair(Rf_mkChar("gradient"), Rgradient));
 			}
 			if (fc.wanted & FF_COMPUTE_HESSIAN) {
 				SEXP Rhessian;
-				PROTECT(Rhessian = allocMatrix(REALSXP, numFree, numFree));
+				Rf_protect(Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree));
 				memcpy(REAL(Rhessian), fc.hess, sizeof(double) * numFree * numFree);
-				result.push_back(std::make_pair(mkChar("hessian"), Rhessian));
+				result.push_back(std::make_pair(Rf_mkChar("hessian"), Rhessian));
 			}
 			if (fc.wanted & FF_COMPUTE_IHESSIAN) {
 				SEXP Rihessian;
-				PROTECT(Rihessian = allocMatrix(REALSXP, numFree, numFree));
+				Rf_protect(Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree));
 				memcpy(REAL(Rihessian), fc.ihess, sizeof(double) * numFree * numFree);
-				result.push_back(std::make_pair(mkChar("ihessian"), Rihessian));
+				result.push_back(std::make_pair(Rf_mkChar("ihessian"), Rihessian));
 			}
 			if (fc.stderrs) {
 				SEXP stdErrors;
-				PROTECT(stdErrors = allocMatrix(REALSXP, numFree, 1));
+				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
-				result.push_back(std::make_pair(mkChar("standardErrors"), stdErrors));
+				result.push_back(std::make_pair(Rf_mkChar("standardErrors"), stdErrors));
 			}
 			if (fc.wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-				result.push_back(std::make_pair(mkChar("infoDefinite"),
-								ScalarLogical(fc.infoDefinite)));
-				result.push_back(std::make_pair(mkChar("conditionNumber"),
-								ScalarReal(fc.infoCondNum)));
+				result.push_back(std::make_pair(Rf_mkChar("infoDefinite"),
+								Rf_ScalarLogical(fc.infoDefinite)));
+				result.push_back(std::make_pair(Rf_mkChar("conditionNumber"),
+								Rf_ScalarReal(fc.infoCondNum)));
 			}
 		}
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.push_back(std::make_pair(mkChar("code"), ScalarReal(optStatus)));
-	backwardCompatStatus.push_back(std::make_pair(mkChar("status"),
-						      ScalarInteger(-isErrorRaised(globalState))));
+	backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("code"), Rf_ScalarReal(optStatus)));
+	backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("status"),
+						      Rf_ScalarInteger(-isErrorRaised(globalState))));
 
 	if (isErrorRaised(globalState)) {
 		SEXP msg;
-		PROTECT(msg = allocVector(STRSXP, 1));
-		SET_STRING_ELT(msg, 0, mkChar(globalState->statusMsg));
-		result.push_back(std::make_pair(mkChar("error"), msg));
-		backwardCompatStatus.push_back(std::make_pair(mkChar("statusMsg"), msg));
+		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
+		SET_STRING_ELT(msg, 0, Rf_mkChar(globalState->statusMsg));
+		result.push_back(std::make_pair(Rf_mkChar("error"), msg));
+		backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("statusMsg"), msg));
 	}
 
-	result.push_back(std::make_pair(mkChar("status"), backwardCompatStatus.asR()));
-	result.push_back(std::make_pair(mkChar("evaluations"), evaluations));
+	result.push_back(std::make_pair(Rf_mkChar("status"), backwardCompatStatus.asR()));
+	result.push_back(std::make_pair(Rf_mkChar("evaluations"), evaluations));
 
 	omxFreeState(globalState);
 	delete Global;
@@ -459,9 +459,9 @@ SEXP omxBackend(SEXP constraints, SEXP matList,
 				   varList, algList, expectList, computeList,
 				   data, intervalList, checkpointList, options);
 	} catch( std::exception& __ex__ ) {
-		exception_to_try_error( __ex__ );
+		exception_to_try_Rf_error( __ex__ );
 	} catch(...) {
-		string_to_try_error( "c++ exception (unknown reason)" );
+		string_to_try_Rf_error( "c++ exception (unknown reason)" );
 	}
 }
 

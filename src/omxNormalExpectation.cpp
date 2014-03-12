@@ -53,7 +53,7 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 	if(means != NULL)
     	omxRecompute(means);
 
-	PROTECT(expCovExt = allocMatrix(REALSXP, cov->rows, cov->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, cov->rows, cov->cols));
 	for(int row = 0; row < cov->rows; row++)
 		for(int col = 0; col < cov->cols; col++)
 			REAL(expCovExt)[col * cov->rows + row] =
@@ -61,18 +61,18 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 
 	
 	if (means != NULL) {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, means->rows, means->cols));
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, means->rows, means->cols));
 		for(int row = 0; row < means->rows; row++)
 			for(int col = 0; col < means->cols; col++)
 				REAL(expMeanExt)[col * means->rows + row] =
 					omxMatrixElement(means, row, col);
 	} else {
-		PROTECT(expMeanExt = allocMatrix(REALSXP, 0, 0));
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
 	}
 
-	setAttrib(algebra, install("ExpCov"), expCovExt);
-	setAttrib(algebra, install("ExpMean"), expMeanExt);
-	UNPROTECT(2);
+	Rf_setAttrib(algebra, Rf_install("ExpCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("ExpMean"), expMeanExt);
+	Rf_unprotect(2);
 }
 
 void omxInitNormalExpectation(omxExpectation* ox) {

@@ -140,12 +140,12 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					if (a1 == a2 && fv->lbound == NEG_INF) {
 						fv->lbound = BA81_MIN_VARIANCE;  // variance must be positive
 						if (fc->est[px] < fv->lbound) {
-							error("Starting value for variance %s is negative", fv->name);
+							Rf_error("Starting value for variance %s is negative", fv->name);
 						}
 					}
 				} else if (latentMap[cell] != px) {
 					// doesn't detect similar problems in multigroup constraints TODO
-					error("In covariance matrix, %s and %s must be constrained equal to preserve symmetry",
+					Rf_error("In covariance matrix, %s and %s must be constrained equal to preserve symmetry",
 					      fvg->vars[latentMap[cell]]->name, fv->name);
 				}
 				latentLoc[px].mean = false;
@@ -228,20 +228,20 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			if (state->paramFlavor[px] < 0) {
 				state->paramFlavor[px] = flavor;
 			} else if (state->paramFlavor[px] != flavor) {
-				error("Cannot equate %s with %s[%d,%d]", fv->name,
+				Rf_error("Cannot equate %s with %s[%d,%d]", fv->name,
 				      itemParam->name, loc->row, loc->col);
 			}
 			if (fv->lbound == NEG_INF && isfinite(lower)) {
 				fv->lbound = lower;
 				if (fc->est[px] < fv->lbound) {
-					error("Starting value %s %f less than lower bound %f",
+					Rf_error("Starting value %s %f less than lower bound %f",
 					      fv->name, fc->est[px], lower);
 				}
 			}
 			if (fv->ubound == INF && isfinite(upper)) {
 				fv->ubound = upper;
 				if (fc->est[px] > fv->ubound) {
-					error("Starting value %s %f greater than upper bound %f",
+					Rf_error("Starting value %s %f greater than upper bound %f",
 					      fv->name, fc->est[px], upper);
 				}
 			}
@@ -376,7 +376,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 				double *iparam = omxMatrixColumn(itemParam, item);
 				pda(iparam, numParam, 1);
 				// Perhaps bounds can be pulled in from librpf? TODO
-				error("Deriv %d for item %d is %f; are you missing a lbound/ubound?",
+				Rf_error("Deriv %d for item %d is %f; are you missing a lbound/ubound?",
 				      ox, item, deriv0[ox]);
 			}
 
@@ -1185,7 +1185,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			}
 		}
 		if (want & FF_COMPUTE_HESSIAN) {
-			warning("%s: Hessian not available", oo->matrix->name);
+			Rf_warning("%s: Hessian not available", oo->matrix->name);
 		}
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
@@ -1222,7 +1222,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		return 0;
 	} else {
-		error("%s: Select EM or regular mode before computing %d", oo->matrix->name, want);
+		Rf_error("%s: Select EM or regular mode before computing %d", oo->matrix->name, want);
 	}
 }
 
@@ -1274,7 +1274,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		const double *spec = estate->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		if (id < 0 || id >= rpf_numModels) {
-			error("ItemSpec %d has unknown item model %d", ix, id);
+			Rf_error("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
 

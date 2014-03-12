@@ -42,7 +42,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 			       omx_absolute_thread_num(),
 			       header, source->rows, source->cols);
 
-	if(!source->colMajor) error("All matrices are column major");
+	if(!source->colMajor) Rf_error("All matrices are column major");
 
 	bool first = true;
 	for(int j = 0; j < source->rows; j++) {
@@ -60,8 +60,8 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
-	if (!isColMajor) error("All matrices should be column major"); // remove option TODO
-	if (om) error("om is always NULL"); // remove argument TODO
+	if (!isColMajor) Rf_error("All matrices should be column major"); // remove option TODO
+	if (om) Rf_error("om is always NULL"); // remove argument TODO
 
 	om = (omxMatrix*) Calloc(1, omxMatrix);
 
@@ -107,7 +107,7 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 
 omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os)
 {
-	if (om) error("om must be NULL");  // remove this argument TODO
+	if (om) Rf_error("om must be NULL");  // remove this argument TODO
 
 	om = omxInitMatrix(NULL, nrows, ncols, isColMajor, os);
 	om->isTemporary = TRUE;
@@ -156,7 +156,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 			omxFreeMatrixData(dest);											// Free and regenerate memory
 			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
 		}
-		if (dest->data != orig->data) {  // if equal then programmer error? TODO
+		if (dest->data != orig->data) {  // if equal then programmer Rf_error? TODO
 			memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
 		}
 	}
@@ -205,11 +205,11 @@ void omxFreeAllMatrixData(omxMatrix *om) {
  * Copies an omxMatrix to a new R matrix object
  *
  * \param om the omxMatrix to copy
- * \return a PROTECT'd SEXP for the R matrix object
+ * \return a Rf_protect'd SEXP for the R matrix object
  */
 SEXP omxExportMatrix(omxMatrix *om) {
 	SEXP nextMat;
-	PROTECT(nextMat = allocMatrix(REALSXP, om->rows, om->cols));
+	Rf_protect(nextMat = Rf_allocMatrix(REALSXP, om->rows, om->cols));
 	for(int row = 0; row < om->rows; row++) {
 		for(int col = 0; col < om->cols; col++) {
 			REAL(nextMat)[col * om->rows + row] =
@@ -267,7 +267,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
 	} else if(om->originalRows * om->originalCols < nrows * ncols) {
-		warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
+		Rf_warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
 	}
 
 	if(OMX_DEBUG_MATRIX) { mxLog("."); }
@@ -307,11 +307,11 @@ void vectorElementError(int index, int numrow, int numcol) {
 		sprintf(errstr, "Requested improper index (%d) from a malformed vector of dimensions (%d, %d).", 
 			index, numrow, numcol);
 	} else {
-		int length = (numrow > 1) ? numrow : numcol;
-		sprintf(errstr, "Requested improper index (%d) from vector of length (%d).", 
-			index, length);
+		int Rf_length = (numrow > 1) ? numrow : numcol;
+		sprintf(errstr, "Requested improper index (%d) from vector of Rf_length (%d).", 
+			index, Rf_length);
 	}
-	error(errstr);
+	Rf_error(errstr);
 	free(errstr);  // TODO not reached
 }
 
@@ -335,12 +335,12 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 		sprintf(errstr, "Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
 			row, col, typeString, om->name, numrow, numcol);
 	}
-	error(errstr);
+	Rf_error(errstr);
 	free(errstr);  // TODO not reached
 }
 
 void matrixElementError(int row, int col, int numrow, int numcol) {
-	error("Requested improper value (%d, %d) from (%d, %d) matrix", row, col, numrow, numcol);
+	Rf_error("Requested improper value (%d, %d) from (%d, %d) matrix", row, col, numrow, numcol);
 }
 
 void setVectorError(int index, int numrow, int numcol) {
@@ -349,11 +349,11 @@ void setVectorError(int index, int numrow, int numcol) {
 		sprintf(errstr, "Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d).", 
 			index, numrow, numcol);
 	} else {
-		int length = (numrow > 1) ? numrow : numcol;
-		sprintf(errstr, "Setting improper index (%d) from vector of length %d.", 
-			index, length);
+		int Rf_length = (numrow > 1) ? numrow : numcol;
+		sprintf(errstr, "Setting improper index (%d) from vector of Rf_length %d.", 
+			index, Rf_length);
 	}
-	error(errstr);
+	Rf_error(errstr);
 	free(errstr);  // TODO not reached
 }
 
@@ -363,7 +363,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
 			row + 1, col + 1, om->originalRows, om->originalCols);
-		error(errstr);
+		Rf_error(errstr);
 		free(errstr);  // TODO not reached
         return (NA_REAL);
 	}
@@ -398,8 +398,8 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Populates the fields of a omxMatrix with details from an R object. */
-	if(!isMatrix(rObject) && !isVector(rObject)) { // Sanity Check
-		error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
+	if(!Rf_isMatrix(rObject) && !Rf_isVector(rObject)) { // Sanity Check
+		Rf_error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
 	}
 	return(fillMatrixHelperFunction(om, rObject, state, hasMatrixNumber, matrixNumber));
 }
@@ -413,26 +413,26 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
 
-	if (!om) error("fillMatrixHelperFunction: matrix must be allocated already");
+	if (!om) Rf_error("fillMatrixHelperFunction: matrix must be allocated already");
 
-	if(isMatrix(matrix)) {
+	if(Rf_isMatrix(matrix)) {
 		SEXP matrixDims;
-		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
+		Rf_protect(matrixDims = Rf_getAttrib(matrix, R_DimSymbol));
 		dimList = INTEGER(matrixDims);
 		om->rows = dimList[0];
 		om->cols = dimList[1];
-		UNPROTECT(1); // matrixDims
-	} else if (isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
+		Rf_unprotect(1); // matrixDims
+	} else if (Rf_isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 		if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
 		om->rows = 1;
-		om->cols = length(matrix);
+		om->cols = Rf_length(matrix);
 	}
 	if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
 	if (TYPEOF(matrix) != REALSXP) {
 		// we could avoid a double copy here TODO
 		SEXP copy;
-		PROTECT(copy = coerceVector(matrix, REALSXP));
+		Rf_protect(copy = Rf_coerceVector(matrix, REALSXP));
 		om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
 		memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
 	} else {
@@ -466,10 +466,10 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 
-	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", length(matStruct) - 1); }
+	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", Rf_length(matStruct) - 1); }
 
-	if(length(matStruct) > 1) {
-		int numPopLocs = length(matStruct) - 1;
+	if(Rf_length(matStruct) > 1) {
+		int numPopLocs = Rf_length(matStruct) - 1;
 		matrix->numPopulateLocations = numPopLocs;
 		matrix->populateFrom = (int*)R_alloc(numPopLocs, sizeof(int));
 		matrix->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
@@ -478,9 +478,9 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		matrix->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
 	}
 
-	for(int i = 0; i < length(matStruct)-1; i++) {
+	for(int i = 0; i < Rf_length(matStruct)-1; i++) {
 		SEXP subList;
-		PROTECT(subList = AS_INTEGER(VECTOR_ELT(matStruct, i+1)));
+		Rf_protect(subList = VECTOR_ELT(matStruct, i+1));
 
 		int* locations = INTEGER(subList);
 		if(OMX_DEBUG) { mxLog("."); } //:::
@@ -489,7 +489,7 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		matrix->populateFromCol[i] = locations[2];
 		matrix->populateToRow[i] = locations[3];
 		matrix->populateToCol[i] = locations[4];
-		UNPROTECT(1); //subList
+		Rf_unprotect(1); //subList
 	}
 }
 
@@ -601,7 +601,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 	int nextRow = 0;
 
 	if(om->rows > om->originalRows || om->cols > om->originalCols) {	// sanity check.
-		error("Aliased Matrix is too small for alias.");
+		Rf_error("Aliased Matrix is too small for alias.");
 	}
 
 	om->rows = oldRows - numRowsRemoved;
@@ -794,7 +794,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 {
-	if (m1->rows != m2->rows || m1->cols != m2->cols) error("Matrices are not the same size");
+	if (m1->rows != m2->rows || m1->cols != m2->cols) Rf_error("Matrices are not the same size");
 
 	double mad = 0;
 	int size = m1->rows * m1->cols;

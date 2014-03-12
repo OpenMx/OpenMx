@@ -28,9 +28,9 @@
 #ifndef _OMXSTATE_H_
 #define _OMXSTATE_H_
 
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
@@ -215,8 +215,8 @@ void omxFreeState(omxState *state);
 
 	void omxResetStatus(omxState *state);    
 inline bool isErrorRaised(omxState *state) { return state->statusMsg[0] != 0; }
-void omxRaiseError(omxState *state, int errorCode, const char* errorMsg); // DEPRECATED
-void omxRaiseErrorf(omxState *state, const char* errorMsg, ...) __attribute__((format (printf, 2, 3)));
+void omxRaiseError(omxState *state, int Rf_errorCode, const char* Rf_errorMsg); // DEPRECATED
+void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...) __attribute__((format (printf, 2, 3)));
 
 /* Advance a step */
 	void omxStateNextRow(omxState *state);								// Advance Row

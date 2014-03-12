@@ -102,7 +102,7 @@ omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* new
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;
-	PROTECT(ExpectationClass = STRING_ELT(getAttrib(rObj, install("class")), 0));
+	Rf_protect(ExpectationClass = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
 	const char* expType = CHAR(ExpectationClass);
 
 	omxExpectation* expect = omxNewInternalExpectation(expType, os);
@@ -127,15 +127,15 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	if(rObj == NULL) return;
 
 	if(OMX_DEBUG) { mxLog("Retrieving data."); }
-	PROTECT(nextMatrix = GET_SLOT(rObj, install("data")));
+	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("data")));
 	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
 	}
 
-	if (R_has_slot(rObj, install("dataColumns"))) {
-		PROTECT(nextMatrix = GET_SLOT(rObj, install("dataColumns")));
+	if (R_has_slot(rObj, Rf_install("dataColumns"))) {
+		Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("dataColumns")));
 		ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
 		if(OMX_DEBUG) {
 			omxPrint(ox->dataColumns, "Variable mapping");
@@ -143,11 +143,11 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	
 		numCols = ox->dataColumns->cols;
 
-		if (R_has_slot(rObj, install("thresholds"))) {
+		if (R_has_slot(rObj, Rf_install("thresholds"))) {
 			if(OMX_DEBUG) {
 				mxLog("Accessing Threshold matrix.");
 			}
-			PROTECT(threshMatrix = GET_SLOT(rObj, install("thresholds")));
+			Rf_protect(threshMatrix = R_do_slot(rObj, Rf_install("thresholds")));
 
 			if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 				if(OMX_DEBUG) {
@@ -158,8 +158,8 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
 				 * and fill all the thresholds with {NULL, 0, 0}.
 				 * However the current path does not have a lot of overhead. */
-				PROTECT(nextMatrix = GET_SLOT(rObj, install("thresholdColumns")));
-				PROTECT(itemList = GET_SLOT(rObj, install("thresholdLevels")));
+				Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("thresholdColumns")));
+				Rf_protect(itemList = R_do_slot(rObj, Rf_install("thresholdLevels")));
 				int* thresholdColumn, *thresholdNumber;
 				thresholdColumn = INTEGER(nextMatrix);
 				thresholdNumber = INTEGER(itemList);
@@ -198,15 +198,15 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 		}
 	}
 
-	if(!R_has_slot(rObj, install("definitionVars"))) {
+	if(!R_has_slot(rObj, Rf_install("definitionVars"))) {
 		ox->numDefs = 0;
 		ox->defVars = NULL;
 	} else {	
 		if(OMX_DEBUG) {
 			mxLog("Accessing definition variables structure.");
 		}
-		PROTECT(nextMatrix = GET_SLOT(rObj, install("definitionVars")));
-		numDefs = length(nextMatrix);
+		Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("definitionVars")));
+		numDefs = Rf_length(nextMatrix);
 		ox->numDefs = numDefs;
 		if(OMX_DEBUG) {
 			mxLog("Number of definition variables is %d.", numDefs);
@@ -216,20 +216,20 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			SEXP dataSource, columnSource, depsSource; 
 			int nextDataSource, numDeps;
 
-			PROTECT(itemList = VECTOR_ELT(nextMatrix, nextDef));
-			PROTECT(dataSource = VECTOR_ELT(itemList, 0));
+			Rf_protect(itemList = VECTOR_ELT(nextMatrix, nextDef));
+			Rf_protect(dataSource = VECTOR_ELT(itemList, 0));
 			nextDataSource = INTEGER(dataSource)[0];
 			if(OMX_DEBUG) {
 				mxLog("Data source number is %d.", nextDataSource);
 			}
 			ox->defVars[nextDef].data = nextDataSource;
 			ox->defVars[nextDef].source = ox->currentState->dataList[nextDataSource];
-			PROTECT(columnSource = VECTOR_ELT(itemList, 1));
+			Rf_protect(columnSource = VECTOR_ELT(itemList, 1));
 			if(OMX_DEBUG) {
 				mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
 			}
 			ox->defVars[nextDef].column = INTEGER(columnSource)[0];
-			PROTECT(depsSource = VECTOR_ELT(itemList, 2));
+			Rf_protect(depsSource = VECTOR_ELT(itemList, 2));
 			numDeps = LENGTH(depsSource);
 			ox->defVars[nextDef].numDeps = numDeps;
 			ox->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
@@ -237,12 +237,12 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				ox->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
 			}
 
-			ox->defVars[nextDef].numLocations = length(itemList) - 3;
-			ox->defVars[nextDef].matrices = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-			ox->defVars[nextDef].rows = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-			ox->defVars[nextDef].cols = (int *) R_alloc(length(itemList) - 3, sizeof(int));
-			for(index = 3; index < length(itemList); index++) {
-				PROTECT(nextItem = VECTOR_ELT(itemList, index));
+			ox->defVars[nextDef].numLocations = Rf_length(itemList) - 3;
+			ox->defVars[nextDef].matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+			ox->defVars[nextDef].rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+			ox->defVars[nextDef].cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+			for(index = 3; index < Rf_length(itemList); index++) {
+				Rf_protect(nextItem = VECTOR_ELT(itemList, index));
 				ox->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
 				ox->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
 				ox->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
@@ -260,16 +260,16 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 	if (ox->rObj) {
 		SEXP slot;
-		PROTECT(slot = GET_SLOT(ox->rObj, install("container")));
-		if (length(slot) == 1) {
+		Rf_protect(slot = R_do_slot(ox->rObj, Rf_install("container")));
+		if (Rf_length(slot) == 1) {
 			int ex = INTEGER(slot)[0];
 			ox->container = os->expectationList.at(ex);
 		}
 
-		PROTECT(slot = GET_SLOT(ox->rObj, install("submodels")));
-		if (length(slot)) {
-			ox->numSubmodels = length(slot);
-			ox->submodels = Realloc(NULL, length(slot), omxExpectation*);
+		Rf_protect(slot = R_do_slot(ox->rObj, Rf_install("submodels")));
+		if (Rf_length(slot)) {
+			ox->numSubmodels = Rf_length(slot);
+			ox->submodels = Realloc(NULL, Rf_length(slot), omxExpectation*);
 			int *submodel = INTEGER(slot);
 			for (int ex=0; ex < ox->numSubmodels; ex++) {
 				int sx = submodel[ex];
@@ -285,7 +285,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 	if(ox->computeFun == NULL) {
 		// Should never happen
-		error("Could not initialize Expectation function %s", ox->expType);
+		Rf_error("Could not initialize Expectation function %s", ox->expType);
 	}
 
 	ox->isComplete = TRUE;
@@ -295,7 +295,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
 	if (ox->freeVarGroup && ox->freeVarGroup != fvg) {
-		warning("setFreeVarGroup called with different group (%d vs %d) on %s",
+		Rf_warning("setFreeVarGroup called with different group (%d vs %d) on %s",
 			ox->name, ox->freeVarGroup->id[0], fvg->id[0]);
 	}
 	ox->freeVarGroup = fvg;
@@ -324,7 +324,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 
 	if(!expect->initFun) {
 		Free(expect);
-		error("Expectation %s not implemented", expType);
+		Rf_error("Expectation %s not implemented", expType);
 	}
 
 	expect->currentState = os;

@@ -826,7 +826,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	int maxAbilities = state->maxAbilities;
 
-	setAttrib(robj, install("numStats"), ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
+	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
 
 	if (state->debugInternal) {
 		const double LogLargest = state->LogLargestDouble;
@@ -835,7 +835,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		SEXP Rlik;
 		SEXP Rexpected;
 
-		PROTECT(Rlik = allocVector(REALSXP, numUnique));
+		Rf_protect(Rlik = Rf_allocVector(REALSXP, numUnique));
 		memcpy(REAL(Rlik), state->patternLik, sizeof(double) * numUnique);
 		double *lik_out = REAL(Rlik);
 		for (int px=0; px < numUnique; ++px) {
@@ -843,24 +843,24 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 			lik_out[px] = log(lik_out[px]) - LogLargest;
 		}
 
-		PROTECT(Rexpected = allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
+		Rf_protect(Rexpected = Rf_allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
 		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
 
 		MxRList dbg;
-		dbg.push_back(std::make_pair(mkChar("patternLikelihood"), Rlik));
-		dbg.push_back(std::make_pair(mkChar("em.expected"), Rexpected));
+		dbg.push_back(std::make_pair(Rf_mkChar("patternLikelihood"), Rlik));
+		dbg.push_back(std::make_pair(Rf_mkChar("em.expected"), Rexpected));
 
 		SEXP Rmean, Rcov;
-		PROTECT(Rmean = allocVector(REALSXP, maxAbilities));
+		Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
 		memcpy(REAL(Rmean), state->estLatentMean->data, maxAbilities * sizeof(double));
 
-		PROTECT(Rcov = allocMatrix(REALSXP, maxAbilities, maxAbilities));
+		Rf_protect(Rcov = Rf_allocMatrix(REALSXP, maxAbilities, maxAbilities));
 		memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
 
-		dbg.push_back(std::make_pair(mkChar("mean"), Rmean));
-		dbg.push_back(std::make_pair(mkChar("cov"), Rcov));
+		dbg.push_back(std::make_pair(Rf_mkChar("mean"), Rmean));
+		dbg.push_back(std::make_pair(Rf_mkChar("cov"), Rcov));
 
-		setAttrib(robj, install("debug"), dbg.asR());
+		Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 	}
 
 	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
@@ -873,7 +873,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	if (numQpoints < 1 + 2.0 * sqrt(state->itemSpec->cols)) {
 		// Thissen & Orlando (2001, p. 136)
-		warning("EAP requires at least 2*sqrt(items) quadrature points");
+		Rf_warning("EAP requires at least 2*sqrt(items) quadrature points");
 	}
 
 	ba81SetupQuadrature(oo, numQpoints, 0);
@@ -889,27 +889,27 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	int rows = state->scores == SCORES_FULL? data->rows : numUnique;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
-	PROTECT(Rscores = allocMatrix(REALSXP, rows, cols));
+	Rf_protect(Rscores = Rf_allocMatrix(REALSXP, rows, cols));
 	double *scores = REAL(Rscores);
 
 	const int SMALLBUF = 10;
 	char buf[SMALLBUF];
 	SEXP names;
-	PROTECT(names = allocVector(STRSXP, cols));
+	Rf_protect(names = Rf_allocVector(STRSXP, cols));
 	for (int nx=0; nx < maxAbilities; ++nx) {
 		snprintf(buf, SMALLBUF, "s%d", nx+1);
-		SET_STRING_ELT(names, nx, mkChar(buf));
+		SET_STRING_ELT(names, nx, Rf_mkChar(buf));
 		snprintf(buf, SMALLBUF, "se%d", nx+1);
-		SET_STRING_ELT(names, maxAbilities + nx, mkChar(buf));
+		SET_STRING_ELT(names, maxAbilities + nx, Rf_mkChar(buf));
 	}
 	for (int nx=0; nx < triangleLoc1(maxAbilities); ++nx) {
 		snprintf(buf, SMALLBUF, "cov%d", nx+1);
-		SET_STRING_ELT(names, maxAbilities*2 + nx, mkChar(buf));
+		SET_STRING_ELT(names, maxAbilities*2 + nx, Rf_mkChar(buf));
 	}
 	SEXP dimnames;
-	PROTECT(dimnames = allocVector(VECSXP, 2));
+	Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
 	SET_VECTOR_ELT(dimnames, 1, names);
-	setAttrib(Rscores, R_DimNamesSymbol, dimnames);
+	Rf_setAttrib(Rscores, R_DimNamesSymbol, dimnames);
 
 	if (state->scores == SCORES_FULL) {
 #pragma omp parallel for num_threads(Global->numThreads)
@@ -928,8 +928,8 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	}
 
 	MxRList out;
-	out.push_back(std::make_pair(mkChar("scores"), Rscores));
-	setAttrib(robj, install("output"), out.asR());
+	out.push_back(std::make_pair(Rf_mkChar("scores"), Rscores));
+	Rf_setAttrib(robj, Rf_install("output"), out.asR());
 }
 
 static void ba81Destroy(omxExpectation *oo) {
@@ -956,11 +956,11 @@ static void ba81Destroy(omxExpectation *oo) {
 void getMatrixDims(SEXP r_theta, int *rows, int *cols)
 {
     SEXP matrixDims;
-    PROTECT(matrixDims = getAttrib(r_theta, R_DimSymbol));
+    Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));
     int *dimList = INTEGER(matrixDims);
     *rows = dimList[0];
     *cols = dimList[1];
-    UNPROTECT(1);
+    Rf_unprotect(1);
 }
 
 static void ignoreSetVarGroup(omxExpectation*, FreeVarGroup *)
@@ -980,7 +980,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			int version;
 			get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
 			(*get_librpf)(&version, &rpf_numModels, &rpf_model);
-			if (version < wantVersion) error("librpf binary API %d installed, at least %d is required",
+			if (version < wantVersion) Rf_error("librpf binary API %d Rf_installed, at least %d is required",
 							 version, wantVersion);
 		} else {
 			rpf_numModels = librpf_numModels;
@@ -1012,7 +1012,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->quadGridSize = 0;
 	oo->argStruct = (void*) state;
 
-	PROTECT(tmp = GET_SLOT(rObj, install("data")));
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("data")));
 	state->data = omxDataLookupFromState(tmp, currentState);
 
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
@@ -1020,41 +1020,41 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	PROTECT(tmp = GET_SLOT(rObj, install("ItemSpec")));
-	for (int sx=0; sx < length(tmp); ++sx) {
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("ItemSpec")));
+	for (int sx=0; sx < Rf_length(tmp); ++sx) {
 		SEXP model = VECTOR_ELT(tmp, sx);
 		if (!OBJECT(model)) {
-			error("Item models must inherit rpf.base");
+			Rf_error("Item models must inherit rpf.base");
 		}
 		SEXP spec;
-		PROTECT(spec = GET_SLOT(model, install("spec")));
+		Rf_protect(spec = R_do_slot(model, Rf_install("spec")));
 		state->itemSpec.push_back(REAL(spec));
 	}
 
-	PROTECT(tmp = GET_SLOT(rObj, install("design")));
-	if (!isNull(tmp)) {
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("design")));
+	if (!Rf_isNull(tmp)) {
 		// better to demand integers and not coerce to real TODO
 		state->design = omxNewMatrixFromRPrimitive(tmp, globalState, FALSE, 0);
 	}
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
-	if (!state->latentMeanOut) error("Failed to retrieve mean matrix");
+	if (!state->latentMeanOut) Rf_error("Failed to retrieve mean matrix");
 	state->latentMeanOut->expectation = oo;
 
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
-	if (!state->latentCovOut) error("Failed to retrieve cov matrix");
+	if (!state->latentCovOut) Rf_error("Failed to retrieve cov matrix");
 	state->latentCovOut->expectation = oo;
 
 	state->itemParam =
 		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
 	state->itemParam->expectation = oo;
 
-	PROTECT(tmp = GET_SLOT(rObj, install("EItemParam")));
-	if (!isNull(tmp)) {
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EItemParam")));
+	if (!Rf_isNull(tmp)) {
 		int rows, cols;
 		getMatrixDims(tmp, &rows, &cols);
 		if (rows != state->itemParam->rows || cols != state->itemParam->cols) {
-			error("EItemParam must have same dimensions as ItemParam");
+			Rf_error("EItemParam must have same dimensions as ItemParam");
 		}
 		state->EitemParam = REAL(tmp);
 	}
@@ -1088,7 +1088,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	const int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
-		error("Data has %d columns for %d items", data->cols, numItems);
+		Rf_error("Data has %d columns for %d items", data->cols, numItems);
 	}
 
 	int maxSpec = 0;
@@ -1120,7 +1120,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 				dataMax = pick;
 		}
 		if (dataMax > no) {
-			error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
+			Rf_error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
 		}
 
 		int numSpec = (*rpf_model[id].numSpec)(spec);
@@ -1163,7 +1163,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		for (int ix=0; ix < design->rows * design->cols; ix++) {
 			double got = design->data[ix];
 			if (!R_FINITE(got)) continue;
-			if (round(got) != (int)got) error("Design matrix can only contain integers"); // TODO better way?
+			if (round(got) != (int)got) Rf_error("Design matrix can only contain integers"); // TODO better way?
 			if (state->maxAbilities < got)
 				state->maxAbilities = got;
 		}
@@ -1176,7 +1176,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
-			if (ddim > dims) error("Item %d has %d dims but design assigns %d dims", ix, dims, ddim);
+			if (ddim > dims) Rf_error("Item %d has %d dims but design assigns %d dims", ix, dims, ddim);
 			if (maxItemDims < ddim) {
 				maxItemDims = ddim;
 			}
@@ -1253,29 +1253,29 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {
-		error("The mean matrix '%s' must be 1x%d or %dx1", state->latentMeanOut->name,
+		Rf_error("The mean matrix '%s' must be 1x%d or %dx1", state->latentMeanOut->name,
 		      state->maxAbilities, state->maxAbilities);
 	}
 	if (state->latentCovOut->rows != state->maxAbilities ||
 	    state->latentCovOut->cols != state->maxAbilities) {
-		error("The cov matrix '%s' must be %dx%d",
+		Rf_error("The cov matrix '%s' must be %dx%d",
 		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
 	}
 
-	PROTECT(tmp = GET_SLOT(rObj, install("verbose")));
-	state->verbose = asInteger(tmp);
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
+	state->verbose = Rf_asInteger(tmp);
 
-	PROTECT(tmp = GET_SLOT(rObj, install("debugInternal")));
-	state->debugInternal = asLogical(tmp);
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("debugInternal")));
+	state->debugInternal = Rf_asLogical(tmp);
 
-	PROTECT(tmp = GET_SLOT(rObj, install("qpoints")));
-	state->targetQpoints = asReal(tmp);
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qpoints")));
+	state->targetQpoints = Rf_asReal(tmp);
 
-	PROTECT(tmp = GET_SLOT(rObj, install("qwidth")));
-	state->Qwidth = asReal(tmp);
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qwidth")));
+	state->Qwidth = Rf_asReal(tmp);
 
-	PROTECT(tmp = GET_SLOT(rObj, install("scores")));
-	const char *score_option = CHAR(asChar(tmp));
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("scores")));
+	const char *score_option = CHAR(Rf_asChar(tmp));
 	if (strcmp(score_option, "omit")==0) state->scores = SCORES_OMIT;
 	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 

@@ -69,7 +69,7 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrixData(argStruct->y); // This is data, destroy it?
 	omxFreeMatrixData(argStruct->K); // This is the Kalman gain, destroy it?
 	//omxFreeMatrixData(argStruct->P); // This is latent cov, destroy it?
-	omxFreeMatrixData(argStruct->S); // This is data error cov, destroy it?
+	omxFreeMatrixData(argStruct->S); // This is data Rf_error cov, destroy it?
 	omxFreeMatrixData(argStruct->Y);
 	omxFreeMatrixData(argStruct->Z);
 }
@@ -257,7 +257,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S = C P C^T + R"); }
 	
 	
-	/* Now compute the Kalman Gain and update the error covariance matrix */
+	/* Now compute the Kalman Gain and update the Rf_error covariance matrix */
 	/* S = S^-1 */
 	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }

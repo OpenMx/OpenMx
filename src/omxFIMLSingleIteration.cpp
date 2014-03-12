@@ -15,12 +15,6 @@
  */
 
 
-#include <R.h>
-#include <Rinternals.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
@@ -83,7 +77,7 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of errors), this function is forbidden from return()-ing early.
+ * of Rf_errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -172,7 +166,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
         int numIdentical = omxDataNumIdenticalRows(data, row);
         if(numIdentical == 0) numIdentical = 1; 
-        // N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+        // N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
         // it should never be the case.
         
         omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
@@ -621,7 +615,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of errors), this function is forbidden from return()-ing early.
+ * of Rf_errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -689,7 +683,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
-		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+		// N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
 		// it should never be the case.
 
         Q = 0.0;
@@ -854,7 +848,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of errors), this function is forbidden from return()-ing early.
+ * of Rf_errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -922,7 +916,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 	}
 	
 	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
-		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
+		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and Rf_error cov (P)."); }
 		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 	}
 
@@ -933,7 +927,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
-		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
+		// N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
 		// it should never be the case.
 		if (numIdentical == 0) numIdentical = 1; 
 		

@@ -68,7 +68,7 @@ FitContext::FitContext(std::vector<double> &startingValues)
 
 	size_t numParam = varGroup->vars.size();
 	if (startingValues.size() != numParam) {
-		error("Got %d starting values for %d parameters",
+		Rf_error("Got %d starting values for %d parameters",
 		      startingValues.size(), numParam);
 	}
 	memcpy(est, startingValues.data(), sizeof(double) * numParam);
@@ -115,7 +115,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 
 		if (++d1 == dvars) break;
 	}
-	if (d1 != dvars) error("Parent free parameter group (id=%d) is not a superset of %d",
+	if (d1 != dvars) Rf_error("Parent free parameter group (id=%d) is not a superset of %d",
 			       src->id[0], dest->id[0]);
 
 	wanted = parent->wanted;
@@ -289,22 +289,22 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 
 	SEXP theCall, estimate;
 
-	PROTECT(estimate = allocVector(REALSXP, n));
+	Rf_protect(estimate = Rf_allocVector(REALSXP, n));
 	double *est = REAL(estimate);
 	for(int i = 0; i < n ; i++) {
 		est[i] = x[i];
 	}
 
-	PROTECT(theCall = allocVector(LANGSXP, 4));
+	Rf_protect(theCall = Rf_allocVector(LANGSXP, 4));
 
-	SETCAR(theCall, install("imxUpdateModelValues"));
+	SETCAR(theCall, Rf_install("imxUpdateModelValues"));
 	SETCADR(theCall, rFitFunction->model);
 	SETCADDR(theCall, rFitFunction->flatModel);
 	SETCADDDR(theCall, estimate);
 
-	REPROTECT(rFitFunction->model = eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
+	R_Reprotect(rFitFunction->model = Rf_eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
 
-	UNPROTECT(2); // theCall, estimate
+	Rf_unprotect(2); // theCall, estimate
 }
 
 void FitContext::copyParamToModel(omxState* os)
@@ -365,7 +365,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 double *FitContext::take(int want)
 {
 	if (!(want & (wanted | FF_COMPUTE_ESTIMATE))) {
-		error("Attempt to take %d but not available", want);
+		Rf_error("Attempt to take %d but not available", want);
 	}
 
 	double *ret = NULL;
@@ -383,9 +383,9 @@ double *FitContext::take(int want)
 		ihess = NULL;
 		break;
 	default:
-		error("Taking of %d is not implemented", want);
+		Rf_error("Taking of %d is not implemented", want);
 	}
-	if (!ret) error("Attempt to take %d, already taken", want);
+	if (!ret) Rf_error("Attempt to take %d, already taken", want);
 	return ret;
 }
 
@@ -408,7 +408,7 @@ void FitContext::preInfo()
 		OMXZERO(hess, npsq);
 		break;
 	default:
-		error("Unknown information matrix estimation method %d", infoMethod);
+		Rf_error("Unknown information matrix estimation method %d", infoMethod);
 	}
 }
 
@@ -463,7 +463,7 @@ void FitContext::postInfo()
 		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	default:
-		error("Unknown information matrix estimation method %d", infoMethod);
+		Rf_error("Unknown information matrix estimation method %d", infoMethod);
 	}
 }
 
@@ -507,7 +507,7 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	if (rff) {
 		Global->numThreads = 1;
 		if (RFitFunction) {
-			error("You can only create 1 MxRFitFunction per independent model");
+			Rf_error("You can only create 1 MxRFitFunction per independent model");
 		}
 	}
 	RFitFunction = rff;
@@ -601,7 +601,7 @@ void Ramsay1975::recalibrate(bool *restart)
 	}
 	if (normAdjDiff == 0) {
 		return;
-		//error("Ramsay: no free variables of flavor %d", flavor);
+		//Rf_error("Ramsay: no free variables of flavor %d", flavor);
 	}
 
 	double ratio = sqrt(normPrevAdj2 / normAdjDiff);
@@ -674,20 +674,20 @@ omxCompute::~omxCompute()
 void omxCompute::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("id")));
-	if (length(slotValue) != 1) error("MxCompute has no ID");
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("id")));
+	if (Rf_length(slotValue) != 1) Rf_error("MxCompute has no ID");
 
 	computeId = INTEGER(slotValue)[0];
 	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		PROTECT(slotValue = GET_SLOT(rObj, install("free.set")));
-		if (length(slotValue) == 0) {
+		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("free.set")));
+		if (Rf_length(slotValue) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
 			varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 		} else {
-			warning("MxCompute ID %d references matrix '%s' in its free.set "
+			Rf_warning("MxCompute ID %d references matrix '%s' in its free.set "
 				"but this matrix contains no free parameters",
 				computeId, CHAR(STRING_ELT(slotValue, 0)));
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
@@ -892,7 +892,7 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
                 }
         }
 
-        if (!got) error("Compute %s is not implemented", type);
+        if (!got) Rf_error("Compute %s is not implemented", type);
 
         return got;
 }
@@ -902,12 +902,12 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("steps")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	for (int cx = 0; cx < length(slotValue); cx++) {
+	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
 		SEXP s4class;
-		PROTECT(s4class = STRING_ELT(getAttrib(step, install("class")), 0));
+		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
 		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 		compute->initFromFrontend(step);
 		if (isErrorRaised(globalState)) break;
@@ -936,27 +936,27 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 
 	super::initFromFrontend(rObj);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) error("tolerance must be positive");
+	if (tolerance <= 0) Rf_error("tolerance must be positive");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("steps")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	for (int cx = 0; cx < length(slotValue); cx++) {
+	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
 		SEXP s4class;
-		PROTECT(s4class = STRING_ELT(getAttrib(step, install("class")), 0));
+		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
 		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 		compute->initFromFrontend(step);
 		if (isErrorRaised(globalState)) break;
 		clist.push_back(compute);
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
 }
 
 void omxComputeIterate::computeImpl(FitContext *fc)
@@ -971,7 +971,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 		}
 		if (fc->wanted & FF_COMPUTE_MAXABSCHANGE) {
 			if (fc->mac < 0) {
-				warning("MAC estimated at %.4f; something is wrong", fc->mac);
+				Rf_warning("MAC estimated at %.4f; something is wrong", fc->mac);
 				break;
 			} else {
 				mac = fc->mac;
@@ -980,7 +980,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 		}
 		if (fc->wanted & FF_COMPUTE_FIT) {
 			if (fc->fit == 0) {
-				warning("Fit estimated at 0; something is wrong");
+				Rf_warning("Fit estimated at 0; something is wrong");
 				break;
 			}
 			if (prevFit != 0) {
@@ -1013,22 +1013,22 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	super::initFromFrontend(rObj);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("maxIter")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("information")));
-	information = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("information")));
+	information = Rf_asLogical(slotValue);
 	infoMethod = INFO_METHOD_DEFAULT;
 
 	if (information) {
-		PROTECT(slotValue = GET_SLOT(rObj, install("info.method")));
+		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("info.method")));
 		SEXP elem;
-		PROTECT(elem = STRING_ELT(slotValue, 0));
+		Rf_protect(elem = STRING_ELT(slotValue, 0));
 		infoMethod = stringToInfoMethod(CHAR(elem));
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("semMethod")));
-	semMethodLen = length(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semMethod")));
+	semMethodLen = Rf_length(slotValue);
 	if (semMethodLen == 0) {
 		semMethod = AgileSEM;
 		semMethodData = NULL;
@@ -1043,39 +1043,39 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		} else if (semMethodData[0] == 3) {
 			semMethod = AgileSEM;
 		} else {
-			error("Unknown SEM method %f", semMethodData[0]);
+			Rf_error("Unknown SEM method %f", semMethodData[0]);
 		}
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("agileMaxIter")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("agileMaxIter")));
 	agileMaxIter = INTEGER(slotValue)[0];
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("semDebug")));
-	semDebug = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semDebug")));
+	semDebug = Rf_asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("semFixSymmetry")));
-	semFixSymmetry = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semFixSymmetry")));
+	semFixSymmetry = Rf_asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("semForcePD")));
-	semForcePD = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semForcePD")));
+	semForcePD = Rf_asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("ramsay")));
-	useRamsay = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("ramsay")));
+	useRamsay = Rf_asLogical(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("tolerance")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) error("tolerance must be positive");
+	if (tolerance <= 0) Rf_error("tolerance must be positive");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("noiseTarget")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("noiseTarget")));
 	noiseTarget = REAL(slotValue)[0];
-	if (noiseTarget <= 0) error("noiseTarget must be positive");
+	if (noiseTarget <= 0) Rf_error("noiseTarget must be positive");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("noiseTolerance")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("noiseTolerance")));
 	noiseTolerance = REAL(slotValue)[0];
-	if (noiseTolerance < 1) error("noiseTolerance must be >=1");
+	if (noiseTolerance < 1) Rf_error("noiseTolerance must be >=1");
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("expectation")));
-	for (int wx=0; wx < length(slotValue); ++wx) {
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
+	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
 		omxExpectation *expectation = globalState->expectationList[objNum];
 		setFreeVarGroup(expectation, varGroup);
@@ -1083,32 +1083,32 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		expectations.push_back(expectation);
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("predict")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("predict")));
 	{
 		// Should accept a vector here TODO
-		if (length(slotValue) != 1) error("Not implemented");
+		if (Rf_length(slotValue) != 1) Rf_error("Not implemented");
 		SEXP elem;
-		PROTECT(elem = STRING_ELT(slotValue, 0));
+		Rf_protect(elem = STRING_ELT(slotValue, 0));
 		predict = CHAR(elem);
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("mstep")));
-	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("mstep")));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("post.mstep")));
-	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("post.mstep")));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	fit2 = omxNewCompute(globalState, CHAR(s4class));
 	fit2->initFromFrontend(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("observed.fit")));
-	PROTECT(s4class = STRING_ELT(getAttrib(slotValue, install("class")), 0));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observed.fit")));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	fit3 = omxNewCompute(globalState, CHAR(s4class));
 	fit3->initFromFrontend(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
 
 	semTolerance = sqrt(tolerance);  // override needed?
 }
@@ -1169,7 +1169,7 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 	double p1 = probeOffset[v1 * maxHistLen + h1];
 	double p2 = probeOffset[v1 * maxHistLen + h2];
 	double dist = fabs(p1 - p2);
-	if (dist < tolerance/4) error("SEM: invalid probe offset distance %.9f", dist);
+	if (dist < tolerance/4) Rf_error("SEM: invalid probe offset distance %.9f", dist);
 	*stdDiff = diff / (freeVars * dist);
 	diffWork[v1 * maxHistLen + h1] = *stdDiff;
 	if (verbose >= 2) mxLog("ComputeEM: (%f,%f) mengOK %d diff %f stdDiff %f",
@@ -1212,7 +1212,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (fc->flavor[vx] == 0) ++omitted;
 		}
 		if (overlap || omitted) {
-			error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
+			Rf_error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
 		}
 	}
 
@@ -1429,7 +1429,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	fc->copyParamToModel(globalState);
 
 	if (semDebug) {
-		PROTECT(rateMatrix = allocMatrix(REALSXP, freeVars, freeVars));
+		Rf_protect(rateMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
 		memcpy(REAL(rateMatrix), rij.data(), sizeof(double) * freeVars * freeVars);
 	}
 
@@ -1459,7 +1459,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	double *hess = fc->hess;
 	if (semDebug) {
-		PROTECT(inputInfoMatrix = allocMatrix(REALSXP, freeVars, freeVars));
+		Rf_protect(inputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
 		memcpy(REAL(inputInfoMatrix), hess, sizeof(double) * freeVars * freeVars);
 	}
 
@@ -1487,7 +1487,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (semForcePD) {
 		double *oev = NULL;
 		if (semDebug) {
-			origEigenvalues = allocVector(REALSXP, freeVars);
+			origEigenvalues = Rf_allocVector(REALSXP, freeVars);
 			oev = REAL(origEigenvalues);
 		}
 		Matrix mat(fc->ihess, freeVars, freeVars);
@@ -1518,41 +1518,41 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	if (!numFree) return;
 
 	MxRList out;
-	out.push_back(std::make_pair(mkChar("EMcycles"),
-				     ScalarInteger(EMcycles)));
-	out.push_back(std::make_pair(mkChar("totalMstep"),
-				     ScalarInteger(totalMstepIter)));
-	out.push_back(std::make_pair(mkChar("semProbeCount"),
-				     ScalarInteger(semProbeCount)));
-	slots->push_back(std::make_pair(mkChar("output"), out.asR()));
+	out.push_back(std::make_pair(Rf_mkChar("EMcycles"),
+				     Rf_ScalarInteger(EMcycles)));
+	out.push_back(std::make_pair(Rf_mkChar("totalMstep"),
+				     Rf_ScalarInteger(totalMstepIter)));
+	out.push_back(std::make_pair(Rf_mkChar("semProbeCount"),
+				     Rf_ScalarInteger(semProbeCount)));
+	slots->push_back(std::make_pair(Rf_mkChar("output"), out.asR()));
 
 	if (semDebug) {
 		const int freeVars = (int) fc->varGroup->vars.size();
 		MxRList dbg;
 
 		SEXP Rpo;
-		PROTECT(Rpo = allocMatrix(REALSXP, maxHistLen, freeVars));
+		Rf_protect(Rpo = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
 		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.push_back(std::make_pair(mkChar("probeOffset"), Rpo));
+		dbg.push_back(std::make_pair(Rf_mkChar("probeOffset"), Rpo));
 
 		SEXP Rdiff;
-		PROTECT(Rdiff = allocMatrix(REALSXP, maxHistLen, freeVars));
+		Rf_protect(Rdiff = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
 		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.push_back(std::make_pair(mkChar("semDiff"), Rdiff));
+		dbg.push_back(std::make_pair(Rf_mkChar("semDiff"), Rdiff));
 
 		SEXP Rphl;
-		PROTECT(Rphl = allocVector(INTSXP, freeVars));
+		Rf_protect(Rphl = Rf_allocVector(INTSXP, freeVars));
 		memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVars);
-		dbg.push_back(std::make_pair(mkChar("paramHistLen"), Rphl));
+		dbg.push_back(std::make_pair(Rf_mkChar("paramHistLen"), Rphl));
 
 		if (inputInfoMatrix)
-			dbg.push_back(std::make_pair(mkChar("inputInfo"), inputInfoMatrix));
+			dbg.push_back(std::make_pair(Rf_mkChar("inputInfo"), inputInfoMatrix));
 		if (rateMatrix)
-			dbg.push_back(std::make_pair(mkChar("rateMatrix"), rateMatrix));
+			dbg.push_back(std::make_pair(Rf_mkChar("rateMatrix"), rateMatrix));
 		if (origEigenvalues)
-			dbg.push_back(std::make_pair(mkChar("origEigenvalues"), origEigenvalues));
+			dbg.push_back(std::make_pair(Rf_mkChar("origEigenvalues"), origEigenvalues));
 
-		slots->push_back(std::make_pair(mkChar("debug"), dbg.asR()));
+		slots->push_back(std::make_pair(Rf_mkChar("debug"), dbg.asR()));
 	}
 }
 
@@ -1591,7 +1591,7 @@ enum ComputeInfoMethod omxCompute::stringToInfoMethod(const char *iMethod)
 	} else if (strcmp(iMethod, "hessian")==0) {
 		infoMethod = INFO_METHOD_HESSIAN;
 	} else {
-		error("Unknown information matrix estimation method '%s'", iMethod);
+		Rf_error("Unknown information matrix estimation method '%s'", iMethod);
 	}
 	return infoMethod;
 }
@@ -1601,8 +1601,8 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("from")));
-	for (int wx=0; wx < length(slotValue); ++wx) {
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("from")));
+	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
 		if (objNum >= 0) {
 			omxMatrix *algebra = globalState->algebraList[objNum];
@@ -1619,15 +1619,15 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		}
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
 
-	PROTECT(slotValue = GET_SLOT(rObj, install("what")));
-	int whatLen = length(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("what")));
+	int whatLen = Rf_length(slotValue);
 	if (algebras.size()) {
 		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
-			PROTECT(elem = STRING_ELT(slotValue, wx));
+			Rf_protect(elem = STRING_ELT(slotValue, wx));
 			const char *what = CHAR(elem);
 			if      (strcmp(what, "maxAbsChange")==0) mac = true;
 			else if (strcmp(what, "starting")    ==0) starting = true;
@@ -1639,25 +1639,25 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			else omxRaiseErrorf(globalState, "mxComputeOnce: don't know how to compute %s", what);
 		}
 
-		if (hessian && infoMat) error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
+		if (hessian && infoMat) Rf_error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
 	} else {
 		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
-			PROTECT(elem = STRING_ELT(slotValue, wx));
+			Rf_protect(elem = STRING_ELT(slotValue, wx));
 			predict.push_back(CHAR(elem));
 		}
 	}
 
-	PROTECT(slotValue = GET_SLOT(rObj, install(".is.bestfit")));
-	isBestFit = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install(".is.bestfit")));
+	isBestFit = Rf_asLogical(slotValue);
 
 	bool howConflict = false;
-	PROTECT(slotValue = GET_SLOT(rObj, install("how")));
-	if (length(slotValue) > 1) {
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("how")));
+	if (Rf_length(slotValue) > 1) {
 		omxRaiseErrorf(globalState, "mxComputeOnce: more than one method specified");
-	} else if (length(slotValue) == 1) {
+	} else if (Rf_length(slotValue) == 1) {
 		SEXP elem;
-		PROTECT(elem = STRING_ELT(slotValue, 0));
+		Rf_protect(elem = STRING_ELT(slotValue, 0));
 		if (algebras.size()) {
 			const char *iMethod = CHAR(elem);
 			if (infoMat) {
@@ -1682,11 +1682,11 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {
 		omxFitFunction *ff = algebras[0]->fitFunction;
 		if (gradient && !ff->gradientAvailable) {
-			error("Gradient requested but not available");
+			Rf_error("Gradient requested but not available");
 		}
 		if ((hessian || ihessian || hgprod) && !ff->hessianAvailable) {
 			// add a separate flag for hgprod TODO
-			error("Hessian requested but not available");
+			Rf_error("Hessian requested but not available");
 		}
 		// add check for information TODO
 	}
@@ -1756,7 +1756,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 			}
 		}
 	} else if (expectations.size()) {
-		if (predict.size() > 1) error("Not implemented");
+		if (predict.size() > 1) Rf_error("Not implemented");
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
 			omxExpectationCompute(expectation, predict[0], how);
@@ -1782,7 +1782,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 
 	const double scale = fabs(Global->llScale);
 
-	// This function calculates the standard errors from the Hessian matrix
+	// This function calculates the standard Rf_errors from the Hessian matrix
 	// sqrt(scale * diag(solve(hessian)))
 
 	for(int i = 0; i < numParams; i++) {
@@ -1849,7 +1849,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
 			 NULL, &numParams, work.data(), &lwork, iwork.data(), NULL, &info);
 	if (info < 0) {
-		error("dsyevx %d", info);
+		Rf_error("dsyevx %d", info);
 	} else if (info) {
 		return;
 	}

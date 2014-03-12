@@ -16,9 +16,9 @@
 
 #include <sys/stat.h>
 
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 
 #include "omxDefines.h"
 #include "omxState.h"
@@ -32,9 +32,9 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	SEXP algebras;
 	SEXP expectations;
 
-	PROTECT(matrices = NEW_LIST(globalState->matrixList.size()));
-	PROTECT(algebras = NEW_LIST(globalState->algebraList.size()));
-	PROTECT(expectations = NEW_LIST(globalState->expectationList.size()));
+	Rf_protect(matrices = Rf_allocVector(VECSXP, globalState->matrixList.size()));
+	Rf_protect(algebras = Rf_allocVector(VECSXP, globalState->algebraList.size()));
+	Rf_protect(expectations = Rf_allocVector(VECSXP, globalState->expectationList.size()));
 
 	SEXP nextMat, algebra;
 	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
@@ -70,7 +70,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		omxExpectation* nextExpectation = currentState->expectationList[index];
 		omxExpectationRecompute(nextExpectation);
 		SEXP rExpect;
-		PROTECT(rExpect = allocVector(LGLSXP, 1)); // placeholder to attach attributes
+		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
 		if(nextExpectation->populateAttrFun != NULL) {
 			if(OMX_DEBUG) { mxLog("Expectation %lu has attribute population.", index); }
 			nextExpectation->populateAttrFun(nextExpectation, rExpect);
@@ -78,9 +78,9 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
 
-	out->push_back(std::make_pair(mkChar("matrices"), matrices));
-	out->push_back(std::make_pair(mkChar("algebras"), algebras));
-	out->push_back(std::make_pair(mkChar("expectations"), expectations));
+	out->push_back(std::make_pair(Rf_mkChar("matrices"), matrices));
+	out->push_back(std::make_pair(Rf_mkChar("algebras"), algebras));
+	out->push_back(std::make_pair(Rf_mkChar("expectations"), expectations));
 }
 
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
@@ -100,16 +100,16 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
 	if(OMX_DEBUG) { mxLog("Adding %d sets of fit function Info....", numEls);}
 	for(int i = 0; i < numEls; i++) {
 		if (!orle[i].values) {
-			warning("Ignored %s in omxPopulateFitFunction", orle[i].label);
+			Rf_warning("Ignored %s in omxPopulateFitFunction", orle[i].label);
 			continue;
 		}
 		if (orle[i].numValues == -1) {
-			PROTECT(oElement = allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
+			Rf_protect(oElement = Rf_allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
 		} else {
-			PROTECT(oElement = allocVector(REALSXP, orle[i].numValues));
+			Rf_protect(oElement = Rf_allocVector(REALSXP, orle[i].numValues));
 		}
 		memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
-		result->push_back(std::make_pair(mkChar(orle[i].label), oElement));
+		result->push_back(std::make_pair(Rf_mkChar(orle[i].label), oElement));
 	}
 }
 

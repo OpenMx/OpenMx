@@ -419,7 +419,7 @@ void mxLogBig(const std::string str)   // thread-safe
 			if (wrote == len) break;
 		}
 	}
-	if (got <= 0) error("mxLogBig failed with errno=%d", got);
+	if (got <= 0) Rf_error("mxLogBig failed with errno=%d", got);
 
 }
 
@@ -449,7 +449,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 			if (wrote == len) break;
 		}
 	}
-	if (got <= 0) error("mxLog failed with errno=%d", got);
+	if (got <= 0) Rf_error("mxLog failed with errno=%d", got);
 }
 
 void _omxRaiseError()
@@ -457,27 +457,27 @@ void _omxRaiseError()
 	// keep for debugger breakpoints
 }
 
-void omxRaiseErrorf(omxState *state, const char* errorMsg, ...)
+void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...)
 {
 	_omxRaiseError();
 	va_list ap;
-	va_start(ap, errorMsg);
-	int fit = vsnprintf(state->statusMsg, MAX_STRING_LEN, errorMsg, ap);
+	va_start(ap, Rf_errorMsg);
+	int fit = vsnprintf(state->statusMsg, MAX_STRING_LEN, Rf_errorMsg, ap);
 	va_end(ap);
 	if(OMX_DEBUG) {
 		if (!(fit > -1 && fit < MAX_STRING_LEN)) {
-			mxLog("Error exceeded maximum length: %s", errorMsg);
+			mxLog("Error exceeded maximum Rf_length: %s", Rf_errorMsg);
 		} else {
 			mxLog("Error raised: %s", state->statusMsg);
 		}
 	}
 }
 
-	void omxRaiseError(omxState *state, int errorCode, const char* errorMsg) { // DEPRECATED
+	void omxRaiseError(omxState *state, int Rf_errorCode, const char* Rf_errorMsg) { // DEPRECATED
 		_omxRaiseError();
-		if(OMX_DEBUG && errorCode) { mxLog("Error %d raised: %s", errorCode, errorMsg);}
-		if(OMX_DEBUG && !errorCode) { mxLog("Error status cleared."); }
-		strncpy(state->statusMsg, errorMsg, 249);
+		if(OMX_DEBUG && Rf_errorCode) { mxLog("Error %d raised: %s", Rf_errorCode, Rf_errorMsg);}
+		if(OMX_DEBUG && !Rf_errorCode) { mxLog("Error status cleared."); }
+		strncpy(state->statusMsg, Rf_errorMsg, 249);
 		state->statusMsg[249] = '\0';
 	}
 
@@ -586,7 +586,7 @@ void omxSaveCheckpoint(double* x, double f, int force) {
 					fprintf(oC->file, "\n");
 					fflush(oC->file);
 				} else if(oC->type == OMX_CONNECTION_CHECKPOINT) {
-					warning("NYI: R_connections are not yet implemented.");
+					Rf_warning("NYI: R_connections are not yet implemented.");
 					oC->numIterations = 0;
 					oC->time = 0;
 				}

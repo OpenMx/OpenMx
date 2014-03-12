@@ -30,9 +30,9 @@
 #ifndef _OMXDATA_H_
 #define _OMXDATA_H_
 
-#include "R.h"
+#define R_NO_REMAP
+#include <R.h>
 #include <Rinternals.h> 
-#include <Rdefines.h>
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h> 

@@ -1,3 +1,4 @@
+#define R_NO_REMAP
 #include <R.h>
 #include <Rmath.h>
 #include <Rinternals.h>
@@ -24,7 +25,7 @@ _mahalanobis(char *err, int dim, double *loc, double *center, double *origCov)
 	int info = MatrixSolve(covMat, icovMat, true); // can optimize for symmetry TODO
 	if (info) {
 		snprintf(err, ERROR_LEN, "Sigma is singular and cannot be inverted");
-		return nan("error");
+		return nan("Rf_error");
 	}
 
 	std::vector<double> half(dim);
@@ -45,7 +46,7 @@ mahalanobis(int dim, double *loc, double *center, double *origCov)
 	char err[ERROR_LEN];
 	err[0] = 0;
 	double ret = _mahalanobis(err, dim, loc, center, origCov);
-	if (err[0]) error("%s", err);
+	if (err[0]) Rf_error("%s", err);
 	return ret;
 }
 
@@ -84,7 +85,7 @@ _dmvnorm(char *err, int dim, double *loc, double *mean, double *origSigma)
 			 &optliWork, &liwork, &info);
 	if (info != 0) {
 		snprintf(err, ERROR_LEN, "dsyevr failed when requesting work space size");
-		return nan("error");
+		return nan("Rf_error");
 	}
 
 	lwork = optlWork;
@@ -97,15 +98,15 @@ _dmvnorm(char *err, int dim, double *loc, double *mean, double *origSigma)
 			 work.data(), &lwork, iwork.data(), &liwork, &info);
 	if (info < 0) {
 		snprintf(err, ERROR_LEN, "Arg %d is invalid", -info);
-		return nan("error");
+		return nan("Rf_error");
 	}
 	if (info > 0) {
-		snprintf(err, ERROR_LEN, "dsyevr: internal error");
-		return nan("error");
+		snprintf(err, ERROR_LEN, "dsyevr: internal Rf_error");
+		return nan("Rf_error");
 	}
 	if (m < dim) {
 		snprintf(err, ERROR_LEN, "Sigma not of full rank");
-		return nan("error");
+		return nan("Rf_error");
 	}
 
 	for (int dx=0; dx < dim; dx++) dist += log(w[dx]);
@@ -119,15 +120,15 @@ dmvnorm(int dim, double *loc, double *mean, double *sigma)
 	char err[ERROR_LEN];
 	err[0] = 0;
 	double ret = _dmvnorm(err, dim, loc, mean, sigma);
-	if (err[0]) error("%s", err);
+	if (err[0]) Rf_error("%s", err);
 	return ret;
 }
 
 SEXP dmvnorm_wrapper(SEXP Rloc, SEXP Rmean, SEXP Rsigma)
 {
 	SEXP ret;
-	PROTECT(ret = allocVector(REALSXP, 1));
-	REAL(ret)[0] = dmvnorm(length(Rloc), REAL(Rloc), REAL(Rmean), REAL(Rsigma));
-	UNPROTECT(1);
+	Rf_protect(ret = Rf_allocVector(REALSXP, 1));
+	REAL(ret)[0] = dmvnorm(Rf_length(Rloc), REAL(Rloc), REAL(Rmean), REAL(Rsigma));
+	Rf_unprotect(1);
 	return ret;
 }

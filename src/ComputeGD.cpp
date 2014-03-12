@@ -66,28 +66,28 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	omxCompleteFitFunction(fitMatrix);
     
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("useGradient")));
-	if (length(slotValue)) {
-		useGradient = asLogical(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("useGradient")));
+	if (Rf_length(slotValue)) {
+		useGradient = Rf_asLogical(slotValue);
 	} else {
 		useGradient = Global->analyticGradients;
 	}
     
-	PROTECT(slotValue = GET_SLOT(rObj, install("verbose")));
-	verbose = asInteger(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
     
-	PROTECT(slotValue = GET_SLOT(rObj, install("engine")));
-	const char *engine_name = CHAR(asChar(slotValue));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("engine")));
+	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strcmp(engine_name, "CSOLNP")==0) {
 		engine = OptEngine_CSOLNP;
 	} else if (strcmp(engine_name, "NPSOL")==0) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
-		error("NPSOL is not available in this build");
+		Rf_error("NPSOL is not available in this build");
 #endif
 	} else {
-		error("MxComputeGradientDescent engine %s unknown", engine_name);
+		Rf_error("MxComputeGradientDescent engine %s unknown", engine_name);
 	}
 }
 
@@ -95,7 +95,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 {
     size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
-		error("Model has no free parameters");
+		Rf_error("Model has no free parameters");
 		return;
 	}
     
@@ -113,7 +113,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose);
             break;
-        default: error("huh?");
+        default: Rf_error("huh?");
 	}
     
 	omxFreeChildStates(globalState);
@@ -121,10 +121,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	if (Global->numIntervals && engine == OptEngine_NPSOL) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: allow forcing
-			warning("Not calculating confidence intervals because of NPSOL status %d", inform);
+			Rf_warning("Not calculating confidence intervals because of NPSOL status %d", inform);
 		} else {
-			PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
-			PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
+			Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
+			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
 #if HAS_NPSOL
 			omxNPSOLConfidenceIntervals(fitMatrix, fc);
 #endif
@@ -133,8 +133,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	
     else if(Global->numIntervals && engine == OptEngine_CSOLNP) {
-        PROTECT(intervals = allocMatrix(REALSXP, Global->numIntervals, 2));
-        PROTECT(intervalCodes = allocMatrix(INTSXP, Global->numIntervals, 2));
+        Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
+        Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
         omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose);
         omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
     }
@@ -161,25 +161,25 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	size_t numFree = varGroup->vars.size();
     
 	SEXP hessian;
-	PROTECT(hessian = allocMatrix(REALSXP, numFree, numFree));
+	Rf_protect(hessian = Rf_allocMatrix(REALSXP, numFree, numFree));
     
 	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
     
-	out->push_back(std::make_pair(mkChar("hessianCholesky"), hessian));
+	out->push_back(std::make_pair(Rf_mkChar("hessianCholesky"), hessian));
     
 	if (intervals && intervalCodes) {
-		out->push_back(std::make_pair(mkChar("confidenceIntervals"), intervals));
-		out->push_back(std::make_pair(mkChar("confidenceIntervalCodes"), intervalCodes));
+		out->push_back(std::make_pair(Rf_mkChar("confidenceIntervals"), intervals));
+		out->push_back(std::make_pair(Rf_mkChar("confidenceIntervalCodes"), intervalCodes));
 	}
     
 	SEXP code, iterations;
     
-	PROTECT(code = NEW_NUMERIC(1));
+	Rf_protect(code = Rf_allocVector(REALSXP,1));
 	REAL(code)[0] = inform;
-	out->push_back(std::make_pair(mkChar("npsol.code"), code));
+	out->push_back(std::make_pair(Rf_mkChar("npsol.code"), code));
     
-	PROTECT(iterations = NEW_NUMERIC(1));
+	Rf_protect(iterations = Rf_allocVector(REALSXP,1));
 	REAL(iterations)[0] = iter;
-	out->push_back(std::make_pair(mkChar("npsol.iterations"), iterations));
-	out->push_back(std::make_pair(mkChar("iterations"), iterations)); // backward compatibility
+	out->push_back(std::make_pair(Rf_mkChar("npsol.iterations"), iterations));
+	out->push_back(std::make_pair(Rf_mkChar("iterations"), iterations)); // backward compatibility
 }

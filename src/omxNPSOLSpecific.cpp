@@ -15,9 +15,9 @@
  */
 
 #include <ctype.h>
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
@@ -48,7 +48,7 @@ extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, i
                             double *bl, double *bu, void* funcon, void* funobj, int *inform, int *iter, 
                             int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
                             double *x, int *iw, int *leniw, double *w, int *lenw);
-extern void F77_SUB(npoptn)(char* string, int length);
+extern void F77_SUB(npoptn)(char* string, int Rf_length);
 
 #ifdef  __cplusplus
 }
@@ -256,7 +256,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int verbose)
 {
 	// Will fail if we re-enter after an exception
-	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 	NPSOL_verbose = verbose;
 
@@ -357,20 +357,20 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             int *inform,            -- Used to report state.  Need not be initialized.
             int *iter,              -- Used to report number of major iterations performed.  Need not be initialized.
             int *istate,            -- Initial State.  Need not be initialized unless using Warm Start.
-            double *c,              -- Array of length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
-            double *cJac,           -- Array of Row-length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
-            double *clambda,        -- Array of length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
+            double *c,              -- Array of Rf_length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
+            double *cJac,           -- Array of Row-Rf_length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
+            double *clambda,        -- Array of Rf_length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
             double *f,              -- Used to report final objective value.  Need not be initialized.
-            double *g,              -- Array of length n. Used to report final objective gradient.  Need not be initialized.
-            double *R,              -- Array of length ldR.  Need not be intialized unless using Warm Start.
-            double *x,              -- Array of length n.  Contains initial solution estimate.
-            int *iw,                -- Array of length leniw. Need not be initialized.  Provides workspace.
+            double *g,              -- Array of Rf_length n. Used to report final objective gradient.  Need not be initialized.
+            double *R,              -- Array of Rf_length ldR.  Need not be intialized unless using Warm Start.
+            double *x,              -- Array of Rf_length n.  Contains initial solution estimate.
+            int *iw,                -- Array of Rf_length leniw. Need not be initialized.  Provides workspace.
             int *leniw,             -- Length of iw.  Must be at least 3n + nclin + ncnln.
-            double *w,              -- Array of length lenw. Need not be initialized.  Provides workspace.
+            double *w,              -- Array of Rf_length lenw. Need not be initialized.  Provides workspace.
             int *lenw               -- Length of w.  Must be at least 2n^2 + n*nclin + 2*n*ncnln + 20*n + 11*nclin +21*ncnln
         )
  
-        bl, bu, istate, and clambda are all length n+nclin+ncnln.
+        bl, bu, istate, and clambda are all Rf_length n+nclin+ncnln.
             First n elements refer to the vars, in order.
             Next nclin elements refer to bounds on Ax
             Last ncnln elements refer to bounds on c(x)
@@ -412,7 +412,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
 {
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
-	//if (NPSOL_fitMatrix) error("NPSOL is not reentrant");
+	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 	NPSOL_fc = fc;
 	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
@@ -651,12 +651,12 @@ void omxSetNPSOLOpts(SEXP options)
 
 	const int opBufLen = 250;
 	char optionCharArray[opBufLen];
-	int numOptions = length(options);
+	int numOptions = Rf_length(options);
 	SEXP optionNames;
-	PROTECT(optionNames = GET_NAMES(options));
+	Rf_protect(optionNames = Rf_getAttrib(options, R_NamesSymbol));
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
-			const char *nextOptionValue = STRING_VALUE(VECTOR_ELT(options, i));
+			const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
 			bool ok=false;
 			for (int wx=0; whitelist[wx]; ++wx) {
 				if (matchCaseInsensitive(nextOptionName, whitelist[wx])) {
@@ -669,7 +669,7 @@ void omxSetNPSOLOpts(SEXP options)
 			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
 			if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
 		}
-		UNPROTECT(1); // optionNames
+		Rf_unprotect(1); // optionNames
 }
 
 #endif

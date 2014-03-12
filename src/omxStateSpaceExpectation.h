@@ -23,7 +23,7 @@ typedef struct {
 	omxMatrix *A, *B, *C, *D, *Q, *R; // State Space model Matrices
 	omxMatrix *r, *s, *u, *x, *y, *z; // Data and place holder vectors
 	omxMatrix *K, *P, *S, *Y, *Z; // Behind the scenes state space matrices (P, S, and K) and place holder matrices
-	omxMatrix *x0, *P0; // Placeholders for initial state and initial error cov
+	omxMatrix *x0, *P0; // Placeholders for initial state and initial Rf_error cov
 	omxMatrix *det; // Determinant of expected ccovariance matrix S
 	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, r, R, K, and S for missing data handling
 	

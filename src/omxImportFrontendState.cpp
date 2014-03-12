@@ -14,9 +14,9 @@
  *  limitations under the License.
  */
 
+#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-#include <Rdefines.h>
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -36,24 +36,24 @@ int matchCaseInsensitive(const char *source, const char *target) {
 
 void omxProcessMxDataEntities(SEXP data) {
 	SEXP nextLoc;
-	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", length(data));}
+	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
 
-	for(int index = 0; index < length(data); index++) {
-		PROTECT(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
+	for(int index = 0; index < Rf_length(data); index++) {
+		Rf_protect(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc, globalState);
 	}
 }
 
 void omxProcessMxMatrixEntities(SEXP matList) {
-	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", length(matList));}
+	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
 	SEXP nextLoc, nextMat;
 	globalState->matrixList.clear();
-	SEXP matListNames = getAttrib(matList, R_NamesSymbol);
+	SEXP matListNames = Rf_getAttrib(matList, R_NamesSymbol);
 
-	for(int index = 0; index < length(matList); index++) {
+	for(int index = 0; index < Rf_length(matList); index++) {
 		omxManageProtectInsanity protectManager;
-		PROTECT(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
-		PROTECT(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
+		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
+		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
 		globalState->matrixList.push_back(mat);
 		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
@@ -63,25 +63,25 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 
 void omxProcessMxAlgebraEntities(SEXP algList) {
 	SEXP nextAlgTuple;
-	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
+	SEXP algListNames = Rf_getAttrib(algList, R_NamesSymbol);
 
-	if(OMX_DEBUG) { mxLog("Processing %d algebras.", length(algList)); }
+	if(OMX_DEBUG) { mxLog("Processing %d algebras.", Rf_length(algList)); }
 
-	for(int index = 0; index < length(algList); index++) {
+	for(int index = 0; index < Rf_length(algList); index++) {
 		globalState->algebraList.push_back(omxInitMatrix(NULL, 0, 0, TRUE, globalState));
 	}
 
-	for(int index = 0; index < length(algList); index++) {
+	for(int index = 0; index < Rf_length(algList); index++) {
 		omxManageProtectInsanity protectManager;
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			// delay until expectations are ready
 		} else {								// This is an algebra spec.
 			SEXP initialValue, formula;
 			omxMatrix *amat = globalState->algebraList[index];
-			PROTECT(initialValue = VECTOR_ELT(nextAlgTuple, 0));  // don't use it anymore, remove TODO
+			Rf_protect(initialValue = VECTOR_ELT(nextAlgTuple, 0));  // don't use it anymore, remove TODO
 			omxFillMatrixFromRPrimitive(amat, initialValue, globalState, 1, index);
-			PROTECT(formula = VECTOR_ELT(nextAlgTuple, 1));
+			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)));
 			omxMarkDirty(amat);
 		}
@@ -92,22 +92,22 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 void omxProcessMxFitFunction(SEXP algList)
 {
 	SEXP nextAlgTuple;
-	SEXP algListNames = getAttrib(algList, R_NamesSymbol);
+	SEXP algListNames = Rf_getAttrib(algList, R_NamesSymbol);
 
-	for(int index = 0; index < length(algList); index++) {
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+	for(int index = 0; index < Rf_length(algList); index++) {
+		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			SEXP fitFunctionClass;
-			PROTECT(fitFunctionClass = STRING_ELT(getAttrib(nextAlgTuple, install("class")), 0));
+			Rf_protect(fitFunctionClass = STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
 			const char *fitType = CHAR(fitFunctionClass);
 			omxMatrix *fm = globalState->algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index);
 			fm->fitFunction->rObj = nextAlgTuple;
 			fm->name = CHAR(STRING_ELT(algListNames, index));
-			UNPROTECT(1);	// fitFunctionClass
+			Rf_unprotect(1);	// fitFunctionClass
 		}
 		if (isErrorRaised(globalState)) return;
-		UNPROTECT(1); //nextAlgTuple
+		Rf_unprotect(1); //nextAlgTuple
 	}
 }
 
@@ -115,8 +115,8 @@ void omxCompleteMxFitFunction(SEXP algList)
 {
 	SEXP nextAlgTuple;
 
-	for(int index = 0; index < length(algList); index++) {
-		PROTECT(nextAlgTuple = VECTOR_ELT(algList, index));             // The next algebra or fit function to process
+	for(int index = 0; index < Rf_length(algList); index++) {
+		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));             // The next algebra or fit function to process
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxMatrix *fm = globalState->algebraList[index];
 			if (!fm->fitFunction->freeVarGroup) {
@@ -124,17 +124,17 @@ void omxCompleteMxFitFunction(SEXP algList)
 			}
 			omxCompleteFitFunction(fm);
 		}
-		UNPROTECT(1);
+		Rf_unprotect(1);
 	}
 }
 
 void omxProcessMxExpectationEntities(SEXP expList) {
-	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", length(expList));}
+	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", Rf_length(expList));}
 	SEXP nextExp;
-	SEXP eNames = getAttrib(expList, R_NamesSymbol);
+	SEXP eNames = Rf_getAttrib(expList, R_NamesSymbol);
 
-	for(int index = 0; index < length(expList); index++) {
-		PROTECT(nextExp = VECTOR_ELT(expList, index));
+	for(int index = 0; index < Rf_length(expList); index++) {
+		Rf_protect(nextExp = VECTOR_ELT(expList, index));
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
 		ex->name = CHAR(STRING_ELT(eNames, index));
 		globalState->expectationList.push_back(ex);
@@ -154,10 +154,10 @@ void omxCompleteMxExpectationEntities() {
 
 void omxProcessMxComputeEntities(SEXP rObj)
 {
-	if (isNull(rObj)) return;
+	if (Rf_isNull(rObj)) return;
 
 	SEXP s4class;
-	PROTECT(s4class = STRING_ELT(getAttrib(rObj, install("class")), 0));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
 	omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 	compute->initFromFrontend(rObj);
 	Global->computeList.push_back(compute);
@@ -182,7 +182,7 @@ void omxInitialMatrixAlgebraCompute() {
 
 /*
 checkpointList is a list().  Each element refers to one checkpointing request.
-Each interval request is a list of length 5.
+Each interval request is a list of Rf_length 5.
 The first element is an integer that specifies type: 0 = file, 1 = socket, 2=R_connection
 For a file, the next two are the directory(string)  and file name (string).
 For a socket, they are server (string) and port number (int).
@@ -192,7 +192,7 @@ The last element is an integer count, indicating the number of <type>s per check
 */
 void omxProcessCheckpointOptions(SEXP checkpointList) {
 	if(OMX_VERBOSE) { mxLog("Processing Checkpoint Requests.");}
-	globalState->numCheckpoints = length(checkpointList);
+	globalState->numCheckpoints = Rf_length(checkpointList);
 	if(OMX_DEBUG) {mxLog("Found %d checkpoints.", globalState->numCheckpoints); }
 	globalState->checkpointList = (omxCheckpoint*) R_alloc(globalState->numCheckpoints, sizeof(omxCheckpoint));
 	SEXP nextLoc;
@@ -210,17 +210,17 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 		const char *pathName, *fileName;
 		const char __attribute__((unused)) *serverName;
 
-		PROTECT(nextLoc = VECTOR_ELT(checkpointList, index));
+		Rf_protect(nextLoc = VECTOR_ELT(checkpointList, index));
 		int next = 0;
 		oC->type = (omxCheckpointType) INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
 		case OMX_FILE_CHECKPOINT:{
-			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need PROTECT()ion
+			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need Rf_protect()ion
 			fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 			char sep ='/';
 
 			if(!isDir(pathName)) {
-				error("Unable to open directory %s for checkpoint storage.\n", pathName);
+				Rf_error("Unable to open directory %s for checkpoint storage.\n", pathName);
 			}
 
 			char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
@@ -228,7 +228,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 			if(OMX_VERBOSE) { mxLog("Opening File: %s", fullname); }
 			oC->file = fopen(fullname, "w");
 			if(!oC->file) {
-				error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
+				Rf_error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
 			}
 			Free(fullname);
 			oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
@@ -236,16 +236,16 @@ void omxProcessCheckpointOptions(SEXP checkpointList) {
 
 		case OMX_CONNECTION_CHECKPOINT:{	// NYI :::DEBUG:::
 			oC->connection = VECTOR_ELT(nextLoc, next++);
-			error("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
+			Rf_error("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			oC->saveHessian = FALSE;
 			break;}
 		}
 
 		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		if(isCount) {
-			oC->numIterations = INTEGER(AS_INTEGER(VECTOR_ELT(nextLoc, next++)))[0];
+			oC->numIterations = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
 		} else {
-			oC->time = REAL(AS_NUMERIC(VECTOR_ELT(nextLoc, next++)))[0] * 60;	// Constrained to seconds.
+			oC->time = Rf_asReal(VECTOR_ELT(nextLoc, next++)) * 60;	// Constrained to seconds.
 			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
 		}
 	}
@@ -266,7 +266,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 	}
 
 	SEXP nextVar, nextLoc;
-	int numVars = length(varList);
+	int numVars = Rf_length(varList);
 	startingValues->resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
 		omxManageProtectInsanity mpi;
@@ -275,28 +275,28 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 		// default group has free all variables
 		Global->freeGroup[0]->vars.push_back(fv);
 
-		fv->name = CHAR(STRING_ELT(GET_NAMES(varList), fx));
-		PROTECT(nextVar = VECTOR_ELT(varList, fx));
+		fv->name = CHAR(Rf_asChar(STRING_ELT(Rf_getAttrib(varList, R_NamesSymbol), fx)));
+		Rf_protect(nextVar = VECTOR_ELT(varList, fx));
 
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
 		fv->lbound = REAL(nextLoc)[0];
 		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
 		if (fv->lbound == 0.0) fv->lbound = 0.0;
 
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		fv->ubound = REAL(nextLoc)[0];
 		if (ISNA(fv->ubound)) fv->ubound = INF;
 		if (fv->ubound == 0.0) fv->ubound = -0.0;
 
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 2));
-		int groupCount = length(nextLoc);
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 2));
+		int groupCount = Rf_length(nextLoc);
 		for (int gx=0; gx < groupCount; ++gx) {
 			int group = INTEGER(nextLoc)[gx];
 			if (group == 0) continue;
 			Global->findOrCreateVarGroup(group)->vars.push_back(fv);
 		}
 
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 3));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
 		int numDeps = LENGTH(nextLoc);
 		fv->numDeps = numDeps;
 		fv->deps = (int*) R_alloc(numDeps, sizeof(int));
@@ -304,13 +304,13 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 			fv->deps[i] = INTEGER(nextLoc)[i];
 		}
 
-		int numLocs = length(nextVar) - 5;
+		int numLocs = Rf_length(nextVar) - 5;
 		if(OMX_DEBUG) { 
 			mxLog("Free parameter %d bounded (%f, %f): %d locations", fx, 
 			      fv->lbound, fv->ubound, numLocs);
 		}
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
-			PROTECT(nextLoc = VECTOR_ELT(nextVar, locIndex+4));
+			Rf_protect(nextLoc = VECTOR_ELT(nextVar, locIndex+4));
 			int* theVarList = INTEGER(nextLoc);
 
 			omxFreeVarLocation loc;
@@ -320,14 +320,14 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 			fv->locations.push_back(loc);
 		}
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, length(nextVar)-1));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, Rf_length(nextVar)-1));
 		double sv = REAL(nextLoc)[0];
 		/*if (sv < fv->lbound) {
-			warning("Moving starting value of parameter '%s' within bounds %f -> %f",
+			Rf_warning("Moving starting value of parameter '%s' within bounds %f -> %f",
 				fv->name, sv, fv->lbound);
 			sv = fv->lbound;
 		} else if (sv > fv->ubound) {
-			warning("Moving starting value of parameter '%s' within bounds %f -> %f",
+			Rf_warning("Moving starting value of parameter '%s' within bounds %f -> %f",
 				fv->name, sv, fv->ubound);
 			sv = fv->ubound;
 		}*/
@@ -339,7 +339,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 /*
 	intervalList is a list().  Each element refers to one confidence interval request.
-	Each interval request is a length 5 vector of REAL.
+	Each interval request is a Rf_length 5 vector of REAL.
 	The first three elements are the matrixPointer, Row, and Column of the element
 	for which bounds are to be calculated, and are cast to ints here for speed.
 	The last two are the upper and lower boundaries for the confidence space (respectively).
@@ -347,12 +347,12 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 void omxProcessConfidenceIntervals(SEXP intervalList)  {
 	SEXP nextVar;
 	if(OMX_VERBOSE) { mxLog("Processing Confidence Interval Requests.");}
-	Global->numIntervals = length(intervalList);
+	Global->numIntervals = Rf_length(intervalList);
 	if(OMX_DEBUG) {mxLog("Found %d requests.", Global->numIntervals); }
 	Global->intervalList = (omxConfidenceInterval*) R_alloc(Global->numIntervals, sizeof(omxConfidenceInterval));
 	for(int index = 0; index < Global->numIntervals; index++) {
 		omxConfidenceInterval *oCI = &(Global->intervalList[index]);
-		PROTECT(nextVar = VECTOR_ELT(intervalList, index));
+		Rf_protect(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
@@ -371,18 +371,17 @@ void omxProcessConstraints(SEXP constraints)  {
 	if(OMX_VERBOSE) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
-	globalState->numConstraints = length(constraints);
+	globalState->numConstraints = Rf_length(constraints);
 	if(OMX_DEBUG) {mxLog("Found %d constraints.", globalState->numConstraints); }
 	globalState->conList = (omxConstraint*) R_alloc(globalState->numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
-		PROTECT(nextVar = VECTOR_ELT(constraints, constraintIndex));
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 0));
+		Rf_protect(nextVar = VECTOR_ELT(constraints, constraintIndex));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
 		arg1 = omxMatrixLookupFromState1(nextLoc, globalState);
-		PROTECT(nextLoc = VECTOR_ELT(nextVar, 1));
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		arg2 = omxMatrixLookupFromState1(nextLoc, globalState);
-		PROTECT(nextLoc = AS_INTEGER(VECTOR_ELT(nextVar, 2)));
-		globalState->conList[constraintIndex].opCode = INTEGER(nextLoc)[0];
+		globalState->conList[constraintIndex].opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
 		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
 		omxRecompute(globalState->conList[constraintIndex].result);

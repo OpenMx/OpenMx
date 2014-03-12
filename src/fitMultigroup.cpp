@@ -37,7 +37,7 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 
 			// This should really be checked elsewhere. TODO
 			if(f1->rows != 1 || f1->cols != 1) {
-				error("%s algebra %d does not evaluate to a 1x1 matrix", oo->fitType, ex);
+				Rf_error("%s algebra %d does not evaluate to a 1x1 matrix", oo->fitType, ex);
 			}
 		}
 		fitMatrix->data[0] += f1->data[0];
@@ -101,16 +101,16 @@ void initFitMultigroup(omxFitFunction *oo)
 	omxState *os = oo->matrix->currentState;
 
 	SEXP slotValue;
-	PROTECT(slotValue = GET_SLOT(rObj, install("groups")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("groups")));
 	int *fits = INTEGER(slotValue);
-	for(int gx = 0; gx < length(slotValue); gx++) {
+	for(int gx = 0; gx < Rf_length(slotValue); gx++) {
 		omxMatrix *mat;
 		if (fits[gx] >= 0) {
 			mat = os->algebraList[fits[gx]];
 		} else {
-			error("Can only add algebra and fitfunction");
+			Rf_error("Can only add algebra and fitfunction");
 		}
-		if (mat == oo->matrix) error("Cannot add multigroup to itself");
+		if (mat == oo->matrix) Rf_error("Cannot add multigroup to itself");
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
 			for (size_t vg=0; vg < mg->varGroups.size(); ++vg) {
@@ -132,8 +132,8 @@ void initFitMultigroup(omxFitFunction *oo)
 /* TODO
 void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *fit)
 {
-	if (oo->initFun != initFitMultigroup) error("%s is not the multigroup fit", oo->fitType);
-	if (!oo->initialized) error("Fit not initialized", oo);
+	if (oo->initFun != initFitMultigroup) Rf_error("%s is not the multigroup fit", oo->fitType);
+	if (!oo->initialized) Rf_error("Fit not initialized", oo);
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
 	mg->fits.push_back(fit->matrix);

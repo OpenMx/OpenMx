@@ -64,7 +64,7 @@ void checkIncreasing(omxMatrix* om, int column) {
 		if(current <= previous) {
 			char *errstr = (char*) calloc(250, sizeof(char));
 			sprintf(errstr, "Thresholds are not strictly increasing.");
-			//TODO: Count 'em all, then throw an error that lists which ones.
+			//TODO: Count 'em all, then throw an Rf_error that lists which ones.
 			omxRaiseError(om->currentState, -1, errstr);
 			free(errstr);
 		}
@@ -340,8 +340,8 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxResizeMatrix(result, rows, cols, FALSE);
 	}
 
-	int vec_length = rows * cols;
-	for (int i=0; i < vec_length; i++){
+	int vec_Rf_length = rows * cols;
+	for (int i=0; i < vec_Rf_length; i++){
 		double ith_value = omxVectorElement(inMat, i);
 		if (ith_value == 0.0){
 			omxSetVectorElement(result, i, 1.0);
@@ -681,19 +681,19 @@ int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMat
 	/* convert negative indices into a list of positive indices */
 	if (negative > 0) {
 		int *track = (int*) calloc(dimLength, sizeof(int));
-		int length = dimLength;
+		int Rf_length = dimLength;
 		for(int i = 0; i < source->rows * source->cols; i++) {
 			int element = (int) omxVectorElement(source, i);
 			if (element < 0) {
-				if (!track[-element - 1]) length--;
+				if (!track[-element - 1]) Rf_length--;
 				track[-element - 1]++;
 			}
 		}
-		if (length == 0) {
+		if (Rf_length == 0) {
 			free(track);
 			return(0);
 		}
-		retval = (int*) calloc(length, sizeof(int));
+		retval = (int*) calloc(Rf_length, sizeof(int));
 		int j = 0;
 		for(int i = 0; i < dimLength; i++) {
 			if(!track[i]) {
@@ -702,12 +702,12 @@ int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMat
 		}
 		free(track);
 		*indices = retval;
-		return(length);
+		return(Rf_length);
 	}
 	/* convert positive indices with offset of zero instead of one */
 	if (positive > 0) {
-		int length = positive - zero;
-		retval = (int*) calloc(length, sizeof(int));
+		int Rf_length = positive - zero;
+		retval = (int*) calloc(Rf_length, sizeof(int));
 		int j = 0;
 		for(int i = 0; i < source->rows * source->cols; i++) {
 			int element = (int) omxVectorElement(source, i);
@@ -716,9 +716,9 @@ int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMat
 			}
 		}
 		*indices = retval;
-		return(length);
+		return(Rf_length);
 	}
-	/* return zero length if no positive or negative elements */
+	/* return zero Rf_length if no positive or negative elements */
 	return(0);
 }
 
@@ -1010,8 +1010,8 @@ void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result)
 	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 	for(int j = 0; j < numArgs; j++) {
 		double* data = matList[j]->data;
-		int matlength = matList[j]->rows * matList[j]->cols;
-		for(int k = 0; k < matlength; k++) {
+		int matRf_length = matList[j]->rows * matList[j]->cols;
+		for(int k = 0; k < matRf_length; k++) {
 			sum += data[k];
 		}
 	}
@@ -1031,8 +1031,8 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result)
 	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
 	for(int j = 0; j < numArgs; j++) {
 		double* data = matList[j]->data;
-		int matlength = matList[j]->rows * matList[j]->cols;
-		for(int k = 0; k < matlength; k++) {
+		int matRf_length = matList[j]->rows * matList[j]->cols;
+		for(int k = 0; k < matRf_length; k++) {
 			product *= data[k];
 		}
 	}
@@ -1071,8 +1071,8 @@ void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	for(int j = 0; j < numArgs; j++) {
 		double* data = matList[j]->data;
-		int matlength = matList[j]->rows * matList[j]->cols;
-		for(int k = 0; k < matlength; k++) {
+		int matRf_length = matList[j]->rows * matList[j]->cols;
+		for(int k = 0; k < matRf_length; k++) {
 			if(data[k] < min) min = data[k];
 		}
 	}
@@ -1091,8 +1091,8 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	for(int j = 0; j < numArgs; j++) {
 		double* data = matList[j]->data;
-		int matlength = matList[j]->rows * matList[j]->cols;
-		for(int k = 0; k < matlength; k++) {
+		int matRf_length = matList[j]->rows * matList[j]->cols;
+		for(int k = 0; k < matRf_length; k++) {
 			if(data[k] > max) max = data[k];
 		}
 	}
@@ -1324,7 +1324,7 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	if(counter != size) {
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal error in vech().\n");
+		sprintf(errstr, "Internal Rf_error in vech().\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -1356,7 +1356,7 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	if(counter != size) {
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal error in vechs().\n");
+		sprintf(errstr, "Internal Rf_error in vechs().\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 	}
@@ -1521,9 +1521,9 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
 	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
 	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-	//	Abseps	double		Absolute error tolerance.  Yick.
-	//	Releps	double		Relative error tolerance.  Use EPSILON.
-	//	Error	&double		On return: absolute real error, 99% confidence
+	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
+	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
+	//	Error	&double		On return: absolute real Rf_error, 99% confidence
 	//	Value	&double		On return: evaluated value
 	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
 	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
@@ -1677,9 +1677,9 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
 	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
 	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-	//	Abseps	double		Absolute error tolerance.  Yick.
-	//	Releps	double		Relative error tolerance.  Use EPSILON.
-	//	Error	&double		On return: absolute real error, 99% confidence
+	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
+	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
+	//	Error	&double		On return: absolute real Rf_error, 99% confidence
 	//	Value	&double		On return: evaluated value
 	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
 	// TODO: Separate block diagonal covariance matrices into pieces for integration separately

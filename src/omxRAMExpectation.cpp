@@ -65,7 +65,7 @@ static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *D
         int* pNums, int nParam, omxMatrix*** result) {
     // Computes Matrix %*% params %*% Matrix in O(K^2) time.  Based on von Oertzen & Brick, in prep.
     // Also populates the matrices called D if it appears.
-    // Minimal error checking.
+    // Minimal Rf_error checking.
     if(OMX_DEBUG_ALGEBRA) mxLog("Beginning ADB."); //:::DEBUG:::
 
     omxFreeVar *var;
@@ -222,7 +222,7 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
 	omxMatrix* A = oro->A;
 	omxMatrix* S = oro->S;
-	omxMatrix* X = oro->X;
+	//omxMatrix* X = oro->X;
 	omxMatrix* Ax= oro->Ax;
 	omxMatrix* Z = oro->Z;
 	omxMatrix* I = oro->I;
@@ -240,13 +240,13 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	// Ax = ZSZ' = Covariance matrix including latent variables
 	
 	SEXP expCovExt;
-	PROTECT(expCovExt = allocMatrix(REALSXP, Ax->rows, Ax->cols));
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 	for(int row = 0; row < Ax->rows; row++)
 		for(int col = 0; col < Ax->cols; col++)
 			REAL(expCovExt)[col * Ax->rows + row] =
 				omxMatrixElement(Ax, row, col);
-	setAttrib(algebra, install("UnfilteredExpCov"), expCovExt);
-	UNPROTECT(1);
+	Rf_setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
+	Rf_unprotect(1);
 }
 
 /*
@@ -273,7 +273,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
-		error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
+		Rf_error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
 	if(Cov == NULL && Means == NULL) {
@@ -288,7 +288,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
 	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
 	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
-	// 		error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
+	// 		Rf_error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
 	omxShallowInverse(numIters, A, Z, Ax, I );
@@ -356,10 +356,10 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	
 
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
-	PROTECT(slotValue = GET_SLOT(rObj, install("depth")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("depth")));
 	RAMexp->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
-	UNPROTECT(1);
+	Rf_unprotect(1);
 
 	l = RAMexp->F->rows;
 	k = RAMexp->A->cols;
@@ -650,7 +650,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->currentState, -1, errstr);                        // Raise Rf_error
         free(errstr);
         return;                                                                     // Leave output untouched
     }
@@ -663,7 +663,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->currentState, -1, errstr);                        // Raise error
+        omxRaiseError(oo->currentState, -1, errstr);                        // Raise Rf_error
         free(errstr);
         return;
     }

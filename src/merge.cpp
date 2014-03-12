@@ -256,7 +256,7 @@ COPY:	    			b = t;
 void
 setup(unsigned char *list1, unsigned char *list2, size_t n, size_t size, mergesort_cmp_t cmp, void *userdata)
 {
-	int i, length, size2, tmp, sense;
+	int i, Rf_length, size2, tmp, sense;
 	unsigned char *f1, *f2, *s, *l2, *last, *p2;
 
 	size2 = size*2;
@@ -279,14 +279,14 @@ setup(unsigned char *list1, unsigned char *list2, size_t n, size_t size, mergeso
 	f1 = list1;
 	sense = (cmp(f1, f1 + size, userdata) > 0);
 	for (; f1 < last; sense = !sense) {
-		length = 2;
+		Rf_length = 2;
 					/* Find pairs with same sense. */
 		for (f2 = f1 + size2; f2 < last; f2 += size2) {
 			if ((cmp(f2, f2+ size, userdata) > 0) != sense)
 				break;
-			length += 2;
+			Rf_length += 2;
 		}
-		if (length < THRESHOLD) {		/* Pairwise merge */
+		if (Rf_length < THRESHOLD) {		/* Pairwise merge */
 			do {
 				p2 = *EVAL(p2) = f1 + size2 - list1 + list2;
 				if (sense > 0)
