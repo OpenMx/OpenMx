@@ -242,7 +242,16 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 			if (!is.null(candidate) && (length(value) > 0)
 				&& !is.nan(value)) {
 				if (is(candidate, "MxAlgebra")) {
-					dimnames(value) <- dimnames(candidate)
+					cdim <- sapply(dimnames(candidate), length)
+					mask <- cdim != 0
+					if (any(cdim[mask] != dim(value)[mask])) {
+						warning(paste(paste(model@name, candidate@name, sep="."),
+							      "is dimension", omxQuotes(dim(value)),
+							      "but the dimnames imply dimension",
+							      omxQuotes(cdim)))
+					} else {
+						dimnames(value) <- dimnames(candidate)
+					}
 					candidate@result <- value
 				} else if (is(candidate,"MxFitFunction")) {
 					candidate@result <- as.matrix(value)
