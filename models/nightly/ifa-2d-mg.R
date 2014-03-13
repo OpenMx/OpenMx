@@ -144,7 +144,7 @@ g1 <- mkgroup("g1", data.g1, FALSE)
   
 emstat <- grpModel@compute@output
 omxCheckCloseEnough(emstat$EMcycles, 74, 2)
-omxCheckCloseEnough(emstat$totalMstep, 816, 100)
+omxCheckCloseEnough(emstat$totalMstep, 240, 10)
 
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
   omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$mean@values), c(-.507, .703), .01)

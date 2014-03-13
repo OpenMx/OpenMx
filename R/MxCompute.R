@@ -607,7 +607,8 @@ setClass(Class = "MxComputeNumericDeriv",
 	   fitfunction = "MxCharOrNumber",
 	     parallel = "logical",
 	     stepSize = "numeric",
-	     iterations = "integer"))
+	     iterations = "integer",
+	     verbose="integer"))
 
 setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
@@ -626,13 +627,14 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	})
 
 setMethod("initialize", "MxComputeNumericDeriv",
-	  function(.Object, free.set, fit, parallel, stepSize, iterations) {
+	  function(.Object, free.set, fit, parallel, stepSize, iterations, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@parallel <- parallel
 		  .Object@stepSize <- stepSize
 		  .Object@iterations <- iterations
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
@@ -666,14 +668,14 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' factorModelFit@output$hessian
 
 mxComputeNumericDeriv <- function(free.set=NA_character_, ..., fitfunction='fitfunction',
-				      parallel=TRUE, stepSize=0.0001, iterations=4L)
+				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeNumericDeriv does not accept values for the '...' argument")
 	}
 
-	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations)
+	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations, verbose)
 }
 
 #----------------------------------------------------
@@ -725,6 +727,30 @@ setMethod("initialize", "MxComputeHessianQuality",
 
 mxComputeHessianQuality <- function(free.set=NA_character_) {
 	new("MxComputeHessianQuality", free.set)
+}
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeReportDeriv",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeReportDeriv",
+	  function(.Object, free.set) {
+		  .Object@name <- 'compute'
+		  .Object@free.set <- free.set
+		  .Object
+	  })
+
+##' Report derivatives
+##'
+##' Copy the internal gradient and Hessian back to R.
+##'
+##' @param free.set names of matrices containing free variables
+##' @aliases
+##' MxComputeReportDeriv-class
+
+mxComputeReportDeriv <- function(free.set=NA_character_) {
+	new("MxComputeReportDeriv", free.set)
 }
 
 #----------------------------------------------------

@@ -134,7 +134,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 	if (*mode > 0 && NPSOL_useGradient &&
 	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
 		size_t numParams = NPSOL_fc->varGroup->vars.size();
-		OMXZERO(NPSOL_fc->grad, numParams);
+		NPSOL_fc->grad = Eigen::VectorXd::Zero(numParams);
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
 		if (NPSOL_verbose) {
@@ -253,7 +253,7 @@ void F77_SUB(npsolConstraintFunction)
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    int verbose)
+		    int verbose, double *hessOut)
 {
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
@@ -263,7 +263,8 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 	NPSOL_useGradient = useGradient;
 	NPSOL_fc = fc;
 	double *x = fc->est;
-	double *g = fc->grad;
+	fc->grad.resize(fc->numParam); // ensure memory is allocated
+	double *g = fc->grad.data();
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
@@ -383,13 +384,9 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             mxLog("Set.");
         }
  
-	std::vector<double> hessOut(n * n);
-
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
-			clambda, &fc->fit, g, hessOut.data(), x, iw, &leniw, w, &lenw);
-
-	memcpy(fc->hess, hessOut.data(), sizeof(double) * n * n);
+			clambda, &fc->fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
  

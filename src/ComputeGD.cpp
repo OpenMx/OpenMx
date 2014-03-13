@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+#include "omxDefines.h"
 #include "omxState.h"
 #include "omxFitFunction.h"
 #include "omxNPSOLSpecific.h"
@@ -107,7 +108,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	switch (engine) {
         case OptEngine_NPSOL:
 #if HAS_NPSOL
-            omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose);
+		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose,
+			       fc->getDenseHessUninitialized());
+		fc->wanted |= FF_COMPUTE_GRADIENT;
 #endif
             break;
         case OptEngine_CSOLNP:
@@ -160,12 +163,13 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 */
 	size_t numFree = varGroup->vars.size();
     
-	SEXP hessian;
-	Rf_protect(hessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-    
-	memcpy(REAL(hessian), fc->hess, sizeof(double) * numFree * numFree);
-    
-	out->push_back(std::make_pair(Rf_mkChar("hessianCholesky"), hessian));
+	if (engine == OptEngine_NPSOL) {
+		SEXP hessian;
+		Rf_protect(hessian = Rf_allocMatrix(REALSXP, numFree, numFree));
+		fc->copyDenseHess(REAL(hessian));
+		out->push_back(std::make_pair(Rf_mkChar("hessianCholesky"), hessian));
+		fc->wanted |= FF_COMPUTE_HESSIAN;
+	}
     
 	if (intervals && intervalCodes) {
 		out->push_back(std::make_pair(Rf_mkChar("confidenceIntervals"), intervals));

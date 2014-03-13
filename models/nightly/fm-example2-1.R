@@ -41,10 +41,11 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 				    mxComputeEM('expectation', 'scores',
 				                mxComputeNewtonRaphson(free.set='ItemParam'),
                         mxComputeNothing(),
-				                mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov")),
+				                mxComputeOnce('fitfunction', 'fit'),
 				                information=TRUE, semDebug=TRUE, info.method="hessian"),
 				    mxComputeStandardError(),
-				    mxComputeHessianQuality())))
+				    mxComputeHessianQuality(),
+            mxComputeReportDeriv())))
 
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
@@ -68,15 +69,18 @@ omxCheckCloseEnough(c(m2@output$standardErrors), se, .01)
 m3 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation', 'scores'),
-                mxComputeOnce('fitfunction', 'information', "hessian"))))
+                mxComputeOnce('fitfunction', 'information', "hessian"),
+                mxComputeReportDeriv())))
 m3 <- mxRun(m3, silent=TRUE)
 
 m5 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
+                mxComputeOnce('fitfunction', 'fit'),
                 mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
                 mxComputeStandardError(),
-                mxComputeHessianQuality())))
+                mxComputeHessianQuality(),
+                mxComputeReportDeriv())))
 m5 <- mxRun(m5, silent=TRUE)
 omxCheckTrue(m5@output$infoDefinite)
 omxCheckCloseEnough(m5@output$conditionNumber, 51, 1)

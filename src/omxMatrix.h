@@ -33,8 +33,6 @@
 #include "omxDefines.h"
 #include "omxBLAS.h"
 
-#include "types.h"
-
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
 #include "omxExpectation.h"

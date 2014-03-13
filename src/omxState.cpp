@@ -78,7 +78,7 @@ void FreeVarGroup::cacheDependencies()
 	}
 
 	// Everything is set up. This is a good place to log.
-	//log();
+	if (OMX_DEBUG) { log(); }
 }
 
 void FreeVarGroup::markDirty(omxState *os)

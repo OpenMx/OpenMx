@@ -128,16 +128,16 @@ runHelper <- function(model, frontendStart,
 		if (!useOptimizer || numParam == 0) {
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
+			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
 			if (options[["Calculate Hessian"]] == "No") {
-				compute <- mxComputeGradientDescent(fitfunction=fitNum)
+				# ok
 			} else {
-				steps <- list(mxComputeGradientDescent(fitfunction=fitNum),
-					      mxComputeNumericDeriv(fitfunction=fitNum))
+				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
 				if (options[["Standard Errors"]] == "Yes") {
 					steps <- c(steps, mxComputeStandardError())
 				}
-				compute <- mxComputeSequence(steps)
 			}
+			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
 		}
 		compute <- assignId(compute, 1L, '.')
 		flatModel@compute <- compute

@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -163,7 +163,7 @@ gramProduct(double *vec, size_t len, double *out)
 OMXINLINE static bool
 validPatternLik(BA81Expect *state, double pl)
 {
-	return isfinite(pl) && pl > state->SmallestPatternLik;
+	return std::isfinite(pl) && pl > state->SmallestPatternLik;
 }
 
 void ba81SetupQuadrature(omxExpectation* oo);

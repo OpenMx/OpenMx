@@ -17,14 +17,12 @@
 #ifndef _OMX_NPSOL_SPECIFIC_H
 #define _OMX_NPSOL_SPECIFIC_H
 
-#include "types.h"
-
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND;
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    int verbose);
+		    int verbose, double *hessOut);
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc);
  

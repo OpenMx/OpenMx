@@ -197,15 +197,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
 	}
 
-	if (1) { // add conditions to disable TODO
-		fc->hgProd.resize(0);
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_HGPROD, fc);
-		std::sort(fc->hgProd.begin(), fc->hgProd.end());
-		std::vector<matrixVectorProdTerm>::iterator iter = std::unique(fc->hgProd.begin(), fc->hgProd.end());
-		fc->hgProd.resize( std::distance(fc->hgProd.begin(), iter) );
-		//fc->log("NR", FF_COMPUTE_HGPROD);
-	}
-
 	for (size_t px=0; px < numParam; ++px) {
 		// global namespace for flavors? TODO
 		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
@@ -238,8 +229,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 	fitMatrix->data[0] = 0;  // may not recompute it, don't leave stale data
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %ld flavors, %lu h-g terms)",
-		      tolerance, maxIter, ramsay.size(), fc->hgProd.size());
+		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %ld flavors)",
+		      tolerance, maxIter, ramsay.size());
 	}
 	while (1) {
 		++iter;
@@ -253,8 +244,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
 		if (restarted) want |= FF_COMPUTE_FIT;
 
-		OMXZERO(fc->grad, numParam);
-		OMXZERO(fc->ihess, numParam * numParam);
+		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+		fc->clearHessian();
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 		if (isErrorRaised(globalState)) break;
@@ -279,29 +270,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 			}
 		}
 
-		if (verbose >= 1 || OMX_DEBUG) {
-			for (size_t h1=1; h1 < numParam; h1++) {
-				for (size_t h2=0; h2 < h1; h2++) {
-					if (fc->ihess[h2 * numParam + h1] == 0) continue;
-					omxRaiseErrorf(globalState, "Inverse Hessian is not upper triangular");
-				}
-			}
-		}
-
-		if (0) {
-			const double maxDiag = 4;
-			for (size_t dx=0; dx < numParam; dx++) {
-				double mag = fabs(fc->ihess[dx * numParam + dx]);
-				if (maxDiag < mag) {
-					double old = fc->grad[dx];
-					double logBad = log(1 + mag - maxDiag);
-					fc->grad[dx] /= (1 + logBad);  // arbitrary guess
-					mxLog("ihess bad at diag %lu grad %.8g -> %.8g", dx, old, fc->grad[dx]);
-				}
-			}
-			//fc->log("bad", FF_COMPUTE_IHESSIAN);
-		}
-
 		bool restart = false;
 		if ((++sinceRestart) % 3 == 0) {
 			for (size_t rx=0; rx < ramsay.size(); ++rx) {
@@ -309,10 +277,10 @@ void ComputeNR::computeImpl(FitContext *fc)
 			}
 		}
 		for (size_t px=0; px < numParam; ++px) {
-			if (!std::isfinite(fc->grad[px])) {
+			if (!std::isfinite(fc->grad(px))) {
 				if (!restart) {
 					if (verbose >= 3) {
-						mxLog("Newton-Raphson: grad[%lu] not finite, restart recommended", px);
+						mxLog("Newton-Raphson: grad[%d] not finite, restart recommended", int(px));
 					}
 					restart = true;
 					break;
@@ -345,37 +313,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 				ramsay[rx]->restart();
 			}
 		} else {
-			double *grad = fc->grad;
-			double *ihess = fc->ihess;
-
-			std::vector<double> move(numParam, 0.0);
-			for (size_t px=0; px < fc->hgProd.size(); ++px) {
-				matrixVectorProdTerm &mvp = fc->hgProd[px];
-				move[mvp.dest] += ihess[mvp.hentry] * grad[mvp.gentry];
-			}
-
-			if (0) {
-				std::vector<double> blasMove(numParam); // uninit
-				const char uplo = 'U';
-				int dim = int(numParam);
-				int incx = 1;
-				double alpha = 1;
-				double beta = 0;
-				F77_CALL(dsymv)(&uplo, &dim, &alpha, fc->ihess, &dim,
-						fc->grad, &incx, &beta, blasMove.data(), &incx);
-
-				double blasDiff = 0;
-				for (size_t px=0; px < numParam; ++px) {
-					blasDiff += fabs(move[px] - blasMove[px]);
-				}
-				mxLog("blasdiff %.10g", blasDiff);
-				if (blasDiff > 1) {
-					fc->log("N-R", FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN|FF_COMPUTE_HGPROD);
-					pda(move.data(), 1, numParam);
-					pda(blasMove.data(), 1, numParam);
-					abort();
-				}
-			}
+			Eigen::VectorXd move(fc->ihessGradProd());
 
 			for (size_t px=0; px < numParam; ++px) {
 				Ramsay1975 *ramsay1 = ramsay[ fc->flavor[px] ];

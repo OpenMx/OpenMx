@@ -1,3 +1,4 @@
+#include "omxDefines.h"
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
@@ -9,7 +10,6 @@ using std::endl;
 #include <list>
 #include <algorithm>
 #include <iterator>
-#include <vector>
 
 #include "omxBuffer.h"
 #include "matrix.h"

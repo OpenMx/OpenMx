@@ -105,7 +105,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;
 
-	omxMarkClean(off->matrix);
+	omxMarkClean(off->matrix); // only makes sense for FF_COMPUTE_FIT, can remove? TODO
 }
 
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)
@@ -163,6 +163,7 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 
 	
+	obj->matrix->data[0] = NA_REAL;
 	omxMarkDirty(obj->matrix);
 	obj->initialized = TRUE;
 }

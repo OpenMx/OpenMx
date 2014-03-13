@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-#include "types.h"
+#include "omxDefines.h"
 
 double rnd_double();
 

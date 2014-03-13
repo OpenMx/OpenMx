@@ -107,7 +107,8 @@ if (is(ans, "try-error")) ans <- read.table("data/dLL.csv")
 m2 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation', 'scores'),
-                mxComputeOnce('fitfunction', c('gradient', 'hessian'))
+                mxComputeOnce('fitfunction', c('gradient', 'hessian')),
+                mxComputeReportDeriv()
               )))
 
 if (1) {  # enable to examine the RMSE by item model

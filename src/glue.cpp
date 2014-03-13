@@ -26,7 +26,6 @@
 #include <R_ext/Lapack.h>
 
 #include "omxDefines.h"
-#include "types.h"
 #include "glue.h"
 #include "omxOpenmpWrap.h"
 #include "omxState.h"
@@ -308,6 +307,19 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxInitialMatrixAlgebraCompute();
 	omxResetStatus(globalState);
 
+	/*
+	// Fit functions may not have computed anything because want=0.
+	// We shouldn't leave them marked clean because, for example,
+	// ComputeNumericDeriv will see an invalid reference fit value.
+        //
+	// Wait, does dirty/clean make sense for fitfunctions?
+        //
+	for(size_t index = 0; index < globalState->algebraList.size(); ++index) {
+		omxMatrix *mat = globalState->algebraList[index];
+		if (mat->fitFunction) omxMarkDirty(mat);
+	}
+	*/
+
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
@@ -393,24 +405,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
 			result.push_back(std::make_pair(Rf_mkChar("estimate"), estimate));
 
-			if (fc.wanted & FF_COMPUTE_GRADIENT) {
-				SEXP Rgradient;
-				Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
-				memcpy(REAL(Rgradient), fc.grad, sizeof(double) * numFree);
-				result.push_back(std::make_pair(Rf_mkChar("gradient"), Rgradient));
-			}
-			if (fc.wanted & FF_COMPUTE_HESSIAN) {
-				SEXP Rhessian;
-				Rf_protect(Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-				memcpy(REAL(Rhessian), fc.hess, sizeof(double) * numFree * numFree);
-				result.push_back(std::make_pair(Rf_mkChar("hessian"), Rhessian));
-			}
-			if (fc.wanted & FF_COMPUTE_IHESSIAN) {
-				SEXP Rihessian;
-				Rf_protect(Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-				memcpy(REAL(Rihessian), fc.ihess, sizeof(double) * numFree * numFree);
-				result.push_back(std::make_pair(Rf_mkChar("ihessian"), Rihessian));
-			}
 			if (fc.stderrs) {
 				SEXP stdErrors;
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));

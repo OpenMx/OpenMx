@@ -16,8 +16,8 @@
 
 #include <algorithm>
 
-#include "omxDefines.h"
 #include "Compute.h"
+#include "Eigen/Cholesky"
 #include "omxState.h"
 #include "omxExportBackendState.h"
 #include "omxRFitFunction.h"
@@ -26,26 +26,170 @@
 
 void pda(const double *ar, int rows, int cols);
 
+// static bool compareBlocks(const HessianBlock*& lhs, const HessianBlock*& rhs)
+// {
+// 	return lhs->vars[0] < rhs->vars[0];
+// }
+
+void FitContext::queue(HessianBlock *hb)
+{
+	allBlocks.push_back(hb);
+	//std::push_heap(allBlocks.begin(), allBlocks.end(), compareBlocks); // maybe TODO
+}
+
+void FitContext::negateHessian()
+{
+	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
+		allBlocks[bx]->mat *= -1.0;
+	}
+}
+
+void FitContext::refreshDenseHess()
+{
+	if (haveDenseHess) return;
+
+	hess.triangularView<Eigen::Upper>().setZero();
+
+	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
+		HessianBlock *hb = allBlocks[bx];
+
+		std::vector<int> &map = hb->vars;
+		size_t bsize = map.size();
+
+		for (size_t v1=0; v1 < bsize; ++v1) {
+			for (size_t v2=0; v2 <= v1; ++v2) {
+				hess(map[v2], map[v1]) += hb->mat(v2, v1);
+			}
+		}
+	}
+
+	haveDenseHess = true;
+}
+
+void FitContext::copyDenseHess(double *dest)
+{
+	refreshDenseHess();
+	for (size_t v1=0; v1 < numParam; ++v1) {
+		for (size_t v2=0; v2 <= v1; ++v2) {
+			double coef = hess.selfadjointView<Eigen::Upper>()(v2,v1);
+			if (v1==v2) {
+				dest[v1 * numParam + v2] = coef;
+			} else {
+				dest[v1 * numParam + v2] = coef;
+				dest[v2 * numParam + v1] = coef;
+			}
+		}
+	}
+}
+
+double *FitContext::getDenseHessUninitialized()
+{
+	// Assume the caller is going to fill it out
+	haveDenseHess = true;
+	haveDenseIHess = false;
+	return hess.data();
+}
+
+void FitContext::refreshDenseIHess()
+{
+	if (haveDenseIHess) return;
+
+	refreshDenseHess();
+	ihess = hess;
+	Matrix wmat(ihess.data(), numParam, numParam);
+	InvertSymmetricIndef(wmat, 'U');
+
+	haveDenseIHess = true;
+}
+
+Eigen::VectorXd FitContext::ihessGradProd()
+{
+	refreshDenseIHess();
+	return ihess.selfadjointView<Eigen::Upper>() * grad;
+}
+
+Eigen::VectorXd FitContext::ihessDiag()
+{
+	refreshDenseIHess();
+	return ihess.diagonal();
+}
+
+double *FitContext::getDenseIHessUninitialized()
+{
+	// Assume the caller is going to fill it out
+	haveDenseIHess = true;
+	haveDenseHess = false;
+	return ihess.data();
+}
+
+void FitContext::copyDenseIHess(double *dest)
+{
+	refreshDenseIHess();
+	for (size_t v1=0; v1 < numParam; ++v1) {
+		for (size_t v2=0; v2 <= v1; ++v2) {
+			double coef = ihess.selfadjointView<Eigen::Upper>()(v2,v1);
+			if (v1==v2) {
+				dest[v1 * numParam + v2] = coef;
+			} else {
+				dest[v1 * numParam + v2] = coef;
+				dest[v2 * numParam + v1] = coef;
+			}
+		}
+	}
+}
+
+double *FitContext::getDenseHessianish()
+{
+	if (haveDenseHess) return hess.data();
+	if (haveDenseIHess) return ihess.data();
+	// try harder TODO
+	return NULL;
+}
+
+HessianBlock *HessianBlock::clone()
+{
+	HessianBlock *hb = new HessianBlock;
+	hb->vars = vars;
+	hb->mat.resize(vars.size(), vars.size());
+	return hb;
+}
+
+bool HessianBlock::posDefinite()
+{
+	Eigen::LLT<Eigen::MatrixXd> llt;
+	llt.compute(mat);
+	return llt.info() == Eigen::Success;
+}
+
 void FitContext::init()
 {
-	size_t numParam = varGroup->vars.size();
+	numParam = varGroup->vars.size();
 	wanted = 0;
-	sampleSize = 0;  // remove? TODO
 	mac = parent? parent->mac : 0;
-	fit = parent? parent->fit : 0;
+	fit = parent? parent->fit : NA_REAL;
 	caution = parent? parent->caution : 0;
 	est = new double[numParam];
 	flavor = new int[numParam];
-	grad = new double[numParam];
-	hess = new double[numParam * numParam];
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
 	infoA = NULL;
 	infoB = NULL;
-	ihess = new double[numParam * numParam];
 	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
+
+	hess.resize(numParam, numParam);
+	ihess.resize(numParam, numParam);
+	clearHessian();
+}
+
+void FitContext::clearHessian()
+{
+	allBlocks.clear();
+	haveSparseHess = false;
+	haveSparseIHess = false;
+	haveDenseHess = false;
+	haveDenseIHess = false;
 }
 
 void FitContext::allocStderrs()
@@ -72,13 +216,6 @@ FitContext::FitContext(std::vector<double> &startingValues)
 		      startingValues.size(), numParam);
 	}
 	memcpy(est, startingValues.data(), sizeof(double) * numParam);
-
-	for (size_t v1=0; v1 < numParam; v1++) {
-		grad[v1] = nan("unset");
-		for (size_t v2=0; v2 < numParam; v2++) {
-			hess[v1 * numParam + v2] = nan("unset");
-		}
-	}
 }
 
 FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
@@ -89,7 +226,6 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 
 	FreeVarGroup *src = parent->varGroup;
 	FreeVarGroup *dest = varGroup;
-	size_t svars = parent->varGroup->vars.size();
 	size_t dvars = varGroup->vars.size();
 	if (dvars == 0) return;
 	mapToParent.resize(dvars);
@@ -99,20 +235,6 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 		if (src->vars[s1] != dest->vars[d1]) continue;
 		mapToParent[d1] = s1;
 		est[d1] = parent->est[s1];
-
-		if (parent->wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)) {
-			grad[d1] = parent->grad[s1];
-
-			size_t d2 = 0;
-			for (size_t s2=0; s2 < src->vars.size(); ++s2) {
-				if (src->vars[s2] != dest->vars[d2]) continue;
-				hess[d1 * dvars + d2] = parent->hess[s1 * svars + s2];
-				if (++d2 == dvars) break;
-			}
-		}
-
-		// ihess TODO?
-
 		if (++d1 == dvars) break;
 	}
 	if (d1 != dvars) Rf_error("Parent free parameter group (id=%d) is not a superset of %d",
@@ -121,13 +243,6 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	wanted = parent->wanted;
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
-
-	// pda(parent->est, 1, svars);
-	// pda(est, 1, dvars);
-	// pda(parent->grad, 1, svars);
-	// pda(grad, 1, dvars);
-	// pda(parent->hess, svars, svars);
-	// pda(hess, dvars, dvars);
 }
 
 void FitContext::copyParamToModel(omxMatrix *mat)
@@ -141,7 +256,6 @@ void FitContext::updateParent()
 	FreeVarGroup *src = varGroup;
 	FreeVarGroup *dest = parent->varGroup;
 	size_t svars = varGroup->vars.size();
-	size_t dvars = parent->varGroup->vars.size();
 
 	parent->wanted |= wanted;
 	parent->fit = fit;
@@ -157,20 +271,6 @@ void FitContext::updateParent()
 		for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
-
-			if (wanted & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)) {
-				parent->grad[d1] = grad[s1];
-
-				size_t s2 = 0;
-				for (size_t d2=0; d2 < dest->vars.size(); ++d2) {
-					if (dest->vars[d2] != src->vars[s2]) continue;
-					parent->hess[d1 * dvars + d2] = hess[s1 * svars + s2];
-					if (++s2 == svars) break;
-				}
-			}
-
-			// ihess TODO?
-
 			if (++s1 == svars) break;
 		}
 		if (stderrs) {
@@ -183,10 +283,6 @@ void FitContext::updateParent()
 	
 	// pda(est, 1, svars);
 	// pda(parent->est, 1, dvars);
-	// pda(grad, 1, svars);
-	// pda(parent->grad, 1, dvars);
-	// pda(hess, svars, svars);
-	// pda(parent->hess, dvars, dvars);
 }
 
 void FitContext::updateParentAndFree()
@@ -215,45 +311,6 @@ void FitContext::log(const char *where, int what)
 		}
 		buf += ")\n";
 	}
-	if (what & FF_COMPUTE_GRADIENT) {
-		buf += string_snprintf("grad %lu: c(", count);
-		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.5f", grad[vx]);
-			if (vx < count - 1) buf += ", ";
-		}
-		buf += ")\n";
-	}
-	if (what & (FF_COMPUTE_HESSIAN)) {
-		buf += string_snprintf("hess %lux%lu: c(", count, count);
-		for (size_t v1=0; v1 < count; ++v1) {
-			for (size_t v2=0; v2 < count; ++v2) {
-				buf += string_snprintf("%.5f", hess[v1 * count + v2]);
-				if (v1 < count-1 || v2 < count-1) buf += ", ";
-			}
-			buf += "\n";
-		}
-		buf += ")\n";
-	}
-	if (what & FF_COMPUTE_IHESSIAN) {
-		buf += string_snprintf("ihess %lux%lu: c(", count, count);
-		for (size_t v1=0; v1 < count; ++v1) {
-			for (size_t v2=0; v2 < count; ++v2) {
-				buf += string_snprintf("%.5g", ihess[v1 * count + v2]);
-				if (v1 < count-1 || v2 < count-1) buf += ", ";
-			}
-			buf += "\n";
-		}
-		buf += ")\n";
-	}
-	if (what & FF_COMPUTE_HGPROD) {
-		buf += string_snprintf("ihess %%*%% grad %lu: list(", hgProd.size());
-		for (size_t px=0; px < hgProd.size(); ++px) {
-			buf += string_snprintf("c(%d, %d, %d)", hgProd[px].hentry,
-					       hgProd[px].gentry, hgProd[px].dest);
-			if (px < hgProd.size() - 1) buf += ", ";
-		}
-		buf += ")\n";
-	}
 	mxLogBig(buf);
 }
 
@@ -267,19 +324,6 @@ static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool fo
 			}
 			mat[h2 * numParam + h1] = mat[h1 * numParam + h2];
 		}
-	}
-}
-
-void FitContext::fixHessianSymmetry(int want, bool force)
-{
-	size_t numParam = varGroup->vars.size();
-
-	if (want & (FF_COMPUTE_HESSIAN)) {
-		_fixSymmetry("Hessian/information", hess, numParam, force);
-	}
-
-	if (want & FF_COMPUTE_IHESSIAN) {
-		_fixSymmetry("Inverse Hessian", ihess, numParam, force);
 	}
 }
 
@@ -374,14 +418,6 @@ double *FitContext::take(int want)
 		ret = est;
 		est = NULL;
 		break;
-	case FF_COMPUTE_HESSIAN:
-		ret = hess;
-		hess = NULL;
-		break;
-	case FF_COMPUTE_IHESSIAN:
-		ret = ihess;
-		ihess = NULL;
-		break;
 	default:
 		Rf_error("Taking of %d is not implemented", want);
 	}
@@ -389,9 +425,10 @@ double *FitContext::take(int want)
 	return ret;
 }
 
+// Rethink this whole design TODO
+// If we compute things blockwise then most of this can go away?
 void FitContext::preInfo()
 {
-	size_t numParam = varGroup->vars.size();
 	size_t npsq = numParam * numParam;
 
 	if (!infoA) infoA = new double[npsq];
@@ -405,7 +442,7 @@ void FitContext::preInfo()
 		OMXZERO(infoA, npsq);
 		break;
 	case INFO_METHOD_HESSIAN:
-		OMXZERO(hess, npsq);
+		clearHessian();
 		break;
 	default:
 		Rf_error("Unknown information matrix estimation method %d", infoMethod);
@@ -417,49 +454,28 @@ void FitContext::postInfo()
 	size_t numParam = varGroup->vars.size();
 	switch (infoMethod) {
 	case INFO_METHOD_SANDWICH:{
+		// move into FCDeriv TODO
 		omxBuffer<double> work(numParam * numParam);
 		Matrix amat(infoA, numParam, numParam);
 		InvertSymmetricIndef(amat, 'U');
 		_fixSymmetry("InfoB", infoB, numParam, false);
 		Matrix bmat(infoB, numParam, numParam);
 		Matrix wmat(work.data(), numParam, numParam);
-		Matrix hmat(ihess, numParam, numParam);
+		Matrix hmat(getDenseIHessUninitialized(), numParam, numParam);
 		SymMatrixMultiply('L', 'U', 1, 0, amat, bmat, wmat);
 		SymMatrixMultiply('R', 'U', 1, 0, amat, wmat, hmat);
 		wanted |= FF_COMPUTE_IHESSIAN;
 		break;}
-	case INFO_METHOD_MEAT:
-		// copy upper triangle only TODO
-		for (size_t d1=0; d1 < numParam; ++d1) {
-			for (size_t d2=0; d2 < numParam; ++d2) {
-				int cell = d1 * numParam + d2;
-				hess[cell] = infoB[cell];
-			}
-		}
-		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
+	case INFO_METHOD_MEAT:{
+		memcpy(getDenseHessUninitialized(), infoB, sizeof(double) * numParam * numParam); // avoid copy TODO
 		wanted |= FF_COMPUTE_HESSIAN;
-		break;
-	case INFO_METHOD_BREAD:
-		// copy upper triangle only TODO
-		for (size_t d1=0; d1 < numParam; ++d1) {
-			for (size_t d2=0; d2 < numParam; ++d2) {
-				int cell = d1 * numParam + d2;
-				hess[cell] = infoA[cell];
-			}
-		}
-		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
+		break;}
+	case INFO_METHOD_BREAD:{
+		memcpy(getDenseHessUninitialized(), infoA, sizeof(double) * numParam * numParam); // avoid copy TODO
 		wanted |= FF_COMPUTE_HESSIAN;
-		break;
+		break;}
 	case INFO_METHOD_HESSIAN:
-		if (Global->llScale > 0) {
-			for (size_t d1=0; d1 < numParam; ++d1) {
-				for (size_t d2=0; d2 <= d1; ++d2) {
-					int cell = d1 * numParam + d2;
-					hess[cell] = -hess[cell];
-				}
-			}
-		}
-		fixHessianSymmetry(FF_COMPUTE_HESSIAN);
+		if (Global->llScale > 0) negateHessian();
 		wanted |= FF_COMPUTE_HESSIAN;
 		break;
 	default:
@@ -467,34 +483,10 @@ void FitContext::postInfo()
 	}
 }
 
-bool FitContext::invertHessian()
-{
-	if (wanted & FF_COMPUTE_IHESSIAN) return TRUE;
-	if (!(wanted & FF_COMPUTE_HESSIAN)) return FALSE;
-
-	int numParams = int(varGroup->vars.size());
-
-	// Populate upper triangle
-	for(int i = 0; i < numParams; i++) {
-		for(int j = 0; j <= i; j++) {
-			ihess[i*numParams+j] = hess[i*numParams+j];
-		}
-	}
-
-	Matrix wmat(ihess, numParams, numParams);
-	InvertSymmetricIndef(wmat, 'U');
-	fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
-	wanted |= FF_COMPUTE_IHESSIAN;
-	return TRUE;
-}
-
 FitContext::~FitContext()
 {
 	if (est) delete [] est;
 	if (flavor) delete [] flavor;
-	if (grad) delete [] grad;
-	if (hess) delete [] hess;
-	if (ihess) delete [] ihess;
 	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
@@ -693,7 +685,9 @@ void omxCompute::initFromFrontend(SEXP rObj)
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		}
 	}
-	//mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
+	if (OMX_DEBUG) {
+		mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
+	}
 }
 
 void omxCompute::compute(FitContext *fc)
@@ -845,6 +839,12 @@ class ComputeHessianQuality : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeReportDeriv : public omxCompute {
+	typedef omxCompute super;
+ public:
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -863,6 +863,9 @@ static class omxCompute *newComputeStandardError()
 static class omxCompute *newComputeHessianQuality()
 { return new ComputeHessianQuality(); }
 
+static class omxCompute *newComputeReportDeriv()
+{ return new ComputeReportDeriv(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -877,7 +880,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
 	{"MxComputeStandardError", &newComputeStandardError},
-	{"MxComputeHessianQuality", &newComputeHessianQuality}
+	{"MxComputeHessianQuality", &newComputeHessianQuality},
+	{"MxComputeReportDeriv", &newComputeReportDeriv}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1457,11 +1461,9 @@ void ComputeEM::computeImpl(FitContext *fc)
 	// fit2 also TODO
 	fc->postInfo();
 
-	double *hess = fc->hess;
-	if (semDebug) {
-		Rf_protect(inputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
-		memcpy(REAL(inputInfoMatrix), hess, sizeof(double) * freeVars * freeVars);
-	}
+	Rf_protect(inputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
+	double *hess = REAL(inputInfoMatrix);
+	fc->copyDenseHess(hess);
 
 	Matrix rijMat(rij.data(), freeVars, freeVars);
 	Matrix hessMat(hess, freeVars, freeVars);
@@ -1470,13 +1472,14 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	SymMatrixMultiply('L', 'U', 1, 0, hessMat, rijMat, infoMat);  // result not symmetric!
 
+	double *ihess = fc->getDenseIHessUninitialized();
 	int singular;
 	if (semFixSymmetry) {
 		MeanSymmetric(infoMat);
 		singular = InvertSymmetricIndef(infoMat, 'U');
-		memcpy(fc->ihess, infoBuf.data(), sizeof(double) * freeVars * freeVars);
+		memcpy(ihess, infoBuf.data(), sizeof(double) * freeVars * freeVars);
 	} else {
-		Matrix ihessMat(fc->ihess, freeVars, freeVars);
+		Matrix ihessMat(ihess, freeVars, freeVars);
 		singular = MatrixSolve(infoMat, ihessMat, true);
 	}
 	if (singular) {
@@ -1490,10 +1493,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 			origEigenvalues = Rf_allocVector(REALSXP, freeVars);
 			oev = REAL(origEigenvalues);
 		}
-		Matrix mat(fc->ihess, freeVars, freeVars);
+		Matrix mat(ihess, freeVars, freeVars);
 		InplaceForcePosSemiDef(mat, oev, &fc->infoCondNum);
-	} else {
-		fc->fixHessianSymmetry(FF_COMPUTE_IHESSIAN, true);
 	}
 
 	fc->wanted = wanted | FF_COMPUTE_IHESSIAN;
@@ -1705,7 +1706,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 {
 	if (algebras.size()) {
 		int want = 0;
-		size_t numParam = fc->varGroup->vars.size();
 		if (starting) {
 			want |= FF_COMPUTE_STARTING;
 		}
@@ -1720,24 +1720,22 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
-			OMXZERO(fc->grad, numParam);
+			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
 		}
 		if (hessian) {
 			want |= FF_COMPUTE_HESSIAN;
-			OMXZERO(fc->hess, numParam * numParam);
+			fc->clearHessian();
 		}
 		if (infoMat) {
 			want |= FF_COMPUTE_INFO;
 			fc->infoMethod = infoMethod;
+			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+			fc->clearHessian();
 			fc->preInfo();
 		}
 		if (ihessian) {
 			want |= FF_COMPUTE_IHESSIAN;
-			OMXZERO(fc->ihess, numParam * numParam);
-		}
-		if (hgprod) {
-			want |= FF_COMPUTE_HGPROD;
-			fc->hgProd.resize(0);
+			fc->clearHessian();
 		}
 		if (!want) return;
 
@@ -1750,7 +1748,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 				if (infoMat) {
 					fc->postInfo();
 				}
-				fc->fixHessianSymmetry(want);
 			} else {
 				omxForceCompute(algebra);
 			}
@@ -1776,17 +1773,17 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 {
 	fc->allocStderrs();  // at least report NAs
 
-	if (!fc->invertHessian()) return;
+	const size_t numParams = fc->numParam;
 
-	int numParams = int(fc->varGroup->vars.size());
+	Eigen::VectorXd ihessDiag(fc->ihessDiag());
 
 	const double scale = fabs(Global->llScale);
 
-	// This function calculates the standard Rf_errors from the Hessian matrix
+	// This function calculates the standard errors from the Hessian matrix
 	// sqrt(scale * diag(solve(hessian)))
 
-	for(int i = 0; i < numParams; i++) {
-		double got = fc->ihess[i * numParams + i];
+	for(size_t i = 0; i < numParams; i++) {
+		double got = ihessDiag[i];
 		if (got <= 0) continue;
 		fc->stderrs[i] = sqrt(scale * got);
 	}
@@ -1815,15 +1812,13 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 {
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
-
 	// memcmp is required here because NaN != NaN always
 	if (fc->infoDefinite != NA_LOGICAL ||
 	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) return; // already set elsewhere
 
 	int numParams = int(fc->varGroup->vars.size());
 
-	double *mat = (fc->wanted & FF_COMPUTE_IHESSIAN)? fc->ihess : fc->hess;
+	double *mat = fc->getDenseHessianish();
 	omxBuffer<double> hessWork(numParams * numParams);
 	memcpy(hessWork.data(), mat, sizeof(double) * numParams * numParams);
 
@@ -1869,6 +1864,34 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		double ev[2] = { fabs(w[0]), fabs(w[numParams-1]) };
 		if (ev[0] < ev[1]) std::swap(ev[0], ev[1]);
 		double got = ev[0] / ev[1];
-		if (isfinite(got)) fc->infoCondNum = got;
+		if (std::isfinite(got)) fc->infoCondNum = got;
+	}
+}
+
+void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)
+{
+	size_t numFree = fc->numParam;
+
+	if (fc->wanted & FF_COMPUTE_GRADIENT) {
+		if (!fc->grad.data()) {
+			Rf_warning("ComputeReportDeriv: Gradient requested but not available");
+		} else {
+			SEXP Rgradient;
+			Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
+			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
+			result->push_back(std::make_pair(Rf_mkChar("gradient"), Rgradient));
+		}
+	}
+	if (fc->wanted & FF_COMPUTE_HESSIAN) {
+		SEXP Rhessian;
+		Rf_protect(Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree));
+		fc->copyDenseHess(REAL(Rhessian));
+		result->push_back(std::make_pair(Rf_mkChar("hessian"), Rhessian));
+	}
+	if (fc->wanted & FF_COMPUTE_IHESSIAN) {
+		SEXP Rihessian;
+		Rf_protect(Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree));
+		fc->copyDenseIHess(REAL(Rihessian));
+		result->push_back(std::make_pair(Rf_mkChar("ihessian"), Rihessian));
 	}
 }

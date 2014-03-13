@@ -171,7 +171,7 @@ omxIFAComputePlan <- function(groups) {
 
 emstat <- grpModel@compute@steps[[1]]@output
 omxCheckCloseEnough(emstat$EMcycles, 154, 2)
-omxCheckCloseEnough(emstat$totalMstep, 933, 50)
+omxCheckCloseEnough(emstat$totalMstep, 400, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
 
   omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)

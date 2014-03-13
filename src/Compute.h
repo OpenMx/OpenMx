@@ -20,8 +20,8 @@
 #define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
-
-#include "types.h"
+#include "omxDefines.h"
+#include "Eigen/SparseCore"
 #include "glue.h"
 
 // See R/MxRunHelperFunctions.R npsolMessages
@@ -60,28 +60,13 @@ enum ComputeInfoMethod {
 	INFO_METHOD_MEAT
 };
 
-// Used to optimize a sparse Hessian-gradient product
-struct matrixVectorProdTerm {
-	int hentry;
-	int gentry;
-	int dest;
-	matrixVectorProdTerm() {}
-	matrixVectorProdTerm(int he, int ge, int de) {
-		hentry=he;
-		gentry=ge;
-		dest=de;
-	}
-	bool operator< (const matrixVectorProdTerm &j) const {
-	  if (hentry < j.hentry) return true;
-	  if (hentry == j.hentry) {
-	    if (gentry < j.gentry) return true;
-	    if (gentry == j.gentry && dest < j.dest) return true;
-	  }
-	  return false;
-	};
-	bool operator==(const matrixVectorProdTerm &i) const {
-		return i.hentry == hentry && i.gentry == gentry && i.dest == dest;
-	}
+struct HessianBlock {
+	std::vector<int> vars;  // global freeVar ID in order
+	Eigen::MatrixXd mat;    // vars * vars, only upper triangle referenced
+
+	HessianBlock() {}
+	HessianBlock *clone();
+	bool posDefinite();
 };
 
 // The idea of FitContext is to eventually enable fitting from
@@ -92,22 +77,31 @@ class FitContext {
 
 	FitContext *parent;
 
+	std::vector<HessianBlock*> allBlocks;
+	//bool overlap;
+
+	bool haveSparseHess;
+	Eigen::SparseMatrix<double> sparseHess;
+	bool haveSparseIHess;
+	Eigen::SparseMatrix<double> sparseIHess;
+
+	bool haveDenseHess;
+	Eigen::MatrixXd hess;
+	bool haveDenseIHess;
+	Eigen::MatrixXd ihess;
+
  public:
 	FreeVarGroup *varGroup;
+	size_t numParam;               // cached from varGroup
 	std::vector<int> mapToParent;
-	double sampleSize;
 	double mac;
 	double fit;
 	double *est;
 	int *flavor;
-	//	double *denom;
-	double *grad;
-	double *hess;
-	double *ihess;
+	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;
 	double *stderrs;   // plural to distinguish from stdio's stderr
-	std::vector< matrixVectorProdTerm > hgProd;
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
@@ -120,9 +114,6 @@ class FitContext {
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void allocStderrs();
-	bool invertHessian();
-	void fixHessianSymmetry(int want, bool force);
-	void fixHessianSymmetry(int want) { fixHessianSymmetry(want, false); }
 	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);
 	void copyParamToModel(omxMatrix *mat, double *at);
@@ -133,10 +124,24 @@ class FitContext {
 	void updateParentAndFree();
 	void log(const char *where);
 	void log(const char *where, int what);
-	void preInfo();
-	void postInfo();
 	~FitContext();
 	
+	// deriv related
+	void clearHessian();
+	void negateHessian();
+	void queue(HessianBlock *hb);
+	void refreshDenseHess();
+	void refreshDenseIHess();
+	Eigen::VectorXd ihessGradProd();
+	double *getDenseHessUninitialized();
+	double *getDenseIHessUninitialized();
+	double *getDenseHessianish();  // either a Hessian or inverse Hessian, remove TODO
+	void copyDenseHess(double *dest);
+	void copyDenseIHess(double *dest);
+	Eigen::VectorXd ihessDiag();
+	void preInfo();
+	void postInfo();
+
 	static void cacheFreeVarDependencies();
 	static void setRFitFunction(omxFitFunction *rff);
 };

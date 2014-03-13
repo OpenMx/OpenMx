@@ -67,7 +67,8 @@ omxCheckCloseEnough(fivenum(m1@expectation@debug$em.expected),
 m1 <- mxModel(m1,
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation', 'scores'),
-                mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian'))
+                mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian')),
+                mxComputeReportDeriv()
               )))
 m1 <- mxRun(m1)
 omxCheckCloseEnough(m1@fitfunction@result, 2*11850.68, .01)

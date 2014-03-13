@@ -65,8 +65,6 @@ typedef struct omxConfidenceInterval omxConfidenceInterval;
 #include "omxFitFunction.h"
 #include "omxData.h"
 
-#include <vector>
-
 struct omxFreeVarLocation {
 	int matrix;
 	int row, col;

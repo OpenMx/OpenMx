@@ -27,7 +27,6 @@
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
-
 #define MIN_ROWS_PER_THREAD 8
 #define OMX_DEFAULT_MAX_PTS(rows) 100*rows*rows
 #define EPSILON 1e-16
@@ -42,9 +41,21 @@
 
 #define OMX_STATIC_ARRAY_SIZE(ar) (sizeof(ar)/sizeof(ar[0]))
 
+#ifdef EIGEN_WORLD_VERSION
+#error "omxDefines.h must be included before Eigen"
+#endif
+
+#define EIGEN_NO_DEBUG 1
+#define EIGEN_DONT_PARALLELIZE
+
 #ifdef DEBUGMX
+#ifdef NDEBUG
+#error "Undefine NDEBUG when debugging"
+#endif // NDEBUG
 #define OMX_DEBUG 1
 #define OMX_VERBOSE 1
+#define OMX_BOUNDS_CHECK 1
+#define EIGEN_INITIALIZE_MATRICES_BY_NAN
 #else
 #ifdef VERBOSEMX
 #define OMX_DEBUG 0
@@ -54,6 +65,11 @@
 #define OMX_VERBOSE 0
 #endif /* VERBOSEMX */
 #endif /* DEBUGMX */
+
+#ifdef OMX_BOUNDS_CHECK
+#undef EIGEN_NO_DEBUG
+//#define _GLIBCXX_DEBUG  // but gives link errors without -D_GLIBCXX_DEBUG on command line
+#endif // OMX_BOUNDS_CHECK
 
 #ifdef DEBUGMX_ROWS
 #define OMX_DEBUG_ROWS(row) ((row < 10) || (row % 50 == 0))
@@ -84,5 +100,43 @@
 #else
 #define OMX_DEBUG_DEVELOPER 0
 #endif /* DEBUGMX_DEVELOPER */
+
+// Put forward type declarations here
+
+#include <vector>
+
+enum omxFFCompute {
+	FF_COMPUTE_PARAMFLAVOR  = 1<<0,
+	FF_COMPUTE_PREOPTIMIZE  = 1<<1,
+	FF_COMPUTE_MAXABSCHANGE = 1<<2,
+	FF_COMPUTE_FIT          = 1<<3,
+	FF_COMPUTE_ESTIMATE     = 1<<4,
+	FF_COMPUTE_GRADIENT     = 1<<5,
+	FF_COMPUTE_HESSIAN      = 1<<6,
+	FF_COMPUTE_IHESSIAN     = 1<<7,
+
+	// Use this to obtain a Hessian or Inverse Hessian evaluated at the MLE.
+	// Check FitContext::wanted to see which one you got. It may be
+	// more efficient to compute one or the other depending on the
+	// estimation method. The information matrix is -1 * Hessian.
+
+	FF_COMPUTE_INFO         = 1<<8,   // Fisher information
+	FF_COMPUTE_BESTFIT      = 1<<9,
+	FF_COMPUTE_STARTING     = 1<<10   // for special hacks, not for routine use
+};
+
+typedef struct omxMatrix omxMatrix;
+typedef struct omxState omxState;
+class FitContext;
+struct FreeVarGroup;
+typedef struct omxFitFunction omxFitFunction;
+typedef struct omxExpectation omxExpectation;
+typedef struct omxDefinitionVar omxDefinitionVar;
+typedef struct omxRFitFunction omxRFitFunction;
+typedef struct SEXPREC *SEXP;
+class MxRList;
+class omxCompute;
+struct Matrix;
+struct Param_Obj;
 
 #endif /* _OMXDEFINES_H_ */

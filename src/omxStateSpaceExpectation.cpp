@@ -201,7 +201,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	memset(toRemoveSS, 0, sizeof(int) * ny);
 	for(int j = 0; j < y->rows; j++) {
 		double dataValue = omxMatrixElement(y, j, 0);
-		int dataValuefpclass = fpclassify(dataValue);
+		int dataValuefpclass = std::fpclassify(dataValue);
 		if(dataValuefpclass == FP_NAN || dataValuefpclass == FP_INFINITE) {
 			numRemovesSS++;
 			toRemoveSS[j] = 1;

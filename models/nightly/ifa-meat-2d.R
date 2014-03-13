@@ -63,7 +63,8 @@ for (seed in 1:trials) {
                 mxFitFunctionML(),
                 mxComputeSequence(list(
 		    mxComputeOnce('expectation'),
-		    mxComputeOnce('fitfunction', 'gradient'))))
+		    mxComputeOnce('fitfunction', 'gradient'),
+        mxComputeReportDeriv())))
   
   objective1 <- function(x) {
     ip.mat@values[,1:2] <- x[1:6]

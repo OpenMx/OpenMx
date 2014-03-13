@@ -33,7 +33,7 @@ data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 	                                                 mxComputeOnce('fitfunction', "starting")),
 	                                            free.set='cov'),
 	                          mxComputeOnce('fitfunction', 'fit')))
-	
+
 	if (0) {
 		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
 		cModel <- m2
@@ -85,10 +85,21 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation', 'scores'),
-                  mxComputeOnce('fitfunction', c('gradient', 'hessian', 'ihessian'))
+                  mxComputeOnce('fitfunction', c('gradient', 'hessian', 'ihessian')),
+                  mxComputeReportDeriv()
                 )))
-  m2 <- mxRun(m2)
-  omxCheckCloseEnough(m2@output$ihessian, solve(m2@output$hessian), 1e-4)
+  deriv <- mxRun(m2, silent=TRUE)
+  omxCheckCloseEnough(deriv@output$ihessian, solve(deriv@output$hessian), 1e-4)
+  
+  if (0) {
+    m3 <- mxModel(m2, mxComputeSequence(list(
+      mxComputeOnce('expectation', 'nothing'),
+      mxComputeOnce('fitfunction', 'fit'),
+      mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
+      mxComputeReportDeriv())))
+    deriv <- mxRun(m3)
+    stop("ok")
+  }
   
   m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
@@ -103,7 +114,7 @@ if (1) {
   m2 <- mxRun(m2)
   emstat <- m2@compute@output
   omxCheckCloseEnough(emstat$EMcycles, 38, 1)
-  omxCheckCloseEnough(emstat$totalMstep, 503, 10)
+  omxCheckCloseEnough(emstat$totalMstep, 127, 5)
   omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)
   omxCheckCloseEnough(m2@matrices$itemParam@values[1,], rep(2.133, numItems), .002)
   # correct values are from flexMIRT

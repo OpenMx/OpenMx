@@ -986,7 +986,7 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		memset(toRemove, 0, sizeof(int) * dataColumnCols);
 		for(int j = 0; j < dataColumnCols; j++) {
 			double dataValue = omxVectorElement(smallRow, j);
-			int dataValuefpclass = fpclassify(dataValue);
+			int dataValuefpclass = std::fpclassify(dataValue);
 			if(dataValuefpclass == FP_NAN || dataValuefpclass == FP_INFINITE) {
 				numRemoves++;
 				toRemove[j] = 1;

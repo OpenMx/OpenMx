@@ -61,7 +61,8 @@ m2 <- mxModel(model="latent",
                   mxComputeOnce('fitfunction', "fit")
                   )),
                 mxComputeOnce('expectation', 'scores'),
-                mxComputeOnce('fitfunction', 'information', "hessian")
+                mxComputeOnce('fitfunction', 'information', "hessian"),
+                mxComputeReportDeriv()
                 )))
 m2 <- mxRun(m2, silent=TRUE)
 

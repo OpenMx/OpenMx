@@ -1172,7 +1172,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			const double *idesign = omxMatrixColumn(design, ix);
 			int ddim = 0;
 			for (int rx=0; rx < design->rows; rx++) {
-				if (isfinite(idesign[rx])) ddim += 1;
+				if (std::isfinite(idesign[rx])) ddim += 1;
 			}
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];

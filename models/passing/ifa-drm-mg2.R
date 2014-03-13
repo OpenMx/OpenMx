@@ -167,7 +167,7 @@ omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
 
 emstat <- grpModel@compute@steps[[1]]@output
 omxCheckCloseEnough(emstat$EMcycles, 88, 2)
-omxCheckCloseEnough(emstat$totalMstep, 3417, 100)
+omxCheckCloseEnough(emstat$totalMstep, 273, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
   
 #  cat(deparse(round(grpModel@output$standardErrors, 3)))

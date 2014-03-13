@@ -13,7 +13,7 @@
 # DEBUG_CXXFLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
 # DEBUG_CXXFLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 # DEBUG_CXXFLAGS=-DDEBUGMX_DEVELOPER             # DEBUGMX_DEVELOPER does additional conformance checking for matrix operations
-# DEBUG_CXXFLAGS=-D_GLIBCXX_DEBUG -g3 -fno-inline -O0   # if you are using gcc
+# DEBUG_CXXFLAGS=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -O0   # basic debugging without extra logging
 # DEBUG_CXXFLAGS=-fno-omit-frame-pointer -fno-inline  # oprofile
 
 # To collect gcov statistics (gcc only)

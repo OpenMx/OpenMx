@@ -4,8 +4,8 @@
 #include <Rinternals.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-#include <vector>
 
+#include "omxDefines.h"
 #include "omxBuffer.h"
 #include "matrix.h"
 

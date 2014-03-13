@@ -395,19 +395,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    print(myhess); putchar('\n');
     }
     
-    double Hess[myhess.cols];
-    
-    for (i = 0; i < myhess.cols; i++)
-    {
-        Hess[i] = myhess.t[i];
-      
-    }
-    
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
     
     
-    memcpy(fc->hess, Hess, sizeof(double) * n * n);
-
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
     }

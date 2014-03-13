@@ -50,7 +50,8 @@ omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table), em.tbl, .01)
 testDeriv <- mxModel(m2,
 	      mxComputeIterate(list(
 		  mxComputeOnce('expectation', 'scores'),
-		  mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian'))
+		  mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')),
+      mxComputeReportDeriv()
 		  )))
 testDeriv <- mxRun(testDeriv)
 omxCheckCloseEnough(testDeriv@fitfunction@result, 2*3221.826, .01)

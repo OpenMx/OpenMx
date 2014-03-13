@@ -1,6 +1,8 @@
 #ifndef _OMXBUFFER_H_
 #define _OMXBUFFER_H_
 
+// replace with Eigen::VectorXd or similar TODO
+
 template<typename _Tp> class omxBuffer {
 	typedef _Tp value_type;
 	typedef _Tp *pointer;

@@ -121,7 +121,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
-	    !isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
+	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
 		omxFreeMatrixData(od->meansMat); // Clear just-allocated memory.
 		od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
                 // FIXME: The above check may cause problems for dynamic data if the means
@@ -139,7 +139,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
-	    !isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
+	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
 		omxFreeMatrixData(od->acovMat); // Clear just-allocated memory.
 		od->acovMat = NULL;
 	}
@@ -149,7 +149,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
-	    !isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
+	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
 		omxFreeMatrixData(od->obsThresholdsMat); // Clear just-allocated memory.
 		od->obsThresholdsMat = NULL;
 	} else {
