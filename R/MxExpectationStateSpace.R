@@ -128,6 +128,16 @@ checkSSMNotMissing <- function(matrixobj, matrixname, modelname){
 	}
 }
 
+checkSSMConformable <- function(mat, rows, cols, matname, modname){
+	if( nrow(mat) != rows || ncol(mat) != cols ){
+		msg <- paste("The ", matname, " matrix is not the correct size",
+			" in the state space expectation of model ", modname,
+			".  It is ", nrow(mat), " by ", ncol(mat), " and should be ",
+			rows, " by ", cols, ".", sep="")
+		stop(msg, call. = FALSE)
+	}
+}
+
 # TODO: Allow subsets of the matrices to be specified
 #  by filling in default matrices.
 setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"), 
@@ -195,13 +205,31 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		checkSSMNotMissing(rMatrix, 'R', omxQuotes(modelname))
 		checkSSMNotMissing(xMatrix, 'x0', omxQuotes(modelname))
 		checkSSMNotMissing(pMatrix, 'P0', omxQuotes(modelname))
+		ldim <- ncol(cMatrix)
+		mdim <- nrow(cMatrix)
+		checkSSMConformable(aMatrix, ldim, ldim, 'A', omxQuotes(modelname))
+		checkSSMConformable(cMatrix, mdim, ldim, 'C', omxQuotes(modelname))
+		checkSSMConformable(qMatrix, ldim, ldim, 'Q', omxQuotes(modelname))
+		checkSSMConformable(rMatrix, mdim, mdim, 'R', omxQuotes(modelname))
+		checkSSMConformable(xMatrix, ldim, 1, 'x0', omxQuotes(modelname))
+		checkSSMConformable(pMatrix, ldim, ldim, 'P0', omxQuotes(modelname))
 		#
 		# If any of B, D, u are not missing, then
 		#  1.  All of B, D, u must not be missing
 		#  2.  colnames of B and D must match rownames of u?
-		#  3.  ncol(B)==ncol(D)==nrow(u)
-		#  4.  ncol(u)==1
-		#  5.  nrow(B)==nrow(A), nrow(D)==nrow(C)
+		# 3.   Conformability checks
+		#  ldim <- ncol(cMatrix)
+		#  mdim <- nrow(cMatrix)
+		#  udim <- ncol(bMatrix)
+		#  A: ldim x ldim
+		#  B: ldim x udim
+		#  C: mdim x ldim
+		#  D: mdim x udim
+		#  Q: ldim x ldim
+		#  R: mdim x mdim
+		#  x: ldim x 1
+		#  P: ldim x ldim
+		#  u: udim x 1
 		if(!is.null(bMatrix) || !is.null(dMatrix) || !is.null(uMatrix)){
 			# 1.
 			checkSSMNotMissing(bMatrix, 'B', omxQuotes(modelname))
@@ -209,40 +237,10 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 			checkSSMNotMissing(uMatrix, 'u', omxQuotes(modelname))
 			# 2.
 			# 3.
-			if( ncol(bMatrix) != ncol(dMatrix) ){
-				msg <- paste("The B and D matrices of model",
-					omxQuotes(modelname), "do not have the same number of columns,",
-					ncol(bMatrix), "and", ncol(dMatrix), "respectively")
-				stop(msg, call. = FALSE)
-			}
-			if( ncol(bMatrix) != nrow(uMatrix) ){
-				msg <- paste("The number of columns of the B matrix (",
-					ncol(bMatrix), ") ",
-					"does not match the number of rows of u matrix (",
-					nrow(uMatrix), ") in model ",
-					omxQuotes(modelname), sep="")
-				stop(msg, call. = FALSE)
-			}
-			# 4.
-			if( ncol(uMatrix) != 1 ){
-				msg <- paste("The u matrix of model",
-					omxQuotes(modelname), "is not a column vector (Nx1 matrix).")
-				stop(msg, call. = FALSE)
-			}
-			# 5a.
-			if( nrow(aMatrix) != nrow(bMatrix) ){
-				msg <- paste("The A and B matrices of model",
-					omxQuotes(modelname), "do not have the same number of rows,",
-					nrow(aMatrix), "and", nrow(bMatrix), "respectively")
-				stop(msg, call. = FALSE)
-			}
-			# 5b.
-			if( nrow(cMatrix) != nrow(dMatrix)){
-				msg <- paste("The C and D matrices of model",
-					omxQuotes(modelname), "do not have the same number of rows,",
-					nrow(cMatrix), "and", nrow(dMatrix), "respectively")
-				stop(msg, call. = FALSE)
-			}
+			udim <- ncol(bMatrix)
+			checkSSMConformable(bMatrix, ldim, udim, 'B', omxQuotes(modelname))
+			checkSSMConformable(dMatrix, mdim, udim, 'D', omxQuotes(modelname))
+			checkSSMConformable(uMatrix, udim, 1, 'u', omxQuotes(modelname))
 		}
 		
 		translatedNames <- c(dimnames(cMatrix)[[1]])
