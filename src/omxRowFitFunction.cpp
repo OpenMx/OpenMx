@@ -114,7 +114,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 		
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxVectorElement(dataRow, j);
-			if(isnan(dataValue)) {
+			if(std::isnan(dataValue)) {
 				numRemoves++;
 				toRemove[j] = 1;
                 omxSetVectorElement(existenceVector, j, 0);

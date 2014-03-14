@@ -58,7 +58,7 @@ void checkIncreasing(omxMatrix* om, int column) {
 	double current;
 	for(int j = 0; j < om->rows; j++ ) {
 		current = omxMatrixElement(om, j, column);
-		if(isnan(current) || current == NA_INTEGER) {
+		if(std::isnan(current) || current == NA_INTEGER) {
 			continue;
 		}
 		if(current <= previous) {

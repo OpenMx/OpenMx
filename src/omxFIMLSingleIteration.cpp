@@ -211,7 +211,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
     			int var = omxVectorElement(dataColumns, j);
     			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
     			// TODO: Might save time by preseparating ordinal from continuous.
-    			if(isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
+    			if(std::isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
     				numOrdRemoves++;
                     numContRemoves++;
                     ordRemove[j] = 1;
@@ -513,7 +513,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
     				}
     			}
 
-    			if(uThresh[count] == NA_INTEGER || isnan(uThresh[count])) { // for matrix-style specification.
+    			if(uThresh[count] == NA_INTEGER || std::isnan(uThresh[count])) { // for matrix-style specification.
     				uThresh[count] = lThresh[count];
     				Infin[count] = 1;
     			}
@@ -755,7 +755,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 					}
 				}
 				
-				if(uThresh[j] == NA_INTEGER || isnan(uThresh[j])) { // for matrix-style specification.
+				if(uThresh[j] == NA_INTEGER || std::isnan(uThresh[j])) { // for matrix-style specification.
 					uThresh[j] = lThresh[j];
 					Infin[j] = 1;
 				}

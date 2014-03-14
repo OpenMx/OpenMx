@@ -197,7 +197,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 		}
 
 		/* Catch boundary-passing condition */
-		if(isnan(CIElement) || isinf(CIElement)) {
+		if(std::isnan(CIElement) || std::isinf(CIElement)) {
 			omxRaiseError(globalState, -1, 
 				"Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 			*mode = -1;

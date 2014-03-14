@@ -124,7 +124,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     }
     
     /* Catch boundary-passing condition */
-    if(isnan(CIElement) || isinf(CIElement)) {
+    if(std::isnan(CIElement) || std::isinf(CIElement)) {
         omxRaiseError(globalState, -1,
                       "Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
         return GLOB_fc->fit;
