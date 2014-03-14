@@ -228,7 +228,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     cov = omxDataMatrix(dataMat, NULL);
     means = omxDataMeans(dataMat, NULL, NULL);
     weights = omxDataAcov(dataMat, NULL);
-	newObj->observedThresholds  = omxDataThresholds(dataMat);
+	//newObj->observedThresholds  = omxDataThresholds(dataMat);
+	newObj->observedThresholds = dataMat->thresholdCols; //FIXME
 
     newObj->observedCov = cov;
     newObj->observedMeans = means;
@@ -250,7 +251,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		    return;	        
 	    }
 	}
-/*
+
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
 	    if(newObj->expectedThresholds != NULL) {
 		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
@@ -262,7 +263,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		    return;	        
 	    }
 	}
-*/
+
     /* Error check weight matrix size */
     int ncol = newObj->observedCov->cols;
     vectorSize = (ncol * (ncol + 1) ) / 2;

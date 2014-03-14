@@ -97,8 +97,8 @@ setMethod("imxVerifyModel", "MxRAMModel",
 				  threshNames <- intersect(getDataThresholdNames(model@data), model@manifestVars)
 				  # Only pay attention to (1) manifest variables (2) that need thresholds.
 				  # This saves the case where an mxFactor is used as a definition variable.
-				  if(!is.null(model$Thresholds)) {
-					  missingThresholds <- setdiff(threshNames, colnames(model$Thresholds))
+				  if(!is.null(model[[expectation@thresholds]])) {
+					  missingThresholds <- setdiff(threshNames, colnames(model[[expectation@thresholds]]))
 				  } else {
 					  missingThresholds <- threshNames
 				  }
@@ -347,7 +347,7 @@ expectationIsMissingMeans <- function(model) {
 }
 
 insertAllThresholdsRAM <- function(model, thresholds) {
-	Thresh <- model[['Thresholds']]
+	Thresh <- model[[model@expectation@thresholds]]
 	if (is.null(Thresh)) { 
 		Thresh <- mxMatrix("Full", 0, 0, name="Thresholds")
 		if(expectationIsMissingThresholds(model)) {
@@ -403,7 +403,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 				"has starting values that are not strictly increasing,",
 				"but type='RAM' models require them to be.")
 		}
-		if(!is.null(msg)) {
+		if(length(msg)>0) {
 			msg <- paste(msg, paste("An easy way to specify threshold starting values",
 				"that are evenly spaced across a normal distribution is using:"),
 				"mxThreshold(vars='x1', nThresh=3, values=mxNormalQuantiles(3))",

@@ -161,7 +161,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		}
 		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
-		if (mxDataObject@type == 'raw') {
+		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
 			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
