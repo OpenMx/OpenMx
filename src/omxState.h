@@ -147,6 +147,9 @@ class omxGlobal {
 	int analyticGradients;
 	int numChildren;
 	double llScale;
+	double maxptsa;
+	double maxptsb;
+	double maxptsc;
 
 	int numIntervals;
 	omxConfidenceInterval* intervalList;

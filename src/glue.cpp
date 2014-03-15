@@ -228,6 +228,12 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
+			} else if(matchCaseInsensitive(nextOptionName, "maxptsa")) {
+				Global->maxptsa = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "maxptsb")) {
+				Global->maxptsb = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "maxptsc")) {
+				Global->maxptsc = atof(nextOptionValue);
 			} else {
 				// ignore
 			}

@@ -144,7 +144,10 @@ otherOptions <- list(
 	"RAM Max Depth" = NA,
 	"UsePPML" = "No",
 	"Allow Unlabeled" = FALSE,
-    "loglikelihoodScale" = -2.0
+    "loglikelihoodScale" = -2.0,
+    "maxptsa" = 1.1,
+    "maxptsb" = 1.2,
+    "maxptsc" = 1.3
 )
 
 generateOptionsList <- function(model, numParam, constraints, useOptimizer) {

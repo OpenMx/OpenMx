@@ -150,6 +150,9 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	numChildren = 0;
 	llScale = -2.0;
+	maxptsa = 1.1;
+	maxptsb = 1.1;
+	maxptsc = 1.1;
 }
 
 void omxGlobal::deduplicateVarGroups()
