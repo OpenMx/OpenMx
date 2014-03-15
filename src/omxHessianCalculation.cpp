@@ -359,11 +359,11 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 	SEXP calculatedHessian;
 	Rf_protect(calculatedHessian = Rf_allocMatrix(REALSXP, numParams, numParams));
 	fc->copyDenseHess(REAL(calculatedHessian));
-	result->push_back(std::make_pair(Rf_mkChar("calculatedHessian"), calculatedHessian));
+	result->push_back(std::make_pair("calculatedHessian", calculatedHessian));
 
 	MxRList out;
-	out.push_back(std::make_pair(Rf_mkChar("probeCount"), Rf_ScalarInteger(totalProbeCount)));
-	slots->push_back(std::make_pair(Rf_mkChar("output"), out.asR()));
+	out.push_back(std::make_pair("probeCount", Rf_ScalarInteger(totalProbeCount)));
+	slots->push_back(std::make_pair("output", out.asR()));
 }
 
 omxCompute *newComputeNumericDeriv()

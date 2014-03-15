@@ -93,10 +93,10 @@ SEXP MxRList::asR()
 	Rf_protect(names = Rf_allocVector(STRSXP, len));
 	Rf_protect(ans = Rf_allocVector(VECSXP, len));
 	for (int lx=0; lx < len; ++lx) {
-		SEXP p1 = (*this)[lx].first;
+		const char *p1 = (*this)[lx].first;
 		SEXP p2 = (*this)[lx].second;
 		if (!p1 || !p2) Rf_error("Attempt to return NULL pointer to R");
-		SET_STRING_ELT(names, lx, p1);
+		SET_STRING_ELT(names, lx, Rf_mkChar(p1));
 		SET_VECTOR_ELT(ans,   lx, p2);
 	}
 	Rf_namesgets(ans, names);
@@ -380,20 +380,20 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			SEXP computes;
 			Rf_protect(computes = Rf_allocVector(VECSXP, cResult.size() * 2));
 			for (size_t cx=0; cx < cResult.size(); ++cx) {
-				std::pair<int, MxRList*> c1 = cResult[cx];
+				std::pair<int, MxRList*> &c1 = cResult[cx];
 				SET_VECTOR_ELT(computes, cx*2, Rf_ScalarInteger(c1.first));
 				SET_VECTOR_ELT(computes, cx*2+1, c1.second->asR());
 				delete c1.second;
 			}
-			result.push_back(std::make_pair(Rf_mkChar("computes"), computes));
+			result.push_back(std::make_pair("computes", computes));
 		}
 
 		if (fc.wanted & FF_COMPUTE_FIT) {
-			result.push_back(std::make_pair(Rf_mkChar("fit"), Rf_ScalarReal(fc.fit)));
-			result.push_back(std::make_pair(Rf_mkChar("Minus2LogLikelihood"), Rf_ScalarReal(fc.fit)));
+			result.push_back(std::make_pair("fit", Rf_ScalarReal(fc.fit)));
+			result.push_back(std::make_pair("Minus2LogLikelihood", Rf_ScalarReal(fc.fit)));
 		}
 		if (fc.wanted & FF_COMPUTE_BESTFIT) {
-			result.push_back(std::make_pair(Rf_mkChar("minimum"), Rf_ScalarReal(fc.fit)));
+			result.push_back(std::make_pair("minimum", Rf_ScalarReal(fc.fit)));
 		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
@@ -403,18 +403,18 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			SEXP estimate;
 			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
 			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
-			result.push_back(std::make_pair(Rf_mkChar("estimate"), estimate));
+			result.push_back(std::make_pair("estimate", estimate));
 
 			if (fc.stderrs) {
 				SEXP stdErrors;
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
-				result.push_back(std::make_pair(Rf_mkChar("standardErrors"), stdErrors));
+				result.push_back(std::make_pair("standardErrors", stdErrors));
 			}
 			if (fc.wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-				result.push_back(std::make_pair(Rf_mkChar("infoDefinite"),
+				result.push_back(std::make_pair("infoDefinite",
 								Rf_ScalarLogical(fc.infoDefinite)));
-				result.push_back(std::make_pair(Rf_mkChar("conditionNumber"),
+				result.push_back(std::make_pair("conditionNumber",
 								Rf_ScalarReal(fc.infoCondNum)));
 			}
 		}
@@ -422,20 +422,19 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("code"), Rf_ScalarReal(optStatus)));
-	backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("status"),
-						      Rf_ScalarInteger(-isErrorRaised(globalState))));
+	backwardCompatStatus.push_back(std::make_pair("code", Rf_ScalarReal(optStatus)));
+	backwardCompatStatus.push_back(std::make_pair("status", Rf_ScalarInteger(-isErrorRaised(globalState))));
 
 	if (isErrorRaised(globalState)) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(globalState->statusMsg));
-		result.push_back(std::make_pair(Rf_mkChar("error"), msg));
-		backwardCompatStatus.push_back(std::make_pair(Rf_mkChar("statusMsg"), msg));
+		result.push_back(std::make_pair("error", msg));
+		backwardCompatStatus.push_back(std::make_pair("statusMsg", msg));
 	}
 
-	result.push_back(std::make_pair(Rf_mkChar("status"), backwardCompatStatus.asR()));
-	result.push_back(std::make_pair(Rf_mkChar("evaluations"), evaluations));
+	result.push_back(std::make_pair("status", backwardCompatStatus.asR()));
+	result.push_back(std::make_pair("evaluations", evaluations));
 
 	omxFreeState(globalState);
 	delete Global;

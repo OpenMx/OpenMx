@@ -51,7 +51,7 @@ class omxManageProtectInsanity {
 	}
 };
 
-class MxRList : public std::vector< std::pair<SEXP, SEXP> > {
+class MxRList : public std::vector< std::pair<const char *, SEXP> > {
  public:
 	SEXP asR();
 };
