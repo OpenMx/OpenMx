@@ -255,28 +255,26 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
     return newMat;    
 }
 
-void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory) {
+void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory)
+{
+	if (keepMemory) error("keepMemory must be false"); // remove parameter, TODO
+
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { 
 		mxLog("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", 
 			om->rows, om->cols, 
 			nrows, ncols, keepMemory);
 	}
-	if((keepMemory == FALSE) && (om->rows != nrows || om->cols != ncols)) {
-		if(OMX_DEBUG_MATRIX) { mxLog(" and regenerating memory to do it"); }
+
+	if( (om->rows != nrows || om->cols != ncols)) {
 		omxFreeMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
-	} else if(om->originalRows * om->originalCols < nrows * ncols) {
-		Rf_warning("Upsizing an existing matrix may cause undefined behavior.\n"); // TODO: Define this behavior?
 	}
 
-	if(OMX_DEBUG_MATRIX) { mxLog("."); }
 	om->rows = nrows;
 	om->cols = ncols;
-	if(keepMemory == FALSE) {
-		om->originalRows = om->rows;
-		om->originalCols = om->cols;
-	}
+	om->originalRows = om->rows;
+	om->originalCols = om->cols;
 
 	omxMatrixLeadingLagging(om);
 }
