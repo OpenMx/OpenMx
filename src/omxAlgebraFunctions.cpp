@@ -104,13 +104,30 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
+static void scalar2matrix(omxMatrix *scalar, omxMatrix *templ)
+{
+	double val = scalar->data[0];
+	omxResizeMatrix(scalar, templ->rows, templ->cols, FALSE);
+	const int size = templ->rows * templ->cols;
+	for (int vx=0; vx < size; ++vx) scalar->data[vx] = val;
+}
+
 static bool isElemConformable(const char *op, omxMatrix *mat1, omxMatrix *mat2)
 {
 	if (mat1->cols == mat2->cols && mat1->rows == mat2->rows) return true;
 
+	if (mat1->cols == 1 && mat1->rows == 1) {
+		scalar2matrix(mat1, mat2);
+		return true;
+	}
+	if (mat2->cols == 1 && mat2->rows == 1) {
+		scalar2matrix(mat2, mat1);
+		return true;
+	}
+
 	omxRaiseErrorf(mat1->currentState,
-		       "Non-conformable matrices in %s; rows %d != %d or cols %d != %d",
-		       op, mat1->rows, mat2->rows, mat1->cols, mat2->cols);
+		       "Matrices %s and %s are non-conformable in %s; rows %d != %d or cols %d != %d",
+		       mat1->name, mat2->name, op, mat1->rows, mat2->rows, mat1->cols, mat2->cols);
 
 	return false;
 }
@@ -151,7 +168,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	if (!isElemConformable("element power", first, second)) return;
+	if (!isElemConformable("elementwise power", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -185,7 +202,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	if (!isElemConformable("element multiplication", first, second)) return;
+	if (!isElemConformable("elementwise multiplication", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
@@ -300,7 +317,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 
-	if (!isElemConformable("element divide", first, second)) return;
+	if (!isElemConformable("elementwise divide", first, second)) return;
 
 	int rows = first->rows;
 	int cols = first->cols;
