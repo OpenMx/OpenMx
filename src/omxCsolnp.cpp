@@ -74,8 +74,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 
     
     if (!R_FINITE(fitMatrix->data[0])) {
-        omxRaiseErrorf(globalState, "Fit function returned %g at iteration %d.%d",
-                       fitMatrix->data[0], globalState->majorIteration, globalState->minorIteration);
+        omxRaiseErrorf(globalState, "Fit function returned %g", fitMatrix->data[0]);
     }
     if(isErrorRaised(globalState))
     {

@@ -19,8 +19,8 @@ infer <- function(marg,state) return(Inf)
 model <- mxModel(name="inf",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(infer))
-omxCheckError(mxRun(model), c("The job for model 'inf' exited abnormally with the error message: Fit function returned inf at iteration 0.1",
-			      "The job for model 'inf' exited abnormally with the error message: Fit function returned 1.#INF at iteration 0.1"))
+omxCheckError(mxRun(model), c("The job for model 'inf' exited abnormally with the error message: Fit function returned inf",
+			      "The job for model 'inf' exited abnormally with the error message: Fit function returned 1.#INF"))
 
 ###
 
@@ -29,7 +29,7 @@ NAer <- function(marg,state) return(NA)
 model <- mxModel(name="na",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(NAer))
-omxCheckError(mxRun(model), "The job for model 'na' exited abnormally with the error message: Fit function returned nan at iteration 0.1");
+omxCheckError(mxRun(model), "The job for model 'na' exited abnormally with the error message: Fit function returned nan");
 
 ###
 

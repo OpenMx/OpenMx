@@ -597,8 +597,7 @@ void omxSaveCheckpoint(double* x, double f, int force) {
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode)
 {
 	if (!R_FINITE(fitMatrix->data[0])) {
-		omxRaiseErrorf(state, "Fit function returned %g at iteration %d.%d",
-			       fitMatrix->data[0], state->majorIteration, state->minorIteration);
+		omxRaiseErrorf(state, "Fit function returned %g", fitMatrix->data[0]);
 		*mode = -1;
 	}
 }
