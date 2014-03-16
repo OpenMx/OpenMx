@@ -386,6 +386,6 @@ void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	omxPopulateFitFunction(fitMatrix, out);
 
-	slots->push_back(std::make_pair("inform", Rf_ScalarInteger(inform)));
-	slots->push_back(std::make_pair("iterations", Rf_ScalarInteger(iter)));
+	slots->add("inform", Rf_ScalarInteger(inform));
+	slots->add("iterations", Rf_ScalarInteger(iter));
 }

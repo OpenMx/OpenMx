@@ -167,23 +167,23 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		SEXP hessian;
 		Rf_protect(hessian = Rf_allocMatrix(REALSXP, numFree, numFree));
 		fc->copyDenseHess(REAL(hessian));
-		out->push_back(std::make_pair("hessianCholesky", hessian));
+		out->add("hessianCholesky", hessian);
 		fc->wanted |= FF_COMPUTE_HESSIAN;
 	}
     
 	if (intervals && intervalCodes) {
-		out->push_back(std::make_pair("confidenceIntervals", intervals));
-		out->push_back(std::make_pair("confidenceIntervalCodes", intervalCodes));
+		out->add("confidenceIntervals", intervals);
+		out->add("confidenceIntervalCodes", intervalCodes);
 	}
     
 	SEXP code, iterations;
     
 	Rf_protect(code = Rf_allocVector(REALSXP,1));
 	REAL(code)[0] = inform;
-	out->push_back(std::make_pair("npsol.code", code));
+	out->add("npsol.code", code);
     
 	Rf_protect(iterations = Rf_allocVector(REALSXP,1));
 	REAL(iterations)[0] = iter;
-	out->push_back(std::make_pair("npsol.iterations", iterations));
-	out->push_back(std::make_pair("iterations", iterations)); // backward compatibility
+	out->add("npsol.iterations", iterations);
+	out->add("iterations", iterations); // backward compatibility
 }

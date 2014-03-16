@@ -1519,10 +1519,10 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	if (!numFree) return;
 
 	MxRList out;
-	out.push_back(std::make_pair("EMcycles", Rf_ScalarInteger(EMcycles)));
-	out.push_back(std::make_pair("totalMstep", Rf_ScalarInteger(totalMstepIter)));
-	out.push_back(std::make_pair("semProbeCount", Rf_ScalarInteger(semProbeCount)));
-	slots->push_back(std::make_pair("output", out.asR()));
+	out.add("EMcycles", Rf_ScalarInteger(EMcycles));
+	out.add("totalMstep", Rf_ScalarInteger(totalMstepIter));
+	out.add("semProbeCount", Rf_ScalarInteger(semProbeCount));
+	slots->add("output", out.asR());
 
 	if (semDebug) {
 		const int freeVars = (int) fc->varGroup->vars.size();
@@ -1531,23 +1531,23 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		SEXP Rpo;
 		Rf_protect(Rpo = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
 		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.push_back(std::make_pair("probeOffset", Rpo));
+		dbg.add("probeOffset", Rpo);
 
 		SEXP Rdiff;
 		Rf_protect(Rdiff = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
 		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.push_back(std::make_pair("semDiff", Rdiff));
+		dbg.add("semDiff", Rdiff);
 
 		SEXP Rphl;
 		Rf_protect(Rphl = Rf_allocVector(INTSXP, freeVars));
 		memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVars);
-		dbg.push_back(std::make_pair("paramHistLen", Rphl));
+		dbg.add("paramHistLen", Rphl);
 
-		if (inputInfoMatrix) dbg.push_back(std::make_pair("inputInfo", inputInfoMatrix));
-		if (rateMatrix) dbg.push_back(std::make_pair("rateMatrix", rateMatrix));
-		if (origEigenvalues) dbg.push_back(std::make_pair("origEigenvalues", origEigenvalues));
+		if (inputInfoMatrix) dbg.add("inputInfo", inputInfoMatrix);
+		if (rateMatrix) dbg.add("rateMatrix", rateMatrix);
+		if (origEigenvalues) dbg.add("origEigenvalues", origEigenvalues);
 
-		slots->push_back(std::make_pair("debug", dbg.asR()));
+		slots->add("debug", dbg.asR());
 	}
 }
 
@@ -1873,19 +1873,19 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 			SEXP Rgradient;
 			Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
 			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
-			result->push_back(std::make_pair("gradient", Rgradient));
+			result->add("gradient", Rgradient);
 		}
 	}
 	if (fc->wanted & FF_COMPUTE_HESSIAN) {
 		SEXP Rhessian;
 		Rf_protect(Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree));
 		fc->copyDenseHess(REAL(Rhessian));
-		result->push_back(std::make_pair("hessian", Rhessian));
+		result->add("hessian", Rhessian);
 	}
 	if (fc->wanted & FF_COMPUTE_IHESSIAN) {
 		SEXP Rihessian;
 		Rf_protect(Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree));
 		fc->copyDenseIHess(REAL(Rihessian));
-		result->push_back(std::make_pair("ihessian", Rihessian));
+		result->add("ihessian", Rihessian);
 	}
 }

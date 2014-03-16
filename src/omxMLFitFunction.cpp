@@ -64,8 +64,8 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
-	out->push_back(std::make_pair("SaturatedLikelihood", Rf_ScalarReal(saturated_out)));
-	out->push_back(std::make_pair("IndependenceLikelihood", Rf_ScalarReal(independence_out)));
+	out->add("SaturatedLikelihood", Rf_ScalarReal(saturated_out));
+	out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));
 }
 
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {

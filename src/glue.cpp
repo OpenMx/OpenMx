@@ -354,6 +354,9 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (protectManager.getDepth() > 25000) {   // R_PPSSIZE/2
+		Rf_error("Protection stack too large; report this problem to the OpenMx forum");
+	}
 	FitContext fc(startingValues);
 
 	if (topCompute && !isErrorRaised(globalState)) {
@@ -391,15 +394,15 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				SET_VECTOR_ELT(computes, cx*2+1, c1.second->asR());
 				delete c1.second;
 			}
-			result.push_back(std::make_pair("computes", computes));
+			result.add("computes", computes);
 		}
 
 		if (fc.wanted & FF_COMPUTE_FIT) {
-			result.push_back(std::make_pair("fit", Rf_ScalarReal(fc.fit)));
-			result.push_back(std::make_pair("Minus2LogLikelihood", Rf_ScalarReal(fc.fit)));
+			result.add("fit", Rf_ScalarReal(fc.fit));
+			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc.fit));
 		}
 		if (fc.wanted & FF_COMPUTE_BESTFIT) {
-			result.push_back(std::make_pair("minimum", Rf_ScalarReal(fc.fit)));
+			result.add("minimum", Rf_ScalarReal(fc.fit));
 		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
@@ -409,38 +412,36 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			SEXP estimate;
 			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
 			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
-			result.push_back(std::make_pair("estimate", estimate));
+			result.add("estimate", estimate);
 
 			if (fc.stderrs) {
 				SEXP stdErrors;
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
-				result.push_back(std::make_pair("standardErrors", stdErrors));
+				result.add("standardErrors", stdErrors);
 			}
 			if (fc.wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-				result.push_back(std::make_pair("infoDefinite",
-								Rf_ScalarLogical(fc.infoDefinite)));
-				result.push_back(std::make_pair("conditionNumber",
-								Rf_ScalarReal(fc.infoCondNum)));
+				result.add("infoDefinite", Rf_ScalarLogical(fc.infoDefinite));
+				result.add("conditionNumber", Rf_ScalarReal(fc.infoCondNum));
 			}
 		}
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.push_back(std::make_pair("code", Rf_ScalarReal(optStatus)));
-	backwardCompatStatus.push_back(std::make_pair("status", Rf_ScalarInteger(-isErrorRaised(globalState))));
+	backwardCompatStatus.add("code", Rf_ScalarReal(optStatus));
+	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised(globalState)));
 
 	if (isErrorRaised(globalState)) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(globalState->statusMsg));
-		result.push_back(std::make_pair("error", msg));
-		backwardCompatStatus.push_back(std::make_pair("statusMsg", msg));
+		result.add("error", msg);
+		backwardCompatStatus.add("statusMsg", msg);
 	}
 
-	result.push_back(std::make_pair("status", backwardCompatStatus.asR()));
-	result.push_back(std::make_pair("evaluations", evaluations));
+	result.add("status", backwardCompatStatus.asR());
+	result.add("evaluations", evaluations);
 
 	omxFreeState(globalState);
 	delete Global;

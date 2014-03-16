@@ -78,9 +78,9 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
 
-	out->push_back(std::make_pair("matrices", matrices));
-	out->push_back(std::make_pair("algebras", algebras));
-	out->push_back(std::make_pair("expectations", expectations));
+	out->add("matrices", matrices);
+	out->add("algebras", algebras);
+	out->add("expectations", expectations);
 }
 
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
@@ -109,7 +109,7 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
 			Rf_protect(oElement = Rf_allocVector(REALSXP, orle[i].numValues));
 		}
 		memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
-		result->push_back(std::make_pair(orle[i].label, oElement));
+		result->add(orle[i].label, oElement);
 	}
 }
 

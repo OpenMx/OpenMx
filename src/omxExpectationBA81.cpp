@@ -847,8 +847,8 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
 
 		MxRList dbg;
-		dbg.push_back(std::make_pair("patternLikelihood", Rlik));
-		dbg.push_back(std::make_pair("em.expected", Rexpected));
+		dbg.add("patternLikelihood", Rlik);
+		dbg.add("em.expected", Rexpected);
 
 		SEXP Rmean, Rcov;
 		Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
@@ -857,8 +857,8 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		Rf_protect(Rcov = Rf_allocMatrix(REALSXP, maxAbilities, maxAbilities));
 		memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
 
-		dbg.push_back(std::make_pair("mean", Rmean));
-		dbg.push_back(std::make_pair("cov", Rcov));
+		dbg.add("mean", Rmean);
+		dbg.add("cov", Rcov);
 
 		Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 	}
@@ -928,7 +928,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	}
 
 	MxRList out;
-	out.push_back(std::make_pair("scores", Rscores));
+	out.add("scores", Rscores);
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
 }
 
