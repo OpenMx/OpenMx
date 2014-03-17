@@ -206,7 +206,7 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-styl
 	mv DESCRIPTION.bak DESCRIPTION
 	rm -f $(ROXDOC)
 
-cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean code-style
+cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-style
 	touch inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
@@ -216,20 +216,17 @@ cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp clean code-style
 	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-cran .Rbuildignore
 	./util/rox
-	mkdir -p build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
-	mv DESCRIPTION.bak DESCRIPTION
 
 cran-build: cran
+	$(REXEC) $(RCOMMAND) build .
 	rm -f $(ROXDOC)
-	ls -lh $(RBUILD)/OpenMx_*.tar.gz
 
 cran-winbuild: cran
 	rm -f $(ROXDOC)
 	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
 
-cran-check: cran
-	cd $(RBUILD) && R CMD check OpenMx_*.tar.gz
+cran-check: cran-build
+	cd .. && R CMD check OpenMx_*.tar.gz
 	rm -f $(ROXDOC)
 
 pdf:
@@ -289,8 +286,8 @@ winbuild-biarch:
 install: clean internal-build
 	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
-cran-install: clean cran-build
-	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
+cran-install: cran
+	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) .
 
 check: internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
@@ -327,8 +324,11 @@ memorytest:
 	$(MEMORYTESTFILE)
 
 clean:
-	rm -rf $(RBUILD)/*
+	-rm $(RBUILD)/OpenMx_*.tar.gz
+	-rm src/*.o
+	-rm src/*.so
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
-	rm -f $(ROXDOC)
+	-rm -f $(ROXDOC)
+	-rm src/omxSymbolTable.*

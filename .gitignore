@@ -1,5 +1,8 @@
 .Rhistory
+*.o
+*.so
 *.old
+*.bak
 /build
 /config.log
 /config.status
@@ -18,3 +21,4 @@
 /oprofile_data
 /src/npsolswitch.h
 /src/Makevars.win
+/inst/no-npsol
