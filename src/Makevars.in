@@ -26,3 +26,5 @@ PKG_LIBS=$(OPENMP_LDFLAGS) $(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LI
 save-gcno: $(SHLIB)
 	mkdir -p ../inst/debug
 	-cp *.gcno ../inst/debug/
+
+-include autodep

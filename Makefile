@@ -176,6 +176,7 @@ help:
 	@echo ""	
 	@echo "  clean      remove all files from the build directory"
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
+	@echo "  autodep    regenerate src/autodep"
 
 r-libs-user-dir:
 	./inst/tools/mk-r-libs-user-dir
@@ -322,6 +323,10 @@ failtest:
 
 memorytest:
 	$(MEMORYTESTFILE)
+
+autodep:
+	@echo "WARNING: These dependencies are not exact because they don't consider #defined CPP macros."
+	cd src && gcc -MM *.cpp *.c | perl -pe 's,\bEigen[^\s]*\s, ,g' | perl -pe 's,^\s*\\\n,,' > autodep
 
 clean:
 	-rm $(RBUILD)/OpenMx_*.tar.gz
