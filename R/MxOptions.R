@@ -147,7 +147,8 @@ otherOptions <- list(
     "loglikelihoodScale" = -2.0,
     "maxptsa" = 1.1,
     "maxptsb" = 1.2,
-    "maxptsc" = 1.3
+    "maxptsc" = 1.3,
+    "maxStackDepth" = 25000L   # R_PPSSIZE/2
 )
 
 generateOptionsList <- function(model, numParam, constraints, useOptimizer) {

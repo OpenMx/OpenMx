@@ -234,6 +234,8 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				Global->maxptsb = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxptsc")) {
 				Global->maxptsc = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
+				Global->maxStackDepth = atoi(nextOptionValue);
 			} else {
 				// ignore
 			}
@@ -354,7 +356,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	if (protectManager.getDepth() > 25000) {   // R_PPSSIZE/2
+	if (protectManager.getDepth() > Global->maxStackDepth) {
 		Rf_error("Protection stack too large; report this problem to the OpenMx forum");
 	}
 	FitContext fc(startingValues);

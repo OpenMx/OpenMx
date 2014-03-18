@@ -150,6 +150,7 @@ class omxGlobal {
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;
+	int maxStackDepth;
 
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
