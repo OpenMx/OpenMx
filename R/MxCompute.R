@@ -178,6 +178,10 @@ setMethod("initialize", "MxComputeOnce",
 
 mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 			  free.set=NA_character_, verbose=0L, .is.bestfit=FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeOnce does not accept values for the '...' argument")
+	}
 	if (length(from) == 0) warning("mxComputeOnce from nothing will have no effect")
 	new("MxComputeOnce", from, what, how, free.set, verbose, .is.bestfit)
 }
