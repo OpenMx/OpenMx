@@ -1,27 +1,14 @@
-#
-#   Copyright 2013 The OpenMx Project
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-# 
-#        http://www.apache.org/licenses/LICENSE-2.0
-# 
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
-
 setClass(Class = "MxFitFunctionMultigroup",
 	 representation = representation(
-	   groups = "MxOptionalCharOrNumber"),
+	   groups = "MxOptionalCharOrNumber",
+	     verbose= "integer"),
 	 contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionMultigroup",
-	function(.Object, groups, name = 'fitfunction') {
+	function(.Object, groups, verbose, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@groups <- groups
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
@@ -58,7 +45,7 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 
 ##' Aggregate fit statistics from submodels
 ##'
-##' This is a very simple fit function that sums the fit statistics
+##' This is a simple fit function that sums the fit statistics
 ##' from other fit functions, typically in submodels. It is almost
 ##' equivalent to,
 ##'
@@ -72,8 +59,14 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 ##' also aggregates analytic derivative calculations.
 ##'
 ##' @param groups vector of fit function names
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param verbose the level of debugging output
 ##' @aliases
 ##' MxFitFunctionMultigroup-class
-mxFitFunctionMultigroup <- function(groups) {
-	return(new("MxFitFunctionMultigroup", groups))
+mxFitFunctionMultigroup <- function(groups, ..., verbose=0L) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxFitFunctionMultigroup does not accept values for the '...' argument")
+	}
+	return(new("MxFitFunctionMultigroup", groups, verbose))
 }

@@ -25,6 +25,7 @@
 struct FitMultigroup {
 	std::vector< FreeVarGroup* > varGroups;
 	std::vector< omxMatrix* > fits;
+	int verbose;
 };
 
 static void mgDestroy(omxFitFunction* oo)
@@ -33,7 +34,7 @@ static void mgDestroy(omxFitFunction* oo)
 	delete mg;
 }
 
-static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
+static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 {
 	omxMatrix *fitMatrix  = oo->matrix;
 	fitMatrix->data[0] = 0;
@@ -44,11 +45,10 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
 		if (f1->fitFunction) {
-			omxFitFunctionCompute(f1->fitFunction, ffcompute, fc);
-			if (ffcompute & FF_COMPUTE_MAXABSCHANGE) {
+			omxFitFunctionCompute(f1->fitFunction, want, fc);
+			if (want & FF_COMPUTE_MAXABSCHANGE) {
 				mac = std::max(fc->mac, mac);
 			}
-			if (OMX_DEBUG) { mxLog("mg fit %s %d", f1->name, ffcompute); }
 		} else {
 			omxRecompute(f1);
 
@@ -57,10 +57,13 @@ static void mgCompute(omxFitFunction* oo, int ffcompute, FitContext *fc)
 				Rf_error("%s algebra %d does not evaluate to a 1x1 matrix", oo->fitType, ex);
 			}
 		}
-		fitMatrix->data[0] += f1->data[0];
+		if (want & FF_COMPUTE_FIT) {
+			fitMatrix->data[0] += f1->data[0];
+			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name, f1->name, f1->data[0]); }
+		}
 	}
 	if (fc) fc->mac = mac;
-	if(OMX_DEBUG) { mxLog("Fit Function sum of %lu groups is %f.", mg->fits.size(), fitMatrix->data[0]); }
+	if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name, fitMatrix->data[0]); }
 }
 
 void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
@@ -118,6 +121,9 @@ void initFitMultigroup(omxFitFunction *oo)
 	omxState *os = oo->matrix->currentState;
 
 	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	mg->verbose = Rf_asInteger(slotValue);
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("groups")));
 	int *fits = INTEGER(slotValue);
 	for(int gx = 0; gx < Rf_length(slotValue); gx++) {
@@ -139,7 +145,6 @@ void initFitMultigroup(omxFitFunction *oo)
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
 			oo->parametersHaveFlavor = (oo->parametersHaveFlavor && mat->fitFunction->parametersHaveFlavor);
 		} else {
-			// TODO derivs for algebra
 			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;
 		}
