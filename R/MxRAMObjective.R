@@ -65,8 +65,9 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vect
 	}
 	expectation <- mxExpectationRAM(A, S, F, M, dimnames, thresholds, threshnames)
 	fitfunction <- mxFitFunctionML(vector)
-	msg <- paste("Objective functions have been deprecated.",
-		"Please use mxExpectationRAM() and mxFitFunctionML() instead.")
+	msg <- paste("Objective functions like mxRAMObjective() have been deprecated in favor of expectation and fit functions.\n",
+		"Please use mxExpectationRAM(A, S, F, M, ...) instead, and add a call to mxFitFunctionML().\n",
+		"See examples at help(mxExpectationRAM)")
 	warning(msg)
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }

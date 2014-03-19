@@ -51,8 +51,8 @@ mxFIMLObjective <- function(covariance, means, dimnames = NA,
 	expectation <- mxExpectationNormal(covariance, means, dimnames, 
 		thresholds, threshnames)
 	fitfunction <- mxFitFunctionML(vector)
-	msg <- paste("Objective functions have been deprecated.",
-		"Please use mxExpectationNormal() and mxFitFunctionML() instead.")
+	msg <- paste("Objective functions like mxFIMLObjective() have been deprecated in favor of expectation and fit functions.\n",
+		"Please use mxExpectationNormal(covariance= , means = , ...) instead, and add a call to mxFitFunctionML(). See examples at help(mxExpectationNormal)")
 	warning(msg)
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }
