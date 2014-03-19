@@ -43,7 +43,7 @@ populateSymmTriangle <- function(input, n, default, byrow, strname) {
 	} else {
 		stop(paste(
 			"Illegal number of elements (", len,
-			") for ", strname, " matrix in symmmetric matrix constructor", sep=""),
+			") for ", strname, " matrix in symmetric matrix constructor", sep=""),
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 			call. = FALSE)
 	}
@@ -89,7 +89,14 @@ setMethod("imxVerifyMatrix", "SymmMatrix",
 		labels <- .Object@labels
 		lbound <- .Object@lbound
 		ubound <- .Object@ubound
-		if (!all(values == t(values))) {
+		mask   <- is.na(values[upper.tri(values)])
+		if (any(is.na(t(values)[upper.tri(values)]) != mask)) {
+			stop(paste("NAs in values matrix of symmetric matrix", omxQuotes(.Object@name), 
+				"are not symmetric!"), 
+				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
+				call. = FALSE)
+		}
+		if (any(values[upper.tri(values)][mask]  != t(values)[upper.tri(values)][mask])) {
 			stop(paste("Values matrix of symmetric matrix", omxQuotes(.Object@name), 
 				"is not symmetric!"), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
