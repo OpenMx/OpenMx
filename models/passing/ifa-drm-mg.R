@@ -10,13 +10,13 @@ items[1:numItems] <- i1
 correct <- matrix(NA, 4, numItems)
 for (x in 1:numItems) correct[,x] <- rpf.rparam(i1)
 correct[1,] <- 1
-correct[3,] <- 0
-correct[4,] <- 1
+correct[3,] <- logit(0)
+correct[4,] <- logit(1)
 
 data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 
 	ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-			   values=c(1,0,0, 1),
+			   values=c(1,0, logit(0), logit(1)),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
 	
 	m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
@@ -61,17 +61,18 @@ omxCheckCloseEnough(emstat$EMcycles, 12, 1)
 omxCheckCloseEnough(emstat$totalMstep, 35, 2)
 
 omxCheckCloseEnough(m2@output$fit, 14129.94, .01)
-		omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
+omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
 		
 					#print(m2@matrices$itemParam@values)
 					#print(correct.mat)
-		got <- cor(c(m2@matrices$itemParam@values),
-			   c(correct))
-		omxCheckCloseEnough(got, .994, .01)
+mask <- is.finite(correct)
+got <- cor(c(m2@matrices$itemParam@values[mask]),
+	   c(correct[mask]))
+omxCheckCloseEnough(got, .994, .01)
 
 if (1) {
   ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-                     values=c(1,0,0, 1),
+                     values=c(1,0, logit(0), logit(1)),
                      free=c(TRUE, TRUE, FALSE, FALSE))
   ip.mat@labels[1,] <- 'a1'
   

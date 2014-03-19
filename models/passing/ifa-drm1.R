@@ -11,8 +11,8 @@ correct <- vector("list", numItems)
 for (ix in 1:numItems) {
   items[[ix]] <- i1
   correct[[ix]] <- rpf.rparam(i1)
-  correct[[ix]][3] <- 0
-  correct[[ix]][4] <- 1
+  correct[[ix]][3] <- logit(0)
+  correct[[ix]][4] <- logit(1)
 }
 correct.mat <- simplify2array(correct)
 correct.mat[2,] <- correct.mat[2,] * -correct.mat[1,]
@@ -21,7 +21,7 @@ ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct.mat)
 
 ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-                   values=c(1,0,0, 1),
+                   values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)

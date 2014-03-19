@@ -31,7 +31,7 @@ numItems <- length(items)
 params <- lapply(items, rpf.rparam)
 data <- rpf.sample(5000, items, params)
 
-starting <- list(c(1.4, 1, 0, .1, .9),
+starting <- list(c(1.4, 1, 0, logit(.1), logit(.9)),
                  c(1.4, 1, seq(2,-2, length.out=4)),
                  c(1.4,  1,  rep(0,6)))
 starting.len <- max(vapply(starting, length, 0))
@@ -59,7 +59,7 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxFitFunctionML())
 
 if (0) {   # enable to generate answer file
-  samples.per.item <- 100
+  samples.per.item <- 10
   ans <- list()
   for (ii in 1:numItems) {  # 
     spi <- 0
@@ -83,10 +83,8 @@ if (0) {   # enable to generate answer file
                             mxComputeOnce('fitfunction', 'fit')
                           )))
         fit <- mxRun(lModel, silent=TRUE)
-        fit@output$minimum
+        fit@output$fit
       }, spoint, method.args=list(d=.01, r=2))
-      
-      # Our gradients are too flat for the default higher precision settings.
       
       if (any(is.na(deriv$D))) next
 
@@ -117,7 +115,6 @@ if (1) {  # enable to examine the RMSE by item model
     diff.grad <- rep(0, np)
     diff.hess <- matrix(0, np, np)
     diff.count <- 0
-    skip <- c()
     
     for (tx in 1:dim(ans)[1]) {
       ii <- ans[tx,1]
@@ -139,29 +136,37 @@ if (1) {  # enable to examine the RMSE by item model
       emp.grad <- simplify2array(ans[tx,(2+np):(1+2*np)])
       emp.hess <- unpackHession(simplify2array(ans[tx, -1:-(1+np)]), np)
       
-      if (any(abs(emp.hess - hess) > .01)) {
-        skip <- c(skip,tx)
-      }
       diff.grad <- diff.grad + (emp.grad - grad1)^2
+      if (0) {
+        print(tx)
+        print(grad1)
+        print(emp.grad)
+      }
       diff.hess <- diff.hess + (emp.hess - hess)^2
+      if (0) {
+        print(tx)
+        print(hess)
+        print(emp.hess)
+      }
       diff.count <- diff.count+1
     }
 
-    if (diff.count > 0 && FALSE) {
-      if(length(skip)) print(skip)
+    if (diff.count > 0) {
       diff.grad <- sqrt(diff.grad / diff.count)
       diff.hess <- sqrt(diff.hess / diff.count)
-      print(diff.grad)
-      print(max(diff.grad))
-      print(diff.hess)
-      print(max(diff.hess))
+      if (0) {
+        print(round(diff.grad,3))
+        print(max(diff.grad))
+        print(round(diff.hess,3))
+        print(max(diff.hess))
+      }
     }
 #     print(max(diff.grad))
 #     print(max(diff.hess))
     # The poor accuracy here is probably due to numDeriv, not the
     # math for analytic derivs.
-    omxCheckTrue(all(diff.grad < .003))
-    omxCheckTrue(all(diff.hess < .11))
+    omxCheckTrue(all(diff.grad < 1e-5))
+    omxCheckTrue(all(diff.hess < 1e-3))
   }
 }
 

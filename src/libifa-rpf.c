@@ -69,51 +69,11 @@ hessianIndex(int numParam, int row, int col)
   return numParam + row*(row+1)/2 + col;
 }
 
-/**
- * lognormal(x,sd) := (x*sd*sqrt(2*%pi))^-1 * exp(-(log(x)^2)/(2*sd^2))
- * log(lognormal(x,sd)), logexpand=super;
- */
-static double lognormal_pdf(double aa, double sd)
+static double antilogit(const double x)
 {
-  double sd2 = sd*sd;
-  double loga = log(aa);
-  return -loga*loga/(2*sd2) - loga - log(sd) - M_LN_SQRT_PI - M_LN2/2;
-}
-
-/**
- * diff(log(lognormal(a,sd))),a), logexpand=super;
- */
-static double lognormal_gradient(double aa, double sd)
-{
-  double sd2 = sd*sd;
-  return -log(aa)/(aa * sd2) - 1/aa;
-}
-
-static double logit(double prob)
-{
-  return log(prob/(1-prob));
-}
-
-// Prior for the lower asymptote parameter (Cai, Yang & Hansen, 2011, p. 246)
-
-/**
- * normal(x,mean,sd) := (sd*sqrt(2*%pi))^-1 * exp(-((x - mean)^2)/(2*sd^2))
- * log(normal(log(x/(1-x)),mean,sd)), logexpand=super;
- */
-static double logitnormal_pdf(double cc, double mean, double sd)
-{
-  double sd2 = sd * sd;
-  double offset = logit(cc) - mean;
-  return -(offset*offset)/(2*sd2) - log(sd) - M_LN_SQRT_PI - M_LN2/2;
-}
-
-/**
- * factor(diff(log(normal(log(x/(1-x)),mean,sd)),x))
- */
-static double logitnormal_gradient(double cc, double mean, double sd)
-{
-  double sd2 = sd * sd;
-  return (logit(cc) - mean) / (sd2 * (cc-1) * cc);
+    if (x == INFINITY) return 1.0;
+    else if(x == -INFINITY) return 0.0;
+    else return 1.0 / (1.0 + exp(-x));
 }
 
 static int
@@ -185,8 +145,6 @@ irt_rpf_mdim_drm_paramInfo(const double *spec, const int param,
 		*type = RPF_Intercept;
 	} else if (param == numDims+1 || param == numDims+2) {
 		*type = RPF_Bound;
-		*lower = 1e-6;
-		*upper = 1 - 1e-6;
 	}
 }
 
@@ -198,12 +156,12 @@ irt_rpf_mdim_drm_prob(const double *spec,
   int numDims = spec[RPF_ISpecDims];
   double dprod = dotprod(param, th, numDims);
   double diff = param[numDims];
-  double guessing = param[numDims+1];
-  double upper = param[numDims+2];
+  const double gg = antilogit(param[numDims+1]);
+  const double uu = antilogit(param[numDims+2]);
   double athb = -(dprod + diff);
   if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
   else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
-  double tmp = guessing + (upper-guessing) / (1 + exp(athb));
+  double tmp = gg + (uu-gg) / (1 + exp(athb));
   out[0] = 1-tmp;
   out[1] = tmp;
 }
@@ -216,15 +174,15 @@ irt_rpf_mdim_drm_prob2(const double *spec,
   int numDims = spec[RPF_ISpecDims];
   double dprod = dotprod(param, th, numDims);
   double diff = param[numDims];
-  double guessing = param[numDims+1];
-  double upper = param[numDims+2];
+  const double gg = antilogit(param[numDims+1]);
+  const double uu = antilogit(param[numDims+2]);
   double athb = -(dprod + diff);
   if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
   else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
   double tmp = 1 / (1 + exp(athb));
   out1[0] = 1-tmp;
   out1[1] = tmp;
-  tmp = guessing + (upper-guessing) * tmp;
+  tmp = gg + (uu-gg) * tmp;
   out2[0] = 1-tmp;
   out2[1] = tmp;
 }
@@ -235,85 +193,97 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
 		       const double *where,
 		       const double *weight, double *out)
 {
-  int numDims = spec[RPF_ISpecDims];
-  double cc = param[numDims+1];
-  double upper = param[numDims+2];
-  double PQ[2];
-  double PQstar[2];
-  irt_rpf_mdim_drm_prob2(spec, param, where, PQstar, PQ);
-  double r1 = weight[0];
-  double r2 = weight[1];
-  double r1_P = r1/PQ[0];
-  double r1_P2 = r1/(PQ[0] * PQ[0]);
-  double r2_Q = r2/PQ[1];
-  double r2_Q2 = r2/(PQ[1] * PQ[1]);
+  const int numDims = spec[RPF_ISpecDims];
+  const double expgg = param[numDims+1];
+  const double expuu = param[numDims+2];
+  const double gg = antilogit(expgg);
+  const double uu = antilogit(expuu);
+  const double difexpgg = gg * (1-gg);
+  const double difexpuu = uu * (1-uu);
+  const double gm1 = (1.0 - gg);
+  const double um1 = (1.0 - uu);
+  const double u_1u = uu * um1;
+  const double g_1g = gg * gm1;
+  const double ugD = (uu-gg);
+  double QP[2];
+  double QPstar[2];
+  irt_rpf_mdim_drm_prob2(spec, param, where, QPstar, QP);
+  const double r1 = weight[1];
+  const double r2 = weight[0];
+  const double r1_P = r1/QP[1];
+  const double r1_P2 = r1/(QP[1] * QP[1]);
+  const double r2_Q = r2/QP[0];
+  const double r2_Q2 = r2/(QP[0] * QP[0]);
+  const double r1_Pr2_Q = (r1_P - r2_Q);
+  const double Pstar = QPstar[1];
+  const double Pstar2 = Pstar * Pstar;
+  const double Pstar3 = Pstar2 * Pstar;
+  const double Qstar = QPstar[0];
   for (int dx=0; dx < numDims; dx++) {
-    out[dx] += where[dx] * PQstar[0] * PQstar[1] * (upper-cc) * (r1_P - r2_Q);
+    out[dx] -= where[dx] * Pstar * Qstar * ugD * r1_Pr2_Q;
   }
-  out[numDims] += (upper-cc) * PQstar[0] * PQstar[1] * (r1_P - r2_Q);
-  out[numDims+1] += PQstar[0] * (r1_P - r2_Q);
-  out[numDims+2] += PQstar[1] * (r1_P - r2_Q);
+  out[numDims] -= ugD * Pstar * Qstar * r1_Pr2_Q;
+  out[numDims+1] -= difexpgg * QPstar[0] * r1_Pr2_Q;
+  out[numDims+2] -= difexpuu * QPstar[1] * r1_Pr2_Q;
 
   int ox = numDims+2;
-  double ugD2 = (upper-cc);  // can factor out TODO
-  double ugD = (upper-cc);
-  double Pstar = PQstar[0];
-  double Pstar2 = Pstar * Pstar;
-  double Pstar3 = Pstar2 * Pstar;
-  double Qstar = PQstar[1];
-  double Qstar2 = Qstar * Qstar;
 
   for(int ix=0; ix < numDims; ix++) {
     for(int jx=0; jx <= ix; jx++) {
-      out[++ox] -= (r1_P * (ugD2 * where[ix] * where[jx] *
+      out[++ox] -= (r1_P * (ugD * where[ix] * where[jx] *
 				   (Pstar - 3*Pstar2 + 2*Pstar3)) -
 			   r1_P2 * (ugD * where[ix] * (Pstar - Pstar2) *
 				    (ugD * where[jx] * (Pstar - Pstar2))) +
-			   r2_Q * (ugD2 * where[ix] * where[jx] *
+			   r2_Q * (ugD * where[ix] * where[jx] *
 				   (-Pstar + 3*Pstar2 - 2*Pstar3)) -
 			   r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) *
-				    (ugD * where[jx] * (-Pstar + Pstar2))));
+				    (ugD * where[jx] * (-Pstar + Pstar2))));  // aa_k aa_k
     }
   }
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] -= (r1_P * (ugD2 * where[ix] * (Pstar - 3*Pstar2 + 2*Pstar3)) -
+    out[++ox] -= (r1_P * (ugD * where[ix] * (Pstar - 3*Pstar2 + 2*Pstar3)) -
 			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2) *
 				  (ugD * (Pstar - Pstar2))) +
-			 r2_Q * (ugD2 * where[ix] * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
+			 r2_Q * (ugD * where[ix] * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
 			 r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) *
-				  (ugD * (-Pstar + Pstar2))));
+				  (ugD * (-Pstar + Pstar2))));  // cc aa_k
   }
   double chunk1 = ugD * (Pstar - Pstar2);
-  out[++ox] -= (r1_P * (ugD2 * (Pstar - 3*Pstar2 + 2*Pstar3)) -
-		       r1_P2 * chunk1*chunk1 +
-		       r2_Q * (ugD2 * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
-		       r2_Q2 * chunk1*chunk1);
+  out[++ox] -= (r1_P * (ugD * (Pstar - 3*Pstar2 + 2*Pstar3)) -
+		r1_P2 * chunk1*chunk1 +
+		r2_Q * (ugD * (-Pstar + 3*Pstar2 - 2*Pstar3)) -
+		r2_Q2 * chunk1*chunk1);   // cc^2
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] -= (r1_P * (where[ix] * (Pstar - Pstar2)) -
-			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * Pstar +
-			 r2_Q * (where[ix] * (-Pstar + Pstar2)) +
-			 r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * Pstar);
+	  out[++ox] -= (r1_P * (g_1g * where[ix] * (-Pstar + Pstar2)) -
+		  r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * g_1g * Qstar +
+		  r2_Q * (g_1g * where[ix] * (Pstar - Pstar2)) -
+		  r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * g_1g * (Pstar - 1));   // gg aa_k
   }
-  out[++ox] -= (r1_P * (Pstar - Pstar2) -
-		       r1_P2 * (ugD * (Pstar - Pstar2)) * Pstar +
-		       r2_Q * (-Pstar + Pstar2) +
-		       r2_Q2 * (ugD * (-Pstar + Pstar2)) * Pstar);
-  out[++ox] += Pstar2 * (r1_P2 + r2_Q2);
+  out[++ox] -= (r1_P * (g_1g * (-Pstar + Pstar2)) -
+		r1_P2 * (ugD * (Pstar - Pstar2)) * g_1g * Qstar +
+		r2_Q * (g_1g * (Pstar - Pstar2)) -
+		r2_Q2 * (ugD * (-Pstar + Pstar2)) * g_1g * -Qstar);  // gg cc
+  out[++ox] -= (r1_P * (g_1g * (2.0*gm1 - 1.0 - 2.0*gm1*Pstar + Pstar)) -
+		r1_P2 * (g_1g * (1.0 - Pstar)) * (g_1g * (1.0 - Pstar)) +
+		r2_Q * (g_1g * (-2.0*gm1 + 1.0 + 2.0*gm1*Pstar - Pstar)) -
+		r2_Q2 * (g_1g * (-1.0 + Pstar)) * (g_1g * (-1.0 + Pstar)));  // gg^2
 
   for(int ix=0; ix < numDims; ix++) {
-    out[++ox] -= (r1_P * (where[ix] * (-Pstar + Pstar2)) -
-			 r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * Qstar +
-			 r2_Q * (where[ix] * (Pstar - Pstar2)) -
-			 r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * (-1 + Pstar));
+    out[++ox] -= (r1_P * (u_1u * where[ix] * (Pstar - Pstar2)) -
+		  r1_P2 * (ugD * where[ix] * (Pstar - Pstar2)) * u_1u * Pstar +
+		  r2_Q * (u_1u * where[ix] * (-Pstar + Pstar2)) +
+		  r2_Q2 * (ugD * where[ix] * (-Pstar + Pstar2) ) * u_1u * Pstar);  // uu aa_k
   }
 
-  out[++ox] -= (r1_P * (-Pstar + Pstar2) -
-		       r1_P2 * (ugD * (Pstar - Pstar2)) * Qstar +
-		       r2_Q * (Pstar - Pstar2) -
-		       r2_Q2 * (ugD * (-Pstar + Pstar2)) * -Qstar);
+  out[++ox] -= (r1_P * (u_1u * (Pstar - Pstar2)) -
+		r1_P2 * (ugD * (Pstar - Pstar2)) * u_1u * Pstar +
+		r2_Q * (u_1u * (-Pstar + Pstar2)) +
+		r2_Q2 * (ugD * (-Pstar + Pstar2)) * u_1u * Pstar);  // uu cc
 
-  out[++ox] -= (-r1_P2 * Pstar * Qstar + r2_Q2 * Pstar * (-1 + Pstar));
-  out[++ox] += Qstar2 * (r1_P2 + r2_Q2);
+  out[++ox] -= (-r1_P2 * (g_1g * (1.0 - Pstar)) * u_1u * Pstar +
+		r2_Q2 * (g_1g * (-1.0 + Pstar)) * u_1u * Pstar);  // uu gg
+  out[++ox] -=  (r1_P * (2.0*u_1u*um1*Pstar) - r1_P * (u_1u*Pstar) - r1_P2 *(u_1u*u_1u*Pstar2) -
+		 r2_Q * (2.0*u_1u*um1*Pstar) + r2_Q * (u_1u*Pstar) - r2_Q2 *(u_1u*u_1u*Pstar2));  // uu^2
 }
 
 static void
@@ -323,23 +293,19 @@ irt_rpf_mdim_drm_deriv2(const double *spec,
 {
   int numDims = spec[RPF_ISpecDims];
   const double *aa = param;
-  double cc = param[numDims+1];
-  double upper = param[numDims+2];
+  double gg = param[numDims+1];
+  double uu = param[numDims+2];
 
-  if (cc < 0 || cc >= 1 || upper <= 0 || upper > 1) {
-    set_deriv_nan(spec, out);
-    return;
-  }
   for (int dx=0; dx < numDims; dx++) {
     if (aa[dx] < 0) {
       set_deriv_nan(spec, out);
       return;
     }
   }
-  if (cc == 0) {
+  if (gg == -INFINITY) {
     out[numDims+1] = nan("I");
   }
-  if (upper == 1) {
+  if (uu == INFINITY) {
     out[numDims+2] = nan("I");
   }
 }
@@ -372,8 +338,8 @@ irt_rpf_mdim_drm_dTheta(const double *spec, const double *restrict param,
   double Pstar = PQstar[0];
   double Qstar = PQstar[1];
   const double *aa = param;
-  const double guess = param[numDims + 1];
-  const double upper = param[numDims + 2];
+  const double guess = antilogit(param[numDims + 1]);
+  const double upper = antilogit(param[numDims + 2]);
   for (int ax=0; ax < numDims; ax++) {
     double piece = dir[ax] * (upper-guess) * aa[ax] * (Pstar * Qstar);
     grad[1] += piece;

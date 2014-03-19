@@ -21,13 +21,13 @@ for (ix in 1:numItems) {
 	items[[ix]] <- rpf.drm(factors=min(ix,maxDim),
                                multidimensional=TRUE)
 	correct[[ix]] <- rpf.rparam(items[[ix]])
-	if (ix>1) correct[[ix]][[4]] <- 0   # no guessing, for now
+	if (ix>1) correct[[ix]][[4]] <- logit(0)   # no guessing, for now
 }
 correct[[1]][[5]] <- 1   # make all vectors the same length
 correct.mat <- simplify2array(correct)
-correct.mat[5,] <- 1
-correct.mat[4,1] <- 1
-correct.mat[3,1] <- 0
+correct.mat[5,] <- logit(1)
+correct.mat[4,1] <- logit(1)
+correct.mat[3,1] <- logit(0)
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
 maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
@@ -42,10 +42,11 @@ data <- rpf.sample(ability, items, correct.mat, design)
 #write.csv(data, file="2d-new.csv")
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(1, 1.4, 0, 0, 1),
+                   values=c(1, 1.4, 0, logit(0), logit(1)),
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
-ip.mat@values[4,1] <- 1
+ip.mat@values[3,1] <- logit(0)
+ip.mat@values[4,1] <- logit(1)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
@@ -79,8 +80,9 @@ omxCheckCloseEnough(emstat$totalMstep, 771, 20)
 					#print(m1@matrices$ItemParam@values)
 					#print(correct.mat)
 # sometimes found as low as .89, maybe solution is unstable
-omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values),
-			c(correct.mat)), .91, .07)
+mask <- is.finite(correct.mat)
+omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values[mask]),
+			c(correct.mat[mask])), .91, .07)
 scores.out <- m1@expectation@output$scores
 max.se <- max(scores.out[,3:4])
 omxCheckCloseEnough(sum(abs(scores.out[,1:2] - t(ability)) < max.se) / (numPeople*2), .797, .02)

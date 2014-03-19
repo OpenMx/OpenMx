@@ -18,8 +18,8 @@ correct <- vector("list", numItems)
 for (ix in 1:numItems) {
 	items[[ix]] <- rpf.drm(factors=maxDim)
 	correct[[ix]] <- rpf.rparam(items[[ix]])
-	correct[[ix]][[4]] <- 0   # no guessing, for now
-	correct[[ix]][[5]] <- 1   # upper cound
+	correct[[ix]][[4]] <- logit(0)   # no guessing, for now
+	correct[[ix]][[5]] <- logit(1)   # upper cound
 }
 correct.mat <- simplify2array(correct)
 
@@ -39,7 +39,7 @@ if (0) {
 }
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(1.414, 1, 0, 0, 1),
+                   values=c(1.414, 1, 0, logit(0), logit(1)),
 		   free=c(rep(TRUE, 3), FALSE, FALSE))
 
 #ip.mat@values[2,1] <- correct.mat[2,1]
@@ -97,8 +97,9 @@ omxCheckCloseEnough(emstat$totalMstep, 224, 20)
 #print(correct.mat)
 #print(m1@matrices$ItemParam@values)
 omxCheckCloseEnough(m1@output$minimum, 20859.87, .01)
-got <- cor(c(m1@matrices$ItemParam@values), c(correct.mat))
-omxCheckCloseEnough(got, .977, .01)
+mask <- is.finite(correct.mat)
+got <- cor(c(m1@matrices$ItemParam@values[mask]), c(correct.mat[mask]))
+omxCheckCloseEnough(got, .977, .01) 
 scores <- m1@expectation@output$scores
 omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)
 omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
