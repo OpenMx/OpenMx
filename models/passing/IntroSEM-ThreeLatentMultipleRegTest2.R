@@ -278,9 +278,9 @@ expectSE <- c(0.076528, 0.088527, 0.103665, 0.092459, 0.136218, 0.118764,
 
 expectMin <- 7897.082
 
-omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out@output$estimate, 0.01)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentOrthoRaw1Out@output$standardError), 0.001)
+    as.vector(threeLatentOrthoRaw1Out@output$standardError), 0.01)
 
 omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out@output$minimum, 0.001)
