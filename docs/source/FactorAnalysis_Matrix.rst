@@ -75,7 +75,7 @@ Our first step to running this model is to include the data to be analyzed. The 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, an expectation function, and a fit function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -170,8 +170,9 @@ The following code contains all of the components of our model. Before running a
             labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M",
-            dimnames=c(manifestVars, latentVars))
+        mxExpectationRAM("A","S","F","M",
+            dimnames=c(manifestVars, latentVars)),
+        mxFitFunctionML()
     )
 
 This ``mxModel`` function can be split into several parts. First, we give the model a name. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Common Factor Model Matrix Specification"``.
@@ -303,7 +304,7 @@ The last matrix of our model is the **M** matrix, which defines the means and in
         name="M"
     )
 
-The final part of this model is the objective function. This defines both how the specified matrices combine to create the expected covariance matrix of the data, as well as the fit function to be minimized. In a RAM specified model, the expected covariance matrix is defined as:       
+The final parts of this model are the expectation function and the fit function. The expectation defines how the specified matrices combine to create the expected covariance matrix of the data.  The fit defines how the expectation is compared to the data to create a single scalar number that is minimized. In a RAM specified model, the expected covariance matrix is defined as:       
           
 .. math::
    :nowrap:
@@ -321,13 +322,14 @@ The expected means are defined as:
    ExpMean = F * (I - A)^{-1} * M 
    \end{eqnarray*} 
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using ``mxExpectationNormal`` and other functions in OpenMx, the ``mxExpectationRAM`` function computes the expected covariance and means matrices when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector.  The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` yields maximum likelihood estimates of structural equation models.  It uses full information maximum likelihood when the data are raw.
 
 .. code-block:: r
 
-    mxRAMObjective("A", "S", "F", "M")
+    mxExpectationRAM("A", "S", "F", "M"),
+    mxFitFunctionML()
 
-The model now includes an observed covariance matrix (i.e., data) and the matrices and objective function required to define the expected covariance matrix and estimate parameters.
+The model now includes an observed covariance matrix (i.e., data), model matrices, an expectation function, and a fit function.  So the model has all the required elements to define the expected covariance matrix and estimate parameters.
 
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
 
@@ -374,13 +376,14 @@ We start with displaying the complete script.  Note that we have used the succin
             name="expCov" ),
         mxAlgebra(expression= varMeans + t(facLoadings %*% facMeans), 
             name="expMean" ),
-        mxFIMLObjective( covariance="expCov", means="expMean", dimnames=manifestVars)
+        mxExpectationNormal( covariance="expCov", means="expMean", dimnames=manifestVars),
+        mxFitFunctionML()
     )
     oneFactorFit<-mxRun(oneFactorModel)
 
 The first ``mxMatrix`` statement declares a ``Full`` **6x1** matrix of factor loadings to be estimated, called "facLoadings".  We fix the first factor loading to 1 for identification.  Even though we specify just one start value of 1 which is recycled for each of the elements in the matrix, it becomes the fixed value for the first factor loading and the start value for the other factor loadings.  The second ``mxMatrix`` is a ``symmetric`` **1x1** which estimates the variance of the factor, named "facVariances".  The third ``mxMatrix`` is a ``Diag`` **6x6** matrix for the residual variances, named "resVariances".  The fourth ``mxMatrix`` is a ``Full`` **1x6** matrix of free elements for the means of the observed variables, called "varMeans".  The fifth ``mxMatrix`` is a ``Full`` **1x1** matrix with a fixed value of zero for the factor mean, named "facMeans".  
 
-We then use two algebra statement to work out the expected mean and covariance matrices.  Note that the formula's for the expression of the expected covariance and the expected mean vector map directly on to the mathematical equations.  The arguments for the ``mxFIMLObjective`` now refer to these algebras for the expected covariance and expected means.  The ``dimnames`` are used to map them onto the observed variables.
+We then use two algebra statements to work out the expected mean and covariance matrices.  Note that the formula's for the expression of the expected covariance and the expected mean vector map directly on to the mathematical equations.  The arguments for the ``mxExpectationNormal`` function now refer to these algebras for the expected covariance and expected means.  The ``dimnames`` are used to map them onto the observed variables.  The fit function compares the expectation and the observation (i.e. data) to optimize free parameters.
 
 
 Two Factor Model
@@ -412,7 +415,7 @@ The data for the two factor model can be found in the ``myFAData`` files introdu
 
     twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
   
-Specifying the two factor model is virtually identical to the single factor case. The ``mxData`` function has been changed to reference the appropriate data, but is identical in usage. We've added a second latent variable, so the **A** and **S** matrices are now of order 8x8. Similarly, the **F** matrix is now of order 6x8 and the **M** matrix of order 1x8. The ``mxRAMObjective`` has not changed. The code for our two factor model looks like this:
+Specifying the two factor model is virtually identical to the single factor case. The ``mxData`` function has been changed to reference the appropriate data, but is identical in usage. We've added a second latent variable, so the **A** and **S** matrices are now of order 8x8. Similarly, the **F** matrix is now of order 6x8 and the **M** matrix of order 1x8. The ``mxExpectationRAM`` has not changed. The code for our two factor model looks like this:
 
 .. code-block:: r
 
@@ -513,7 +516,8 @@ Specifying the two factor model is virtually identical to the single factor case
                       NA,NA),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M")
+        mxExpectationRAM("A","S","F","M"),
+        mxFitFunctionML()
     )
 
 The four ``mxMatrix`` functions have changed slightly to accomodate the changes in the model. The **A** matrix, shown below, is used to specify the regressions of the manifest variables on the factors. The first three manifest variables (``"x1"``-``"x3"``) are regressed on ``"F1"``, and the second three manifest variables (``"y1"``-``"y3"``) are regressed on ``"F2"``. We must again constrain the model to identify and scale the latent variables, which we do by constraining the first loading for each latent variable to a value of one.

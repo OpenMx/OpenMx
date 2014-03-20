@@ -18,7 +18,8 @@ This section will cover how to periodically save the state of the optimizer to a
 	    mxMatrix(type="Symm", nrow=1, ncol=1, values=1, free=FALSE, name="L"),
 	    mxMatrix(type="Diag", nrow=5, ncol=5, values=1, free=TRUE, name="U"),
 	    mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
-	    mxMLObjective(covariance="R", dimnames=manifestVars),
+	    mxExpectationNormal(covariance="R", dimnames=manifestVars),
+	    mxFitFunctionML(),
 	    mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 	)
 

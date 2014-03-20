@@ -3,7 +3,7 @@
 Definition Variables, Matrix Specification
 ==========================================
 
-This example will demonstrate the use of OpenMx definition variables with the implementation of a simple two group dataset.  What are definition variables?  Essentially, definition variables can be thought of as observed variables which are used to change the statistical model on an individual case basis.  In essence, it is as though one or more variables in the raw data vectors are used to specify the statistical model for that individual.  Many different types of statistical model can be specified in this fashion; some  are readily specified in standard fashion, and some that cannot.  To illustrate, we implement a two-group model.  The groups differ in their means but not in their variances and covariances.  This situation could easily be modeled in a regular multiple group fashion - it is only implemented using definition variables to illustrate their use.  The results are verified using summary statistics and an Mx 1.0 script for comparison is also available.
+This example will demonstrate the use of OpenMx definition variables with the implementation of a simple two group dataset.  What are definition variables?  Essentially, definition variables can be thought of as observed variables which are used to change the statistical model on an individual case basis.  In essence, it is as though one or more variables in the raw data vectors are used to specify the statistical model for that individual.  Many different types of statistical models can be specified in this fashion; some can be readily specified in standard fashion, and some that cannot.  To illustrate, we implement a two-group model.  The groups differ in their means but not in their variances and covariances.  This situation could easily be modeled in a regular multiple group fashion - it is only implemented using definition variables to illustrate their use.  The results are verified using summary statistics and an Mx 1.0 script for comparison is also available.
 
 Mean Differences
 ----------------
@@ -30,7 +30,7 @@ Algebraically, we are going to fit the following model to the observed x and y v
    y_{i} = \mu_{y} + \beta_y * def + \epsilon_{yi}
    \end{eqnarray*}
 
-where :math:`def` is the definition variable and the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\rho`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having :math:`def` set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`).
+where :math:`def` is the definition variable and the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\rho`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having :math:`def` set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`) = :math:`\rho`.
 
 Our task is to implement the model shown in the figure below:
 
@@ -74,18 +74,19 @@ The following code contains all of the components of our model. Before running a
 
 .. code-block:: r
 
-    defMeansModel <- mxModel("Definition Means Matrix Specification", 
-        mxFIMLObjective(
+    defMeansModel <- mxModel("Definition Means Matrix Specification",
+        mxFitFunctionML(),
+        mxExpectationNormal(
             covariance="Sigma",
             means="Mu",
             dimnames=selVars
-        ), 
+        ),
 
-The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Matrix Specification"``.
+The first argument in an ``mxModel`` function has a special purpose. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Matrix Specification"``.
 
-The second argument in this ``mxModel`` call is itself a function. It declares that the objective function to be optimized is full information maximum likelihood (FIML) under normal theory, which is tagged as ``mxFIMLObjective``.  There are in turn two arguments to this function: the covariance matrix ``Sigma`` and the mean vector ``Mu``.  These matrices will be defined later in the ``mxModel`` function call.
+The second argument in this ``mxModel`` call is itself a function. It declares that the fit function to be optimized is maximum likelihood (ML), which is tagged ``mxFitFunctionML``.  Full information maximum likelihood (FIML) is used whenever the data allow, and does not need to be requested specifically.  The third argument in this ``mxModel`` is another function.  It declares the expectation function to be a normal distribution, ``mxExpectationNormal``.  This means the model is of a normal distribution with a particular mean and covariance.  Hence, there are in turn two arguments to this function: the covariance matrix ``Sigma`` and the mean vector ``Mu``.  These matrices will be defined later in the ``mxModel`` function call.
 
-Model specification is carried out using ``mxMatrix`` functions to create matrices for the model. In the present case, we need four matrices.  First is the predicted covariance matrix, ``Sigma``.  Next, we use three matrices to specify the model for the means.  First is ``M`` which corresponds to estimates of the means for individuals with definition variables with values of zero.  Individuals with definition variable values of 1 will have the value in ``M`` along with the value in the matrix ``beta``.  So both matrices are of size 1x2 and both contain two free parameters.  There is a separate deviation for each of the variables, which will be estimated in the elements 1,1 and 1,2 of the ``beta`` matrix.  Last, but by no means least, is the matrix ``def`` which contains the definition variable.  The variable *def* in ``mxData`` data frame is referred to as ``data.def``.  In the present case, the definition variable contains a 1 for group 1, and a zero otherwise.  
+Model specification is carried out using ``mxMatrix`` functions to create matrices for the model. In the present case, we need four matrices.  First is the predicted covariance matrix, ``Sigma``.  Next, we use three matrices to specify the model for the means.  First is ``M`` which corresponds to estimates of the means for individuals with definition variables with values of zero.  Individuals with definition variable values of 1 will have the value in ``M`` plus the value in the matrix ``beta``.  So both matrices are of size 1x2 and both contain two free parameters.  There is a separate deviation for each of the variables, which will be estimated in the elements 1,1 and 1,2 of the ``beta`` matrix.  Last, but by no means least, is the matrix ``def`` which contains the definition variable.  The variable *def* in the ``mxData`` data frame is referred to in the matrix label as ``data.def``.  In the present case, the definition variable contains a 1 for group 1, and a zero otherwise.  
 
 .. code-block:: r
 
@@ -134,9 +135,9 @@ The trick - commonly used in regression models - is to multiply the ``beta`` mat
         name="Mu"
     ),
 
-The result of this algebra is named ``Mu``, and this handle is referred to in the ``mxFIMLObjective`` function call.  
+The result of this algebra is named ``Mu``, and this handle is referred to in the ``mxExpectationNormal`` function call.  
 
-Next, we declare where the data are, and their type, by creating an ``MxData`` object with the ``mxData`` function.  This piece of code creates an ``MxData`` object. It first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
+Next, we declare where the data are, and their type, by creating an ``MxData`` object with the ``mxData`` function.  This piece of code creates an ``MxData`` object. It first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Because the data are raw and the fit function is ``mxFitFunctionML``, full information maximum likelihood is used in this ``mxModel``.  Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
 
 .. code-block:: r
 

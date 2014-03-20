@@ -69,7 +69,7 @@ The objects ``xy`` and ``def`` might be combined in a data frame.  However, in t
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model.  Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, and an objective function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
+The following code contains all of the components of our model.  Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, an expectation function, and a fit function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
 
 .. code-block:: r
 

@@ -79,7 +79,7 @@ Our first step to running this model is to include the data to be analyzed. The 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.  We pre-specify a number of 'variables', namely the number of variables analyzed ``nVariables``, in this case 5, the number of factors ``nFactors``, here one, and the number of thresholds ``nthresholds``, here 3 or one less than the number of categories in the simulated ordinal variable.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, an expectation function, and a fit function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.  We pre-specify a number of 'variables', namely the number of variables analyzed ``nVariables``, in this case 5, the number of factors ``nFactors``, here one, and the number of thresholds ``nthresholds``, here 3 or one less than the number of categories in the simulated ordinal variable.
 
 .. code-block:: r
 
@@ -140,12 +140,13 @@ The following code contains all of the components of our model. Before running a
             observed=ordinalData, 
             type='raw'
         ),
-        mxFIMLObjective(
+        mxExpectationNormal(
             covariance="expCovariances", 
             means="expMeans", 
             dimnames=bananaNames, 
             thresholds="expThresholds"
-        )
+        ),
+        mxFitFunctionML()
     )
 
 
@@ -247,18 +248,19 @@ We estimate the ``Full`` **nThresholds x nVariables** matrix.  To make sure that
          name="expThresholds"
      )
 
-The final part of this model is the objective function.  The choice of fit function determines the required arguments.  Here we fit to raw ordinal data, thus we specify the matrices for the expected covariance matrix of the data, as well as the expected means and thresholds previously specified.  We use ``dimnames`` to map the model for means, thresholds and covariances onto the observed variables.
+The final parts of this model are the expectation function and the fit function.  The choice of expectation function determines the required arguments.  Here we fit to raw ordinal data, thus we specify the matrices for the expected covariance matrix of the data, as well as the expected means and thresholds previously specified.  We use ``dimnames`` to map the model for means, thresholds and covariances onto the observed variables.
 
 .. code-block:: r
 
-    mxFIMLObjective(
+    mxExpectationNormal(
         covariance="expCovariances", 
         means="expMeans", 
         dimnames=bananaNames, 
         thresholds="expThresholds"
-    )
+    ),
+    mxFitFunctionML()
 
-The free parameters in the model can then be estimated using full information maximum likelihood (FIML) for covariances, means and thresholds.  To do so, the model is run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
+The free parameters in the model can then be estimated using full information maximum likelihood (FIML) for covariances, means and thresholds.  FIML is specified by using raw data with the ``mxFitFunctionML``.  To estimate free parameters, the model is run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
 
 .. code-block:: r
 
@@ -356,12 +358,13 @@ As indicate above, the model can be re-parameterized such that means and varianc
             observed=ordinalData, 
             type='raw'
         ),
-        mxFIMLObjective(
+        mxExpectationNormal(
             covariance="expCovariances", 
             means="expMeans", 
             dimnames=bananaNames, 
             thresholds="expThresholds"
-        )
+        ),
+        mxFitFunctionML()
     )
 
 We will only highlight the changes from the previous model specification.  By fixing the first and second threshold to 0 and 1 respectively for each variable, we are now able to estimate a mean and a variance for each variable instead.  If we are estimating the variances of the observed variables, the factor loadings are no longer standardized, thus we relax the upper boundary on the factor loading matrix ``facLoadings`` to be 2.  The residual variances are now directly estimated as a ``Diagonal`` matrix of size ``nVariables x nVariables``, and given a start value higher than that for the factor loadings.  As the residual variances are already on the diagonal of the ``resVariances`` matrix, we no longer need to add the ``vec2diag`` function to obtain the ``expCovariances`` matrix.
