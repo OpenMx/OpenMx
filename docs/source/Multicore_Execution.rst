@@ -108,7 +108,8 @@ The following script can be found with ``demo(BootstrapParallel)``
                        mxAlgebra(lambda %*% t(lambda) + specifics,
                                  name="preCov", dimnames=dn),
                        mxData(observed=obsCov, type="cov", numObs=nObs),
-                       mxMLObjective(covariance='preCov'),
+                       mxExpectationNormal(covariance='preCov'),
+                       mxFitFunctionML(),
                        independent = TRUE)
 
 	topModel <- mxModel("container")

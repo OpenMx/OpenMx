@@ -57,7 +57,7 @@ The first step to running our model is to import data. The code below is used to
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, and an objective function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
+The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, an expectation function, and a fit function) are included in their functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
 .. code-block:: r
 
@@ -137,8 +137,9 @@ The following code contains all of the components of our model. Before running a
             labels=c(NA,NA,NA,NA,NA,"meani","means"),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M",
-			dimnames=c("x1","x2","x3","x4","x5","",""))
+        mxExpectationRAM("A","S","F","M",
+			dimnames=c("x1","x2","x3","x4","x5","","")),
+        mxFitFunctionML()
     )
 
 The model begins with a name, in this case "Linear Growth Curve Model Matrix Specification". If the first argument is an object containing an ``MxModel`` object, then the model created by the ``mxModel`` function will contain all of the named entites in the referenced model object. 
@@ -245,7 +246,7 @@ The final matrix in our RAM model is the **M** or means matrix, which specifies 
         name="M"
     )
 
-The last piece of our model is the ``mxRAMObjective`` function, which defines both how the specified matrices combine to create the expected covariance matrix of the data, as well as the fit function to be minimized. As covered in earlier examples, the expected covariance matrix for a RAM model is defined as:       
+The last pieces of our model are the ``mxExpectaionRAM`` and ``mxFitFunctionML`` functions, which define both how the specified matrices combine to create the expected covariance matrix of the data, and the fit function to be minimized, respectively. As covered in earlier examples, the expected covariance matrix for a RAM model is defined as:       
           
 .. math::
    :nowrap:
@@ -263,7 +264,7 @@ The expected means are defined as:
    ExpMean = F * (I - A)^{-1} * M 
    \end{eqnarray*} 
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` function often takes no arguments.
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
 
