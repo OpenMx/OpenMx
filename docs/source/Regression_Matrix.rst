@@ -145,8 +145,9 @@ The following code contains all of the components of our model. Before running a
             values=c(0, 0),
             labels=c("meanx", "beta0"),
             name="M"),
-        mxRAMObjective("A", "S", "F", "M",
-            dimnames=c("x","y"))
+        mxExpectationRAM("A", "S", "F", "M",
+            dimnames=c("x","y")),
+        mxFitFunctionML()
     )
       
 This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named ``Simple Regression Matrix Specification``.
@@ -171,7 +172,7 @@ If we were to use a covariance matrix and vector of means as data, we would repl
         means=SimpleDataMeans
     )  
 
-The next four functions specify the four matricies that make up the RAM specified model. Each of these matrices defines part of the relationship between the observed variables. These matrices are then combined by the objective function, which follows the four ``mxMatrix`` functions, to define the expected covariances and means for the supplied data. In all of the included matrices, the order of variables matches those in the data. Therefore, the first row and column of all matrices corresponds to the *x* variable, while the second row and column of all matrices corresponds to the *y* variable. 
+The next four functions specify the four matricies that make up the RAM specified model. Each of these matrices defines part of the relationship between the observed variables. These matrices are then combined by the expectation function, which follows the four ``mxMatrix`` functions, to define the expected covariances and means for the supplied data. In all of the included matrices, the order of variables matches those in the data. Therefore, the first row and column of all matrices corresponds to the *x* variable, while the second row and column of all matrices corresponds to the *y* variable. 
 
 The **A** matrix is created first. This matrix specifies all of the assymetric paths or regressions among the variables. A free parameter in the **A** matrix defines a regression of the variable represented by that row on the variable represented by that column. For clarity, all matrices are specified with the ``byrow`` argument set to ``TRUE``, which allows better correspondence between the matrices as displayed below and their position in ``mxMatrix`` objects. In the section of code below, a free parameter is specified as the regression of *y* on *x*, with a starting value of 1, and a label of ``"beta1"``. This matrix is named ``"A"``.
 
@@ -243,7 +244,7 @@ The fourth and final ``mxMatrix`` function specifies the **M** matrix. This matr
         name="M"
     )
           
-The final part of this model is the objective function. This defines both how the specified matrices combine to create the expected covariance matrix of the data, as well as the fit function to be minimized. In a RAM specified model, the expected covariance matrix is defined as:       
+The final parts of this model are the expectation and fit functions. These define how the specified matrices combine to create the expected covariance matrix of the data, and the fit function to be minimized, respectively. In a RAM specified model, the expected covariance matrix is defined as:       
           
 .. math::
     :nowrap:
@@ -261,13 +262,14 @@ The expected means are defined as:
     ExpMean = F * (I - A)^{-1} * M 
     \end{eqnarray*} 
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. While users may define their own expected covariance matrices using other objective functions in OpenMx, the ``mxRAMObjective`` function yields maximum likelihood estimates of structural equation models when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxRAMObjective`` function takes four arguments, which are the names of the ``A``, ``S``, ``F`` and ``M`` matrices in your model.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using ``mxExpectationNormal`` and other functions in OpenMx, the ``mxExpectationRAM`` function computes the expected covariance and means matrices when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector.  The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` yields maximum likelihood estimates of structural equation models.  It uses full information maximum likelihood when the data are raw.
 
 .. code-block:: r
 
-    mxRAMObjective("A", "S", "F", "M")
+    mxExpectationRAM("A", "S", "F", "M"),
+    mxFitFunctionML()
 
-The model now includes an observed covariance matrix (i.e., data) and the matrices and objective function required to define the expected covariance matrix and estimate parameters.
+The model now includes an observed covariance matrix (i.e., data), model matrices, an expectation function, and a fit function.  So the model has all the required elements to define the expected covariance matrix and estimate parameters.
 
 Model Fitting
 ^^^^^^^^^^^^^^
@@ -344,11 +346,12 @@ Rather than using the RAM approach the regression model with matrices can also b
             expression= resVar,
             name="expCov"
         ),
-        mxFIMLObjective( 
+        mxExpectationNormal( 
             covariance="expCov",
             means="expMean",
             dimnames=selVars
-        )
+        ),
+        mxFitFunctionML()
     )
 
 Note the the ``mxData`` statement has not changed.  The first key change is that we put the variable *x* in a matrix X by using a special type of label assignment in an ``mxMatrix`` statement.  The matrix is a ``Full`` **1x1** fixed matrix.  The label has two parts: the first part is called ``data.`` which indicates that the name used in the second part (``x``) is a variable found in the dataset referred to in the ``mxData`` statement.  This variable can now be used as part of any algebra, and is no longer considered a dependent variable.
@@ -414,15 +417,16 @@ Now we can explicitly specify the formula for the expected means and covariances
          name="expCov"
     ),
     
-Finally, we call up the results of the algebras as the arguments for the objective function.  The dimnames map the data to the model.  Note that ``selVars`` now includes only the *y* variable.
+Finally, we call up the results of the algebras as the arguments for the expectation function.  The dimnames map the data to the model.  Note that ``selVars`` now includes only the *y* variable.  The fit function declares that the model is fit using maximum likelihood.  When combine with raw data this mean full information maximum likelihood (FIML) is optimized.
 
 .. code-block:: r
 
-    mxFIMLObjective( 
+    mxExpectationNormal( 
         covariance="expCov",
         means="expMean",
         dimnames=selVars
-    ))
+    ),
+    mxFitFunctionML())
     
 
 Multiple Regression
@@ -513,10 +517,11 @@ Now, we can move on to our code. It is identical in structure to our simple regr
             labels=c("meanx","beta0","meanz"),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M")
+        mxExpectationRAM("A","S","F","M"),
+        mxFitFunctionML()
     )
 
-The ``mxData`` function now takes a different data object (``MultipleDataRaw`` replaces ``SingleDataRaw``, adding an additional variable), but is otherwise unchanged. The ``mxRAMObjective`` does not change. The only differences between this model and the simple regression script can be found in the **A**, **S**, **F** and **M** matrices, which have expanded to accommodate a second independent variable.
+The ``mxData`` function now takes a different data object (``MultipleDataRaw`` replaces ``SingleDataRaw``, adding an additional variable), but is otherwise unchanged. The ``mxExpectationRAM`` and ``mxFitFunctionML`` do not change. The only differences between this model and the simple regression script can be found in the **A**, **S**, **F** and **M** matrices, which have expanded to accommodate a second independent variable.
 
 The A matrix now contains two free parameters, representing the regressions of the dependent variable y on both *x* and *z*. As regressions appear on the row of the dependent variable and the column of the independent variable, these two parameters are both on the second (*y*) row of the **A** matrix.
 
@@ -582,7 +587,7 @@ Data import for this analysis will actually be slightly simpler than before. The
 
     myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
-Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxRAMObjective`` again refers to the **A**, **S**, **F** and **M** matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order 4x4, and the **M** matrix now contains one row and four columns.
+Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxExpectationRAM`` again refers to the **A**, **S**, **F** and **M** matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order 4x4, and the **M** matrix now contains one row and four columns.
 
 .. code-block:: r
 
@@ -649,7 +654,8 @@ Our code should look very similar to our previous two models. The ``mxData`` fun
             labels=c("betaw","meanx","betay","meanz"),
             name="M"
         ),
-        mxRAMObjective("A","S","F","M")
+        mxExpectationRAM("A","S","F","M"),
+        mxFitFunctionML()
     )
 
 The only additional components to our ``mxMatrix`` functions are the inclusion of the *w* variable, which becomes the first row and column of all matrices. The model is run and output is viewed just as before, using the ``mxRun`` function, ``@output`` and the ``summary()`` function to run, view and summarize the completed model.

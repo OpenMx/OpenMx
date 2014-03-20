@@ -71,8 +71,8 @@ The individuals in this sample are considered to be statistically independent.  
     # Algebra for -logLikelihood
         mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), 
             name="NegativeLogLikelihood"),
-    # User-defined objective
-        mxAlgebraObjective("NegativeLogLikelihood")
+    # User-defined fit function
+        mxFitFunctionAlgebra("NegativeLogLikelihood")
     )
 
     OneLocusFit <- mxRun(OneLocusModel)
@@ -123,8 +123,8 @@ The R script to fit this model is very similar to that of the single locus model
     # Algebra for -logLikelihood
         mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), 
             name="NegativeLogLikelihood"),
-    # User-defined objective
-        mxAlgebraObjective("NegativeLogLikelihood")
+    # User-defined fit function
+        mxFitFunctionAlgebra("NegativeLogLikelihood")
     )
     
     TwoLocusFit<-mxRun(TwoLocusModel)
