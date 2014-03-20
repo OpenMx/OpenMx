@@ -24,16 +24,7 @@ double rnd_double() { return (double)1.0; }
 
 void freeMatrices(){
     while (!matrices.empty()){
-        /* printf("matrices.front is: \n");
-         print(matrices.front());
-         printf("matrices.front.t is : \n");
-         for(int i = 0; i <matrices.front().cols; i++){
-         printf("%f", matrices.front().t[i]); putchar('\n');
-         }*/
-        //print(matrices.front());
         free(matrices.front());
-        //printf("matrices.front is: \n");
-        //print(matrices.front());
         matrices.pop_front();
     }
 }
@@ -73,8 +64,6 @@ Matrix getRow( Matrix t, int row){
 	int i;
 	for (i=0;i < t.cols; i++){
 		M(toReturn,i,0) = M(t,i,row);
-        // printf("toReturn is: \n");
-        // print(toReturn); putchar('\n');
 	}
 	
 	return toReturn;
@@ -310,7 +299,6 @@ Matrix diag(Matrix A){
     return result;
 }
 
-//Mahsa: this was wrong. it was "value <= M(t,j,i)", and "j<=t.cols". both are wrong.
 bool allGreaterThan(Matrix t, double value){
 	int i,j;
 	for (i=0; i<t.rows; i++){
@@ -362,8 +350,6 @@ double findMax(Matrix t){
         {
             if (max < M(t,j,i) ){
                 max = M(t,j,i);
-                //printf("max is:"); putchar('\n');
-                //printf("%2f", max); putchar('\n');
             }
         }
 	}
@@ -398,7 +384,7 @@ double max(double a, double b){
 }
 
 
-double dotProduct(Matrix a, Matrix b) { //Mahsa: a.cols element of matrix a is multiplied by a.cols first element of matrix b. e.g. if matrix a is 2 by 4, and matrix b is the transpose of matrix a (hence 4 by 2), then dotProduct multiplied first row of matrix a by first row and second row of matrix b (2+2 = 4 first elements of matrix b), and adds them all together.
+double dotProduct(Matrix a, Matrix b) {
 	double runningSum = 0;
 	int index;
 	for (index = 0; index < a.cols; index++)
@@ -486,7 +472,6 @@ Matrix divide(Matrix x,  Matrix y)
     int r,c;
     if (x.cols != y.cols) {
         if (x.cols > y.cols) y = copy(y, fill(x.cols - y.cols, 1, (double)1.0));
-        //else x = copy(x, fill(y.cols - x.cols), 1, ()
     }
     for ( r = 0; r < x.rows; r++ )
     {
@@ -542,7 +527,7 @@ Matrix rowWiseMin(Matrix t)
     return mins;
 }
 
-Matrix transpose2D(Matrix t){ //Mahsa: 1) first row is copied into a matrix with the size equal to the argument matrix. then each element of this row is multiplied by the corresponding row in the copied matrix. i.e first element is multiplied by the first row. second element is multiplied by the second row, and so on.
+Matrix transpose2D(Matrix t){
     int r, c;
     Matrix result = fill(t.cols,t.cols,(double)0.0);
     for ( r = 0; r < t.cols; r++ )
@@ -552,8 +537,6 @@ Matrix transpose2D(Matrix t){ //Mahsa: 1) first row is copied into a matrix with
 			M(result,c,r) = M(t,c,0);
         }
     }
-    //printf("result: transpose2D: \n");
-    //print(result); putchar('\n');
     for ( r = 0; r < t.cols; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
@@ -566,7 +549,7 @@ Matrix transpose2D(Matrix t){ //Mahsa: 1) first row is copied into a matrix with
     
 }
 
-Matrix transposeDotProduct(Matrix t){ //Mahsa: 1) takes the minimum dimension. 2) multiplies the first row by itself and the other rows(as far as the minimum dimension allows). multiplies the second row by itself and the rest, and so on. This gives the same answer as "a%*%t(a)" in R.
+Matrix transposeDotProduct(Matrix t){
 	int r,c;
 	double minDim = min(t.cols, t.rows);
 	Matrix result = fill(minDim,minDim,(double)0.0);
@@ -581,7 +564,7 @@ Matrix transposeDotProduct(Matrix t){ //Mahsa: 1) takes the minimum dimension. 2
   	return result;
 }
 
-Matrix transposeDP(Matrix t){ //Mahsa: same as transpose2D function
+Matrix transposeDP(Matrix t){
     Matrix toReturn = fill(t.cols, t.cols, (double)0.0);
     int r, c;
     for ( r = 0; r < t.cols; r++ )
@@ -594,7 +577,7 @@ Matrix transposeDP(Matrix t){ //Mahsa: same as transpose2D function
     return toReturn;
 }
 
-Matrix transpose(Matrix t){ // Mahsa: simply transposes the matrix
+Matrix transpose(Matrix t){
     Matrix result = fill(t.rows, t.cols, (double)0.0);
 	int r,c;
 	for ( r = 0; r < t.cols; r++ )
@@ -746,15 +729,6 @@ Matrix rbind(Matrix x,  Matrix y){
     Matrix result = copy(x, y);
 	return result;
 }
-
-/*Matrix copyThree(Matrix a,  Matrix b,  Matrix c){
-    Matrix result = copy(a, b);
-    Matrix result_three = copy(result, c);
-}*/
-
-/*Matrix copyFive(Matrix a,  Matrix b,  Matrix c,  Matrix d,  Matrix e){
-	copy(copy(copy(a,b), copy(c,d)), e);
-}*/
 
 Matrix timess(Matrix a,  Matrix b){
     int i, j, k;
@@ -1023,8 +997,6 @@ Matrix rowSort(Matrix t)
         {
             M(result, c, r) = M(t, c, r);
         }
-      	//for ( r = 0; r < t.rows; ++r )
-      	//{
         for ( i = 0; i < t.cols; i++ )
         {
             for ( j = 0; j < t.cols; j++ )
@@ -1035,7 +1007,7 @@ Matrix rowSort(Matrix t)
                     M(result, j, r) = a;
                 }
             }
-         	//}
+         	
       	}
     }
     return result;
@@ -1051,7 +1023,6 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat)
 	double* work = (double*) malloc(lwork * sizeof(double));
     
     F77_CALL(dgels)(&TRANS, &(mainMat.rows), &(mainMat.cols), &(result.cols), mainMat.t, &(mainMat.rows), result.t, &(result.rows), work, &lwork, &l);
-    //result = subset(result, 0, 0, 1);
     return result;
 }
 
@@ -1187,8 +1158,6 @@ Matrix MatrixInvert(Matrix inMat)
 
 Matrix condNumPurpose(Matrix inMat)
 {
-    //printf("inMat is: \n");
-    //print(inMat); putchar('\n');
     Matrix result = duplicateIt(inMat);
     char jobz = 'N';
 	char range = 'A';
@@ -1223,27 +1192,24 @@ Matrix condNumPurpose(Matrix inMat)
     for (int i = 0; i <result.cols; i++)
     {
         M(eigenVals, i, 0) = w[i];
-        //printf("w[i] is: \n");
-        //printf("%2f", w[i]);
     }
     return eigenVals;
 }
 
-/*int this_main(int argc,char *argv[]) {
-	int i,j;
-	int size=atoi(argv[1]);
-    Matrix a,b,c;
+Matrix solveinv(Matrix inMat){
     
-	a=new_matrix(size,size);
-	b=new_matrix(size,size);
-	for(i=0;i<size;i++){
-		for(j=0;j<size;j++) {
-			M(a,i,j)=rnd_double();
-			M(b,i,j)=rnd_double();
-		}
-	}
-	c=matrix_mult(a,b);
-	print(c);
-}*/
+    Matrix result;
+    
+    int info;
+    
+    result = duplicateIt(inMat);
+    
+    Matrix identityM = diag(fill(result.cols, 1, (double)1.0));
+        
+    int* ipiv = (int*) malloc(result.cols * sizeof(int));
+    
+    dgesv_(&(result.cols), &(result.cols), result.t, &(result.cols), ipiv, identityM.t, &(result.cols), &info);
 
+    return identityM;
+}
 

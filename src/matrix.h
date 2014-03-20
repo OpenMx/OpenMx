@@ -34,7 +34,7 @@ struct Param_Obj {
 
 #define M(m,x,y) m.t[x+y*m.cols]
 
-void printMatrices();
+Matrix solveinv(Matrix inMat);
 
 void freeMatrices();
 
