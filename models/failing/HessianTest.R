@@ -13,6 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# NOTE: The purpose of these tests is no longer to test the
+# numDeriv derived Richardson extrapolation code. These tests
+# are interesting because NPSOL and CSOLNP obtain different
+# optimums.
+
 library(OpenMx)
 
 vNames <- c("V1", "V2", "V3", "V4")
