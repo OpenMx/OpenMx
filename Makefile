@@ -152,8 +152,8 @@ help:
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
-	@echo "  install       build and install OpenMx with NPSOL"
-	@echo "  cran-install  build and install OpenMx without NPSOL"
+	@echo "  install       install OpenMx with NPSOL"
+	@echo "  cran-install  install OpenMx without NPSOL"
 	@echo ""
 	@echo "DOCUMENTATION"
 	@echo ""	
@@ -186,12 +186,12 @@ internal-build: build/$(TARGET)
 dev-doc:
 	./util/rox
 
-code-style:
+code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@echo "Checking code style"
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 
-build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-style
+npsol-prep: code-style
 	rm -f inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
@@ -202,12 +202,9 @@ build/$(TARGET): $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-styl
 	cat src/Makevars.win.in >> src/Makevars.win
 	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
 	cp .Rbuildignore-npsol .Rbuildignore
-	mkdir -p build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
-	mv DESCRIPTION.bak DESCRIPTION
-	rm -f $(ROXDOC)
+	-./util/rox
 
-cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-style
+no-npsol-prep: code-style
 	touch inst/no-npsol
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
@@ -216,13 +213,19 @@ cran: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp code-style
 	echo 'NPSOL_LIBS=' > src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-cran .Rbuildignore
-	./util/rox
+	-./util/rox
 
-cran-build: cran
+build/$(TARGET): npsol-prep
+	mkdir -p build
+	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
+	mv DESCRIPTION.bak DESCRIPTION
+	rm -f $(ROXDOC)
+
+cran-build: no-npsol-prep
 	$(REXEC) $(RCOMMAND) build .
 	rm -f $(ROXDOC)
 
-cran-winbuild: cran
+cran-winbuild: no-npsol-prep
 	rm -f $(ROXDOC)
 	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
 
@@ -284,10 +287,10 @@ winbuild: common-build
 winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
 
-install: clean internal-build
-	cd $(RBUILD); MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
+install: npsol-prep
+	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) .
 
-cran-install: cran
+cran-install: no-npsol-prep
 	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) .
 
 check: internal-build
@@ -337,3 +340,4 @@ veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
 	-rm -f $(ROXDOC)
 	-rm src/omxSymbolTable.*
+	-rm src/libnpsol.a
