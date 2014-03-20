@@ -144,7 +144,7 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 
 
 void omxCompleteMxExpectationEntities() {
-	if(OMX_DEBUG) { mxLog("Completing %lu Model Expectation(s).", globalState->expectationList.size());}
+	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) globalState->expectationList.size());}
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);

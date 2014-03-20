@@ -116,7 +116,7 @@ void FreeVarGroup::log()
 	for (size_t ix=1; ix < id.size(); ++ix) {
 		str += string_snprintf(",%d", id[ix]);
 	}
-	str += string_snprintf(") with %lu variables:", vars.size());
+	str += string_snprintf(") with %d variables:", (int) vars.size());
 
 	for (size_t vx=0; vx < vars.size(); ++vx) {
 		str += " ";
@@ -314,22 +314,22 @@ void omxFreeChildStates(omxState *state)
 			omxFreeAllMatrixData(state->algebraList[ax]);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %lu Matrices.", state->matrixList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", (int) state->matrixList.size());}
 		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
 			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
-		if(OMX_DEBUG) { mxLog("Freeing %lu Model Expectations.", state->expectationList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", state->expectationList.size());}
 		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
 			omxFreeExpectationArgs(state->expectationList[ex]);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", state->numConstraints);}
+		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) state->numConstraints);}
 		for(int k = 0; k < state->numConstraints; k++) {
 			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %lu Data Sets.", state->dataList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Data Sets.", (int) state->dataList.size());}
 		for(size_t dx = 0; dx < state->dataList.size(); dx++) {
 			omxFreeData(state->dataList[dx]);
 		}

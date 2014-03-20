@@ -982,7 +982,7 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
                 // For now, skip.
                 // TODO: Find a way to deal with these situations
                 status[param] = -1;
-                if(OMX_DEBUG) { mxLog("Skipping parameter %lu because %luth element has outside influence %d. Looking for %d, %d, or %d.", param, varLoc, varMat, Amat, Smat, Mmat);}
+                if(OMX_DEBUG) { mxLog("Skipping parameter %d because %dth element has outside influence %d. Looking for %d, %d, or %d.", (int) param, (int) varLoc, varMat, Amat, Smat, Mmat);}
                 break;
             }
         }
