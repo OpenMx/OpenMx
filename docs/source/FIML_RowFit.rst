@@ -1,23 +1,23 @@
-.. _fiml-rowobjective:
+.. _fiml-rowfit:
 
 ..
     build with the following in OpenMx/trunk/docs/source
     sphinx-build -b html . ../build/html
 
 
-Full Information Maximum Likelihood, Row Objective Specification
+Full Information Maximum Likelihood, Row Fit Specification
 ================================================================
 
 ..
     This document was authored by Michael D. Hunter, M.A.
-    Last updated: Sun Feb 19 16:34:27 Central Standard Time 2012 by Michael Hunter
+    Last updated: Thu 20 Mar 2014 12:28:54 Central Daylight Time by Michael Hunter
 
 
 This example will show how full information maximum likelihood (FIML) can be implemented using a row-by-row evaluation of a likelihood function.  **Note: You do not have to implement your own FIML! The method of FIML used in this example  is for didactic purposes only.**  If you are looking for how to get your model to use FIML, then look for any model that uses raw data.  For example
 
 *   http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_PathRaw.R
 
-This document seeks to inform users about how they can implement their own row objective functions using FIML as an example.  The example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise objective function that estimates the saturated model in two variables.  The second part refers to the following file:
+This document seeks to inform users about how they can implement their own row fit functions using FIML as an example.  The example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise fit function that estimates the saturated model in two variables.  The second part refers to the following file:
 
 *    http://openmx.psyc.virginia.edu/svn/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
 
@@ -25,7 +25,7 @@ There is an analogous version of this example that uses the standard full inform
 
 *    http://openmx.psyc.virginia.edu/svn/trunk/demo/BivariateCorrelation.R
 
-The goal of the current document is twofold: to increase users' understanding of full information maximum likelihood, and to assist users in implementing their own row objective functions.
+The goal of the current document is twofold: to increase users' understanding of full information maximum likelihood, and to assist users in implementing their own row fit functions.
 
 Full Information Maximum Likelihood
 -----------------------------------
@@ -133,7 +133,7 @@ The selection on both rows and columns yields the following filtered expected co
     2 & 6 & 8\\
     \end{array} \right)$
 
-In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row objective implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/svn/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/svn/trunk/src/omxFIMLObjective.c .
+In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row fit implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/svn/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/svn/trunk/src/omxFIMLObjective.c .
 
 Quadratic Products
 ******************
@@ -166,10 +166,10 @@ The minus two log likelihood of the entire data set is the sum of the minus two 
 where there are :math:`N` rows in the data.
 
 
-Row Objective Example
+Row Fit Example
 ---------------------
 
-We will now implement FIML using a row-wise objective function.  The ``mxRowObjective()`` function evaluates an ``mxAlgebra`` for each row of a data set.  It then stores the results of this row-wise evaluation in an ``mxAlgebra`` which is by default called "rowResults".  Finally, the row results must be collapsed into a single number.  Another ``mxAlgebra`` called the "reduceAlgebra" takes the row results and reduces them to a single number which is then minimized.
+We will now implement FIML using a row-wise fit function.  The ``mxFitFunctionRow()`` function evaluates an ``mxAlgebra`` for each row of a data set.  It then stores the results of this row-wise evaluation in an ``mxAlgebra`` which is by default called "rowResults".  Finally, the row results must be collapsed into a single number.  Another ``mxAlgebra`` called the "reduceAlgebra" takes the row results and reduces them to a single number which is then minimized.
 
 Data
 ^^^^
@@ -273,8 +273,8 @@ We create a new ``mxModel`` that has everything from the previous models.
         )
     )
 
-Row Objective Specification
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Row Fit Specification
+^^^^^^^^^^^^^^^^^^^^^
 
 We create a new ``mxModel`` that has everything from the previous models.  
 
@@ -291,7 +291,7 @@ We create a new ``mxModel`` that has everything from the previous models.
             expression=sum(rowResults),
             name = "reduceAlgebra",
         ),
-        mxRowObjective(
+        mxFitFunctionRow(
             rowAlgebra='rowAlgebra',
             reduceAlgebra='reduceAlgebra',
             dimnames=c('X','Y'),
