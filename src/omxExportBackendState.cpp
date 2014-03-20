@@ -38,7 +38,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 
 	SEXP nextMat, algebra;
 	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
-		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Matrix %lu.", index); }
+		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Matrix %d.", (int) index); }
 		omxMatrix* nextMatrix = currentState->matrixList[index];
 		omxRecompute(nextMatrix);
 		nextMat = omxExportMatrix(nextMatrix);
@@ -46,33 +46,33 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	}
 
 	for(size_t index = 0; index < currentState->algebraList.size(); index++) {
-		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %lu.", index); }
+		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
 		omxInitialCompute(nextAlgebra);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;
 		if(currentFit != NULL) {
-			if(OMX_DEBUG) { mxLog("Algebra %lu is a fit function.", index); }
+			if(OMX_DEBUG) { mxLog("Algebra %d is a fit function.", (int) index); }
 			if(currentFit->populateAttrFun != NULL) {
-				if(OMX_DEBUG) { mxLog("Algebra %lu has attribute population.", index); }
+				if(OMX_DEBUG) { mxLog("Algebra %d has attribute population.", (int) index); }
 				currentFit->populateAttrFun(currentFit, algebra);
 		    }
 		}
 
-		if(OMX_DEBUG) { mxLog("Final Calculation of Algebra %lu Complete.", index); }
+		if(OMX_DEBUG) { mxLog("Final Calculation of Algebra %d Complete.", index); }
 		SET_VECTOR_ELT(algebras, index, algebra);
 	}
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
 	
 	for(size_t index = 0; index < currentState->expectationList.size(); index++) {
-		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %lu.", index); }
+		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
 		omxExpectation* nextExpectation = currentState->expectationList[index];
 		omxExpectationRecompute(nextExpectation);
 		SEXP rExpect;
 		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
 		if(nextExpectation->populateAttrFun != NULL) {
-			if(OMX_DEBUG) { mxLog("Expectation %lu has attribute population.", index); }
+			if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }
 			nextExpectation->populateAttrFun(nextExpectation, rExpect);
 	    }
 		SET_VECTOR_ELT(expectations, index, rExpect);

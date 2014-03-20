@@ -229,8 +229,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 	fitMatrix->data[0] = 0;  // may not recompute it, don't leave stale data
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %ld flavors)",
-		      tolerance, maxIter, ramsay.size());
+		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %d flavors)",
+		      tolerance, maxIter, (int) ramsay.size());
 	}
 	while (1) {
 		++iter;

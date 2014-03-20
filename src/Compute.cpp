@@ -304,7 +304,7 @@ void FitContext::log(const char *where, int what)
 	if (what & FF_COMPUTE_MAXABSCHANGE) buf += string_snprintf("MAC: %.5f\n", mac);
 	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f (scale %f)\n", fit, Global->llScale);
 	if (what & FF_COMPUTE_ESTIMATE) {
-		buf += string_snprintf("est %lu: c(", count);
+		buf += string_snprintf("est %d: c(", (int) count);
 		for (size_t vx=0; vx < count; ++vx) {
 			buf += string_snprintf("%.5f", est[vx]);
 			if (vx < count - 1) buf += ", ";
@@ -389,8 +389,8 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, at[k]);
 			if(OMX_DEBUG) {
-				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %lu",
-					row, col, loc->matrix, at[k], k);
+				mxLog("Setting location (%d, %d) of matrix %d to value %f for var %d",
+					row, col, loc->matrix, at[k], (int) k);
 			}
 		}
 	}
@@ -1121,7 +1121,7 @@ void ComputeEM::setExpectationPrediction(const char *context)
 {
 	for (size_t wx=0; wx < expectations.size(); ++wx) {
 		omxExpectation *expectation = expectations[wx];
-		if (verbose >= 4) mxLog("ComputeEM: expectation[%lu] %s predict %s", wx, expectation->name, context);
+		if (verbose >= 4) mxLog("ComputeEM: expectation[%d] %s predict %s", (int) wx, expectation->name, context);
 		omxExpectationCompute(expectation, context);
 	}
 }
@@ -1410,11 +1410,11 @@ void ComputeEM::computeImpl(FitContext *fc)
 		if (paramConverged) {
 			++semConverged;
 			memcpy(rij.data() + v1 * freeVars, rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
-			if (verbose >= 2) mxLog("ComputeEM: param %lu converged in %d probes",
-						v1, paramHistLen[v1]);
+			if (verbose >= 2) mxLog("ComputeEM: param %d converged in %d probes",
+						(int) v1, paramHistLen[v1]);
 		} else {
-			if (verbose >= 2) mxLog("ComputeEM: param %lu failed to converge after %d probes",
-						v1, paramHistLen[v1]);
+			if (verbose >= 2) mxLog("ComputeEM: param %d failed to converge after %d probes",
+						(int) v1, paramHistLen[v1]);
 			break;
 		}
 	}
