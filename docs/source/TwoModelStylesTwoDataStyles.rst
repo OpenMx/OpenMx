@@ -118,7 +118,7 @@ We specify which data the model is fitted to with the ``mxData`` command.  Its f
             numObs=1000
         ))
 
-With the path specification, the 'RAM' objective function is used by default, as indicated by the ``type`` argument.  Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see refs].
+With the path specification, the 'RAM' expectation function and the 'ML' fit function are used by default.  The model argument ``type='RAM'`` indicates this choice of expectation and fit function.  Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see refs].
 
     
 Model Fitting
@@ -130,13 +130,13 @@ So far, we have specified the model, but nothing has been evaluated.  We have 's
 
     univSatFit1 <- mxRun(univSatModel1)
 
-There are a variety of ways to generate output.  We will promote the use of the ``mxEval`` command, which takes two arguments: an ``expression`` and a ``model`` name.  The ``expression`` can be a matrix or algebra name defined in the model, new calculations using any of these matrices/algebras, the objective function, etc.  We can then use any regular R function to generate derived fit statistics, some of which will be built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.
+There are a variety of ways to generate output.  We will promote the use of the ``mxEval`` command, which takes two arguments: an ``expression`` and a ``model`` name.  The ``expression`` can be a matrix or algebra name defined in the model, new calculations using any of these matrices/algebras, the fit function, etc.  We can then use any regular R function to generate derived fit statistics, some of which will be built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.
 
 .. code-block:: r
 
     EC1 <- mxEval(S, univSatFit1)   #univSatFit1[['S']]@values
-    LL1 <- mxEval(objective, univSatFit1)
-    SL1 <- univSatFit1@output$other$Saturated
+    LL1 <- mxEval(fitfunction, univSatFit1)
+    SL1 <- univSatFit1@output$Saturated
     Chi1 <- LL1-SL1
 
 The output of these objects like as follows::
@@ -243,9 +243,9 @@ Note that the output now includes the expected means, as well as the expected co
 Covariance Matrices and Matrix-style Input
 ------------------------------------------
 
-The next example replicates these models using matrix-style coding.  The code to specify the model includes four commands, (i) ``mxModel``, (ii) ``mxMatrix``, (iii) ``mxData`` and (iv) ``mxMLObjective``.
+The next example replicates these models using matrix-style coding.  The code to specify the model includes five commands, (i) ``mxModel``, (ii) ``mxMatrix``, (iii) ``mxData``, (iv) ``mxExpectationNormal``, and (v) ``mxFitFunctionML``.
 
-Starting with the model fitted to the summary covariance matrix, we need to create a matrix for the expected covariance matrix using the ``mxMatrix`` command.  The first argument is its ``type``, symmetric for a covariance matrix.  The second and third arguments are the number of rows (``nrow``) and columns (``ncol``) – one for a univariate model.  The ``free`` and ``values`` parameters work as in the path specification.  If only one element is given, it is applied to all elements of the matrix.  Alternatively, each element can be assigned its free/fixed status and starting value with a list command.  Note that in the current example, the matrix is a simple **1x1** matrix, but that will change rapidly in the following examples.  The ``mxData`` is identical to that used in path stlye models.  A different objective function is used, however, namely the ``mxMLObjective`` command which takes two arguments,  ``covariance`` to hold the expected covariance matrix (which we specified above using ``mxMatrix``  as ``expCov``), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.
+Starting with the model fitted to the summary covariance matrix, we need to create a matrix for the expected covariance matrix using the ``mxMatrix`` command.  The first argument is its ``type``, symmetric for a covariance matrix.  The second and third arguments are the number of rows (``nrow``) and columns (``ncol``) – one for a univariate model.  The ``free`` and ``values`` parameters work as in the path specification.  If only one element is given, it is applied to all elements of the matrix.  Alternatively, each element can be assigned its free/fixed status and starting value with a list command.  Note that in the current example, the matrix is a simple **1x1** matrix, but that will change rapidly in the following examples.  The ``mxData`` is identical to that used in path stlye models.  A different expectation function is used, however, namely the ``mxExpectationNormal`` command which takes two arguments,  ``covariance`` to hold the expected covariance matrix (which we specified above using ``mxMatrix``  as ``expCov``), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.  Additionally, the use of the ML fit function must now be made explicit by including the ``mxFitFunctionML`` command.
 
 .. code-block:: r
 
@@ -263,15 +263,16 @@ Starting with the model fitted to the summary covariance matrix, we need to crea
             type="cov", 
             numObs=1000
         ),
-        mxMLObjective(
+        mxExpectationNormal(
             covariance="expCov",
             dimnames=selVars
-        )
+        ),
+        mxFitFunctionML()
     )
 
     univSatFit3 <- mxRun(univSatModel3)
 
-A means vector can also be added as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is required to specify the vector of expected means. In this case a matrix of ``type='Full'``, with ``1`` row and column, is assigned ``free=T`` with start value ``0``, and the name ``expMean``.  The second change is an additional argument ``mean`` to the ``mxMLObjective`` function for the expected mean, here ``expMean``.
+A means vector can also be added as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is required to specify the vector of expected means. In this case a matrix of ``type='Full'``, with ``1`` row and column, is assigned ``free=T`` with start value ``0``, and the name ``expMean``.  The second change is an additional argument ``mean`` to the ``mxExpectationNormal`` function for the expected mean, here ``expMean``.
 
 .. code-block:: r
 
@@ -289,17 +290,18 @@ A means vector can also be added as the fourth argument of the ``mxData`` comman
             numObs=1000, 
             means=colMeans(testData)
         )
-        mxMLObjective(
+        mxExpectationNormal(
             covariance="expCov",
             means="expMean",
             dimnames=selVars
         )
+        mxFitFunctionML()
 
 
 Raw Data and Matrix-style Input
 -------------------------------
 
-Finally, if we want to use the matrix specification with raw data, we specify matrices for the means and covariances using  ``mxMatrix()``. The ``mxData`` command now, however takes a matrix (or data.frame) of raw data and the ``mxFIMLObjective`` function replaces ``mxMLObjective`` to evaluate the likelihood of the data using FIML (Full Information Maximum Likelihood).  This function takes three arguments: the expected covariance matrix ``covariance``; the expected mean vector, ``means``; and a third for the ``dimnames``.
+Finally, if we want to use the matrix specification with raw data, we specify matrices for the means and covariances using  ``mxMatrix()``. The ``mxData`` command now, however takes a matrix (or data.frame) of raw data.  With that being said, the expectation and fit functions do not need to change.  The expectation is still that of a normal distribution; that is, the model is of a covariance matrix and means vector.  Similarly, the fit function is still maximum likelihood (ML), but now the data are raw.  ML with raw data is known as full information ML (FIML) because when raw data is used no information is lost by collapsing the raw data into a covariance matrix.
 
 .. code-block:: r
 
@@ -324,11 +326,12 @@ Finally, if we want to use the matrix specification with raw data, we specify ma
             observed=testData,
             type="raw"
         ),
-        mxFIMLObjective(
+        mxExpectationNormal(
             covariance="expCov",
             means="expMean",
             dimnames=selVars
-        )
+        ),
+        mxFitFunctionML()
     )
          
 Note that the output generated for the paths and matrices specification are completely equivalent.
@@ -428,7 +431,7 @@ The optional expected means command specifies a **1x2** row vector with two free
             name="expMean"
         )
 
-Combining these two ``mxMatrix`` commands with the raw data, specified in the ``mxData`` command and the ``mxFIMLObjective`` command with the appropriate arguments is all that is needed to fit a saturated bivariate model.  So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and specify ``type="Lower"``.  We then use an ``mxAlgebra`` command to multiply this matrix, named ``Chol`` with its transpose (R function `t()`).
+Combining these two ``mxMatrix`` commands with the raw data, specified in the ``mxData`` command and the ``mxExpectationNormal`` and ``mxFitFunctionML`` commands with the appropriate arguments is all that is needed to fit a saturated bivariate model.  So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and specify ``type="Lower"``.  We then use an ``mxAlgebra`` command to multiply this matrix, named ``Chol`` with its transpose (R function `t()`).
 
 .. code-block:: r
 

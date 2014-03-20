@@ -20,7 +20,7 @@ MxModel objects support the '$' operator, also known as the list indexing operat
             )
         ),
         mxModel('submodel2', 
-            mxAlgebraObjective('topmodel1.A')
+            mxFitFunctionAlgebra('topmodel1.A')
         )
     )
 
@@ -31,11 +31,11 @@ The first useful trick is entering the string ``model$`` in the R interpreter an
 
    > model$
    model$A                    model$submodel2
-   model$B                    model$submodel2.objective
+   model$B                    model$submodel2.fitfunction
    model$submodel1            model$undersub1
    model$submodel1.C          model$undersub1.data
 
-The named entities of the model are displayed in one of three modes. In the first mode, all of the submodels contained within the parent model are accessed by using their unique model name (``submodel1``, ``submodel2``, and ``undersub1``).  In the second mode, all of the named entities contained within the parent model are displayed by their names (``A`` and ``B``).  In the third mode, all of the named entities contained by the submodels are displayed in the ``modelname.entityname`` format (``submodel1.C``, ``submodel2.objective``, and ``undersub1.data``). The three models will become even more important in the next section, *Modifying Elements*, so make sure you are comfortable with them before moving on.
+The named entities of the model are displayed in one of three modes. In the first mode, all of the submodels contained within the parent model are accessed by using their unique model name (``submodel1``, ``submodel2``, and ``undersub1``).  In the second mode, all of the named entities contained within the parent model are displayed by their names (``A`` and ``B``).  In the third mode, all of the named entities contained by the submodels are displayed in the ``modelname.entityname`` format (``submodel1.C``, ``submodel2.fitfunction``, and ``undersub1.data``). The three models will become even more important in the next section, *Modifying Elements*, so make sure you are comfortable with them before moving on.
 
 Modifying Elements
 ^^^^^^^^^^^^^^^^^^
