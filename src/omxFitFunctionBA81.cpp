@@ -368,6 +368,8 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		int numFreeParams = int(state->numFreeParam);
 		int ox=-1;
 		for (size_t ix=0; ix < numItems; ix++) {
+			if (state->hBlocks[ix].vars.size() == 0) continue;
+
 			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
@@ -1110,7 +1112,7 @@ static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
 					// when there are latent distribution parameter
 					// equality constraints. Whether the sample size is adjusted
 					// or not seems to make no detectable difference in tests.
-					hb->mat.data()[to] += Scale * data->rows * -.5 * tr;
+					hb->mat.data()[to] = Scale * data->rows * -.5 * tr;
 
 					OMXZERO(term2.data() + c2 * maxAbilities, maxAbilities);
 					if (c2 != r2) OMXZERO(term2.data() + r2 * maxAbilities, maxAbilities);

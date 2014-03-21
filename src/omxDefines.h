@@ -55,7 +55,6 @@
 #define OMX_DEBUG 1
 #define OMX_VERBOSE 1
 #define OMX_BOUNDS_CHECK 1
-#define EIGEN_INITIALIZE_MATRICES_BY_NAN
 #else
 #ifdef VERBOSEMX
 #define OMX_DEBUG 0
@@ -67,6 +66,7 @@
 #endif /* DEBUGMX */
 
 #ifdef OMX_BOUNDS_CHECK
+#define EIGEN_INITIALIZE_MATRICES_BY_NAN
 #undef EIGEN_NO_DEBUG
 //#define _GLIBCXX_DEBUG  // but gives link errors without -D_GLIBCXX_DEBUG on command line
 #endif // OMX_BOUNDS_CHECK

@@ -39,6 +39,7 @@ void FitContext::queue(HessianBlock *hb)
 
 void FitContext::negateHessian()
 {
+	// this assumes that we haven't processed the blocks yet, need to check TODO
 	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
 		allBlocks[bx]->mat *= -1.0;
 	}
