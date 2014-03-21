@@ -24,8 +24,8 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* t
     
     int nextLoc = 0;
     for(int j = 0; j < cov->rows; j++) {
-        for(int k = 0; k <= j; k++) {
-            omxSetVectorElement(vector, nextLoc, omxMatrixElement(cov, k, j)); // Use upper triangle in case of SYMM-style mat.
+        for(int k = j; k < cov->rows; k++) {
+            omxSetVectorElement(vector, nextLoc, omxMatrixElement(cov, j, k)); // Use upper triangle in case of SYMM-style mat.
             nextLoc++;
         }
     }
@@ -101,6 +101,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	omxCopyMatrix(B, oFlat);
 
 	omxDAXPY(-1.0, eFlat, B);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 	
     if(weights != NULL) {
         omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
