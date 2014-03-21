@@ -111,7 +111,8 @@ omxSaturatedModel <- function(x, run=FALSE) {
 			mxExpectationNormal("satCov", "satMea"),
 			mxFitFunctionML()
 		)
-	} else if(any(ordinalCols)) {
+	}
+	if(any(ordinalCols)) {
 		unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
 		thresholdDeviations <- mxMatrix("Full", 
 				name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
