@@ -1577,7 +1577,7 @@ ComputeEM::~ComputeEM()
 
 enum ComputeInfoMethod omxCompute::stringToInfoMethod(const char *iMethod)
 {
-	enum ComputeInfoMethod infoMethod;
+	enum ComputeInfoMethod infoMethod = INFO_METHOD_DEFAULT; // to avoid gcc warning
 	if (strcmp(iMethod, "sandwich")==0) {
 		infoMethod = INFO_METHOD_SANDWICH;
 	} else if (strcmp(iMethod, "meat")==0) {

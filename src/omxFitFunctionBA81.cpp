@@ -1228,11 +1228,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 							oo->matrix->name, fit, estate->excludedPatterns, numUnique);
 			return fit;
 		}
-
-		return 0;
 	} else {
 		Rf_error("%s: Predict nothing or scores before computing %d", oo->matrix->name, want);
 	}
+	return 0;
 }
 
 static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
