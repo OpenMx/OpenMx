@@ -61,6 +61,10 @@ fi
 cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
 
 host_cpu=$(uname -p)
+if [ "x$host_cpu" = xunknown ]; then
+  # tanglu 1 has the machine architecture here
+  host_cpu=$(uname -m)
+fi
 case "$host_cpu" in
     *86_64) omx_arch=x86_64 ;;
     *86) omx_arch=x86 ;;
