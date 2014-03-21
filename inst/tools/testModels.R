@@ -32,7 +32,7 @@ null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),
 	error = function(e) { file('nul', 'w') } )
 
 
-sink(null, type = 'output')	
+sink(null, type = 'output')
 
 if (any(args == 'gctorture')) {
 	files <- c('models/passing/rfitfunc.R',
@@ -57,9 +57,10 @@ if (any(args == 'lisrel')) {
 errors <- list()
 runtimes <- numeric()
 
-errorRecover <- function(script, index) {
+errorRecover <- function(script, opt, index) {
+	mxOption(NULL, "Default optimizer", opt)
 	sink(type = 'output')
-	cat(paste("Running model", index, "of",
+	cat(paste(opt, index, "of",
 		length(files), script, "...\n"))
 	sink(null, type = 'output')
 	mxOption(NULL, 'loglikelihoodScale', -2)
@@ -70,15 +71,20 @@ errorRecover <- function(script, index) {
 		})
 	stop.tm <- Sys.time()
 	timeDifference <- stop.tm - start
-	runtimes[[script]] <<- as.double(timeDifference, units = "secs")
+	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
-			c('errors', 'errorRecover', 'null', 'files', 'directories', 'runtimes')))
+			c('errors', 'errorRecover', 'opt', 'null', 'files', 'directories', 'runtimes')))
 }
 
-if (length(files) > 0) {
-	for (i in 1:length(files)) {
-		errorRecover(files[[i]], i)
+optimizers <- c('CSOLNP')
+if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
+
+for (opt in optimizers) {
+	if (length(files) > 0) {
+		for (i in 1:length(files)) {
+			errorRecover(files[[i]], opt, i)
+		}
 	}
 }	
 

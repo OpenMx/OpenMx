@@ -121,8 +121,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
 	if(info > 0) {
 		omxRaiseErrorf(oo->matrix->currentState,
-			       "Expected covariance matrix is non-positive-definite after %ld evaluations",
-			       oo->matrix->currentState->computeCount);
+			       "Expected covariance matrix is non-positive-definite");
 		return;
 	}
 
