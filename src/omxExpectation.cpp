@@ -179,7 +179,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 						ox->thresholds[index].numThresholds = thresholdNumber[index];
 						if(OMX_DEBUG) {
 							mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-								index, thresholdColumn[index], thresholdNumber[index]);
+								index, thresholdNumber[index], thresholdColumn[index]);
 						}
 						numOrdinal++;
 					}

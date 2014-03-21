@@ -177,7 +177,12 @@ generateThresholdColumns <- function(flatModel, model, labelsData, covarianceCol
 	datasource <- flatModel@datasets[[dataName]]@observed
 	for(i in 1:length(thresholdColumnNames)) {
 		oneThresholdName <- thresholdColumnNames[[i]]
-		numThresholds <- length(levels(datasource[, oneThresholdName])) - 1
+		if(flatModel@datasets[[dataName]]@type != 'acov'){
+			numThresholds <- length(levels(datasource[, oneThresholdName])) - 1
+		} else {
+			numThresholds <- sum(!is.na(flatModel@datasets[[dataName]]@thresholds[, oneThresholdName]))
+			# Note: this requires NA to be the indicator for an ingorable threshold
+		}
 		columnIndex <- match(oneThresholdName, covarianceColumnNames)
 		thresholdColumns[[columnIndex]] <- as.integer(i - 1)
 		thresholdLevels[[columnIndex]] <- as.integer(numThresholds)

@@ -50,13 +50,13 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
     if(oo->argStruct == NULL) return;
-//Introduce memory leak by not destroying the P matrix.  Try and Rf_error found that freeing P caused an Rf_error.  Without freeing P sometimes the return to R finishes successfully and sometimes not.
+
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
     omxFreeMatrixData(owo->observedFlattened);
     omxFreeMatrixData(owo->expectedFlattened);
     omxFreeMatrixData(owo->weights);
     omxFreeMatrixData(owo->B);
-    //omxFreeMatrixData(owo->P);
+    omxFreeMatrixData(owo->P);
 }
 
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
