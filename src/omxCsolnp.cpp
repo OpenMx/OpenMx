@@ -30,7 +30,7 @@ static const char* anonMatrix = "anonymous matrix";
 
 /* NPSOL-related functions */
 //************************* npsol ****************************//
-
+//int solnp(Matrix solPars, double (*solFun)(Matrix),  Matrix solEqB,  Matrix (*solEqBFun)( Matrix),  Matrix (*solEqBStartFun)(Matrix),  Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle);
 
 static omxMatrix *GLOB_fitMatrix = NULL;
 static FitContext *GLOB_fc = NULL;
@@ -101,6 +101,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
  * Replaces the standard objective function when finding confidence intervals. */
 double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
 {
+    //double* f = NULL;
 	if (verbose >= 3) {
 		printf("myPars inside obj is: ");
 		print(myPars); putchar('\n');
@@ -245,22 +246,24 @@ Matrix csolnpIneqFun(int verbose)
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup,
-                     int verbose, double *hessOut)
+                     int verbose)
 
 {
-	//freeMatrices(); // maybe left overs from an aborted optimization attempt
+	freeMatrices(); // maybe left overs from an aborted optimization attempt
     
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
     
     double *x = fc->est;
-    fc->grad.resize(fc->numParam);
-    double *g = fc->grad.data();
+    //double *g = fc->grad;
+    
     
     int k, iter = -1;
     int inform = 0;
     
     double *bl=NULL, *bu=NULL;
+    
+    //double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
     int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
@@ -391,21 +394,11 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    print(myhess); putchar('\n');
     }
     
-    for (i = 0; i < myhess.cols; i++)
-    {
-        hessOut[i] = myhess.t[i];
-        
-    }
-
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
     
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
-    }
-    
-    for (i = 0; i < myPars.cols; i++){
-        g[i] = mygrad.t[i];
     }
     
     omxSaveCheckpoint(x, fc->fit, TRUE);
@@ -517,7 +510,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 	    }
         
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        if (verbose >= 2) {
+        if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
             printf("solIneqUB is: ");

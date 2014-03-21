@@ -50,6 +50,8 @@ void setupIneqGreater(struct Matrix *lb, struct Matrix *ub, int size)
         for(int offset = 0; offset < size; offset++) {
             lb->t[index] = 0.0;
             ub->t[index] = INF;
+            printf("%2f", lb->t[index]); putchar('\n');
+            printf("%2f", ub->t[index]); putchar('\n');
             index++;
         }
 }
@@ -104,19 +106,27 @@ void omxProcessConstraintsCsolnp(struct Matrix *lb_ineq, struct Matrix *ub_ineq,
                 ub_ineqmore = fill(size, 1, EMPTY);
                 setupIneqGreater(&lb_ineqmore, &ub_ineqmore, size);
             }
+            
+        printf("lb_ineqmore is: \n");
+        print(lb_ineqmore); putchar('\n');
+        printf("ub_ineqmore is: \n");
+        print(ub_ineqmore); putchar('\n');
         
         if (M(lb_ineqless, 0, 0) != EMPTY)
         {
+            printf("inside lb_ineqless \n");
             ineq_lb = copy(ineq_lb, lb_ineqless);
             ineq_ub = copy(ineq_ub, ub_ineqless);
         }
         else if (M(lb_ineqmore, 0, 0) != EMPTY)
         {
+            printf("inside lb_ineqmore \n");
             ineq_lb = copy(ineq_lb, lb_ineqmore);
             ineq_ub = copy(ineq_ub, ub_ineqmore);
         }
         else if (M(eqbound, 0, 0) != EMPTY)
         {
+            printf("inside lb_eqb \n");
             myeqb = copy(myeqb, eqbound);
         }
     }
@@ -136,15 +146,22 @@ void omxProcessConstraintsCsolnp(struct Matrix *lb_ineq, struct Matrix *ub_ineq,
     {
         lb_ineq->t[i] = M(ineq_lb, i, 0);
         ub_ineq->t[i] = M(ineq_ub, i, 0);
+        printf("pointer check \n");
+        printf("%2f", lb_ineq->t[i]); putchar('\n');
+        printf("%2f", ub_ineq->t[i]); putchar('\n');
     }
+    printf("%d", myeqb.cols); putchar('\n');
     
     for (i = 0; i < myeqb.cols; i++)
     {
         eqb->t[i] = M(myeqb, i, 0);
+        printf("%2f", eqb->t[i]); putchar('\n');
     }
     
     lb_ineq->cols = ineq_lb.cols;
     ub_ineq->cols = ineq_ub.cols;
     eqb->cols = myeqb.cols;
+    //printf("eqb is: \n");
+    //print(eqb); putchar('\n');
 
 }

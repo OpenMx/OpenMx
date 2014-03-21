@@ -26,7 +26,7 @@
 
 struct Matrix fillMatrix(int cols, int rows, double* array);
 
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup, int verbose, double *hessOut);
+void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup, int verbose);
 
 void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose);
 
