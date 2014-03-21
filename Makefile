@@ -193,9 +193,6 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 
 npsol-prep: code-style
 	rm -f inst/no-npsol
-	cp DESCRIPTION DESCRIPTION.bak
-	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
-	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo 'NPSOL_DIR= "..\inst"' > src/Makevars.win
 	echo 'NPSOL=-lnpsol$$(WIN) -L$$(NPSOL_DIR)' >> src/Makevars.win
 	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
@@ -206,9 +203,6 @@ npsol-prep: code-style
 
 no-npsol-prep: code-style
 	touch inst/no-npsol
-	cp DESCRIPTION DESCRIPTION.bak
-	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
-	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
 	echo '#define HAS_NPSOL 0' > src/npsolswitch.h
 	echo 'NPSOL_LIBS=' > src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
@@ -218,7 +212,6 @@ no-npsol-prep: code-style
 build/$(TARGET): npsol-prep
 	mkdir -p build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
-	mv DESCRIPTION.bak DESCRIPTION
 	rm -f $(ROXDOC)
 
 cran-build: no-npsol-prep
