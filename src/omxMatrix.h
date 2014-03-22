@@ -44,7 +44,7 @@ struct omxMatrix {						// A matrix
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
 	double* data;						// Actual Data Pointer
-	unsigned short colMajor;			// and column-majority.
+	unsigned short colMajor;			// used for quick transpose
 	unsigned short hasMatrixNumber;		// is this object in the matrix or algebra arrays?
 	int matrixNumber;					// the offset into the matrices or algebras arrays
 

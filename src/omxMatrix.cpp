@@ -42,15 +42,24 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 			       omx_absolute_thread_num(),
 			       header, source->rows, source->cols);
 
-	if(!source->colMajor) Rf_error("All matrices are column major");
-
-	bool first = true;
-	for(int j = 0; j < source->rows; j++) {
-		buf += "\n";
-		for(int k = 0; k < source->cols; k++) {
-			if (first) first=false;
-			else buf += ",";
-			buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
+	int first=TRUE;
+	if(source->colMajor) {
+		for(int j = 0; j < source->rows; j++) {
+			buf += "\n";
+			for(int k = 0; k < source->cols; k++) {
+				if (first) first=FALSE;
+				else buf += ",";
+				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
+			}
+		}
+	} else {
+		for(int j = 0; j < source->cols; j++) {
+			buf += "\n";
+			for(int k = 0; k < source->rows; k++) {
+				if (first) first=FALSE;
+				else buf += ",";
+				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
+			}
 		}
 	}
 
@@ -60,7 +69,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
-	if (!isColMajor) Rf_error("All matrices should be column major"); // remove option TODO
+	if (!isColMajor) Rf_error("All matrices are created column major");
 	if (om) Rf_error("om is always NULL"); // remove argument TODO
 
 	om = (omxMatrix*) Calloc(1, omxMatrix);
