@@ -33,6 +33,11 @@ void pda(const double *ar, int rows, int cols);
 
 void FitContext::queue(HessianBlock *hb)
 {
+	if (hb->vars.size() == 0) {
+		delete hb;
+		return;
+	}
+
 	allBlocks.push_back(hb);
 	//std::push_heap(allBlocks.begin(), allBlocks.end(), compareBlocks); // maybe TODO
 }

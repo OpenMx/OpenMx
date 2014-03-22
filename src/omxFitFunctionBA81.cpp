@@ -368,8 +368,6 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		int numFreeParams = int(state->numFreeParam);
 		int ox=-1;
 		for (size_t ix=0; ix < numItems; ix++) {
-			if (state->hBlocks[ix].vars.size() == 0) continue;
-
 			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
