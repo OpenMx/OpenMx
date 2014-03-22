@@ -97,6 +97,8 @@ class FitContext {
 	double mac;
 	double fit;
 	double *est;
+	// We need some protocol to manage flavor assignment
+	// when the multigroup fitfunction is involved. TODO
 	int *flavor;
 	Eigen::VectorXd grad;
 	int infoDefinite;
@@ -105,7 +107,7 @@ class FitContext {
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
-	double caution;
+	std::vector<double> caution;
 	int iterations;
 	enum ComputeInform inform;
 	int wanted;
@@ -175,11 +177,14 @@ class Ramsay1975 {
 	size_t numParam;
 	int flavor;
 	int verbose;
+	int boundsHit;
 	double minCaution;
 	double highWatermark;
+	std::vector<int> vars;
 	std::vector<double> prevEst;
 	std::vector<double> prevAdj1;
 	std::vector<double> prevAdj2;
+	bool goingWild;
 
 public:
 	double maxCaution;
@@ -189,7 +194,7 @@ public:
 	void recordEstimate(int px, double newEst);
 	void apply();
 	void recalibrate(bool *restart);
-	void restart();
+	void restart(bool myFault);
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);

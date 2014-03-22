@@ -173,7 +173,7 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 
 void pda(const double *ar, int rows, int cols);
 
-double ComputeNR::getMaxCaution() const
+double ComputeNR::getMaxCaution() const //remove? TODO
 {
 	double caution = 0;
 	for (size_t rx=0; rx < ramsay.size(); ++rx) {
@@ -193,18 +193,20 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	OMXZERO(fc->flavor, numParam);
-	if (fitMatrix->fitFunction->parametersHaveFlavor) {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
-	}
+	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
 
 	for (size_t px=0; px < numParam; ++px) {
 		// global namespace for flavors? TODO
 		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
 			Rf_error("Invalid parameter flavor %d", fc->flavor[px]);
 		}
+		double startCaution = 0;
+		if (int(fc->caution.size()) > fc->flavor[px]) {
+			startCaution = fc->caution[fc->flavor[px]];
+		}
 		while (int(ramsay.size()) < fc->flavor[px]+1) {
 			const double minCaution = 0; // doesn't make sense to go faster
-			Ramsay1975 *ram = new Ramsay1975(fc, int(ramsay.size()), fc->caution,
+			Ramsay1975 *ram = new Ramsay1975(fc, int(ramsay.size()), startCaution,
 							 verbose, minCaution);
 			ramsay.push_back(ram);
 		}
@@ -216,7 +218,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	int sinceRestart = 0;
 	bool converged = false;
 	bool approaching = false;
-	bool restarted = carefully || fc->caution >= .5;
+	bool restarted = carefully; // || fc->caution >= .5;
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
 	int maxAdjFlavor = 0;
@@ -276,12 +278,14 @@ void ComputeNR::computeImpl(FitContext *fc)
 				ramsay[rx]->recalibrate(&restart);
 			}
 		}
+		bool offTrack = false;
 		for (size_t px=0; px < numParam; ++px) {
 			if (!std::isfinite(fc->grad(px))) {
 				if (!restart) {
 					if (verbose >= 3) {
 						mxLog("Newton-Raphson: grad[%d] not finite, restart recommended", int(px));
 					}
+					offTrack = true;
 					restart = true;
 					break;
 				}
@@ -310,7 +314,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 				fc->est[px] = startBackup[px];
 			}
 			for (size_t rx=0; rx < ramsay.size(); ++rx) {
-				ramsay[rx]->restart();
+				ramsay[rx]->restart(offTrack);
 			}
 		} else {
 			Eigen::VectorXd move(fc->ihessGradProd());
@@ -330,8 +334,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 					maxAdjFlavor = fc->flavor[px];
 				}
 			}
-			converged = maxAdj < tolerance * (1-getMaxCaution());
-			//converged = maxAdj < tolerance;  // makes practically no difference
+			converged = maxAdj < tolerance;
 		}
 
 		fc->copyParamToModel(globalState);
@@ -341,21 +344,22 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (converged || iter >= maxIter) break;
 	}
 
-	fc->caution = getMaxCaution();
+	fc->caution.resize(ramsay.size());
+	for (size_t rx=0; rx < ramsay.size(); ++rx) fc->caution[rx] = ramsay[rx]->maxCaution;
 	clearRamsay();
 
 	if (converged) {
 		fc->inform = INFORM_CONVERGED_OPTIMUM;
 		fc->wanted |= FF_COMPUTE_BESTFIT;
 		if (verbose >= 1) {
-			mxLog("Newton-Raphson converged in %d cycles (max change %.12f, max caution %.4f)",
-			      iter, maxAdj, fc->caution);
+			mxLog("Newton-Raphson converged in %d cycles (max change %.12f)",
+			      iter, maxAdj);
 		}
 	} else if (iter < maxIter) {
 		fc->inform = INFORM_UNCONVERGED_OPTIMUM;
 		if (verbose >= 1) {
-			mxLog("Newton-Raphson not improving on %.6f after %d cycles (max caution %.4f)",
-			      bestLL, iter, fc->caution);
+			mxLog("Newton-Raphson not improving on %.6f after %d cycles",
+			      bestLL, iter);
 		}
 	} else if (iter == maxIter) {
 		if (bestLL > 0) {
@@ -363,14 +367,12 @@ void ComputeNR::computeImpl(FitContext *fc)
 			memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
 			fc->copyParamToModel(globalState);
 			if (verbose >= 1) {
-				mxLog("Newton-Raphson improved but fail to converge after %d cycles (max caution %.4f)",
-				      iter, fc->caution);
+				mxLog("Newton-Raphson improved but fail to converge after %d cycles", iter);
 			}
 		} else {
 			fc->inform = INFORM_ITERATION_LIMIT;
 			if (verbose >= 1) {
-				mxLog("Newton-Raphson failed to converge after %d cycles (max caution %.4f)",
-				      iter, fc->caution);
+				mxLog("Newton-Raphson failed to converge after %d cycles", iter);
 			}
 		}
 	}
@@ -378,14 +380,16 @@ void ComputeNR::computeImpl(FitContext *fc)
 	fc->iterations = iter;
 }
 
-void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *output)
 {
 	if (Global->numIntervals) {
 		Rf_warning("Confidence intervals are not implemented for Newton-Raphson");
 	}  
 
-	omxPopulateFitFunction(fitMatrix, out);
+	omxPopulateFitFunction(fitMatrix, output);
 
-	slots->add("inform", Rf_ScalarInteger(inform));
-	slots->add("iterations", Rf_ScalarInteger(iter));
+	MxRList out;
+	out.add("inform", Rf_ScalarInteger(inform));
+	out.add("iterations", Rf_ScalarInteger(iter));
+	slots->add("output", out.asR());
 }

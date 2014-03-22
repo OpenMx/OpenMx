@@ -100,7 +100,7 @@ omxCheckCloseEnough(c(m2@output$standardErrors), semse, .01) # similar to flexMI
 
 emstat <- m2@compute@steps[[1]]@output
 omxCheckCloseEnough(emstat$EMcycles, 37, 2)
-omxCheckCloseEnough(emstat$totalMstep, 241, 10)
+omxCheckCloseEnough(emstat$totalMstep, 205, 10)
 omxCheckCloseEnough(emstat$semProbeCount / length(semse), 3, .1)
 
 #print(m2@matrices$ItemParam@values - fmfit)

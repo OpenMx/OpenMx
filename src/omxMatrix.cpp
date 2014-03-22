@@ -460,9 +460,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->version = 1;
 	omxMarkClean(om);
 
-	if(OMX_DEBUG) { mxLog("Pre-compute call.");}
 	omxMatrixLeadingLagging(om);
-	if(OMX_DEBUG) { mxLog("Post-compute call.");}
 
 	return om;
 }

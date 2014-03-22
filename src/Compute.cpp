@@ -168,9 +168,9 @@ void FitContext::init()
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
-	caution = parent? parent->caution : 0;
+	if (parent) caution = parent->caution;
 	est = new double[numParam];
-	flavor = new int[numParam];
+	flavor = new int[numParam]; // maybe use strings and track caution by string? TODO
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
 	infoA = NULL;
@@ -507,29 +507,27 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 }
 
 Ramsay1975::Ramsay1975(FitContext *fc, int flavor, double caution, int verbose,
-		       double minCaution)
+		       double minCaution) :
+	fc(fc), flavor(flavor), verbose(verbose), minCaution(minCaution), caution(caution)
 {
-	this->fc = fc;
-	this->flavor = flavor;
-	this->verbose = verbose;
-	this->caution = caution;
-	this->minCaution = minCaution;
 	maxCaution = 0.0;
 	highWatermark = std::max(0.5, caution);  // arbitrary guess
+	boundsHit = 0;
 
 	numParam = fc->varGroup->vars.size();
+	for (size_t px=0; px < numParam; ++px) {
+		if (fc->flavor[px] != flavor) continue;
+		vars.push_back(px);
+	}
+
 	prevAdj1.assign(numParam, 0);
 	prevAdj2.resize(numParam);
 	prevEst.resize(numParam);
 	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
 
-	int varcount = 0;
-	for (size_t px=0; px < numParam; ++px) {
-		if (fc->flavor[px] == flavor) ++varcount;
-	}
 	if (verbose >= 2) {
 		mxLog("Ramsay[%d]: %d parameters, caution %f, min caution %f",
-		      flavor, varcount, caution, minCaution);
+		      flavor, (int)vars.size(), caution, minCaution);
 	}
 }
 
@@ -546,6 +544,7 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 		hitBound=true;
 		param = prevEst[px] + (fv->ubound - prevEst[px]) / 2;
 	}
+	boundsHit += hitBound;
 	
 	prevAdj2[px] = prevAdj1[px];
 	prevAdj1[px] = param - prevEst[px];
@@ -569,27 +568,29 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 
 void Ramsay1975::apply()
 {
-	for (size_t px=0; px < numParam; ++px) {
-		if (fc->flavor[px] != flavor) continue;
-		recordEstimate(px, (1 - caution) * fc->est[px] + caution * prevEst[px]);
+	for (size_t px=0; px < vars.size(); ++px) {
+		int vx = vars[px];
+		recordEstimate(vx, (1 - caution) * fc->est[vx] + caution * prevEst[vx]);
 	}
 }
 
 void Ramsay1975::recalibrate(bool *restart)
 {
+	if (vars.size() == 0) return;
+
 	double normPrevAdj2 = 0;
 	double normAdjDiff = 0;
 	std::vector<double> adjDiff(numParam);
 
 	// The choice of norm is also arbitrary. Other norms might work better.
-	for (size_t px=0; px < numParam; ++px) {
-		if (fc->flavor[px] != flavor) continue;
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		int px = vars[vx];
 		adjDiff[px] = prevAdj1[px] - prevAdj2[px];
 		normPrevAdj2 += prevAdj2[px] * prevAdj2[px];
 	}
 
-	for (size_t px=0; px < numParam; ++px) {
-		if (fc->flavor[px] != flavor) continue;
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		int px = vars[vx];
 		normAdjDiff += adjDiff[px] * adjDiff[px];
 	}
 	if (normAdjDiff == 0) {
@@ -601,7 +602,7 @@ void Ramsay1975::recalibrate(bool *restart)
 	//if (verbose >= 3) mxLog("Ramsay[%d]: sqrt(%.5f/%.5f) = %.5f",
 	// flavor, normPrevAdj2, normAdjDiff, ratio);
 
-	double newCaution = 1 - (1-caution) * ratio;
+	double newCaution = 1 - (1-caution) * ratio / (1+boundsHit);
 	if (newCaution > .95) newCaution = .95;  // arbitrary guess
 	if (newCaution < 0) newCaution /= 2;     // don't get overconfident
 	if (newCaution < minCaution) newCaution = minCaution;
@@ -611,28 +612,36 @@ void Ramsay1975::recalibrate(bool *restart)
 		caution = newCaution;
 	}
 	maxCaution = std::max(maxCaution, caution);
+	goingWild = false;
 	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
 		if (verbose >= 3) mxLog("Ramsay[%d]: %.2f caution", flavor, caution);
 	} else {
-		if (verbose >= 3) mxLog("Ramsay[%d]: caution %.2f > %.2f, extreme oscillation, restart recommended",
-					flavor, caution, highWatermark);
+		if (verbose >= 3) {
+			mxLog("Ramsay[%d]: caution %.2f > %.2f, extreme oscillation, restart recommended",
+			      flavor, caution, highWatermark);
+		}
 		*restart = TRUE;
+		goingWild = true;
 	}
 	highWatermark += .02; // arbitrary guess
+	boundsHit = 0;
 }
 
-void Ramsay1975::restart()
+void Ramsay1975::restart(bool myFault)
 {
 	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
 	prevAdj1.assign(numParam, 0);
 	prevAdj2.assign(numParam, 0);
-	highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
-	caution = std::max(caution, highWatermark);   // arbitrary guess
-	maxCaution = std::max(maxCaution, caution);
-	highWatermark = caution;
-	if (verbose >= 3) {
-		mxLog("Ramsay[%d]: restart with %.2f caution %.2f highWatermark",
-		      flavor, caution, highWatermark);
+	myFault |= goingWild;
+	if (myFault) {
+		highWatermark = 1 - (1 - highWatermark) * .5; // arbitrary guess
+		caution = std::max(caution, highWatermark);   // arbitrary guess
+		maxCaution = std::max(maxCaution, caution);
+		highWatermark = caution;
+	}
+	if (vars.size() && verbose >= 3) {
+		mxLog("Ramsay[%d]: restart%s with %.2f caution %.2f highWatermark",
+		      flavor, myFault? " (my fault)":"", caution, highWatermark);
 	}
 }
 
