@@ -38,9 +38,9 @@ const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
 	std::string buf;
-	buf += string_snprintf("[%d] %s = matrix(c(    # %dx%d",
+	buf += string_snprintf("[%d] %s %s = matrix(c(    # %dx%d",
 			       omx_absolute_thread_num(),
-			       header, source->rows, source->cols);
+			       header, source->name? source->name : "?", source->rows, source->cols);
 
 	int first=TRUE;
 	if(source->colMajor) {
@@ -390,7 +390,7 @@ void omxMarkClean(omxMatrix *om) {
 	if (OMX_DEBUG_ALGEBRA) {
 		const char *name = "?";
 		if (om->name) name = om->name;
-		mxLog("Matrix %s is clean (version %d)", name, om->version);
+		mxLog("Marking matrix %s clean (version %d)", name, om->version);
 	}
 }
 
@@ -463,10 +463,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	if(OMX_DEBUG) { mxLog("Pre-compute call.");}
 	omxMatrixLeadingLagging(om);
 	if(OMX_DEBUG) { mxLog("Post-compute call.");}
-
-	if(OMX_DEBUG) {
-		omxPrintMatrix(om, "Finished importing matrix");
-	}
 
 	return om;
 }

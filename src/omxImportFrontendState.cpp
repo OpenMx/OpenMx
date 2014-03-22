@@ -55,8 +55,11 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
+		mat->name = CHAR(STRING_ELT(matListNames, index));
 		globalState->matrixList.push_back(mat);
-		globalState->matrixList[index]->name = CHAR(STRING_ELT(matListNames, index));
+
+		if(OMX_DEBUG) { omxPrintMatrix(mat, "Imported"); }
+
 		if (isErrorRaised(globalState)) return;
 	}
 }
