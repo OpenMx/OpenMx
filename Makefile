@@ -23,6 +23,7 @@ FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.sh
 
 INSTALLMAKEFLAGS=""
+#INSTALLMAKEFLAGS="--debug=b"   #debug dependencies
 #INSTALLMAKEFLAGS="-j 8"   #much faster compiles
 
 # subdirectories
@@ -197,13 +198,13 @@ npsol-prep: code-style
 	echo 'NPSOL=-lnpsol$$(WIN) -L$$(NPSOL_DIR)' >> src/Makevars.win
 	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
-	echo '#define HAS_NPSOL 1' > src/npsolswitch.h
+	if ! grep -q 1 src/npsolswitch.h; then echo '#define HAS_NPSOL 1' > src/npsolswitch.h; fi
 	cp .Rbuildignore-npsol .Rbuildignore
 	-./util/rox
 
 no-npsol-prep: code-style
 	touch inst/no-npsol
-	echo '#define HAS_NPSOL 0' > src/npsolswitch.h
+	if ! grep -q 0 src/npsolswitch.h; then echo '#define HAS_NPSOL 0' > src/npsolswitch.h; fi
 	echo 'NPSOL_LIBS=' > src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
 	cp .Rbuildignore-cran .Rbuildignore
