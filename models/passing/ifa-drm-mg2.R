@@ -118,7 +118,7 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, #laten
                                   mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
                                   latent.plan,
                                   mxComputeOnce('fitfunction', 'fit'),
-                                  information=TRUE, tolerance=1e-4),
+                                  information=TRUE, tolerance=1e-4, verbose=0L),
                       mxComputeStandardError(),
                       mxComputeHessianQuality())))
 
@@ -166,8 +166,8 @@ omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
   omxCheckCloseEnough(grpModel@submodels$g3latent@matrices$expCov@values, .444, .01)
 
 emstat <- grpModel@compute@steps[[1]]@output
-omxCheckCloseEnough(emstat$EMcycles, 88, 2)
-omxCheckCloseEnough(emstat$totalMstep, 303, 10)
+omxCheckCloseEnough(emstat$EMcycles, 95, 2)
+omxCheckCloseEnough(emstat$totalMstep, 314, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
   
 #  cat(deparse(round(grpModel@output$standardErrors, 3)))

@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
 
   libifa-rpf is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -133,18 +133,19 @@ irt_rpf_mdim_drm_numParam(const double *spec)
 
 static void
 irt_rpf_mdim_drm_paramInfo(const double *spec, const int param,
-			   int *type, double *upper, double *lower)
+			   const char **type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	*upper = nan("unset");
 	*lower = nan("unset");
+	*type = NULL;
 	if (param >= 0 && param < numDims) {
-		*type = RPF_Slope;
+		*type = "slope";
 		*lower = 1e-6;
 	} else if (param == numDims) {
-		*type = RPF_Intercept;
+		*type = "intercept";
 	} else if (param == numDims+1 || param == numDims+2) {
-		*type = RPF_Bound;
+		*type = "bound";
 	}
 }
 
@@ -372,16 +373,17 @@ irt_rpf_mdim_grm_numParam(const double *spec)
 
 static void
 irt_rpf_mdim_grm_paramInfo(const double *spec, const int param,
-			   int *type, double *upper, double *lower)
+			   const char **type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	*upper = nan("unset");
 	*lower = nan("unset");
+	*type = NULL;
 	if (param >= 0 && param < numDims) {
-		*type = RPF_Slope;
+		*type = "slope";
 		*lower = 1e-6;
 	} else {
-		*type = RPF_Intercept;
+		*type = "intercept";
 	}
 }
 
@@ -618,19 +620,20 @@ irt_rpf_nominal_numParam(const double *spec)
 
 static void
 irt_rpf_nominal_paramInfo(const double *spec, const int param,
-			  int *type, double *upper, double *lower)
+			  const char **type, double *upper, double *lower)
 {
 	int numDims = spec[RPF_ISpecDims];
 	const int numOutcomes = spec[RPF_ISpecOutcomes];
 	*upper = nan("unset");
 	*lower = nan("unset");
+	*type = NULL;
 	if (param >= 0 && param < numDims) {
-		*type = RPF_Slope;
+		*type = "slope";
 		*lower = 1e-6;
 	} else if (param < numDims + numOutcomes - 1) {
-		*type = RPF_Slope;
+		*type = "slope";
 	} else {
-		*type = RPF_Intercept;
+		*type = "intercept";
 	}
 }
 
@@ -1133,7 +1136,7 @@ irt_rpf_mdim_nrm_rescale(const double *spec, double *restrict param, const int *
   }
 }
 
-static void noop() {}
+//static void noop() {}
 static void notimplemented() { error("Not implemented"); }
 
 const struct rpf librpf_model[] = {
@@ -1145,7 +1148,7 @@ const struct rpf librpf_model[] = {
     irt_rpf_logprob_adapter,
     notimplemented,
     notimplemented,
-    notimplemented,
+    irt_rpf_1dim_drm_dTheta,
     irt_rpf_1dim_drm_rescale,
   },
   { "drm",

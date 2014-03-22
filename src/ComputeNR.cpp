@@ -31,8 +31,8 @@ class ComputeNR : public omxCompute {
 	int inform, iter;
 	int verbose;
 	bool carefully;
-	std::vector<Ramsay1975*> ramsay;
-	double getMaxCaution() const;
+	typedef std::map<const char *, Ramsay1975*, cmp_str> RamsayType;
+	RamsayType ramsay;
 	void clearRamsay();
 
 public:
@@ -58,8 +58,8 @@ ComputeNR::ComputeNR()
 
 void ComputeNR::clearRamsay()
 {
-	for (size_t rx=0; rx < ramsay.size(); ++rx) {
-		delete ramsay[rx];
+	for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
+		delete it->second;
 	}
 	ramsay.clear();
 }
@@ -173,15 +173,6 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 
 void pda(const double *ar, int rows, int cols);
 
-double ComputeNR::getMaxCaution() const //remove? TODO
-{
-	double caution = 0;
-	for (size_t rx=0; rx < ramsay.size(); ++rx) {
-		caution = std::max(caution, ramsay[rx]->maxCaution);
-	}
-	return caution;
-}
-
 void ComputeNR::computeImpl(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
@@ -192,23 +183,21 @@ void ComputeNR::computeImpl(FitContext *fc)
 		return;
 	}
 
-	OMXZERO(fc->flavor, numParam);
+	clearRamsay();
+	fc->flavor.assign(numParam, NULL);
+
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
 
 	for (size_t px=0; px < numParam; ++px) {
-		// global namespace for flavors? TODO
-		if (fc->flavor[px] < 0 || fc->flavor[px] > 100) {  // max flavor? TODO
-			Rf_error("Invalid parameter flavor %d", fc->flavor[px]);
-		}
-		double startCaution = 0;
-		if (int(fc->caution.size()) > fc->flavor[px]) {
-			startCaution = fc->caution[fc->flavor[px]];
-		}
-		while (int(ramsay.size()) < fc->flavor[px]+1) {
-			const double minCaution = 0; // doesn't make sense to go faster
-			Ramsay1975 *ram = new Ramsay1975(fc, int(ramsay.size()), startCaution,
-							 verbose, minCaution);
-			ramsay.push_back(ram);
+		if (!fc->flavor[px]) fc->flavor[px] = "?";
+	}
+
+	for (size_t px=0; px < numParam; ++px) {
+		const char *flavor = fc->flavor[px];
+		std::map<const char *, Ramsay1975*, cmp_str>::iterator it = ramsay.find(flavor);
+		if (it == ramsay.end()) {
+			const double minCaution = 0; // doesn't make sense to go faster? configuration? TODO
+			ramsay[flavor] = new Ramsay1975(fc, flavor, verbose, minCaution);
 		}
 	}
 
@@ -221,7 +210,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	bool restarted = carefully; // || fc->caution >= .5;
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
-	int maxAdjFlavor = 0;
+	const char *maxAdjFlavor = "?";
 	int maxAdjParam = -1;
 	double bestLL = 0;
 
@@ -239,8 +228,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (verbose >= 2) {
 			const char *pname = "none";
 			if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
-			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %s, flavor %d)",
-			      iter, maxIter, maxAdjSigned, pname, maxAdjFlavor);
+			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %s %s)",
+			      iter, maxIter, maxAdjSigned, maxAdjFlavor, pname);
 		}
 
 		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
@@ -274,8 +263,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 		bool restart = false;
 		if ((++sinceRestart) % 3 == 0) {
-			for (size_t rx=0; rx < ramsay.size(); ++rx) {
-				ramsay[rx]->recalibrate(&restart);
+			for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
+				it->second->recalibrate(&restart);
 			}
 		}
 		bool offTrack = false;
@@ -313,8 +302,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 			for (size_t px=0; px < numParam; ++px) {
 				fc->est[px] = startBackup[px];
 			}
-			for (size_t rx=0; rx < ramsay.size(); ++rx) {
-				ramsay[rx]->restart(offTrack);
+			for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
+				it->second->restart(offTrack);
 			}
 		} else {
 			Eigen::VectorXd move(fc->ihessGradProd());
@@ -344,8 +333,9 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (converged || iter >= maxIter) break;
 	}
 
-	fc->caution.resize(ramsay.size());
-	for (size_t rx=0; rx < ramsay.size(); ++rx) fc->caution[rx] = ramsay[rx]->maxCaution;
+	for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
+		it->second->saveCaution();
+	}
 	clearRamsay();
 
 	if (converged) {

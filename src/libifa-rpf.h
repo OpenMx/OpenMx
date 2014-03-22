@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2013 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
 
   libifa-rpf is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,17 +27,10 @@ enum RPF_ISpec {
 
 #define RPF_ISpecFacts RPF_ISpecDims
 
-enum RPF_ParamType {
-	// 0 = uninitialized
-	RPF_Slope=1,
-	RPF_Intercept,
-	RPF_Bound      // split into upper & lower?
-};
-
 typedef int (*rpf_numSpec_t)(const double *spec);
 typedef int (*rpf_numParam_t)(const double *spec);
 typedef void (*rpf_paramInfo_t)(const double *spec, const int param,
-				int *type, double *upper, double *lower);
+				const char **type, double *upper, double *lower);
 typedef void (*rpf_prob_t)(const double *spec,
 			   const double *param, const double *th,
 			   double *out);

@@ -23,6 +23,7 @@
 #include "omxDefines.h"
 #include "Eigen/SparseCore"
 #include "glue.h"
+#include <map>
 
 // See R/MxRunHelperFunctions.R npsolMessages
 enum ComputeInform {
@@ -72,6 +73,11 @@ struct HessianBlock {
 // The idea of FitContext is to eventually enable fitting from
 // multiple starting values in parallel.
 
+struct cmp_str {
+   bool operator()(char const *a, char const *b)
+   { return std::strcmp(a, b) < 0; }
+};
+
 class FitContext {
 	static omxFitFunction *RFitFunction;
 
@@ -97,9 +103,7 @@ class FitContext {
 	double mac;
 	double fit;
 	double *est;
-	// We need some protocol to manage flavor assignment
-	// when the multigroup fitfunction is involved. TODO
-	int *flavor;
+	std::vector<const char*> flavor;
 	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;
@@ -107,7 +111,10 @@ class FitContext {
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
-	std::vector<double> caution;
+	// Is the caution map over-engineering? The compute tree doesn't change
+	// within a run so there is no real need to create and destroy the Ramsay
+	// object every time through. TODO
+	std::map<const char *, double, cmp_str> caution;
 	int iterations;
 	enum ComputeInform inform;
 	int wanted;
@@ -175,7 +182,7 @@ class Ramsay1975 {
 
 	FitContext *fc;
 	size_t numParam;
-	int flavor;
+	const char *flavor;
 	int verbose;
 	int boundsHit;
 	double minCaution;
@@ -190,11 +197,12 @@ public:
 	double maxCaution;
 	double caution;
 
-	Ramsay1975(FitContext *fc, int flavor, double caution, int verbose, double minCaution);
+	Ramsay1975(FitContext *fc, const char *flavor, int verbose, double minCaution);
 	void recordEstimate(int px, double newEst);
 	void apply();
 	void recalibrate(bool *restart);
 	void restart(bool myFault);
+	void saveCaution();
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);

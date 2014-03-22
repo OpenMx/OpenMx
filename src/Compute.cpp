@@ -175,7 +175,6 @@ void FitContext::init()
 	fit = parent? parent->fit : NA_REAL;
 	if (parent) caution = parent->caution;
 	est = new double[numParam];
-	flavor = new int[numParam]; // maybe use strings and track caution by string? TODO
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
 	infoA = NULL;
@@ -492,7 +491,6 @@ void FitContext::postInfo()
 FitContext::~FitContext()
 {
 	if (est) delete [] est;
-	if (flavor) delete [] flavor;
 	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
@@ -511,17 +509,20 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
-Ramsay1975::Ramsay1975(FitContext *fc, int flavor, double caution, int verbose,
-		       double minCaution) :
-	fc(fc), flavor(flavor), verbose(verbose), minCaution(minCaution), caution(caution)
+Ramsay1975::Ramsay1975(FitContext *fc, const char *flavor, int verbose, double minCaution) :
+	fc(fc), flavor(flavor), verbose(verbose), minCaution(minCaution)
 {
+	if (!flavor) Rf_error("Ramsay: flavor cannot be NULL");
+
 	maxCaution = 0.0;
-	highWatermark = std::max(0.5, caution);  // arbitrary guess
 	boundsHit = 0;
+	caution = fc->caution[flavor];
+	caution = std::min(caution, 0.95);
+	highWatermark = std::max(0.5, caution);  // arbitrary guess
 
 	numParam = fc->varGroup->vars.size();
 	for (size_t px=0; px < numParam; ++px) {
-		if (fc->flavor[px] != flavor) continue;
+		if (strcmp(fc->flavor[px], flavor) != 0) continue;
 		vars.push_back(px);
 	}
 
@@ -531,9 +532,14 @@ Ramsay1975::Ramsay1975(FitContext *fc, int flavor, double caution, int verbose,
 	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
 
 	if (verbose >= 2) {
-		mxLog("Ramsay[%d]: %d parameters, caution %f, min caution %f",
+		mxLog("Ramsay[%10s]: %d parameters, caution %f, min caution %f",
 		      flavor, (int)vars.size(), caution, minCaution);
 	}
+}
+
+void Ramsay1975::saveCaution()
+{
+	fc->caution[flavor] = maxCaution;
 }
 
 void Ramsay1975::recordEstimate(int px, double newEst)
@@ -556,7 +562,7 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 	
 	if (verbose >= 4) {
 		std::string buf;
-		buf += string_snprintf("Ramsay[%d]: %d~%s %.4f -> %.4f", flavor, px, fv->name, prevEst[px], param);
+		buf += string_snprintf("Ramsay[%10s]: %d~%s %.4f -> %.4f", flavor, px, fv->name, prevEst[px], param);
 		if (hitBound) {
 			buf += string_snprintf(" wanted %.4f but hit bound", newEst);
 		}
@@ -619,10 +625,10 @@ void Ramsay1975::recalibrate(bool *restart)
 	maxCaution = std::max(maxCaution, caution);
 	goingWild = false;
 	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
-		if (verbose >= 3) mxLog("Ramsay[%d]: %.2f caution", flavor, caution);
+		if (verbose >= 3) mxLog("Ramsay[%10s]: %.2f caution", flavor, caution);
 	} else {
 		if (verbose >= 3) {
-			mxLog("Ramsay[%d]: caution %.2f > %.2f, extreme oscillation, restart recommended",
+			mxLog("Ramsay[%10s]: caution %.2f > %.2f, extreme oscillation, restart recommended",
 			      flavor, caution, highWatermark);
 		}
 		*restart = TRUE;
@@ -645,7 +651,7 @@ void Ramsay1975::restart(bool myFault)
 		highWatermark = caution;
 	}
 	if (vars.size() && verbose >= 3) {
-		mxLog("Ramsay[%d]: restart%s with %.2f caution %.2f highWatermark",
+		mxLog("Ramsay[%10s]: restart%s with %.2f caution %.2f highWatermark",
 		      flavor, myFault? " (my fault)":"", caution, highWatermark);
 	}
 }
@@ -1202,44 +1208,31 @@ void ComputeEM::computeImpl(FitContext *fc)
 	double mac = tolerance * 10;
 	bool converged = false;
 	const size_t freeVars = fc->varGroup->vars.size();
-	const int freeVarsFit1 = (int) fit1->varGroup->vars.size();
 	bool in_middle = false;
 	maxHistLen = 0;
 	EMcycles = 0;
 	semProbeCount = 0;
 
-	OMXZERO(fc->flavor, freeVars);
-
-	{
-		int overlap = 0;
-		FitContext *tmp = new FitContext(fc, fit1->varGroup);
-		for (int vx=0; vx < freeVarsFit1; ++vx) {
-			fc->flavor[tmp->mapToParent[vx]] = 1;
-		}
-		delete tmp;
-
-		tmp = new FitContext(fc, fit2->varGroup);
-		for (size_t vx=0; vx < fit2->varGroup->vars.size(); ++vx) {
-			int to = tmp->mapToParent[vx];
-			if (fc->flavor[to] != 0) ++overlap;
-			fc->flavor[to] = 2;
-		}
-		delete tmp;
-
-		int omitted = 0;
-		for (size_t vx=0; vx < freeVars; ++vx) {
-			if (fc->flavor[vx] == 0) ++omitted;
-		}
-		if (overlap || omitted) {
-			Rf_error("ComputeEM: %d parameters overlap, %d parameters omitted", overlap, omitted);
-		}
-	}
-
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g ramsay=%d info=%d",
 				tolerance, useRamsay, information);
 
-	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
-	ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
+	// Some evidence suggests that better performance is obtained when the
+	// item parameters and latent distribution parameters are split into
+	// separate Ramsay1975 groups with different minimum caution limits,
+	//
+	// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
+	// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
+	//
+	// I had this hardcoded for a while, but in making the API more generic,
+	// I'm not sure how to allow specification of the Ramsay1975 grouping.
+	// One possibility is list(flavor1=c("ItemParam"), flavor2=c("mean","cov"))
+	// but this doesn't allow finer grain than matrix-wise assignment. The
+	// other question is whether more Ramsay1975 groups really help or not.
+	// nightly/ifa-cai2009.R actually got faster with 1 Ramsay group.
+
+	const char *flavor = "EM";
+	fc->flavor.assign(freeVars, flavor);
+	ramsay.push_back(new Ramsay1975(fc, flavor, verbose, -1.25));
 
 	while (1) {
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);

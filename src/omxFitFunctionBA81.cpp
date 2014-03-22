@@ -46,7 +46,7 @@ struct BA81FitState {
 	bool freeItemParams;
 	std::vector<HessianBlock> hBlocks;
 	std::vector<int> paramPerItem;       // itemParam->cols
-	std::vector<int> paramFlavor;        // numFreeParam
+	std::vector<const char *> paramFlavor;        // numFreeParam
 	// gradient: itemParam->cols * itemDerivPadSize -> index of free parameter
 	// Hessian:  itemParam->cols * itemDerivPadSize -> full Hessian offset in current varGroup
 	std::vector<int> paramMap;
@@ -207,7 +207,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	state->itemParamFree.assign(itemParam->rows * itemParam->cols, FALSE);
 
 	const size_t numFreeParams = state->numFreeParam;
-	state->paramFlavor.assign(numFreeParams, -1);
+	state->paramFlavor.assign(numFreeParams, NULL);
 
 	int totalParam = 0;
 	state->paramPerItem.resize(itemParam->cols);
@@ -235,12 +235,12 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 			const double *spec = estate->itemSpec[loc->col];
 			int id = spec[RPF_ISpecID];
-			int flavor;
+			const char *flavor;
 			double upper, lower;
 			(*rpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
-			if (state->paramFlavor[px] < 0) {
+			if (state->paramFlavor[px] == 0) {
 				state->paramFlavor[px] = flavor;
-			} else if (state->paramFlavor[px] != flavor) {
+			} else if (strcmp(state->paramFlavor[px], flavor) != 0) {
 				Rf_error("Cannot equate %s with %s[%d,%d]", fv->name,
 				      itemParam->name, loc->row, loc->col);
 			}
@@ -1138,7 +1138,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_PARAMFLAVOR) {
 			for (size_t px=0; px < state->numFreeParam; ++px) {
-				if (state->paramFlavor[px] < 0) continue;
+				if (state->paramFlavor[px] == NULL) continue;
 				fc->flavor[px] = state->paramFlavor[px];
 			}
 			return 0;
