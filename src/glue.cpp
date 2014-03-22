@@ -228,15 +228,15 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
-			} else if(matchCaseInsensitive(nextOptionName, "maxptsa")) {
+			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsA")) {
 				Global->maxptsa = atof(nextOptionValue);
-			} else if(matchCaseInsensitive(nextOptionName, "maxptsb")) {
+			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsB")) {
 				Global->maxptsb = atof(nextOptionValue);
-			} else if(matchCaseInsensitive(nextOptionName, "maxptsc")) {
+			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsC")) {
 				Global->maxptsc = atof(nextOptionValue);
-			} else if(matchCaseInsensitive(nextOptionName, "absEps")) {
+			} else if(matchCaseInsensitive(nextOptionName, "mvnAbsEps")) {
 				Global->absEps = atof(nextOptionValue);
-			} else if(matchCaseInsensitive(nextOptionName, "relEps")) {
+			} else if(matchCaseInsensitive(nextOptionName, "mvnRelEps")) {
 				Global->relEps = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
 				Global->maxStackDepth = atoi(nextOptionValue);

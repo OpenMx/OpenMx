@@ -145,11 +145,11 @@ otherOptions <- list(
 	"UsePPML" = "No",
 	"Allow Unlabeled" = FALSE,
     "loglikelihoodScale" = -2.0,
-    "maxptsa" = 0,
-    "maxptsb" = 0,
-    "maxptsc" = 5000,
-    "absEps" = 1e-3,
-    "relEps" = 0,
+    "mvnMaxPointsA" = 0,
+    "mvnMaxPointsB" = 0,
+    "mvnMaxPointsC" = 5000,
+    "mvnAbsEps" = 1e-3,
+    "mvnRelEps" = 0,
     "maxStackDepth" = 25000L   # R_PPSSIZE/2
 )
 
