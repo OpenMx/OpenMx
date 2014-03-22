@@ -40,10 +40,10 @@ void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov,
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
    	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
    	double Error;
-   	double absEps = 1e-3;
-   	double relEps = 0;
-   	int MaxPts = 100000*cov->rows;
-   	int numVars = ordCov->rows;
+	double absEps = Global->absEps;
+	double relEps = Global->relEps;
+	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
+	int numVars = ordCov->rows;
 	int fortranThreadId = omx_absolute_thread_num() + 1;
    	/* FOR DEBUGGING PURPOSES */
     /*	numVars = 2;

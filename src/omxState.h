@@ -147,9 +147,13 @@ class omxGlobal {
 	int analyticGradients;
 	int numChildren;
 	double llScale;
+
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;
+	double absEps;
+	double relEps;
+
 	int maxStackDepth;
 
 	int numIntervals;
