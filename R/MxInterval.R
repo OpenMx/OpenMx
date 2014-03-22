@@ -140,18 +140,17 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			parameters, labelsData) {
 
 	reference <- interval@reference
-	entity <- flatModel[[reference]]
-	for (gx in length(parameters)) {
-		pgroup <- parameters[[gx]]
-		if(reference %in% names(pgroup)) {
-			location <- pgroup[[reference]][[5]]
-			location[[1]] <- - location[[1]] - 1
-			retval <- list()
-			retval[[reference]] <-
-			  c(location, interval@lowerdelta, interval@upperdelta)
-			return(retval)
-		}
+					# length(reference)==1 because of expandSingleInterval
+	pindex <- match(reference, names(parameters))
+	if (!is.na(pindex)) {
+		location <- parameters[[pindex]][[5]]
+		location[[1]] <- - location[[1]] - 1
+		retval <- list()
+		retval[[reference]] <-
+		    c(location, interval@lowerdelta, interval@upperdelta)
+		return(retval)
 	}
+	entity <- flatModel[[reference]]
 	if (!is.null(entity)) {
 		tuple <- evaluateMxObject(reference, flatModel, labelsData, new.env(parent = emptyenv()))
 		entityValue <- as.matrix(tuple[[1]])
