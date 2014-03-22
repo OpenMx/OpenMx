@@ -26,13 +26,22 @@
 }
 
 \usage{
-mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA)
+mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient
+= NA, hessian = NA, verbose=0L)
 }
 
 \arguments{
    \item{algebra}{A character string indicating the name of an \link{MxAlgebra} or \link{MxMatrix} object to use for optimization.}
    \item{numObs}{(optional) An adjustment to the total number of observations in the model.}
-   \item{numStats}{(optional) An adjustment to the total number of observed statistics in the model.}
+   \item{numStats}{(optional) An adjustment to the total number of
+     observed statistics in the model.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{gradient}{(optional) A character string indicating the name of
+   an \link{MxAlgebra} object.}
+   \item{hessian}{(optional) A character string indicating the name of
+     an \link{MxAlgebra} object.}
+   \item{verbose}{(optional An integer to increase the level of runtime
+   log output.}
 }
 
 \details{
@@ -41,6 +50,13 @@ Fit functions are functions for which free parameter values are chosen such that
 If a model's  fit function is an \code{mxFitFunctionAlgebra} objective function, then the referenced algebra in the objective function must return a 1 x 1 matrix (when using OpenMx's default optimizer).  There is no restriction on the dimensions of an fit function that is not the primary, or \sQuote{topmost}, objective function.
 
 To evaluate an algebra fit function, place the following objects in a \code{\link{MxModel}} object: a \code{mxFitFunctionAlgebra}, \code{\link{MxAlgebra}} and \code{\link{MxMatrix}} entities referenced by the \code{MxAlgebraObjective}, and optional \code{\link{MxBounds}} and \code{\link{MxConstraint}} objects. This model may then be evaluated using the \code{\link{mxRun}} function. The results of the optimization may be obtained using the \code{\link{mxEval}} function on the name of the \code{\link{MxAlgebra}}, after the model has been run.
+
+First and second derivatives can be provided with the algebra fit
+function. The dimnames on the gradient and hessian MxAlgebras are
+matched against names of free variables. Names that do not match are
+ignored. If you are working in log likelihood units, the customary -2
+scaling factor is not applied automatically. You have to take care of
+multiplying by -2 yourself.
 }
 
 \value{

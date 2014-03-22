@@ -75,7 +75,9 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
-		omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name);
+	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name, NULL);
+	    tgt->algebra->rownames = src->algebra->rownames;
+	    tgt->algebra->colnames = src->algebra->colnames;
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -139,14 +141,19 @@ void omxAlgebraForceCompute(omxAlgebra *oa)
 	dispatchOp(oa);
 }
 
-omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name) {
+omxAlgebra::omxAlgebra()
+{
+	Global->algebraList.push_back(this);
+}
 
+static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name)
+{
 	omxMatrix *om = omxInitMatrix(NULL, 0, 0, TRUE, os);
 
 	om->hasMatrixNumber = 0;
 	om->matrixNumber = 0;	
 
-	omxFillMatrixFromMxAlgebra(om, alg, name);
+	omxFillMatrixFromMxAlgebra(om, alg, name, NULL);
 	
 	return om;
 }
@@ -161,8 +168,8 @@ omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, c
 	omxAlgebraAllocArgs(oa, oate->numArgs==-1? realNumArgs : oate->numArgs);
 }
 
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
-
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, SEXP dimnames)
+{
 	int value;
 	omxAlgebra *oa = NULL;
 	SEXP algebraArg, algebraElt;
@@ -172,7 +179,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	if(OMX_DEBUG) {mxLog("Creating Algebra from Sexp.");}
 
 	if(value > 0) { 			// This is an operator.
-		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
+		oa = new omxAlgebra;
 		omxInitAlgebraWithMatrix(oa, om);
 		if(OMX_DEBUG) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
@@ -187,13 +194,12 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 		Rf_protect(algebraElt = VECTOR_ELT(algebra, 1));
 		
 		if(!Rf_isInteger(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
-			Rf_warning("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
-			omxFillMatrixFromMxAlgebra(om, algebraElt, NULL);		// Collapse the no-op algebra
+			Rf_error("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
 		} else {			// Still a No-op.  Sadly, we have to keep it that way.
 			
 			value = Rf_asInteger(algebraElt);
 			
-			oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
+			oa = new omxAlgebra;
 			omxInitAlgebraWithMatrix(oa, om);
 			omxAlgebraAllocArgs(oa, 1);
 			
@@ -207,6 +213,26 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name) {
 	}
 	om->name        = name;
 	oa->sexpAlgebra = algebra;
+
+	if (dimnames && !Rf_isNull(dimnames)) {
+		SEXP names;
+		if (Rf_length(dimnames) >= 1) {
+			Rf_protect(names = VECTOR_ELT(dimnames, 0));
+			int nlen = Rf_length(names);
+			oa->rownames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				oa->rownames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+		if (Rf_length(dimnames) >= 2) {
+			Rf_protect(names = VECTOR_ELT(dimnames, 1));
+			int nlen = Rf_length(names);
+			oa->colnames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				oa->colnames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+	}
 }
 
 omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {

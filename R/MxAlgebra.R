@@ -21,7 +21,6 @@ setClass(Class = "MxAlgebra",
 		name = "character",
 		fixed = "logical",
 		.dimnames = "MxListOrNull",
-		initial = "matrix",
 		result = "matrix"))
 		
 setMethod("initialize", "MxAlgebra",
@@ -53,7 +52,12 @@ setReplaceMethod("dimnames", "MxAlgebra",
 
 
 
-mxAlgebra <- function(expression, name = NA, dimnames = NA, fixed = FALSE) {
+mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxAlgebra does not accept values for the '...' argument")
+	}
+
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}
@@ -117,7 +121,7 @@ generateAlgebraHelper <- function(algebra, matrixNumbers, algebraNumbers) {
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	return(list(algebra@initial, retval))
+	return(list(algebra@.dimnames, retval))
 }
 
 substituteOperators <- function(algebra, name) {

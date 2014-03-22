@@ -405,7 +405,7 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Populates the fields of a omxMatrix with details from an R object. */
-	if(!Rf_isMatrix(rObject) && !Rf_isVector(rObject)) { // Sanity Check
+	if(rObject && !Rf_isMatrix(rObject) && !Rf_isVector(rObject)) { // Sanity Check
 		Rf_error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
 	}
 	return(fillMatrixHelperFunction(om, rObject, state, hasMatrixNumber, matrixNumber));
@@ -422,29 +422,31 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 	if (!om) Rf_error("fillMatrixHelperFunction: matrix must be allocated already");
 
-	if(Rf_isMatrix(matrix)) {
-		SEXP matrixDims;
-		Rf_protect(matrixDims = Rf_getAttrib(matrix, R_DimSymbol));
-		dimList = INTEGER(matrixDims);
-		om->rows = dimList[0];
-		om->cols = dimList[1];
-		Rf_unprotect(1); // matrixDims
-	} else if (Rf_isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
-		if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
-		om->rows = 1;
-		om->cols = Rf_length(matrix);
-	}
-	if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
+	if (matrix) {
+		if(Rf_isMatrix(matrix)) {
+			SEXP matrixDims;
+			Rf_protect(matrixDims = Rf_getAttrib(matrix, R_DimSymbol));
+			dimList = INTEGER(matrixDims);
+			om->rows = dimList[0];
+			om->cols = dimList[1];
+			Rf_unprotect(1); // matrixDims
+		} else if (Rf_isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
+			if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
+			om->rows = 1;
+			om->cols = Rf_length(matrix);
+		}
+		if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
-	if (TYPEOF(matrix) != REALSXP) {
-		// we could avoid a double copy here TODO
-		SEXP copy;
-		Rf_protect(copy = Rf_coerceVector(matrix, REALSXP));
-		om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
-		memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
-	} else {
-		om->owner = matrix;
-		om->data = REAL(om->owner);
+		if (TYPEOF(matrix) != REALSXP) {
+			// we could avoid a double copy here TODO
+			SEXP copy;
+			Rf_protect(copy = Rf_coerceVector(matrix, REALSXP));
+			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
+			memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
+		} else {
+			om->owner = matrix;
+			om->data = REAL(om->owner);
+		}
 	}
 
 	om->colMajor = TRUE;
@@ -707,7 +709,7 @@ void omxInitialCompute(omxMatrix *matrix)
 	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraInitialCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, 0, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, NULL);
 	}
 }
 

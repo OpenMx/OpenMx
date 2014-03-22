@@ -105,7 +105,9 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;
 
-	omxMarkClean(off->matrix); // only makes sense for FF_COMPUTE_FIT, can remove? TODO
+	if (want & FF_COMPUTE_FIT) {
+		omxMarkClean(off->matrix);
+	}
 }
 
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)

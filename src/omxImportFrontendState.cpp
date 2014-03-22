@@ -76,16 +76,16 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 
 	for(int index = 0; index < Rf_length(algList); index++) {
 		omxManageProtectInsanity protectManager;
-		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
+		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
-			// delay until expectations are ready
+			// fitfunction, delay until expectations are ready
 		} else {								// This is an algebra spec.
-			SEXP initialValue, formula;
+			SEXP dimnames, formula;
 			omxMatrix *amat = globalState->algebraList[index];
-			Rf_protect(initialValue = VECTOR_ELT(nextAlgTuple, 0));  // don't use it anymore, remove TODO
-			omxFillMatrixFromRPrimitive(amat, initialValue, globalState, 1, index);
+			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
+			omxFillMatrixFromRPrimitive(amat, NULL, globalState, 1, index);
 			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
-			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)));
+			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)), dimnames);
 			omxMarkDirty(amat);
 		}
 		if (isErrorRaised(globalState)) return;

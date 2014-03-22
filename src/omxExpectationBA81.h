@@ -94,20 +94,6 @@ extern int rpf_numModels;
 
 void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
 
-OMXINLINE static int
-triangleLoc1(int diag)
-{
-	//if (diag < 1) Rf_error("Out of domain");
-	return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
-}
-
-OMXINLINE static int
-triangleLoc0(int diag)
-{
-	//if (diag < 0) Rf_error("Out of domain");
-	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
-}
-
 OMXINLINE static void
 pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
 {

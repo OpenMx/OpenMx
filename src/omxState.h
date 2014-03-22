@@ -92,6 +92,7 @@ struct FreeVarGroup {
 	std::vector<bool> dependencies;
 	std::vector<bool> locations;
 
+	int lookupVar(const char *name);  // index or -1 if not found
 	void cacheDependencies();
 	void markDirty(omxState *os);
 	void log();
@@ -159,11 +160,14 @@ class omxGlobal {
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
 
-	std::vector< omxCompute* > computeList;
 	std::vector< FreeVarGroup* > freeGroup;
 
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
+
+	// These lists exist only to free memory
+	std::vector< omxCompute* > computeList;
+	std::vector< omxAlgebra* > algebraList;
 
 	omxGlobal();
 	void deduplicateVarGroups();

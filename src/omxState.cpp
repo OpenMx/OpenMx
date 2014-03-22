@@ -56,6 +56,14 @@ bool FreeVarGroup::hasSameVars(FreeVarGroup *g2)
 	return true;
 }
 
+int FreeVarGroup::lookupVar(const char *name)
+{
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		if (strcmp(name, vars[vx]->name) == 0) return vx;
+	}
+	return -1;
+}
+
 void FreeVarGroup::cacheDependencies()
 {
 	omxState *os = globalState;
@@ -360,6 +368,9 @@ omxGlobal::~omxGlobal()
 {
 	for (size_t cx=0; cx < computeList.size(); ++cx) {
 		delete computeList[cx];
+	}
+	for (size_t cx=0; cx < algebraList.size(); ++cx) {
+		delete algebraList[cx];
 	}
 	if (freeGroup.size()) {
 		std::vector< omxFreeVar* > &vars = freeGroup[0]->vars;  // has all vars

@@ -41,6 +41,7 @@ class omxComputeGD : public omxCompute {
 public:
 	omxComputeGD();
 	virtual void initFromFrontend(SEXP rObj);
+	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
@@ -91,6 +92,9 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 		Rf_error("MxComputeGradientDescent engine %s unknown", engine_name);
 	}
 }
+
+omxFitFunction *omxComputeGD::getFitFunction()
+{ return fitMatrix->fitFunction; }
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {

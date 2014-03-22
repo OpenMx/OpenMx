@@ -18,15 +18,21 @@ setClass(Class = "MxFitFunctionAlgebra",
 	representation = representation(
 		algebra = "MxCharOrNumber",
 		numObs = "numeric",
-		numStats = "numeric"),
+		numStats = "numeric",
+	    gradient = "MxCharOrNumber",
+	    hessian = "MxCharOrNumber",
+	    verbose = "integer"),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionAlgebra",
-	function(.Object, algebra, numObs, numStats, name = 'fitfunction') {
+	function(.Object, algebra, numObs, numStats, gradient, hessian, verbose, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@algebra <- algebra
 		.Object@numObs <- numObs
 		.Object@numStats <- numStats
+		.Object@gradient <- gradient
+		.Object@hessian <- hessian
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
@@ -34,7 +40,11 @@ setMethod("initialize", "MxFitFunctionAlgebra",
 setMethod("genericFitDependencies", signature("MxFitFunctionAlgebra"),
 	function(.Object, flatModel, dependencies) {
 	dependencies <- callNextMethod()
-	dependencies <- imxAddDependency(.Object@algebra, .Object@name, dependencies)
+	for (sl in c('algebra', 'gradient', 'hessian')) {
+		thing <- slot(.Object, sl)
+		if (is.na(thing)) next
+		dependencies <- imxAddDependency(thing, .Object@name, dependencies)
+	}
 	return(dependencies)
 })
 
@@ -42,13 +52,12 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		name <- .Object@name
 		algebra <- .Object@algebra
-		if (is.na(algebra)) {
+		if (is.na(algebra) && is.na(.Object@gradient) && is.na(.Object@hessian)) {
 			modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 			msg <- paste("The algebra name cannot be NA",
 			"for the algebra fit function of model", omxQuotes(modelname))
 			stop(msg, call. = FALSE)
 		}
-		algebraIndex <- imxLocateIndex(flatModel, algebra, name)
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		expectName <- paste(modelname, "expectation", sep=".")
 		if (expectName %in% names(flatModel@expectations)) {
@@ -56,26 +65,42 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 		} else {
 			expectIndex <- as.integer(NA)
 		}
-		.Object@algebra <- algebraIndex
 		.Object@expectation <- expectIndex
+		for (sl in c('algebra', 'gradient', 'hessian')) {
+			slot(.Object, sl) <- imxLocateIndex(flatModel, slot(.Object, sl), name)
+		}
 		return(.Object)
 })
 
 setMethod("qualifyNames", signature("MxFitFunctionAlgebra"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace)
+		for (sl in c('algebra', 'gradient', 'hessian')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		return(.Object)
 })
 
 setMethod("genericFitRename", signature("MxFitFunctionAlgebra"),
 	function(.Object, oldname, newname) {
-		.Object@algebra <- renameReference(.Object@algebra, oldname, newname)
+		for (sl in c('algebra', 'gradient', 'hessian')) {
+			slot(.Object, sl) <- renameReference(slot(.Object, sl), oldname, newname)
+		}
 		return(.Object)
 })
 
-mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA) {
-	if (missing(algebra) || typeof(algebra) != "character") {
+mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
+				 gradient=NA_character_, hessian=NA_character_,
+				 verbose=0L)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxFitFunctionAlgebra does not accept values for the '...' argument")
+	}
+
+	if (is.null(algebra)) {
+		algebra <- NA_character_
+	} else if (missing(algebra) || typeof(algebra) != "character") {
 		stop("Algebra argument is not a string (the name of the algebra)")
 	}
 	if (single.na(numObs)) {
@@ -84,7 +109,7 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA) {
 	if (single.na(numStats)) {
 		numStats <- as.numeric(NA)
 	}
-	return(new("MxFitFunctionAlgebra", algebra, numObs, numStats))
+	return(new("MxFitFunctionAlgebra", algebra, numObs, numStats, gradient, hessian, verbose))
 }
 
 displayMxFitFunctionAlgebra <- function(fitfunction) {

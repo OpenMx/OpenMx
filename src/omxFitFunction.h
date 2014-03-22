@@ -83,7 +83,6 @@ struct omxFitFunction {					// A fit function
 	FreeVarGroup *freeVarGroup;
 	bool gradientAvailable;
 	bool hessianAvailable;
-	bool parametersHaveFlavor;
 };
 
 /* Initialize and Destroy */

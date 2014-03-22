@@ -116,7 +116,6 @@ void initFitMultigroup(omxFitFunction *oo)
 
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
-	oo->parametersHaveFlavor = TRUE;
 
 	omxState *os = oo->matrix->currentState;
 
@@ -143,7 +142,6 @@ void initFitMultigroup(omxFitFunction *oo)
 			omxCompleteFitFunction(mat);
 			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
-			oo->parametersHaveFlavor = (oo->parametersHaveFlavor && mat->fitFunction->parametersHaveFlavor);
 		} else {
 			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;

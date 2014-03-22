@@ -1131,6 +1131,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
+	if (want & FF_COMPUTE_INITIAL_FIT) return 0;
+
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		buildItemParamMap(oo, fc);
 
@@ -1270,7 +1272,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	oo->destructFun = ba81Destroy;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
-	oo->parametersHaveFlavor = TRUE;
 
 	int maxParam = estate->itemParam->rows;
 	state->itemDerivPadSize = maxParam + triangleLoc1(maxParam);

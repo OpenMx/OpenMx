@@ -41,16 +41,20 @@ struct omxAlgebra {						// A matrix
 	omxMatrix* matrix;				// The matrix populated by this algebra
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
 
-	// for debug output
+	// char pointers are from R and should not be freed
+	std::vector<const char *> rownames;
+	std::vector<const char *> colnames;
+
 	const omxAlgebraTableEntry *oate;
+
+	omxAlgebra();
 };
 
 /* Initialize and Destroy */
 	omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os);			// Constructor 
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
-	omxMatrix* omxNewMatrixFromMxAlgebra(SEXP mxmat, omxState* os, const char *name);	// Create an Algebra from an R mxMatrix
-	void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name);	// Populate an Algebra from an R mxMatrix
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name, SEXP dimnames);
 	omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
 
