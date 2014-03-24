@@ -13,9 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 # Taken from the package "parallel" available in R >= 2.14.0
-omxDetectCores <- function(all.tests = FALSE, logical = FALSE) {
+omxDetectCores <- memoize(function(all.tests = FALSE, logical = FALSE) {
 	if("package:parallel" %in% search()) {
 		return(detectCores(all.tests, logical))
 	} else if(.Platform$OS.type == "windows") {        
@@ -40,4 +39,4 @@ omxDetectCores <- function(all.tests = FALSE, logical = FALSE) {
 		}
         return(NA_integer_)
     }
-}
+})

@@ -30,6 +30,7 @@ Description: The OpenMx Project intends to rewrite and extend the popular
 License: Apache License 2.0
 Depends:
     methods,
+    digest,
     MASS
 Suggests:
     snowfall,
@@ -41,6 +42,7 @@ LazyLoad: yes
 LazyData: yes
 Collate:
     '0ClassUnion.R'
+    'cache.R'
     'MxBaseNamed.R'
     'MxData.R'
     'DefinitionVars.R'
