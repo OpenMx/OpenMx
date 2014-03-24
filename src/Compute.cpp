@@ -1136,6 +1136,10 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	verbose = Rf_asInteger(slotValue);
 
 	semTolerance = sqrt(tolerance);  // override needed?
+
+	inputInfoMatrix = NULL;
+	rateMatrix = NULL;
+	origEigenvalues = NULL;
 }
 
 void ComputeEM::setExpectationPrediction(const char *context)
@@ -1498,7 +1502,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (semForcePD) {
 		double *oev = NULL;
 		if (semDebug) {
-			origEigenvalues = Rf_allocVector(REALSXP, freeVars);
+			Rf_protect(origEigenvalues = Rf_allocVector(REALSXP, freeVars));
 			oev = REAL(origEigenvalues);
 		}
 		Matrix mat(ihess, freeVars, freeVars);
@@ -1536,20 +1540,26 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		const int freeVars = (int) fc->varGroup->vars.size();
 		MxRList dbg;
 
-		SEXP Rpo;
-		Rf_protect(Rpo = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
-		memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.add("probeOffset", Rpo);
+		if (probeOffset.size()) {
+			SEXP Rpo;
+			Rf_protect(Rpo = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
+			memcpy(REAL(Rpo), probeOffset.data(), sizeof(double) * maxHistLen * freeVars);
+			dbg.add("probeOffset", Rpo);
+		}
 
-		SEXP Rdiff;
-		Rf_protect(Rdiff = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
-		memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVars);
-		dbg.add("semDiff", Rdiff);
+		if (diffWork.size()) {
+			SEXP Rdiff;
+			Rf_protect(Rdiff = Rf_allocMatrix(REALSXP, maxHistLen, freeVars));
+			memcpy(REAL(Rdiff), diffWork.data(), sizeof(double) * maxHistLen * freeVars);
+			dbg.add("semDiff", Rdiff);
+		}
 
-		SEXP Rphl;
-		Rf_protect(Rphl = Rf_allocVector(INTSXP, freeVars));
-		memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVars);
-		dbg.add("paramHistLen", Rphl);
+		if (paramHistLen.size()) {
+			SEXP Rphl;
+			Rf_protect(Rphl = Rf_allocVector(INTSXP, freeVars));
+			memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVars);
+			dbg.add("paramHistLen", Rphl);
+		}
 
 		if (inputInfoMatrix) dbg.add("inputInfo", inputInfoMatrix);
 		if (rateMatrix) dbg.add("rateMatrix", rateMatrix);
