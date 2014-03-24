@@ -190,6 +190,10 @@ void FitContext::init()
 
 void FitContext::clearHessian()
 {
+	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
+		delete allBlocks[bx];
+	}
+
 	allBlocks.clear();
 	haveSparseHess = false;
 	haveSparseIHess = false;
@@ -490,6 +494,7 @@ void FitContext::postInfo()
 
 FitContext::~FitContext()
 {
+	clearHessian();
 	if (est) delete [] est;
 	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
