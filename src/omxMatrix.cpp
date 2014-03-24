@@ -103,7 +103,6 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	om->fitFunction = NULL;
 
 	om->currentState = os;
-	om->isTemporary = FALSE;
 	om->name = NULL;
 	om->version = 1;
 	omxMarkClean(om);
@@ -111,17 +110,6 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 	omxMatrixLeadingLagging(om);
 
 	return om;
-
-}
-
-omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os)
-{
-	if (om) Rf_error("om must be NULL");  // remove this argument TODO
-
-	om = omxInitMatrix(NULL, nrows, ncols, isColMajor, os);
-	om->isTemporary = TRUE;
-	
-	return(om);
 
 }
 
@@ -205,9 +193,7 @@ void omxFreeAllMatrixData(omxMatrix *om) {
 		om->fitFunction = NULL;
 	}
 	
-	if(om->isTemporary) {
-		Free(om);
-	}
+	if (!om->hasMatrixNumber) Free(om);
 }
 
 /**

@@ -66,7 +66,6 @@ struct omxMatrix {						// A matrix
 	omxState* currentState;				// Optimizer State
 	int cleanVersion;
 	int version;
-	unsigned short isTemporary;			// Whether or not to destroy the omxMatrix Structure when omxFreeAllMatrixData is called.
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
@@ -90,9 +89,11 @@ struct omxMatrix {						// A matrix
 	struct omxExpectation *expectation;       // weak reference
 };
 
-/* Initialize and Destroy */
-	omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);			// Set up matrix 
-	omxMatrix* omxInitTemporaryMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);	// Set up matrix that can be freed
+// If you call these functions directly then you need to free the memory with omxFreeAllMatrixData.
+// If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
+omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);
+#define omxInitTemporaryMatrix omxInitMatrix
+
 	void omxFreeMatrixData(omxMatrix* om);							// Release any held data.
 	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
 

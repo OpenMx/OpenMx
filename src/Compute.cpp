@@ -408,9 +408,9 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	varGroup->markDirty(os);
 
-	if (!os->childList) return;
+	if (os->childList.size() == 0) return;
 
-	for(int i = 0; i < Global->numChildren; i++) {
+	for(size_t i = 0; i < os->childList.size(); i++) {
 		copyParamToModel(os->childList[i], at);
 	}
 }

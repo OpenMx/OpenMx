@@ -189,7 +189,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	omxMatrix *itemParam = state->itemParam;
-	omxMatrix *design = state->design;
+	Eigen::MatrixXi &design = state->design;
 	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->totalQuadPoints, double);
@@ -209,7 +209,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 
 			double ptheta[dims];
 			for (int dx=0; dx < dims; dx++) {
-				int ability = (int)omxMatrixElement(design, dx, ix) - 1;
+				int ability = design(dx, ix) - 1; // remove -1 here TODO
 				if (ability >= maxDims) ability = maxDims-1;
 				ptheta[dx] = where[ability];
 			}
@@ -937,10 +937,6 @@ static void ba81Destroy(omxExpectation *oo) {
 		mxLog("Freeing %s function.", oo->name);
 	}
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	omxFreeAllMatrixData(state->design);
-	omxFreeAllMatrixData(state->latentMeanOut);
-	omxFreeAllMatrixData(state->latentCovOut);
-	omxFreeAllMatrixData(state->itemParam);
 	omxFreeAllMatrixData(state->estLatentMean);
 	omxFreeAllMatrixData(state->estLatentCov);
 	omxFreeAllMatrixData(state->numObsMat);
@@ -999,7 +995,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->excludedPatterns = 0;
 	state->numIdentical = NULL;
 	state->rowMap = NULL;
-	state->design = NULL;
 	state->patternLik = NULL;
 	state->outcomeProb = NULL;
 	state->expected = NULL;
@@ -1033,8 +1028,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("design")));
 	if (!Rf_isNull(tmp)) {
-		// better to demand integers and not coerce to real TODO
-		state->design = omxNewMatrixFromRPrimitive(tmp, globalState, FALSE, 0);
+		int rows, cols;
+		getMatrixDims(tmp, &rows, &cols);
+		state->design.resize(rows, cols);
+		memcpy(state->design.data(), INTEGER(tmp), sizeof(int) * rows * cols);
 	}
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
@@ -1140,39 +1137,30 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	if (state->design == NULL) {
+	if (state->design.rows() == 0) {
 		state->maxDims = maxItemDims;
 		state->maxAbilities = maxItemDims;
-		state->design = omxInitTemporaryMatrix(NULL, state->maxDims, numItems,
-				       TRUE, currentState);
+		state->design.resize(state->maxDims, numItems);
 		for (int ix=0; ix < numItems; ix++) {
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
 			for (int dx=0; dx < state->maxDims; dx++) {
-				omxSetMatrixElement(state->design, dx, ix, dx < dims? (double)dx+1 : nan(""));
+				state->design(dx, ix) = dx < dims? dx+1 : NA_INTEGER;
 			}
 		}
 	} else {
-		omxMatrix *design = state->design;
-		if (design->cols != numItems) {
+		Eigen::MatrixXi &design = state->design;
+		if (design.cols() != numItems) {
 			omxRaiseErrorf(currentState, "Design matrix should have %d columns", numItems);
 			return;
 		}
 
-		state->maxAbilities = 0;
-		for (int ix=0; ix < design->rows * design->cols; ix++) {
-			double got = design->data[ix];
-			if (!R_FINITE(got)) continue;
-			if (round(got) != (int)got) Rf_error("Design matrix can only contain integers"); // TODO better way?
-			if (state->maxAbilities < got)
-				state->maxAbilities = got;
-		}
+		state->maxAbilities = design.maxCoeff();
 		maxItemDims = 0;
-		for (int ix=0; ix < design->cols; ix++) {
-			const double *idesign = omxMatrixColumn(design, ix);
+		for (int ix=0; ix < design.cols(); ix++) {
 			int ddim = 0;
-			for (int rx=0; rx < design->rows; rx++) {
-				if (std::isfinite(idesign[rx])) ddim += 1;
+			for (int rx=0; rx < design.rows(); rx++) {
+				if (design(rx,ix) != NA_INTEGER) ddim += 1;
 			}
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
@@ -1191,7 +1179,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->Sgroup = Realloc(NULL, numItems, int);
 		for (int dx=0; dx < state->maxDims; dx++) {
 			for (int ix=0; ix < numItems; ix++) {
-				int ability = omxMatrixElement(state->design, dx, ix);
+				int ability = state->design(dx, ix);
 				if (dx < state->maxDims - 1) {
 					if (Sgroup0 <= ability)
 						Sgroup0 = ability+1;
@@ -1231,10 +1219,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			int dims = spec[RPF_ISpecDims];
 			int dr = 0;
 			for (int dx=0; dx < dims; dx++) {
-				int ability = (int)omxMatrixElement(state->design, dr + dx, ix);
+				int ability = state->design(dr + dx, ix);
 				while (ability == NA_INTEGER) {
 					++dr;
-					ability = (int)omxMatrixElement(state->design, dr + dx, ix);
+					ability = state->design(dr + dx, ix);
 				}
 				// assume factor loadings are the first item parameters
 				if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;

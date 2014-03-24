@@ -60,7 +60,7 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		    }
 		}
 
-		if(OMX_DEBUG) { mxLog("Final Calculation of Algebra %d Complete.", index); }
+		if(OMX_DEBUG) { mxLog("Final Calculation of Algebra %d Complete.", (int) index); }
 		SET_VECTOR_ELT(algebras, index, algebra);
 	}
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }

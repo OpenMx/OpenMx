@@ -74,9 +74,11 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 {
 	if (Global->numThreads <= 1) return;
 
+	if (globalState->childList.size()) Rf_error("Children already created");
+
 	int numThreads = Global->numChildren = Global->numThreads;
 
-	globalState->childList = (omxState**) Calloc(numThreads, omxState*);
+	globalState->childList.resize(numThreads);
 
 	for(int ii = 0; ii < numThreads; ii++) {
 		globalState->childList[ii] = new omxState;

@@ -261,8 +261,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     int k, iter = -1;
     int inform = 0;
     
-    double *bl=NULL, *bu=NULL;
-    
     //double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
     int ncnln = globalState->ncnln;
@@ -289,9 +287,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     /* Set boundaries and widths. */
     
-    /* Allocate arrays */
-    bl      = Calloc ( n + ncnln, double );
-    bu      = Calloc ( n + ncnln, double );
+    std::vector<double> blBuf(n+ncnln);
+    std::vector<double> buBuf(n+ncnln);
+    double *bl = blBuf.data();
+    double *bu = buBuf.data();
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;

@@ -51,6 +51,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
     
 	if (ox->destructFun) ox->destructFun(ox);
+	if (ox->dataColumns) omxFreeAllMatrixData(ox->dataColumns);
 	Free(ox->submodels);
 	Free(ox);
 }

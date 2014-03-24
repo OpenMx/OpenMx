@@ -32,20 +32,21 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	if(OMX_DEBUG) { mxLog("Destroying FIML fit function object."); }
 	omxFIMLFitFunction *argStruct = (omxFIMLFitFunction*) (off->argStruct);
 
-	if(argStruct->smallMeans != NULL) omxFreeMatrixData(argStruct->smallMeans);
-	if(argStruct->ordMeans != NULL) omxFreeMatrixData(argStruct->ordMeans);
-	if(argStruct->contRow != NULL) omxFreeMatrixData(argStruct->contRow);
-	if(argStruct->ordRow != NULL) omxFreeMatrixData(argStruct->ordRow);
-	if(argStruct->ordCov != NULL) omxFreeMatrixData(argStruct->ordCov);
-	if(argStruct->ordContCov != NULL) omxFreeMatrixData(argStruct->ordContCov);
-	if(argStruct->halfCov != NULL) omxFreeMatrixData(argStruct->halfCov);
-	if(argStruct->reduceCov != NULL) omxFreeMatrixData(argStruct->reduceCov);
+	omxFreeAllMatrixData(argStruct->smallMeans);
+	omxFreeAllMatrixData(argStruct->ordMeans);
+	omxFreeAllMatrixData(argStruct->contRow);
+	omxFreeAllMatrixData(argStruct->ordRow);
+	omxFreeAllMatrixData(argStruct->ordCov);
+	omxFreeAllMatrixData(argStruct->ordContCov);
+	omxFreeAllMatrixData(argStruct->halfCov);
+	omxFreeAllMatrixData(argStruct->reduceCov);
 
-	if(argStruct->smallRow != NULL) omxFreeMatrixData(argStruct->smallRow);
-	if(argStruct->smallCov != NULL) omxFreeMatrixData(argStruct->smallCov);
-	if(argStruct->RCX != NULL)		omxFreeMatrixData(argStruct->RCX);
-    if(argStruct->rowLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLikelihoods);
-    if(argStruct->rowLogLikelihoods != NULL) omxFreeMatrixData(argStruct->rowLogLikelihoods);
+	omxFreeAllMatrixData(argStruct->smallRow);
+	omxFreeAllMatrixData(argStruct->smallCov);
+	omxFreeAllMatrixData(argStruct->RCX);
+	omxFreeAllMatrixData(argStruct->rowLikelihoods);
+	omxFreeAllMatrixData(argStruct->rowLogLikelihoods);
+
 	if(off->expectation == NULL) {
 		if(argStruct->cov != NULL) omxFreeMatrixData(argStruct->cov);
 		if(argStruct->means != NULL) omxFreeMatrixData(argStruct->means);

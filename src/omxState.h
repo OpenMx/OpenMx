@@ -146,7 +146,7 @@ class omxGlobal {
 	int ciMaxIterations;
 	int numThreads;
 	int analyticGradients;
-	int numChildren;
+	int numChildren;  // == globalState->childList.size()
 	double llScale;
 
 	double maxptsa;
@@ -186,7 +186,7 @@ struct omxState {
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
-	omxState** childList;											// List of child states
+	std::vector< omxState* > childList;
 
 	// move all constraint stuff to omxGlobal TODO
 	int numConstraints;

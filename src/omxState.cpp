@@ -178,7 +178,6 @@ void omxGlobal::deduplicateVarGroups()
 	void omxInitState(omxState* state) {
 		state->stale = FALSE;
 		state->numConstraints = 0;
-		state->childList = NULL;
 		state->conList = NULL;
 
 		state->majorIteration = 0;
@@ -198,7 +197,7 @@ void omxGlobal::deduplicateVarGroups()
 
 	void omxSetMajorIteration(omxState *state, int value) {
 		state->majorIteration = value;
-		if (!state->childList) return;
+		if (!state->childList.size()) return;
 		for(int i = 0; i < Global->numChildren; i++) {
 			omxSetMajorIteration(state->childList[i], value);
 		}
@@ -206,7 +205,7 @@ void omxGlobal::deduplicateVarGroups()
 
 	void omxSetMinorIteration(omxState *state, int value) {
 		state->minorIteration = value;
-		if (!state->childList) return;
+		if (!state->childList.size()) return;
 		for(int i = 0; i < Global->numChildren; i++) {
 			omxSetMinorIteration(state->childList[i], value);
 		}
@@ -248,8 +247,6 @@ void omxGlobal::deduplicateVarGroups()
 			// TODO: Smarter inference for which expectations to duplicate
 			omxCompleteExpectation(tgt->expectationList[j]);
 		}
-
-		tgt->childList 			= NULL;
 
 		tgt->majorIteration 	= 0;
 		tgt->minorIteration 	= 0;
@@ -297,7 +294,7 @@ void omxGlobal::deduplicateVarGroups()
 	
 void omxFreeChildStates(omxState *state)
 {
-	if (!state->childList || Global->numChildren == 0) return;
+	if (state->childList.size() == 0) return;
 
 	for(int k = 0; k < Global->numChildren; k++) {
 		// Data are not modified and not copied. The same memory
@@ -307,8 +304,7 @@ void omxFreeChildStates(omxState *state)
 
 		omxFreeState(state->childList[k]);
 	}
-	Free(state->childList);
-	state->childList = NULL;
+	state->childList.clear();
 	Global->numChildren = 0;
 }
 
@@ -316,15 +312,17 @@ void omxFreeChildStates(omxState *state)
 		omxFreeChildStates(state);
 
 		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
+			//state->algebraList[ax]->hasMatrixNumber = false;
 			omxFreeAllMatrixData(state->algebraList[ax]);
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", (int) state->matrixList.size());}
 		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
+			//state->matrixList[mk]->hasMatrixNumber = false;
 			omxFreeAllMatrixData(state->matrixList[mk]);
 		}
 		
-		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", state->expectationList.size());}
+		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) state->expectationList.size());}
 		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
 			omxFreeExpectationArgs(state->expectationList[ex]);
 		}
@@ -384,10 +382,8 @@ omxGlobal::~omxGlobal()
 }
 
 	void omxResetStatus(omxState *state) {
-		int numChildren = Global->numChildren;
 		state->statusMsg[0] = '\0';
-		if (!state->childList) return;
-		for(int i = 0; i < numChildren; i++) {
+		for(size_t i = 0; i < state->childList.size(); i++) {
 			omxResetStatus(state->childList[i]);
 		}
 	}
