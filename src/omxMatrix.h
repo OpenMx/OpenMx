@@ -89,13 +89,12 @@ struct omxMatrix {						// A matrix
 	struct omxExpectation *expectation;       // weak reference
 };
 
-// If you call these functions directly then you need to free the memory with omxFreeAllMatrixData.
+// If you call these functions directly then you need to free the memory with omxFreeMatrix.
 // If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
 omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);
 #define omxInitTemporaryMatrix omxInitMatrix
 
-	void omxFreeMatrixData(omxMatrix* om);							// Release any held data.
-	void omxFreeAllMatrixData(omxMatrix* om);						// Ditto, traversing argument trees
+	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees
 
 /* Matrix Creation Functions */
 	omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState *state,

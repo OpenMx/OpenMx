@@ -937,9 +937,9 @@ static void ba81Destroy(omxExpectation *oo) {
 		mxLog("Freeing %s function.", oo->name);
 	}
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	omxFreeAllMatrixData(state->estLatentMean);
-	omxFreeAllMatrixData(state->estLatentCov);
-	omxFreeAllMatrixData(state->numObsMat);
+	omxFreeMatrix(state->estLatentMean);
+	omxFreeMatrix(state->estLatentCov);
+	omxFreeMatrix(state->numObsMat);
 	Free(state->numIdentical);
 	Free(state->rowMap);
 	Free(state->patternLik);

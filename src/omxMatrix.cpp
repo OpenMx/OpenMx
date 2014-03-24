@@ -113,6 +113,15 @@ omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isC
 
 }
 
+static void omxFreeInternalMatrixData(omxMatrix * om)
+{
+	if(!om->owner && om->data != NULL) {
+		Free(om->data);
+	}
+	om->owner = NULL;
+	om->data = NULL;
+}
+
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
@@ -146,11 +155,11 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	}
 
 	if(dest->rows == 0 || dest->cols == 0) {
-		omxFreeMatrixData(dest);
+		omxFreeInternalMatrixData(dest);
 		dest->data = NULL;
 	} else {
 		if(regenerateMemory) {
-			omxFreeMatrixData(dest);											// Free and regenerate memory
+			omxFreeInternalMatrixData(dest);											// Free and regenerate memory
 			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
 		}
 		if (dest->data != orig->data) {  // if equal then programmer Rf_error? TODO
@@ -168,20 +177,11 @@ void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
 	dest->aliasedPtr = src;					// Alias now follows back matrix precisely.
 }
 
-void omxFreeMatrixData(omxMatrix * om) {
-
-	if(!om->owner && om->data != NULL) {
-		Free(om->data);
-	}
-	om->owner = NULL;
-	om->data = NULL;
-}
-
-void omxFreeAllMatrixData(omxMatrix *om) {
+void omxFreeMatrix(omxMatrix *om) {
     
     if(om == NULL) return;
 
-	omxFreeMatrixData(om);
+	omxFreeInternalMatrixData(om);
 
 	if(om->algebra != NULL) {
 		omxFreeAlgebraArgs(om->algebra);
@@ -262,7 +262,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 	}
 
 	if( (om->rows != nrows || om->cols != ncols)) {
-		omxFreeMatrixData(om);
+		omxFreeInternalMatrixData(om);
 		om->data = (double*) Calloc(nrows * ncols, double);
 	}
 
@@ -505,7 +505,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 		}
 	}
 
-	omxFreeMatrixData(mat);
+	omxFreeInternalMatrixData(mat);
 	mat->data = newdata;
 	mat->colMajor = !mat->colMajor;
 }

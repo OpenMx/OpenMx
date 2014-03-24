@@ -51,12 +51,12 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
     if(oo->argStruct == NULL) return;
 
-	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
-    omxFreeMatrixData(owo->observedFlattened);
-    omxFreeMatrixData(owo->expectedFlattened);
-    omxFreeMatrixData(owo->weights);
-    omxFreeMatrixData(owo->B);
-    omxFreeMatrixData(owo->P);
+    omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
+    omxFreeMatrix(owo->observedFlattened);
+    omxFreeMatrix(owo->expectedFlattened);
+    omxFreeMatrix(owo->weights);
+    omxFreeMatrix(owo->B);
+    omxFreeMatrix(owo->P);
 }
 
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {

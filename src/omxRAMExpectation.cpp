@@ -162,57 +162,48 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 	
 	omxRAMExpectation* argStruct = (omxRAMExpectation*)(oo->argStruct);
 
-	/* We allocated 'em, so we destroy 'em. */
-	if(argStruct->cov != NULL)
-		omxFreeMatrixData(argStruct->cov);
+	omxFreeMatrix(argStruct->cov);
 
 	if(argStruct->means != NULL) {
-		omxFreeMatrixData(argStruct->dM);
-		omxFreeMatrixData(argStruct->ZM);
-		omxFreeMatrixData(argStruct->bCB);
-		omxFreeMatrixData(argStruct->b);
-		omxFreeMatrixData(argStruct->tempVec);
-		omxFreeMatrixData(argStruct->bigSum);
-		omxFreeMatrixData(argStruct->lilSum);
-		omxFreeMatrixData(argStruct->beCov);
-		omxFreeMatrixData(argStruct->means);
+		omxFreeMatrix(argStruct->dM);
+		omxFreeMatrix(argStruct->ZM);
+		omxFreeMatrix(argStruct->bCB);
+		omxFreeMatrix(argStruct->b);
+		omxFreeMatrix(argStruct->tempVec);
+		omxFreeMatrix(argStruct->bigSum);
+		omxFreeMatrix(argStruct->lilSum);
+		omxFreeMatrix(argStruct->beCov);
+		omxFreeMatrix(argStruct->means);
 	}
 
 	int nParam = argStruct->nParam;
 	if(nParam >= 0) {
 		for(int j = 0; j < nParam; j++) {
-			if(argStruct->dAdts != NULL)
-				omxFreeMatrixData(argStruct->dAdts[j]);
-			if(argStruct->dSdts != NULL)
-				omxFreeMatrixData(argStruct->dSdts[j]);
-			if(argStruct->dMdts != NULL) 
-				omxFreeMatrixData(argStruct->dMdts[j]);
-			if(argStruct->eqnOuts != NULL)
-				omxFreeMatrixData(argStruct->eqnOuts[0][j]);
+			omxFreeMatrix(argStruct->dAdts[j]);
+			omxFreeMatrix(argStruct->dSdts[j]);
+			omxFreeMatrix(argStruct->dMdts[j]);
+			omxFreeMatrix(argStruct->eqnOuts[0][j]);
 		}
-		omxFreeMatrixData(argStruct->paramVec);
+		omxFreeMatrix(argStruct->paramVec);
 	}
 
-	if (argStruct->dA != NULL)
-		omxFreeMatrixData(argStruct->dA);
+	omxFreeMatrix(argStruct->dA);
+	omxFreeMatrix(argStruct->dS);
 
-	if (argStruct->dS != NULL)
-		omxFreeMatrixData(argStruct->dS);
+	omxFreeMatrix(argStruct->I);
+	omxFreeMatrix(argStruct->lilI);
+	omxFreeMatrix(argStruct->X);
+	omxFreeMatrix(argStruct->Y);
+	omxFreeMatrix(argStruct->Z);
+	omxFreeMatrix(argStruct->Ax);
 
-	omxFreeMatrixData(argStruct->I);
-	omxFreeMatrixData(argStruct->lilI);
-	omxFreeMatrixData(argStruct->X);
-	omxFreeMatrixData(argStruct->Y);
-	omxFreeMatrixData(argStruct->Z);
-	omxFreeMatrixData(argStruct->Ax);
-
-	omxFreeMatrixData(argStruct->W);
-	omxFreeMatrixData(argStruct->U);
-	omxFreeMatrixData(argStruct->EF);
-	omxFreeMatrixData(argStruct->V);
-	omxFreeMatrixData(argStruct->ZSBC);
-	omxFreeMatrixData(argStruct->C);
-	omxFreeMatrixData(argStruct->eCov);
+	omxFreeMatrix(argStruct->W);
+	omxFreeMatrix(argStruct->U);
+	omxFreeMatrix(argStruct->EF);
+	omxFreeMatrix(argStruct->V);
+	omxFreeMatrix(argStruct->ZSBC);
+	omxFreeMatrix(argStruct->C);
+	omxFreeMatrix(argStruct->eCov);
 
 }
 

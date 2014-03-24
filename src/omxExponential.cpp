@@ -151,11 +151,11 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 		omxCopyMatrix(result, N);
 	}
 
-	omxFreeAllMatrixData(normInMat);
-	omxFreeAllMatrixData(tempA);
-	omxFreeAllMatrixData(tempResult);
-	omxFreeAllMatrixData(N);
-	omxFreeAllMatrixData(D);
+	omxFreeMatrix(normInMat);
+	omxFreeMatrix(tempA);
+	omxFreeMatrix(tempResult);
+	omxFreeMatrix(N);
+	omxFreeMatrix(D);
 }
 
 

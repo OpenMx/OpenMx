@@ -162,7 +162,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
 		strncpy(output, globalState->statusMsg, MAX_STRING_LEN);
 	}
 
-	omxFreeAllMatrixData(algebra);
+	omxFreeMatrix(algebra);
 	omxFreeState(globalState);
 	delete Global;
 

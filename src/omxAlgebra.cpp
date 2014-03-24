@@ -89,7 +89,7 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
-		omxFreeAllMatrixData(oa->algArgs[j]);
+		omxFreeMatrix(oa->algArgs[j]);
 		oa->algArgs[j] = NULL;
 	}
 	omxAlgebraAllocArgs(oa, 0);

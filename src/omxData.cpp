@@ -122,7 +122,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
-		omxFreeAllMatrixData(od->meansMat); // Clear just-allocated memory.
+		omxFreeMatrix(od->meansMat); // Clear just-allocated memory.
 		od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
                 // FIXME: The above check may cause problems for dynamic data if the means
                 //          originally is a 1x1 that has not yet been calculated.  This should be
@@ -140,7 +140,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
-		omxFreeAllMatrixData(od->acovMat); // Clear just-allocated memory.
+		omxFreeMatrix(od->acovMat); // Clear just-allocated memory.
 		od->acovMat = NULL;
 	}
 
@@ -150,7 +150,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
-		omxFreeAllMatrixData(od->obsThresholdsMat); // Clear just-allocated memory.
+		omxFreeMatrix(od->obsThresholdsMat); // Clear just-allocated memory.
 		od->obsThresholdsMat = NULL;
 	} else {
         int nCol = od->obsThresholdsMat->cols;
@@ -211,10 +211,10 @@ void resetDefinitionVariables(double *oldDefs, int numDefs) {
 }
 
 void omxFreeData(omxData* od) {
-	omxFreeAllMatrixData(od->dataMat);
-	omxFreeAllMatrixData(od->meansMat);
-	omxFreeAllMatrixData(od->acovMat);
-	omxFreeAllMatrixData(od->obsThresholdsMat);
+	omxFreeMatrix(od->dataMat);
+	omxFreeMatrix(od->meansMat);
+	omxFreeMatrix(od->acovMat);
+	omxFreeMatrix(od->obsThresholdsMat);
 	Free(od);
 }
 

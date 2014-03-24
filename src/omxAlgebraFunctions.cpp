@@ -308,7 +308,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	F77_CALL(omxunsafedgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: clear.");}
 
-	omxFreeAllMatrixData(intermediate);
+	omxFreeMatrix(intermediate);
 
 }
 
@@ -960,7 +960,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
 		free(ipiv);
-		omxFreeAllMatrixData(calcMat);
+		omxFreeMatrix(calcMat);
 		return;
 	}
 
@@ -978,7 +978,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		mxLog("det is %f.", det);
 	}
 
-	omxFreeAllMatrixData(calcMat);
+	omxFreeMatrix(calcMat);
 
 	omxSetMatrixElement(result, 0, 0, det);
 
@@ -1876,8 +1876,8 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
 		omxRaiseError(B->currentState, -1, errstr);
 		free(errstr);
-		omxFreeMatrixData(A);
-		omxFreeMatrixData(B);
+		omxFreeMatrix(A);
+		omxFreeMatrix(B);
 		return;
 	}
 
@@ -1925,8 +1925,8 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSortHelper(WI, A, result);
 
 RealEigenValCleanup:
-	omxFreeMatrixData(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxFreeMatrixData(B);
+	omxFreeMatrix(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrix(B);
 	omxMatrixLeadingLagging(result);
 
 	free(work);
@@ -1954,7 +1954,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
 		sprintf(errstr, "Non-square matrix in (real) eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
-		omxFreeMatrixData(A);
+		omxFreeMatrix(A);
 		return;
 	}
 
@@ -2002,7 +2002,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSortHelper(WR, A, result);
 
 RealEigenVecCleanup:
-	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrix(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixLeadingLagging(result);
 
 	free(WR);
@@ -2023,8 +2023,8 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
-		omxFreeMatrixData(A);
-		omxFreeMatrixData(B);
+		omxFreeMatrix(A);
+		omxFreeMatrix(B);
 		return;
 	}
 
@@ -2074,8 +2074,8 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	omxSortHelper(WR, A, result);
 
 ImagEigenValCleanup:
-	omxFreeMatrixData(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxFreeMatrixData(B);
+	omxFreeMatrix(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrix(B);
 	omxMatrixLeadingLagging(result);
 
 	free(WR);
@@ -2095,7 +2095,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 		sprintf(errstr, "Non-square matrix in (imaginary) eigenvalue decomposition.\n");
 		omxRaiseError(result->currentState, -1, errstr);
 		free(errstr);
-		omxFreeMatrixData(A);
+		omxFreeMatrix(A);
 		return;
 	}
 
@@ -2153,7 +2153,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	omxSortHelper(WR, A, result);
 
 ImagEigenVecCleanup:
-	omxFreeMatrixData(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
+	omxFreeMatrix(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
 	omxMatrixLeadingLagging(result);
 
 	free(WR);
@@ -2406,7 +2406,7 @@ void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
         result->data[i * rows + i] = 1.0;
     }
 
-    omxFreeAllMatrixData(intermediate);
+    omxFreeMatrix(intermediate);
 }
 
 void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)

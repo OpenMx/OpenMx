@@ -53,29 +53,25 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	
 	omxLISRELExpectation* argStruct = (omxLISRELExpectation*)(oo->argStruct);
 
-	/* We allocated 'em, so we destroy 'em. */
-	if(argStruct->cov != NULL)
-		omxFreeMatrixData(argStruct->cov);
-
-	if(argStruct->means != NULL)
-		omxFreeMatrixData(argStruct->means);
+	omxFreeMatrix(argStruct->cov);
+	omxFreeMatrix(argStruct->means);
 	
-	omxFreeMatrixData(argStruct->A);
-	omxFreeMatrixData(argStruct->B);
-	omxFreeMatrixData(argStruct->C);
-	omxFreeMatrixData(argStruct->D);
-	omxFreeMatrixData(argStruct->E);
-	omxFreeMatrixData(argStruct->F);
-	omxFreeMatrixData(argStruct->G);
-	omxFreeMatrixData(argStruct->H);
-	omxFreeMatrixData(argStruct->I);
-	omxFreeMatrixData(argStruct->J);
-	omxFreeMatrixData(argStruct->K);
-	omxFreeMatrixData(argStruct->L);
-	omxFreeMatrixData(argStruct->TOP);
-	omxFreeMatrixData(argStruct->BOT);
-	omxFreeMatrixData(argStruct->MUX);
-	omxFreeMatrixData(argStruct->MUY);
+	omxFreeMatrix(argStruct->A);
+	omxFreeMatrix(argStruct->B);
+	omxFreeMatrix(argStruct->C);
+	omxFreeMatrix(argStruct->D);
+	omxFreeMatrix(argStruct->E);
+	omxFreeMatrix(argStruct->F);
+	omxFreeMatrix(argStruct->G);
+	omxFreeMatrix(argStruct->H);
+	omxFreeMatrix(argStruct->I);
+	omxFreeMatrix(argStruct->J);
+	omxFreeMatrix(argStruct->K);
+	omxFreeMatrix(argStruct->L);
+	omxFreeMatrix(argStruct->TOP);
+	omxFreeMatrix(argStruct->BOT);
+	omxFreeMatrix(argStruct->MUX);
+	omxFreeMatrix(argStruct->MUY);
 }
 
 void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {

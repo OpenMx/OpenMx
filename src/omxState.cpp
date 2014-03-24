@@ -311,25 +311,30 @@ void omxFreeChildStates(omxState *state)
 	void omxFreeState(omxState *state) {
 		omxFreeChildStates(state);
 
+		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) state->numConstraints);}
+		for(int k = 0; k < state->numConstraints; k++) {
+			omxFreeMatrix(state->conList[k].result);
+		}
+
 		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
-			//state->algebraList[ax]->hasMatrixNumber = false;
-			omxFreeAllMatrixData(state->algebraList[ax]);
+			// free argument tree
+			omxFreeMatrix(state->algebraList[ax]);
+		}
+
+		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
+			state->algebraList[ax]->hasMatrixNumber = false;
+			omxFreeMatrix(state->algebraList[ax]);
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", (int) state->matrixList.size());}
 		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
-			//state->matrixList[mk]->hasMatrixNumber = false;
-			omxFreeAllMatrixData(state->matrixList[mk]);
+			state->matrixList[mk]->hasMatrixNumber = false;
+			omxFreeMatrix(state->matrixList[mk]);
 		}
 		
 		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) state->expectationList.size());}
 		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
 			omxFreeExpectationArgs(state->expectationList[ex]);
-		}
-
-		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) state->numConstraints);}
-		for(int k = 0; k < state->numConstraints; k++) {
-			omxFreeAllMatrixData(state->conList[k].result);
 		}
 
 		if(OMX_DEBUG) { mxLog("Freeing %d Data Sets.", (int) state->dataList.size());}

@@ -1243,9 +1243,9 @@ static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 
 BA81FitState::~BA81FitState()
 {
-	omxFreeAllMatrixData(itemParam);
-	omxFreeAllMatrixData(latentMean);
-	omxFreeAllMatrixData(latentCov);
+	omxFreeMatrix(itemParam);
+	omxFreeMatrix(latentMean);
+	omxFreeMatrix(latentCov);
 }
 
 static void ba81Destroy(omxFitFunction *oo) {

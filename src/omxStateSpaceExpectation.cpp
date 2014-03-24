@@ -60,18 +60,17 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	
 	omxStateSpaceExpectation* argStruct = (omxStateSpaceExpectation*)(ox->argStruct);
 	
-	/* We allocated 'em, so we destroy 'em. */
-	omxFreeMatrixData(argStruct->r);
-	omxFreeMatrixData(argStruct->s);
-	omxFreeMatrixData(argStruct->z);
-	//omxFreeMatrixData(argStruct->u); // This is data, destroy it?
-	//omxFreeMatrixData(argStruct->x); // This is latent data, destroy it?
-	omxFreeMatrixData(argStruct->y); // This is data, destroy it?
-	omxFreeMatrixData(argStruct->K); // This is the Kalman gain, destroy it?
-	//omxFreeMatrixData(argStruct->P); // This is latent cov, destroy it?
-	omxFreeMatrixData(argStruct->S); // This is data Rf_error cov, destroy it?
-	omxFreeMatrixData(argStruct->Y);
-	omxFreeMatrixData(argStruct->Z);
+	omxFreeMatrix(argStruct->r);
+	omxFreeMatrix(argStruct->s);
+	omxFreeMatrix(argStruct->z);
+	//omxFreeMatrix(argStruct->u); // This is data, destroy it?
+	//omxFreeMatrix(argStruct->x); // This is latent data, destroy it?
+	omxFreeMatrix(argStruct->y); // This is data, destroy it?
+	omxFreeMatrix(argStruct->K); // This is the Kalman gain, destroy it?
+	//omxFreeMatrix(argStruct->P); // This is latent cov, destroy it?
+	omxFreeMatrix(argStruct->S); // This is data Rf_error cov, destroy it?
+	omxFreeMatrix(argStruct->Y);
+	omxFreeMatrix(argStruct->Z);
 }
 
 

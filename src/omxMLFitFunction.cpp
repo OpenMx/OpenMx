@@ -25,11 +25,11 @@ void omxDestroyMLFitFunction(omxFitFunction *oo) {
 	if(OMX_DEBUG) {mxLog("Freeing ML Fit Function.");}
 	omxMLFitFunction* omlo = ((omxMLFitFunction*)oo->argStruct);
 
-	if(omlo->localCov != NULL)	omxFreeMatrixData(omlo->localCov);
-	if(omlo->localProd != NULL)	omxFreeMatrixData(omlo->localProd);
-	if(omlo->P != NULL)			omxFreeMatrixData(omlo->P);
-	if(omlo->C != NULL)			omxFreeMatrixData(omlo->C);
-	if(omlo->I != NULL)			omxFreeMatrixData(omlo->I);
+	omxFreeMatrix(omlo->localCov);
+	omxFreeMatrix(omlo->localProd);
+	omxFreeMatrix(omlo->P);
+	omxFreeMatrix(omlo->C);
+	omxFreeMatrix(omlo->I);
 }
 
 static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, double *independence_out)
