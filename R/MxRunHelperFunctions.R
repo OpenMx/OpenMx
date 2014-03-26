@@ -69,15 +69,15 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	if (!is.null(output$hessianCholesky)) {
 		output$estimatedHessian <- t(output$hessianCholesky) %*% output$hessianCholesky
-		if (nrow(output$estimatedHessian) == length(parameterNames) &&
-		    ncol(output$estimatedHessian) == length(parameterNames)) {
-			dimnames(output$estimatedHessian) <- list(parameterNames, parameterNames)
-		}
 	}
-	if (!is.null(output$calculatedHessian) && 
-	    nrow(output$calculatedHessian) == length(parameterNames) &&
-	    ncol(output$calculatedHessian) == length(parameterNames)) {
-		dimnames(output$calculatedHessian) <- list(parameterNames, parameterNames)
+	for (deriv in c("estimatedHessian", "calculatedHessian", "hessian", "ihessian")) {
+		mat <- output[[deriv]]
+		if (!is.null(mat) &&
+		    nrow(mat) == length(parameterNames) &&
+		    ncol(mat) == length(parameterNames)) {
+			dimnames(mat) <- list(parameterNames, parameterNames)
+			output[[deriv]] <- mat
+		}
 	}
 	if (length(output$matrices) == length(matrixNames)) {
 		names(output$matrices) <- matrixNames
