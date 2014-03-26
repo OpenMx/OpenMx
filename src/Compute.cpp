@@ -821,6 +821,7 @@ class ComputeEM : public omxCompute {
 	int agileMaxIter;
 	SEXP rateMatrix; //debug
 	SEXP inputInfoMatrix; //debug
+	SEXP outputInfoMatrix; //debug
 	SEXP origEigenvalues; //debug
 	std::vector<Ramsay1975*> ramsay;
 	double noiseTarget;
@@ -1143,6 +1144,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	semTolerance = sqrt(tolerance);  // override needed?
 
 	inputInfoMatrix = NULL;
+	outputInfoMatrix = NULL;
 	rateMatrix = NULL;
 	origEigenvalues = NULL;
 }
@@ -1514,6 +1516,12 @@ void ComputeEM::computeImpl(FitContext *fc)
 		InplaceForcePosSemiDef(mat, oev, &fc->infoCondNum);
 	}
 
+	if (semDebug) {
+		// ihess is always symmetric, this could be asymmetric
+		Rf_protect(outputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
+		memcpy(REAL(outputInfoMatrix), ihess, sizeof(double) * freeVars * freeVars);
+	}
+
 	fc->wanted = wanted | FF_COMPUTE_IHESSIAN;
 	//pda(fc->ihess, freeVars, freeVars);
 }
@@ -1567,6 +1575,7 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		}
 
 		if (inputInfoMatrix) dbg.add("inputInfo", inputInfoMatrix);
+		if (outputInfoMatrix) dbg.add("outputInfo", outputInfoMatrix);
 		if (rateMatrix) dbg.add("rateMatrix", rateMatrix);
 		if (origEigenvalues) dbg.add("origEigenvalues", origEigenvalues);
 
