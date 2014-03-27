@@ -31,6 +31,8 @@ mxData(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA)
    \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, or \dQuote{cor}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
+    \item{acov}{Not Yet Implemented.}
+    \item{thresholds}{Not Yet Implemented.}
 }
 
 \details{

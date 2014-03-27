@@ -139,16 +139,20 @@ covData <- matrix(c(0.9223099, 0.1862938, 0.4374359, 0.8959973, 0.9928430, 0.532
                     0.8959973, 0.3321639, 0.6918755, 1.8059956, 1.6142005, 0.8040448,
                     0.9928430, 0.3371594, 0.7482155, 1.6142005, 1.9223567, 0.8777786,
                     0.5320662, 0.4476898, 0.9013952, 0.8040448, 0.8777786, 1.3997558
-                  ), nrow=6, ncol=6, byrow=TRUE)
+                  ), nrow=6, ncol=6, byrow=TRUE, 
+                  dimnames=list(paste("v",as.character(1:6),sep=""),paste("v",as.character(1:6),sep="")))
 
 # Create LISREL matrices
 
 mLX <- mxMatrix("Full", values=c(.5, .6, .8, rep(0, 6), .4, .7, .5), 
-          name="LX", nrow=6, ncol=2, free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE))
+          name="LX", nrow=6, ncol=2, free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE),
+          dimnames=list(paste("v",as.character(1:6),sep=""),c("x1","x2")))
 mTD <- mxMatrix("Diag", values=c(rep(.2, 6)), 
-          name="TD", nrow=6, ncol=6, free=TRUE)
+          name="TD", nrow=6, ncol=6, free=TRUE,
+          dimnames=list(paste("v",as.character(1:6),sep=""),paste("v",as.character(1:6),sep="")))
 mPH <- mxMatrix("Symm", values=c(1, .3, 1), 
-          name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE))
+          name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE),
+          dimnames=list(c("x1","x2"),c("x1","x2")))
 
 # Create a LISREL objective with LX, TD, and PH matrix names
 
@@ -156,7 +160,7 @@ expFunction <- mxExpectationLISREL(LX="LX", TD="TD", PH="PH")
 
 # Create the model, fit it, and print a summary.
 
-tmpModel <- mxModel("exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov"))
+tmpModel <- mxModel("exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov", numObs=100))
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 

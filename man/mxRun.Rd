@@ -83,15 +83,15 @@ model <- mxModel("One Factor", type="RAM",
 model <- mxRun(model) # Run the model, returning the result into model
 summary(model) # Show summary of the fitted model
 
-# Create a model that includes data, matrices A, S and F, and an expectation and fit function
-data <- mxData(mydata, type="cov", numObs = 100)
-expectation <- mxExpectationRAM('A', 'S', 'F')
-fitfunction <- mxFitFunctionML()
-model <- mxModel("mymodel", A, S, F, data, expectation, fitfunction)
-
-#Use mxRun to optimize the free parameters in the matrices A and S
-modelOut <- mxRun(model)
-
-# print the output
-summary(modelOut)  
+%# Create a model that includes data, matrices A, S and F, and an expectation and fit function
+%data <- mxData(mydata, type="cov", numObs = 100)
+%expectation <- mxExpectationRAM('A', 'S', 'F')
+%fitfunction <- mxFitFunctionML()
+%model <- mxModel("mymodel", A, S, F, data, expectation, fitfunction)
+%
+%#Use mxRun to optimize the free parameters in the matrices A and S
+%modelOut <- mxRun(model)
+%
+%# print the output
+%summary(modelOut)  
 }

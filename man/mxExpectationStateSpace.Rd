@@ -110,7 +110,7 @@ To evaluate, place mxExpectationStateSpace objects, the \link{mxData} object for
 
 
 \references{
-K.J. \ifelse{latex}{\out{\rAstr\"om}}{\ifelse{html}{\out{&Aring;str&ouml;m}}{Astrom}} and R.M. Murray  (2010).  \emph{ Feedback Systems: An Introduction for Scientists and Engineers}. Princeton University Press.
+K.J. \ifelse{latex}{\out{\r Astr\"om}}{\ifelse{html}{\out{&Aring;str&ouml;m}}{Astrom}} and R.M. Murray  (2010).  \emph{ Feedback Systems: An Introduction for Scientists and Engineers}. Princeton University Press.
 
 J. Durbin and S.J. Koopman.  (2001).  \emph{Time Series Analysis by State Space Methods}. Oxford University Press.
 

@@ -26,8 +26,8 @@
 }
 
 \usage{
-mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient
-= NA, hessian = NA, verbose=0L)
+mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
+                 NA_character_, hessian = NA_character_, verbose = 0L)
 }
 
 \arguments{

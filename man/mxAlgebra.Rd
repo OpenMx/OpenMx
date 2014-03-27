@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxAlgebra(expression, name = NA, dimnames = NA, fixed = FALSE)
+mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE)
 }
 
 \arguments{
@@ -34,6 +34,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, fixed = FALSE)
    list is treated as NULL, and a list of length one as row names. The
    list can be named, and the list names will be used as names for the
    dimensions.}
+   \item{...}{Not used.  Forces argument 'fixed' to be specified by name.}
    \item{fixed}{If TRUE, this algebra will not be recomputed
      automatically when things it depends on change. \link{mxComputeOnce}
      can be used to force it to recompute.}
