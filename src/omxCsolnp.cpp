@@ -30,7 +30,7 @@ static const char* anonMatrix = "anonymous matrix";
 
 /* NPSOL-related functions */
 //************************* npsol ****************************//
-//int solnp(Matrix solPars, double (*solFun)(Matrix),  Matrix solEqB,  Matrix (*solEqBFun)( Matrix),  Matrix (*solEqBStartFun)(Matrix),  Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle);
+
 
 static omxMatrix *GLOB_fitMatrix = NULL;
 static FitContext *GLOB_fc = NULL;
@@ -101,7 +101,6 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
  * Replaces the standard objective function when finding confidence intervals. */
 double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
 {
-    //double* f = NULL;
 	if (verbose >= 3) {
 		printf("myPars inside obj is: ");
 		print(myPars); putchar('\n');
@@ -246,7 +245,7 @@ Matrix csolnpIneqFun(int verbose)
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup,
-                     int verbose)
+                     int verbose, double *hessOut)
 
 {
 	freeMatrices(); // maybe left overs from an aborted optimization attempt
@@ -255,17 +254,17 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	GLOB_fc = fc;
     
     double *x = fc->est;
-    //double *g = fc->grad;
-    
+    fc->grad.resize(fc->numParam);
+    double *g = fc->grad.data();
     
     int k, iter = -1;
     int inform = 0;
     
-    //double *cJac = NULL;    // Hessian (Approx) and Jacobian
+    double *bl=NULL, *bu=NULL;
     
     int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
-    
+    //hessOut = (double*) R_alloc (n * n, sizeof ( double ) );
     double EMPTY = -999999.0;
     
     Param_Obj p_obj;
@@ -287,18 +286,16 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     /* Set boundaries and widths. */
     
-    std::vector<double> blBuf(n+ncnln);
-    std::vector<double> buBuf(n+ncnln);
-    double *bl = blBuf.data();
-    double *bu = buBuf.data();
+    /* Allocate arrays */
+    bl      = Calloc ( n + ncnln, double );
+    bu      = Calloc ( n + ncnln, double );
     
-    struct Matrix myControl = fill(6,1,(double)0.0);
+    struct Matrix myControl = fill(5,1,(double)0.0);
     M(myControl,0,0) = 1.0;
     M(myControl,1,0) = 400.0;
     M(myControl,2,0) = 800.0;
     M(myControl,3,0) = 1.0e-7;
     M(myControl,4,0) = 1.0e-8;
-    M(myControl,5,0) = 0.0;
     
     bool myDEBUG = false;
     /* Set up actual run */
@@ -364,7 +361,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
         
     
-    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, solIneqLB, solIneqUB, blvar, buvar, myControl, verbose);
     
     
     fc->fit = p_obj.objValue;
@@ -393,11 +390,20 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    print(myhess); putchar('\n');
     }
     
+    for (i = 0; i < myPars.cols * myPars.cols; i++)
+    {
+        hessOut[i] = myhess.t[i];
+    }
+
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
     
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
+    }
+    
+    for (i = 0; i < myPars.cols; i++){
+        g[i] = mygrad.t[i];
     }
     
     omxSaveCheckpoint(x, fc->fit, TRUE);
@@ -475,7 +481,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     M(myControl,2,0) = 800.0;
     M(myControl,3,0) = 1.0e-7;
     M(myControl,4,0) = 1.0e-16;
-    M(myControl,5,0) = 0.0;
     
     bool myDEBUG = false;
     /* Set up actual run */
@@ -509,7 +514,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 	    }
         
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
-        if (verbose == 2) {
+        if (verbose >= 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
             printf("solIneqUB is: ");
@@ -578,7 +583,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             /* Find lower limit */
             currentCI->calcLower = TRUE;
             
-            p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+            p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, solIneqLB, solIneqUB, blvar, buvar, myControl, verbose);
             
             f = p_obj_conf.objValue;
             
@@ -655,7 +660,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         while(inform != 0 && cycles >= 0) {
             /* Find upper limit */
             currentCI->calcLower = FALSE;
-            p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+            p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun,  solIneqLB, solIneqUB, blvar, buvar, myControl, verbose);
             
             f = p_obj_conf.objValue;
             

@@ -9,7 +9,6 @@
 
 double EMPTY;
 
-bool DEBUG;
 int flag, flag_L, flag_U, index_flag_L, index_flag_U;
 
 Matrix ineqLB;
@@ -41,22 +40,22 @@ double eps;
 int outerIter;
 
 
-Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int),
+Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int), Matrix (*solEqFun)(int), Matrix (*solIneqFun)(int),
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
 
-Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
+Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Matrix (*solEqFun)(int), Matrix (*solIneqFun)(int), Matrix solIneqLB, Matrix solIneqUB, Matrix solLB, Matrix solUB, Matrix solctrl, int verbose)
 {
 	if(verbose >= 3){
 		printf("solPars is: \n");
 		print(solPars); putchar('\n');
-		printf("4th call is: \n");
+		printf("solFun is: \n");
 		printf("%2f", solFun(solPars, 0)); putchar('\n');
 		printf("solEqB is: \n");
 		print(solEqB); putchar('\n');
-		printf("solEqBFun is: \n");
-		print(solEqBFun(0)); putchar('\n');
-		printf("myineqFun is: \n");
-		print(myineqFun(0)); putchar('\n');
+		printf("solEqFun is: \n");
+		print(solEqFun(0)); putchar('\n');
+		printf("solIneqFun is: \n");
+		print(solIneqFun(0)); putchar('\n');
 		printf("solLB is: \n");
 		print(solLB); putchar('\n');
 		printf("solUB is: \n");
@@ -73,10 +72,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     double resultForTT;
 	double solnp_nfn = 0;
 	eps = 2.220446e-16;
-	//time_t sec;
-	//sec = time (NULL);
 	ind = fill(11, 1, (double) 0.0);
-	DEBUG = debugToggle;
 	EMPTY = -999999.0;
     int maxit_trace = 0;
 	
@@ -90,8 +86,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	ineqUB.cols = solIneqUB.cols;
     
 	Matrix grad = fill(solPars.cols, 1, (double)0.0);
-    //free(matrices.front().t);
-	Matrix p_pre = fill(solPars.cols, 1, (double)0.0);
+    Matrix p_pre = fill(solPars.cols, 1, (double)0.0);
     Matrix inform;
     Matrix ineqLBx;
     Matrix ineqUBx;
@@ -99,7 +94,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
     pars = duplicateIt(solPars);
-
+    
 	eqB = duplicateIt(solEqB);
     
 	control = duplicateIt(solctrl);
@@ -190,7 +185,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         printf("pars is: \n");
 		print(pars); putchar('\n');
     }
-        
+    
 	int np = pars.cols;
     
 	// [0] Rf_length of pars
@@ -213,10 +208,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	
 	// does not have a function gradient (currently not supported in Rsolnp)
     
-    //if (M(deriv, 0, 0) != EMPTY)
-    //{	M(ind, 1, 0) = 0;}
-    
-    
 	//# do function checks and return starting value
     
     funv = solFun(pars, verbose);
@@ -228,7 +219,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	int nineq;
 	Matrix ineqx0 = fill(ineqLB.cols, 1, (double)0.0);
     
-	Matrix ineqv = myineqFun(verbose);
+	Matrix ineqv = solIneqFun(verbose);
     
 	if ( M(ineqv, 0, 0) != EMPTY){
 		
@@ -245,7 +236,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 		int i;
 		for (i = 0; i<ineqLBx.cols; i++)
         {
-            if (M(ineqLBx,i,0) <= -99999999.0){ 
+            if (M(ineqLBx,i,0) <= -99999999.0){
                 M(ineqLBx,i,0) = -1.0 * (1e10);
             }
             if (M(ineqUBx,i,0) >= DBL_MAX){
@@ -274,7 +265,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	}
     
 	int neq;
-	Matrix eqv = solEqBFun(verbose);
+	Matrix eqv = solEqFun(verbose);
     
 	if( M(eqv, 0, 0) != EMPTY){
 		M(ind, 6, 0) = 1;
@@ -303,26 +294,26 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	if(M(ind, 10, 0))
     {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
-        {   pb = fill(2, nineq, (double)0.0);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
-            pb_cont = fill(2, np, (double)0.0);
-            pb_cont = setColumn(pb_cont, LB, 0);
-            pb_cont = setColumn(pb_cont, UB, 1);
-            pb = transpose(copy(transpose(pb), transpose(pb_cont)));
-        }
-        else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
-        {
-            pb = fill(2, nineq, (double)0.0);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
-        }
-        else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
-        {
-            pb = fill(2, np, (double)0.0);
-            pb = setColumn(pb, LB, 0);
-            pb = setColumn(pb, UB, 1);
-        }
+    {   pb = fill(2, nineq, (double)0.0);
+        pb = setColumn(pb, ineqLB, 0);
+        pb = setColumn(pb, ineqUB, 1);
+        pb_cont = fill(2, np, (double)0.0);
+        pb_cont = setColumn(pb_cont, LB, 0);
+        pb_cont = setColumn(pb_cont, UB, 1);
+        pb = transpose(copy(transpose(pb), transpose(pb_cont)));
+    }
+    else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
+    {
+        pb = fill(2, nineq, (double)0.0);
+        pb = setColumn(pb, ineqLB, 0);
+        pb = setColumn(pb, ineqUB, 1);
+    }
+    else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
+    {
+        pb = fill(2, np, (double)0.0);
+        pb = setColumn(pb, LB, 0);
+        pb = setColumn(pb, UB, 1);
+    }
     }
     
 	else    {pb = fill(1, 1, EMPTY);}
@@ -332,7 +323,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	int minit = M(control, 2, 0);
 	double delta = M(control, 3, 0);
 	double tol   = M(control, 4, 0);
-	double trace = M(control, 5, 0);
 	
 	int tc = nineq + neq;
     
@@ -343,7 +333,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	Matrix lambda;
 	Matrix constraint;
-
+    
 	if (tc > 0){
 		lambda = fill(1, tc, (double)0.0);
         
@@ -437,7 +427,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 		M(subnp_ctrl, 1, 0) = minit;
 		M(subnp_ctrl, 2, 0) = delta;
 		M(subnp_ctrl, 3, 0) = tol;
-		M(subnp_ctrl, 4, 0) = trace;
         
 		if ( M(ind, 6, 0) > 0){
 			Matrix subsetMat = subset(ob, 0, 1, neq);
@@ -478,15 +467,15 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 			printf("------------------------END CALLING SUBNP------------------------"); putchar('\n');
 		}
         
-		grad = subnp(p, solFun, solEqBFun, myineqFun, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
+		grad = subnp(p, solFun, solEqFun, solIneqFun, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         
         if (flag == 1)
         {
             p = duplicateIt(resP);
             funv = solFun(p, verbose);
             funvMatrix = fill(1, 1, funv);
-            eqv = solEqBFun(verbose);
-            ineqv = myineqFun(verbose);
+            eqv = solEqFun(verbose);
+            ineqv = solIneqFun(verbose);
             if ( M(ineqv, 0, 0) != EMPTY)
             {
                 if(M(eqv,0,0) != EMPTY)
@@ -502,7 +491,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
                 ob = copy(funvMatrix, eqv);
             }
             else ob = funvMatrix;
-
+            
             if ( M(ind, 6, 0) > 0){
                 Matrix subsetMat = subset(ob, 0, 1, neq);
                 double max = findMax(matrixAbs(subsetMat));
@@ -525,7 +514,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             lambda = duplicateIt(resY);
             hessv = duplicateIt(resHessv);
             mu = resLambda;
-            grad = subnp(p, solFun, solEqBFun, myineqFun, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
+            grad = subnp(p, solFun, solEqFun, solIneqFun, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         }
 		p = duplicateIt(resP);
         
@@ -537,18 +526,12 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         
 		Matrix temp = subset(p, 0, nineq, (nineq+np-1));
         
-        if (verbose >= 2){
-            
-            printf("6th call is \n");
-        }
         funv = solFun(temp, verbose);
 		solnp_nfn = solnp_nfn + 1;
         
-		//Matrix funv_mat = fill(1, 1, funv);
-		//Matrix tempdf = copy(temp, funv_mat);
-		eqv = solEqBFun(verbose);
+		eqv = solEqFun(verbose);
         
-		ineqv = myineqFun(verbose);
+		ineqv = solIneqFun(verbose);
         
 		Matrix firstPart, copied;
 		if (M(ineqv, 0, 0) != EMPTY){
@@ -692,23 +675,23 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         }
         
         searchD = divideByScalar2D(subtract(p, p_pre), delta);
-         if (verbose >= 3){
-             printf("searchD is: \n");
-             print(searchD); putchar('\n');
-         }
-         iterateConverge = delta * pow(vnorm(searchD),(double)2.0);
-         if (verbose >= 1)
-         {
-             printf("vnorm(searchD) is: \n");
-             printf("%.20f", vnorm(searchD)); putchar('\n');
-             printf("iterateConverge is: \n");
-             printf("%.20f", iterateConverge); putchar('\n');
-         }
-         iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
-         if (verbose >= 1)
-         {   printf("iterateConvergeCond is: \n");
-             printf("%.20f", iterateConvergeCond); putchar('\n');
-         }
+        if (verbose >= 3){
+            printf("searchD is: \n");
+            print(searchD); putchar('\n');
+        }
+        iterateConverge = delta * pow(vnorm(searchD),(double)2.0);
+        if (verbose >= 1)
+        {
+            printf("vnorm(searchD) is: \n");
+            printf("%.20f", vnorm(searchD)); putchar('\n');
+            printf("iterateConverge is: \n");
+            printf("%.20f", iterateConverge); putchar('\n');
+        }
+        iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
+        if (verbose >= 1)
+        {   printf("iterateConvergeCond is: \n");
+            printf("%.20f", iterateConvergeCond); putchar('\n');
+        }
         
         if (vnormValue <= tol){
             if (iterateConverge <= iterateConvergeCond){
@@ -732,7 +715,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             if (verbose >= 1){
                 mxLog("Solution failed to converge. Final parameters are:");}
             inform = fill(1, 1, 6);
-
+            
         }
     }
 	struct Param_Obj pfunv;
@@ -764,17 +747,16 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 }
 
-Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
+Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqFun)(int) ,  Matrix(*solIneqFun)(int),
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose)
 {
-
+    
     if (verbose >= 3)
     {
         printf("pars in subnp is: \n");
         print(pars); putchar('\n');
     }
 	int yyRows = yy.rows;
-	//int yyCols = yy.cols;
     double j;
     
 	double rho   = M(ctrl, 0, 0);
@@ -853,8 +835,6 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
     
 	Matrix sob = fill(3, 1, (double)0.0);
 	Matrix ptt;
-	
-	//Matrix yyMatrix = duplicateIt(yy);
     
 	ob = divide(ob, subset(vscale, 0, 0, nc));
     
@@ -897,14 +877,14 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		yy = divideByScalar2D(yy, M(vscale,0,0));
 		yy = multiply(transpose(subset(vscale, 0, 1, nc)), yy);
 	}
-
+    
 	// hessv [ (np+nineq) x (np+nineq) ]
 	// hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
 	Matrix vscaleSubset = subset(vscale, 0, (neq+1), (nc + np));
 	Matrix transDotProduct = transposeDP(vscaleSubset);
 	hessv = divideByScalar2D(multiply(hessv, transDotProduct), M(vscale, 0, 0));
-
+    
 	j = M(ob, 0, 0);
     if (verbose >= 3){
         printf("j j is: \n");
@@ -958,10 +938,10 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 	double go, reduce = 1e-300;
 	int minit;
 	double lambdaValue = lambda;
-
+    
 	if (nc > 0) {
 		constraint = subset(ob, 0, 1, nc);
-
+        
 		int i;
         
 		for (i=0; i<np; i++){
@@ -969,14 +949,11 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			M(p0, index, 0) = M(p0, index, 0) + delta;
 			tmpv = multiply(subset(p0, 0, nineq, (npic-1)), subset(vscale, 0, (nc+1), (nc+np)));
             
-			if (verbose >= 2){
-				printf("7th call is \n");
-			}
 			funv = solFun(tmpv, verbose);
             
-			eqv = solEqBFun(verbose);
-
-			ineqv = myineqFun(verbose);
+			eqv = solEqFun(verbose);
+            
+			ineqv = solIneqFun(verbose);
             
 			solnp_nfn = solnp_nfn + 1;
 			Matrix firstPart;
@@ -1001,24 +978,20 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			ob = divide(firstPart, secondPart);
             
 			M(g, index, 0) = (M(ob, 0, 0)-j) / delta;
-            /*if (M(ind, 1, 0) == 1)
-            {   if (M(deriv, index, 0) - M(g, index, 0) > 0.001)
-                {   printf("deriv not equal to g.\n");}
-            }*/
             
 			if (verbose >= 3){
 				printf("g is: \n");
 				print(g); putchar('\n');
                 printf("a is: \n");
 				print(a); putchar('\n');
-            
+                
 			}
 			Matrix colValues = subtract(subset(ob, 0, 1, nc), constraint);
-
+            
 			colValues = divideByScalar2D(colValues, delta);
 			a = setColumn(a, colValues, index);
 			M(p0, index, 0) = M(p0, index, 0) - delta;
-		} // end for (int i=0; i<np, i++){
+		} // end for (int i=0; i<np, i++)
         
 		if(M(ind, 3, 0) > 0){
 			//constraint[ (neq + 1):(neq + nineq) ] = constraint[ (neq + 1):(neq + nineq) ] - p0[ 1:nineq ]
@@ -1036,7 +1009,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
         Matrix timess_a_p0 = timess(a, transpose(p0));
         //  b [nc,1]
 		b = subtract(transpose(timess_a_p0), constraint);
-
+        
 		ch = -1;
 		M(alp, 0, 0) = tol - findMax(matrixAbs(constraint));
 		if ( M(alp, 0, 0) <= 0){
@@ -1044,11 +1017,11 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			ch = 1;
             
 			if ( M(ind, 10, 0) < 0.5){
-				Matrix dotProd = transposeDotProduct(a); //Mahsa: this is equal to "a %*% t(a)"
+				Matrix dotProd = transposeDotProduct(a);
 				Matrix solution = solve(dotProd, constraint);
-
+                
 				p0 = subtract(p0, matrixDotProduct(transpose(a), solution));
-
+                
 				M(alp, 0, 0) = 1;
 			}
             
@@ -1060,7 +1033,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			int npic_int = npic;
 			p0 = copy(p0, fill(1, 1, (double)1.0));
 			a = copy(a, transpose(multiplyByScalar2D(constraint, -1.0)));
-
+            
 			Matrix cx = copy(fill(npic, 1, (double)0.0), fill(1, 1, (double)1.0));
             
 			dx = fill(1, npic+1, (double)1.0);
@@ -1089,7 +1062,6 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 
                 y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
                 
-                //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
                 y = subset(y, 0, 0, nc - 1);
                 
                 Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),y))));
@@ -1144,7 +1116,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			}
 			int h;
 			Matrix aMatrix = fill(npic, nc, (double)0.0);
-
+            
 			for (h = 0; h<a.rows; h++)
             {
                 aMatrix = setRow(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
@@ -1170,19 +1142,18 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		if (verbose >= 2){
 			printf("tmpv is: \n");
 			print(tmpv); putchar('\n');
-			printf("8th call is \n");
 		}
 		funv = solFun(tmpv, verbose);
 		if (verbose >= 3){
 			printf("funv is: \n");
 			printf("%2f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(verbose);
+		eqv = solEqFun(verbose);
 		if (verbose >= 3){
 			printf("eqv is: \n");
 			print(eqv); putchar('\n');
 		}
-		ineqv = myineqFun(verbose);
+		ineqv = solIneqFun(verbose);
 		if (verbose >= 3){
 			printf("ineqv is: \n");
 			print(ineqv); putchar('\n');
@@ -1231,7 +1202,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		double dotProductTerm = dotProduct(getRow(yyTerm, 0), getRow(temp, 0));
         
 		j = M(ob, 0, 0) - dotProductTerm + rho * vnormTerm;
-
+        
     } // end if (nc > 0)
     
 	minit = 0;
@@ -1253,17 +1224,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				int index = nineq+i;
 				M(p, index, 0) = M(p, index, 0) + delta;
 				tmpv = multiply(subset(p, 0, nineq, (npic-1)), subset(vscale, 0, (nc+1), (nc+np)));
-				if (verbose >= 2){
-					printf("9th call is \n");
-                    
-				}
 				funv = solFun(tmpv, verbose);
 				if (verbose >= 3){
 					printf("funv is: \n");
 					printf("%2f", funv); putchar('\n');
 				}
-				eqv = solEqBFun(verbose);
-				ineqv = myineqFun(verbose);
+				eqv = solEqFun(verbose);
+				ineqv = solIneqFun(verbose);
 				solnp_nfn = solnp_nfn + 1;
 				Matrix firstPart, secondPart, firstPartt;
                 
@@ -1316,7 +1283,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					printf("p is: \n");
 					print(p); putchar('\n');
 				}
-			} // end for (i=0; i<np; i++){
+			} // end for (i=0; i<np; i++)
             
 			if (M(ind, 3, 0) > 0.5){
 				g = copyInto(g, fill(nineq, 1, (double)0.0), 0, 0, (nineq-1));
@@ -1387,10 +1354,10 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             }
             
 		}
-
+        
 		go = -1;
 		lambdaValue = lambdaValue/10.0;
-
+        
 		Matrix yMatrix;
         
 		if (verbose >= 3){
@@ -1443,23 +1410,19 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 resLambda = lambda;
                 return g;
             }
-			//Matrix identityMatrix = diag(fill(hessv.cols, 1, (double)1.0));
-
-            cz = MatrixInvert(cz);
-            //cz = luSolve(cz, identityMatrix);
+            
+            cz = solveinv(cz);
 			
             if (verbose >= 3){
 				printf("cz is: \n");
 				print(cz); putchar('\n');
 			}
             
-			//Matrix getRowed = getRow(cz, 0);
 			if (verbose >= 3){
 				printf("g is: \n");
 				print(g); putchar('\n');
 			}
-			//Matrix getRowedtwo = getRow(g, 0);
-			//double rr = dotProduct(getRowed, getRowedtwo);
+            
 			yg = matrixDotProduct(cz, g);
 			if (verbose >= 3){
 				printf("yg is: \n");
@@ -1494,13 +1457,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					printf("solution is: \n");
 					print(solution); putchar('\n');
 				}
-				//Matrix solution = QRd(firstMatrix, secondMatrix);
+                
 				y = transpose(solution);
 				if (verbose >= 3){
 					printf("y is: \n");
 					print(y); putchar('\n');
 				}
-                //yMatrix = subset(solution, 0, 0, nc-1);
+                
                 yMatrix = duplicateIt(solution);
 				if (verbose >= 3){
 					printf("yMatrix is: \n");
@@ -1533,11 +1496,11 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				go = 1;
 			} else{
 				Matrix listPartOne = subtract(subset(p0, 0, 0, mm-1), getColumn(pb, 0));
-
+                
 				Matrix listPartTwo = subtract(getColumn(pb, 1), subset(p0, 0, 0, mm-1));
-
+                
 				Matrix llist = copy(listPartOne, listPartTwo);
-
+                
 				go = findMin(llist);
 				lambdaValue = 3 * lambdaValue;
 				if (verbose >= 3){
@@ -1545,7 +1508,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					printf("%.20f", go); putchar('\n');
                     printf("lambdaValue is: \n");
                     printf("%.20f", lambdaValue); putchar('\n');
-
+                    
 				}
 			}
 		} // end while(go <= 0){
@@ -1597,23 +1560,21 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			printf("tmpv is: \n");
 			print(tmpv); putchar('\n');
 		}
-		if (verbose >= 2){        
-			//printf("10th call is \n");
-		}
+        
 		funv = solFun(tmpv, verbose);
 		if (verbose >= 3){
             printf("hessv is: \n");
             print(hessv); putchar('\n');
-        
+            
             printf("g is: \n");
             print(g); putchar('\n');
-
+            
 			printf("funv is: \n");
 			printf("%.20f", funv); putchar('\n');
 		}
-		eqv = solEqBFun(verbose);
-
-		ineqv = myineqFun(verbose);
+		eqv = solEqFun(verbose);
+        
+		ineqv = solIneqFun(verbose);
         
 		solnp_nfn = solnp_nfn + 1;
 		Matrix firstPart, secondPart, firstPartt;
@@ -1687,19 +1648,15 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				print(tmpv); putchar('\n');
 			}
             
-			if (verbose >= 2){
-				printf("11th call is \n");
-			}
-            
 			funv = solFun(tmpv, verbose);
 			if (verbose >= 3){
 				printf("funv is: \n");
 				printf("%2f", funv); putchar('\n');
 			}
             
-			eqv = solEqBFun(verbose);
+			eqv = solEqFun(verbose);
             
-			ineqv = myineqFun(verbose);
+			ineqv = solIneqFun(verbose);
 			solnp_nfn = solnp_nfn + 1;
 			Matrix firstPart, secondPart, firstPartt;
 			if (M(ineqv, 0, 0) != EMPTY){
@@ -1730,7 +1687,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				printf("sob is: \n");
 				print(sob); putchar('\n');
 			}
-            //exit(0);
+            
 			if (M(ind, 3, 0) > 0.5){
 				Matrix diff = fill(nineq+1, 1, (double)0.0);
 				Matrix partOne = subset(ob2, 0, neq+1, nc);
@@ -1837,7 +1794,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				}
 			}
 		} // 	while(go > tol){
-        //exit(0);
+        
 		if (verbose >= 3){
 			printf("go is: \n");
 			printf("%.16f", go); putchar('\n');
@@ -1960,7 +1917,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
     
 	resLambda = lambdaValue;
     
-	if (DEBUG && outerIter==4){
+	if (verbose && outerIter==4){
 		printf("------------------------RETURNING FROM SUBNP------------------------"); putchar('\n');
 		printf("p information: "); putchar('\n');
 		print(resP); putchar('\n');
@@ -1974,7 +1931,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		print(fill(1, 1, minit)); putchar('\n');
 		printf("------------------------END RETURN FROM SUBNP------------------------"); putchar('\n');
 	}
-
+    
 	return g;
 	
 } // end subnp
