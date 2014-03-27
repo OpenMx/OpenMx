@@ -9,8 +9,12 @@ model <- mxModel("CI Example",
                  mxData(covariance, "cov", numObs=10000)
 )
 
-model <- mxModel(model, mxCI(c("var1", "cov12")))
-model <- mxRun(model, intervals = TRUE)
+fit1 <- mxRun(model, silent=TRUE)
+
+fit2 <- mxRun(mxModel(model, mxCI(c("var1", "cov12"))), intervals = TRUE, silent=TRUE)
 # cat(deparse(round(model@output$confidenceIntervals, 3)))
-omxCheckCloseEnough(c(model@output$confidenceIntervals),
+omxCheckCloseEnough(c(fit2@output$confidenceIntervals),
                     c(0.973, 0.478, 1.028, 0.522), .01)
+
+omxCheckCloseEnough(fit1@output$fit, fit2@output$fit, 1e-6)
+omxCheckCloseEnough(fit1@output$standardErrors, fit2@output$standardErrors, 1e-6)

@@ -138,12 +138,12 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
 		if (NPSOL_verbose) {
-			NPSOL_fc->log("NPSOL", FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT);
+			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT);
 		}
 	} else {
 		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
 		if (NPSOL_verbose) {
-			NPSOL_fc->log("NPSOL", FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE);
+			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE);
 		}
 	}
 

@@ -300,16 +300,10 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
-void FitContext::log(const char *where)
-{
-	log(where, wanted);
-}
-
-void FitContext::log(const char *where, int what)
+void FitContext::log(int what)
 {
 	size_t count = varGroup->vars.size();
-	std::string buf(where);
-	buf += " ---\n";
+	std::string buf;
 	if (what & FF_COMPUTE_MAXABSCHANGE) buf += string_snprintf("MAC: %.5f\n", mac);
 	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f (scale %f)\n", fit, Global->llScale);
 	if (what & FF_COMPUTE_ESTIMATE) {

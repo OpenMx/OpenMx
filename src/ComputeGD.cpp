@@ -123,32 +123,31 @@ void omxComputeGD::computeImpl(FitContext *fc)
         default: Rf_error("huh?");
 	}
     
+	double fitCopy = fc->fit;
 	omxFreeChildStates(globalState);
     
-	if (Global->numIntervals && engine == OptEngine_NPSOL) {
+	if (Global->numIntervals) {
 		if (!(inform == 0 || inform == 1 || inform == 6)) {
 			// TODO: allow forcing
 			Rf_warning("Not calculating confidence intervals because of NPSOL status %d", inform);
 		} else {
 			Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
 			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
+			if (engine == OptEngine_NPSOL) {
 #if HAS_NPSOL
-			omxNPSOLConfidenceIntervals(fitMatrix, fc);
+				omxNPSOLConfidenceIntervals(fitMatrix, fc);
 #endif
-			omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
+			}
+			else if (engine == OptEngine_CSOLNP) {
+				omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose);
+			}
+			omxPopulateConfidenceIntervals(intervals, intervalCodes);
+			fc->copyParamToModel(globalState);
+			fc->fit = fitCopy;
 		}
 	}
-	
-    else if(Global->numIntervals && engine == OptEngine_CSOLNP) {
-        Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
-        Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
-        omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose);
-        omxPopulateConfidenceIntervals(intervals, intervalCodes); // TODO move code here
-    }
-    
-	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_BESTFIT;
 
-	omxMarkDirty(fitMatrix); // not sure why it needs to be dirty
+	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_BESTFIT;
     /*printf("fc->hess in computeGD\n");
     printf("%2f", fc->hess[0]); putchar('\n');
     printf("%2f", fc->hess[1]); putchar('\n');

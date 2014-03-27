@@ -244,7 +244,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (verbose >= 5) {
 			int show = FF_COMPUTE_ESTIMATE;
 			if (verbose >= 6) show |= FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
-			fc->log("Newton-Raphson", show);
+			fc->log(show);
 		}
 
 		double LL = fitMatrix->data[0];

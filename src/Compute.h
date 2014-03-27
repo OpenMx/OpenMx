@@ -131,8 +131,7 @@ class FitContext {
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
 	void updateParentAndFree();
-	void log(const char *where);
-	void log(const char *where, int what);
+	void log(int what);
 	~FitContext();
 	
 	// deriv related
