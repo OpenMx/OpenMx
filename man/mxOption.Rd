@@ -99,6 +99,16 @@ RAM Inverse Optimization \tab "Yes" or "No" whether to enable solve(I - A) optim
 RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr
 }
 
+Multivariate normal integration parameters
+
+\tabular{rl}{
+  mvnMaxPointsA \tab base number of integration points \cr
+  mvnMaxPointsB \tab number of integration points per row \cr
+  mvnMaxPointsC \tab number of integration points per rows^2 \cr
+  mvnAbsEps \tab absolute tolerance \cr
+  mvnRelEps \tab relative tolerance \cr
+}
+
 }
     
 \value{
