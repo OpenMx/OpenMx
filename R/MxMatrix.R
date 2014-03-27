@@ -115,6 +115,7 @@ setGeneric("imxSquareMatrix", function(.Object) {
 ##' @param ncol ncol
 ##' @param byrow byrow
 ##' @param name name
+##' @param ... Not used.
 ##' @aliases
 ##' imxCreateMatrix,MxMatrix-method
 ##' imxCreateMatrix,DiagMatrix-method

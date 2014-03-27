@@ -156,7 +156,7 @@ setMethod("initialize", "MxComputeOnce",
 ##'
 ##' @param from the object to perform the computation (a vector of expectation or algebra names)
 ##' @param what what to compute (defaults is "nothing")
-##' @param how how to compute it (optional)
+##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param free.set names of matrices containing free variables
 ##' @param verbose the level of debugging output
@@ -172,7 +172,7 @@ setMethod("initialize", "MxComputeOnce",
 ##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
 ##'     mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
-##'     mxComputeOnce('fitfunction', fit=TRUE))
+##'     mxComputeOnce('fitfunction', 'fit'))
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$fit  # 972.15
 
@@ -443,6 +443,7 @@ setMethod("initialize", "MxComputeIterate",
 ##' @param maxIter the maximum number of iterations
 ##' @param tolerance iterates until change is less than tolerance
 ##' @param verbose level of debugging output
+##' @param free.set Names of matrices containing free variables.
 ##' @aliases
 ##' MxComputeIterate-class
 mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L, free.set=NA_character_) {
@@ -655,6 +656,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' @param parallel whether to evaluate the fitfunction in parallel (defaults to TRUE)
 ##' @param stepSize starting set size (defaults to 0.0001)
 ##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
+##' @param verbose Level of debugging output.
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
@@ -773,6 +775,8 @@ setMethod("initialize", "MxComputeSequence",
 ##' Invoke a series of compute objects in sequence
 ##'
 ##' @param steps a list of compute objects
+##' @param ... Not used; forces argument 'free.set' to be specified by name.
+##' @param free.set Names of matrices containing free parameters.
 ##' @aliases
 ##' MxComputeSequence-class
 mxComputeSequence <- function(steps=list(), ..., free.set=NA_character_) {
