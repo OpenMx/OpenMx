@@ -302,11 +302,19 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 		}		
 		stop(msg, call. = FALSE)
 	}
-	if (any(eigen(covMatrix)$values <= 0)) {
+	evalCov <- eigen(covMatrix)$values
+	if (nameMatrix=="observed" & any( evalCov <= 0)) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
 			"is not a positive-definite matrix:\n",
 			"1 or more elements of eigen(covMatrix)$values ",
 			"<= 0")
+		stop(msg, call. = FALSE)
+	}
+	if (nameMatrix=="asymptotic" & any( evalCov < 0)) {
+		msg <- paste("The", nameMatrix, "covariance matrix",
+			"is not a positive-semi-definite matrix:\n",
+			"1 or more elements of eigen(covMatrix)$values ",
+			"< 0")
 		stop(msg, call. = FALSE)
 	}
 }
