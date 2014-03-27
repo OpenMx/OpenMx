@@ -118,7 +118,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 #endif
             break;
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose, fc->getDenseHessUninitialized());
+            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose);
             break;
         default: Rf_error("huh?");
 	}
