@@ -77,7 +77,7 @@ expect <- mxMatrix("Symm", 2, 2,
     name="expectedCov")
 
 # request 95 percent confidence intervals   
-ci <- mxCI("Symm")
+ci <- mxCI(c("var1", "cov12", "var2"))
 
 # specify the model
 model <- mxModel("Confidence Interval Example",
