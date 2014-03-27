@@ -27,7 +27,7 @@ mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"))
 }
 
 \arguments{
-\item{reference}{A character vector of free parameters, mxMatrices, mxMatrix elements and mxAlgebras on which confidence intervals for free parameters are to be estimated, listed by name.}
+\item{reference}{A character vector of free parameters, mxMatrices, mxMatrix elements and mxAlgebras on which confidence intervals are to be estimated, listed by name.}
 \item{interval}{A scalar numeric value indicating the confidence interval to be estimated. Must be between 0 and 1. Defaults to 0.95.}
 \item{type}{A character string indicating whether the upper, lower or both confidence limits are returned. Defaults to "both".}
 }
@@ -77,7 +77,7 @@ expect <- mxMatrix("Symm", 2, 2,
     name="expectedCov")
 
 # request 95 percent confidence intervals   
-ci <- mxCI(c("var1", "cov12", "var2"))
+ci <- mxCI("Symm")
 
 # specify the model
 model <- mxModel("Confidence Interval Example",

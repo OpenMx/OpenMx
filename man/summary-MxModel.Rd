@@ -16,6 +16,7 @@
 \name{summary-MxModel}
 \alias{summary,MxModel-method}
 \alias{summary}
+\alias{mxSummary}
 
 \title{Model Summary}
 

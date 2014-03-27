@@ -31,6 +31,7 @@ mxConstraint(expression, name = NA, ...)
 \arguments{
    \item{expression}{An R expression of matrix operators and matrix functions.}
    \item{name}{An optional character string indicating the name of the object.}
+   \item{...}{Not used.  Helps OpenMx catch bad input to argument 'expression'.}
 }
 
 \details{

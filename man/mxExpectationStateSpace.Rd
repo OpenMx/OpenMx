@@ -26,7 +26,7 @@ This function creates a new MxExpectationStateSpace object.
 }
 
 \usage{
-mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="R", x0="x0", P0="P0", u="u",
+mxExpectationStateSpace(A, B, C, D, Q, R, x0, P0, u,
                         dimnames = NA, thresholds = NA, threshnames = dimnames)
 }
 
