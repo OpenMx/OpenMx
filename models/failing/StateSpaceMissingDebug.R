@@ -19,8 +19,9 @@ ssModel <- mxModel(name="State Space Missing Debug",
 	mxMatrix("Diag", nvar, nvar, FALSE, .2, name="R"),
 	mxMatrix("Zero", 1, 1, name="x0"),
 	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+	mxMatrix("Zero", 1, 1, name="u"),
 	mxData(observed=demoOneFactorMiss, type="raw"),
-	imxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0"),
+	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
 	mxFitFunctionML()
 )
 
