@@ -119,9 +119,9 @@ satwls2Run <- mxRun(satwls2)
 #------------------------------
 # Compare saturated model estimates to acov data
 
-omxCheckCloseEnough(mxEval(satCov, model=satwls2Run), obsWDat@observed, 1e-7)
-omxCheckCloseEnough(mxEval(thresholdMatrix, model=satwls2Run)[-2], obsWDat@thresholds[-2], 1e-7)
-omxCheckCloseEnough(mxEval(fitfunction, model=satwls2Run), 0, 1e-7)
+omxCheckCloseEnough(mxEval(satCov, model=satwls2Run), obsWDat@observed, 1e-4)
+omxCheckCloseEnough(mxEval(thresholdMatrix, model=satwls2Run)[-2], obsWDat@thresholds[-2], 1e-4)
+omxCheckCloseEnough(mxEval(fitfunction, model=satwls2Run), 0, 1e-4)
 
 
 

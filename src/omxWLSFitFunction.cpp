@@ -54,7 +54,6 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
     omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
     omxFreeMatrix(owo->observedFlattened);
     omxFreeMatrix(owo->expectedFlattened);
-    omxFreeMatrix(owo->weights);
     omxFreeMatrix(owo->B);
     omxFreeMatrix(owo->P);
 }
