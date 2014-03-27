@@ -360,7 +360,7 @@ summary(etc88Fit)
 
 #Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------
-omxCheckCloseEnough(etc88Fit@output$Minus,161045.203,0.001)
+omxCheckCloseEnough(etc88Fit@output$Minus,161045.203,0.05)
 
 omxCheckCloseEnough(etc88Fit@output$estimate[["SDm"]],1.3359,0.001)
 omxCheckCloseEnough(etc88Fit@output$estimate[["SDf"]],1.3381,0.001)

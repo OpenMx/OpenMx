@@ -42,4 +42,4 @@ factorModel <- mxModel("Two Factor NHEV",
 	  mxData(dataCov, type="cov", means=dataMean, numObs=100)
 #		mxData(raw, type="raw", numObs=100)
 			)
-imxPPML.Test.Battery(factorModel, testMissingness = FALSE, tolerances = c(NA, .0001, .0001) )
+imxPPML.Test.Battery(factorModel, testMissingness = FALSE, tolerances = c(NA, .001, .001) )
