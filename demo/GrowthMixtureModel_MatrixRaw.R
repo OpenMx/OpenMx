@@ -154,8 +154,8 @@ class2 <- mxModel(class1,
     ),
 	name="Class2"
 ) # close model
-#Create an MxModel object
-# -----------------------------------------------------------------------------
+
+#Create an MxModel object# -----------------------------------------------------------------------------
 
 
 classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
@@ -163,16 +163,15 @@ classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE),
           labels = c("p1", "p2"), name="Props")
 
 classS <- mxAlgebra(Props%x%(1/sum(Props)), name="classProbs")
-# make a matrix of class probabilities
-# -----------------------------------------------------------------------------
+# make a matrix of class probabilities# -----------------------------------------------------------------------------
 
 
 
-algObj <- mxAlgebra(-2*sum(
+algFit <- mxAlgebra(-2*sum(
           log(classProbs[1,1]%x%Class1.fitfunction + classProbs[2,1]%x%Class2.fitfunction)), 
-          name="mixtureObj")
+          name="mixtureFit")
 
-obj <- mxFitFunctionAlgebra("mixtureObj")
+fit <- mxFitFunctionAlgebra("mixtureFit")
       
 gmm <- mxModel("Growth Mixture Model",
 	mxData(
@@ -181,7 +180,7 @@ gmm <- mxModel("Growth Mixture Model",
     ),
     class1, class2,
     classP, classS,
-    algObj, obj
+    algFit, fit
 	)      
 
 gmmFit <- mxRun(gmm, suppressWarnings=TRUE)

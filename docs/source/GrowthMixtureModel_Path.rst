@@ -53,7 +53,7 @@ Specifying a mixture model can be categorized into two general phases. The first
 
 Creating the class-specific models is done the same way as every other model. We'll begin by specifying the model for the first class using the ``mxPath`` function. The code below specifies a five-occasion linear growth curve, virtually identical to the one in the linear growth curve example referenced above. The only changes made to this model are the names of the free parameters; the means, variances and covariance of the intercept and slope terms are now followed by the number 1 to distinguish them from free parameters in the other class.
 
-The objective function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx objective functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed either as an argument in a function like ``mxRAMObjective`` or ``mxFIMLObjective``. If we recall that OpenMx stores path specifications in RAM matrix representations, then we can overwrite the default ``mxRAMObjective`` call with ``A``, ``S``, ``F``, and ``M`` matrices and specify that ``vector = TRUE``.
+The fit function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx fit functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed as an argument in the fit function ``mxFitFunctionML``. 
 
 .. code-block:: r
 
@@ -110,11 +110,7 @@ The objective function for each of the class-specific models must return the lik
 	        labels=c("meani1", "means1")
 	    ),
 	    # enable the likelihood vector
-	    mxRAMObjective(A = "A",
-	        S = "S",
-	        F = "F",
-	        M = "M",
-	        vector = TRUE)
+	    mxFitFunctionML(vector=TRUE)
 	) # close model
 	
 We could create the model for our second class by copy and pasting the code above, but that can yield needlessly long scripts. We can also use the ``mxModel`` function to edit an existing model object, allowing us to change only the parameters that vary across classes. The ``mxModel`` call below begins with an existing ``MxModel`` object (``class1``) rather than a model name. The subsequent ``mxPath`` functions add new paths to the model, replacing any existing paths that describe the same relationship. As we did not give the model a name at the beginning of the ``mxModel`` function, we must use the ``name`` argument to identify this model by name.
@@ -169,15 +165,15 @@ Finally, we can specify the mixture model. We must first specify the model's -2 
    -2LL = -2 * \sum_{i=1}^n \sum_{k=1}^m \log (p_k l_{ki})
    \end{eqnarray*}
 
-This is specified using an ``mxAlgebra`` function, and used as the argument to the ``mxAlgebraObjective`` function. Then the objective function, matrices and algebras used to define the mixture distribution, the models for the respective classes and the data are all placed in one final ``mxModel`` object, shown below.	
+This is specified using an ``mxAlgebra`` function, and used as the argument to the ``mxFitFunctionAlgebra`` function. Then the fit function, matrices and algebras used to define the mixture distribution, the models for the respective classes and the data are all placed in one final ``mxModel`` object, shown below.	
 
 .. code-block:: r
 
-	algObj <- mxAlgebra(-2*sum(
-          log(classProbs[1,1] %x% Class1.objective + classProbs[2,1] %x% Class2.objective)), 
-          name="mixtureObj")
+	algFit <- mxAlgebra(-2*sum(
+	          log(classProbs[1,1]%x%Class1.fitfunction + classProbs[2,1]%x%Class2.fitfunction)), 
+	          name="mixtureFit")
 
-	obj <- mxAlgebraObjective("mixtureObj")
+	fit <- mxFitFunctionAlgebra("mixtureFit")
 
 	gmm <- mxModel("Growth Mixture Model",
 		mxData(
@@ -186,8 +182,8 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
 	    ),
 	    class1, class2,
 	    classP, classS,
-	    algObj, obj
-		)      
+	    algFit, fit
+		)    
 
 	gmmFit <- mxRun(gmm)
 
