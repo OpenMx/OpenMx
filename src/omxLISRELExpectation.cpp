@@ -72,6 +72,24 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	omxFreeMatrix(argStruct->BOT);
 	omxFreeMatrix(argStruct->MUX);
 	omxFreeMatrix(argStruct->MUY);
+	
+	if(argStruct->LY->cols == 0 || argStruct->LX->cols == 0) {
+		omxFreeMatrix(argStruct->GA);
+		omxFreeMatrix(argStruct->TH);
+	}
+	
+	if(argStruct->LY->cols == 0) {
+		omxFreeMatrix(argStruct->LY);
+		omxFreeMatrix(argStruct->PS);
+		omxFreeMatrix(argStruct->BE);
+		omxFreeMatrix(argStruct->TE);
+	}
+	
+	if(argStruct->LX->cols == 0) {
+		omxFreeMatrix(argStruct->LX);
+		omxFreeMatrix(argStruct->PH);
+		omxFreeMatrix(argStruct->TD);
+	}
 }
 
 void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
