@@ -192,7 +192,11 @@ setReplaceMethod("[[", "MxModel",
 
 setMethod("$", "MxModel",
 	function(x, name) {
-		return(imxExtractMethod(x, name))
+        result <- imxExtractMethod(x, name)
+        if(is.null(result)) {
+            result <- imxExtractSlot(x, name)
+        }
+		return(result)
 	}
 )
 
