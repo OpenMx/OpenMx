@@ -1545,6 +1545,9 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
 	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
 	double Error;
+	double absEps = 1e-3;
+	double relEps = 0;
+	int MaxPts = OMX_DEFAULT_MAX_PTS(cov->rows);
 	double likelihood;
 	int inform;
 	int numVars = cov->rows;
@@ -1578,9 +1581,6 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	}
 
 
-	double absEps = Global->absEps;
-	double relEps = Global->relEps;
-	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
 	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
 		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
@@ -1701,6 +1701,9 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
 	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
 	double Error;
+	double absEps = 1e-3;
+	double relEps = 0;
+	int MaxPts = OMX_DEFAULT_MAX_PTS(cov->rows);
 	double likelihood;
 	int inform;
 	int numVars = nCols;
@@ -1727,9 +1730,6 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 		if(Infin[j] < 0) { Infin[j] = 3; }			// Both bounds infinite.
 	}
 
-	double absEps = Global->absEps;
-	double relEps = Global->relEps;
-	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
 	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
 		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 

@@ -25,8 +25,6 @@
 
 require(OpenMx)
 
-mxOption(NULL, 'mvnMaxPointsC', 100)
-
 # Simple case: 1 var, 3 levels
 
 nv <- 1
