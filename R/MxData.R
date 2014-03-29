@@ -49,6 +49,19 @@ setMethod("initialize", "MxNonNullData",
 	}
 )
 
+setMethod("$", "MxData",
+	function(x, name) {
+        return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxData",
+	function(x, name, value) {
+		return(imxReplaceMethod(x, name, value))
+	}
+)
+
+
 ##' Valid types of data that can be contained by MxData
 imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 
