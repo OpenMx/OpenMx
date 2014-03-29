@@ -1229,6 +1229,14 @@ Matrix condNumPurpose(Matrix inMat)
     return eigenVals;
 }
 
+Matrix solveinv(Matrix inMat)
+{
+    Matrix result;
+    result = duplicateIt(inMat);
+    MatrixSolve(inMat, result, true);
+    return result;
+}
+
 /*int this_main(int argc,char *argv[]) {
 	int i,j;
 	int size=atoi(argv[1]);

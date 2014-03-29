@@ -1444,8 +1444,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 return g;
             }
 			//Matrix identityMatrix = diag(fill(hessv.cols, 1, (double)1.0));
-
-            cz = MatrixInvert(cz);
+            
+            cz = solveinv(cz);
             //cz = luSolve(cz, identityMatrix);
 			
             if (verbose >= 3){
