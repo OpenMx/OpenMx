@@ -154,25 +154,30 @@ otherOptions <- list(
 )
 
 generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
-	input <- model@options
-	if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
-		input[["Standard Errors"]] <- "No"
-	}
-	if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
-		input[["Calculate Hessian"]] <- "No"
-	}
-	if( !is.null(input[["UsePPML"]]) 
-		&& (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
-		input[["Calculate Hessian"]] <- "No"
-		input[["Hessian"]] <- "No"
-		input[["Standard Errors"]] <- "No"
+	input <- list()
+	if (!is.null(model)) {
+		input <- model@options
+		if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
+			input[["Standard Errors"]] <- "No"
+		}
+		if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
+			input[["Calculate Hessian"]] <- "No"
+		}
+		if( !is.null(input[["UsePPML"]]) 
+		   && (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
+			input[["Calculate Hessian"]] <- "No"
+			input[["Hessian"]] <- "No"
+			input[["Standard Errors"]] <- "No"
+		}
 	}
 	options <- combineDefaultOptions(input)
-	mIters <- options[["Major iterations"]]
-	if (typeof(mIters) == "closure") {
-		mIters <- do.call(mIters, list(numParam, length(constraints)))
+	if (!is.null(model)) {
+		mIters <- options[["Major iterations"]]
+		if (typeof(mIters) == "closure") {
+			mIters <- do.call(mIters, list(numParam, length(constraints)))
+		}
+		options[["Major iterations"]] <- as.character(mIters)
 	}
-	options[["Major iterations"]] <- as.character(mIters)
 	if (useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
 		#PPML Analytical solution
@@ -181,7 +186,7 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}
-	if (model@.forcesequential) {
+	if (!is.null(model) && model@.forcesequential) {
 		options[["Number of Threads"]] <- 1L 
 	} else if (is.null(options[["Number of Threads"]]) || 
 			options[["Number of Threads"]] == 0) {

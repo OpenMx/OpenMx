@@ -186,7 +186,8 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     retVal <- .Call(callAlgebra,
     	list(covariance, means, lbound, ubound), 
     	imxLookupSymbolTable("omxMnor"), 
-    	NA)
+		    generateOptionsList(NULL, 0, list(), FALSE))
+
     return(as.matrix(as.numeric(retVal)))
     
 }
@@ -217,7 +218,7 @@ omxAllInt <- function(covariance, means, ...) {
     retVal <- .Call(callAlgebra,
         c(list(covariance, means), thresholdMats),         # Flatten args into a single list
         imxLookupSymbolTable("omxAllInt"), 
-        NA)
+		    generateOptionsList(NULL, 0, list(), FALSE))
     
     return(as.matrix(as.numeric(retVal)))
 
@@ -232,7 +233,7 @@ eigenvec <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenvec"), 
-        NA)
+        generateOptionsList(NULL, 0, list(), FALSE))
         
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
@@ -246,7 +247,7 @@ ieigenvec <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenvec"), 
-        NA)
+        generateOptionsList(NULL, 0, list(), FALSE))
         
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
@@ -260,7 +261,7 @@ eigenval <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenval"), 
-        NA)
+        generateOptionsList(NULL, 0, list(), FALSE))
 
     return(as.matrix(as.numeric(retval)))
 }
@@ -274,7 +275,7 @@ ieigenval <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenval"), 
-        NA)
+        generateOptionsList(NULL, 0, list(), FALSE))
         
     return(as.matrix(as.numeric(retval)))
 }

@@ -103,85 +103,6 @@ SEXP MxRList::asR()
 	return ans;
 }
 
-/* Main functions */
-SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP) {
-
-	omxManageProtectInsanity protectManager;
-
-	if(OMX_DEBUG) { mxLog("-----------------------------------------------------------------------");}
-	if(OMX_DEBUG) { mxLog("Explicit call to algebra %d.", INTEGER(algNum)[0]);}
-
-	int j,k,l;
-	omxMatrix* algebra;
-	int algebraNum = INTEGER(algNum)[0];
-	SEXP ans, nextMat;
-	char output[MAX_STRING_LEN];
-
-	FitContext::setRFitFunction(NULL);
-	Global = new omxGlobal;
-
-	globalState = new omxState;
-	omxInitState(globalState);
-
-	/* Retrieve All Matrices From the MatList */
-
-	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
-
-	omxMatrix *args[Rf_length(matList)];
-	for(k = 0; k < Rf_length(matList); k++) {
-		Rf_protect(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
-		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
-		globalState->matrixList.push_back(args[k]);
-		if(OMX_DEBUG) {
-			mxLog("Matrix[%d] initialized (%d x %d)",
-				k, globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
-		}
-	}
-
-	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, Rf_length(matList), globalState);
-
-	if(algebra==NULL) {
-		Rf_error(globalState->statusMsg);
-	}
-
-	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
-	omxStateNextEvaluation(globalState);
-
-	omxRecompute(algebra);
-
-	Rf_protect(ans = Rf_allocMatrix(REALSXP, algebra->rows, algebra->cols));
-	for(l = 0; l < algebra->rows; l++)
-		for(j = 0; j < algebra->cols; j++)
-			REAL(ans)[j * algebra->rows + l] =
-				omxMatrixElement(algebra, l, j);
-
-	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
-
-	output[0] = 0;
-	if (isErrorRaised(globalState)) {
-		strncpy(output, globalState->statusMsg, MAX_STRING_LEN);
-	}
-
-	omxFreeMatrix(algebra);
-	omxFreeState(globalState);
-	delete Global;
-
-	if(output[0]) Rf_error(output);
-
-	return ans;
-}
-
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
-{
-	try {
-		return omxCallAlgebra2(matList, algNum, options);
-	} catch( std::exception& __ex__ ) {
-		exception_to_try_Rf_error( __ex__ );
-	} catch(...) {
-		string_to_try_Rf_error( "c++ exception (unknown reason)" );
-	}
-}
-
 static void
 friendlyStringToLogical(const char *key, const char *str, int *out)
 {
@@ -245,6 +166,88 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			}
 		}
 		Rf_unprotect(1); // optionNames
+}
+
+/* Main functions */
+SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
+
+	omxManageProtectInsanity protectManager;
+
+	if(OMX_DEBUG) { mxLog("-----------------------------------------------------------------------");}
+	if(OMX_DEBUG) { mxLog("Explicit call to algebra %d.", INTEGER(algNum)[0]);}
+
+	int j,k,l;
+	omxMatrix* algebra;
+	int algebraNum = INTEGER(algNum)[0];
+	SEXP ans, nextMat;
+	char output[MAX_STRING_LEN];
+
+	FitContext::setRFitFunction(NULL);
+	Global = new omxGlobal;
+
+	globalState = new omxState;
+	omxInitState(globalState);
+
+	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
+			&Global->analyticGradients);
+
+	/* Retrieve All Matrices From the MatList */
+
+	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
+
+	omxMatrix *args[Rf_length(matList)];
+	for(k = 0; k < Rf_length(matList); k++) {
+		Rf_protect(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
+		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
+		globalState->matrixList.push_back(args[k]);
+		if(OMX_DEBUG) {
+			mxLog("Matrix[%d] initialized (%d x %d)",
+				k, globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);
+		}
+	}
+
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, Rf_length(matList), globalState);
+
+	if(algebra==NULL) {
+		Rf_error(globalState->statusMsg);
+	}
+
+	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
+	omxStateNextEvaluation(globalState);
+
+	omxRecompute(algebra);
+
+	Rf_protect(ans = Rf_allocMatrix(REALSXP, algebra->rows, algebra->cols));
+	for(l = 0; l < algebra->rows; l++)
+		for(j = 0; j < algebra->cols; j++)
+			REAL(ans)[j * algebra->rows + l] =
+				omxMatrixElement(algebra, l, j);
+
+	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
+
+	output[0] = 0;
+	if (isErrorRaised(globalState)) {
+		strncpy(output, globalState->statusMsg, MAX_STRING_LEN);
+	}
+
+	omxFreeMatrix(algebra);
+	omxFreeState(globalState);
+	delete Global;
+
+	if(output[0]) Rf_error(output);
+
+	return ans;
+}
+
+SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
+{
+	try {
+		return omxCallAlgebra2(matList, algNum, options);
+	} catch( std::exception& __ex__ ) {
+		exception_to_try_Rf_error( __ex__ );
+	} catch(...) {
+		string_to_try_Rf_error( "c++ exception (unknown reason)" );
+	}
 }
 
 SEXP omxBackend2(SEXP constraints, SEXP matList,
