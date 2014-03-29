@@ -36,6 +36,10 @@ typedef struct {
 
 	omxMatrix **args;
 
+	bool noLX;
+	bool noLY;
+	bool Lnocol;
+
 } omxLISRELExpectation;
 
 void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);

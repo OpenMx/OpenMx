@@ -73,19 +73,19 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	omxFreeMatrix(argStruct->MUX);
 	omxFreeMatrix(argStruct->MUY);
 	
-	if(argStruct->LY->cols == 0 || argStruct->LX->cols == 0) {
+	if(argStruct->Lnocol) {
 		omxFreeMatrix(argStruct->GA);
 		omxFreeMatrix(argStruct->TH);
 	}
 	
-	if(argStruct->LY->cols == 0) {
+	if(argStruct->noLY) {
 		omxFreeMatrix(argStruct->LY);
 		omxFreeMatrix(argStruct->PS);
 		omxFreeMatrix(argStruct->BE);
 		omxFreeMatrix(argStruct->TE);
 	}
 	
-	if(argStruct->LX->cols == 0) {
+	if(argStruct->noLX) {
 		omxFreeMatrix(argStruct->LX);
 		omxFreeMatrix(argStruct->PH);
 		omxFreeMatrix(argStruct->TD);
@@ -438,21 +438,23 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Processing AL."); }
 	LISobj->AL = omxNewMatrixFromSlot(rObj, currentState, "AL");
 	
-	
-	if(LISobj->LY == NULL) {
+	LISobj->noLY = LISobj->LY == NULL;
+	if(LISobj->noLY) {
 		LISobj->LY = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->PS = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->BE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->TE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 	}
 	
-	if(LISobj->LX == NULL) {
+	LISobj->noLX = LISobj->LX == NULL;
+	if(LISobj->noLX) {
 		LISobj->LX = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->PH = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 		LISobj->TD = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
 	}
 	
-	if(LISobj->LY->cols == 0 || LISobj->LX->cols == 0) {
+	LISobj->Lnocol = LISobj->LY->cols == 0 || LISobj->LX->cols == 0;
+	if(LISobj->Lnocol) {
 		LISobj->GA = omxInitMatrix(NULL, LISobj->LY->cols, LISobj->LX->cols, TRUE, currentState);
 		LISobj->TH = omxInitMatrix(NULL, LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
 	}
