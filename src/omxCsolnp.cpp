@@ -246,7 +246,7 @@ Matrix csolnpIneqFun(int verbose)
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup,
-                     int verbose)
+                     int verbose, double *hessOut)
 
 {
 	freeMatrices(); // maybe left overs from an aborted optimization attempt
@@ -395,6 +395,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
     
+    for (i = 0; i < myPars.cols * myPars.cols; i++){
+        hessOut[i] = myhess.t[i];
+    }
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
