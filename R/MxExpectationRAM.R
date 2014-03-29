@@ -461,28 +461,28 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 displayMxExpectationRAM <- function(expectation) {
 	cat("MxExpectationRAM", omxQuotes(expectation@name), '\n')
 	if (length(expectation@container)) {
-		cat("@container :", omxQuotes(expectation@container), '\n')
+		cat("$container :", omxQuotes(expectation@container), '\n')
 	}
 	if (length(expectation@submodels)) {
-		cat("@submodels :", omxQuotes(expectation@submodels), '\n')
+		cat("$submodels :", omxQuotes(expectation@submodels), '\n')
 	}
-	cat("@A :", omxQuotes(expectation@A), '\n')
-	cat("@S :", omxQuotes(expectation@S), '\n')
-	cat("@F :", omxQuotes(expectation@F), '\n')
+	cat("$A :", omxQuotes(expectation@A), '\n')
+	cat("$S :", omxQuotes(expectation@S), '\n')
+	cat("$F :", omxQuotes(expectation@F), '\n')
 	if (is.na(expectation@M)) {
-		cat("@M :", expectation@M, '\n')
+		cat("$M :", expectation@M, '\n')
 	} else {
-		cat("@M :", omxQuotes(expectation@M), '\n')
+		cat("$M :", omxQuotes(expectation@M), '\n')
 	}
 	if (single.na(expectation@dims)) {
-		cat("@dims : NA \n")
+		cat("$dims : NA \n")
 	} else {
-		cat("@dims :", omxQuotes(expectation@dims), '\n')
+		cat("$dims :", omxQuotes(expectation@dims), '\n')
 	}		
 	if (single.na(expectation@thresholds)) {
-		cat("@thresholds : NA \n")
+		cat("$thresholds : NA \n")
 	} else {
-		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
+		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
 	invisible(expectation)
 }

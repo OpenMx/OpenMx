@@ -94,6 +94,19 @@ setMethod("genericExpRename", "NULL",
 		return(NULL)
 })
 
+setMethod("$", "MxBaseExpectation",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxBaseExpectation",
+	function(x, name, value) {
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
+
+
 
 convertExpectationFunctions <- function(flatModel, model, labelsData, defVars, dependencies) {
 	retval <- lapply(flatModel@expectations, function(ex) {

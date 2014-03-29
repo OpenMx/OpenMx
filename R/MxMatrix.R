@@ -302,6 +302,21 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
+setMethod("$", "MxMatrix",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxMatrix",
+	function(x, name, value) {
+        if(name %in% c("labels","values","free","lbound","ubound")) {
+            return(populateMatrixSlot(x, name, value, nrow(x), ncol(x)))
+        } 
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
+
 matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 
@@ -607,36 +622,36 @@ displayMatrix <- function(mxMatrix) {
 	cat("\n")
 	nolabels <- all(is.na(mxMatrix@labels))
 	if(nolabels == FALSE) {
-		cat("@labels\n")
+		cat("$labels\n")
 		print(mxMatrix@labels)
 		cat("\n")
 	} else {
-		cat("@labels: No labels assigned.\n\n")
+		cat("$labels: No labels assigned.\n\n")
 	}
-	cat("@values\n")
+	cat("$values\n")
 	print(mxMatrix@values)
 	cat("\n")
 	noFree <- all(mxMatrix@free == FALSE)
 	if(noFree == FALSE) {
-		cat("@free\n")
+		cat("$free\n")
 		print(mxMatrix@free)
 		cat("\n")
 	} else {
-		cat("@free: No free parameters.\n\n")
+		cat("$free: No free parameters.\n\n")
 	}
 	if(!all(is.na(mxMatrix@lbound))) {
-		cat("@lbound\n")
+		cat("$lbound\n")
 		print(mxMatrix@lbound)
 		cat("\n")
 	} else {
-		cat("@lbound: No lower bounds assigned.\n\n")
+		cat("$lbound: No lower bounds assigned.\n\n")
 	}
 	if(!all(is.na(mxMatrix@ubound))) {
-		cat("@ubound\n")
+		cat("$ubound\n")
 		print(mxMatrix@ubound)
 		cat("\n")
 	} else {
-		cat("@ubound: No upper bounds assigned.\n\n")
+		cat("$ubound: No upper bounds assigned.\n\n")
 	}
 }
 

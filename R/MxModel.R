@@ -234,6 +234,44 @@ imxReplaceMethod <- function(model, index, value) {
 	return(namespaceSearchReplace(model, index, value))
 }
 
+##' imxExtractSlot
+##'
+##' Checks for and extracts a slot from the object
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param object The object
+##' @param slotName the name of the slot
+##' @param lst lst
+imxExtractSlot <- function(object, slotName) {
+	if (!.hasSlot(object, slotName)) {
+		return(NULL)
+	} else {
+		return(slot(object, slotName))
+	}
+}
+
+##' imxReplaceSlot
+##'
+##' Checks for and replaces a slot from the object
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param object object
+##' @param slotName the name of the slot
+##' @param value replacement value
+##' @param check Check replacement value for validity (default TRUE)
+imxReplaceSlot <- function(object, slotName, value, check=TRUE) {
+	if (!.hasSlot(object, slotName)) {
+		stop(paste("Object has no element ", slotName, ".", sep=""))
+        # TODO: Should this return NULL?
+	} else {
+        slot(object, slotName, check=check) <- value
+		return(object)
+	}
+}
+
+
 ##' imxSameType
 ##' 
 ##' This is an internal function exported for those people who know

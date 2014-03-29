@@ -95,11 +95,21 @@ convertSingleConstraint <- function(constraint, flatModel) {
 ##' A string vector of valid constraint binary relations.
 imxConstraintRelations <- c("<", "==", ">")
 
+setMethod("$", "MxConstraint",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
 
+setReplaceMethod("$", "MxConstraint",
+	function(x, name, value) {
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
 
 displayConstraint <- function(object) {
 	cat("MxConstraint", omxQuotes(object@name), '\n')
-	cat("@formula: ", deparse(object@formula, width.cutoff=500L), '\n')
+	cat("$formula: ", deparse(object@formula, width.cutoff=500L), '\n')
 }
 
 setMethod("print", "MxConstraint", function(x,...) { displayConstraint(x) })

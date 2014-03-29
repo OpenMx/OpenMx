@@ -63,6 +63,21 @@ setMethod("genericFitInitialMatrix", "NULL",
 		return(NULL)
 })
 
+setMethod("$", "MxBaseFitFunction",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxBaseFitFunction",
+	function(x, name, value) {
+        if(name == "result") {
+            stop("You cannot set the result of an fit function.  Use mxRun() to populate the result, or mxEval() to compute it.")
+        }
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
+
 ##' Add dependencies
 ##'
 ##' If there is an expectation, then the fitfunction should always

@@ -83,6 +83,20 @@ setMethod("updateFromBackend", signature("BaseCompute"),
 		}
 		.Object
 	})
+    
+setMethod("$", "BaseCompute",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "BaseCompute",
+	function(x, name, value) {
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
+
+    
 
 #----------------------------------------------------
 
@@ -457,8 +471,8 @@ mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0
 
 displayMxComputeIterate <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("@tolerance :", omxQuotes(opt@tolerance), '\n')
-	cat("@maxIter :", omxQuotes(opt@maxIter), '\n')
+	cat("$tolerance :", omxQuotes(opt@tolerance), '\n')
+	cat("$maxIter :", omxQuotes(opt@maxIter), '\n')
 	if (length(opt@steps)) for (step in 1:length(opt@steps)) {
 		cat("[[", step, "]] :", class(opt@steps[[step]]), '\n')
 	}
@@ -596,8 +610,8 @@ mxComputeEM <- function(expectation, predict, mstep, post.mstep, observed.fit, .
 
 displayMxComputeEM <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("@tolerance :", omxQuotes(opt@tolerance), '\n')
-	cat("@maxIter :", omxQuotes(opt@maxIter), '\n')
+	cat("$tolerance :", omxQuotes(opt@tolerance), '\n')
+	cat("$maxIter :", omxQuotes(opt@maxIter), '\n')
 	invisible(opt)
 }
 
@@ -813,8 +827,8 @@ setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequenc
 
 displayBaseCompute <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("@id :", opt@id, '\n')
-	cat("@free.set :", omxQuotes(opt@free.set), '\n')
+	cat("$id :", opt@id, '\n')
+	cat("$free.set :", omxQuotes(opt@free.set), '\n')
 	invisible(opt)
 }
 
@@ -822,9 +836,9 @@ setMethod("print", "BaseCompute", function(x, ...) displayBaseCompute(x))
 setMethod("show",  "BaseCompute", function(object) displayBaseCompute(object))
 
 displayMxComputeGradientDescent <- function(opt) {
-	cat("@type :", omxQuotes(opt@type), '\n')
-	cat("@engine :", omxQuotes(opt@engine), '\n')
-	cat("@fitfunction :", omxQuotes(opt@fitfunction), '\n')
+	cat("$type :", omxQuotes(opt@type), '\n')
+	cat("$engine :", omxQuotes(opt@engine), '\n')
+	cat("$fitfunction :", omxQuotes(opt@fitfunction), '\n')
 	invisible(opt)
 }
 

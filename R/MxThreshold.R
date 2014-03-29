@@ -37,6 +37,18 @@ setMethod("initialize", "MxThreshold",
 	}
 )
 
+setMethod("$", "MxThreshold",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxThreshold",
+	function(x, name, value) {
+        stop("Changing threshold values directly is not recommended.  Please use the mxThreshold() function instead.")
+	}
+)
+
 
 omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
 	if(length(nBreaks) > 1) {
@@ -409,13 +421,13 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 
 displayThreshold <- function(object) {
 	cat("mxThreshold", '\n')
-	cat("@variable: ", omxQuotes(object@variable), '\n')
-	cat("@nThresh", object@nThresh, '\n')
-	cat("@values: ", object@values, '\n')
-	cat("@free: ", object@free, '\n')
-	cat("@labels: ", object@labels, '\n')
-	cat("@lbound: ", object@lbound, '\n')
-	cat("@ubound: ", object@ubound, '\n')
+	cat("$variable: ", omxQuotes(object@variable), '\n')
+	cat("$nThresh", object@nThresh, '\n')
+	cat("$values: ", object@values, '\n')
+	cat("$free: ", object@free, '\n')
+	cat("$labels: ", object@labels, '\n')
+	cat("$lbound: ", object@lbound, '\n')
+	cat("$ubound: ", object@ubound, '\n')
 }
 
 setMethod("print", "MxThreshold", function(x,...) { displayThreshold(x) })

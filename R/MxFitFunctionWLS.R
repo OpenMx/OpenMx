@@ -128,14 +128,14 @@ mxFitFunctionWLS <- function(weights="ULS") {
 displayMxFitFunctionWLS <- function(fitfunction) {
 	cat("MxFitFunctionWLS", omxQuotes(fitfunction@name), '\n')
 	if (single.na(fitfunction@weights)) {
-		cat("@weights : NA \n")
+		cat("$weights : NA \n")
 	} else {
-		cat("@weights :", omxQuotes(fitfunction@weights), '\n')
+		cat("$weights :", omxQuotes(fitfunction@weights), '\n')
 	}
 	if (length(fitfunction@result) == 0) {
-		cat("@result: (not yet computed) ")
+		cat("$result: (not yet computed) ")
 	} else {
-		cat("@result:\n")
+		cat("$result:\n")
 	}
 	print(fitfunction@result)
 	invisible(fitfunction)

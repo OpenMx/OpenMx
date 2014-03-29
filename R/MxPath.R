@@ -42,6 +42,19 @@ setMethod("initialize", "MxPath",
 	}
 )
 
+setMethod("$", "MxPath",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxPath",
+	function(x, name, value) {
+        stop("Changing path values directly is not recommended.  Please use the mxPath() function to set path values.")
+	}
+)
+
+
 expandPathConnect <- function(from, to, connect) {
 	# now expand the paths to check for errors
 	excludeBivariate <- FALSE
@@ -326,15 +339,15 @@ mxPath <- function(from, to = NA,
 
 displayPath <- function(object) {
 	cat("mxPath", '\n')
-	cat("@from: ", omxQuotes(object@from), '\n')
-	cat("@to: ", omxQuotes(object@to), '\n')
-	cat("@arrows: ", object@arrows, '\n')
-	cat("@values: ", object@values, '\n')
-	cat("@free: ", object@free, '\n')
-	cat("@labels: ", object@labels, '\n')
-	cat("@lbound: ", object@lbound, '\n')
-	cat("@ubound: ", object@ubound, '\n')
-    cat("@connect: ", object@connect, '\n')
+	cat("$from: ", omxQuotes(object@from), '\n')
+	cat("$to: ", omxQuotes(object@to), '\n')
+	cat("$arrows: ", object@arrows, '\n')
+	cat("$values: ", object@values, '\n')
+	cat("$free: ", object@free, '\n')
+	cat("$labels: ", object@labels, '\n')
+	cat("$lbound: ", object@lbound, '\n')
+	cat("$ubound: ", object@ubound, '\n')
+    cat("$connect: ", object@connect, '\n')
 }
 
 setMethod("print", "MxPath", function(x,...) { displayPath(x) })

@@ -55,40 +55,40 @@ printOptions <- function(options) {
 displayModel <- function(model, expand = FALSE) {
 	cat("MxModel", omxQuotes(model@name), '\n')
 	cat("type :", imxTypeName(model), '\n')
-	cat("@matrices :", omxQuotes(names(model@matrices)), '\n')
-	cat("@algebras :", omxQuotes(names(model@algebras)), '\n')
-	cat("@constraints :", omxQuotes(names(model@constraints)), '\n')
-	cat("@intervals :", omxQuotes(names(model@intervals)), '\n')
+	cat("$matrices :", omxQuotes(names(model@matrices)), '\n')
+	cat("$algebras :", omxQuotes(names(model@algebras)), '\n')
+	cat("$constraints :", omxQuotes(names(model@constraints)), '\n')
+	cat("$intervals :", omxQuotes(names(model@intervals)), '\n')
 	if (length(model@latentVars) == 0) {
-		cat("@latentVars : none\n")
+		cat("$latentVars : none\n")
 	} else if (is.character(model@latentVars)) {
-		cat("@latentVars :", omxQuotes(model@latentVars), '\n')
+		cat("$latentVars :", omxQuotes(model@latentVars), '\n')
 	} else {
-		cat("@latentVars :\n")
+		cat("$latentVars :\n")
 		print(format(model@latentVars))
 	}
 	if (length(model@manifestVars) == 0) {
-		cat("@manifestVars : none\n")
+		cat("$manifestVars : none\n")
 	} else if (is.character(model@manifestVars)) {
-		cat("@manifestVars :", omxQuotes(model@manifestVars), '\n')
+		cat("$manifestVars :", omxQuotes(model@manifestVars), '\n')
 	} else {
-		cat("@manifestVars :\n")
+		cat("$manifestVars :\n")
 		print(format(model@manifestVars))
 	}
 	data <- model@data
 	if (is.null(data)) {
-		cat("@data : NULL\n")
+		cat("$data : NULL\n")
 	} else {
-		cat("@data :", nrow(data@observed), 
+		cat("$data :", nrow(data@observed), 
 			"x", ncol(data@observed), "\n")
 		if(length(data@means) == 1 && is.na(data@means)) {
-			cat("@data means : NA\n")
+			cat("$data means : NA\n")
 		} else {
-			cat("@data means : 1 x", length(data@means), "\n")
+			cat("$data means : 1 x", length(data@means), "\n")
 		}
-		cat("@data type:", omxQuotes(data@type), '\n')
+		cat("$data type:", omxQuotes(data@type), '\n')
 	}
-	cat("@submodels :", omxQuotes(names(model@submodels)), '\n')
+	cat("$submodels :", omxQuotes(names(model@submodels)), '\n')
 	expectation <- model@expectation
 	fitfunction <- model@fitfunction
 	compute <- model@compute
@@ -97,24 +97,24 @@ displayModel <- function(model, expand = FALSE) {
 	} else {
 		expectationType <- class(expectation)[[1]]
 	}
-	cat("@expectation :", expectationType, '\n')
+	cat("$expectation :", expectationType, '\n')
 
 	if (is.null(fitfunction)) {
 		fitfunctionType <- "NULL"
 	} else {
 		fitfunctionType <- class(fitfunction)[[1]]
 	}
-	cat("@fitfunction :", fitfunctionType, '\n')
+	cat("$fitfunction :", fitfunctionType, '\n')
 
 	if (is.null(compute)) {
 		computeType <- "NULL"
 	} else {
 		computeType <- class(compute)[[1]]
 	}
-	cat("@compute :", computeType, '\n')
-	cat("@independent :", model@independent, '\n')
-	cat("@options :", printOptions(model@options), '\n')
-	cat("@output :", length(model@output) > 0, '\n')
+	cat("$compute :", computeType, '\n')
+	cat("$independent :", model@independent, '\n')
+	cat("$options :", printOptions(model@options), '\n')
+	cat("$output :", length(model@output) > 0, '\n')
 	if(expand) {
 		if(length(model@matrices) > 0) {
 			cat("\n--------MATRICES--------\n")

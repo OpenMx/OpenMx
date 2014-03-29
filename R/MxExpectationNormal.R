@@ -465,22 +465,22 @@ mxExpectationNormal <- function(covariance, means = NA,
 
 displayMxExpectationNormal <- function(expectation) {
 	cat("MxExpectationNormal", omxQuotes(expectation@name), '\n')
-	cat("@covariance :", omxQuotes(expectation@covariance), '\n')
-	cat("@means :", omxQuotes(expectation@means), '\n')
+	cat("$covariance :", omxQuotes(expectation@covariance), '\n')
+	cat("$means :", omxQuotes(expectation@means), '\n')
 	if (single.na(expectation@dims)) {
-		cat("@dims : NA \n")
+		cat("$dims : NA \n")
 	} else {
-		cat("@dims :", omxQuotes(expectation@dims), '\n')
+		cat("$dims :", omxQuotes(expectation@dims), '\n')
 	}
 	if (single.na(expectation@thresholds)) {
-		cat("@thresholds : NA \n")
+		cat("$thresholds : NA \n")
 	} else {
-		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
+		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
 	if (single.na(expectation@threshnames)) {
-		cat("@threshnames : NA \n")
+		cat("$threshnames : NA \n")
 	} else {
-		cat("@threshnames :", omxQuotes(expectation@threshnames), '\n')
+		cat("$threshnames :", omxQuotes(expectation@threshnames), '\n')
 	}
 	invisible(expectation)
 }

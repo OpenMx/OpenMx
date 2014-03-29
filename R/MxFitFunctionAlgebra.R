@@ -114,13 +114,13 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 
 displayMxFitFunctionAlgebra <- function(fitfunction) {
 	cat("MxFitFunctionAlgebra", omxQuotes(fitfunction@name), '\n')
-	cat("@algebra: ", omxQuotes(fitfunction@algebra), '\n')	
-	cat("@numObs: ", fitfunction@numObs, '\n')
-	cat("@numStats: ", fitfunction@numStats, '\n')
+	cat("$algebra: ", omxQuotes(fitfunction@algebra), '\n')	
+	cat("$numObs: ", fitfunction@numObs, '\n')
+	cat("$numStats: ", fitfunction@numStats, '\n')
 	if (length(fitfunction@result) == 0) {
-		cat("@result: (not yet computed) ")
+		cat("$result: (not yet computed) ")
 	} else {
-		cat("@result:\n")
+		cat("$result:\n")
 	}
 	print(fitfunction@result)
 	invisible(fitfunction)

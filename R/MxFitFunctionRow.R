@@ -289,24 +289,24 @@ mxFitFunctionRow <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "
 printSlot <- function(object, slotName) {
 	val <- slot(object, slotName)
 	if (single.na(val)) {
-		msg <- paste('@', slotName, ' : NA \n', sep = '')
+		msg <- paste('$', slotName, ' : NA \n', sep = '')
 	} else {
-		msg <- paste('@', slotName, ' : ',omxQuotes(val), '\n', sep = '')
+		msg <- paste('$', slotName, ' : ',omxQuotes(val), '\n', sep = '')
 	}
 	cat(msg)
 }
 
 displayRowFitFunction <- function(fitfunction) {
 	cat("MxFitFunctionRow", omxQuotes(fitfunction@name), '\n')
-	cat("@rowAlgebra :", omxQuotes(fitfunction@rowAlgebra), '\n')
+	cat("$rowAlgebra :", omxQuotes(fitfunction@rowAlgebra), '\n')
 	printSlot(fitfunction, "rowResults")
 	printSlot(fitfunction, "filteredDataRow")
 	printSlot(fitfunction, "existenceVector")
 	printSlot(fitfunction, "reduceAlgebra")
 	if (length(fitfunction@result) == 0) {
-		cat("@result: (not yet computed) ")
+		cat("$result: (not yet computed) ")
 	} else {
-		cat("@result:\n")
+		cat("$result:\n")
 	}
 	print(fitfunction@result)
 	invisible(fitfunction)

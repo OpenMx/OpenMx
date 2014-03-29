@@ -112,7 +112,7 @@ mxFitFunctionML <- function(vector = FALSE) {
 
 displayMxFitFunctionML <- function(fitfunction) {
 	cat("MxFitFunctionML", omxQuotes(fitfunction@name), '\n')
-	cat("@vector :", fitfunction@vector, '\n')
+	cat("$vector :", fitfunction@vector, '\n')
 	print(fitfunction@result)
 	invisible(fitfunction)
 }

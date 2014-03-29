@@ -64,12 +64,12 @@ mxFitFunctionR <- function(fitfun, ...) {
 
 displayRFitFun <- function(fitfunction) {
 	cat("MxFitFunctionR", omxQuotes(fitfunction@name), '\n')
-	cat("@fitfun (fitness function) \n")
+	cat("$fitfun (fitness function) \n")
 	print(fitfunction@fitfun)
 	if (length(fitfunction@result) == 0) {
-		cat("@result: (not yet computed) ")
+		cat("$result: (not yet computed) ")
 	} else {
-		cat("@result:\n")
+		cat("$result:\n")
 	}
 	print(fitfunction@result)
 	invisible(fitfunction)

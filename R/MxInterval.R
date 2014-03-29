@@ -29,9 +29,22 @@ setMethod("initialize", "MxInterval",
 	}
 )
 
+
 createNewInterval <- function(reference, lowerdelta, upperdelta) {
 	return(new("MxInterval", reference, lowerdelta, upperdelta))
 }
+
+setMethod("$", "MxInterval",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxInterval",
+	function(x, name, value) {
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
 
 expandSingleInterval <- function(interval) {
 	references <- interval@reference
@@ -216,9 +229,9 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 
 displayInterval <- function(object) {
 	cat("MxInterval", '\n')
-	cat("@reference: ", object@reference, '\n')
-	cat("@lowerdelta: ", object@lowerdelta, '\n')
-	cat("@upperdelta: ", object@upperdelta, '\n')
+	cat("$reference: ", object@reference, '\n')
+	cat("$lowerdelta: ", object@lowerdelta, '\n')
+	cat("$upperdelta: ", object@upperdelta, '\n')
 }
 
 setMethod("print", "MxInterval", function(x,...) { displayInterval(x) })

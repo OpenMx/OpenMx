@@ -50,6 +50,20 @@ setReplaceMethod("dimnames", "MxAlgebra",
 	}
 )
 
+setMethod("$", "MxAlgebra",
+	function(x, name) {
+		return(imxExtractSlot(x, name))
+	}
+)
+
+setReplaceMethod("$", "MxAlgebra",
+	function(x, name, value) {
+        if(name == c("result")) {
+            stop("You cannot set the result of an algebra.  Use mxRun() to populate the result, or mxEval() to compute it.")
+        } 
+		return(imxReplaceSlot(x, name, value, check=TRUE))
+	}
+)
 
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) {
@@ -224,11 +238,11 @@ checkConstraintEvaluation <- function(model, flatModel, labelsData, cache) {
 
 displayAlgebra <- function(mxAlgebra) {
 	cat("mxAlgebra", omxQuotes(mxAlgebra@name), '\n')
-	cat("@formula: ", deparse(mxAlgebra@formula, width.cutoff=500L), '\n')
+	cat("$formula: ", deparse(mxAlgebra@formula, width.cutoff=500L), '\n')
 	if (length(mxAlgebra@result) == 0) {
-		cat("@result: (not yet computed) ")
+		cat("$result: (not yet computed) ")
 	} else {
-		cat("@result:\n")
+		cat("$result:\n")
 	}
 	print(mxAlgebra@result)
 	if (is.null(dimnames(mxAlgebra))) {

@@ -381,24 +381,24 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 # TODO: Add expected mean and cov printouts
 displayMxExpectationStateSpace <- function(expectation) {
 	cat("MxExpectationStateSpace", omxQuotes(expectation@name), '\n')
-	cat("@A :", omxQuotes(expectation@A), '\n')
-	cat("@B :", omxQuotes(expectation@B), '\n')
-	cat("@C :", omxQuotes(expectation@C), '\n')
-	cat("@D :", omxQuotes(expectation@D), '\n')
-	cat("@Q :", omxQuotes(expectation@Q), '\n')
-	cat("@R :", omxQuotes(expectation@R), '\n')
-	cat("@x0 :", omxQuotes(expectation@x0), '\n')
-	cat("@P0 :", omxQuotes(expectation@P0), '\n')
-	cat("@u :", omxQuotes(expectation@u), '\n')
+	cat("$A :", omxQuotes(expectation@A), '\n')
+	cat("$B :", omxQuotes(expectation@B), '\n')
+	cat("$C :", omxQuotes(expectation@C), '\n')
+	cat("$D :", omxQuotes(expectation@D), '\n')
+	cat("$Q :", omxQuotes(expectation@Q), '\n')
+	cat("$R :", omxQuotes(expectation@R), '\n')
+	cat("$x0 :", omxQuotes(expectation@x0), '\n')
+	cat("$P0 :", omxQuotes(expectation@P0), '\n')
+	cat("$u :", omxQuotes(expectation@u), '\n')
 	if (single.na(expectation@dims)) {
-		cat("@dims : NA \n")
+		cat("$dims : NA \n")
 	} else {
-		cat("@dims :", omxQuotes(expectation@dims), '\n')
+		cat("$dims :", omxQuotes(expectation@dims), '\n')
 	}		
 	if (single.na(expectation@thresholds)) {
-		cat("@thresholds : NA \n")
+		cat("$thresholds : NA \n")
 	} else {
-		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
+		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
 	invisible(expectation)
 }

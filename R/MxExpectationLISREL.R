@@ -589,44 +589,44 @@ mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA,
 # **DONE**
 displayExpectationLISREL <- function(expectation) {
 	cat("MxExpectationLISREL", omxQuotes(expectation@name), '\n')
-	cat("@LX :", omxQuotes(expectation@LX), '\n')
-	cat("@LY :", omxQuotes(expectation@LY), '\n')
-	cat("@BE :", omxQuotes(expectation@BE), '\n')
-	cat("@GA :", omxQuotes(expectation@GA), '\n')
-	cat("@PH :", omxQuotes(expectation@PH), '\n')
-	cat("@PS :", omxQuotes(expectation@PS), '\n')
-	cat("@TD :", omxQuotes(expectation@TD), '\n')
-	cat("@TE :", omxQuotes(expectation@TE), '\n')
-	cat("@TH :", omxQuotes(expectation@TH), '\n')
+	cat("$LX :", omxQuotes(expectation@LX), '\n')
+	cat("$LY :", omxQuotes(expectation@LY), '\n')
+	cat("$BE :", omxQuotes(expectation@BE), '\n')
+	cat("$GA :", omxQuotes(expectation@GA), '\n')
+	cat("$PH :", omxQuotes(expectation@PH), '\n')
+	cat("$PS :", omxQuotes(expectation@PS), '\n')
+	cat("$TD :", omxQuotes(expectation@TD), '\n')
+	cat("$TE :", omxQuotes(expectation@TE), '\n')
+	cat("$TH :", omxQuotes(expectation@TH), '\n')
 	if (is.na(expectation@TX)) {
-		cat("@TX :", expectation@TX, '\n')
+		cat("$TX :", expectation@TX, '\n')
 	} else {
-		cat("@TX :", omxQuotes(expectation@TX), '\n')
+		cat("$TX :", omxQuotes(expectation@TX), '\n')
 	}
 	if (is.na(expectation@TY)) {
-		cat("@TY :", expectation@TY, '\n')
+		cat("$TY :", expectation@TY, '\n')
 	} else {
-		cat("@TY :", omxQuotes(expectation@TY), '\n')
+		cat("$TY :", omxQuotes(expectation@TY), '\n')
 	}
 	if (is.na(expectation@KA)) {
-		cat("@KA :", expectation@KA, '\n')
+		cat("$KA :", expectation@KA, '\n')
 	} else {
-		cat("@KA :", omxQuotes(expectation@KA), '\n')
+		cat("$KA :", omxQuotes(expectation@KA), '\n')
 	}
 	if (is.na(expectation@AL)) {
-		cat("@AL :", expectation@AL, '\n')
+		cat("$AL :", expectation@AL, '\n')
 	} else {
-		cat("@AL :", omxQuotes(expectation@AL), '\n')
+		cat("$AL :", omxQuotes(expectation@AL), '\n')
 	}
 	if (single.na(expectation@dims)) {
-		cat("@dims : NA \n")
+		cat("$dims : NA \n")
 	} else {
-		cat("@dims :", omxQuotes(expectation@dims), '\n')
+		cat("$dims :", omxQuotes(expectation@dims), '\n')
 	}		
 	if (single.na(expectation@thresholds)) {
-		cat("@thresholds : NA \n")
+		cat("$thresholds : NA \n")
 	} else {
-		cat("@thresholds :", omxQuotes(expectation@thresholds), '\n')
+		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
 	invisible(expectation)
 }
