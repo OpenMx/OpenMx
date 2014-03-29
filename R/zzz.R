@@ -13,14 +13,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-.onLoad <- function(libname, pkgname) {
+##' Reset global options to the default
+mxSetDefaultOptions <- function() {
    options('mxDefaultType' = 'default', 
 	'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions,
 	    list("Default optimizer" = determineDefaultOptimizer())),
-	'mxRAMDefaultSingle' = 1.00, 
-	'mxRAMDefaultDouble' = 1.00,
 	'mxByrow' = FALSE,
 	'mxShowDimnames' = TRUE,
 	'mxPrintUnitTests' = TRUE,
 	'swift.initialexpr' = "library(OpenMx)")
 }
+
+.onLoad <- function(libname, pkgname) mxSetDefaultOptions()

@@ -28,7 +28,6 @@
 #define _OMXDEFINES_H_
 
 #define MIN_ROWS_PER_THREAD 8
-#define OMX_DEFAULT_MAX_PTS(rows) 100*rows*rows
 #define EPSILON 1e-16
 #define TRUE 1
 #define FALSE 0

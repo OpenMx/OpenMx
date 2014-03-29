@@ -58,12 +58,12 @@ errors <- list()
 runtimes <- numeric()
 
 errorRecover <- function(script, opt, index) {
+	mxSetDefaultOptions()
 	mxOption(NULL, "Default optimizer", opt)
 	sink(type = 'output')
 	cat(paste(opt, index, "of",
 		length(files), script, "...\n"))
 	sink(null, type = 'output')
-	mxOption(NULL, 'loglikelihoodScale', -2)
 	start <- Sys.time()
 	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
