@@ -35,6 +35,7 @@ class omxComputeGD : public omxCompute {
 	bool useGradient;
 	int verbose;
     
+	SEXP hessChol;
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
 	int inform, iter;
     
@@ -58,6 +59,7 @@ omxComputeGD::omxComputeGD()
 	intervalCodes = 0;
 	inform = 0;
 	iter = 0;
+	hessChol = NULL;
 }
 
 void omxComputeGD::initFromFrontend(SEXP rObj)
@@ -112,13 +114,15 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	switch (engine) {
         case OptEngine_NPSOL:
 #if HAS_NPSOL
+		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose,
-			       fc->getDenseHessUninitialized());
+			       REAL(hessChol));
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 #endif
             break;
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose, fc->getDenseHessUninitialized());
+	    fc->wanted |= FF_COMPUTE_HESSIAN;
             break;
         default: Rf_error("huh?");
 	}
@@ -147,7 +151,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 	}
 
-	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_BESTFIT;
+	fc->wanted |= FF_COMPUTE_BESTFIT;
     /*printf("fc->hess in computeGD\n");
     printf("%2f", fc->hess[0]); putchar('\n');
     printf("%2f", fc->hess[1]); putchar('\n');
@@ -167,11 +171,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	size_t numFree = varGroup->vars.size();
     
 	if (engine == OptEngine_NPSOL) {
-		SEXP hessian;
-		Rf_protect(hessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-		fc->copyDenseHess(REAL(hessian));
-		out->add("hessianCholesky", hessian);
-		fc->wanted |= FF_COMPUTE_HESSIAN;
+		out->add("hessianCholesky", hessChol);
 	}
     
 	if (intervals && intervalCodes) {
