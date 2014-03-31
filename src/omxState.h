@@ -169,8 +169,11 @@ class omxGlobal {
 	std::vector< omxCompute* > computeList;
 	std::vector< omxAlgebra* > algebraList;
 
+	std::vector< std::string > bads;
+
 	omxGlobal();
 	void deduplicateVarGroups();
+	const char *getBads();
 	~omxGlobal();
 };
 
@@ -205,8 +208,6 @@ struct omxState {
 	omxCheckpoint* checkpointList;									// List of checkpoints
 	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
 	int numCheckpoints;												// Number of checkpoints
-
-	char statusMsg[MAX_STRING_LEN];
 };
 
 extern omxState* globalState;
@@ -224,7 +225,7 @@ void omxFreeState(omxState *state);
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
 	void omxResetStatus(omxState *state);    
-inline bool isErrorRaised(omxState *state) { return state->statusMsg[0] != 0; }
+inline bool isErrorRaised(omxState *) { return Global->bads.size() != 0; }
 void omxRaiseError(omxState *state, int Rf_errorCode, const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...) __attribute__((format (printf, 2, 3)));
 

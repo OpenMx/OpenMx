@@ -295,7 +295,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
 
 	if(newObj->expectedCov == NULL) {
-		omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
+		omxRaiseError(0, 0,
 			"Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
 		return;
 	}
@@ -304,11 +304,11 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 		if(newObj->expectedMeans != NULL) {
-			omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			omxRaiseError(0,0,
 				"Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		} else {
-			omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+			omxRaiseError(0,0,
 				"Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
 			return;	        
 		}

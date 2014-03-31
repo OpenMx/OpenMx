@@ -199,13 +199,6 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
 				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride);
 			}
 		}
-
-		for(int i = 0; i < parallelism; i++) {
-			if (isErrorRaised(parentState->childList[i])) {
-				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, MAX_STRING_LEN);
-			}
-		}
-
 	} else {
 		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows);
 	}

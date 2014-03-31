@@ -237,13 +237,6 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 				omxFIMLSingleIterationJoint(childFit, off, stride * i, stride);
 			}
 		}
-
-		for(int i = 0; i < parallelism; i++) {
-			if (isErrorRaised(parentState->childList[i])) {
-				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, MAX_STRING_LEN);
-			}
-		}
-
 	} else {
 		omxFIMLSingleIterationJoint(off, off, 0, data->rows);
 	}
@@ -326,13 +319,6 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) 
 				omxFIMLSingleIteration(childFit, off, stride * i, stride);
 			}
 		}
-
-		for(int i = 0; i < parallelism; i++) {
-			if (isErrorRaised(parentState->childList[i])) {
-				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, MAX_STRING_LEN);
-			}
-		}
-
 	} else {
 		omxFIMLSingleIteration(off, off, 0, data->rows);
 	}
@@ -433,13 +419,6 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitCont
 				omxFIMLSingleIterationOrdinal(childFit, off, stride * i, stride);
 			}
 		}
-
-		for(int i = 0; i < parallelism; i++) {
-			if (isErrorRaised(parentState->childList[i])) {
-				strncpy(parentState->statusMsg, parentState->childList[i]->statusMsg, MAX_STRING_LEN);
-			}
-		}
-
 	} else {
 		omxFIMLSingleIterationOrdinal(off, off, 0, data->rows);
 	}

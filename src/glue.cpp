@@ -180,7 +180,6 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	omxMatrix* algebra;
 	int algebraNum = INTEGER(algNum)[0];
 	SEXP ans, nextMat;
-	char output[MAX_STRING_LEN];
 
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
@@ -209,7 +208,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, Rf_length(matList), globalState);
 
 	if(algebra==NULL) {
-		Rf_error(globalState->statusMsg);
+		Rf_error("Failed to build algebra");
 	}
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
@@ -225,16 +224,13 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
 
-	output[0] = 0;
-	if (isErrorRaised(globalState)) {
-		strncpy(output, globalState->statusMsg, MAX_STRING_LEN);
-	}
+	const char *bads = Global->getBads();
 
 	omxFreeMatrix(algebra);
 	omxFreeState(globalState);
 	delete Global;
 
-	if(output[0]) Rf_error(output);
+	if (bads) Rf_error(bads);
 
 	return ans;
 }
@@ -278,40 +274,35 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxExpectationEntities(expectList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxDataEntities(data);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
     
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxMatrixEntities(matList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxAlgebraEntities(algList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxFitFunction(algList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxComputeEntities(computeList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxExpectationEntities();
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxFitFunction(algList);
-	if (isErrorRaised(globalState)) Rf_error(globalState->statusMsg);
+
+	if (isErrorRaised(NULL)) {
+		Rf_error(Global->getBads());
+	}
 
 	// This is the chance to check for matrix
 	// conformability, etc.  Any Rf_errors encountered should
@@ -444,7 +435,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (isErrorRaised(globalState)) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
-		SET_STRING_ELT(msg, 0, Rf_mkChar(globalState->statusMsg));
+		SET_STRING_ELT(msg, 0, Rf_mkChar(Global->getBads()));
 		result.add("error", msg);
 		backwardCompatStatus.add("statusMsg", msg);
 	}

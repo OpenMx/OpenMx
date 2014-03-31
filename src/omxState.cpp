@@ -191,8 +191,6 @@ void omxGlobal::deduplicateVarGroups()
 
 		state->computeCount = 0;
 		state->currentRow = -1;
-
-		strncpy(state->statusMsg, "", 1);
 	}
 
 	void omxSetMajorIteration(omxState *state, int value) {
@@ -261,8 +259,6 @@ void omxGlobal::deduplicateVarGroups()
                                   
 		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;
-
-		strncpy(tgt->statusMsg, "", 1);
 	}
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
@@ -386,23 +382,18 @@ omxGlobal::~omxGlobal()
 	}
 }
 
-	void omxResetStatus(omxState *state) {
-		state->statusMsg[0] = '\0';
-		for(size_t i = 0; i < state->childList.size(); i++) {
-			omxResetStatus(state->childList[i]);
-		}
-	}
+void omxResetStatus(omxState *)
+{
+	Global->bads.clear();
+}
 
-std::string string_snprintf(const char *fmt, ...)
+std::string string_vsnprintf(const char *fmt, va_list ap)
 {
     int size = 100;
     std::string str;
-    va_list ap;
     while (1) {
         str.resize(size);
-        va_start(ap, fmt);
         int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
-        va_end(ap);
         if (n > -1 && n < size) {
             str.resize(n);
             return str;
@@ -413,6 +404,15 @@ std::string string_snprintf(const char *fmt, ...)
             size *= 2;
     }
     return str;
+}
+
+std::string string_snprintf(const char *fmt, ...)
+{
+	va_list ap;
+        va_start(ap, fmt);
+	std::string str = string_vsnprintf(fmt, ap);
+        va_end(ap);
+	return str;
 }
 
 void mxLogBig(const std::string str)   // thread-safe
@@ -469,29 +469,42 @@ void _omxRaiseError()
 	// keep for debugger breakpoints
 }
 
-void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...)
+void omxRaiseErrorf(omxState *, const char* msg, ...)
 {
-	_omxRaiseError();
 	va_list ap;
-	va_start(ap, Rf_errorMsg);
-	int fit = vsnprintf(state->statusMsg, MAX_STRING_LEN, Rf_errorMsg, ap);
+	va_start(ap, msg);
+	std::string str = string_vsnprintf(msg, ap);
 	va_end(ap);
+	_omxRaiseError();
+
 	if(OMX_DEBUG) {
-		if (!(fit > -1 && fit < MAX_STRING_LEN)) {
-			mxLog("Error exceeded maximum Rf_length: %s", Rf_errorMsg);
-		} else {
-			mxLog("Error raised: %s", state->statusMsg);
-		}
+		mxLog("Error raised: %s", str.c_str());
 	}
+
+#pragma omp critical(bads)
+	Global->bads.push_back(str);
 }
 
-	void omxRaiseError(omxState *state, int Rf_errorCode, const char* Rf_errorMsg) { // DEPRECATED
-		_omxRaiseError();
-		if(OMX_DEBUG && Rf_errorCode) { mxLog("Error %d raised: %s", Rf_errorCode, Rf_errorMsg);}
-		if(OMX_DEBUG && !Rf_errorCode) { mxLog("Error status cleared."); }
-		strncpy(state->statusMsg, Rf_errorMsg, 249);
-		state->statusMsg[249] = '\0';
+const char *omxGlobal::getBads()
+{
+	if (bads.size() == 0) return NULL;
+
+	std::string str;
+	for (size_t mx=0; mx < bads.size(); ++mx) {
+		str += bads[mx];
+		if (mx < bads.size() - 1) str += "\n";
 	}
+
+	size_t sz = str.size();
+	char *mem = R_alloc(sz+1, 1);  // use R's memory
+	memcpy(mem, str.c_str(), sz);
+	mem[sz] = 0;
+	return mem;
+}
+
+void omxRaiseError(omxState *, int, const char* msg) { // DEPRECATED
+	omxRaiseErrorf(NULL, "%s", msg);
+}
 
 	void omxStateNextRow(omxState *state) {
 		state->currentRow++;

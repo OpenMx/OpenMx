@@ -242,11 +242,11 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 	    if(newObj->expectedMeans != NULL) {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+		    omxRaiseError(0,0,
 			    "Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
 		    return;
 	    } else {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+		    omxRaiseError(0,0,
 			    "Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
 		    return;	        
 	    }
@@ -254,11 +254,11 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
 	    if(newObj->expectedThresholds != NULL) {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+		    omxRaiseError(0,0,
 			    "Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 		    return;
 	    } else {
-		    omxRaiseError(oo->matrix->currentState, OMX_ERROR,
+		    omxRaiseError(0,0,
 			    "Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
 		    return;	        
 	    }
@@ -278,7 +278,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 
     if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
-        omxRaiseError(oo->matrix->currentState, OMX_DEVELOPER_ERROR,
+	    omxRaiseError(0,0,
          "Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
      return;
     }
