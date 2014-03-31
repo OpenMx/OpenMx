@@ -18,9 +18,6 @@
 #include "omxFitFunction.h"
 #include "omxBLAS.h"
 #include "omxDefines.h"
-#include "omxMLFitFunction.h"
-#include "omxWLSFitFunction.h"
-#include "omxFIMLFitFunction.h"
 #include "omxNormalExpectation.h"
 
 void omxComputeNormalExpectation(omxExpectation* ox, const char *, const char *) {

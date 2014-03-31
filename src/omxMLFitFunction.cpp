@@ -16,25 +16,62 @@
 
 #include "omxAlgebraFunctions.h"
 #include "omxExpectation.h"
-#include "omxMLFitFunction.h"
 #include "omxFIMLFitFunction.h"
 #include "omxRAMExpectation.h"
+#include "omxBuffer.h"
+#include "matrix.h"
 
-void omxDestroyMLFitFunction(omxFitFunction *oo) {
+static const double MIN_VARIANCE = 1e-6;
+
+struct MLFitState {
+
+	omxMatrix* observedCov;
+	omxMatrix* observedMeans;
+	omxMatrix* expectedCov;
+	omxMatrix* expectedMeans;
+	omxMatrix* localCov;
+	omxMatrix* localProd;
+	omxMatrix* P;
+	omxMatrix* C;
+	omxMatrix* I;
+
+	double n;
+	double logDetObserved;
+
+	double* work;
+	int lwork;
+
+    // Expectation Storage;
+    omxMatrix** dSigma;         // dSigma/dTheta
+    omxMatrix** dMu;            // dMu/dTheta
+    omxMatrix* Mu;
+    omxMatrix* Ms;
+    omxMatrix* X;
+    omxMatrix* Y;
+
+	// fisher information
+	int haveLatentMap;
+	std::vector<int> latentMap;
+	std::vector<HessianBlock> lhBlocks;
+};
+
+static void omxDestroyMLFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing ML Fit Function.");}
-	omxMLFitFunction* omlo = ((omxMLFitFunction*)oo->argStruct);
+	MLFitState* omlo = ((MLFitState*)oo->argStruct);
 
 	omxFreeMatrix(omlo->localCov);
 	omxFreeMatrix(omlo->localProd);
 	omxFreeMatrix(omlo->P);
 	omxFreeMatrix(omlo->C);
 	omxFreeMatrix(omlo->I);
+
+	delete omlo;
 }
 
 static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, double *independence_out)
 {
-	omxMLFitFunction *state = (omxMLFitFunction*) oo->argStruct;
+	MLFitState *state = (MLFitState*) oo->argStruct;
 	double det = 0.0;
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
@@ -68,13 +105,8 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 	out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));
 }
 
-static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
-
-	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
-
-	if(OMX_DEBUG) { mxLog("Beginning ML Evaluation.");}
-	// Requires: Data, means, covariances.
-
+static void mvnFit(omxFitFunction *oo)
+{
 	double sum = 0.0, det = 0.0;
 	char u = 'U';
 	char r = 'R';
@@ -85,11 +117,8 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	int onei = 1;
 	double fmean = 0.0;
 
+	MLFitState *omo = ((MLFitState*)oo->argStruct);
 	omxMatrix *scov, *smeans, *cov, *means, *localCov, *localProd, *P, *C;
-
-	omxMLFitFunction *omo = ((omxMLFitFunction*)oo->argStruct);
-	
-    /* Locals for readability.  Compiler should cut through this. */
 	scov 		= omo->observedCov;
 	smeans		= omo->observedMeans;
 	cov			= omo->expectedCov;
@@ -100,10 +129,6 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	C		 	= omo->C;
 	double n 	= omo->n;
 	double Q	= omo->logDetObserved;
-	omxExpectation* expectation = oo->expectation;
-
-    /* Recompute and recopy */
-	omxExpectationCompute(expectation, NULL);
 
 	omxCopyMatrix(localCov, cov);				// But expected cov is destroyed in inversion
 
@@ -189,17 +214,219 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	oo->matrix->data[0] = (sum + det) * (n - 1) + fmean * (n);
 
 	if(OMX_DEBUG) { mxLog("MLFitFunction value comes to: %f (Chisq: %f).", oo->matrix->data[0], (sum + det) - Q - cov->cols); }
-
 }
 
-void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
+static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
+{
+	FreeVarGroup *fvg = fc->varGroup;
+	MLFitState *state = (MLFitState*) oo->argStruct;
+	std::vector<int> &latentMap = state->latentMap;
+	int meanNum = ~state->expectedMeans->matrixNumber;
+	int covNum = ~state->expectedCov->matrixNumber;
+	int maxAbilities = state->expectedCov->rows;
+	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+
+	if (state->haveLatentMap == fvg->id[0]) return;
+	if (0) mxLog("%s: rebuild latent parameter map for var group %d",
+		     oo->matrix->name, fvg->id[0]); // TODO add runtime verbose setting
+
+	latentMap.assign(numLatents + triangleLoc1(numLatents), -1);
+
+	state->lhBlocks.clear();
+	state->lhBlocks.resize(2);  // 0=mean, 1=cov
+
+	int numParam = int(fvg->vars.size());
+	for (int px=0; px < numParam; px++) {
+		omxFreeVar *fv = fvg->vars[px];
+		for (size_t lx=0; lx < fv->locations.size(); lx++) {
+			omxFreeVarLocation *loc = &fv->locations[lx];
+			int matNum = loc->matrix;
+			if (matNum == meanNum) {
+				latentMap[loc->row + loc->col] = px;
+				state->lhBlocks[0].vars.push_back(px);
+			} else if (matNum == covNum) {
+				int a1 = loc->row;
+				int a2 = loc->col;
+				if (a1 < a2) std::swap(a1, a2);
+				int cell = maxAbilities + triangleLoc1(a1) + a2;
+				if (latentMap[cell] == -1) {
+					latentMap[cell] = px;
+					state->lhBlocks[1].vars.push_back(px);
+
+					if (a1 == a2 && fv->lbound == NEG_INF) {
+						fv->lbound = MIN_VARIANCE;  // variance must be positive
+						if (fc->est[px] < fv->lbound) {
+							Rf_error("Starting value for variance %s is not positive", fv->name);
+						}
+					}
+				} else if (latentMap[cell] != px) {
+					// doesn't detect similar problems in multigroup constraints TODO
+					Rf_error("Covariance matrix must be constrained to preserve symmetry");
+				}
+			}
+		}
+	}
+	state->haveLatentMap = fvg->id[0];
+
+	for (int p1=0; p1 < maxAbilities; p1++) {
+		HessianBlock &hb = state->lhBlocks[0];
+		int at1 = latentMap[p1];
+		if (at1 < 0) continue;
+		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
+
+		for (int p2=0; p2 <= p1; p2++) {
+			int at2 = latentMap[p2];
+			if (at2 < 0) continue;
+			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
+
+			if (hb1 < hb2) std::swap(hb1, hb2);
+			int at = numLatents + triangleLoc1(p1) + p2;
+			latentMap[at] = hb1 * hb.vars.size() + hb2;
+		}
+	}
+
+	for (int p1=maxAbilities; p1 < numLatents; p1++) {
+		HessianBlock &hb = state->lhBlocks[1];
+		int at1 = latentMap[p1];
+		if (at1 < 0) continue;
+		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
+
+		for (int p2=maxAbilities; p2 <= p1; p2++) {
+			int at2 = latentMap[p2];
+			if (at2 < 0) continue;
+			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
+
+			if (hb1 < hb2) std::swap(hb1, hb2);
+			int at = numLatents + triangleLoc1(p1) + p2;
+			latentMap[at] = hb1 * hb.vars.size() + hb2;
+		}
+	}
+}
+
+static void mvnInfo(omxFitFunction *oo, FitContext *fc)
+{
+	buildLatentParamMap(oo, fc);
+
+	const double Scale = Global->llScale;
+	MLFitState *state = (MLFitState*) oo->argStruct;
+	const int maxAbilities = state->expectedCov->rows;
+	omxMatrix *cov = state->expectedCov;
+	const double numObs = state->n;
+	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
+	std::vector<int> &latentMap = state->latentMap;
+
+	if (0) mxLog("%s: latentHessian", oo->matrix->name);
+
+	omxBuffer<double> icovBuffer(maxAbilities * maxAbilities);
+	memcpy(icovBuffer.data(), cov->data, sizeof(double) * maxAbilities * maxAbilities);
+	Matrix icovMat(icovBuffer.data(), maxAbilities, maxAbilities);
+	int info = InvertSymmetricPosDef(icovMat, 'U');
+	if (info) return;
+
+	for (int m1=0; m1 < maxAbilities; ++m1) {
+		for (int m2=0; m2 < m1; ++m2) {
+			icovBuffer[m2 * maxAbilities + m1] = icovBuffer[m1 * maxAbilities + m2];
+		}
+	}
+
+	{
+		HessianBlock *hb = state->lhBlocks[0].clone();
+
+		int px=numLatents;
+		for (int m1=0; m1 < maxAbilities; ++m1) {
+			for (int m2=0; m2 <= m1; ++m2) {
+				int to = latentMap[px];
+				++px;
+				if (to < 0) continue;
+				hb->mat.data()[to] = -Scale * numObs * icovBuffer[m1 * maxAbilities + m2];
+			}
+		}
+		fc->queue(hb);
+	}
+
+	HessianBlock *hb = state->lhBlocks[1].clone();
+
+	std::vector<double> term1(maxAbilities * maxAbilities);
+	std::vector<double> term2(maxAbilities * maxAbilities);
+
+	int f1=0;
+	for (int r1=0; r1 < maxAbilities; ++r1) {
+		for (int c1=0; c1 <= r1; ++c1) {
+			memcpy(term1.data()      + c1 * maxAbilities,
+			       icovBuffer.data() + r1 * maxAbilities, maxAbilities * sizeof(double));
+			if (r1 != c1) {
+				memcpy(term1.data()      + r1 * maxAbilities,
+				       icovBuffer.data() + c1 * maxAbilities, maxAbilities * sizeof(double));
+			}
+			int f2 = f1;
+			for (int r2=r1; r2 < maxAbilities; ++r2) {
+				for (int c2 = (r1==r2? c1 : 0); c2 <= r2; ++c2) {
+					int to = latentMap[numLatents + triangleLoc1(f2 + maxAbilities) + f1 + maxAbilities];
+					++f2;
+					if (to < 0) continue;
+
+					memcpy(term2.data()      + c2 * maxAbilities,
+					       icovBuffer.data() + r2 * maxAbilities, maxAbilities * sizeof(double));
+					if (r2 != c2) {
+						memcpy(term2.data()      + r2 * maxAbilities,
+						       icovBuffer.data() + c2 * maxAbilities, maxAbilities * sizeof(double));
+					}
+
+					double tr = 0;
+					for (int d1=0; d1 < maxAbilities; ++d1) {
+						for (int d2=0; d2 < maxAbilities; ++d2) {
+							tr += term1[d2 * maxAbilities + d1] * term2[d1 * maxAbilities + d2];
+						}
+					}
+
+					// Simulation suggests the sample size should be
+					// numObs-2 but this is tedious to accomodate
+					// when there are parameter equality constraints. Whether
+					// the sample size is adjusted or not seems to make
+					// no detectable difference in tests.
+					hb->mat.data()[to] = Scale * numObs * -.5 * tr;
+
+					OMXZERO(term2.data() + c2 * maxAbilities, maxAbilities);
+					if (c2 != r2) OMXZERO(term2.data() + r2 * maxAbilities, maxAbilities);
+				}
+			}
+			OMXZERO(term1.data() + c1 * maxAbilities, maxAbilities);
+			if (c1 != r1) OMXZERO(term1.data() + r1 * maxAbilities, maxAbilities);
+			++f1;
+		}
+	}
+	fc->queue(hb);
+}
+
+static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+{
+	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+
+	omxExpectation* expectation = oo->expectation;
+	omxExpectationCompute(expectation, NULL);
+
+	if ((want & FF_COMPUTE_INFO) && strcmp(expectation->expType, "MxExpectationNormal")==0) {
+		if (fc->infoMethod != INFO_METHOD_HESSIAN) {
+			omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+				       fc->infoMethod);
+			return;
+		}
+		mvnInfo(oo, fc);
+	}
+
+	if (want & FF_COMPUTE_FIT) {
+		mvnFit(oo);
+	}
+}
+
+static void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
     if(OMX_DEBUG) { mxLog("Populating ML Attributes."); }
 
-	omxMLFitFunction *argStruct = ((omxMLFitFunction*)oo->argStruct);
+	MLFitState *argStruct = ((MLFitState*)oo->argStruct);
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
-	SEXP expCovExt, expMeanExt, gradients;
+	SEXP expCovExt, expMeanExt;
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -216,34 +443,15 @@ void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}   
 
-	if (0) {
-		// TODO, fix for new gradient internal API
-	} else {
-		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 0, 0));
-	}
-    
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(saturated_out));
 	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(independence_out));
-
-	Rf_unprotect(3);
 }
-
-void omxSetMLFitFunctionCalls(omxFitFunction* oo) {
-	
-	/* Set FitFunction Calls to ML FitFunction Calls */
-	oo->computeFun = omxCallMLFitFunction;
-	oo->destructFun = omxDestroyMLFitFunction;
-	oo->addOutput = addOutput;
-	oo->populateAttrFun = omxPopulateMLAttributes;
-}
-
 
 void omxInitMLFitFunction(omxFitFunction* oo)
 {
@@ -261,8 +469,10 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	double det = 1.0;
 	char u = 'U';
 	
-	/* Read and set expectation */
-	omxSetMLFitFunctionCalls(oo);
+	oo->computeFun = omxCallMLFitFunction;
+	oo->destructFun = omxDestroyMLFitFunction;
+	oo->addOutput = addOutput;
+	oo->populateAttrFun = omxPopulateMLAttributes;
 
 	omxData* dataMat = oo->expectation->data;
 
@@ -280,7 +490,8 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		return;
 	}
 
-	omxMLFitFunction *newObj = (omxMLFitFunction*) R_alloc(1, sizeof(omxMLFitFunction));
+	MLFitState *newObj = new MLFitState;
+	newObj->haveLatentMap = FREEVARGROUP_INVALID;
 	oo->argStruct = (void*)newObj;
 
 	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
@@ -354,25 +565,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	omxCopyMatrix(newObj->localCov, newObj->expectedCov);
 }
 
-void omxSetMLFitFunctionGradient(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, double*)) {
-    if(strncmp("omxMLFitFunction", oo->fitType, 16)) {
-        char Rf_errorstr[250];
-        sprintf(Rf_errorstr, "PROGRAMMER ERROR: Using vanilla-ML gradient with FitFunction of type %s", oo->fitType);
-        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
-        return;
-    }
-    
-    if(derivativeFun == NULL) {
-        char Rf_errorstr[250];
-        sprintf(Rf_errorstr, "Programmer Rf_error: ML gradient given NULL gradient function.");
-        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
-        return;
-    }
-    
-    //oo->gradientFun = derivativeFun; TODO
-}
-
-void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
+static void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
     if(OMX_DEBUG) { mxLog("Setting up gradient component function for ML FitFunction."); }
     if(!strncmp("omxFIMLFitFunction", oo->fitType, 16)) {
         if(OMX_DEBUG) { mxLog("FIML FitFunction gradients not yet implemented. Skipping."); }
@@ -386,12 +579,11 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
         return;
     }
     
-    omxMLFitFunction *omo = ((omxMLFitFunction*) oo->argStruct);
+    MLFitState *omo = ((MLFitState*) oo->argStruct);
     int rows = omo->observedCov->rows;
     int cols = omo->observedCov->cols;
     size_t nFreeVars = oo->freeVarGroup->vars.size();
             
-    omo->derivativeFun = derivativeFun;
     omo->X  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
     omo->Y  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
     omo->Ms = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
@@ -405,7 +597,7 @@ void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivative
     //oo->gradientFun = omxCalculateMLGradient; TODO
 }
 
-void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
+static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
 
     if(OMX_DEBUG) { mxLog("Beginning ML Gradient Calculation."); }
     // mxLog("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
@@ -418,7 +610,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     // 5) For each location in locs:
     //   gradient[loc] = tr(eCov^-1 %*% dEdt %*% C) - (b^T %*% eCov^-1 %*% dEdt + 2 dMdt^T))eCov^-1 b)
 
-    omxMLFitFunction *omo = ((omxMLFitFunction*)oo->argStruct);
+    MLFitState *omo = ((MLFitState*)oo->argStruct);
     
     /* Locals for readability.  Compiler should cut through this. */
     omxMatrix *scov         = omo->observedCov;
@@ -499,7 +691,7 @@ void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     // TODO: Parallelize Here.
 
     if(OMX_DEBUG)  { mxLog("Calling component function."); }
-    omo->derivativeFun(oo, dSigmas, dMus, status);
+    // omo->derivativeFun(oo, dSigmas, dMus, status);
     
     for(int currentLoc = 0; currentLoc < nLocs; currentLoc++) {
         double meanInfluence, covInfluence;

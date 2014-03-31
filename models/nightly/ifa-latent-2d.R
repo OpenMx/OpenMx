@@ -103,3 +103,20 @@ sigma.coef <- function(Icov) {
 Icov <- solve(m2@matrices$cov@values)
 omxCheckCloseEnough(m2@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
 omxCheckCloseEnough(m2@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
+
+dimnames(m2@matrices$mean) <- list(NULL,paste("f",1:2,sep=""))
+dimnames(m2@matrices$cov) <- list(paste("f",1:2,sep=""),paste("f",1:2,sep=""))
+mean <- c(m2@matrices$mean@values)
+names(mean) <- paste("f",1:2,sep="")
+cov <- m2@matrices$cov@values
+
+m3 <- mxModel("en", m2@matrices$mean, m2@matrices$cov,
+              mxExpectationNormal("cov", "mean"),
+              mxData(observed=cov, type="cov", means=mean, numObs=numPeople),
+              mxFitFunctionML(),
+              mxComputeSequence(list(
+                mxComputeOnce('fitfunction', 'information', "hessian"),
+                mxComputeReportDeriv())))
+m3Fit <- mxRun(m3, silent=TRUE)
+omxCheckCloseEnough(m3Fit@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
+omxCheckCloseEnough(m3Fit@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)

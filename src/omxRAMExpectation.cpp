@@ -17,8 +17,6 @@
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
 #include "omxBLAS.h"
-#include "omxFIMLFitFunction.h"
-#include "omxMLFitFunction.h"
 #include "omxRAMExpectation.h"
 
 typedef struct {
