@@ -6,7 +6,7 @@ BUILDARGS = --dsym  # need for MacOS debug symbols
 RCHECK = check
 RPDF = Rd2pdf
 BUILDPRE = 999.0.0
-BUILDNO = 0
+BUILDNO = $(shell ./inst/tools/findBuildNum.sh)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
@@ -192,6 +192,7 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@echo "Checking code style"
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
+	cat DESCRIPTION.in | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
 
 npsol-prep: code-style
 	rm -f inst/no-npsol
@@ -330,6 +331,7 @@ clean:
 	-rm $(RBUILD)/OpenMx_*.tar.gz
 	-rm src/*.o
 	-rm src/*.so
+	-rm DESCRIPTION
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
