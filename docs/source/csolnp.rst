@@ -1,7 +1,7 @@
 CSOLNP Documentation
 ====================
 
-CSOLNP is an alternative optimizer to NPSOL, which is the default optimizer engine of the OpenMx package. It is a C++ translation of solnp function from the Rsolnp package, available on CRAN. The algorithm solves nonlinear programming problems in general form of:
+CSOLNP is the new default optimizer engine of the OpenMx package. It is a C++ translation of solnp function from the Rsolnp package, available on CRAN. The algorithm solves nonlinear programming problems in general form of:
 
 .. math::  
    :nowrap:
@@ -102,12 +102,16 @@ Example
 
 To be provided
 
-Turn on CSOLNP
-^^^^^^^^^^^^^^
+Restoring NPSOL
+^^^^^^^^^^^^^^^
 
-The default optimizer of OpenMx package is NPSOL. To turn on CSOLNP, the following lines need to be added to the mxModel definition:
+To use NPSOL, your OpenMx must be compiled to include it.
+If NPSOL is available, you can make it the default optimizer with
 
-mxComputeSequence(list(mxComputeGradientDescent(engine = "CSOLNP"), mxComputeReportDeriv()))
+| mxOption(NULL, "Default optimizer", "NPSOL")
+
+You can also control this setting with the IMX_OPT_ENGINE environment variable.
+
  
 Comparing the performances of CSOLNP, and NPSOL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

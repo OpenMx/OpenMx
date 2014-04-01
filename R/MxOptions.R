@@ -91,11 +91,7 @@ processDefaultOptionList <- function(key, value, reset) {
 determineDefaultOptimizer <- function() {
 	engine <- Sys.getenv("IMX_OPT_ENGINE")
 	if (!nchar(engine)) {
-		if (imxHasNPSOL()) {
-			engine <- "NPSOL"
-		} else {
-			engine <- "CSOLNP"
-		}
+		engine <- "CSOLNP"
 	}
 	engine
 }
