@@ -481,8 +481,18 @@ void omxRaiseErrorf(omxState *, const char* msg, ...)
 		mxLog("Error raised: %s", str.c_str());
 	}
 
+	bool overflow = false;
 #pragma omp critical(bads)
-	Global->bads.push_back(str);
+        {
+		if (Global->bads.size() > 100) {
+			overflow = true;
+		} else {
+			Global->bads.push_back(str);
+		}
+	}
+
+        // mxLog takes a lock too, so call it outside of critical section
+        if (overflow) mxLog("Too many errors: %s", str.c_str());
 }
 
 const char *omxGlobal::getBads()
@@ -493,6 +503,7 @@ const char *omxGlobal::getBads()
 	for (size_t mx=0; mx < bads.size(); ++mx) {
 		if (bads.size() > 1) str += string_snprintf("%d:", (int)mx+1);
 		str += bads[mx];
+		if (str.size() > (1<<14)) break;
 		if (mx < bads.size() - 1) str += "\n";
 	}
 
