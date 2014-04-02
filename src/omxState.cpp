@@ -491,6 +491,7 @@ const char *omxGlobal::getBads()
 
 	std::string str;
 	for (size_t mx=0; mx < bads.size(); ++mx) {
+		if (bads.size() > 1) str += string_snprintf("%d:", (int)mx+1);
 		str += bads[mx];
 		if (mx < bads.size() - 1) str += "\n";
 	}
