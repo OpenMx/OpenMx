@@ -22,9 +22,9 @@ RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.sh
 
-INSTALLMAKEFLAGS=""
+#INSTALLMAKEFLAGS=""
 #INSTALLMAKEFLAGS="--debug=b"   #debug dependencies
-#INSTALLMAKEFLAGS="-j 8"   #much faster compiles
+INSTALLMAKEFLAGS="-j 8"   #much faster compiles
 
 # subdirectories
 RSOURCE = R
