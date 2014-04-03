@@ -57,7 +57,7 @@ setMethod("$", "MxData",
 
 setReplaceMethod("$", "MxData",
 	function(x, name, value) {
-		return(imxReplaceMethod(x, name, value))
+		return(imxReplaceSlot(x, name, value))
 	}
 )
 
