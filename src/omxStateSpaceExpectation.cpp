@@ -271,11 +271,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	/* S = S^-1 */
 	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
-	//if(info > 0) {
-	//	omxRaiseErrorf(smallS->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
-	//	return;  // Leave output untouched
-	//}
-	*covInfo->data = (double) info;
+	covInfo->data[0] = (double) info;
 	for(int i = 0; i < smallS->cols; i++) {
 		*Det->data += log(fabs(omxMatrixElement(smallS, i, i)));
 	}
@@ -283,7 +279,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxDPOTRI(smallS, &info); // S = S^-1 via Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
 	// If Cholesky of exp cov failed (i.e. non-positive def), Populate 1,1 element of smallS (inverse of exp cov) with NA_REAL
-	if(*covInfo->data > 0) {
+	if(covInfo->data[0] > 0) {
 		omxSetMatrixElement(smallS, 0, 0, NA_REAL);
 	}
 	
@@ -440,7 +436,7 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->det;
 	} else if(!strncmp("r", component, 1)) {
 		retval = ose->r;
-	} else if(!strncmp("covInfo", component, 7)) {
+	} else if(OMXSTREQ("covInfo", component)) {
 		retval = ose->covInfo;
 	}
 	

@@ -35,6 +35,7 @@
 #define OMXINLINE inline
 
 #define OMXZERO(ptr, num)	memset(ptr, 0, sizeof(*ptr)*num)
+#define OMXSTREQ(str1,str2)  (strcmp(str1,str2)==0)
 
 #define OMX_STATIC_ARRAY_SIZE(ar) (sizeof(ar)/sizeof(ar[0]))
 

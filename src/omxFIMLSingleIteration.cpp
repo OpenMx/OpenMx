@@ -1069,7 +1069,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 			smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
 			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
 			//Get covInfo from state space expectation
-			info = (int) *omxGetExpectationComponent(expectation, localobj, "covInfo")->data;
+			info = (int) omxGetExpectationComponent(expectation, localobj, "covInfo")->data[0];
 			if(info!=0) {
 				if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
 				return TRUE;
