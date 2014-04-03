@@ -84,7 +84,7 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -338,18 +338,9 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                         for(int nid = 0; nid < numIdentical; nid++) {
                             omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
                         }
-                        char helperstr[200];
-                        char *errstr = (char*) calloc(250, sizeof(char));
-                        sprintf(helperstr, "Expected covariance matrix for continuous variables is not positive-definite in data row %d", 
-                            omxDataIndex(data, row));
-                        if(localobj->matrix->currentState->computeCount <= 0) {
-                            sprintf(errstr, "%s at starting values.\n", helperstr);
-                        } else {
-                            sprintf(errstr, "%s at major iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
-                        }
-                        omxRaiseError(localobj->matrix->currentState, -1, errstr);
-                        free(errstr);
-                    } 
+			if (OMX_DEBUG) mxLog("Expected covariance matrix for continuous variables is not positive-definite in data row %d", omxDataIndex(data, row));
+			return TRUE;
+                    }
                     for(int nid = 0; nid < numIdentical; nid++) {
                         if (returnRowLikelihoods)
 					        omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
@@ -598,7 +589,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
         continue;
 
 	}
-
+	return FALSE;
 }
 
 /**
@@ -622,7 +613,7 @@ void omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -785,16 +776,8 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 
 		if(inform == 2) {
 			if(!returnRowLikelihoods) {
-				char helperstr[200];
-				char *errstr = (char*) calloc(250, sizeof(char));
-				sprintf(helperstr, "Improper value detected by integration routine in data row %d: \n Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that the expected covariance matrix is positive-definite", omxDataIndex(data, row));
-				if(localobj->matrix->currentState->computeCount <= 0) {
-					sprintf(errstr, "%s at starting values.\n", helperstr);
-				} else {
-					sprintf(errstr, "%s at major iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
-				}
-				omxRaiseError(localobj->matrix->currentState, -1, errstr);
-				free(errstr);
+				if (OMX_DEBUG) mxLog("Improper value detected by integration routine in data row %d: \n Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that the expected covariance matrix is positive-definite", omxDataIndex(data, row));
+				return TRUE;
 			}
 			for(int nid = 0; nid < numIdentical; nid++) {
 				if (returnRowLikelihoods)
@@ -831,6 +814,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 		if(firstRow) firstRow = 0;
 		omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 	}
+	return FALSE;
 }
 
 
@@ -856,7 +840,7 @@ void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
  * Grep for "[[Comment 4]]" in source code.
  * 
  */
-void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
     if(OMX_DEBUG_ALGEBRA) {mxLog("Entering FIML Single Iteration"); }
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -1024,18 +1008,8 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			if(info != 0) {
 				int skip;
 				if(!returnRowLikelihoods) {
-					char helperstr[200];
-					char *errstr = (char*) calloc(250, sizeof(char));
-					sprintf(helperstr, "Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
-					if(localobj->matrix->currentState->computeCount <= 0) {
-						sprintf(errstr, "%s at starting values.\n", helperstr);
-					} else {
-						sprintf(errstr, "%s at major iteration %d (minor iteration %d).\n", helperstr, 
-							localobj->matrix->currentState->majorIteration, 
-							localobj->matrix->currentState->minorIteration);
-					}
-					omxRaiseError(localobj->matrix->currentState, -1, errstr);
-					free(errstr);
+					if (OMX_DEBUG) mxLog("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+					return TRUE;
 				}
 				if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
 				if(keepInverse <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
@@ -1125,4 +1099,5 @@ void omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 		if(firstRow) firstRow = 0;
 		omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
 	}
+	return FALSE;
 }

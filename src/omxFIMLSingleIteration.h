@@ -19,13 +19,13 @@
 
 #include "omxFIMLFitFunction.h"
 
-void omxFIMLSingleIterationJoint(omxFitFunction *localobj,
+bool omxFIMLSingleIterationJoint(omxFitFunction *localobj,
 	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
-void omxFIMLSingleIterationOrdinal(omxFitFunction *localobj,
+bool omxFIMLSingleIterationOrdinal(omxFitFunction *localobj,
 	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
-void omxFIMLSingleIteration(omxFitFunction *localobj,
+bool omxFIMLSingleIteration(omxFitFunction *localobj,
 	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
 

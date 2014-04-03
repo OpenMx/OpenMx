@@ -224,21 +224,26 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 		parallelism = data->rows;
 	}
 
+	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
-		#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIterationJoint(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIterationJoint(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIterationJoint(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIterationJoint(childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		omxFIMLSingleIterationJoint(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIterationJoint(off, off, 0, data->rows);
+	}
+	if (failed) {
+		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
+		return;
 	}
 
 	if(!returnRowLikelihoods) {
@@ -306,21 +311,26 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) 
 		parallelism = data->rows;
 	}
 
+	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
-		#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIteration(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIteration(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIteration(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIteration(childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		omxFIMLSingleIteration(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIteration(off, off, 0, data->rows);
+	}
+	if (failed) {
+		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
+		return;
 	}
 
 	if(!returnRowLikelihoods) {
@@ -406,21 +416,26 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitCont
 		parallelism = data->rows;
 	}
 
+	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
-		#pragma omp parallel for num_threads(parallelism) 
+		#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxFIMLSingleIterationOrdinal(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIterationOrdinal(childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				omxFIMLSingleIterationOrdinal(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIterationOrdinal(childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		omxFIMLSingleIterationOrdinal(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIterationOrdinal(off, off, 0, data->rows);
+	}
+	if (failed) {
+		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
+		return;
 	}
 
 	if(!returnRowLikelihoods) {
