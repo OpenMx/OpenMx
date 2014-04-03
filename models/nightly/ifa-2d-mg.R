@@ -85,17 +85,19 @@ if (1) {
   g2 <- mkgroup("g2", data.g2, TRUE)
   g3 <- mkgroup("g3", data.g3, TRUE)
   
-  g1$matrices$ItemParam$values <- fm$G1$param
-  g2$matrices$ItemParam$values <- fm$G2$param
-  g3$matrices$ItemParam$values <- fm$G3$param
-  g2$matrices$mean$values <- t(fm$G2$mean)
-  g3$matrices$mean$values <- t(fm$G3$mean)
-  g2$matrices$cov$values <- fm$G2$cov
-  g3$matrices$cov$values <- fm$G3$cov
+  g1$ItemParam$values <- fm$G1$param
+  g2$ItemParam$values <- fm$G2$param
+  g3$ItemParam$values <- fm$G3$param
+  g2$mean$values <- t(fm$G2$mean)
+  g3$mean$values <- t(fm$G3$mean)
+  g2$cov$values <- fm$G2$cov
+  g3$cov$values <- fm$G3$cov
+  g1$expectation$scores <- 'full'
+  g2$expectation$scores <- 'full'
+  g3$expectation$scores <- 'full'
   
   cModel <- mxModel(model="cModel", g1,g2,g3,
                     mxComputeOnce(paste(groups, 'expectation', sep='.')))
-  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'full'
   cModel.eap <- mxRun(cModel)
   
   fm.sco <- suppressWarnings(try(read.table("models/nightly/data/2d-mg-sco.txt"), silent=TRUE))
@@ -115,7 +117,6 @@ if (1) {
                       mxComputeOnce(paste(groups, 'expectation', sep='.')),
                       mxComputeOnce('fitfunction', 'fit',
 				    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
-  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'omit'
   cModel.fit <- mxRun(cModel)
   omxCheckCloseEnough(cModel.fit$output$fit, correct.LL, .01)
 }
@@ -147,8 +148,8 @@ omxCheckCloseEnough(emstat$EMcycles, 74, 2)
 omxCheckCloseEnough(emstat$totalMstep, 240, 10)
 
   omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g2$matrices$mean$values), c(-.507, .703), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g2$matrices$cov$values), c(1.877, .491, .491, 2.05), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g3$matrices$mean$values), c(-.028, -.827), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g3$matrices$cov$values), c(.892, -.422, -.422, .836), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g2$mean$values), c(-.507, .703), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g2$cov$values), c(1.877, .491, .491, 2.05), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g3$mean$values), c(-.028, -.827), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g3$cov$values), c(.892, -.422, -.422, .836), .01)
 

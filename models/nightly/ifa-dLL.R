@@ -64,19 +64,19 @@ if (0) {   # enable to generate answer file
   for (ii in 1:numItems) {  # 
     spi <- 0
     while (spi < samples.per.item) {
-      m2$matrices$itemParam$values <- starting.values
-      m2$matrices$itemParam$free[,] <- FALSE
+      m2$itemParam$values <- starting.values
+      m2$itemParam$free[,] <- FALSE
       
       spoint <- rpf.rparam(items[[ii]])
       # exclude GRM with close adjacent intercepts, too much curvature for numDeriv
       if (ii==2 && min(abs(diff(spoint[3:6]/max(spoint[1:2])))) < .3) next
 
       np <- length(spoint)
-      m2$matrices$itemParam$values[1:np,ii] <- spoint
+      m2$itemParam$values[1:np,ii] <- spoint
       
       deriv <- genD(function(param) {
         np <- length(param)
-        m2$matrices$itemParam$values[1:np,ii] <- param
+        m2$itemParam$values[1:np,ii] <- param
         lModel <- mxModel(m2,
                           mxComputeSequence(steps=list(
                             mxComputeOnce('expectation', 'scores'),
@@ -120,12 +120,12 @@ if (1) {  # enable to examine the RMSE by item model
       ii <- ans[tx,1]
       if (ii != ix) next
       
-      m2$matrices$itemParam$values <- starting.values
-      m2$matrices$itemParam$free[,] <- FALSE
+      m2$itemParam$values <- starting.values
+      m2$itemParam$free[,] <- FALSE
       
       spoint <- ans[tx,2:(np+1)]
-      m2$matrices$itemParam$values[1:np,ii] <- simplify2array(spoint)
-      m2$matrices$itemParam$free[,ii] <- starting.free[,ii]
+      m2$itemParam$values[1:np,ii] <- simplify2array(spoint)
+      m2$itemParam$free[,ii] <- starting.free[,ii]
       
       m2 <- mxRun(m2, silent=TRUE)
       
@@ -179,15 +179,15 @@ if (0) {
 #    print(params[[ii]])
     np <- rpf.numParam(items[[ii]])
     
-    m2$matrices$itemParam$values <- starting.values
-    m2$matrices$itemParam$free[,] <- FALSE
+    m2$itemParam$values <- starting.values
+    m2$itemParam$free[,] <- FALSE
     
     spoint <- simplify2array(ans[tx,2:(np+1)])
     print(spoint)
       next;
   
-    m2$matrices$itemParam$values[1:np,ii] <- spoint
-    m2$matrices$itemParam$free[,ii] <- starting.free[,ii]
+    m2$itemParam$values[1:np,ii] <- spoint
+    m2$itemParam$free[,ii] <- starting.free[,ii]
       
     m2 <- mxRun(m2, silent=TRUE)
       
@@ -217,7 +217,7 @@ if (0) {
     
     evalLL <- function(param) {
       np <- length(param)
-      m2$matrices$itemParam$values[1:np,ii] <- param
+      m2$itemParam$values[1:np,ii] <- param
       lModel <- mxModel(m2,
                         mxComputeSequence(steps=list(
                           mxComputeOnce('expectation', 'scores'),

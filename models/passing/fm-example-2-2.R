@@ -85,13 +85,15 @@ if (1) {
                    mxComputeOnce('item.expectation'),
                    mxComputeOnce('fitfunction', c('fit','gradient')),
                    mxComputeReportDeriv())))
-  fm1$submodels$item$matrices$ItemParam$values[1:3,] <-
+  citem <- fm1$submodels$item
+  citem$ItemParam$values[1:3,] <-
     c(1.8391, -0.5642, -1.0869, 1.2723, 2.7656, -2.0005,  1.504, -0.9809, -1.193, 1.3107,
       0.4609, -1.1923, 1.348, -0.422,  -1.076, 1.3897, 1.9059, -1.9338, 1.9577, 4.2709,
       -2.2242, 1.0483,  1.2432, -1.5608, 1.9411, 3.3146, -2.5864, 1.3474, 2.2773, -2.2306,
       1.7741, -1.398, -1.254, 1.5506, -0.5158, -1.3686)
-  fm1$submodels$pmodel$matrices$gparam$values[,] <-
-    fm1$submodels$item$matrices$ItemParam$values[3,]
+  cpmodel <- fm1$submodels$pmodel
+  cpmodel$gparam$values[,] <- citem$ItemParam$values[3,]
+  fm1 <- mxModel(fm1, citem, cpmodel)
   fm1 <- mxRun(fm1, silent=TRUE)
   omxCheckCloseEnough(max(abs(fm1$output$gradient)), 1.29, .1)
   omxCheckCloseEnough(fm1$output$fit - fm1$submodels$pmodel$fitfunction$result, 33335.75, .01)

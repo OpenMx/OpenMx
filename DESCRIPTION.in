@@ -36,7 +36,7 @@ Suggests:
     snowfall,
     roxygen2 (>= 3.1),
     mvtnorm,
-    rpf (>= 0.25),
+    rpf (>= 0.28),
     numDeriv
 LazyLoad: yes
 LazyData: yes

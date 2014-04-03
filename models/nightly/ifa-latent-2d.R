@@ -12,7 +12,7 @@ compute.factored.ll <- function(m, obs) {
   # Equation 8 from Cai (2010, p. 37)
   
   spec <- m$expectation$ItemSpec
-  ip <- m$matrices$ItemParam$values
+  ip <- m$ItemParam$values
   scores <- m$expectation$output$scores[,1:2]
   
   ll <- 0
@@ -22,8 +22,8 @@ compute.factored.ll <- function(m, obs) {
     }
   }
   ld1 <- apply(scores, 1,
-               function (sc) dmvnorm(sc, c(m$matrices$mean$values),
-                                     m$matrices$cov$values, log=TRUE))
+               function (sc) dmvnorm(sc, c(m$mean$values),
+                                     m$cov$values, log=TRUE))
   ll <- ll + sum(ld1)
   ll
 }
@@ -100,22 +100,17 @@ sigma.coef <- function(Icov) {
   coef
 }
 
-<<<<<<< .mine
-Icov <- solve(m2$matrices$cov$values)
+Icov <- solve(m2$cov$values)
 omxCheckCloseEnough(m2$output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
 omxCheckCloseEnough(m2$output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
-=======
-Icov <- solve(m2@matrices$cov@values)
-omxCheckCloseEnough(m2@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
-omxCheckCloseEnough(m2@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
 
-dimnames(m2@matrices$mean) <- list(NULL,paste("f",1:2,sep=""))
-dimnames(m2@matrices$cov) <- list(paste("f",1:2,sep=""),paste("f",1:2,sep=""))
-mean <- c(m2@matrices$mean@values)
+dimnames(m2$mean) <- list(NULL,paste("f",1:2,sep=""))
+dimnames(m2$cov) <- list(paste("f",1:2,sep=""),paste("f",1:2,sep=""))
+mean <- c(m2$mean$values)
 names(mean) <- paste("f",1:2,sep="")
-cov <- m2@matrices$cov@values
+cov <- m2$cov$values
 
-m3 <- mxModel("en", m2@matrices$mean, m2@matrices$cov,
+m3 <- mxModel("en", m2$mean, m2$cov,
               mxExpectationNormal("cov", "mean"),
               mxData(observed=cov, type="cov", means=mean, numObs=numPeople),
               mxFitFunctionML(),
@@ -123,6 +118,5 @@ m3 <- mxModel("en", m2@matrices$mean, m2@matrices$cov,
                 mxComputeOnce('fitfunction', 'information', "hessian"),
                 mxComputeReportDeriv())))
 m3Fit <- mxRun(m3, silent=TRUE)
-omxCheckCloseEnough(m3Fit@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
-omxCheckCloseEnough(m3Fit@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
->>>>>>> .r3256
+omxCheckCloseEnough(m3Fit$output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
+omxCheckCloseEnough(m3Fit$output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)

@@ -193,7 +193,7 @@ setReplaceMethod("[[", "MxModel",
 setMethod("$", "MxModel",
 	function(x, name) {
         result <- imxExtractMethod(x, name)
-        if(name %in% c("name", "matrices", "algebras", "data", "submodels", "output")) {
+        if(name %in% c("name", "matrices", "algebras", "data", "submodels", "output", "compute")) {
             result <- imxExtractSlot(x, name)
         }
 		return(result)
@@ -209,7 +209,8 @@ setReplaceMethod("$", "MxModel",
 			stop("You cannot directly set the name of a model.  To rename the model, use model<-mxModel(model, name=\"NewName\").")
 		}
 		if(name %in% c("matrices", "algebras", "submodels")) {
-			stop("You cannot directly set slots of a model.  To set objects in the model, use the mxModel() function.")
+			stop(paste("You cannot directly set the", name,
+				   "of a model.  To set objects in the model, use the mxModel() function."))
 		}
 		return(imxReplaceMethod(x, name, value))
 	}

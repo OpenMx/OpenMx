@@ -5,7 +5,7 @@
 # To: Joshua N Pritikin <jpritikin$pobox.com>
 # Subject: Re: how did you control item bias in Cai (2010, p. 592) ?
 
-#options(error = utils::recover)
+options(error = browser)
 library(OpenMx)
 library(rpf)
 
@@ -81,17 +81,18 @@ if (1) {
 	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
-  g1$matrices$ItemParam$values <-
+  g1$ItemParam$values <-
     rbind(fm$G1$param[1,], apply(fm$G1$param[2:4,], 2, sum), fm$G1$param[5,])
-  g1$matrices$mean$values <- t(fm$G1$mean)
-  g1$matrices$cov$values <- fm$G1$cov
-  g2$matrices$ItemParam$values <-
+  g1$mean$values <- t(fm$G1$mean)
+  g1$cov$values <- fm$G1$cov
+  g2$ItemParam$values <-
     rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
   
+  g1$expectation$scores <- 'full'
+  g2$expectation$scores <- 'full'
   cModel <- mxModel(model="cModel", g1,g2,
                     mxComputeOnce(paste(groups, 'expectation', sep='.')))
 #  cModel <- mxOption(cModel, "Number of Threads", 1)
-  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'full'
   cModel.eap <- mxRun(cModel)
 
   fm.sco.g1 <- suppressWarnings(try(read.table("models/nightly/data/cai2009-sco-g1.txt"), silent=TRUE))
@@ -175,10 +176,10 @@ omxCheckCloseEnough(emstat$totalMstep, 379, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
 
   omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
-  omxCheckCloseEnough(grpModel$submodels$g2$matrices$ItemParam$values,
+  omxCheckCloseEnough(grpModel$submodels$g2$ItemParam$values,
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)
-  omxCheckCloseEnough(grpModel$submodels$g1$matrices$mean$values, t(fm$G1$mean), .01)
-  omxCheckCloseEnough(grpModel$submodels$g1$matrices$cov$values, fm$G1$cov, .01)
+  omxCheckCloseEnough(grpModel$submodels$g1$mean$values, t(fm$G1$mean), .01)
+  omxCheckCloseEnough(grpModel$submodels$g1$cov$values, fm$G1$cov, .01)
   
   semse <- c(0.085, 0.106, 0.078, 0.135, 0.201, 0.1, 0.156, 0.197,  0.107, 0.179,
              0.132, 0.121, 0.11, 0.149, 0.094, 0.133, 0.122,  0.093, 0.207, 0.241,
