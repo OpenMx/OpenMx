@@ -84,7 +84,7 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-bool omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -338,7 +338,8 @@ bool omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
                         for(int nid = 0; nid < numIdentical; nid++) {
                             omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
                         }
-			if (OMX_DEBUG) mxLog("Expected covariance matrix for continuous variables is not positive-definite in data row %d", omxDataIndex(data, row));
+			if (fc) fc->recordIterationError("Expected covariance matrix for continuous variables "
+							 "is not positive-definite in data row %d", omxDataIndex(data, row));
 			return TRUE;
                     }
                     for(int nid = 0; nid < numIdentical; nid++) {
@@ -613,7 +614,7 @@ bool omxFIMLSingleIterationJoint(omxFitFunction *localobj, omxFitFunction *share
  * move "rowbegin" to after the sequence of identical rows.
  * Grep for "[[Comment 4]]" in source code.
  */
-bool omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
 
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -776,7 +777,11 @@ bool omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
 
 		if(inform == 2) {
 			if(!returnRowLikelihoods) {
-				if (OMX_DEBUG) mxLog("Improper value detected by integration routine in data row %d: \n Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that the expected covariance matrix is positive-definite", omxDataIndex(data, row));
+				if (fc) fc->recordIterationError("Improper value detected by integration "
+							 "routine in data row %d: \n Most likely the maximum "
+							 "number of ordinal variables (20) has been exceeded.\n "
+							 "Also check that the expected covariance matrix is positive-definite",
+							 omxDataIndex(data, row));
 				return TRUE;
 			}
 			for(int nid = 0; nid < numIdentical; nid++) {
@@ -840,7 +845,7 @@ bool omxFIMLSingleIterationOrdinal(omxFitFunction *localobj, omxFitFunction *sha
  * Grep for "[[Comment 4]]" in source code.
  * 
  */
-bool omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
     if(OMX_DEBUG_ALGEBRA) {mxLog("Entering FIML Single Iteration"); }
     omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
@@ -1008,7 +1013,8 @@ bool omxFIMLSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj,
 			if(info != 0) {
 				int skip;
 				if(!returnRowLikelihoods) {
-					if (OMX_DEBUG) mxLog("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+					if (fc) fc->recordIterationError("Expected covariance matrix is not "
+								 "positive-definite in data row %d", omxDataIndex(data, row));
 					return TRUE;
 				}
 				if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);

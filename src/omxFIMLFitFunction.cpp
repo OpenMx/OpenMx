@@ -149,7 +149,8 @@ int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefiniti
 	return numVarsFilled;
 }
 
-static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContext *) {
+static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
+{
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
@@ -233,13 +234,13 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				failed |= omxFIMLSingleIterationJoint(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIterationJoint(fc, childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				failed |= omxFIMLSingleIterationJoint(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIterationJoint(fc, childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		failed |= omxFIMLSingleIterationJoint(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIterationJoint(fc, off, off, 0, data->rows);
 	}
 	if (failed) {
 		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
@@ -261,8 +262,8 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 
 }
 
-static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) {
-
+static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
+{
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning FIML Evaluation."); }
@@ -320,13 +321,13 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) 
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				failed |= omxFIMLSingleIteration(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIteration(fc, childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				failed |= omxFIMLSingleIteration(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIteration(fc, childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		failed |= omxFIMLSingleIteration(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIteration(fc, off, off, 0, data->rows);
 	}
 	if (failed) {
 		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
@@ -347,7 +348,8 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *) 
 	}
 }
 
-static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitContext *) {
+static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitContext *fc)
+{
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	/* TODO: Current implementation is slow: update by filtering correlations and thresholds. */
@@ -420,18 +422,18 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitCont
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
-		#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
+#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				failed |= omxFIMLSingleIterationOrdinal(childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIterationOrdinal(fc, childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				failed |= omxFIMLSingleIterationOrdinal(childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIterationOrdinal(fc, childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		failed |= omxFIMLSingleIterationOrdinal(off, off, 0, data->rows);
+		failed |= omxFIMLSingleIterationOrdinal(fc, off, off, 0, data->rows);
 	}
 	if (failed) {
 		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);

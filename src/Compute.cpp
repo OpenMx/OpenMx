@@ -323,6 +323,7 @@ void FitContext::log(int what)
 
 void FitContext::recordIterationError(const char* msg, ...)
 {
+	// could record the parameter vector here for a better error message TODO
 	va_list ap;
 	va_start(ap, msg);
 	std::string str = string_vsnprintf(msg, ap);
