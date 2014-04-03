@@ -96,6 +96,8 @@ class FitContext {
 	bool haveDenseIHess;
 	Eigen::MatrixXd ihess;
 
+	std::string IterationError;
+
  public:
 	FreeVarGroup *varGroup;
 	size_t numParam;               // cached from varGroup
@@ -149,6 +151,10 @@ class FitContext {
 	Eigen::VectorXd ihessDiag();
 	void preInfo();
 	void postInfo();
+	void resetIterationError();
+	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
+
+	std::string getIterationError();
 
 	static void cacheFreeVarDependencies();
 	static void setRFitFunction(omxFitFunction *rff);

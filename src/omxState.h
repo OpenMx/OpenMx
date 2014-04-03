@@ -235,11 +235,11 @@ void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...) __attribute__
 
 	void omxWriteCheckpointMessage(char *msg);
 void omxSaveCheckpoint(double* x, double f, int force);
-void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogBig(const std::string str);
 std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+std::string string_vsnprintf(const char *fmt, va_list ap);
 
 #endif /* _OMXSTATE_H_ */
 

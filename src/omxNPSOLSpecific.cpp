@@ -147,7 +147,12 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 		}
 	}
 
-	omxExamineFitOutput(globalState, fitMatrix, mode);
+	if (!R_FINITE(fitMatrix->data[0])) {
+		omxRaiseErrorf(NULL, "Fit function returned %g", fitMatrix->data[0]);
+		*mode = -1;
+	} else {
+		NPSOL_fc->resetIterationError();
+	}
 
 	if (isErrorRaised(globalState)) {
 		if(OMX_DEBUG) {

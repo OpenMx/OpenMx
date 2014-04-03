@@ -306,6 +306,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 				it->second->restart(offTrack);
 			}
 		} else {
+			fc->resetIterationError();
 			Eigen::VectorXd move(fc->ihessGradProd());
 
 			for (size_t px=0; px < numParam; ++px) {

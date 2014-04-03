@@ -631,14 +631,6 @@ void omxSaveCheckpoint(double* x, double f, int force) {
 		}
 	}
 
-void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode)
-{
-	if (!R_FINITE(fitMatrix->data[0])) {
-		omxRaiseErrorf(state, "Fit function returned %g", fitMatrix->data[0]);
-		*mode = -1;
-	}
-}
-
 omxFreeVarLocation *omxFreeVar::getLocation(int matrix)
 {
 	for (size_t lx=0; lx < locations.size(); lx++) {

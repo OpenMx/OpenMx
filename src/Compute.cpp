@@ -15,6 +15,7 @@
  */
 
 #include <algorithm>
+#include <stdarg.h>
 
 #include "Compute.h"
 #include "Eigen/Cholesky"
@@ -23,6 +24,7 @@
 #include "omxRFitFunction.h"
 #include "matrix.h"
 #include "omxBuffer.h"
+#include "omxState.h"
 
 void pda(const double *ar, int rows, int cols);
 
@@ -252,6 +254,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	wanted = parent->wanted;
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
+	IterationError = parent->IterationError;
 }
 
 void FitContext::copyParamToModel(omxMatrix *mat)
@@ -268,6 +271,7 @@ void FitContext::updateParent()
 
 	parent->wanted |= wanted;
 	parent->fit = fit;
+	parent->IterationError = IterationError;
 	parent->mac = mac;
 	parent->caution = caution;
 	parent->infoDefinite = infoDefinite;
@@ -315,6 +319,28 @@ void FitContext::log(int what)
 		buf += ")\n";
 	}
 	mxLogBig(buf);
+}
+
+void FitContext::resetIterationError()
+{
+#pragma omp critical(IterationError)
+	IterationError.clear();
+}
+
+void FitContext::recordIterationError(const char* msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	std::string str = string_vsnprintf(msg, ap);
+	va_end(ap);
+
+#pragma omp critical(IterationError)
+	IterationError = str;
+}
+
+std::string FitContext::getIterationError()
+{
+	return IterationError;
 }
 
 static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool force)
