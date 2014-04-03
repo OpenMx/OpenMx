@@ -165,6 +165,7 @@ help:
 	@echo "TESTING"
 	@echo ""	
 	@echo "  test          run the test suite"
+	@echo "  test-nogdb    run the test suite without starting gdb"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
@@ -300,19 +301,22 @@ testdocs:
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
+	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE)
+
+test-nogdb:
 	$(REXEC) --vanilla --slave -f $(TESTFILE)
 
 test-lisrel:
 	$(REXEC) --vanilla --slave -f $(TESTFILE) --args lisrel
 
 test-csolnp:
-	IMX_OPT_ENGINE=CSOLNP $(REXEC) --vanilla --slave -f $(TESTFILE) --args csolnp
+	IMX_OPT_ENGINE=CSOLNP $(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args csolnp
 
 torture:
 	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
-	$(REXEC) --vanilla --slave -f $(TESTFILE) --args nightly
+	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args nightly
 
 nightlyPPML:
 	$(REXEC) --vanilla --slave < $(NIGHTLYPPMLFILE)	
