@@ -437,7 +437,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
     
     double inform;
-    double *bl=NULL, *bu=NULL;
     
     int n = int(freeVarGroup->vars.size());
     int ncnln = globalState->ncnln;
@@ -473,8 +472,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
     /* Set boundaries and widths. */
     /* Allocate arrays */
-    bl      = Calloc ( n + ncnln, double );
-    bu      = Calloc (n + ncnln, double );
+    std::vector<double> blBuf(n+ncnln);
+    std::vector<double> buBuf(n+ncnln);
+    double *bl = blBuf.data();
+    double *bu = buBuf.data();
     
     
     struct Matrix myControl = fill(6,1,(double)0.0);
@@ -585,7 +586,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         while(inform!= 0 && cycles > 0) {
             /* Find lower limit */
             currentCI->calcLower = TRUE;
-            
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
             f = p_obj_conf.objValue;
@@ -718,4 +718,5 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 	GLOB_fc = NULL;
 	GLOB_fitMatrix = NULL;
 	CSOLNP_currentInterval = -1;
+    freeMatrices();
 }
