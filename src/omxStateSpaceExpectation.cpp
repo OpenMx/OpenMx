@@ -71,6 +71,7 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrix(argStruct->Y);
 	omxFreeMatrix(argStruct->Z);
 	omxFreeMatrix(argStruct->det);
+	omxFreeMatrix(argStruct->covInfo);
 	omxFreeMatrix(argStruct->cov);
 	omxFreeMatrix(argStruct->means);
 	omxFreeMatrix(argStruct->smallC);
@@ -178,6 +179,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	memset(toRemoveNoneLat, 0, sizeof(int) * nx);
 	memset(toRemoveNoneOne, 0, sizeof(int) * 1);
 	
+	omxMatrix* covInfo = ose->covInfo;
 	int info = 0; // Used for computing inverse for Kalman gain
 	
 	omxAliasMatrix(smallS, S); //re-alias every time expectation is called, at end delete the alias.
@@ -265,21 +267,25 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S = C P C^T + R"); }
 	
 	
-	/* Now compute the Kalman Gain and update the Rf_error covariance matrix */
+	/* Now compute the Kalman Gain and update the error covariance matrix */
 	/* S = S^-1 */
 	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
-	if(info > 0) {
-		omxRaiseErrorf(smallS->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
-		return;  // Leave output untouched
-	}
+	//if(info > 0) {
+	//	omxRaiseErrorf(smallS->currentState, "Expected covariance matrix is non-positive-definite (info %d)", info);
+	//	return;  // Leave output untouched
+	//}
+	*covInfo->data = (double) info;
 	for(int i = 0; i < smallS->cols; i++) {
 		*Det->data += log(fabs(omxMatrixElement(smallS, i, i)));
 	}
 	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
 	omxDPOTRI(smallS, &info); // S = S^-1 via Cholesky factorization
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
-	
+	// If Cholesky of exp cov failed (i.e. non-positive def), Populate 1,1 element of smallS (inverse of exp cov) with NA_REAL
+	if(*covInfo->data > 0) {
+		omxSetMatrixElement(smallS, 0, 0, NA_REAL);
+	}
 	
 	/* K = P C^T S^-1 */
 	/* Computed as K^T = S^-1 C P */
@@ -384,6 +390,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	
+	SSMexp->covInfo = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
 	SSMexp->det = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
 	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
 	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
@@ -433,6 +440,8 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->det;
 	} else if(!strncmp("r", component, 1)) {
 		retval = ose->r;
+	} else if(!strncmp("covInfo", component, 7)) {
+		retval = ose->covInfo;
 	}
 	
 	return retval;

@@ -49,6 +49,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <string>
+#include <stdarg.h>
 
 #include "omxDefines.h"
 

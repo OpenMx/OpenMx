@@ -1066,16 +1066,18 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 		/* If it's a state space expectation, extract the inverse rather than recompute it */
 		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
-			
-			//omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
-			//omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 			smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
 			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
+			//Get covInfo from state space expectation
+			info = (int) *omxGetExpectationComponent(expectation, localobj, "covInfo")->data;
+			if(info!=0) {
+				if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+				return TRUE;
+			}
 			
 			determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
 			if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
 			
-			//smallRow = *omxGetExpectationComponent(expectation, localobj, "y");
 		}
 
 		/* Calculate Row Likelihood */
