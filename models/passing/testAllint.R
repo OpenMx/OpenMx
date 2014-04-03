@@ -98,11 +98,11 @@ testAllint5 <- mxModel("TestAllint",
 testAllintFit5 <- mxRun(testAllint5)
 
 #Test against Mx1 solutions
-omxCheckCloseEnough(testAllintFit1[['testAllint']]@result, as.matrix(c(.99, .01)), 0.001)
-omxCheckCloseEnough(testAllintFit2[['testAllint']]@result, as.matrix(c(0.4875,  0.0125, 0.4875, 0.0125)), 0.001)
-omxCheckCloseEnough(testAllintFit3[['testAllint']]@result, as.matrix(c(0.4875,  0.0075, 0.0050, 0.3328, 0.0051, 0.0034, 0.1547, 0.0024, 0.0016)), 0.001)
-omxCheckCloseEnough(testAllintFit4[['testAllint']]@result, as.matrix(c(7.7345E-02, 1.6641E-01, 1.6641E-01, 7.7345E-02, 1.1890E-03, 2.5581E-03, 2.5581E-03, 1.1890E-03, 7.9401E-04, 1.7083E-03, 1.7083E-03, 7.9401E-04, 5.2802E-02, 1.1360E-01, 1.1360E-01, 5.2802E-02, 8.1173E-04,  1.7464E-03, 1.7464E-03, 8.1173E-04, 5.4206E-04, 1.1662E-03, 1.1662E-03, 5.4206E-04, 2.4542E-02, 5.2802E-02, 5.2802E-02, 2.4542E-02, 3.7729E-04,  8.1173E-04, 8.1173E-04, 3.7729E-04, 2.5195E-04, 5.4206E-04, 5.4206E-04, 2.5195E-04)), 0.001)
-omxCheckCloseEnough(testAllintFit5[['testAllint']]@result, as.matrix(c(7.7345E-02, 1.6641E-01, 1.6641E-01, 7.7345E-02, 1.1890E-03, 2.5581E-03, 2.5581E-03, 1.1890E-03, 7.9401E-04, 1.7083E-03, 1.7083E-03, 7.9401E-04, 5.2802E-02, 1.1360E-01, 1.1360E-01, 5.2802E-02, 8.1173E-04,  1.7464E-03, 1.7464E-03, 8.1173E-04, 5.4206E-04, 1.1662E-03, 1.1662E-03, 5.4206E-04, 2.4542E-02, 5.2802E-02, 5.2802E-02, 2.4542E-02, 3.7729E-04,  8.1173E-04, 8.1173E-04, 3.7729E-04, 2.5195E-04, 5.4206E-04, 5.4206E-04, 2.5195E-04)), 0.001)
+omxCheckCloseEnough(testAllintFit1[['testAllint']]$result, as.matrix(c(.99, .01)), 0.001)
+omxCheckCloseEnough(testAllintFit2[['testAllint']]$result, as.matrix(c(0.4875,  0.0125, 0.4875, 0.0125)), 0.001)
+omxCheckCloseEnough(testAllintFit3[['testAllint']]$result, as.matrix(c(0.4875,  0.0075, 0.0050, 0.3328, 0.0051, 0.0034, 0.1547, 0.0024, 0.0016)), 0.001)
+omxCheckCloseEnough(testAllintFit4[['testAllint']]$result, as.matrix(c(7.7345E-02, 1.6641E-01, 1.6641E-01, 7.7345E-02, 1.1890E-03, 2.5581E-03, 2.5581E-03, 1.1890E-03, 7.9401E-04, 1.7083E-03, 1.7083E-03, 7.9401E-04, 5.2802E-02, 1.1360E-01, 1.1360E-01, 5.2802E-02, 8.1173E-04,  1.7464E-03, 1.7464E-03, 8.1173E-04, 5.4206E-04, 1.1662E-03, 1.1662E-03, 5.4206E-04, 2.4542E-02, 5.2802E-02, 5.2802E-02, 2.4542E-02, 3.7729E-04,  8.1173E-04, 8.1173E-04, 3.7729E-04, 2.5195E-04, 5.4206E-04, 5.4206E-04, 2.5195E-04)), 0.001)
+omxCheckCloseEnough(testAllintFit5[['testAllint']]$result, as.matrix(c(7.7345E-02, 1.6641E-01, 1.6641E-01, 7.7345E-02, 1.1890E-03, 2.5581E-03, 2.5581E-03, 1.1890E-03, 7.9401E-04, 1.7083E-03, 1.7083E-03, 7.9401E-04, 5.2802E-02, 1.1360E-01, 1.1360E-01, 5.2802E-02, 8.1173E-04,  1.7464E-03, 1.7464E-03, 8.1173E-04, 5.4206E-04, 1.1662E-03, 1.1662E-03, 5.4206E-04, 2.4542E-02, 5.2802E-02, 5.2802E-02, 2.4542E-02, 3.7729E-04,  8.1173E-04, 8.1173E-04, 3.7729E-04, 2.5195E-04, 5.4206E-04, 5.4206E-04, 2.5195E-04)), 0.001)
 
 omxCheckCloseEnough(mxEval(omxAllInt(Cov, Means, Thresh), testAllint1), as.matrix(c(.99, .01)), 0.001)
 omxCheckCloseEnough(mxEval(omxAllInt(Cov, Means, Thresh), testAllint2), as.matrix(c(0.4875,  0.0125, 0.4875, 0.0125)), 0.001)

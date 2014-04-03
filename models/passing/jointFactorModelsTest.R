@@ -9,9 +9,9 @@ jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)],
 	
 satCov <- mxMatrix("Symm", 5, 5,
 	free=TRUE, values=diag(5), name="C")
-satCov@free[2,2] <- FALSE
-satCov@free[4,4] <- FALSE
-satCov@free[5,5] <- FALSE
+satCov$free[2,2] <- FALSE
+satCov$free[4,4] <- FALSE
+satCov$free[5,5] <- FALSE
 
 loadings <- mxMatrix("Full", 1, 5,
 	free=TRUE, values=1, name="L")
@@ -24,17 +24,17 @@ means <- mxMatrix("Full", 1, 5,
 	
 thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="T")
 
-thresh@free[,1] <- c(TRUE, FALSE, FALSE)
-thresh@values[,1] <- c(0, NA, NA)
-thresh@labels[,1] <- c("z2t1", NA, NA)
+thresh$free[,1] <- c(TRUE, FALSE, FALSE)
+thresh$values[,1] <- c(0, NA, NA)
+thresh$labels[,1] <- c("z2t1", NA, NA)
 
-thresh@free[,2] <- TRUE
-thresh@values[,2] <- c(-1, 0, 1)
-thresh@labels[,2] <- c("z4t1", "z4t2", "z4t3")
+thresh$free[,2] <- TRUE
+thresh$values[,2] <- c(-1, 0, 1)
+thresh$labels[,2] <- c("z4t1", "z4t2", "z4t3")
 
-thresh@free[,3] <- c(TRUE, TRUE, FALSE)
-thresh@values[,3] <- c(-1, 1, NA)
-thresh@labels[,3] <- c("z5t1", "z5t2", NA)
+thresh$free[,3] <- c(TRUE, TRUE, FALSE)
+thresh$values[,3] <- c(-1, 1, NA)
+thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 	
 # run factor and saturated models
 jointModel1 <- mxModel("ContinuousOrdinalData",
@@ -61,5 +61,5 @@ jointModel2 <- mxModel("ContinuousOrdinalData",
 jointResults2 <- mxRun(jointModel2, suppressWarnings=TRUE)
 
 # check that the likelihoods are the same as originally reported
-omxCheckCloseEnough(jointResults1@output$Minus2LogLikelihood, 2683.071, 0.01)
-omxCheckCloseEnough(jointResults2@output$Minus2LogLikelihood, 2674.235, 0.01)
+omxCheckCloseEnough(jointResults1$output$Minus2LogLikelihood, 2683.071, 0.01)
+omxCheckCloseEnough(jointResults2$output$Minus2LogLikelihood, 2674.235, 0.01)

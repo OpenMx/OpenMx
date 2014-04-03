@@ -63,16 +63,16 @@ output<-mxRun(model, suppressWarnings=TRUE)
 
 ###Check Results
 #Model 1: This should have a value of 1
-print(output1@output$estimate)
+print(output1$output$estimate)
 
 #Model 2: This should have a value of 2
-print(output2@output$estimate)
+print(output2$output$estimate)
 
 #"Super" Model: This should have a value of 1.5
-print(output@output$estimate)
+print(output$output$estimate)
 
-omxCheckCloseEnough(output1@output$estimate, c(1), 0.001)
-omxCheckCloseEnough(output2@output$estimate, c(2), 0.001)
-omxCheckCloseEnough(output@output$estimate, c(1.5), 0.001)
+omxCheckCloseEnough(output1$output$estimate, c(1), 0.001)
+omxCheckCloseEnough(output2$output$estimate, c(2), 0.001)
+omxCheckCloseEnough(output$output$estimate, c(1.5), 0.001)
 
 

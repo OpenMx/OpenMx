@@ -27,8 +27,8 @@ for (ix in 1:numItems) {
 	items[[ix]] <- rpf.drm(dimensions=maxDim)
 }
 
-maxParam <- max(vapply(items, function(i) i@numParam, 0))
-maxOutcomes <- max(vapply(items, function(i) i@numOutcomes, 0))
+maxParam <- max(vapply(items, function(i) i$numParam, 0))
+maxOutcomes <- max(vapply(items, function(i) i$numOutcomes, 0))
 
 design <- matrix(c(rep(1,numItems),
 		   1+c(2,3,2,3,3,2,1,2,1,1,1,3,1,3,1,2,1,1,3,3,1,1,3,1,3,3,1,3,2,3,1,2)), byrow=TRUE, nrow=2)
@@ -52,8 +52,8 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                 rep(FALSE, numItems*1)),
          byrow=TRUE)
 
-#ip.mat@values[2,1] <- correct.mat[2,1]
-#ip.mat@free[2,1] <- FALSE
+#ip.mat$values[2,1] <- correct.mat[2,1]
+#ip.mat$free[2,1] <- FALSE
 
 m1 <- mxModel(model="sat12",
           spec, design,
@@ -76,7 +76,7 @@ m1 <- mxOption(m1, "Calculate Hessian", "No")
 m1 <- mxOption(m1, "Standard Errors", "No")
 
 m1 <- mxRun(m1, silent=TRUE)
-print(m1@matrices$ItemParam@values)
+print(m1$matrices$ItemParam$values)
 q()
 
 -2LL 17405.6316

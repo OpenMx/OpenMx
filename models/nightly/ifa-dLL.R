@@ -41,11 +41,11 @@ ip.mat <- mxMatrix(name="itemParam", nrow=starting.len, ncol=numItems,
 
 for (sx in 1:length(starting)) {
   v <- starting[[sx]]
-  ip.mat@values[1:length(v),sx] <- v
-  ip.mat@free[1:length(v),sx] <- TRUE
+  ip.mat$values[1:length(v),sx] <- v
+  ip.mat$free[1:length(v),sx] <- TRUE
 }
-starting.free <- ip.mat@free
-starting.values <- ip.mat@values
+starting.free <- ip.mat$free
+starting.values <- ip.mat$values
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
@@ -64,26 +64,26 @@ if (0) {   # enable to generate answer file
   for (ii in 1:numItems) {  # 
     spi <- 0
     while (spi < samples.per.item) {
-      m2@matrices$itemParam@values <- starting.values
-      m2@matrices$itemParam@free[,] <- FALSE
+      m2$matrices$itemParam$values <- starting.values
+      m2$matrices$itemParam$free[,] <- FALSE
       
       spoint <- rpf.rparam(items[[ii]])
       # exclude GRM with close adjacent intercepts, too much curvature for numDeriv
       if (ii==2 && min(abs(diff(spoint[3:6]/max(spoint[1:2])))) < .3) next
 
       np <- length(spoint)
-      m2@matrices$itemParam@values[1:np,ii] <- spoint
+      m2$matrices$itemParam$values[1:np,ii] <- spoint
       
       deriv <- genD(function(param) {
         np <- length(param)
-        m2@matrices$itemParam@values[1:np,ii] <- param
+        m2$matrices$itemParam$values[1:np,ii] <- param
         lModel <- mxModel(m2,
                           mxComputeSequence(steps=list(
                             mxComputeOnce('expectation', 'scores'),
                             mxComputeOnce('fitfunction', 'fit')
                           )))
         fit <- mxRun(lModel, silent=TRUE)
-        fit@output$fit
+        fit$output$fit
       }, spoint, method.args=list(d=.01, r=2))
       
       if (any(is.na(deriv$D))) next
@@ -120,18 +120,18 @@ if (1) {  # enable to examine the RMSE by item model
       ii <- ans[tx,1]
       if (ii != ix) next
       
-      m2@matrices$itemParam@values <- starting.values
-      m2@matrices$itemParam@free[,] <- FALSE
+      m2$matrices$itemParam$values <- starting.values
+      m2$matrices$itemParam$free[,] <- FALSE
       
       spoint <- ans[tx,2:(np+1)]
-      m2@matrices$itemParam@values[1:np,ii] <- simplify2array(spoint)
-      m2@matrices$itemParam@free[,ii] <- starting.free[,ii]
+      m2$matrices$itemParam$values[1:np,ii] <- simplify2array(spoint)
+      m2$matrices$itemParam$free[,ii] <- starting.free[,ii]
       
       m2 <- mxRun(m2, silent=TRUE)
       
-      grad1 <- m2@output$gradient
+      grad1 <- m2$output$gradient
       names(grad1) <- NULL
-      hess <- m2@output$hessian
+      hess <- m2$output$hessian
       
       emp.grad <- simplify2array(ans[tx,(2+np):(1+2*np)])
       emp.hess <- unpackHession(simplify2array(ans[tx, -1:-(1+np)]), np)
@@ -179,21 +179,21 @@ if (0) {
 #    print(params[[ii]])
     np <- rpf.numParam(items[[ii]])
     
-    m2@matrices$itemParam@values <- starting.values
-    m2@matrices$itemParam@free[,] <- FALSE
+    m2$matrices$itemParam$values <- starting.values
+    m2$matrices$itemParam$free[,] <- FALSE
     
     spoint <- simplify2array(ans[tx,2:(np+1)])
     print(spoint)
       next;
   
-    m2@matrices$itemParam@values[1:np,ii] <- spoint
-    m2@matrices$itemParam@free[,ii] <- starting.free[,ii]
+    m2$matrices$itemParam$values[1:np,ii] <- spoint
+    m2$matrices$itemParam$free[,ii] <- starting.free[,ii]
       
     m2 <- mxRun(m2, silent=TRUE)
       
-    grad1 <- m2@output$gradient
+    grad1 <- m2$output$gradient
     names(grad1) <- NULL
-    hess <- m2@output$hessian
+    hess <- m2$output$hessian
     
     if (0) {
       print(paste("Item", ii))
@@ -217,14 +217,14 @@ if (0) {
     
     evalLL <- function(param) {
       np <- length(param)
-      m2@matrices$itemParam@values[1:np,ii] <- param
+      m2$matrices$itemParam$values[1:np,ii] <- param
       lModel <- mxModel(m2,
                         mxComputeSequence(steps=list(
                           mxComputeOnce('expectation', 'scores'),
                           mxComputeOnce('fitfunction', 'fit')
                         )))
       fit <- mxRun(lModel, silent=TRUE)
-      ll <- fit@output$minimum
+      ll <- fit$output$minimum
       ll
     }
     deriv <- genD(evalLL, spoint, method.args=list(d=.1, r=3))

@@ -72,12 +72,12 @@ expectSE <- c(0.037002, 0.029577, 0.025352, 0.022138, 0.072093, 0.065091,
 
 expectMin <- 3019.388
 
-omxCheckCloseEnough(expectVal, multiRegModelOut@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, multiRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(multiRegModelOut@output$standardError), 0.001)
+    as.vector(multiRegModelOut$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, multiRegModelOut@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, multiRegModelOut$output$minimum, 0.001)
 
 
     

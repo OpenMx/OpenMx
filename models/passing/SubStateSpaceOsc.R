@@ -156,7 +156,7 @@ container <- mxRun(container)
 #summary(srun)$Minus2LogLikelihood # when major iterations is 0
 #2*dlmLL(y=t(ty), mod=mfun(tinit)) + 200*9*log(2*pi) # dlm gives back -LL - CONST, so adjust it.  200 is N, 9 is k
 
-srun <- container@submodels$"StateSpaceExample"@matrices
+srun <- container$submodels$"StateSpaceExample"$matrices
 
 dlmEstA <- matrix(c(
 	-0.7911864,  0.0000000,  0.0000000,
@@ -176,8 +176,8 @@ dlmEstR <- c( #diagonal manifest error cov
 
 
 
-omxCheckCloseEnough(srun$A@values, dlmEstA, epsilon=0.001)
-omxCheckCloseEnough(srun$C@values[srun$C@free], dlmEstC, epsilon=0.001)
-omxCheckCloseEnough(diag(srun$R@values), dlmEstR, epsilon=0.001)
+omxCheckCloseEnough(srun$A$values, dlmEstA, epsilon=0.001)
+omxCheckCloseEnough(srun$C$values[srun$C$free], dlmEstC, epsilon=0.001)
+omxCheckCloseEnough(diag(srun$R$values), dlmEstR, epsilon=0.001)
 
 

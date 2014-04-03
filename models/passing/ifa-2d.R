@@ -30,7 +30,7 @@ correct.mat[4,1] <- logit(1)
 correct.mat[3,1] <- logit(0)
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
-maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
+maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
 design <- matrix(as.integer(c(1, 1,1,1,2,
                   NA,2,2,2,1)), byrow=TRUE, nrow=2)
@@ -45,8 +45,8 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1, 1.4, 0, logit(0), logit(1)),
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
-ip.mat@values[3,1] <- logit(0)
-ip.mat@values[4,1] <- logit(1)
+ip.mat$values[3,1] <- logit(0)
+ip.mat$values[4,1] <- logit(1)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
@@ -73,17 +73,17 @@ if(0){
 }
 
 m1 <- mxRun(m1, silent=TRUE)
-emstat <- m1@compute@output
+emstat <- m1$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 22, 5)
 omxCheckCloseEnough(emstat$totalMstep, 144, 20)
 
-					#print(m1@matrices$ItemParam@values)
+					#print(m1$matrices$ItemParam$values)
 					#print(correct.mat)
 # sometimes found as low as .89, maybe solution is unstable
 mask <- is.finite(correct.mat)
-omxCheckCloseEnough(cor(c(m1@matrices$ItemParam@values[mask]),
+omxCheckCloseEnough(cor(c(m1$matrices$ItemParam$values[mask]),
 			c(correct.mat[mask])), .91, .07)
-scores.out <- m1@expectation@output$scores
+scores.out <- m1$expectation$output$scores
 max.se <- max(scores.out[,3:4])
 omxCheckCloseEnough(sum(abs(scores.out[,1:2] - t(ability)) < max.se) / (numPeople*2), .797, .02)
 omxCheckCloseEnough(.689, cor(c(scores.out[,1:2]), c(t(ability))), .02)

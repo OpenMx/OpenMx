@@ -71,32 +71,32 @@ model<-mxModel("Autoregressive Model, Matrix Specification, Raw Data",
       
 autoregressiveMatrixRaw<-mxRun(model)
 
-autoregressiveMatrixRaw@output
+autoregressiveMatrixRaw$output
 
 
 
 # Comparing to old Mx Output
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["beta"]], 0.4267, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["varx"]], 0.6658, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e2"]], 1.1420, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e3"]], 1.0379, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e4"]], 0.7908, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e5"]], 0.8176, 0.01)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["mean1"]], 3.0537, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int2"]], 0.0824, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int3"]], 0.0890, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int4"]], -0.0362, 0.001)
-omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int5"]], -0.1356, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["beta"]], 0.4267, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["varx"]], 0.6658, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e2"]], 1.1420, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e3"]], 1.0379, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e4"]], 0.7908, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e5"]], 0.8176, 0.01)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["mean1"]], 3.0537, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int2"]], 0.0824, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int3"]], 0.0890, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int4"]], -0.0362, 0.001)
+omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int5"]], -0.1356, 0.001)
 
 # Comparing to Mplus values
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["beta"]], 0.427, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["varx"]], 0.665, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e2"]], 1.142, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e3"]], 1.038, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e4"]], 0.791, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["e5"]], 0.818, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["mean1"]], 3.054, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int2"]], 0.082, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int3"]], 0.089, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int4"]], -0.036, 0.001)
-# omxCheckCloseEnough(autoregressiveMatrixRaw@output$estimate[["int5"]], -0.135, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["beta"]], 0.427, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["varx"]], 0.665, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e2"]], 1.142, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e3"]], 1.038, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e4"]], 0.791, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["e5"]], 0.818, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["mean1"]], 3.054, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int2"]], 0.082, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int3"]], 0.089, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int4"]], -0.036, 0.001)
+# omxCheckCloseEnough(autoregressiveMatrixRaw$output$estimate[["int5"]], -0.135, 0.001)

@@ -90,16 +90,16 @@ summary(multilevelModel2Fit)
 
 lmeOut <- lme(Y~X, random= ~ X | ID, data=tDataFrame)
 
-cbind(multilevelModel2Fit@output$estimate[1:numSubjects], 
+cbind(multilevelModel2Fit$output$estimate[1:numSubjects], 
       lmeOut$coef$random$ID[,2] + lmeOut$coef$fixed[2],
       trueB[seq(1,totalOccasions*(totalSubjects), by=totalOccasions)])
 
-mean(multilevelModel2Fit@output$estimate[1:numSubjects])
+mean(multilevelModel2Fit$output$estimate[1:numSubjects])
 
-omxCheckCloseEnough(mean(multilevelModel2Fit@output$estimate[1:numSubjects]), 
+omxCheckCloseEnough(mean(multilevelModel2Fit$output$estimate[1:numSubjects]), 
     lmeOut$coef$fixed[2],
     0.001)
 
-omxCheckCloseEnough(mean(multilevelModel2Fit@output$estimate[(1:numSubjects)+(1*numSubjects)]), 
+omxCheckCloseEnough(mean(multilevelModel2Fit$output$estimate[(1:numSubjects)+(1*numSubjects)]), 
     lmeOut$coef$fixed[1],
     0.001)

@@ -39,10 +39,10 @@ model <- mxModel("model",
                  mxData(ObsCov, 'cov', numObs=500),
                  mxFitFunctionML(),mxExpectationNormal("PreCov"))
 # start values
-model$F@values <- matrix(c(0.4419364, .5, .6, .2, .8, .7, -0.2826766, .2), nrow=4, ncol=2)
-model$U@values <- diag(c(.2, .3, .4, .5)) 
-model$F@free[1,1] <- FALSE
-model$F@free[3,2] <- FALSE 
+model$F$values <- matrix(c(0.4419364, .5, .6, .2, .8, .7, -0.2826766, .2), nrow=4, ncol=2)
+model$U$values <- diag(c(.2, .3, .4, .5)) 
+model$F$free[1,1] <- FALSE
+model$F$free[3,2] <- FALSE 
 # NOTE 10 observed statistics but 12 parameters. model is not identified                               
 model <- mxOption(model, "Standard Errors", "Yes")
 model <- mxRun(model)                
@@ -59,9 +59,9 @@ fcn <- function(x) {
 
 data(numHess1)
 
-#omxCheckCloseEnough(data.matrix(numHess1), model@output$calculatedHessian, .01)
+#omxCheckCloseEnough(data.matrix(numHess1), model$output$calculatedHessian, .01)
 
-omxCheckCloseEnough(data.matrix(numHess1)[c(-1, -7),-c(1, 7)]/model@output$calculatedHessian, matrix(1, 10, 10), .001)
+omxCheckCloseEnough(data.matrix(numHess1)[c(-1, -7),-c(1, 7)]/model$output$calculatedHessian, matrix(1, 10, 10), .001)
 
 # use a different set of starting values
 model2 <- mxModel("model2",
@@ -70,10 +70,10 @@ model2 <- mxModel("model2",
                  mxAlgebra(F %*% t(F) + U, name="PreCov", dimnames <- dimNames),
                  mxData(ObsCov, 'cov', numObs=500),
                  mxFitFunctionML(),mxExpectationNormal("PreCov"))
-model2$F@values <- matrix(c(0.5169821, .8, .3, .1, .2, 0.7240981, .8, .9), nrow=4, ncol=2)
-model2$U@values <- diag(c(.8, .6, .4, .9))
-model2$F@free[1,1] <- FALSE
-model2$F@free[2,2] <- FALSE
+model2$F$values <- matrix(c(0.5169821, .8, .3, .1, .2, 0.7240981, .8, .9), nrow=4, ncol=2)
+model2$U$values <- diag(c(.8, .6, .4, .9))
+model2$F$free[1,1] <- FALSE
+model2$F$free[2,2] <- FALSE
 # again 10 obs stats & 12 parameters
 model2 <- mxOption(model2, "Standard Errors", "Yes")
 model2 <- mxRun(model2)
@@ -81,8 +81,8 @@ model2 <- mxRun(model2)
 # numerical estimate of hessian
 data(numHess2)
 
-#omxCheckCloseEnough(data.matrix(numHess2), model2@output$calculatedHessian, .01)
+#omxCheckCloseEnough(data.matrix(numHess2), model2$output$calculatedHessian, .01)
 
-omxCheckCloseEnough(data.matrix(numHess2)[-c(1, 6),-c(1, 6)]/model2@output$calculatedHessian, matrix(1, 10, 10), .01)
+omxCheckCloseEnough(data.matrix(numHess2)[-c(1, 6),-c(1, 6)]/model2$output$calculatedHessian, matrix(1, 10, 10), .01)
 
 

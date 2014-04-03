@@ -56,15 +56,15 @@ factorCovariances <- mxMatrix(type="Symm",nfacxnregime,nfacxnregime,name="factor
 j <- 1
 for (i in 1:nregime)
 { 
-    factorCovariances@labels[j:(j+1),j:(j+1)] <- paste(baseCovarianceLabels,i,sep="")
+    factorCovariances$labels[j:(j+1),j:(j+1)] <- paste(baseCovarianceLabels,i,sep="")
     j <- j + nfac
 }
-factorCovariances@free[2,2] <- FALSE
-factorCovariances@free[6,6] <- FALSE
-factorCovariances@lbound[2,2] <- .0001
-factorCovariances@lbound[6,6] <- .0001
-factorCovariances@values[2,2] <- .1
-factorCovariances@values[6,6] <- .05
+factorCovariances$free[2,2] <- FALSE
+factorCovariances$free[6,6] <- FALSE
+factorCovariances$lbound[2,2] <- .0001
+factorCovariances$lbound[6,6] <- .0001
+factorCovariances$values[2,2] <- .1
+factorCovariances$values[6,6] <- .05
 #
 # -----------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ factorLoadings <- mxMatrix(type="Full", nrow=nocc, ncol=nfacxnregime, values=c(r
 
 # Factor Mean matrix; same for all models.  Funky method of getting cartesian product of baseLabels and 1:nregime
 factorMeans <- mxMatrix(type="Full", nrow=nfacxnregime, ncol=1, free=c(FALSE,FALSE,FALSE,F,FALSE,FALSE), values=c(3.35,0.45,10.1,0,1.17,0.22), name="factorMeans")
-factorMeans@labels[] <- apply(expand.grid(baseMeanLabels,1:nregime),1,function(x) paste(x,collapse=""))
+factorMeans$labels[] <- apply(expand.grid(baseMeanLabels,1:nregime),1,function(x) paste(x,collapse=""))
 # -----------------------------------------------------------------------------
 
 # Set up base residual variance matrix; its parameter labels change with each regime-switched model
@@ -130,11 +130,11 @@ for (i in 1:(nregime^nocc))
         ii <- ii+1
         z <- matrix(0,1,nregime)
         z[patternVector[j]] <- 1
-        temp$residuals@labels[j,j] <- paste("residual",resNumber[patternVector[j],j],sep="")
-        temp$residuals@values[j,j] <- resValues[patternVector[j],j]
-        temp$factorLoadings@values[j,] <- z %x% basisFunctions[j,]
+        temp$residuals$labels[j,j] <- paste("residual",resNumber[patternVector[j],j],sep="")
+        temp$residuals$values[j,j] <- resValues[patternVector[j],j]
+        temp$factorLoadings$values[j,] <- z %x% basisFunctions[j,]
         }
-    temp@name <- paste("Regime",i,sep="")
+    temp$name <- paste("Regime",i,sep="")
     modelNames[i] <- paste("Regime",i,sep="")
     modelList[i] <- temp
 }
@@ -149,8 +149,8 @@ for (i in 1:(nregime^nocc))
 # begin algebra;              	
 # d=\m2v(q');    			!  transition probs into vector
 # ! mixing proportions 
-# ! a=(p@g@g).(d@g).(g@d)					! nt=3
-# a=(p@g@g@g).(d@g@g).(g@d@g).(g@g@d);		! nt=4
+# ! a=(p$g$g).(d$g).(g$d)					! nt=3
+# a=(p$g$g$g).(d$g$g).(g$d$g).(g$g$d);		! nt=4
 # and I am not going to f with making it general just now...
 
 # To avoid constraints, we express initial and transition matrices as proportions by bounding them to be positive and expressing as proportions (TBD)
@@ -205,7 +205,7 @@ summary(rsgcmmDiffTFit)
 # -----------------------------------------------------------------------------
 
 # Check results to see if they are within specified bounds
-omxCheckCloseEnough(rsgcmmDiffTFit@output$Minus2LogLikelihood, 11346.54, 0.01)
-#omxCheckCloseEnough(max(mxEval(rsgcmmFit@output$transitionProbs, rsgcmmFit)), 0.4790, 0.01)
-#omxCheckCloseEnough(min(mxEval(rsgcmmFit@output$transitionProbs, rsgcmmFit)), 0.1608, 0.01)
+omxCheckCloseEnough(rsgcmmDiffTFit$output$Minus2LogLikelihood, 11346.54, 0.01)
+#omxCheckCloseEnough(max(mxEval(rsgcmmFit$output$transitionProbs, rsgcmmFit)), 0.4790, 0.01)
+#omxCheckCloseEnough(min(mxEval(rsgcmmFit$output$transitionProbs, rsgcmmFit)), 0.1608, 0.01)
 ## -----------------------------------------------------------------------------

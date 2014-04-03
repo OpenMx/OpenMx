@@ -22,7 +22,7 @@ model <- mxModel(A, B)
 model <- mxRun(model)
 print(model)
 
-omxCheckCloseEnough(model[['B']]@result, 
+omxCheckCloseEnough(model[['B']]$result, 
 	rbind(c(1.0583, -0.097, -0.1052),
 		c(-0.097, 0.5265, -0.0679),
 		c(-0.1052, -0.0679, .3554)), 0.01)

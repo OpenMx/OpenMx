@@ -23,9 +23,9 @@ for (rep in 1:2) {
   if (rep == 2) model <- mxOption(model, "Number of Threads", 1)
 
   fit <- mxRun( model )
-  omxCheckCloseEnough(fit@output$Minus2LogLikelihood, 6578.69, .1)
+  omxCheckCloseEnough(fit$output$Minus2LogLikelihood, 6578.69, .1)
 
-  est <- fit@output$estimate
+  est <- fit$output$estimate
   #print(est)
   omxCheckCloseEnough(est[1], 0.9998, .001)
   omxCheckCloseEnough(est[2], 0.7177, .001)

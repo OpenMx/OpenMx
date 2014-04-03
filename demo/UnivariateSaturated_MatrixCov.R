@@ -70,7 +70,7 @@ univSatModel3 <- mxModel("univSat3",
 univSatFit3 <- mxRun(univSatModel3)
 EC3 <- mxEval(expCov, univSatFit3)
 LL3 <- mxEval(objective, univSatFit3)
-SL3 <- univSatFit3@output$SaturatedLikelihood
+SL3 <- univSatFit3$output$SaturatedLikelihood
 Chi3 <- LL3-SL3
 # example 3: Saturated Model with Cov Matrices and Matrix-Style Input
 # -----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ univSatFit3m <- mxRun(univSatModel3m)
 EM3m <- mxEval(expMean, univSatFit3m)
 EC3m <- mxEval(expCov, univSatFit3m)
 LL3m <- mxEval(objective, univSatFit3m);
-SL3m <- univSatFit3m@output$SaturatedLikelihood
+SL3m <- univSatFit3m$output$SaturatedLikelihood
 Chi3m <- LL3m-SL3m
 # example 3m: Saturated Model with Cov Matrices & Means 
 # and Matrix-Style Input

@@ -25,7 +25,7 @@ correct.mat[1,1:10] <- 0
 correct.mat[2,20:30] <- 0
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
-maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
+maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
 data.g1 <- rpf.sample(numPeople, items, correct.mat)
 data.g2 <- rpf.sample(numPeople, items, correct.mat, mean=c(-.5,.8), cov=matrix(c(2,.5,.5,2),nrow=2))
@@ -42,13 +42,13 @@ if (0) {
 mkgroup <- function(model.name, data, latent.free) {  
   ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                      values=c(1, 1.4, 0), free=TRUE)
-  ip.mat@values[correct.mat==0] <- 0
-  ip.mat@free[correct.mat==0] <- FALSE
+  ip.mat$values[correct.mat==0] <- 0
+  ip.mat$free[correct.mat==0] <- FALSE
   
   for (ix in 1:numItems) {
     for (px in 1:3) {
       name <- paste(c('p',ix,',',px), collapse='')
-      ip.mat@labels[px,ix] <- name
+      ip.mat$labels[px,ix] <- name
     }
   }
   
@@ -57,8 +57,8 @@ mkgroup <- function(model.name, data, latent.free) {
   if (latent.free) {
     for (c1 in 1:2) {
       for (c2 in 1:c1) {
-        cov.mat@labels[c1,c2] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
-        cov.mat@labels[c2,c1] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
+        cov.mat$labels[c1,c2] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
+        cov.mat$labels[c2,c1] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
       }
     }  
   }
@@ -85,17 +85,17 @@ if (1) {
   g2 <- mkgroup("g2", data.g2, TRUE)
   g3 <- mkgroup("g3", data.g3, TRUE)
   
-  g1@matrices$ItemParam@values <- fm$G1$param
-  g2@matrices$ItemParam@values <- fm$G2$param
-  g3@matrices$ItemParam@values <- fm$G3$param
-  g2@matrices$mean@values <- t(fm$G2$mean)
-  g3@matrices$mean@values <- t(fm$G3$mean)
-  g2@matrices$cov@values <- fm$G2$cov
-  g3@matrices$cov@values <- fm$G3$cov
+  g1$matrices$ItemParam$values <- fm$G1$param
+  g2$matrices$ItemParam$values <- fm$G2$param
+  g3$matrices$ItemParam$values <- fm$G3$param
+  g2$matrices$mean$values <- t(fm$G2$mean)
+  g3$matrices$mean$values <- t(fm$G3$mean)
+  g2$matrices$cov$values <- fm$G2$cov
+  g3$matrices$cov$values <- fm$G3$cov
   
   cModel <- mxModel(model="cModel", g1,g2,g3,
                     mxComputeOnce(paste(groups, 'expectation', sep='.')))
-  for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
+  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'full'
   cModel.eap <- mxRun(cModel)
   
   fm.sco <- suppressWarnings(try(read.table("models/nightly/data/2d-mg-sco.txt"), silent=TRUE))
@@ -103,11 +103,11 @@ if (1) {
   colnames(fm.sco) <- c("group", "row", "s1", "s2", "se1", "se2", paste("cov",1:3,sep=""))
   
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,-1:-2]),
-                      cModel.eap@submodels$g1@expectation@output$scores, 1e-3)
+                      cModel.eap$submodels$g1$expectation$output$scores, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,-1:-2]),
-                      cModel.eap@submodels$g2@expectation@output$scores, 1e-3)
+                      cModel.eap$submodels$g2$expectation$output$scores, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,-1:-2]),
-                      cModel.eap@submodels$g3@expectation@output$scores, 1e-3)
+                      cModel.eap$submodels$g3$expectation$output$scores, 1e-3)
 
   cModel <- mxModel(cModel,
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
@@ -115,9 +115,9 @@ if (1) {
                       mxComputeOnce(paste(groups, 'expectation', sep='.')),
                       mxComputeOnce('fitfunction', 'fit',
 				    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
-  for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'omit'
+  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'omit'
   cModel.fit <- mxRun(cModel)
-  omxCheckCloseEnough(cModel.fit@output$fit, correct.LL, .01)
+  omxCheckCloseEnough(cModel.fit$output$fit, correct.LL, .01)
 }
 
 latent.vargroup <- apply(expand.grid(groups[-1], c('mean','cov')),
@@ -142,13 +142,13 @@ g1 <- mkgroup("g1", data.g1, FALSE)
   
   grpModel <- mxRun(grpModel, silent=TRUE)
   
-emstat <- grpModel@compute@output
+emstat <- grpModel$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 74, 2)
 omxCheckCloseEnough(emstat$totalMstep, 240, 10)
 
-  omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
-  omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$mean@values), c(-.507, .703), .01)
-  omxCheckCloseEnough(c(grpModel@submodels$g2@matrices$cov@values), c(1.877, .491, .491, 2.05), .01)
-  omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$mean@values), c(-.028, -.827), .01)
-  omxCheckCloseEnough(c(grpModel@submodels$g3@matrices$cov@values), c(.892, -.422, -.422, .836), .01)
+  omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g2$matrices$mean$values), c(-.507, .703), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g2$matrices$cov$values), c(1.877, .491, .491, 2.05), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g3$matrices$mean$values), c(-.028, -.827), .01)
+  omxCheckCloseEnough(c(grpModel$submodels$g3$matrices$cov$values), c(.892, -.422, -.422, .836), .01)
 

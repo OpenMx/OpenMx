@@ -70,7 +70,7 @@ bmod <- mxModel(
 )
 
 bmodFit <- mxRun(bmod)
-bmodFit$M@values
+bmodFit$M$values
 colMeans(xdat)
 
 omxCheckCloseEnough(as.vector(mxEval(M, bmodFit)), as.vector(colMeans(xdat)), epsilon=10^(-5))
@@ -106,7 +106,7 @@ cmod <- mxModel(
 )
 
 cmodFit <- mxRun(cmod)
-cmodFit$M@values
+cmodFit$M$values
 colMeans(xdat, na.rm=T)
 
 omxCheckCloseEnough(as.vector(mxEval(M, cmodFit)), as.vector(colMeans(xdat, na.rm=T)), epsilon=10^(-5))
@@ -135,8 +135,8 @@ omxCheckCloseEnough(mxEval(A, dmodRun), as.matrix(adat), epsilon=10^(-5))
 
 #------------------------------------------------
 robj1 <- function(model, state) {
-	a <- model$A@values
-	x <- model$X@values
+	a <- model$A$values
+	x <- model$X$values
 	return(sum((x - a) ^ 2))
 }
 

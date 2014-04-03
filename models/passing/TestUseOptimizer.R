@@ -22,12 +22,12 @@ model <- mxModel(model, mxMatrix("Full", values = c(0,0.2,0,0), name="A", nrow=2
 model <- mxModel(model, mxMatrix("Symm", values = c(0.8,0,0,0.8), name="S", nrow=2, ncol=2, free=TRUE))
 model <- mxModel(model, mxMatrix("Iden", name="F", nrow=2, ncol=2, dimnames = list(c('a','b'), c('a','b'))))
 
-model[["A"]]@free[2,1] <- TRUE
-model[["S"]]@free[2,1] <- FALSE
-model[["S"]]@free[1,2] <- FALSE
-model[["A"]]@labels[2,1] <- "pear"
-model[["S"]]@labels[1,1] <- "apple"
-model[["S"]]@labels[2,2] <- "banana"
+model[["A"]]$free[2,1] <- TRUE
+model[["S"]]$free[2,1] <- FALSE
+model[["S"]]$free[1,2] <- FALSE
+model[["A"]]$labels[2,1] <- "pear"
+model[["S"]]$labels[1,1] <- "apple"
+model[["S"]]$labels[2,2] <- "banana"
 
 # Bounds must be added after all the free parameters are specified
 model <- mxModel(model, mxBounds(c("apple", "banana"), 0.001, NA))
@@ -50,7 +50,7 @@ modelOut <- mxRun(model)
 expectedParameters <- c(0.5099, 0.7764, 0.2892)
 
 omxCheckCloseEnough(expectedParameters, 
-	modelOut@output$estimate, 
+	modelOut$output$estimate, 
 	epsilon = 10 ^ -4)
 
 # Run the job that only computes the log-likelihood of 
@@ -60,8 +60,8 @@ omxCheckCloseEnough(expectedParameters,
 fixedModel <- model
 params <- omxGetParameters(fixedModel)
 fixedModel <- omxSetParameters(fixedModel, names(params), free = FALSE, name = 'modelFixed')
-omxCheckEquals(model@name, "model")
-omxCheckEquals(fixedModel@name, "modelFixed")
+omxCheckEquals(model$name, "model")
+omxCheckEquals(fixedModel$name, "modelFixed")
 fixedModelOut <- mxRun(fixedModel)
 
 modelUnfitted <- mxRun(model, useOptimizer=FALSE)

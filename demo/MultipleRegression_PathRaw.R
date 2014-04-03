@@ -96,17 +96,17 @@ multiRegModel <- mxModel("Multiple Regression Path Specification",
 multiRegFit<-mxRun(multiRegModel)
 
 summary(multiRegFit)
-multiRegFit@output
+multiRegFit$output
 
 
-omxCheckCloseEnough(multiRegFit@output$estimate[["beta0"]], 1.6332, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["betax"]], 0.4246, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["betaz"]], 0.2260, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["residual"]], 0.6267, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["varx"]], 1.1053, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["varz"]], 0.8275, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["covxz"]], 0.2862, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
-omxCheckCloseEnough(multiRegFit@output$estimate[["meanz"]], 4.0611, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["beta0"]], 1.6332, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["betax"]], 0.4246, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["betaz"]], 0.2260, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["residual"]], 0.6267, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["varx"]], 1.1053, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["varz"]], 0.8275, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["covxz"]], 0.2862, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["meanz"]], 4.0611, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------

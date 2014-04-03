@@ -81,8 +81,8 @@ omxCheckCloseEnough(ssNoMissParam, ssMissParam, epsilon=0.01)
 # Note: Even though the data columns are in different orders
 #  the parameter estimates are the same because the dimnames of C
 #  effectively re-arrange the columns of the data.
-head(ssRun@data@observed)
-head(ssMissRun@data@observed)
+head(ssRun$data$observed)
+head(ssMissRun$data$observed)
 
 
 

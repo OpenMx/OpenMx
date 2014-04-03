@@ -31,20 +31,20 @@ model1 <- mxModel("model1", mat1, obj, grad, hess,
                   mxFitFunctionAlgebra("obj", gradient="grad", hessian="hess"),
                   mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')))
 got <- mxRun(model1, silent=TRUE)
-omxCheckCloseEnough(got@output$fit, -2 * log(dnorm(got@output$estimate, sd=sqrt(sigma))), 1e-4)
-omxCheckCloseEnough(got@output$gradient, 2*(mat1@values[1]-mu)/sigma, 1e-4)
-omxCheckCloseEnough(got@output$hessian, 2/sigma)
-omxCheckCloseEnough(got@output$ihessian, sigma/2)
+omxCheckCloseEnough(got$output$fit, -2 * log(dnorm(got$output$estimate, sd=sqrt(sigma))), 1e-4)
+omxCheckCloseEnough(got$output$gradient, 2*(mat1$values[1]-mu)/sigma, 1e-4)
+omxCheckCloseEnough(got$output$hessian, 2/sigma)
+omxCheckCloseEnough(got$output$ihessian, sigma/2)
 
 numer <- mxModel(model1, mxComputeNumericDeriv())
 got <- mxRun(numer, silent=TRUE)
-omxCheckCloseEnough(got@output$hessian, 1, 1e-3)
+omxCheckCloseEnough(got$output$hessian, 1, 1e-3)
 
 model3 <- mxModel(model1, mxComputeNewtonRaphson(sparseProduct=FALSE))
 got <- mxRun(model3, silent=TRUE)
-omxCheckCloseEnough(got@output$estimate, 0, 1e-4)
-omxCheckCloseEnough(got@compute@output$inform, 0)
-omxCheckCloseEnough(got@compute@output$iterations, 2L)
+omxCheckCloseEnough(got$output$estimate, 0, 1e-4)
+omxCheckCloseEnough(got$compute$output$inform, 0)
+omxCheckCloseEnough(got$compute$output$iterations, 2L)
 }
 
 #----------------------------------------------------------- multivariate
@@ -65,16 +65,16 @@ mv1 <- mxModel("mv1", mat2, obj, grad, hess,
                  mxComputeOnce('fitfunction', c('gradient', 'hessian', 'ihessian')),
                  mxComputeReportDeriv())))
 mv1.fit <- mxRun(mv1, silent=TRUE)
-omxCheckCloseEnough(mv1.fit@output$gradient, c(102.4, 199.7), .1)
-omxCheckCloseEnough(c(mv1.fit@output$hessian), c(4.86, 1.43, 1.43, 4.71), .01)
-omxCheckCloseEnough(mv1.fit@output$hessian, solve(mv1.fit@output$ihessian), 1e-2)
+omxCheckCloseEnough(mv1.fit$output$gradient, c(102.4, 199.7), .1)
+omxCheckCloseEnough(c(mv1.fit$output$hessian), c(4.86, 1.43, 1.43, 4.71), .01)
+omxCheckCloseEnough(mv1.fit$output$hessian, solve(mv1.fit$output$ihessian), 1e-2)
 
 mv2 <- mxModel(mv1, mxComputeNewtonRaphson())
 mv2.fit <- mxRun(mv2, silent=TRUE)
-omxCheckCloseEnough(mv2.fit@output$estimate, rep(0, 2), 1)  # probably in a local minimum
+omxCheckCloseEnough(mv2.fit$output$estimate, rep(0, 2), 1)  # probably in a local minimum
 
 mat3 <- mat2
-mat3@free[1,1] <- FALSE
+mat3$free[1,1] <- FALSE
 mv3 <- mxRun(mxModel(mv1, mat3), silent=TRUE)
-omxCheckCloseEnough(c(mv3@output$gradient), mv1.fit@output$gradient["x2"])
-omxCheckCloseEnough(c(mv3@output$hessian), mv1.fit@output$hessian[2,2])
+omxCheckCloseEnough(c(mv3$output$gradient), mv1.fit$output$gradient["x2"])
+omxCheckCloseEnough(c(mv3$output$hessian), mv1.fit$output$hessian[2,2])

@@ -15,46 +15,12 @@
 
 
 # SCRIPT: univACE_drop_helper.R
-# Timothy  Bates tim.bates@ed.ac.uk
+# Timothy  Bates tim.bates$ed.ac.uk
 # History:  Thu Oct  8 14:35:02 BST 2009
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 
 require(OpenMx)
-
-# Add the function library
-setParameters <- function(model, labels, free = NA, value = NA) {
-   if(missing(model) || !is(model, "MxModel")) {
-      stop("The 'model' argument must be a MxModel object")
-   }
-   if(missing(labels) || typeof(labels) != "character") {
-      stop("The 'labels' argument must be a vector of characters")
-   }
-   if(!is.na(free) && (typeof(free) != "logical" || length(free) != 1)) {
-      stop("The 'free' argument must be a single boolean value")
-   }
-   if(!is.na(value) && (!is.numeric(value) || length(value) != 1)) {
-      stop("The 'value' argument must be a single numeric value")
-   }
-   return(setParametersHelper(model, labels, free, value))
-}
-
-setParametersHelper <- function(model, labels, free, value) {
-   model@matrices <- lapply(model@matrices, setParametersMatrix, labels, free, value)
-   model@submodels <- lapply(model@submodels, setParametersHelper, labels, free, value)
-   return(model)
-}
-
-setParametersMatrix <- function(matrix, labels, free, value) {
-   select <- apply(matrix@labels, c(1,2), function(x) {!is.na(x) && x %in% labels})
-   if (!is.na(free)) {
-      matrix@free[select] <- free
-   }
-   if (!is.na(value)) {
-      matrix@values[select] <- value
-   }
-   return(matrix)
-}
 
 # Prepare Data
 data("twinData", package="OpenMx")
@@ -107,7 +73,7 @@ fit <- mxRun(model)
 summary(fit)
 
 # Now lets drop C using the helper
-modelShare = setParameters(modelShare, labels=c("c1"), free = FALSE, value = 0)
+modelShare = omxSetParameters(modelShare, labels=c("c1"), free = FALSE, value = 0)
 
 # rebuild and run the model
 model = mxModel("ACE", 

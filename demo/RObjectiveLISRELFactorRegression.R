@@ -35,7 +35,7 @@
 #  structural equation modeling.  Journal of Marketing Research,
 #  19(4), p. 404-416.
 # The BibTeX is
-#@article{ ,
+#$article{ ,
 #    Author = {Karl G {J\"{o}reskog} and Dag S\"{o}rbom},
 #    Journal = {Journal of Marketing Research},
 #    Month = {November},
@@ -210,16 +210,16 @@ lisrelULS <- function(miCov, obsCov){
 
 lisrelCovMx <- function(model, state){
     expectedCov <- lisrelCov(
-        model$LambdaX@values,
-        model$LambdaY@values,
-        model$ThetaEpsilon@values,
-        model$ThetaDelta@values,
-        model$ThetaDeltaEpsilon@values,
-        model$Beta@values,
-        model$Gamma@values,
-        model$Phi@values,
-        model$Psi@values)
-    ret <- lisrelML(expectedCov, model@data@observed)
+        model$LambdaX$values,
+        model$LambdaY$values,
+        model$ThetaEpsilon$values,
+        model$ThetaDelta$values,
+        model$ThetaDeltaEpsilon$values,
+        model$Beta$values,
+        model$Gamma$values,
+        model$Phi$values,
+        model$Psi$values)
+    ret <- lisrelML(expectedCov, model$data$observed)
     return(ret)
 }
 
@@ -344,16 +344,16 @@ summary(ex1Run)
 # This takes a covariance matrix (the matrix estimated,
 #  turns it into a correlation matrix with the square root of
 #  the variances (i.e. the standard deviations) down the diagonal.
-TDf <- cov2cor(ex1Run$ThetaDelta@values)
-diag(TDf) <- sqrt(diag(ex1Run$ThetaDelta@values))
+TDf <- cov2cor(ex1Run$ThetaDelta$values)
+diag(TDf) <- sqrt(diag(ex1Run$ThetaDelta$values))
 
-PSf <- cov2cor(ex1Run$Psi@values)
-diag(PSf) <- sqrt(diag(ex1Run$Psi@values))
+PSf <- cov2cor(ex1Run$Psi$values)
+diag(PSf) <- sqrt(diag(ex1Run$Psi$values))
 
 # The other matrices are reported raw.
-LXf <- ex1Run$LambdaX@values
-GAf <- ex1Run$Gamma@values
-BEf <- ex1Run$Beta@values
+LXf <- ex1Run$LambdaX$values
+GAf <- ex1Run$Gamma$values
+BEf <- ex1Run$Beta$values
 
 
 #------------------------------------------------------------------------------

@@ -89,7 +89,7 @@ fit <- mxRun(model)
 endTime <- proc.time()[1]; (endTime -start)
 
 #Look at results
-estimate <- fit@output$estimate
+estimate <- fit$output$estimate
 round(estimate,3)
 # TODO include simulation output
 # compare to simulation

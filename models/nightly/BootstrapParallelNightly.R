@@ -50,16 +50,16 @@ randomCov <- function(nObs, nVar, chl, dn) {
 }
 
 createNewModel <- function(model, modelname) {
-	model@data@observed <- randomCov(nObs, nVar, chl, dn)
-	model@name <- modelname
+	model$data$observed <- randomCov(nObs, nVar, chl, dn)
+	model$name <- modelname
 	return(model)
 }
 
 getStats <- function(model) {
-	retval <- c(model@output$status[[1]],
-		max(abs(model@output$gradient)),
-		model@output$estimate,
-		sqrt(diag(solve(model@output$hessian))))
+	retval <- c(model$output$status[[1]],
+		max(abs(model$output$gradient)),
+		model$output$estimate,
+		sqrt(diag(solve(model$output$hessian))))
 	return(retval)
 }
 
@@ -94,11 +94,11 @@ submodels <- lapply(1:nReps, function(x) {
 })
 
 names(submodels) <- imxExtractNames(submodels)
-topModel@submodels <- submodels
+topModel$submodels <- submodels
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
-results <- t(omxSapply(modelResults@submodels, getStats))
+results <- t(omxSapply(modelResults$submodels, getStats))
 
 sfStop()
 

@@ -45,4 +45,4 @@ model <- mxRun(model)
 
 # Check passing tests
 
-omxCheckCloseEnough(model[['test35b']]@result, .33333, 0.001)
+omxCheckCloseEnough(model[['test35b']]$result, .33333, 0.001)

@@ -84,13 +84,13 @@ uniRegModel <- mxModel("Simple Regression Path Specification",
 uniRegFit <- mxRun(uniRegModel, suppressWarnings=TRUE)
 
 summary(uniRegFit)
-uniRegFit@output
+uniRegFit$output
 
 
-omxCheckCloseEnough(uniRegFit@output$estimate[["beta0"]], 2.5478, 0.001)
-omxCheckCloseEnough(uniRegFit@output$estimate[["beta1"]], 0.4831, 0.001)
-omxCheckCloseEnough(uniRegFit@output$estimate[["residual"]], 0.6652, 0.001)
-omxCheckCloseEnough(uniRegFit@output$estimate[["meanx"]], 0.0542, 0.001)
-omxCheckCloseEnough(uniRegFit@output$estimate[["varx"]], 1.1053, 0.001)
+omxCheckCloseEnough(uniRegFit$output$estimate[["beta0"]], 2.5478, 0.001)
+omxCheckCloseEnough(uniRegFit$output$estimate[["beta1"]], 0.4831, 0.001)
+omxCheckCloseEnough(uniRegFit$output$estimate[["residual"]], 0.6652, 0.001)
+omxCheckCloseEnough(uniRegFit$output$estimate[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(uniRegFit$output$estimate[["varx"]], 1.1053, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------

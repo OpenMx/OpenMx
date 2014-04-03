@@ -36,12 +36,12 @@ twolocus<-mxModel("twolocus", mxFitFunctionAlgebra("NegativeLogLikelihood"),
 
 #run the model
 run<-mxRun(twolocus, suppressWarnings=TRUE)
-run@matrices
-run@algebras
+run$matrices
+run$algebras
 
 
 # Compare OpenMx estimates to original Mx's estimates
-estimates<-c(run@matrices$P@values,run@matrices$S@values,run@algebras$NegativeLogLikelihood@result)
+estimates<-c(run$matrices$P$values,run$matrices$S$values,run$algebras$NegativeLogLikelihood$result)
 Mx1Estimates<-c(0.2929,0.1532,646.972)
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 

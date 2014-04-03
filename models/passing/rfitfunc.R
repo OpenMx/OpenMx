@@ -1,7 +1,7 @@
 library(OpenMx)
 
 cubic <- function(marg, state){
-    x <- marg@matrices$param@values[1]
+    x <- marg$matrices$param$values[1]
     got <- (x-5)*(x-1)*(x+3)
     return(got)
 }
@@ -10,7 +10,7 @@ model <- mxModel(name="root",
 	      mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 	      mxFitFunctionR(cubic))
 model <- mxRun(model, silent=TRUE, suppressWarnings=TRUE)
-omxCheckCloseEnough(model@matrices$param@values, 3.309401, 10^-3)
+omxCheckCloseEnough(model$matrices$param$values, 3.309401, 10^-3)
 
 ###
 

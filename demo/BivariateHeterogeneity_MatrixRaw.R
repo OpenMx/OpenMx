@@ -152,8 +152,8 @@ bivHetFit <- mxRun(bivHetModel)
 # -----------------------------------------------------------------------------
 
 bivHomModel <- bivHetModel
-    bivHomModel[['group2.Chol2']]@labels <- bivHomModel[['group1.Chol1']]@labels
-    bivHomModel[['group2.EM2']]@labels <- bivHomModel[['group1.EM1']]@labels
+    bivHomModel[['group2.Chol2']]$labels <- bivHomModel[['group1.Chol1']]$labels
+    bivHomModel[['group2.EM2']]$labels <- bivHomModel[['group1.EM1']]$labels
 bivHomFit <- mxRun(bivHomModel)
     EM1Hom <- mxEval(group1.EM1, bivHomFit)
     EM2Hom <- mxEval(group2.EM2, bivHomFit)

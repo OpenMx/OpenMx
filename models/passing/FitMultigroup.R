@@ -33,25 +33,25 @@ model2 <- mxModel("model2", data2, mat2, obj2, mxFitFunctionML())
 #output1 <- mxRun(model1, suppressWarnings = TRUE)
 #output2 <- mxRun(model2, suppressWarnings = TRUE)
 
-#output1@output
-#output2@output
+#output1$output
+#output2$output
 
 alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
 if (1) {
 	obj <- mxFitFunctionMultigroup(paste("model", 1:2, sep=""))
 	model <- mxModel("both", obj, model1, model2)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est@output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
 }
 if (1) {
 	obj <- mxFitFunctionMultigroup("both.alg")
 	model <- mxModel("both", obj, model1, model2, alg)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est@output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
 }
 if (1) {
 	obj <- mxFitFunctionAlgebra("alg")
 	model <- mxModel("both", obj, model1, model2, alg)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est@output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
 }

@@ -120,21 +120,21 @@ multivariateRegModel <- mxModel("MultiVariate Regression Path Specification",
 multivariateRegFit <- mxRun(multivariateRegModel)
 
 summary(multivariateRegFit)
-multivariateRegFit@output
+multivariateRegFit$output
 
 
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betay"]], 1.6312, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betayx"]], 0.4243, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betayz"]], 0.2265, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["residualy"]], 0.6336, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betaw"]], 0.5165, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betawx"]], -0.2311, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["betawz"]], 0.5117, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["residualw"]], 0.5979, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["varx"]], 1.1160, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["varz"]], 0.8360, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["covxz"]], 0.2890, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["meanx"]], 0.0540, 0.001)
-omxCheckCloseEnough(multivariateRegFit@output$estimate[["meanz"]], 4.0610, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betay"]], 1.6312, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betayx"]], 0.4243, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betayz"]], 0.2265, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["residualy"]], 0.6336, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betaw"]], 0.5165, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betawx"]], -0.2311, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["betawz"]], 0.5117, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["residualw"]], 0.5979, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["varx"]], 1.1160, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["varz"]], 0.8360, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["covxz"]], 0.2890, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["meanx"]], 0.0540, 0.001)
+omxCheckCloseEnough(multivariateRegFit$output$estimate[["meanz"]], 4.0610, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------

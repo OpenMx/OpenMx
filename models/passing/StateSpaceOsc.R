@@ -176,8 +176,8 @@ dlmEstR <- c( #diagonal manifest error cov
 
 
 
-omxCheckCloseEnough(srun$A@values, dlmEstA, epsilon=0.001)
-omxCheckCloseEnough(srun$C@values[srun$C@free], dlmEstC, epsilon=0.001)
-omxCheckCloseEnough(diag(srun$R@values), dlmEstR, epsilon=0.001)
+omxCheckCloseEnough(srun$A$values, dlmEstA, epsilon=0.001)
+omxCheckCloseEnough(srun$C$values[srun$C$free], dlmEstC, epsilon=0.001)
+omxCheckCloseEnough(diag(srun$R$values), dlmEstR, epsilon=0.001)
 
 

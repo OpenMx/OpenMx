@@ -157,7 +157,7 @@ LRT_ACE= LL_ACE - LL_Sat
 	names(ACEest)<-c("A", "C", "E")
  	ACEest; LL_ACE; LRT_ACE
 
-# Specify and reduced AE Model (drop c @0)
+# Specify and reduced AE Model (drop c $0)
 # -----------------------------------------------------------------------
 twinAEModel <- mxModel(twinACEModel, name="twinAE",
     mxMatrix("Full", nrow=1, ncol=1, free=F, values=0, label="c", name="Y")

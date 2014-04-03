@@ -22,4 +22,4 @@ loadings <- c(1, -0.625, 0.1953125,
 	1,  0.625, 0.1953125)
 loadings <- matrix(loadings, 6, 3, byrow = TRUE)
 L <- mxMatrix("Full", free=FALSE, values=loadings, name="L", byrow=TRUE)
-omxCheckIdentical(loadings, L@values)
+omxCheckIdentical(loadings, L$values)

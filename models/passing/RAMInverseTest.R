@@ -163,7 +163,7 @@ threeLatentMultipleReg1Out <- mxRun(threeLatentMultipleReg1, suppressWarnings=TR
 #------------------------------------------------------------------------
 # Note that the A matrix is nilpotent of nontrivial order, 3
 
-AM <- threeLatentMultipleReg1$A@values
+AM <- threeLatentMultipleReg1$A$values
 AM
 AM %*% AM
 AM %*% AM %*% AM
@@ -185,7 +185,7 @@ summary(brun)$wallTime
 #------------------------------------------------------------------------
 # Compare the estimated parameters of the same model using the speed up or not
 
-omxCheckCloseEnough(threeLatentMultipleReg1Out@output$estimate, brun@output$estimate, epsilon=0.001)
+omxCheckCloseEnough(threeLatentMultipleReg1Out$output$estimate, brun$output$estimate, epsilon=0.001)
 
 
 #------------------------------------------------------------------------

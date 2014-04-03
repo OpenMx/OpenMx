@@ -80,9 +80,9 @@ growthCurveModel <- mxModel("Linear Growth Curve Model, Path Specification",
       
 growthCurveFit<-mxRun(growthCurveModel)
 
-omxCheckCloseEnough(growthCurveFit@output$estimate[["meani"]], 9.930, 0.01)
-omxCheckCloseEnough(growthCurveFit@output$estimate[["means"]], 1.813, 0.01)
-omxCheckCloseEnough(growthCurveFit@output$estimate[["vari"]], 3.886, 0.01)
-omxCheckCloseEnough(growthCurveFit@output$estimate[["vars"]], 0.258, 0.01)
-omxCheckCloseEnough(growthCurveFit@output$estimate[["cov"]], 0.460, 0.01)
-omxCheckCloseEnough(growthCurveFit@output$estimate[["residual"]], 2.316, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["meani"]], 9.930, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["means"]], 1.813, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["vari"]], 3.886, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["vars"]], 0.258, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["cov"]], 0.460, 0.01)
+omxCheckCloseEnough(growthCurveFit$output$estimate[["residual"]], 2.316, 0.01)

@@ -38,12 +38,12 @@ onelocus<-mxModel("onelocus", mxFitFunctionAlgebra("NegativeLogLikelihood"),
 
 #run the model
 run<-mxRun(onelocus)
-run@matrices
-run@algebras
+run$matrices
+run$algebras
 
 
 # Compare OpenMx estimates to original Mx's estimates
-estimates<-c(run@matrices$P@values,run@matrices$Q@values,run@matrices$R@values,run@algebras$NegativeLogLikelihood@result)
+estimates<-c(run$matrices$P$values,run$matrices$Q$values,run$matrices$R$values,run$algebras$NegativeLogLikelihood$result)
 Mx1Estimates<-c(0.2945,0.1540,0.5515,627.104)
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 

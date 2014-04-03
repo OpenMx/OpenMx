@@ -17,11 +17,11 @@ require(OpenMx)
 
 fix_matrix <- function(m)
 {
- for (i in 1:dim(m@labels)[1])
+ for (i in 1:dim(m$labels)[1])
  {
-	for (j in 1:dim(m@labels)[2])
+	for (j in 1:dim(m$labels)[2])
 	{
-				m@free[i,j] <- FALSE;	
+				m$free[i,j] <- FALSE;	
 	}
  }
  return(m);
@@ -66,7 +66,7 @@ run <- mxRun(model);
 # rewrite version
 #################
 
-m <- run$A@values[1,1]
+m <- run$A$values[1,1]
 
 test <- mxModel("test",
 	mxData(data, "raw"),
@@ -84,10 +84,10 @@ test2 <- mxRun(test)
 # flipping parameters
 
 test3 <- run
-test3$M@free[1,1] <- F
+test3$M$free[1,1] <- F
 
 test4 <- mxRun(test3)
 
-test3@output <- list()
+# test3$output <- list()
 
 test5 <- mxRun(test3)

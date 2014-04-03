@@ -154,23 +154,23 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
 )
 
     bivHetFit <- mxRun(bivHetModel)
-    EM1Het <- bivHetFit$group1.fitfunction@info$expMean
-    EM2Het <- bivHetFit$group2.fitfunction@info$expMean
-    EC1Het <- bivHetFit$group1.fitfunction@info$expCov
-    EC2Het <- bivHetFit$group2.fitfunction@info$expCov
+    EM1Het <- bivHetFit$group1.fitfunction$info$expMean
+    EM2Het <- bivHetFit$group2.fitfunction$info$expMean
+    EC1Het <- bivHetFit$group1.fitfunction$info$expCov
+    EC2Het <- bivHetFit$group2.fitfunction$info$expCov
     LLHet <- mxEval(fitfunction, bivHetFit)
 # Fit Heterogeneity Model
 # -----------------------------------------------------------------------------
 
 bivHomModel <- bivHetModel
-    bivHomModel[['group2.S']]@labels <- bivHomModel[['group1.S']]@labels
-    bivHomModel[['group2.M']]@labels <- bivHomModel[['group1.M']]@labels
+    bivHomModel[['group2.S']]$labels <- bivHomModel[['group1.S']]$labels
+    bivHomModel[['group2.M']]$labels <- bivHomModel[['group1.M']]$labels
 
     bivHomFit <- mxRun(bivHomModel)
-    EM1Hom <- bivHomFit$group1.fitfunction@info$expMean
-    EM2Hom <- bivHomFit$group2.fitfunction@info$expMean
-    EC1Hom <- bivHomFit$group1.fitfunction@info$expCov
-    EC2Hom <- bivHomFit$group2.fitfunction@info$expCov
+    EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
+    EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
+    EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
+    EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
     LLHom <- mxEval(fitfunction, bivHomFit)
 
     Chi= LLHom-LLHet

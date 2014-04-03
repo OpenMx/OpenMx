@@ -56,9 +56,9 @@ fit1 <- function(seed=5, ghp=11) {
   m1 <- mxOption(m1, "Standard Errors", "No")
   m1 <- mxRun(m1)
 
-  result$cpuTime <- m1@output$cpuTime
-  result$LL <- m1@output$Minus2LogLikelihood
-  result$param <- m1@matrices$ItemParam@values
+  result$cpuTime <- m1$output$cpuTime
+  result$LL <- m1$output$Minus2LogLikelihood
+  result$param <- m1$matrices$ItemParam$values
   result
 }
 
@@ -86,8 +86,8 @@ for (cnt in 1:500) {
   bank[[bi]] <- fit1(ghp=17, seed=cnt)
   save(bank, file=rda)
   
-  print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
-#  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
+  print(cor(bank[[bi]]$param[ip.mat$free], correct[ip.mat$free]))
+#  print(cor(c(calc.bias(bank[filter])[ip.mat$free]), c(correct[ip.mat$free])))
 }
 
 for (cnt in 7:50) {
@@ -97,17 +97,17 @@ for (cnt in 7:50) {
   bank[[bi]] <- fit1(ghp=cnt, seed=1)
   save(bank, file=rda)
   
-  print(cor(bank[[bi]]$param[ip.mat@free], correct[ip.mat@free]))
-  #  print(cor(c(calc.bias(bank[filter])[ip.mat@free]), c(correct[ip.mat@free])))
+  print(cor(bank[[bi]]$param[ip.mat$free], correct[ip.mat$free]))
+  #  print(cor(c(calc.bias(bank[filter])[ip.mat$free]), c(correct[ip.mat$free])))
 }
 
-#abs(calc.bias(bank[filter])[ip.mat@free])
+#abs(calc.bias(bank[filter])[ip.mat$free])
 
 if(1) {
   df <- list()
   for (mdim in c(TRUE,FALSE)) {
-    x <- correct[ip.mat@free]
-    bias <- calc.bias(bank[sapply(bank, function (b) b$mdim == mdim & b$ghp==17)])[ip.mat@free]
+    x <- correct[ip.mat$free]
+    bias <- calc.bias(bank[sapply(bank, function (b) b$mdim == mdim & b$ghp==17)])[ip.mat$free]
     df <- rbind(df, data.frame(mdim=mdim, bias=bias, x=x))
   }
   df$mdim <- factor(df$mdim)
@@ -131,6 +131,6 @@ if(1) {
 
 #qplot(c(0, 3), stat="function", fun=function (x) dlnorm(x, sdlog=.25), geom="line") + ylim(0,1.5)
 if (0) {
-  plot(correct[ip.mat@free],
-       calc.bias(bank[sapply(bank, function (b) b$mdim==TRUE & b$sdlog==.5)])[ip.mat@free])
+  plot(correct[ip.mat$free],
+       calc.bias(bank[sapply(bank, function (b) b$mdim==TRUE & b$sdlog==.5)])[ip.mat$free])
 }

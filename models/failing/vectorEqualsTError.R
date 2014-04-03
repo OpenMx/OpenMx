@@ -54,7 +54,7 @@ omxCheckCloseEnough(omxGetParameters(m1), trueParam, 0.01)
 # Now: Switch to vector
 m1 <- mxModel(m1, mxFitFunctionML(vector = TRUE), name = "vector_is_TRUE")
 omxCheckError(mxRun(m1), 
-	paste("The top level fitfunction in model", m1@name, "does not",
+	paste("The top level fitfunction in model", m1$name, "does not",
 	"evaluate to a 1x1 matrix.  Consider aggregating by adding the following to your model:",
 	"mxAlgebra(-2*sum(log(YourModelName.fitfunction))), 'm2ll'), mxFitFunctionAlgebra('m2ll')"))
 

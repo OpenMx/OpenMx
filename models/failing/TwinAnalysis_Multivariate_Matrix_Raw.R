@@ -44,7 +44,7 @@ meanLabels = paste("Trait", rep(1:nVar,2),  "mean", sep=""); # make labels for t
 expMZMeans = mxMatrix("Full", nrow=1, ncol=(nVar*2), free=TRUE, values=meanStarts, label=meanLabels, dimnames=list("means", selVars), name="expMeanMZ");
 # Clone the MZ means matrix for  DZs
 expDZMeans = expMZMeans; 
-expDZMeans@name="expMeanDZ"; 
+expDZMeans$name="expMeanDZ"; 
 
 # Matrices for path coefficients
 aMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="a") # Additive genetic path coefficient
@@ -90,7 +90,7 @@ model = mxModel("ACE", mzGroup, dzGroup,
 fit = mxRun(model)
 
 #Extract various fitted results
-MZc = mxEval(mz.expCov,  fit); # Same effect as expCovMZ@matrices$fit
+MZc = mxEval(mz.expCov,  fit); # Same effect as expCovMZ$matrices$fit
 DZc = mxEval(dz.expCov,  fit);
 M   = mxEval(mz.expMeanMZ, fit);
 A   = mxEval(mz.A, fit);

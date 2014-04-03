@@ -79,10 +79,10 @@ createNewModel <- function(index, prefix, model) {
 }
 
 getStats <- function(model) {
-	retval <- c(model@output$status[[1]],
-		max(abs(model@output$gradient)),
-		model@output$estimate,
-		sqrt(diag(solve(model@output$hessian))))
+	retval <- c(model$output$status[[1]],
+		max(abs(model$output$gradient)),
+		model$output$estimate,
+		sqrt(diag(solve(model$output$hessian))))
 	return(retval)
 }
 
@@ -120,11 +120,11 @@ topModel <- mxModel("container")
 submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
 
 names(submodels) <- imxExtractNames(submodels)
-topModel@submodels <- submodels
+topModel$submodels <- submodels
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
-results <- t(omxSapply(modelResults@submodels, getStats))
+results <- t(omxSapply(modelResults$submodels, getStats))
 
 
 results2 <- data.frame(results[which(results[,1] <= 1),])

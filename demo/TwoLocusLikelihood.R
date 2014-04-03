@@ -62,14 +62,14 @@ TwoLocusModel <- mxModel("TwoLocus",
 # -----------------------------------------------------------------------------
 
 TwoLocusFit<-mxRun(TwoLocusModel, suppressWarnings=TRUE)
-TwoLocusFit@matrices
-TwoLocusFit@algebras
+TwoLocusFit$matrices
+TwoLocusFit$algebras
 
 
 estimates <- c(
-    TwoLocusFit@matrices$P@values, 
-    TwoLocusFit@matrices$S@values, 
-    TwoLocusFit@algebras$NegativeLogLikelihood@result)
+    TwoLocusFit$matrices$P$values, 
+    TwoLocusFit$matrices$S$values, 
+    TwoLocusFit$algebras$NegativeLogLikelihood$result)
 Mx1Estimates<-c(0.2915,0.1543,647.894)
 
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)

@@ -112,8 +112,8 @@ defMeansFit <- mxRun(defMeansModel)
 # Run the model
 # -----------------------------------------------------------------------------
 
-defMeansFit@matrices
-defMeansFit@algebras
+defMeansFit$matrices
+defMeansFit$algebras
 
 
 

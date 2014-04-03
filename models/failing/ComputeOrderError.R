@@ -104,12 +104,12 @@ model <- mxModel(model="NucTwFam", mzModel, dzModel, ntf,
 fit <- mxRun(model)
 #Look at results
 summary(fit)
-res <- model@output$estimate
+res <- model$output$estimate
 round(res,3)
 #compare to simulation
 res.mat <- rbind(round(c(res[1:5]^2,res[6:7]),3),round(ALL$track.changes[c('var.U','var.F','var.A','var.S','var.D','cor.spouses','var.cur.phenotype'),'data.t1'],3))
 dimnames(res.mat) <- list(c('OpenMx-Estimated','Simulated'),c('Var.E','Var.F','Var.A','Var.S','Var.D','Cor.Sps','Var.Phen'))
 
 #look at implied Covariances
-round(model@output$algebras$MZNTF.expCovMz,3)
-round(model@output$algebras$DZNTF.expCovDz,3)
+round(model$output$algebras$MZNTF.expCovMz,3)
+round(model$output$algebras$DZNTF.expCovDz,3)

@@ -76,7 +76,7 @@ algebraExercises <- mxModel(
 
 
 answers <- mxRun(algebraExercises)
-answers@algebras
+answers$algebras
 
 result <- mxEval(list(q1,q2,q3,q4,q5),answers)	
 # Run Model and Generate Output

@@ -11,9 +11,9 @@ compute.factored.ll <- function(m, obs) {
   # Factored form of the complete data likelihood
   # Equation 8 from Cai (2010, p. 37)
   
-  spec <- m@expectation@ItemSpec
-  ip <- m@matrices$ItemParam@values
-  scores <- m@expectation@output$scores[,1:2]
+  spec <- m$expectation$ItemSpec
+  ip <- m$matrices$ItemParam$values
+  scores <- m$expectation$output$scores[,1:2]
   
   ll <- 0
   for (ii in 1:nrow(obs)) {
@@ -22,8 +22,8 @@ compute.factored.ll <- function(m, obs) {
     }
   }
   ld1 <- apply(scores, 1,
-               function (sc) dmvnorm(sc, c(m@matrices$mean@values),
-                                     m@matrices$cov@values, log=TRUE))
+               function (sc) dmvnorm(sc, c(m$matrices$mean$values),
+                                     m$matrices$cov$values, log=TRUE))
   ll <- ll + sum(ld1)
   ll
 }
@@ -67,7 +67,7 @@ m2 <- mxModel(model="latent",
 m2 <- mxRun(m2, silent=TRUE)
 
 if (1) {
-  omxCheckCloseEnough(-2 * compute.factored.ll(m2, data) /  m2@output$fit, 1, .02)
+  omxCheckCloseEnough(-2 * compute.factored.ll(m2, data) /  m2$output$fit, 1, .02)
 }
 
 tri1 <- function(k) k*(k+1)/2
@@ -100,6 +100,11 @@ sigma.coef <- function(Icov) {
   coef
 }
 
+<<<<<<< .mine
+Icov <- solve(m2$matrices$cov$values)
+omxCheckCloseEnough(m2$output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
+omxCheckCloseEnough(m2$output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
+=======
 Icov <- solve(m2@matrices$cov@values)
 omxCheckCloseEnough(m2@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
 omxCheckCloseEnough(m2@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
@@ -120,3 +125,4 @@ m3 <- mxModel("en", m2@matrices$mean, m2@matrices$cov,
 m3Fit <- mxRun(m3, silent=TRUE)
 omxCheckCloseEnough(m3Fit@output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
 omxCheckCloseEnough(m3Fit@output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
+>>>>>>> .r3256

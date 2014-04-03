@@ -163,12 +163,12 @@ expectSE <- c(0.076992, 0.088067, 0.102978, 0.068953, 0.089564, 0.121074,
 
 expectMin <- 7726.295
 
-omxCheckCloseEnough(expectVal, threeLatentMediation4Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMediation4Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation4Out@output$standardError), 0.001)
+    as.vector(threeLatentMediation4Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, threeLatentMediation4Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMediation4Out$output$minimum, 0.001)
 
 #---------------------------------------
 # check values: threeLatentMediation3Out
@@ -190,12 +190,12 @@ expectSE <- c(0.076954, 0.087963, 0.102668, 0.069253, 0.127926, 0.088107,
 
 expectMin <- 7710.615
 
-omxCheckCloseEnough(expectVal, threeLatentMediation3Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMediation3Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation3Out@output$standardError), 0.001)
+    as.vector(threeLatentMediation3Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, threeLatentMediation3Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMediation3Out$output$minimum, 0.001)
 
 
 #---------------------------------------
@@ -217,12 +217,12 @@ expectSE <- c(0.076472, 0.088267, 0.102919, 0.092556, 0.092707, 0.136435,
 
 expectMin <- 7840.327
 
-omxCheckCloseEnough(expectVal, threeLatentMediation2Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMediation2Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation2Out@output$standardError), 0.001)
+    as.vector(threeLatentMediation2Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, threeLatentMediation2Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMediation2Out$output$minimum, 0.001)
 
 
 #---------------------------------------
@@ -244,12 +244,12 @@ expectSE <- c(0.076476, 0.088205, 0.102851, 0.077261, 0.092403, 0.136048,
 
 expectMin <- 7840.856
 
-omxCheckCloseEnough(expectVal, threeLatentMediation1Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMediation1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation1Out@output$standardError), 0.001)
+    as.vector(threeLatentMediation1Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, threeLatentMediation1Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMediation1Out$output$minimum, 0.001)
 
 
 #---------------------------------------
@@ -271,10 +271,10 @@ expectSE <- c(0.076528, 0.088527, 0.103665, 0.092459, 0.136218, 0.118764,
 
 expectMin <- 7897.082
 
-omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out@output$estimate, 0.01)
+omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out$output$estimate, 0.01)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentOrthoRaw1Out@output$standardError), 0.01)
+    as.vector(threeLatentOrthoRaw1Out$output$standardError), 0.01)
 
-omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out$output$minimum, 0.001)
 

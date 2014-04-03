@@ -21,7 +21,7 @@ mkmodel <- function(seed) {
   set.seed(seed)
   
   maxParam <- max(vapply(items, rpf.numParam, 0))
-  maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
+  maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
   
   design <- matrix(c(rep(1L,numItems),
                      rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
@@ -74,18 +74,18 @@ replicate <- function(seed) {
                   mxComputeHessianQuality())))
   i2 <- mxRun(i2, silent=TRUE)
   
-  got <- cbind(m1@output$estimate,
-               m1@output$standardErrors,
-               i1@output$standardErrors,
-               i2@output$standardErrors)
+  got <- cbind(m1$output$estimate,
+               m1$output$standardErrors,
+               i1$output$standardErrors,
+               i2$output$standardErrors)
   colnames(got) <- c("est", "sem", "meat", "sw")
   
-  sem.condnum <- m1@output$conditionNumber
+  sem.condnum <- m1$output$conditionNumber
   list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum),
-                 meat=i1@output$conditionNumber,
-                 sw=i2@output$conditionNumber),
+                 meat=i1$output$conditionNumber,
+                 sw=i2$output$conditionNumber),
        got=got,
-       em=m1@compute@steps[[1]]@output)
+       em=m1$compute$steps[[1]]$output)
 }
 
 if (0) {
@@ -99,7 +99,7 @@ if (0) {
                   mxComputeHessianQuality())))
   
   m1 <- mxRun(m1, silent=TRUE)
-  print(m1@output$conditionNumber)
+  print(m1$output$conditionNumber)
  stop("done") 
 }
 

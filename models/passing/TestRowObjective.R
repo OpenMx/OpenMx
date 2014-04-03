@@ -50,7 +50,7 @@ rmod <- mxModel(
 #rmodnsRun <- mxRun(rmodns)
 rmodRun <- mxRun(rmod)
 # summary(rmodRun) #So far I haven't got the summary to work
-# rmod@algebras
+# rmod$algebras
 
 
 #-----------------------------------------

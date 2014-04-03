@@ -60,15 +60,15 @@ OneLocusModel <- mxModel("OneLocus",
 # -----------------------------------------------------------------------------
 
 OneLocusFit <- mxRun(OneLocusModel)
-OneLocusFit@matrices
-OneLocusFit@algebras
+OneLocusFit$matrices
+OneLocusFit$algebras
 
 
 estimates <- c(
-    OneLocusFit@matrices$P@values, 
-    OneLocusFit@matrices$Q@values, 
-    OneLocusFit@matrices$R@values, 
-    OneLocusFit@algebras$NegativeLogLikelihood@result)
+    OneLocusFit$matrices$P$values, 
+    OneLocusFit$matrices$Q$values, 
+    OneLocusFit$matrices$R$values, 
+    OneLocusFit$algebras$NegativeLogLikelihood$result)
 Mx1Estimates<-c(0.2931,0.1552,0.5517,627.851)
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 # Compare OpenMx estimates to original Mx's estimates

@@ -65,10 +65,10 @@ summary(multiRegModelOut)
 lmOut <- lm(y~x1+x2+x3+x4, data=multiData1)
 lmOutSummary <- summary(lmOut)
 
-omxCheckCloseEnough(multiRegModelOut@output$estimate[1:4], 
+omxCheckCloseEnough(multiRegModelOut$output$estimate[1:4], 
     lmOutSummary$coef[2:5,1],
     0.001)
 
-omxCheckCloseEnough(multiRegModelOut@output$standardErrors[1:4], 
+omxCheckCloseEnough(multiRegModelOut$output$standardErrors[1:4], 
     lmOutSummary$coef[2:5,2],
     0.001)

@@ -30,7 +30,7 @@ mkgroup <- function(model.name, data, latent.free) {
   for (ix in 1:numItems) {
     for (px in 1:2) {
       name <- paste(c('p',ix,',',px), collapse='')
-      ip.mat@labels[px,ix] <- name
+      ip.mat$labels[px,ix] <- name
     }
   }
   
@@ -126,17 +126,17 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, #laten
   
 grpModel <- mxRun(grpModel)
 
-#dm <- grpModel@compute@steps[[1]]@debug$rateMatrix
+#dm <- grpModel$compute$steps[[1]]$debug$rateMatrix
 
 plot_em_map <- function(model, cem) {   # for S-EM debugging
   require(ggplot2)
-  phl <- cem@debug$paramHistLen
-  probeOffset <- cem@debug$probeOffset
-  semDiff <- cem@debug$semDiff
+  phl <- cem$debug$paramHistLen
+  probeOffset <- cem$debug$probeOffset
+  semDiff <- cem$debug$semDiff
 
   modelfit <- NULL
   result <- data.frame()
-  for (vx in 1:length(model@output$estimate)) {
+  for (vx in 1:length(model$output$estimate)) {
     len <- phl[vx]
     offset <- probeOffset[1:len, vx]
     dd <- semDiff[1:(len-1), vx]
@@ -147,7 +147,7 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
     m1 <- lm(diff ~ 1 + I(1/mid^2), data=df)
     modelfit <- c(modelfit, summary(m1)$r.squ)
     df$model <- predict(m1)
-    result <- rbind(result, cbind(vx=vx, vname=names(model@output$estimate)[vx], df))
+    result <- rbind(result, cbind(vx=vx, vname=names(model$output$estimate)[vx], df))
   }
   print(mean(modelfit))
   ggplot(subset(result, vx %in% order(modelfit)[1:9])) +
@@ -156,28 +156,28 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
 }
 
 if (0) {
-  plot_em_map(grpModel, grpModel@compute)
+  plot_em_map(grpModel, grpModel$compute)
 }
 
-omxCheckCloseEnough(grpModel@output$minimum, 30114.94, .01)
-  omxCheckCloseEnough(grpModel@submodels$g2latent@matrices$expMean@values, -.834, .01)
-  omxCheckCloseEnough(grpModel@submodels$g2latent@matrices$expCov@values, 3.93, .01)
-  omxCheckCloseEnough(grpModel@submodels$g3latent@matrices$expMean@values, .933, .01)
-  omxCheckCloseEnough(grpModel@submodels$g3latent@matrices$expCov@values, .444, .01)
+omxCheckCloseEnough(grpModel$output$minimum, 30114.94, .01)
+  omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expMean$values, -.834, .01)
+  omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expCov$values, 3.93, .01)
+  omxCheckCloseEnough(grpModel$submodels$g3latent$matrices$expMean$values, .933, .01)
+  omxCheckCloseEnough(grpModel$submodels$g3latent$matrices$expCov$values, .444, .01)
 
-emstat <- grpModel@compute@steps[[1]]@output
+emstat <- grpModel$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 95, 2)
 omxCheckCloseEnough(emstat$totalMstep, 314, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
   
-#  cat(deparse(round(grpModel@output$standardErrors, 3)))
+#  cat(deparse(round(grpModel$output$standardErrors, 3)))
   semse <- c(0.069, 0.077, 0.074, 0.077, 0.094, 0.097, 0.125,  0.111, 0.069, 0.074,
              0.132, 0.116, 0.08, 0.081, 0.209, 0.163,  0.102, 0.133, 0.114, 0.107,
              0.205, 0.151, 0.068, 0.077, 0.073,  0.138, 0.078, 0.081, 0.088, 0.087,
              0.061, 0.068, 0.125, 0.11,  0.084, 0.09, 0.094, 0.094, 0.092, 0.089,
              0.11, 0.399, 0.068,  0.055)
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .02)
-  omxCheckCloseEnough(grpModel@output$conditionNumber, 158, 10)
+  omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .02)
+  omxCheckCloseEnough(grpModel$output$conditionNumber, 158, 10)
   
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(
@@ -187,14 +187,14 @@ i1 <- mxModel(grpModel,
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1)
   
-  #cat(deparse(round(i1@output$standardErrors,3)))
+  #cat(deparse(round(i1$output$standardErrors,3)))
   se <- c(0.071, 0.078, 0.076, 0.079, 0.097, 0.099, 0.132,  0.117, 0.075,
           0.077, 0.135, 0.121, 0.081, 0.083, 0.215, 0.169,  0.111, 0.141,
           0.121, 0.113, 0.213, 0.159, 0.074, 0.082, 0.077,  0.139, 0.084,
           0.087, 0.095, 0.09, 0.064, 0.07, 0.135, 0.115,  0.091, 0.095, 0.097,
           0.098, 0.096, 0.093, 0.12, 0.512, 0.072,  0.057)
-  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
-  omxCheckCloseEnough(log(i1@output$conditionNumber), 5.6, .2)
+  omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
+  omxCheckCloseEnough(log(i1$output$conditionNumber), 5.6, .2)
 
 if (0) {
   library(mirt)
@@ -211,5 +211,5 @@ if (0) {
   print(got$GroupPars)
   # COV 4.551
   got$GroupPars <- NULL
-  round(m2@matrices$itemParam@values - simplify2array(got), 2)
+  round(m2$matrices$itemParam$values - simplify2array(got), 2)
 }

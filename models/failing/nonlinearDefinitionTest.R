@@ -38,9 +38,9 @@ summary(results)
 check <- nls(y ~ b0 + (b1 ^ z) * x, start=list(b0=0, b1=0.7))
 
 #beta0
-omxCheckCloseEnough(results@output$estimate[5], 
+omxCheckCloseEnough(results$output$estimate[5], 
   summary(check)$parameters[1], 0.01)
 
 #beta1
-omxCheckCloseEnough(results@output$estimate[3], 
+omxCheckCloseEnough(results$output$estimate[3], 
   summary(check)$parameters[2], 0.01)

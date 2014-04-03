@@ -72,12 +72,12 @@ expectSE <- c(0.035244, 0.022431, 0.020808, 0.044662, 0.042295, 0.045789,
 
 expectMin <- 1442.06
 
-omxCheckCloseEnough(expectVal, oneFactorCov1Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, oneFactorCov1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(oneFactorCov1Out@output$standardError), 0.001)
+    as.vector(oneFactorCov1Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, oneFactorCov1Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, oneFactorCov1Out$output$minimum, 0.001)
 
 
 
@@ -124,11 +124,11 @@ expectSE <- c(0.035182, 0.030686, 0.067917, 0.066228, 0.078835, 0.085033,
 
 expectMin <- 1442.06
 
-omxCheckCloseEnough(expectVal, oneFactorCov2Out@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, oneFactorCov2Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(oneFactorCov2Out@output$standardError), 0.001)
+    as.vector(oneFactorCov2Out$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, oneFactorCov2Out@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, oneFactorCov2Out$output$minimum, 0.001)
 
 

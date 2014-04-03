@@ -60,11 +60,11 @@ summary(biRegModelRawOut)
 lmOut <- lm(y~x1+x2, data=multiData1)
 lmOutSummary <- summary(lmOut)
 
-omxCheckCloseEnough(biRegModelRawOut@output$estimate[1:2], 
+omxCheckCloseEnough(biRegModelRawOut$output$estimate[1:2], 
     lmOutSummary$coef[2:3,1],
     0.001)
 
-omxCheckCloseEnough(biRegModelRawOut@output$standardErrors[1:2], 
+omxCheckCloseEnough(biRegModelRawOut$output$standardErrors[1:2], 
     lmOutSummary$coef[2:3,2],
     0.001)
 

@@ -83,7 +83,7 @@ lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"),
 # Run the job
 model <- mxRun(lcamodel, suppressWarnings=TRUE)
 summary(model)
-model@matrices
+model$matrices
 
 
 # Check results against those hard-coded from old Mx:
@@ -98,4 +98,4 @@ if (negativeThresholds[[1]] > 0) {
 omxCheckCloseEnough(negativeThresholds, c(-1.3247, -0.2909, -0.1466, -0.0044),.01)
 omxCheckCloseEnough(positiveThresholds, c(0.1805, 0.9071, 1.3169, 1.5869),.01)
 omxCheckCloseEnough(sort(as.vector(mxEval(ClassMembershipProbabilities, model))), c(0.4440, 0.5560),.01)
-omxCheckCloseEnough(model@output$Minus2LogLikelihood, 4696.444, 0.01)
+omxCheckCloseEnough(model$output$Minus2LogLikelihood, 4696.444, 0.01)

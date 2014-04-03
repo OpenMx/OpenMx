@@ -46,17 +46,17 @@ model<-mxModel("Autoregressive Model Path",
        
 autoregressivePathRaw <-mxRun(model)
 
-autoregressivePathRaw@output
+autoregressivePathRaw$output
 
 # Comparing to old Mx Output
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["beta"]], 0.4267, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["varx1"]], 0.6658, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["e2"]], 1.1420, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["e3"]], 1.0379, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["e4"]], 0.7908, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["e5"]], 0.8176, 0.01)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["mean1"]], 3.0537, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["mean2"]], 0.0824, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["mean3"]], 0.0890, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["mean4"]], -0.0362, 0.001)
-omxCheckCloseEnough(autoregressivePathRaw@output$estimate[["mean5"]], -0.1356, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["beta"]], 0.4267, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["varx1"]], 0.6658, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["e2"]], 1.1420, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["e3"]], 1.0379, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["e4"]], 0.7908, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["e5"]], 0.8176, 0.01)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["mean1"]], 3.0537, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["mean2"]], 0.0824, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["mean3"]], 0.0890, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["mean4"]], -0.0362, 0.001)
+omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["mean5"]], -0.1356, 0.001)

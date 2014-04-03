@@ -27,7 +27,7 @@ data <- rpf.sample(numPeople, items, correct.mat, mean=true.mean, cov=true.cov)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
-ip.mat@free[,1:2] <- TRUE
+ip.mat$free[,1:2] <- TRUE
 
 cache <- list(c(32.64709, 40.19653, 138.53231, -39.95988, 55.5181, 70.53231,  -327.55366, -217.73847, 55.02332, 107.86482, 65.56429),
               c(7.09441, 89.77065, 154.90115, -27.91789, 49.86673, 86.90115,  -166.89402, 146.50368, 75.37147, 219.22294, 22.90383),
@@ -45,7 +45,7 @@ diff <- matrix(NA, trials, 11)
 for (seed in 1:trials) {
   set.seed(seed)
   
-  ip.mat@values[,1:2] <- c(1.1,1,0)
+  ip.mat$values[,1:2] <- c(1.1,1,0)
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=runif(2, -1, 1), free=TRUE)
   var <- runif(2, .1, 3)
   cov1 <- runif(1, -min(abs(var)), min(abs(var)))
@@ -67,23 +67,23 @@ for (seed in 1:trials) {
         mxComputeReportDeriv())))
   
   objective1 <- function(x) {
-    ip.mat@values[,1:2] <- x[1:6]
-    m.mat@values[1:2] <- x[7:8]
-    cov.mat@values[1,1] <- x[9]
-    cov.mat@values[1,2] <- x[10]
-    cov.mat@values[2,1] <- x[10]
-    cov.mat@values[2,2] <- x[11]
+    ip.mat$values[,1:2] <- x[1:6]
+    m.mat$values[1:2] <- x[7:8]
+    cov.mat$values[1,1] <- x[9]
+    cov.mat$values[1,2] <- x[10]
+    cov.mat$values[2,1] <- x[10]
+    cov.mat$values[2,2] <- x[11]
     m1.probe <- mxModel(m1, ip.mat, m.mat, cov.mat,
                         mxComputeSequence(steps=list(
                           mxComputeOnce('expectation'),
                           mxComputeOnce('fitfunction', 'fit'))))
     m1.probe <- mxRun(m1.probe, silent=TRUE)
-    got <- m1.probe@output$minimum
+    got <- m1.probe$output$minimum
     #  print(got)
     got
   }
   
-  probe.pt <- c(ip.mat[,1:2], m.mat@values, cov.mat@values[1:2,1], cov.mat@values[2,2])
+  probe.pt <- c(ip.mat[,1:2], m.mat$values, cov.mat$values[1:2,1], cov.mat$values[2,2])
 
   deriv <- c()
   if (0) {
@@ -95,7 +95,7 @@ for (seed in 1:trials) {
   }
   
   m1 <- mxRun(m1, silent=TRUE)
-  diff[seed,] <- m1@output$gradient - deriv
+  diff[seed,] <- m1$output$gradient - deriv
 #  print(probe.pt)
 }
 #apply(abs(diff), 2, median)

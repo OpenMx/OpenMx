@@ -40,7 +40,7 @@ data <- rpf.sample(numPeople, items, correct.mat, design=design, mean=true.mean,
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
-ip.mat@free[,6] <- TRUE
+ip.mat$free[,6] <- TRUE
 
 cache <- list(c(77.55278, -73.91341, -166.20929, 182.00042, -0.95405, -481.91857,  
                 -411.68003, -224.00015, 579.44648, -502.315, 84.53358, -42.47443,  -24.27724, -32.7925, -155.6535, -80.4796, 148.63529),
@@ -69,7 +69,7 @@ diff <- matrix(NA, trials, 17)
 for (seed in 1:trials) {
   set.seed(seed)
   
-  ip.mat@values[,6] <- rpf.rparam(items[[6]])
+  ip.mat$values[,6] <- rpf.rparam(items[[6]])
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=6, values=runif(6, -1, 1), free=TRUE)
   var <- runif(2, .1, 3)
@@ -78,8 +78,8 @@ for (seed in 1:trials) {
   cov[1:2,1:2] <- matrix(c(var[1],cov1,cov1,var[2]), nrow=2)
   
   cov.mat <- mxMatrix(name="cov", nrow=6, ncol=6, values=cov)
-  cov.mat@free <- cov.mat@values != 0
-  cov.mat@labels[1:2,1:2] <- matrix(c("v1","c12","c12","v2"), nrow=2)
+  cov.mat$free <- cov.mat$values != 0
+  cov.mat$labels[1:2,1:2] <- matrix(c("v1","c12","c12","v2"), nrow=2)
 
   m1 <- mxModel(model="latent",
                 ip.mat, m.mat, cov.mat,
@@ -94,22 +94,22 @@ for (seed in 1:trials) {
                   mxComputeReportDeriv())))
   
   objective1 <- function(x) {
-    ip.mat@values[,6] <- x[1:4]
-    m.mat@values[1:6] <- x[5:10]
-    diag(cov.mat@values) <- x[11:16]
-    cov.mat@values[1,2] <- x[17]
-    cov.mat@values[2,1] <- x[17]
+    ip.mat$values[,6] <- x[1:4]
+    m.mat$values[1:6] <- x[5:10]
+    diag(cov.mat$values) <- x[11:16]
+    cov.mat$values[1,2] <- x[17]
+    cov.mat$values[2,1] <- x[17]
     m1.probe <- mxModel(m1, m.mat, cov.mat, ip.mat,
                         mxComputeSequence(steps=list(
                           mxComputeOnce('expectation'),
                           mxComputeOnce('fitfunction', 'fit'))))
     m1.probe <- mxRun(m1.probe, silent=TRUE)
-    got <- m1.probe@output$minimum
+    got <- m1.probe$output$minimum
     #  print(got)
     got
   }
   
-  probe.pt <- c(ip.mat@values[,6], m.mat@values, diag(cov.mat@values), cov.mat@values[2,1])
+  probe.pt <- c(ip.mat$values[,6], m.mat$values, diag(cov.mat$values), cov.mat$values[2,1])
 #  print(probe.pt - true.pt)
   
   deriv <- c()
@@ -123,8 +123,8 @@ for (seed in 1:trials) {
 
   m1 <- mxRun(m1, silent=TRUE)
   #  print(probe.pt)
-  covTerm <- match('c12', names(m1@output$gradient))
-  aGrad <- c(m1@output$gradient[-covTerm], m1@output$gradient[covTerm])
+  covTerm <- match('c12', names(m1$output$gradient))
+  aGrad <- c(m1$output$gradient[-covTerm], m1$output$gradient[covTerm])
   
   diff[seed,] <- aGrad - deriv
 }

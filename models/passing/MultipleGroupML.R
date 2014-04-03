@@ -32,8 +32,8 @@ model2 <- mxModel("model2", data2, mat2, obj2, mxFitFunctionML())
 output1 <- mxRun(model1, suppressWarnings = TRUE)
 output2 <- mxRun(model2, suppressWarnings = TRUE)
 
-output1@output
-output2@output
+output1$output
+output2$output
 
 alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
 obj <- mxFitFunctionAlgebra("alg")
@@ -41,4 +41,4 @@ obj <- mxFitFunctionAlgebra("alg")
 model <- mxModel("both", alg, obj, model1, model2)
 model <- mxRun(model, suppressWarnings = TRUE)
 
-omxCheckCloseEnough(model@output$estimate, c(1, 2), 0.001)
+omxCheckCloseEnough(model$output$estimate, c(1, 2), 0.001)

@@ -20,7 +20,7 @@ mk.model <- function(model.name, numItems, latent.free) {
   for (ix in 1:numItems) {
     for (px in 1:3) {
       name <- paste(c('p',ix,',',px), collapse='')
-      ip.mat@labels[px,ix] <- name
+      ip.mat$labels[px,ix] <- name
     }
   }
 
@@ -56,8 +56,8 @@ fit1 <- function(seed) {
   g1 <- mk.model("g1", 16, FALSE)
   g2 <- mk.model("g2", 12, TRUE)
 
-  data.g1 <- rpf.sample(1000, g1@expectation@ItemSpec, correct, g1@expectation@design)
-  data.g2 <- rpf.sample(1000, g2@expectation@ItemSpec, correct[,1:12], g2@expectation@design,
+  data.g1 <- rpf.sample(1000, g1$expectation$ItemSpec, correct, g1$expectation$design)
+  data.g2 <- rpf.sample(1000, g2$expectation$ItemSpec, correct[,1:12], g2$expectation$design,
                         mean=g2.mean, cov=g2.cov)
   
   if (0) {
@@ -97,17 +97,17 @@ fit1 <- function(seed) {
                     mxComputeHessianQuality())))
     i1 <- mxRun(i1, silent=TRUE)
   
-  got <- cbind(grpModel@output$estimate,
-               grpModel@output$standardErrors,
-               i1@output$standardErrors)
+  got <- cbind(grpModel$output$estimate,
+               grpModel$output$standardErrors,
+               i1$output$standardErrors)
   colnames(got) <- c("est", "sem", "meat")
   
-  sem.condnum <- grpModel@output$conditionNumber
+  sem.condnum <- grpModel$output$conditionNumber
   
-  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum), meat=i1@output$conditionNumber),
+  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum), meat=i1$output$conditionNumber),
        got=got,
-       em=grpModel@compute@steps[[1]]@output,
-       cpuTime=grpModel@output$cpuTime)
+       em=grpModel$compute$steps[[1]]$output,
+       cpuTime=grpModel$output$cpuTime)
 }
 
 to.rd <- function(bank, type, emp) {

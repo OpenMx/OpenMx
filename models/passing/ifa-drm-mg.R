@@ -37,8 +37,8 @@ data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 	if (0) {
 		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
 		cModel <- m2
-		cModel@matrices$itemParam@values[2,] <- fm$G1$param[2,]
-		cModel@matrices$cov@values <- fm$G1$cov
+		cModel$matrices$itemParam$values[2,] <- fm$G1$param[2,]
+		cModel$matrices$cov$values <- fm$G1$cov
 		cModel <- mxModel(cModel,
 				  mxExpectationBA81(mean="mean", cov="cov",
 						    ItemSpec="ItemSpec",
@@ -47,8 +47,8 @@ data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 						      mxComputeOnce('expectation'),
 						      mxComputeOnce('fitfunction', 'fit'))))
 		cModel <- mxRun(cModel)
-		cModel@matrices$cov@values - fm$G1$cov
-		cModel@output$minimum
+		cModel$matrices$cov$values - fm$G1$cov
+		cModel$output$minimum
 	}
 
 # 		m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
@@ -56,17 +56,17 @@ data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 # 		m2 <- mxOption(m2, "Function precision", '1.0E-5')
 		m2 <- mxRun(m2)
 
-emstat <- m2@compute@output
+emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 12, 1)
 omxCheckCloseEnough(emstat$totalMstep, 35, 2)
 
-omxCheckCloseEnough(m2@output$fit, 14129.94, .01)
-omxCheckCloseEnough(m2@matrices$cov@values[1,1], 4.377, .01)
+omxCheckCloseEnough(m2$output$fit, 14129.94, .01)
+omxCheckCloseEnough(m2$matrices$cov$values[1,1], 4.377, .01)
 		
-					#print(m2@matrices$itemParam@values)
+					#print(m2$matrices$itemParam$values)
 					#print(correct.mat)
 mask <- is.finite(correct)
-got <- cor(c(m2@matrices$itemParam@values[mask]),
+got <- cor(c(m2$matrices$itemParam$values[mask]),
 	   c(correct[mask]))
 omxCheckCloseEnough(got, .994, .01)
 
@@ -74,7 +74,7 @@ if (1) {
   ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                      values=c(1,0, logit(0), logit(1)),
                      free=c(TRUE, TRUE, FALSE, FALSE))
-  ip.mat@labels[1,] <- 'a1'
+  ip.mat$labels[1,] <- 'a1'
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
   cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
@@ -90,7 +90,7 @@ if (1) {
                   mxComputeReportDeriv()
                 )))
   deriv <- mxRun(m2, silent=TRUE)
-  omxCheckCloseEnough(deriv@output$ihessian, solve(deriv@output$hessian), 1e-4)
+  omxCheckCloseEnough(deriv$output$ihessian, solve(deriv$output$hessian), 1e-4)
   
   if (0) {
     m3 <- mxModel(m2, mxComputeSequence(list(
@@ -113,18 +113,18 @@ if (1) {
                             mxComputeOnce('fitfunction', 'fit')))
 
   m2 <- mxRun(m2)
-  emstat <- m2@compute@output
+  emstat <- m2$compute$output
   omxCheckCloseEnough(emstat$EMcycles, 38, 1)
   omxCheckCloseEnough(emstat$totalMstep, 127, 5)
-  omxCheckCloseEnough(m2@fitfunction@result, 14129.04, .01)
-  omxCheckCloseEnough(m2@matrices$itemParam@values[1,], rep(2.133, numItems), .002)
+  omxCheckCloseEnough(m2$fitfunction$result, 14129.04, .01)
+  omxCheckCloseEnough(m2$matrices$itemParam$values[1,], rep(2.133, numItems), .002)
   # correct values are from flexMIRT
   est <- c(-0.838622, -1.02653, -0.0868472, -0.251784, 0.953364,  0.735258, 0.606918,
            1.04239, 0.466055, -2.05196, -0.0456446,  -0.320668, -0.362073, 2.02502,
            0.635298, -0.0731132, -2.05196,  -0.0456446, -1.17429, 0.880002, -0.838622,
            -0.838622, 1.02747,  0.424094, -0.584298, 0.663755, 0.663755, 0.064287, 1.38009,
            1.01259 )
-  omxCheckCloseEnough(m2@matrices$itemParam@values[2,], est, .002)
+  omxCheckCloseEnough(m2$matrices$itemParam$values[2,], est, .002)
 }
 
 if (0) {
@@ -142,7 +142,7 @@ if (0) {
   print(got$GroupPars)
   # COV 4.551
   got$GroupPars <- NULL
-  round(m2@matrices$itemParam@values - simplify2array(got), 2)
+  round(m2$matrices$itemParam$values - simplify2array(got), 2)
   
   # MH-RM takes forever, not run
   pars <- confmirt(rdata, 1, itemtype="2PL", D=1, quadpts=49, pars='values')
@@ -152,5 +152,5 @@ if (0) {
   fit <- confmirt(rdata, 1, itemtype="2PL", D=1, quadpts=49, pars=pars)
   got <- coef(fit)
   got$GroupPars <- NULL
-  round(m2@matrices$itemParam@values - sapply(got, function(l) l[1,]), 2)
+  round(m2$matrices$itemParam$values - sapply(got, function(l) l[1,]), 2)
 }

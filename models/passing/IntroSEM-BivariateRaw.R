@@ -13,7 +13,7 @@
 #      Created BivariateRaw-OpenMx100214.R.
 #    -- Sun Aug 29 2010
 #      Formatted for OpenMx Test Suite
----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 # ----------------------------------
 # Read libraries and set options.
@@ -66,12 +66,12 @@ expectSE <- c(0.0554, 0.0474, 0.0719, 0.0649, 0.0984, 0.0893, 0.0477, 0.0558,
 
 expectMin <- 4608.207
 
-omxCheckCloseEnough(expectVal, biRegModelRawOut@output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, biRegModelRawOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(biRegModelRawOut@output$standardError), 0.001)
+    as.vector(biRegModelRawOut$output$standardError), 0.001)
 
-omxCheckCloseEnough(expectMin, biRegModelRawOut@output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, biRegModelRawOut$output$minimum, 0.001)
 
     
 

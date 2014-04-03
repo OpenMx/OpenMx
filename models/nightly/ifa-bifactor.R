@@ -24,7 +24,7 @@ for (ix in 1:numItems) {
 correct.mat <- simplify2array(correct)
 
 maxParam <- max(vapply(items, rpf.numParam, 0))
-maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
+maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
 design <- matrix(c(rep(1L,numItems),
 		   rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
@@ -42,8 +42,8 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0, logit(0), logit(1)),
 		   free=c(rep(TRUE, 3), FALSE, FALSE))
 
-#ip.mat@values[2,1] <- correct.mat[2,1]
-#ip.mat@free[2,1] <- FALSE
+#ip.mat$values[2,1] <- correct.mat[2,1]
+#ip.mat$free[2,1] <- FALSE
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
@@ -57,11 +57,11 @@ m1 <- mxModel(model="bifactor",
 	      mxComputeOnce('expectation', 'scores'))
 m1 <- mxRun(m1)
 
-omxCheckCloseEnough(sum(m1@expectation@debug$patternLikelihood), -12629.4, .1)
-omxCheckCloseEnough(fivenum(m1@expectation@debug$patternLikelihood),
+omxCheckCloseEnough(sum(m1$expectation$debug$patternLikelihood), -12629.4, .1)
+omxCheckCloseEnough(fivenum(m1$expectation$debug$patternLikelihood),
                     c(-15.7575854, -14.9684791, -14.0992631, -12.3467773, -3.5902924 ), 1e-4)
-omxCheckCloseEnough(sum(m1@expectation@debug$em.expected), 20000, 1)
-omxCheckCloseEnough(fivenum(m1@expectation@debug$em.expected),
+omxCheckCloseEnough(sum(m1$expectation$debug$em.expected), 20000, 1)
+omxCheckCloseEnough(fivenum(m1$expectation$debug$em.expected),
                     c(0, 0, 1.8e-06, 0.0034365, 43.2895967), 1e-4)
 
 m1 <- mxModel(m1,
@@ -71,9 +71,9 @@ m1 <- mxModel(m1,
                 mxComputeReportDeriv()
               )))
 m1 <- mxRun(m1)
-omxCheckCloseEnough(m1@fitfunction@result, 2*11850.68, .01)
-omxCheckCloseEnough(fivenum(m1@output$gradient), 2*c(-369.32879, -14.47296, 13.1165, 50.07066, 323.04627 ), .01)
-omxCheckCloseEnough(fivenum(m1@output$hessian[m1@output$hessian != 0]),
+omxCheckCloseEnough(m1$fitfunction$result, 2*11850.68, .01)
+omxCheckCloseEnough(fivenum(m1$output$gradient), 2*c(-369.32879, -14.47296, 13.1165, 50.07066, 323.04627 ), .01)
+omxCheckCloseEnough(fivenum(m1$output$hessian[m1$output$hessian != 0]),
                     2*c(-53.666201, -7.6857353, -6.0121325, 89.8735155, 192.6600613 ), 1e-4)
 
 m1 <- mxModel(m1,
@@ -90,17 +90,17 @@ m1 <- mxModel(m1,
 
 m1 <- mxRun(m1, silent=TRUE)
 
-emstat <- m1@compute@output
+emstat <- m1$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 60, 2)
 omxCheckCloseEnough(emstat$totalMstep, 224, 20)
 
 #print(correct.mat)
-#print(m1@matrices$ItemParam@values)
-omxCheckCloseEnough(m1@output$minimum, 20859.87, .01)
+#print(m1$matrices$ItemParam$values)
+omxCheckCloseEnough(m1$output$minimum, 20859.87, .01)
 mask <- is.finite(correct.mat)
-got <- cor(c(m1@matrices$ItemParam@values[mask]), c(correct.mat[mask]))
+got <- cor(c(m1$matrices$ItemParam$values[mask]), c(correct.mat[mask]))
 omxCheckCloseEnough(got, .977, .01) 
-scores <- m1@expectation@output$scores
+scores <- m1$expectation$output$scores
 omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)
 omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
 omxCheckCloseEnough(cor(c(scores[,3]), c(theta[3,])), .679, .01)
@@ -116,15 +116,15 @@ i1 <- mxModel(m1,
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)
 
-#cat(deparse(round(i1@output$standardErrors,3)))
+#cat(deparse(round(i1$output$standardErrors,3)))
 se <- c(0.195, 0.275, 0.129, 0.12, 0.123, 0.083, 0.336, 0.196,  0.137, 0.157,
         0.148, 0.126, 0.262, 0.223, 0.194, 0.18, 0.215,  0.148, 0.223, 0.314,
         0.286, 0.135, 0.135, 0.103, 0.246, 0.361,  0.139, 0.121, 0.118, 0.079,
         0.123, 0.138, 0.095, 0.141, 0.159,  0.111, 0.161, 0.136, 0.094, 0.144, 0.155,
         0.096, 0.141, 0.147,  0.101, 0.154, 0.219, 0.169, 0.212, 0.177, 0.172, 0.152, 0.197,
         0.125, 0.179, 0.178, 0.107, 0.151, 0.135, 0.101)
-omxCheckCloseEnough(i1@output$conditionNumber, 59, 1)
-omxCheckCloseEnough(c(i1@output$standardErrors), se, .001)
+omxCheckCloseEnough(i1$output$conditionNumber, 59, 1)
+omxCheckCloseEnough(c(i1$output$standardErrors), se, .001)
 
 i2 <- mxModel(m1,
               mxComputeSequence(steps=list(
@@ -133,7 +133,7 @@ i2 <- mxModel(m1,
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)
-omxCheckCloseEnough(i2@output$conditionNumber, 173, 1)
+omxCheckCloseEnough(i2$output$conditionNumber, 173, 1)
 
 swse <- c(0.254, 0.333, 0.13, 0.133, 0.145, 0.082, 0.462, 0.289,  0.169, 0.161,
           0.199, 0.12, 0.282, 0.259, 0.171, 0.208, 0.208,  0.152, 0.275, 0.281,
@@ -142,5 +142,5 @@ swse <- c(0.254, 0.333, 0.13, 0.133, 0.145, 0.082, 0.462, 0.289,  0.169, 0.161,
           0.175, 0.095, 0.17, 0.189,  0.105, 0.171, 0.21, 0.165, 0.236, 0.262,
           0.168, 0.171, 0.22,  0.129, 0.205, 0.206, 0.11, 0.159, 0.163, 0.103)
 
-#cat(deparse(round(i2@output$standardErrors,3)))
-omxCheckCloseEnough(c(i2@output$standardErrors), swse, .001)
+#cat(deparse(round(i2$output$standardErrors,3)))
+omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)

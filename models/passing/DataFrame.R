@@ -76,7 +76,7 @@ model <- mxModel(model, objective, data, mxFitFunctionML())
 
 model <- mxRun(model)
 
-NPSOLOutput <- model@output
+NPSOLOutput <- model$output
 outSum <- NPSOLOutput$minimum
 
 omxCheckCloseEnough(inSum, outSum, epsilon = 10 ^ -4)

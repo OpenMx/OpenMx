@@ -48,8 +48,8 @@ second <- mxModel("Sub",
 secondTest <- mxRun(second, unsafe=TRUE)
 
 # show that the error is due to threshold reversal
-firstCross  <- any((firstTest$T@values[2,] - firstTest$T@values[1,])<0)
-secondCross <- any((secondTest$T@values[2,] - secondTest$T@values[1,])<0)
+firstCross  <- any((firstTest$T$values[2,] - firstTest$T$values[1,])<0)
+secondCross <- any((secondTest$T$values[2,] - secondTest$T$values[1,])<0)
 
 # use omxCheckTrue to throw an error
 omxCheckTrue(!firstCross)

@@ -90,17 +90,17 @@ for (i in 1: trials){
 		values=input[i,]
 		)
 		
-	temp1@name <- paste("Starting Values Set", i)
+	temp1$name <- paste("Starting Values Set", i)
 		
 	temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE)
 	
 	output[i,] <- omxGetParameters(temp2)
 	fit[i,] <- c(
-		temp2@output$Minus2LogLikelihood,
-		temp2@output$status[[1]],
-		temp2@output$iterations,
-		round(temp2$classProbs@result[1,1], 4),
-		temp2@output$wallTime
+		temp2$output$Minus2LogLikelihood,
+		temp2$output$status[[1]],
+		temp2$output$iterations,
+		round(temp2$classProbs$result[1,1], 4),
+		temp2$output$wallTime
 		)
 	}
 	
@@ -131,21 +131,21 @@ makeModel <- function(modelNumber){
 	
 mySubs <- lapply(1:trials, makeModel)
 	
-topModel@submodels <- mySubs
+topModel$submodels <- mySubs
 
 results <- mxRun(topModel, suppressWarnings=TRUE)
 
 fitStats <- function(model){
 	retval <- c(
-		model@output$Minus2LogLikelihood,
-		model@output$status[[1]],
-		model@output$iterations,
-		round(model$classProbs@result[1,1], 4)
+		model$output$Minus2LogLikelihood,
+		model$output$status[[1]],
+		model$output$iterations,
+		round(model$classProbs$result[1,1], 4)
 		)	
 	return(retval)
 }
 
-resultsFit <- t(omxSapply(results@submodels, fitStats))
+resultsFit <- t(omxSapply(results$submodels, fitStats))
 #sfStop()
 
 # Parallel Respecification
@@ -156,7 +156,7 @@ sum(fit[,5])
 # Serial Time, in seconds (ignoring the overhead caused by the for loop)
 # -------------------------------------
 
-results@output$wallTime
+results$output$wallTime
 # Parallel Time, in seconds
 # -------------------------------------
 

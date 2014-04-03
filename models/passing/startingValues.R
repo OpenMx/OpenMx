@@ -11,8 +11,8 @@ model <- mxModel("missingtest",
 	   mxExpectationRAM("A", "S", "F"),
 	   mxFitFunctionML())
 
-model[["A"]]@free[2,1] <- TRUE
-model[["A"]]@values[2,1] <- NA   # oops
+model[["A"]]$free[2,1] <- TRUE
+model[["A"]]$values[2,1] <- NA   # oops
 
 omxCheckError(mxRun(model, silent=TRUE),
 	      "Starting value in missingtest.A[2,1] is missing")

@@ -54,18 +54,18 @@ if(write.files==TRUE) write.table(data, "data.dat", row.names=FALSE, col.names=F
 
 ## Let's try a threshold model without a definition variable##
 A <- mxMatrix("Full", 6, 6, name="A")
-A@values[1:5, 6] <- 1
-A@free[1:5, 6]   <- TRUE
-A@labels[1:5, 6] <- paste("l",1:5,sep="")
+A$values[1:5, 6] <- 1
+A$free[1:5, 6]   <- TRUE
+A$labels[1:5, 6] <- paste("l",1:5,sep="")
 
 S <- mxMatrix("Symm", 6, 6, name="S")
-diag(S@values) <- 1
-diag(S@labels) <- c(paste("e",1:5,sep=""), "var.F")
+diag(S$values) <- 1
+diag(S$labels) <- c(paste("e",1:5,sep=""), "var.F")
 
 F <- mxMatrix("Full", 5, 6, 
     dimnames=list(names(data)[1:5], c(names(data)[1:5], "F")), 
     name="F")
-diag(F@values) <- 1
+diag(F$values) <- 1
 
 M <- mxMatrix("Zero", 1, 6, name="M")
 
@@ -85,10 +85,10 @@ catResults <- mxRun(catModel)
 summary(catResults)
 
 # item difficulties
-catResults@output$estimate[6:10]/catResults@output$estimate[1:5]
+catResults$output$estimate[6:10]/catResults$output$estimate[1:5]
 
 # item discriminations
-catResults@output$estimate[1:5]
+catResults$output$estimate[1:5]
 
 
 ## Let's try a threshold model with a definition variable##
@@ -98,22 +98,22 @@ catResults@output$estimate[1:5]
 #there's a flashier way involving mxAlgebra statements, but the required substitution isn't working
 #look for "square bracket substitution" in the future
 CA <- mxMatrix("Full", 7, 7, name="CA")
-CA@values[c(1:5,7), 6] <- 1
-CA@free[c(1:5,7), 6]   <- TRUE
-CA@labels[c(1:5,7), 6] <- c(paste("l",1:5,sep=""), "dif")
+CA$values[c(1:5,7), 6] <- 1
+CA$free[c(1:5,7), 6]   <- TRUE
+CA$labels[c(1:5,7), 6] <- c(paste("l",1:5,sep=""), "dif")
 
-CA@labels[5, 7] <-"data.g"
+CA$labels[5, 7] <-"data.g"
 #trick <- mxMatrix("Full", 1, 2, TRUE, c(1,0), labels=c("alpha","beta"))
 #def   <- mxAlgebra(alpha + beta*data.g, name = "l5")
 
 CS <- mxMatrix("Symm", 7, 7, name="CS")
-diag(CS@values) <- c(rep(1,6),0)
-diag(CS@labels) <- c(paste("e",1:5,sep=""), "var.F", "var.hack")
+diag(CS$values) <- c(rep(1,6),0)
+diag(CS$labels) <- c(paste("e",1:5,sep=""), "var.F", "var.hack")
 
 CF <- mxMatrix("Full", 5, 7, 
     dimnames=list(names(data)[1:5], c(names(data)[1:5], "F", "hack")), 
     name="CF")
-diag(CF@values) <- 1
+diag(CF$values) <- 1
 
 CM <- mxMatrix("Zero", 1, 7, name="CM")
 
@@ -137,9 +137,9 @@ summary(catResults2)
 
 
 # item difficulties
-catResults2@output$estimate[6:10]/catResults2@output$estimate[1:5]
+catResults2$output$estimate[6:10]/catResults2$output$estimate[1:5]
 
 # item discriminations
-catResults2@output$estimate[1:5]
+catResults2$output$estimate[1:5]
 
-catResults2@output
+catResults2$output

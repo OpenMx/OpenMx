@@ -50,7 +50,7 @@ model <- mxModel("both", twin, obj, modelMZ, modelDZ)
 modelOut <- mxRun(model)
 
 expectedACE <- c(.6, .2, .2)
-observedACE <- c(modelOut$modelMZ.A@result, 
-	modelOut$modelMZ.C@result, modelOut$modelMZ.E@result)
+observedACE <- c(modelOut$modelMZ.A$result, 
+	modelOut$modelMZ.C$result, modelOut$modelMZ.E$result)
 
 omxCheckCloseEnough(expectedACE, observedACE, epsilon = 10 ^ -4)

@@ -40,9 +40,9 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxComputeOnce('expectation', 'scores')
               )
 m2 <- mxRun(m2)
-omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
+omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
                     c(-712.0873, -701.8445, -664.7972, -596.581, -225.9732), .01)
-omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 512000, .1)
+omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 512000, .1)
 
 m2 <- mxModel(m2,
               mxData(observed=data, type="raw"),
@@ -53,7 +53,7 @@ m2 <- mxModel(m2,
 
 m2 <- mxRun(m2)
 
-#print(m2@matrices$itemParam@values)
+#print(m2$matrices$itemParam$values)
 #print(correct.mat)
 # Matches flexMIRT but negative degrees of freedom
-omxCheckCloseEnough(m2@fitfunction@result, 537810.8, .01)
+omxCheckCloseEnough(m2$fitfunction$result, 537810.8, .01)

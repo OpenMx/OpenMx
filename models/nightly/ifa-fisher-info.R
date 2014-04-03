@@ -44,28 +44,28 @@ compute.gradient <- function(v) {
                   mxComputeReportDeriv())))
   m1.fit <- mxRun(m1, silent=TRUE)
   
-  ref <- m1.fit@expectation@debug$patternLikelihood
+  ref <- m1.fit$expectation$debug$patternLikelihood
   
   # The gradient is computed in log likelihood units
   # but we need probability units. In log likelihood units,
   # the gradient matches numDeriv to around 1e-8. After
   # converting units, the precision goes way down to
   # around 0.01.
-  grad <- exp(ref) - exp(ref + m1.fit@output$gradient)
+  grad <- exp(ref) - exp(ref + m1.fit$output$gradient)
   
   list(l=exp(ref), g=grad)
 }
 
 fisher.info <- function() {
-  numPat <- prod(vapply(spec, function(s) s@outcomes, 1))
+  numPat <- prod(vapply(spec, function(s) s$outcomes, 1))
   patLik <- c()
-  grad <- matrix(NA, nrow=numPat, sum(ip.mat@free))
+  grad <- matrix(NA, nrow=numPat, sum(ip.mat$free))
   for (h in 1:numPat) {
     index <- h - 1
     v <- rep(NA, numItems)
     for (i in 1:numItems) {
-      v[i] <- index %% spec[[i]]@outcomes
-      index <- index %/% spec[[i]]@outcomes
+      v[i] <- index %% spec[[i]]$outcomes
+      index <- index %/% spec[[i]]$outcomes
     }
     stuff <- compute.gradient(v)
     patLik[h] <- stuff$l

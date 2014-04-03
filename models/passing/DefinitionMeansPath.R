@@ -79,8 +79,8 @@ defmeansmodel<-mxModel("Definition Means via Paths",
 
 #run the model
 defmeansresult<-mxRun(defmeansmodel)
-defmeansresult@matrices
-defmeansresult@algebras
+defmeansresult$matrices
+defmeansresult$algebras
 
 
 #Compare OpenMx estimates to summary statistics from raw data, remembering to knock off 1 and 2 from group 1's
@@ -92,9 +92,9 @@ ObsMeansGroup1 <- c(mean(group1[,1]), mean(group1[,2]))
 ObsMeansGroup2 <- c(mean(group2[,1]), mean(group2[,2]))
 
 # Second we extract the parameter estimates and matrix algebra results from the model
-Sigma<-defmeansresult@matrices$S@values[1:2,1:2]
-Mu<-defmeansresult@matrices$M@values[1:2]
-beta<-defmeansresult@matrices$A@values[1:2,3]
+Sigma<-defmeansresult$matrices$S$values[1:2,1:2]
+Mu<-defmeansresult$matrices$M$values[1:2]
+beta<-defmeansresult$matrices$A$values[1:2,3]
 
 # Third, we check to see if things are more or less equal
 omxCheckCloseEnough(ObsCovs,Sigma,.01)

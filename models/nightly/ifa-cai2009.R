@@ -1,8 +1,8 @@
 # This data is from an email:
 #
 # Date: Wed, 06 Feb 2013 19:49:24 -0800
-# From: Li Cai <lcai@ucla.edu>
-# To: Joshua N Pritikin <jpritikin@pobox.com>
+# From: Li Cai <lcai$ucla.edu>
+# To: Joshua N Pritikin <jpritikin$pobox.com>
 # Subject: Re: how did you control item bias in Cai (2010, p. 592) ?
 
 #options(error = utils::recover)
@@ -51,7 +51,7 @@ mk.model <- function(model.name, data, latent.free) {
   for (ix in 1:numItems) {
     for (px in 1:3) {
       name <- paste(c('p',ix,',',px), collapse='')
-      ip.mat@labels[px,ix] <- name
+      ip.mat$labels[px,ix] <- name
     }
   }
 
@@ -81,31 +81,31 @@ if (1) {
 	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
-  g1@matrices$ItemParam@values <-
+  g1$matrices$ItemParam$values <-
     rbind(fm$G1$param[1,], apply(fm$G1$param[2:4,], 2, sum), fm$G1$param[5,])
-  g1@matrices$mean@values <- t(fm$G1$mean)
-  g1@matrices$cov@values <- fm$G1$cov
-  g2@matrices$ItemParam@values <-
+  g1$matrices$mean$values <- t(fm$G1$mean)
+  g1$matrices$cov$values <- fm$G1$cov
+  g2$matrices$ItemParam$values <-
     rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
   
   cModel <- mxModel(model="cModel", g1,g2,
                     mxComputeOnce(paste(groups, 'expectation', sep='.')))
 #  cModel <- mxOption(cModel, "Number of Threads", 1)
-  for (grp in groups) cModel@submodels[[grp]]@expectation@scores <- 'full'
+  for (grp in groups) cModel$submodels[[grp]]$expectation$scores <- 'full'
   cModel.eap <- mxRun(cModel)
 
   fm.sco.g1 <- suppressWarnings(try(read.table("models/nightly/data/cai2009-sco-g1.txt"), silent=TRUE))
   if (is(fm.sco.g1, "try-error")) fm.sco.g1 <- read.table("data/cai2009-sco-g1.txt")
   fm.sco.g2 <- suppressWarnings(try(read.table("models/nightly/data/cai2009-sco-g2.txt"), silent=TRUE))
   if (is(fm.sco.g2, "try-error")) fm.sco.g2 <- read.table("data/cai2009-sco-g2.txt")
-  colnames(fm.sco.g1) <- c("grp","id",colnames(cModel.eap@submodels$g1@expectation@output$scores))
-  colnames(fm.sco.g2) <- c("grp","id",colnames(cModel.eap@submodels$g2@expectation@output$scores))
+  colnames(fm.sco.g1) <- c("grp","id",colnames(cModel.eap$submodels$g1$expectation$output$scores))
+  colnames(fm.sco.g2) <- c("grp","id",colnames(cModel.eap$submodels$g2$expectation$output$scores))
   
-  scores.g1 <- cModel.eap@submodels$g1@expectation@output$scores
+  scores.g1 <- cModel.eap$submodels$g1$expectation$output$scores
   omxCheckCloseEnough(as.matrix(fm.sco.g1[,-1:-2]),
                       scores.g1, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco.g2[,-1:-2]),
-                      cModel.eap@submodels$g2@expectation@output$scores, 1e-3)
+                      cModel.eap$submodels$g2$expectation$output$scores, 1e-3)
 
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(cModel,
@@ -115,7 +115,7 @@ if (1) {
                         mxComputeOnce('fitfunction', 'fit',
 				      free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
     cModel.fit <- mxRun(cModel)
-    omxCheckCloseEnough(cModel.fit@fitfunction@result, correct.LL, 1e-4)
+    omxCheckCloseEnough(cModel.fit$fitfunction$result, correct.LL, 1e-4)
   
   i1 <- mxModel(cModel,
                 mxComputeSequence(steps=list(
@@ -125,15 +125,15 @@ if (1) {
                   mxComputeHessianQuality())))
   i1 <- mxRun(i1)
   
-#  cat(deparse(round(i1@output$standardErrors,3)))
+#  cat(deparse(round(i1$output$standardErrors,3)))
   se <- c(0.085, 0.109, 0.078, 0.131, 0.199, 0.098, 0.148,  0.183, 0.104, 0.165,
           0.134, 0.123, 0.109, 0.149, 0.095, 0.13,  0.123, 0.097, 0.186, 0.23,
           0.124, 0.125, 0.25, 0.138, 0.135,  0.169, 0.101, 0.199, 0.188, 0.127,
           0.084, 0.122, 0.078, 0.146,  0.232, 0.14, 0.104, 0.17, 0.128, 0.174, 0.093,
           0.432, 0.254,  0.324, 0.175, 0.242, 0.125, 0.146, 0.265, 0.1, 0.141, 0.201,
           0.101, 0.189, 0.192, 0.13)
-  omxCheckCloseEnough(c(i1@output$standardErrors), se, .01)
-  omxCheckCloseEnough(i1@output$conditionNumber, 199, 1) 
+  omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
+  omxCheckCloseEnough(i1$output$conditionNumber, 199, 1) 
 }
 
 omxIFAComputePlan <- function(groups) {
@@ -169,16 +169,16 @@ omxIFAComputePlan <- function(groups) {
   
   grpModel <- mxRun(grpModel)
 
-emstat <- grpModel@compute@steps[[1]]@output
+emstat <- grpModel$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 145, 2)
 omxCheckCloseEnough(emstat$totalMstep, 379, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
 
-  omxCheckCloseEnough(grpModel@output$minimum, correct.LL, .01)
-  omxCheckCloseEnough(grpModel@submodels$g2@matrices$ItemParam@values,
+  omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
+  omxCheckCloseEnough(grpModel$submodels$g2$matrices$ItemParam$values,
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .01)
-  omxCheckCloseEnough(grpModel@submodels$g1@matrices$mean@values, t(fm$G1$mean), .01)
-  omxCheckCloseEnough(grpModel@submodels$g1@matrices$cov@values, fm$G1$cov, .01)
+  omxCheckCloseEnough(grpModel$submodels$g1$matrices$mean$values, t(fm$G1$mean), .01)
+  omxCheckCloseEnough(grpModel$submodels$g1$matrices$cov$values, fm$G1$cov, .01)
   
   semse <- c(0.085, 0.106, 0.078, 0.135, 0.201, 0.1, 0.156, 0.197,  0.107, 0.179,
              0.132, 0.121, 0.11, 0.149, 0.094, 0.133, 0.122,  0.093, 0.207, 0.241,
@@ -186,11 +186,11 @@ omxCheckCloseEnough(emstat$semProbeCount, 144, 5)
              0.086, 0.115, 0.078, 0.143, 0.212,  0.141, 0.105, 0.165, 0.129, 0.163,
              0.101, 0.41, 0.244, 0.293,  0.181, 0.238, 0.128, 0.146, 0.262, 0.1,
              0.144, 0.202, 0.101,  0.182, 0.193, 0.129)
-  # cat(deparse(round(grpModel@output$standardErrors,3)))
-  # max(abs(c(grpModel@output$standardErrors) - semse))
+  # cat(deparse(round(grpModel$output$standardErrors,3)))
+  # max(abs(c(grpModel$output$standardErrors) - semse))
   
   # These are extremely sensitive to small differences in model estimation.
-  omxCheckCloseEnough(c(grpModel@output$standardErrors), semse, .02)
-  omxCheckCloseEnough(log(grpModel@output$conditionNumber), 5.5, 1)
+  omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .02)
+  omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.5, 1)
   
-  print(grpModel@output$backendTime)
+  print(grpModel$output$backendTime)
