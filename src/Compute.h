@@ -151,7 +151,7 @@ class FitContext {
 	Eigen::VectorXd ihessDiag();
 	void preInfo();
 	void postInfo();
-	void resetIterationError();
+	void resetIterationError() { IterationError.clear(); }
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
 	std::string getIterationError();

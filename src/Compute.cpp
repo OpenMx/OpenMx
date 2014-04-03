@@ -321,12 +321,6 @@ void FitContext::log(int what)
 	mxLogBig(buf);
 }
 
-void FitContext::resetIterationError()
-{
-#pragma omp critical(IterationError)
-	IterationError.clear();
-}
-
 void FitContext::recordIterationError(const char* msg, ...)
 {
 	va_list ap;
