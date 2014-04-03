@@ -596,7 +596,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             
             Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
             
-            inform = M(inform_m, 1, 0);
+            inform = M(inform_m, 0, 0);
             
             if(verbose>=1) { mxLog("inform_lower is: %f", inform);}
             currentCI->lCode = inform;
@@ -673,7 +673,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
             
             
-            inform = M(inform_m, 1, 0);
+            inform = M(inform_m, 0, 0);
             if(verbose >= 1) { mxLog("inform_upper is: %f", inform);}
             currentCI->uCode = inform;
             
