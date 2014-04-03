@@ -387,13 +387,16 @@ void omxResetStatus(omxState *)
 	Global->bads.clear();
 }
 
-std::string string_vsnprintf(const char *fmt, va_list ap)
+std::string string_vsnprintf(const char *fmt, va_list orig_ap)
 {
     int size = 100;
     std::string str;
     while (1) {
         str.resize(size);
+	va_list ap;
+	va_copy(ap, orig_ap);
         int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
+	va_end(ap);
         if (n > -1 && n < size) {
             str.resize(n);
             return str;
