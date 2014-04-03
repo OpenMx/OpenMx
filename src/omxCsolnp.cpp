@@ -55,7 +55,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 	    
 	unsigned short int checkpointNow = FALSE;
     
-	if(OMX_DEBUG) {printf("Starting Objective Run.");}
+	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
     
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
     
@@ -103,8 +103,9 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
 {
     //double* f = NULL;
 	if (verbose >= 3) {
-		printf("myPars inside obj is: ");
-		print(myPars); putchar('\n');
+		mxLog("myPars inside obj is: ");
+        for (int i = 0; i < myPars.cols; i++)
+            mxLog("%f", myPars.t[i]);
 	}
     
     if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", CSOLNP_currentInterval, (Global->intervalList[CSOLNP_currentInterval].calcLower?"lower":"upper"));
@@ -150,7 +151,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
 /* (Non)Linear Constraint Functions */
 Matrix csolnpEqualityFunction(int verbose)
 {
-	int j, k, eq_n = 0;
+	int i, j, k, eq_n = 0;
     int l = 0;
     double EMPTY = -999999.0;
     Matrix myEqBFun;
@@ -193,9 +194,9 @@ Matrix csolnpEqualityFunction(int verbose)
 	    }
     }
     if (verbose >= 1) {
-	    printf("myEqBFun is: ");
-	    print(myEqBFun);
-	    putchar('\n');
+	    mxLog("myEqBFun is: ");
+	    for(i = 0; i < myEqBFun.cols; i++)
+        {   mxLog("%f", myEqBFun.t[i]);}
     }
     return myEqBFun;
 }
@@ -218,8 +219,8 @@ Matrix csolnpIneqFun(int verbose)
     }
     
 	if (verbose >= 1) {
-		printf("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
-		printf("ineq_n is: %d.", ineq_n); putchar('\n');
+		mxLog("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
+		mxLog("ineq_n is: %d.", ineq_n); putchar('\n');
 	}
     
     if (ineq_n == 0)
@@ -334,13 +335,14 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
 
         if (verbose == 2) {
-            printf("solIneqLB is: ");
-            print(solIneqLB); putchar('\n');
-            printf("solIneqUB is: ");
-            print(solIneqUB); putchar('\n');
-            printf("solEqB is: ");
-            print(solEqB); putchar('\n');
+            mxLog("solIneqLB is: ");
+            for (int i = 0; i < solIneqLB.cols; i++){mxLog("%f", solIneqLB.t[i]);}
+            mxLog("solIneqUB is: ");
+            for (int i = 0; i < solIneqUB.cols; i++){mxLog("%f", solIneqUB.t[i]);}
+            mxLog("solEqB is: ");
+            for (int i = 0; i < solEqB.cols; i++){mxLog("%f", solEqB.t[i]);}
         }
+        
     }
     omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
     
@@ -349,18 +351,19 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         
     /* Initialize Starting Values */
     if(OMX_VERBOSE) {
-        printf("--------------------------");
-        printf("Starting Values (%d) are:", n);
+        mxLog("--------------------------");
+        mxLog("Starting Values (%d) are:", n);
     }
     for(k = 0; k < n; k++) {
         if((M(myPars, k, 0) == 0.0)) {
             M(myPars, k, 0) += 0.1;
         }
-        if(OMX_VERBOSE) { printf("%d: %f", k, M(myPars, k, 0)); }
+        if(OMX_VERBOSE) { mxLog("%d: %.8f", k, M(myPars, k, 0)); }
     }
+
     if(OMX_DEBUG) {
-        printf("--------------------------");
-        printf("Setting up optimizer...");
+        mxLog("--------------------------");
+        mxLog("Setting up optimizer...");
     }
         
     
@@ -369,8 +372,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     fc->fit = p_obj.objValue;
     if (verbose >= 1) {
-	    printf("final objective value is: \n");
-	    printf("%2f", fc->fit); putchar('\n');
+	    mxLog("final objective value is: \n");
+	    mxLog("%2f", fc->fit);
     }
     param_hess = p_obj.parameter;
     
@@ -378,19 +381,19 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     myPars = subset(param_hess, 0, 0, n-1);
     
     if (verbose>= 1){
-	    printf("final myPars value is: \n");
-	    print(myPars); putchar('\n');
+	    mxLog("final myPars value is: \n");
+        for (i = 0; i < myPars.cols; i++) mxLog("%f", myPars.t[i]);
     }
     myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2);
-    
     
     Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
     
     inform = M(inform_m, 0, 0);
     
     if (verbose >= 2){
-	    printf("myhess is: \n");
-	    print(myhess); putchar('\n');
+	    mxLog("myhess is: \n");
+        for (i = 0; i < myhess.cols; i++)
+	    mxLog("%f", myhess.t[i]);
     }
     
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
