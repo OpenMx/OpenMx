@@ -17,10 +17,10 @@ ifdef CPUS
 else
    TESTFILE = inst/tools/testModels.R
 endif
-NIGHTLYPPMLFILE = inst/tools/testNightlyPPML.R
 RPROFTESTFILE = inst/tools/rprofTestModels.R
 FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.sh
+GDBWRAP = $(shell if which gdb >/dev/null; then echo '-d "gdb --nx --batch --return-child-result --command util/gdb-where"'; fi)
 
 INSTALLMAKEFLAGS=""
 #INSTALLMAKEFLAGS="--debug=b"   #debug dependencies
@@ -165,11 +165,9 @@ help:
 	@echo "TESTING"
 	@echo ""	
 	@echo "  test          run the test suite"
-	@echo "  test-nogdb    run the test suite without starting gdb"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
-	@echo "  nightlyPPML   run the nightly test suite with PPML"			
 	@echo "  testdocs      test the examples in the Sphinx documentation"	
 	@echo "  failtest      run the failing test suite"
 	@echo "  memorytest    run the test suite under the Valgrind memory debugger"
@@ -301,25 +299,19 @@ testdocs:
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
-	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE)
-
-test-nogdb:
-	$(REXEC) --vanilla --slave -f $(TESTFILE)
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE)
 
 test-lisrel:
-	$(REXEC) --vanilla --slave -f $(TESTFILE) --args lisrel
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args lisrel
 
 test-csolnp:
-	IMX_OPT_ENGINE=CSOLNP $(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args csolnp
+	IMX_OPT_ENGINE=CSOLNP $(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args csolnp
 
 torture:
-	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args gctorture
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args gctorture
 
 nightly:
-	$(REXEC) -d "gdb --nx --batch --return-child-result --command util/gdb-where" --vanilla --slave -f $(TESTFILE) --args nightly
-
-nightlyPPML:
-	$(REXEC) --vanilla --slave < $(NIGHTLYPPMLFILE)	
+	$(REXEC) $(GDBWRAP)  --vanilla --slave -f $(TESTFILE) --args nightly
 
 failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
