@@ -156,6 +156,8 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 		stop("Design must be an integer matrix")
 	}
 
+	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
+
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal))
 }

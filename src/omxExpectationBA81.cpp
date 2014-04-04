@@ -1087,6 +1087,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (data->cols != numItems) {
 		Rf_error("Data has %d columns for %d items", data->cols, numItems);
 	}
+	if (state->itemSpec.size() == 1) {
+		for (size_t ix=1; ix < numItems; ++ix) {
+			state->itemSpec.push_back(state->itemSpec[0]);
+		}
+	}
 
 	int maxSpec = 0;
 	int maxParam = 0;
