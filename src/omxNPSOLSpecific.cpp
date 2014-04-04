@@ -148,17 +148,9 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 	}
 
 	if (!R_FINITE(fitMatrix->data[0])) {
-		omxRaiseErrorf(NULL, "Fit function returned %g", fitMatrix->data[0]);
 		*mode = -1;
 	} else {
 		NPSOL_fc->resetIterationError();
-	}
-
-	if (isErrorRaised(globalState)) {
-		if(OMX_DEBUG) {
-			mxLog("Error status reported.");
-		}
-		*mode = -1;
 	}
 
 	*f = fitMatrix->data[0];
@@ -203,8 +195,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 
 		/* Catch boundary-passing condition */
 		if(std::isnan(CIElement) || std::isinf(CIElement)) {
-			omxRaiseError(globalState, -1, 
-				"Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			NPSOL_fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 			*mode = -1;
 			return;
 		}

@@ -73,20 +73,13 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
     omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, GLOB_fc);
 
     
-    if (!R_FINITE(fitMatrix->data[0])) {
-        omxRaiseErrorf(globalState, "Fit function returned %g", fitMatrix->data[0]);
-    } else {
+    if (std::isfinite(fitMatrix->data[0])) {
 	    GLOB_fc->resetIterationError();
+	    if (OMX_DEBUG) mxLog("Fit function returned %g", fitMatrix->data[0]);
+	    GLOB_fc->fit = fitMatrix->data[0]; // redundent?
+    } else {
+	    GLOB_fc->fit = 1e24;
     }
-    if(isErrorRaised(globalState))
-    {
-        if(OMX_DEBUG)
-        {    mxLog("Error status reported.");}
-    }
-    if (isErrorRaised(globalState) || !R_FINITE(fitMatrix->data[0]))
-    {    GLOB_fc->fit = 1e24;}
-    else {  GLOB_fc->fit = fitMatrix->data[0];}
-    
     
 	if(verbose >= 1) {
 		mxLog("Fit function value is: %.32f\n", fitMatrix->data[0]);
@@ -127,8 +120,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     
     /* Catch boundary-passing condition */
     if(std::isnan(CIElement) || std::isinf(CIElement)) {
-        omxRaiseError(globalState, -1,
-                      "Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+	    GLOB_fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
         return GLOB_fc->fit;
     }
     

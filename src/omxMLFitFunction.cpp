@@ -105,7 +105,7 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 	out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));
 }
 
-static void mvnFit(omxFitFunction *oo)
+static void mvnFit(omxFitFunction *oo, FitContext *fc)
 {
 	double sum = 0.0, det = 0.0;
 	char u = 'U';
@@ -145,8 +145,8 @@ static void mvnFit(omxFitFunction *oo)
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Info on LU Decomp: %d", info);}
 	if(info > 0) {
-		omxRaiseErrorf(oo->matrix->currentState,
-			       "Expected covariance matrix is non-positive-definite");
+		oo->matrix->data[0] = NA_REAL;
+		if (fc) fc->recordIterationError("Expected covariance matrix is non-positive-definite");
 		return;
 	}
 
@@ -415,7 +415,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 	}
 
 	if (want & FF_COMPUTE_FIT) {
-		mvnFit(oo);
+		mvnFit(oo, fc);
 	}
 }
 

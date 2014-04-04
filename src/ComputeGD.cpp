@@ -127,6 +127,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
         default: Rf_error("huh?");
 	}
     
+	if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
+		std::string diag = fc->getIterationError();
+		omxRaiseErrorf(0, "MxComputeGradientDescent: fitfunction %s evaluated to %f (%s)",
+			       fitMatrix->name, fc->fit, diag.c_str());
+		return;
+	}
+
 	double fitCopy = fc->fit;
 	omxFreeChildStates(globalState);
     
