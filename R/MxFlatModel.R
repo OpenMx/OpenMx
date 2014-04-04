@@ -88,8 +88,10 @@ flatReplaceMethod <- function(model, index, value) {
 }
 
 generateDefinitionLocations <- function(datasets) {
-	nameList <- lapply(datasets, 
-		function(x) { dimnames(x@observed)[[2]] })
+	nameList <- lapply(datasets, function(x) {
+		if (.hasSlot(x, 'observed')) dimnames(x@observed)[[2]]
+		else c()
+	})
 	result <- list()
 	if(length(nameList) > 0) {
 		for(i in 1:length(nameList)) {

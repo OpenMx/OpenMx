@@ -16,8 +16,11 @@
 
 setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
-setClass(Class = "MxNonNullData",
-	representation = representation(
+setClass(Class = "NonNullData")
+
+setClass(Class = "MxDataStatic",
+	 contains = "NonNullData",
+	 representation = representation(
 		observed = "MxDataFrameOrMatrix",
 		means  = "matrix",
 		type   = "character",
@@ -33,9 +36,16 @@ setClass(Class = "MxNonNullData",
 		.isSorted = "logical",
 		name   = "character"))
 
-setClassUnion("MxData", c("NULL", "MxNonNullData"))
+setClass(Class = "MxDataDynamic",
+	 contains = "NonNullData",
+	 representation = representation(
+	     type        = "character",
+	     expectation = "MxCharOrNumber",
+	     name        = "character"))
 
-setMethod("initialize", "MxNonNullData",
+setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
+
+setMethod("initialize", "MxDataStatic",
 	function(.Object, observed, means, type, numObs, acov, thresholds, name = "data") {
 		.Object@observed <- observed
 		.Object@means <- means
@@ -49,21 +59,41 @@ setMethod("initialize", "MxNonNullData",
 	}
 )
 
-setMethod("$", "MxData",
-	function(x, name) {
-        return(imxExtractSlot(x, name))
+setMethod("initialize", "MxDataDynamic",
+	function(.Object, type, expectation, name = "data") {
+		.Object@type <- type
+		.Object@expectation <- expectation
+		.Object@name <- name
+		return(.Object)
 	}
 )
+
+setMethod("$", "MxData", imxExtractSlot)
 
 setReplaceMethod("$", "MxData",
-	function(x, name, value) {
-		return(imxReplaceSlot(x, name, value))
-	}
+       function(x, name, value) {
+               return(imxReplaceSlot(x, name, value))
+       }
 )
-
 
 ##' Valid types of data that can be contained by MxData
 imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
+
+##' Create dynamic data
+##'
+##' @param type type of data
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param expectation the name of the expectation to provide the data
+##' @aliases
+##' MxDataDynamic-class
+mxDataDynamic <- function(type, ..., expectation) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxDataDynamic does not accept values for the '...' argument")
+	}
+	if (type != "cov") stop("Type must be set to 'cov'")
+	return(new("MxDataDynamic", type, expectation))
+}
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA) {
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
@@ -118,24 +148,62 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxNonNullData", observed, means, type, numObs, acov, thresholds))
+	return(new("MxDataStatic", observed, means, type, numObs, acov, thresholds))
 }
 
-convertDatasets <- function(model, defVars, modeloptions) {
-	model@data <- sortRawData(model@data, defVars, model@name, modeloptions)
-	model@data <- convertIntegerColumns(model@data)
-	
-	if(!is.null(model@data) && !single.na(model@data@thresholds)) {
-		verifyThresholdNames(model@data@thresholds, model@data@observed, model@name)
-		retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(model@data@observed)[[2]], thresholdsMatrix=model@data@thresholds)
-		model@data@thresholdColumns <- retval[[1]]
-		model@data@thresholdLevels <- retval[[2]]
+setGeneric("preprocessDataForBackend", # DEPRECATED
+	function(data, model, defVars, modeloptions) {
+		return(standardGeneric("preprocessDataForBackend"))
+	})
+
+setGeneric("convertDataForBackend",
+	function(data, model, flatModel) {
+		return(standardGeneric("convertDataForBackend"))
+	})
+
+setMethod("preprocessDataForBackend", signature("NonNullData"),
+	  function(data, model, defVars, modeloptions) { data })
+
+setMethod("convertDataForBackend", signature("NonNullData"),
+	  function(data, model, flatModel) { data })
+
+setMethod("preprocessDataForBackend", signature("MxDataStatic"),
+	  function(data, model, defVars, modeloptions) {
+		  data <- sortRawData(data, defVars, model@name, modeloptions)
+		  data <- convertIntegerColumns(data)
+
+		  if(!is.null(data) && !single.na(data@thresholds)) {
+			  verifyThresholdNames(data@thresholds, data@observed, model@name)
+			  retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(data@observed)[[2]],
+								 thresholdsMatrix=data@thresholds)
+			  data@thresholdColumns <- retval[[1]]
+			  data@thresholdLevels <- retval[[2]]
+		  }
+		  data
+	  })
+
+setMethod("convertDataForBackend", signature("MxDataDynamic"),
+	  function(data, model, flatModel) {
+		  expNum <- match(data@expectation, names(flatModel@expectations))
+		  if (is.na(expNum)) stop(paste("Cannot find expectation", data@expectation,
+						"referenced by data in", model@name))
+		  data@expectation <- expNum - 1L
+		  data
+	  })
+
+preprocessDatasets <- function(model, defVars, modeloptions) { # DEPRECATED
+	if (!is.null(model@data)) {
+		model@data <- preprocessDataForBackend(model@data, model, defVars, modeloptions)
 	}
 	if (length(model@submodels) > 0) {
-		model@submodels <- lapply(model@submodels, convertDatasets,
-			defVars, modeloptions)
+		model@submodels <- lapply(model@submodels, preprocessDatasets,
+					  defVars=defVars, modeloptions=modeloptions)
 	}
 	return(model)
+}
+
+convertDatasets <- function(datasets, model, flatModel) {
+	lapply(datasets, convertDataForBackend, model=model, flatModel=flatModel)
 }
 
 resetDataSortingFlags <- function(model) {
@@ -410,10 +478,10 @@ displayMxData <- function(object) {
 	invisible(object)
 }
 
-setMethod("print", "MxNonNullData", function(x,...) { 
+setMethod("print", "MxDataStatic", function(x,...) {
 	displayMxData(x) 
 })
 
-setMethod("show", "MxNonNullData", function(object) { 
+setMethod("show", "MxDataStatic", function(object) {
 	displayMxData(object) 
 })

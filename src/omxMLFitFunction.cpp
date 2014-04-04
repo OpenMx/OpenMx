@@ -495,9 +495,9 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	oo->argStruct = (void*)newObj;
 
 	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
-	newObj->observedCov = omxDataMatrix(dataMat, NULL);
+	newObj->observedCov = omxDataCovariance(dataMat);
 	if(OMX_DEBUG) { mxLog("Processing Observed Means."); }
-	newObj->observedMeans = omxDataMeans(dataMat, NULL, NULL);
+	newObj->observedMeans = omxDataMeans(dataMat);
 	if(OMX_DEBUG && newObj->observedMeans == NULL) { mxLog("ML: No Observed Means."); }
 	if(OMX_DEBUG) { mxLog("Processing n."); }
 	newObj->n = omxDataNumObs(dataMat);

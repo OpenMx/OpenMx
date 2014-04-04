@@ -53,12 +53,13 @@ m2 <- mxModel(model="latent",
               ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items, ItemParam="ItemParam", scores="full"),
+                                ItemSpec=items, ItemParam="ItemParam", scores="full", assumeLatentParameterDeriv=TRUE),
               mxFitFunctionML(),
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
                 mxComputeIterate(steps=list(
-                  mxComputeOnce('fitfunction', "fit")
+                  mxComputeOnce('fitfunction', "fit"),
+                  mxComputeOnce('expectation', "latentDistribution", "copy")
                   )),
                 mxComputeOnce('expectation', 'scores'),
                 mxComputeOnce('fitfunction', 'information', "hessian"),

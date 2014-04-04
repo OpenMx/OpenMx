@@ -87,6 +87,7 @@ struct BA81Expect {
 	enum score_option scores;
 	int verbose;
 	bool debugInternal;
+	struct omxFitFunction *fit;  // weak pointer
 };
 
 extern const struct rpf *rpf_model;

@@ -75,16 +75,16 @@ imxExtractSlot <- function(x, name) {
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
-##' @param object object
-##' @param slotName the name of the slot
+##' @param x object
+##' @param name the name of the slot
 ##' @param value replacement value
 ##' @param check Check replacement value for validity (default TRUE)
-imxReplaceSlot <- function(object, slotName, value, check=TRUE) {
-	if (!.hasSlot(object, slotName)) {
-		stop(paste("Object has no element ", slotName, ".", sep=""))
+imxReplaceSlot <- function(x, name, value, check=TRUE) {
+	if (!.hasSlot(x, name)) {
+		stop(paste("Object has no element ", name, ".", sep=""))
         # TODO: Should this return NULL?
 	} else {
-        slot(object, slotName, check=check) <- value
-		return(object)
+		slot(x, name, check=check) <- value
+		return(x)
 	}
 }

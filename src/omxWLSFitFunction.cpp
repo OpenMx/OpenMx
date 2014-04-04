@@ -225,8 +225,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     // FIXME: threshold structure should be asked for by omxGetExpectationComponent
 
 	/* Read and set expected means, variances, and weights */
-    cov = omxDataMatrix(dataMat, NULL);
-    means = omxDataMeans(dataMat, NULL, NULL);
+    cov = omxDataCovariance(dataMat);
+    means = omxDataMeans(dataMat);
     weights = omxDataAcov(dataMat, NULL);
 	//newObj->observedThresholds  = omxDataThresholds(dataMat);
 	newObj->observedThresholds = dataMat->thresholdCols; //FIXME

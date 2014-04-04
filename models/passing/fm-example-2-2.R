@@ -1,4 +1,4 @@
-#options(error = utils::recover)
+#options(error = browser)
 library(OpenMx)
 library(rpf)
 
@@ -8,6 +8,13 @@ spec[1:numItems] <- rpf.drm()
 
 g341 <- suppressWarnings(try(read.table("models/passing/data/g341-19.dat"), silent=TRUE))
 if (is(g341, "try-error")) g341 <- read.table("data/g341-19.dat")
+
+if (0) {
+  # no longer implemented in MIRT
+  require(mirt)
+  pars <- mirt(data=g341, 1, itemtype='3PL', pars='values', parprior=list(c(seq(3,47,4), 'beta', 2, 5)))
+  fit <- mirt(data=g341, 1, pars=pars)
+}
 
 g341 <- as.data.frame(lapply(g341, mxFactor, levels=0:1))
 

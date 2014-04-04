@@ -24,24 +24,24 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
-struct LatentParamLoc {
-	bool mean;     // false=cov
-	int row, col;
-};
-
 struct BA81FitState {
 	//private:
 	void copyEstimates(BA81Expect *estate);
 	//public:
+
+	// numFreeParam is used by both the item and latent parameter
+	// maps (for Hessian offsets) and is initialized first to
+	// allow either the item or latent parameter map to be built
+	// first. We cache it here to avoid passing the FitContext
+	// around everywhere.
+	size_t numFreeParam;                 // the current var group's
+
 	int haveLatentMap;
 	std::vector<int> latentMap;
-	std::vector< LatentParamLoc > latentLoc;  // remove? TODO
 	bool freeLatents;
-	std::vector<HessianBlock> lhBlocks;
 	int ElatentVersion;
 
 	int haveItemMap;
-	size_t numFreeParam;
 	int itemDerivPadSize;                // maxParam + maxParam*(1+maxParam)/2
 	bool freeItemParams;
 	std::vector<HessianBlock> hBlocks;
@@ -92,7 +92,6 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
-	std::vector< LatentParamLoc > &latentLoc = state->latentLoc;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	int meanNum = ~estate->latentMeanOut->matrixNumber;
 	int covNum = ~estate->latentCovOut->matrixNumber;
@@ -100,16 +99,11 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 
 	if (state->haveLatentMap == fc->varGroup->id[0]) return;
-	if (estate->verbose) mxLog("%s: rebuild latent parameter map for %d", oo->matrix->name, fc->varGroup->id[0]);
+	if (estate->verbose >= 1) mxLog("%s: rebuild latent parameter map for var group %d",
+					oo->matrix->name, fc->varGroup->id[0]);
 
 	state->freeLatents = false;
-	latentMap.assign(numLatents + triangleLoc1(numLatents), -1);
-	LatentParamLoc nullLoc = { false, -1, -1 };
-	latentLoc.assign(fvg->vars.size(), nullLoc);
-
-	// We could create a separate H-Block for each two-tier specific variance TODO
-	state->lhBlocks.clear();
-	state->lhBlocks.resize(2);  // 0=mean, 1=cov
+	latentMap.assign(numLatents, -1);
 
 	int numParam = int(fvg->vars.size());
 	for (int px=0; px < numParam; px++) {
@@ -119,11 +113,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 			int matNum = loc->matrix;
 			if (matNum == meanNum) {
 				latentMap[loc->row + loc->col] = px;
-				latentLoc[px].mean = true;
-				latentLoc[px].row = loc->row * loc->col;
-				latentLoc[px].col = 1;
 				state->freeLatents = true;
-				state->lhBlocks[0].vars.push_back(px);
 			} else if (matNum == covNum) {
 				int a1 = loc->row;
 				int a2 = loc->col;
@@ -131,60 +121,22 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 				int cell = maxAbilities + triangleLoc1(a1) + a2;
 				if (latentMap[cell] == -1) {
 					latentMap[cell] = px;
-					state->lhBlocks[1].vars.push_back(px);
 
 					if (a1 == a2 && fv->lbound == NEG_INF) {
 						fv->lbound = BA81_MIN_VARIANCE;  // variance must be positive
 						if (fc->est[px] < fv->lbound) {
-							Rf_error("Starting value for variance %s is negative", fv->name);
+							Rf_error("Starting value for variance %s is not positive", fv->name);
 						}
 					}
 				} else if (latentMap[cell] != px) {
 					// doesn't detect similar problems in multigroup constraints TODO
 					Rf_error("Covariance matrix must be constrained to preserve symmetry");
 				}
-				latentLoc[px].mean = false;
-				latentLoc[px].row = a1;
-				latentLoc[px].col = a2;
 				state->freeLatents = true;
 			}
 		}
 	}
 	state->haveLatentMap = fc->varGroup->id[0];
-
-	for (int p1=0; p1 < maxAbilities; p1++) {
-		HessianBlock &hb = state->lhBlocks[0];
-		int at1 = latentMap[p1];
-		if (at1 < 0) continue;
-		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
-
-		for (int p2=0; p2 <= p1; p2++) {
-			int at2 = latentMap[p2];
-			if (at2 < 0) continue;
-			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
-
-			if (hb1 < hb2) std::swap(hb1, hb2);
-			int at = numLatents + triangleLoc1(p1) + p2;
-			latentMap[at] = hb1 * hb.vars.size() + hb2;
-		}
-	}
-
-	for (int p1=maxAbilities; p1 < numLatents; p1++) {
-		HessianBlock &hb = state->lhBlocks[1];
-		int at1 = latentMap[p1];
-		if (at1 < 0) continue;
-		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
-
-		for (int p2=maxAbilities; p2 <= p1; p2++) {
-			int at2 = latentMap[p2];
-			if (at2 < 0) continue;
-			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
-
-			if (hb1 < hb2) std::swap(hb1, hb2);
-			int at = numLatents + triangleLoc1(p1) + p2;
-			latentMap[at] = hb1 * hb.vars.size() + hb2;
-		}
-	}
 }
 
 static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
@@ -206,8 +158,8 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	state->paramMap.assign(size, -1);  // matrix location to free param index
 	state->itemParamFree.assign(itemParam->rows * itemParam->cols, FALSE);
 
-	const size_t numFreeParams = state->numFreeParam;
-	state->paramFlavor.assign(numFreeParams, NULL);
+	const size_t numFreeParam = state->numFreeParam;
+	state->paramFlavor.assign(numFreeParam, NULL);
 
 	int totalParam = 0;
 	state->paramPerItem.resize(itemParam->cols);
@@ -220,7 +172,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	}
 	state->itemGradMap.assign(totalParam, -1);
 
-	for (size_t px=0; px < numFreeParams; px++) {
+	for (size_t px=0; px < numFreeParam; px++) {
 		omxFreeVar *fv = fvg->vars[px];
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
@@ -291,9 +243,9 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 				//mxLog("Item %d param(%d,%d) -> H[%d,%d]", cx, p1, p2, at1, at2);
 				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
-				int hoffset = at1 * numFreeParams + at2;
+				int hoffset = at1 * numFreeParam + at2;
 
-				state->paramMap[at] = numFreeParams + hoffset;
+				state->paramMap[at] = numFreeParam + hoffset;
 				state->hbMap[at] = hb1 * hb.vars.size() + hb2;
 			}
 		}
@@ -317,7 +269,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	const int do_fit = want & FF_COMPUTE_FIT;
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
-	if (estate->verbose >= 2) mxLog("%s: em.fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
+	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
 	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
 
@@ -657,7 +609,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	}
 }
 
-static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc)
+static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove? TODO
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
@@ -1031,99 +983,6 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	return TRUE;
 }
 
-static void CDlatentHessian(omxFitFunction* oo, FitContext *fc)
-{
-	const double Scale = Global->llScale;
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	const int maxAbilities = estate->maxAbilities;
-	omxMatrix *cov = estate->latentCovOut;
-	omxData *data = estate->data;
-	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
-	std::vector<int> &latentMap = state->latentMap;
-
-	if (estate->verbose >= 1) mxLog("%s: latentHessian", oo->matrix->name);
-
-	omxBuffer<double> icovBuffer(maxAbilities * maxAbilities);
-	memcpy(icovBuffer.data(), cov->data, sizeof(double) * maxAbilities * maxAbilities);
-	Matrix icovMat(icovBuffer.data(), maxAbilities, maxAbilities);
-	int info = InvertSymmetricPosDef(icovMat, 'U');
-	if (info) return;
-
-	for (int m1=0; m1 < maxAbilities; ++m1) {
-		for (int m2=0; m2 < m1; ++m2) {
-			icovBuffer[m2 * maxAbilities + m1] = icovBuffer[m1 * maxAbilities + m2];
-		}
-	}
-
-	{
-		HessianBlock *hb = state->lhBlocks[0].clone();
-
-		int px=numLatents;
-		for (int m1=0; m1 < maxAbilities; ++m1) {
-			for (int m2=0; m2 <= m1; ++m2) {
-				int to = latentMap[px];
-				++px;
-				if (to < 0) continue;
-				hb->mat.data()[to] = -Scale * data->rows * icovBuffer[m1 * maxAbilities + m2];
-			}
-		}
-		fc->queue(hb);
-	}
-
-	HessianBlock *hb = state->lhBlocks[1].clone();
-
-	std::vector<double> term1(maxAbilities * maxAbilities);
-	std::vector<double> term2(maxAbilities * maxAbilities);
-
-	int f1=0;
-	for (int r1=0; r1 < maxAbilities; ++r1) {
-		for (int c1=0; c1 <= r1; ++c1) {
-			memcpy(term1.data()      + c1 * maxAbilities,
-			       icovBuffer.data() + r1 * maxAbilities, maxAbilities * sizeof(double));
-			if (r1 != c1) {
-				memcpy(term1.data()      + r1 * maxAbilities,
-				       icovBuffer.data() + c1 * maxAbilities, maxAbilities * sizeof(double));
-			}
-			int f2 = f1;
-			for (int r2=r1; r2 < maxAbilities; ++r2) {
-				for (int c2 = (r1==r2? c1 : 0); c2 <= r2; ++c2) {
-					int to = latentMap[numLatents + triangleLoc1(f2 + maxAbilities) + f1 + maxAbilities];
-					++f2;
-					if (to < 0) continue;
-
-					memcpy(term2.data()      + c2 * maxAbilities,
-					       icovBuffer.data() + r2 * maxAbilities, maxAbilities * sizeof(double));
-					if (r2 != c2) {
-						memcpy(term2.data()      + r2 * maxAbilities,
-						       icovBuffer.data() + c2 * maxAbilities, maxAbilities * sizeof(double));
-					}
-
-					double tr = 0;
-					for (int d1=0; d1 < maxAbilities; ++d1) {
-						for (int d2=0; d2 < maxAbilities; ++d2) {
-							tr += term1[d2 * maxAbilities + d1] * term2[d1 * maxAbilities + d2];
-						}
-					}
-					// Simulation suggests the sample size should be
-					// data->rows-2 but this is tedious to accomodate
-					// when there are latent distribution parameter
-					// equality constraints. Whether the sample size is adjusted
-					// or not seems to make no detectable difference in tests.
-					hb->mat.data()[to] = Scale * data->rows * -.5 * tr;
-
-					OMXZERO(term2.data() + c2 * maxAbilities, maxAbilities);
-					if (c2 != r2) OMXZERO(term2.data() + r2 * maxAbilities, maxAbilities);
-				}
-			}
-			OMXZERO(term1.data() + c1 * maxAbilities, maxAbilities);
-			if (c1 != r1) OMXZERO(term1.data() + r1 * maxAbilities, maxAbilities);
-			++f1;
-		}
-	}
-	fc->queue(hb);
-}
-
 static double
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 {
@@ -1157,9 +1016,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 			if (fc->infoMethod == INFO_METHOD_HESSIAN) {
 				ba81ComputeEMFit(oo, FF_COMPUTE_HESSIAN, fc);
-				if (state->freeLatents) {
-					CDlatentHessian(oo, fc);
-				}
 			} else {
 				omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
 					       fc->infoMethod);
@@ -1264,6 +1120,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 
 	omxExpectation *expectation = oo->expectation;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	estate->fit = oo;
 
 	//newObj->data = oo->expectation->data;
 

@@ -826,6 +826,7 @@ class ComputeEM : public omxCompute {
 	int verbose;
 	bool useRamsay;
 	bool information;
+	std::vector< omxMatrix * > semFitFunction;
 	enum ComputeInfoMethod infoMethod;
 	enum SEMMethod { ClassicSEM, TianSEM, GridSEM, AgileSEM } semMethod;
 	double *semMethodData;
@@ -1067,6 +1068,24 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	infoMethod = INFO_METHOD_DEFAULT;
 
 	if (information) {
+		SEXP infoArgs, argNames;
+		Rf_protect(infoArgs = R_do_slot(rObj, Rf_install("infoArgs")));
+		Rf_protect(argNames = Rf_getAttrib(infoArgs, R_NamesSymbol));
+
+		for (int ax=0; ax < Rf_length(infoArgs); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(argNames, ax));
+			if (strcmp(key, "fitfunction") == 0) {
+				slotValue = VECTOR_ELT(infoArgs, ax);
+				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
+					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
+					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
+					semFitFunction.push_back(ff);
+				}
+			} else {
+				mxLog("Unknown key %s", key);
+			}
+		}
+
 		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("info.method")));
 		SEXP elem;
 		Rf_protect(elem = STRING_ELT(slotValue, 0));
@@ -1485,15 +1504,15 @@ void ComputeEM::computeImpl(FitContext *fc)
 	//mxLog("rij symm");
 	//pda(rij.data(), freeVars, freeVars);
 
-	// if (infoMethod == HESSIAN) we already have it  TODO
-
 	setExpectationPrediction(predict);
 	fc->wanted = 0;
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
-	omxFitFunctionCompute(fit1->getFitFunction(), FF_COMPUTE_INFO, fc);
-	// fit2 also TODO
+	for (size_t fx=0; fx < semFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(semFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
+	}
 	fc->postInfo();
+	setExpectationPrediction("nothing");
 
 	Rf_protect(inputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
 	double *hess = REAL(inputInfoMatrix);
@@ -1672,7 +1691,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			Rf_protect(elem = STRING_ELT(slotValue, wx));
 			const char *what = CHAR(elem);
 			if      (strcmp(what, "maxAbsChange")==0) mac = true;
-			else if (strcmp(what, "starting")    ==0) starting = true;
+			else if (strcmp(what, "set-starting-values")==0) starting = true;
 			else if (strcmp(what, "fit")         ==0) fit = true;
 			else if (strcmp(what, "gradient")    ==0) gradient = true;
 			else if (strcmp(what, "hessian")     ==0) hessian = true;

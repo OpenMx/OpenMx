@@ -138,34 +138,35 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
+
 		mxDataObject <- flatModel@datasets[[.Object@data]]
+		dataName <- .Object@data
+		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
+		threshName <- .Object@thresholds
+		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+		covName <- .Object@covariance
+		covariance <- flatModel[[covName]]
+		.Object@covariance <- imxLocateIndex(flatModel, .Object@covariance, name)
+		meansName <- .Object@means
+		.Object@means <- imxLocateIndex(flatModel, .Object@means, name)
+
+		if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
+
 		if (mxDataObject@type != "raw") {
-			verifyExpectedObservedNames(mxDataObject@observed, .Object@covariance, flatModel, modelname, "Normal")
-			verifyMeans(.Object@means, mxDataObject, flatModel, modelname)
+			verifyExpectedObservedNames(mxDataObject@observed, covName, flatModel, modelname, "Normal")
+			verifyMeans(meansName, mxDataObject, flatModel, modelname)
 		}
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "Normal")
 		checkNumericData(mxDataObject)
 		checkNumberOrdinalColumns(mxDataObject)
-		meansName <- .Object@means
-		covName <- .Object@covariance
-		dataName <- .Object@data
-		threshName <- .Object@thresholds
-		covariance <- flatModel[[covName]]
 		covNames <- colnames(covariance)
-		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, .Object@data)
-		.Object@means <- imxLocateIndex(flatModel, .Object@means, name)
-		.Object@covariance <- imxLocateIndex(flatModel, .Object@covariance, name)
-		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
+		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, dataName)
 		verifyExpectedNames(covName, meansName, flatModel, modelname, "normal")
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
 		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
-		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 		retval <- generateThresholdColumns(flatModel, model, labelsData, covNames, dataName, threshName)
 		.Object@thresholdColumns <- retval[[1]] 
 		.Object@thresholdLevels <- retval[[2]]
-		if (length(mxDataObject@observed) == 0) {
-			.Object@data <- as.integer(NA)
-		}
 		if (single.na(.Object@dims)) {
 			.Object@dims <- covNames
 		}

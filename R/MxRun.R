@@ -79,8 +79,8 @@ runHelper <- function(model, frontendStart,
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
-	model <- convertDatasets(model, defVars, model@options)
-	flatModel@datasets <- collectDatasets(model)
+	model <- preprocessDatasets(model, defVars, model@options) # DEPRECATED
+	flatModel@datasets <- collectDatasets(model)  # done in imxFlattenModel, but confusingly do it again
 	labelsData <- imxGenerateLabels(model)
 
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)
@@ -109,7 +109,7 @@ runHelper <- function(model, frontendStart,
 	defVars <- generateDefinitionList(flatModel, dependencies)		
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
-	data <- flatModel@datasets
+	data <- convertDatasets(flatModel@datasets, model, flatModel)
 	numAlgebras <- length(algebras)
 	algebras <- append(algebras, fitfunctions)
 	constraints <- convertConstraints(flatModel)

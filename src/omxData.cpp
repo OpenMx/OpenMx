@@ -28,14 +28,11 @@
 #include "glue.h"
 #include "omxState.h"
 
-omxData* omxInitData(omxState* os) {
-
+static omxData* omxInitData()
+{
 	omxData *od = Calloc(1, omxData);
 
-	od->currentState = os;
-
-	if (os != globalState) Rf_error("Too late to create omxData");
-	os->dataList.push_back(od);
+	globalState->dataList.push_back(od);
 
 	return od;
 
@@ -47,28 +44,33 @@ omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	return state->dataList[dataIdx];
 }
 
-omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
-	if(OMX_DEBUG) {mxLog("Initializing data Element.");}
-	if(dataObject == NULL) {
-		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
-	}
+static void newDataDynamic(SEXP dataObject, omxData *od)
+{
+	SEXP dataLoc, dataVal;
+	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("type")));
+	Rf_protect(dataVal = STRING_ELT(dataLoc,0));
+	od->_type = CHAR(dataVal);
 
-	omxData* od = omxInitData(state);
+	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
+	od->expectation = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
+}
 
+static void newDataStatic(SEXP dataObject, omxData *od)
+{
+	omxState *state = globalState;
 	SEXP dataLoc, dataVal;
 	int numCols;
 
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {mxLog("Processing Data Type.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("type")));
-	if(dataLoc == NULL) { Rf_error("Data has no type.  Sorry.\nThis is an internal Rf_error, and should be reported on the forums.\n");}
 	Rf_protect(dataVal = STRING_ELT(dataLoc,0));
 	od->_type = CHAR(dataVal);
 	if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
-	if(Rf_isFrame(dataLoc)) {
+	if (Rf_isFrame(dataLoc)) {
 		if(OMX_DEBUG) {mxLog("Data is a frame.");}
 		// Process Data Frame into Columns
 		od->cols = Rf_length(dataLoc);
@@ -106,7 +108,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
-		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 		
 		if (od->dataMat->colMajor && strncmp(od->_type, "raw", 3) == 0) { 
 			omxToggleRowColumnMajor(od->dataMat);
@@ -118,7 +120,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("means")));
-	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
@@ -136,7 +138,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("acov")));
-	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
@@ -146,7 +148,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("thresholds")));
-	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, od->currentState, 0, 0);
+	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
@@ -198,6 +200,22 @@ omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state) {
 		od->identicalRows = INTEGER(dataLoc);
 		if(Rf_length(dataLoc) == 0 || od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
+}
+
+omxData* omxNewDataFromMxData(SEXP dataObject)
+{
+	if(dataObject == NULL) {
+		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
+	}
+
+	SEXP DataClass;
+	Rf_protect(DataClass = STRING_ELT(Rf_getAttrib(dataObject, Rf_install("class")), 0));
+	const char* dclass = CHAR(DataClass);
+	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
+	omxData* od = omxInitData();
+	if (strcmp(dclass, "MxDataStatic")==0) newDataStatic(dataObject, od);
+	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
+	else Rf_error("Unknown data class %s", dclass);
 	return od;
 }
 
@@ -243,27 +261,27 @@ int omxIntDataElement(omxData *od, int row, int col) {
 	}
 }
 
-omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om) {
-	double dataElement;
+omxMatrix* omxDataCovariance(omxData *od)
+{
+	if (od->dataMat) return od->dataMat;
 
-	if(od->dataMat != NULL) {		// Data was entered as a matrix.
-		if(om != NULL) {			// It stays as such
-			omxCopyMatrix(om, od->dataMat);
-			return om;
-		}
-		return od->dataMat;
+	if (od->expectation) {
+		return omxGetExpectationComponent(od->expectation, NULL, "covariance");
 	}
-	// Otherwise, we must construct the matrix.
+
+	// The frontend should ensure matrix storage we we can delete the rest
+	// of this function. TODO
+
 	int numRows = od->rows, numCols = od->cols;
 
-	if(om == NULL) {
-		om = omxInitMatrix(om, numRows, numCols, TRUE, od->currentState);
-	}
+	// should we store the new matrix in od->dataMat? TODO
+	omxMatrix *om = omxInitMatrix(NULL, numRows, numCols, TRUE, globalState);
 
 	if(om->rows != numRows || om->cols != numCols) {
 		omxResizeMatrix(om, numRows, numCols, FALSE);
 	}
 
+	double dataElement;
 	for(int j = 0; j < numCols; j++) {
 		for(int k = 0; k < numRows; k++) {
 			int location = od->location[j];
@@ -290,7 +308,7 @@ omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
 	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
 	
 	if(om == NULL) {
-		om = omxInitMatrix(om, numRows, numRows, TRUE, od->currentState);
+		om = omxInitMatrix(om, numRows, numRows, TRUE, globalState);
 	}
 	omxCopyMatrix(om, od->acovMat);//omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
 	return om;
@@ -304,34 +322,13 @@ unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
 	return 0; // not reached
 }
 
-omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om) {
-
-	if(od->meansMat == NULL) return NULL;
-
-	if(colList == NULL) {
-		if(om == NULL) return od->meansMat;
-		omxCopyMatrix(om, od->meansMat);
-		return om;
+omxMatrix* omxDataMeans(omxData *od)
+{
+	if (od->meansMat) return od->meansMat;
+	if (od->expectation) {
+		return omxGetExpectationComponent(od->expectation, NULL, "mean");
 	}
-
-	int cols = colList->cols;
-
-	if(colList == NULL || cols == 0 || cols > od->cols) {
-		cols = od->cols;
-		if(om == NULL) return od->meansMat;
-		omxCopyMatrix(om, od->meansMat);
-		return om;
-	}
-
-	if(om == NULL) {
-		om = omxInitMatrix(om, 1, cols, TRUE, od->currentState);
-	}
-
-	for(int i = 0; i < cols; i++) {
-		omxSetMatrixElement(om, 1, i, omxVectorElement(od->meansMat, omxVectorElement(colList, i)));
-	}
-
-	return om;
+	return NULL;
 }
 
 omxThresholdColumn* omxDataThresholds(omxData *od) {
@@ -455,7 +452,12 @@ int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row) {
 }
 
 
-double omxDataNumObs(omxData *od) {
+double omxDataNumObs(omxData *od)
+{
+	if (od->expectation) {
+		omxMatrix *mat = omxGetExpectationComponent(od->expectation, NULL, "numObs");
+		return omxMatrixElement(mat, 0, 0);
+	}
 	return od->numObs;
 }
 

@@ -493,6 +493,7 @@ setClass(Class = "MxComputeEM",
 	     verbose = "integer",
 	     ramsay="logical",
 	     information="logical",
+	     infoArgs="list",
 	     semMethod="MxOptionalNumeric",
 	     semDebug="logical",
 	     noiseTarget="numeric",
@@ -533,6 +534,8 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
+		.Object@infoArgs$fitfunction <-
+		    imxConvertIdentifier(.Object@infoArgs$fitfunction, modelname, namespace)
 		.Object
 	})
 
@@ -551,6 +554,14 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 		for (sl in c('mstep', 'post.mstep', 'observed.fit')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
+		fit <- match(.Object@infoArgs$fitfunction,
+			     append(names(flatModel@algebras), names(flatModel@fitfunctions)))
+		if (any(is.na(fit))) {
+			stop(paste("ComputeEM: cannot find fitfunction",
+				   omxQuotes(.Object@infoArgs$fitfunction[is.na(fit)]), "in infoArgs"))
+		}
+		.Object@infoArgs$fitfunction <-fit - 1L
+
 		.Object
 	})
 
@@ -566,7 +577,7 @@ setMethod("updateFromBackend", signature("MxComputeEM"),
 setMethod("initialize", "MxComputeEM",
 	  function(.Object, expectation, predict, mstep, post.mstep, observed.fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
-		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set) {
+		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set, infoArgs) {
 		  .Object@name <- 'compute'
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
@@ -587,13 +598,14 @@ setMethod("initialize", "MxComputeEM",
 		  .Object@agileMaxIter <- agileMaxIter
 		  .Object@semForcePD <- semForcePD
 		  .Object@free.set <- free.set
+		  .Object@infoArgs <- infoArgs
 		  .Object
 	  })
 
 mxComputeEM <- function(expectation, predict, mstep, post.mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-5), noiseTolerance=exp(3.3),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
-			semForcePD=FALSE, free.set=NA_character_) {
+			semForcePD=FALSE, free.set=NA_character_, infoArgs=list()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
@@ -601,7 +613,8 @@ mxComputeEM <- function(expectation, predict, mstep, post.mstep, observed.fit, .
 	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
 	new("MxComputeEM", expectation, predict, mstep, post.mstep, observed.fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
-	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set)
+	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set,
+	    infoArgs)
 }
 
 displayMxComputeEM <- function(opt) {

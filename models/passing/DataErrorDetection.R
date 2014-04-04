@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+#options(error = browser)
 require(OpenMx)
 data <- mxData(type = 'raw', matrix(".", 3, 3, dimnames = list(NULL,c('a','b','c'))))
 covariance <- mxMatrix('Symm', 3, 3, values = c(1:6), name = 'cov')
@@ -46,10 +46,10 @@ covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615),
 	nrow = 2, ncol = 2, byrow = TRUE, dimnames = list(c('a','b'), c('a','b')))
 
 data <- mxData(covMatrix, 'cov', numObs = 100)
-data$numObs <- as.integer(100)
+data$numObs <- 100L
 
 # Add the objective function and the data to the model
 model <- mxModel(model, objective, data, mxFitFunctionML())
 
-mxRun(model)
+fit <- mxRun(model)
 	

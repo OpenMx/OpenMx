@@ -147,12 +147,17 @@ void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *E
 	}
 }
 
+// Use static polymorphism to omit estimation of the latent distribution TODO
+// when the latent parameters are fixed. TODO
+//
+// Maybe specialize this for regular and cai2010 TODO
+//
+// http://en.wikipedia.org/wiki/Curiously_Recurring_Template_Pattern
+
 OMXINLINE static void
 mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 	       const double *whereGram, double *latentDist)
 {
-	// could specialize this for regular and cai2010 for a small gain TODO
-	// also, don't need to estimate latent distribution if no free parameters TODO
 	int maxDims = state->maxDims;
 	int maxAbilities = state->maxAbilities;
 	int pmax = maxDims;
@@ -962,6 +967,21 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols)
 static void ignoreSetVarGroup(omxExpectation*, FreeVarGroup *)
 {}
 
+static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *what)
+{
+	BA81Expect *state = (BA81Expect *) oo->argStruct;
+
+	if (strcmp(what, "covariance")==0) {
+		return state->estLatentCov;
+	} else if (strcmp(what, "mean")==0) {
+		return state->estLatentMean;
+	} else if (strcmp(what, "numObs")==0) {
+		return state->numObsMat;
+	} else {
+		return NULL;
+	}
+}
+
 void omxInitExpectationBA81(omxExpectation* oo) {
 	omxState* currentState = oo->currentState;	
 	SEXP rObj = oo->rObj;
@@ -1060,6 +1080,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	oo->setVarGroup = ignoreSetVarGroup;
 	oo->destructFun = ba81Destroy;
 	oo->populateAttrFun = ba81PopulateAttributes;
+	oo->componentFun = getComponent;
 	
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we don't waste RAM.

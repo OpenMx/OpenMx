@@ -83,12 +83,13 @@ struct omxData {						// A matrix
 	/* Useful Members */
 	int rows, cols;						// Matrix size 
 
-	omxState* currentState;				// The Current Optimizer State 	// Might not want this.
+	// Used when the expectation provides the observed data
+	struct omxExpectation *expectation;   // weak pointer
 };
 
 /* Initialize and Destroy */
-omxData* omxInitData(omxState* os);
-omxData* omxNewDataFromMxData(SEXP dataObject, omxState* state);
+omxData* omxNewDataFromMxData(SEXP dataObject);
+
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
 void omxFreeData(omxData* od);					// Release any held data.
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList);
@@ -96,8 +97,8 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 /* Getters 'n Setters */
 double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one data object as a double
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
-omxMatrix* omxDataMatrix(omxData *od, omxMatrix* om);						// Populates a matrix with the data (use for covariance matrices)
-omxMatrix* omxDataMeans(omxData *od, omxMatrix* colList, omxMatrix* om);	// Populates a matrix with data means
+omxMatrix* omxDataCovariance(omxData *od);
+omxMatrix* omxDataMeans(omxData *od);
 omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); 						// Populates a matrix with the asymptotic covariance matrix
 omxThresholdColumn* omxDataThresholds(omxData *od); 						// Populates a thresholdCols structure with data thresholds
 

@@ -8,7 +8,7 @@ require(rpf)
 #library(mvtnorm)
 
 set.seed(7)
-correct.LL <- 48939.35
+correct.LL <- 48990.18
 
 numItems <- 30
 numPeople <- 500
@@ -23,6 +23,13 @@ for (ix in 1:numItems) {
 correct.mat <- simplify2array(correct)
 correct.mat[1,1:10] <- 0
 correct.mat[2,20:30] <- 0
+
+if (0) {
+  startpar <- sapply(items, rpf.rparam)
+} else {
+  startpar <- matrix(c(1.4, 1, 0), nrow=3, ncol=numItems)
+}
+startpar[correct.mat==0] <- 0
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
 maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
@@ -40,9 +47,7 @@ if (0) {
 }
 
 mkgroup <- function(model.name, data, latent.free) {  
-  ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                     values=c(1, 1.4, 0), free=TRUE)
-  ip.mat$values[correct.mat==0] <- 0
+  ip.mat <- mxMatrix(name="ItemParam", values=startpar, free=TRUE)
   ip.mat$free[correct.mat==0] <- FALSE
   
   for (ix in 1:numItems) {
@@ -52,104 +57,87 @@ mkgroup <- function(model.name, data, latent.free) {
     }
   }
   
-  m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=latent.free)
-  cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=latent.free)
+  m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0)
+  cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2))
+  mean <- "mean"
+  cov <- "cov"
   if (latent.free) {
-    for (c1 in 1:2) {
-      for (c2 in 1:c1) {
-        cov.mat$labels[c1,c2] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
-        cov.mat$labels[c2,c1] <- paste(model.name, paste(c1, c2, sep=","),sep="-")
-      }
-    }  
+    lm <- paste(model.name, "latent", sep="")
+    mean <- paste(lm, "mean", sep=".")
+    cov <- paste(lm, "cov", sep=".")
   }
   
   m1 <- mxModel(model=model.name,
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items,
-                                  ItemParam="ItemParam",
-                                  qpoints=21, qwidth=5),
+                mxExpectationBA81(mean=mean, cov=cov,
+                                  ItemSpec=items, ItemParam="ItemParam",
+                                  qpoints=21, qwidth=5, verbose=0L),
                 mxFitFunctionML())
   m1
 }
 
-groups <- paste("g", 1:3, sep="")
-
-if (1) {
-  fm <- structure(list(G1 = structure(list(param = structure(c(0, 0.547418,  -0.746423, 0, 0.675093, -1.01778, 0, 1.00217, 0.066893, 0, 1.21546,  2.68894, 0, 1.08965, 1.93943, 0, 0.73088, -0.235478, 0, 1.69934,  0.816274, 0, 1.99294, -1.34435, 0, 1.13576, 0.805195, 0, 0.500186,  -0.281224, 0.717699, 1.43936, 0.172262, 0.978424, 0.756688, -0.643423,  1.52223, 0.709748, -0.239081, 1.14345, 2.11652, -0.719694, 0.82372,  0.57575, -0.485341, 0.820995, 2.08929, 0.575516, 0.954974, 1.58002,  -0.28948, 0.837872, 1.13202, 1.51745, 1.27315, 1.32316, -1.56062,  1.20298, 0, -1.05121, 0.971849, 0, 0.49741, 1.31535, 0, 1.01287,  1.63251, 0, 1.24117, 1.48944, 0, -0.943851, 0.664333, 0, -1.71981,  0.46719, 0, -0.518989, 0.848514, 0, 0.371468, 0.924849, 0, -0.365851,  0.641203, 0, -0.303372, 0.884883, 0, 0.600367), .Dim = c(3L,  30L), .Dimnames = list(NULL, c("i1", "i2", "i3", "i4", "i5",  "i6", "i7", "i8", "i9", "i10", "i11", "i12", "i13", "i14", "i15",  "i16", "i17", "i18", "i19", "i20", "i21", "i22", "i23", "i24",  "i25", "i26", "i27", "i28", "i29", "i30"))), mean = structure(c(0,  0), .Names = c("X6", "X7")), cov = structure(c(1, 0, 0, 1), .Dim = c(2L,  2L))), .Names = c("param", "mean", "cov")),
-                       G2 = structure(list(param = structure(c(0, 0.547418, -0.746423, 0, 0.675093,      -1.01778, 0, 1.00217, 0.066893, 0, 1.21546, 2.68894, 0, 1.08965,      1.93943, 0, 0.73088, -0.235478, 0, 1.69934, 0.816274, 0,      1.99294, -1.34435, 0, 1.13576, 0.805195, 0, 0.500186, -0.281224,      0.717699, 1.43936, 0.172262, 0.978424, 0.756688, -0.643423,      1.52223, 0.709748, -0.239081, 1.14345, 2.11652, -0.719694,      0.82372, 0.57575, -0.485341, 0.820995, 2.08929, 0.575516,      0.954974, 1.58002, -0.28948, 0.837872, 1.13202, 1.51745,      1.27315, 1.32316, -1.56062, 1.20298, 0, -1.05121, 0.971849,      0, 0.49741, 1.31535, 0, 1.01287, 1.63251, 0, 1.24117, 1.48944,      0, -0.943851, 0.664333, 0, -1.71981, 0.46719, 0, -0.518989,      0.848514, 0, 0.371468, 0.924849, 0, -0.365851, 0.641203,      0, -0.303372, 0.884883, 0, 0.600367), .Dim = c(3L, 30L), .Dimnames = list(         NULL, c("i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8",          "i9", "i10", "i11", "i12", "i13", "i14", "i15", "i16",          "i17", "i18", "i19", "i20", "i21", "i22", "i23", "i24",          "i25", "i26", "i27", "i28", "i29", "i30"))), mean = structure(c(-0.507038,      0.703947), .Names = c("X6", "X7")), cov = structure(c(1.87718,      0.491825, 0.491825, 2.05385), .Dim = c(2L, 2L))), .Names = c("param",  "mean", "cov")),
-                       G3 = structure(list(param = structure(c(0, 0.547418,  -0.746423, 0, 0.675093, -1.01778, 0, 1.00217, 0.066893, 0, 1.21546,  2.68894, 0, 1.08965, 1.93943, 0, 0.73088, -0.235478, 0, 1.69934,  0.816274, 0, 1.99294, -1.34435, 0, 1.13576, 0.805195, 0, 0.500186,  -0.281224, 0.717699, 1.43936, 0.172262, 0.978424, 0.756688, -0.643423,  1.52223, 0.709748, -0.239081, 1.14345, 2.11652, -0.719694, 0.82372,  0.57575, -0.485341, 0.820995, 2.08929, 0.575516, 0.954974, 1.58002,  -0.28948, 0.837872, 1.13202, 1.51745, 1.27315, 1.32316, -1.56062,  1.20298, 0, -1.05121, 0.971849, 0, 0.49741, 1.31535, 0, 1.01287,  1.63251, 0, 1.24117, 1.48944, 0, -0.943851, 0.664333, 0, -1.71981,  0.46719, 0, -0.518989, 0.848514, 0, 0.371468, 0.924849, 0, -0.365851,  0.641203, 0, -0.303372, 0.884883, 0, 0.600367), .Dim = c(3L,  30L), .Dimnames = list(NULL, c("i1", "i2", "i3", "i4", "i5",  "i6", "i7", "i8", "i9", "i10", "i11", "i12", "i13", "i14", "i15",  "i16", "i17", "i18", "i19", "i20", "i21", "i22", "i23", "i24",  "i25", "i26", "i27", "i28", "i29", "i30"))), mean = structure(c(-0.0282586,  -0.827363), .Names = c("X6", "X7")), cov = structure(c(0.891858,  -0.422099, -0.422099, 0.835799), .Dim = c(2L, 2L))), .Names = c("param",  "mean", "cov"))), .Names = c("G1", "G2", "G3"))
-  
-  g1 <- mkgroup("g1", data.g1, FALSE)
-  g2 <- mkgroup("g2", data.g2, TRUE)
-  g3 <- mkgroup("g3", data.g3, TRUE)
-  
-  g1$ItemParam$values <- fm$G1$param
-  g2$ItemParam$values <- fm$G2$param
-  g3$ItemParam$values <- fm$G3$param
-  g2$mean$values <- t(fm$G2$mean)
-  g3$mean$values <- t(fm$G3$mean)
-  g2$cov$values <- fm$G2$cov
-  g3$cov$values <- fm$G3$cov
-  g1$expectation$scores <- 'full'
-  g2$expectation$scores <- 'full'
-  g3$expectation$scores <- 'full'
-  
-  cModel <- mxModel(model="cModel", g1,g2,g3,
-                    mxComputeOnce(paste(groups, 'expectation', sep='.')))
-  cModel.eap <- mxRun(cModel)
-  
-  fm.sco <- suppressWarnings(try(read.table("models/nightly/data/2d-mg-sco.txt"), silent=TRUE))
-  if (is(fm.sco, "try-error")) fm.sco <- read.table("data/2d-mg-sco.txt")
-  colnames(fm.sco) <- c("group", "row", "s1", "s2", "se1", "se2", paste("cov",1:3,sep=""))
-  
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==1,-1:-2]),
-                      cModel.eap$submodels$g1$expectation$output$scores, 1e-3)
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==2,-1:-2]),
-                      cModel.eap$submodels$g2$expectation$output$scores, 1e-3)
-  omxCheckCloseEnough(as.matrix(fm.sco[fm.sco$group==3,-1:-2]),
-                      cModel.eap$submodels$g3$expectation$output$scores, 1e-3)
-
-  cModel <- mxModel(cModel,
-                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                    mxComputeSequence(steps=list(
-                      mxComputeOnce(paste(groups, 'expectation', sep='.')),
-                      mxComputeOnce('fitfunction', 'fit',
-				    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')))))
-  cModel.fit <- mxRun(cModel)
-  omxCheckCloseEnough(cModel.fit$output$fit, correct.LL, .01)
+mklatent <- function(name) {
+  cov <- mxMatrix(type="Symm", nrow=2, ncol=2, free=T, values=diag(2), name="cov")
+  mask <- c(FALSE,TRUE,TRUE,FALSE)
+  cov$labels[mask] <- paste(name, "cov",sep="")
+  mxModel(paste(name, "latent", sep=""),
+          mxDataDynamic('cov', expectation=paste(name, "expectation", sep=".")),
+          mxMatrix(nrow=1, ncol=2, free=T, values=0, name="mean"),
+          cov,
+          mxExpectationNormal(covariance="cov", means="mean"),
+          mxFitFunctionML()
+  )
 }
 
-latent.vargroup <- apply(expand.grid(groups[-1], c('mean','cov')),
+groups <- paste("g", 1:3, sep="")
+
+latent <- mxModel("latent",
+                  mxFitFunctionMultigroup(paste(paste(groups[-1],"latent",sep=""), "fitfunction", sep=".")))
+
+g2.latent <- mklatent("g2")
+g3.latent <- mklatent("g3")
+
+latent.vargroup <- apply(expand.grid(paste(groups[-1], "latent", sep=""), c('mean','cov')),
                          1, paste, collapse='.')
 
-g1 <- mkgroup("g1", data.g1, FALSE)
-  g2 <- mkgroup("g2", data.g2, TRUE)
-  g3 <- mkgroup("g3", data.g3, TRUE)
+latent.plan <- NULL  # need a plan for latent distribution parameters
 
+if (0) {
   # Copy latent distribution parameters from current estimates without transformation.
   latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                       "latentDistribution", "copy"),  # c('mean','covariance')
                                         mxComputeOnce('fitfunction', "starting")),
                                    free.set=latent.vargroup)
+} else {
+  # Obtain latent distribution parameters via mxExpectationNormal.
+  # This permits equality constraints (and potentially more complex latent structure).
+  latent.plan <- mxComputeGradientDescent(latent.vargroup, fitfunction="latent.fitfunction")
 
-  grpModel <- mxModel(model="groupModel", g1, g2, g3,
+  mask <- c(FALSE, TRUE, TRUE, FALSE)
+  g2.latent$cov$labels[mask] <- 'eq1'
+  g3.latent$cov$labels[mask] <- 'eq1'
+}
+
+g1 <- mkgroup("g1", data.g1, FALSE)
+  g2 <- mkgroup("g2", data.g2, TRUE)
+  g3 <- mkgroup("g3", data.g3, TRUE)
+
+  grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeNewtonRaphson(paste(groups, 'ItemParam', sep=".")),
                                   latent.plan,
                                   mxComputeOnce('fitfunction', 'fit')))
   
-  grpModel <- mxRun(grpModel, silent=TRUE)
+grpModel <- mxRun(grpModel, silent=TRUE)
   
+omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
+omxCheckCloseEnough(c(grpModel$submodels$g2latent$mean$values), c(-.516, .708), .01)
+omxCheckCloseEnough(c(grpModel$submodels$g2latent$cov$values), c(2.114, -.279,-.279, 2.259), .01)
+omxCheckCloseEnough(c(grpModel$submodels$g3latent$mean$values), c(-.027, -.823), .01)
+omxCheckCloseEnough(c(grpModel$submodels$g3latent$cov$values), c(.779, -.279, -.279, .738), .01)
+
 emstat <- grpModel$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 74, 2)
-omxCheckCloseEnough(emstat$totalMstep, 240, 10)
-
-  omxCheckCloseEnough(grpModel$output$minimum, correct.LL, .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g2$mean$values), c(-.507, .703), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g2$cov$values), c(1.877, .491, .491, 2.05), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g3$mean$values), c(-.028, -.827), .01)
-  omxCheckCloseEnough(c(grpModel$submodels$g3$cov$values), c(.892, -.422, -.422, .836), .01)
-
+omxCheckCloseEnough(emstat$EMcycles, 70, 2)
+omxCheckCloseEnough(emstat$totalMstep, 222, 10)

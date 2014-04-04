@@ -19,50 +19,42 @@ data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
 			   values=c(1,0, logit(0), logit(1)),
 			   free=c(FALSE, TRUE, FALSE, FALSE))
 	
-	m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-	cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
+latent <- mxModel('latent',
+		  mxMatrix(nrow=1, ncol=1, free=FALSE, values=0, name="mean"),
+		  mxMatrix(type="Symm", nrow=1, ncol=1, free=TRUE, values=1, name="cov"),
+		  mxDataDynamic("cov", expectation="drmmg.expectation"),
+		  mxExpectationNormal(covariance="cov", means="mean"),
+		  mxFitFunctionML())
 
-	m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
-	              mxData(observed=data, type="raw"),
-	              mxExpectationBA81(mean="mean", cov="cov",
-	                                ItemSpec=items, ItemParam="itemParam"),
-	              mxFitFunctionML(),
-	              mxComputeEM('expectation', 'scores',
-	                          mxComputeNewtonRaphson(free.set='itemParam'),
-	                          mxComputeSequence(list(mxComputeOnce('expectation', "latentDistribution", "copy"),
-	                                                 mxComputeOnce('fitfunction', "starting")),
-	                                            free.set='cov'),
-	                          mxComputeOnce('fitfunction', 'fit')))
+latent.plan <- NULL
+if (1) {
+	latent.plan <- mxComputeGradientDescent('latent.cov', fitfunction="latent.fitfunction")
+} else {
+	latent.plan <- 
+	    mxComputeSequence(list(mxComputeOnce('expectation', "latentDistribution", "copy"),
+				   mxComputeOnce('fitfunction', "set-starting-values")),
+			      free.set='latent.cov')
+}
 
-	if (0) {
-		fm <- read.flexmirt("/home/joshua/irt/ifa-drm-mg/ifa-drm-mg-prm.txt")
-		cModel <- m2
-		cModel$matrices$itemParam$values[2,] <- fm$G1$param[2,]
-		cModel$matrices$cov$values <- fm$G1$cov
-		cModel <- mxModel(cModel,
-				  mxExpectationBA81(mean="mean", cov="cov",
-						    ItemSpec="ItemSpec",
-						    scores="full"),
-				  mxComputeSequence(steps=list(
-						      mxComputeOnce('expectation'),
-						      mxComputeOnce('fitfunction', 'fit'))))
-		cModel <- mxRun(cModel)
-		cModel$matrices$cov$values - fm$G1$cov
-		cModel$output$minimum
-	}
+m2 <- mxModel(model="drmmg", ip.mat, latent,
+	      mxData(observed=data, type="raw"),
+	      mxExpectationBA81(mean="latent.mean", cov="latent.cov",
+				ItemSpec=items, ItemParam="itemParam"),
+	      mxFitFunctionML(),
+	      mxComputeEM('expectation', 'scores',
+			  mxComputeNewtonRaphson(free.set='itemParam'),
+			  latent.plan,
+			  mxComputeOnce('fitfunction', 'fit'), verbose=0L))
 
-# 		m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
-# 		m2 <- mxOption(m2, "Verify level", '-1')
-# 		m2 <- mxOption(m2, "Function precision", '1.0E-5')
-		m2 <- mxRun(m2)
-
-emstat <- m2$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 12, 1)
-omxCheckCloseEnough(emstat$totalMstep, 35, 2)
+m2 <- mxRun(m2)
 
 omxCheckCloseEnough(m2$output$fit, 14129.94, .01)
-omxCheckCloseEnough(m2$matrices$cov$values[1,1], 4.377, .01)
+omxCheckCloseEnough(m2$submodels$latent$matrices$cov$values[1,1], 4.377, .01)
 		
+emstat <- m2$compute$output
+omxCheckCloseEnough(emstat$EMcycles, 36, 1)
+omxCheckCloseEnough(emstat$totalMstep, 94, 2)
+
 					#print(m2$matrices$itemParam$values)
 					#print(correct.mat)
 mask <- is.finite(correct)
