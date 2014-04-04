@@ -436,7 +436,7 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 		retval = ose->det;
 	} else if(!strncmp("r", component, 1)) {
 		retval = ose->r;
-	} else if(OMXSTREQ("covInfo", component)) {
+	} else if(strEQ("covInfo", component)) {
 		retval = ose->covInfo;
 	}
 	
