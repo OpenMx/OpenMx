@@ -300,18 +300,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxFitFunction(algList);
 
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	omxInitialMatrixAlgebraCompute();
+
 	if (isErrorRaised(NULL)) {
 		Rf_error(Global->getBads());
 	}
-
-	// This is the chance to check for matrix
-	// conformability, etc.  Any Rf_errors encountered should
-	// be reported using R's Rf_error() function, not
-	// omxRaiseErrorf.
-
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxInitialMatrixAlgebraCompute();
-	omxResetStatus(globalState);
 
 	/*
 	// Fit functions may not have computed anything because want=0.

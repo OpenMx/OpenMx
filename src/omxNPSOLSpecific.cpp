@@ -125,7 +125,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 	} else omxSetMinorIteration(globalState, globalState->minorIteration + 1);
 
 	omxMatrix* fitMatrix = NPSOL_fitMatrix;
-	omxResetStatus(globalState);						// Clear Error State recursively
+
 	/* Interruptible? */
 	R_CheckUserInterrupt();
 

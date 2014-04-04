@@ -382,11 +382,6 @@ omxGlobal::~omxGlobal()
 	}
 }
 
-void omxResetStatus(omxState *)
-{
-	Global->bads.clear();
-}
-
 std::string string_vsnprintf(const char *fmt, va_list orig_ap)
 {
     int size = 100;

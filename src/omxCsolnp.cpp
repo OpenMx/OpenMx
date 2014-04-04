@@ -59,8 +59,6 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
     
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
     
-	omxResetStatus(globalState);						// Clear Error State recursively
-    
     /* Interruptible? */
 	R_CheckUserInterrupt();
     /* This allows for abitrary repopulation of the free parameters.
