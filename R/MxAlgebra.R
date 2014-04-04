@@ -50,11 +50,7 @@ setReplaceMethod("dimnames", "MxAlgebra",
 	}
 )
 
-setMethod("$", "MxAlgebra",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxAlgebra", imxExtractSlot)
 
 setReplaceMethod("$", "MxAlgebra",
 	function(x, name, value) {

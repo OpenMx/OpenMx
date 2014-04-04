@@ -63,11 +63,7 @@ setMethod("genericFitInitialMatrix", "NULL",
 		return(NULL)
 })
 
-setMethod("$", "MxBaseFitFunction",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxBaseFitFunction", imxExtractSlot)
 
 setReplaceMethod("$", "MxBaseFitFunction",
 	function(x, name, value) {

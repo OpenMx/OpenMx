@@ -94,11 +94,7 @@ setMethod("genericExpRename", "NULL",
 		return(NULL)
 })
 
-setMethod("$", "MxBaseExpectation",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxBaseExpectation", imxExtractSlot)
 
 setReplaceMethod("$", "MxBaseExpectation",
 	function(x, name, value) {

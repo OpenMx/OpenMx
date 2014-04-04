@@ -42,11 +42,7 @@ setMethod("initialize", "MxPath",
 	}
 )
 
-setMethod("$", "MxPath",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxPath", imxExtractSlot)
 
 setReplaceMethod("$", "MxPath",
 	function(x, name, value) {

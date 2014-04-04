@@ -37,11 +37,7 @@ setMethod("initialize", "MxThreshold",
 	}
 )
 
-setMethod("$", "MxThreshold",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxThreshold", imxExtractSlot)
 
 setReplaceMethod("$", "MxThreshold",
 	function(x, name, value) {

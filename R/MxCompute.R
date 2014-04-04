@@ -84,11 +84,7 @@ setMethod("updateFromBackend", signature("BaseCompute"),
 		.Object
 	})
     
-setMethod("$", "BaseCompute",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "BaseCompute", imxExtractSlot)
 
 setReplaceMethod("$", "BaseCompute",
 	function(x, name, value) {

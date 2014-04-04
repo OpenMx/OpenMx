@@ -34,11 +34,7 @@ createNewInterval <- function(reference, lowerdelta, upperdelta) {
 	return(new("MxInterval", reference, lowerdelta, upperdelta))
 }
 
-setMethod("$", "MxInterval",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxInterval", imxExtractSlot)
 
 setReplaceMethod("$", "MxInterval",
 	function(x, name, value) {

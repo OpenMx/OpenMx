@@ -302,11 +302,7 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
-setMethod("$", "MxMatrix",
-	function(x, name) {
-		return(imxExtractSlot(x, name))
-	}
-)
+setMethod("$", "MxMatrix", imxExtractSlot)
 
 setReplaceMethod("$", "MxMatrix",
 	function(x, name, value) {
