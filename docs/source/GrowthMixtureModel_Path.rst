@@ -258,17 +258,17 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
 			values=input[i,]
 			)
 
-		temp1@name <- paste("Starting Values Set", i)
+		temp1$name <- paste("Starting Values Set", i)
 
 		temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE, checkpoint=TRUE)
 
 		output[i,] <- omxGetParameters(temp2)
 		fit[i,] <- c(
-			temp2@output$Minus2LogLikelihood,
-			temp2@output$status[[1]],
-			temp2@output$iterations,
-			round(temp2$classProbs@result[1,1], 4),
-			temp2@output$wallTime
+			temp2$output$Minus2LogLikelihood,
+			temp2$output$status[[1]],
+			temp2$output$iterations,
+			round(temp2$classProbs$result[1,1], 4),
+			temp2$output$wallTime
 			)
 		}
 
@@ -351,21 +351,21 @@ From there, parallel optimization requires that a holder or top model (named "To
 
 	mySubs <- lapply(1:20, makeModel)
 
-	topModel@submodels <- mySubs
+	topModel$submodels <- mySubs
 
 	results <- mxRun(topModel)
 
 	fitStats <- function(model){
 		retval <- c(
-			model@output$Minus2LogLikelihood,
-			model@output$status[[1]],
-			model@output$iterations,
-			round(model$classProbs@result[1,1], 4)
+			model$output$Minus2LogLikelihood,
+			model$output$status[[1]],
+			model$output$iterations,
+			round(model$classProbs$result[1,1], 4)
 			)	
 		return(retval)
 	}
 
-	resultsFit <- t(omxSapply(results@submodels, fitStats))
+	resultsFit <- t(omxSapply(results$submodels, fitStats))
 	sfStop()
 
 This parallel method saves computational time, but requires additional coding. For models as small as the one in this example (total processing time of approximately 2 seconds), the speed-up from using the parallel version is marginal (approximately 35-50 seconds for the serial method against 20-30 seconds for the parallel version). However, as models get more complex or require a greater number of random starts, the parallel method can provide substantial time savings. Regardless of method, re-running models with varying starting values is an essential part of running multivariate models.

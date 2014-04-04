@@ -7,8 +7,8 @@ This chapter deals with the specification of models that are either fit exclusiv
 
 The examples for this chapter can be found in the following files:
 
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_PathRaw.R
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal01_MatrixRaw.R
 
 The continuous versions of these models for raw data can be found the previous demos here:
 
@@ -27,62 +27,63 @@ Each threshold may be freely estimated or assigned as a fixed parameter, dependi
 
 OpenMx allows for the inclusion of continuous and ordinal variables in the same model, as well as models with only continuous or only ordinal variables. Any number of continuous variables may be included in an OpenMx model; however, maximum likelihood estimation for ordinal data must be limited to twenty ordinal variables regardless of the number of continuous variables. Further technical details on ordinal and joint continuous-ordinal optimization are contained at the end of this chapter.
 
-Specifying Threshold Matrices
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In addition to the mean, variance and covariance structure of the data, the thresholds for ordinal variables must be included in the model. This matrix should be of a specific order: it should contain as many columns as their are ordinal variables, and as many rows as there are thresholds in the data. The number of thresholds can be determined as one fewer than the number of categories in the variable or variables included in the model. If ordinal variables have varying numbers of thresholds, the threshold matrix should have as many rows as the largest number of thresholds for any variable. For example, a model with two binary variables (one threshold) and one three-category variable (two thresholds), the threshold matrix should contain two rows and three columns to represent the maximum of two thresholds found across three ordinal variables.
-
-Threshold matrices may be specified using the ``mxMatrix`` function, just like any other matrix in OpenMx. Columns represent variables, while the n$th$ row of the thresholds matrix represents the n$th$ threshold for that variable. The code below specifies one version of the three variable thresholds matrix.
-
-.. code-block:: r
-
-	mxMatrix(
-		type="Full", 
-		nrow=2, 
-		ncol=3,
-		free=c(TRUE,  TRUE,  TRUE,
-			FALSE, FALSE, TRUE), 
-		values=c(-1,  0,  -.5,
-			NA, NA, 1.2),
-		dimnames=list(c(), c('z1', 'z2', 'z3')),
-		byrow=TRUE,
-		name="thresh"
-	)
-
-In this example, variables 'z1' and 'z2' are binary, with a single freely estimated threshold for each variable with starting values of -1 and 0, respectively. The meaning of these thresholds will depend on the mean and variance of these variables; as we are freely estimating thresholds for binary variables, the mean and variances of these variables should be constrained to fixed values. The third column of the thresholds matrix represents variable 'z3', which contains two thresholds and thus three categories. These two thresholds are assigned free parameters with staring values of -0.5 and 1.2, and the mean and variance of this variable should also be constrained to fixed values for identification. For variables with multiple thresholds, starting values should be monotonically increasing in each column such that the first column represents the first threshold and lowest value and the last column represents the last threshold and highest value.
-
-Unlike the mean and covariance structures, which may be specified either as matrices or as paths under models where type='RAM' is requested, thresholds must always be specified as matrices. Path models with ordinal variables may still specify the rest of the model using paths, but must include a threshold matrix.
-
-Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). While users may employ this method as it suits them, OpenMx does not require this technique. Simply specifying a thresholds matrix is typically sufficient to keep thresholds in proper order.
-
 Specifying Data for Ordinal Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In addition to specifying the thresholds matrix as shown above, users must identify ordinal variables by specifying those variables as ordered factors in the included data. Ordinal models can only be fit to raw data; if data is described as a covariance or other moment matrix, then the categorical nature of the data was already models to generate that moment matrix. Ordinal variables must be defined as specific columns in an R data frame.
+To use ordinal variables in OpenMx, users must identify ordinal variables by specifying those variables as ordered factors in the included data. Ordinal models can only be fit to raw data; if data is described as a covariance or other moment matrix, then the categorical nature of the data was already models to generate that moment matrix. Ordinal variables must be defined as specific columns in an R data frame.
 
-Factors are a type of variable included in an R data frame. Unlike numeric or continuous variables, which must include only numeric and missing values, observed values for factors are treated as character strings. All factors contain a ``levels`` argument, which lists the possible values for a factor. Ordered factors contain information about the ordering of possible levels. Both R and OpenMx have tools for manipulating factors in data frames. The R functions ``factor()`` and ``as.factor()`` (and companions ``ordered()`` and ``as.ordered()``) can be used to specify ordered factors. OpenMx includes a helper function ``mxFactor()`` which more directly prepares ordinal variables as ordered factors in preparation for inclusion in OpenMx models. The code below demonstrates the ``mxFactor()`` function, replacing the variable ``z2`` that was initially read as a continuous variable and treating it as an ordinal variable with two levels.
+Factors are a type of variable included in an R data frame. Unlike numeric or continuous variables, which must include only numeric and missing values, observed values for factors are treated as character strings. All factors contain a ``levels`` argument, which lists the possible values for a factor. Ordered factors contain information about the ordering of possible levels. Both R and OpenMx have tools for manipulating factors in data frames. The R functions ``factor()`` and ``as.factor()`` (and companions ``ordered()`` and ``as.ordered()``) can be used to specify ordered factors. OpenMx includes a helper function ``mxFactor()`` which more directly prepares ordinal variables as ordered factors in preparation for inclusion in OpenMx models. The code below demonstrates the ``mxFactor()`` function, replacing the variable ``z1`` that was initially read as a continuous variable and treating it as an ordinal variable with two levels. This process is repeated for ``z2`` (two levels) and ``z3`` (three levels).
 
 .. code-block:: r
 
-	
 	data(myFADataRaw)
 	
 	oneFactorOrd <- myFADataRaw[,c("z1", "z2", "z3")]
-
+	
+	oneFactorOrd$z1 <- mxFactor(oneFactorOrd$z1, levels=c(0, 1))
 	oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
+	oneFactorOrd$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
+
+Specifying Thresholds Using mxThreshold
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Just as covariances and means are included in models using ``mxPath`` when ``type='RAM'`` is enabled, thresholds may be included in models using the ``mxThreshold`` function. This function creates a list of thresholds to be added to your model, just as ``mxPath`` creates a list of paths. As an example, the data prep example above includes two binary variables (``z1`` and ``z2``) and one variable with three categories (``z3``). This means that models fit to this data should contain thresholds for three variables (for ``z1``, ``z2`` and ``z3``). This can be done with three separate calls to the ``mxThreshold`` function, as shown here.
+
+.. code-block:: r
+
+	mxThreshold(vars="z1", nThresh=1, 
+		free=TRUE, values=-1)
+	mxThreshold(vars="z2", nThresh=1, 
+		free=TRUE, values=0)
+	mxThreshold(vars="z3", nThresh=2, 
+		free=TRUE, values=c(-.5, 1.2))
+		
+The ``mxThreshold`` function first requires a variable to assign thresholds to, as well as a number of thresholds. In the first use of ``mxThreshold`` above, those are specified using the ``vars`` and ``nThresh`` arguments. The remaining arguments match those used by ``mxPath``: threshold parameters should be designated as ``free``, be given starting ``values``, and optionally given ``labels`` and boundaries (``lbound`` and ``ubound``). 
+	
+In this example, variables 'z1' and 'z2' are binary, with a single freely estimated threshold for each variable with starting values of -1 and 0, respectively. The meaning of these thresholds will depend on the mean and variance of these variables; as we are freely estimating thresholds for binary variables, the mean and variances of these variables should be constrained to fixed values. The third function call represents variable 'z3', which contains two thresholds and thus three categories. These two thresholds are assigned free parameters with staring values of -0.5 and 1.2, and the mean and variance of this variable should also be constrained to fixed values for identification. For variables with multiple thresholds, starting values should be monotonically increasing in each column such that the first column represents the first threshold and lowest value and the last column represents the last threshold and highest value.
+	
+Alternatively, ``mxThreshold`` can be used to specify thresholds for multiple variables at once. In the code below, ``mxThreshold`` is used to specify thresholds for all variables simultaneously. First, the ``vars`` argument contains a vector of variable names for which thresholds should be specified. The ``nThresh`` argument then specifies how many thresholds should be assigned to each variable: 1 each for ``z1`` and ``z2``, and two for ``z3``. The ``free`` argument states that all specified thresholds are to be freely estimated (the one value is repeated for all four thresholds). Finally, starting values are given using the ``values`` argument: -1 for ``z1``, 0 for ``z2``, and -.5 and 1.2 for ``z3``.
+
+.. code-block:: r
+
+	mxThreshold(vars=c("z1", "z2", "z3"),
+		nThresh=c(1,1,2),
+		free=TRUE,
+		values=c(-1, 0, -.5, 1.2)
+		)
+
+There are a few common errors regarding the use of thresholds in OpenMx. First, threshold values within each variable must be strictly increasing, such that the value in any element of the threshold matrix must be greater than all values above it in that column. In the above example, the second threshold for ``z3`` is set at 1.2, above the value of -.5 for the first threshold. OpenMx will return an error when your thresholds are not strictly increasing. There are no restrictions on values across variables: the second threshold for ``z3`` could be below all thresholds for ``z1`` and ``z2`` provided it exceeded the value for the first ``z3`` threshold. Second, the variables in your model that are assigned thresholds must match ordinal factors in the data. Additionally, free parameters should only be included for thresholds present in your data: including a second freely estimated threshold for ``z1`` or ``z2`` in this example would not directly impede model estimation, but would remain at its starting value and count as a free parameter for the purposes of calculating fit statistics.
+
+It is also important to remember that specifying thresholds is not sufficient to get an ordinal data model to run. In addition, the scale of each ordinal variable must be identified just like the scale of a latent variable. The most common method for this involves constraining a ordinal item's mean to zero and either its total or residual variance to a constant value (i.e., one). For variables with two or more thresholds, ordinal variables may also be identified by constraining two thresholds to fixed values. Models that don't identify the scale of their ordinal variables should not converge.
+
+Thresholds may also be expressed in matrix form. This is described in more detail in the matrix version of this chapter.
+
+Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). While users may employ this method using ``mxAlgebra`` as it suits them, OpenMx does not require this technique. Simply specifying a thresholds matrix is typically sufficient to keep thresholds in proper order.
 
 Including Thresholds in Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Finally, the threshold matrix must be identified as such in the objective function in the same way that other matrices are identified as means or covariance matrices. Both the ``mxRAMObjective`` and ``mxFIMLObjective`` contain a ``thresholds`` argument, which takes the name of the matrix or algebra to be used as the threshold matrix for a given analysis. Although specifying ``type='RAM'`` generates a RAM objective function, this objective function must be replaced by one with a specified thresholds matrix.
-
-You must specify dimnames (dimension names) for your thresholds matrix that correspond to the ordered factors in the data you wish to analyze. This may be done in either of two ways, both of which correspond to specifying dimnames for other OpenMx matrices. One method is to use the ``threshnames`` argument in the ``mxFIMLObjective`` or ``mxRAMObjective``, which specifies which variables are in a threshold matrix in the same way the ``dimnames`` argument specifies which variables are in the rest of the model. Another method is to specify dimnames for each matrix using the ``dimnames`` argument in the ``mxMatrix`` function.
-
-Regardless of the number of continuous numeric variables included in a model, the thresholds matrix should only contain as many columns as there are ordinal variables in a model. All ordered factors included in an analysis must contain a column in the thresholds matrix, and all columns in the thresholds matrix must correspond to an ordered factor. The code below specifies an ``mxRAMObjective`` to include a thresholds matrix names ``''thresh''``. When models are built using ``type='RAM'``, the ``dimnames`` argument may be omitted, as the requisite dimnames for the ``A``, ``S``, ``F`` and ``M`` matrices are generated from the ``manifestVars`` and ``latentVars`` lists. However, the dimnames for the threshold matrix should be included using the ``dimnames`` argument in ``mxMatrix``.
-
-.. code-block:: r
-
-	mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
+If you use ``mxThreshold`` to specify thresholds, there is nothing left to do prior to running your model. However, if you manually create a threshold matrix, you must also specify the name of this matrix in your expectation function. This is described in more detail in the matrix version of this chapter.
 
 Example: Common Factor Model for Ordinal Data
 ---------------------------------------------
@@ -147,19 +148,12 @@ Model specification can be achieved by appending the above threshold matrix and 
 			values=0,
 			labels=c("meanz1","meanz2","meanz3","meanF")
 		),
-		mxMatrix(
-			type="Full", 
-			nrow=2, 
-			ncol=3,
-			free=c(TRUE,  TRUE,  TRUE,
-				FALSE, FALSE, TRUE), 
-			values=c(-1,  0,  -.5,
-			NA, NA, 1.2),
-			dimnames=list(c(), c('z1', 'z2', 'z3')),
-			byrow=TRUE,
-			name="thresh"
-		),
-		mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
+		# thresholds
+		mxThreshold(vars=c("z1", "z2", "z3"),
+			nThresh=c(1,1,2),
+			free=TRUE,
+			values=c(-1, 0, -.5, 1.2)
+			)
 	) # close model
 
 This model may then be optimized using the ``mxRun`` command.
@@ -225,19 +219,12 @@ Models with both continuous and ordinal variables may be specified just like any
             values=0,
             labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
         ),
-		mxMatrix(
-			type="Full", 
-			nrow=2, 
-			ncol=3,
-			free=c(TRUE,  TRUE,  TRUE,
-			FALSE, FALSE, TRUE), 
-			values=c(-1,  0,  -.5,
-				NA, NA, 1.2),
-			dimnames=list(c(), c('z1', 'z2', 'z3')),
-			byrow=TRUE,
-			name="thresh"
-		),
-		mxRAMObjective(A="A", S="S", F="F", M="M", thresholds="thresh")
+		# thresholds
+		mxThreshold(vars=c("z1", "z2", "z3"),
+			nThresh=c(1,1,2),
+			free=TRUE,
+			values=c(-1, 0, -.5, 1.2)
+			)
 	) # close model
 
 This model may then be optimized using the ``mxRun`` command.

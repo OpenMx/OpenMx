@@ -93,10 +93,6 @@ class1 <- mxModel("Class1",
         labels=c("meani1", "means1")
     ),
     # enable the likelihood vector
-    mxExpectationRAM(A = "A",
-        S = "S",
-        F = "F",
-        M = "M"),
     mxFitFunctionML(vector=TRUE)
 ) # close model
 
