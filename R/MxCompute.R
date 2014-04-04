@@ -591,9 +591,9 @@ setMethod("initialize", "MxComputeEM",
 	  })
 
 mxComputeEM <- function(expectation, predict, mstep, post.mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
-			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-3), noiseTolerance=exp(1.5),
+			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-5), noiseTolerance=exp(3.3),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
-			semForcePD=TRUE, free.set=NA_character_) {
+			semForcePD=FALSE, free.set=NA_character_) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")

@@ -118,7 +118,7 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, #laten
                                   mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
                                   latent.plan,
                                   mxComputeOnce('fitfunction', 'fit'),
-                                  information=TRUE, tolerance=1e-4, verbose=0L),
+                                  information=TRUE, tolerance=1e-5, verbose=0L),
                       mxComputeStandardError(),
                       mxComputeHessianQuality())))
 
@@ -159,16 +159,16 @@ if (0) {
   plot_em_map(grpModel, grpModel$compute)
 }
 
-omxCheckCloseEnough(grpModel$output$minimum, 30114.94, .01)
+omxCheckCloseEnough(grpModel$output$fit, 30114.94, .01)
   omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expMean$values, -.834, .01)
   omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expCov$values, 3.93, .01)
   omxCheckCloseEnough(grpModel$submodels$g3latent$matrices$expMean$values, .933, .01)
   omxCheckCloseEnough(grpModel$submodels$g3latent$matrices$expCov$values, .444, .01)
 
 emstat <- grpModel$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 95, 2)
-omxCheckCloseEnough(emstat$totalMstep, 314, 10)
-omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
+omxCheckCloseEnough(emstat$EMcycles, 125, 2)
+omxCheckCloseEnough(emstat$totalMstep, 374, 10)
+omxCheckCloseEnough(emstat$semProbeCount, 88, 10)
   
 #  cat(deparse(round(grpModel$output$standardErrors, 3)))
   semse <- c(0.069, 0.077, 0.074, 0.077, 0.094, 0.097, 0.125,  0.111, 0.069, 0.074,
@@ -176,8 +176,8 @@ omxCheckCloseEnough(emstat$semProbeCount, 100, 10)
              0.205, 0.151, 0.068, 0.077, 0.073,  0.138, 0.078, 0.081, 0.088, 0.087,
              0.061, 0.068, 0.125, 0.11,  0.084, 0.09, 0.094, 0.094, 0.092, 0.089,
              0.11, 0.399, 0.068,  0.055)
-  omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .02)
-  omxCheckCloseEnough(grpModel$output$conditionNumber, 158, 10)
+  omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .01)
+  omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.1, .5)
   
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(

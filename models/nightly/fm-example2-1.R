@@ -56,7 +56,7 @@ omxCheckCloseEnough(emstat$totalMstep, 176, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
 
 omxCheckCloseEnough(m2$output$minimum, Scale * 33408.05/-2, .01)
-#omxCheckTrue(m2$output$infoDefinite)  # probably impossible to know with S-EM
+omxCheckTrue(m2$output$infoDefinite)
 omxCheckCloseEnough(m2$output$conditionNumber, 51, 1)
 #cat(deparse(round(c(m2$output$standardErrors),3)))
 
@@ -133,7 +133,7 @@ if(1) {
   omxCheckCloseEnough(quantifyAsymmetry(emHess2), 0, 1e-6)
   #hist(abs(diag(emHess) - diag(solve(m5$output$hessian))))
   
-  omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2$output$standardErrors)), 0, 3e-5)
+  omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2$output$standardErrors)), 0, 5e-5)
   #print(m2$matrices$ItemParam$values - fmfit)
 }
 
