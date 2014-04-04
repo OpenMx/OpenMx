@@ -90,7 +90,7 @@ for (i in 1: trials){
 		values=input[i,]
 		)
 		
-	temp1$name <- paste("Starting Values Set", i)
+	temp1 <- mxModel(name=paste("Starting Values Set", i), temp1)
 		
 	temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE)
 	
@@ -117,8 +117,6 @@ table(round(fit[,1], 3), fit[,2])
 #sfInit(parallel=TRUE, cpus=4)
 #sfLibrary(OpenMx)
 
-topModel <- mxModel("Top")	
-
 makeModel <- function(modelNumber){
 	temp <- mxModel(gmm, 
 		independent=TRUE,
@@ -131,7 +129,7 @@ makeModel <- function(modelNumber){
 	
 mySubs <- lapply(1:trials, makeModel)
 	
-topModel$submodels <- mySubs
+topModel <- mxModel("Top", mySubs)
 
 results <- mxRun(topModel, suppressWarnings=TRUE)
 

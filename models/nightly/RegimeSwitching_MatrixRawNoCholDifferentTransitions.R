@@ -34,8 +34,13 @@
 require(OpenMx)
 # -----------------------------------------------------------------------------
 
+readData <- function(path) {
+	read.table(file=path,header=FALSE,na.strings='-9.00',col.names=c(paste("time",1:4,sep="")))
+}
+
 # Prepare Data
-dolan2005Data <- read.table(file='data/sel.txt',header=FALSE,na.strings='-9.00',col.names=c(paste("time",1:4,sep="")))
+dolan2005Data <- suppressWarnings(try(readData('data/sel.txt')))
+if (is(dolan2005Data, "try-error")) dolan2005Data <- readData('models/nightly/data/sel.txt')
 # -----------------------------------------------------------------------------
 
 # Number of occasions, factors & regimes
@@ -134,7 +139,8 @@ for (i in 1:(nregime^nocc))
         temp$residuals$values[j,j] <- resValues[patternVector[j],j]
         temp$factorLoadings$values[j,] <- z %x% basisFunctions[j,]
         }
-    temp$name <- paste("Regime",i,sep="")
+
+    temp <- mxModel(name=paste("Regime",i,sep=""), temp)
     modelNames[i] <- paste("Regime",i,sep="")
     modelList[i] <- temp
 }
