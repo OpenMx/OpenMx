@@ -82,7 +82,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	if (j < 0) j = 0;
 	int Rf_length = nrow * ncol;
 
-	omxMatrix *normInMat = omxInitTemporaryMatrix(NULL, nrow, ncol, 1, inMat->currentState);
+	omxMatrix *normInMat = omxInitMatrix(nrow, ncol, 1, inMat->currentState);
 	omxCopyMatrix(normInMat, inMat);
 
 	double multipleOfTwo = pow(2.0, j);
@@ -90,8 +90,8 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 		omxSetVectorElement(normInMat, i, omxVectorElement(normInMat, i) / multipleOfTwo);
 	}
 
-	omxMatrix *tempA = omxInitTemporaryMatrix(NULL, nrow, ncol, 1, inMat->currentState);
-	omxMatrix *tempResult = omxInitTemporaryMatrix(NULL, nrow, ncol, 1, inMat->currentState);
+	omxMatrix *tempA = omxInitMatrix(nrow, ncol, 1, inMat->currentState);
+	omxMatrix *tempResult = omxInitMatrix(nrow, ncol, 1, inMat->currentState);
 	omxMatrix *N = omxNewIdentityMatrix(nrow, inMat->currentState);
 	omxMatrix *D = omxNewIdentityMatrix(nrow, inMat->currentState);
 	for(int row = 0; row < nrow; row++) {

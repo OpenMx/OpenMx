@@ -249,7 +249,7 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		free(errstr);
 	}
 	// Create the original data row from which to filter.
-    newObj->dataRow = omxInitMatrix(NULL, newObj->filteredDataRow->rows, newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
+    newObj->dataRow = omxInitMatrix(newObj->filteredDataRow->rows, newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
     omxAliasMatrix(newObj->filteredDataRow, newObj->dataRow);
 	Rf_unprotect(1);// nextMatrix
 

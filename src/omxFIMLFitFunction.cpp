@@ -520,8 +520,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(newObj->returnRowLikelihoods) {
 		omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE);
 	}
-    newObj->rowLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
-    newObj->rowLogLikelihoods = omxInitMatrix(NULL, newObj->data->rows, 1, TRUE, off->matrix->currentState);
+    newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
+    newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
@@ -555,10 +555,10 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG){mxLog("Number of columns found is %d", covCols);}
     // int ordCols = omxDataNumFactor(newObj->data);        // Unneeded, since we don't use it.
     // int contCols = omxDataNumNumeric(newObj->data);
-    newObj->smallRow = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
-    newObj->smallCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
-    newObj->RCX = omxInitMatrix(NULL, 1, covCols, TRUE, off->matrix->currentState);
-//  newObj->zeros = omxInitMatrix(NULL, 1, newObj->cov->cols, TRUE, off->matrix->currentState);
+    newObj->smallRow = omxInitMatrix(1, covCols, TRUE, off->matrix->currentState);
+    newObj->smallCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
+    newObj->RCX = omxInitMatrix(1, covCols, TRUE, off->matrix->currentState);
+//  newObj->zeros = omxInitMatrix(1, newObj->cov->cols, TRUE, off->matrix->currentState);
 
     omxAliasMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
     off->argStruct = (void*)newObj;
@@ -568,7 +568,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
             mxLog("Ordinal Data detected.  Using Ordinal FIML.");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
+        newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
         omxAliasMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
@@ -583,14 +583,14 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
         }
 
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordMeans = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
-        newObj->contRow = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordRow = omxInitMatrix(NULL, covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
-        newObj->ordContCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
-        newObj->halfCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
-        newObj->reduceCov = omxInitMatrix(NULL, covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+        newObj->contRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+        newObj->ordCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->ordContCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
+        newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxAliasMatrix(newObj->smallMeans, newObj->means);
         omxAliasMatrix(newObj->ordMeans, newObj->means);
         omxAliasMatrix(newObj->contRow, newObj->smallRow );

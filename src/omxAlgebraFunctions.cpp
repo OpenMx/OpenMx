@@ -292,7 +292,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	omxMatrix* intermediate = NULL;
-	intermediate = omxInitTemporaryMatrix(NULL, preMul->rows, postMul->cols, TRUE, preMul->currentState);
+	intermediate = omxInitMatrix(preMul->rows, postMul->cols, TRUE, preMul->currentState);
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: step = %ld.", intermediate->currentState->computeCount);}
 
@@ -947,7 +947,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 		omxResizeMatrix(result, 1, 1, FALSE);
 	}
 
-	calcMat = omxInitTemporaryMatrix(NULL, rows, cols, TRUE, inMat->currentState);
+	calcMat = omxInitMatrix(rows, cols, TRUE, inMat->currentState);
 	omxCopyMatrix(calcMat, inMat);
 
 	int* ipiv = (int*) calloc(inMat->rows, sizeof(int));
@@ -1865,8 +1865,8 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 
 void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
+	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
@@ -1935,7 +1935,7 @@ RealEigenValCleanup:
 
 void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
@@ -2012,8 +2012,8 @@ RealEigenVecCleanup:
 
 void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
-	omxMatrix* B = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
+	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
 	omxResizeMatrix(A, B->rows, 1, FALSE);
 
@@ -2085,7 +2085,7 @@ ImagEigenValCleanup:
 
 void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(NULL, 0, 0, TRUE, result->currentState);
+	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols, FALSE);
 
@@ -2380,7 +2380,7 @@ void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
         omxResizeMatrix(result, rows, rows, FALSE);
 	}
 
-    intermediate = omxInitTemporaryMatrix(NULL, 1, rows, TRUE, inMat->currentState);
+    intermediate = omxInitMatrix(1, rows, TRUE, inMat->currentState);
 
     for(int i = 0; i < rows; i++) {
         intermediate->data[i] = sqrt(1.0 / omxMatrixElement(inMat, i, i));

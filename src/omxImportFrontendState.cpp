@@ -71,7 +71,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	if(OMX_DEBUG) { mxLog("Processing %d algebras.", Rf_length(algList)); }
 
 	for(int index = 0; index < Rf_length(algList); index++) {
-		globalState->algebraList.push_back(omxInitMatrix(NULL, 0, 0, TRUE, globalState));
+		globalState->algebraList.push_back(omxInitMatrix(0, 0, TRUE, globalState));
 	}
 
 	for(int index = 0; index < Rf_length(algList); index++) {

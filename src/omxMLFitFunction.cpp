@@ -528,11 +528,11 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	/* Temporary storage for calculation */
 	int rows = newObj->observedCov->rows;
 	int cols = newObj->observedCov->cols;
-	newObj->localCov = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-	newObj->localProd = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-	newObj->P = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
-	newObj->C = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-	newObj->I = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
+	newObj->localCov = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+	newObj->localProd = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+	newObj->P = omxInitMatrix(1, cols, TRUE, oo->matrix->currentState);
+	newObj->C = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+	newObj->I = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
 
 	for(int i = 0; i < rows; i++) omxSetMatrixElement(newObj->I, i, i, 1.0);
 
@@ -584,15 +584,15 @@ static void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*der
     int cols = omo->observedCov->cols;
     size_t nFreeVars = oo->freeVarGroup->vars.size();
             
-    omo->X  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-    omo->Y  = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-    omo->Ms = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
-    omo->Mu = omxInitMatrix(NULL, 1, cols, TRUE, oo->matrix->currentState);
+    omo->X  = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+    omo->Y  = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+    omo->Ms = omxInitMatrix(1, cols, TRUE, oo->matrix->currentState);
+    omo->Mu = omxInitMatrix(1, cols, TRUE, oo->matrix->currentState);
     omo->dSigma = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
     omo->dMu = (omxMatrix**) R_alloc(nFreeVars, sizeof(omxMatrix*));
     for(size_t i = 0; i < nFreeVars; i++) {
-        omo->dSigma[i] = omxInitMatrix(NULL, rows, cols, TRUE, oo->matrix->currentState);
-        omo->dMu[i] = omxInitMatrix(NULL, rows, 1, TRUE, oo->matrix->currentState);
+        omo->dSigma[i] = omxInitMatrix(rows, cols, TRUE, oo->matrix->currentState);
+        omo->dMu[i] = omxInitMatrix(rows, 1, TRUE, oo->matrix->currentState);
     }
     //oo->gradientFun = omxCalculateMLGradient; TODO
 }

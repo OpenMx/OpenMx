@@ -227,7 +227,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	/* Read and set expected means, variances, and weights */
     cov = omxDataCovariance(dataMat);
     means = omxDataMeans(dataMat);
-    weights = omxDataAcov(dataMat, NULL);
+    weights = omxDataAcov(dataMat);
 	//newObj->observedThresholds  = omxDataThresholds(dataMat);
 	newObj->observedThresholds = dataMat->thresholdCols; //FIXME
 
@@ -287,10 +287,10 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	// FIXME: More Rf_error checking for incoming Fit Functions
 
 	/* Temporary storage for calculation */
-	newObj->observedFlattened = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->expectedFlattened = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->P = omxInitMatrix(NULL, 1, vectorSize, TRUE, oo->matrix->currentState);
-	newObj->B = omxInitMatrix(NULL, vectorSize, 1, TRUE, oo->matrix->currentState);
+	newObj->observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
+	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
+	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
+	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 
     flattenDataToVector(newObj->observedCov, newObj->observedMeans, newObj->observedThresholds, newObj->nThresholds, newObj->observedFlattened);
     flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedThresholds, newObj->nThresholds, newObj->expectedFlattened);

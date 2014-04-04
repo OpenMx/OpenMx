@@ -99,7 +99,7 @@ double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one d
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
-omxMatrix* omxDataAcov(omxData *od, omxMatrix* om); 						// Populates a matrix with the asymptotic covariance matrix
+omxMatrix* omxDataAcov(omxData *od); 						// Populates a matrix with the asymptotic covariance matrix
 omxThresholdColumn* omxDataThresholds(omxData *od); 						// Populates a thresholdCols structure with data thresholds
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row

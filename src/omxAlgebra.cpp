@@ -53,7 +53,7 @@ omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 
 omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
 
-	omxMatrix* om = omxInitMatrix(NULL, 0, 0, TRUE, os);
+	omxMatrix* om = omxInitMatrix(0, 0, TRUE, os);
 	
 	omxInitAlgebraWithMatrix(oa, om);
 
@@ -148,7 +148,7 @@ omxAlgebra::omxAlgebra()
 
 static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name)
 {
-	omxMatrix *om = omxInitMatrix(NULL, 0, 0, TRUE, os);
+	omxMatrix *om = omxInitMatrix(0, 0, TRUE, os);
 
 	om->hasMatrixNumber = 0;
 	om->matrixNumber = 0;	

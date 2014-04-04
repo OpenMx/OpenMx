@@ -91,8 +91,7 @@ struct omxMatrix {						// A matrix
 
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.
 // If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
-omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short colMajor, omxState* os);
-#define omxInitTemporaryMatrix omxInitMatrix
+omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState* os);
 
 	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees
 

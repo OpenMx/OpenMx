@@ -67,12 +67,11 @@ void omxPrintMatrix(omxMatrix *source, const char* header)
 	mxLogBig(buf);
 }
 
-omxMatrix* omxInitMatrix(omxMatrix* om, int nrows, int ncols, unsigned short isColMajor, omxState* os) {
+omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
 	if (!isColMajor) Rf_error("All matrices are created column major");
-	if (om) Rf_error("om is always NULL"); // remove argument TODO
 
-	om = (omxMatrix*) Calloc(1, omxMatrix);
+	omxMatrix* om = (omxMatrix*) Calloc(1, omxMatrix);
 
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
@@ -224,7 +223,7 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 	omxMatrix* newMat = NULL;
 	int l,k;
 
-	newMat = omxInitMatrix(NULL, nrows, nrows, TRUE, state);
+	newMat = omxInitMatrix(nrows, nrows, TRUE, state);
 	for(k =0; k < newMat->rows; k++) {
 		for(l = 0; l < newMat->cols; l++) {
 			if(l == k) {
@@ -241,7 +240,7 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	omxMatrix* newMat;
     
 	if(src == NULL) return NULL;
-	newMat = omxInitMatrix(NULL, src->rows, src->cols, TRUE, newState);
+	newMat = omxInitMatrix(src->rows, src->cols, TRUE, newState);
 	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
@@ -384,7 +383,7 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	omxMatrix *om = NULL;
-	om = omxInitMatrix(NULL, 0, 0, TRUE, state);
+	om = omxInitMatrix(0, 0, TRUE, state);
 	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
 }
 

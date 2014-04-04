@@ -370,7 +370,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	nu = SSMexp->D->cols;
 	
 	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
-	SSMexp->y = omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	SSMexp->y = omxInitMatrix(ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
 		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(ox->data, 0, i));
 	}
@@ -379,34 +379,34 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	// TODO Make x0 and P0 static (if possible) to save memory
 	// TODO Look into omxMatrix.c/h for a possible new matrix from omxMatrix function
 	if(OMX_DEBUG) { mxLog("Generating static internals for resetting initial values."); }
-	SSMexp->x = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	SSMexp->P = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
+	SSMexp->x = 	omxInitMatrix(nx, 1, TRUE, currentState);
+	SSMexp->P = 	omxInitMatrix(nx, nx, TRUE, currentState);
 	omxCopyMatrix(SSMexp->x, SSMexp->x0);
 	omxCopyMatrix(SSMexp->P, SSMexp->P0);
 	
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	
-	SSMexp->covInfo = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
-	SSMexp->det = 	omxInitMatrix(NULL, 1, 1, TRUE, currentState);
-	SSMexp->r = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
-	SSMexp->s = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
-	SSMexp->z = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	SSMexp->K = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState); // Actually the tranpose of the Kalman gain
-	SSMexp->S = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	SSMexp->Y = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
-	SSMexp->Z = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
+	SSMexp->covInfo = 	omxInitMatrix(1, 1, TRUE, currentState);
+	SSMexp->det = 	omxInitMatrix(1, 1, TRUE, currentState);
+	SSMexp->r = 	omxInitMatrix(ny, 1, TRUE, currentState);
+	SSMexp->s = 	omxInitMatrix(ny, 1, TRUE, currentState);
+	SSMexp->z = 	omxInitMatrix(nx, 1, TRUE, currentState);
+	SSMexp->K = 	omxInitMatrix(ny, nx, TRUE, currentState); // Actually the tranpose of the Kalman gain
+	SSMexp->S = 	omxInitMatrix(ny, ny, TRUE, currentState);
+	SSMexp->Y = 	omxInitMatrix(ny, nx, TRUE, currentState);
+	SSMexp->Z = 	omxInitMatrix(nx, nx, TRUE, currentState);
 	
-	SSMexp->cov = 		omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	SSMexp->means = 	omxInitMatrix(NULL, 1, ny, TRUE, currentState);
+	SSMexp->cov = 		omxInitMatrix(ny, ny, TRUE, currentState);
+	SSMexp->means = 	omxInitMatrix(1, ny, TRUE, currentState);
 	
 	/* Create alias matrices for missing data filtering */
-	SSMexp->smallC = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
-	SSMexp->smallD = 	omxInitMatrix(NULL, ny, nu, TRUE, currentState);
-	SSMexp->smallR = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	SSMexp->smallr = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
-	SSMexp->smallK = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
-	SSMexp->smallS = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	SSMexp->smallY = 	omxInitMatrix(NULL, ny, nx, TRUE, currentState);
+	SSMexp->smallC = 	omxInitMatrix(ny, nx, TRUE, currentState);
+	SSMexp->smallD = 	omxInitMatrix(ny, nu, TRUE, currentState);
+	SSMexp->smallR = 	omxInitMatrix(ny, ny, TRUE, currentState);
+	SSMexp->smallr = 	omxInitMatrix(ny, 1, TRUE, currentState);
+	SSMexp->smallK = 	omxInitMatrix(ny, nx, TRUE, currentState);
+	SSMexp->smallS = 	omxInitMatrix(ny, ny, TRUE, currentState);
+	SSMexp->smallY = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	
 	/* Alias the small matrices so their alias pointers refer to the memory location of their respective matrices */
 	omxAliasMatrix(SSMexp->smallC, SSMexp->C);

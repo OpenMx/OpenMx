@@ -1142,8 +1142,8 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		}
 	}
 
-	state->itemParam = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
-	state->latentMean = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
-	state->latentCov = omxInitMatrix(NULL, 0, 0, TRUE, globalState);
+	state->itemParam = omxInitMatrix(0, 0, TRUE, globalState);
+	state->latentMean = omxInitMatrix(0, 0, TRUE, globalState);
+	state->latentCov = omxInitMatrix(0, 0, TRUE, globalState);
 	state->copyEstimates(estate);
 }

@@ -440,23 +440,23 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	
 	LISobj->noLY = LISobj->LY == NULL;
 	if(LISobj->noLY) {
-		LISobj->LY = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
-		LISobj->PS = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
-		LISobj->BE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
-		LISobj->TE = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->LY = omxInitMatrix(0, 0, TRUE, currentState);
+		LISobj->PS = omxInitMatrix(0, 0, TRUE, currentState);
+		LISobj->BE = omxInitMatrix(0, 0, TRUE, currentState);
+		LISobj->TE = omxInitMatrix(0, 0, TRUE, currentState);
 	}
 	
 	LISobj->noLX = LISobj->LX == NULL;
 	if(LISobj->noLX) {
-		LISobj->LX = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
-		LISobj->PH = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
-		LISobj->TD = omxInitMatrix(NULL, 0, 0, TRUE, currentState);
+		LISobj->LX = omxInitMatrix(0, 0, TRUE, currentState);
+		LISobj->PH = omxInitMatrix(0, 0, TRUE, currentState);
+		LISobj->TD = omxInitMatrix(0, 0, TRUE, currentState);
 	}
 	
 	LISobj->Lnocol = LISobj->LY->cols == 0 || LISobj->LX->cols == 0;
 	if(LISobj->Lnocol) {
-		LISobj->GA = omxInitMatrix(NULL, LISobj->LY->cols, LISobj->LX->cols, TRUE, currentState);
-		LISobj->TH = omxInitMatrix(NULL, LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
+		LISobj->GA = omxInitMatrix(LISobj->LY->cols, LISobj->LX->cols, TRUE, currentState);
+		LISobj->TH = omxInitMatrix(LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
 	}
 	
 	
@@ -484,30 +484,30 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 	
-	LISobj->A = 	omxInitMatrix(NULL, nx, nxi, TRUE, currentState);
-	LISobj->B = 	omxInitMatrix(NULL, nx, nx, TRUE, currentState);
-	LISobj->C = 	omxInitMatrix(NULL, neta, neta, TRUE, currentState);
-	LISobj->D = 	omxInitMatrix(NULL, ny, neta, TRUE, currentState);
-	LISobj->E = 	omxInitMatrix(NULL, nx, neta, TRUE, currentState);
-	LISobj->F = 	omxInitMatrix(NULL, nx, ny, TRUE, currentState);
-	LISobj->G = 	omxInitMatrix(NULL, neta, nxi, TRUE, currentState);
-	LISobj->H = 	omxInitMatrix(NULL, ny, neta, TRUE, currentState);
-	LISobj->J = 	omxInitMatrix(NULL, ny, ny, TRUE, currentState);
-	LISobj->K = 	omxInitMatrix(NULL, neta, 1, TRUE, currentState);
-	LISobj->L = 	omxInitMatrix(NULL, neta, neta, TRUE, currentState);
-	LISobj->TOP = 	omxInitMatrix(NULL, ny, ntotal, TRUE, currentState);
-	LISobj->BOT = 	omxInitMatrix(NULL, nx, ntotal, TRUE, currentState);
-	LISobj->MUX = 	omxInitMatrix(NULL, nx, 1, TRUE, currentState);
-	LISobj->MUY = 	omxInitMatrix(NULL, ny, 1, TRUE, currentState);
+	LISobj->A = 	omxInitMatrix(nx, nxi, TRUE, currentState);
+	LISobj->B = 	omxInitMatrix(nx, nx, TRUE, currentState);
+	LISobj->C = 	omxInitMatrix(neta, neta, TRUE, currentState);
+	LISobj->D = 	omxInitMatrix(ny, neta, TRUE, currentState);
+	LISobj->E = 	omxInitMatrix(nx, neta, TRUE, currentState);
+	LISobj->F = 	omxInitMatrix(nx, ny, TRUE, currentState);
+	LISobj->G = 	omxInitMatrix(neta, nxi, TRUE, currentState);
+	LISobj->H = 	omxInitMatrix(ny, neta, TRUE, currentState);
+	LISobj->J = 	omxInitMatrix(ny, ny, TRUE, currentState);
+	LISobj->K = 	omxInitMatrix(neta, 1, TRUE, currentState);
+	LISobj->L = 	omxInitMatrix(neta, neta, TRUE, currentState);
+	LISobj->TOP = 	omxInitMatrix(ny, ntotal, TRUE, currentState);
+	LISobj->BOT = 	omxInitMatrix(nx, ntotal, TRUE, currentState);
+	LISobj->MUX = 	omxInitMatrix(nx, 1, TRUE, currentState);
+	LISobj->MUY = 	omxInitMatrix(ny, 1, TRUE, currentState);
 	
 	
-	LISobj->cov = 	omxInitMatrix(NULL, ntotal, ntotal, TRUE, currentState);
+	LISobj->cov = 	omxInitMatrix(ntotal, ntotal, TRUE, currentState);
 
 	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
 	
 	/* Means */
 	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
-		LISobj->means = 	omxInitMatrix(NULL, 1, ntotal, TRUE, currentState);
+		LISobj->means = 	omxInitMatrix(1, ntotal, TRUE, currentState);
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys
 

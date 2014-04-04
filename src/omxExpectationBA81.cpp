@@ -1294,10 +1294,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
 
 	state->ElatentVersion = 0;
-	state->estLatentMean = omxInitTemporaryMatrix(NULL, state->maxAbilities, 1, TRUE, currentState);
-	state->estLatentCov = omxInitTemporaryMatrix(NULL, state->maxAbilities, state->maxAbilities, TRUE, currentState);
+	state->estLatentMean = omxInitMatrix(state->maxAbilities, 1, TRUE, currentState);
+	state->estLatentCov = omxInitMatrix(state->maxAbilities, state->maxAbilities, TRUE, currentState);
 	omxCopyMatrix(state->estLatentMean, state->latentMeanOut); // rename matrices TODO
 	omxCopyMatrix(state->estLatentCov, state->latentCovOut);
-	state->numObsMat = omxInitTemporaryMatrix(NULL, 1, 1, TRUE, currentState);
+	state->numObsMat = omxInitMatrix(1, 1, TRUE, currentState);
 	omxSetVectorElement(state->numObsMat, 0, data->rows);
 }

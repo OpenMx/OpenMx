@@ -275,7 +275,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 	int numRows = od->rows, numCols = od->cols;
 
 	// should we store the new matrix in od->dataMat? TODO
-	omxMatrix *om = omxInitMatrix(NULL, numRows, numCols, TRUE, globalState);
+	omxMatrix *om = omxInitMatrix(numRows, numCols, TRUE, globalState);
 
 	if(om->rows != numRows || om->cols != numCols) {
 		omxResizeMatrix(om, numRows, numCols, FALSE);
@@ -296,20 +296,13 @@ omxMatrix* omxDataCovariance(omxData *od)
 	return om;
 }
 
-omxMatrix* omxDataAcov(omxData *od, omxMatrix* om) {
-	if(od->acovMat != NULL) {		// acov was entered as a matrix.
-		if(om != NULL) {			// It stays as such
-			omxAliasMatrix(om, od->acovMat);
-			return om;
-		}
-		return od->acovMat;
-	}
+omxMatrix* omxDataAcov(omxData *od) {
+	if(od->acovMat) return od->acovMat;
+
 	// Otherwise, we must construct the matrix.
 	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
 	
-	if(om == NULL) {
-		om = omxInitMatrix(om, numRows, numRows, TRUE, globalState);
-	}
+	omxMatrix* om = omxInitMatrix(numRows, numRows, TRUE, globalState);
 	omxCopyMatrix(om, od->acovMat);//omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
 	return om;
 }

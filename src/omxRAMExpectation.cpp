@@ -355,43 +355,43 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
-	RAMexp->Z = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMexp->Ax = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMexp->W = 	omxInitMatrix(NULL, k, k, TRUE, currentState);
-	RAMexp->U = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMexp->Y = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMexp->X = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMexp->EF= 	omxInitMatrix(NULL, k, l, TRUE, currentState);
-	RAMexp->V = 	omxInitMatrix(NULL, l, k, TRUE, currentState);
-	RAMexp->ZSBC = 	omxInitMatrix(NULL, k, l, TRUE, currentState);
-	RAMexp->C = 	omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->Z = 	omxInitMatrix(k, k, TRUE, currentState);
+	RAMexp->Ax = 	omxInitMatrix(k, k, TRUE, currentState);
+	RAMexp->W = 	omxInitMatrix(k, k, TRUE, currentState);
+	RAMexp->U = 	omxInitMatrix(l, k, TRUE, currentState);
+	RAMexp->Y = 	omxInitMatrix(l, k, TRUE, currentState);
+	RAMexp->X = 	omxInitMatrix(l, k, TRUE, currentState);
+	RAMexp->EF= 	omxInitMatrix(k, l, TRUE, currentState);
+	RAMexp->V = 	omxInitMatrix(l, k, TRUE, currentState);
+	RAMexp->ZSBC = 	omxInitMatrix(k, l, TRUE, currentState);
+	RAMexp->C = 	omxInitMatrix(l, l, TRUE, currentState);
 	
 	if(omxIsMatrix(RAMexp->A)) {
-		RAMexp->dA = omxInitMatrix(NULL, k, k, TRUE, currentState);
+		RAMexp->dA = omxInitMatrix(k, k, TRUE, currentState);
 	} else {
 		RAMexp->dA = NULL;
 	}
 	if(omxIsMatrix(RAMexp->S)) {
-		RAMexp->dS = omxInitMatrix(NULL, k, k, TRUE, currentState);
+		RAMexp->dS = omxInitMatrix(k, k, TRUE, currentState);
 	} else {
 		RAMexp->dS = NULL;
 	}
 	if(RAMexp->M != NULL) {
-		RAMexp->dM = 	omxInitMatrix(NULL, 1, k, TRUE, currentState);
-		RAMexp->ZM = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMexp->bCB = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMexp->b = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
-		RAMexp->tempVec = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMexp->bigSum = 	omxInitMatrix(NULL, k, 1, TRUE, currentState);
-		RAMexp->lilSum = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
-		RAMexp->beCov = 	omxInitMatrix(NULL, l, 1, TRUE, currentState);
+		RAMexp->dM = 	omxInitMatrix(1, k, TRUE, currentState);
+		RAMexp->ZM = 	omxInitMatrix(k, 1, TRUE, currentState);
+		RAMexp->bCB = 	omxInitMatrix(k, 1, TRUE, currentState);
+		RAMexp->b = 	omxInitMatrix(l, 1, TRUE, currentState);
+		RAMexp->tempVec = 	omxInitMatrix(k, 1, TRUE, currentState);
+		RAMexp->bigSum = 	omxInitMatrix(k, 1, TRUE, currentState);
+		RAMexp->lilSum = 	omxInitMatrix(l, 1, TRUE, currentState);
+		RAMexp->beCov = 	omxInitMatrix(l, 1, TRUE, currentState);
 		RAMexp->Mns = 	NULL;
     }
 
-	RAMexp->cov = 		omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->cov = 		omxInitMatrix(l, l, TRUE, currentState);
 
 	if(RAMexp->M != NULL) {
-		RAMexp->means = 	omxInitMatrix(NULL, 1, l, TRUE, currentState);
+		RAMexp->means = 	omxInitMatrix(1, l, TRUE, currentState);
 	} else {
 	    RAMexp->means  = 	NULL;
     }
@@ -405,7 +405,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	RAMexp->D =     NULL;
 	RAMexp->pNums = NULL;
 	RAMexp->nParam = -1;
-	RAMexp->eCov=       omxInitMatrix(NULL, l, l, TRUE, currentState);
+	RAMexp->eCov=       omxInitMatrix(l, l, TRUE, currentState);
 
 }
 
@@ -592,13 +592,13 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
         int a = A->rows;
         omxState* currentState = oo->currentState;
         for(int i = 0; i < nParam; i++) {
-            oro->dAdts[i] = omxInitMatrix(NULL, a, a, TRUE, currentState);
-            oro->dSdts[i] = omxInitMatrix(NULL, a, a, TRUE, currentState);
-            oro->dMdts[i] = omxInitMatrix(NULL, 1, a, TRUE, currentState);
+            oro->dAdts[i] = omxInitMatrix(a, a, TRUE, currentState);
+            oro->dSdts[i] = omxInitMatrix(a, a, TRUE, currentState);
+            oro->dMdts[i] = omxInitMatrix(1, a, TRUE, currentState);
             
-            oro->eqnOuts[0][i] = omxInitMatrix(NULL, a, a, TRUE, currentState);
+            oro->eqnOuts[0][i] = omxInitMatrix(a, a, TRUE, currentState);
         }
-        oro->paramVec = omxInitMatrix(NULL, nParam, 1, TRUE, currentState);
+        oro->paramVec = omxInitMatrix(nParam, 1, TRUE, currentState);
         paramVec = oro->paramVec;
         dAdts = oro->dAdts;
         dSdts = oro->dSdts;
