@@ -53,7 +53,7 @@ m2 <- mxModel(model="latent",
               ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items, ItemParam="ItemParam", scores="full", assumeLatentParameterDeriv=TRUE),
+                                ItemSpec=items, ItemParam="ItemParam", scores="full"),
               mxFitFunctionML(),
               mxComputeSequence(steps=list(
                 mxComputeOnce('expectation'),
@@ -102,8 +102,6 @@ sigma.coef <- function(Icov) {
 }
 
 Icov <- solve(m2$cov$values)
-omxCheckCloseEnough(m2$output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
-omxCheckCloseEnough(m2$output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
 
 dimnames(m2$mean) <- list(NULL,paste("f",1:2,sep=""))
 dimnames(m2$cov) <- list(paste("f",1:2,sep=""),paste("f",1:2,sep=""))

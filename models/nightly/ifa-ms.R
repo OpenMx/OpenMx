@@ -70,7 +70,7 @@ plan <- mxComputeSequence(steps=list(
               mxComputeNewtonRaphson(free.set='ItemParam'),
               mxComputeNothing(),
               mxComputeOnce('fitfunction', 'fit'),
-              information=TRUE),
+              information=TRUE, infoArgs=list(fitfunction='fitfunction')),
   mxComputeStandardError(),
   mxComputeHessianQuality()))
 
