@@ -221,7 +221,7 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     omxRecompute(A);
     omxRecompute(S);
 	
-	omxShallowInverse(numIters, A, Z, Ax, I ); // Z = (I-A)^-1
+    omxShallowInverse(NULL, numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	
 	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
@@ -280,9 +280,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	// 		Rf_error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
-	omxShallowInverse(numIters, A, Z, Ax, I );
-
-	if (isErrorRaised(A->currentState)) return;
+	omxShallowInverse(NULL, numIters, A, Z, Ax, I );
 	
 	/* Cov = FZSZ'F' */
 	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);

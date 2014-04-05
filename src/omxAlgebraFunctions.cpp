@@ -86,9 +86,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	int rowtemp = result->rows;
 	result->rows = result->cols;
 	result->cols = rowtemp;
-	int *populateTemp = result->populateToCol;
-	result->populateToCol = result->populateToRow;
-	result->populateToRow = populateTemp;
+	result->transposePopulate();
 	omxMatrixLeadingLagging(result);
 }
 
@@ -100,7 +98,8 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 	Matrix resultMat(result);
 	int info = MatrixInvert1(result);
 	if (info) {
-		omxRaiseErrorf(result->currentState, "(I-A) is exactly singular (info=%d)", info);
+		result->data[0] = nan("singular");
+		// recordIterationError not available here
 	}
 }
 

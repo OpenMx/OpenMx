@@ -332,7 +332,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	for(int j = 0; j < Rf_length(matList); j++) {
 		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
-		omxProcessMatrixPopulationList(globalState->matrixList[j], nextLoc);
+		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());

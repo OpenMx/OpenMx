@@ -206,7 +206,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
-		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(NULL, numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
@@ -307,7 +307,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
-		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(NULL, numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp

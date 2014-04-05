@@ -71,7 +71,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 
 	if (!isColMajor) Rf_error("All matrices are created column major");
 
-	omxMatrix* om = (omxMatrix*) Calloc(1, omxMatrix);
+	omxMatrix* om = new omxMatrix;
 
 	om->hasMatrixNumber = 0;
 	om->rows = nrows;
@@ -88,14 +88,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 	} else {
 		om->data = (double*) Calloc(nrows * ncols, double);
 	}
-
-	om->populateFrom = NULL;
-	om->populateFromCol = NULL;
-	om->populateFromRow = NULL;
-	om->populateToCol = NULL;
-	om->populateToRow = NULL;
-
-	om->numPopulateLocations = 0;
 
 	om->aliasedPtr = NULL;
 	om->algebra = NULL;
@@ -125,7 +117,6 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 
 	int regenerateMemory = TRUE;
-	int numPopLocs = orig->numPopulateLocations;
 
 	if(!dest->owner && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
 		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
@@ -137,21 +128,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
 	dest->originalColMajor = dest->colMajor;
-
-	dest->numPopulateLocations = numPopLocs;
-	if (numPopLocs > 0) {
-		dest->populateFrom = (int*)R_alloc(numPopLocs, sizeof(int));
-		dest->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
-		dest->populateFromCol = (int*)R_alloc(numPopLocs, sizeof(int));
-		dest->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
-		dest->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
-		
-		memcpy(dest->populateFrom, orig->populateFrom, numPopLocs * sizeof(int));
-		memcpy(dest->populateFromRow, orig->populateFromRow, numPopLocs * sizeof(int));
-		memcpy(dest->populateFromCol, orig->populateFromCol, numPopLocs * sizeof(int));
-		memcpy(dest->populateToRow, orig->populateToRow, numPopLocs * sizeof(int));
-		memcpy(dest->populateToCol, orig->populateToCol, numPopLocs * sizeof(int));
-	}
+	dest->populate = orig->populate;
 
 	if(dest->rows == 0 || dest->cols == 0) {
 		omxFreeInternalMatrixData(dest);
@@ -192,7 +169,7 @@ void omxFreeMatrix(omxMatrix *om) {
 		om->fitFunction = NULL;
 	}
 	
-	if (!om->hasMatrixNumber) Free(om);
+	if (!om->hasMatrixNumber) delete om;
 }
 
 /**
@@ -452,18 +429,13 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	return om;
 }
 
-void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
-
+void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
+{
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", Rf_length(matStruct) - 1); }
 
 	if(Rf_length(matStruct) > 1) {
 		int numPopLocs = Rf_length(matStruct) - 1;
-		matrix->numPopulateLocations = numPopLocs;
-		matrix->populateFrom = (int*)R_alloc(numPopLocs, sizeof(int));
-		matrix->populateFromRow = (int*)R_alloc(numPopLocs, sizeof(int));
-		matrix->populateFromCol = (int*)R_alloc(numPopLocs, sizeof(int));
-		matrix->populateToRow = (int*)R_alloc(numPopLocs, sizeof(int));
-		matrix->populateToCol = (int*)R_alloc(numPopLocs, sizeof(int));
+		populate.resize(numPopLocs);
 	}
 
 	for(int i = 0; i < Rf_length(matStruct)-1; i++) {
@@ -471,12 +443,12 @@ void omxProcessMatrixPopulationList(omxMatrix* matrix, SEXP matStruct) {
 		Rf_protect(subList = VECTOR_ELT(matStruct, i+1));
 
 		int* locations = INTEGER(subList);
-		if(OMX_DEBUG) { mxLog("."); } //:::
-		matrix->populateFrom[i] = locations[0];
-		matrix->populateFromRow[i] = locations[1];
-		matrix->populateFromCol[i] = locations[2];
-		matrix->populateToRow[i] = locations[3];
-		matrix->populateToCol[i] = locations[4];
+		populateLocation &pl = populate[i];
+		pl.from = locations[0];
+		pl.srcRow = locations[1];
+		pl.srcCol = locations[2];
+		pl.destRow = locations[3];
+		pl.destCol = locations[4];
 		Rf_unprotect(1); //subList
 	}
 }
@@ -634,21 +606,24 @@ void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrix(source, d);
 }
 
-void omxPopulateSubstitutions(omxMatrix *om) {
-	for(int i = 0; i < om->numPopulateLocations; i++) {
-		int index = om->populateFrom[i];
+bool omxMatrix::omxPopulateSubstitutions()
+{
+	if (populate.size() == 0) return false;
+	for (size_t pi = 0; pi < populate.size(); pi++) {
+		populateLocation &pl = populate[pi];
+		int index = pl.from;
 		omxMatrix* sourceMatrix;
 		if (index < 0) {
-			sourceMatrix = om->currentState->matrixList[~index];
+			sourceMatrix = currentState->matrixList[~index];
 		} else {
-			sourceMatrix = om->currentState->algebraList[index];
+			sourceMatrix = currentState->algebraList[index];
 		}
-		if (sourceMatrix != NULL) {
-			omxRecompute(sourceMatrix);				// Make sure it's up to date
-			double value = omxMatrixElement(sourceMatrix, om->populateFromRow[i], om->populateFromCol[i]);
-			omxSetMatrixElement(om, om->populateToRow[i], om->populateToCol[i], value);
-		}
+
+		omxRecompute(sourceMatrix);
+		double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
+		omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
 	}
+	return true;
 }
 
 void omxMatrixLeadingLagging(omxMatrix *om) {
@@ -675,8 +650,9 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 
 static void maybeCompute(omxMatrix *matrix, int want)
 {
-	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
-	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	if(matrix->omxPopulateSubstitutions()) {
+		// was a simple matrix and we're done
+	} else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, NULL);
@@ -690,8 +666,9 @@ void omxRecompute(omxMatrix *matrix)
 
 void omxInitialCompute(omxMatrix *matrix)
 {
-	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
-	else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	if(matrix->omxPopulateSubstitutions()) {
+		// was a simple matrix and we're done
+	} else if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraInitialCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, NULL);
@@ -699,11 +676,17 @@ void omxInitialCompute(omxMatrix *matrix)
 }
 
 void omxForceCompute(omxMatrix *matrix) {
-	if(matrix->numPopulateLocations > 0) omxPopulateSubstitutions(matrix);
-	else if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
+	if(matrix->omxPopulateSubstitutions()) {
+		// was a simple matrix and we're done
+	} else if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
 	}
+}
+
+void omxMatrix::transposePopulate()
+{
+	for (size_t px=0; px < populate.size(); ++px) populate[px].transpose();
 }
 
 /*
@@ -718,8 +701,8 @@ void omxForceCompute(omxMatrix *matrix) {
  * omxMatrix *I				: Identity matrix. Will not be changed on exit. MxM.
  */
 
-void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ) {
-
+void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I )
+{
 	omxMatrix* origZ = Z;
     double oned = 1, minusOned = -1.0;
 
@@ -737,7 +720,8 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 		Matrix Zmat(Z);
 		int info = MatrixInvert1(Zmat);
 		if (info) {
-			omxRaiseErrorf(A->currentState, "(I-A) is exactly singular (info=%d)", info);
+			Z->data[0] = nan("singular");
+			if (fc) fc->recordIterationError("(I-A) is exactly singular (info=%d)", info);
 		        return;
 		}
 

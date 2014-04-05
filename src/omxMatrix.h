@@ -38,8 +38,21 @@
 #include "omxExpectation.h"
 #include "omxState.h"
 
+struct populateLocation {
+	int from;
+	int srcRow, srcCol;
+	int destRow, destCol;
 
-struct omxMatrix {						// A matrix
+	void transpose() { std::swap(destRow, destCol); }
+};
+
+class omxMatrix {
+/* For inclusion in(or of) other matrices */
+	std::vector< populateLocation > populate;
+ public:
+	void transposePopulate();
+	void omxProcessMatrixPopulationList(SEXP matStruct);
+	bool omxPopulateSubstitutions();
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
@@ -71,12 +84,6 @@ struct omxMatrix {						// A matrix
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
 
-/* For inclusion in(or of) other matrices */
-	int numPopulateLocations;
-	int *populateFrom;
-	int *populateFromRow, *populateFromCol;
-	int *populateToRow, *populateToCol;
-
 	const char* name;
 
 	// Currently, this is only used by BA81 expectations to deal with
@@ -87,6 +94,8 @@ struct omxMatrix {						// A matrix
 	// is cleaned up. Currently, we allocate omxMatrix from both
 	// R and the regular C allocator.
 	struct omxExpectation *expectation;       // weak reference
+
+	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
 };
 
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.
@@ -121,8 +130,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState
 							unsigned short keepMemory);									// Resize, with or without re-initialization
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
-	void omxProcessMatrixPopulationList(omxMatrix *matrix, SEXP matStruct);
-	void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);								// Copy across another matrix.
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
@@ -340,7 +347,7 @@ static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert 
 	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 
-void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
+void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 
