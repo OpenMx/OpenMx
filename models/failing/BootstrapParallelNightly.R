@@ -51,7 +51,7 @@ randomCov <- function(nObs, nVar, chl, dn) {
 
 createNewModel <- function(model, modelname) {
 	model$data$observed <- randomCov(nObs, nVar, chl, dn)
-	model$name <- modelname
+	model <- mxModel(name=modelname, model)
 	return(model)
 }
 
@@ -87,14 +87,13 @@ template <- mxModel(name="stErrSim",
                        mxFitFunctionML(),mxExpectationNormal(covariance='preCov'),
                        independent = TRUE)
 
-topModel <- mxModel(name = 'container')
-
 submodels <- lapply(1:nReps, function(x) {
   createNewModel(template, paste('stErrSim', x, sep=''))
 })
 
 names(submodels) <- imxExtractNames(submodels)
-topModel$submodels <- submodels
+
+topModel <- mxModel('container', submodels)
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
