@@ -151,8 +151,7 @@ m2 <- mxRun(mxModel("ex", m1, pm,
                                             verbose=0L),
                     mxComputeSequence(list(
                       mxComputeEM('item.expectation', 'scores',
-                                 # mxComputeNewtonRaphson(),
-                                mxComputeGradientDescent(),
+                                  mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
                                 mxComputeNothing(),
                                 mxComputeOnce('fitfunction', 'fit'),
                                 information=TRUE, tolerance=1e-5, verbose=0L),
@@ -174,8 +173,8 @@ g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeReportDeriv()))), silent=TRUE)
 
 emstat <- m2$compute$steps[[1]]$output
-#omxCheckCloseEnough(emstat$EMcycles, 18, 3)
-#omxCheckCloseEnough(emstat$totalMstep, 76, 5)
+omxCheckCloseEnough(emstat$EMcycles, 22, 3)
+omxCheckCloseEnough(emstat$totalMstep, 197, 5)
 omxCheckCloseEnough(emstat$semProbeCount, 108, 5)
 #omxCheckCloseEnough(log(m2$output$conditionNumber), 6.12, 1)
 

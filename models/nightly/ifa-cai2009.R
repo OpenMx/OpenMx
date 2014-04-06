@@ -149,7 +149,7 @@ omxIFAComputePlan <- function(groups) {
   if (0) {
     latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                         "latentDistribution", "copy"),  # c('mean','covariance')
-                                          mxComputeOnce('fitfunction', "set-starting")),
+                                          mxComputeOnce('fitfunction', "set-starting-values")),
                                      free.set=latentFG)
   } else {
     latent.plan <- mxComputeGradientDescent(latentFG)
@@ -186,7 +186,7 @@ latent <- mxModel("latent",
   
   grpModel <- mxRun(grpModel)
 
-# omxCheckCloseEnough(grpModel$output$fit, openmx.LL, .01)
+ omxCheckCloseEnough(grpModel$output$fit, openmx.LL, .01)  # depends on the latent distribution optimizer
   omxCheckCloseEnough(grpModel$submodels$g2$matrices$ItemParam$values,
                       rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .02)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .01)
@@ -208,8 +208,8 @@ if (0) {
 }
   
 emstat <- grpModel$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 60, 7)
-omxCheckCloseEnough(emstat$totalMstep, 203, 20)
+omxCheckCloseEnough(emstat$EMcycles, 70, 15)
+omxCheckCloseEnough(emstat$totalMstep, 140, 40)
 #omxCheckCloseEnough(emstat$semProbeCount, 166, 10)
 
 print(grpModel$output$backendTime)

@@ -130,6 +130,12 @@ double *FitContext::getDenseIHessUninitialized()
 	return ihess.data();
 }
 
+Eigen::MatrixXd &FitContext::getDenseIHess()
+{
+	refreshDenseIHess();
+	return ihess;
+}
+
 void FitContext::copyDenseIHess(double *dest)
 {
 	refreshDenseIHess();
@@ -175,7 +181,6 @@ void FitContext::init()
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
-	if (parent) caution = parent->caution;
 	est = new double[numParam];
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
@@ -273,7 +278,6 @@ void FitContext::updateParent()
 	parent->fit = fit;
 	parent->IterationError = IterationError;
 	parent->mac = mac;
-	parent->caution = caution;
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
 
@@ -536,8 +540,7 @@ Ramsay1975::Ramsay1975(FitContext *fc, const char *flavor, int verbose, double m
 
 	maxCaution = 0.0;
 	boundsHit = 0;
-	caution = fc->caution[flavor];
-	caution = std::min(caution, 0.95);
+	caution = 0;
 	highWatermark = std::max(0.5, caution);  // arbitrary guess
 
 	numParam = fc->varGroup->vars.size();
@@ -555,11 +558,6 @@ Ramsay1975::Ramsay1975(FitContext *fc, const char *flavor, int verbose, double m
 		mxLog("Ramsay[%10s]: %d parameters, caution %f, min caution %f",
 		      flavor, (int)vars.size(), caution, minCaution);
 	}
-}
-
-void Ramsay1975::saveCaution()
-{
-	fc->caution[flavor] = maxCaution;
 }
 
 void Ramsay1975::recordEstimate(int px, double newEst)
@@ -1281,11 +1279,6 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
 			fit1->compute(fc1);
-			if (fc1->inform == INFORM_ITERATION_LIMIT) {
-				fc->inform = INFORM_ITERATION_LIMIT;
-				omxRaiseErrorf(globalState, "ComputeEM: iteration limited reached");
-				break;
-			}
 			mstepIter = fc1->iterations;
 			fc1->updateParentAndFree();
 		}

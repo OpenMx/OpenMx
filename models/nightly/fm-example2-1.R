@@ -53,7 +53,7 @@ m2 <- mxRun(m2, silent=TRUE)
 
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 17, 1)
-omxCheckCloseEnough(emstat$totalMstep, 176, 10)
+omxCheckCloseEnough(emstat$totalMstep, 53, 10)
 omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
 
 omxCheckCloseEnough(m2$output$minimum, Scale * 33408.05/-2, .01)

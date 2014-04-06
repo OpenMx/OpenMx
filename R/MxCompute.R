@@ -302,7 +302,6 @@ setClass(Class = "MxComputeNewtonRaphson",
 	   maxIter = "integer",
 	   tolerance = "numeric",
 	   verbose = "integer",
-	   carefully = "logical",
 	     #output
 	     iterations = "integer",
 	     inform = "integer"))
@@ -326,14 +325,13 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.set, fit, maxIter, tolerance, verbose, carefully) {
+	  function(.Object, free.set, fit, maxIter, tolerance, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
-		  .Object@carefully <- carefully
 		  .Object
 	  })
 
@@ -343,8 +341,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' fit function. Ramsay (1975) is used to speed convergence. Ramsay
 ##' can be differentially applied to different groups of parameters.
 ##' Comprehensive diagnostics are available by increasing the verbose
-##' level. The carefully option should not be needed if the
-##' derivatives are well behaved.
+##' level.
 ##'
 ##' @param free.set names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -352,7 +349,6 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' @param maxIter maximum number of iterations
 ##' @param tolerance optimization is considered converged when maximum absolute change in parameters is less than tolerance
 ##' @param verbose level of debugging output
-##' @param carefully whether to compute the fit statistic and enforce monotonicity (defaults to FALSE)
 ##' @aliases
 ##' MxComputeNewtonRaphson-class
 ##' @references
@@ -362,14 +358,14 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' \emph{Psychometrika, 40}(3), 337-360.
 
 mxComputeNewtonRaphson <- function(free.set=NA_character_, ..., fitfunction='fitfunction', maxIter = 100L,
-				   tolerance=1e-7, verbose=0L, carefully=FALSE)
+				   tolerance=1e-7, verbose=0L)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeNewtonRaphson does not accept values for the '...' argument")
 	}
 
-	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose, carefully)
+	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose)
 }
 
 #----------------------------------------------------

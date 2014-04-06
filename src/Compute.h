@@ -23,7 +23,6 @@
 #include "omxDefines.h"
 #include "Eigen/SparseCore"
 #include "glue.h"
-#include <map>
 
 // See R/MxRunHelperFunctions.R npsolMessages
 // These are ordered from good to bad so we can use max() on a set
@@ -114,10 +113,6 @@ class FitContext {
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
-	// Is the caution map over-engineering? The compute tree doesn't change
-	// within a run so there is no real need to create and destroy the Ramsay
-	// object every time through. TODO
-	std::map<const char *, double, cmp_str> caution;
 	int iterations;
 	ComputeInform inform;
 	int wanted;
@@ -150,6 +145,7 @@ class FitContext {
 	void copyDenseHess(double *dest);
 	void copyDenseIHess(double *dest);
 	Eigen::VectorXd ihessDiag();
+	Eigen::MatrixXd &getDenseIHess();
 	void preInfo();
 	void postInfo();
 	void resetIterationError() { IterationError.clear(); }
@@ -207,7 +203,6 @@ public:
 	void apply();
 	void recalibrate(bool *restart);
 	void restart(bool myFault);
-	void saveCaution();
 };
 
 class omxCompute *omxNewCompute(omxState* os, const char *type);

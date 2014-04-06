@@ -53,7 +53,7 @@ omxCheckCloseEnough(m2$submodels$latent$matrices$cov$values[1,1], 4.377, .01)
 		
 emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 36, 1)
-omxCheckCloseEnough(emstat$totalMstep, 94, 2)
+omxCheckCloseEnough(emstat$totalMstep, 77, 2)
 
 					#print(m2$matrices$itemParam$values)
 					#print(correct.mat)
@@ -107,7 +107,7 @@ if (1) {
   m2 <- mxRun(m2)
   emstat <- m2$compute$output
   omxCheckCloseEnough(emstat$EMcycles, 38, 1)
-  omxCheckCloseEnough(emstat$totalMstep, 127, 5)
+  omxCheckCloseEnough(emstat$totalMstep, 94, 5)
   omxCheckCloseEnough(m2$fitfunction$result, 14129.04, .01)
   omxCheckCloseEnough(m2$matrices$itemParam$values[1,], rep(2.133, numItems), .002)
   # correct values are from flexMIRT

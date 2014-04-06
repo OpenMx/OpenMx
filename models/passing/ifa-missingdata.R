@@ -96,7 +96,7 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
 m2 <- mxRun(m2)
 emstat <- m2@compute@output
 omxCheckCloseEnough(emstat$EMcycles, 32, 1)
-omxCheckCloseEnough(emstat$totalMstep, 147, 5)
+omxCheckCloseEnough(emstat$totalMstep, 87, 5)
 
 omxCheckCloseEnough(m2@output$minimum, 2733.845, .01)
 got <- cor(c(m2@matrices$itemParam@values[c(1,4,5),]),

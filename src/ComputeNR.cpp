@@ -22,22 +22,20 @@
 #include "Compute.h"
 #include "matrix.h"
 
+#include "Eigen/Eigenvalues"
+
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
 
 	int maxIter;
 	double tolerance;
-	int inform, iter;
 	int verbose;
-	bool carefully;
-	typedef std::map<const char *, Ramsay1975*, cmp_str> RamsayType;
-	RamsayType ramsay;
-	void clearRamsay();
+	double priorSpeed;
+
+	void lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned, int *maxAdjParam, double *improvement);
 
 public:
-	ComputeNR();
-	virtual ~ComputeNR();
 	virtual void initFromFrontend(SEXP rObj);
 	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
@@ -47,25 +45,6 @@ public:
 class omxCompute *newComputeNewtonRaphson()
 {
 	return new ComputeNR();
-}
-
-ComputeNR::ComputeNR()
-{
-	inform = 0;
-	iter = 0;
-}
-
-void ComputeNR::clearRamsay()
-{
-	for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
-		delete it->second;
-	}
-	ramsay.clear();
-}
-
-ComputeNR::~ComputeNR()
-{
-	clearRamsay();
 }
 
 void ComputeNR::initFromFrontend(SEXP rObj)
@@ -91,9 +70,6 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("carefully")));
-	carefully = Rf_asLogical(slotValue);
 }
 
 omxFitFunction *ComputeNR::getFitFunction()
@@ -172,6 +148,108 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 
 void pda(const double *ar, int rows, int cols);
 
+void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned, int *maxAdjParam, double *improvement)
+{
+	const size_t numParam = varGroup->vars.size();
+	const double epsilon = .5;
+	bool steepestDescent = false;
+
+	Eigen::Map<Eigen::VectorXd> prevEst(fc->est, numParam);
+
+	omxFitFunctionCompute(fitMatrix->fitFunction,
+			      FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN, fc);
+	const double refFit = fitMatrix->data[0];
+	Eigen::VectorXd searchDir(fc->ihessGradProd());
+	double targetImprovement = searchDir.dot(fc->grad);
+	if (targetImprovement < tolerance) {
+		steepestDescent = true;
+		if (0 && fc->grad.norm() > tolerance) {
+			Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+			es.compute(fc->getDenseIHess());
+			Eigen::VectorXd ev(es.eigenvalues());
+			mxLog("ihess EV");
+			pda(ev.data(), 1, numParam);
+			mxLog("ihess");
+			Eigen::MatrixXd ihess(fc->getDenseIHess());
+			ihess.triangularView<Eigen::StrictlyLower>() = ihess.transpose().triangularView<Eigen::StrictlyLower>();
+			pda(ihess.data(), numParam, numParam);
+		}
+		searchDir = fc->grad;
+		targetImprovement = searchDir.norm();
+		if (targetImprovement < tolerance) return;
+	}
+	
+	// This is based on the Goldstein test. However, we don't enforce
+	// a lower bound on the improvement.
+
+	int probeCount = 0;
+	double speed = priorSpeed;
+	Eigen::VectorXd trial;
+	trial.resize(numParam);
+	double bestSpeed = 0;
+	double bestImproved = 0;
+	double goodness = 0;
+
+	while (++probeCount < 16) {
+		trial = prevEst - speed * searchDir;
+		fc->copyParamToModel(globalState, trial.data());
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
+		if (!std::isfinite(fitMatrix->data[0])) {
+			speed *= .5;
+			continue;
+		}
+		const double improved = refFit - fitMatrix->data[0];
+		if (improved <= 0) {
+			speed *= .5;
+			continue;
+		}
+		bestImproved = improved;
+		bestSpeed = speed;
+		goodness = improved / (speed * targetImprovement);
+		if (verbose >= 3) mxLog("initial guess: speed %f for improvement %.3g goodness %f",
+					bestSpeed, bestImproved, goodness);
+		break;
+	}
+	if (bestSpeed == 0) return;
+
+	if (speed < 1 && goodness < epsilon) {
+		int retries = 15; // search up to 2*speed
+		speed *= 1.05;
+		while (--retries > 0 && goodness < epsilon) {
+			++probeCount;
+			trial = prevEst - speed * searchDir;
+			fc->copyParamToModel(globalState, trial.data());
+			omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
+			if (!std::isfinite(fitMatrix->data[0])) break;
+			const double improved = refFit - fitMatrix->data[0];
+			if (bestImproved >= improved) break;
+			bestImproved = improved;
+			bestSpeed = speed;
+			goodness = improved / (speed * targetImprovement);
+		}
+	}
+
+	if (verbose >= 3) mxLog("Newton-Raphson: steepestDescent %d probes %d speed %f improved %.3g",
+				steepestDescent, probeCount, bestSpeed, bestImproved);
+	if (!steepestDescent) priorSpeed = bestSpeed;
+
+	trial = prevEst - bestSpeed * searchDir;
+
+	*maxAdj = 0;
+	for (size_t px=0; px < numParam; ++px) {
+		double oldEst = fc->est[px];
+		double badj = fabs(oldEst - trial(px));
+		if (*maxAdj < badj) {
+			*maxAdj = badj;
+			*maxAdjSigned = oldEst - trial(px);
+			*maxAdjParam = px;
+		}
+	}
+	memcpy(fc->est, trial.data(), sizeof(double) * numParam);
+
+	*improvement = bestImproved;
+}
+
 void ComputeNR::computeImpl(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
@@ -182,188 +260,70 @@ void ComputeNR::computeImpl(FitContext *fc)
 		return;
 	}
 
-	clearRamsay();
 	fc->flavor.assign(numParam, NULL);
 
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
 
+	// flavor used for debug output only
 	for (size_t px=0; px < numParam; ++px) {
 		if (!fc->flavor[px]) fc->flavor[px] = "?";
 	}
 
-	for (size_t px=0; px < numParam; ++px) {
-		const char *flavor = fc->flavor[px];
-		std::map<const char *, Ramsay1975*, cmp_str>::iterator it = ramsay.find(flavor);
-		if (it == ramsay.end()) {
-			const double minCaution = 0; // doesn't make sense to go faster? configuration? TODO
-			ramsay[flavor] = new Ramsay1975(fc, flavor, verbose, minCaution);
-		}
-	}
-
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
-	iter = 0;
-	int sinceRestart = 0;
+	priorSpeed = 1;
+	int iter=0;
 	bool converged = false;
-	bool approaching = false;
-	bool restarted = carefully; // || fc->caution >= .5;
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
-	const char *maxAdjFlavor = "?";
 	int maxAdjParam = -1;
-	double bestLL = 0;
-
-	std::valarray<double> startBackup(fc->est, numParam);
-	std::vector<double> bestBackup(numParam);
-
-	fitMatrix->data[0] = 0;  // may not recompute it, don't leave stale data
+	const char *maxAdjFlavor = "?";
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d, %d flavors)",
-		      tolerance, maxIter, (int) ramsay.size());
+		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d)",
+		      tolerance, maxIter);
 	}
 	while (1) {
 		++iter;
 		if (verbose >= 2) {
-			const char *pname = "none";
-			if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
-			mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.4f for %s %s)",
-			      iter, maxIter, maxAdjSigned, maxAdjFlavor, pname);
+			if (iter == 1) {
+				mxLog("Begin %d/%d iter of Newton-Raphson", iter, maxIter);
+			} else {
+				const char *pname = "none";
+				if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
+				mxLog("Begin %d/%d iter of Newton-Raphson (prev maxAdj %.3g for %s %s)",
+				      iter, maxIter, maxAdjSigned, maxAdjFlavor, pname);
+			}
 		}
-
-		int want = FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
-		if (restarted) want |= FF_COMPUTE_FIT;
 
 		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
 		fc->clearHessian();
 
-		omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
-		if (isErrorRaised(globalState)) break;
-
-		if (verbose >= 5) {
-			int show = FF_COMPUTE_ESTIMATE;
-			if (verbose >= 6) show |= FF_COMPUTE_GRADIENT|FF_COMPUTE_IHESSIAN;
-			fc->log(show);
-		}
-
-		double LL = fitMatrix->data[0];
-		if (bestLL == 0 || bestLL > LL) {
-			bestLL = LL;
-			memcpy(bestBackup.data(), fc->est, sizeof(double) * numParam);
-		}
-		if (bestLL > 0) {
-			if (verbose >= 3) mxLog("Newton-Raphson cantankerous fit %.5f (best %.5f)", LL, bestLL);
-			if (approaching && (LL > bestLL + 0.5 || !std::isfinite(LL))) {  // arbitrary threshold
-				memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
-				fc->copyParamToModel(globalState);
-				break;
-			}
-		}
-
-		bool restart = false;
-		if ((++sinceRestart) % 3 == 0) {
-			for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
-				it->second->recalibrate(&restart);
-			}
-		}
-		bool offTrack = false;
-		for (size_t px=0; px < numParam; ++px) {
-			if (!std::isfinite(fc->grad(px))) {
-				if (!restart) {
-					if (verbose >= 3) {
-						mxLog("Newton-Raphson: grad[%d] not finite, restart recommended", int(px));
-					}
-					offTrack = true;
-					restart = true;
-					break;
-				}
-			}
-		}
-		if ((sinceRestart % 3) == 0 && !restart) {
-			// 3 iterations without extreme oscillation or NaN gradients
-			if (!approaching && verbose >= 2) {
-				mxLog("Newton-Raphson: Probably approaching solution");
-			}
-			approaching = true;
-		}
-
-		maxAdjParam = -1;
 		maxAdj = 0;
-		if (restart && (!approaching || !restarted)) {
-			approaching = false;
-			restarted = true;
-			bestLL = 0;
-			sinceRestart = 0;
+		double improvement = 0;
+		lineSearch(fc, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
 
-			if (verbose >= 2) {
-				mxLog("Newton-Raphson: Increasing damping ...");
-			}
-			for (size_t px=0; px < numParam; ++px) {
-				fc->est[px] = startBackup[px];
-			}
-			for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
-				it->second->restart(offTrack);
-			}
-		} else {
-			fc->resetIterationError();
-			Eigen::VectorXd move(fc->ihessGradProd());
-
-			for (size_t px=0; px < numParam; ++px) {
-				Ramsay1975 *ramsay1 = ramsay[ fc->flavor[px] ];
-				double oldEst = fc->est[px];
-				double speed = 1 - ramsay1->caution;
-
-				ramsay1->recordEstimate(px, oldEst - speed * move[px]);
-
-				double badj = fabs(oldEst - fc->est[px]);
-				if (maxAdj < badj) {
-					maxAdj = badj;
-					maxAdjSigned = oldEst - fc->est[px];
-					maxAdjParam = px;
-					maxAdjFlavor = fc->flavor[px];
-				}
-			}
-			converged = maxAdj < tolerance;
-		}
+		converged = improvement < tolerance;
+		maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel(globalState);
 
 		R_CheckUserInterrupt();
 
-		if (converged || iter >= maxIter) break;
+		if (converged || iter >= maxIter || isErrorRaised(globalState)) break;
 	}
-
-	for (RamsayType::iterator it=ramsay.begin(); it!=ramsay.end(); ++it) {
-		it->second->saveCaution();
-	}
-	clearRamsay();
 
 	if (converged) {
 		fc->inform = INFORM_CONVERGED_OPTIMUM;
 		fc->wanted |= FF_COMPUTE_BESTFIT;
 		if (verbose >= 1) {
-			mxLog("Newton-Raphson converged in %d cycles (max change %.12f)",
-			      iter, maxAdj);
+			mxLog("Newton-Raphson converged in %d cycles", iter);
 		}
-	} else if (iter < maxIter) {
-		fc->inform = INFORM_UNCONVERGED_OPTIMUM;
+	} else {
+		if (iter != maxIter) Rf_error("Confused");
+		fc->inform = INFORM_ITERATION_LIMIT;
 		if (verbose >= 1) {
-			mxLog("Newton-Raphson not improving on %.6f after %d cycles",
-			      bestLL, iter);
-		}
-	} else if (iter == maxIter) {
-		if (bestLL > 0) {
-			fc->inform = INFORM_NOT_AT_OPTIMUM;
-			memcpy(fc->est, bestBackup.data(), sizeof(double) * numParam);
-			fc->copyParamToModel(globalState);
-			if (verbose >= 1) {
-				mxLog("Newton-Raphson improved but fail to converge after %d cycles", iter);
-			}
-		} else {
-			fc->inform = INFORM_ITERATION_LIMIT;
-			if (verbose >= 1) {
-				mxLog("Newton-Raphson failed to converge after %d cycles", iter);
-			}
+			mxLog("Newton-Raphson failed to converge after %d cycles", iter);
 		}
 	}
 
@@ -372,14 +332,5 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *output)
 {
-	if (Global->numIntervals) {
-		Rf_warning("Confidence intervals are not implemented for Newton-Raphson");
-	}  
-
 	omxPopulateFitFunction(fitMatrix, output);
-
-	MxRList out;
-	out.add("inform", Rf_ScalarInteger(inform));
-	out.add("iterations", Rf_ScalarInteger(iter));
-	slots->add("output", out.asR());
 }
