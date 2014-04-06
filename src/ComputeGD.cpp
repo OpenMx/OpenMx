@@ -37,7 +37,6 @@ class omxComputeGD : public omxCompute {
     
 	SEXP hessChol;
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
-	int inform, iter;
     
 public:
 	omxComputeGD();
@@ -45,7 +44,6 @@ public:
 	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 };
 
 class omxCompute *newComputeGradientDescent()
@@ -57,8 +55,6 @@ omxComputeGD::omxComputeGD()
 {
 	intervals = 0;
 	intervalCodes = 0;
-	inform = 0;
-	iter = 0;
 	hessChol = NULL;
 }
 
@@ -115,13 +111,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:
 #if HAS_NPSOL
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-		omxInvokeNPSOL(fitMatrix, fc, &inform, &iter, useGradient, varGroup, verbose,
+		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, &fc->iterations, useGradient, varGroup, verbose,
 			       REAL(hessChol));
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 #endif
             break;
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &inform, &iter, varGroup, verbose, fc->getDenseHessUninitialized());
+            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, &fc->iterations, varGroup, verbose, fc->getDenseHessUninitialized());
 	    fc->wanted |= FF_COMPUTE_HESSIAN;
             break;
         default: Rf_error("huh?");
@@ -138,9 +134,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	omxFreeChildStates(globalState);
     
 	if (Global->numIntervals) {
-		if (!(inform == 0 || inform == 1 || inform == 6)) {
+		if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE) {
 			// TODO: allow forcing
-			Rf_warning("Not calculating confidence intervals because of NPSOL status %d", inform);
+			Rf_warning("Not calculating confidence intervals because of NPSOL status %d", fc->inform);
 		} else {
 			Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
 			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
@@ -185,15 +181,4 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		out->add("confidenceIntervals", intervals);
 		out->add("confidenceIntervalCodes", intervalCodes);
 	}
-    
-	SEXP code, iterations;
-    
-	Rf_protect(code = Rf_allocVector(REALSXP,1));
-	REAL(code)[0] = inform;
-	out->add("npsol.code", code);
-    
-	Rf_protect(iterations = Rf_allocVector(REALSXP,1));
-	REAL(iterations)[0] = iter;
-	out->add("npsol.iterations", iterations);
-	out->add("iterations", iterations); // backward compatibility
 }

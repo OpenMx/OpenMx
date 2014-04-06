@@ -50,7 +50,7 @@ biRegModelRaw <- mxModel("FIML Bivariate Regression of y on x1 and x2",
     mxData(observed=multiData1, type="raw")
     )
 
-biRegModelRawOut <- mxRun(biRegModelRaw, suppressWarnings=TRUE)
+biRegModelRawOut <- mxRun(biRegModelRaw)
 
 summary(biRegModelRawOut)
 
@@ -73,5 +73,5 @@ omxCheckCloseEnough(expectSE,
 
 omxCheckCloseEnough(expectMin, biRegModelRawOut$output$minimum, 0.001)
 
-    
-
+omxCheckCloseEnough(biRegModelRawOut$output$iterations, 39, 3)
+omxCheckCloseEnough(biRegModelRawOut$output$status$code, 0)

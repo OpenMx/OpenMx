@@ -42,7 +42,6 @@ public:
 	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual double getOptimizerStatus() { return inform; }  // backward compatibility
 };
 
 class omxCompute *newComputeNewtonRaphson()

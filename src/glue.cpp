@@ -373,11 +373,9 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	REAL(evaluations)[1] = globalState->computeCount;
 
-	double optStatus = NA_REAL;
 	if (topCompute && !isErrorRaised(globalState)) {
 		LocalComputeResult cResult;
 		topCompute->collectResults(&fc, &cResult, &result);
-		optStatus = topCompute->getOptimizerStatus();
 
 		if (cResult.size()) {
 			SEXP computes;
@@ -423,7 +421,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.add("code", Rf_ScalarReal(optStatus));
+	backwardCompatStatus.add("code", Rf_ScalarInteger(fc.inform));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised(globalState)));
 
 	if (isErrorRaised(globalState)) {
@@ -435,6 +433,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	result.add("status", backwardCompatStatus.asR());
+	result.add("iterations", Rf_ScalarInteger(fc.iterations));
 	result.add("evaluations", evaluations);
 
 	omxFreeState(globalState);

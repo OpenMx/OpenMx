@@ -26,32 +26,33 @@
 #include <map>
 
 // See R/MxRunHelperFunctions.R npsolMessages
-enum ComputeInform {
-	INFORM_UNINITIALIZED = -1,
-	INFORM_CONVERGED_OPTIMUM = 0,
-	INFORM_UNCONVERGED_OPTIMUM = 1,
+// These are ordered from good to bad so we can use max() on a set
+// of inform results to obtain a bound on convergence status.
+typedef int ComputeInform;
+#define INFORM_UNINITIALIZED -1
+#define INFORM_CONVERGED_OPTIMUM 0
+#define INFORM_UNCONVERGED_OPTIMUM 1
 	// The final iterate satisfies the optimality conditions to the accuracy requested,
 	// but the sequence of iterates has not yet converged.
 	// Optimizer was terminated because no further improvement
 	// could be made in the merit function (Mx status GREEN).
-	INFORM_LINEAR_CONSTRAINTS_INFEASIBLE = 2,
+#define INFORM_LINEAR_CONSTRAINTS_INFEASIBLE 2
 	// The linear constraints and bounds could not be satisfied.
 	// The problem has no feasible solution.
-	INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE = 3,
+#define INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE 3
 	// The nonlinear constraints and bounds could not be satisfied.
 	// The problem may have no feasible solution.
-	INFORM_ITERATION_LIMIT = 4,
+#define INFORM_ITERATION_LIMIT 4
 	// The major iteration limit was reached (Mx status BLUE).
-	INFORM_NOT_AT_OPTIMUM = 6,
-	// The model does not satisfy the first-order optimality conditions
+#define INFORM_NOT_AT_OPTIMUM 6
+	// The model does not satisfy the first-order optimality conditions (i.e. gradient close to zero)
 	// to the required accuracy, and no improved point for the
 	// merit function could be found during the final linesearch (Mx status RED)
-	INFORM_BAD_DERIVATIVES = 7,
+#define INFORM_BAD_DERIVATIVES 7
 	// The function derivates returned by funcon or funobj
 	// appear to be incorrect.
-	INFORM_INVALID_PARAM = 9
+#define INFORM_INVALID_PARAM 9
 	// An input parameter was invalid'
-};
 
 enum ComputeInfoMethod {
 	INFO_METHOD_DEFAULT,
@@ -118,7 +119,7 @@ class FitContext {
 	// object every time through. TODO
 	std::map<const char *, double, cmp_str> caution;
 	int iterations;
-	enum ComputeInform inform;
+	ComputeInform inform;
 	int wanted;
 
 	void init();
@@ -177,7 +178,6 @@ class omxCompute {
         void compute(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
-	virtual double getOptimizerStatus() { return NA_REAL; }  // backward compatibility
         virtual ~omxCompute();
 };
 

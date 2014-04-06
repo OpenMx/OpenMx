@@ -96,8 +96,8 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 
 processErrorConditions <- function(model, unsafe, suppressWarnings) {
 	output <- model@output
-	if (!is.null(output$npsol.code) && !suppressWarnings) {
-		npsolWarnings(paste("In model", omxQuotes(model@name)), output$npsol.code)
+	if (!is.null(output$status$code) && !suppressWarnings) {
+		npsolWarnings(paste("In model", omxQuotes(model@name)), output$status$code)
 	}
     if (!is.null(output$error)) {
     	if (unsafe) {
@@ -168,7 +168,7 @@ npsolWarnings <- function(prefix, status) {
 	message <- npsolMessages[[as.character(status)]]
 	if(!is.null(message)) {
 		warning(paste(prefix, 
-			"NPSOL returned a non-zero status code", 
+			"Optimizer returned a non-zero status code",
 			paste(status, '.', sep = ''), message), call. = FALSE)
 	}
 }

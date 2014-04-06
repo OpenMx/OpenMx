@@ -733,9 +733,15 @@ void omxCompute::initFromFrontend(SEXP rObj)
 
 void omxCompute::compute(FitContext *fc)
 {
+	ComputeInform origInform = fc->inform;
+	int origIter = fc->iterations;
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
+	narrow->inform = INFORM_UNINITIALIZED;
+	narrow->iterations = 0;
 	computeImpl(narrow);
+	fc->iterations = origIter + narrow->iterations;
+	fc->inform = std::max(origInform, narrow->inform);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 }
 
@@ -745,23 +751,12 @@ protected:
 	std::vector< omxCompute* > clist;
 public:
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
-	virtual double getOptimizerStatus();
 };
 
 void ComputeContainer::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
 {
 	super::collectResults(fc, lcr, out);
 	collectResultsHelper(fc, clist, lcr, out);
-}
-
-double ComputeContainer::getOptimizerStatus()
-{
-	// for backward compatibility, not indended to work generally
-	for (size_t cx=0; cx < clist.size(); ++cx) {
-		double got = clist[cx]->getOptimizerStatus();
-		if (got != NA_REAL) return got;
-	}
-	return NA_REAL;
 }
 
 class omxComputeSequence : public ComputeContainer {
@@ -863,7 +858,6 @@ class ComputeEM : public omxCompute {
         virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual double getOptimizerStatus();
 	virtual ~ComputeEM();
 };
 
@@ -1615,12 +1609,6 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 
 		slots->add("debug", dbg.asR());
 	}
-}
-
-double ComputeEM::getOptimizerStatus()
-{
-	// for backward compatibility, not indended to work generally
-	return NA_REAL;
 }
 
 ComputeEM::~ComputeEM()
