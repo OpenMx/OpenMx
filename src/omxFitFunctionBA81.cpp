@@ -269,6 +269,11 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	const int do_fit = want & FF_COMPUTE_FIT;
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
+	if (do_deriv && !state->freeItemParams) {
+		omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+		return NA_REAL;
+	}
+
 	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
 	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
@@ -1012,6 +1017,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_INFO) {
 			buildLatentParamMap(oo, fc);
 			buildItemParamMap(oo, fc);
+			if (!state->freeItemParams) {
+				omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+				return NA_REAL;
+			}
 			ba81SetupQuadrature(oo->expectation);
 
 			if (fc->infoMethod == INFO_METHOD_HESSIAN) {
@@ -1019,7 +1028,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			} else {
 				omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
 					       fc->infoMethod);
-				return INFINITY;
+				return NA_REAL;
 			}
 			return 0;
 		}
@@ -1037,6 +1046,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & (FF_COMPUTE_INFO | FF_COMPUTE_GRADIENT)) {
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
+			if (!state->freeItemParams && !state->freeLatents) {
+				omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+				return NA_REAL;
+			}
 			ba81SetupQuadrature(oo->expectation);
 
 			if (state->freeLatents) {
@@ -1046,6 +1059,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 				if (!gradCov(oo, fc)) return INFINITY;
 			} else {
+				if (!state->freeItemParams) {
+					omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+					return NA_REAL;
+				}
 				sandwich(oo, fc);
 			}
 		}
