@@ -141,29 +141,14 @@ elimination <- mxModel(elimination, remove = TRUE,
     )
 )
 
-# Don't ever do this to your scripts.
-# We need to strip the dimnames so that the
-# checking below can ignore them.
-dimnames(elimination$A$values) <- NULL
-dimnames(elimination$A$free) <- NULL
-dimnames(elimination$A$labels) <- NULL
+omxCheckIdentical(c(elimination$A$values), rep(0, 8*8))
+omxCheckIdentical(c(elimination$A$free), rep(FALSE, 8*8))
+omxCheckIdentical(c(elimination$A$labels), rep(as.character(NA), 8* 8))
 
-dimnames(elimination$S$values) <- NULL
-dimnames(elimination$S$free) <- NULL
-dimnames(elimination$S$labels) <- NULL
+omxCheckIdentical(c(elimination$S$values), rep(0, 8 * 8))
+omxCheckIdentical(c(elimination$S$free), rep(FALSE, 8 * 8))
+omxCheckIdentical(c(elimination$S$labels), rep(as.character(NA), 8 * 8))
 
-dimnames(elimination$M$values) <- NULL
-dimnames(elimination$M$free) <- NULL
-dimnames(elimination$M$labels) <- NULL
-
-omxCheckIdentical(elimination$A$values, matrix(0, 8, 8))
-omxCheckIdentical(elimination$A$free, matrix(FALSE, 8, 8))
-omxCheckIdentical(elimination$A$labels, matrix(as.character(NA), 8, 8))
-
-omxCheckIdentical(elimination$S$values, matrix(0, 8, 8))
-omxCheckIdentical(elimination$S$free, matrix(FALSE, 8, 8))
-omxCheckIdentical(elimination$S$labels, matrix(as.character(NA), 8, 8))
-
-omxCheckIdentical(elimination$M$values, matrix(0, 1, 8))
-omxCheckIdentical(elimination$M$free, matrix(FALSE, 1, 8))
-omxCheckIdentical(elimination$M$labels, matrix(as.character(NA), 1, 8))
+omxCheckIdentical(c(elimination$M$values), rep(0, 8))
+omxCheckIdentical(c(elimination$M$free), rep(FALSE, 8))
+omxCheckIdentical(c(elimination$M$labels), rep(as.character(NA), 8))

@@ -174,7 +174,9 @@ populateMatrixSlot <- function(object, slotName, vals, nr, nc) {
 					"for argument", omxQuotes(slotName), "in", 
 					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
+    dnSave <- dimnames(object)
 	slot(object, slotName) <- suppressWarnings(matrix(vals, nr, nc))
+    dimnames(object) <- dnSave
 	return(object)
 }
 
