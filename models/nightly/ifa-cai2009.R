@@ -1,8 +1,8 @@
 # This data is from an email:
 #
 # Date: Wed, 06 Feb 2013 19:49:24 -0800
-# From: Li Cai <lcai@ucla.edu>
-# To: Joshua N Pritikin <jpritikin@pobox.com>
+# From: Li Cai <lcai at ucla.edu>
+# To: Joshua N Pritikin <jpritikin at pobox.com>
 # Subject: Re: how did you control item bias in Cai (2010, p. 592) ?
 
 #options(error = browser)
