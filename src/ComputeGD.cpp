@@ -134,9 +134,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	omxFreeChildStates(globalState);
     
 	if (Global->numIntervals) {
-		if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE) {
+		// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
+		if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && fc->inform != INFORM_NOT_AT_OPTIMUM) {
 			// TODO: allow forcing
-			Rf_warning("Not calculating confidence intervals because of NPSOL status %d", fc->inform);
+			Rf_warning("Not calculating confidence intervals because of optimizer status %d", fc->inform);
 		} else {
 			Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
 			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));

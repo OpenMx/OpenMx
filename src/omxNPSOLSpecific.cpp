@@ -264,7 +264,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
-    int k, ldA, ldJ, ldR, inform, iter, leniw, lenw; 
+    int k, ldA, ldJ, ldR, leniw, lenw; 
  
     double *cJac = NULL;    // Hessian (Approx) and Jacobian
  
@@ -381,7 +381,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         }
  
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-			(void*) F77_SUB(npsolObjectiveFunction), &inform, &iter, istate, c, cJac,
+			(void*) F77_SUB(npsolObjectiveFunction), inform_out, iter_out, istate, c, cJac,
 			clambda, &fc->fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
@@ -389,9 +389,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         omxSaveCheckpoint(x, fc->fit, TRUE);
  
 	NPSOL_fc->copyParamToModel(globalState);
- 
-    *inform_out = inform;
-    *iter_out   = iter;
  
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;
