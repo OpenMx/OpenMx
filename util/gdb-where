@@ -1,3 +1,4 @@
+set print thread-events off
 dir src
 run
 i thr

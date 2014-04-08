@@ -1,3 +1,4 @@
+set print thread-events off
 dir src
 set breakpoint pending on
 b Rf_error
