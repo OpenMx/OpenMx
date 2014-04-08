@@ -248,7 +248,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	GLOB_fc = fc;
     
     double *x = fc->est;
-    //double *g = fc->grad;
+    fc->grad.resize(fc->numParam);
+    double *g = fc->grad.data();
     
     
     int k, iter = -1;
@@ -396,6 +397,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
+        g[i] = mygrad.t[i];
     }
     
     omxSaveCheckpoint(x, fc->fit, TRUE);
