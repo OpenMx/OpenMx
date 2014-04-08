@@ -59,11 +59,7 @@ m2 <- mxModel(model="latent",
                 mxComputeOnce('expectation'),
                 mxComputeIterate(steps=list(
                   mxComputeOnce('fitfunction', "fit"),
-                  mxComputeOnce('expectation', "latentDistribution", "copy")
-                  )),
-                mxComputeOnce('expectation', 'scores'),
-                mxComputeOnce('fitfunction', 'information', "hessian"),
-                mxComputeReportDeriv()
+                  mxComputeOnce('expectation', "latentDistribution", "copy")))
                 )))
 m2 <- mxRun(m2, silent=TRUE)
 
