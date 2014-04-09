@@ -82,7 +82,7 @@ createNewModel <- function(index, prefix, model) {
 getStats <- function(model) {
   H <- model$output$hessian
 	retval <- c(code=model$output$status[[1]],
-		grad=norm(model$output$gradient, "2"),
+		grad=sqrt(sum(model$output$gradient^2)),
 		model$output$estimate,
 		sqrt(2*diag(solve(H))))
 	return(retval)
@@ -150,6 +150,6 @@ print(sumResults)
 # print results
 # -----------------------------------------------------------------------------
 
-omxCheckCloseEnough(means["grad"], 0, .1)
-omxCheckCloseEnough(sumResults$mean, c(lambda, diag(specifics)), .1)
-omxCheckCloseEnough(sumResults$obsStDev, sumResults$meanHessEst, .05)
+omxCheckCloseEnough(means["grad"], 0, .2)
+omxCheckCloseEnough(sumResults$mean, c(lambda, diag(specifics)), .2)
+omxCheckCloseEnough(sumResults$obsStDev, sumResults$meanHessEst, .1)

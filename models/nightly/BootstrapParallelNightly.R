@@ -57,7 +57,7 @@ createNewModel <- function(model, modelname) {
 
 getStats <- function(model) {
 	retval <- c(code=model$output$status[[1]],
-		grad=norm(model$output$gradient, "2"),
+		grad=sqrt(sum(model$output$gradient^2)),
 		model$output$estimate,
 		sqrt(2*diag(solve(model$output$hessian))))
 	return(retval)
