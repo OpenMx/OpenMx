@@ -113,7 +113,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, &fc->iterations, useGradient, varGroup, verbose,
 			       REAL(hessChol));
-		fc->wanted |= FF_COMPUTE_GRADIENT;
 #endif
             break;
         case OptEngine_CSOLNP:
@@ -122,6 +121,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
             break;
         default: Rf_error("huh?");
 	}
+	fc->wanted |= FF_COMPUTE_GRADIENT;
     
 	if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 		std::string diag = fc->getIterationError();

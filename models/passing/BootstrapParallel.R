@@ -33,10 +33,11 @@
 #options(error = utils::recover)
 require(OpenMx)
 
+#mxOption(NULL, "Default optimizer", "NPSOL")
 
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
-nReps <- 10
+nReps <- 30
 nVar <- nrow(lambda)
 specifics <- diag(nVar)
 chl <- chol(lambda %*% t(lambda) + specifics)
@@ -79,10 +80,11 @@ createNewModel <- function(index, prefix, model) {
 }
 
 getStats <- function(model) {
-	retval <- c(model$output$status[[1]],
-		max(abs(model$output$gradient)),
+  H <- model$output$hessian
+	retval <- c(code=model$output$status[[1]],
+		grad=norm(model$output$gradient, "2"),
 		model$output$estimate,
-		sqrt(diag(solve(model$output$hessian))))
+		sqrt(2*diag(solve(H))))
 	return(retval)
 }
 
@@ -93,7 +95,7 @@ obsCov <- randomCov(nObs, nVar, chl, dn)
 # -----------------------------------------------------------------------------
 
 results <- matrix(0, nReps, hEnd)
-dnr <- c("inform", "maxAbsG", paste("lambda", 1:nVar, sep=""),
+dnr <- c("inform", "normG", paste("lambda", 1:nVar, sep=""),
          paste("specifics", 1:nVar, sep=""),
          paste("hessLambda", 1:nVar, sep=""),
          paste("hessSpecifics", 1:nVar, sep=""))
@@ -110,35 +112,37 @@ template <- mxModel("stErrSim",
                        mxAlgebra(lambda %*% t(lambda) + specifics,
                                  name="preCov", dimnames=dn),
                        mxData(observed=obsCov, type="cov", numObs=nObs),
-                       mxFitFunctionML(),mxExpectationNormal(covariance='preCov'),
-                       independent = TRUE)
+                       mxFitFunctionML(),
+                      mxExpectationNormal(covariance='preCov'),
+                       independent = TRUE,
+                    mxComputeSequence(list(
+                      mxComputeGradientDescent(),
+                      mxComputeReportDeriv())))
 # instantiate MxModel
 # -----------------------------------------------------------------------------
-
-topModel <- mxModel("container")
 
 submodels <- lapply(1:nReps, createNewModel, 'stErrSim', template)
 
 names(submodels) <- imxExtractNames(submodels)
-topModel$submodels <- submodels
+
+topModel <- mxModel('container', submodels)
 
 modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
 results <- t(omxSapply(modelResults$submodels, getStats))
 
-
-results2 <- data.frame(results[which(results[,1] <= 1),])
 # get rid of bad covergence results
+results2 <- results[which(results[,"code"] <= 1),]
+
 # -----------------------------------------------------------------------------
 
 means <- colMeans(results2)
-stdevs <- sapply(results2, sd)
+stdevs <- apply(results2, 2, sd)
 sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
                                 dimnames=list(NULL, "Parameter")))
 sumResults$mean <- means[pStrt:pEnd]
 sumResults$obsStDev <- stdevs[pStrt:pEnd]
 sumResults$meanHessEst <- means[hStrt:hEnd]
-sumResults$sqrt2meanHessEst <- sqrt(2) * sumResults$meanHessEst
 # summarize the results
 # -----------------------------------------------------------------------------
 
@@ -146,3 +150,6 @@ print(sumResults)
 # print results
 # -----------------------------------------------------------------------------
 
+omxCheckCloseEnough(means["grad"], 0, .1)
+omxCheckCloseEnough(sumResults$mean, c(lambda, diag(specifics)), .1)
+omxCheckCloseEnough(sumResults$obsStDev, sumResults$meanHessEst, .05)

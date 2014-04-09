@@ -56,10 +56,10 @@ createNewModel <- function(model, modelname) {
 }
 
 getStats <- function(model) {
-	retval <- c(model$output$status[[1]],
-		max(abs(model$output$gradient)),
+	retval <- c(code=model$output$status[[1]],
+		grad=norm(model$output$gradient, "2"),
 		model$output$estimate,
-		sqrt(diag(solve(model$output$hessian))))
+		sqrt(2*diag(solve(model$output$hessian))))
 	return(retval)
 }
 
@@ -69,7 +69,7 @@ obsCov <- randomCov(nObs, nVar, chl, dn)
 
 # results matrix: get results for each simulation
 results <- matrix(0, nReps, hEnd)
-dnr <- c("inform", "maxAbsG", paste("lambda", 1:nVar, sep=""),
+dnr <- c("inform", "normG", paste("lambda", 1:nVar, sep=""),
          paste("specifics", 1:nVar, sep=""),
          paste("hessLambda", 1:nVar, sep=""),
          paste("hessSpecifics", 1:nVar, sep=""))
@@ -82,10 +82,14 @@ template <- mxModel(name="stErrSim",
                        mxMatrix(name="specifics", type="Diag", nrow=4,
                                 free=TRUE, values=rep(1, 4)),
                        mxAlgebra(lambda %*% t(lambda) + specifics,
-                                 name="preCov", dimnames=dn),
-                       mxData(observed=obsCov, type="cov", numObs=nObs),
-                       mxFitFunctionML(),mxExpectationNormal(covariance='preCov'),
-                       independent = TRUE)
+                                   name="preCov", dimnames=dn),
+                         mxData(observed=obsCov, type="cov", numObs=nObs),
+                      mxExpectationNormal(covariance='preCov'),
+                    mxFitFunctionML(),
+                    independent = TRUE,
+                    mxComputeSequence(list(
+                      mxComputeGradientDescent(),
+                      mxComputeReportDeriv())))
 
 submodels <- lapply(1:nReps, function(x) {
   createNewModel(template, paste('stErrSim', x, sep=''))
@@ -102,26 +106,22 @@ results <- t(omxSapply(modelResults$submodels, getStats))
 sfStop()
 
 # get rid of bad covergence results
-results2 <- data.frame(results[which(results[,1] <= 1),])
+results2 <- results[which(results[,"code"] <= 1),]
 
 # summarize the results
 means <- colMeans(results2)
-stdevs <- sapply(results2, sd)
+stdevs <- apply(results2, 2, sd)
 sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
                                 dimnames=list(NULL, "Parameter")))
 sumResults$mean <- means[pStrt:pEnd]
 sumResults$obsStDev <- stdevs[pStrt:pEnd]
 sumResults$meanHessEst <- means[hStrt:hEnd]
-sumResults$sqrt2meanHessEst <- sqrt(2) * sumResults$meanHessEst
 
-omxCheckCloseEnough(sumResults[1,'mean'], 0.8, 0.1)
-omxCheckCloseEnough(sumResults[2,'mean'], 0.5, 0.1)
-omxCheckCloseEnough(sumResults[3,'mean'], 0.7, 0.1)
-omxCheckCloseEnough(sumResults[4,'mean'], 0.0, 0.1)
-omxCheckCloseEnough(sumResults[5,'mean'], 1.00, 0.1)
-omxCheckCloseEnough(sumResults[6,'mean'], 1.00, 0.1)
-omxCheckCloseEnough(sumResults[7,'mean'], 1.00, 0.1)
-omxCheckCloseEnough(sumResults[8,'mean'], 1.00, 0.1)
+print(sumResults)
+
+omxCheckCloseEnough(means["grad"], 0, .05)
+omxCheckCloseEnough(sumResults$mean, c(lambda, diag(specifics)), .05)
+omxCheckCloseEnough(sumResults$obsStDev, sumResults$meanHessEst, .05)
 
 detach("package:snowfall")
 unloadNamespace("snowfall")

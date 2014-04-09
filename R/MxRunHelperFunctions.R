@@ -69,6 +69,8 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	if (!is.null(output$hessianCholesky)) {
 		output$estimatedHessian <- t(output$hessianCholesky) %*% output$hessianCholesky
+		# otherwise output$hessian matches hessianCholesky, which is not desirable
+		if (is.null(output[["hessian"]])) output$hessian <- output$estimatedHessian
 	}
 	for (deriv in c("estimatedHessian", "calculatedHessian", "hessian", "ihessian")) {
 		mat <- output[[deriv]]
