@@ -35,7 +35,7 @@ genPositiveDefMat <- function(dim, low=-1.4, upp=1.4) {
 }
 
 if (0) {
-	if (1) {
+	if (0) {
 		mxOption(NULL, "Default optimizer", "NPSOL")
 	} else {
 		mxOption(NULL, "Default optimizer", "CSOLNP")
@@ -44,7 +44,7 @@ if (0) {
 
 drift <- 0
 
-for (trial in 1:100) {
+for (trial in 1:10) {
   set.seed(trial)
   trueMean <- rnorm(numDims)
   trueCov <- round(genPositiveDefMat(numDims), 6)
@@ -59,19 +59,16 @@ for (trial in 1:100) {
                          labels=paste("v", 1:(numDims*(numDims+1)/2), sep=""),
                          dimnames=dimnames(trueCov)),
                 mxExpectationNormal(means="mean", covariance="cov"),
-                mxFitFunctionML())
+                mxFitFunctionML(),
+		mxComputeGradientDescent())
   t1$cov$values <- diag(numDims)
   
   t1Fit <- mxRun(t1, silent=TRUE, suppressWarnings=TRUE)
   
-  drift <- drift + norm(c(t1Fit$mean$values - trueMean,
-                          t1Fit$cov$values - trueCov), "2")
+  drift <- drift + sqrt(sum(c(t1Fit$mean$values - trueMean,
+			      t1Fit$cov$values - trueCov)^2))
 }
 
 print(drift)
 
-if (numDims == 2) {
-  omxCheckCloseEnough(drift, 0, 7e-5)
-} else if (numDims == 3) {
-  omxCheckCloseEnough(drift, 0, 2.3e-4)
-}
+omxCheckCloseEnough(drift, 0, 8e-6)

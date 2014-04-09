@@ -151,7 +151,8 @@ omxIFAComputePlan <- function(groups) {
                                           mxComputeOnce('fitfunction', "set-starting-values")),
                                      free.set=latentFG)
   } else {
-    latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction")
+	  # default tolerance isn't good enough for stable S-EM results
+    latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction", tolerance=1e-10)
   }
 
   mxComputeSequence(steps=list(
@@ -197,22 +198,16 @@ latent <- mxModel("latent",
              0.099, 0.156, 0.12, 0.143, 0.096, 0.391, 0.241,  0.284, 0.18, 0.236, 0.126, 0.145,
              0.26, 0.099, 0.142, 0.201,  0.099, 0.178, 0.193, 0.126)
   # cat(deparse(round(grpModel$output$standardErrors,3)))
-  # max(abs(c(grpModel$output$standardErrors) - semse))
+ print( max(abs(c(grpModel$output$standardErrors) - semse)))
   
   # These are extremely sensitive to small differences in model estimation.
-if (0) {
-	# only NPSOL and set-starting-values
-  omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .02)
-  omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.5, 1)
-  omxCheckTrue(grpModel$output$infoDefinite)
-}
+omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .04)
+omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.5, 1)
+omxCheckTrue(grpModel$output$infoDefinite)
   
-if (0) {
-	# big difference between CSOLNP and NPSOL
 emstat <- grpModel$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 70, 15)
-omxCheckCloseEnough(emstat$totalMstep, 140, 40)
-#omxCheckCloseEnough(emstat$semProbeCount, 166, 10)
-}
+omxCheckCloseEnough(emstat$EMcycles, 150, 15)
+omxCheckCloseEnough(emstat$totalMstep, 334, 40)
+omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
 
 print(grpModel$output$backendTime)

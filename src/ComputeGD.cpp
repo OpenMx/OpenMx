@@ -34,6 +34,7 @@ class omxComputeGD : public omxCompute {
 	omxMatrix *fitMatrix;
 	bool useGradient;
 	int verbose;
+	double optimalityTolerance;
     
 	SEXP hessChol;
 	SEXP intervals, intervalCodes; // move to FitContext? TODO
@@ -76,6 +77,9 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
     
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
+	optimalityTolerance = Rf_asReal(slotValue);
+    
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("engine")));
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strcmp(engine_name, "CSOLNP")==0) {
@@ -112,11 +116,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 #if HAS_NPSOL
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, &fc->iterations, useGradient, varGroup, verbose,
-			       REAL(hessChol));
+			       REAL(hessChol), optimalityTolerance);
 #endif
             break;
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, &fc->iterations, varGroup, verbose, fc->getDenseHessUninitialized());
+            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, &fc->iterations, varGroup, verbose,
+			    fc->getDenseHessUninitialized(), optimalityTolerance);
 	    fc->wanted |= FF_COMPUTE_HESSIAN;
             break;
         default: Rf_error("huh?");
@@ -143,11 +148,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
 			if (engine == OptEngine_NPSOL) {
 #if HAS_NPSOL
-				omxNPSOLConfidenceIntervals(fitMatrix, fc);
+				omxNPSOLConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
 #endif
 			}
 			else if (engine == OptEngine_CSOLNP) {
-				omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose);
+				omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
 			}
 			omxPopulateConfidenceIntervals(intervals, intervalCodes);
 			fc->copyParamToModel(globalState);
@@ -172,8 +177,6 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
     printf("%2f", fc->hess[1]); putchar('\n');
     printf("%2f", fc->hess[2]); putchar('\n');
 */
-	size_t numFree = varGroup->vars.size();
-    
 	if (engine == OptEngine_NPSOL) {
 		out->add("hessianCholesky", hessChol);
 	}

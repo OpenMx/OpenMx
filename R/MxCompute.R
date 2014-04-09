@@ -204,6 +204,7 @@ setClass(Class = "MxComputeGradientDescent",
 	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
+	     tolerance = "numeric",
 	   verbose = "integer"))
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
@@ -225,13 +226,14 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.set, engine, fit, useGradient, verbose) {
+	  function(.Object, free.set, engine, fit, useGradient, verbose, tolerance) {
 		  .Object@name <- 'compute'
 		  .Object@free.set <- free.set
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
 		  .Object@useGradient <- useGradient
 		  .Object@verbose <- verbose
+		  .Object@tolerance <- tolerance
 		  .Object
 	  })
 
@@ -255,6 +257,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param engine specific NPSOL or CSOLNP
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param verbose level of debugging output
+##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -280,7 +283,8 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' factorModelFit@output$conditionNumber # 29.5
 
 mxComputeGradientDescent <- function(free.set=NA_character_, ..., useGradient=NULL,
-				     engine=NULL, fitfunction='fitfunction', verbose=0L) {
+				     engine=NULL, fitfunction='fitfunction', verbose=0L,
+				     tolerance=NA_real_) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -290,7 +294,8 @@ mxComputeGradientDescent <- function(free.set=NA_character_, ..., useGradient=NU
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
 
-	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose)
+	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose,
+	    tolerance)
 }
 
 #----------------------------------------------------

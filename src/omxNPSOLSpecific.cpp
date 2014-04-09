@@ -249,8 +249,13 @@ void F77_SUB(npsolConstraintFunction)
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    int verbose, double *hessOut)
+		    int verbose, double *hessOut, double tolerance)
 {
+	if (std::isfinite(tolerance)) {
+		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
+
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
@@ -398,8 +403,13 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 // Mostly duplicated code in omxCSOLNPConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
 // code that can use whatever optimizer is provided.
-void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc)
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double tolerance)
 {
+	if (std::isfinite(tolerance)) {
+		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
+
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");

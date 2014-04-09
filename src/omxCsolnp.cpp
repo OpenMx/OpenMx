@@ -239,7 +239,7 @@ Matrix csolnpIneqFun(int verbose)
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, int *iter_out, FreeVarGroup *freeVarGroup,
-                     int verbose, double *hessOut)
+                     int verbose, double *hessOut, double tolerance)
 
 {
 	freeMatrices(); // maybe left overs from an aborted optimization attempt
@@ -291,7 +291,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     M(myControl,1,0) = 400.0;
     M(myControl,2,0) = 800.0;
     M(myControl,3,0) = 1.0e-7;
-    M(myControl,4,0) = 1.0e-8;
+    M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-9;
     M(myControl,5,0) = 0.0;
     
     bool myDEBUG = false;
@@ -417,7 +417,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 // Mostly duplicated code in omxNPSOLConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
 // code that can use whatever optimizer is provided.
-void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose)
+void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose, double tolerance)
 {
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
@@ -475,7 +475,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     M(myControl,1,0) = 400.0;
     M(myControl,2,0) = 800.0;
     M(myControl,3,0) = 1.0e-7;
-    M(myControl,4,0) = 1.0e-16;
+    M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-16;
     M(myControl,5,0) = 0.0;
     
     bool myDEBUG = false;
