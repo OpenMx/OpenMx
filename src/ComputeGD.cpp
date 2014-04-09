@@ -112,21 +112,24 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxFitFunctionCreateChildren(globalState);
     
 	switch (engine) {
-        case OptEngine_NPSOL:
+        case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, &fc->iterations, useGradient, varGroup, verbose,
 			       REAL(hessChol), optimalityTolerance);
+		Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
+		Eigen::MatrixXd hcT = hc.transpose();
+		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
+		dest.noalias() = hcT * hc;
 #endif
-            break;
+		break;}
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, &fc->iterations, varGroup, verbose,
 			    fc->getDenseHessUninitialized(), optimalityTolerance);
-	    fc->wanted |= FF_COMPUTE_HESSIAN;
             break;
         default: Rf_error("huh?");
 	}
-	fc->wanted |= FF_COMPUTE_GRADIENT;
+	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
 	if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 		std::string diag = fc->getIterationError();

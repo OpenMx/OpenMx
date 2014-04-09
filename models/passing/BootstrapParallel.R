@@ -84,7 +84,7 @@ getStats <- function(model) {
 	retval <- c(code=model$output$status[[1]],
 		grad=sqrt(sum(model$output$gradient^2)),
 		model$output$estimate,
-		sqrt(2*diag(solve(H))))
+		model$output$standardErrors)
 	return(retval)
 }
 
@@ -117,6 +117,7 @@ template <- mxModel("stErrSim",
                        independent = TRUE,
                     mxComputeSequence(list(
                       mxComputeGradientDescent(),
+                      mxComputeStandardError(),
                       mxComputeReportDeriv())))
 # instantiate MxModel
 # -----------------------------------------------------------------------------

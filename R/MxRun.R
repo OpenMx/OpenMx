@@ -129,13 +129,11 @@ runHelper <- function(model, frontendStart,
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
-			if (options[["Calculate Hessian"]] == "No") {
-				# ok
-			} else {
+			if (options[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
-				if (options[["Standard Errors"]] == "Yes") {
-					steps <- c(steps, mxComputeStandardError())
-				}
+			}
+			if (options[["Standard Errors"]] == "Yes") {
+				steps <- c(steps, mxComputeStandardError())
 			}
 			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
 		}
