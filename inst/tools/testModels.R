@@ -35,8 +35,7 @@ null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),
 sink(null, type = 'output')
 
 if (any(args == 'gctorture')) {
-	files <- c('models/passing/rfitfunc.R',
-		   'demo/RowObjectiveFIMLBivariateSaturated.R',
+	files <- c('demo/RowObjectiveFIMLBivariateSaturated.R',
 		   'models/passing/AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R',
 		   'models/passing/JointFIMLTest.R')
