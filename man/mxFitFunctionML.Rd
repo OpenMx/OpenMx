@@ -40,7 +40,7 @@ The 'vector' argument is either TRUE or FALSE, and determines whether the object
 
 Usage Notes: 
 
-The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName@output). Components of the output may be referenced using the \link{Extract} functionality.
+The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName$output). Components of the output may be referenced using the \link{Extract} functionality.
 }
 
 \value{
@@ -85,7 +85,7 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel("exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
                     mxData(observed=tmpFrame, type="raw"))
 
 # Fit the model and print a summary

@@ -53,7 +53,7 @@ To be estimated, \link{MxModel} objects must include objective functions as argu
 (\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
 and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
 
-\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using double brackets (\code{model[["matrixname"]]}). Slots may be referenced with the @ symbol (\code{model@data}). See the documentation for \link[methods]{Classes} and the examples in this document for more information.
+\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using the $ symbol.  For instance, for an MxModel named "yourModel" containing an MxMatrix named "yourMatrix", the contents of "yourMatrix" can be accessed as yourModel$yourMatrix. Slots (i.e., matrices, algebras, etc.) in an mxMatrix may also be referenced with the $ symbol (e.g., yourModel$matrices or yourModel$algebras). See the documentation for \link[methods]{Classes} and the examples in \link[methods]{Classes} for more information.
 }
     
 \value{
@@ -74,6 +74,9 @@ More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
     
 \examples{
+
+library(OpenMx)
+
 # At the simplest, you can create an empty model, placing it in an object, and add to it later
 model <- mxModel()
 
@@ -94,7 +97,7 @@ model <- mxModel(model, mxData(twinData, type='raw'))
 # View the matrix named "A" in MxModel object 'model'
 model[["A"]]
 
-model@matrices$A
+model$matrices$A
 
 #View the data associated with MxModel object 'model'
 model$data

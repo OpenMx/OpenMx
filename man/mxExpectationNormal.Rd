@@ -51,7 +51,7 @@ mxExpectationNormal evaluates with respect to an \link{MxData} object. The \link
 
 To evaluate, place an mxExpectationNormal object, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, optional \link{MxBounds} or \link{MxConstraint} objects, and an mxFitFunction such as \link{mxFitFunctionML} in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. 
 
-The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName@output). Components of the output may be referenced using the \link{Extract} functionality.
+The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName$output). Components of the output may be referenced using the \link{Extract} functionality.
 }
 
 \value{
@@ -96,7 +96,7 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel("exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
                     mxData(observed=tmpFrame, type="raw"))
 
 # Fit the model and print a summary

@@ -43,7 +43,7 @@ The \sQuote{formula} slot is an expression containing the expression to be evalu
 
 The \sQuote{result} slot is used to hold the results of computing the expression in the \sQuote{formula} slot. If the containing model has not been executed, then the \sQuote{result} slot will hold a 0 x 0 matrix.  Otherwise the slot will store the computed value of the algebra using the final estimates of the free parameters.
 
-Slots may be referenced with the @ symbol. See the documentation for \link[methods]{Classes} and the examples in the \code{\link{mxAlgebra}} document for more information.
+Slots may be referenced with the $ symbol. See the documentation for \link[methods]{Classes} and the examples in the \code{\link{mxAlgebra}} document for more information.
 }
 
 \references{

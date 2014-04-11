@@ -33,7 +33,7 @@ mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"))
 }
 
 \details{
-The mxCI function creates \link{MxCI} objects, which can be used as arguments in \link{MxModel} objects. When models containing \link{MxCI} objects are optimized using \link{mxRun} with the \sQuote{intervals} argument set to TRUE, likelihood-based confidence intervals are returned. The likelihood-based confidence intervals calculated by \link{MxCI} objects are symmetric with respect to the change in likelihood in either direction, and are not necessarily symmetric around the parameter estimate. Estimation of confidence intervals requires both that an \link{MxCI} object be included in the model and that the \sQuote{intervals} argument of the \link{mxRun} function is set to TRUE. When estimated, confidence intervals can be accessed in the model output at \code{@output$confidenceIntervals} or by using \link{summary} on a fitted \link{MxModel} object. 
+The mxCI function creates \link{MxCI} objects, which can be used as arguments in \link{MxModel} objects. When models containing \link{MxCI} objects are optimized using \link{mxRun} with the \sQuote{intervals} argument set to TRUE, likelihood-based confidence intervals are returned. The likelihood-based confidence intervals calculated by \link{MxCI} objects are symmetric with respect to the change in likelihood in either direction, and are not necessarily symmetric around the parameter estimate. Estimation of confidence intervals requires both that an \link{MxCI} object be included in the model and that the \sQuote{intervals} argument of the \link{mxRun} function is set to TRUE. When estimated, confidence intervals can be accessed in the model output at \code{$output$confidenceIntervals} or by using \link{summary} on a fitted \link{MxModel} object. 
 
 The likelihood-based confidence intervals returned using \link{MxCI} are obtained by increasing or decreasing the value of each parameter until the -2 log likelihood of the model increases by an amount corresponding to the requested interval. The confidence limit specified by the \sQuote{interval} argument is transformed into a corresponding difference in the model -2 log likelihood based on the likelihood ratio test. Thus, a requested confidence interval for a parameter will first determine the corresponding quantile from the chi-squared distribution with one degree of freedom (a value of 3.841459 when a 95 percent confidence interval is requested). That quantile will be populated into either the \sQuote{lowerdelta} slot, the \sQuote{upperdelta} slot, or both in the output \link{MxCI} object. 
 
@@ -62,6 +62,9 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{
+
+library(OpenMx)
+
 # generate data
 covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), 
     nrow=2, 
@@ -80,7 +83,7 @@ expect <- mxMatrix("Symm", 2, 2,
 ci <- mxCI(c("var1", "cov12", "var2"))
 
 # specify the model
-model <- mxModel("Confidence Interval Example",
+model <- mxModel(model="Confidence Interval Example",
     data, expect, ci,
     mxMLObjective("expectedCov", dimnames=c("a", "b")))
 

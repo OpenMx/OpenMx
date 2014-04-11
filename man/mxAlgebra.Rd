@@ -132,7 +132,7 @@ D <- mxAlgebra(sin(C), name = "D")
 
 # Make a model and evaluate the mxAlgebra object 'D'
 A <- mxMatrix("Full", nrow = 3, ncol = 3, values=2, name = "A")
-model <- mxModel("AlgebraExample", A, B, C, D )
+model <- mxModel(model="AlgebraExample", A, B, C, D )
 fit   <- mxRun(model)
 mxEval(D, fit)
 
@@ -140,12 +140,13 @@ mxEval(D, fit)
 # Numbers in mxAlgebras are upgraded to 1x1 matrices
 # Example of Kronecker powering (%^%) and multiplication (%*%)
 A  <- mxMatrix(type="Full", nrow=3, ncol=3, value=c(1:9), name="A")
-m1 <- mxModel("kron", A, mxAlgebra(A \%^\% 2, name="KroneckerPower"))
+m1 <- mxModel(model="kron", A, mxAlgebra(A \%^\% 2, name="KroneckerPower"))
 mxRun(m1)$KroneckerPower
+
 # Running kron 
 # mxAlgebra 'KroneckerPower' 
-# @formula:  A %^% 2 
-# @result:
+# $formula:  A %^% 2 
+# $result:
 #      [,1] [,2] [,3]
 # [1,]    1   16   49
 # [2,]    4   25   64

@@ -44,6 +44,8 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 
 \examples{
 
+library(OpenMx)
+
 A <- mxMatrix('Full', 2, 2, labels = c("A11", "A12", "A21", NA), values= 1:4, 
     free = c(TRUE,TRUE,FALSE,TRUE), byrow=TRUE, name = 'A')
 model <- mxModel(A, name = 'model')
@@ -59,24 +61,23 @@ omxGetParameters(model, free = FALSE)
 # A21 
 #   3
 
-A@labels
+A$labels
 #      [,1]  [,2] 
 # [1,] "A11" "A12"
 # [2,] "A21" NA   
 
-A@free
+A$free
 #       [,1] [,2]
 # [1,]  TRUE TRUE
 # [2,] FALSE TRUE
 
-A@labels
+A$labels
 #      [,1]  [,2] 
 # [1,] "A11" "A12"
 # [2,] "A21" NA   
 
 # Example using un-labelled parameters
-# Load the OpenMx Package if not already loaded
-require(OpenMx) 
+
 # Read in some demo data
 data(demoOneFactor)
 # Grab the names for manifestVars 
@@ -89,7 +90,8 @@ factorModel <- mxModel("One Factor",
     # the "U" matrix has nVar (5) anonymous free parameters
     mxMatrix(name="U", type="Diag", nrow=nVar, ncol=nVar, values=1, free=TRUE),
     mxAlgebra(expression=A \%&\% L + U, name="R"),
-    mxMLObjective(covariance="R", dimnames=manifestVars),
+    mxExpectationNormal(covariance="R", dimnames=manifestVars),
+    mxFitFunctionML(),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 

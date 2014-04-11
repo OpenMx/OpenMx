@@ -61,7 +61,7 @@ mxFIMLObjective evaluates with respect to an \link{MxData} object. The \link{MxD
 
 To evaluate, place MxFIMLObjective objects, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. 
 
-The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName@output). Components of the output may be referenced using the \link{Extract} functionality.
+The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName$output). Components of the output may be referenced using the \link{Extract} functionality.
 }
 
 \value{
@@ -106,7 +106,7 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel("exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleModel", M, S, A, I, expCov, expFunction, fitFunction, 
                     mxData(observed=tmpFrame, type="raw"))
 
 # Fit the model and print a summary

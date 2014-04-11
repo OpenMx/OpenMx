@@ -45,15 +45,15 @@ model <- omxAssignFirstParameters(model)
 
 # Note: All cells with the same label now have the same start value. Note also that NAs are untouched.
 
-model@matrices$A
+model$matrices$A
 
-# @labels
+# $labels
 #      [,1] [,2] [,3]
 # [1,] "a"  "a"  "a" 
 # [2,] "b"  "b"  "b" 
 # [3,] NA   NA   NA  
 # 
-# @values
+# $values
 #      [,1] [,2] [,3]
 # [1,]    1    1    1
 # [2,]    2    2    2

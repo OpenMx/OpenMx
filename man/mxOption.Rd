@@ -126,13 +126,13 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 model <- mxModel() # make a model to use for example
-model@options # show the model options (none yet)
+model$options # show the model options (none yet)
 options()$mxOptions # list all mxOptions (global settings)
 
 model <- mxOption(model, "Function precision", 1e-5) # set the precision
 model <- mxOption(model, "Function precision", NULL) # clear model-specific precision (defaults to global setting)
 model <- mxOption(model, "Calculate Hessian", "No")  # may optimize for speed 
 model <- mxOption(model, "Standard Errors"  , "No")  # may optimize for speed 
-model@options # see the list of options you set
+model$options # see the list of options you set
 
 }

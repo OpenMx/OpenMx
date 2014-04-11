@@ -37,7 +37,7 @@ The \sQuote{name} slot is the name of the MxConstraint object. Use of MxConstrai
 
 The \sQuote{formula} slot is an expression containing the expression to be evaluated. These objects are operated on or related to one another using one or more operations detailed in the \code{\link{mxConstraint}} help file.
 
-Slots may be referenced with the @ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxConstraint} document for more information.
+Slots may be referenced with the $ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxConstraint} document for more information.
 }
 
 \references{

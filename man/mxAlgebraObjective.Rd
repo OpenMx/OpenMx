@@ -77,11 +77,11 @@ objective <- mxFitFunctionAlgebra('B')
 
 # Place the algebra, its associated matrix and 
 # its objective function in a model
-tmpModel <- mxModel("Addition", A, B, objective)
+tmpModel <- mxModel(model="Addition", A, B, objective)
 
 # Evalulate the algebra
 tmpModelOut <- mxRun(tmpModel)
 
 # View the results
-tmpModelOut@output$minimum
+tmpModelOut$output$minimum
 }
