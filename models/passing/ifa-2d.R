@@ -63,7 +63,6 @@ m1 <- mxModel(model="2dim",
 	    mxFitFunctionML(),
 	    mxComputeEM('expectation', 'scores',
 	                mxComputeNewtonRaphson(free.set='ItemParam'),
-                  mxComputeNothing(),
 	                mxComputeOnce('fitfunction', 'fit')))
 
 if(0){

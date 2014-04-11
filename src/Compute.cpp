@@ -807,8 +807,7 @@ class ComputeEM : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxExpectation* > expectations;
 	const char *predict;
-	omxCompute *fit1;  // maybe rename to stage1, stage2, stage3 TODO
-	omxCompute *fit2;
+	omxCompute *fit1;  // maybe rename to mstep TODO
 	omxCompute *fit3;
 	int EMcycles;
 	int maxIter;
@@ -1155,11 +1154,6 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("post.mstep")));
-	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
-	fit2 = omxNewCompute(globalState, CHAR(s4class));
-	fit2->initFromFrontend(slotValue);
-
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observed.fit")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	fit3 = omxNewCompute(globalState, CHAR(s4class));
@@ -1199,9 +1193,6 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	setExpectationPrediction(predict);
 	fit1->compute(fc);
 	setExpectationPrediction("nothing");
-
-	const size_t extraVars = fit2->varGroup->vars.size();
-	if (extraVars) fit2->compute(fc);
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of param %d offset %.6f",
 				paramHistLen[vx], vx, offset);
@@ -1285,11 +1276,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			fc1->updateParentAndFree();
 		}
 
-		setExpectationPrediction("nothing");
 		{
-			if (verbose >= 4) mxLog("ComputeEM[%d]: post M-step", EMcycles);
-			fit2->compute(fc);
-
 			if (useRamsay) {
 				bool wantRestart;
 				if (EMcycles > 3 && EMcycles % 3 == 0) {
@@ -1303,6 +1290,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			}
 			fc->copyParamToModel(globalState);
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
+			setExpectationPrediction("nothing");
 			Global->checkpointPrefit(fc, fc->est, false);
 			fit3->compute(fc);
 			Global->checkpointPostfit(fc);
@@ -1556,10 +1544,9 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 {
 	super::collectResults(fc, lcr, out);
 
-	std::vector< omxCompute* > clist(3);
+	std::vector< omxCompute* > clist(2);
 	clist[0] = fit1;
-	clist[1] = fit2;
-	clist[2] = fit3;
+	clist[1] = fit3;
 
 	collectResultsHelper(fc, clist, lcr, out);
 }
@@ -1617,7 +1604,6 @@ ComputeEM::~ComputeEM()
 	ramsay.clear();
 
 	delete fit1;
-	delete fit2;
 	delete fit3;
 
 	for (size_t hx=0; hx < estHistory.size(); ++hx) {

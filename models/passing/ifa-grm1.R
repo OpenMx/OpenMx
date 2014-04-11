@@ -56,7 +56,6 @@ omxCheckCloseEnough(max(abs(solve(testDeriv$output$hessian) - testDeriv$output$i
 
 plan <- mxComputeSequence(list(mxComputeEM('expectation', 'scores',
                                            mxComputeNewtonRaphson(free.set='itemParam'),
-                                           mxComputeNothing(),
                                            mxComputeOnce('fitfunction', 'fit')),
                                mxComputeOnce('fitfunction', 'information', "meat"),
                                mxComputeHessianQuality(),

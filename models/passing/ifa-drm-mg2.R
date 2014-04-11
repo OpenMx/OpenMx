@@ -98,7 +98,8 @@ latent.plan <- NULL  # need a plan for latent distribution parameters
 
 if (0) {
   # Copy latent distribution parameters from current estimates without transformation.
-  latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.'),
+  latent.plan <- mxComputeSequence(list(mxComputeOnce(paste(groups, 'expectation', sep='.')),
+						      mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                       "latentDistribution", "copy"),  # c('mean','covariance')
                                         mxComputeOnce('fitfunction', "set-starting-values")),
                                    free.set=latent.vargroup)
@@ -112,8 +113,9 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                     mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                     mxComputeSequence(list(
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-                                  mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
-                                  latent.plan,
+                                  mxComputeSequence(list(
+				      mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+				      latent.plan)),
                                   mxComputeOnce('fitfunction', 'fit'),
                                   information=TRUE, tolerance=1e-5, verbose=0L,
 				  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
