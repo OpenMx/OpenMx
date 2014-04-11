@@ -74,8 +74,8 @@ fit1 <- function(seed) {
   omxIFAComputePlan <- function(groups) {
     mxComputeSequence(steps=list(
       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-                  mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
-                  mxComputeOnce('fitfunction', 'fit', free.set=apply(expand.grid(groups, c('mean','cov')),
+                  mxComputeNewtonRaphson(freeSet=paste(groups, 'ItemParam', sep=".")),
+                  mxComputeOnce('fitfunction', 'fit', freeSet=apply(expand.grid(groups, c('mean','cov')),
                                                               1, paste, collapse='.')),
                   tolerance=1e-5, information=TRUE),
       mxComputeStandardError(),

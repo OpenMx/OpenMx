@@ -55,7 +55,7 @@ omxCheckCloseEnough(fivenum(testDeriv$output$hessian[testDeriv$output$hessian !=
 omxCheckCloseEnough(max(abs(solve(testDeriv$output$hessian) - testDeriv$output$ihessian)), 0, .001)
 
 plan <- mxComputeSequence(list(mxComputeEM('expectation', 'scores',
-                                           mxComputeNewtonRaphson(free.set='itemParam'),
+                                           mxComputeNewtonRaphson(),
                                            mxComputeOnce('fitfunction', 'fit')),
                                mxComputeOnce('fitfunction', 'information', "meat"),
                                mxComputeHessianQuality(),

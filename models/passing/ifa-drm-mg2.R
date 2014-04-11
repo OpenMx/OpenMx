@@ -67,9 +67,9 @@ groups <- paste("g", 1:3, sep="")
 if(0) {
   # for S-EM debugging
   plan <- mxComputeEM(paste(groups, 'expectation', sep='.'),
-                      mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+                      mxComputeNewtonRaphson(freeSet=paste(groups,'ItemParam',sep=".")),
                       mxComputeOnce('fitfunction', 'fit',
-                                    free.set=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
+                                    freeSet=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
                       information=TRUE, info.method="meat", semDebug=TRUE, semMethod=seq(.001, .02, length.out=30))
 }
 
@@ -102,7 +102,7 @@ if (0) {
 						      mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                       "latentDistribution", "copy"),  # c('mean','covariance')
                                         mxComputeOnce('fitfunction', "set-starting-values")),
-                                   free.set=latent.vargroup)
+                                   freeSet=latent.vargroup)
 } else {
   # Obtain latent distribution parameters via mxExpectationNormal.
   # This permits equality constraints (and potentially more complex latent structure).
@@ -114,7 +114,7 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                     mxComputeSequence(list(
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(
-				      mxComputeNewtonRaphson(free.set=paste(groups,'ItemParam',sep=".")),
+				      mxComputeNewtonRaphson(freeSet=paste(groups,'ItemParam',sep=".")),
 				      latent.plan)),
                                   mxComputeOnce('fitfunction', 'fit'),
                                   information=TRUE, tolerance=1e-5, verbose=0L,

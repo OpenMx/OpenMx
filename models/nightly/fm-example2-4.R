@@ -34,7 +34,7 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeEM('expectation', 'scores',
-                          mxComputeNewtonRaphson(free.set='ItemParam'),
+                          mxComputeNewtonRaphson(freeSet='ItemParam'),
                           mxComputeOnce('fitfunction', 'fit')))
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)

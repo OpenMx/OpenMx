@@ -67,12 +67,12 @@ buildFreeVarGroupList <- function(flatModel) {
 	got <- getFreeVarGroup(flatModel@compute)
 	if (length(got)) {
 		if (anyDuplicated(unlist(got[seq(1,length(got),2)]))) {
-			stop("free.set IDs are not unique") #for debugging
+			stop("freeSet IDs are not unique") #for debugging
 		}
 		members <- unlist(got[seq(2,length(got),2)])
 		recog <- match(members, names(flatModel@matrices))
 		if (any(is.na(recog))) {
-			stop(paste("free.set component", omxQuotes(members[is.na(recog)]), "not found"))
+			stop(paste("freeSet component", omxQuotes(members[is.na(recog)]), "not found"))
 		}
 	}
 	got

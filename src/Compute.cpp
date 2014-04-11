@@ -714,13 +714,13 @@ void omxCompute::initFromFrontend(SEXP rObj)
 	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("free.set")));
+		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("freeSet")));
 		if (Rf_length(slotValue) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
 			varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 		} else {
-			Rf_warning("MxCompute ID %d references matrix '%s' in its free.set "
+			Rf_warning("MxCompute ID %d references matrix '%s' in its freeSet "
 				"but this matrix contains no free parameters",
 				computeId, CHAR(STRING_ELT(slotValue, 0)));
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);

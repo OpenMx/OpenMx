@@ -150,7 +150,7 @@ omxIFAComputePlan <- function(groups) {
 					  mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                         "latentDistribution", "copy"),  # c('mean','covariance')
                                           mxComputeOnce('fitfunction', "set-starting-values")),
-                                     free.set=latentFG)
+                                     freeSet=latentFG)
   } else {
 	  # default tolerance isn't good enough for stable S-EM results
     latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction", tolerance=1e-10)
@@ -159,7 +159,7 @@ omxIFAComputePlan <- function(groups) {
   mxComputeSequence(steps=list(
     mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                 mxComputeSequence(list(
-		    mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep="."), verbose=0L),
+		    mxComputeNewtonRaphson(freeSet=paste(groups, 'ItemParam', sep="."), verbose=0L),
 		    latent.plan)),
                 mxComputeOnce('fitfunction', 'fit'),
                 tolerance=1e-5, information=TRUE,

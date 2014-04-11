@@ -16,7 +16,7 @@
 setClass(Class = "BaseCompute",
 	 representation = representation(
 	   id = "integer",
-	     free.set = "MxOptionalChar",
+	     freeSet = "MxOptionalChar",
 	     output = "list",
 	     debug = "list",
 	   "VIRTUAL"),
@@ -45,7 +45,7 @@ setGeneric("assignId",
 setMethod("assignId", signature("BaseCompute"),
 	function(.Object, id, defaultFreeSet) {
 		.Object@id <- id
-		if (length(.Object@free.set) == 1 && is.na(.Object@free.set)) .Object@free.set <- defaultFreeSet
+		if (length(.Object@freeSet) == 1 && is.na(.Object@freeSet)) .Object@freeSet <- defaultFreeSet
 		.Object
 	})
 
@@ -56,17 +56,17 @@ setGeneric("getFreeVarGroup",
 
 setMethod("getFreeVarGroup", signature("BaseCompute"),
 	function(.Object) {
-		if (length(.Object@free.set) == 0 || (length(.Object@free.set) == 1 && .Object@free.set == '.')) {
+		if (length(.Object@freeSet) == 0 || (length(.Object@freeSet) == 1 && .Object@freeSet == '.')) {
 			# none or all variables
 		} else {
-			list(.Object@id, .Object@free.set)
+			list(.Object@id, .Object@freeSet)
 		}
 	})
 
 setMethod("qualifyNames", signature("BaseCompute"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@free.set <- imxConvertIdentifier(.Object@free.set, modelname, namespace)
+		.Object@freeSet <- imxConvertIdentifier(.Object@freeSet, modelname, namespace)
 		.Object
 	})
 
@@ -139,12 +139,12 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 	})
 
 setMethod("initialize", "MxComputeOnce",
-	  function(.Object, from, what, how, free.set, verbose, .is.bestfit) {
+	  function(.Object, from, what, how, freeSet, verbose, .is.bestfit) {
 		  .Object@name <- 'compute'
 		  .Object@from <- from
 		  .Object@what <- what
 		  .Object@how <- how
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object@verbose = verbose
 		  .Object@.is.bestfit <- .is.bestfit
 		  .Object
@@ -168,7 +168,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' @param what what to compute (defaults is "nothing")
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @param verbose the level of debugging output
 ##' @param .is.bestfit do not use; for backward compatibility
 ##' @aliases
@@ -187,13 +187,13 @@ setMethod("initialize", "MxComputeOnce",
 ##' factorModelFit@output$fit  # 972.15
 
 mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
-			  free.set=NA_character_, verbose=0L, .is.bestfit=FALSE) {
+			  freeSet=NA_character_, verbose=0L, .is.bestfit=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeOnce does not accept values for the '...' argument")
 	}
 	if (length(from) == 0) warning("mxComputeOnce from nothing will have no effect")
-	new("MxComputeOnce", from, what, how, free.set, verbose, .is.bestfit)
+	new("MxComputeOnce", from, what, how, freeSet, verbose, .is.bestfit)
 }
 
 #----------------------------------------------------
@@ -226,9 +226,9 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, free.set, engine, fit, useGradient, verbose, tolerance) {
+	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
 		  .Object@useGradient <- useGradient
@@ -251,7 +251,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' CSOLNP (based on Ye, 1988).  The proprietary version of OpenMx
 ##' offers the choice of two optimizers, CSOLNP and NPSOL.
 ##'
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param engine specific NPSOL or CSOLNP
@@ -282,7 +282,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$conditionNumber # 29.5
 
-mxComputeGradientDescent <- function(free.set=NA_character_, ..., useGradient=NULL,
+mxComputeGradientDescent <- function(freeSet=NA_character_, ..., useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_) {
 
@@ -294,7 +294,7 @@ mxComputeGradientDescent <- function(free.set=NA_character_, ..., useGradient=NU
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
 
-	new("MxComputeGradientDescent", free.set, engine, fitfunction, useGradient, verbose,
+	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
 	    tolerance)
 }
 
@@ -330,9 +330,9 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	})
 
 setMethod("initialize", "MxComputeNewtonRaphson",
-	  function(.Object, free.set, fit, maxIter, tolerance, verbose) {
+	  function(.Object, freeSet, fit, maxIter, tolerance, verbose) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
@@ -348,7 +348,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' Comprehensive diagnostics are available by increasing the verbose
 ##' level.
 ##'
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param maxIter maximum number of iterations
@@ -362,7 +362,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40}(3), 337-360.
 
-mxComputeNewtonRaphson <- function(free.set=NA_character_, ..., fitfunction='fitfunction', maxIter = 100L,
+mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitfunction', maxIter = 100L,
 				   tolerance=1e-7, verbose=0L)
 {
 	garbageArguments <- list(...)
@@ -370,7 +370,7 @@ mxComputeNewtonRaphson <- function(free.set=NA_character_, ..., fitfunction='fit
 		stop("mxComputeNewtonRaphson does not accept values for the '...' argument")
 	}
 
-	new("MxComputeNewtonRaphson", free.set, fitfunction, maxIter, tolerance, verbose)
+	new("MxComputeNewtonRaphson", freeSet, fitfunction, maxIter, tolerance, verbose)
 }
 
 #----------------------------------------------------
@@ -392,8 +392,8 @@ setMethod("getFreeVarGroup", signature("ComputeSteps"),
 
 setMethod("assignId", signature("ComputeSteps"),
 	function(.Object, id, defaultFreeSet) {
-		if (length(.Object@free.set) == 1 && is.na(.Object@free.set)) .Object@free.set <- defaultFreeSet
-		defaultFreeSet <- .Object@free.set
+		if (length(.Object@freeSet) == 1 && is.na(.Object@freeSet)) .Object@freeSet <- defaultFreeSet
+		defaultFreeSet <- .Object@freeSet
 		steps <- .Object@steps
 		if (length(steps)) for (sx in 1:length(steps)) {
 			steps[[sx]] <- assignId(steps[[sx]], id, defaultFreeSet)
@@ -435,13 +435,13 @@ setClass(Class = "MxComputeIterate",
 	   verbose = "integer"))
 
 setMethod("initialize", "MxComputeIterate",
-	  function(.Object, steps, maxIter, tolerance, verbose, free.set) {
+	  function(.Object, steps, maxIter, tolerance, verbose, freeSet) {
 		  .Object@name <- 'compute'
 		  .Object@steps <- steps
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object
 	  })
 
@@ -454,16 +454,16 @@ setMethod("initialize", "MxComputeIterate",
 ##' @param maxIter the maximum number of iterations
 ##' @param tolerance iterates until change is less than tolerance
 ##' @param verbose level of debugging output
-##' @param free.set Names of matrices containing free variables.
+##' @param freeSet Names of matrices containing free variables.
 ##' @aliases
 ##' MxComputeIterate-class
-mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L, free.set=NA_character_) {
+mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L, freeSet=NA_character_) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeIterate does not accept values for the '...' argument")
 	}
 
-	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, free.set)
+	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, freeSet)
 }
 
 displayMxComputeIterate <- function(opt) {
@@ -505,8 +505,8 @@ setClass(Class = "MxComputeEM",
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id, defaultFreeSet) {
-		if (length(.Object@free.set) == 1 && is.na(.Object@free.set)) .Object@free.set <- defaultFreeSet
-		defaultFreeSet <- .Object@free.set
+		if (length(.Object@freeSet) == 1 && is.na(.Object@freeSet)) .Object@freeSet <- defaultFreeSet
+		defaultFreeSet <- .Object@freeSet
 		for (sl in c('mstep', 'observed.fit')) {
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
@@ -577,7 +577,7 @@ setMethod("updateFromBackend", signature("MxComputeEM"),
 setMethod("initialize", "MxComputeEM",
 	  function(.Object, expectation, predict, mstep, observed.fit, maxIter, tolerance,
 		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
-		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set, infoArgs) {
+		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
@@ -596,7 +596,7 @@ setMethod("initialize", "MxComputeEM",
 		  .Object@semFixSymmetry <- semFixSymmetry
 		  .Object@agileMaxIter <- agileMaxIter
 		  .Object@semForcePD <- semForcePD
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object@infoArgs <- infoArgs
 		  .Object
 	  })
@@ -604,7 +604,7 @@ setMethod("initialize", "MxComputeEM",
 mxComputeEM <- function(expectation, predict, mstep, observed.fit, ..., maxIter=500L, tolerance=1e-4,
 			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-5), noiseTolerance=exp(3.3),
 			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
-			semForcePD=FALSE, free.set=NA_character_, infoArgs=list()) {
+			semForcePD=FALSE, freeSet=NA_character_, infoArgs=list()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
@@ -612,7 +612,7 @@ mxComputeEM <- function(expectation, predict, mstep, observed.fit, ..., maxIter=
 	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
 	new("MxComputeEM", expectation, predict, mstep, observed.fit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
-	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, free.set,
+	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, freeSet,
 	    infoArgs)
 }
 
@@ -654,9 +654,9 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	})
 
 setMethod("initialize", "MxComputeNumericDeriv",
-	  function(.Object, free.set, fit, parallel, stepSize, iterations, verbose) {
+	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@parallel <- parallel
 		  .Object@stepSize <- stepSize
@@ -672,7 +672,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' 
 ##' The implementation is closely based on the numDeriv R package.
 ##' 
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param parallel whether to evaluate the fitfunction in parallel (defaults to TRUE)
@@ -695,7 +695,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit@output$hessian
 
-mxComputeNumericDeriv <- function(free.set=NA_character_, ..., fitfunction='fitfunction',
+mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L)
 {
 	garbageArguments <- list(...)
@@ -703,7 +703,7 @@ mxComputeNumericDeriv <- function(free.set=NA_character_, ..., fitfunction='fitf
 		stop("mxComputeNumericDeriv does not accept values for the '...' argument")
 	}
 
-	new("MxComputeNumericDeriv", free.set, fitfunction, parallel, stepSize, iterations, verbose)
+	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose)
 }
 
 #----------------------------------------------------
@@ -712,20 +712,20 @@ setClass(Class = "MxComputeStandardError",
 	 contains = "BaseCompute")
 
 setMethod("initialize", "MxComputeStandardError",
-	  function(.Object, free.set) {
+	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object
 	  })
 
 ##' Compute standard errors given the Hessian or inverse Hessian
 ##'
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @aliases
 ##' MxComputeStandardError-class
 
-mxComputeStandardError <- function(free.set=NA_character_) {
-	new("MxComputeStandardError", free.set)
+mxComputeStandardError <- function(freeSet=NA_character_) {
+	new("MxComputeStandardError", freeSet)
 }
 
 #----------------------------------------------------
@@ -734,9 +734,9 @@ setClass(Class = "MxComputeHessianQuality",
 	 contains = "BaseCompute")
 
 setMethod("initialize", "MxComputeHessianQuality",
-	  function(.Object, free.set) {
+	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object
 	  })
 
@@ -747,14 +747,14 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' number (model@output$conditionNumber). See Luenberger & Ye (2008)
 ##' Second Order Test (p. 190) and Condition Number (p. 239).
 ##' 
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @aliases
 ##' MxComputeHessianQuality-class
 ##' @references
 ##' Luenberger, D. G. & Ye, Y. (2008). Linear and nonlinear programming. Springer.
 
-mxComputeHessianQuality <- function(free.set=NA_character_) {
-	new("MxComputeHessianQuality", free.set)
+mxComputeHessianQuality <- function(freeSet=NA_character_) {
+	new("MxComputeHessianQuality", freeSet)
 }
 
 #----------------------------------------------------
@@ -763,9 +763,9 @@ setClass(Class = "MxComputeReportDeriv",
 	 contains = "BaseCompute")
 
 setMethod("initialize", "MxComputeReportDeriv",
-	  function(.Object, free.set) {
+	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object
 	  })
 
@@ -773,12 +773,12 @@ setMethod("initialize", "MxComputeReportDeriv",
 ##'
 ##' Copy the internal gradient and Hessian back to R.
 ##'
-##' @param free.set names of matrices containing free variables
+##' @param freeSet names of matrices containing free variables
 ##' @aliases
 ##' MxComputeReportDeriv-class
 
-mxComputeReportDeriv <- function(free.set=NA_character_) {
-	new("MxComputeReportDeriv", free.set)
+mxComputeReportDeriv <- function(freeSet=NA_character_) {
+	new("MxComputeReportDeriv", freeSet)
 }
 
 #----------------------------------------------------
@@ -787,27 +787,27 @@ setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps")
 
 setMethod("initialize", "MxComputeSequence",
-	  function(.Object, steps, free.set) {
+	  function(.Object, steps, freeSet) {
 		  .Object@name <- 'compute'
 		  .Object@steps <- steps
-		  .Object@free.set <- free.set
+		  .Object@freeSet <- freeSet
 		  .Object
 	  })
 
 ##' Invoke a series of compute objects in sequence
 ##'
 ##' @param steps a list of compute objects
-##' @param ... Not used; forces argument 'free.set' to be specified by name.
-##' @param free.set Names of matrices containing free parameters.
+##' @param ... Not used; forces argument 'freeSet' to be specified by name.
+##' @param freeSet Names of matrices containing free parameters.
 ##' @aliases
 ##' MxComputeSequence-class
-mxComputeSequence <- function(steps=list(), ..., free.set=NA_character_) {
+mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeSequence does not accept values for the '...' argument")
 	}
 
-	new("MxComputeSequence", steps=steps, free.set)
+	new("MxComputeSequence", steps=steps, freeSet)
 }
 
 ##' Compute nothing
@@ -817,7 +817,7 @@ mxComputeSequence <- function(steps=list(), ..., free.set=NA_character_) {
 ##' prediction of an expectation.
 ##' 
 mxComputeNothing <- function() {
-	mxComputeSequence(free.set=c())
+	mxComputeSequence(freeSet=c())
 }
 
 displayMxComputeSequence <- function(opt) {
@@ -836,7 +836,7 @@ setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequenc
 displayBaseCompute <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
 	cat("$id :", opt@id, '\n')
-	cat("$free.set :", omxQuotes(opt@free.set), '\n')
+	cat("$freeSet :", omxQuotes(opt@freeSet), '\n')
 	invisible(opt)
 }
 

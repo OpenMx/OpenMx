@@ -68,7 +68,7 @@ m2 <- mxModel(m2,
                 qpoints=31,
                 scores="full"),
 	      mxComputeEM('expectation', 'scores',
-	                  mxComputeNewtonRaphson(free.set='itemParam'),
+	                  mxComputeNewtonRaphson(),
 	                  mxComputeOnce('fitfunction', 'fit')))
 
 # 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')

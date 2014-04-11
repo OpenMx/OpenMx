@@ -50,8 +50,8 @@ replicate <- function(seed) {
   m1 <- mxModel(mkmodel(seed),
                 mxComputeSequence(steps=list(
                   mxComputeEM('expectation',
-                              mxComputeNewtonRaphson(free.set='ItemParam'),
-                              mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE),
+                              mxComputeNewtonRaphson(freeSet='ItemParam'),
+                              mxComputeOnce('fitfunction', freeSet=c("mean","cov"), fit=TRUE),
                               information=TRUE, info.method="hessian"),
                   mxComputeStandardError(),
                   mxComputeHessianQuality())))
@@ -92,8 +92,8 @@ if (0) {
   m1 <- mxModel(mkmodel(69),
                 mxComputeSequence(steps=list(
                   mxComputeEM('expectation',
-                              mxComputeNewtonRaphson(free.set='ItemParam'),
-                              mxComputeOnce('fitfunction', free.set=c("mean","cov"), fit=TRUE),
+                              mxComputeNewtonRaphson(freeSet='ItemParam'),
+                              mxComputeOnce('fitfunction', freeSet=c("mean","cov"), fit=TRUE),
                               information=TRUE, info.method="hessian",  semDebug=TRUE,
                               verbose=3L, agileMaxIter=3L, noiseTarget=.1),
                   mxComputeHessianQuality())))

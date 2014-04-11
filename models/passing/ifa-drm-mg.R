@@ -34,7 +34,7 @@ if (1) {
 	    mxComputeSequence(list(mxComputeOnce('expectation'),
 				   mxComputeOnce('expectation', "latentDistribution", "copy"),
 				   mxComputeOnce('fitfunction', "set-starting-values")),
-			      free.set='latent.cov')
+			      freeSet='latent.cov')
 }
 
 m2 <- mxModel(model="drmmg", ip.mat, latent,
@@ -44,7 +44,7 @@ m2 <- mxModel(model="drmmg", ip.mat, latent,
 	      mxFitFunctionML(),
 	      mxComputeEM('expectation', 'scores',
 			  mxComputeSequence(list(
-			      mxComputeNewtonRaphson(free.set='itemParam'),
+			      mxComputeNewtonRaphson(freeSet='itemParam'),
 			      latent.plan)),
 			  mxComputeOnce('fitfunction', 'fit'), verbose=0L))
 
@@ -102,7 +102,7 @@ if (1) {
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeEM('expectation', 'scores',
-                            mxComputeNewtonRaphson(free.set='itemParam'),
+                            mxComputeNewtonRaphson(freeSet='itemParam'),
                             mxComputeOnce('fitfunction', 'fit')))
 
   m2 <- mxRun(m2)

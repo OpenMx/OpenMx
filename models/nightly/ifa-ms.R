@@ -59,7 +59,7 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', 'fit', free.set=c("mean", "cov"))
+                  mxComputeOnce('fitfunction', 'fit', freeSet=c("mean", "cov"))
                 )))
   cM <- mxRun(cM, silent=TRUE)
   omxCheckCloseEnough(cM$fitfunction$result, 50661.38, .01)
@@ -67,7 +67,7 @@ if (1) {
 
 plan <- mxComputeSequence(steps=list(
   mxComputeEM('expectation', 'scores',
-              mxComputeNewtonRaphson(free.set='ItemParam'),
+              mxComputeNewtonRaphson(freeSet='ItemParam'),
               mxComputeOnce('fitfunction', 'fit'),
               information=TRUE, infoArgs=list(fitfunction='fitfunction')),
   mxComputeStandardError(),

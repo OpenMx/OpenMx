@@ -109,7 +109,7 @@ if (0) {
 					mxComputeOnce(paste(groups, 'expectation', sep='.'),
                                                       "latentDistribution", "copy"),  # c('mean','covariance')
                                         mxComputeOnce('fitfunction', "set-starting-values")),
-                                   free.set=latent.vargroup)
+                                   freeSet=latent.vargroup)
 } else {
   # Obtain latent distribution parameters via mxExpectationNormal.
   # This permits equality constraints (and potentially more complex latent structure).
