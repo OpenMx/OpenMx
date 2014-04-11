@@ -160,7 +160,7 @@ expFunction <- mxExpectationLISREL(LX="LX", TD="TD", PH="PH")
 
 # Create the model, fit it, and print a summary.
 
-tmpModel <- mxModel("exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov", numObs=100))
+tmpModel <- mxModel(model="exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov", numObs=100))
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 

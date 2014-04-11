@@ -26,7 +26,25 @@
 }
 
 \details{
-Every named entity is guaranteed to have a slot 'name'. Within a model, the named entities of that model can be accessed using the model[['name']] notation. Access is limited to one nesting depth, such that if 'B' is a submodel of 'A', and 'C' is a matrix of 'B', then 'C' must be accessed using A[['B']][['C']]. See the documentation for \link{Extract} for more information.
+Every named entity is guaranteed to have a slot called "name". Within a model, the named entities of that model can be accessed using the $ operator.  Access is limited to one nesting depth, such that if 'B' is a submodel of 'A', and 'C' is a matrix of 'B', then 'C' must be accessed using A$B$C. 
 
 The following S4 classes are named entities in the OpenMx library: \link{MxAlgebra}, \link{MxConstraint},  \link{MxMatrix}, \link{MxModel}, \link{MxData}, and MxObjective.
+}
+
+\examples{
+
+library(OpenMx)
+
+# Create a model, add a matrix to it, and then access the matrix by name.
+
+testModel <- mxModel(model="anEmptyModel")
+
+testMatrix <- mxMatrix(type="Full", nrow=2, ncol=2, values=c(1,2,3,4), name="yourMatrix")
+
+yourModel <- mxModel(testModel, testMatrix, name="noLongerEmpty")
+
+yourModel$yourMatrix
+
+
+
 }

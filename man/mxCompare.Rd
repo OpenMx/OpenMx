@@ -69,7 +69,7 @@ Use options('digits' = N) to set the minimum number of significant digits to be 
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G1")
-model1 <- mxModel("One Factor", type="RAM",
+model1 <- mxModel(model="One Factor", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
       mxPath(from = latents, to=manifests),
@@ -81,7 +81,7 @@ model1 <- mxModel("One Factor", type="RAM",
 fit1 <- mxRun(model1)
 
 latents <- c("G1", "G2")
-model2 <- mxModel(name="Two Factor", type="RAM",
+model2 <- mxModel(model="Two Factor", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
       mxPath(from = latents[1], to=manifests[1:3]),

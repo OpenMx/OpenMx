@@ -78,29 +78,27 @@ More information about the OpenMx package may be found \link[=OpenMx]{here}.
 library(OpenMx)
 
 # At the simplest, you can create an empty model, placing it in an object, and add to it later
-model <- mxModel()
+emptyModel <- mxModel(model="IAmEmpty")
 
 # Create a model named 'firstdraft' with one matrix 'A'
-model <- mxModel('firstdraft', 
-                 mxMatrix('Full', nrow = 3, ncol = 3, name = "A"))
+firstModel <- mxModel(model='firstdraft', 
+                 mxMatrix(type='Full', nrow = 3, ncol = 3, name = "A"))
 
 # Update 'firstdraft', and rename the model 'finaldraft'
-model <- mxModel(model,
-                 mxMatrix('Symm', nrow = 3, ncol = 3, name = "S"),
-                 mxMatrix('Iden', nrow = 3, name = "F"),
+finalModel <- mxModel(model=firstModel,
+                 mxMatrix(type='Symm', nrow = 3, ncol = 3, name = "S"),
+                 mxMatrix(type='Iden', nrow = 3, name = "F"),
                  name= "finaldraft")
 
 # Add data to the model from an existing data frame in object 'data'
 data(twinData)  # load some data
-model <- mxModel(model, mxData(twinData, type='raw'))
+finalModel <- mxModel(model=finalModel, mxData(twinData, type='raw'))
 
-# View the matrix named "A" in MxModel object 'model'
-model[["A"]]
+# Two ways to view the matrix named "A" in MxModel object 'model'
 
-model$matrices$A
+finalModel$A
 
-#View the data associated with MxModel object 'model'
-model$data
+finalModel$matrices$A
 
 # A working example using OpenMx Path Syntax
 data(HS.fake.data)  #load the data
@@ -112,7 +110,7 @@ Math      <- c("numeric","series","arithmet")
 latents   <- c("vis","math","text")
 manifests <-  c(Spatial,Math,Verbal)
 
-model <- mxModel("Holzinger and Swineford (1939)", type="RAM", 
+HSModel <- mxModel(model="Holzinger and Swineford (1939)", type="RAM", 
     manifestVars = manifests, # list the measured variables (boxes)
     latentVars   = latents,   # list the latent variables (circles)
     # factor loadings from latents to  manifests
@@ -132,7 +130,7 @@ model <- mxModel("Holzinger and Swineford (1939)", type="RAM",
     # the data to be analysed
     mxData(cov(HS.fake.data[,manifests]), type="cov", numObs=301))
     
-fit <- mxRun(model) # run the model
-summary(fit) # examine the output: Fit statistics and path loadings
+fitModel <- mxRun(HSModel) # run the model
+summary(fitModel) # examine the output: Fit statistics and path loadings
 
 }

@@ -92,11 +92,13 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 # A simple Example: 1 factor Confirmatory Factor Analysis
-require(OpenMx)
+
+library(OpenMx)
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents   <- c("G")
-factorModel <- mxModel("One Factor", type="RAM",
+factorModel <- mxModel(model="One Factor", type="RAM",
       manifestVars = manifests,
       latentVars   = latents,
       mxPath(from=latents, to=manifests),
@@ -112,7 +114,7 @@ summary(factorFit)
 myManifest <- sprintf("\%02d", c(1:100))  # list of 100 variable names: "01"  "02"  "03"...
 myLatent   <- c("G1", "G2", "G3", "G4", "G5") # the latent variables for the model
 # Start building the model: Define its type, and add the manifest and latent variable name lists
-model     <- mxModel(type = "RAM", manifestVars = myManifest, latentVars = myLatent)
+testModel     <- mxModel(model="testModel", type = "RAM", manifestVars = myManifest, latentVars = myLatent)
 
 # Create covariances between the latent variables and add to the model
 # Here we use combn to create the covariances
@@ -121,11 +123,11 @@ model     <- mxModel(type = "RAM", manifestVars = myManifest, latentVars = myLat
 
 uniquePairs <- combn(myLatent,2)
 covariances <- mxPath(from = uniquePairs[1,], to=uniquePairs[2,], arrows = 2, free = TRUE, values = 1)
-model       <- mxModel(model, covariances) 
+testModel       <- mxModel(model=testModel, covariances) 
 
 # Create variances for the latent variables
 variances   <- mxPath(from = myLatent, to=myLatent, arrows = 2, free = TRUE, values = 1)
-model       <- mxModel(model, variances) # add variances to the model
+testModel       <- mxModel(model=testModel, variances) # add variances to the model
 
 # Make a list of paths from each packet of 20 manifests to one of the 5 latent variables
 # nb: The first loading to each latent is fixed to 1 to scale its variance.
@@ -139,6 +141,6 @@ for (i in 1:5) {
                         values = c(1, rep(0.75, 19))))
 }
 
-model <- mxModel(model, singles) # add single-headed paths to the model
+testModel <- mxModel(model=testModel, singles) # add single-headed paths to the model
 
 }

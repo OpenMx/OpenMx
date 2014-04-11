@@ -69,10 +69,12 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 # Create and run the 1-factor CFA on the openmx.psyc.virginia.edu front page
 
 library(OpenMx)
+
 data(demoOneFactor)  # load the demoOneFactor dataframe
+
 manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
 latents   <- c("G")  # define 1 latent variable
-model <- mxModel("One Factor", type="RAM",
+model <- mxModel(model="One Factor", type="RAM",
     manifestVars = manifests,
     latentVars   = latents,
     mxPath(from=latents, to=manifests, labels=paste("b", 1:5, sep="")),
@@ -83,15 +85,4 @@ model <- mxModel("One Factor", type="RAM",
 model <- mxRun(model) # Run the model, returning the result into model
 summary(model) # Show summary of the fitted model
 
-%# Create a model that includes data, matrices A, S and F, and an expectation and fit function
-%data <- mxData(mydata, type="cov", numObs = 100)
-%expectation <- mxExpectationRAM('A', 'S', 'F')
-%fitfunction <- mxFitFunctionML()
-%model <- mxModel("mymodel", A, S, F, data, expectation, fitfunction)
-%
-%#Use mxRun to optimize the free parameters in the matrices A and S
-%modelOut <- mxRun(model)
-%
-%# print the output
-%summary(modelOut)  
 }

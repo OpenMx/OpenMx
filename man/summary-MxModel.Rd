@@ -69,7 +69,7 @@ library(OpenMx)
 data(demoOneFactor)  # load the demoOneFactor dataframe
 manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
 latents <- c("G")  # define 1 latent variable
-model <- mxModel("One Factor", type="RAM",
+model <- mxModel(model="One Factor", type="RAM",
     manifestVars = manifests,
     latentVars = latents,
     mxPath(from = latents, to=manifests, labels = paste("b", 1:5, sep = "")),
@@ -93,7 +93,7 @@ statistics$SaturatedLikelihood
 summary(model, SaturatedLikelihood = -3000)
 
 # Add a CI and view it in the summary
-model = mxRun(mxModel(model, mxCI("b5")), intervals = TRUE)
+model = mxRun(mxModel(model=model, mxCI("b5")), intervals = TRUE)
 summary(model)
 
 }

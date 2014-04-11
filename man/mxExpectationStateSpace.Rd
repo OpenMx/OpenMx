@@ -128,19 +128,19 @@ require(OpenMx)
 data(demoOneFactor)
 nvar <- ncol(demoOneFactor)
 varnames <- colnames(demoOneFactor)
-ssModel <- mxModel(name="State Space Manual Example",
-	mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
-	mxMatrix("Zero", 1, 1, name="B"),
-	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
-	mxMatrix("Zero", nvar, 1, name="D"),
-	mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
-	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
-	mxMatrix("Zero", 1, 1, name="x0"),
-	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
-	mxMatrix("Zero", 1, 1, name="u"),
-	mxData(observed=demoOneFactor, type="raw"),
-	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
-	mxFitFunctionML()
+ssModel <- mxModel(model="State Space Manual Example",
+    mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
+    mxMatrix("Zero", 1, 1, name="B"),
+    mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
+    mxMatrix("Zero", nvar, 1, name="D"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
+    mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
+    mxMatrix("Zero", 1, 1, name="x0"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+    mxMatrix("Zero", 1, 1, name="u"),
+    mxData(observed=demoOneFactor, type="raw"),
+    mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
+    mxFitFunctionML()
 )
 ssRun <- mxRun(ssModel)
 summary(ssRun)
@@ -155,19 +155,19 @@ nvar <- ncol(demoOneFactor)
 varnames <- colnames(demoOneFactor)
 #demoOneFactorInputs <- cbind(demoOneFactor, V1=rep(1, nrow(demoOneFactor)))
 demoOneFactorInputs <- cbind(demoOneFactor, V1=rnorm(nrow(demoOneFactor)))
-ssModel <- mxModel(name="State Space Inputs Manual Example",
-	mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
-	mxMatrix("Full", 1, 1, TRUE, values=1, name="B"),
-	mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
-	mxMatrix("Zero", nvar, 1, name="D"),
-	mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
-	mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
-	mxMatrix("Zero", 1, 1, name="x0"),
-	mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
-	mxMatrix("Full", 1, 1, FALSE, labels="data.V1", name="u"),
-	mxData(observed=demoOneFactorInputs, type="raw"),
-	mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", u="u"),
-	mxFitFunctionML()
+ssModel <- mxModel(model="State Space Inputs Manual Example",
+    mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
+    mxMatrix("Full", 1, 1, TRUE, values=1, name="B"),
+    mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
+    mxMatrix("Zero", nvar, 1, name="D"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
+    mxMatrix("Diag", nvar, nvar, TRUE, .2, name="R"),
+    mxMatrix("Zero", 1, 1, name="x0"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+    mxMatrix("Full", 1, 1, FALSE, labels="data.V1", name="u"),
+    mxData(observed=demoOneFactorInputs, type="raw"),
+    mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", u="u"),
+    mxFitFunctionML()
 )
 ssRun <- mxRun(ssModel)
 summary(ssRun)

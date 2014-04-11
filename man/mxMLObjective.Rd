@@ -94,7 +94,7 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel("exampleModel", S, A, I, expCov, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleModel", S, A, I, expCov, expFunction, fitFunction, 
                     mxData(observed=cov(tmpFrame), type="cov", numObs=dim(tmpFrame)[1]))
 
 # Fit the model and print a summary

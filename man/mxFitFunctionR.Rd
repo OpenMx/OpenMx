@@ -75,7 +75,7 @@ squared <- function(x) { x ^ 2 }
 # Define the objective function in R
 
 objFunction <- function(model, state) {
-    values <- model[['A']]$values 
+    values <- model$A$values 
     return(squared(values[1,1] - 4) + squared(values[1,2] - 3) +
         squared(values[2,1] - 2) + squared(values[2,2] - 1))
 }

@@ -40,7 +40,7 @@ omxAssignFirstParameters(model, indep = FALSE)
 \examples{
 
 A     <- mxMatrix('Full', 3, 3, values = c(1:9), labels = c('a','b', NA), free = TRUE, name = 'A')
-model <- mxModel(A, name = 'model')
+model <- mxModel(model=A, name = 'model')
 model <- omxAssignFirstParameters(model)
 
 # Note: All cells with the same label now have the same start value. Note also that NAs are untouched.

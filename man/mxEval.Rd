@@ -56,25 +56,23 @@ and \link{mxModel} for the model object mxEval looks inside when evaluating.
 
 \examples{
 
-matrixA <- mxMatrix("Full", nrow = 1, ncol = 1, 
-    values = 1, name = "A")
+library(OpenMx)
+
+# Set up a 1x1 matrix
+matrixA <- mxMatrix("Full", nrow = 1, ncol = 1, values = 1, name = "A")
+
+# Set up an algebra
 algebraB <- mxAlgebra(A + A, name = "B")
 
-model <- mxModel(matrixA, algebraB, name = "test")
-model <- mxRun(model)
-results <- mxEval(B, model, compute=TRUE, cacheBack=TRUE)
-B <- get("test.B", envir = results[[2]])
-A <- get("test.A", envir = results[[2]])
+# Put them both in a model
+testModel <- mxModel(model="testModel", matrixA, algebraB)
 
-\dontrun{
+# Even though the model has not been run, we can evaluate the algebra
+#   given the starting values in matrixA.
+mxEval(B, testModel, compute=TRUE)
 
-start <- mxEval(-pi * A, model) 
-mxEval(plot(sin, start, B * pi), model)
+# If we just print the algebra, we can see it has not been evaluated
+testModel$B
 
-# The statement above is equivalent to:
-
-plot(sin, -pi, 2 * pi)
-
-}
 
 }

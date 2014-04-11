@@ -69,14 +69,28 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \examples{  
+    
+library(OpenMx)
+
 #Create a covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 
     0.39590663, 0.49115615), 
     nrow = 2, ncol = 2, byrow = TRUE)
+covNames <- c("x", "y")
+dimnames(covMatrix) <- list(covNames, covNames)
 
 #Create an MxData object including that covariance matrix
-data <- mxData(covMatrix, 'cov', numObs = 100)
+testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
-model <- mxModel(data) 
+testModel <- mxModel(model="testModel",
+                mxMatrix(type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), 
+                         free=TRUE, name="expCov", dimnames=list(covNames, covNames)),
+                mxExpectationNormal(covariance="expCov", dimnames=covNames),
+                mxFitFunctionML(),
+                testData) 
+
+outModel <- mxRun(testModel)
+
+summary(outModel)
 
 }

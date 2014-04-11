@@ -68,7 +68,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 library(OpenMx)
 
 xdat <- data.frame(a=rnorm(10), b=1:10) # Make data set
-amod <- mxModel("example1",
+amod <- mxModel(model="example1",
             mxData(observed=xdat, type='raw'),
             mxAlgebra(sum(filteredDataRow), name = 'rowAlgebra'),
             mxAlgebra(sum(rowResults), name = 'reduceAlgebra'),
@@ -84,7 +84,7 @@ mxEval(reduceAlgebra, model=amodOut)
 # Model that find the parameter that minimizes the sum of the
 #  squared difference between the parameter and a data row.
 
-bmod <- mxModel("example2",
+bmod <- mxModel(model="example2",
             mxData(observed=xdat, type='raw'),
             mxMatrix(values=.75, ncol=1, nrow=1, free=TRUE, name='B'),
             mxAlgebra((filteredDataRow - B) ^ 2, name='rowAlgebra'),

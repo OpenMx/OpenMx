@@ -103,7 +103,8 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel("exampleRAMModel", matrixA, matrixS, matrixF, matrixM, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleRAMModel", matrixA, matrixS, matrixF, matrixM, 
+                    expFunction, fitFunction, 
                     mxData(observed=tmpFrame, type="raw"))
 
 # Fit the model and print a summary
