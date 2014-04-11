@@ -72,8 +72,7 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
     bivHetModel <- mxModel("bivHet",
          mxModel("group1"),
          mxModel("group2"),
-         mxAlgebra(group1.objective + group2.objective, name="minus2loglikelihood"),
-         mxAlgebraObjective("minus2loglikelihood")
+         mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
     )
      
 For each of the groups, we fit a saturated model, using a Cholesky decomposition to generate the expected covariance matrix and a row vector for the expected means.  Note that we have specified different labels for all the free elements, in the two ``mxModel`` statements.  For more details, see example 1.
@@ -109,11 +108,12 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 xy1, 
                 type="raw"
             ), 
-            mxFIMLObjective(
+            mxExpectationNormal(
                 covariance="EC1", 
                 means="EM1",
                 dimnames=selVars
-            )
+            ),
+            mxFitFunctionML()
         ),
         mxModel("group2",
             mxMatrix(
@@ -142,11 +142,12 @@ For each of the groups, we fit a saturated model, using a Cholesky decomposition
                 xy2, 
                 type="raw"
             ), 
-            mxFIMLObjective(
+            mxExpectationNormal(
                 covariance="EC2", 
                 means="EM2",
                 dimnames=selVars
-            )
+            ),
+            mxFitFunctionML()
         ),
 
 
@@ -172,15 +173,11 @@ We estimate five parameters (two means, two variances, one covariance) per group
                 X      Y    
         [1,] "mX2" "mY2"
 
-To evaluate both models together, we use an ``mxAlgebra`` command that adds up the values of the objective functions of the two groups.  The objective function to be used here is the ``mxAlgebraObjective`` which uses as its argument the sum of the function values of the two groups, referred to by the name of the previously defined ``mxAlgebra`` object ``h12``.
+To evaluate both models together, we use an ``mxFitFunctionMultigroup`` command that adds up the values of the fit functions of the two groups.
 
 .. code-block:: r
 
-        mxAlgebra(
-            group1.objective + group2.objective, 
-            name="minus2loglikelihood"
-        ),
-        mxAlgebraObjective("minus2loglikelihood")
+        mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
     )
 
 Model Fitting
@@ -200,7 +197,7 @@ A variety of output can be printed.  We chose here to print the expected means a
     EM2Het <- mxEval(group2.EM2, bivHetFit)
     EC1Het <- mxEval(group1.EC1, bivHetFit)
     EC2Het <- mxEval(group2.EC2, bivHetFit)
-    LLHet <- mxEval(objective, bivHetFit)
+    LLHet <- summary(bivHetFit)$Minus2LogLikelihood
 
 
 Homogeneity Model: a Submodel
@@ -251,7 +248,7 @@ We can produce similar output for the submodel, i.e. expected means and covarian
         EM2Hom <- mxEval(group2.EM2, bivHomFit)
         EC1Hom <- mxEval(group1.EC1, bivHomFit)
         EC2Hom <- mxEval(group2.EC2, bivHomFit)
-        LLHom <- mxEval(objective, bivHomFit)
+        LLHom <- summary(bivHomFit)$Minus2LogLikelihood
 
 Finally, to evaluate which model fits the data best, we generate a likelihood ratio test as the difference between -2 times the log-likelihood of the homogeneity model and -2 times the log-likelihood of the heterogeneity model.  This statistic is asymptotically distributed as a Chi-square, which can be interpreted with the difference in degrees of freedom of the two models.
 
