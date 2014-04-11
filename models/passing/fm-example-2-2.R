@@ -152,7 +152,6 @@ m2 <- mxRun(mxModel("ex", m1, pm,
                     mxComputeSequence(list(
                       mxComputeEM('item.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
-                                mxComputeOnce('fitfunction', 'fit'),
                                 information=TRUE, tolerance=1e-5, verbose=0L),
                       mxComputeStandardError(),
                       mxComputeOnce("item.expectation"),

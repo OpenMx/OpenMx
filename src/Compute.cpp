@@ -808,7 +808,7 @@ class ComputeEM : public omxCompute {
 	std::vector< omxExpectation* > expectations;
 	const char *predict;
 	omxCompute *fit1;  // maybe rename to mstep TODO
-	omxCompute *fit3;
+	omxMatrix *fit3;   // rename to observedFit
 	int EMcycles;
 	int maxIter;
 	int mstepIter;
@@ -1154,10 +1154,12 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(slotValue);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observed.fit")));
-	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
-	fit3 = omxNewCompute(globalState, CHAR(s4class));
-	fit3->initFromFrontend(slotValue);
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observedFit")));
+	fit3 = globalState->algebraList[ INTEGER(slotValue)[0] ];
+	if (fit3->fitFunction) {
+		setFreeVarGroup(fit3->fitFunction, varGroup);
+		omxCompleteFitFunction(fit3);
+	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
@@ -1292,7 +1294,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 			setExpectationPrediction("nothing");
 			Global->checkpointPrefit(fc, fc->est, false);
-			fit3->compute(fc);
+			omxForceCompute(fit3);
+			fc->fit = fit3->data[0];
 			Global->checkpointPostfit(fc);
 		}
 
@@ -1544,9 +1547,8 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 {
 	super::collectResults(fc, lcr, out);
 
-	std::vector< omxCompute* > clist(2);
+	std::vector< omxCompute* > clist(1);
 	clist[0] = fit1;
-	clist[1] = fit3;
 
 	collectResultsHelper(fc, clist, lcr, out);
 }
@@ -1604,7 +1606,6 @@ ComputeEM::~ComputeEM()
 	ramsay.clear();
 
 	delete fit1;
-	delete fit3;
 
 	for (size_t hx=0; hx < estHistory.size(); ++hx) {
 		delete [] estHistory[hx];

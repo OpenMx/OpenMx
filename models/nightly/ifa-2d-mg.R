@@ -129,8 +129,7 @@ g1 <- mkgroup("g1", data.g1, FALSE)
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(
 				      mxComputeNewtonRaphson(paste(groups, 'ItemParam', sep=".")),
-				      latent.plan)),
-                                  mxComputeOnce('fitfunction', 'fit')))
+				      latent.plan))))
   
 grpModel <- mxRun(grpModel, silent=TRUE)
   

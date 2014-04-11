@@ -46,7 +46,7 @@ m2 <- mxModel(model="drmmg", ip.mat, latent,
 			  mxComputeSequence(list(
 			      mxComputeNewtonRaphson(freeSet='itemParam'),
 			      latent.plan)),
-			  mxComputeOnce('fitfunction', 'fit'), verbose=0L))
+			  verbose=0L))
 
 m2 <- mxRun(m2)
 
@@ -102,8 +102,7 @@ if (1) {
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeEM('expectation', 'scores',
-                            mxComputeNewtonRaphson(freeSet='itemParam'),
-                            mxComputeOnce('fitfunction', 'fit')))
+                            mxComputeNewtonRaphson(freeSet='itemParam')))
 
   m2 <- mxRun(m2)
   emstat <- m2$compute$output

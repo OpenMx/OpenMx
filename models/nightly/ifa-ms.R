@@ -68,7 +68,6 @@ if (1) {
 plan <- mxComputeSequence(steps=list(
   mxComputeEM('expectation', 'scores',
               mxComputeNewtonRaphson(freeSet='ItemParam'),
-              mxComputeOnce('fitfunction', 'fit'),
               information=TRUE, infoArgs=list(fitfunction='fitfunction')),
   mxComputeStandardError(),
   mxComputeHessianQuality()))

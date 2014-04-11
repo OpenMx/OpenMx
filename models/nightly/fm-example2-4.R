@@ -34,8 +34,7 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeEM('expectation', 'scores',
-                          mxComputeNewtonRaphson(freeSet='ItemParam'),
-                          mxComputeOnce('fitfunction', 'fit')))
+                          mxComputeNewtonRaphson(freeSet='ItemParam')))
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2$fitfunction$result, 140199.13, .01)

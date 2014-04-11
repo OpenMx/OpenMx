@@ -78,8 +78,7 @@ if (1) {
 }
 
 plan <- mxComputeEM('expectation', 'scores',
-                    mxComputeNewtonRaphson(),
-                    mxComputeOnce('fitfunction', 'fit'))
+                    mxComputeNewtonRaphson())
 
 m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),

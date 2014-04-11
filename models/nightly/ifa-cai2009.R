@@ -161,7 +161,6 @@ omxIFAComputePlan <- function(groups) {
                 mxComputeSequence(list(
 		    mxComputeNewtonRaphson(freeSet=paste(groups, 'ItemParam', sep="."), verbose=0L),
 		    latent.plan)),
-                mxComputeOnce('fitfunction', 'fit'),
                 tolerance=1e-5, information=TRUE,
                 infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")), verbose=0L),
     mxComputeStandardError(),

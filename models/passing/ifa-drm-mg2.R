@@ -116,7 +116,6 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                                   mxComputeSequence(list(
 				      mxComputeNewtonRaphson(freeSet=paste(groups,'ItemParam',sep=".")),
 				      latent.plan)),
-                                  mxComputeOnce('fitfunction', 'fit'),
                                   information=TRUE, tolerance=1e-5, verbose=0L,
 				  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
                       mxComputeStandardError(),
