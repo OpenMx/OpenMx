@@ -1083,7 +1083,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
                 y = subset(y, 0, 0, nc - 1);
                 
-                Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),y))));
+                Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),transpose(y)))));
                 
                 int indexx = npic;
                 int i;
