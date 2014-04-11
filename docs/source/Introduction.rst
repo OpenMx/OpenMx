@@ -6,8 +6,5 @@ Introduction
 .. toctree::
    :maxdepth: 1
 
-   BeginnersGuide
-   QuickOverview
-   TwoModelStylesTwoDataStyles
-   StyleGuide
-
+   NewBeginnersGuide
+   AlternativeApproaches
