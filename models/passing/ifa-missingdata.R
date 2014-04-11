@@ -59,7 +59,7 @@ if (1) {
                       mxComputeOnce('expectation'),
                       mxComputeOnce('fitfunction', 'fit'))))
   cModel <- mxRun(cModel)
-  omxCheckCloseEnough(cModel@fitfunction@result, 2733.844, .001)
+  omxCheckCloseEnough(cModel$fitfunction$result, 2733.844, .001)
 }
 
 if (1) {
@@ -70,11 +70,11 @@ if (1) {
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', 'scores'))
   m2 <- mxRun(m2)
-  omxCheckCloseEnough(fivenum(m2@expectation@debug$patternLikelihood),
+  omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
                       c(-6.20509, -4.8708, -3.63479, -2.5941, -1.00029), .01)
-  omxCheckCloseEnough(match(fivenum(m2@expectation@debug$patternLikelihood), m2@expectation@debug$patternLikelihood),
+  omxCheckCloseEnough(match(fivenum(m2$expectation$debug$patternLikelihood), m2$expectation$debug$patternLikelihood),
                       c(238L, 71L, 21L, 6L, 2L))
-  omxCheckCloseEnough(sum(m2@expectation@debug$em.expected), 1667, .1)
+  omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 1667, .1)
 }
 
 plan <- mxComputeEM('expectation', 'scores',
@@ -94,16 +94,16 @@ m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
 # 	m2 <- mxOption(m2, "Verify level", '-1')
 # m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
-emstat <- m2@compute@output
+emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 32, 1)
 omxCheckCloseEnough(emstat$totalMstep, 87, 5)
 
-omxCheckCloseEnough(m2@output$minimum, 2733.845, .01)
-got <- cor(c(m2@matrices$itemParam@values[c(1,4,5),]),
+omxCheckCloseEnough(m2$output$minimum, 2733.845, .01)
+got <- cor(c(m2$matrices$itemParam$values[c(1,4,5),]),
            c(correct.mat[c(1,4,5),]))
 omxCheckCloseEnough(got, .9824, .01)
 
-omxCheckTrue(all(abs(m2@matrices$itemParam@values[c(1,4,5),] - fm.est[c(1,4,5),]) < .025))
+omxCheckTrue(all(abs(m2$matrices$itemParam$values[c(1,4,5),] - fm.est[c(1,4,5),]) < .025))
 
 if (0) {
   require(mirt)

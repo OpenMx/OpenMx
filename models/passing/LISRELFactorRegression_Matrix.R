@@ -150,7 +150,7 @@ Jor82Ex1 <- mxModel(
     name='LISREL Test from 1982 Paper with mxExpectationLISREL',
     mxData(observed=gObsCor, type='cor', numObs=1000),
     lx, ly, be, ga, ph, ps, td, te, th,
-    mxExpectationLISREL(LX=lx@name, LY=ly@name, BE=be@name, GA=ga@name, PH=ph@name, PS=ps@name, TD=td@name, TE=te@name, TH=th@name),
+    mxExpectationLISREL(LX=lx$name, LY=ly$name, BE=be$name, GA=ga$name, PH=ph$name, PS=ps$name, TD=td$name, TE=te$name, TH=th$name),
     mxFitFunctionML()
 )
 
@@ -185,17 +185,17 @@ PSp <- diag(c(0.78, 0.53))
 
 # Covariance matrices were scaled as correlation matrices
 #  with the standard deviations down the diagonal
-PSf <- cov2cor(ex1Run$PS@values)
-diag(PSf) <- sqrt(diag(ex1Run$PS@values))
+PSf <- cov2cor(ex1Run$PS$values)
+diag(PSf) <- sqrt(diag(ex1Run$PS$values))
 
-TDf <- cov2cor(ex1Run$TD@values)
-diag(TDf) <- sqrt(diag(ex1Run$TD@values))
+TDf <- cov2cor(ex1Run$TD$values)
+diag(TDf) <- sqrt(diag(ex1Run$TD$values))
 
 
 # The other matrices are reported raw.
-LXf <- ex1Run$LX@values
-GAf <- ex1Run$GA@values
-BEf <- ex1Run$BE@values
+LXf <- ex1Run$LX$values
+GAf <- ex1Run$GA$values
+BEf <- ex1Run$BE$values
 
 #------------------------------------------------------------------------------
 # Compare Fitted and Published Results

@@ -161,12 +161,12 @@ ymod <- mxModel(
 	mxData(observed=rawlisy, type='raw'),
 	ly, be, ps, te, ty, al,
 	mxExpectationLISREL(
-		LY=ly@name,
-		BE=be@name,
-		PS=ps@name,
-		TE=te@name,
-		TY=ty@name,
-		AL=al@name
+		LY=ly$name,
+		BE=be$name,
+		PS=ps$name,
+		TE=te$name,
+		TY=ty$name,
+		AL=al$name
 	),
 	mxFitFunctionML()
 )
@@ -197,11 +197,11 @@ xmod <- mxModel(
 	mxData(observed=rawlisx, type='raw'),
 	lx, ph, td, tx, ka,
 	mxExpectationLISREL(
-		LX=lx@name,
-		PH=ph@name,
-		TD=td@name,
-		TX=tx@name,
-		KA=ka@name
+		LX=lx$name,
+		PH=ph$name,
+		TD=td$name,
+		TX=tx$name,
+		KA=ka$name
 	),
 	mxFitFunctionML()
 )
@@ -273,11 +273,11 @@ summary(yrmodRun)
 # Compare the estimate parameters in LISREL and RAM
 
 # Check the exogenous only model
-omxCheckCloseEnough(xmodRun@output$estimate, xrmodRun@output$estimate[c(1:6, 15:17, 7:14, 18:25)], epsilon=0.001)
+omxCheckCloseEnough(xmodRun$output$estimate, xrmodRun$output$estimate[c(1:6, 15:17, 7:14, 18:25)], epsilon=0.001)
 
 
 # Check the endogenoug only model
-omxCheckCloseEnough(ymodRun@output$estimate, yrmodRun@output$estimate[c(1:3, 8, 4:7, 9:12)], epsilon=0.001)
+omxCheckCloseEnough(ymodRun$output$estimate, yrmodRun$output$estimate[c(1:3, 8, 4:7, 9:12)], epsilon=0.001)
 
 
 

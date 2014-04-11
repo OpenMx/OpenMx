@@ -159,18 +159,18 @@ srun <- mxRun(smod)
 
 
 # Notice that the estimated parameters are close their true generating values
-srun$A@values
+srun$A$values
 tA
 
 
-srun$B@values
+srun$B$values
 tB
 
-srun$C@values
+srun$C$values
 tC
 
 
-srun$D@values
+srun$D$values
 tD
 
 
@@ -207,10 +207,10 @@ prevEstR <- c( #diagonal manifest error cov
 
 
 
-omxCheckCloseEnough(srun$A@values, prevEstA, epsilon=0.001)
-omxCheckCloseEnough(srun$B@values, prevEstB, epsilon=0.01)
-omxCheckCloseEnough(srun$C@values[srun$C@free], prevEstC, epsilon=0.001)
-omxCheckCloseEnough(srun$D@values[srun$D@free], prevEstD, epsilon=0.001)
-omxCheckCloseEnough(diag(srun$R@values), prevEstR, epsilon=0.001)
+omxCheckCloseEnough(srun$A$values, prevEstA, epsilon=0.001)
+omxCheckCloseEnough(srun$B$values, prevEstB, epsilon=0.01)
+omxCheckCloseEnough(srun$C$values[srun$C$free], prevEstC, epsilon=0.001)
+omxCheckCloseEnough(srun$D$values[srun$D$free], prevEstD, epsilon=0.001)
+omxCheckCloseEnough(diag(srun$R$values), prevEstR, epsilon=0.001)
 
 

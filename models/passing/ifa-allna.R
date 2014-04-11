@@ -14,7 +14,7 @@ items[1:numItems] <- rpf.grm(factors=maxDim)
 correct.mat <- sapply(items, rpf.rparam)
 
 maxParam <- max(vapply(items, rpf.numParam, 0))
-maxOutcomes <- max(vapply(items, function(i) i@outcomes, 0))
+maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
 design <- matrix(c(rep(1L,numItems),
 		   rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)

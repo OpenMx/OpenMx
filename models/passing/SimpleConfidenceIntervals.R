@@ -146,7 +146,7 @@ iterateMxRunHelper <- function(model, maxIterations, iteration) {
 }
 
 twinACEIntervals <- twinACEFit
-# twinACEIntervals@output <- list()
+# twinACEIntervals$output <- list()
 
 CIaupper <- mxModel(twinACEIntervals, name = 'A_CIupper',
 		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
