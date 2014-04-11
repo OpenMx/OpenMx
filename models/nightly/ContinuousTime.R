@@ -29,12 +29,12 @@ bivprocessmeans<-c(2.5,2.84,2.57,2.84,2.6,2.84,2.65,2.84,2.66,2.84)
 
 subjects<-500
 bivprocess<-mvrnorm(n=subjects,mu=bivprocessmeans,Sigma=bivprocesscov,empirical=T)
-colnames(bivprocess)<-paste0("V",1:10)
+colnames(bivprocess)<-paste("V",1:10, sep="")
 
 intervals<-matrix(c(1,1,2,2),byrow=T,nrow=subjects,ncol=4)
 intervals<-matrix(rnorm(length(intervals),intervals,.1),ncol=4)
 
-colnames(intervals)<-paste0("I",1:4)
+colnames(intervals)<-paste("I",1:4, sep="")
 
 data<-cbind(bivprocess,intervals)
 
@@ -45,14 +45,14 @@ data<-cbind(bivprocess,intervals)
 #########create variables and algebras for openmx
 
 ### VARIABLES
-manifestV1<-paste0("V",seq(1,2*5,2))
-manifestV2<-paste0("V",seq(2,2*5,2))
+manifestV1<-paste("V",seq(1,2*5,2), sep="")
+manifestV2<-paste("V",seq(2,2*5,2), sep="")
 
-latentV1<-paste0("L1_",seq(1,5,1))
-latentV1r<-paste0(latentV1[-1],"r")
+latentV1<-paste("L1_",seq(1,5,1), sep="")
+latentV1r<-paste(latentV1[-1],"r", sep="")
 
-latentV2<-paste0("L2_",seq(1,5,1))
-latentV2r<-paste0(latentV2[-1],"r")
+latentV2<-paste("L2_",seq(1,5,1), sep="")
+latentV2r<-paste(latentV2[-1],"r", sep="")
 
 
 ### ALGEBRAS
@@ -60,9 +60,9 @@ latentV2r<-paste0(latentV2[-1],"r")
 ###DRIFT
 EXPalgs<-list()
 for(i in 1:4){
-  defcall<-paste0("data.I",i)
-  algName<-paste0("EXPd", i)
-  fullAlgString<-paste0("omxExponential(DRIFT %x%",defcall,")")
+  defcall<-paste("data.I",i, sep="")
+  algName<-paste("EXPd", i, sep="")
+  fullAlgString<-paste("omxExponential(DRIFT %x%",defcall,")", sep="")
   EXPalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),
     list(theExpression = parse(text=fullAlgString)[[1]])))
 }
@@ -70,9 +70,9 @@ for(i in 1:4){
 ### intercept (INT)
 INTalgs<-list()
 for(i in 1:4){
-  algName<-paste0("intd", i)
-  defcall<-paste0("data.I",i)
-  fullAlgString<-paste0("solve(DRIFT)%*%(omxExponential(DRIFT %x%",defcall,")-II)%*%t(CINT)")
+  algName<-paste("intd", i, sep="")
+  defcall<-paste("data.I",i, sep="")
+  fullAlgString<-paste("solve(DRIFT)%*%(omxExponential(DRIFT %x%",defcall,")-II)%*%t(CINT)", sep="")
   INTalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),
     list(theExpression = parse(text=fullAlgString)[[1]])))
 }
@@ -80,9 +80,9 @@ for(i in 1:4){
 ### error covariance (Q)  
 Qdalgs<-list()
 for(i in 1:4){
-  defcall<-paste0("data.I",i)
-  algName<-paste0("Qd", i)
-  fullAlgString<-paste0("solve(DRIFTHATCH)%*%((omxExponential(DRIFTHATCH %x%",defcall,"))-(II%x%II))%*%rvectorize(Q)") 
+  defcall<-paste("data.I",i, sep="")
+  algName<-paste("Qd", i, sep="")
+  fullAlgString<-paste("solve(DRIFTHATCH)%*%((omxExponential(DRIFTHATCH %x%",defcall,"))-(II%x%II))%*%rvectorize(Q)", sep="")
   Qdalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),list(theExpression = parse(text=fullAlgString)[[1]])))
 }
 
@@ -127,10 +127,10 @@ larModel <-mxModel("lar",
   #   add CINT   
   mxPath(to=c(latentV1[-1]),
     from=c("L1t"),
-    values=NA,free=F,arrows=1,connect="single",labels=paste0("intd",1:4,"[",1,",1]")),
+    values=NA,free=F,arrows=1,connect="single",labels=paste("intd",1:4,"[",1,",1]", sep="")),
   mxPath(to=c(latentV2[-1]),
     from=c("L2t"),
-    values=NA,free=F,arrows=1,connect="single",labels=paste0("intd",1:4,"[",2,",1]")),
+    values=NA,free=F,arrows=1,connect="single",labels=paste("intd",1:4,"[",2,",1]", sep="")),
   
   # continuous intercept mean
   mxPath(from="one",to=c("L1t","L2t"),arrows=1,free=F,values=1),    
@@ -158,17 +158,17 @@ larModel <-mxModel("lar",
   #AR
   mxPath(from=latentV1[-length(latentV1)],
     to=latentV1[-1],
-    arrows=1,free=F,values=NA,connect="single",labels=paste0("EXPd",1:4,"[1,1]")),
+    arrows=1,free=F,values=NA,connect="single",labels=paste("EXPd",1:4,"[1,1]", sep="")),
   mxPath(from=latentV2[-length(latentV2)],
     to=latentV2[-1],
-    arrows=1,free=F,values=NA,connect="single",labels=paste0("EXPd",1:4,"[2,2]")),
+    arrows=1,free=F,values=NA,connect="single",labels=paste("EXPd",1:4,"[2,2]", sep="")),
   
   # # CL 
   mxPath(from=latentV1[-length(latentV2)],to=latentV2[-1],
-    arrows=1,free=F,values=NA, labels=paste0("EXPd",1:4,"[2,1]")),
+    arrows=1,free=F,values=NA, labels=paste("EXPd",1:4,"[2,1]", sep="")),
   
   mxPath(from=latentV2[-length(latentV2)],to=latentV1[-1],
-    arrows=1,free=F,values=NA,labels=paste0("EXPd",1:4,"[1,2]")),
+    arrows=1,free=F,values=NA,labels=paste("EXPd",1:4,"[1,2]", sep="")),
   
   #add latent disturbances
   mxPath(to=latentV1[-1],from=latentV1r,
@@ -177,12 +177,12 @@ larModel <-mxModel("lar",
     connect="single",arrows=1,free=F,values=1),
   
   #latent disturbance variance
-  mxPath(from=latentV1r,free=F,values=NA,arrows=2,labels=paste0("Qd",1:4,"[1,1]")),
-  mxPath(from=latentV2r,arrows=2,free=F,values=NA,labels=paste0("Qd",1:4,"[4,1]")),
+  mxPath(from=latentV1r,free=F,values=NA,arrows=2,labels=paste("Qd",1:4,"[1,1]", sep="")),
+  mxPath(from=latentV2r,arrows=2,free=F,values=NA,labels=paste("Qd",1:4,"[4,1]", sep="")),
   
   #disturbance cross correlations between same time point
   mxPath(from=c(latentV1r,latentV2r),to=c(latentV2r,latentV1r),
-    arrows=2,free=F,values=NA,connect="single",labels=paste0("Qd",1:4,"[2,1]")),
+    arrows=2,free=F,values=NA,connect="single",labels=paste("Qd",1:4,"[2,1]", sep="")),
   type="RAM") 
 
 larModel <- mxOption(larModel, "Calculate Hessian", "No")
