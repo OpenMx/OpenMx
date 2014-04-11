@@ -167,6 +167,7 @@ class omxCompute {
 				  LocalComputeResult *lcr, MxRList *out);
 	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
  public:
+	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
         virtual void initFromFrontend(SEXP rObj);

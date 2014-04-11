@@ -115,7 +115,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, &fc->iterations, useGradient, varGroup, verbose,
+		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, useGradient, varGroup, verbose,
 			       REAL(hessChol), optimalityTolerance);
 		Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
 		Eigen::MatrixXd hcT = hc.transpose();
@@ -124,7 +124,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 #endif
 		break;}
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, &fc->iterations, varGroup, verbose,
+            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
 			    fc->getDenseHessUninitialized(), optimalityTolerance);
             break;
         default: Rf_error("huh?");

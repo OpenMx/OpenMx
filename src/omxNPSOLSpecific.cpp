@@ -114,22 +114,16 @@ static void
 npsolObjectiveFunction1(int* mode, int* n, double* x,
 			double* f, double* g, double *hessian, int* nstate )
 {
-	unsigned short int checkpointNow = FALSE;
-
 	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
 
-	if(*mode == 1) {
-		omxSetMajorIteration(globalState, globalState->majorIteration + 1);
-		omxSetMinorIteration(globalState, 0);
-		checkpointNow = TRUE;					// Only checkpoint at major iterations.
-	} else omxSetMinorIteration(globalState, globalState->minorIteration + 1);
+	if (*mode == 1) NPSOL_fc->iterations += 1;  //major iteration
 
 	omxMatrix* fitMatrix = NPSOL_fitMatrix;
 
-	/* Interruptible? */
 	R_CheckUserInterrupt();
 
 	NPSOL_fc->copyParamToModel(globalState, x);
+	Global->checkpointPrefit(NPSOL_fc, x, false);
 
 	if (*mode > 0 && NPSOL_useGradient &&
 	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
@@ -158,12 +152,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 		mxLog("Fit function value is: %f, Mode is %d.", fitMatrix->data[0], *mode);
 	}
 
-	if(OMX_DEBUG) { mxLog("-======================================================-"); }
-
-	if(checkpointNow && globalState->numCheckpoints != 0) {	// If it's a new major iteration
-		omxSaveCheckpoint(x, *f, FALSE);		// Check about saving a checkpoint
-	}
-
+	Global->checkpointPostfit(NPSOL_fc);
 }
 
 void F77_SUB(npsolObjectiveFunction)
@@ -248,7 +237,7 @@ void F77_SUB(npsolConstraintFunction)
 }
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
+		    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
 		    int verbose, double *hessOut, double tolerance)
 {
 	if (std::isfinite(tolerance)) {
@@ -385,13 +374,12 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             mxLog("Set.");
         }
  
+	int iter_out; // ignored
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-			(void*) F77_SUB(npsolObjectiveFunction), inform_out, iter_out, istate, c, cJac,
+			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out, istate, c, cJac,
 			clambda, &fc->fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
- 
-        omxSaveCheckpoint(x, fc->fit, TRUE);
  
 	NPSOL_fc->copyParamToModel(globalState);
  
@@ -487,27 +475,15 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
 
         for(int i = 0; i < Global->numIntervals; i++) {
 
-			omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
+		omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
 
-			int msgLength = 45;
+		const char *matName = anonMatrix;
+		if (currentCI->matrix->name) {
+			matName = currentCI->matrix->name;
+		}
+		Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin lower interval",
+					  matName, currentCI->row + 1, currentCI->col + 1);
  
-			if (currentCI->matrix->name == NULL) {
-				msgLength += strlen(anonMatrix);
-			} else {
-				msgLength += strlen(currentCI->matrix->name);
-			}
-            
-			char *message = Calloc(msgLength, char);
- 
-			if (currentCI->matrix->name == NULL) {
-				snprintf(message, msgLength, "%s[%d, %d] begin lower interval",
-					anonMatrix, currentCI->row + 1, currentCI->col + 1);
-			} else {
-				snprintf(message, msgLength, "%s[%d, %d] begin lower interval",
-					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
-			}
- 
-			omxWriteCheckpointMessage(message);
  
 			memcpy(x.data(), optimalValues, n * sizeof(double)); // Reset to previous optimum
 			NPSOL_currentInterval = i;
@@ -532,7 +508,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 if(f < value) {
                     currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(x.data(), f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {
@@ -559,19 +534,10 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
             if(OMX_DEBUG) { mxLog("Found lower bound %d.  Seeking upper.", i); }
             // TODO: Repopulate original optimizer state in between CI calculations
 
-			if (currentCI->matrix->name == NULL) {
-				snprintf(message, msgLength, "%s[%d, %d] begin upper interval", 
-					anonMatrix, currentCI->row + 1, currentCI->col + 1);
-			} else {
-				snprintf(message, msgLength, "%s[%d, %d] begin upper interval",
-					currentCI->matrix->name, currentCI->row + 1, currentCI->col + 1);
-			}
- 
-			omxWriteCheckpointMessage(message);
- 
-			Free(message);
- 
-			memcpy(x.data(), optimalValues, n * sizeof(double));
+		Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin upper interval",
+					  matName, currentCI->row + 1, currentCI->col + 1);
+
+		memcpy(x.data(), optimalValues, n * sizeof(double));
  
             /* Reset for the upper bound */
             value = INF;
@@ -589,7 +555,6 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 if(f < value) {
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     value = f;
-		    omxSaveCheckpoint(x.data(), f, TRUE);
                 }
  
                 if(inform != 0 && OMX_DEBUG) {

@@ -84,10 +84,6 @@ Checkpoint Directory \tab the directory where to write checkpoint files \cr
 Checkpoint Prefix \tab the string prefix to add to all checkpoint filenames \cr
 Checkpoint Units \tab the type of units for checkpointing: 'minutes' or 'iterations' \cr
 Checkpoint Count \tab the number of units between checkpoint intervals \cr
-Socket Server \tab the server name for sending optimizer state information \cr
-Socket Port  \tab the port on the server for sending optimizer state information \cr
-Socket Units \tab the type of units: 'minutes' or 'iterations' \cr
-Socket Count \tab the number of units between communication to the server \cr
 }
 
 Model transformation options

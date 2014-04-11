@@ -57,7 +57,6 @@
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
-typedef struct omxCheckpoint omxCheckpoint;
 typedef struct omxConfidenceInterval omxConfidenceInterval;
 
 #include "omxMatrix.h"
@@ -72,6 +71,7 @@ struct omxFreeVarLocation {
 };
 
 struct omxFreeVar {
+	int id;
 	double lbound, ubound;
 	std::vector<omxFreeVarLocation> locations;
 	int numDeps;            // number of algebra/matrix dependencies
@@ -117,14 +117,26 @@ enum omxCheckpointType {
 };
 typedef enum omxCheckpointType omxCheckpointType;
 
-struct omxCheckpoint {
-	omxCheckpointType type;
-	time_t time;
-	int numIterations;
+class omxCheckpoint {
+	bool wroteHeader;
 	time_t lastCheckpoint;	// FIXME: Cannot update at sub-second times.
-	FILE* file;						// TODO: Maybe make the connection piece a union instead.
-	SEXP connection;
-	unsigned short int saveHessian;
+	int lastIterations;
+	bool fitPending;
+
+	void omxWriteCheckpointHeader();
+	void _prefit(FitContext *fc, double *est, bool force, const char *context);
+
+ public:
+	omxCheckpointType type;
+	time_t timePerCheckpoint;
+	int iterPerCheckpoint;
+	FILE* file;
+
+	omxCheckpoint();
+	void message(FitContext *fc, double *est, const char *msg);
+	void prefit(FitContext *fc, double *est, bool force);
+	void postfit(FitContext *fc);
+	~omxCheckpoint();
 };
 
 struct omxConfidenceInterval {		// For Confidence interval request
@@ -172,9 +184,16 @@ class omxGlobal {
 
 	std::vector< std::string > bads;
 
+	// Will need revision if multiple optimizers are running in parallel
+	std::vector< omxCheckpoint* > checkpointList;
+
 	omxGlobal();
 	void deduplicateVarGroups();
 	const char *getBads();
+	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
+	void checkpointPrefit(FitContext *fc, double *est, bool force);
+	void checkpointPostfit(FitContext *fc);
+
 	~omxGlobal();
 };
 
@@ -200,15 +219,6 @@ struct omxState {
 /* Data members for use by Fit Function and Algebra Calculations */
 	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
-
-	// move all checkpointing stuff to omxGlobal TODO
-	int majorIteration;												// Major iteration number
-	int minorIteration;												// Minor iteration within major iteration
-	time_t startTime;												// Time of first computation
-	time_t endTime;													// 'Cause we might as well report it
-	omxCheckpoint* checkpointList;									// List of checkpoints
-	char *chkptText1, *chkptText2;									// Placeholders for checkpointing text
-	int numCheckpoints;												// Number of checkpoints
 };
 
 extern omxState* globalState;
@@ -219,9 +229,6 @@ extern omxState* globalState;
 void omxFreeChildStates(omxState *state);
 void omxFreeState(omxState *state);
 	void omxDuplicateState(omxState *tgt, omxState* src); 
-                                                                        // Duplicates the current state object
-	void omxSetMajorIteration(omxState *state, int value);				// Recursively set major iteration number
-	void omxSetMinorIteration(omxState *state, int value);				// Recursively set minor iteration number
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
@@ -232,9 +239,6 @@ void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...) __attribute__
 /* Advance a step */
 	void omxStateNextRow(omxState *state);								// Advance Row
 	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
-
-	void omxWriteCheckpointMessage(char *msg);
-void omxSaveCheckpoint(double* x, double f, int force);
 
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogBig(const std::string str);

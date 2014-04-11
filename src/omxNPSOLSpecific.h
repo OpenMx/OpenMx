@@ -21,7 +21,7 @@
 extern const double NPSOL_BIGBND;
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-		    int *inform_out, int *iter_out, bool useGradient, FreeVarGroup *freeVarGroup,
+		    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
 		    int verbose, double *hessOut, double tolerance);
  
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double tolerance);

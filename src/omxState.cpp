@@ -180,35 +180,10 @@ void omxGlobal::deduplicateVarGroups()
 		state->numConstraints = 0;
 		state->conList = NULL;
 
-		state->majorIteration = 0;
-		state->minorIteration = 0;
-		state->startTime = 0;
-		state->endTime = 0;
-		state->numCheckpoints = 0;
-		state->checkpointList = NULL;
-		state->chkptText1 = NULL;
-		state->chkptText2 = NULL;
-
 		state->computeCount = 0;
 		state->currentRow = -1;
 	}
 
-	void omxSetMajorIteration(omxState *state, int value) {
-		state->majorIteration = value;
-		if (!state->childList.size()) return;
-		for(int i = 0; i < Global->numChildren; i++) {
-			omxSetMajorIteration(state->childList[i], value);
-		}
-	}
-
-	void omxSetMinorIteration(omxState *state, int value) {
-		state->minorIteration = value;
-		if (!state->childList.size()) return;
-		for(int i = 0; i < Global->numChildren; i++) {
-			omxSetMinorIteration(state->childList[i], value);
-		}
-	}
-	
 	void omxDuplicateState(omxState* tgt, omxState* src) {
 		tgt->dataList			= src->dataList;
 		
@@ -246,17 +221,6 @@ void omxGlobal::deduplicateVarGroups()
 			omxCompleteExpectation(tgt->expectationList[j]);
 		}
 
-		tgt->majorIteration 	= 0;
-		tgt->minorIteration 	= 0;
-		tgt->startTime 			= src->startTime;
-		tgt->endTime			= 0;
-		
-		// TODO: adjust checkpointing based on parallelization method
-		tgt->numCheckpoints     = 0;
-		tgt->checkpointList 	= NULL;
-		tgt->chkptText1 		= NULL;
-		tgt->chkptText2 		= NULL;
-                                  
 		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;
 	}
@@ -338,26 +302,6 @@ void omxFreeChildStates(omxState *state)
 			omxFreeData(state->dataList[dx]);
 		}
 
-		if(OMX_DEBUG) { mxLog("Freeing %d Checkpoints.", state->numCheckpoints);}
-		for(int k = 0; k < state->numCheckpoints; k++) {
-			omxCheckpoint oC = state->checkpointList[k];
-			switch(oC.type) {
-				case OMX_FILE_CHECKPOINT:
-					fclose(oC.file);
-					break;
-				case OMX_CONNECTION_CHECKPOINT:	// NYI :::DEBUG:::
-					// Do nothing: this should be handled by R upon return.
-					break;
-			}
-			if(state->chkptText1 != NULL) {
-				Free(state->chkptText1);
-			}
-			if(state->chkptText2 != NULL) {
-				Free(state->chkptText2);
-			}
-			// Checkpoint list itself is freed by R.
-		}
-
 		delete state;
 
 		if(OMX_DEBUG) { mxLog("State Freed.");}
@@ -370,6 +314,9 @@ omxGlobal::~omxGlobal()
 	}
 	for (size_t cx=0; cx < algebraList.size(); ++cx) {
 		delete algebraList[cx];
+	}
+	for (size_t cx=0; cx < checkpointList.size(); ++cx) {
+		delete checkpointList[cx];
 	}
 	if (freeGroup.size()) {
 		std::vector< omxFreeVar* > &vars = freeGroup[0]->vars;  // has all vars
@@ -525,109 +472,112 @@ void omxRaiseError(omxState *, int, const char* msg) { // DEPRECATED
 		state->computeCount++;
 	};
 
-static void omxWriteCheckpointHeader(omxState *os, omxCheckpoint* oC) {
-	// rewrite with std::string TODO
+void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
+{
+	va_list ap;
+        va_start(ap, fmt);
+	std::string str = string_vsnprintf(fmt, ap);
+        va_end(ap);
+
+	for(size_t i = 0; i < checkpointList.size(); i++) {
+		checkpointList[i]->message(fc, est, str.c_str());
+	}
+}
+
+void omxGlobal::checkpointPrefit(FitContext *fc, double *est, bool force)
+{
+	for(size_t i = 0; i < checkpointList.size(); i++) {
+		checkpointList[i]->prefit(fc, est, force);
+	}
+}
+
+void omxGlobal::checkpointPostfit(FitContext *fc)
+{
+	for(size_t i = 0; i < checkpointList.size(); i++) {
+		checkpointList[i]->postfit(fc);
+	}
+}
+
+omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0), fitPending(false),
+				 timePerCheckpoint(0), iterPerCheckpoint(0), file(NULL)
+{}
+
+omxCheckpoint::~omxCheckpoint()
+{
+	if (file) fclose(file);
+}
+
+/* We need to re-design checkpointing when it is possible to run
+   more than 1 optimization in parallel. */
+void omxCheckpoint::omxWriteCheckpointHeader()
+{
+	if (wroteHeader) return;
 	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
 	size_t numParam = vars.size();
 
-		os->chkptText1 = (char*) Calloc((24 + 15 * numParam), char);
-		os->chkptText2 = (char*) Calloc(1.0 + 15.0 * numParam*
-			(numParam + 1.0) / 2.0, char);
-		if (oC->type == OMX_FILE_CHECKPOINT) {
-			fprintf(oC->file, "iterations\ttimestamp\tobjective\t");
-			for(size_t j = 0; j < numParam; j++) {
-				if(strcmp(vars[j]->name, CHAR(NA_STRING)) == 0) {
-					fprintf(oC->file, "%s", vars[j]->name);
-				} else {
-					fprintf(oC->file, "\"%s\"", vars[j]->name);
-				}
-				if (j != numParam - 1) fprintf(oC->file, "\t");
-			}
-			fprintf(oC->file, "\n");
-			fflush(oC->file);
-		}
+	fprintf(file, "OpenMxContext\tOpenMxNumFree\titerations\ttimestamp");
+	for(size_t j = 0; j < numParam; j++) {
+		fprintf(file, "\t\"%s\"", vars[j]->name);
 	}
+	fprintf(file, "\tobjective\n");
+	fflush(file);
+	wroteHeader = true;
+}
  
-void omxWriteCheckpointMessage(char *msg) {
-	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
-	size_t numParam = vars.size();
+void omxCheckpoint::message(FitContext *fc, double *est, const char *msg)
+{
+	_prefit(fc, est, true, msg);
+	postfit(fc);
+}
 
-		omxState *os = globalState;
-		for(int i = 0; i < os->numCheckpoints; i++) {
-			omxCheckpoint* oC = &(os->checkpointList[i]);
-			if(os->chkptText1 == NULL) {    // First one: set up output
-				omxWriteCheckpointHeader(os, oC);
-			}
-			if (oC->type == OMX_FILE_CHECKPOINT) {
-				fprintf(oC->file, "%d \"%s\" NA ", os->majorIteration, msg);
-				for(size_t j = 0; j < numParam; j++) {
-					fprintf(oC->file, "NA ");
-				}
-				fprintf(oC->file, "\n");
-			}
+void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char *context)
+{
+	const int timeBufSize = 32;
+	char timeBuf[timeBufSize];
+	time_t now = time(NULL); // avoid checking unless we need it
+
+	bool doit = force;
+	if ((timePerCheckpoint && timePerCheckpoint <= now - lastCheckpoint) ||
+	    (iterPerCheckpoint && iterPerCheckpoint <= fc->iterations - lastIterations)) {
+		doit = true;
+	}
+	if (!doit) return;
+
+	omxWriteCheckpointHeader();
+
+	std::vector< omxFreeVar* > &vars = fc->varGroup->vars;
+	struct tm *nowTime = localtime(&now);
+	strftime(timeBuf, timeBufSize, "%b %d %Y %I:%M:%S %p", nowTime);
+	fprintf(file, "%s\t%d\t%d\t%s", context, int(vars.size()), lastIterations, timeBuf);
+
+	size_t lx=0;
+	size_t numParam = Global->freeGroup[0]->vars.size();
+	for (size_t px=0; px < numParam; ++px) {
+		if (lx < vars.size() && vars[lx]->id == (int)px) {
+			fprintf(file, "\t%.10g", est[lx]);
+			++lx;
+		} else {
+			fprintf(file, "\tNA");
 		}
 	}
+	fflush(file);
+	fitPending = true;
+	lastCheckpoint = now;
+	lastIterations = fc->iterations;
+}
 
-/*
- * Next time we rewrite this code, Mike Neale suggested that the
- * checkpoint be taken before evaluating the fit function and then
- * again after obtaining the fit statistic. This will help with
- * debugging fit functions that fail to evaluate in some spots.
- */
-void omxSaveCheckpoint(double* x, double f, int force) {
-	// rewrite with std::string TODO
-	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
-	size_t numParam = vars.size();
+void omxCheckpoint::prefit(FitContext *fc, double *est, bool force)
+{
+	_prefit(fc, est, force, "opt");
+}
 
-		omxState *os = globalState;
-		time_t now = time(NULL);
-		int soFar = now - os->startTime;		// Translated into minutes
-		int n;
-		for(int i = 0; i < os->numCheckpoints; i++) {
-			n = 0;
-			omxCheckpoint* oC = &(os->checkpointList[i]);
-			// Check based on time            
-			if((oC->time > 0 && (soFar - oC->lastCheckpoint) >= oC->time) || force) {
-				oC->lastCheckpoint = soFar;
-				n = 1;
-			}
-			// Or iterations
-			if((oC->numIterations > 0 && (os->majorIteration - oC->lastCheckpoint) >= oC->numIterations) || force) {
-				oC->lastCheckpoint = os->majorIteration;
-				n = 1;
-			}
-
-			if(n) {		//In either case, save a checkpoint.
-				if(os->chkptText1 == NULL) {	// First one: set up output
-					omxWriteCheckpointHeader(os, oC);
-				}
-				char tempstring[25];
-				sprintf(tempstring, "%d", os->majorIteration);
-
-				if(strncmp(os->chkptText1, tempstring, strlen(tempstring))) {	// Returns zero if they're the same.
-					struct tm * nowTime = localtime(&now);						// So this only happens if the text is out of date.
-					strftime(tempstring, 25, "%b %d %Y %I:%M:%S %p", nowTime);
-					sprintf(os->chkptText1, "%d \"%s\" %9.5f", os->majorIteration, tempstring, f);
-					for(size_t j = 0; j < numParam; j++) {
-						sprintf(tempstring, " %9.5f", x[j]);
-						strncat(os->chkptText1, tempstring, 14);
-					}
-				}
-
-				if(oC->type == OMX_FILE_CHECKPOINT) {
-					fprintf(oC->file, "%s", os->chkptText1);
-					if(oC->saveHessian)
-						fprintf(oC->file, "%s", os->chkptText2);
-					fprintf(oC->file, "\n");
-					fflush(oC->file);
-				} else if(oC->type == OMX_CONNECTION_CHECKPOINT) {
-					Rf_warning("NYI: R_connections are not yet implemented.");
-					oC->numIterations = 0;
-					oC->time = 0;
-				}
-			}
-		}
-	}
+void omxCheckpoint::postfit(FitContext *fc)
+{
+	if (!fitPending) return;
+	fprintf(file, "\t%.10g\n", fc->fit);
+	fflush(file);
+	fitPending = false;
+}
 
 omxFreeVarLocation *omxFreeVar::getLocation(int matrix)
 {

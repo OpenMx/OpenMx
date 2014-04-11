@@ -122,7 +122,9 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
 
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
-grpModel <- mxRun(grpModel)
+grpModel <- mxOption(grpModel, "Checkpoint Units", "iterations")
+grpModel <- mxOption(grpModel, "Checkpoint Count", 1)
+grpModel <- mxRun(grpModel)  #, checkpoint = TRUE
 
 #dm <- grpModel$compute$steps[[1]]$debug$rateMatrix
 

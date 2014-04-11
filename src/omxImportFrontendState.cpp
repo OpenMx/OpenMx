@@ -193,64 +193,51 @@ For a connection, the next one is the R_connection SEXP object.
 After that is an integer <type> specifier.  0 means minutes, 1 means iterations.
 The last element is an integer count, indicating the number of <type>s per checkpoint.
 */
-void omxProcessCheckpointOptions(SEXP checkpointList) {
-	if(OMX_VERBOSE) { mxLog("Processing Checkpoint Requests.");}
-	globalState->numCheckpoints = Rf_length(checkpointList);
-	if(OMX_DEBUG) {mxLog("Found %d checkpoints.", globalState->numCheckpoints); }
-	globalState->checkpointList = (omxCheckpoint*) R_alloc(globalState->numCheckpoints, sizeof(omxCheckpoint));
+void omxProcessCheckpointOptions(SEXP checkpointList)
+{
+	if(OMX_DEBUG) {mxLog("Found %d checkpoints", Rf_length(checkpointList)); }
+
 	SEXP nextLoc;
 
-	for(int index = 0; index < globalState->numCheckpoints; index++) {
-		omxCheckpoint *oC = &(globalState->checkpointList[index]);
-
-		/* Initialize Checkpoint object */
-		oC->file = NULL;
-		oC->connection = NULL;
-		oC->time = 0;
-		oC->numIterations = 0;
-		oC->lastCheckpoint = 0;
+	for(int index = 0; index < Rf_length(checkpointList); ++index) {
+		omxCheckpoint *oC = new omxCheckpoint;
 
 		const char *pathName, *fileName;
-		const char __attribute__((unused)) *serverName;
 
 		Rf_protect(nextLoc = VECTOR_ELT(checkpointList, index));
 		int next = 0;
 		oC->type = (omxCheckpointType) INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
 		case OMX_FILE_CHECKPOINT:{
-			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));			// FIXME: Might need Rf_protect()ion
+			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 			fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
-			char sep ='/';
 
 			if(!isDir(pathName)) {
 				Rf_error("Unable to open directory %s for checkpoint storage.\n", pathName);
 			}
 
-			char* fullname = Calloc(strlen(pathName) + strlen(fileName) + 5, char);
-			sprintf(fullname, "%s%c%s", pathName, sep, fileName);
-			if(OMX_VERBOSE) { mxLog("Opening File: %s", fullname); }
-			oC->file = fopen(fullname, "w");
+			std::string fullname = string_snprintf("%s/%s", pathName, fileName);
+			if(OMX_VERBOSE) { mxLog("Opening File: %s", fullname.c_str()); }
+			oC->file = fopen(fullname.c_str(), "w");
 			if(!oC->file) {
-				Rf_error("Unable to open file %s for checkpoint storage: %s.\n", fullname, strerror(errno));
+				Rf_error("Unable to open file %s for checkpoint storage: %s.\n",
+					 fullname.c_str(), strerror(errno));
 			}
-			Free(fullname);
-			oC->saveHessian = FALSE;	// TODO: Decide if this should be true.
 			break;}
 
-		case OMX_CONNECTION_CHECKPOINT:{	// NYI :::DEBUG:::
-			oC->connection = VECTOR_ELT(nextLoc, next++);
+		case OMX_CONNECTION_CHECKPOINT:{
 			Rf_error("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
-			oC->saveHessian = FALSE;
 			break;}
 		}
 
 		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		if(isCount) {
-			oC->numIterations = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
+			oC->iterPerCheckpoint = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
 		} else {
-			oC->time = Rf_asReal(VECTOR_ELT(nextLoc, next++)) * 60;	// Constrained to seconds.
-			if(oC->time < 1) oC->time = 1;										// Constrained to at least one.
+			oC->timePerCheckpoint = Rf_asReal(VECTOR_ELT(nextLoc, next++)) * 60.0; // Constrained to seconds.
+			if(oC->timePerCheckpoint < 1) oC->timePerCheckpoint = 1;
 		}
+		Global->checkpointList.push_back(oC);
 	}
 }
 
@@ -278,6 +265,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 		// default group has free all variables
 		Global->freeGroup[0]->vars.push_back(fv);
 
+		fv->id = fx;
 		fv->name = CHAR(Rf_asChar(STRING_ELT(Rf_getAttrib(varList, R_NamesSymbol), fx)));
 		Rf_protect(nextVar = VECTOR_ELT(varList, fx));
 

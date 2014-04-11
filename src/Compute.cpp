@@ -260,6 +260,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	IterationError = parent->IterationError;
+	iterations = parent->iterations;
 }
 
 void FitContext::copyParamToModel(omxMatrix *mat)
@@ -280,6 +281,7 @@ void FitContext::updateParent()
 	parent->mac = mac;
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
+	parent->iterations = iterations;
 
 	// rewrite using mapToParent TODO
 
@@ -399,7 +401,7 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 
 	if(OMX_VERBOSE) {
 		std::string buf;
-		buf += string_snprintf("Call: %d.%d (%ld) ", os->majorIteration, os->minorIteration, os->computeCount);
+		buf += string_snprintf("Call: %d (%d) ", iterations, (int) os->computeCount);
 		buf += ("Estimates: [");
 		for(size_t k = 0; k < numParam; k++) {
 			buf += string_snprintf(" %f", at[k]);
@@ -732,15 +734,13 @@ void omxCompute::initFromFrontend(SEXP rObj)
 void omxCompute::compute(FitContext *fc)
 {
 	ComputeInform origInform = fc->inform;
-	int origIter = fc->iterations;
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
 	narrow->inform = INFORM_UNINITIALIZED;
-	narrow->iterations = 0;
 	computeImpl(narrow);
-	fc->iterations = origIter + narrow->iterations;
 	fc->inform = std::max(origInform, narrow->inform);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
 
 class ComputeContainer : public omxCompute {
@@ -927,6 +927,7 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
                 const struct omxComputeTableEntry *entry = omxComputeTable + fx;
                 if(strcmp(type, entry->name) == 0) {
                         got = entry->ctor();
+			got->name = entry->name;
                         break;
                 }
         }
@@ -1278,8 +1279,9 @@ void ComputeEM::computeImpl(FitContext *fc)
 		{
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
+			int startIter = fc1->iterations;
 			fit1->compute(fc1);
-			mstepIter = fc1->iterations;
+			mstepIter = fc1->iterations - startIter;
 			fc1->updateParentAndFree();
 		}
 
@@ -1301,7 +1303,9 @@ void ComputeEM::computeImpl(FitContext *fc)
 			}
 			fc->copyParamToModel(globalState);
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
+			Global->checkpointPrefit(fc, fc->est, false);
 			fit3->compute(fc);
+			Global->checkpointPostfit(fc);
 		}
 
 		totalMstepIter += mstepIter;
@@ -1329,6 +1333,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		prevFit = fc->fit;
 		converged = mac < tolerance;
+		++fc->iterations;
 		if (isErrorRaised(globalState) || ++EMcycles > maxIter || converged) break;
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {

@@ -524,17 +524,9 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 
     		if(inform == 2) {
     			if(!returnRowLikelihoods) {
-    				char helperstr[200];
-    				char *errstr = (char*) calloc(250, sizeof(char));
-    				sprintf(helperstr, "Improper value detected by integration routine in data row %d: Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that expected covariance matrix is not positive-definite", omxDataIndex(data, row));
-    				if(localobj->matrix->currentState->computeCount <= 0) {
-    					sprintf(errstr, "%s at starting values.\n", helperstr);
-    				} else {
-    					sprintf(errstr, "%s at major iteration %d.\n", helperstr, localobj->matrix->currentState->majorIteration);
-    				}
-    				omxRaiseError(localobj->matrix->currentState, -1, errstr);
-    				free(errstr);
-				}
+				if (fc) fc->recordIterationError("Improper value detected by integration routine in data row %d: Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that expected covariance matrix is not positive-definite", omxDataIndex(data, row));
+				return TRUE;
+			}
   				for(int nid = 0; nid < numIdentical; nid++) {
                     if (returnRowLikelihoods)
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);

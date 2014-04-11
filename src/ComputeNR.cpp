@@ -156,8 +156,11 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 
 	Eigen::Map<Eigen::VectorXd> prevEst(fc->est, numParam);
 
+	Global->checkpointPrefit(fc, fc->est, false);
 	omxFitFunctionCompute(fitMatrix->fitFunction,
 			      FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN, fc);
+	Global->checkpointPostfit(fc);
+
 	const double refFit = fitMatrix->data[0];
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
 	double targetImprovement = searchDir.dot(fc->grad);
@@ -272,7 +275,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
 	priorSpeed = 1;
-	int iter=0;
+	int startIter = fc->iterations;
 	bool converged = false;
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
@@ -284,7 +287,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 		      tolerance, maxIter);
 	}
 	while (1) {
-		++iter;
+		fc->iterations += 1;
+		int iter = fc->iterations - startIter;
 		if (verbose >= 2) {
 			if (iter == 1) {
 				mxLog("Begin %d/%d iter of Newton-Raphson", iter, maxIter);
@@ -317,17 +321,16 @@ void ComputeNR::computeImpl(FitContext *fc)
 		fc->inform = INFORM_CONVERGED_OPTIMUM;
 		fc->wanted |= FF_COMPUTE_BESTFIT;
 		if (verbose >= 1) {
+			int iter = fc->iterations - startIter;
 			mxLog("Newton-Raphson converged in %d cycles", iter);
 		}
 	} else {
-		if (iter != maxIter) Rf_error("Confused");
 		fc->inform = INFORM_ITERATION_LIMIT;
 		if (verbose >= 1) {
+			int iter = fc->iterations - startIter;
 			mxLog("Newton-Raphson failed to converge after %d cycles", iter);
 		}
 	}
-
-	fc->iterations = iter;
 }
 
 void ComputeNR::reportResults(FitContext *fc, MxRList *slots, MxRList *output)

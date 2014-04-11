@@ -87,7 +87,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 		filename <- chkpt.files[[i]]
 		modelname <- substr(filename, nchar(chkpt.prefix) + 1, nchar(filename) - 4)
 		filepath <- paste(chkpt.directory, filename, sep = '/')
-		checkpoint <- read.table(filepath, header=TRUE, stringsAsFactors=FALSE, check.names=FALSE)
+		checkpoint <- read.table(filepath, header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, sep="\t")
 		model <- restoreCheckpointModel(model, modelname, checkpoint, flatModel)
 	}
 	return(model)
@@ -99,7 +99,10 @@ restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel) {
 		flatModel <- imxFlattenModel(model, namespace)
 	}
 	if (modelname == model@name) {
-		values <- as.numeric(checkpoint[nrow(checkpoint), 4:ncol(checkpoint)])
+		ign <- match(c("OpenMxContext","OpenMxNumFree","iterations","timestamp","objective"),
+			     colnames(checkpoint))
+		ign <- ign[!is.na(ign)]
+		values <- as.numeric(checkpoint[nrow(checkpoint), -ign])
 		model <- imxUpdateModelValues(model, flatModel, values)
 	}
 	model@submodels <- lapply(model@submodels, restoreCheckpointModel, modelname, checkpoint, flatModel)
