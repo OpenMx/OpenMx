@@ -157,7 +157,7 @@ omxIFAComputePlan <- function(groups) {
 
   mxComputeSequence(steps=list(
     mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
-                mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep=".")),
+                mxComputeNewtonRaphson(free.set=paste(groups, 'ItemParam', sep="."), verbose=0L),
                 latent.plan,
                 mxComputeOnce('fitfunction', 'fit'),
                 tolerance=1e-5, information=TRUE,
@@ -201,7 +201,7 @@ latent <- mxModel("latent",
  print( max(abs(c(grpModel$output$standardErrors) - semse)))
   
   # These are extremely sensitive to small differences in model estimation.
-omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .04)
+omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .05)
 omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.5, 1)
 omxCheckTrue(grpModel$output$infoDefinite)
   

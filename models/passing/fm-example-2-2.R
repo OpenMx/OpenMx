@@ -173,8 +173,8 @@ g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeReportDeriv()))), silent=TRUE)
 
 emstat <- m2$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 22, 3)
-omxCheckCloseEnough(emstat$totalMstep, 197, 5)
+omxCheckCloseEnough(emstat$EMcycles, 18, 3)
+omxCheckCloseEnough(emstat$totalMstep, 92, 5)
 omxCheckCloseEnough(emstat$semProbeCount, 108, 5)
 #omxCheckCloseEnough(log(m2$output$conditionNumber), 6.12, 1)
 
