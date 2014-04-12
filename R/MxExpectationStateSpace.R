@@ -129,13 +129,13 @@ checkSSMNotMissing <- function(matrixobj, matrixname, modelname){
 }
 
 checkSSMConformable <- function(mat, rows, cols, matname, modname){
-	if( nrow(mat) != rows || ncol(mat) != cols ){
-		msg <- paste("The ", matname, " matrix is not the correct size",
-			" in the state space expectation of model ", modname,
-			".  It is ", nrow(mat), " by ", ncol(mat), " and should be ",
-			rows, " by ", cols, ".", sep="")
-		stop(msg, call. = FALSE)
-	}
+#	if( nrow(mat) != rows || ncol(mat) != cols ){
+#		msg <- paste("The ", matname, " matrix is not the correct size",
+#			" in the state space expectation of model ", modname,
+#			".  It is ", nrow(mat), " by ", ncol(mat), " and should be ",
+#			rows, " by ", cols, ".", sep="")
+#		stop(msg, call. = FALSE)
+#	}
 }
 
 # TODO: Allow subsets of the matrices to be specified
