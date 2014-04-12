@@ -40,8 +40,8 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 	      mxComputeSequence(steps=list(
 				    mxComputeEM('expectation', 'scores',
 				                mxComputeNewtonRaphson(freeSet='ItemParam'),
-				                information=TRUE, semDebug=TRUE, info.method="hessian",
-						infoArgs=list(fitfunction=c('fitfunction'))),
+				                information="mr1991",
+						infoArgs=list(fitfunction=c('fitfunction'), semDebug=TRUE)),
 				    mxComputeStandardError(),
 				    mxComputeHessianQuality(),
             mxComputeReportDeriv())))

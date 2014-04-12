@@ -149,7 +149,7 @@ m2 <- mxRun(mxModel("ex", m1, pm,
                     mxComputeSequence(list(
                       mxComputeEM('item.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
-                                information=TRUE, tolerance=1e-5, verbose=0L),
+                                information="mr1991", tolerance=1e-5, verbose=0L),
                       mxComputeStandardError(),
                       mxComputeOnce('fitfunction', c('fit','gradient')),  # SEM lost the details
                       mxComputeReportDeriv()))), silent=TRUE)

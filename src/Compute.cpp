@@ -1052,85 +1052,6 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	super::initFromFrontend(rObj);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
-	maxIter = INTEGER(slotValue)[0];
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("information")));
-	information = Rf_asLogical(slotValue);
-	infoMethod = INFO_METHOD_DEFAULT;
-
-	if (information) {
-		SEXP infoArgs, argNames;
-		Rf_protect(infoArgs = R_do_slot(rObj, Rf_install("infoArgs")));
-		Rf_protect(argNames = Rf_getAttrib(infoArgs, R_NamesSymbol));
-
-		for (int ax=0; ax < Rf_length(infoArgs); ++ax) {
-			const char *key = R_CHAR(STRING_ELT(argNames, ax));
-			if (strcmp(key, "fitfunction") == 0) {
-				slotValue = VECTOR_ELT(infoArgs, ax);
-				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
-					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
-					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
-					semFitFunction.push_back(ff);
-				}
-			} else {
-				mxLog("Unknown key %s", key);
-			}
-		}
-
-		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("info.method")));
-		SEXP elem;
-		Rf_protect(elem = STRING_ELT(slotValue, 0));
-		infoMethod = stringToInfoMethod(CHAR(elem));
-	}
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semMethod")));
-	semMethodLen = Rf_length(slotValue);
-	if (semMethodLen == 0) {
-		semMethod = AgileSEM;
-		semMethodData = NULL;
-	} else {
-		semMethodData = REAL(slotValue);
-		if (semMethodLen > 1) {
-			semMethod = GridSEM;
-		} else if (semMethodData[0] == 1) {
-			semMethod = ClassicSEM;
-		} else if (semMethodData[0] == 2) {
-			semMethod = TianSEM;
-		} else if (semMethodData[0] == 3) {
-			semMethod = AgileSEM;
-		} else {
-			Rf_error("Unknown SEM method %f", semMethodData[0]);
-		}
-	}
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("agileMaxIter")));
-	agileMaxIter = INTEGER(slotValue)[0];
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semDebug")));
-	semDebug = Rf_asLogical(slotValue);
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semFixSymmetry")));
-	semFixSymmetry = Rf_asLogical(slotValue);
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("semForcePD")));
-	semForcePD = Rf_asLogical(slotValue);
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("ramsay")));
-	useRamsay = Rf_asLogical(slotValue);
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
-	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) Rf_error("tolerance must be positive");
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("noiseTarget")));
-	noiseTarget = REAL(slotValue)[0];
-	if (noiseTarget <= 0) Rf_error("noiseTarget must be positive");
-
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("noiseTolerance")));
-	noiseTolerance = REAL(slotValue)[0];
-	if (noiseTolerance < 1) Rf_error("noiseTolerance must be >=1");
-
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
 	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
@@ -1161,10 +1082,106 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		omxCompleteFitFunction(fit3);
 	}
 
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
+	maxIter = INTEGER(slotValue)[0];
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
+	tolerance = REAL(slotValue)[0];
+	if (tolerance <= 0) Rf_error("tolerance must be positive");
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
 
-	semTolerance = sqrt(tolerance);  // override needed?
+	useRamsay = false;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("accel")));
+	const char *accelName = CHAR(STRING_ELT(slotValue, 0));
+	if (strEQ(accelName, "ramsay1975")) {
+		useRamsay = true;
+	} else if (STRING_ELT(slotValue, 0) == NA_STRING) {
+		// OK
+	} else {
+		Rf_warning("%s: unknown acceleration method %s ignored", name, accelName);
+	}
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("information")));
+	const char *infoName = CHAR(STRING_ELT(slotValue, 0));
+	information = false;
+	if (STRING_ELT(slotValue, 0) == NA_STRING) {
+		// ok
+	} else if (strEQ(infoName, "mr1991")) {
+		information = true;
+	} else {
+		Rf_warning("%s: unknown information method %s ignored", name, infoName);
+	}
+
+	if (information) {
+		infoMethod = INFO_METHOD_HESSIAN;
+		semMethod = AgileSEM;
+		agileMaxIter = 1;
+		semDebug = false;
+		semFixSymmetry = true;
+		semForcePD = false;
+		noiseTarget = exp(-5.0); //constexpr
+		noiseTolerance = exp(3.3); //constexpr
+		semTolerance = sqrt(tolerance);  // override needed?
+
+		SEXP infoArgs, argNames;
+		Rf_protect(infoArgs = R_do_slot(rObj, Rf_install("infoArgs")));
+		Rf_protect(argNames = Rf_getAttrib(infoArgs, R_NamesSymbol));
+
+		for (int ax=0; ax < Rf_length(infoArgs); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(argNames, ax));
+			slotValue = VECTOR_ELT(infoArgs, ax);
+			if (strEQ(key, "fitfunction")) {
+				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
+					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
+					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
+					semFitFunction.push_back(ff);
+				}
+			} else if (strEQ(key, "inputInfo")) {
+				infoMethod = stringToInfoMethod(CHAR(slotValue));
+			} else if (strEQ(key, "semMethod")) {
+				semMethodLen = Rf_length(slotValue);
+				if (semMethodLen == 0) {
+					semMethod = AgileSEM;
+					semMethodData = NULL;
+				} else {
+					semMethodData = REAL(slotValue);
+					if (semMethodLen > 1) {
+						semMethod = GridSEM;
+					} else if (semMethodData[0] == 1) {
+						semMethod = ClassicSEM;
+					} else if (semMethodData[0] == 2) {
+						semMethod = TianSEM;
+					} else if (semMethodData[0] == 3) {
+						semMethod = AgileSEM;
+					} else {
+						Rf_error("Unknown SEM method %f", semMethodData[0]);
+					}
+				}
+			} else if (strEQ(key, "agileMaxIter")) {
+				agileMaxIter = INTEGER(slotValue)[0];
+			} else if (strEQ(key, "semDebug")) {
+				semDebug = Rf_asLogical(slotValue);
+			} else if (strEQ(key, "semFixSymmetry")) {
+				semFixSymmetry = Rf_asLogical(slotValue);
+			} else if (strEQ(key, "semForcePD")) {
+				semForcePD = Rf_asLogical(slotValue);
+			} else if (strEQ(key, "noiseTarget")) {
+				noiseTarget = REAL(slotValue)[0];
+				if (noiseTarget <= 0) Rf_error("noiseTarget must be positive");
+			} else if (strEQ(key, "noiseTolerance")) {
+				noiseTolerance = REAL(slotValue)[0];
+				if (noiseTolerance < 1) Rf_error("noiseTolerance must be >=1");
+			} else {
+				mxLog("%s: unknown key %s", name, key);
+			}
+		}
+		if (!semFixSymmetry && semForcePD) {
+			Rf_warning("%s: semFixSymmetry must be enabled for semForcePD", name);
+			semForcePD = false;
+		}
+	}
 
 	inputInfoMatrix = NULL;
 	outputInfoMatrix = NULL;

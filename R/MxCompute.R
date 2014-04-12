@@ -488,17 +488,9 @@ setClass(Class = "MxComputeEM",
 	     maxIter = "integer",
 	     tolerance = "numeric",
 	     verbose = "integer",
-	     ramsay="logical",
-	     information="logical",
-	     infoArgs="list",
-	     semMethod="MxOptionalNumeric",
-	     semDebug="logical",
-	     noiseTarget="numeric",
-	     noiseTolerance="numeric",
-	     info.method="character",
-	     semFixSymmetry="logical",
-	     semForcePD="logical",
-	     agileMaxIter="integer"))
+	     accel="character",
+	     information="character",
+	     infoArgs="list"))
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id, defaultFreeSet) {
@@ -582,8 +574,7 @@ setMethod("updateFromBackend", signature("MxComputeEM"),
 
 setMethod("initialize", "MxComputeEM",
 	  function(.Object, expectation, predict, mstep, observedFit, maxIter, tolerance,
-		   verbose, ramsay, information, noiseTarget, noiseTolerance, semDebug,
-		   semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, freeSet, infoArgs) {
+		   verbose, accel, information, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
@@ -592,34 +583,63 @@ setMethod("initialize", "MxComputeEM",
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
-		  .Object@ramsay <- ramsay
+		  .Object@accel <- accel
 		  .Object@information <- information
-		  .Object@noiseTarget <- noiseTarget
-		  .Object@noiseTolerance <- noiseTolerance
-		  .Object@semDebug <- semDebug
-		  .Object@semMethod <- semMethod
-		  .Object@info.method <- info.method
-		  .Object@semFixSymmetry <- semFixSymmetry
-		  .Object@agileMaxIter <- agileMaxIter
-		  .Object@semForcePD <- semForcePD
 		  .Object@freeSet <- freeSet
 		  .Object@infoArgs <- infoArgs
 		  .Object
 	  })
 
-mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ..., maxIter=500L, tolerance=1e-4,
-			verbose=0L, ramsay=TRUE, information=FALSE, noiseTarget=exp(-5), noiseTolerance=exp(3.3),
-			semDebug=FALSE, semMethod=NULL, info.method="hessian", semFixSymmetry=TRUE, agileMaxIter=1L,
-			semForcePD=FALSE, freeSet=NA_character_, infoArgs=list()) {
+##' Fit a model using DLR's (1977) Expectation-Maximization (EM) algorithm
+##'
+##' The EM algorithm constitutes the following steps: Start with an
+##' initial parameter vector. Predict the missing data to form a
+##' completed data model. Optimize the completed data model to obtain
+##' a new parameter vector. Repeat these steps until convergence
+##' criteria are met.
+##'
+##' This compute plan does not work with any and all expectations. It
+##' requires a special kind of expectation that can predict its
+##' missing data to create a completed data model.
+##'
+##' The EM algorithm does not produce a parameter covariance matrixn
+##' for standard errors. S-EM, an implementation of Meng & Rubin
+##' (1991), is included.
+##'
+##' @param expectation a vector of expectation names
+##' @param predict what to predict from the observed data (available options depend on the expectation)
+##' @param mstep a compute plan to optimize the completed data model
+##' @param observedFit the name of the observed data fit function (defaults to "fitfunction")
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param maxIter maximum number of iterations
+##' @param tolerance maximum change in fit to judge convergence
+##' @param verbose level of diagnostic output
+##' @param freeSet names of matrices containing free variables
+##' @param accel name of acceleration method (defaults to "ramsay1975")
+##' @param information name of information matrix approximation method
+##' @param infoArgs arguments to control the information matrix method
+##' @aliases
+##' MxComputeEM-class
+##' @references
+##' Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from
+##' incomplete data via the EM algorithm. \emph{Journal of the Royal Statistical Society.
+##' Series B (Methodological)}, 1–38.
+##'
+##' Meng, X.-L. & Rubin, D. B. (1991). Using EM to obtain asymptotic variance-covariance
+##' matrices: The SEM algorithm. \emph{Journal of the American Statistical Association,
+##' 86} (416), 899–909.
+##' 
+##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
+##' \emph{Psychometrika, 40} (3), 337–360.
+mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
+			maxIter=500L, tolerance=1e-4, verbose=0L, freeSet=NA_character_,
+			accel="ramsay1975", information=NA_character_, infoArgs=list()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
 	}
-	if (!semFixSymmetry && semForcePD) stop("semFixSymmetry must be enabled for semForcePD")
 	new("MxComputeEM", expectation, predict, mstep, observedFit, maxIter=maxIter,
-	    tolerance=tolerance, verbose, ramsay, information, noiseTarget,
-	    noiseTolerance, semDebug, semMethod, info.method, semFixSymmetry, agileMaxIter, semForcePD, freeSet,
-	    infoArgs)
+	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
 
 displayMxComputeEM <- function(opt) {
