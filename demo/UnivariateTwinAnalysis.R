@@ -192,7 +192,7 @@ LRT_ACE= LL_ACE - LL_Sat
 twinAEModel <- twinACEModel
 twinAEModel$twinACE$Y <- mxMatrix("Full", 1, 1, F, 0, "c", name="Y")  # drop c
 twinAEFit <- mxRun(twinAEModel, suppressWarnings=TRUE)
-# Specify and Fit Reduced AE Model (Drop c @0)
+# Specify and Fit Reduced AE Model
 # ----------------------------------------------------------------------
 
 LL_AE <- mxEval(objective, twinAEFit)
