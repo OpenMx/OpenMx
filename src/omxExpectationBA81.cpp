@@ -868,7 +868,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 	}
 
-	if (state->scores == SCORES_OMIT || state->type == EXPECTATION_UNINITIALIZED) return;
+	if (state->scores == SCORES_OMIT) return;
 
 	// TODO Wainer & Thissen. (1987). Estimating ability with the wrong
 	// model. Journal of Educational Statistics, 12, 339-368.
@@ -1018,7 +1018,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->patternLik = NULL;
 	state->outcomeProb = NULL;
 	state->expected = NULL;
-	state->type = EXPECTATION_UNINITIALIZED;
+	state->type = EXPECTATION_OBSERVED;
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;
@@ -1109,7 +1109,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		Rf_error("Data has %d columns for %d items", data->cols, numItems);
 	}
 	if (state->itemSpec.size() == 1) {
-		for (size_t ix=1; ix < numItems; ++ix) {
+		for (int ix=1; ix < numItems; ++ix) {
 			state->itemSpec.push_back(state->itemSpec[0]);
 		}
 	}

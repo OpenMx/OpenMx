@@ -107,7 +107,6 @@ omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
 
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
@@ -118,7 +117,6 @@ omxCheckCloseEnough(c(i1$output$standardErrors), se, .001)
 
 i2 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', 'information', "sandwich"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))

@@ -55,12 +55,9 @@ m2 <- mxModel(model="latent",
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items, ItemParam="ItemParam", scores="full"),
               mxFitFunctionML(),
-              mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
-                mxComputeIterate(steps=list(
-                  mxComputeOnce('fitfunction', "fit"),
-                  mxComputeOnce('expectation', "latentDistribution", "copy")))
-                )))
+	      mxComputeIterate(steps=list(
+				   mxComputeOnce('fitfunction', "fit"),
+				   mxComputeOnce('expectation', "latentDistribution", "copy"))))
 m2 <- mxRun(m2, silent=TRUE)
 
 if (1) {

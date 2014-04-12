@@ -89,7 +89,6 @@ for (seed in 1:trials) {
                                   ItemParam="ItemParam", qwidth=5, qpoints=21),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation'),
                   mxComputeOnce('fitfunction', 'gradient'),
                   mxComputeReportDeriv())))
   
@@ -101,7 +100,6 @@ for (seed in 1:trials) {
     cov.mat$values[2,1] <- x[17]
     m1.probe <- mxModel(m1, m.mat, cov.mat, ip.mat,
                         mxComputeSequence(steps=list(
-                          mxComputeOnce('expectation'),
                           mxComputeOnce('fitfunction', 'fit'))))
     m1.probe <- mxRun(m1.probe, silent=TRUE)
     got <- m1.probe$output$minimum

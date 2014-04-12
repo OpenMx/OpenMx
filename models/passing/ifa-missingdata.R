@@ -56,7 +56,6 @@ if (1) {
                                       ItemParam="itemParam"),
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
-                      mxComputeOnce('expectation'),
                       mxComputeOnce('fitfunction', 'fit'))))
   cModel <- mxRun(cModel)
   omxCheckCloseEnough(cModel$fitfunction$result, 2733.844, .001)

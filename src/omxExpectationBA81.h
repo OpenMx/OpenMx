@@ -27,7 +27,6 @@ enum score_option {
 };
 
 enum expectation_type {
-	EXPECTATION_UNINITIALIZED,
 	EXPECTATION_AUGMENTED, // E-M
 	EXPECTATION_OBSERVED,  // regular
 };

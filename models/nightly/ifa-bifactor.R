@@ -108,7 +108,6 @@ omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 2)
 
 i1 <- mxModel(m1,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
@@ -126,7 +125,6 @@ omxCheckCloseEnough(c(i1$output$standardErrors), se, .001)
 
 i2 <- mxModel(m1,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', 'information', "sandwich"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))

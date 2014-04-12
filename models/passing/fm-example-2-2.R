@@ -89,7 +89,6 @@ if (1) {
   fm1 <- mxModel("fm", m1, pm,
                  mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'item.fitfunction')),
                  mxComputeSequence(list(
-                   mxComputeOnce('item.expectation'),
                    mxComputeOnce('fitfunction', c('fit','gradient')),
                    mxComputeReportDeriv())))
   citem <- fm1$submodels$item
@@ -114,13 +113,11 @@ if (1) {
     dm$submodels$pmodel$matrices$gparam$values[,] <-
       dm$submodels$item$matrices$ItemParam$values[3,]
     dm$compute <- mxComputeSequence(list(
-      mxComputeOnce('item.expectation', 'scores'),
       mxComputeOnce('fitfunction', c('fit','gradient', 'hessian')),
       mxComputeReportDeriv()))
     dm.fit <- mxRun(dm, silent=TRUE)
     
     dm$compute <- mxComputeSequence(list(
-      mxComputeOnce('item.expectation', 'scores'),
       mxComputeOnce('fitfunction', c('fit'))))
     require("numDeriv")
     got <- genD(function(x) {
@@ -154,7 +151,6 @@ m2 <- mxRun(mxModel("ex", m1, pm,
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
                                 information=TRUE, tolerance=1e-5, verbose=0L),
                       mxComputeStandardError(),
-                      mxComputeOnce("item.expectation"),
                       mxComputeOnce('fitfunction', c('fit','gradient')),  # SEM lost the details
                       mxComputeReportDeriv()))), silent=TRUE)
 # flexmirt's LL is reported w/o prior
@@ -162,11 +158,9 @@ omxCheckCloseEnough(m2$output$fit - m2$submodels$pmodel$fitfunction$result, 3333
 omxCheckCloseEnough(max(abs(m2$output$gradient)), 1.29, .1)
 
 g1 <- mxRun(mxModel(m2, mxComputeSequence(list(
-  mxComputeOnce("item.expectation"),
   mxComputeOnce('pmodel.fitfunction', 'gradient'),
   mxComputeReportDeriv()))), silent=TRUE)
 g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
-  mxComputeOnce("item.expectation"),
   mxComputeOnce('item.fitfunction', 'gradient'),
   mxComputeReportDeriv()))), silent=TRUE)
 
@@ -189,7 +183,6 @@ if (0) {
 if (0) {
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('item.expectation'),
                 mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))

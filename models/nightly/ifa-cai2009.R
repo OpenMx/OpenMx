@@ -96,8 +96,7 @@ groups <- paste("g", 1:2, sep="")
   
   g1$ifa$expectation$scores <- 'full'
   g2$ifa$expectation$scores <- 'full'
-  cModel <- mxModel(model="cModel", c(g1, g2),
-                    mxComputeOnce(paste(groups, 'expectation', sep='.')))
+  cModel <- mxModel(model="cModel", c(g1, g2))
 #  cModel <- mxOption(cModel, "Number of Threads", 1)
   cModel.eap <- mxRun(cModel)
 
@@ -117,15 +116,12 @@ groups <- paste("g", 1:2, sep="")
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(cModel,
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-                      mxComputeSequence(steps=list(
-                        mxComputeOnce(paste(groups, 'expectation', sep=".")),
-                        mxComputeOnce('fitfunction', 'fit'))))
+		      mxComputeOnce('fitfunction', 'fit'))
     cModel.fit <- mxRun(cModel)
     omxCheckCloseEnough(cModel.fit$fitfunction$result, flexmirt.LL, 1e-4)
   
   i1 <- mxModel(cModel,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce(paste(groups, 'expectation', sep='.')),
                   mxComputeOnce('fitfunction', 'information', "meat"),
                   mxComputeStandardError(),
                   mxComputeHessianQuality())))

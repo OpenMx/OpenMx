@@ -88,7 +88,6 @@ if (1) {
   
   if (0) {
     m3 <- mxModel(m2, mxComputeSequence(list(
-      mxComputeOnce('expectation', 'nothing'),
       mxComputeOnce('fitfunction', 'fit'),
       mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
       mxComputeReportDeriv())))

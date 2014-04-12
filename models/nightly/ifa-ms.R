@@ -57,10 +57,7 @@ if (1) {
                                   ItemSpec=m2.spec,
                                   ItemParam="ItemParam"),
                 mxFitFunctionML(),
-                mxComputeSequence(steps=list(
-                  mxComputeOnce('expectation'),
-                  mxComputeOnce('fitfunction', 'fit', freeSet=c("mean", "cov"))
-                )))
+		mxComputeOnce('fitfunction', 'fit', freeSet=c("mean", "cov")))
   cM <- mxRun(cM, silent=TRUE)
   omxCheckCloseEnough(cM$fitfunction$result, 50661.38, .01)
 }
@@ -108,7 +105,6 @@ n <- apply(!is.na(m2.data), 2, sum)
 
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
-                mxComputeOnce('expectation'),
                 mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))

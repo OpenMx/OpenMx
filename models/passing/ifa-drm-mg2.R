@@ -186,7 +186,6 @@ omxCheckTrue(grpModel$output$infoDefinite)
 
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(
-                  mxComputeOnce(paste(groups, 'expectation', sep='.')),
                   mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
