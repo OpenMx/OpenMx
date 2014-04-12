@@ -36,6 +36,9 @@ model2 <- mxModel("model2", data2, mat2, obj2, mxFitFunctionML())
 #output1$output
 #output2$output
 
+omxCheckError(mxFitFunctionMultigroup(groups=c()),
+              message="mxFitFunctionMultigroup: at least 1 fitfunction must be provided")
+
 alg <- mxAlgebra(model1.objective + model2.objective, name="alg")
 if (1) {
 	obj <- mxFitFunctionMultigroup(paste("model", 1:2, sep=""))

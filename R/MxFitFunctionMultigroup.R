@@ -68,5 +68,8 @@ mxFitFunctionMultigroup <- function(groups, ..., verbose=0L) {
 	if (length(garbageArguments) > 0) {
 		stop("mxFitFunctionMultigroup does not accept values for the '...' argument")
 	}
+
+	if (length(groups) == 0) stop("mxFitFunctionMultigroup: at least 1 fitfunction must be provided")
+
 	return(new("MxFitFunctionMultigroup", groups, verbose))
 }
