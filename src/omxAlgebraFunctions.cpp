@@ -2187,11 +2187,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
 	}
 	
-	if(result->aliasedPtr != inMat) {
-        omxAliasMatrix(result, inMat);
-	}
-	
-    omxResetAliasedMatrix(result);
+	omxCopyMatrix(result, inMat);
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
@@ -2242,11 +2238,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
 	}
 	
-	if(result->aliasedPtr != inMat) {
-        omxAliasMatrix(result, inMat);
-	}
-	
-    omxResetAliasedMatrix(result);
+	omxCopyMatrix(result, inMat);
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
@@ -2306,11 +2298,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
 	}
 	
-	if(result->aliasedPtr != inMat) {
-        omxAliasMatrix(result, inMat);
-	}
-	
-    omxResetAliasedMatrix(result);
+	omxCopyMatrix(result, inMat);
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {

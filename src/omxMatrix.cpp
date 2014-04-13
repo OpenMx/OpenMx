@@ -327,7 +327,8 @@ void setVectorError(int index, int numrow, int numcol) {
 	free(errstr);  // TODO not reached
 }
 
-double omxAliasedMatrixElement(omxMatrix *om, int row, int col) {
+static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
+{
 	int index = 0;
 	if(row >= om->originalRows || col >= om->originalCols) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -501,24 +502,12 @@ void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
 	int oldElements;
 
 	if (om->rows > 1) {
-		if(om->aliasedPtr == NULL) {
-			if(om->originalRows == 0) {
-				om->originalRows = om->rows;
-			}
-			oldElements = om->originalRows;
-		} else {
-			oldElements = om->aliasedPtr->rows;
-		}
+		if(om->originalRows == 0) Rf_error("Not allocated");
+		oldElements = om->originalRows;
 		om->rows = oldElements - numRemoved;
 	} else {
-		if(om->aliasedPtr == NULL) {
-			if(om->originalCols == 0) {
-				om->originalCols = om->cols;
-			}
-			oldElements = om->originalCols;
-		} else {
-			oldElements = om->aliasedPtr->cols;
-		}
+		if(om->originalCols == 0) Rf_error("Not allocated");
+		oldElements = om->originalCols;
 		om->cols = oldElements - numRemoved;
 	}
 
@@ -526,11 +515,7 @@ void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
 
 	for(int j = 0; j < oldElements; j++) {
 		if(!removed[j]) {
-			if(om->aliasedPtr == NULL) {
-				omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om, j));
-			} else {
-				omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om->aliasedPtr, j));
-			}
+			omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om, j));
 			nextElement++;
 		}
 	}
@@ -546,29 +531,21 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 	int oldRows, oldCols;
 
-	if(om->aliasedPtr == NULL) {
-		if(om->originalRows == 0 || om->originalCols == 0) {
-			om->originalRows = om->rows;
-			om->originalCols = om->cols;
-		}
-		oldRows = om->originalRows;
-		oldCols = om->originalCols;
-	} else {
-		oldRows = om->aliasedPtr->rows;
-		oldCols = om->aliasedPtr->cols;
+	if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
+	if (om->rows != om->originalRows || om->cols != om->originalCols) {
+		// the code is not robust to this case
+		Rf_error("Can only omxRemoveRowsAndColumns once");
 	}
+
+	oldRows = om->originalRows;
+	oldCols = om->originalCols;
 
 	int nextCol = 0;
 	int nextRow = 0;
 
-	if(om->rows > om->originalRows || om->cols > om->originalCols) {	// sanity check.
-		Rf_error("Aliased Matrix is too small for alias.");
-	}
-
 	om->rows = oldRows - numRowsRemoved;
 	om->cols = oldCols - numColsRemoved;
 
-	// Note:  This really aught to be done using a matrix multiply.  Why isn't it?
 	for(int j = 0; j < oldCols; j++) {
 		if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Handling column %d/%d...", j, oldCols);}
 		if(colsRemoved[j]) {
@@ -583,12 +560,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 					continue;
 				} else {
 					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("%d kept....", k);}
-					if(om->aliasedPtr == NULL) {
-						if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Self-aliased matrix access.");}
-						omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
-					} else {
-						omxSetMatrixElement(om, nextRow, nextCol, omxMatrixElement(om->aliasedPtr, k,  j));
-					}
+					omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
 					nextRow++;
 				}
 			}

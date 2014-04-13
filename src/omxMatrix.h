@@ -119,7 +119,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState
 	// static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value);
 	// static OMXINLINE void omxSetVectorElement(omxMatrix *om, int index, double value);
 
-	double omxAliasedMatrixElement(omxMatrix *om, int row, int col);			// Element from unaliased form of the same matrix
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
 	void omxMarkDirty(omxMatrix *om);
 	void omxMarkClean(omxMatrix *om);
