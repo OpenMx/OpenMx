@@ -250,12 +250,13 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 	omxMatrixLeadingLagging(om);
 }
 
-void omxResetAliasedMatrix(omxMatrix *om) {
-	om->rows = om->originalRows;
-	om->cols = om->originalCols;
-	if(om->aliasedPtr != NULL) {
-		memcpy(om->data, om->aliasedPtr->data, om->rows*om->cols*sizeof(double));
-		om->colMajor = om->aliasedPtr->colMajor;
+void omxResetAliasedMatrix(omxMatrix *om)
+{
+	if (om->aliasedPtr) {
+		omxAliasMatrix(om, om->aliasedPtr);
+	} else {
+		om->rows = om->originalRows;
+		om->cols = om->originalCols;
 	}
 	omxMatrixLeadingLagging(om);
 }
