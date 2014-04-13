@@ -167,7 +167,6 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxMatrix* smallD = ose->smallD;
 	omxMatrix* smallr = ose->smallr;
 	omxMatrix* smallR = ose->smallR;
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallR, "....State Space: R on entry"); }
 	omxMatrix* smallK = ose->smallK;
 	omxMatrix* smallS = ose->smallS;
 	omxMatrix* smallY = ose->smallY;
@@ -190,7 +189,6 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Reset)"); }
 	omxResetAliasedMatrix(smallD);
 	omxResetAliasedMatrix(smallR);
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallR, "....State Space: R (Reset)"); }
 	omxResetAliasedMatrix(smallr);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Reset)"); }
 	omxResetAliasedMatrix(smallK);
