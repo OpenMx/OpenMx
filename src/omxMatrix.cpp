@@ -509,7 +509,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 
 	if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
 	if (om->rows != om->originalRows || om->cols != om->originalCols) {
-		// the code is not robust to this case
+		// Feasible, but the code is currently not robust to this case
 		Rf_error("Can only omxRemoveRowsAndColumns once");
 	}
 
@@ -522,25 +522,27 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemov
 	om->rows = oldRows - numRowsRemoved;
 	om->cols = oldCols - numColsRemoved;
 
-	for(int j = 0; j < oldCols; j++) {
-		if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Handling column %d/%d...", j, oldCols);}
-		if(colsRemoved[j]) {
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Removed.");}
-			continue;
-		} else {
+	if (om->colMajor) {
+		for(int j = 0; j < oldCols; j++) {
+			if(colsRemoved[j]) continue;
 			nextRow = 0;
-			if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("Rows (max %d): ", oldRows); }
 			for(int k = 0; k < oldRows; k++) {
-				if(rowsRemoved[k]) {
-					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("%d removed....", k);}
-					continue;
-				} else {
-					if(OMX_DEBUG_MATRIX || OMX_DEBUG_ALGEBRA) { mxLog("%d kept....", k);}
-					omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
-					nextRow++;
-				}
+				if(rowsRemoved[k]) continue;
+				omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+				nextRow++;
 			}
 			nextCol++;
+		}
+	} else {
+		for(int k = 0; k < oldRows; k++) {
+			if(rowsRemoved[k]) continue;
+			nextCol = 0;
+			for(int j = 0; j < oldCols; j++) {
+				if(colsRemoved[j]) continue;
+				omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+				nextCol++;
+			}
+			nextRow++;
 		}
 	}
 
