@@ -304,11 +304,11 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
             determinant = 0.0;
             if(numIdenticalDefs <= 0 || numIdenticalOrdinalRows <= 0 || firstRow) {
                 // Recalculate Ordinal covariance matrix
-                omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
+		    omxCopyMatrix(ordCov, cov);
                 omxRemoveRowsAndColumns(ordCov, numOrdRemoves, numOrdRemoves, ordRemove, ordRemove);
                 
                 // Recalculate ordinal fs
-                omxResetAliasedMatrix(ordMeans);
+                omxCopyMatrix(ordMeans, means);
                 omxRemoveElements(ordMeans, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
                 
                 // These values pass through directly without modification by continuous variables
@@ -321,9 +321,9 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
             /* Reset and Resample rows if necessary. */
             // First Cov and Means (if they've changed)
             if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow) {
-                omxResetAliasedMatrix(smallMeans);
+		    omxCopyMatrix(smallMeans, means);
                 omxRemoveElements(smallMeans, numContRemoves, contRemove);
-                omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
+                omxCopyMatrix(smallCov, cov);
                 omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove, contRemove);
 
                 /* Calculate derminant and inverse of Censored continuousCov matrix */
@@ -388,7 +388,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
             }
 
             // Reset continuous data row (always needed)
-            omxResetAliasedMatrix(contRow);                                            // Reset smallRow
+            omxCopyMatrix(contRow, smallRow);
             omxRemoveElements(contRow, numContRemoves, contRemove); 	// Reduce the row to just continuous.
             F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
 
@@ -408,7 +408,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 
                 if(numIdenticalContinuousMissingness <= 0 || firstRow) {
                     // Re-sample covariance between ordinal and continuous only if the continuous missingness changes.
-                    omxResetAliasedMatrix(ordContCov);
+			omxCopyMatrix(ordContCov, cov);
                     omxRemoveRowsAndColumns(ordContCov, numContRemoves, numOrdRemoves, contRemove, ordRemove);
 
                     // TODO: Make this less of a hack.
@@ -433,7 +433,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                         omxPrint(ordCov, "Was:");
                     }
 
-                    omxResetAliasedMatrix(ordCov);				// Re-sample covariance and means matrices for ordinal
+                    omxCopyMatrix(ordCov, cov);
                     if(OMX_DEBUG_ROWS(row)) {
                         mxLog("Resetting/Filtering Ordinal Covariance Matrix.");
                         omxPrint(ordCov, "Reset to:");
@@ -452,7 +452,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                 }
                 
                 // Projected means must be recalculated if the continuous variables change at all.
-                omxResetAliasedMatrix(ordMeans);
+                omxCopyMatrix(ordMeans, means);
                 omxRemoveElements(ordMeans, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
                 F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), contRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
             }
@@ -469,7 +469,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                 omxStandardizeCovMatrix(ordCov, corList, weights);
             }
             
-            omxResetAliasedMatrix(ordRow);                                              // Propagate to ordinal row
+            omxCopyMatrix(ordRow, smallRow);
             omxRemoveElements(ordRow, numOrdRemoves, ordRemove); 	    // Reduce the row to just ordinal.
 
             // omxPrint(ordMeans, "Ordinal Projected Means"); //:::DEBUG:::
@@ -994,7 +994,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 		if((keepInverse <= 0 || keepCov <= 0 || firstRow) && strcmp(expectation->expType, "MxExpectationStateSpace")) { // If defs and missingness don't change, skip.
 			// also skip if this is a state space expectation
 			if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to recompute inverse cov for standard models"); }
-			omxResetAliasedMatrix(smallCov);				// Re-sample covariance matrix
+			omxCopyMatrix(smallCov, cov);
 			omxRemoveRowsAndColumns(smallCov, numRemoves, numRemoves, toRemove, toRemove);
 
 			if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Local Covariance Matrix"); }

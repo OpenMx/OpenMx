@@ -63,11 +63,9 @@ class omxMatrix {
 
 	SEXP owner;	// The R object owning data or NULL if we own it.
 
-/* For aliased matrices */				// Maybe this should be a subclass, as well.
-	omxMatrix* aliasedPtr;				// For now, assumes outside data if aliased.
-	unsigned short originalColMajor;	// Saved for reset of aliased matrix.
-	unsigned short originalRows;		// Saved for reset of aliased matrix.
-	unsigned short originalCols;		// Saved for reset of aliased matrix.
+	// size of allocated memory of data pointer
+	int originalRows;
+	int originalCols;
 
 /* For BLAS Multiplication Speedup */ 	// TODO: Replace some of these with inlines or macros.
 	const char* majority;				// Filled by compute(), included for speed
@@ -139,11 +137,8 @@ void omxInitialCompute(omxMatrix *matrix);
 	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
 	void omxForceCompute(omxMatrix *matrix);
 
-/* Aliased Matrix Functions */
-	void omxAliasMatrix(omxMatrix *alias, omxMatrix* const source);		// Allows aliasing for faster reset.
-	void omxResetAliasedMatrix(omxMatrix *matrix);						// Reset to the original matrix
-	void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);
-	void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
+void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);
+void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
 	void omxMatrixLeadingLagging(omxMatrix *matrix);

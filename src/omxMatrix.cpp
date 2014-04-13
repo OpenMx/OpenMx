@@ -80,7 +80,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
-	om->originalColMajor=om->colMajor;
 
 	om->owner = NULL;
 	if(om->rows == 0 || om->cols == 0) {
@@ -89,7 +88,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 		om->data = (double*) Calloc(nrows * ncols, double);
 	}
 
-	om->aliasedPtr = NULL;
 	om->algebra = NULL;
 	om->fitFunction = NULL;
 
@@ -127,7 +125,6 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	dest->colMajor = orig->colMajor;
 	dest->originalRows = dest->rows;
 	dest->originalCols = dest->cols;
-	dest->originalColMajor = dest->colMajor;
 	dest->populate = orig->populate;
 
 	if(dest->rows == 0 || dest->cols == 0) {
@@ -143,14 +140,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 		}
 	}
 
-	dest->aliasedPtr = NULL;
-
 	omxMatrixLeadingLagging(dest);
-}
-
-void omxAliasMatrix(omxMatrix *dest, omxMatrix *src) {
-	omxCopyMatrix(dest, src);
-	dest->aliasedPtr = src;					// Alias now follows back matrix precisely.
 }
 
 void omxFreeMatrix(omxMatrix *om) {
@@ -246,14 +236,6 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
 
-	omxMatrixLeadingLagging(om);
-}
-
-void omxResetAliasedMatrix(omxMatrix *om)
-{
-	if (!om->aliasedPtr) Rf_error("This can't possibly work");
-
-	omxAliasMatrix(om, om->aliasedPtr);
 	omxMatrixLeadingLagging(om);
 }
 
@@ -412,8 +394,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->colMajor = TRUE;
 	om->originalRows = om->rows;
 	om->originalCols = om->cols;
-	om->originalColMajor = TRUE;
-	om->aliasedPtr = NULL;
 	om->algebra = NULL;
 	om->fitFunction = NULL;
 	om->currentState = state;

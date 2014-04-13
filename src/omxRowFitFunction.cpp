@@ -133,7 +133,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 			continue;
 		}
 
-		omxResetAliasedMatrix(filteredDataRow); 			// Reset the row
+		omxCopyMatrix(filteredDataRow, dataRow);
 		omxRemoveRowsAndColumns(filteredDataRow, 0, numRemoves, zeros, toRemove);
 
 		omxRecompute(rowAlgebra);							// Compute this row
@@ -250,7 +250,7 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	}
 	// Create the original data row from which to filter.
     newObj->dataRow = omxInitMatrix(newObj->filteredDataRow->rows, newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
-    omxAliasMatrix(newObj->filteredDataRow, newObj->dataRow);
+    omxCopyMatrix(newObj->filteredDataRow, newObj->dataRow);
 	Rf_unprotect(1);// nextMatrix
 
 	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("existenceVector")));

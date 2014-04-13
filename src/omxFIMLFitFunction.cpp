@@ -560,7 +560,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->RCX = omxInitMatrix(1, covCols, TRUE, off->matrix->currentState);
 //  newObj->zeros = omxInitMatrix(1, newObj->cov->cols, TRUE, off->matrix->currentState);
 
-    omxAliasMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
+    omxCopyMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
     off->argStruct = (void*)newObj;
 
     if(numOrdinal > 0 && numContinuous <= 0) {
@@ -569,7 +569,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
         newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        omxAliasMatrix(newObj->smallMeans, newObj->means);
+        omxCopyMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
@@ -591,13 +591,13 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
         newObj->ordContCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
-        omxAliasMatrix(newObj->smallMeans, newObj->means);
-        omxAliasMatrix(newObj->ordMeans, newObj->means);
-        omxAliasMatrix(newObj->contRow, newObj->smallRow );
-        omxAliasMatrix(newObj->ordRow, newObj->smallRow );
-        omxAliasMatrix(newObj->ordCov, newObj->cov);
-        omxAliasMatrix(newObj->ordContCov, newObj->cov);
-        omxAliasMatrix(newObj->smallMeans, newObj->means);
+        omxCopyMatrix(newObj->smallMeans, newObj->means);
+        omxCopyMatrix(newObj->ordMeans, newObj->means);
+        omxCopyMatrix(newObj->contRow, newObj->smallRow );
+        omxCopyMatrix(newObj->ordRow, newObj->smallRow );
+        omxCopyMatrix(newObj->ordCov, newObj->cov);
+        omxCopyMatrix(newObj->ordContCov, newObj->cov);
+        omxCopyMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
