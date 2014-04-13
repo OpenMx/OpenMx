@@ -82,12 +82,74 @@ setMethod("initialize", "MxExpectationStateSpace",
 setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 	function(.Object, flatModel, namespace, labelsData) {
 		cache <- new.env(parent = emptyenv())
+		modelname <- getModelName(.Object)
 		if(is.na(.Object@data)) {
 			msg <- paste("The SSM expectation function",
 				"does not have a dataset associated with it in model",
-				omxQuotes(flatModel@name))
+				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
+		
+		tuple <- evaluateMxObject(.Object@A, flatModel, labelsData, cache)
+		Amatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@B, flatModel, labelsData, cache)
+		Bmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@C, flatModel, labelsData, cache)
+		Cmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@D, flatModel, labelsData, cache)
+		Dmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@Q, flatModel, labelsData, cache)
+		Qmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@R, flatModel, labelsData, cache)
+		Rmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@x0, flatModel, labelsData, cache)
+		Xmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@P0, flatModel, labelsData, cache)
+		Pmatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		tuple <- evaluateMxObject(.Object@u, flatModel, labelsData, cache)
+		Umatrix <- tuple[[1]]
+		cache <- tuple[[2]]
+		# Conformability checking
+		ldim <- ncol(Cmatrix)
+		mdim <- nrow(Cmatrix)
+		checkSSMConformable(Amatrix, ldim, ldim, 'A', omxQuotes(modelname))
+		checkSSMConformable(Cmatrix, mdim, ldim, 'C', omxQuotes(modelname))
+		checkSSMConformable(Qmatrix, ldim, ldim, 'Q', omxQuotes(modelname))
+		checkSSMConformable(Rmatrix, mdim, mdim, 'R', omxQuotes(modelname))
+		checkSSMConformable(Xmatrix, ldim, 1, 'x0', omxQuotes(modelname))
+		checkSSMConformable(Pmatrix, ldim, ldim, 'P0', omxQuotes(modelname))
+		#
+		# If any of B, D, u are not missing, then
+		#  1.  All of B, D, u must not be missing
+		#  2.  colnames of B and D must match rownames of u?
+		# 3.   Conformability checks
+		#  ldim <- ncol(Cmatrix)
+		#  mdim <- nrow(Cmatrix)
+		#  udim <- ncol(Bmatrix)
+		#  A: ldim x ldim
+		#  B: ldim x udim
+		#  C: mdim x ldim
+		#  D: mdim x udim
+		#  Q: ldim x ldim
+		#  R: mdim x mdim
+		#  x: ldim x 1
+		#  P: ldim x ldim
+		#  u: udim x 1
+		if(!is.null(Bmatrix) || !is.null(Dmatrix) || !is.null(Umatrix)){
+			udim <- ncol(Bmatrix)
+			checkSSMConformable(Bmatrix, ldim, udim, 'B', omxQuotes(modelname))
+			checkSSMConformable(Dmatrix, mdim, udim, 'D', omxQuotes(modelname))
+			checkSSMConformable(Umatrix, udim, 1, 'u', omxQuotes(modelname))
+		}
+		
 		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
 		
 		return(flatModel)
@@ -205,44 +267,11 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		checkSSMNotMissing(rMatrix, 'R', omxQuotes(modelname))
 		checkSSMNotMissing(xMatrix, 'x0', omxQuotes(modelname))
 		checkSSMNotMissing(pMatrix, 'P0', omxQuotes(modelname))
-		ldim <- ncol(cMatrix)
-		mdim <- nrow(cMatrix)
-		checkSSMConformable(aMatrix, ldim, ldim, 'A', omxQuotes(modelname))
-		checkSSMConformable(cMatrix, mdim, ldim, 'C', omxQuotes(modelname))
-		checkSSMConformable(qMatrix, ldim, ldim, 'Q', omxQuotes(modelname))
-		checkSSMConformable(rMatrix, mdim, mdim, 'R', omxQuotes(modelname))
-		checkSSMConformable(xMatrix, ldim, 1, 'x0', omxQuotes(modelname))
-		checkSSMConformable(pMatrix, ldim, ldim, 'P0', omxQuotes(modelname))
-		#
-		# If any of B, D, u are not missing, then
-		#  1.  All of B, D, u must not be missing
-		#  2.  colnames of B and D must match rownames of u?
-		# 3.   Conformability checks
-		#  ldim <- ncol(cMatrix)
-		#  mdim <- nrow(cMatrix)
-		#  udim <- ncol(bMatrix)
-		#  A: ldim x ldim
-		#  B: ldim x udim
-		#  C: mdim x ldim
-		#  D: mdim x udim
-		#  Q: ldim x ldim
-		#  R: mdim x mdim
-		#  x: ldim x 1
-		#  P: ldim x ldim
-		#  u: udim x 1
 		if(!is.null(bMatrix) || !is.null(dMatrix) || !is.null(uMatrix)){
-			# 1.
 			checkSSMNotMissing(bMatrix, 'B', omxQuotes(modelname))
 			checkSSMNotMissing(dMatrix, 'D', omxQuotes(modelname))
 			checkSSMNotMissing(uMatrix, 'u', omxQuotes(modelname))
-			# 2.
-			# 3.
-			udim <- ncol(bMatrix)
-			checkSSMConformable(bMatrix, ldim, udim, 'B', omxQuotes(modelname))
-			checkSSMConformable(dMatrix, mdim, udim, 'D', omxQuotes(modelname))
-			checkSSMConformable(uMatrix, udim, 1, 'u', omxQuotes(modelname))
 		}
-		
 		translatedNames <- c(dimnames(cMatrix)[[1]])
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds

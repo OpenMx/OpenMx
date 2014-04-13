@@ -46,6 +46,9 @@ void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *
 	omxRecompute(ose->D);
 	omxRecompute(ose->Q);
 	omxRecompute(ose->R);
+	//omxRecompute(ose->x0); //Don't think I need to recompute these b.c. kalmanP/U functions do not use these.  They are recomputed on resetting these components.
+	//omxRecompute(ose->P0);
+	//omxRecompute(ose->u);
 	
 	// Probably should loop through all the data here!!!
 	omxKalmanPredict(ose);
@@ -166,7 +169,10 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxMatrix* smallC = ose->smallC;
 	omxMatrix* smallD = ose->smallD;
 	omxMatrix* smallr = ose->smallr;
+	omxMatrix* R = ose->R;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(R, "....State Space: R on entry"); }
 	omxMatrix* smallR = ose->smallR;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallR, "....State Space: small R on entry"); }
 	omxMatrix* smallK = ose->smallK;
 	omxMatrix* smallS = ose->smallS;
 	omxMatrix* smallY = ose->smallY;
@@ -189,6 +195,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Reset)"); }
 	omxResetAliasedMatrix(smallD);
 	omxResetAliasedMatrix(smallR);
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallR, "....State Space: small R (Reset)"); }
 	omxResetAliasedMatrix(smallr);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Reset)"); }
 	omxResetAliasedMatrix(smallK);
@@ -453,6 +460,8 @@ void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* of
 		//ose->y = om;
 	}
 	if(!strcmp("Reset", component)) {
+		omxRecompute(ose->x0);
+		omxRecompute(ose->P0);
 		omxCopyMatrix(ose->x, ose->x0);
 		omxCopyMatrix(ose->P, ose->P0);
 	}
