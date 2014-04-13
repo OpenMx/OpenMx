@@ -232,9 +232,8 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { 
-		mxLog("Resizing matrix from (%d, %d) to (%d, %d) (keepMemory: %d)", 
-			om->rows, om->cols, 
-			nrows, ncols, keepMemory);
+		mxLog("Resizing matrix from (%d, %d) to (%d, %d)",
+			om->rows, om->cols, nrows, ncols);
 	}
 
 	if( (om->rows != nrows || om->cols != ncols)) {
@@ -252,12 +251,9 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMem
 
 void omxResetAliasedMatrix(omxMatrix *om)
 {
-	if (om->aliasedPtr) {
-		omxAliasMatrix(om, om->aliasedPtr);
-	} else {
-		om->rows = om->originalRows;
-		om->cols = om->originalCols;
-	}
+	if (!om->aliasedPtr) Rf_error("This can't possibly work");
+
+	omxAliasMatrix(om, om->aliasedPtr);
 	omxMatrixLeadingLagging(om);
 }
 

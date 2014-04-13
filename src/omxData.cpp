@@ -350,17 +350,18 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 	contiguous->isContiguous = TRUE;    // Passed.  This is contiguous.
 }
 
-void omxContiguousDataRow(omxData *od, int row, int start, int Rf_length, omxMatrix* om) {
+void omxContiguousDataRow(omxData *od, int row, int start, int len, omxMatrix* om) {
 	// TODO: Might be better to combine this with omxDataRow to make a single accessor omxDataRow with a second signature that accepts an omxContiguousData argument.
 	if(row >= od->rows) Rf_error("Invalid row");
 
 	if(om == NULL) Rf_error("Must provide an output matrix");
 	
+	if (om->cols < len) Rf_error("omxContiguousDataRow: output matrix is too small");
 	int numcols = od->cols;
 	omxMatrix* dataMat = od->dataMat;
 	double *dest = om->data;
 	double *source = dataMat->data + row * numcols + start;
-	memcpy(dest, source, sizeof(double) * Rf_length);
+	memcpy(dest, source, sizeof(double) * len);
 }
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
