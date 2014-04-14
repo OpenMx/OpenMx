@@ -708,18 +708,22 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
+##' library(OpenMx)
 ##' data(demoOneFactor)
 ##' factorModel <- mxModel(name ="One Factor",
-##'   mxMatrix(type="Full", nrow=5, ncol=1, free=FALSE, values=0.2, name="A"),
-##'     mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
-##'     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
-##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
-##'   mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
-##'   mxFitFunctionML(),
-##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
-##'     mxComputeNumericDeriv())
+##' 	mxMatrix(type = "Full", nrow = 5, ncol = 1, free = FALSE, values = .2, name = "A"), 
+##' 	mxMatrix(type = "Symm", nrow = 1, ncol = 1, free = FALSE, values = 1 , name = "L"), 
+##' 	mxMatrix(type = "Diag", nrow = 5, ncol = 5, free = TRUE , values = 1 , name = "U"), 
+##' 	mxAlgebra(A %*% L %*% t(A) + U, name = "R"),
+##' 	mxExpectationNormal(covariance = "R", dimnames = names(demoOneFactor)), 
+##' 	mxFitFunctionML(), 
+##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500), 
+##' 	mxComputeSequence(
+##' 		list(mxComputeNumericDeriv(), mxComputeReportDeriv())
+##' 	)
+##' )
 ##' factorModelFit <- mxRun(factorModel)
-##' factorModelFit$output$calculatedHessian
+##' factorModelFit$output$hessian
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L)
