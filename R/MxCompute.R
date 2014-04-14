@@ -158,14 +158,14 @@ setMethod("initialize", "MxComputeOnce",
 ##'
 ##' The information matrix is only valid when parameters are at the
 ##' maximum likelihood estimate. The information matrix is returned in
-##' model@output$hessian. You cannot request both the information
+##' model$output$hessian. You cannot request both the information
 ##' matrix and the Hessian. The information matrix is invarient to the
 ##' sign of the log likelihood scale whereas the Hessian is not.
 ##' Use the \code{how} parameter to specify which approximation to use
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
 ##'
 ##' @param from the object to perform the computation (a vector of expectation or algebra names)
-##' @param what what to compute (defaults is "nothing")
+##' @param what what to compute (default is "nothing")
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -184,7 +184,7 @@ setMethod("initialize", "MxComputeOnce",
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'     mxComputeOnce('fitfunction', 'fit'))
 ##' factorModelFit <- mxRun(factorModel)
-##' factorModelFit@output$fit  # 972.15
+##' factorModelFit$output$fit  # 972.15
 
 mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 			  freeSet=NA_character_, verbose=0L, .is.bestfit=FALSE) {
@@ -280,7 +280,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'      mxComputeHessianQuality()
 ##'     )))
 ##' factorModelFit <- mxRun(factorModel)
-##' factorModelFit@output$conditionNumber # 29.5
+##' factorModelFit$output$conditionNumber # 29.5
 
 mxComputeGradientDescent <- function(freeSet=NA_character_, ..., useGradient=NULL,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
@@ -719,7 +719,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'     mxComputeNumericDeriv())
 ##' factorModelFit <- mxRun(factorModel)
-##' factorModelFit@output$hessian
+##' factorModelFit$output$calculatedHessian
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L)
@@ -769,8 +769,8 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' Compute the quality of the Hessian
 ##'
 ##' Tests whether the Hessian is positive definite
-##' (model@output$infoDefinite) and, if so, computes the condition
-##' number (model@output$conditionNumber). See Luenberger & Ye (2008)
+##' (model$output$infoDefinite) and, if so, computes the condition
+##' number (model$output$conditionNumber). See Luenberger & Ye (2008)
 ##' Second Order Test (p. 190) and Condition Number (p. 239).
 ##' 
 ##' @param freeSet names of matrices containing free variables
