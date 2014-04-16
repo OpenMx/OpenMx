@@ -13,36 +13,31 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{vec2diag}
-\alias{vec2diag}
+\name{cvectorize}
+\alias{cvectorize}
 
-\title{Create Diagonal Matrix From Vector}
+\title{Vectorize By Column}
 
 \description{
-   Given an input row or column vector, \code{vec2diag} returns a diagonal matrix with the input argument along the diagonal.
+   This function returns the vectorization of an input matrix in a column by column traversal of the matrix.  The output is returned as a column vector.
 }
 
 \usage{
-vec2diag(x)
+cvectorize(x)
 }
 
 \arguments{
-   \item{x}{a row or column vector.}
-}
-
-\details{
-   Similar to the function \code{\link{diag}}, except that the input argument is always
-   treated as a vector of elements to place along the diagonal.
+   \item{x}{an input matrix.}
 }
 
 \seealso{
-\code{\link{diag2vec}} 
+\code{\link{rvectorize}}, \code{\link{vech}}, \code{\link{vechs}} 
 }
 
 \examples{
 
-vec2diag(matrix(1:4, 1, 4))
-vec2diag(matrix(1:4, 4, 1))
+cvectorize(matrix(1:9, 3, 3))
+cvectorize(matrix(1:12, 3, 4))
 
 
 }
