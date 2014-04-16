@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -o errexit
 set -o nounset
@@ -17,6 +17,22 @@ crash me
 }
 EOF
     $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
+}
+
+compareVersions() {
+  typeset    IFS='.'
+  typeset -a v1=( $1 )
+  typeset -a v2=( $2 )
+  typeset    n diff
+
+  for (( n=0; n<4; n+=1 )); do
+    diff=$((v1[n]-v2[n]))
+    if [ $diff -ne 0 ] ; then
+      [ $diff -le 0 ] && echo '-1' || echo '1'
+      return
+    fi
+  done
+  echo  '0'
 }
 
 : ${R_HOME:=`R RHOME`}
@@ -52,13 +68,16 @@ else
     exit 1
 fi
 
+cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
+
 if [ "$cxx_type" = gcc ]; then
     COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter"
+    if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto"
+    fi
     OPENMP_CXXFLAGS="-fopenmp"
     OPENMP_LDFLAGS="-fopenmp"
 fi
-
-cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
 
 host_cpu=$(uname -p)
 if [ "x$host_cpu" = xunknown ]; then
