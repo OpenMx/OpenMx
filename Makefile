@@ -131,7 +131,8 @@ ROXDOC = man/genericFitDependencies.Rd man/imxAddDependency.Rd man/MxAlgebraFunc
 	man/mxFitFunctionMultigroup.Rd \
 	man/mxComputeNothing.Rd \
 	man/mxComputeReportDeriv.Rd \
-	man/mxSetDefaultOptions.Rd
+	man/mxSetDefaultOptions.Rd \
+	man/OpenMx.Rd
 
 # file types
 RFILES = $(wildcard R/*.R)
