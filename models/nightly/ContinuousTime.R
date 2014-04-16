@@ -187,6 +187,11 @@ larModel <-mxModel("lar",
 
 larModel <- mxOption(larModel, "Calculate Hessian", "No")
 larModel <- mxOption(larModel, "Standard Errors", "No")
+#larModel <- mxOption(larModel, "Number of Threads", 1L)
+
+larFit <- mxModel(larModel, mxComputeOnce('fitfunction', 'fit'))
+got <- mxRun(larFit, silent=TRUE)
+omxCheckCloseEnough(got$output$fit, 43053.09, .01)
 
 testfit<-mxRun(larModel)
 
