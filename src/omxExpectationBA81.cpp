@@ -774,7 +774,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		} else if (strcmp(what, "nothing")==0) {
 			state->type = EXPECTATION_OBSERVED;
 		} else {
-			omxRaiseErrorf(globalState, "%s: don't know how to predict '%s'",
+			omxRaiseErrorf("%s: don't know how to predict '%s'",
 				       oo->name, what);
 		}
 		return;
@@ -1031,7 +1031,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->data = omxDataLookupFromState(tmp, currentState);
 
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
-		omxRaiseErrorf(currentState, "%s unable to handle data type %s", oo->name, omxDataType(state->data));
+		omxRaiseErrorf("%s unable to handle data type %s", oo->name, omxDataType(state->data));
 		return;
 	}
 
@@ -1090,7 +1090,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	omxData *data = state->data;
 	if (omxDataNumFactor(data) != data->cols) {
 		// verify they are ordered factors TODO
-		omxRaiseErrorf(currentState, "%s: all columns must be factors", oo->name);
+		omxRaiseErrorf("%s: all columns must be factors", oo->name);
 		omxPrintData(data, "data", 5);
 		return;
 	}
@@ -1158,7 +1158,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->totalOutcomes = totalOutcomes;
 
 	if (int(state->itemSpec.size()) != data->cols) {
-		omxRaiseErrorf(currentState, "ItemSpec must contain %d item model specifications",
+		omxRaiseErrorf("ItemSpec must contain %d item model specifications",
 			       data->cols);
 		return;
 	}
@@ -1177,7 +1177,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	} else {
 		Eigen::MatrixXi &design = state->design;
 		if (design.cols() != numItems) {
-			omxRaiseErrorf(currentState, "Design matrix should have %d columns", numItems);
+			omxRaiseErrorf("Design matrix should have %d columns", numItems);
 			return;
 		}
 
@@ -1216,7 +1216,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 					if (ss == -1) {
 						ss = ability;
 					} else {
-						omxRaiseErrorf(currentState, "Item %d cannot belong to more than "
+						omxRaiseErrorf("Item %d cannot belong to more than "
 							       "1 specific dimension (both %d and %d)",
 							       ix, ss, ability);
 						return;
@@ -1258,8 +1258,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		for (int ax=0; ax < state->maxAbilities; ++ax) {
 			if (!hasScore[ax]) {
 				int dest = omxDataIndex(data, ux);
-				omxRaiseErrorf(currentState,
-					       "Data row %d has no information about ability %d", 1+dest, 1+ax);
+				omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
 				return;
 			}
 		}

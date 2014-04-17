@@ -40,14 +40,14 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
 	if (LENGTH(theReturn) < 1) {
 		// seems impossible, but report it if it happens
-		omxRaiseErrorf(currentState, "FitFunction returned nothing");
+		omxRaiseErrorf("FitFunction returned nothing");
 	} else if (LENGTH(theReturn) == 1) {
 		oo->matrix->data[0] = Rf_asReal(theReturn);
 	} else if (LENGTH(theReturn) == 2) {
 		oo->matrix->data[0] = Rf_asReal(VECTOR_ELT(theReturn, 0));
 		R_Reprotect(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
 	} else if (LENGTH(theReturn) > 2) {
-		omxRaiseErrorf(currentState, "FitFunction returned more than 2 arguments");
+		omxRaiseErrorf("FitFunction returned more than 2 arguments");
 	}
 
 	Rf_unprotect(2); // theCall and theReturn

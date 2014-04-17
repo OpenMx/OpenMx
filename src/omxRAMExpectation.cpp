@@ -637,7 +637,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->currentState, -1, errstr);                        // Raise Rf_error
+        omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
         return;                                                                     // Leave output untouched
     }
@@ -650,7 +650,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->currentState, -1, errstr);                        // Raise Rf_error
+        omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
         return;
     }

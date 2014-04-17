@@ -308,7 +308,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxRecompute(fitMat);
 	minimum = omxMatrixElement(fitMat, 0, 0);
 	if (!std::isfinite(minimum)) {
-		omxRaiseErrorf(globalState, "mxComputeNumericDeriv: reference fit is %f", minimum);
+		omxRaiseErrorf("mxComputeNumericDeriv: reference fit is %f", minimum);
 		return;
 	}
 

@@ -244,7 +244,7 @@ void omxGlobal::deduplicateVarGroups()
 				if(os->conList[i].result != NULL) {   // Not sure of proper failure behavior here.
             	return(os->conList[i].result);
 				} else {
-                    omxRaiseError(os, -2, "Initialization Copy Error: Constraint required but not yet processed.");
+                    omxRaiseError("Initialization Copy Error: Constraint required but not yet processed.");
             }
 			}
 		}
@@ -414,7 +414,7 @@ void _omxRaiseError()
 	// keep for debugger breakpoints
 }
 
-void omxRaiseErrorf(omxState *, const char* msg, ...)
+void omxRaiseErrorf(const char* msg, ...)
 {
 	va_list ap;
 	va_start(ap, msg);
@@ -459,8 +459,8 @@ const char *omxGlobal::getBads()
 	return mem;
 }
 
-void omxRaiseError(omxState *, int, const char* msg) { // DEPRECATED
-	omxRaiseErrorf(NULL, "%s", msg);
+void omxRaiseError(const char* msg) { // DEPRECATED
+	omxRaiseErrorf("%s", msg);
 }
 
 	void omxStateNextRow(omxState *state) {

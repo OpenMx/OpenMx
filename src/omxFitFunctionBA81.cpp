@@ -270,7 +270,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
 	if (do_deriv && !state->freeItemParams) {
-		omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+		omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 		return NA_REAL;
 	}
 
@@ -383,7 +383,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		      oo->matrix->name, (int) excluded, (int) numItems);
 	}
 	if (excluded == numItems) {
-		omxRaiseErrorf(globalState, "Hessian not positive definite for %d/%d items",
+		omxRaiseErrorf("Hessian not positive definite for %d/%d items",
 			       (int) excluded, (int) numItems);
 	}
 
@@ -1018,7 +1018,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildLatentParamMap(oo, fc);
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams) {
-				omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 				return NA_REAL;
 			}
 			ba81SetupQuadrature(oo->expectation);
@@ -1026,7 +1026,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			if (fc->infoMethod == INFO_METHOD_HESSIAN) {
 				ba81ComputeEMFit(oo, FF_COMPUTE_HESSIAN, fc);
 			} else {
-				omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+				omxRaiseErrorf("Information matrix approximation method %d is not available",
 					       fc->infoMethod);
 				return NA_REAL;
 			}
@@ -1047,20 +1047,20 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams && !state->freeLatents) {
-				omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 				return NA_REAL;
 			}
 			ba81SetupQuadrature(oo->expectation);
 
 			if (state->freeLatents) {
 				if (want & FF_COMPUTE_INFO && fc->infoMethod != INFO_METHOD_MEAT) {
-					omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+					omxRaiseErrorf("Information matrix approximation method %d is not available",
 						       fc->infoMethod);
 				}
 				if (!gradCov(oo, fc)) return INFINITY;
 			} else {
 				if (!state->freeItemParams) {
-					omxRaiseErrorf(0, "%s: no free parameters", oo->matrix->name);
+					omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 					return NA_REAL;
 				}
 				sandwich(oo, fc);

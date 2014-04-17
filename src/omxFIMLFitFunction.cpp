@@ -467,20 +467,20 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	omxFIMLFitFunction *newObj = (omxFIMLFitFunction*) R_alloc(1, sizeof(omxFIMLFitFunction));
 	omxExpectation* expectation = off->expectation;
 	if(expectation == NULL) {
-		omxRaiseError(off->matrix->currentState, -1, "FIML cannot fit without model expectations.");
+		omxRaiseError("FIML cannot fit without model expectations.");
 		return;
 	}
 
 	cov = omxGetExpectationComponent(expectation, off, "cov");
 	if(cov == NULL) { 
-		omxRaiseError(off->matrix->currentState, -1, "No covariance expectation in FIML evaluation.");
+		omxRaiseError("No covariance expectation in FIML evaluation.");
 		return;
 	}
 
 	means = omxGetExpectationComponent(expectation, off, "means");
 	
 	if(means == NULL) { 
-		omxRaiseError(off->matrix->currentState, -1, "No means model in FIML evaluation.");
+		omxRaiseError("No means model in FIML evaluation.");
 		return;
 	}
 

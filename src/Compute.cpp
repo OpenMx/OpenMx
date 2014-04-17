@@ -349,7 +349,7 @@ static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool fo
 	for (size_t h1=1; h1 < numParam; h1++) {
 		for (size_t h2=0; h2 < h1; h2++) {
 			if (!force && mat[h2 * numParam + h1] != 0) {
-				omxRaiseErrorf(globalState, "%s is not upper triangular", name);
+				omxRaiseErrorf("%s is not upper triangular", name);
 				break;
 			}
 			mat[h2 * numParam + h1] = mat[h1 * numParam + h2];
@@ -1032,7 +1032,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			prevFit = fc->fit;
 		}
 		if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
-			omxRaiseErrorf(globalState, "ComputeIterate: neither MAC nor fit available");
+			omxRaiseErrorf("ComputeIterate: neither MAC nor fit available");
 		}
 		if (isErrorRaised(globalState) || ++iter > maxIter || mac < tolerance) break;
 	}
@@ -1319,11 +1319,11 @@ void ComputeEM::computeImpl(FitContext *fc)
 		totalMstepIter += mstepIter;
 
 		if (!(fc->wanted & FF_COMPUTE_FIT)) {
-			omxRaiseErrorf(globalState, "ComputeEM: fit not available");
+			omxRaiseErrorf("ComputeEM: fit not available");
 			break;
 		}
 		if (fc->fit == 0) {
-			omxRaiseErrorf(globalState, "Fit estimated at 0; something is wrong");
+			omxRaiseErrorf("Fit estimated at 0; something is wrong");
 			break;
 		}
 		double change = 0;
@@ -1687,7 +1687,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			else if (strcmp(what, "hessian")     ==0) hessian = true;
 			else if (strcmp(what, "information") ==0) infoMat = true;
 			else if (strcmp(what, "ihessian")    ==0) ihessian = true;
-			else omxRaiseErrorf(globalState, "mxComputeOnce: don't know how to compute %s", what);
+			else omxRaiseErrorf("mxComputeOnce: don't know how to compute %s", what);
 		}
 
 		if (hessian && infoMat) Rf_error("Cannot compute the Hessian and Fisher Information matrix simultaneously");
@@ -1705,7 +1705,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	bool howConflict = false;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("how")));
 	if (Rf_length(slotValue) > 1) {
-		omxRaiseErrorf(globalState, "mxComputeOnce: more than one method specified");
+		omxRaiseErrorf("mxComputeOnce: more than one method specified");
 	} else if (Rf_length(slotValue) == 1) {
 		SEXP elem;
 		Rf_protect(elem = STRING_ELT(slotValue, 0));
@@ -1719,7 +1719,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 					howConflict = true;
 				}
 			} else {
-				omxRaiseErrorf(globalState, "mxComputeOnce: unknown method %s requested", iMethod);
+				omxRaiseErrorf("mxComputeOnce: unknown method %s requested", iMethod);
 			}
 		} else {
 			how = CHAR(elem);
@@ -1727,7 +1727,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		}
 	}
 	if (howConflict) {
-		omxRaiseErrorf(globalState, "mxComputeOnce: when how is specified, you can only compute one thing at a time");
+		omxRaiseErrorf("mxComputeOnce: when how is specified, you can only compute one thing at a time");
 	}
 
 	if (algebras.size() == 1 && algebras[0]->fitFunction) {

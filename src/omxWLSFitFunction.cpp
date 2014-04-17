@@ -208,7 +208,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if(strncmp(omxDataType(dataMat), "acov", 4) != 0 && strncmp(omxDataType(dataMat), "cov", 3) != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "WLS FitFunction unable to handle data type %s.  Data must be of type 'acov'.\n", omxDataType(dataMat));
-		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		omxRaiseError(errstr);
 		free(errstr);
 		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
 		return;
@@ -242,24 +242,20 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 	    if(newObj->expectedMeans != NULL) {
-		    omxRaiseError(0,0,
-			    "Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
+		    omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
 		    return;
 	    } else {
-		    omxRaiseError(0,0,
-			    "Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
+		    omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
 		    return;	        
 	    }
 	}
 
 	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
 	    if(newObj->expectedThresholds != NULL) {
-		    omxRaiseError(0,0,
-			    "Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
+		    omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 		    return;
 	    } else {
-		    omxRaiseError(0,0,
-			    "Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
+		    omxRaiseError("Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
 		    return;	        
 	    }
 	}
@@ -278,8 +274,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 
     if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
-	    omxRaiseError(0,0,
-         "Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+	    omxRaiseError("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
      return;
     }
 

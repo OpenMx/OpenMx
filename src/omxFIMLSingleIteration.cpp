@@ -369,7 +369,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     				if(!returnRowLikelihoods) {
     					char *errstr = (char*) calloc(250, sizeof(char));
     					sprintf(errstr, "Cannot invert expected continuous covariance matrix. Error %d.", info);
-    					omxRaiseError(localobj->matrix->currentState, -1, errstr);
+    					omxRaiseError(errstr);
     					free(errstr);
                     }
    					for(int nid = 0; nid < numIdentical; nid++) {
@@ -1042,7 +1042,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
 					sprintf(errstr, "Cannot invert expected covariance matrix. Error %d.", info);
-					omxRaiseError(localobj->matrix->currentState, -1, errstr);
+					omxRaiseError(errstr);
 					free(errstr);
 				} else {
 					for(int nid = 0; nid < numIdentical; nid++) {

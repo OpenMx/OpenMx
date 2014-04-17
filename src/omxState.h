@@ -233,8 +233,8 @@ void omxFreeState(omxState *state);
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
 inline bool isErrorRaised(omxState *) { return Global->bads.size() != 0; }
-void omxRaiseError(omxState *state, int Rf_errorCode, const char* Rf_errorMsg); // DEPRECATED
-void omxRaiseErrorf(omxState *state, const char* Rf_errorMsg, ...) __attribute__((format (printf, 2, 3)));
+void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
+void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 
 /* Advance a step */
 	void omxStateNextRow(omxState *state);								// Advance Row

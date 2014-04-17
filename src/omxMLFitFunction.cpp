@@ -407,7 +407,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 
 	if ((want & FF_COMPUTE_INFO) && strcmp(expectation->expType, "MxExpectationNormal")==0) {
 		if (fc->infoMethod != INFO_METHOD_HESSIAN) {
-			omxRaiseErrorf(globalState, "Information matrix approximation method %d is not available",
+			omxRaiseErrorf("Information matrix approximation method %d is not available",
 				       fc->infoMethod);
 			return;
 		}
@@ -484,7 +484,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		}
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "ML FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
-		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		omxRaiseError(errstr);
 		free(errstr);
 		if(OMX_DEBUG) { mxLog("ML FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
 		return;
@@ -506,8 +506,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
 
 	if(newObj->expectedCov == NULL) {
-		omxRaiseError(0, 0,
-			"Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+		omxRaiseError("Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
 		return;
 	}
 
@@ -515,12 +514,10 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 		if(newObj->expectedMeans != NULL) {
-			omxRaiseError(0,0,
-				"Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		} else {
-			omxRaiseError(0,0,
-				"Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
 			return;	        
 		}
 	}
@@ -549,7 +546,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	if(info != 0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Observed Covariance Matrix is non-positive-definite.\n");
-		omxRaiseError(oo->matrix->currentState, -1, errstr);
+		omxRaiseError(errstr);
 		free(errstr);
 		return;
 	}
@@ -575,7 +572,7 @@ static void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*der
     if(derivativeFun == NULL) {
         char Rf_errorstr[250];
         sprintf(Rf_errorstr, "Programmer Rf_error: ML gradient components given NULL gradient function.");
-        omxRaiseError(oo->matrix->currentState, -2, Rf_errorstr);
+        omxRaiseError(Rf_errorstr);
         return;
     }
     
@@ -656,7 +653,7 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise Rf_error
+        omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
         return;                                                                     // Leave output untouched
     }
@@ -669,7 +666,7 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
             strncat(errstr, " at starting values", 20);
         }
         strncat(errstr, ".\n", 3);
-        omxRaiseError(oo->matrix->currentState, -1, errstr);                        // Raise Rf_error
+        omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
         return;
     }
