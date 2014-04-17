@@ -108,8 +108,6 @@ larModel <-mxModel("lar",
   
   mxMatrix(type="Full", labels=c("Q11","Q21","Q21","Q22"), values=c(.5,.1,.1,.5), free=T, name="Q",nrow=2,ncol=2),    
   mxAlgebra(DRIFT%x%II + II%x%DRIFT, name = "DRIFTHATCH"),
-  mxAlgebra(vec2diag(eigenval(DRIFTHATCH)), name = "EVAH"),
-  mxAlgebra(eigenvec(DRIFTHATCH), name = "EVECH"),
   mxMatrix("Full", values=(matrix(1,4,4)-diag(4)), name = "tempb"),   
   
   mxMatrix(type="Full", labels=c("cint1","cint2"), values=c(2,2), free=T, name="CINT",nrow=1,ncol=2),
