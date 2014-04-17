@@ -106,7 +106,7 @@ void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
 static void scalar2matrix(omxMatrix *scalar, omxMatrix *templ)
 {
 	double val = scalar->data[0];
-	omxResizeMatrix(scalar, templ->rows, templ->cols, FALSE);
+	omxResizeMatrix(scalar, templ->rows, templ->cols);
 	const int size = templ->rows * templ->cols;
 	for (int vx=0; vx < size; ++vx) scalar->data[vx] = val;
 }
@@ -153,7 +153,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(result->rows != preMul->rows || result->cols != postMul->cols)
-		omxResizeMatrix(result, preMul->rows, postMul->cols, FALSE);
+		omxResizeMatrix(result, preMul->rows, postMul->cols);
 
 	omxDGEMM(FALSE, FALSE, 1.0, preMul, postMul, 0.0, result);
 
@@ -174,7 +174,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 	
 	if (first->colMajor == second->colMajor) {
@@ -208,7 +208,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 	
 	if (first->colMajor == second->colMajor) {
@@ -244,7 +244,7 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int cols = preMulCols * postMulCols;
 
 	if(result->rows != rows || result->cols != cols)
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 
 	for(int preRow = 0; preRow < preMulRows; preRow++)
 		for(int postRow = 0; postRow < postMulRows; postRow++)
@@ -264,7 +264,7 @@ void omxKroneckerPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int cols = preMul->cols * postMul->cols;
 
 	if(result->rows != rows || result->cols != cols)
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 
 	for(int preRow = 0; preRow < preMul->rows; preRow++)
 		for(int postRow = 0; postRow < postMul->rows; postRow++)
@@ -296,7 +296,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: step = %ld.", intermediate->currentState->computeCount);}
 
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
-		omxResizeMatrix(result, preMul->rows, preMul->rows, FALSE);
+		omxResizeMatrix(result, preMul->rows, preMul->rows);
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: premul.");}
@@ -323,7 +323,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 	
 	if (first->colMajor == second->colMajor) {
@@ -353,7 +353,7 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int cols = inMat->cols;
 
 	if((rows != result->rows) || (cols != result->cols)){
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 
 	int vec_Rf_length = rows * cols;
@@ -382,7 +382,7 @@ void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result)
 		int size = rows * cols;
 
 	    if((rows != result->rows) || (cols != result->cols)){
-	        	omxResizeMatrix(result, rows, cols, FALSE);
+	        	omxResizeMatrix(result, rows, cols);
 	    }
 
 		if (first->colMajor == second->colMajor) {
@@ -425,7 +425,7 @@ void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
 		int size = rows * cols;
 
 	    if((rows != result->rows) || (cols != result->cols)){
-	             omxResizeMatrix(result, rows, cols, FALSE);
+	             omxResizeMatrix(result, rows, cols);
 	    }
 
 		if (first->colMajor == second->colMajor) {
@@ -468,7 +468,7 @@ void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
 		int size = rows * cols;
 
 	    if((rows != result->rows) || (cols != result->cols)){
-	             omxResizeMatrix(result, rows, cols, FALSE);
+	             omxResizeMatrix(result, rows, cols);
 	    }
 
 		if (first->colMajor == second->colMajor) {
@@ -513,7 +513,7 @@ void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
         if((rows != result->rows) || (cols != result->cols)){
-                omxResizeMatrix(result, rows, cols, FALSE);
+                omxResizeMatrix(result, rows, cols);
         }
 
 	if (first->colMajor == second->colMajor) {
@@ -561,7 +561,7 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
 	double negativeOne = -1.0;
 
     if((rows != result->rows) || (cols != result->cols)){
-                omxResizeMatrix(result, rows, cols, FALSE);
+                omxResizeMatrix(result, rows, cols);
     }
 
 	if (first->colMajor == second->colMajor && second->colMajor == epsilon->colMajor) {
@@ -616,7 +616,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 	
 	if (first->colMajor == second->colMajor) {
@@ -754,7 +754,7 @@ void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	colIndexLength = matrixExtractIndices(colMatrix, inMat->cols, &colIndices, result);
 
 	if (result->rows != rowIndexLength || result->cols != colIndexLength) {
-		omxResizeMatrix(result, rowIndexLength, colIndexLength, FALSE);
+		omxResizeMatrix(result, rowIndexLength, colIndexLength);
 	}
 
 	for(int row = 0; row < rowIndexLength; row++) {
@@ -782,7 +782,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 	
 	if (first->colMajor == second->colMajor) {
@@ -813,7 +813,7 @@ void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int size = rows * cols;
 
 	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols, FALSE);
+		omxResizeMatrix(result, rows, cols);
 	}
 
 	for(int i = 0; i < size; i++) {
@@ -846,7 +846,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if(result->rows != totalRows || result->cols != totalCols) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: HorizCat: resizing result.");}
-		omxResizeMatrix(result, totalRows, totalCols, FALSE);
+		omxResizeMatrix(result, totalRows, totalCols);
 	}
 
 	int allArgumentsColMajor = result->colMajor;
@@ -895,7 +895,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(result->rows != totalRows || result->cols != totalCols) {
-		omxResizeMatrix(result, totalRows, totalCols, FALSE);
+		omxResizeMatrix(result, totalRows, totalCols);
 	}
 
 	int allArgumentsRowMajor = !result->colMajor;
@@ -943,7 +943,7 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	calcMat = omxInitMatrix(rows, cols, TRUE, inMat->currentState);
@@ -988,7 +988,7 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != numArgs && result->cols != numArgs) {
-		omxResizeMatrix(result, numArgs, 1, FALSE);
+		omxResizeMatrix(result, numArgs, 1);
 	}
 
     for(int i = 0; i < numArgs; i++) {
@@ -1018,7 +1018,7 @@ void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	double sum = 0.0;
@@ -1039,7 +1039,7 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	double product = 1.0;
@@ -1060,7 +1060,7 @@ void omxMatrixArithmeticMean(omxMatrix** matList, int numArgs, omxMatrix* result
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	omxMatrix *input = matList[0];
@@ -1079,7 +1079,7 @@ void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	double min = DBL_MAX; // DBL_MAX is the maximum possible DOUBLE value, usually 10e37.
@@ -1100,7 +1100,7 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
-		omxResizeMatrix(result, 1, 1, FALSE);
+		omxResizeMatrix(result, 1, 1);
 	}
 
 	double max = -DBL_MAX;
@@ -1140,7 +1140,7 @@ void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if (result->cols != 1 || result->rows != diags) {
-		omxResizeMatrix(result, diags, 1, FALSE);
+		omxResizeMatrix(result, diags, 1);
 	}
 
 	for(int j = 0; j < diags; j++) {
@@ -1167,7 +1167,7 @@ void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if (result->cols != diags || result->rows != diags) {
-			omxResizeMatrix(result, diags, diags, FALSE);
+			omxResizeMatrix(result, diags, diags);
 	}
 
 	for(int j = 0; j < diags; j++) {
@@ -1327,7 +1327,7 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	/* Consistency check: */
 	if(result->rows != size || result->cols != 1) {
-		omxResizeMatrix(result, size, 1, FALSE);
+		omxResizeMatrix(result, size, 1);
 	}
 
 	int counter = 0;
@@ -1359,7 +1359,7 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	/* Consistency check: */
 	if(result->rows != size || result->cols != 1) {
-		omxResizeMatrix(result, size, 1, FALSE);
+		omxResizeMatrix(result, size, 1);
 	}
 
 	int counter = 0;
@@ -1387,7 +1387,7 @@ void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Consistency Check */
 	if(result->rows != size || result->cols != 1)
-		omxResizeMatrix(result, size, 1, FALSE);
+		omxResizeMatrix(result, size, 1);
 
 	if(!inMat->colMajor) {		// Special case: we can just memcpy.
 		memcpy(result->data, inMat->data, size*sizeof(double));
@@ -1409,7 +1409,7 @@ void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	/* Consistency Check */
 	if(result->rows != size || result->cols != 1)
-		omxResizeMatrix(result, size, 1, FALSE);
+		omxResizeMatrix(result, size, 1);
 	if(inMat->colMajor) {		// Special case: we can just memcpy.
 		memcpy(result->data, inMat->data, size * sizeof(double));
 	} else {
@@ -1451,7 +1451,7 @@ void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	/* Consistency check: */
 	if(result->rows != size || result->cols != 1) {
-		omxResizeMatrix(result, size, 1, FALSE);
+		omxResizeMatrix(result, size, 1);
 	}
 
 	/* Sanity-checking.  This loop can be eliminated */
@@ -1483,7 +1483,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	omxMatrix* uBoundMat = matList[3];
 
 	/* Conformance checks: */
-	if (result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1, FALSE);
+	if (result->rows != 1 || result->cols != 1) omxResizeMatrix(result, 1, 1);
 
 	if (cov->rows != cov->cols) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -1677,7 +1677,7 @@ void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	/* Conformance checks: */
-	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1, FALSE);
+	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1);
 
 	double *weights = (double*) malloc(nCols * sizeof(double));
 	double *corList = (double*) malloc((nCols * (nCols + 1) / 2) * sizeof(double));
@@ -1867,7 +1867,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
-	omxResizeMatrix(A, B->rows, 1, FALSE);
+	omxResizeMatrix(A, B->rows, 1);
 
 	/* Conformability Check! */
 	if(B->cols != B->rows) {
@@ -1881,7 +1881,7 @@ void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 
 	if(result->rows != B->rows || result->cols != 1)
-		omxResizeMatrix(result, B->rows, 1, FALSE);
+		omxResizeMatrix(result, B->rows, 1);
 
 	char N = 'N';						// Indicators for BLAS
 	// char V = 'V';						// Indicators for BLAS
@@ -1936,7 +1936,7 @@ void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
-	omxResizeMatrix(A, result->rows, result->cols, FALSE);
+	omxResizeMatrix(A, result->rows, result->cols);
 
 
 	if(A == NULL) {
@@ -2014,7 +2014,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
-	omxResizeMatrix(A, B->rows, 1, FALSE);
+	omxResizeMatrix(A, B->rows, 1);
 
 	/* Conformability Check! */
 	if(B->cols != B->rows) {
@@ -2028,7 +2028,7 @@ void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result
 	}
 
 	if(result->cols != 1 || result->rows != A->rows)
-		omxResizeMatrix(result, B->rows, 1, FALSE);
+		omxResizeMatrix(result, B->rows, 1);
 
 	char N = 'N';						// Indicators for BLAS
 
@@ -2086,7 +2086,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
-	omxResizeMatrix(A, result->rows, result->cols, FALSE);
+	omxResizeMatrix(A, result->rows, result->cols);
 
 	/* Conformability Check! */
 	if(A->cols != A->rows) {
@@ -2111,7 +2111,7 @@ void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* resul
 	double *work = (double*) malloc(lwork * sizeof(double));
 
 	if(result->rows != A->rows || result->cols != A->cols)
-		omxResizeMatrix(result, A->rows, A->cols, FALSE);
+		omxResizeMatrix(result, A->rows, A->cols);
 
 	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
@@ -2364,7 +2364,7 @@ void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if(result->rows != rows || result->cols != rows) {
         if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: cov2cor resizing result.");}
-        omxResizeMatrix(result, rows, rows, FALSE);
+        omxResizeMatrix(result, rows, rows);
 	}
 
     intermediate = omxInitMatrix(1, rows, TRUE, inMat->currentState);
@@ -2446,7 +2446,7 @@ void omxVechToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	/* Consistency check: */
 	if(result->rows != size || result->cols != size) {
-		omxResizeMatrix(result, size, size, FALSE);
+		omxResizeMatrix(result, size, size);
 	}
 
 	for(int i = 0; i < size; i++) {
@@ -2483,7 +2483,7 @@ void omxVechsToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	/* Consistency check: */
 	if(result->rows != size || result->cols != size) {
-		omxResizeMatrix(result, size, size, FALSE);
+		omxResizeMatrix(result, size, size);
 	}
 
 	for(int i = 0; i < size; i++) {

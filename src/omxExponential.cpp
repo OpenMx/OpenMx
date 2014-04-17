@@ -47,7 +47,7 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	}
 
 	if((nrow != result->rows) || (ncol != result->cols)) {
-		omxResizeMatrix(result, nrow, ncol, FALSE);
+		omxResizeMatrix(result, nrow, ncol);
 	}
 
 	double maxRowSum = 0.0;

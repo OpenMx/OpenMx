@@ -518,7 +518,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	if(newObj->returnRowLikelihoods) {
-		omxResizeMatrix(off->matrix, newObj->data->rows, 1, FALSE);
+		omxResizeMatrix(off->matrix, newObj->data->rows, 1);
 	}
     newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
     newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);

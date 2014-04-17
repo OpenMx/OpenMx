@@ -176,7 +176,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
 				rowResults->rows, rowResults->cols, 
 				data->rows, rowAlgebra->cols); 
 		}
-		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols, FALSE);
+		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols);
 	}
 	*/
 		

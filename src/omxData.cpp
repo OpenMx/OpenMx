@@ -278,7 +278,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 	omxMatrix *om = omxInitMatrix(numRows, numCols, TRUE, globalState);
 
 	if(om->rows != numRows || om->cols != numCols) {
-		omxResizeMatrix(om, numRows, numCols, FALSE);
+		omxResizeMatrix(om, numRows, numCols);
 	}
 
 	double dataElement;

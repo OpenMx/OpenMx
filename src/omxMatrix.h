@@ -123,8 +123,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState
 
 /* Matrix Modification Functions */
 	void omxZeroByZeroMatrix(omxMatrix *source);
-	void omxResizeMatrix(omxMatrix *source, int nrows, int ncols,
-							unsigned short keepMemory);									// Resize, with or without re-initialization
+void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.

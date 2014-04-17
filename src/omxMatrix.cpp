@@ -182,7 +182,7 @@ SEXP omxExportMatrix(omxMatrix *om) {
 
 void omxZeroByZeroMatrix(omxMatrix *om) {
 	if (om->rows > 0 || om->cols > 0) {
-		omxResizeMatrix(om, 0, 0, FALSE);
+		omxResizeMatrix(om, 0, 0);
 	}
 }
 
@@ -216,10 +216,8 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
     return newMat;    
 }
 
-void omxResizeMatrix(omxMatrix *om, int nrows, int ncols, unsigned short keepMemory)
+void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 {
-	if (keepMemory) error("keepMemory must be false"); // remove parameter, TODO
-
 	// Always Recompute() before you Resize().
 	if(OMX_DEBUG_MATRIX) { 
 		mxLog("Resizing matrix from (%d, %d) to (%d, %d)",

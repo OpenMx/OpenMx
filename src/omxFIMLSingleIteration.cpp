@@ -915,7 +915,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 		Q = 0.0;
 		
 		numRemoves = 0;
-		omxResizeMatrix(smallRow, 1, cov->cols, FALSE);
+		omxResizeMatrix(smallRow, 1, cov->cols);
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, smallRow);
 		} else {

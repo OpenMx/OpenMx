@@ -122,7 +122,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 
 	/* Register FitFunction and Matrix with each other */
 	obj->matrix = om;
-	omxResizeMatrix(om, 1, 1, FALSE);					// FitFunction matrices MUST be 1x1.
+	omxResizeMatrix(om, 1, 1);					// FitFunction matrices MUST be 1x1.
 	om->fitFunction = obj;
 	om->hasMatrixNumber = TRUE;
 	om->matrixNumber = matrixNumber;
