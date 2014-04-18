@@ -10,36 +10,39 @@
 library(OpenMx)
 library(mvtnorm)
 
-set.seed(1)
-
-############create data
-bivprocesscov<-matrix(c(
-  0.63,0.24,0.45,0.24,0.33,0.23,0.2,0.2,0.14,0.17,
-  0.24,0.46,0.24,0.42,0.23,0.38,0.2,0.32,0.17,0.26,
-  0.45,0.24,0.65,0.24,0.46,0.24,0.26,0.22,0.17,0.19,
-  0.24,0.42,0.24,0.52,0.25,0.47,0.23,0.39,0.2,0.33,
-  0.33,0.23,0.46,0.25,0.65,0.25,0.34,0.24,0.21,0.21,
-  0.23,0.38,0.24,0.47,0.25,0.57,0.26,0.47,0.24,0.39,
-  0.2,0.2,0.26,0.23,0.34,0.26,0.67,0.28,0.36,0.26,
-  0.2,0.32,0.22,0.39,0.24,0.47,0.28,0.64,0.29,0.53,
-  0.14,0.17,0.17,0.2,0.21,0.24,0.36,0.29,0.68,0.31,
-  0.17,0.26,0.19,0.33,0.21,0.39,0.26,0.53,0.31,0.69),nrow=10)
-
-bivprocessmeans<-c(2.5,2.84,2.57,2.84,2.6,2.84,2.65,2.84,2.66,2.84)
-
-subjects<-500
-bivprocess<-mvtnorm::rmvnorm(n=subjects,mean=bivprocessmeans,sigma=bivprocesscov)
-colnames(bivprocess)<-paste("V",1:10, sep="")
-
-intervals<-matrix(c(1,1,2,2),byrow=T,nrow=subjects,ncol=4)
-intervals<-matrix(rnorm(length(intervals),intervals,.1),ncol=4)
-
-colnames(intervals)<-paste("I",1:4, sep="")
-
-data<-cbind(bivprocess,intervals)
-
-
-
+if (0) {
+  set.seed(1)
+  
+  ############create data
+  bivprocesscov<-matrix(c(
+    0.63,0.24,0.45,0.24,0.33,0.23,0.2,0.2,0.14,0.17,
+    0.24,0.46,0.24,0.42,0.23,0.38,0.2,0.32,0.17,0.26,
+    0.45,0.24,0.65,0.24,0.46,0.24,0.26,0.22,0.17,0.19,
+    0.24,0.42,0.24,0.52,0.25,0.47,0.23,0.39,0.2,0.33,
+    0.33,0.23,0.46,0.25,0.65,0.25,0.34,0.24,0.21,0.21,
+    0.23,0.38,0.24,0.47,0.25,0.57,0.26,0.47,0.24,0.39,
+    0.2,0.2,0.26,0.23,0.34,0.26,0.67,0.28,0.36,0.26,
+    0.2,0.32,0.22,0.39,0.24,0.47,0.28,0.64,0.29,0.53,
+    0.14,0.17,0.17,0.2,0.21,0.24,0.36,0.29,0.68,0.31,
+    0.17,0.26,0.19,0.33,0.21,0.39,0.26,0.53,0.31,0.69),nrow=10)
+  
+  bivprocessmeans<-c(2.5,2.84,2.57,2.84,2.6,2.84,2.65,2.84,2.66,2.84)
+  
+  subjects<-500
+  bivprocess<-mvtnorm::rmvnorm(n=subjects,mean=bivprocessmeans,sigma=bivprocesscov)
+  colnames(bivprocess)<-paste("V",1:10, sep="")
+  
+  intervals<-matrix(c(1,1,2,2),byrow=T,nrow=subjects,ncol=4)
+  intervals<-matrix(rnorm(length(intervals),intervals,.1),ncol=4)
+  
+  colnames(intervals)<-paste("I",1:4, sep="")
+  
+  data <- round(cbind(bivprocess,intervals), 3)
+  write.table(data, file="ct.csv", row.names=FALSE)
+} else {
+  data <- suppressWarnings(try(read.table("models/nightly/data/ContinuousTime.csv", header=TRUE), silent=TRUE))
+  if (is(data, "try-error")) data <- read.table("data/ContinuousTime.csv", header=TRUE)
+}
 
 
 #########create variables and algebras for openmx
@@ -189,11 +192,11 @@ larModel <- mxOption(larModel, "Standard Errors", "No")
 
 larFit <- mxModel(larModel, mxComputeOnce('fitfunction', 'fit'))
 got <- mxRun(larFit, silent=TRUE)
-omxCheckCloseEnough(got$output$fit, 43551.30, .01)
+omxCheckCloseEnough(got$output$fit, 43550.90, .01)
 
 testfit<-mxRun(larModel)
 
-omxCheckCloseEnough(testfit$output$fit, 8383.94, .1)
+omxCheckCloseEnough(testfit$output$fit, 8383.78, .1)
 #cat(deparse(round(testfit$output$estimate,3)))
 est <- c(0.675, 0.266, 0.466, 2.496, 2.858, -0.464, 0.056,  0.246, -0.131, 0.526, -0.014, 0.164, 0.524, 0.224)
 if (0) {
