@@ -8,7 +8,7 @@
 # Statistical Psychology Volume 66, Issue 1, pages 103-126.
 
 library(OpenMx)
-require(MASS)
+library(mvtnorm)
 
 set.seed(1)
 
@@ -28,7 +28,7 @@ bivprocesscov<-matrix(c(
 bivprocessmeans<-c(2.5,2.84,2.57,2.84,2.6,2.84,2.65,2.84,2.66,2.84)
 
 subjects<-500
-bivprocess<-mvrnorm(n=subjects,mu=bivprocessmeans,Sigma=bivprocesscov,empirical=T)
+bivprocess<-mvtnorm::rmvnorm(n=subjects,mean=bivprocessmeans,sigma=bivprocesscov)
 colnames(bivprocess)<-paste("V",1:10, sep="")
 
 intervals<-matrix(c(1,1,2,2),byrow=T,nrow=subjects,ncol=4)
@@ -189,13 +189,13 @@ larModel <- mxOption(larModel, "Standard Errors", "No")
 
 larFit <- mxModel(larModel, mxComputeOnce('fitfunction', 'fit'))
 got <- mxRun(larFit, silent=TRUE)
-omxCheckCloseEnough(got$output$fit, 43053.09, .01)
+omxCheckCloseEnough(got$output$fit, 43551.30, .01)
 
 testfit<-mxRun(larModel)
 
-omxCheckCloseEnough(testfit$output$fit, 8126.39, .1)
+omxCheckCloseEnough(testfit$output$fit, 8383.94, .1)
 #cat(deparse(round(testfit$output$estimate,3)))
-est <- c(0.629, 0.24, 0.459, 2.5, 2.84, -0.453, 0.054, 0.241,  -0.125, 0.477, -0.014, 0.158, 0.527, 0.212)
+est <- c(0.675, 0.266, 0.466, 2.496, 2.858, -0.464, 0.056,  0.246, -0.131, 0.526, -0.014, 0.164, 0.524, 0.224)
 if (0) {
   testfit$output$estimate - est
   max(abs(testfit$output$estimate - est))
