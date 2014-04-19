@@ -131,7 +131,8 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
-			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE) {
+			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
+			      naAction="fail", minItemsPerScore=1L) {
 
 	if (packageVersion("rpf") < "0.15") stop("Please install 'rpf' version 0.15 or newer")
 	if (missing(qpoints)) qpoints <- 49
@@ -147,7 +148,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 		stop("qwidth must be positive")
 	}
   
-	score.options <- c("omit", "unique", "full")
+	score.options <- c("omit", "full")
 	if (!match(scores, score.options)) {
 		stop(paste("Valid score options are", deparse(score.options)))
 	}
@@ -157,6 +158,10 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 	}
 
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
+
+	if (naAction != "fail") stop("Only naAction='fail' is implemented")
+
+	if (minItemsPerScore != 1L) stop("Only minItemsPerScore=1L is implemented")
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal))
