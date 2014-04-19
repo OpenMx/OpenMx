@@ -33,8 +33,10 @@ class ComputeNR : public omxCompute {
 	int verbose;
 	double priorSpeed;
 	int minorIter;
+	double refFit;
 
-	void lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned, int *maxAdjParam, double *improvement);
+	void lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
+			int *maxAdjParam, double *improvement);
 
 public:
 	virtual void initFromFrontend(SEXP rObj);
@@ -149,7 +151,8 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 
 void pda(const double *ar, int rows, int cols);
 
-void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned, int *maxAdjParam, double *improvement)
+void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
+			   int *maxAdjParam, double *improvement)
 {
 	const size_t numParam = varGroup->vars.size();
 	const double epsilon = .3;
@@ -157,13 +160,17 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 
 	Eigen::Map<Eigen::VectorXd> prevEst(fc->est, numParam);
 
+	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
+	if (iter == 1) {
+		want |= FF_COMPUTE_FIT;
+	}
+
 	Global->checkpointPrefit(fc, fc->est, false);
-	omxFitFunctionCompute(fitMatrix->fitFunction,
-			      FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN, fc);
+	omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 	Global->checkpointPostfit(fc);
 
 	double speed = std::min(priorSpeed * 1.5, 1.0);
-	const double refFit = fitMatrix->data[0];
+	if (iter == 1) refFit = fitMatrix->data[0];
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
 	double targetImprovement = searchDir.dot(fc->grad);
 	if (targetImprovement < tolerance) {
@@ -196,6 +203,7 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 	double bestSpeed = 0;
 	double bestImproved = 0;
 	double goodness = 0;
+	double bestFit = 0;
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
@@ -217,6 +225,7 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 		}
 		bestImproved = improved;
 		bestSpeed = speed;
+		bestFit = fitMatrix->data[0];
 		goodness = improved / scaledTarget;
 		if (verbose >= 3) mxLog("%s: viable speed %f for improvement %.3g goodness %f",
 					name, bestSpeed, bestImproved, goodness);
@@ -236,6 +245,7 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 			if (!std::isfinite(fitMatrix->data[0])) break;
 			const double improved = refFit - fitMatrix->data[0];
 			if (bestImproved >= improved) break;
+			bestFit = fitMatrix->data[0];
 			bestImproved = improved;
 			bestSpeed = speed;
 			goodness = improved / (speed * targetImprovement);
@@ -261,6 +271,7 @@ void ComputeNR::lineSearch(FitContext *fc, double *maxAdj, double *maxAdjSigned,
 	memcpy(fc->est, trial.data(), sizeof(double) * numParam);
 
 	*improvement = bestImproved;
+	refFit = bestFit;
 }
 
 void ComputeNR::computeImpl(FitContext *fc)
@@ -316,7 +327,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 		maxAdj = 0;
 		double improvement = 0;
-		lineSearch(fc, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
+		lineSearch(fc, iter, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
 
 		converged = improvement < tolerance;
 		maxAdjFlavor = fc->flavor[maxAdjParam];
