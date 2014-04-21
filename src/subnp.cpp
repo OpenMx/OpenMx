@@ -30,6 +30,7 @@ double resLambda;
 Matrix resMu;
 Matrix resHessv;
 Matrix resY;
+Matrix sx_Matrix;
 
 int ineqLBLength;
 int ineqUBLength;
@@ -92,7 +93,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	Matrix grad = fill(solPars.cols, 1, (double)0.0);
     //free(matrices.front().t);
-	Matrix p_pre = fill(solPars.cols, 1, (double)0.0);
+   	Matrix p_pre = fill(solPars.cols, 1, (double)0.0);
     Matrix inform;
     Matrix ineqLBx;
     Matrix ineqUBx;
@@ -565,14 +566,13 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             mxLog("M(ob2, 0, 0) \n");
             mxLog("%.20f", M(ob, 0, 0));
         }
-        if (j == M(ob, 0, 0)){j = j_pre; maxit = solnp_iter;}
+        
         resultForTT = (j - M(ob, 0, 0)) / max(fabs(M(ob, 0, 0)), 1.0);
 		M(tt, 0, 0) = resultForTT;
         if (verbose >= 1){
             mxLog("resultForTT \n");
             mxLog("%.20f", resultForTT);
         }
-        j_pre = j;
 		j = M(ob, 0, 0);
         
 		if (tc > 0){
@@ -681,8 +681,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             mxLog("vnormValue \n");
             mxLog("%.20f", vnormValue);
         }
-        
-        searchD = divideByScalar2D(subtract(p, p_pre), delta);
+        searchD = duplicateIt(sx_Matrix);
          if (verbose >= 3){
              mxLog("searchD is: \n");
              for (i = 0; i < searchD.cols; i++) mxLog("%f",searchD.t[i]);
@@ -695,8 +694,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
              mxLog("iterateConverge is: \n");
              mxLog("%.20f", iterateConverge);
          }
-         iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
-         if (verbose >= 1)
+        iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
+        if (verbose >= 1)
          {   mxLog("iterateConvergeCond is: \n");
              mxLog("%.20f", iterateConvergeCond);
          }
@@ -714,16 +713,20 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
                 
             }
         }
-        else if (vnormValue > tol && solnp_iter == maxit_trace){
-            if (verbose >= 1){
-                mxLog("Exiting after maximum number of iterations. Tolerance not achieved\n");}
-            inform = fill(1, 1, 4);
-        }
         else{
-            if (verbose >= 1){
-                mxLog("Solution failed to converge. Final parameters are:");}
-            inform = fill(1, 1, 6);
-
+            if (solnp_iter == maxit_trace)
+            {
+                if (verbose >= 1){
+                    mxLog("Exiting after maximum number of iterations. Tolerance not achieved\n");}
+                inform = fill(1, 1, 4);
+            }
+            else
+            {
+                if (verbose >= 1){
+                    mxLog("Solution failed to converge.");
+                }
+                inform = fill(1, 1, 6);
+            }
         }
     }
 	struct Param_Obj pfunv;
@@ -1821,6 +1824,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			mxLog("go is: \n");
 			mxLog("%.16f", go);
 		}
+        sx_Matrix = duplicateIt(sx);
 		sx = duplicateIt(p);
 		yg = duplicateIt(g);
 		if (verbose >= 3){
