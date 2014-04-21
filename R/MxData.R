@@ -272,9 +272,6 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		args <- c(defvectors, othervectorsNA, othervectors, 'na.last'=FALSE)
 		indexVector <- do.call('order', args)
 		sortdata <- observed[indexVector,,drop=FALSE]
-		for (col in 1:length(observed)) {
-			attr(sortdata[[col]], 'mxFactor') <- attr(observed[[col]], 'mxFactor')
-		}
 		mxData@observed <- sortdata
 		selectMissing <- is.na(sortdata)
 		selectDefvars <- sortdata[, defkeys, drop=FALSE]
