@@ -71,7 +71,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     flag = 0; flag_L = 0; flag_U = 0;
     Matrix pars;
     double funv;
-    double j_pre;
     double resultForTT;
 	double solnp_nfn = 0;
 	eps = 2.220446e-16;
@@ -93,7 +92,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	Matrix grad = fill(solPars.cols, 1, (double)0.0);
     //free(matrices.front().t);
-   	Matrix p_pre = fill(solPars.cols, 1, (double)0.0);
     Matrix inform;
     Matrix ineqLBx;
     Matrix ineqUBx;
@@ -335,8 +333,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	int tc = nineq + neq;
     
 	double j = funv;
-    j_pre = j;
-	Matrix jh = fill(1, 1, funv);
+    Matrix jh = fill(1, 1, funv);
 	Matrix tt = fill(1, 3, (double)0.0);
     
 	Matrix lambda;
