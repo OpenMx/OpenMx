@@ -206,18 +206,6 @@ convertDatasets <- function(datasets, model, flatModel) {
 	lapply(datasets, convertDataForBackend, model=model, flatModel=flatModel)
 }
 
-resetDataSortingFlags <- function(model) {
-	if (is.null(model@data)) {
-	} else if (model@data@type != "raw") {
-	} else {
-		model@data@.isSorted <- FALSE
-	}
-	if (length(model@submodels) > 0) {
-		model@submodels <- lapply(model@submodels, resetDataSortingFlags)
-	}
-	return(model)
-}
-
 sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	if (is.null(mxData)) {
 		return(mxData)

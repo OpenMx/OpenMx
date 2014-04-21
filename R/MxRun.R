@@ -158,7 +158,6 @@ runHelper <- function(model, frontendStart,
 	model@compute <-updateModelCompute(model, output$computes)
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
-	model <- resetDataSortingFlags(model)
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
