@@ -5,10 +5,9 @@ Ordinal and Joint Ordinal-Continuous Model Specification
 
 This chapter deals with the specification of models that are either fit exclusively to ordinal variables or to a mix of ordinal and continuous variables. It extends the continuous data common factor model found in previous chapters to ordinal data.
 
-The examples for this chapter can be found in the following files:
+The examples for this chapter can be found in the following file:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_PathRaw.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal.R
 
 The continuous versions of these models for raw data can be found the previous demos here:
 
