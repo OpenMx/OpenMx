@@ -43,7 +43,9 @@ ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
                    free=c(TRUE,FALSE,FALSE,TRUE,TRUE))
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list('f1','f1')
 
 if (1) {
 #  fm <- read.flexmirt("~/irt/ifa-missingdata/ifa-md-prm.txt")

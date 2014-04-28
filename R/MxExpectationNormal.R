@@ -162,7 +162,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		checkNumberOrdinalColumns(mxDataObject)
 		covNames <- colnames(covariance)
 		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, dataName)
-		verifyExpectedNames(covName, meansName, flatModel, modelname, "normal")
+		verifyMvnNames(covName, meansName, "expected", flatModel, modelname, class(.Object))
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
 		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
 		retval <- generateThresholdColumns(flatModel, model, labelsData, covNames, dataName, threshName)
@@ -174,7 +174,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		return(.Object)
 })
 
-verifyExpectedNames <- function(covName, meansName, flatModel, modelname, expectationName) {
+verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expectationName) {
 	if (is.na(meansName)) {
 		means <- NA
 	} else {
@@ -183,8 +183,8 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, expect
 	covariance <- flatModel[[covName]]
 	covariance <- dimnames(covariance)
 	if (is.null(covariance)) {
-			msg <- paste("The expected covariance matrix associated",
-				"with the", expectationName, "expectation in model", 
+			msg <- paste("The",type,"covariance matrix associated",
+				"with", expectationName, "in model",
 				omxQuotes(modelname), "does not contain dimnames.")
 			stop(msg, call. = FALSE)	
 	}
@@ -192,8 +192,8 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, expect
 	covCols <- covariance[[2]]	
 	if (is.null(covRows) || is.null(covCols) ||
 		(length(covRows) != length(covCols)) || !all(covRows == covCols)) {
-			msg <- paste("The expected covariance matrix associated",
-				"with the", expectationName, "expectation in model", 
+			msg <- paste("The",type,"covariance matrix associated",
+				"with", expectationName, "in model",
 				omxQuotes(modelname), "does not contain identical",
 				"row and column dimnames.")
 			stop(msg, call.=FALSE)
@@ -201,23 +201,19 @@ verifyExpectedNames <- function(covName, meansName, flatModel, modelname, expect
 	if (!isS4(means) && is.na(means)) return()
 	meanDimnames <- dimnames(means)
 	if (is.null(meanDimnames)) {
-			msg <- paste("The expected means matrix associated",
-				"with the", expectationName, "expectation function in model", 
+			msg <- paste("The",type,"means matrix associated",
+				"with", expectationName, "in model",
 				omxQuotes(modelname), "does not contain dimnames.")
 			stop(msg, call.=FALSE)	
 	}
 	meanRows <- meanDimnames[[1]]
 	meanCols <- meanDimnames[[2]]
-	if (!is.null(meanRows) && length(meanRows) > 1) {
-		msg <- paste("The expected means matrix associated",
-			"with the", expectationName, "expectation in model", 
-			omxQuotes(modelname), "is not a 1 x N matrix.")
-			stop(msg, call.=FALSE)
-	}
-	if ((length(covCols) != length(meanCols)) || !all(covCols == meanCols)) {
-			msg <- paste("The expected covariance and expected",
+	meanNames <- c()
+	if (length(meanRows) > length(meanCols)) { meanNames <- meanRows } else { meanNames <- meanCols }
+	if ((length(covCols) != length(meanNames)) || !all(covCols == meanNames)) {
+			msg <- paste("The",type,"covariance and",type,
 				"means matrices associated",
-				"with the", expectationName, "expectation function in model", 
+				"with", expectationName, "in model",
 				omxQuotes(modelname), "do not contain identical",
 				"dimnames.")
 			stop(msg, call.=FALSE)

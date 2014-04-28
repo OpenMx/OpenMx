@@ -46,8 +46,10 @@ true.cov <- matrix(c(.5, -.2, -.2, .5), nrow=2)
 data <- rpf.sample(numPeople, items, correct.mat, mean=true.mean, cov=true.cov)
   
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=c(0,0), free=TRUE)
+colnames(m.mat) <- paste('f', 1:2, sep="")
 cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2),
                     free=TRUE, labels=c("v1","c12","c12","v2"))
+dimnames(cov.mat) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
 
 m2 <- mxModel(model="latent",
               ip.mat, m.mat, cov.mat,

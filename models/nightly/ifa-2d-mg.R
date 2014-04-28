@@ -58,7 +58,10 @@ mkgroup <- function(model.name, data, latent.free) {
   }
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0)
+  colnames(m.mat) <- paste('f', 1:2, sep="")
   cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2))
+  dimnames(cov.mat) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
+
   mean <- "mean"
   cov <- "cov"
   if (latent.free) {
@@ -78,13 +81,16 @@ mkgroup <- function(model.name, data, latent.free) {
 }
 
 mklatent <- function(name) {
+  mMat <- mxMatrix(nrow=1, ncol=2, free=T, values=0, name="mean")
+  colnames(mMat) <- paste('f', 1:2, sep="")
   cov <- mxMatrix(type="Symm", nrow=2, ncol=2, free=T, values=diag(2), name="cov")
+  dimnames(cov) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
   mask <- c(FALSE,TRUE,TRUE,FALSE)
   cov$labels[mask] <- paste(name, "cov",sep="")
+
   mxModel(paste(name, "latent", sep=""),
           mxDataDynamic('cov', expectation=paste(name, "expectation", sep=".")),
-          mxMatrix(nrow=1, ncol=2, free=T, values=0, name="mean"),
-          cov,
+          mMat, cov,
           mxExpectationNormal(covariance="cov", means="mean"),
           mxFitFunctionML()
   )

@@ -46,7 +46,9 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
 #ip.mat$free[2,1] <- FALSE
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
+colnames(m.mat) <- paste('f', 1:3, sep="")
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
+dimnames(cov.mat) <- list(paste('f', 1:3, sep=""), paste('f', 1:3, sep=""))
 
 m1 <- mxModel(model="bifactor",
           ip.mat, m.mat, cov.mat,

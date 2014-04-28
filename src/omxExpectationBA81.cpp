@@ -902,8 +902,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	SEXP names;
 	Rf_protect(names = Rf_allocVector(STRSXP, cols));
 	for (int nx=0; nx < maxAbilities; ++nx) {
-		snprintf(buf, SMALLBUF, "s%d", nx+1);
-		SET_STRING_ELT(names, nx, Rf_mkChar(buf));
+		SET_STRING_ELT(names, nx, Rf_mkChar(state->latentCovOut->rownames[nx]));
 		snprintf(buf, SMALLBUF, "se%d", nx+1);
 		SET_STRING_ELT(names, maxAbilities + nx, Rf_mkChar(buf));
 	}
@@ -1059,15 +1058,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) Rf_error("Failed to retrieve mean matrix");
-	state->latentMeanOut->expectation = oo;
 
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 	if (!state->latentCovOut) Rf_error("Failed to retrieve cov matrix");
-	state->latentCovOut->expectation = oo;
 
-	state->itemParam =
-		omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
-	state->itemParam->expectation = oo;
+	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EItemParam")));
 	if (!Rf_isNull(tmp)) {

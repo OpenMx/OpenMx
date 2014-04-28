@@ -25,7 +25,9 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    free=c(TRUE, TRUE, FALSE, FALSE))
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list('f1','f1')
 
 m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
@@ -86,6 +88,7 @@ got <- cor(c(m2$matrices$itemParam$values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
 scores <- m2$expectation$output$scores
+omxCheckIdentical(colnames(scores)[1], "f1")
 omxCheckCloseEnough(scores[1:5,1], c(0.6783773, 0.2848123, -0.3438632, -0.1026575, -1.0820213), .001)
 omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804, 0.6796952), 1e-4)
 omxCheckCloseEnough(scores[,1], as.vector(ability), 3.5*max(scores[,2]))

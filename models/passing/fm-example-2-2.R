@@ -24,10 +24,11 @@ plabel <- paste("g", 1:numItems, sep="")
 ip.mat$labels[3,] <- plabel
 ip.mat$values[3,] <- logit(seq(.1, .2, length.out=numItems))
 ip.mat$ubound[3,] <- logit(.9)
-# try random starting parameters? TODO
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- "f1"
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list("f1", "f1")
 
 g.mat <- mxMatrix(name="gparam", nrow=1, ncol=numItems, free=TRUE, labels=plabel,
                   values=ip.mat$values[3,], ubound=ip.mat$ubound[3,])

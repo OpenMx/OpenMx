@@ -387,6 +387,24 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 			om->owner = matrix;
 			om->data = REAL(om->owner);
 		}
+
+		SEXP dimnames;
+		Rf_protect(dimnames = Rf_getAttrib(matrix, R_DimNamesSymbol));
+		if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
+			SEXP names;
+			Rf_protect(names = VECTOR_ELT(dimnames, 0));
+			int nlen = Rf_length(names);
+			om->rownames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				om->rownames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+			Rf_protect(names = VECTOR_ELT(dimnames, 1));
+			nlen = Rf_length(names);
+			om->colnames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				om->colnames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
 	}
 
 	om->colMajor = TRUE;

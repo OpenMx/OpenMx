@@ -76,13 +76,16 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 				       omxQuotes(modelname))
 			  stop(msg, call.=FALSE)
 		  }
+
+		  verifyMvnNames(.Object@cov, .Object@mean, "prior", flatModel, model@name, class(.Object))
+
 		  name <- .Object@name
-		  for (s in c("data", "ItemParam",
-			      "mean", "cov")) {
-			  if (is.null(slot(.Object, s))) next;
+		  for (s in c("data", "ItemParam", "mean", "cov")) {
+			  if (is.null(slot(.Object, s))) next
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
 		  }
+
 		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed)
 		  return(.Object)
 	  })

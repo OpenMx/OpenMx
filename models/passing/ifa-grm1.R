@@ -1,4 +1,4 @@
-#options(error = utils::recover)
+#options(error = browser)
 library(OpenMx)
 library(rpf)
 
@@ -24,7 +24,9 @@ ip.mat$values[!ip.mat$free] <- NA
 correct.mat[!ip.mat$free] <- NA
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- "f1"
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list("f1", "f1")
 
 m2 <- mxModel(model="grm1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),

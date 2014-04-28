@@ -55,12 +55,14 @@ mk.model <- function(name, data, latent.free) {
   }
 
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0, free=latent.free)
+  colnames(m.mat) <- paste('f', 1:dims, sep="")
   cov.mat.free <- FALSE
   if (latent.free) {
     cov.mat.free <- diag(dims)==1
   }
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims),
                       free=cov.mat.free, lbound=1e-2)
+  dimnames(cov.mat) <- list(paste('f', 1:dims, sep=""), paste('f', 1:dims, sep=""))
   
   lname <- paste(name, "latent", sep="")
   latent <- mxModel(lname, m.mat, cov.mat,

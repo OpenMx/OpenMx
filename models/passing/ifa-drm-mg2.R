@@ -38,7 +38,9 @@ mkgroup <- function(model.name, data, latent.free) {
   
   dims <- 1
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=dims, values=0)
+  rownames(m.mat) <- "f1"
   cov.mat <- mxMatrix(name="cov", nrow=dims, ncol=dims, values=diag(dims))
+  dimnames(cov.mat) <- list("f1", "f1")
 
   mean <- "mean"
   cov <- "cov"
@@ -76,9 +78,12 @@ if(0) {
 # This create a latent distribution model that can be used to impose
 # equality constraints on latent distribution parameters.
 mklatent <- function(name) {
-	m1 <- mxModel(paste(name, "latent", sep=""),
-		      mxMatrix(nrow=1, ncol=1, free=T, values=0, name="expMean"),
-		      mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="expCov"),
+	mMat <- mxMatrix(nrow=1, ncol=1, free=T, values=0, name="expMean")
+	rownames(mMat) <- "f1"
+	covMat <- mxMatrix(type="Symm", nrow=1, ncol=1, free=T, values=1, name="expCov")
+	dimnames(covMat) <- list("f1", "f1")
+
+	m1 <- mxModel(paste(name, "latent", sep=""), mMat, covMat,
 		      mxDataDynamic("cov", expectation=paste(name, "expectation", sep=".")),
 		      mxExpectationNormal(covariance="expCov", means="expMean"),
 		      mxFitFunctionML())

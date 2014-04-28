@@ -72,12 +72,14 @@ for (seed in 1:trials) {
   ip.mat$values[,6] <- rpf.rparam(items[[6]])
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=6, values=runif(6, -1, 1), free=TRUE)
+  colnames(m.mat) <- paste('f', 1:6, sep="")
   var <- runif(2, .1, 3)
   cov1 <- runif(1, -min(abs(var)), min(abs(var)))
   cov <- diag(runif(6, .1, 3))
   cov[1:2,1:2] <- matrix(c(var[1],cov1,cov1,var[2]), nrow=2)
   
   cov.mat <- mxMatrix(name="cov", nrow=6, ncol=6, values=cov)
+  dimnames(cov.mat) <- list(paste('f', 1:6, sep=""), paste('f', 1:6, sep=""))
   cov.mat$free <- cov.mat$values != 0
   cov.mat$labels[1:2,1:2] <- matrix(c("v1","c12","c12","v2"), nrow=2)
 

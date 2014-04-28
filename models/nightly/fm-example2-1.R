@@ -29,7 +29,9 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
 #  ip.mat$values <- m2.fmfit$G1$param
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list('f1','f1')
 
 m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
               mxData(observed=m2.data, type="raw"),

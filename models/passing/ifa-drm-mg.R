@@ -17,9 +17,12 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(FALSE, TRUE, FALSE, FALSE))
 
-latent <- mxModel('latent',
-		  mxMatrix(nrow=1, ncol=1, free=TRUE, values=0, name="mean"),
-		  mxMatrix(type="Symm", nrow=1, ncol=1, free=TRUE, values=1, name="cov"),
+m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=TRUE)
+rownames(m.mat) <- 'f1'
+cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=TRUE)
+dimnames(cov.mat) <- list('f1','f1')
+
+latent <- mxModel('latent', m.mat, cov.mat,
 		  mxDataDynamic("cov", expectation="latentTest.expectation"),
 		  mxExpectationNormal(covariance="cov", means="mean"),
 		  mxFitFunctionML())
@@ -103,8 +106,8 @@ if (1) {
                      free=c(TRUE, TRUE, FALSE, FALSE))
   ip.mat$labels[1,] <- 'a1'
   
-  m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-  cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+  m.mat$free[,] <- FALSE
+  cov.mat$free[,] <- FALSE
 
   m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),

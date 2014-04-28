@@ -24,7 +24,9 @@ if (0) {
 ip.mat <- mxMatrix(name="ItemParam", nrow=dim(param)[1], ncol=numItems,
                    values=param, free=TRUE)
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+dimnames(cov.mat) <- list('f1','f1')
 
 compute.gradient <- function(v) {
   pat <- data.frame(t(v))

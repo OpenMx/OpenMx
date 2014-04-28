@@ -47,12 +47,14 @@ for (seed in 1:trials) {
   
   ip.mat$values[,1:2] <- c(1.1,1,0)
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=runif(2, -1, 1), free=TRUE)
+  colnames(m.mat) <- paste('f', 1:2, sep="")
   var <- runif(2, .1, 3)
   cov1 <- runif(1, -min(abs(var)), min(abs(var)))
   cov <- matrix(c(var[1],cov1,cov1,var[2]), nrow=2)
   
   cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=cov,
                       free=TRUE, labels=c("v1","c12","c12","v2"))
+  dimnames(cov.mat) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
 
   m1 <- mxModel(model="latent",
                 ip.mat, m.mat, cov.mat,
