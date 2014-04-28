@@ -671,3 +671,20 @@ setMethod("summary", "MxModel",
 		return(retval)
 	}
 )
+
+logLik.MxModel <- function(model) {
+	ll <- NA
+	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood))
+	ll <- -0.5*model@output$Minus2LogLikelihood
+
+	if (!is.null(model@data))
+		attr(ll,"nobs") <- model@data@numObs
+	else
+		attr(ll,"nobs") <- NA
+	if (!is.null(model@output))
+		attr(ll,"df")<- length(model@output$estimate)
+	else
+		attr(ll,"df") <- NA
+	class(ll) <- "logLik"
+	return(ll)
+}

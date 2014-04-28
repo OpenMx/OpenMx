@@ -166,6 +166,7 @@ if (0) {
 }
 
 omxCheckCloseEnough(grpModel$output$fit, 30114.94, .02)
+omxCheckCloseEnough(AIC(logLik(grpModel)), 30202.95, .02)
   omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expMean$values, -.834, .01)
   omxCheckCloseEnough(grpModel$submodels$g2latent$matrices$expCov$values, 3.93, .01)
   omxCheckCloseEnough(grpModel$submodels$g3latent$matrices$expMean$values, .933, .01)
