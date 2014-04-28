@@ -1004,6 +1004,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 	double prevFit = 0;
 	double mac = tolerance * 10;
 	while (1) {
+		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
 			if (isErrorRaised(globalState)) break;

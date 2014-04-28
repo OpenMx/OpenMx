@@ -220,7 +220,7 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
 		}
 		.Object
 	})
@@ -387,7 +387,7 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
 		}
 		.Object
 	})
@@ -600,8 +600,8 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 		if (any(!is.integer(.Object@expectation))) {
 			expNum <- match(.Object@expectation, names(flatModel@expectations))
 			if (any(is.na(expNum))) {
-				stop(paste("Can only apply MxComputeEM to MxExpectation",
-					   deparse(.Object@expectation)))
+				stop(paste("MxComputeEM: MxExpectation",
+					   deparse(.Object@expectation), "not found"))
 			}
 			.Object@expectation <- expNum - 1L
 		}
@@ -740,7 +740,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, name)
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
 		}
 		.Object
 	})

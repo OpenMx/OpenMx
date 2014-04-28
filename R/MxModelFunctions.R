@@ -319,9 +319,13 @@ imxLocateIndex <- function(model, name, referant) {
 	expectationNumber <- match(name, eNames)
 	if (is.na(matrixNumber) && is.na(algebraNumber) 
 		&& is.na(dataNumber) && is.na(expectationNumber)) {
+		reftype <- "named reference"
+		if (typeof(referant) == "S4") {
+			reftype <- 'object'
+		}
 		msg <- paste("The reference", omxQuotes(name),
-			"does not exist.  It is used by the named entity",
-			omxQuotes(referant),".")
+			"does not exist.  It is used by",
+			     reftype, omxQuotes(referant), ".")
 		stop(msg, call.=FALSE)
 	} else if (!is.na(matrixNumber)) {
 		return(- matrixNumber)

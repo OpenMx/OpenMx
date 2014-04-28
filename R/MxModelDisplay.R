@@ -15,6 +15,7 @@
 
 
 omxQuotes <- function(name) {
+	if (typeof(name) == "S4") return(omxQuotes(list(name)))
 	listTerms <- sapply(name, function(x) {
 		if (typeof(x) == "S4") {
 			return(class(x))
