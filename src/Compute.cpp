@@ -1211,7 +1211,9 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->copyParamToModel(globalState);
 
 	setExpectationPrediction(predict);
+	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
 	fit1->compute(fc);
+	fc->inform = informSave;
 	setExpectationPrediction("nothing");
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of param %d offset %.6f",
@@ -1289,11 +1291,13 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		{
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
+			int informSave = fc->inform;
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
 			int startIter = fc1->iterations;
 			fit1->compute(fc1);
 			mstepIter = fc1->iterations - startIter;
 			fc1->updateParentAndFree();
+			fc->inform = informSave;
 		}
 
 		{
