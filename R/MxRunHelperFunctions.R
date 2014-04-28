@@ -82,6 +82,9 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
 	}
+	if (length(output$standardErrors) == length(parameterNames)) {
+		rownames(output$standardErrors) <- parameterNames
+	}
 	if (length(output$confidenceIntervals) > 0) {
 		dimnames(output$confidenceIntervals) <- list(
 			intervalNames, c('lbound', 'ubound'))
