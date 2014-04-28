@@ -76,7 +76,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 	Global->checkpointPostfit(GLOB_fc);
     
 	if(verbose >= 1) {
-		mxLog("Fit function value is: %.32f\n", fitMatrix->data[0]);
+		mxLog("Fit function value is: %.32f", fitMatrix->data[0]);
 	}
 
 	return GLOB_fc->fit;
@@ -94,8 +94,6 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
             mxLog("%f", myPars.t[i]);
 	}
     
-    if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", CSOLNP_currentInterval, (Global->intervalList[CSOLNP_currentInterval].calcLower?"lower":"upper"));
-    
     GLOB_fc->fit = csolnpObjectiveFunction(myPars, verbose);
     
     omxConfidenceInterval *oCI = &(Global->intervalList[CSOLNP_currentInterval]);
@@ -104,7 +102,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     
     double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
     
-    if(OMX_DEBUG) {
+    if(verbose >= 2) {
         mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
               oCI->lbound, oCI->ubound, GLOB_fc->fit, CIElement);
     }
@@ -125,7 +123,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
         // Maximize element for upper bound.
     }
     
-    if(OMX_DEBUG) {
+    if(verbose >= 2) {
         mxLog("Interval fit function in previous iteration was calculated to be %f.", GLOB_fc->fit);
     }
     
@@ -141,7 +139,7 @@ Matrix csolnpEqualityFunction(int verbose)
     double EMPTY = -999999.0;
     Matrix myEqBFun;
     
-    if (verbose) mxLog("Starting csolnpEqualityFunction.");
+    if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
     
     for(j = 0; j < globalState->numConstraints; j++) {
 	    if (globalState->conList[j].opCode == 1) {
@@ -149,7 +147,7 @@ Matrix csolnpEqualityFunction(int verbose)
 	    }
     }
     
-    if (verbose >= 1) {
+    if (verbose >= 3) {
 	    mxLog("no.of constraints is: %d.", globalState->numConstraints);
 	    mxLog("neq is: %d.", eq_n);
     }
@@ -163,11 +161,11 @@ Matrix csolnpEqualityFunction(int verbose)
 	    
 	    for(j = 0; j < globalState->numConstraints; j++) {
 		    if (globalState->conList[j].opCode == 1) {
-			    if (verbose >= 1) {
+			    if (verbose >= 3) {
 				    mxLog("result is: %2f", globalState->conList[j].result->data[0]);
 			    }
 			    omxRecompute(globalState->conList[j].result);
-			    if (verbose >= 1) {
+			    if (verbose >= 3) {
 				    mxLog("%.16f", globalState->conList[j].result->data[0]);
 				    mxLog("size is: %d", globalState->conList[j].size);
 			    }
@@ -178,7 +176,7 @@ Matrix csolnpEqualityFunction(int verbose)
 		    }
 	    }
     }
-    if (verbose >= 1) {
+    if (verbose >= 3) {
 	    mxLog("myEqBFun is: ");
 	    for(i = 0; i < myEqBFun.cols; i++)
         {   mxLog("%f", myEqBFun.t[i]);}
@@ -194,7 +192,7 @@ Matrix csolnpIneqFun(int verbose)
     double EMPTY = -999999.0;
     Matrix myIneqFun;
     
-    if (verbose) mxLog("Starting csolnpIneqFun.");
+    if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
         
 	for(j = 0; j < globalState->numConstraints; j++) {
 		if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
@@ -203,7 +201,7 @@ Matrix csolnpIneqFun(int verbose)
         }
     }
     
-	if (verbose >= 1) {
+	if (verbose >= 3) {
 		mxLog("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
 		mxLog("ineq_n is: %d.", ineq_n); putchar('\n');
 	}

@@ -1243,7 +1243,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				int index = nineq+i;
 				M(p, index, 0) = M(p, index, 0) + delta;
 				tmpv = multiply(subset(p, 0, nineq, (npic-1)), subset(vscale, 0, (nc+1), (nc+np)));
-				if (verbose >= 2){
+				if (verbose >= 3){
 					mxLog("9th call is \n");
                     
 				}
@@ -1668,7 +1668,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				for (i = 0; i < tmpv.cols; i++) mxLog("%f",tmpv.t[i]);
 			}
             
-			if (verbose >= 2){
+			if (verbose >= 3){
 				mxLog("11th call is \n");
 			}
             
