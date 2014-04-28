@@ -519,10 +519,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         mxLog("numIntervals is: %d", Global->numIntervals);
     }
     
-    int count = 0;
+    const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
+
     for(int i = 0; i < Global->numIntervals; i++) {
-        if (i == 0)
-        {count++;}
         omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
         
 	const char *matName = anonMatrix;
@@ -530,6 +529,8 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 		matName = currentCI->matrix->name;
 	}
 
+	if (std::isfinite(currentCI->lbound)) {
+		currentCI->calcLower = TRUE;
 	Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin lower interval",
 				  matName, currentCI->row + 1, currentCI->col + 1);
         
@@ -549,11 +550,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         int cycles = ciMaxIterations;
         
         double value = INF;
-        double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
         
         while(inform!= 0 && cycles > 0) {
             /* Find lower limit */
-            currentCI->calcLower = TRUE;
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
             f = p_obj_conf.objValue;
@@ -602,10 +601,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
                 }
             }
         }
+	}
         
-        if(OMX_DEBUG) { mxLog("Found lower bound %d.  Seeking upper.", i); }
-        // TODO: Repopulate original optimizer state in between CI calculations
-        
+	if (std::isfinite(currentCI->ubound)) {
+            currentCI->calcLower = FALSE;
 	Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin upper interval",
 				  matName, currentCI->row + 1, currentCI->col + 1);
 
@@ -615,13 +614,12 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         
         
         /* Reset for the upper bound */
-        value = INF;
+        double value = INF;
         inform = -1;
-        cycles = ciMaxIterations;
-        if(verbose >= 1) { mxLog("cycles_upper is: %d", cycles); }
+        int cycles = ciMaxIterations;
+
         while(inform != 0 && cycles >= 0) {
             /* Find upper limit */
-            currentCI->calcLower = FALSE;
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
             f = p_obj_conf.objValue;
@@ -670,6 +668,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         
         if(OMX_DEBUG) {mxLog("Found Upper bound %d.", i);}
         
+    }
     }
     
 	GLOB_fc = NULL;

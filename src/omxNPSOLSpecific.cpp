@@ -473,6 +473,8 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
  
         if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
+	const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
+
         for(int i = 0; i < Global->numIntervals; i++) {
 
 		omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
@@ -491,12 +493,12 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
             currentCI->lbound += optimum;          // Convert from offsets to targets
             currentCI->ubound += optimum;          // Convert from offsets to targets
  
+	    if (std::isfinite(currentCI->lbound)) {
             /* Set up for the lower bound */
             inform = -1;
             // Number of times to keep trying.
             int cycles = ciMaxIterations;
             double value = INF;
-            double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
             while(inform != 0 && cycles > 0) {
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
@@ -530,19 +532,18 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                     }
                 }
             }
+	    }
  
-            if(OMX_DEBUG) { mxLog("Found lower bound %d.  Seeking upper.", i); }
-            // TODO: Repopulate original optimizer state in between CI calculations
-
+	    if (std::isfinite(currentCI->ubound)) {
 		Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin upper interval",
 					  matName, currentCI->row + 1, currentCI->col + 1);
 
 		memcpy(x.data(), optimalValues, n * sizeof(double));
  
             /* Reset for the upper bound */
-            value = INF;
+		double value = INF;
             inform = -1;
-            cycles = ciMaxIterations;
+            double cycles = ciMaxIterations;
  
             while(inform != 0 && cycles >= 0) {
                 /* Find upper limit */
@@ -579,6 +580,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
             }
             if(OMX_DEBUG) {mxLog("Found Upper bound %d.", i);}
         }
+	}
 
 	NPSOL_fc = NULL;
 	NPSOL_fitMatrix = NULL;
