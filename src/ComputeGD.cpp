@@ -209,8 +209,9 @@ void ComputeCI::computeImpl(FitContext *fc)
 	}
 
 	double fitCopy = fc->fit;
-	Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
-	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
+	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 2));
+	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
+
 	switch (engine) {
 	case OptEngine_NPSOL:
 #if HAS_NPSOL
@@ -223,7 +224,19 @@ void ComputeCI::computeImpl(FitContext *fc)
 	default:
 		Rf_error("huh?");
 	}
-	omxPopulateConfidenceIntervals(intervals, intervalCodes); // inline here TODO
+
+	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
+
+	double* interval = REAL(intervals);
+	int* intervalCode = INTEGER(intervalCodes);
+	for(int j = 0; j < numInts; j++) {
+		omxConfidenceInterval *oCI = Global->intervalList + j;
+		interval[j] = oCI->min;
+		interval[j + numInts] = oCI->max;
+		intervalCode[j] = oCI->lCode;
+		intervalCode[j + numInts] = oCI->uCode;
+	}
+
 	fc->copyParamToModel(globalState);
 	fc->fit = fitCopy;
 }
