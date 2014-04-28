@@ -122,17 +122,7 @@ modelRemoveIntervals <- function(model, intervals) {
 	return(model)
 }
 
-generateIntervalList <- function(flatModel, useIntervals, modelname, parameters, labelsData) {
-	if (length(useIntervals) != 1 || 
-		typeof(useIntervals) != "logical" || 
-		is.na(useIntervals)) {
-		stop(paste("'intervals' argument", 
-			"must be TRUE or FALSE in",
-			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-	}
-	if (!useIntervals) {
-		return(list())
-	}
+generateIntervalList <- function(flatModel, modelname, parameters, labelsData) {
 	retval <- lapply(flatModel@intervals, generateIntervalListHelper, 
 		flatModel, modelname, parameters, labelsData)
 	names(retval) <- NULL

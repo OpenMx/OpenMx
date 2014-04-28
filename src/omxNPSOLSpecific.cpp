@@ -403,7 +403,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
 	NPSOL_fc = fc;
-	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
+	FreeVarGroup *freeVarGroup = fc->varGroup;
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  

@@ -17,6 +17,15 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
 		useOptimizer = TRUE){
+
+	if (length(intervals) != 1 ||
+		typeof(intervals) != "logical" ||
+		is.na(intervals)) {
+		stop(paste("'intervals' argument",
+			"must be TRUE or FALSE in",
+			deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
+	}
+
 	if(!silent) cat("Running", model@name, "\n")
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
@@ -115,7 +124,7 @@ runHelper <- function(model, frontendStart,
 	constraints <- convertConstraints(flatModel)
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
-	intervalList <- generateIntervalList(flatModel, intervals, model@name, parameters, labelsData)
+	intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
@@ -129,6 +138,9 @@ runHelper <- function(model, frontendStart,
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
+			if (intervals) {
+				steps <- c(steps, mxComputeConfidenceInterval(fitfunction=fitNum))
+			}
 			if (options[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
 			}

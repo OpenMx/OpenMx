@@ -40,7 +40,6 @@ class ComputeNR : public omxCompute {
 
 public:
 	virtual void initFromFrontend(SEXP rObj);
-	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -74,9 +73,6 @@ void ComputeNR::initFromFrontend(SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
 }
-
-omxFitFunction *ComputeNR::getFitFunction()
-{ return fitMatrix->fitFunction; }
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
 {

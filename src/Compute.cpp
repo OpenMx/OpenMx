@@ -798,7 +798,6 @@ class omxComputeOnce : public omxCompute {
 
  public:
         virtual void initFromFrontend(SEXP rObj);
-        virtual omxFitFunction *getFitFunction();
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -915,7 +914,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeEM", &newComputeEM },
 	{"MxComputeStandardError", &newComputeStandardError},
 	{"MxComputeHessianQuality", &newComputeHessianQuality},
-	{"MxComputeReportDeriv", &newComputeReportDeriv}
+	{"MxComputeReportDeriv", &newComputeReportDeriv},
+	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1740,15 +1740,6 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			Rf_error("Hessian requested but not available");
 		}
 		// add check for information TODO
-	}
-}
-
-omxFitFunction *omxComputeOnce::getFitFunction()
-{
-	if (algebras.size() == 1 && algebras[0]->fitFunction) {
-		return algebras[0]->fitFunction;
-	} else {
-		return NULL;
 	}
 }
 

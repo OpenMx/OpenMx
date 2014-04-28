@@ -253,11 +253,11 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param engine specific NPSOL or CSOLNP
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
+##' @param useGradient whether to use the analytic gradient (if available)
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -282,9 +282,9 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit$output$conditionNumber # 29.5
 
-mxComputeGradientDescent <- function(freeSet=NA_character_, ..., useGradient=NULL,
+mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
-				     tolerance=NA_real_) {
+				     tolerance=NA_real_, useGradient=NULL) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -296,6 +296,72 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ..., useGradient=NUL
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
 	    tolerance)
+}
+#----------------------------------------------------
+
+setClass(Class = "MxComputeConfidenceInterval",
+	 contains = "BaseCompute",
+	 representation = representation(
+	     fitfunction = "MxCharOrNumber",
+	     engine = "character",
+	     tolerance = "numeric",
+	     verbose = "integer"))
+
+setMethod("qualifyNames", signature("MxComputeConfidenceInterval"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeConfidenceInterval",
+	  function(.Object, freeSet, engine, fit, verbose, tolerance) {
+		  .Object@name <- 'compute'
+		  .Object@freeSet <- freeSet
+		  .Object@fitfunction <- fit
+		  .Object@engine <- engine
+		  .Object@verbose <- verbose
+		  .Object@tolerance <- tolerance
+		  .Object
+	  })
+
+##' Find likelihood-based confidence intervals
+##'
+##' Add some description TODO
+##'
+##' @param freeSet names of matrices containing free variables
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param engine specific NPSOL or CSOLNP
+##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
+##' @param verbose level of debugging output
+##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
+##' @aliases
+##' MxComputeConfidenceInterval-class
+
+mxComputeConfidenceInterval <- function(freeSet=NA_character_, ...,
+					engine=NULL, fitfunction='fitfunction', verbose=0L,
+					tolerance=NA_real_) {
+
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
+	}
+	if (missing(engine)) {
+		engine <- options()$mxOptions[["Default optimizer"]]
+	}
+
+	new("MxComputeConfidenceInterval", freeSet, engine, fitfunction, verbose, tolerance)
 }
 
 #----------------------------------------------------

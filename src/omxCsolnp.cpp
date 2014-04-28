@@ -414,7 +414,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
     
-	FreeVarGroup *freeVarGroup = fitMatrix->fitFunction->freeVarGroup;
+	FreeVarGroup *freeVarGroup = fc->varGroup;
     
     double inform;
     

@@ -146,16 +146,19 @@ if (1) {
 m2 <- mxRun(mxModel("ex", m1, pm,
                     mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'item.fitfunction'),
                                             verbose=0L),
+                    mxCI(c('g1')),
                     mxComputeSequence(list(
                       mxComputeEM('item.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
-                                information="mr1991", tolerance=1e-5, verbose=0L),
-                      mxComputeStandardError(),
+                                tolerance=1e-5, verbose=0L),
+                      mxComputeConfidenceInterval(),
                       mxComputeOnce('fitfunction', c('fit','gradient')),  # SEM lost the details
                       mxComputeReportDeriv()))), silent=TRUE)
 # flexmirt's LL is reported w/o prior
 omxCheckCloseEnough(m2$output$fit - m2$submodels$pmodel$fitfunction$result, 33335.75, .1)
 omxCheckCloseEnough(max(abs(m2$output$gradient)), 1.29, .1)
+#cat(deparse(round(m2$output$confidenceIntervals,3)))
+omxCheckCloseEnough(m2$output$confidenceIntervals['g1',], c(-1.687, -0.726), .01)
 
 g1 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeOnce('pmodel.fitfunction', 'gradient'),
@@ -167,7 +170,7 @@ g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 18, 3)
 omxCheckCloseEnough(emstat$totalMstep, 92, 5)
-omxCheckCloseEnough(emstat$semProbeCount, 108, 5)
+#omxCheckCloseEnough(emstat$semProbeCount, 108, 5)
 #omxCheckCloseEnough(log(m2$output$conditionNumber), 6.12, 1)
 
 # SEs probably wrong TODO

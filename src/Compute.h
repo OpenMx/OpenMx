@@ -171,7 +171,6 @@ class omxCompute {
 	FreeVarGroup *varGroup;
 	omxCompute();
         virtual void initFromFrontend(SEXP rObj);
-        virtual omxFitFunction *getFitFunction() { return NULL; }
         void compute(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
@@ -206,11 +205,12 @@ public:
 	void restart(bool myFault);
 };
 
-class omxCompute *omxNewCompute(omxState* os, const char *type);
+omxCompute *omxNewCompute(omxState* os, const char *type);
 
-class omxCompute *newComputeGradientDescent();
-class omxCompute *newComputeNumericDeriv();
-class omxCompute *newComputeNewtonRaphson();
+omxCompute *newComputeGradientDescent();
+omxCompute *newComputeNumericDeriv();
+omxCompute *newComputeNewtonRaphson();
+omxCompute *newComputeConfidenceInterval();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);

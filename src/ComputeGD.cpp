@@ -28,21 +28,25 @@ enum OptEngine {
 	OptEngine_CSOLNP
 };
 
-class omxComputeGD : public omxCompute {
+class ComputeGDBase : public omxCompute {
+protected:
 	typedef omxCompute super;
 	enum OptEngine engine;
 	omxMatrix *fitMatrix;
-	bool useGradient;
 	int verbose;
 	double optimalityTolerance;
-    
+
+	virtual void initFromFrontend(SEXP rObj);
+};
+
+class omxComputeGD : public ComputeGDBase {
+	typedef ComputeGDBase super;
+	bool useGradient;
 	SEXP hessChol;
-	SEXP intervals, intervalCodes; // move to FitContext? TODO
     
 public:
 	omxComputeGD();
 	virtual void initFromFrontend(SEXP rObj);
-	virtual omxFitFunction *getFitFunction();
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -52,28 +56,36 @@ class omxCompute *newComputeGradientDescent()
 	return new omxComputeGD();
 }
 
+class ComputeCI : public ComputeGDBase {
+	typedef ComputeGDBase super;
+	SEXP intervals, intervalCodes;
+
+public:
+	ComputeCI();
+	virtual void initFromFrontend(SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+omxCompute *newComputeConfidenceInterval()
+{
+	return new ComputeCI();
+}
+
 omxComputeGD::omxComputeGD()
 {
-	intervals = 0;
-	intervalCodes = 0;
 	hessChol = NULL;
 }
 
-void omxComputeGD::initFromFrontend(SEXP rObj)
+void ComputeGDBase::initFromFrontend(SEXP rObj)
 {
 	super::initFromFrontend(rObj);
+
+	SEXP slotValue;
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
-    
-	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("useGradient")));
-	if (Rf_length(slotValue)) {
-		useGradient = Rf_asLogical(slotValue);
-	} else {
-		useGradient = Global->analyticGradients;
-	}
-    
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
     
@@ -91,18 +103,28 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 		Rf_error("NPSOL is not available in this build");
 #endif
 	} else {
-		Rf_error("MxComputeGradientDescent engine %s unknown", engine_name);
+		Rf_error("%s: engine %s unknown", name, engine_name);
 	}
 }
 
-omxFitFunction *omxComputeGD::getFitFunction()
-{ return fitMatrix->fitFunction; }
+void omxComputeGD::initFromFrontend(SEXP rObj)
+{
+	super::initFromFrontend(rObj);
+    
+	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("useGradient")));
+	if (Rf_length(slotValue)) {
+		useGradient = Rf_asLogical(slotValue);
+	} else {
+		useGradient = Global->analyticGradients;
+	}
+}
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
     size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
-		Rf_error("Model has no free parameters");
+		omxRaiseErrorf("%s: model has no free parameters", name);
 		return;
 	}
     
@@ -138,31 +160,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		return;
 	}
 
-	double fitCopy = fc->fit;
 	omxFreeChildStates(globalState);
     
-	if (Global->numIntervals) {
-		// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
-		if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && fc->inform != INFORM_NOT_AT_OPTIMUM) {
-			// TODO: allow forcing
-			Rf_warning("Not calculating confidence intervals because of optimizer status %d", fc->inform);
-		} else {
-			Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
-			Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
-			if (engine == OptEngine_NPSOL) {
-#if HAS_NPSOL
-				omxNPSOLConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
-#endif
-			}
-			else if (engine == OptEngine_CSOLNP) {
-				omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
-			}
-			omxPopulateConfidenceIntervals(intervals, intervalCodes);
-			fc->copyParamToModel(globalState);
-			fc->fit = fitCopy;
-		}
-	}
-
 	fc->wanted |= FF_COMPUTE_BESTFIT;
     /*printf("fc->hess in computeGD\n");
     printf("%2f", fc->hess[0]); putchar('\n');
@@ -183,7 +182,54 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	if (engine == OptEngine_NPSOL) {
 		out->add("hessianCholesky", hessChol);
 	}
-    
+}
+
+ComputeCI::ComputeCI()
+{
+	intervals = 0;
+	intervalCodes = 0;
+}
+
+void ComputeCI::initFromFrontend(SEXP rObj)
+{
+	super::initFromFrontend(rObj);
+}
+
+void ComputeCI::computeImpl(FitContext *fc)
+{
+	int numInts = Global->numIntervals;
+	if (verbose >= 1) mxLog("%s: starting work on %d intervals", name, numInts);
+	if (!numInts) return;
+
+	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
+	if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && fc->inform != INFORM_NOT_AT_OPTIMUM) {
+		// TODO: allow forcing
+		Rf_warning("Not calculating confidence intervals because of optimizer status %d", fc->inform);
+		return;
+	}
+
+	double fitCopy = fc->fit;
+	Rf_protect(intervals = Rf_allocMatrix(REALSXP, Global->numIntervals, 2));
+	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, Global->numIntervals, 2));
+	switch (engine) {
+	case OptEngine_NPSOL:
+#if HAS_NPSOL
+		omxNPSOLConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
+#endif
+		break;
+	case OptEngine_CSOLNP:
+		omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
+		break;
+	default:
+		Rf_error("huh?");
+	}
+	omxPopulateConfidenceIntervals(intervals, intervalCodes); // inline here TODO
+	fc->copyParamToModel(globalState);
+	fc->fit = fitCopy;
+}
+
+void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
 	if (intervals && intervalCodes) {
 		out->add("confidenceIntervals", intervals);
 		out->add("confidenceIntervalCodes", intervalCodes);
