@@ -481,7 +481,11 @@ static int getLatentVersion(BA81Expect *state)
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
 void ba81SetupQuadrature(omxExpectation* oo)
 {
-	const bool forcePositiveSemiDefinite = false;
+	// This is required because the EM acceleration can push the
+	// covariance matrix to be slightly non-pd when predictors
+	// are highly correlated.
+	const bool forcePositiveSemiDefinite = true;
+
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 	if (state->Qpoint.size() == 0 && latentClean) return;
