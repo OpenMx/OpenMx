@@ -17,6 +17,13 @@ mxOption <- function(model, key, value, reset = FALSE) {
 	if (length(key) != 1 || !is.character(key)) {
 		stop("argument 'key' must be a character string")
 	}
+	if (missing(value)) {
+		if (length(model) == 0 && is.null(model)) {
+			return(processDefaultOptionList(key, value))
+		} else {
+			return(model@options[[key]])
+		}
+	}
 	if (length(value) > 1 && key!="No Sort Data") {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
 			"You gave me an object of length", length(value))
@@ -40,7 +47,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		}
 	}
     if (length(model) == 0 && is.null(model)) {
-        return(processDefaultOptionList(key, value, reset))
+        return(processDefaultOptionList(key))
     }
 	if (length(model) > 1 || !is(model, "MxModel")) {
 		stop("argument 'model' must be an MxModel object")
@@ -67,7 +74,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 	return(model)
 }
 
-processDefaultOptionList <- function(key, value, reset) {
+processDefaultOptionList <- function(key, value) {
 	defaultOptions <- getOption('mxOptions')
 	optionsNames <- names(defaultOptions)
 	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
@@ -83,6 +90,7 @@ processDefaultOptionList <- function(key, value, reset) {
 			omxQuotes(optionsNames[[match]]), ": please correct",
 			"the capitalization and re-run mxOption()."))
 	}
+	if (missing(value)) return(defaultOptions[[key]])
 	defaultOptions[[key]] <- value
 	options('mxOptions' = defaultOptions)
 	return(invisible(defaultOptions))
