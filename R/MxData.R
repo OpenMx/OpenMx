@@ -175,8 +175,10 @@ setMethod("convertDataForBackend", signature("NonNullData"),
 
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 	  function(data, model, defVars, modeloptions) {
-		  data <- sortRawData(data, defVars, model@name, modeloptions)
-		  data <- convertIntegerColumns(data)
+		  if (!data@.isSorted) {
+			  data <- sortRawData(data, defVars, model@name, modeloptions)
+			  data <- convertIntegerColumns(data)
+		  }
 
 		  if(!is.null(data) && !single.na(data@thresholds)) {
 			  verifyThresholdNames(data@thresholds, data@observed, model@name)
@@ -239,9 +241,8 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	if (mxData@type != "raw") {
 		return(mxData)	
 	}
-	if (mxData@.isSorted) {
-		return(mxData)
-	}
+	if (mxData@.isSorted) stop("Already sorted")
+
 	observed <- mxData@observed
 	nosort <- as.character(modeloptions[['No Sort Data']])
 	fullname <- paste(modelname, 'data', sep = '.')
@@ -272,14 +273,12 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 			}
 			defindex <- match(defkeys, observedNames)
 			otherindex <- setdiff(1:length(observedNames), defindex)
-			nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
-			otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		} else {
 			defkeys <- character()
 			otherindex <- c(1:length(observedNames))
-			nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
-			otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		}
+		nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
+		otherindex <- otherindex[order(nacount, decreasing=TRUE)]
 		defvectors <- lapply(defkeys, function(x) {observed[,x] })
 		othervectorsNA <- lapply(otherindex, function(x) {!is.na(observed[,x]) })
 		othervectors <- lapply(otherindex, function(x) {observed[,x] })
@@ -290,7 +289,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		selectMissing <- is.na(sortdata)
 		selectDefvars <- sortdata[, defkeys, drop=FALSE]
 		threeVectors <- .Call(findIdenticalRowsData, sortdata,
-			selectMissing, selectDefvars, !any(selectMissing),
+			selectMissing, selectDefvars, sum(nacount)==0,
 			length(selectDefvars) == 0, PACKAGE = "OpenMx")
 		mxData@indexVector <- indexVector - 1L
 		mxData@identicalRows <- threeVectors[[1]]
@@ -299,6 +298,41 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@.isSorted <- TRUE
 	}
 	return(mxData)
+}
+
+omxPresortData <- function(mxData) {
+	if (mxData@.isSorted) {
+		warning("Ignored attempt to sort already sorted data")
+		return(mxData)
+	}
+
+	observed <- mxData@observed
+	if ((length(observed) == 0)) return(mxData)
+
+	observedNames <- colnames(observed)	
+	if (is.null(observedNames)) {
+		msg <- paste("The raw data set in model", omxQuotes(modelname),
+			     "does not contain column names")
+		stop(msg, call. = FALSE)
+	}
+	
+	nacount <- apply(observed, 2, function(x) { sum(is.na(x)) })
+	colByNa <- colnames(observed)[order(nacount, decreasing=TRUE)]
+	observed1 <- lapply(colByNa, function(x) observed[,x])
+	observedNA <- lapply(observed1, is.na)
+	args <- c(observedNA, observed1, na.last=FALSE)
+	indexVector <- do.call('order', args)
+	sortdata <- observed[indexVector,,drop=FALSE]
+	selectMissing <- is.na(sortdata)
+	threeVectors <- .Call(findIdenticalRowsData, sortdata,
+			      selectMissing, NULL, sum(nacount)==0, TRUE, PACKAGE = "OpenMx")
+	mxData@observed <- sortdata
+	mxData@indexVector <- indexVector - 1L
+	mxData@identicalRows <- threeVectors[[1]]
+	mxData@identicalMissingness <- threeVectors[[2]]
+	mxData@identicalDefVars <- threeVectors[[3]]
+	mxData@.isSorted <- TRUE
+	mxData
 }
 
 convertIntegerColumns <- function(mxData) {
