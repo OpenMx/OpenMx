@@ -61,14 +61,14 @@ struct omxThresholdColumn {		 	// Threshold
 
 };
 
-struct omxData {						// A matrix
-	//TODO: Improve encapsulation
-	omxMatrix* dataMat;  // DO NOT ACCESS THIS FIELD DIRECTLY; USE ACCESSOR METHODS
+class omxData {
+ public: // move everything to private TODO
+	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
 	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
 	omxThresholdColumn* thresholdCols;  // Wrapper structure for thresholds
-	double numObs;						// Number of observations
+	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
 
 	int* location;						// Which of the following contains the data column
@@ -79,12 +79,13 @@ struct omxData {						// A matrix
 	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
 	int* identicalRows;					// Number of consecutive rows with identical data
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
-	short isDynamic;					// Reserved for when there's actually dynamic data.
-	/* Useful Members */
+ public:
 	int rows, cols;						// Matrix size 
 
-	// Used when the expectation provides the observed data
+	// Used when the expectation provides the observed data (DataDynamic)
 	struct omxExpectation *expectation;   // weak pointer
+
+	omxData();
 };
 
 /* Initialize and Destroy */

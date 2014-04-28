@@ -28,15 +28,12 @@
 #include "glue.h"
 #include "omxState.h"
 
-static omxData* omxInitData()
-{
-	omxData *od = Calloc(1, omxData);
-
-	globalState->dataList.push_back(od);
-
-	return od;
-
-}
+omxData::omxData() : dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+		     thresholdCols(0), numObs(0), _type(0), location(0), realData(0),
+		     intData(0), indexVector(0), identicalDefs(0), identicalMissingness(0),
+		     identicalRows(0), numFactor(0), numNumeric(0), rows(0), cols(0),
+		     expectation(0)
+{}
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
@@ -212,7 +209,8 @@ omxData* omxNewDataFromMxData(SEXP dataObject)
 	Rf_protect(DataClass = STRING_ELT(Rf_getAttrib(dataObject, Rf_install("class")), 0));
 	const char* dclass = CHAR(DataClass);
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
-	omxData* od = omxInitData();
+	omxData* od = new omxData;
+	globalState->dataList.push_back(od);
 	if (strcmp(dclass, "MxDataStatic")==0) newDataStatic(dataObject, od);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
 	else Rf_error("Unknown data class %s", dclass);
@@ -233,7 +231,7 @@ void omxFreeData(omxData* od) {
 	omxFreeMatrix(od->meansMat);
 	omxFreeMatrix(od->acovMat);
 	omxFreeMatrix(od->obsThresholdsMat);
-	Free(od);
+	delete od;
 }
 
 double omxDoubleDataElement(omxData *od, int row, int col) {
