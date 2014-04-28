@@ -13,18 +13,48 @@ correct[1,] <- 1
 correct[3,] <- logit(0)
 correct[4,] <- logit(1)
 
-data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
+ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
+                   values=c(1,0, logit(0), logit(1)),
+                   free=c(FALSE, TRUE, FALSE, FALSE))
 
-	ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-			   values=c(1,0, logit(0), logit(1)),
-			   free=c(FALSE, TRUE, FALSE, FALSE))
-	
 latent <- mxModel('latent',
-		  mxMatrix(nrow=1, ncol=1, free=FALSE, values=0, name="mean"),
+		  mxMatrix(nrow=1, ncol=1, free=TRUE, values=0, name="mean"),
 		  mxMatrix(type="Symm", nrow=1, ncol=1, free=TRUE, values=1, name="cov"),
-		  mxDataDynamic("cov", expectation="drmmg.expectation"),
+		  mxDataDynamic("cov", expectation="latentTest.expectation"),
 		  mxExpectationNormal(covariance="cov", means="mean"),
 		  mxFitFunctionML())
+
+# We generate data in the "wrong" order to preserve compatibility
+# with the previous version of the test.
+data <- rpf.sample(500, items, correct, cov=matrix(5,1,1))
+
+ldata <- rpf.sample(300, items, correct, mean=.5, cov=matrix(5,1,1))
+
+ip.fix <- ip.mat
+ip.fix$free[,] <- FALSE
+ip.fix$values[,] <- correct
+
+if (0) {
+  plan <- mxComputeEM('expectation', 'scores',
+                      mxComputeGradientDescent(paste('latent',c('mean','cov'), sep="."),
+                                               fitfunction="latent.fitfunction"),
+                      verbose=0L)
+}
+
+plan <- mxComputeIterate(list(
+  mxComputeGradientDescent(paste('latent',c('mean','cov'), sep="."),
+                           fitfunction="latent.fitfunction"),
+  mxComputeOnce('fitfunction', 'fit')))
+
+m1 <- mxModel(model="latentTest", ip.fix, latent,
+              mxData(observed=ldata, type="raw"),
+              mxExpectationBA81(mean="latent.mean", cov="latent.cov",
+                                ItemSpec=items, ItemParam="itemParam"),
+              mxFitFunctionML(),
+              plan)
+m1Fit <- mxRun(m1)
+omxCheckCloseEnough(m1Fit$output$estimate, c(.46, 4.44), .1)
+omxCheckCloseEnough(m1Fit$output$fit, 8251.09, .01)
 
 latent.plan <- NULL
 if (1) {
@@ -36,6 +66,9 @@ if (1) {
 				   mxComputeOnce('fitfunction', "set-starting-values")),
 			      freeSet='latent.cov')
 }
+
+latent$mean$free[,] <- FALSE
+latent$data$expectation <- "drmmg.expectation"
 
 m2 <- mxModel(model="drmmg", ip.mat, latent,
 	      mxData(observed=data, type="raw"),

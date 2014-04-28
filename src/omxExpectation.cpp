@@ -78,6 +78,8 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 
 	if(component == NULL) return NULL;
 
+	omxCompleteExpectation(ox);
+
 	/* Hard-wired expectation components */
 	if(!strncmp("dataColumns", component, 11)) {
 		return ox->dataColumns;
