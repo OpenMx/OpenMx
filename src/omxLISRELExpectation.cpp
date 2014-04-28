@@ -92,9 +92,10 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	}
 }
 
-void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra) {
-    if(OMX_DEBUG) { mxLog("Populating LISREL Attributes.  Currently this does very little!"); }
-	
+void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra)
+{
+    Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
+
 	/*
 	omxLISRELExpectation* oro = (omxLISRELExpectation*) (oo->argStruct);
 	omxMatrix* LX = oro->LX;

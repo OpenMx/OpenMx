@@ -31,10 +31,12 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	SEXP matrices;
 	SEXP algebras;
 	SEXP expectations;
+	SEXP datums;
 
 	Rf_protect(matrices = Rf_allocVector(VECSXP, globalState->matrixList.size()));
 	Rf_protect(algebras = Rf_allocVector(VECSXP, globalState->algebraList.size()));
 	Rf_protect(expectations = Rf_allocVector(VECSXP, globalState->expectationList.size()));
+	Rf_protect(datums = Rf_allocVector(VECSXP, globalState->dataList.size()));
 
 	SEXP nextMat, algebra;
 	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
@@ -78,9 +80,18 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
 
+	for(size_t index = 0; index < currentState->dataList.size(); ++index) {
+		omxData* dat = currentState->dataList[index];
+		SEXP rData;
+		Rf_protect(rData = Rf_ScalarReal(omxDataNumObs(dat)));
+		SET_VECTOR_ELT(datums, index, rData);
+		Rf_unprotect(1);
+	}
+
 	out->add("matrices", matrices);
 	out->add("algebras", algebras);
 	out->add("expectations", expectations);
+	out->add("data", datums);
 }
 
 void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated

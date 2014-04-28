@@ -30,7 +30,8 @@ setClass(Class = "MxExpectationRAM",
 		threshnames = "character",
 		usePPML = "logical",
 		ppmlData = "MxData",
-		UnfilteredExpCov = "matrix"),
+		UnfilteredExpCov = "matrix",
+	        numStats = "numeric"),
 	contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationRAM",

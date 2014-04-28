@@ -450,6 +450,7 @@ double omxDataNumObs(omxData *od)
 {
 	if (od->expectation) {
 		omxMatrix *mat = omxGetExpectationComponent(od->expectation, NULL, "numObs");
+		if (!mat) return 0; // maybe error raised
 		return omxMatrixElement(mat, 0, 0);
 	}
 	return od->numObs;
@@ -732,3 +733,21 @@ void omxPrintData(omxData *od, const char *header)
         omxPrintData(od, header, -1);
 }
 
+double omxDataDF(omxData *od)
+{
+	const char *type = od->_type;
+	if (strEQ(type, "cov") || strEQ(type, "sscp")) {
+		omxMatrix *cov = omxDataCovariance(od);
+		int df = triangleLoc1(cov->rows);
+		omxMatrix *mm = omxDataMeans(od);
+		if (mm) df += mm->rows * mm->cols;
+		return df;
+	} else if (strEQ(type, "cor")) {
+		omxMatrix *cov = omxDataCovariance(od);
+		int df = triangleLoc1(cov->rows - 1);
+		omxMatrix *mm = omxDataMeans(od);
+		if (mm) df += mm->rows * mm->cols;
+		return df;
+	}
+	return NA_REAL;
+}

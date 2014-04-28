@@ -54,26 +54,8 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	} else {
 		data <- model[[expectation@data]] 
 	}
-	if (data@type == 'cov' || data@type == 'sscp') {
-		if (data@name %in% historySet) {
-			return (list(0, historySet))
-		}
-		n <- nrow(data@observed)
-		dof <- n * (n + 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means)
-		}
-		historySet <- append(data, historySet)		
-	} else if (data@type == 'cor') {
-		if (data@name %in% historySet) {
-			return (list(0, historySet))
-		}
-		n <- nrow(data@observed)
-		dof <- n * (n - 1) / 2
-		if (!single.na(data@means)) {
-			dof <- dof + length(data@means) 
-		}
-		historySet <- append(data, historySet)
+	if (data@type == 'cov' || data@type == 'sscp' || data@type == 'cor') {
+		stop("Implemented in the backend")
 	} else {
 		dof <- 0
 		observed <- data@observed
@@ -458,22 +440,9 @@ setNumberObservations <- function(numObs, datalist, fitfunctions, retval) {
 	return(retval)
 }
 
-summarizeDataObject <- function(dataObject) {
-	if (dataObject@type != "raw") {
-		result <- list()
-		result[[dataObject@type]] <- dataObject@observed
-		if (!single.na(dataObject@means)) {
-			result[['means']] <- dataObject@means
-		}
-		return(result)
-	} else {
-		return(summary(dataObject@observed))
-	}
-}
-
 generateDataSummary <- function(model, useSubmodels) {
 	datalist <- model@runstate$datalist
-	retval <- lapply(datalist, summarizeDataObject)
+	retval <- lapply(datalist, summarize)
 	if (useSubmodels && length(model@runstate$independents) > 0) {
 		submodelSummary <- lapply(model@runstate$independents, generateDataSummary, FALSE)
 		names(submodelSummary) <- NULL

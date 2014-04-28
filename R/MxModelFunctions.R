@@ -230,6 +230,17 @@ updateModelExpectations <- function(model, flatModel, values) {
 	updateModelEntitiesHelper(eNames, values, model)
 }
 
+updateModelData <- function(model, flatModel, values) {
+	dNames <- names(flatModel@datasets)
+	if (length(dNames) != length(values)) {
+		stop(paste("This model has", length(dNames),
+			   "data, but the backend has returned", length(values),
+			   "values"))
+	}
+	if (length(dNames) == 0) return(model)
+	updateModelEntitiesHelper(dNames, values, model)
+}
+
 updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMapping) {
     nextName <- model@name
     selectEnt <- entNames[modelNameMapping == nextName]
@@ -265,6 +276,8 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					for (sl in names(attributes(value))) {
 						slot(candidate, sl) <- attr(value, sl)
 					}
+				} else if (is(candidate, "MxDataDynamic")) {
+					candidate@numObs <- value
 				}
 				model[[name]] <- candidate
 			}

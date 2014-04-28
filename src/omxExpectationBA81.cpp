@@ -1011,6 +1011,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->LargestDouble = exp(state->LogLargestDouble);
 	state->OneOverLargestDouble = 1/state->LargestDouble;
 
+	state->numObsMat = NULL;
+	state->estLatentMean = NULL;
+	state->estLatentCov = NULL;
 	state->numSpecific = 0;
 	state->excludedPatterns = 0;
 	state->numIdentical = NULL;

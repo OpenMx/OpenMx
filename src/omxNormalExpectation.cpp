@@ -69,6 +69,7 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 
 	Rf_setAttrib(algebra, Rf_install("ExpCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("ExpMean"), expMeanExt);
+	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(ox->data)));
 	Rf_unprotect(2);
 }
 

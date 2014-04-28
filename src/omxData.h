@@ -135,4 +135,6 @@ void resetDefinitionVariables(double *oldDefs, int numDefs);
 void omxPrintData(omxData *od, const char *header, int maxRows);
 void omxPrintData(omxData *od, const char *header);
 
+double omxDataDF(omxData *od);
+
 #endif /* _OMXDATA_H_ */

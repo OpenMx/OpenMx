@@ -167,6 +167,7 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- updateModelExpectations(model, flatModel, output$expectations)
+	model <- updateModelData(model, flatModel, output$data)
 	model@compute <-updateModelCompute(model, output$computes)
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)

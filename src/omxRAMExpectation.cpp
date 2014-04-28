@@ -235,6 +235,7 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 			REAL(expCovExt)[col * Ax->rows + row] =
 				omxMatrixElement(Ax, row, col);
 	Rf_setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
 	Rf_unprotect(1);
 }
 

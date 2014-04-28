@@ -25,7 +25,8 @@ setClass(Class = "MxExpectationNormal",
 		thresholdLevels = "numeric",
 		threshnames = "character",
 		ExpCov = "matrix",
-		ExpMean = "matrix"),
+		ExpMean = "matrix",
+	        numStats = "numeric"),
 	contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationNormal",

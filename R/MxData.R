@@ -41,6 +41,7 @@ setClass(Class = "MxDataDynamic",
 	 representation = representation(
 	     type        = "character",
 	     expectation = "MxCharOrNumber",
+	     numObs = "numeric",             # output
 	     name        = "character"))
 
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
@@ -161,6 +162,11 @@ setGeneric("convertDataForBackend",
 		return(standardGeneric("convertDataForBackend"))
 	})
 
+setGeneric("summarize",
+	function(data) {
+		return(standardGeneric("summarize"))
+	})
+
 setMethod("preprocessDataForBackend", signature("NonNullData"),
 	  function(data, model, defVars, modeloptions) { data })
 
@@ -182,6 +188,20 @@ setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 		  data
 	  })
 
+setMethod("summarize", signature("MxDataStatic"),
+	  function(data) {
+		  if (data@type != "raw") {
+			  result <- list()
+			  result[[data@type]] <- data@observed
+			  if (!single.na(data@means)) {
+				  result[['means']] <- data@means
+			  }
+			  return(result)
+		  } else {
+			  return(summary(data@observed))
+		  }
+	  })
+
 setMethod("convertDataForBackend", signature("MxDataDynamic"),
 	  function(data, model, flatModel) {
 		  expNum <- match(data@expectation, names(flatModel@expectations))
@@ -189,6 +209,12 @@ setMethod("convertDataForBackend", signature("MxDataDynamic"),
 						"referenced by data in", model@name))
 		  data@expectation <- expNum - 1L
 		  data
+	  })
+
+setMethod("summarize", signature("MxDataDynamic"),
+	  function(data) {
+		  # Maybe we can do something smarter? TODO
+		  c(dynamic=NA)
 	  })
 
 preprocessDatasets <- function(model, defVars, modeloptions) { # DEPRECATED
