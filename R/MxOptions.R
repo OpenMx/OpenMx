@@ -47,7 +47,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		}
 	}
     if (length(model) == 0 && is.null(model)) {
-        return(processDefaultOptionList(key))
+        return(processDefaultOptionList(key, value))
     }
 	if (length(model) > 1 || !is(model, "MxModel")) {
 		stop("argument 'model' must be an MxModel object")
