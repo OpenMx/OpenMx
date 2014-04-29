@@ -416,7 +416,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     
 	FreeVarGroup *freeVarGroup = fc->varGroup;
     
-    double inform;
+    int inform;
     
     int n = int(freeVarGroup->vars.size());
     int ncnln = globalState->ncnln;
@@ -529,8 +529,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 		matName = currentCI->matrix->name;
 	}
 
-	if (std::isfinite(currentCI->lbound)) {
-		currentCI->calcLower = TRUE;
 	Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin lower interval",
 				  matName, currentCI->row + 1, currentCI->col + 1);
         
@@ -542,66 +540,67 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         currentCI->lbound += optimum;          // Convert from offsets to targets
         currentCI->ubound += optimum;          // Convert from offsets to targets
         
-        /* Set up for the lower bound */
-        inform = -1;
-        // Number of times to keep trying.
+        if (std::isfinite(currentCI->lbound))
+            {
+                /* Set up for the lower bound */
+                inform = -1;
+                // Number of times to keep trying.
+                int cycles = ciMaxIterations;
         
+                double value = INF;
         
-        int cycles = ciMaxIterations;
-        
-        double value = INF;
-        
-        while(inform!= 0 && cycles > 0) {
-            /* Find lower limit */
-            p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+                while(inform!= 0 && cycles > 0) {
+                    /* Find lower limit */
+                    currentCI->calcLower = TRUE;
+                    p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
-            f = p_obj_conf.objValue;
+                    f = p_obj_conf.objValue;
+                        
+                    myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
+                    myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.cols - 2);
             
-            myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
-            myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.cols - 2);
-            
-            mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
+                    mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
             
             
-            Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
+                    Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
             
-            inform = M(inform_m, 0, 0);
+                    inform = M(inform_m, 0, 0);
             
-            if(verbose>=1) { mxLog("inform_lower is: %f", inform);}
-            currentCI->lCode = inform;
+                    if(verbose>=1) { mxLog("inform_lower is: %d", inform);}
+                    
+                    currentCI->lCode = inform;
             
-            
-            if(f < value) {
-                currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+                    if(f < value) {
+                        currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                 
-                value = f;
-				for (int ii = 0; ii < myPars.cols; ii++){
-        			x.data()[ii] = myPars.t[ii];
-    			}
-            }
+                        value = f;
+                        for (int ii = 0; ii < myPars.cols; ii++){
+                            x.data()[ii] = myPars.t[ii];
+                        }
+                    }
             
-            if(inform != 0 && OMX_DEBUG) {
-                mxLog("Calculation of lower interval %d failed: Bad inform value of %f",
-                      i, inform);
-            }
-            cycles--;
-            if(inform != 0) {
-                unsigned int jitter = TRUE;
-                for(int j = 0; j < n; j++) {
-                    if(fabs(x[j] - optimalValues[j]) > objDiff) {
-                        jitter = FALSE;
-                        if(OMX_DEBUG) {mxLog("are u here?????");}
-                        break;
+                    if(inform != 0 && OMX_DEBUG) {
+                        mxLog("Calculation of lower interval %d failed: Bad inform value of %d",
+                              i, inform);
+                    }
+                    cycles--;
+                    if(inform != 0) {
+                        unsigned int jitter = TRUE;
+                        for(int j = 0; j < n; j++) {
+                            if(fabs(x[j] - optimalValues[j]) > objDiff) {
+                                jitter = FALSE;
+                                if(OMX_DEBUG) {mxLog("are u here?????");}
+                                break;
+                            }
+                        }
+                        if(jitter) {
+                            for(int j = 0; j < n; j++) {
+                                x[j] = optimalValues[j] + objDiff;
+                            }
+                        }
                     }
                 }
-                if(jitter) {
-                    for(int j = 0; j < n; j++) {
-                        x[j] = optimalValues[j] + objDiff;
-                    }
-                }
             }
-        }
-	}
         
 	if (std::isfinite(currentCI->ubound)) {
             currentCI->calcLower = FALSE;
@@ -620,6 +619,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 
         while(inform != 0 && cycles >= 0) {
             /* Find upper limit */
+            currentCI->calcLower = FALSE;
             p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
             
             f = p_obj_conf.objValue;
@@ -633,7 +633,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             
             
             inform = M(inform_m, 0, 0);
-            if(verbose >= 1) { mxLog("inform_upper is: %f", inform);}
+            if(verbose >= 1) { mxLog("inform_upper is: %d", inform);}
             currentCI->uCode = inform;
             
             if(f < value) {
@@ -646,7 +646,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             }
             
             if(inform != 0 && OMX_DEBUG) {
-                mxLog("Calculation of upper interval %d failed: Bad inform value of %f",
+                mxLog("Calculation of upper interval %d failed: Bad inform value of %d",
                       i, inform);
             }
             cycles--;
