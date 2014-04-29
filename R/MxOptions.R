@@ -236,12 +236,5 @@ combineDefaultOptions <- function(input) {
 	if (!is.null(input[["Major iterations"]])) {
 		options[["Major iterations"]] <- input[["Major iterations"]]
 	}
-  #Need to make sure that non-default values for options not already handled in this function don't get
-  #overwritten by the defaults:
-  namesHandled <- c( names(temp), "Major iterations" )
-	if(sum( !(names(input) %in% namesHandled) )>0){
-    options[names(input)[!(names(input) %in% namesHandled)]] <- 
-      input[names(input)[!(names(input) %in% namesHandled)]]
-  }
 	return(options)
 }
