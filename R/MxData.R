@@ -300,41 +300,6 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	return(mxData)
 }
 
-omxPresortData <- function(mxData) {
-	if (mxData@.isSorted) {
-		warning("Ignored attempt to sort already sorted data")
-		return(mxData)
-	}
-
-	observed <- mxData@observed
-	if ((length(observed) == 0)) return(mxData)
-
-	observedNames <- colnames(observed)	
-	if (is.null(observedNames)) {
-		msg <- paste("The raw data set in model", omxQuotes(modelname),
-			     "does not contain column names")
-		stop(msg, call. = FALSE)
-	}
-	
-	nacount <- apply(observed, 2, function(x) { sum(is.na(x)) })
-	colByNa <- colnames(observed)[order(nacount, decreasing=TRUE)]
-	observed1 <- lapply(colByNa, function(x) observed[,x])
-	observedNA <- lapply(observed1, is.na)
-	args <- c(observedNA, observed1, na.last=FALSE)
-	indexVector <- do.call('order', args)
-	sortdata <- observed[indexVector,,drop=FALSE]
-	selectMissing <- is.na(sortdata)
-	threeVectors <- .Call(findIdenticalRowsData, sortdata,
-			      selectMissing, NULL, sum(nacount)==0, TRUE, PACKAGE = "OpenMx")
-	mxData@observed <- sortdata
-	mxData@indexVector <- indexVector - 1L
-	mxData@identicalRows <- threeVectors[[1]]
-	mxData@identicalMissingness <- threeVectors[[2]]
-	mxData@identicalDefVars <- threeVectors[[3]]
-	mxData@.isSorted <- TRUE
-	mxData
-}
-
 convertIntegerColumns <- function(mxData) {
 	if (is.null(mxData)) return(mxData)
 	if (is.data.frame(mxData@observed)) {

@@ -29,9 +29,8 @@ rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
 dimnames(cov.mat) <- list('f1','f1')
 
-mxD <- omxPresortData(mxData(observed=data, type="raw"))
-
-m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat, mxD,
+m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
+	      mxData(observed=data, type="raw"),
               mxExpectationBA81(debugInternal=TRUE,
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov", qpoints=31),
@@ -63,7 +62,7 @@ omxCheckCloseEnough(fivenum(testDeriv$output$hessian[testDeriv$output$hessian !=
                     2*c(6.559, 6.559, 32.976, 83.554, 107.714), .01)
 omxCheckCloseEnough(solve(testDeriv$output$hessian), testDeriv$output$ihessian, 1e-2)
 
-m2 <- mxModel(m2, mxD,
+m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov",
