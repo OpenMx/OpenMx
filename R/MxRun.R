@@ -179,7 +179,7 @@ runHelper <- function(model, frontendStart,
 	runstate$parameters <- parameters
 	runstate$matrices <- matrices
 	runstate$fitfunctions <- fitfunctions
-	runstate$expectations <- collectExpectations(model, namespace, NULL)
+	runstate$expectations <- expectations #collectExpectations(model, namespace, NULL)
 	runstate$datalist <- data
 	runstate$constraints <- flatModel@constraints
 	runstate$independents <- independents

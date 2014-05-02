@@ -42,7 +42,7 @@ calculateConstraintsHelper <- function(constraint, model) {
 
 observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	if ('numStats' %in% slotNames(expectation)) {
-		if (!is.na(expectation@numStats)) {
+		if (!is.na(expectation@numStats) && length(expectation@numStats) > 0) {
 			return(list(expectation@numStats, historySet))
 		}
 	}
@@ -54,8 +54,26 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	} else {
 		data <- model[[expectation@data]] 
 	}
-	if (data@type == 'cov' || data@type == 'sscp' || data@type == 'cor') {
-		stop("Implemented in the backend")
+	if (data@type == 'cov' || data@type == 'sscp') {
+		if (data@name %in% historySet) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n + 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means)
+		}
+		historySet <- append(data, historySet)
+	} else if (data@type == 'cor') {
+		if (data@name %in% historySet) {
+			return (list(0, historySet))
+		}
+		n <- nrow(data@observed)
+		dof <- n * (n - 1) / 2
+		if (!single.na(data@means)) {
+			dof <- dof + length(data@means) 
+		}
+		historySet <- append(data, historySet)
 	} else {
 		dof <- 0
 		observed <- data@observed

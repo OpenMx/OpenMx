@@ -149,12 +149,39 @@ setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 			checkSSMConformable(Dmatrix, mdim, udim, 'D', omxQuotes(modelname))
 			checkSSMConformable(Umatrix, udim, 1, 'u', omxQuotes(modelname))
 		}
-		
+		flatModel <- updateSSMdimnames(.Object, flatModel)
 		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
 		
 		return(flatModel)
 	}
 )
+
+updateSSMdimnames <- function(flatExpectation, flatJob){
+	cMatrixName <- flatExpectation@C
+	cMatrix <- flatJob[[cMatrixName]]
+	if (is.null(cMatrix)) {
+		modelname <- getModelName(flatExpectation)
+		stop(paste("Unknown C matrix name", 
+			omxQuotes(simplifyName(cMatrixName, modelname)),
+			"detected in the State Space expectation function",
+			"of model", omxQuotes(modelname)), call. = FALSE)
+	}
+	dims <- flatExpectation@dims
+	if (!is.null(dimnames(cMatrix)) && !single.na(dims) && 
+		!identical(dimnames(cMatrix)[[1]], dims)) {
+		modelname <- getModelName(flatExpectation)
+		msg <- paste("The C matrix associated",
+			"with the State Space expectation function in model", 
+			omxQuotes(modelname), "contains dimnames and",
+			"the expectation function has specified different dimnames")
+		stop(msg, call.=FALSE)		
+	}
+	if (is.null(dimnames(cMatrix)) && !single.na(dims)) {
+		dimnames(flatJob[[cMatrixName]]) <- list(dims, c())
+	}
+	
+	return(flatJob)
+}
 
 
 #--------------------------------------------------------------------
