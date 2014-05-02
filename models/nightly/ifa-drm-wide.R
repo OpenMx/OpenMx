@@ -63,4 +63,4 @@ emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 75, 3)
 omxCheckCloseEnough(emstat$totalMstep, 188, 5)
 
-print(grpModel$output$backendTime)
+print(m2$output$backendTime)
