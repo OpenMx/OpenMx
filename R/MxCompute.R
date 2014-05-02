@@ -920,6 +920,7 @@ displayMxComputeSequence <- function(opt) {
 	cat(class(opt), omxQuotes(opt@name), '\n')
 	for (step in 1:length(opt@steps)) {
 		cat("[[", step, "]] :", class(opt@steps[[step]]), '\n')
+		print(opt@steps[[step]])
 	}
 	invisible(opt)
 }
@@ -940,7 +941,6 @@ setMethod("print", "BaseCompute", function(x, ...) displayBaseCompute(x))
 setMethod("show",  "BaseCompute", function(object) displayBaseCompute(object))
 
 displayMxComputeGradientDescent <- function(opt) {
-	cat("$type :", omxQuotes(opt@type), '\n')
 	cat("$engine :", omxQuotes(opt@engine), '\n')
 	cat("$fitfunction :", omxQuotes(opt@fitfunction), '\n')
 	invisible(opt)
