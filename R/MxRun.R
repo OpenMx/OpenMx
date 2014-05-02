@@ -175,9 +175,18 @@ runHelper <- function(model, frontendStart,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
 
-	model <- populateRunStateInformation(model, parameters, matrices, fitfunctions,
-					     collectExpectations(model, namespace, NULL),
-					     data, flatModel@constraints, independents, defVars)
+	runstate <- model@runstate
+	runstate$parameters <- parameters
+	runstate$matrices <- matrices
+	runstate$fitfunctions <- fitfunctions
+	runstate$expectations <- collectExpectations(model, namespace, NULL)
+	runstate$datalist <- data
+	runstate$constraints <- flatModel@constraints
+	runstate$independents <- independents
+	runstate$defvars <- names(defVars)
+	runstate$compute <- computes
+	model@runstate <- runstate
+
 	frontendStop <- Sys.time()
 	frontendElapsed <- frontendElapsed + (frontendStop - backendStop)
 	model@output <- calculateTiming(model@output, frontendElapsed,

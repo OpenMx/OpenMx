@@ -114,19 +114,6 @@ processErrorConditions <- function(model, unsafe, suppressWarnings) {
     }
 }
 
-populateRunStateInformation <- function(model, parameters, matrices, 
-		fitfunctions, expectations, datalist, constraints, independents, defvars) {
-	model@runstate$parameters <- parameters
-	model@runstate$matrices <- matrices
-	model@runstate$fitfunctions <- fitfunctions
-	model@runstate$expectations <- expectations
-	model@runstate$datalist <- datalist
-	model@runstate$constraints <- constraints
-	model@runstate$independents <- independents
-	model@runstate$defvars <- names(defvars)
-	return(model)
-}
-
 getCpuTime <- function(model) {
 	return(model@output$cpuTime)
 }

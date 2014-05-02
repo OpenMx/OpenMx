@@ -336,6 +336,11 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 }
 
 print.summary.mxmodel <- function(x,...) {
+	if (length(x$compute)) {
+		cat("compute plan:\n")
+		print(x$compute)
+		cat("\n")
+	}
 	if (length(x$dataSummary) > 0) {
 		cat("data:\n")
 		print(x$dataSummary)
@@ -667,6 +672,12 @@ setMethod("summary", "MxModel",
 		retval$cpuTime <- model@output$cpuTime
 		retval$mxVersion <- model@output$mxVersion
 		retval$modelName <- model@name
+		if (is.null(model@compute)) {
+			# default compute plan
+			retval$compute <- model@runstate$compute
+		} else {
+			retval$compute <- model@compute
+		}
 		class(retval) <- "summary.mxmodel"
 		return(retval)
 	}
