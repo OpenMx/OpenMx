@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# See the following article for more information about "git bisect"
+# http://lwn.net/Articles/317154/
+#
+# Use with,
+#
+# git bisect run ./util/checkTestCase
+
+OPT=NPSOL  # good default for searching ancient history
+TEST=./fail.R
+
+if [ ! -f ./util/checkTestCase ]; then
+  echo "$0 must be run from the top level"
+  exit 1
+fi
+
+if [ -d inst/npsol/linux/x86_64 ]; then
+  mkdir -p inst/npsol/linux/x86_64/gcc4.8/
+  ln -s ../gcc4.7/libnpsol.a inst/npsol/linux/x86_64/gcc4.8/libnpsol.a
+fi
+
+rm -f src/omxSymbolTable.*
+
+if [ -f prep.patch ]; then
+  patch -p1 < prep.patch
+fi
+trap "git checkout -f" EXIT
+
+if ! make install; then
+  echo "SKIP"
+  exit 125  # skip
+fi
+
+IMX_OPT_ENGINE="$OPT" R --no-save -f "$TEST"
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "BAD"
+  exit 1
+else
+  echo "GOOD"
+  exit 0
+fi
