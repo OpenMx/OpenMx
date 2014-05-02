@@ -4,20 +4,20 @@ library(rpf)
 
 set.seed(9)
 
-numItems <- 1024
+numItems <- 1024 + 512
 i1 <- rpf.drm(multidimensional=TRUE)
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
   items[[ix]] <- i1
   correct[[ix]] <- rpf.rparam(i1)
-  correct[[ix]][3] <- 0
-  correct[[ix]][4] <- 1
+  correct[[ix]][3] <- logit(0)
+  correct[[ix]][4] <- logit(1)
 }
 correct.mat <- simplify2array(correct)
 
-ability <- rnorm(500)
-data <- rpf.sample(ability, items, correct.mat)
+numPersons <- 2500
+data <- rpf.sample(numPersons, items, correct.mat)
 
 if (0) {
   write.table(sapply(data, unclass)-1, "drm-wide.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
@@ -25,14 +25,17 @@ if (0) {
 }
 
 ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
-                   values=c(1,0,0, 1),
+                   values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
+colnames(ip.mat) <- colnames(data)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
+colnames(m.mat) <- 'f1'
+cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE,
+		    dimnames=list('f1', 'f1'))
 
 m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
-              mxData(observed=data, type="raw"),
+              mxData(observed=data, type="raw", sort=FALSE),
               mxExpectationBA81(debugInternal=TRUE,
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov"),
@@ -40,19 +43,24 @@ m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxComputeOnce('expectation', 'scores')
               )
 m2 <- mxRun(m2)
+
+# cat(deparse(fivenum(round(m2$expectation$debug$patternLikelihood,2))))
 omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
-                    c(-712.0873, -701.8445, -664.7972, -596.581, -225.9732), .01)
-omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 512000, .1)
+                    c(-1066.98, -1050.605, -996.76, -893.97, -351.4), .01)
+omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), numItems * numPersons, .1)
 
 m2 <- mxModel(m2,
-              mxData(observed=data, type="raw"),
               mxComputeEM('expectation', 'scores',
-                          mxComputeNewtonRaphson(freeSet='itemParam'),
-                          mxComputeOnce('fitfunction', 'fit')))
+                          mxComputeNewtonRaphson(), verbose=0L))
 
 m2 <- mxRun(m2)
 
 #print(m2$matrices$itemParam$values)
 #print(correct.mat)
-# Matches flexMIRT but negative degrees of freedom
-omxCheckCloseEnough(m2$fitfunction$result, 537810.8, .01)
+omxCheckCloseEnough(m2$fitfunction$result, 4045796.236378, .01)
+
+emstat <- m2$compute$output
+omxCheckCloseEnough(emstat$EMcycles, 75, 3)
+omxCheckCloseEnough(emstat$totalMstep, 188, 5)
+
+print(grpModel$output$backendTime)

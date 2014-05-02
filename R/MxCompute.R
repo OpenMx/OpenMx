@@ -960,3 +960,10 @@ updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
 	updateFromBackend(model@compute, computes)
 }
+
+##' Sparse symmetric matrix invert
+##'
+##' This API is visible to permit testing. Please do not use.
+##'
+##' @param mat the matrix to invert
+imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)

@@ -310,7 +310,6 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 	}
 
-	std::vector<bool> &posDef = state->posDef;
 	size_t excluded = 0;
 
 	if (do_deriv) {
@@ -364,17 +363,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 					}
 				}
 			}
-			if (0) {
-				if (!posDef[ix] && hb->posDefinite()) posDef[ix] = true;
-				if (posDef[ix]) {
-					fc->queue(hb);
-				} else {
-					delete hb;
-					excluded = true;
-				}
-			} else {
-				fc->queue(hb);
-			}
+			fc->queue(hb);
 		}
 	}
 

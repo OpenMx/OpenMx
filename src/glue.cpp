@@ -49,6 +49,7 @@ static R_CallMethodDef callMethods[] = {
 	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
+	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
 	{NULL, NULL, 0}
 };
 

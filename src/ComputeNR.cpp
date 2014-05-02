@@ -150,6 +150,7 @@ void pda(const double *ar, int rows, int cols);
 void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
 			   int *maxAdjParam, double *improvement)
 {
+	*maxAdjParam = -1;
 	const size_t numParam = varGroup->vars.size();
 	const double epsilon = .3;
 	bool steepestDescent = false;
@@ -327,7 +328,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 		lineSearch(fc, iter, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
 
 		converged = improvement < tolerance;
-		maxAdjFlavor = fc->flavor[maxAdjParam];
+		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel(globalState);
 

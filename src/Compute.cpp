@@ -17,8 +17,9 @@
 #include <algorithm>
 #include <stdarg.h>
 
+//#include <iostream>
+
 #include "Compute.h"
-#include "Eigen/Cholesky"
 #include "omxState.h"
 #include "omxExportBackendState.h"
 #include "omxRFitFunction.h"
@@ -28,11 +29,6 @@
 
 void pda(const double *ar, int rows, int cols);
 
-// static bool compareBlocks(const HessianBlock*& lhs, const HessianBlock*& rhs)
-// {
-// 	return lhs->vars[0] < rhs->vars[0];
-// }
-
 void FitContext::queue(HessianBlock *hb)
 {
 	if (hb->vars.size() == 0) {
@@ -40,8 +36,72 @@ void FitContext::queue(HessianBlock *hb)
 		return;
 	}
 
+	minBlockSize = std::max(int(hb->vars.size()), minBlockSize);
 	allBlocks.push_back(hb);
-	//std::push_heap(allBlocks.begin(), allBlocks.end(), compareBlocks); // maybe TODO
+}
+
+void FitContext::analyzeHessianBlock(HessianBlock *hb)
+{
+	for (size_t vx=0; vx < hb->vars.size(); ++vx) {
+		HessianBlock *hb2 = blockByVar[ hb->vars[vx] ];
+		if (!hb2) continue;
+
+		for (size_t vx=0; vx < hb2->vars.size(); ++vx) {
+			blockByVar[ hb2->vars[vx] ] = NULL;
+		}
+		estNonZero -= hb2->estNonZero();
+
+		if (hb->vars.size() < hb2->vars.size()) std::swap(hb, hb2);
+
+		// std::cout << "hb: ";
+		// for (int i : hb->vars) std::cout << i << ' ';
+		// std::cout << "\nhb2: ";
+		// for (int i : hb2->vars) std::cout << i << ' ';
+		// std::cout << "\n";
+		bool inc = std::includes(hb->vars.begin(), hb->vars.end(), hb2->vars.begin(), hb2->vars.end());
+		//std::cout << "includes " << inc << "\n";
+		if (inc) {
+			hb->subBlocks.push_back(hb2);
+		} else {
+			HessianBlock *parent = new HessianBlock;
+			mergeBlocks.push_back(parent);
+			parent->merge = true;
+			parent->vars = hb->vars;
+			parent->vars.insert(parent->vars.end(), hb2->vars.begin(), hb2->vars.end());
+			std::inplace_merge(parent->vars.begin(), parent->vars.begin() + hb->vars.size(), parent->vars.end());
+			int nsize = std::unique(parent->vars.begin(), parent->vars.end()) - parent->vars.begin();
+			parent->vars.resize(nsize);
+			parent->mat.resize(nsize, nsize);
+			parent->mat.triangularView<Eigen::Upper>().setZero();
+			parent->subBlocks.push_back(hb);
+			parent->subBlocks.push_back(hb2);
+			analyzeHessianBlock(parent);
+			return;
+		}
+	}
+
+	for (size_t vx=0; vx < hb->vars.size(); ++vx) {
+		blockByVar[ hb->vars[vx] ] = hb;
+	}
+	estNonZero += hb->estNonZero();
+	maxBlockSize = std::max(int(hb->vars.size()), maxBlockSize);
+	//mxLog("queue maxBlocksize %d sparse %f", maxBlockSize, estNonZero / double(numParam * numParam));
+}
+
+void FitContext::analyzeHessian()
+{
+	// If we knew the minBlockSize was large then we wouldn't even
+	// try to build merge blocks. 
+	// If maxBlockSize is greater than some threshold then we should
+	// also give up.
+
+	if (blockByVar.size()) return;
+
+	blockByVar.assign(numParam, NULL);
+
+	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
+		analyzeHessianBlock(allBlocks[bx]);
+	}
 }
 
 void FitContext::negateHessian()
@@ -110,10 +170,266 @@ void FitContext::refreshDenseIHess()
 	haveDenseIHess = true;
 }
 
+void FitContext::refreshSparseHess()
+{
+	if (haveSparseHess) return;
+
+	sparseHess.resize(numParam, numParam);
+	sparseHess.setZero();
+
+	// need to sort allBlocks for performance TODO
+	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
+		HessianBlock *hb = allBlocks[bx];
+
+		std::vector<int> &map = hb->vars;
+		size_t bsize = map.size();
+
+		for (size_t v1=0; v1 < bsize; ++v1) {
+			for (size_t v2=0; v2 <= v1; ++v2) {
+				sparseHess.coeffRef(map[v2], map[v1]) += hb->mat(v2, v1);
+			}
+		}
+	}
+
+	haveSparseHess = true;
+}
+
+static double norm1(const Eigen::SparseMatrix<double> &mat)
+{
+	// norm_1, maximum column sum
+	double maxCol = 0;
+	for (int k=0; k < mat.outerSize(); ++k) {
+		double col = 0;
+		for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+			col += fabs(it.value());
+		}
+		maxCol = std::max(maxCol, col);
+	}
+	return maxCol;
+}
+
+static double frobeniusNorm(const Eigen::SparseMatrix<double> &mat)
+{
+	double total=0;
+	for (int k=0; k < mat.outerSize(); ++k) {
+		for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+			total += it.value() * it.value();
+		}
+	}
+	return total / mat.nonZeros();
+}
+
+static bool soleymani2013(const Eigen::SparseMatrix<double> &mat, Eigen::SparseMatrix<double> &imat)
+{
+       imat.setIdentity();
+       imat /= frobeniusNorm(mat);
+
+       Eigen::SparseMatrix<double> I1(mat.rows(), mat.cols());
+       I1.setIdentity();
+       Eigen::SparseMatrix<double> I7(mat.rows(), mat.cols());
+       I7 = I1 * 7;
+       Eigen::SparseMatrix<double> I21(mat.rows(), mat.cols());
+       I21 = I1 * 21;
+       Eigen::SparseMatrix<double> I35(mat.rows(), mat.cols());
+       I35 = I1 * 35;
+
+       double maxCol;
+       int iter = 0;
+       Eigen::SparseMatrix<double> AV = mat.selfadjointView<Eigen::Upper>() * imat;
+       while (++iter < 100) {
+               // try prune() on the multiplications TODO
+               // try selfadjointView TODO
+               Eigen::SparseMatrix<double> rpart =
+                       (AV * (AV * (AV * (AV * (AV * (AV - I7) + I21) -I35) + I35) -I21) + I7);
+
+               Eigen::SparseMatrix<double> prev = imat;
+               imat = prev * rpart;
+               AV = mat.selfadjointView<Eigen::Upper>() * imat;
+
+               Eigen::SparseMatrix<double> diff = I1 - AV;
+               maxCol = norm1(diff);
+               if (maxCol < 1e-6) {
+                       break;
+               }
+       }
+       //mxLog("soleymani2013 invert in %d iter, maxCol %.2g", iter, maxCol);
+       return false;
+}
+
+SEXP sparseInvert_wrapper(SEXP Rmat)
+{
+	omxManageProtectInsanity mpi;
+
+	SEXP matrixDims;
+	Rf_protect(matrixDims = Rf_getAttrib(Rmat, R_DimSymbol));
+	int *dimList = INTEGER(matrixDims);
+	int rows = dimList[0];
+	int cols = dimList[1];
+	if (rows != cols) Rf_error("Must be square");
+
+	double *matData = REAL(Rmat);
+
+	Eigen::SparseMatrix<double> mat(rows,cols);
+	for (int cx=0; cx < cols; ++cx) {
+		for (int rx=0; rx < rows; ++rx) {
+			double val = matData[cx * rows + rx];
+			if (val == 0) continue;
+			mat.coeffRef(rx, cx) = val;
+		}
+	}
+
+	Eigen::SparseMatrix<double> imat(rows,cols);
+	if (soleymani2013(mat, imat)) Rf_error("Invert failed");
+	
+	SEXP ret;
+	Rf_protect(ret = Rf_allocMatrix(REALSXP, rows, cols));
+	double *retData = REAL(ret);
+	for (int cx=0; cx < cols; ++cx) {
+		for (int rx=0; rx < rows; ++rx) {
+			retData[cx * rows + rx] = imat.coeff(rx, cx);
+		}
+	}
+
+	return ret;
+}
+
+void FitContext::testMerge()
+{
+	const int UseId = 2;
+	
+	analyzeHessian();
+
+	//std::cout << "block count " << allBlocks.size() << std::endl;
+
+	sparseHess.resize(numParam, numParam);
+	sparseHess.setZero();
+
+	for (size_t vx=0; vx < numParam; ++vx) {
+		HessianBlock *hb = blockByVar[vx];
+		hb->addSubBlocks();
+	}
+
+	for (size_t vx=0; vx < numParam; ++vx) {
+		HessianBlock *hb = blockByVar[vx];
+		if (hb->useId == UseId) continue;
+		hb->useId = UseId;
+
+		//std::cout << hb->id << " ";
+
+		size_t size = hb->mmat.rows();
+		for (size_t col=0; col < size; ++col) {
+			for (size_t row=0; row <= col; ++row) {
+				int vr = hb->vars[row];
+				int vc = hb->vars[col];
+				sparseHess.coeffRef(vr,vc) = hb->mmat(row,col);
+			}
+		}
+	}
+	//std::cout << "\n";
+
+	refreshDenseHess();
+	Eigen::MatrixXd dense = sparseHess;
+	Eigen::MatrixXd diff = (dense - hess).selfadjointView<Eigen::Upper>();
+	//std::cout << diff << std::endl;
+	//std::cout << "fancy\n" << dense << std::endl;
+	//std::cout << "correct\n" << hess << std::endl;
+	double bad = diff.cwiseAbs().maxCoeff();
+	if (bad > .0001) Rf_error("Hess: dense sparse mismatch %f", bad);
+}
+
+bool FitContext::refreshSparseIHess()
+{
+	if (haveSparseIHess) return true;
+
+	const int AcceptableDenseInvertSize = 100;
+	const bool checkResult = false;
+
+	//testMerge();
+
+	sparseIHess.resize(numParam, numParam);
+	sparseIHess.setZero();
+
+	// sparseness by size simulation
+	//mxLog("minBlockSize %d maxBlocksize %d sparse %f", maxBlockSize, estNonZero / double(numParam * numParam));
+
+	if (minBlockSize < AcceptableDenseInvertSize) {
+		analyzeHessian();
+	}
+	if (maxBlockSize < std::min(int(numParam), AcceptableDenseInvertSize)) {
+		const int UseId = 1;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			HessianBlock *hb = blockByVar[vx];
+			if (hb->useId == UseId) continue;
+			hb->useId = UseId;
+			Eigen::MatrixXd &imat = hb->imat;
+
+			hb->addSubBlocks();
+			size_t size = hb->mmat.rows();
+
+			hb->imat = hb->mmat;
+			Matrix iMat(imat.data(), imat.rows(), imat.cols());
+			InvertSymmetricIndef(iMat, 'U');
+		
+			for (size_t col=0; col < size; ++col) {
+				for (size_t row=0; row <= col; ++row) {
+					int vr = hb->vars[row];
+					int vc = hb->vars[col];
+					sparseIHess.coeffRef(vr,vc) = hb->imat(row,col);
+				}
+			}
+		}
+	} else {
+		return false;
+
+		// Needs more work TODO
+		// if (estNonZero / double(numParam * numParam) < .2)
+		refreshSparseHess();
+		if (soleymani2013(sparseHess, sparseIHess)) {
+			sparseIHess.setZero();  // NR will try steepest descent
+		}
+	}
+
+	if (checkResult) {
+		int nonZero = 0;
+		refreshDenseHess();
+		for (size_t cx=0; cx < numParam; ++cx) {
+			for (size_t rx=0; rx <= cx; ++rx) {
+				if (hess(rx,cx) != 0) {
+					if (rx == cx) nonZero += 1;
+					else nonZero += 2;
+				}
+			}
+		}
+		Eigen::MatrixXd denseI = sparseIHess;
+		denseI.triangularView<Eigen::Lower>() = denseI.transpose().triangularView<Eigen::Lower>();
+		Eigen::MatrixXd resid = denseI * hess.selfadjointView<Eigen::Upper>();
+		for (int dx=0; dx < resid.rows(); ++dx) {
+			resid.coeffRef(dx,dx) -= 1;
+		}
+		double bad = resid.cwiseAbs().maxCoeff();
+		if (bad > .01) {
+			Rf_error("IHess: dense sparse mismatch %f", bad);
+		}
+
+		if (0) {
+		mxLog("done %f maxBlocksize %d est sparse %f actual sparse %f", bad, maxBlockSize,
+		      estNonZero / double(numParam * numParam),
+		      nonZero / double(numParam * numParam));
+		}
+	}
+
+        haveSparseIHess = true;
+	return true;
+}
+
 Eigen::VectorXd FitContext::ihessGradProd()
 {
-	refreshDenseIHess();
-	return ihess.selfadjointView<Eigen::Upper>() * grad;
+	if (refreshSparseIHess()) {
+		return sparseIHess.selfadjointView<Eigen::Upper>() * grad;
+	} else {
+		refreshDenseIHess();
+		return ihess.selfadjointView<Eigen::Upper>() * grad;
+	}
 }
 
 Eigen::VectorXd FitContext::ihessDiag()
@@ -168,11 +484,56 @@ HessianBlock *HessianBlock::clone()
 	return hb;
 }
 
-bool HessianBlock::posDefinite()
+void HessianBlock::addSubBlocks()
 {
-	Eigen::LLT<Eigen::MatrixXd> llt;
-	llt.compute(mat);
-	return llt.info() == Eigen::Success;
+	if (mmat.rows()) return;
+
+	mmat = mat;
+
+	std::vector<int> vmap; // we could localize the vars map instead of computing the mapping each time TODO
+
+	for (size_t bx=0; bx < subBlocks.size(); ++bx) {
+		HessianBlock *sb = subBlocks[bx];
+		sb->addSubBlocks();
+	}
+
+	//std::cout << "initial " << id << "\n" << mmat << std::endl;
+
+	for (size_t bx=0; bx < subBlocks.size(); ++bx) {
+		HessianBlock *sb = subBlocks[bx];
+		
+		//std::cout << "subblock " << sb->id << "\n" << sb->mmat << std::endl;
+
+		size_t numVars = sb->vars.size();
+		vmap.resize(numVars);
+		for (size_t vx=0; vx < numVars; ++vx) {
+			// std::set has special method for this TODO
+			int px = std::lower_bound(vars.begin(), vars.end(), sb->vars[vx]) - vars.begin();
+			vmap[vx] = px;
+		}
+
+		for (size_t v1=0; v1 < numVars; ++v1) {
+			for (size_t v2=0; v2 <= v1; ++v2) {
+				mmat(vmap[v2], vmap[v1]) += sb->mmat(v2, v1);
+			}
+		}
+	}
+	
+	//std::cout << "result " << id << "\n" << mmat << std::endl;
+}
+
+int HessianBlock::estNonZero() const
+{
+	if (!merge) {
+		return int(vars.size() * vars.size());
+	} else {
+		int total = 0;
+		for (size_t bx=0; bx < subBlocks.size(); ++bx) {
+			HessianBlock *sb = subBlocks[bx];
+			total += sb->estNonZero();
+		}
+		return std::min(total, int(vars.size() * vars.size()));
+	}
 }
 
 void FitContext::init()
@@ -197,15 +558,23 @@ void FitContext::init()
 
 void FitContext::clearHessian()
 {
+	for (size_t bx=0; bx < mergeBlocks.size(); ++bx) {
+		delete mergeBlocks[bx];
+	}
 	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
 		delete allBlocks[bx];
 	}
 
 	allBlocks.clear();
+	mergeBlocks.clear();
+	blockByVar.clear();
 	haveSparseHess = false;
 	haveSparseIHess = false;
 	haveDenseHess = false;
 	haveDenseIHess = false;
+	estNonZero = 0;
+	minBlockSize = 0;
+	maxBlockSize = 0;
 }
 
 void FitContext::allocStderrs()

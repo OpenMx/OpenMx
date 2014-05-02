@@ -64,19 +64,20 @@ enum ComputeInfoMethod {
 struct HessianBlock {
 	std::vector<int> vars;  // global freeVar ID in order
 	Eigen::MatrixXd mat;    // vars * vars, only upper triangle referenced
+	Eigen::MatrixXd mmat;   // including subblocks
+	Eigen::MatrixXd imat;
+	std::vector< HessianBlock* > subBlocks;
+	bool merge;
+	int useId;
 
-	HessianBlock() {}
+	HessianBlock() : merge(false), useId(0) {}
 	HessianBlock *clone();
-	bool posDefinite();
+	void addSubBlocks();
+	int estNonZero() const;
 };
 
 // The idea of FitContext is to eventually enable fitting from
 // multiple starting values in parallel.
-
-struct cmp_str {
-   bool operator()(char const *a, char const *b)
-   { return std::strcmp(a, b) < 0; }
-};
 
 class FitContext {
 	static omxFitFunction *RFitFunction;
@@ -84,12 +85,16 @@ class FitContext {
 	FitContext *parent;
 
 	std::vector<HessianBlock*> allBlocks;
-	//bool overlap;
+	std::vector<HessianBlock*> mergeBlocks;
+	std::vector<HessianBlock*> blockByVar;
 
 	bool haveSparseHess;
 	Eigen::SparseMatrix<double> sparseHess;
 	bool haveSparseIHess;
 	Eigen::SparseMatrix<double> sparseIHess;
+	int estNonZero;
+	int minBlockSize;
+	int maxBlockSize;
 
 	bool haveDenseHess;
 	Eigen::MatrixXd hess;
@@ -97,6 +102,10 @@ class FitContext {
 	Eigen::MatrixXd ihess;
 
 	std::string IterationError;
+
+	void analyzeHessian();
+	void analyzeHessianBlock(HessianBlock *hb);
+	void testMerge();
 
  public:
 	FreeVarGroup *varGroup;
@@ -138,6 +147,8 @@ class FitContext {
 	void queue(HessianBlock *hb);
 	void refreshDenseHess();
 	void refreshDenseIHess();
+	void refreshSparseHess();
+	bool refreshSparseIHess();
 	Eigen::VectorXd ihessGradProd();
 	double *getDenseHessUninitialized();
 	double *getDenseIHessUninitialized();
@@ -214,5 +225,6 @@ omxCompute *newComputeConfidenceInterval();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
+SEXP sparseInvert_wrapper(SEXP mat);
 
 #endif
