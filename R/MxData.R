@@ -47,7 +47,7 @@ setClass(Class = "MxDataDynamic",
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
-	function(.Object, observed, means, type, numObs, acov, thresholds, name = "data") {
+	function(.Object, observed, means, type, numObs, acov, thresholds, sort, name = "data") {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -55,7 +55,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@acov <- acov
 		.Object@thresholds <- thresholds
 		.Object@name <- name
-		.Object@.isSorted <- FALSE
+		.Object@.isSorted <- !sort
 		return(.Object)
 	}
 )
@@ -96,7 +96,12 @@ mxDataDynamic <- function(type, ..., expectation) {
 	return(new("MxDataDynamic", type, expectation))
 }
 
-mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA) {
+mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA, ...,
+		   sort=TRUE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxData does not accept values for the '...' argument")
+	}
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))
 	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
@@ -149,7 +154,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxDataStatic", observed, means, type, numObs, acov, thresholds))
+	return(new("MxDataStatic", observed, means, type, numObs, acov, thresholds, sort))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

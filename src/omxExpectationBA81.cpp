@@ -1085,7 +1085,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	oo->componentFun = getComponent;
 	
 	// TODO: Exactly identical rows do not contribute any information.
-	// The sorting algorithm ought to remove them so we don't waste RAM.
+	// The sorting algorithm ought to remove them so we get better cache behavior.
 	// The following summary stats would be cheaper to calculate too.
 
 	int numUnique = 0;
