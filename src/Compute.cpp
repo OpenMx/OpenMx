@@ -828,11 +828,9 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 	// before returning results to the user.
 	os->stale = at != est;
 
-	os->computeCount++;
-
 	if(OMX_VERBOSE) {
 		std::string buf;
-		buf += string_snprintf("Call: %d (%d) ", iterations, (int) os->computeCount);
+		buf += string_snprintf("Call: %d ", iterations);
 		buf += ("Estimates: [");
 		for(size_t k = 0; k < numParam; k++) {
 			buf += string_snprintf(" %f", at[k]);
@@ -1746,10 +1744,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 			fc->copyParamToModel(globalState);
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 			setExpectationPrediction("nothing");
-			Global->checkpointPrefit(fc, fc->est, false);
-			omxForceCompute(fit3);
-			fc->fit = fit3->data[0];
-			Global->checkpointPostfit(fc);
+
+			ComputeFit(fit3, FF_COMPUTE_FIT, fc);
 		}
 
 		totalMstepIter += mstepIter;

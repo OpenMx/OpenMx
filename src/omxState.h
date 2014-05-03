@@ -121,6 +121,7 @@ class omxCheckpoint {
 	bool wroteHeader;
 	time_t lastCheckpoint;	// FIXME: Cannot update at sub-second times.
 	int lastIterations;
+	int lastEvaluation;
 	bool fitPending;
 
 	void omxWriteCheckpointHeader();
@@ -130,6 +131,7 @@ class omxCheckpoint {
 	omxCheckpointType type;
 	time_t timePerCheckpoint;
 	int iterPerCheckpoint;
+	int evalsPerCheckpoint;
 	FILE* file;
 
 	omxCheckpoint();
@@ -172,6 +174,8 @@ class omxGlobal {
 
 	int numIntervals;
 	omxConfidenceInterval* intervalList;
+
+	int computeCount; // protected by openmp atomic
 
 	std::vector< FreeVarGroup* > freeGroup;
 
@@ -216,8 +220,6 @@ struct omxState {
 	int ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 
-/* Data members for use by Fit Function and Algebra Calculations */
-	long int computeCount;											// How many times have things been evaluated so far?
 	long int currentRow;											// If we're calculating row-by-row, what row are we on?
 };
 
@@ -236,9 +238,7 @@ inline bool isErrorRaised(omxState *) { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 
-/* Advance a step */
-	void omxStateNextRow(omxState *state);								// Advance Row
-	void omxStateNextEvaluation(omxState *state);						// Advance Evaluation count
+void omxStateNextRow(omxState *state);
 
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogBig(const std::string str);

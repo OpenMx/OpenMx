@@ -171,7 +171,6 @@ void omxInitialMatrixAlgebraCompute() {
 	int numAlgs = globalState->algebraList.size();
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
-	omxStateNextEvaluation(globalState);
 
 	for(size_t index = 0; index < numMats; index++) {
 		omxRecompute(globalState->matrixList[index]);
@@ -230,12 +229,16 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 			break;}
 		}
 
-		int isCount = INTEGER(VECTOR_ELT(nextLoc, next++))[0];
-		if(isCount) {
+		const char *units = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
+		if (strEQ(units, "iterations")) {
 			oC->iterPerCheckpoint = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
-		} else {
+		} else if (strEQ(units, "minutes")) {
 			oC->timePerCheckpoint = Rf_asReal(VECTOR_ELT(nextLoc, next++)) * 60.0; // Constrained to seconds.
 			if(oC->timePerCheckpoint < 1) oC->timePerCheckpoint = 1;
+		} else if (strEQ(units, "evaluations")) {
+			oC->evalsPerCheckpoint = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
+		} else {
+			Rf_error("In 'Checkpoint Units' model option, '%s' not recognized", units);
 		}
 		Global->checkpointList.push_back(oC);
 	}

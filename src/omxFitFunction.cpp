@@ -112,6 +112,28 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	}
 }
 
+void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
+{
+	// R_CheckUserInterrupt(); add here? TODO
+
+	Global->checkpointPrefit(fc, fc->est, false);
+	omxFitFunction *ff = fitMat->fitFunction;
+	if (ff) {
+		omxFitFunctionCompute(ff, want, fc);
+	} else {
+		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
+		omxForceCompute(fitMat);
+	}
+	fc->fit = fitMat->data[0];
+	if (std::isfinite(fc->fit)) {
+		fc->resetIterationError();
+	}
+	Global->checkpointPostfit(fc);
+
+#pragma omp atomic
+	++Global->computeCount; // could avoid lock by keeping in FitContext
+}
+
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)
 {}
 

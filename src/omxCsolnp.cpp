@@ -60,20 +60,14 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 
 	GLOB_fc->iterations += 1;   // ought to be major iterations only
 
-	GLOB_fc->copyParamToModel(globalState, myPars.t);
-	Global->checkpointPrefit(GLOB_fc, myPars.t, false);
-    
-    omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, GLOB_fc);
+	memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
+	GLOB_fc->copyParamToModel(globalState);
 
-    if (std::isfinite(fitMatrix->data[0])) {
-	    GLOB_fc->resetIterationError();
-	    if (OMX_DEBUG) mxLog("Fit function returned %g", fitMatrix->data[0]);
-	    GLOB_fc->fit = fitMatrix->data[0]; // redundent?
-    } else {
-	    GLOB_fc->fit = 1e24;
-    }
-    
-	Global->checkpointPostfit(GLOB_fc);
+	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
+
+	if (!std::isfinite(fitMatrix->data[0])) {
+		GLOB_fc->fit = 1e24;
+	}
     
 	if(verbose >= 1) {
 		mxLog("Fit function value is: %.32f", fitMatrix->data[0]);
