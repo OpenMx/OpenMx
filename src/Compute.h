@@ -100,6 +100,7 @@ class FitContext {
 	Eigen::MatrixXd hess;
 	bool haveDenseIHess;
 	Eigen::MatrixXd ihess;
+	bool ihessFiltered;
 
 	std::string IterationError;
 
@@ -156,7 +157,6 @@ class FitContext {
 	void copyDenseHess(double *dest);
 	void copyDenseIHess(double *dest);
 	Eigen::VectorXd ihessDiag();
-	Eigen::MatrixXd &getDenseIHess();
 	void preInfo();
 	void postInfo();
 	void resetIterationError() { IterationError.clear(); }

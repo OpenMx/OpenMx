@@ -175,17 +175,6 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		if (verbose >= 4) mxLog("%s: target improvement %f too small, using steepest descent",
 					name, targetImprovement);
 		steepestDescent = true;
-		if (0 && fc->grad.norm() > tolerance) {
-			Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
-			es.compute(fc->getDenseIHess());
-			Eigen::VectorXd ev(es.eigenvalues());
-			mxLog("ihess EV");
-			pda(ev.data(), 1, numParam);
-			mxLog("ihess");
-			Eigen::MatrixXd ihess(fc->getDenseIHess());
-			ihess.triangularView<Eigen::StrictlyLower>() = ihess.transpose().triangularView<Eigen::StrictlyLower>();
-			pda(ihess.data(), numParam, numParam);
-		}
 		searchDir = fc->grad;
 		targetImprovement = searchDir.norm();
 		if (targetImprovement < tolerance) return;

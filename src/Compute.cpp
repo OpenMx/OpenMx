@@ -158,15 +158,79 @@ double *FitContext::getDenseHessUninitialized()
 	return hess.data();
 }
 
+static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
+{
+	ihess = hess;
+	Matrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
+	if (!InvertSymmetricPosDef(ihessMat, 'U')) return;
+
+	int numParams = hess.rows();
+	omxBuffer<double> hessWork(numParams * numParams);
+	memcpy(hessWork.data(), hess.data(), sizeof(double) * numParams * numParams);
+	//pda(hess.data(), numParams, numParams);
+
+	char jobz = 'V';
+	char range = 'A';
+	char uplo = 'U';
+	double abstol = 0;
+	int m;
+	omxBuffer<double> w(numParams);
+	omxBuffer<double> z(numParams * numParams);
+	double optWork;
+	int optIwork;
+	int lwork = -1;
+	int liwork = -1;
+	int info;
+	double realIgn = 0;
+	int intIgn = 0;
+	omxBuffer<int> isuppz(numParams * 2);
+
+	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
+
+	lwork = optWork;
+	omxBuffer<double> work(lwork);
+	liwork = optIwork;
+	omxBuffer<int> iwork(liwork);
+	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
+	if (info < 0) {
+		Rf_error("dsyevr %d", info);
+	} else if (info) {
+		mxLog("Eigen decomposition failed %d", info);
+		ihess = Eigen::MatrixXd::Zero(numParams, numParams);
+		return;
+	}
+
+	std::vector<double> evalDiag(numParams * numParams);
+	for (int px=0; px < numParams; ++px) {
+		evalDiag[px * numParams + px] = 1/fabs(w[px]);
+	}
+
+	Matrix evMat(z.data(), numParams, numParams);
+	Matrix edMat(evalDiag.data(), numParams, numParams);
+	omxBuffer<double> prod1(numParams * numParams);
+	Matrix p1Mat(prod1.data(), numParams, numParams);
+	SymMatrixMultiply('R', 'U', 1.0, 0, edMat, evMat, p1Mat);
+	char transa = 'N';
+	char transb = 'T';
+	double alpha = 1.0;
+	double beta = 0;
+	F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
+			prod1.data(), &numParams, z.data(), &numParams, &beta, ihess.data(), &numParams);
+	//pda(ihess.data(), numParams, numParams);
+}
+
 void FitContext::refreshDenseIHess()
 {
 	if (haveDenseIHess) return;
 
 	refreshDenseHess();
-	ihess = hess;
-	Matrix wmat(ihess.data(), numParam, numParam);
-	InvertSymmetricIndef(wmat, 'U');
+	InvertSymmetricNR(hess, ihess);
 
+	ihessFiltered = true;
 	haveDenseIHess = true;
 }
 
@@ -361,14 +425,11 @@ bool FitContext::refreshSparseIHess()
 			HessianBlock *hb = blockByVar[vx];
 			if (hb->useId == UseId) continue;
 			hb->useId = UseId;
-			Eigen::MatrixXd &imat = hb->imat;
 
 			hb->addSubBlocks();
 			size_t size = hb->mmat.rows();
 
-			hb->imat = hb->mmat;
-			Matrix iMat(imat.data(), imat.rows(), imat.cols());
-			InvertSymmetricIndef(iMat, 'U');
+			InvertSymmetricNR(hb->mmat, hb->imat);
 		
 			for (size_t col=0; col < size; ++col) {
 				for (size_t row=0; row <= col; ++row) {
@@ -418,6 +479,7 @@ bool FitContext::refreshSparseIHess()
 		}
 	}
 
+	ihessFiltered = true;
         haveSparseIHess = true;
 	return true;
 }
@@ -446,15 +508,11 @@ double *FitContext::getDenseIHessUninitialized()
 	return ihess.data();
 }
 
-Eigen::MatrixXd &FitContext::getDenseIHess()
-{
-	refreshDenseIHess();
-	return ihess;
-}
-
+// NOTE: This may be a filtered inverse from InvertSymmetricNR
 void FitContext::copyDenseIHess(double *dest)
 {
 	refreshDenseIHess();
+
 	for (size_t v1=0; v1 < numParam; ++v1) {
 		for (size_t v2=0; v2 <= v1; ++v2) {
 			double coef = ihess.selfadjointView<Eigen::Upper>()(v2,v1);
@@ -471,7 +529,10 @@ void FitContext::copyDenseIHess(double *dest)
 double *FitContext::getDenseHessianish()
 {
 	if (haveDenseHess) return hess.data();
-	if (haveDenseIHess) return ihess.data();
+	if (haveDenseIHess) {
+		if (ihessFiltered) Rf_error("Attempted FitContext::getDenseHessianish with filtered ihess");
+		return ihess.data();
+	}
 	// try harder TODO
 	return NULL;
 }
@@ -575,6 +636,7 @@ void FitContext::clearHessian()
 	estNonZero = 0;
 	minBlockSize = 0;
 	maxBlockSize = 0;
+	ihessFiltered = false;
 }
 
 void FitContext::allocStderrs()
