@@ -40,6 +40,7 @@ data <- rpf.sample(numPeople, items, correct.mat, design=design, mean=true.mean,
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
+colnames(ip.mat) <- colnames(data)
 ip.mat$free[,6] <- TRUE
 
 cache <- list(c(77.55278, -73.91341, -166.20929, 182.00042, -0.95405, -481.91857,  

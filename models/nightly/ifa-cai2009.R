@@ -47,6 +47,7 @@ mk.model <- function(name, data, latent.free) {
   ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
                      values=c(1.4,1,0),
                      free=c(TRUE,TRUE,TRUE))
+  colnames(ip.mat) <- colnames(data)
   
   for (ix in 1:numItems) {
     for (px in 1:3) {

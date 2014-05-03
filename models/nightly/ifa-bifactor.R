@@ -41,7 +41,7 @@ if (0) {
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0, logit(0), logit(1)),
 		   free=c(rep(TRUE, 3), FALSE, FALSE))
-
+colnames(ip.mat) <- colnames(data)
 #ip.mat$values[2,1] <- correct.mat[2,1]
 #ip.mat$free[2,1] <- FALSE
 

@@ -41,6 +41,7 @@ struct BA81Expect {
 	int numUnique;
 	int *numIdentical;        // length numUnique
 	int *rowMap;              // length numUnique, index of first instance of pattern
+	const int *colMap;             // item column to data column mapping
 
 	// item description related
 	std::vector<const double*> itemSpec;

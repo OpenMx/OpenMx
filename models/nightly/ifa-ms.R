@@ -29,6 +29,7 @@ m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
                    values=c(1, 1, rep(0, m2.maxParam-2)), free=FALSE)
+colnames(ip.mat) <- colnames(m2.data)
 ip.mat$labels[1,] <- 'a1'
 ip.mat$free[1,] <- TRUE
 rstart <- lapply(m2.spec, rpf.rparam)

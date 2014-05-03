@@ -34,6 +34,8 @@ compute.gradient <- function(v) {
     pat[[c]] <- ordered(pat[[c]], levels=0:1)
   }
   
+  colnames(ip.mat) <- colnames(pat)
+
   m1 <- mxModel(model="latent",
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=pat, type="raw"),

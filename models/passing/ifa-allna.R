@@ -23,6 +23,7 @@ data <- rpf.sample(4, items, correct.mat, design)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 0), free=TRUE)
+colnames(ip.mat) <- colnames(data)
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 colnames(m.mat) <- paste("f", 1:3, sep="")
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)

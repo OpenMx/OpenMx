@@ -19,10 +19,13 @@ correct.mat[2,] <- correct.mat[2,] * -correct.mat[1,]
 
 ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct.mat)
+cols <- colnames(data)
+data <- data[,sample.int(numItems)]
 
 ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
+colnames(ip.mat) <- cols
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 rownames(m.mat) <- 'f1'
@@ -47,7 +50,7 @@ omxCheckCloseEnough(fivenum(m2$expectation$debug$em.expected),
 em.ex <- array(c(m2$expectation$debug$em.expected), dim=c(2,31,20))
 em.tbl <- rbind(apply(em.ex[1,,], 2, sum)[1:numItems],
                 apply(em.ex[2,,], 2, sum)[1:numItems])
-omxCheckCloseEnough(apply(sapply(data, unclass)-1, 2, table), em.tbl, .01)
+omxCheckCloseEnough(apply(sapply(data[,cols], unclass)-1, 2, table), em.tbl, .01)
 
 testDeriv <- mxModel(m2,
 	      mxComputeIterate(list(

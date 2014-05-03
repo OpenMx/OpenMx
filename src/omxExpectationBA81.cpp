@@ -61,6 +61,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	const size_t numItems = state->itemSpec.size();
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
+	const int *colMap = state->colMap;
 	double *oProb = state->outcomeProb;
 	std::vector<double> &priQarea = state->priQarea;
 
@@ -69,7 +70,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	}
 
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -95,6 +96,7 @@ void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *E
 	const double OneOverLargest = state->OneOverLargestDouble;
 	omxData *data = state->data;
 	const int *rowMap = state->rowMap;
+	const int *colMap = state->colMap;
 	std::vector<double> &speQarea = state->speQarea;
 	std::vector<double> &priQarea = state->priQarea;
 
@@ -106,7 +108,7 @@ void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *E
 	}
 
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -253,6 +255,7 @@ static void ba81Estep1(omxExpectation *oo)
 	const int totalOutcomes = state->totalOutcomes;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const int *rowMap = state->rowMap;
+	const int *colMap = state->colMap;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
 	double *wherePrep = state->wherePrep.data();
 	double *whereGram = state->whereGram.data();
@@ -302,7 +305,7 @@ static void ba81Estep1(omxExpectation *oo)
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 			double *out = myExpected;
 			for (size_t ix=0; ix < numItems; ++ix) {
-				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 				if (pick == NA_INTEGER) {
 					out += itemOutcomes[ix] * totalQuadPoints;
 					continue;
@@ -382,7 +385,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 			double *out = myExpected;
 			for (size_t ix=0; ix < numItems; ++ix) {
-				int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+				int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 				if (pick == NA_INTEGER) {
 					out += itemOutcomes[ix] * totalQuadPoints;
 					continue;
@@ -1116,6 +1119,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 	}
 
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("dataColumns")));
+	if (Rf_length(tmp) != numItems) Rf_error("dataColumns must be length %d", numItems);
+	state->colMap = INTEGER(tmp);
+	const int *colMap = state->colMap;
+
 	int maxSpec = 0;
 	int maxParam = 0;
 	int maxItemDims = 0;
@@ -1140,7 +1148,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		// TODO this summary stat should be available from omxData
 		int dataMax=0;
 		for (int rx=0; rx < data->rows; rx++) {
-			int pick = omxIntDataElementUnsafe(data, rx, cx);
+			int pick = omxIntDataElementUnsafe(data, rx, colMap[cx]);
 			if (dataMax < pick)
 				dataMax = pick;
 		}
@@ -1241,7 +1249,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 		std::vector<bool> hasScore(state->maxAbilities);
 		for (int ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rx, ix);
+			int pick = omxIntDataElementUnsafe(data, rx, colMap[ix]);
 			if (pick == NA_INTEGER) continue;
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];

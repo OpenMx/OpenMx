@@ -25,12 +25,8 @@ setClass(Class = "MxExpectationBA81",
 	   scores = "character",
 	   mean = "MxCharOrNumber",
 	   cov = "MxCharOrNumber",
-#          empirical.mean = "numeric",     # to debug
-#          empirical.cov = "matrix",       # to debug
-#	   scores.out = "matrix",          # to output
-#	   patternLikelihood = "numeric",  # to debug
-#	   em.expected = "numeric",        # to debug
 	     debugInternal="logical",
+	     dataColumns="integer",
 	   dims = "character",
 	   numStats = "numeric",
 	   verbose = "integer",
@@ -79,6 +75,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  verifyMvnNames(.Object@cov, .Object@mean, "prior", flatModel, model@name, class(.Object))
 
+		  ItemParam <- flatModel@matrices[[.Object@ItemParam]]
+
 		  name <- .Object@name
 		  for (s in c("data", "ItemParam", "mean", "cov")) {
 			  if (is.null(slot(.Object, s))) next
@@ -86,7 +84,27 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
 		  }
 
-		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed)
+		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed) # for summary
+
+		  if (length(.Object@dims) != ncol(ItemParam)) {
+			  msg <- paste("There must be exactly 1 column in the ItemParam matrix",
+				       "for every observed data column")
+			  stop(msg, call.=FALSE)
+		  }
+
+		  if (is.null(colnames(ItemParam))) {
+			  stop(paste(class(.Object),
+				     ": the ItemParam matrix must have column names",
+				     "to match against the observed data column names."))
+		  } else {
+			  dc <- match(colnames(ItemParam), .Object@dims) - 1L
+			  if (any(is.na(dc))) {
+				  msg <- paste("Some items are not found among the observed data columns:",
+					       omxQuotes(colnames(ItemParam)[is.na(dc)]))
+				  stop(msg, call.=FALSE)
+			  }
+			  .Object@dataColumns <- dc
+		  }
 		  return(.Object)
 	  })
 

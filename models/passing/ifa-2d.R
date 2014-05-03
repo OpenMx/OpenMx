@@ -45,6 +45,7 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1, 1.4, 0, logit(0), logit(1)),
          free=c(TRUE, TRUE, FALSE, FALSE, FALSE,
           rep(c(TRUE, TRUE, TRUE, FALSE, FALSE), 4)))
+colnames(ip.mat) <- colnames(data)
 ip.mat$values[3,1] <- logit(0)
 ip.mat$values[4,1] <- logit(1)
 

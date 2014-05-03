@@ -399,6 +399,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	omxData *data = estate->data;
 	const int *rowMap = estate->rowMap;
 	int *numIdentical = estate->numIdentical;
+	const int *colMap = estate->colMap;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -446,7 +447,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 				for (size_t ix=0; ix < numItems; ++ix) {
 					if (ix) gradOffset += state->paramPerItem[ix-1];
-					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+					int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 					if (pick == NA_INTEGER) continue;
 					pick -= 1;
 
@@ -524,7 +525,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 						for (size_t ix=0; ix < numItems; ++ix) {
 							if (ix) gradOffset += state->paramPerItem[ix-1];
 							if (estate->Sgroup[ix] != Sgroup) continue;
-							int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+							int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 							if (pick == NA_INTEGER) continue;
 							OMXZERO(expected.data(), estate->itemOutcomes[ix]);
 							expected[pick-1] = 1;
@@ -786,6 +787,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	omxData *data = estate->data;
 	const int *rowMap = estate->rowMap;
 	int *numIdentical = estate->numIdentical;
+	const int *colMap = estate->colMap;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -855,7 +857,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 					       latentGrad.data());
 
 				for (size_t ix=0; ix < numItems; ++ix) {
-					int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+					int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 					if (pick == NA_INTEGER) continue;
 					OMXZERO(expected.data(), estate->itemOutcomes[ix]);
 					expected[pick-1] = tmp;
@@ -921,7 +923,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 
 						for (size_t ix=0; ix < numItems; ++ix) {
 							if (estate->Sgroup[ix] != Sgroup) continue;
-							int pick = omxIntDataElementUnsafe(data, rowMap[px], ix);
+							int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 							if (pick == NA_INTEGER) continue;
 							OMXZERO(expected.data(), estate->itemOutcomes[ix]);
 							expected[pick-1] = tmp;
