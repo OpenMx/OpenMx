@@ -175,11 +175,12 @@ runHelper <- function(model, frontendStart,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
 
+	# runstate preserves the pre-backend state of the model
 	runstate <- model@runstate
 	runstate$parameters <- parameters
 	runstate$matrices <- matrices
 	runstate$fitfunctions <- fitfunctions
-	runstate$expectations <- expectations #collectExpectations(model, namespace, NULL)
+	runstate$expectations <- expectations
 	runstate$datalist <- data
 	runstate$constraints <- flatModel@constraints
 	runstate$independents <- independents

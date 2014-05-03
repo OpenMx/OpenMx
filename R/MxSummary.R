@@ -42,7 +42,7 @@ calculateConstraintsHelper <- function(constraint, model) {
 
 observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	if ('numStats' %in% slotNames(expectation)) {
-		if (!is.na(expectation@numStats) && length(expectation@numStats) > 0) {
+		if (length(expectation@numStats) > 0 && !is.na(expectation@numStats)) {
 			return(list(expectation@numStats, historySet))
 		}
 	}
