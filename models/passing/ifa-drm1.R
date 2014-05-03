@@ -53,7 +53,7 @@ em.tbl <- rbind(apply(em.ex[1,,], 2, sum)[1:numItems],
 omxCheckCloseEnough(apply(sapply(data[,cols], unclass)-1, 2, table), em.tbl, .01)
 
 testDeriv <- mxModel(m2,
-	      mxComputeIterate(list(
+	      mxComputeSequence(list(
 		  mxComputeOnce('expectation', 'scores'),
 		  mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')),
       mxComputeReportDeriv()

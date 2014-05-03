@@ -24,6 +24,34 @@ setClass(Class = "BaseCompute",
 
 setClassUnion("MxCompute", c("NULL", "BaseCompute"))
 
+setGeneric("displayCompute",
+	   function(Ob, indent) {
+		   return(standardGeneric("displayCompute"))
+	   })
+
+setMethod("displayCompute", signature("BaseCompute"),
+	  function(Ob, indent) {
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, class(Ob), omxQuotes(Ob@name), '\n')
+#		  cat(sp, "$id :", Ob@id, '\n')   # only of interest to developers and introduces visual noise
+		  cat(sp, "$freeSet :", omxQuotes(Ob@freeSet), '\n')
+		  if (length(Ob$output)) {
+			  for (elem in names(Ob$output)) {
+				  cat(sp, "$output[[", omxQuotes(elem), "]] :", Ob@output[[elem]], '\n')
+			  }
+		  }
+		  if (length(Ob$debug)) {
+			  cat(sp, "$debug :", Ob@debug, '\n')
+			  for (elem in names(Ob$debug)) {
+				  cat(sp, "$debug[[", omxQuotes(elem), "]] :", Ob@debug[[elem]], '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
+
+setMethod("print", "BaseCompute", function(x, ...) displayCompute(x, 1L))
+setMethod("show",  "BaseCompute", function(object) displayCompute(object, 1L))
+
 setGeneric("convertForBackend",
 	function(.Object, flatModel, model) {
 		return(standardGeneric("convertForBackend"))
@@ -91,8 +119,6 @@ setReplaceMethod("$", "BaseCompute",
 		return(imxReplaceSlot(x, name, value, check=TRUE))
 	}
 )
-
-    
 
 #----------------------------------------------------
 
@@ -196,6 +222,22 @@ mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 	new("MxComputeOnce", from, what, how, freeSet, verbose, .is.bestfit)
 }
 
+setMethod("displayCompute", signature("MxComputeOnce"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  for (sl in c("from", "what", "how", "verbose")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.null(slot(Ob, sl))) next
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
+
 #----------------------------------------------------
 
 setClass(Class = "MxComputeGradientDescent",
@@ -297,6 +339,23 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
 	    tolerance)
 }
+
+setMethod("displayCompute", signature("MxComputeGradientDescent"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$engine :", omxQuotes(Ob@engine), '\n')
+		  cat(sp, "$fitfunction :", omxQuotes(Ob@fitfunction), '\n')
+		  cat(sp, "$verbose :", Ob@verbose, '\n')
+		  if (!is.na(Ob@tolerance)) {
+			  cat(sp, "$tolerance :", Ob@tolerance, '\n')
+		  }
+		  if (!is.null(Ob@useGradient)) {
+			  cat(sp, "$useGradient :", Ob@useGradient, '\n')
+		  }
+		  invisible(Ob)
+	  })
+
 #----------------------------------------------------
 
 setClass(Class = "MxComputeConfidenceInterval",
@@ -363,6 +422,22 @@ mxComputeConfidenceInterval <- function(freeSet=NA_character_, ...,
 
 	new("MxComputeConfidenceInterval", freeSet, engine, fitfunction, verbose, tolerance)
 }
+
+setMethod("displayCompute", signature("MxComputeConfidenceInterval"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  for (sl in c("fitfunction", "engine", "tolerance", "verbose")) {
+			  if (is.na(slot(Ob, sl))) next
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 
@@ -435,6 +510,21 @@ mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitf
 
 	new("MxComputeNewtonRaphson", freeSet, fitfunction, maxIter, tolerance, verbose)
 }
+
+setMethod("displayCompute", signature("MxComputeEM"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  for (sl in c("fitfunction", "maxIter", "tolerance", "verbose")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 
@@ -529,18 +619,19 @@ mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, freeSet)
 }
 
-displayMxComputeIterate <- function(opt) {
-	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("$tolerance :", omxQuotes(opt@tolerance), '\n')
-	cat("$maxIter :", omxQuotes(opt@maxIter), '\n')
-	if (length(opt@steps)) for (step in 1:length(opt@steps)) {
-		cat("[[", step, "]] :", class(opt@steps[[step]]), '\n')
-	}
-	invisible(opt)
-}
-
-setMethod("print", "MxComputeIterate", function(x, ...) displayMxComputeIterate(x))
-setMethod("show",  "MxComputeIterate", function(object) displayMxComputeIterate(object))
+setMethod("displayCompute", signature("MxComputeIterate"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "maxIter :", Ob@maxIter, '\n')
+		  cat(sp, "tolerance :", Ob@tolerance, '\n')
+		  cat(sp, "verbose :", Ob@verbose, '\n')
+		  for (step in 1:length(Ob@steps)) {
+			  cat(sp, "steps[[", step, "]] :", '\n')
+			  displayCompute(Ob@steps[[step]], indent+1L)
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 
@@ -708,15 +799,27 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
 
-displayMxComputeEM <- function(opt) {
-	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("$tolerance :", omxQuotes(opt@tolerance), '\n')
-	cat("$maxIter :", omxQuotes(opt@maxIter), '\n')
-	invisible(opt)
-}
-
-setMethod("print", "MxComputeEM", function(x, ...) displayMxComputeEM(x))
-setMethod("show",  "MxComputeEM", function(object) displayMxComputeEM(object))
+setMethod("displayCompute", signature("MxComputeEM"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$expectation :", omxQuotes(Ob@expectation), '\n')
+		  cat(sp, "$predict :", omxQuotes(Ob@predict), '\n')
+		  cat(sp, "$mstep :", '\n')
+		  displayCompute(Ob@mstep, indent+1L)
+		  for (sl in c("observedFit", "maxIter", "tolerance", "verbose", "accel")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  if (!is.na(Ob@information)) {
+			  cat(sp, "$information :", Ob@information, '\n')
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 
@@ -801,6 +904,21 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose)
 }
+
+setMethod("displayCompute", signature("MxComputeNumericDeriv"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations", "verbose")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 
@@ -916,40 +1034,16 @@ mxComputeNothing <- function() {
 	mxComputeSequence(freeSet=c())
 }
 
-displayMxComputeSequence <- function(opt) {
-	cat(class(opt), omxQuotes(opt@name), '\n')
-	for (step in 1:length(opt@steps)) {
-		cat("[[", step, "]] :", class(opt@steps[[step]]), '\n')
-		print(opt@steps[[step]])
-	}
-	invisible(opt)
-}
-
-setMethod("print", "MxComputeSequence", function(x, ...) displayMxComputeSequence(x))
-setMethod("show",  "MxComputeSequence", function(object) displayMxComputeSequence(object))
-
-#----------------------------------------------------
-
-displayBaseCompute <- function(opt) {
-	cat(class(opt), omxQuotes(opt@name), '\n')
-	cat("$id :", opt@id, '\n')
-	cat("$freeSet :", omxQuotes(opt@freeSet), '\n')
-	invisible(opt)
-}
-
-setMethod("print", "BaseCompute", function(x, ...) displayBaseCompute(x))
-setMethod("show",  "BaseCompute", function(object) displayBaseCompute(object))
-
-displayMxComputeGradientDescent <- function(opt) {
-	cat("$engine :", omxQuotes(opt@engine), '\n')
-	cat("$fitfunction :", omxQuotes(opt@fitfunction), '\n')
-	invisible(opt)
-}
-
-setMethod("print", "MxComputeGradientDescent",
-	  function(x, ...) { callNextMethod(); displayMxComputeGradientDescent(x) })
-setMethod("show",  "MxComputeGradientDescent",
-	  function(object) { callNextMethod(); displayMxComputeGradientDescent(object) })
+setMethod("displayCompute", signature("MxComputeSequence"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  for (step in 1:length(Ob@steps)) {
+			  cat(sp, "steps[[", step, "]] :", '\n')
+			  displayCompute(Ob@steps[[step]], indent+1L)
+		  }
+		  invisible(Ob)
+	  })
 
 convertComputes <- function(flatModel, model) {
 	if (is.null(flatModel@compute)) return()
