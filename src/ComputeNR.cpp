@@ -162,8 +162,11 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		want |= FF_COMPUTE_FIT;
 	}
 
-	ComputeFit(fitMatrix, want, fc);
+	Global->checkpointPrefit(fc, fc->est, false);
+	omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
 	if (iter == 1) refFit = fitMatrix->data[0];
+	fc->fit = refFit;
+	Global->checkpointPostfit(fc);
 
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());

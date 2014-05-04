@@ -122,27 +122,37 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	R_CheckUserInterrupt();
 
-	// x == fc->est
-	NPSOL_fc->copyParamToModel(globalState);
-
-	int want = FF_COMPUTE_FIT;
+	NPSOL_fc->copyParamToModel(globalState, x);
+	Global->checkpointPrefit(NPSOL_fc, x, false);
 
 	if (*mode > 0 && NPSOL_useGradient &&
 	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
-		NPSOL_fc->grad = Eigen::VectorXd::Zero(NPSOL_fc->numParam);
-		want |= FF_COMPUTE_GRADIENT;
-	}
-	ComputeFit(fitMatrix, want, NPSOL_fc);
+		size_t numParams = NPSOL_fc->varGroup->vars.size();
+		NPSOL_fc->grad = Eigen::VectorXd::Zero(numParams);
 
-	if (!std::isfinite(NPSOL_fc->fit)) {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
+		if (NPSOL_verbose) {
+			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT);
+		}
+	} else {
+		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
+		if (NPSOL_verbose) {
+			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE);
+		}
+	}
+
+	if (!R_FINITE(fitMatrix->data[0])) {
 		*mode = -1;
+	} else {
+		NPSOL_fc->resetIterationError();
 	}
 
 	*f = fitMatrix->data[0];
-
 	if(OMX_VERBOSE) {
 		mxLog("Fit function value is: %f, Mode is %d.", fitMatrix->data[0], *mode);
 	}
+
+	Global->checkpointPostfit(NPSOL_fc);
 }
 
 void F77_SUB(npsolObjectiveFunction)

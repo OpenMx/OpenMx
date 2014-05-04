@@ -634,6 +634,9 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
+        if(oo->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
         strncat(errstr, ".\n", 3);
         omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
@@ -644,6 +647,9 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is not invertible");
+        if(oo->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
         strncat(errstr, ".\n", 3);
         omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);

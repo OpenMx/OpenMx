@@ -599,6 +599,7 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     if(OMX_DEBUG) { mxLog("Beginning ML Gradient Calculation."); }
     // mxLog("Beginning ML Gradient Calculation, Iteration %d.%d (%d)\n", 
         // oo->matrix->currentState->majorIteration, oo->matrix->currentState->minorIteration,
+        // oo->matrix->currentState->computeCount); //:::DEBUG:::
     // 1) Calculate current Expected Covariance
     // 2) Calculate eCov, the Inverse Expected Covariance matrix 
     // 3) Calculate C = I - eCov D, where D is the observed covariance matrix
@@ -648,6 +649,9 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is non-positive-definite");
+        if(oo->matrix->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
         strncat(errstr, ".\n", 3);
         omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);
@@ -658,6 +662,9 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     if(info > 0) {
 	    char *errstr = (char*) calloc(250, sizeof(char));
         sprintf(errstr, "Expected covariance matrix is not invertible");
+        if(oo->matrix->currentState->computeCount <= 0) {
+            strncat(errstr, " at starting values", 20);
+        }
         strncat(errstr, ".\n", 3);
         omxRaiseError(errstr);                        // Raise Rf_error
         free(errstr);

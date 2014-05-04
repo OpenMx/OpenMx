@@ -99,7 +99,7 @@ restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel) {
 		flatModel <- imxFlattenModel(model, namespace)
 	}
 	if (modelname == model@name) {
-		ign <- match(c("OpenMxContext","OpenMxNumFree","OpenMxEvals","iterations","timestamp","objective"),
+		ign <- match(c("OpenMxContext","OpenMxNumFree","iterations","timestamp","objective"),
 			     colnames(checkpoint))
 		ign <- ign[!is.na(ign)]
 		values <- as.numeric(checkpoint[nrow(checkpoint), -ign])

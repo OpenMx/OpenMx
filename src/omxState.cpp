@@ -158,7 +158,6 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	numChildren = 0;
 	llScale = -2.0;
-	computeCount = 0;
 }
 
 void omxGlobal::deduplicateVarGroups()
@@ -180,6 +179,8 @@ void omxGlobal::deduplicateVarGroups()
 		state->stale = FALSE;
 		state->numConstraints = 0;
 		state->conList = NULL;
+
+		state->computeCount = 0;
 		state->currentRow = -1;
 	}
 
@@ -220,6 +221,7 @@ void omxGlobal::deduplicateVarGroups()
 			omxCompleteExpectation(tgt->expectationList[j]);
 		}
 
+		tgt->computeCount 		= src->computeCount;
 		tgt->currentRow 		= src->currentRow;
 	}
 
@@ -465,6 +467,11 @@ void omxRaiseError(const char* msg) { // DEPRECATED
 		state->currentRow++;
 	};
 
+	void omxStateNextEvaluation(omxState *state) {
+		state->currentRow = -1;
+		state->computeCount++;
+	};
+
 void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
 {
 	va_list ap;
@@ -491,9 +498,8 @@ void omxGlobal::checkpointPostfit(FitContext *fc)
 	}
 }
 
-omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),
-				 lastEvaluation(0), fitPending(false),
-				 timePerCheckpoint(0), iterPerCheckpoint(0), evalsPerCheckpoint(0), file(NULL)
+omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0), fitPending(false),
+				 timePerCheckpoint(0), iterPerCheckpoint(0), file(NULL)
 {}
 
 omxCheckpoint::~omxCheckpoint()
@@ -509,9 +515,7 @@ void omxCheckpoint::omxWriteCheckpointHeader()
 	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
 	size_t numParam = vars.size();
 
-	// New columns should use the OpenMx prefit to avoid clashing with
-	// free parameter names.
-	fprintf(file, "OpenMxContext\tOpenMxNumFree\tOpenMxEvals\titerations\ttimestamp");
+	fprintf(file, "OpenMxContext\tOpenMxNumFree\titerations\ttimestamp");
 	for(size_t j = 0; j < numParam; j++) {
 		fprintf(file, "\t\"%s\"", vars[j]->name);
 	}
@@ -534,8 +538,7 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 
 	bool doit = force;
 	if ((timePerCheckpoint && timePerCheckpoint <= now - lastCheckpoint) ||
-	    (iterPerCheckpoint && iterPerCheckpoint <= fc->iterations - lastIterations) ||
-	    (evalsPerCheckpoint && evalsPerCheckpoint <= Global->computeCount - lastEvaluation)) {
+	    (iterPerCheckpoint && iterPerCheckpoint <= fc->iterations - lastIterations)) {
 		doit = true;
 	}
 	if (!doit) return;
@@ -545,7 +548,7 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 	std::vector< omxFreeVar* > &vars = fc->varGroup->vars;
 	struct tm *nowTime = localtime(&now);
 	strftime(timeBuf, timeBufSize, "%b %d %Y %I:%M:%S %p", nowTime);
-	fprintf(file, "%s\t%d\t%d\t%d\t%s", context, int(vars.size()), lastEvaluation, lastIterations, timeBuf);
+	fprintf(file, "%s\t%d\t%d\t%s", context, int(vars.size()), lastIterations, timeBuf);
 
 	size_t lx=0;
 	size_t numParam = Global->freeGroup[0]->vars.size();
@@ -558,11 +561,9 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 		}
 	}
 	fflush(file);
-	if (fitPending) Rf_error("Checkpoint not reentrant");
 	fitPending = true;
 	lastCheckpoint = now;
 	lastIterations = fc->iterations;
-	lastEvaluation = Global->computeCount;
 }
 
 void omxCheckpoint::prefit(FitContext *fc, double *est, bool force)

@@ -131,11 +131,9 @@ class FitContext {
 	FitContext(std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void allocStderrs();
-	// Instead of using estimates not in est, it is less confusing
-	// to clone the FitContext and use fc->est.
-	void copyParamToModel(omxState* os, double *at); // deprecated
-	void copyParamToModel(omxMatrix *mat, double *at); // deprecated
+	void copyParamToModel(omxState* os, double *at);
 	void copyParamToModel(omxState *os);
+	void copyParamToModel(omxMatrix *mat, double *at);
 	void copyParamToModel(omxMatrix *mat);
 	double *take(int want);
 	void maybeCopyParamToModel(omxState* os);

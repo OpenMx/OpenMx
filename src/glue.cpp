@@ -213,6 +213,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	}
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
+	omxStateNextEvaluation(globalState);
 
 	omxRecompute(algebra);
 
@@ -360,7 +361,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	SEXP evaluations;
 	Rf_protect(evaluations = Rf_allocVector(REALSXP,2));
 
-	REAL(evaluations)[0] = Global->computeCount;
+	REAL(evaluations)[0] = globalState->computeCount;
 
 	if (topCompute && !isErrorRaised(globalState) && globalState->stale) {
 		fc.copyParamToModel(globalState);
@@ -371,7 +372,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxExportResults(globalState, &result); 
 
-	REAL(evaluations)[1] = Global->computeCount;
+	REAL(evaluations)[1] = globalState->computeCount;
 
 	if (topCompute && !isErrorRaised(globalState)) {
 		LocalComputeResult cResult;

@@ -292,6 +292,8 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrix* intermediate = NULL;
 	intermediate = omxInitMatrix(preMul->rows, postMul->cols, TRUE, preMul->currentState);
 
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: step = %ld.", intermediate->currentState->computeCount);}
+
 	if(result->rows != preMul->rows || result->cols != preMul->rows)
 		omxResizeMatrix(result, preMul->rows, preMul->rows);
 
