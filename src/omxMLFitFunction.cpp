@@ -75,7 +75,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	double det = 0.0;
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
-    
+
 	*saturated_out = (state->logDetObserved + ncols) * (state->n - 1);
 
 	// Independence model assumes all-zero manifest covariances.
@@ -98,11 +98,15 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 static void addOutput(omxFitFunction *oo, MxRList *out)
 {
 	// DEPRECATED, use omxPopulateMLAttributes
+	if(OMX_DEBUG) { mxLog("Deprecated ML Attribute Population Code Running."); }
 	double saturated_out;
 	double independence_out;
-	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
-	out->add("SaturatedLikelihood", Rf_ScalarReal(saturated_out));
-	out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));
+	omxData* dataMat = oo->expectation->data;
+	if(strncmp(omxDataType(dataMat), "raw", 3) != 0) {
+		calcExtraLikelihoods(oo, &saturated_out, &independence_out);
+		out->add("SaturatedLikelihood", Rf_ScalarReal(saturated_out));
+		out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));
+	}
 }
 
 static void mvnFit(omxFitFunction *oo, FitContext *fc)

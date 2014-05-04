@@ -49,6 +49,7 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 }
 
 void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
+	if(OMX_DEBUG) { mxLog("Populating FIML Attributes."); }
 	omxFIMLFitFunction *argStruct = ((omxFIMLFitFunction*)off->argStruct);
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
 	omxMatrix *expCovInt, *expMeanInt, *rowLikelihoodsInt;
