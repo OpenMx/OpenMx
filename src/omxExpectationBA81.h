@@ -158,8 +158,4 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out);
 void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei);
 static const double BA81_MIN_VARIANCE = .01;
 
-// debug tools
-void pda(const double *ar, int rows, int cols);
-void pia(const int *ar, int rows, int cols);
-
 #endif

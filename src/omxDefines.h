@@ -141,4 +141,8 @@ class omxCompute;
 struct Matrix;
 struct Param_Obj;
 
+// debug tools
+void pda(const double *ar, int rows, int cols);
+void pia(const int *ar, int rows, int cols);
+
 #endif /* _OMXDEFINES_H_ */

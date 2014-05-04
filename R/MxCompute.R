@@ -247,7 +247,8 @@ setClass(Class = "MxComputeGradientDescent",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
 	     tolerance = "numeric",
-	   verbose = "integer"))
+	   verbose = "integer",
+	     warmStart = "MxOptionalMatrix"))
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
@@ -268,7 +269,7 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance) {
+	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
@@ -276,6 +277,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@useGradient <- useGradient
 		  .Object@verbose <- verbose
 		  .Object@tolerance <- tolerance
+		  .Object@warmStart <- warmStart
 		  .Object
 	  })
 
@@ -326,7 +328,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
-				     tolerance=NA_real_, useGradient=NULL) {
+				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -336,8 +338,12 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
 
+	if (!is.null(warmStart) && engine != "NPSOL") {
+		stop("Only NPSOL supports warmStart")
+	}
+
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance)
+	    tolerance, warmStart)
 }
 
 setMethod("displayCompute", signature("MxComputeGradientDescent"),

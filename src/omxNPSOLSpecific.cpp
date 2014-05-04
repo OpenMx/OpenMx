@@ -228,10 +228,17 @@ void F77_SUB(npsolConstraintFunction)
 
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    int verbose, double *hessOut, double tolerance)
+		    int verbose, double *hessOut, double tolerance, bool warmStart)
 {
 	if (std::isfinite(tolerance)) {
 		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
+	if (warmStart) {
+		std::string opt = string_snprintf("Warm start");
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	} else {
+		std::string opt = string_snprintf("Cold start");
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
 
@@ -303,6 +310,11 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         istate  = (int*) R_alloc (nctotl, sizeof ( int ) );
         iw      = (int*) R_alloc (leniw, sizeof ( int ));
  
+	if (warmStart) {
+		OMXZERO(istate, nctotl);
+		OMXZERO(clambda, nctotl);
+	}
+
         /* Set up actual run */
  
         omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
@@ -386,8 +398,12 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double tolerance)
 {
 	if (std::isfinite(tolerance)) {
-		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
-		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+		std::string option = string_snprintf("Optimality tolerance %.8g", tolerance);
+		F77_CALL(npoptn)((char*) option.c_str(), option.size());
+	}
+	{
+		std::string option = string_snprintf("Cold start");
+		F77_CALL(npoptn)((char*) option.c_str(), option.size());
 	}
 
     FitContext fc(opt, opt->varGroup);

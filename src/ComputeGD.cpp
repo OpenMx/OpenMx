@@ -43,6 +43,9 @@ class omxComputeGD : public ComputeGDBase {
 	typedef ComputeGDBase super;
 	bool useGradient;
 	SEXP hessChol;
+
+	int warmStartSize;
+	double *warmStart;
     
 public:
 	omxComputeGD();
@@ -75,6 +78,7 @@ omxCompute *newComputeConfidenceInterval()
 omxComputeGD::omxComputeGD()
 {
 	hessChol = NULL;
+	warmStart = NULL;
 }
 
 void ComputeGDBase::initFromFrontend(SEXP rObj)
@@ -118,6 +122,19 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	} else {
 		useGradient = Global->analyticGradients;
 	}
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("warmStart")));
+	if (!Rf_isNull(slotValue)) {
+		SEXP matrixDims;
+		Rf_protect(matrixDims = Rf_getAttrib(slotValue, R_DimSymbol));
+		int *dimList = INTEGER(matrixDims);
+		int rows = dimList[0];
+		int cols = dimList[1];
+		if (rows != cols) Rf_error("%s: warmStart matrix must be square", name);
+
+		warmStartSize = rows;
+		warmStart = REAL(slotValue);
+	}
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -137,8 +154,18 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
+		bool doWarm = false;
+		if (warmStart) {
+			if (warmStartSize != int(numParam)) {
+				Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
+					   warmStartSize, numParam);
+			} else {
+				memcpy(REAL(hessChol), warmStart, sizeof(double) * numParam * numParam);
+				doWarm = true;
+			}
+		}
 		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, useGradient, varGroup, verbose,
-			       REAL(hessChol), optimalityTolerance);
+			       REAL(hessChol), optimalityTolerance, doWarm);
 		Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
 		Eigen::MatrixXd hcT = hc.transpose();
 		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
