@@ -162,11 +162,8 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		want |= FF_COMPUTE_FIT;
 	}
 
-	Global->checkpointPrefit(fc, fc->est, false);
-	omxFitFunctionCompute(fitMatrix->fitFunction, want, fc);
+	ComputeFit(fitMatrix, want, fc);
 	if (iter == 1) refFit = fitMatrix->data[0];
-	fc->fit = refFit;
-	Global->checkpointPostfit(fc);
 
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
@@ -198,7 +195,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		trial = prevEst - speed * searchDir;
 		++minorIter;
 		fc->copyParamToModel(globalState, trial.data());
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, fc);
+		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
 		if (verbose >= 4) mxLog("%s: speed %f for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, fitMatrix->data[0], refFit);
 		if (!std::isfinite(fitMatrix->data[0])) {
@@ -320,8 +317,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel(globalState);
-
-		R_CheckUserInterrupt();
 
 		if (converged || iter >= maxIter || isErrorRaised(globalState)) break;
 	}

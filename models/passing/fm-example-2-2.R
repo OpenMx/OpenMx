@@ -145,7 +145,7 @@ if (1) {
   }
 }
 
-m2 <- mxRun(mxModel("ex", m1, pm,
+m2 <- mxModel("ex", m1, pm,
                     mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'item.fitfunction'),
                                             verbose=0L),
                     mxCI(c('g1')),
@@ -155,7 +155,10 @@ m2 <- mxRun(mxModel("ex", m1, pm,
                                 tolerance=1e-5, verbose=0L),
                       mxComputeConfidenceInterval(),
                       mxComputeOnce('fitfunction', c('fit','gradient')),  # SEM lost the details
-                      mxComputeReportDeriv()))), silent=TRUE)
+                      mxComputeReportDeriv())))
+m2 <- mxOption(m2,"Checkpoint Units",'evaluations')
+m2 <- mxOption(m2,"Checkpoint Count",1)
+m2 <- mxRun(m2, silent=TRUE, checkpoint=FALSE)
 # flexmirt's LL is reported w/o prior
 omxCheckCloseEnough(m2$output$fit - m2$submodels$pmodel$fitfunction$result, 33335.75, .1)
 omxCheckCloseEnough(max(abs(m2$output$gradient)), 1.29, .1)

@@ -25,6 +25,7 @@
 #include "omxImportFrontendState.h"
 #include "matrix.h"
 #include "omxCsolnp.h"
+#include "omxBuffer.h"
 
 static const char* anonMatrix = "anonymous matrix";
 
@@ -56,24 +57,16 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
     
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
     
-	R_CheckUserInterrupt();
-
 	GLOB_fc->iterations += 1;   // ought to be major iterations only
 
-	GLOB_fc->copyParamToModel(globalState, myPars.t);
-	Global->checkpointPrefit(GLOB_fc, myPars.t, false);
-    
-    omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, GLOB_fc);
+	memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
+	GLOB_fc->copyParamToModel(globalState);
 
-    if (std::isfinite(fitMatrix->data[0])) {
-	    GLOB_fc->resetIterationError();
-	    if (OMX_DEBUG) mxLog("Fit function returned %g", fitMatrix->data[0]);
-	    GLOB_fc->fit = fitMatrix->data[0]; // redundent?
-    } else {
-	    GLOB_fc->fit = 1e24;
-    }
-    
-	Global->checkpointPostfit(GLOB_fc);
+	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
+
+	if (!std::isfinite(fitMatrix->data[0])) {
+		GLOB_fc->fit = 1e24;
+	}
     
 	if(verbose >= 1) {
 		mxLog("Fit function value is: %.32f", fitMatrix->data[0]);
@@ -405,30 +398,27 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 // Mostly duplicated code in omxNPSOLConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
 // code that can use whatever optimizer is provided.
-void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose, double tolerance)
+void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int verbose, double tolerance)
 {
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
     
+	FitContext fc(opt, opt->varGroup);
+
     GLOB_fitMatrix = fitMatrix;
-	GLOB_fc = fc;
+	GLOB_fc = &fc;
     
-	FreeVarGroup *freeVarGroup = fc->varGroup;
+	FreeVarGroup *freeVarGroup = fc.varGroup;
     
     int inform;
     
     int n = int(freeVarGroup->vars.size());
     int ncnln = globalState->ncnln;
     
-    double optimum = fc->fit;
-    
-    double *optimalValues = fc->est;
-    
-    double f = optimum;
-    std::vector< double > x(n, *optimalValues);
-    std::vector< double > gradient(n);
-    std::vector< double > hessian(n * n);
+    double f = opt->fit;
+    omxBuffer< double > gradient(n);
+    omxBuffer< double > hessian(n * n);
     
     /* CSOLNP Arguments */
     double EMPTY = -999999.0;
@@ -441,7 +431,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
     Matrix solIneqUB;
     Matrix solEqB;
     
-    Matrix myPars = fillMatrix(n, 1, fc->est);
+    Matrix myPars = fillMatrix(n, 1, opt->est);
     double (*solFun)(struct Matrix myPars, int verbose);
     solFun = &csolnpLimitObjectiveFunction;
     Matrix (*solEqBFun)(int verbose);
@@ -529,16 +519,16 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
 		matName = currentCI->matrix->name;
 	}
 
-	Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin lower interval",
+	Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin lower interval",
 				  matName, currentCI->row + 1, currentCI->col + 1);
         
-        memcpy(x.data(), optimalValues, n * sizeof(double)); // Reset to previous optimum
-        myPars = fillMatrix(n, 1, x.data());
+        memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
+        myPars = fillMatrix(n, 1, opt->est);
         CSOLNP_currentInterval = i;
         
         
-        currentCI->lbound += optimum;          // Convert from offsets to targets
-        currentCI->ubound += optimum;          // Convert from offsets to targets
+        currentCI->lbound += opt->fit;          // Convert from offsets to targets
+        currentCI->ubound += opt->fit;          // Convert from offsets to targets
         
         if (std::isfinite(currentCI->lbound))
             {
@@ -574,9 +564,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
                         currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                 
                         value = f;
-                        for (int ii = 0; ii < myPars.cols; ii++){
-                            x.data()[ii] = myPars.t[ii];
-                        }
+			memcpy(fc.est, myPars.t, sizeof(double) * myPars.cols);
                     }
             
                     if(inform != 0 && OMX_DEBUG) {
@@ -587,7 +575,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
                     if(inform != 0) {
                         unsigned int jitter = TRUE;
                         for(int j = 0; j < n; j++) {
-                            if(fabs(x[j] - optimalValues[j]) > objDiff) {
+                            if(fabs(fc.est[j] - opt->est[j]) > objDiff) {
                                 jitter = FALSE;
                                 if(OMX_DEBUG) {mxLog("are u here?????");}
                                 break;
@@ -595,7 +583,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
                         }
                         if(jitter) {
                             for(int j = 0; j < n; j++) {
-                                x[j] = optimalValues[j] + objDiff;
+                                fc.est[j] = opt->est[j] + objDiff;
                             }
                         }
                     }
@@ -604,12 +592,12 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
         
 	if (std::isfinite(currentCI->ubound)) {
             currentCI->calcLower = FALSE;
-	Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin upper interval",
+	Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin upper interval",
 				  matName, currentCI->row + 1, currentCI->col + 1);
 
         
-        memcpy(x.data(), optimalValues, n * sizeof(double));
-        myPars = fillMatrix(n, 1, x.data());
+        memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
+        myPars = fillMatrix(n, 1, opt->est);
         
         
         /* Reset for the upper bound */
@@ -638,11 +626,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             
             if(f < value) {
                 currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                
+
                 value = f;
-				for (int ii = 0; ii < myPars.cols; ii++){
-        			x.data()[ii] = myPars.t[ii];
-                }
+		memcpy(fc.est, myPars.t, sizeof(double) * myPars.cols);
             }
             
             if(inform != 0 && OMX_DEBUG) {
@@ -653,14 +639,14 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verb
             if(inform != 0) {
                 unsigned int jitter = TRUE;
                 for(int j = 0; j < n; j++) {
-                    if(fabs(x[j] - optimalValues[j]) > objDiff){
+                    if(fabs(fc.est[j] - opt->est[j]) > objDiff){
                         jitter = FALSE;
                         break;
                     }
                 }
                 if(jitter) {
                     for(int j = 0; j < n; j++) {
-                        x[j] = optimalValues[j] + objDiff;
+                        fc.est[j] = opt->est[j] + objDiff;
                     }
                 }
             }

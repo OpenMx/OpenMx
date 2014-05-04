@@ -32,7 +32,7 @@ factorModel <- mxModel("Checkpoint",
                        #mxFitFunctionML(),
                        mxMLObjective("R", dimnames = names(demoOneFactor)),
                        mxData(cov(demoOneFactor), type="cov", numObs=500))
-factorModel <- mxOption(factorModel,"Checkpoint Units",'iterations')
+factorModel <- mxOption(factorModel,"Checkpoint Units",'evaluations')
 factorModel <- mxOption(factorModel,"Checkpoint Count",1)
 factorFit <- mxRun(factorModel,checkpoint=T)
 checkpointdat <- read.table('Checkpoint.omx', as.is=TRUE, sep="\t", header=TRUE, check.names=FALSE)

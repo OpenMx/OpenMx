@@ -58,16 +58,7 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		filename <- paste(chkpt.prefix, paste(modelname, 'omx', sep = '.'), sep = '')
-		if (chkpt.units == "minutes") {
-			type <- 0L
-		} else if (chkpt.units == "iterations") {
-			type <- 1L
-		} else {
-			stop(paste("'Checkpoint Units' model option",
-				"must be either 'minutes' or 'iterations' in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		description <- list(0L, chkpt.directory, filename, type, chkpt.count)
+		description <- list(0L, chkpt.directory, filename, chkpt.units, chkpt.count)
 		retval[[length(retval) + 1]] <- description
 	}
 	if (useSocket) {

@@ -208,7 +208,6 @@ void ComputeCI::computeImpl(FitContext *fc)
 		return;
 	}
 
-	double fitCopy = fc->fit;
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 2));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
@@ -238,7 +237,6 @@ void ComputeCI::computeImpl(FitContext *fc)
 	}
 
 	fc->copyParamToModel(globalState);
-	fc->fit = fitCopy;
 }
 
 void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)

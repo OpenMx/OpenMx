@@ -26,6 +26,7 @@
 #include "omxImportFrontendState.h"
 #include "Compute.h"
 #include "npsolswitch.h"
+#include "omxBuffer.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -120,39 +121,28 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	omxMatrix* fitMatrix = NPSOL_fitMatrix;
 
-	R_CheckUserInterrupt();
+	// x == fc->est
+	NPSOL_fc->copyParamToModel(globalState);
 
-	NPSOL_fc->copyParamToModel(globalState, x);
-	Global->checkpointPrefit(NPSOL_fc, x, false);
+	int want = FF_COMPUTE_FIT;
 
 	if (*mode > 0 && NPSOL_useGradient &&
 	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
-		size_t numParams = NPSOL_fc->varGroup->vars.size();
-		NPSOL_fc->grad = Eigen::VectorXd::Zero(numParams);
-
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT|FF_COMPUTE_GRADIENT, NPSOL_fc);
-		if (NPSOL_verbose) {
-			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE|FF_COMPUTE_GRADIENT);
-		}
-	} else {
-		omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_FIT, NPSOL_fc);
-		if (NPSOL_verbose) {
-			NPSOL_fc->log(FF_COMPUTE_FIT|FF_COMPUTE_ESTIMATE);
-		}
+		NPSOL_fc->grad = Eigen::VectorXd::Zero(NPSOL_fc->numParam);
+		want |= FF_COMPUTE_GRADIENT;
 	}
 
-	if (!R_FINITE(fitMatrix->data[0])) {
+	ComputeFit(fitMatrix, want, NPSOL_fc);
+
+	*f = NPSOL_fc->fit;
+
+	if (!std::isfinite(*f)) {
 		*mode = -1;
-	} else {
-		NPSOL_fc->resetIterationError();
 	}
 
-	*f = fitMatrix->data[0];
-	if(OMX_VERBOSE) {
-		mxLog("Fit function value is: %f, Mode is %d.", fitMatrix->data[0], *mode);
+	if (OMX_VERBOSE) {
+		mxLog("Fit function value is: %f, Mode is %d.", *f, *mode);
 	}
-
-	Global->checkpointPostfit(NPSOL_fc);
 }
 
 void F77_SUB(npsolObjectiveFunction)
@@ -374,13 +364,15 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             mxLog("Set.");
         }
  
+	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out, istate, c, cJac,
-			clambda, &fc->fit, g, hessOut, x, iw, &leniw, w, &lenw);
+			clambda, &fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
         if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
  
+	NPSOL_fc->fit = fit;
 	NPSOL_fc->copyParamToModel(globalState);
  
     NPSOL_fitMatrix = NULL;
@@ -391,19 +383,21 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 // Mostly duplicated code in omxCSOLNPConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
 // code that can use whatever optimizer is provided.
-void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double tolerance)
+void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double tolerance)
 {
 	if (std::isfinite(tolerance)) {
 		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
 
+    FitContext fc(opt, opt->varGroup);
+
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_fitMatrix = fitMatrix;
-	NPSOL_fc = fc;
-	FreeVarGroup *freeVarGroup = fc->varGroup;
+	NPSOL_fc = &fc;
+	FreeVarGroup *freeVarGroup = opt->varGroup;
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
@@ -418,12 +412,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
     int n = int(freeVarGroup->vars.size());
-    double optimum = fc->fit;
-    double *optimalValues = fc->est;
-    double f = optimum;
-    std::vector< double > x(n, *optimalValues);
-    std::vector< double > gradient(n);
-    std::vector< double > hessian(n * n);
+    double f = opt->fit;
+    omxBuffer< double > gradient(n);
+    omxBuffer< double > hessian(n * n);
 
     /* NPSOL Arguments */
     void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
@@ -483,15 +474,15 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
 		if (currentCI->matrix->name) {
 			matName = currentCI->matrix->name;
 		}
-		Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin lower interval",
+		Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin lower interval",
 					  matName, currentCI->row + 1, currentCI->col + 1);
  
  
-			memcpy(x.data(), optimalValues, n * sizeof(double)); // Reset to previous optimum
+		memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
 			NPSOL_currentInterval = i;
 
-            currentCI->lbound += optimum;          // Convert from offsets to targets
-            currentCI->ubound += optimum;          // Convert from offsets to targets
+            currentCI->lbound += opt->fit;          // Convert from offsets to targets
+            currentCI->ubound += opt->fit;          // Convert from offsets to targets
  
 	    if (std::isfinite(currentCI->lbound)) {
             /* Set up for the lower bound */
@@ -504,7 +495,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 currentCI->calcLower = TRUE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-				clambda, &f, gradient.data(), hessian.data(), x.data(), iw, &leniw, w, &lenw);
+				clambda, &f, gradient.data(), hessian.data(), fc.est, iw, &leniw, w, &lenw);
  
                 currentCI->lCode = inform;
                 if(f < value) {
@@ -520,14 +511,14 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 if(inform != 0) {
                     unsigned int jitter = TRUE;
                     for(int j = 0; j < n; j++) {
-                        if(fabs(x[j] - optimalValues[j]) > objDiff) {
+                        if(fabs(fc.est[j] - opt->est[j]) > objDiff) {
                             jitter = FALSE;
                             break;
                         }
                     }
                     if(jitter) {
                         for(int j = 0; j < n; j++) {
-                            x[j] = optimalValues[j] + objDiff;
+                            fc.est[j] = opt->est[j] + objDiff;
                         }
                     }
                 }
@@ -535,10 +526,10 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
 	    }
  
 	    if (std::isfinite(currentCI->ubound)) {
-		Global->checkpointMessage(fc, fc->est, "%s[%d, %d] begin upper interval",
+		Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin upper interval",
 					  matName, currentCI->row + 1, currentCI->col + 1);
 
-		memcpy(x.data(), optimalValues, n * sizeof(double));
+		memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
  
             /* Reset for the upper bound */
 		double value = INF;
@@ -550,7 +541,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 currentCI->calcLower = FALSE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
                                     (void*) F77_SUB(npsolLimitObjectiveFunction), &inform, &iter, istate, c, cJac,
-				clambda, &f, gradient.data(), hessian.data(), x.data(), iw, &leniw, w, &lenw);
+				clambda, &f, gradient.data(), hessian.data(), fc.est, iw, &leniw, w, &lenw);
  
                 currentCI->uCode = inform;
                 if(f < value) {
@@ -566,14 +557,14 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
                 if(inform != 0) {
                     unsigned int jitter = TRUE;
                     for(int j = 0; j < n; j++) {
-                        if(fabs(x[j] - optimalValues[j]) > objDiff){
+                        if(fabs(fc.est[j] - opt->est[j]) > objDiff){
                             jitter = FALSE;
                             break;
                         }
                     }
                     if(jitter) {
                         for(int j = 0; j < n; j++) {
-                            x[j] = optimalValues[j] + objDiff;
+                            fc.est[j] = opt->est[j] + objDiff;
                         }
                     }
                 }
