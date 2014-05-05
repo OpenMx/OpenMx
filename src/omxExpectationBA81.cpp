@@ -60,8 +60,8 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const size_t numItems = state->itemSpec.size();
 	omxData *data = state->data;
-	const int *rowMap = state->rowMap;
 	const int *colMap = state->colMap;
+	std::vector<int> &rowMap = state->rowMap;
 	double *oProb = state->outcomeProb;
 	std::vector<double> &priQarea = state->priQarea;
 
@@ -95,8 +95,8 @@ void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *E
 	const size_t numItems = state->itemSpec.size();
 	const double OneOverLargest = state->OneOverLargestDouble;
 	omxData *data = state->data;
-	const int *rowMap = state->rowMap;
 	const int *colMap = state->colMap;
+	std::vector<int> &rowMap = state->rowMap;
 	std::vector<double> &speQarea = state->speQarea;
 	std::vector<double> &priQarea = state->priQarea;
 
@@ -241,7 +241,7 @@ static void ba81Estep1(omxExpectation *oo)
 	const int maxAbilities = state->maxAbilities;
 	const int primaryDims = numSpecific? maxDims-1 : maxDims;
 	omxData *data = state->data;
-	int *numIdentical = state->numIdentical;
+	std::vector<double> &rowWeight = state->rowWeight;
 	const long totalQuadPoints = state->totalQuadPoints;
 
 	state->excludedPatterns = 0;
@@ -254,8 +254,8 @@ static void ba81Estep1(omxExpectation *oo)
 	const size_t numItems = state->itemSpec.size();
 	const int totalOutcomes = state->totalOutcomes;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	const int *rowMap = state->rowMap;
 	const int *colMap = state->colMap;
+	std::vector<int> &rowMap = state->rowMap;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
 	double *wherePrep = state->wherePrep.data();
 	double *whereGram = state->whereGram.data();
@@ -295,7 +295,7 @@ static void ba81Estep1(omxExpectation *oo)
 				continue;
 			}
 
-			double weight = numIdentical[px] / patternLik1;
+			double weight = rowWeight[px] / patternLik1;
 			for (long qx=0; qx < totalQuadPoints; ++qx) {
 				double tmp = Qweight[qx] * weight;
 				Dweight[qx] += tmp;
@@ -376,7 +376,7 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 
 			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
-			double weight = numIdentical[px] / patternLik1;
+			double weight = rowWeight[px] / patternLik1;
 			for (long qx=0; qx < totalQuadPoints * numSpecific; qx++) {
 				double tmp = Qweight[qx] * weight;
 				Qweight[qx] = tmp;
@@ -951,8 +951,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeMatrix(state->estLatentMean);
 	omxFreeMatrix(state->estLatentCov);
 	omxFreeMatrix(state->numObsMat);
-	Free(state->numIdentical);
-	Free(state->rowMap);
 	Free(state->patternLik);
 	Free(state->Sgroup);
 	Free(state->expected);
@@ -1022,8 +1020,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->estLatentCov = NULL;
 	state->numSpecific = 0;
 	state->excludedPatterns = 0;
-	state->numIdentical = NULL;
-	state->rowMap = NULL;
 	state->patternLik = NULL;
 	state->outcomeProb = NULL;
 	state->expected = NULL;
@@ -1100,14 +1096,28 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	for (int rx=0; rx < data->rows;) {
-		rx += omxDataNumIdenticalRows(state->data, rx);
-		++numUnique;
+	//if (state->rowWeight.size() == 0)
+	{
+		// Should rowMap be part of omxData? This is essentially a
+		// generic compression step that shouldn't be specific to IFA models.
+		state->rowWeight.resize(data->rows);
+		state->rowMap.resize(data->rows);
+		for (int rx=0; rx < data->rows; ) {
+			int rw = omxDataNumIdenticalRows(state->data, rx);
+			state->rowWeight[numUnique] = rw;
+			state->rowMap[numUnique] = rx;
+			rx += rw;
+			++numUnique;
+		}
+		state->rowWeight.resize(numUnique);
+		state->rowMap.resize(numUnique);
 	}
+	// else {
+	// 	numUnique = state->rowWeight.size();
+	// 	state->rowMap.resize(numUnique);
+	// 	for (int rx=0; rx < numUnique; ++rx) state->rowMap[rx] = rx;
+	// }
 	state->numUnique = numUnique;
-
-	state->rowMap = Realloc(NULL, numUnique, int);
-	state->numIdentical = Realloc(NULL, numUnique, int);
 
 	const int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
@@ -1244,8 +1254,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// throw off multigroup latent distribution estimates.
 	for (int rx=0, ux=0; rx < data->rows; ux++) {
 		int dups = omxDataNumIdenticalRows(state->data, rx);
-		state->numIdentical[ux] = dups;
-		state->rowMap[ux] = rx;
 
 		std::vector<bool> hasScore(state->maxAbilities);
 		for (int ix=0; ix < numItems; ix++) {

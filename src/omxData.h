@@ -82,6 +82,7 @@ class omxData {
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
  public:
 	int rows, cols;						// Matrix size 
+	std::vector<double> rowWeight;
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	struct omxExpectation *expectation;   // weak pointer

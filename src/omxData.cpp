@@ -110,7 +110,7 @@ static void newDataStatic(SEXP dataObject, omxData *od)
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
 		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 		
-		if (od->dataMat->colMajor && strncmp(od->_type, "raw", 3) == 0) { 
+		if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
 			omxToggleRowColumnMajor(od->dataMat);
 		}
 		od->cols = od->dataMat->cols;
@@ -174,7 +174,7 @@ static void newDataStatic(SEXP dataObject, omxData *od)
         }
 	}
 
-	if(strncmp(od->_type, "raw", 3) != 0) {
+	if(!strEQ(od->_type, "raw")) {
 		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("numObs")));
 		od->numObs = REAL(dataLoc)[0];

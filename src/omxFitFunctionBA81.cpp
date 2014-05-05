@@ -397,9 +397,9 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	const int numSpecific = estate->numSpecific;
 	const int maxDims = estate->maxDims;
 	omxData *data = estate->data;
-	const int *rowMap = estate->rowMap;
-	int *numIdentical = estate->numIdentical;
 	const int *colMap = estate->colMap;
+	std::vector<int> &rowMap = estate->rowMap;
+	std::vector<double> &rowWeight = estate->rowWeight;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -474,13 +474,13 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 						int to = state->paramMap[derivBase + ox];
 						if (to >= int(numParam)) {
 							int Hto = to - numParam;
-							breadH[Hto] += abScale * itemDeriv[ox] * tmp * numIdentical[px];
+							breadH[Hto] += abScale * itemDeriv[ox] * tmp * rowWeight[px];
 						}
 					}
 				}
-				addSymOuterProd(abScale * numIdentical[px], gradBuf.data(), numParam, breadG);
+				addSymOuterProd(abScale * rowWeight[px], gradBuf.data(), numParam, breadG);
 			}
-			addSymOuterProd(abScale * numIdentical[px], patGrad.data(), numParam, meat);
+			addSymOuterProd(abScale * rowWeight[px], patGrad.data(), numParam, meat);
 		}
 
 	} else {
@@ -550,17 +550,17 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 								if (to >= int(numParam)) {
 									int Hto = to - numParam;
 									breadH[Hto] += (abScale * itemDeriv[ox] *
-											tmp * numIdentical[px]);
+											tmp * rowWeight[px]);
 								}
 							}
 						}
-						addSymOuterProd(abScale * numIdentical[px], gradBuf.data(), numParam, breadG);
+						addSymOuterProd(abScale * rowWeight[px], gradBuf.data(), numParam, breadG);
 					}
 					qloc += numSpecific;
 					++qx;
 				}
 			}
-			addSymOuterProd(abScale * numIdentical[px], patGrad.data(), numParam, meat);
+			addSymOuterProd(abScale * rowWeight[px], patGrad.data(), numParam, meat);
 		}
 	}
 
@@ -734,7 +734,7 @@ static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
 	derivCoef[1] = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
 }
 
-static void gradCov_finish_1pat(const double weight, const int numIdentical, const size_t numItems,
+static void gradCov_finish_1pat(const double weight, const double rowWeight, const size_t numItems,
 			    const int numLatents, const size_t numParam,
 			    BA81FitState *state, BA81Expect *estate, omxMatrix *itemParam,
 			    std::vector<double> &deriv0, std::vector<double> &latentGrad,
@@ -762,9 +762,9 @@ static void gradCov_finish_1pat(const double weight, const int numIdentical, con
 		if (to >= 0) patGrad[to] += weight * latentGrad[lx];
 	}
 	for (size_t par=0; par < numParam; ++par) {
-		grad[par] += patGrad[par] * Scale * numIdentical;
+		grad[par] += patGrad[par] * Scale * rowWeight;
 	}
-	addSymOuterProd(fabs(Scale) * numIdentical, patGrad.data(), numParam, meat);
+	addSymOuterProd(fabs(Scale) * rowWeight, patGrad.data(), numParam, meat);
 }
 
 static bool gradCov(omxFitFunction *oo, FitContext *fc)
@@ -785,9 +785,9 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	const int maxAbilities = estate->maxAbilities;
 	omxMatrix *cov = estate->latentCovOut;
 	omxData *data = estate->data;
-	const int *rowMap = estate->rowMap;
-	int *numIdentical = estate->numIdentical;
 	const int *colMap = estate->colMap;
+	std::vector<int> &rowMap = estate->rowMap;
+	std::vector<double> &rowWeight = estate->rowWeight;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -870,7 +870,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 				}
 			}
 
-			gradCov_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
+			gradCov_finish_1pat(1 / patternLik1, rowWeight[px], numItems, numLatents, numParam,
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	} else {
@@ -947,7 +947,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 			}
 			patternLik[px] = patternLik1;
 
-			gradCov_finish_1pat(1 / patternLik1, numIdentical[px], numItems, numLatents, numParam,
+			gradCov_finish_1pat(1 / patternLik1, rowWeight[px], numItems, numLatents, numParam,
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	}
@@ -1072,7 +1072,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
-			int *numIdentical = estate->numIdentical;
+			omxData *data = estate->data;
+			std::vector<double> &rowWeight = estate->rowWeight;
 			int numUnique = estate->numUnique;
 			estate->excludedPatterns = 0;
 			const double LogLargest = estate->LogLargestDouble;
@@ -1085,7 +1086,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					// somehow indicate that this -2LL is provisional TODO
 					continue;
 				}
-				got += numIdentical[ux] * (log(patternLik[ux]) - LogLargest);
+				got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);
 			}
 			double fit = Global->llScale * got;
 			if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
