@@ -234,7 +234,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	const int numThreads = Global->numThreads;
-	const int numUnique = state->numUnique;
+	const int numUnique = (int) state->rowMap.size();
 	const int numSpecific = state->numSpecific;
 	const int maxDims = state->maxDims;
 	const int whereGramSize = triangleLoc1(maxDims);
@@ -649,7 +649,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 	BA81Expect *state = (BA81Expect*) oo->argStruct;
 	if (state->verbose >= 1) mxLog("%s: EAP", oo->name);
 
-	const int numUnique = state->numUnique;
+	const int numUnique = (int) state->rowMap.size();
 	const int numSpecific = state->numSpecific;
 	const int maxDims = state->maxDims;
 	const int maxAbilities = state->maxAbilities;
@@ -837,12 +837,12 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	int maxAbilities = state->maxAbilities;
+	const int numUnique = (int) state->rowMap.size();
 
-	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(state->numUnique - 1)); // missingness? latent params? TODO
+	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(numUnique - 1)); // missingness? latent params? TODO
 
 	if (state->debugInternal) {
 		const double LogLargest = state->LogLargestDouble;
-		int numUnique = state->numUnique;
 		int totalOutcomes = state->totalOutcomes;
 		SEXP Rlik;
 		SEXP Rexpected;
@@ -896,7 +896,6 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	std::vector<double> cov;
 	EAPinternalFast(oo, &mean, &cov);
 
-	int numUnique = state->numUnique;
 	omxData *data = state->data;
 	int rows = state->scores == SCORES_FULL? data->rows : numUnique;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
@@ -1117,7 +1116,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// 	state->rowMap.resize(numUnique);
 	// 	for (int rx=0; rx < numUnique; ++rx) state->rowMap[rx] = rx;
 	// }
-	state->numUnique = numUnique;
 
 	const int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {

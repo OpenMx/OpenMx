@@ -39,7 +39,6 @@ struct BA81Expect {
 	// data characteristics
 	omxData *data;
 	const int *colMap;             // item column to data column mapping
-	int numUnique;                 // redundent, remove TODO
 	std::vector<int> rowMap;       // length numUnique, index of first instance of pattern
 	std::vector<double> rowWeight;
 

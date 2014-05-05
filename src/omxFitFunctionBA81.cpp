@@ -393,7 +393,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	ba81OutcomeProb(estate, FALSE, FALSE);
 
 	const int numThreads = Global->numThreads;
-	const int numUnique = estate->numUnique;
+	const int numUnique = (int) estate->rowMap.size();
 	const int numSpecific = estate->numSpecific;
 	const int maxDims = estate->maxDims;
 	omxData *data = estate->data;
@@ -778,7 +778,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	ba81OutcomeProb(estate, FALSE, FALSE);
 
 	const int numThreads = Global->numThreads;
-	const int numUnique = estate->numUnique;
+	const int numUnique = (int) estate->rowMap.size();
 	const int numSpecific = estate->numSpecific;
 	const int maxDims = estate->maxDims;
 	const int pDims = numSpecific? maxDims-1 : maxDims;
@@ -1074,7 +1074,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			double *patternLik = estate->patternLik;
 			omxData *data = estate->data;
 			std::vector<double> &rowWeight = estate->rowWeight;
-			int numUnique = estate->numUnique;
+			const int numUnique = (int) estate->rowMap.size();
 			estate->excludedPatterns = 0;
 			const double LogLargest = estate->LogLargestDouble;
 			double got = 0;
