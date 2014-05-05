@@ -74,9 +74,13 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 {
 	if (Global->numThreads <= 1) return;
 
+	for(size_t j = 0; j < globalState->expectationList.size(); j++) {
+		if (!globalState->expectationList[j]->canDuplicate) return;
+	}
+
 	if (globalState->childList.size()) Rf_error("Children already created");
 
-	int numThreads = Global->numChildren = Global->numThreads;
+	int numThreads = Global->numThreads;
 
 	globalState->childList.resize(numThreads);
 

@@ -161,7 +161,6 @@ class omxGlobal {
 	int ciMaxIterations;
 	int numThreads;
 	int analyticGradients;
-	int numChildren;  // == globalState->childList.size()
 	double llScale;
 
 	double maxptsa;

@@ -178,7 +178,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 	omxMatrix* fitMatrix  = off->matrix;
 	omxState* parentState = fitMatrix->currentState;
-	int numChildren = parentState==globalState? Global->numChildren : 0;
+	int numChildren = parentState==globalState? globalState->childList.size() : 0;
 
 	cov 		= ofiml->cov;
 	means		= ofiml->means;
@@ -280,7 +280,7 @@ static void omxCallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*) off->argStruct);
 	omxMatrix* objMatrix  = off->matrix;
 	omxState* parentState = objMatrix->currentState;
-	int numChildren = parentState==globalState? Global->numChildren : 0;
+	int numChildren = parentState==globalState? globalState->childList.size() : 0;
 
 	// Locals, for readability.  Should compile out.
 	cov 		= ofiml->cov;
@@ -370,7 +370,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitCont
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 	omxMatrix* objMatrix  = off->matrix;
 	omxState* parentState = objMatrix->currentState;
-	int numChildren = parentState==globalState? Global->numChildren : 0;
+	int numChildren = parentState==globalState? globalState->childList.size() : 0;
 
 	// Locals, for readability.  Compiler should cut through this.
 	cov 		= ofiml->cov;
@@ -506,8 +506,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
-
-	off->usesChildModels = TRUE;
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing data source.");

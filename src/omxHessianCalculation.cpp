@@ -303,7 +303,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 0;
-	if (parallel) numChildren = Global->numChildren;
+	if (parallel) numChildren = globalState->childList.size();
 
 	omxRecompute(fitMat);
 	minimum = omxMatrixElement(fitMat, 0, 0);

@@ -1079,6 +1079,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	oo->destructFun = ba81Destroy;
 	oo->populateAttrFun = ba81PopulateAttributes;
 	oo->componentFun = getComponent;
+	oo->canDuplicate = false;
 	
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we get better cache behavior.

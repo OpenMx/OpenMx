@@ -78,7 +78,6 @@ struct omxFitFunction {					// A fit function
 	const char* fitType;														// Type of FitFunction Function
 
 	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
-	int usesChildModels;    // whether to create child models for parallelization
 	bool initialized;
 	FreeVarGroup *freeVarGroup;
 	bool gradientAvailable;

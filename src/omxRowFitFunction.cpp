@@ -152,7 +152,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
 	omxMatrix* objMatrix  = oo->matrix;
 	omxState* parentState = objMatrix->currentState;
-	int numChildren = parentState==globalState? Global->numChildren : 0;
+	int numChildren = parentState==globalState? globalState->childList.size() : 0;
 
     omxMatrix *reduceAlgebra;
 	omxData *data;
@@ -348,7 +348,6 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 
 	oo->computeFun = omxCallRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
-	oo->usesChildModels = TRUE;
 
 	oo->argStruct = (void*) newObj;
 }

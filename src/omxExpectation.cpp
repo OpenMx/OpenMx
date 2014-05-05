@@ -331,6 +331,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	}
 
 	expect->currentState = os;
+	expect->canDuplicate = true;
 
 	return expect;
 }

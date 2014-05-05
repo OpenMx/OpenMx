@@ -96,6 +96,8 @@ struct omxExpectation {					// An Expectation
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove
 	const char *name;
+
+	bool canDuplicate;
 };
 
 omxExpectation *

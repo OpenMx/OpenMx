@@ -156,7 +156,6 @@ omxGlobal::omxGlobal()
 	ciMaxIterations = 5;
 	numThreads = 1;
 	analyticGradients = 0;
-	numChildren = 0;
 	llScale = -2.0;
 	computeCount = 0;
 }
@@ -254,7 +253,7 @@ void omxFreeChildStates(omxState *state)
 {
 	if (state->childList.size() == 0) return;
 
-	for(int k = 0; k < Global->numChildren; k++) {
+	for(size_t k = 0; k < state->childList.size(); k++) {
 		// Data are not modified and not copied. The same memory
 		// is shared across all instances of state. We only need
 		// to free the data once, so let the parent do it.
@@ -263,7 +262,6 @@ void omxFreeChildStates(omxState *state)
 		omxFreeState(state->childList[k]);
 	}
 	state->childList.clear();
-	Global->numChildren = 0;
 }
 
 	void omxFreeState(omxState *state) {
