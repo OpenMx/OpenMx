@@ -31,13 +31,15 @@ setClass(Class = "MxExpectationBA81",
 	   numStats = "numeric",
 	   verbose = "integer",
 	     output = "list",
-	     debug = "list"),
+	     debug = "list",
+	     naAction = "character",
+	     minItemsPerScore = "integer"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, design,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
-		   name = 'expectation') {
+		   naAction, minItemsPerScore, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
 	    .Object@ItemParam <- ItemParam
@@ -51,6 +53,8 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@cov <- cov
 	    .Object@verbose <- verbose
 	    .Object@debugInternal <- debugInternal
+	    .Object@naAction <- naAction
+	    .Object@minItemsPerScore <- minItemsPerScore
             return(.Object)
           }
 )
@@ -155,14 +159,10 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L) {
 
-	if (packageVersion("rpf") < "0.15") stop("Please install 'rpf' version 0.15 or newer")
+	if (packageVersion("rpf") < "0.28") stop("Please install 'rpf' version 0.28 or newer")
 	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
-		stop("qpoints should be 3 or greater")
-	}
-	if (qpoints %% 2 == 0) {
-		warning(paste("An even number of qpoints can obtain a better than true fit",
-			      "in a single group model; Pick an odd number of qpoints"))
+		stop("qpoints must be 3 or greater")
 	}
 	if (missing(qwidth)) qwidth <- 6
 	if (qwidth <= 0) {
@@ -171,7 +171,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
   
 	score.options <- c("omit", "full")
 	if (!match(scores, score.options)) {
-		stop(paste("Valid score options are", deparse(score.options)))
+		stop(paste("Valid score options are", omxQuotes(score.options)))
 	}
 
 	if (!missing(design) && !is.integer(design)) {
@@ -180,10 +180,12 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
 
-	if (naAction != "fail") stop("Only naAction='fail' is implemented")
+	actions <- c("pass", "fail")
+	if (!match(naAction, actions)) stop(paste("Valid choices for naAction are", omxQuotes(actions)))
 
-	if (minItemsPerScore != 1L) stop("Only minItemsPerScore=1L is implemented")
+	if (minItemsPerScore < 0L) stop("minItemsPerScore must be non-negative")
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
-		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal))
+		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
+		   naAction, minItemsPerScore))
 }

@@ -400,6 +400,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	const int *colMap = estate->colMap;
 	std::vector<int> &rowMap = estate->rowMap;
 	std::vector<double> &rowWeight = estate->rowWeight;
+	std::vector<bool> &rowSkip = estate->rowSkip;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -417,6 +418,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			omxBuffer<double> itemDeriv(state->itemDerivPadSize);
@@ -492,6 +494,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			omxBuffer<double> expected(totalOutcomes); // can use maxOutcomes instead TODO
 			omxBuffer<double> itemDeriv(state->itemDerivPadSize);
@@ -788,6 +791,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	const int *colMap = estate->colMap;
 	std::vector<int> &rowMap = estate->rowMap;
 	std::vector<double> &rowWeight = estate->rowWeight;
+	std::vector<bool> &rowSkip = estate->rowSkip;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -832,6 +836,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			omxBuffer<double> expected(totalOutcomes); // can use maxOutcomes instead TODO
@@ -895,6 +900,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;

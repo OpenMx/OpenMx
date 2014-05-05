@@ -39,8 +39,9 @@ struct BA81Expect {
 	// data characteristics
 	omxData *data;
 	const int *colMap;             // item column to data column mapping
-	std::vector<int> rowMap;       // length numUnique, index of first instance of pattern
+	std::vector<int> rowMap;       // row index into MxData
 	std::vector<double> rowWeight;
+	std::vector<bool> rowSkip;     // whether to treat the row as NA
 
 	// item description related
 	std::vector<const double*> itemSpec;

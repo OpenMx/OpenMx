@@ -54,7 +54,7 @@ void pia(const int *ar, int rows, int cols)
 	mxLogBig(buf);
 }
 
-void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
+void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 {
 	const long totalQuadPoints = state->totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
@@ -69,8 +69,9 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 		out[qx] = priQarea[qx];
 	}
 
+	const int row = rowMap[px];
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
+		int pick = omxIntDataElementUnsafe(data, row, colMap[ix]);
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -84,7 +85,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out)
 	}
 }
 
-void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei)
+void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, double *Ei)
 {
 	const int numSpecific = state->numSpecific;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
@@ -107,8 +108,9 @@ void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *E
 		}
 	}
 
+	const int row = rowMap[px];
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
+		int pick = omxIntDataElementUnsafe(data, row, colMap[ix]);
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -256,6 +258,7 @@ static void ba81Estep1(omxExpectation *oo)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const int *colMap = state->colMap;
 	std::vector<int> &rowMap = state->rowMap;
+	std::vector<bool> &rowSkip = state->rowSkip;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
 	double *wherePrep = state->wherePrep.data();
 	double *whereGram = state->whereGram.data();
@@ -267,6 +270,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
 			double *Dweight = thrDweight.data() + totalQuadPoints * thrId;
@@ -342,6 +346,7 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
+			if (rowSkip[px]) continue;
 			int thrId = omx_absolute_thread_num();
 			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 			double *Dweight = thrDweight.data() + totalQuadPoints * numSpecific * thrId;
@@ -729,7 +734,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
-		if (!validPatternLik(state, denom)) {
+		if (!validPatternLik(state, denom) || state->rowSkip[px]) {
 			for (int ax=0; ax < maxAbilities; ++ax) {
 				(*mean)[px * maxAbilities + ax] = NA_REAL;
 			}
@@ -897,7 +902,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	EAPinternalFast(oo, &mean, &cov);
 
 	omxData *data = state->data;
-	int rows = state->scores == SCORES_FULL? data->rows : numUnique;
+	int rows = data->rows;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
 	Rf_protect(Rscores = Rf_allocMatrix(REALSXP, rows, cols));
@@ -921,19 +926,12 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	SET_VECTOR_ELT(dimnames, 1, names);
 	Rf_setAttrib(Rscores, R_DimNamesSymbol, dimnames);
 
-	if (state->scores == SCORES_FULL) {
 #pragma omp parallel for num_threads(Global->numThreads)
-		for (int rx=0; rx < numUnique; rx++) {
-			int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
-			for (int dup=0; dup < dups; dup++) {
-				int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-				copyScore(rows, maxAbilities, mean, cov, rx, scores, dest);
-			}
-		}
-	} else {
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (int rx=0; rx < numUnique; rx++) {
-			copyScore(rows, maxAbilities, mean, cov, rx, scores, rx);
+	for (int rx=0; rx < numUnique; rx++) {
+		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
+		for (int dup=0; dup < dups; dup++) {
+			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
+			copyScore(rows, maxAbilities, mean, cov, rx, scores, dest);
 		}
 	}
 
@@ -1117,6 +1115,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// 	for (int rx=0; rx < numUnique; ++rx) state->rowMap[rx] = rx;
 	// }
 
+	std::vector<int> &rowMap = state->rowMap;
+
 	const int numItems = state->itemParam->cols;
 	if (data->cols != numItems) {
 		Rf_error("Data has %d columns for %d items", data->cols, numItems);
@@ -1247,15 +1247,21 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->numSpecific = state->maxAbilities - state->maxDims + 1;
 	}
 
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("naAction")));
+	bool naFail = strEQ(CHAR(Rf_asChar(tmp)), "fail");
+
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("minItemsPerScore")));
+	int minItemsPerScore = Rf_asInteger(tmp);
+
+	state->rowSkip.assign(rowMap.size(), false);
+
 	// Rows with no information about an ability will obtain the
 	// prior distribution as an ability estimate. This will
 	// throw off multigroup latent distribution estimates.
-	for (int rx=0, ux=0; rx < data->rows; ux++) {
-		int dups = omxDataNumIdenticalRows(state->data, rx);
-
-		std::vector<bool> hasScore(state->maxAbilities);
+	for (size_t rx=0; rx < rowMap.size(); rx++) {
+		std::vector<int> contribution(state->maxAbilities);
 		for (int ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rx, colMap[ix]);
+			int pick = omxIntDataElementUnsafe(data, rowMap[rx], colMap[ix]);
 			if (pick == NA_INTEGER) continue;
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
@@ -1268,18 +1274,25 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 				}
 				// assume factor loadings are the first item parameters
 				if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;
-				hasScore[ability - 1] = true;
+				contribution[ability - 1] += 1;
 			}
 		}
 		for (int ax=0; ax < state->maxAbilities; ++ax) {
-			if (!hasScore[ax]) {
-				int dest = omxDataIndex(data, ux);
-				omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
-				return;
+			if (contribution[ax] < minItemsPerScore) {
+				if (naFail) {
+					int dest = omxDataIndex(data, state->rowMap[rx]);
+					omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
+				}
+				// We could compute the other scores, but estimation of the
+				// latent distribution is in the hot code path. We can reconsider
+				// this choice when we try generating scores instead of the
+				// score distribution.
+				state->rowSkip[rx] = true;
 			}
 		}
-		rx += dups;
 	}
+
+	if (isErrorRaised()) return;
 
 	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {
 		Rf_error("The mean matrix '%s' must be 1x%d or %dx1", state->latentMeanOut->name,
@@ -1305,8 +1318,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("scores")));
 	const char *score_option = CHAR(Rf_asChar(tmp));
-	if (strcmp(score_option, "omit")==0) state->scores = SCORES_OMIT;
-	if (strcmp(score_option, "full")==0) state->scores = SCORES_FULL;
+	if (strEQ(score_option, "omit")) state->scores = SCORES_OMIT;
+	if (strEQ(score_option, "full")) state->scores = SCORES_FULL;
 
 	state->ElatentVersion = 0;
 	state->estLatentMean = omxInitMatrix(state->maxAbilities, 1, TRUE, currentState);
