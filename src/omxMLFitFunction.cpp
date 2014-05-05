@@ -102,7 +102,7 @@ static void addOutput(omxFitFunction *oo, MxRList *out)
 	double saturated_out;
 	double independence_out;
 	omxData* dataMat = oo->expectation->data;
-	if(strncmp(omxDataType(dataMat), "raw", 3) != 0) {
+	if (!strEQ(omxDataType(dataMat), "raw")) {
 		calcExtraLikelihoods(oo, &saturated_out, &independence_out);
 		out->add("SaturatedLikelihood", Rf_ScalarReal(saturated_out));
 		out->add("IndependenceLikelihood", Rf_ScalarReal(independence_out));

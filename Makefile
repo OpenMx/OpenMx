@@ -191,6 +191,7 @@ dev-doc:
 code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@echo "Checking code style"
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
+	@if [ `grep strncmp src/*.cpp | wc -l` -gt 23 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 3 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	@if grep --color=always --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
 	cat DESCRIPTION.in | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
