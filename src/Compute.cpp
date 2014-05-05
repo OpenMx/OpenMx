@@ -1385,7 +1385,7 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
 		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 		compute->initFromFrontend(step);
-		if (isErrorRaised(globalState)) break;
+		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
 }
@@ -1394,7 +1394,7 @@ void omxComputeSequence::computeImpl(FitContext *fc)
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		clist[cx]->compute(fc);
-		if (isErrorRaised(globalState)) break;
+		if (isErrorRaised()) break;
 	}
 }
 
@@ -1426,7 +1426,7 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
 		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
 		compute->initFromFrontend(step);
-		if (isErrorRaised(globalState)) break;
+		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
 
@@ -1443,7 +1443,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
-			if (isErrorRaised(globalState)) break;
+			if (isErrorRaised()) break;
 		}
 		if (fc->wanted & FF_COMPUTE_MAXABSCHANGE) {
 			if (fc->mac < 0) {
@@ -1471,7 +1471,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 		if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
 			omxRaiseErrorf("ComputeIterate: neither MAC nor fit available");
 		}
-		if (isErrorRaised(globalState) || ++iter > maxIter || mac < tolerance) break;
+		if (isErrorRaised() || ++iter > maxIter || mac < tolerance) break;
 	}
 }
 
@@ -1781,7 +1781,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		prevFit = fc->fit;
 		converged = mac < tolerance;
 		++fc->iterations;
-		if (isErrorRaised(globalState) || ++EMcycles > maxIter || converged) break;
+		if (isErrorRaised() || ++EMcycles > maxIter || converged) break;
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {
 			double *estCopy = new double[freeVars];

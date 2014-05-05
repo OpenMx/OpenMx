@@ -234,7 +234,7 @@ void omxFreeState(omxState *state);
 
 	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
-inline bool isErrorRaised(omxState *) { return Global->bads.size() != 0; }
+inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 

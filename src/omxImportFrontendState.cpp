@@ -60,7 +60,7 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 
 		if(OMX_DEBUG) { omxPrintMatrix(mat, "Imported"); }
 
-		if (isErrorRaised(globalState)) return;
+		if (isErrorRaised()) return;
 	}
 }
 
@@ -88,7 +88,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)), dimnames);
 			omxMarkDirty(amat);
 		}
-		if (isErrorRaised(globalState)) return;
+		if (isErrorRaised()) return;
 	}
 }
 
@@ -109,7 +109,7 @@ void omxProcessMxFitFunction(SEXP algList)
 			fm->name = CHAR(STRING_ELT(algListNames, index));
 			Rf_unprotect(1);	// fitFunctionClass
 		}
-		if (isErrorRaised(globalState)) return;
+		if (isErrorRaised()) return;
 		Rf_unprotect(1); //nextAlgTuple
 	}
 }
@@ -141,7 +141,7 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
 		ex->name = CHAR(STRING_ELT(eNames, index));
 		globalState->expectationList.push_back(ex);
-		if (isErrorRaised(globalState)) return;
+		if (isErrorRaised()) return;
 	}
 }
 
@@ -151,7 +151,7 @@ void omxCompleteMxExpectationEntities() {
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
 		omxCompleteExpectation(globalState->expectationList[index]);
-		if (isErrorRaised(globalState)) return;
+		if (isErrorRaised()) return;
 	}
 }
 

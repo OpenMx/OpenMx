@@ -303,7 +303,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxInitialMatrixAlgebraCompute();
 
-	if (isErrorRaised(NULL)) {
+	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
 	}
 
@@ -353,7 +353,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 	FitContext fc(startingValues);
 
-	if (topCompute && !isErrorRaised(globalState)) {
+	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(&fc);
 	}
 
@@ -362,7 +362,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	REAL(evaluations)[0] = Global->computeCount;
 
-	if (topCompute && !isErrorRaised(globalState) && globalState->stale) {
+	if (topCompute && !isErrorRaised() && globalState->stale) {
 		fc.copyParamToModel(globalState);
 	}
 
@@ -373,7 +373,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	REAL(evaluations)[1] = Global->computeCount;
 
-	if (topCompute && !isErrorRaised(globalState)) {
+	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;
 		topCompute->collectResults(&fc, &cResult, &result);
 
@@ -422,9 +422,9 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
 	backwardCompatStatus.add("code", Rf_ScalarInteger(fc.inform));
-	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised(globalState)));
+	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
 
-	if (isErrorRaised(globalState)) {
+	if (isErrorRaised()) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(Global->getBads()));
