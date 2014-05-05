@@ -65,6 +65,9 @@ static void newDataStatic(SEXP dataObject, omxData *od)
 	od->_type = CHAR(dataVal);
 	if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 
+	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install(".isSorted")));
+	od->isSorted = Rf_asLogical(dataLoc);
+
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {

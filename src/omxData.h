@@ -71,6 +71,7 @@ class omxData {
 	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
 
+	bool isSorted;
 	int* location;						// Which of the following contains the data column
 	double** realData;					// The actual data objects if numeric
 	int** intData;						// The actual data objects if ordinal
@@ -96,6 +97,7 @@ void omxFreeData(omxData* od);					// Release any held data.
 void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList);
 
 /* Getters 'n Setters */
+static inline bool omxDataIsSorted(omxData* data) { return data->isSorted; }
 double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one data object as a double
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataCovariance(omxData *od);

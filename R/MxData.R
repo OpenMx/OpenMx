@@ -34,6 +34,7 @@ setClass(Class = "MxDataStatic",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
 		.isSorted = "logical",
+		.needSort = "logical",
 		name   = "character"))
 
 setClass(Class = "MxDataDynamic",
@@ -55,7 +56,8 @@ setMethod("initialize", "MxDataStatic",
 		.Object@acov <- acov
 		.Object@thresholds <- thresholds
 		.Object@name <- name
-		.Object@.isSorted <- !sort
+		.Object@.needSort <- sort
+		.Object@.isSorted <- FALSE
 		return(.Object)
 	}
 )
@@ -180,7 +182,7 @@ setMethod("convertDataForBackend", signature("NonNullData"),
 
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 	  function(data, model, defVars, modeloptions) {
-		  if (!data@.isSorted) {
+		  if (data@.needSort) {
 			  data <- sortRawData(data, defVars, model@name, modeloptions)
 			  data <- convertIntegerColumns(data)
 		  }
@@ -246,7 +248,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	if (mxData@type != "raw") {
 		return(mxData)	
 	}
-	if (mxData@.isSorted) stop("Already sorted")
+	if (!mxData@.needSort) stop("No sort needed")
 
 	observed <- mxData@observed
 	nosort <- as.character(modeloptions[['No Sort Data']])
@@ -258,7 +260,6 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@identicalDefVars <- as.integer(NA)
 		mxData@identicalMissingness <- as.integer(NA)
 		mxData@identicalRows <- as.integer(NA)
-		mxData@.isSorted <- TRUE
 	} else {
 		observedNames <- colnames(observed)	
 		if (is.null(observedNames)) {
@@ -300,8 +301,9 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		mxData@identicalRows <- threeVectors[[1]]
 		mxData@identicalMissingness <- threeVectors[[2]]
 		mxData@identicalDefVars <- threeVectors[[3]]
-		mxData@.isSorted <- TRUE
 	}
+	mxData@.needSort <- FALSE
+	mxData@.isSorted <- TRUE
 	return(mxData)
 }
 
