@@ -205,7 +205,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
     omxData* dataMat = oo->expectation->data;
 	
-	if(strncmp(omxDataType(dataMat), "acov", 4) != 0 && strncmp(omxDataType(dataMat), "cov", 3) != 0) {
+	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "cov")) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "WLS FitFunction unable to handle data type %s.  Data must be of type 'acov'.\n", omxDataType(dataMat));
 		omxRaiseError(errstr);

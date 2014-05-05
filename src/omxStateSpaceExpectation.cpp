@@ -428,17 +428,17 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFuncti
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 
-	if(!strncmp("cov", component, 3)) {
+	if(strEQ("cov", component)) {
 		retval = ose->cov;
-	} else if(!strncmp("mean", component, 4)) {
+	} else if(strEQ("means", component)) {
 		retval = ose->means;
-	} else if(!strncmp("pvec", component, 4)) {
+	} else if(strEQ("pvec", component)) {
 		// Once implemented, change compute function and return pvec
-	} else if(!strncmp("inverse", component, 7)) {
+	} else if(strEQ("inverse", component)) {
 		retval = ose->smallS;
-	} else if(!strncmp("determinant", component, 11)) {
+	} else if(strEQ("determinant", component)) {
 		retval = ose->det;
-	} else if(!strncmp("r", component, 1)) {
+	} else if(strEQ("r", component)) {
 		retval = ose->r;
 	} else if(strEQ("covInfo", component)) {
 		retval = ose->covInfo;

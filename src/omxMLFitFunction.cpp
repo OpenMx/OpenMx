@@ -480,8 +480,8 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	omxData* dataMat = oo->expectation->data;
 
-	if(!(dataMat == NULL) && strncmp(omxDataType(dataMat), "cov", 3) != 0 && strncmp(omxDataType(dataMat), "cor", 3) != 0) {
-		if(strncmp(omxDataType(dataMat), "raw", 3) == 0) {
+	if(!(dataMat == NULL) && !strEQ(omxDataType(dataMat), "cov") && !strEQ(omxDataType(dataMat), "cor")) {
+		if(strEQ(omxDataType(dataMat), "raw")) {
 			if(OMX_DEBUG) { mxLog("Raw Data: Converting to FIML."); }
 			omxInitFIMLFitFunction(oo);
 			return;
@@ -568,7 +568,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 static void omxSetMLFitFunctionGradientComponents(omxFitFunction* oo, void (*derivativeFun)(omxFitFunction*, omxMatrix**, omxMatrix**, int*)) {
     if(OMX_DEBUG) { mxLog("Setting up gradient component function for ML FitFunction."); }
-    if(!strncmp("omxFIMLFitFunction", oo->fitType, 16)) {
+    if(strEQ("omxFIMLFitFunction", oo->fitType)) {
         if(OMX_DEBUG) { mxLog("FIML FitFunction gradients not yet implemented. Skipping."); }
         return; // ERROR:NYI.
     }

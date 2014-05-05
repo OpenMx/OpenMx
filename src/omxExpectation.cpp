@@ -81,7 +81,7 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 	omxCompleteExpectation(ox);
 
 	/* Hard-wired expectation components */
-	if(!strncmp("dataColumns", component, 11)) {
+	if(strEQ("dataColumns", component)) {
 		return ox->dataColumns;
 	}
 
@@ -318,7 +318,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	/* Switch based on Expectation type. */ 
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
-		if(strncmp(expType, entry->name, MAX_STRING_LEN) == 0) {
+		if(strEQ(expType, entry->name)) {
 		        expect->expType = entry->name;
 			expect->initFun = entry->initFun;
 			break;

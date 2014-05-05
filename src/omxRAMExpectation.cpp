@@ -1004,11 +1004,11 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFuncti
 	omxRAMExpectation* ore = (omxRAMExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 
-	if(!strncmp("cov", component, 3)) {
+	if(strEQ("cov", component)) {
 		retval = ore->cov;
-	} else if(!strncmp("mean", component, 4)) {
+	} else if(strEQ("means", component)) {
 		retval = ore->means;
-	} else if(!strncmp("pvec", component, 4)) {
+	} else if(strEQ("pvec", component)) {
 		// Once implemented, change compute function and return pvec
 	}
 	
