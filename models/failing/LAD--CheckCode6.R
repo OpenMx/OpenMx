@@ -64,5 +64,5 @@ Laplace_rgsn_mod2 <- mxOption(Laplace_rgsn_mod1,"Default optimizer",
 Laplace_rgsn_fit2 <- mxRun(Laplace_rgsn_mod2)
 
 omxCheckEquals(
-  (Laplace_rgsn_fit1@output$status$code==6) + (Laplace_rgsn_fit2@output$status$code==6),
+  (Laplace_rgsn_fit1$output$status$code==6) + (Laplace_rgsn_fit2$output$status$code==6),
   2)

@@ -717,3 +717,146 @@ logLik.MxModel <- function(model) {
 	class(ll) <- "logLik"
 	return(ll)
 }
+
+
+#All the below added by Rob K., May/June '14:
+.standardizeParams <- function(x=NULL, model, Apos, Spos, give.matrices=FALSE){
+  if(is.null(x)){x <- omxGetParameters(model)}
+  param <- omxGetParameters(model)
+  paramNames <- names(param)
+  model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
+  model_A <- model[[model$expectation$A]] #<--the A matrix might not be named "A".
+  A <- list( model_A$values, model_A$result )
+  A <- A[[which.max(c( length(A[[1]]), length(A[[2]]) ))]]
+  model_S <- model[[model$expectation$S]] #<--Likewise for S
+  S <- list( model_S$values, model_S$result )
+  S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
+  #A <- mxEval(A, model, compute=TRUE)
+  #S <- mxEval(S, model, compute=TRUE)
+  I <- diag(1, nrow(A))
+  ImAInv <- solve(I-A)
+  SD <- sqrt(diag(ImAInv %*% S %*% t(ImAInv)))
+  SD <- diag(SD,nrow=length(SD)) #<--Needed if line immediately above is a scalar.
+  InvSD <- 1/diag(SD)
+  InvSD <- diag(InvSD,nrow=length(InvSD))
+  Az <- InvSD %*% A %*% SD
+  Sz <- InvSD %*% S %*% InvSD
+  sparam <- c(Az[!is.na(Apos)],Sz[!is.na(Spos)])
+  names(sparam) <- c(Apos[!is.na(Apos)],Spos[!is.na(Spos)])
+  if(!give.matrices){return(sparam)}
+  else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
+}
+.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov){
+  #Recur the function for the appropriate submodels, if any:
+  if(length(model@submodels)>0){
+    return(lapply(
+      model@submodels[which(
+        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+          sapply(model@submodels,function(x){length(x@submodels)>0})  
+      )],
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov))
+  }
+  #Get A and S:
+  model_A <- model[[model$expectation$A]] #<--Necessary because the A matrix might not be named "A".
+  A <- list( model_A$values, model_A$result )
+  A <- A[[which.max(c( length(A[[1]]), length(A[[2]]) ))]]
+  model_S <- model[[model$expectation$S]] #<--Likewise for S
+  S <- list( model_S$values, model_S$result )
+  S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
+  #A <- mxEval(A, model, compute=TRUE)
+  #S <- mxEval(S, model, compute=TRUE)
+  #Find positions of nonzero paths:
+  Apos <- matrix(NA,nrow=nrow(A),ncol=ncol(A),dimnames=dimnames(A))
+  Spos <- matrix(NA,nrow=nrow(S),ncol=ncol(S),dimnames=dimnames(S))
+  A_need_pos <- which(A!=0,arr.ind=T)
+  S_need_pos <- which(S!=0,arr.ind=T)
+  S_need_pos <- subset(S_need_pos, S_need_pos[,1]>=S_need_pos[,2]) #<--Lower tri only
+  numelem <- nrow(A_need_pos)+nrow(S_need_pos)
+  #Create output object:
+  out <- data.frame(name=vector(mode="character",length=numelem),label=vector(mode="character",length=numelem),
+                    matrix=vector(mode="character",length=numelem),
+                     row=vector(mode="character",length=numelem),col=vector(mode="character",length=numelem),
+                    Raw.Value=vector(mode="numeric",length=numelem),
+                    Std.Value=vector(mode="numeric",length=numelem),
+                    Std.SE=vector(mode="numeric",length=numelem),stringsAsFactors=FALSE)
+  out$label <- NA
+  j <- 1
+  #Create position strings where needed and begin to populate output:
+  if(nrow(A_need_pos)>0){
+    for(i in 1:nrow(A_need_pos)){
+      Apos[A_need_pos[i,1],A_need_pos[i,2]] <- out$name[j] <- paste(
+        model@name,".A[",A_need_pos[i,1],",",A_need_pos[i,2],"]",sep="")
+      if(!is.null(model_A$labels)){out$label[j] <- model_A$labels[A_need_pos[i,1],A_need_pos[i,2]]}
+      out$matrix[j] <- "A"
+      out$Raw.Value[j] <- A[A_need_pos[i,1],A_need_pos[i,2]]
+      out$row[j] <- ifelse(length(rownames(A))>0,rownames(A)[A_need_pos[i,1]],A_need_pos[i,1])
+      out$col[j] <- ifelse(length(colnames(A))>0,colnames(A)[A_need_pos[i,2]],A_need_pos[i,2])
+      j <- j+1
+    }
+  }
+  if(nrow(S_need_pos)>0){
+    for(i in 1:nrow(S_need_pos)){
+      Spos[S_need_pos[i,1],S_need_pos[i,2]] <- out$name[j] <- paste(
+        model@name,".S[",S_need_pos[i,1],",",S_need_pos[i,2],"]",sep="")
+      if(!is.null(model_S$labels)){out$label[j] <- model_S$labels[S_need_pos[i,1],S_need_pos[i,2]]}
+      out$matrix[j] <- "S"
+      out$Raw.Value[j] <- S[S_need_pos[i,1],S_need_pos[i,2]]
+      out$row[j] <- ifelse(length(rownames(S))>0,rownames(S)[S_need_pos[i,1]],S_need_pos[i,1])
+      out$col[j] <- ifelse(length(colnames(S))>0,colnames(S)[S_need_pos[i,2]],S_need_pos[i,2])
+      j <- j+1
+    }
+  }
+  #Get standardized values:
+  freeparams <- omxGetParameters(model)
+  paramnames <- names(freeparams)
+  zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos)
+  #Compute SEs, or assign them NA values, as the case may be:
+  if(SE){ 
+    #From Mike Hunter's delta method example:
+    covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
+    jacStand <- jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
+    covSparam <- jacStand %*% covParam %*% t(jacStand)
+    dimnames(covSparam) <- list(names(zout),names(zout))
+    SEs <- sqrt(diag(covSparam))
+    #SEs[diag(covSparam)<.Machine$double.eps] <- 0
+  }
+  else{SEs <- rep(NA,length(zout)); names(SEs) <- names(zout)}
+  #Add standardized values and SEs to output:
+  out$Std.Value <- zout
+  out$Std.SE <- SEs
+  return(out)
+}
+mxStandardizeRAMpaths <- function(model, SE=FALSE){
+  covParam <- NULL
+  #If user requests SEs, check to be sure they can and should be computed:
+  if(SE){
+    if(length(model@constraints)>0){
+      warning("standard errors will not be computed because 'model' contains at least one mxConstraint")
+      SE <- FALSE
+    }
+    if(SE & length(model@output$hessian)==0){
+      warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
+      SE <- FALSE
+    }
+    pkgcheck <- require(numDeriv)
+    if(SE & !pkgcheck){
+      warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
+      SE <- FALSE
+    }
+  if(SE){covParam <- 2*solve(model@output$hessian)}
+  }
+  #Check if single-group model uses RAM expectation, and proceed if so:
+  if(length(model@submodels)==0){
+    if(class(model$expectation)!="MxExpectationRAM"){stop("'model' does not use RAM expectation")}
+    return(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam))
+  }
+  #Handle multi-group model:
+  if(length(model@submodels)>0){
+    return(lapply(
+      model@submodels[which(
+        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+        sapply(model@submodels,function(x){length(x@submodels)>0})  
+        )],
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam))
+  }
+}
