@@ -166,7 +166,11 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		for(i in 1:rows) {
 			for(j in 1:cols) {
 				if (free[i, j]) {
-					newName <- paste(reference, '[', i, ',', j, ']', sep = '')
+					if( is(entity, "MxMatrix") && !is.na(entity@labels[i,j]) ){
+						newName <- entity@labels[i,j]
+					} else {
+						newName <- paste(reference, '[', i, ',', j, ']', sep = '')
+					}
 					retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
 						interval@lowerdelta, interval@upperdelta)
 				}
