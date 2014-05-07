@@ -235,9 +235,11 @@ void FitContext::refreshDenseIHess()
 	if (haveDenseIHess) return;
 
 	refreshDenseHess();
-	InvertSymmetricNR(hess, ihess);
 
-	ihessFiltered = true;
+	ihess = hess;
+	Matrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
+	InvertSymmetricIndef(ihessMat, 'U');
+
 	haveDenseIHess = true;
 }
 
@@ -486,7 +488,6 @@ bool FitContext::refreshSparseIHess()
 		}
 	}
 
-	ihessFiltered = true;
         haveSparseIHess = true;
 	return true;
 }
@@ -496,7 +497,8 @@ Eigen::VectorXd FitContext::ihessGradProd()
 	if (refreshSparseIHess()) {
 		return sparseIHess.selfadjointView<Eigen::Upper>() * grad;
 	} else {
-		refreshDenseIHess();
+		refreshDenseHess();
+		InvertSymmetricNR(hess, ihess);
 		return ihess.selfadjointView<Eigen::Upper>() * grad;
 	}
 }
@@ -515,7 +517,6 @@ double *FitContext::getDenseIHessUninitialized()
 	return ihess.data();
 }
 
-// NOTE: This may be a filtered inverse from InvertSymmetricNR
 void FitContext::copyDenseIHess(double *dest)
 {
 	refreshDenseIHess();
@@ -536,10 +537,7 @@ void FitContext::copyDenseIHess(double *dest)
 double *FitContext::getDenseHessianish()
 {
 	if (haveDenseHess) return hess.data();
-	if (haveDenseIHess) {
-		if (ihessFiltered) Rf_error("Attempted FitContext::getDenseHessianish with filtered ihess");
-		return ihess.data();
-	}
+	if (haveDenseIHess) return ihess.data();
 	// try harder TODO
 	return NULL;
 }
@@ -643,7 +641,6 @@ void FitContext::clearHessian()
 	estNonZero = 0;
 	minBlockSize = 0;
 	maxBlockSize = 0;
-	ihessFiltered = false;
 }
 
 void FitContext::allocStderrs()

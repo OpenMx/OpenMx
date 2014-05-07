@@ -100,7 +100,6 @@ class FitContext {
 	Eigen::MatrixXd hess;
 	bool haveDenseIHess;
 	Eigen::MatrixXd ihess;
-	bool ihessFiltered;
 
 	std::string IterationError;
 
@@ -151,7 +150,7 @@ class FitContext {
 	void refreshDenseHess();
 	void refreshDenseIHess();
 	void refreshSparseHess();
-	bool refreshSparseIHess();
+	bool refreshSparseIHess(); // NOTE: produces an ihess with filtered eigenvalues
 	Eigen::VectorXd ihessGradProd();
 	double *getDenseHessUninitialized();
 	double *getDenseIHessUninitialized();
