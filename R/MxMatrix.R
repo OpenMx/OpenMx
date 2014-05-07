@@ -356,6 +356,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 	dimnames = NA, name = NA) {
+	if (missing(dimnames) && !missing(values) && !is.null(dimnames(values))) {
+		dimnames <- dimnames(values)
+	}
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }

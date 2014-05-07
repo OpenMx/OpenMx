@@ -51,8 +51,9 @@ ip.mat$values[4,1] <- logit(1)
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=0, free=FALSE)
 colnames(m.mat) <- paste('f', 1:2, sep="")
-cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=diag(2), free=FALSE)
-dimnames(cov.mat) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
+cov.val <- diag(2)
+dimnames(cov.val) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
+cov.mat <- mxMatrix(name="cov", nrow=2, ncol=2, values=cov.val, free=FALSE)
 
 m1 <- mxModel(model="2dim",
           ip.mat, m.mat, cov.mat,
