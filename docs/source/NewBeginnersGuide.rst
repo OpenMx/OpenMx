@@ -578,7 +578,7 @@ Note that all arguments are separated by commas.  In this case, we've also separ
 
 
 Data functions
--------------
+--------------
 
 Most models will be fitted to data, not just a single number.  We will briefly introduce how to read data that are pre-packaged with the OpenMx library as well as reading in your own data.  All standard R utilities can be used here.  The critical part is to run an OpenMx model on these data, thus another OpenMx function ``mxData()`` is needed.
 
@@ -720,7 +720,7 @@ Printing this MxData object would result in listing the whole data set.  We show
 The data to be used for our example are now ready in either **covariance matrix** or **raw data** format.
 
 Model functions
---------------
+---------------
 
 We introduce here several new features by building a basic factor model to real data.  A useful tool to represent such a model is drawing a path diagram which is mathematically equivalent to equations describing the model.  If you're not familiar with the method of path analysis, we suggest you read one of the key reference books [LI1986]_.
 
@@ -728,7 +728,7 @@ We introduce here several new features by building a basic factor model to real 
 
 Briefly, squares are used for observed variables; latent variables are drawn in circles.  One-headed arrows are drawn to represent causal relationships.  Correlations between variables are represented with two-headed arrows.  Double-headed paths are also used for variances of variables.  Below is a figure of a one factor model with five indicators (x1..x5). We have added a value of 1.0 to the variance of the latent variable **G** as a fixed value.  All the other paths in the models are considered free parameters and are to be estimated.
 
-.. image:: graph/OneFactor.png
+.. image:: graph/OneFactorModel.png
     :height: 2in
     
 Variables

@@ -580,11 +580,11 @@ The output of these objects like as follows
 
     ..  code-block:: r
     
-        >        SL1
+        > SL1
         [1] 1059.199
-        >        LL1
+        > LL1
         [1] 1059.199
-        >        Chi1
+        > Chi1
         [1] 0
         
         
