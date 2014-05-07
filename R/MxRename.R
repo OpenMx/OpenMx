@@ -62,6 +62,9 @@ propagateModelName <- function(model, oldname, newname) {
 	model@matrices <- lapply(model@matrices, renameMatrix, oldname, newname)	
 	model@algebras <- lapply(model@algebras, renameAlgebra, oldname, newname)
 	model@constraints <- lapply(model@constraints, renameConstraint, oldname, newname)
+	if(length(model@runstate) > 0){
+		model@runstate$constraints <- lapply(model@runstate$constraints, renameConstraint, oldname, newname)
+	}
 	model@intervals <- lapply(model@intervals, renameConfidenceIntervals, oldname, newname)
 	model@expectation <- genericExpRename(model@expectation, oldname, newname)
 	model@fitfunction <- genericFitRename(model@fitfunction, oldname, newname)
@@ -107,6 +110,8 @@ renameMatrix <- function(matrix, oldname, newname) {
 }
 
 renameConstraint <- function(constraint, oldname, newname) {
+	constraint@name <- renameReference(constraint@name, oldname, newname)
+	constraint@formula <- renameFormula(constraint@formula, oldname, newname)
 	constraint@alg1 <- renameReference(constraint@alg1, oldname, newname)
 	constraint@alg2 <- renameReference(constraint@alg2, oldname, newname)
 	return(constraint)
