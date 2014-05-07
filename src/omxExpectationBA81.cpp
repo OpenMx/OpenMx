@@ -1253,6 +1253,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("minItemsPerScore")));
 	int minItemsPerScore = Rf_asInteger(tmp);
+	if (minItemsPerScore > numItems) {
+		omxRaiseErrorf("%s: minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
+			       oo->name, minItemsPerScore, numItems);
+		return;
+	}
 
 	state->rowSkip.assign(rowMap.size(), false);
 

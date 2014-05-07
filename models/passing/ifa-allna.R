@@ -97,3 +97,13 @@ for (r in 1:nrow(result)) {
 c1 <- coef(lm(v ~ ips, result))
 #cat(deparse(round(c1,4)))
 omxCheckCloseEnough(c1, c(0.5763, 0.0144), .001)
+
+# ------------------------------
+
+m1 <- mxModel(model="perScore", ip.mat, m.mat, cov.mat,
+	      mxData(observed=data, type="raw"),
+	      mxExpectationBA81(mean="mean", cov="cov", ItemSpec=items, ItemParam="ItemParam",
+				naAction="pass", scores="full", minItemsPerScore=as.integer(numItems+1)),
+	      mxComputeOnce('expectation'))
+omxCheckError(mxRun(m1, silent=TRUE),
+	      "perScore.expectation: minItemsPerScore (=13) cannot be larger than the number of items (=12)")
