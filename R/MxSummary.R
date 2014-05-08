@@ -178,22 +178,22 @@ fitStatistics <- function(model, useSubmodels, retval) {
 # revised:  01 Nov 2010 (corrected algebra)
 #           13 Dec 2010 (corrected 'parameters' output)
 #           25 May 2012 (incorporated into summary function)
-standardizeRAMModel <- function(model) {
-	nameA <- model$expectation@A
-	nameS <- model$expectation@S
-	I <- diag(nrow(model[[nameS]]))
-	IA <- eval(substitute(mxEval(solve(I - x), model), list(x = as.symbol(nameA))))
-	expCov <- eval(substitute(mxEval(IA %*% x %*% t(IA), model), list(x = as.symbol(nameS) )))
-	invSDs <- 1 / sqrt(diag(expCov))
-	return(invSDs)
-}
+# standardizeRAMModel <- function(model) {
+# 	nameA <- model$expectation@A
+# 	nameS <- model$expectation@S
+# 	I <- diag(nrow(model[[nameS]]))
+# 	IA <- eval(substitute(mxEval(solve(I - x), model), list(x = as.symbol(nameA))))
+# 	expCov <- eval(substitute(mxEval(IA %*% x %*% t(IA), model), list(x = as.symbol(nameS) )))
+# 	invSDs <- 1 / sqrt(diag(expCov))
+# 	return(invSDs)
+# }
 
 parameterList <- function(model, useSubmodels) {
-	if (imxSimpleRAMPredicate(model) && length(model@submodels) == 0) {
-		invSDs <- standardizeRAMModel(model)
-	} else {
+	#if (imxSimpleRAMPredicate(model) && length(model@submodels) == 0) {
+		#invSDs <- standardizeRAMModel(model)
+	#} else {
 		invSDs <- NULL
-	}
+	#}
 	if (useSubmodels && length(model@runstate$independents) > 0) {
 		ptable <- parameterListHelper(model, TRUE, invSDs)
 		submodelParameters <- lapply(model@runstate$independents, parameterListHelper, TRUE)
@@ -852,11 +852,13 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
-    return(lapply(
+    out <- lapply(
       model@submodels[which(
         sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
         sapply(model@submodels,function(x){length(x@submodels)>0})  
         )],
-      .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam))
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
+    if(length(out)==0){stop("'model' contains no submodels that use RAM expectation")}
+    return(out)
   }
 }
