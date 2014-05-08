@@ -271,7 +271,14 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					candidate@info <- attr
 				} else if(is(candidate, "MxMatrix")) {
 					dimnames(value) <- dimnames(candidate)
-					candidate@values <- value
+					# If the pre-backend matrix was 1x1 and got re-sized in the backend by
+					# allowing scalar-by-matrix multiplication, then only put the first
+					# element of the backend matrix back for the frontend.
+					if(nrow(candidate@values) == 1 && ncol(candidate@values) == 1 && length(value) != 1){
+						candidate@values <- matrix(value[1, 1], nrow=1, ncol=1)
+					} else {
+						candidate@values <- value
+					}
 				} else if (is(candidate, "MxExpectation")) {
 					for (sl in names(attributes(value))) {
 						slot(candidate, sl) <- attr(value, sl)
