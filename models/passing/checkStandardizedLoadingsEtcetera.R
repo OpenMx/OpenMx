@@ -1,0 +1,181 @@
+require(OpenMx)
+data(demoOneFactor)
+
+Rff <- mxMatrix(type="Stand",nrow=1,ncol=1,free=F,name="Rff")
+L <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,values=0.2,labels=paste("l",1:5,sep=""),name="L")
+I <- mxMatrix(type="Iden",nrow=5,ncol=5,name="I")
+C <- mxAlgebra(L %*% Rff %*% t(L),name="C")
+U <- mxAlgebra(I-(I*C),name="U")
+SD <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,values=0.6,
+               labels=c("sd1","sd2","sd3","sd4","sd5"),lbound=0,name="SD")
+Sigma <- mxAlgebra( (C+U) * (SD%*%t(SD)), name="Sigma", dimnames=list(colnames(demoOneFactor),colnames(demoOneFactor)))
+
+factorModelMatrix <- mxModel(
+  "OneFactorMatrix", Rff, L, I, C, U, SD, Sigma, 
+  mxExpectationNormal(covariance="Sigma"),
+  mxFitFunctionML(),
+  mxCI("L"),
+  mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
+)
+factorMatrixFit <- mxRun(factorModelMatrix)
+omxCheckError(mxStandardizeRAMpaths(factorMatrixFit),"'model' does not use RAM expectation")
+
+manifests <- names(demoOneFactor)
+latents <- c("G")
+factorModelPath <- mxModel("OneFactorPath",
+                           type="RAM",
+                           manifestVars = manifests,
+                           latentVars = latents,
+                           mxPath(from=latents, to=manifests,
+                                  labels=paste("L",1:5,sep="")),
+                           mxPath(from=manifests, arrows=2),
+                           mxPath(from=latents, arrows=2,
+                                  free=FALSE, values=1.0),
+                           mxData(cov(demoOneFactor), type="cov",
+                                  numObs=500))
+omxCheckWarning(mxStandardizeRAMpaths(factorModelPath,T),
+                "argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
+factorPathFit <- mxRun(factorModelPath)
+
+( matrixFitPar <- summary(factorMatrixFit)$parameters )
+( pathFitPar <- summary(factorPathFit)$parameters )
+( zpath <- mxStandardizeRAMpaths(factorPathFit,T) )
+omxCheckCloseEnough(matrixFitPar$Estimate[1:5],zpath$Std.Value[1:5],1e-5)
+omxCheckCloseEnough(matrixFitPar$Std.Error[1:5],zpath$Std.SE[1:5],1e-5)
+omxCheckCloseEnough(
+  zpath$Std.Value,
+  c(0.891309322741553,0.932554560675801,0.943846635668634,0.962362487593728,0.972555617431608,0.205567691193994,
+    0.130341991362763,0.109153528337001,0.0738584424724116,0.0541355710022234,1),
+  1e-5)
+omxCheckCloseEnough(
+  zpath$Std.SE,
+  c(0.0097233354792961,0.00640855820968981,0.00551439004191031,0.00400750800616116,0.00327547260416904,
+    0.0173329991211512,0.0119526603725942,0.0104094769784555,0.00771335074796404,0.00637115856365944,0),
+  1e-5)
+
+#Make more models and check the structure of mxStandardizeRAMpaths()'s output for multigroup:
+data("twinData", package="OpenMx")
+selVars <- c('bmi1','bmi2')
+aceVars <- c("A1","C1","E1","A2","C2","E2")
+mzfData <- as.matrix(subset(myTwinData, zyg==1, selVars))
+dzfData <- as.matrix(subset(myTwinData, zyg==3, selVars))
+cov(mzfData, use="pairwise.complete.obs")
+cov(dzfData, use="pairwise.complete.obs")
+
+
+share <- mxModel("share", type="RAM",
+                 manifestVars=selVars,
+                 latentVars=aceVars,
+                 mxPath(from=aceVars, arrows=2, free=FALSE, values=1),
+                 mxPath(from="one", to=aceVars, arrows=1, free=FALSE, values=0),
+                 mxPath(from="one", to=selVars, arrows=1, free=TRUE, values=20, labels= c("mean","mean")),
+                 mxPath(from="C1",  to="C2",    arrows=2, free=FALSE, values=1),
+                 mxPath(from=c("A1","C1","E1"), to="bmi1", arrows=1, free=TRUE, values=.6, label=c("a","c","e")),
+                 mxPath(from=c("A2","C2","E2"), to="bmi2", arrows=1, free=TRUE, values=.6, label=c("a","c","e"))
+)
+
+MZ = mxModel(share, name="MZ",
+             mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=1),
+             mxData(mzfData, type="raw")
+)
+
+DZ = mxModel(share, name="DZ",
+             mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=.5),
+             mxData(dzfData, type="raw") 
+)
+
+twinACEModel <- mxModel("twinACE", MZ, DZ,
+                        mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
+                        mxFitFunctionAlgebra("twin")
+)
+
+myLongitudinalDataCov <- matrix(
+  c(6.362, 4.344, 4.915,  5.045,  5.966,
+    4.344, 7.241, 5.825,  6.181,  7.252,
+    4.915, 5.825, 9.348,  7.727,  8.968,
+    5.045, 6.181, 7.727, 10.821, 10.135,
+    5.966, 7.252, 8.968, 10.135, 14.220),
+  nrow=5,
+  dimnames=list(
+    c("x1","x2","x3","x4","x5"),
+    c("x1","x2","x3","x4","x5"))
+)
+
+myLongitudinalDataMean <- c(9.864, 11.812, 13.612, 15.317, 17.178)
+names(myLongitudinalDataMean) <- c("x1","x2","x3","x4","x5")
+
+growthCurveModel <- mxModel("LinearGrowthCurveModel_MatrixSpecification", 
+                            mxData(myLongitudinalDataCov, 
+                                   type="cov", 
+                                   numObs=500,
+                                   mean=myLongitudinalDataMean),
+                            mxMatrix(
+                              type="Full",
+                              nrow=7, 
+                              ncol=7,
+                              free=F,
+                              values=c(0,0,0,0,0,1,0,
+                                       0,0,0,0,0,1,1,
+                                       0,0,0,0,0,1,2,
+                                       0,0,0,0,0,1,3,
+                                       0,0,0,0,0,1,4,
+                                       0,0,0,0,0,0,0,
+                                       0,0,0,0,0,0,0),
+                              byrow=TRUE,
+                              name="AA"),
+                            mxMatrix(
+                              type="Symm",
+                              nrow=7,
+                              ncol=7,
+                              free=c(T, F, F, F, F, F, F,
+                                     F, T, F, F, F, F, F,
+                                     F, F, T, F, F, F, F,
+                                     F, F, F, T, F, F, F,
+                                     F, F, F, F, T, F, F,
+                                     F, F, F, F, F, T, T,
+                                     F, F, F, F, F, T, T),
+                              values=c(0,0,0,0,0,  0,  0,
+                                       0,0,0,0,0,  0,  0,
+                                       0,0,0,0,0,  0,  0,
+                                       0,0,0,0,0,  0,  0,
+                                       0,0,0,0,0,  0,  0,
+                                       0,0,0,0,0,  1,0.5,
+                                       0,0,0,0,0,0.5,  1),
+                              labels=c("residual", NA, NA, NA, NA, NA, NA,
+                                       NA, "residual", NA, NA, NA, NA, NA,
+                                       NA, NA, "residual", NA, NA, NA, NA,
+                                       NA, NA, NA, "residual", NA, NA, NA,
+                                       NA, NA, NA, NA, "residual", NA, NA,
+                                       NA, NA, NA, NA, NA, "vari", "cov",
+                                       NA, NA, NA, NA, NA, "cov", "vars"),
+                              byrow= TRUE,
+                              name="SS"),
+                            mxMatrix(
+                              type="Full",
+                              nrow=5,
+                              ncol=7,
+                              free=F,
+                              values=c(1,0,0,0,0,0,0,
+                                       0,1,0,0,0,0,0,
+                                       0,0,1,0,0,0,0,
+                                       0,0,0,1,0,0,0,
+                                       0,0,0,0,1,0,0),
+                              byrow=T,
+                              name="F"),
+                            mxMatrix("Full",  nrow=1, ncol=7,
+                                     values=c(0,0,0,0,0,1,1),
+                                     free=c(F,F,F,F,F,T,T),
+                                     labels=c(NA,NA,NA,NA,NA,"meani","means"),
+                                     name="M"),
+                            mxFitFunctionML(),mxExpectationRAM("AA","SS","F","M",dimnames=c("x1","x2","x3","x4","x5","intercept","slope"))
+)
+
+bigmod <- mxModel(
+  model="foo",factorModelPath,factorModelMatrix,twinACEModel,growthCurveModel,
+  mxFitFunctionMultigroup(c("OneFactorPath.fitfunction","OneFactorMatrix.fitfunction","twinACE.fitfunction",
+                            "LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
+)
+bigrun <- mxRun(bigmod)
+zpath2 <- mxStandardizeRAMpaths(bigrun,T)
+omxCheckEquals(names(zpath2),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
+omxCheckEquals(names(zpath2[[2]]),c("MZ","DZ"))
