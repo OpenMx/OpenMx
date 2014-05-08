@@ -130,6 +130,7 @@ runHelper <- function(model, frontendStart,
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
 	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
 	
+	defaultCompute <- NULL
 	if (!is.null(model@fitfunction) && is.null(model@compute)) {
 		# horrible hack, sorry
 		compute <- NULL
@@ -151,6 +152,7 @@ runHelper <- function(model, frontendStart,
 		}
 		compute <- assignId(compute, 1L, '.')
 		flatModel@compute <- compute
+		defaultCompute <- compute
 	}
 
 	computes <- convertComputes(flatModel, model)
@@ -185,7 +187,11 @@ runHelper <- function(model, frontendStart,
 	runstate$constraints <- flatModel@constraints
 	runstate$independents <- independents
 	runstate$defvars <- names(defVars)
-	runstate$compute <- computes
+	if (!is.null(defaultCompute)) {
+		runstate$compute <- defaultCompute  # more hack
+	} else {
+		runstate$compute <- computes
+	}
 	model@runstate <- runstate
 
 	frontendStop <- Sys.time()
