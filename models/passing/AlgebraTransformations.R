@@ -16,11 +16,18 @@
 
 require(OpenMx)
 
-foo <- mxMatrix('Full', 1, 1, free = TRUE, name = 'foo')
+foo <- mxMatrix('Full', 1, 1, free = TRUE, name = 'foo', dimnames=list('a','b'))
 bar <- mxAlgebra(cbind(foo, foo), name = 'bar')
 baz <- mxAlgebra((foo[1,1] - 2) %*% (foo[1,1] - 2), name = 'baz')
 objective <- mxFitFunctionAlgebra('baz')
-model <- mxModel('model', foo, bar, baz, objective)
+model <- mxModel('model', foo, bar, baz, objective,
+		 mxMatrix('Full', 2, 2, values=.5, name="half"),
+		 mxAlgebra(half * foo, name="halfFoo"))
 out <- mxRun(model, suppressWarnings=TRUE)
 outSummary <- summary(out)
 omxCheckEquals(nrow(outSummary$parameters), 1)
+
+omxCheckTrue(all(dim(out$foo$values) == 1))
+omxCheckEquals(rownames(out$foo), "a")
+omxCheckEquals(colnames(out$foo), "b")
+omxCheckTrue(all(dim(out$halfFoo) == 2))

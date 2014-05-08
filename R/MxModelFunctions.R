@@ -270,13 +270,21 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					attr$dim <- NULL
 					candidate@info <- attr
 				} else if(is(candidate, "MxMatrix")) {
-					dimnames(value) <- dimnames(candidate)
+					if (any(dim(candidate@values) != dim(value))) {
+						if (all(dim(candidate@values) == 1)) {
 					# If the pre-backend matrix was 1x1 and got re-sized in the backend by
 					# allowing scalar-by-matrix multiplication, then only put the first
 					# element of the backend matrix back for the frontend.
-					if(nrow(candidate@values) == 1 && ncol(candidate@values) == 1 && length(value) != 1){
-						candidate@values <- matrix(value[1, 1], nrow=1, ncol=1)
+							candidate@values[1,1] <- value[1,1]
+						} else {
+							msg <- paste("Backend returned a", omxQuotes(dim(value)),
+								     "matrix for a", omxQuotes(dim(candidate@values)),
+								     "matrix. Not sure how to proceed.",
+								     "Please report this error to the OpenMx support team.")
+							stop(msg)
+						}
 					} else {
+						dimnames(value) <- dimnames(candidate)
 						candidate@values <- value
 					}
 				} else if (is(candidate, "MxExpectation")) {
