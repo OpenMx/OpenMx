@@ -177,7 +177,11 @@ runHelper <- function(model, frontendStart,
 		names(matrices), names(algebras),
 		names(parameters), names(intervalList), output)
 
-	# runstate preserves the pre-backend state of the model
+	# Currently runstate preserves the pre-backend state of the model.
+	# Eventually this needs to capture the post-backend state,
+	# but we need tests in place for summary output to ensure that we
+	# don't cause regressions.
+
 	runstate <- model@runstate
 	runstate$parameters <- parameters
 	runstate$matrices <- matrices

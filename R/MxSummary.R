@@ -619,6 +619,8 @@ translateIndependenceDoF <- function(input) {
 	}
 }
 
+# If the model has been changed after it has been run then the summary
+# should report that it is stale and possibly wrong.
 
 setMethod("summary", "MxModel",
 	function(object, ...) {
