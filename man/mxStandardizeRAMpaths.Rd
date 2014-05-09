@@ -22,9 +22,9 @@ Matrix \code{A} contains the \emph{A}symmetric paths, i.e. the single-headed arr
 
 Use of \code{SE=TRUE} requires that package \code{numDeriv} be installed. It also requires that \code{model} contain no \code{\link{mxConstraint}} statements, and have a nonempty \code{hessian} element in its output slot.  There are three common reasons why the latter condition may not be met.  First, the model may not have been run yet, i.e. it was not output by \code{\link{mxRun}()}.  Second, \code{\link{mxOption}} \code{"Hessian"} might be set to \code{"No"}.  Third, computing the Hessian matrix might possibly have been skipped per a user-defined \code{\link{mxCompute}} statement (if any are present in the model).
 
-In any event, the user is advised that, for inferential purposes, likelihood-based confidence intervals (from \code{\link{mxCI}()}) are generally preferable to these standard errors.
+In any event, using these standard errors is for hypothesis-testing or forming confidence intervals is \emph{not} generally advised.  Instead, it is considered best practice to conduct likelihood-ratio tests or compute likelihood-based confidence intervals (from \code{\link{mxCI}()}), as in examples below.
 
-The user should note that \code{mxStandardizeRAMpaths()} only cares whether an element of \code{A} or \code{S} is nonzero, and not whether it is a fixed or free parameter. So, for instance, if the function is used on a model not yet run, any elements of \code{A} or \code{S} initialized at zero will not appear in the function's output.
+The user should note that \code{mxStandardizeRAMpaths()} only cares whether an element of \code{A} or \code{S} is nonzero, and not whether it is a fixed or free parameter. So, for instance, if the function is used on a model not yet run, any free parameters in \code{A} or \code{S} initialized at zero will not appear in the function's output.
 
 The user is warned to interpret the output of \code{mxStandardizeRAMpaths()} cautiously if any elements of \code{A} or \code{S} depend upon definition variables.
 }
@@ -60,7 +60,6 @@ If \code{model} is a multi-group model containing at least one submodel with RAM
 
 \examples{
 library(OpenMx)
-
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents   <- c("G")
@@ -68,13 +67,34 @@ factorModel <- mxModel(model="One Factor", type="RAM",
       manifestVars = manifests,
       latentVars   = latents,
       mxPath(from=latents, to=manifests),
-      mxPath(from=manifests, arrows=2),
+      mxPath(from=manifests, arrows=2, values=0.1),
       mxPath(from=latents, arrows=2,free=FALSE, values=1.0),
       mxData(cov(demoOneFactor), type="cov",numObs=500)
 )
 factorFit <-mxRun(factorModel)
 summary(factorFit)$parameters
 mxStandardizeRAMpaths(model=factorFit,SE=FALSE)
+
+## Likelihood ratio test of variable x1's factor loading:
+factorModelNull <- omxSetParameters(factorModel,labels="One Factor.A[1,6]",
+                    values=0,free=FALSE)
+factorFitNull <- mxRun(factorModelNull)
+mxCompare(factorFit,factorFitNull)[2,"p"] #<--p-value
+
+## Confidence intervals for all standardized paths:
+factorModel2 <- mxModel(model=factorModel,
+                        mxMatrix(type="Iden",nrow=nrow(factorModel$A),name="I"),
+                        mxAlgebra( vec2diag(diag2vec( solve(I-A)\%*\%S\%*\%t(solve(I-A)) )\%^\%-0.5) ,
+                                   name="InvSD"),
+                        mxAlgebra( InvSD \%*\% A \%*\% solve(InvSD),
+                                   name="Az",dimnames=dimnames(factorModel$A)),
+                        mxAlgebra( InvSD \%*\% S \%*\% InvSD, 
+                                   name="Sz",dimnames=dimnames(factorModel$S)),
+                        mxCI(c("Az","Sz"))
+)
+factorFit2 <- mxRun(factorModel2,intervals=TRUE)
+## Contains point values and confidence limits for all paths:
+summary(factorFit2)$CI 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
