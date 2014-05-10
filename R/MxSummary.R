@@ -389,7 +389,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("independent submodels time:", format(x$independentTime), '\n')
 	cat("wall clock time:", format(x$wallTime), '\n')
 	cat("cpu time:", format(x$cpuTime), '\n')
-	cat("openmx version number:", format(x$mxVersion), '\n')
+	cat("OpenMx version number:", format(x$mxVersion), '\n')
 	cat('\n')
 	if (x$stale) {
 		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n")
