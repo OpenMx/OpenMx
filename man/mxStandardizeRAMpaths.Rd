@@ -22,7 +22,7 @@ Matrix \code{A} contains the \emph{A}symmetric paths, i.e. the single-headed arr
 
 Use of \code{SE=TRUE} requires that package \code{numDeriv} be installed. It also requires that \code{model} contain no \code{\link{mxConstraint}} statements, and have a nonempty \code{hessian} element in its output slot.  There are three common reasons why the latter condition may not be met.  First, the model may not have been run yet, i.e. it was not output by \code{\link{mxRun}()}.  Second, \code{\link{mxOption}} \code{"Hessian"} might be set to \code{"No"}.  Third, computing the Hessian matrix might possibly have been skipped per a user-defined \code{\link{mxCompute}} statement (if any are present in the model).
 
-In any event, using these standard errors is for hypothesis-testing or forming confidence intervals is \emph{not} generally advised.  Instead, it is considered best practice to conduct likelihood-ratio tests or compute likelihood-based confidence intervals (from \code{\link{mxCI}()}), as in examples below.
+In any event, using these standard errors for hypothesis-testing or forming confidence intervals is \emph{not} generally advised.  Instead, it is considered best practice to conduct likelihood-ratio tests or compute likelihood-based confidence intervals (from \code{\link{mxCI}()}), as in examples below.
 
 The user should note that \code{mxStandardizeRAMpaths()} only cares whether an element of \code{A} or \code{S} is nonzero, and not whether it is a fixed or free parameter. So, for instance, if the function is used on a model not yet run, any free parameters in \code{A} or \code{S} initialized at zero will not appear in the function's output.
 
