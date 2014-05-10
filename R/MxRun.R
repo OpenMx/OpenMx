@@ -203,6 +203,8 @@ runHelper <- function(model, frontendStart,
 	model@output <- calculateTiming(model@output, frontendElapsed,
 		backendElapsed, indepElapsed, frontendStop, independents)
 	processErrorConditions(model, unsafe, suppressWarnings)
+
+	model@.modifiedSinceRun <- FALSE
 	return(model)		
 }
 

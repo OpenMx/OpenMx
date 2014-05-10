@@ -21,38 +21,6 @@ setClass(Class = "MxBaseNamed",
 setGeneric("qualifyNames",
 	   function(.Object, modelname, namespace) standardGeneric("qualifyNames"))
 
-##' imxExtractMethod
-##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
-##'
-##' @param model model
-##' @param index index
-imxExtractMethod <- function(model, index) {
-	if (is.null(index)) {
-		return(NULL)
-    }
-	if (!(length(index) == 1 && is.character(index))) {
-		msg <- paste("The argument to the '$' or '['",
-			"operator applied on a MxModel object",
-			"must be a single character string")
-		stop(msg, call. = FALSE)
-	}
-	return(namespaceSearch(model, index))
-}
-
-##' imxReplaceMethod
-##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
-##'
-##' @param x the thing
-##' @param name name
-##' @param value value
-imxReplaceMethod <- function(x, name, value) {
-	return(namespaceSearchReplace(x, name, value))
-}
-
 ##' imxExtractSlot
 ##'
 ##' Checks for and extracts a slot from the object

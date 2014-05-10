@@ -33,7 +33,8 @@ setClass(Class = "MxModel",
 		runstate = "list",
 		.forcesequential = "logical",
 		.newobjects = "logical",
-		.resetdata = "logical"
+		.resetdata = "logical",
+	        .modifiedSinceRun = "logical"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -57,6 +58,7 @@ setMethod("initialize", "MxModel",
 		.Object@runstate <- list()
 		.Object@.newobjects <- FALSE
 		.Object@.resetdata <- FALSE
+	        .Object@.modifiedSinceRun <- FALSE
 		.Object <- imxInitModel(.Object)
 		return(.Object)
 	}

@@ -13,6 +13,38 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' imxExtractMethod
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param index index
+imxExtractMethod <- function(model, index) {
+	if (is.null(index)) {
+		return(NULL)
+    }
+	if (!(length(index) == 1 && is.character(index))) {
+		msg <- paste("The argument to the '$' or '['",
+			"operator applied on a MxModel object",
+			"must be a single character string")
+		stop(msg, call. = FALSE)
+	}
+	return(namespaceSearch(model, index))
+}
+
+##' imxReplaceMethod
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param x the thing
+##' @param name name
+##' @param value value
+imxReplaceMethod <- function(x, name, value) {
+	return(namespaceSearchReplace(x, name, value))
+}
+
 namespaceSearch <- function(model, name) {
 	if (is.na(name) || is.null(name) || identical(name, "")) {
 		return(NULL)
@@ -136,6 +168,7 @@ namespaceSearchReplace <- function(model, name, value) {
 		stop(paste("Right-hand side of assignment",
 		"operator has illegal value", omxQuotes(value)), call. = FALSE)
 	}
+	model@.modifiedSinceRun <- TRUE
 	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
 	if (length(components) == 1) {
 		path <- namespaceFindPath(model, name)

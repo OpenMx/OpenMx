@@ -31,6 +31,7 @@ calculateConstraints <- function(model, useSubmodels) {
 calculateConstraintsHelper <- function(constraint, model) {
 	if (constraint@relation == "==") {
 		leftHandSide <- constraint@formula[[2]]
+					# summary should not use mxEval but only examine the information in runstate
 		value <- eval(substitute(mxEval(x, model, compute=TRUE),
 			list(x = leftHandSide)))
 		value <- as.matrix(value)
@@ -317,6 +318,9 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 }
 
 print.summary.mxmodel <- function(x,...) {
+	if (x$stale) {
+		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n\n")
+	}
 	if (length(x$compute)) {
 		cat("compute plan:\n")
 		print(x$compute)
@@ -387,6 +391,9 @@ print.summary.mxmodel <- function(x,...) {
 	cat("cpu time:", format(x$cpuTime), '\n')
 	cat("openmx version number:", format(x$mxVersion), '\n')
 	cat('\n')
+	if (x$stale) {
+		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n")
+	}
 }
 
 setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, retval) {
@@ -442,6 +449,9 @@ generateDataSummary <- function(model, useSubmodels) {
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
+##'
+##' This function should not be used in MxSummary. All summary
+##' information should be extracted from runstate.
 ##'
 ##' @param name name
 ##' @param model model
@@ -505,6 +515,7 @@ generateConfidenceIntervalTable <- function(model) {
 	base <- model@output$confidenceIntervals
 	if (length(base) == 0) return(matrix(0, 0, 3))
 	entities <- rownames(base)
+	# summary should not use mxEval but only examine the information in runstate
 	estimates <- sapply(entities, imxEvalByName, model, compute=TRUE, show=FALSE)
 	retval <- cbind(base[, 'lbound'], estimates, base[, 'ubound'])
 	rownames(retval) <- entities
@@ -619,9 +630,6 @@ translateIndependenceDoF <- function(input) {
 	}
 }
 
-# If the model has been changed after it has been run then the summary
-# should report that it is stale and possibly wrong.
-
 setMethod("summary", "MxModel",
 	function(object, ...) {
 		model <- object
@@ -634,7 +642,7 @@ setMethod("summary", "MxModel",
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
-		retval <- list()
+		retval <- list(stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
@@ -667,6 +675,11 @@ setMethod("summary", "MxModel",
 )
 
 logLik.MxModel <- function(model) {
+	if (length(model@runstate) && model@.modifiedSinceRun) {
+		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
+			     "since it was run. The log likelihood may be out-of-date.")
+		warning(msg)
+	}
 	ll <- NA
 	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood))
 	ll <- -0.5*model@output$Minus2LogLikelihood
@@ -695,8 +708,6 @@ logLik.MxModel <- function(model) {
   model_S <- model[[model$expectation$S]] #<--Likewise for S
   S <- list( model_S$values, model_S$result )
   S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
-  #A <- mxEval(A, model, compute=TRUE)
-  #S <- mxEval(S, model, compute=TRUE)
   I <- diag(1, nrow(A))
   ImAInv <- solve(I-A)
   SD <- sqrt(diag(ImAInv %*% S %*% t(ImAInv)))
@@ -727,8 +738,6 @@ logLik.MxModel <- function(model) {
   model_S <- model[[model$expectation$S]] #<--Likewise for S
   S <- list( model_S$values, model_S$result )
   S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
-  #A <- mxEval(A, model, compute=TRUE)
-  #S <- mxEval(S, model, compute=TRUE)
   #Find positions of nonzero paths:
   Apos <- matrix(NA,nrow=nrow(A),ncol=ncol(A),dimnames=dimnames(A))
   Spos <- matrix(NA,nrow=nrow(S),ncol=ncol(S),dimnames=dimnames(S))
@@ -791,6 +800,12 @@ logLik.MxModel <- function(model) {
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE){
+	if (length(model@runstate) && model@.modifiedSinceRun) {
+		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
+			     "since it was run.")
+		warning(msg)
+	}
+
   covParam <- NULL
   #If user requests SEs, check to be sure they can and should be computed:
   if(SE){
