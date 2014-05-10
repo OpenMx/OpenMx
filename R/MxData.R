@@ -375,12 +375,12 @@ getDataThresholdNames <- function(data) {
 verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 	if(nrow(covMatrix) != ncol(covMatrix)) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
-			"is not a square matrix")
+			"is not a square matrix - perhaps you meant type = 'raw' instead of 'cov'? ")
 		stop(msg, call. = FALSE)
 	}
 	if (any(is.na(covMatrix))) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
-			"contains NA values")
+			"contains NA values. Perhaps ensure you are excluding NAs in your cov() statement?")
 		stop(msg, call. = FALSE)	
 	}
 	if (!all(covMatrix == t(covMatrix))) {
