@@ -171,7 +171,16 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		dest.noalias() = hcT * hc;
 #endif
 		// NPSOL does not leave things in a consistent state!
-		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+		if (0) {
+			// Recomputing the fit also works. This means that the estimates are correct,
+			// only the fitMatrix is wrong.
+			double fitCopy = fc->fit;
+			fc->copyParamToModel(globalState);
+			ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+			fc->fit = fitCopy;
+		} else {
+			fitMatrix->data[0] = fc->fit;
+		}
 		break;}
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
