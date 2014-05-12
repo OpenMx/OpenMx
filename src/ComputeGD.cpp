@@ -170,6 +170,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 		dest.noalias() = hcT * hc;
 #endif
+		// NPSOL does not leave things in a consistent state!
+		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
 		break;}
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
@@ -179,6 +181,16 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
+	bool mismatch = false;
+	if (std::isfinite(fc->fit) && std::isfinite(fitMatrix->data[0])) {
+		mismatch = fitMatrix->data[0] != fc->fit;
+	} else {
+		// merge with chunk below after magic number 1e24 is removed TODO
+		//mismatch = std::isfinite(fc->fit) || std::isfinite(fitMatrix->data[0]);
+	}
+	if (mismatch) Rf_error("%s: fitMatrix %f and fit %f do not match exactly",
+			       name, fitMatrix->data[0], fc->fit);
+
 	if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 		std::string diag = fc->getIterationError();
 		omxRaiseErrorf("MxComputeGradientDescent: fitfunction %s evaluated to %f (%s)",
