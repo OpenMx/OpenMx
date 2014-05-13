@@ -113,6 +113,11 @@ generatePath <- function(from, to,
 	# check for a missing to or from
 	pathCheckToAndFrom(from, to)
 
+	if(any(labels %in% "one")){
+		warning("It is unwise to use the word 'one' as a label.\n",
+		"That has a special meaning, as it used in 'from = \"one\", ' in means paths.\n",
+		"See help(mxPath) to learn about mxPaths and labels")
+	}
 	# check the labels for illegal references
 	lapply(labels, imxVerifyReference, -1)
 	
