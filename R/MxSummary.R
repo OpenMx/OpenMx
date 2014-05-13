@@ -721,7 +721,7 @@ logLik.MxModel <- function(model) {
   if(!give.matrices){return(sparam)}
   else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
 }
-.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov){
+.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE){
   #Recur the function for the appropriate submodels, if any:
   if(length(model@submodels)>0){
     return(lapply(
@@ -729,7 +729,7 @@ logLik.MxModel <- function(model) {
         sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
           sapply(model@submodels,function(x){length(x@submodels)>0})  
       )],
-      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov))
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag))
   }
   #Get A and S:
   model_A <- model[[model$expectation$A]] #<--Necessary because the A matrix might not be named "A".
@@ -800,17 +800,35 @@ logLik.MxModel <- function(model) {
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE){
-	if (length(model@runstate) && model@.modifiedSinceRun) {
+	if (length(model@runstate) && model@.modifiedSinceRun){
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run.")
 		warning(msg)
 	}
-
+  #If SE=T,need to check for independent submodels because they will have their own Hessians;
+  #recur main function as appropriate:
+  inde.subs.flag <- FALSE
+  if(SE & length(model$submodels)>0){
+    RAM.subs <- (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+                   sapply(model@submodels,function(x){length(x@submodels)>0}))
+    inde.subs <- sapply(model@submodels,function(x){x@independent})==TRUE &
+      (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+         sapply(model@submodels,function(x){length(x@submodels)>0}))
+    if(length(inde.subs)>0){
+      #if ALL submodels are either independent RAM models or non-RAM models:
+      if(all(RAM.subs==inde.subs)){ 
+        out <- lapply(model@submodels[which(inde.subs)],mxStandardizeRAMpaths,SE=T)
+        if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use RAM expectation",sep=""))}
+        return(out)
+      }
+      else{out2 <- lapply(model@submodels[which(inde.subs)],mxStandardizeRAMpaths,SE=T)}
+    inde.subs.flag <- TRUE
+  }}
   covParam <- NULL
   #If user requests SEs, check to be sure they can and should be computed:
   if(SE){
     if(length(model@constraints)>0){
-      warning("standard errors will not be computed because 'model' contains at least one mxConstraint")
+      warning(paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep=""))
       SE <- FALSE
     }
     if(SE & length(model@output$hessian)==0){
@@ -826,18 +844,34 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
   }
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
-    if(class(model$expectation)!="MxExpectationRAM"){stop("'model' does not use RAM expectation")}
+    if(class(model$expectation)!="MxExpectationRAM"){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
     return(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam))
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
-    out <- lapply(
-      model@submodels[which(
-        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
-        sapply(model@submodels,function(x){length(x@submodels)>0})  
+    if(!inde.subs.flag){
+      out <- lapply(
+        model@submodels[which(
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+          sapply(model@submodels,function(x){length(x@submodels)>0}))
+          )],
+        .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
+      if(length(out)==0){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
+      return(out)
+    }
+    else{
+      out1 <- lapply(
+        model@submodels[which(
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+             sapply(model@submodels,function(x){length(x@submodels)>0})) & 
+            !sapply(model@submodels,function(x){x@independent})
         )],
-      .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
-    if(length(out)==0){stop("'model' contains no submodels that use RAM expectation")}
-    return(out)
-  }
-}
+        .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
+      out <- as.list(c(out1,out2))
+      if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use RAM expectation",sep=""))}
+      out <- out[names(model@submodels[which(
+        (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+           sapply(model@submodels,function(x){length(x@submodels)>0}))
+      )])]
+      return(out)
+}}}

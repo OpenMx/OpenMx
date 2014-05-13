@@ -18,7 +18,7 @@ factorModelMatrix <- mxModel(
   mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 factorMatrixFit <- mxRun(factorModelMatrix)
-omxCheckError(mxStandardizeRAMpaths(factorMatrixFit),"'model' does not use RAM expectation")
+omxCheckError(mxStandardizeRAMpaths(factorMatrixFit),"model 'OneFactorMatrix' does not use RAM expectation")
 
 manifests <- names(demoOneFactor)
 latents <- c("G")
@@ -53,7 +53,7 @@ omxCheckCloseEnough(
     0.0173329991211512,0.0119526603725942,0.0104094769784555,0.00771335074796404,0.00637115856365944,0),
   1e-5)
 
-#Make more models and check the structure of mxStandardizeRAMpaths()'s output for multigroup:
+#Make more models and check mxStandardizeRAMpaths()'s output for multigroup:
 data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
@@ -179,3 +179,25 @@ bigrun <- mxRun(bigmod)
 zpath2 <- mxStandardizeRAMpaths(bigrun,T)
 omxCheckEquals(names(zpath2),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath2[[2]]),c("MZ","DZ"))
+
+
+bigmod2 <- mxModel(
+  model="foo",mxModel(factorModelPath,independent=T),mxModel(factorModelMatrix,independent=T),
+  twinACEModel,growthCurveModel,
+  mxFitFunctionMultigroup(c("twinACE.fitfunction","LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
+)
+bigrun2 <- mxRun(bigmod2)
+zpath3 <- mxStandardizeRAMpaths(bigrun2,T)
+omxCheckEquals(names(zpath3),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
+omxCheckEquals(names(zpath3[[2]]),c("MZ","DZ"))
+omxCheckEquals(sum(zpath3$OneFactorPath==zpath,na.rm=T),82)
+
+
+bigmod3 <- mxModel(
+  model="foo",mxModel(factorModelPath,independent=T),mxModel(factorModelMatrix,independent=T),
+  mxModel(twinACEModel,independent=T),mxModel(growthCurveModel,independent=T))
+bigrun3 <- mxRun(bigmod3)
+zpath4 <- mxStandardizeRAMpaths(bigrun3,T)
+omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),82)
+omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
+omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))
