@@ -451,59 +451,59 @@ Mx.cov; Mx.mean; Mx.like
 # -----------------------------------------------------------------------
 
 
-omxCheckCloseEnough(Chi1,Mx.LL1,.001)
+omxCheckCloseEnough(Chi1,Mx.LL1,.01)
 omxCheckCloseEnough(EC1,Mx.EC1,.001)
 #1:CovPat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi1m,Mx.LL1m,.001)
+omxCheckCloseEnough(Chi1m,Mx.LL1m,.01)
 omxCheckCloseEnough(EC1m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM1m,Mx.EM1m,.001)
 #1m:CovMPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL2,Mx.LL2,.001)
+omxCheckCloseEnough(LL2,Mx.LL2,.01)
 omxCheckCloseEnough(EC2,Mx.EC2,.001)
 omxCheckCloseEnough(EM2,Mx.EM2,.001)
 #2:RawPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL2s,Mx.LL2,.001)
+omxCheckCloseEnough(LL2s,Mx.LL2,.01)
 omxCheckCloseEnough(EC2s,Mx.EC2,.001)
 omxCheckCloseEnough(EM2s,Mx.EM2,.001)
 #2:RawSPat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi3,Mx.LL1,.001)
+omxCheckCloseEnough(Chi3,Mx.LL1,.01)
 omxCheckCloseEnough(EC3,Mx.EC1,.001)
 #3:CovMat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi3m,Mx.LL1m,.001)
+omxCheckCloseEnough(Chi3m,Mx.LL1m,.01)
 omxCheckCloseEnough(EC3m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
 #3m:CovMPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL4,Mx.LL2,.001)
+omxCheckCloseEnough(LL4,Mx.LL2,.01)
 omxCheckCloseEnough(EC4,Mx.EC2,.001)
 omxCheckCloseEnough(EM4,Mx.EM2,.001)
 #4:RawMat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi5,Mx.LL1,.001)
+omxCheckCloseEnough(Chi5,Mx.LL1,.01)
 omxCheckCloseEnough(EC5,Mx.EC1,.001)
 #5:CovMat Cholesky
 # -------------------------------------
 
-omxCheckCloseEnough(Chi5m,Mx.LL1m,.001)
+omxCheckCloseEnough(Chi5m,Mx.LL1m,.01)
 omxCheckCloseEnough(EC5m,Mx.EC1m,.001)
 omxCheckCloseEnough(EM5m,Mx.EM1m,.001)
 #5m:CovMPat Cholesky
 # -------------------------------------
 
 
-omxCheckCloseEnough(LL6,Mx.LL2,.001)
+omxCheckCloseEnough(LL6,Mx.LL2,.01)
 omxCheckCloseEnough(EC6,Mx.EC2,.001)
 omxCheckCloseEnough(EM6,Mx.EM2,.001)
 #6:RawMat Cholesky
