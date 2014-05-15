@@ -82,21 +82,6 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	Rf_unprotect(3); // expCovExp, expCovInt, rowLikelihoodsExt
 }
 
-omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *off, int *numReturns)
-{
-	// DEPRECATED use omxPopulateFIMLAttributes
-	omxFIMLFitFunction* ofiml = (omxFIMLFitFunction *) (off->argStruct);
-
-	if(!ofiml->returnRowLikelihoods) return NULL;
-
-	omxRListElement *retVal = (omxRListElement*) R_alloc(1, sizeof(omxRListElement));
-	omxData* data = ofiml->data;
-	retVal[0].numValues = data->rows;
-	retVal[0].values = (double*) R_alloc(data->rows, sizeof(double));
-
-	return retVal;
-}
-
 void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar) {
 
 	int numDeps = defVar->numDeps;
@@ -503,7 +488,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     /* Set default FitFunction calls to FIML FitFunction Calls */
 	off->computeFun = omxCallFIMLFitFunction;
 	off->fitType = "imxFitFunctionFIML";
-	off->setFinalReturns = omxSetFinalReturnsFIMLFitFunction;
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
 
