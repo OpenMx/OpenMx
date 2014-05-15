@@ -1078,7 +1078,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
-			omxData *data = estate->data;
 			std::vector<double> &rowWeight = estate->rowWeight;
 			const int numUnique = (int) estate->rowMap.size();
 			estate->excludedPatterns = 0;

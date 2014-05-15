@@ -270,7 +270,10 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
-			if (rowSkip[px]) continue;
+			if (rowSkip[px]) {
+				patternLik[px] = 0;
+				continue;
+			}
 			int thrId = omx_absolute_thread_num();
 			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
 			double *Dweight = thrDweight.data() + totalQuadPoints * thrId;
@@ -346,7 +349,10 @@ static void ba81Estep1(omxExpectation *oo)
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
-			if (rowSkip[px]) continue;
+			if (rowSkip[px]) {
+				patternLik[px] = 0;
+				continue;
+			}
 			int thrId = omx_absolute_thread_num();
 			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
 			double *Dweight = thrDweight.data() + totalQuadPoints * numSpecific * thrId;
@@ -734,7 +740,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 
 	for (int px=0; px < numUnique; px++) {
 		double denom = patternLik[px];
-		if (!validPatternLik(state, denom) || state->rowSkip[px]) {
+		if (state->rowSkip[px] || !validPatternLik(state, denom)) {
 			for (int ax=0; ax < maxAbilities; ++ax) {
 				(*mean)[px * maxAbilities + ax] = NA_REAL;
 			}
