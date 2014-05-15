@@ -133,7 +133,18 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 		omxForceCompute(fitMat);
 	}
 	if (doFit) {
-		fc->fit = fitMat->data[0];
+		if (fitMat->rows != 1) {
+			// NOTE: Floating-point addition is not
+			// associative. If we compute this in parallel
+			// then we introduce non-determinancy.
+			double sum = 0;
+			for(int i = 0; i < fitMat->rows; i++) {
+				sum += log(omxVectorElement(fitMat, i));
+			}
+			fc->fit = sum * Global->llScale;
+		} else {
+			fc->fit = fitMat->data[0];
+		}
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();
 		}

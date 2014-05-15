@@ -140,7 +140,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 		*mode = -1;
 	}
 
-	if (OMX_VERBOSE) {
+	if (NPSOL_verbose >= 2 || OMX_VERBOSE) {
 		mxLog("Fit function value is: %f, Mode is %d.", *f, *mode);
 	}
 }

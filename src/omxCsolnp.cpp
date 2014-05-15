@@ -64,12 +64,12 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
 
-	if (!std::isfinite(fitMatrix->data[0])) {
+	if (!std::isfinite(GLOB_fc->fit)) {
 		GLOB_fc->fit = 1e24;
 	}
     
 	if(verbose >= 1) {
-		mxLog("Fit function value is: %.32f", fitMatrix->data[0]);
+		mxLog("Fit function value is: %.32f", GLOB_fc->fit);
 	}
 
 	return GLOB_fc->fit;
