@@ -840,7 +840,9 @@ replaceMethodRAM <- function(model, index, value) {
 	name <- pair[[2]]
 	if (namespace == model@name && name == "data") {
 		model@data <- value
-		if (requireMeansVector(value)) {
+		# model@expectation is likely MxExpectationRAM, but it could
+		# have been replaced with something else.
+		if (requireMeansVector(value) && is(model@expectation, "MxExpectationRAM")) {
 			model@expectation@M <- "M"
 		}
 	} else {
