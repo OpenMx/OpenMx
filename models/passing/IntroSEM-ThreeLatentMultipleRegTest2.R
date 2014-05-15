@@ -200,12 +200,12 @@ expectSE <- c(0.0769, 0.087865, 0.102543, 0.127828, 0.088084, 0.119791, 0.111236
 
 expectMin <- 7710.615
 
-omxCheckCloseEnough(expectVal, threeLatentMultipleReg1Out$output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMultipleReg1Out$output$estimate, 0.01)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMultipleReg1Out$output$standardError), 0.005)
+    as.vector(threeLatentMultipleReg1Out$output$standardError), 0.01)
 
-omxCheckCloseEnough(expectMin, threeLatentMultipleReg1Out$output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMultipleReg1Out$output$minimum, 0.01)
 
 #---------------------
 # check values: threeLatentMultipleReg2Out
@@ -226,12 +226,12 @@ expectSE <- c(0.07703, 0.088125, 0.103052, 0.089582, 0.121094, 0.113147,
 
 expectMin <- 7726.295
 
-omxCheckCloseEnough(expectVal, threeLatentMultipleReg2Out$output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMultipleReg2Out$output$estimate, 0.01)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(threeLatentMultipleReg2Out$output$standardError), 0.01)
 
-omxCheckCloseEnough(expectMin, threeLatentMultipleReg2Out$output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMultipleReg2Out$output$minimum, 0.01)
 
 #---------------------
 # check values: threeLatentMultipleReg3Out
@@ -252,12 +252,12 @@ expectSE <- c(0.076951, 0.087964, 0.102685, 0.077557, 0.088124, 0.119953,
 
 expectMin <-  7710.62
 
-omxCheckCloseEnough(expectVal, threeLatentMultipleReg3Out$output$estimate, 0.001)
+omxCheckCloseEnough(expectVal, threeLatentMultipleReg3Out$output$estimate, 0.01)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMultipleReg3Out$output$standardError), 0.001)
+    as.vector(threeLatentMultipleReg3Out$output$standardError), 0.01)
 
-omxCheckCloseEnough(expectMin, threeLatentMultipleReg3Out$output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentMultipleReg3Out$output$minimum, 0.01)
 
 #---------------------
 # check values: threeLatentOrthoRaw1Out
@@ -283,4 +283,4 @@ omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out$output$estimate, 0.01)
 omxCheckCloseEnough(expectSE, 
     as.vector(threeLatentOrthoRaw1Out$output$standardError), 0.01)
 
-omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out$output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out$output$minimum, 0.01)
