@@ -65,24 +65,44 @@ Let's go through the paths specification step by step.  First, we start with the
     # Path objects for Multiple Groups
     manifestVars=selVars
     latentVars=aceVars
-    latVariances <- mxPath( from=aceVars, arrows=2, free=FALSE, values=1 )                                             # variances of latent variables
-    latMeans     <- mxPath( from="one", to=aceVars, arrows=1, free=FALSE, values=0 )                                   # means of latent variables
-    obsMeans     <- mxPath( from="one", to=selVars, arrows=1, free=TRUE, values=20, labels="mean" )                    # means of observed variables
-    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, free=TRUE, values=.5,  label=c("a","c","e") ) # path coefficients for twin 1
-    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, free=TRUE, values=.5,  label=c("a","c","e") ) # path coefficients for twin 2
-    covC1C2      <- mxPath( from="C1", to="C2", arrows=2, free=FALSE, values=1 )                                       # covariance between C1 & C2
-    covA1A2_MZ   <- mxPath( from="A1", to="A2", arrows=2, free=FALSE, values=1 )                                       # covariance between A1 & A2 in MZ twins
-    covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, free=FALSE, values=.5 )                                      # covariance between A1 & A2 in DZ twins
+    # variances of latent variables
+    latVariances <- mxPath( from=aceVars, arrows=2, 
+                            free=FALSE, values=1 )
+    # means of latent variables
+    latMeans     <- mxPath( from="one", to=aceVars, arrows=1, 
+                            free=FALSE, values=0 )
+    # means of observed variables
+    obsMeans     <- mxPath( from="one", to=selVars, arrows=1, 
+                            free=TRUE, values=20, labels="mean" )
+    # path coefficients for twin 1
+    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
+    # path coefficients for twin 2
+    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
+    # covariance between C1 & C2
+    covC1C2      <- mxPath( from="C1", to="C2", arrows=2, 
+                            free=FALSE, values=1 )
+    # covariance between A1 & A2 in MZ twins
+    covA1A2_MZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=1 )
+    # covariance between A1 & A2 in DZ twins
+    covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=.5 )
 
     # Data objects for Multiple Groups
     dataMZ       <- mxData( observed=mzData, type="raw" )
     dataDZ       <- mxData( observed=dzData, type="raw" )
 
     # Combine Groups
-    paths        <- list( latVariances, latMeans, obsMeans, pathAceT1, pathAceT2, covC1C2 )
-    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
-    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
-    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, name="minus2loglikelihood" )
+    paths        <- list( latVariances, latMeans, obsMeans, 
+                          pathAceT1, pathAceT2, covC1C2 )
+    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
+    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
+    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, 
+                               name="minus2loglikelihood" )
     obj          <- mxFitFunctionAlgebra( "minus2loglikelihood" )
     modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, minus2ll, obj )
 
@@ -106,46 +126,54 @@ We start by specifying paths for the variances and means of the latent variables
 .. code-block:: r        
 
     # variances of latent variables
-    latVariances <- mxPath( from=aceVars, arrows=2, free=FALSE, values=1 )
+    latVariances <- mxPath( from=aceVars, arrows=2, 
+                            free=FALSE, values=1 )
 
 and single-headed arrows from the triangle (with a fixed value of one) to each of the latent variables, fixed at zero. 
 
 .. code-block:: r        
 
     # means of latent variables
-    latMeans     <- mxPath( from="one", to=aceVars, arrows=1, free=FALSE, values=0 )
+    latMeans     <- mxPath( from="one", to=aceVars, arrows=1, 
+                            free=FALSE, values=0 )
 
 Next we specify paths for the means of the observed variables using single-headed arrows from ``one`` to each of the manifest variables.  These are set to be free and given a start value of 20.  As we use the same label ("mean") for the two means, they are constrained to be equal.  Remember that R 'recycles'.
 
 .. code-block:: r        
 
     # means of observed variables
-    obsMeans     <- mxPath( from="one", to=selVars, arrows=1, free=TRUE, values=20, labels="mean" )
+    obsMeans     <- mxPath( from="one", to=selVars, arrows=1, 
+                            free=TRUE, values=20, labels="mean" )
 
 The main paths of interest are those from each of the latent variables to the respective observed variable.  These are also estimated (thus all are set free), get a start value of 0.5 and appropriate labels.  We chose the start value of .5 by dividing the observed variance, here about .7-.8 in three for the three sources of variance, and then taking the square root as we're estimating the path coefficients, but these are squared to obtain their contribution to the variance.
 
 .. code-block:: r        
 
     # path coefficients for twin 1
-    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, free=TRUE, values=.5,  label=c("a","c","e") )
+    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
     # path coefficients for twin 2
-    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, free=TRUE, values=.5,  label=c("a","c","e") )
+    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
     
 As the common environmental factors are by definition the same for both twins, we fix the correlation between **C1** and **C2** to one.    
 
 .. code-block:: r        
 
     # covariance between C1 & C2
-    covC1C2      <- mxPath( from="C1", to="C2", arrows=2, free=FALSE, values=1 )
+    covC1C2      <- mxPath( from="C1", to="C2", arrows=2, 
+                            free=FALSE, values=1 )
 
 Next we create the paths that are specific to the MZ group or the DZ group and are later included into the respective models, ``modelMZ`` and ``modelDZ``, which are combined in ``modelACE``.   In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  In the DZ model the correlation between **A1** and **A2** is fixed to 0.5 instead.
 
 .. code-block:: r
 
     # covariance between A1 & A2 in MZ's
-    covA1A2_MZ   <- mxPath( from="A1", to="A2", arrows=2, free=FALSE, values=1 )
+    covA1A2_MZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=1 )
     # covariance between A1 & A2 in DZ's
-    covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, free=FALSE, values=.5 )
+    covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=.5 )
 
 That concludes the specification of the paths from which the models will be generated for MZ and DZ twins separately.  Next we move to the ``mxData`` commands that call up the data.frame with the MZ raw data, *mzData*, and the DZ raw data, *dzData*, respectively, with the type specified explicitly as *raw*.  These are stored in two MxData objects.
 
@@ -159,15 +187,19 @@ As we indicated earlier, we're collecting all the mxPaths objects that are in co
 .. code-block:: r    
     
     # Combine Groups
-    paths        <- list( latVariances, latMeans, obsMeans, pathAceT1, pathAceT2, covC1C2 )
-    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
-    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
+    paths        <- list( latVariances, latMeans, obsMeans, 
+                          pathAceT1, pathAceT2, covC1C2 )
+    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
+    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
 
 Finally, both models need to be evaluated simultaneously.  We generate the sum of the fit functions for the two groups, using ``mxAlgebra``, and use the result (*minus2loglikelihood*) as argument of the ``mxFitFunctionAlgebra`` command.  We specify a new ``mxModel`` - with a new name using the ``model=""`` notation, which has the *modelMZ* and *modelDZ* as its arguments.  We also include the objects summing the likelihood and evaluating it.
 
 .. code-block:: r        
 
-    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, name="minus2loglikelihood" )
+    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, 
+                               name="minus2loglikelihood" )
     obj          <- mxFitFunctionAlgebra( "minus2loglikelihood" )
     modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, minus2ll, obj ) 
     
@@ -188,15 +220,24 @@ Often, however, one is interested in specific parts of the output.  In the case 
 .. code-block:: r
 
     # Generate & Print Output
-    A  <- mxEval(a*a, fitACE)                         # additive genetic variance, a^2
-    C  <- mxEval(c*c, fitACE)                         # shared environmental variance, c^2
-    E  <- mxEval(e*e, fitACE)                         # unique environmental variance, e^2
-    V  <- (A+C+E)                                     # total variance
-    a2 <- A/V                                         # standardized A
-    c2 <- C/V                                         # standardized C
-    e2 <- E/V                                         # standardized E
-    estACE <- rbind(cbind(A,C,E),cbind(a2,c2,e2))     # table of estimates
-    LL_ACE <- mxEval(fitfunction, fitACE)             # likelihood of ACE model
+    # additive genetic variance, a^2
+    A  <- mxEval(a*a, fitACE)
+    # shared environmental variance, c^2
+    C  <- mxEval(c*c, fitACE)
+    # unique environmental variance, e^2
+    E  <- mxEval(e*e, fitACE)
+    # total variance
+    V  <- (A+C+E)
+    # standardized A
+    a2 <- A/V
+    # standardized C
+    c2 <- C/V
+    # standardized E
+    e2 <- E/V
+    # table of estimates
+    estACE <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+    # likelihood of ACE model
+    LL_ACE <- mxEval(fitfunction, fitACE)
 
 Alternative Models: an AE Model
 -------------------------------
@@ -206,13 +247,20 @@ To evaluate the significance of each of the model parameters, nested submodels a
 .. code-block:: r
 
     #Run AE model
-    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") ) # path coefficients for twin 1
-    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") ) # path coefficients for twin 2
+    # path coefficients for twin 1
+    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, 
+                            free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") )
+    # path coefficients for twin 2
+    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, 
+                            free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") )
 
     # Combine Groups
-    paths        <- list( latVariances, latMeans, obsMeans, pathAceT1, pathAceT2, covC1C2 )
-    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
-    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
+    paths        <- list( latVariances, latMeans, obsMeans, 
+                            pathAceT1, pathAceT2, covC1C2 )
+    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
+    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
     modelAE      <- mxModel(model="AE", modelMZ, modelDZ, minus2ll, obj )
 
     # Run Model
