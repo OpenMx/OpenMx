@@ -360,7 +360,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	SEXP evaluations;
-	Rf_protect(evaluations = Rf_allocVector(REALSXP,2));
+	Rf_protect(evaluations = Rf_allocVector(REALSXP,1));
 
 	REAL(evaluations)[0] = Global->computeCount;
 
@@ -372,8 +372,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxExportResults(globalState, &result); 
-
-	REAL(evaluations)[1] = Global->computeCount;
 
 	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;
