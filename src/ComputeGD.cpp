@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+// Maybe integrate http://ab-initio.mit.edu/wiki/index.php/NLopt_Introduction ?
+
 #include "omxDefines.h"
 #include "omxState.h"
 #include "omxFitFunction.h"
