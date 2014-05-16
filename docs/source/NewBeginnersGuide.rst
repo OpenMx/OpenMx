@@ -673,7 +673,8 @@ Some models may include predictions for the mean(s).  We could add an additional
    
    .. code-block:: r
 
-        exampleDataCovMeans <- mxData(observed=cov(demoOneFactor), means=(colMeans(demoOneFactor), type="cov", numObs=500)
+        exampleDataCovMeans <- mxData(observed=cov(demoOneFactor), 
+                                   means=(colMeans(demoOneFactor), type="cov", numObs=500)
     
 The output for *exampleDataCovMeans* would have the following extra lines.
 
@@ -814,9 +815,12 @@ The next three lines create three ``MxMatrix()`` objects, using the ``mxMatrix()
    
    .. code-block:: r
 
-        mxFacLoadings  <-  mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="facLoadings")
-        mxFacVariances <-  mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="facVariances")
-        mxResVariances <-  mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="resVariances")
+        mxFacLoadings  <-  mxMatrix(type="Full", nrow=5, ncol=1, 
+                                    free=TRUE, values=0.2, name="facLoadings")
+        mxFacVariances <-  mxMatrix(type="Symm", nrow=1, ncol=1, 
+                                    free=FALSE, values=1, name="facVariances")
+        mxResVariances <-  mxMatrix(type="Diag", nrow=5, ncol=5, 
+                                    free=TRUE, values=1, name="resVariances")
 
 Each ``MxMatrix()`` object is a container that stores five matrices of equal dimensions.  The five matrices stored in a ``MxMatrix()`` object are:``free``, ``values``, ``labels``, ``lbound``, and ``ubound``.  ``Free`` stores a boolean vector that determines whether a element is free or fixed.  ``Values`` stores the current values of each element in the matrix.  ``Labels`` stores a character label for each element in the matrix. And ``lbound`` and ``ubound`` store the lower and upper bounds, respectively, for each element that is a free parameter.  If a element has no label, lower bound, or upper bound, then an NA value is stored in the element of the respective matrix.
  
@@ -832,7 +836,8 @@ An ``mxAlgebra()`` function is used to construct an expression for any algebra, 
    
    .. code-block:: r
 
-        mxExpCov <- mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) + resVariances, name="expCov")
+        mxExpCov <- mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) 
+                                        + resVariances, name="expCov")
 
 You can see a direct correspondence between the formula above and the expression used to create the expected covariance matrix *myExpCov*.
 
@@ -871,7 +876,8 @@ When using a matrix specification, ``mxExpectationNormal()`` defines how model e
    
    .. code-block:: r
 
-        expectCov <- mxExpectationNormal(covariance="expCov", dimnames=names(demoOneFactor))
+        expectCov <- mxExpectationNormal(covariance="expCov", 
+                                         dimnames=names(demoOneFactor))
         funML <- mxFitFunctionML()
 
 The above expectation and fit function can be used when fitting to covariance matrices.  A model for the predicted means is optional.  However, when fitting to raw data, an expectation has to be used that specifies both a model for the means and for the covariance matrices, paired with the appropriate fit function.  In the case of raw data, the ``mxFitFunctionML()`` function uses full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the ``covariance`` and ``means`` arguments. The ``covariance`` argument takes an ``MxMatrix`` or ``MxAlgebra`` object, which defines the expected covariance of an associated ``MxData`` object. Similarly, the ``means`` argument takes an ``MxMatrix`` or ``MxAlgebra`` object to define the expected means of an associated ``MxData`` object. The ``dimnames`` arguments takes an optional character vector. This vector is assigned to be the ``dimnames`` of the means vector, and the row and columns ``dimnames`` of the covariance matrix. 
@@ -883,7 +889,8 @@ The above expectation and fit function can be used when fitting to covariance ma
    
    .. code-block:: r
 
-        expectCovMeans <- mxExpectationNormal(covariance="expCov", means="expMeans", dimnames=names(demoOneFactor))
+        expectCovMeans <- mxExpectationNormal(covariance="expCov", means="expMeans", 
+                                              dimnames=names(demoOneFactor))
         funML <- mxFitFunctionML()
 
 Raw data can come in two forms, continuous or categorical.  While **continuous data** have an unlimited number of possible values, their frequencies typically form a normal distribution.
@@ -902,7 +909,8 @@ When the data to be analyzed are continuous, and models are fitted to raw data, 
    
    .. code-block:: r
 
-        expectRaw <- mxExpectationNormal(covariance="expCov", means="expMeans", dimnames=manifests)
+        expectRaw <- mxExpectationNormal(covariance="expCov", means="expMeans", 
+                                         dimnames=manifests)
         funML <- mxFitFunctionFIML()
 
 If the variables to be analyzed have at least 15 possible values, we recommend to treat them as continuous data.  As will be discussed later in the documentation, the power of the study is typically higher when dealing with continuous rather than categorical data.
@@ -919,7 +927,8 @@ For categorical - be they binary or ordinal - data, an additional argument is ne
 
     .. code-block:: r
 
-        expFunOrd <- mxExpectationNormal(covariance="expCov", means="expMeans", thresholds="expThres", dimnames=manifests)
+        expFunOrd <- mxExpectationNormal(covariance="expCov", means="expMeans", 
+                                         thresholds="expThres", dimnames=manifests)
         funML <- mxFitFunctionFIML()
 
 For now, we will stick with the factor model example and fit it to covariance matrices, calculated from the raw continuous data.
@@ -1056,7 +1065,8 @@ We have already created separate objects for each of the parts of the model, whi
         data(demoOneFactor)
         
         factorModel2 <- mxModel(name="One Factor",
-            exampleDataCov, mxFacLoadings, mxFacVariances, mxResVariances, mxExpCov, expectCov, funML)
+            exampleDataCov, mxFacLoadings, mxFacVariances, mxResVariances, 
+            mxExpCov, expectCov, funML)
         factorFit2 <- mxRun(factorModel2)
         summary(factorFit2)
 
@@ -1076,7 +1086,8 @@ Alternatively, we can write the script in the **classical** style and specify  a
             mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="facLoadings"),
             mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="facVariances"),
             mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="resVariances"),
-            mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) + resVariances, name="expCov"),
+            mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) 
+                                + resVariances, name="expCov"),
             mxExpectationNormal(covariance="expCov", dimnames=names(demoOneFactor)),
             mxFitFunctionML()
             mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
@@ -1115,7 +1126,7 @@ The summary function (``summary(modelname)``) is a convenient method for display
 
 
         free parameters:
-                        name matrix row col   Estimate   Std.Error Std.Estimate      Std.SE lbound ubound
+          name matrix row col   Estimate   Std.Error Std.Estimate      Std.SE lbound ubound
         1  One Factor.A[1,6]      A  x1   G 0.39715182 0.015549708   0.89130932 0.034897484              
         2  One Factor.A[2,6]      A  x2   G 0.50366066 0.018232433   0.93255458 0.033758321              
         3  One Factor.A[3,6]      A  x3   G 0.57724092 0.020448313   0.94384664 0.033435037              
@@ -1240,11 +1251,11 @@ The first useful trick is entering the string ``model$`` in the R interpreter an
 
 The named entities of the model are displayed in one of three modes. 
 
-#. In the first mode, all of the submodels contained within the parent model are accessed by using their unique model name (``submodel1``, ``submodel2``, and ``undersub1``).  
+#. All of the submodels contained within the parent model are accessed by using their unique model name (``submodel1``, ``submodel2``, and ``undersub1``).  
 
-#. In the second mode, all of the named entities contained within the parent model are displayed by their names (``A`` and ``B``).  
+#. All of the named entities contained within the parent model are displayed by their names (``A`` and ``B``).  
 
-#. In the third mode, all of the named entities contained by the submodels are displayed in the ``modelname.entityname`` format (``submodel1.C``, ``submodel2.objective``, and ``undersub1.data``). 
+#. All of the named entities contained by the submodels are displayed in the ``modelname.entityname`` format (``submodel1.C``, ``submodel2.objective``, and ``undersub1.data``). 
 
 Modify Elements
 ^^^^^^^^^^^^^^^
