@@ -194,6 +194,7 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 2 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	@if grep --color=always --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
 	cat DESCRIPTION.in | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
+	mkdir -p build
 
 npsol-prep: code-style
 	rm -f inst/no-npsol
@@ -251,10 +252,10 @@ html: internal-build
 	cd docs; make clean; make html
 
 build: clean npsol-prep
-	$(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build; $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
 build-simple: clean npsol-prep
-	OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build; OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
 common-build32: clean internal-build
 	cd build; $(REXEC) --arch i386 CMD INSTALL $(BUILDARGS) --build $(TARGET)
