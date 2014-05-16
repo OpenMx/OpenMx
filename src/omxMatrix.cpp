@@ -624,9 +624,9 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 
 static void maybeCompute(omxMatrix *matrix, int want)
 {
-	if(matrix->omxPopulateSubstitutions()) {
-		// was a simple matrix and we're done
-	} else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	matrix->omxPopulateSubstitutions(); // could be an algebra!
+
+	if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, NULL);
