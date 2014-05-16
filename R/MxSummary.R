@@ -55,6 +55,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	} else {
 		data <- model[[expectation@data]] 
 	}
+	if (is(data, "MxDataDynamic")) {
+		# need to revisit TODO
+		return(list(0, historySet))
+	}
 	if (data@type == 'cov' || data@type == 'sscp') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
