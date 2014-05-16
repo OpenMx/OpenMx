@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "running configure"
-
 set -o errexit
 set -o nounset
 
