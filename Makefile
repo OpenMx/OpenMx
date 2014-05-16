@@ -1,14 +1,12 @@
+OPENMP = yes
+export OPENMP
 REXEC = R
-RCOMMAND = CMD
-RBUILD = build
-RINSTALL = INSTALL
 BUILDARGS = --dsym  # need for MacOS debug symbols
-RCHECK = check
 RPDF = Rd2pdf
 BUILDPRE = 999.0.0
 BUILDNO = $(shell ./inst/tools/findBuildNum.sh)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
-PDFFILE = $(RBUILD)/OpenMx.pdf
+PDFFILE = build/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
 ifdef CPUS
@@ -143,6 +141,7 @@ help:
 	@echo "BUILDS"
 	@echo ""
 	@echo "  build         create an OpenMx binary for unix systems (no cross-compilation)"
+	@echo "  build-simple  create an OpenMx binary for unix systems without OpenMP"
 	@echo "  build32       create an OpenMx binary for i386 systems"
 	@echo "  build64       create an OpenMx binary for x86_64 systems"
 	@echo "  buildppc      create an OpenMx binary for ppc systems"
@@ -216,23 +215,23 @@ no-npsol-prep: code-style
 
 build/$(TARGET): npsol-prep
 	mkdir -p build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) build ..
+	cd build; $(REXEC) CMD build ..
 	rm -f $(ROXDOC)
 
 cran-build: no-npsol-prep
-	$(REXEC) $(RCOMMAND) build .
+	$(REXEC) CMD build .
 	rm -f $(ROXDOC)
 
 cran-winbuild: no-npsol-prep
 	rm -f $(ROXDOC)
-	cd $(RBUILD) && R CMD INSTALL --build OpenMx_*.tar.gz
+	cd build && R CMD INSTALL --build OpenMx_*.tar.gz
 
 cran-check: cran-build
 	cd .. && R CMD check OpenMx_*.tar.gz
 	rm -f $(ROXDOC)
 
 pdf:
-	rm -rf $(PDFFILE); $(REXEC) $(RCOMMAND) $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
+	rm -rf $(PDFFILE); $(REXEC) CMD $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make latex; cd build/latex; make all-pdf
 
 src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
@@ -242,33 +241,35 @@ src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
 html: internal-build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --html --build $(TARGET)
+	cd build; $(REXEC) CMD INSTALL --html --build $(TARGET)
 	rm -f build/$(TARGET)
-	cd $(RBUILD); tar -zxf *gz
+	cd build; tar -zxf *gz
 	mv build/OpenMx/html build/html
 	mv build/OpenMx/demo build/demo
 	cp build/html/* docs/source/static/Rdoc
 	cp build/demo/* docs/source/static/demo
 	cd docs; make clean; make html
 
-common-build: clean internal-build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
+build: clean npsol-prep
+	$(REXEC) CMD INSTALL $(BUILDARGS) --build .
+
+build-simple: clean npsol-prep
+	OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 common-build32: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch i386 $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
+	cd build; $(REXEC) --arch i386 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
 common-build64: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch x86_64 $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
+	cd build; $(REXEC) --arch x86_64 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
 common-buildppc: clean internal-build
-	cd $(RBUILD); $(REXEC) --arch ppc $(RCOMMAND) $(RINSTALL) $(BUILDARGS) --build $(TARGET)
+	cd build; $(REXEC) --arch ppc CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
 post-build:
-	rm -f $(RBUILD)/$(TARGET)
-	cd $(RBUILD); gunzip *;\
+	rm -f build/$(TARGET)
+	cd build; gunzip *;\
 	tar --delete --file=`ls` OpenMx/npsol;\
 	gzip *.tar
-
 
 build32: common-build32 post-build
 
@@ -276,23 +277,21 @@ build64: common-build64 post-build
 
 buildppc: common-buildppc post-build
 
-build: common-build post-build
-
 srcbuild: clean internal-build
 
 winbuild: common-build
 
 winbuild-biarch:
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
+	cd build; $(REXEC) CMD INSTALL --force-biarch --build $(TARGET)
 
 install: npsol-prep
-	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) .
+	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) CMD INSTALL $(BUILDARGS) .
 
 cran-install: no-npsol-prep
-	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) .
+	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) CMD INSTALL $(BUILDARGS) .
 
 check: internal-build
-	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RCHECK) $(TARGET)
+	cd build; $(REXEC) CMD check $(TARGET)
 
 rproftest:
 	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
@@ -327,7 +326,7 @@ autodep:
 	cd src && gcc -MM *.cpp *.c | perl -pe 's,\bEigen[^\s]*\s, ,g' | perl -pe 's,^\s*\\\n,,' | perl -pe 's,:,: Makevars.in,' > autodep
 
 clean:
-	-rm $(RBUILD)/OpenMx_*.tar.gz
+	-rm build/OpenMx_*.tar.gz
 	-rm src/*.o
 	-rm src/*.so
 	-rm DESCRIPTION
