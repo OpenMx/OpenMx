@@ -145,11 +145,13 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
 				Global->llScale = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
+#ifdef _OPENMP
 				*numThreads = atoi(nextOptionValue);
 				if (*numThreads < 1) {
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
+#endif
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsA")) {
 				Global->maxptsa = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsB")) {
