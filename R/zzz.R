@@ -43,7 +43,7 @@ mxSetDefaultOptions <- function() {
 #' 
 #' You can see the resulting parameter estimates, algebra evaluation etc using summary(yourModel)
 #' 
-#' The user\u2019s manual is online (see reference below), but functions \link{mxRun}, \link{mxModel}, \link{mxMatrix}
+#' The user's manual is online (see reference below), but functions \link{mxRun}, \link{mxModel}, \link{mxMatrix}
 #' all have working examples to get you started as well.
 #'
 #' The main OpenMx functions are: \link{mxAlgebra}, \link{mxBounds}, \link{mxCI}, \link{mxConstraint}, \link{mxData}, 
