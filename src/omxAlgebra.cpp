@@ -187,7 +187,14 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			Rf_protect(algebraArg = VECTOR_ELT(algebra, j+1));
-				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
+			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
+			if (!oa->algArgs[j]->name) {
+				// A bit inefficient but invaluable for debugging
+				std::string str = string_snprintf("alg%03d", ++Global->anonAlgebra);
+				SEXP name;
+				Rf_protect(name = Rf_mkChar(str.c_str()));
+				oa->algArgs[j]->name = CHAR(name);
+			}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */

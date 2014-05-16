@@ -322,7 +322,14 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 	return om->data[index];
 }
 
-void omxMarkDirty(omxMatrix *om) { om->version += 1; }
+void omxMarkDirty(omxMatrix *om) {
+	om->version += 1;
+	if (OMX_DEBUG_ALGEBRA) {
+		const char *name = "?";
+		if (om->name) name = om->name;
+		mxLog("Marking matrix %s dirty (version %d)", name, om->version);
+	}
+}
 
 void omxMarkClean(omxMatrix *om) {
 	om->version += 1;

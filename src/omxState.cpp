@@ -158,6 +158,7 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	llScale = -2.0;
 	computeCount = 0;
+	anonAlgebra = 0;
 }
 
 void omxGlobal::deduplicateVarGroups()

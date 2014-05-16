@@ -162,6 +162,7 @@ class omxGlobal {
 	int numThreads;
 	int analyticGradients;
 	double llScale;
+	int anonAlgebra;
 
 	double maxptsa;
 	double maxptsb;
