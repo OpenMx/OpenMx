@@ -580,9 +580,9 @@ void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrix(source, d);
 }
 
-bool omxMatrix::omxPopulateSubstitutions()
+void omxMatrix::omxPopulateSubstitutions()
 {
-	if (populate.size() == 0) return false;
+	if (populate.size() == 0) return;
 	for (size_t pi = 0; pi < populate.size(); pi++) {
 		populateLocation &pl = populate[pi];
 		int index = pl.from;
@@ -597,7 +597,6 @@ bool omxMatrix::omxPopulateSubstitutions()
 		double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
 		omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
 	}
-	return true;
 }
 
 void omxMatrixLeadingLagging(omxMatrix *om) {
@@ -640,9 +639,9 @@ void omxRecompute(omxMatrix *matrix)
 
 void omxInitialCompute(omxMatrix *matrix)
 {
-	if(matrix->omxPopulateSubstitutions()) {
-		// was a simple matrix and we're done
-	} else if(!omxNeedsUpdate(matrix)) /* do nothing */;
+	matrix->omxPopulateSubstitutions();
+
+	if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraInitialCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, NULL);
@@ -650,9 +649,9 @@ void omxInitialCompute(omxMatrix *matrix)
 }
 
 void omxForceCompute(omxMatrix *matrix) {
-	if(matrix->omxPopulateSubstitutions()) {
-		// was a simple matrix and we're done
-	} else if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
+	matrix->omxPopulateSubstitutions();
+
+	if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
 	}
