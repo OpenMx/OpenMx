@@ -24,7 +24,14 @@ mxSetDefaultOptions <- function() {
 	'swift.initialexpr' = "library(OpenMx)")
 }
 
-.onLoad <- function(libname, pkgname) mxSetDefaultOptions()
+imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
+
+.onLoad <- function(libname, pkgname) {
+	mxSetDefaultOptions()
+	if (!imxHasOpenMP()) {
+		packageStartupMessage("OpenMx is not compiled to take advantage of computers with multiple cores.")
+	}
+}
 
 #' OpenMx: An package for Structural Equation Modeling and Matrix Algebra Optimization
 #'

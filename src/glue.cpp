@@ -43,6 +43,16 @@
 static SEXP has_NPSOL()
 { return Rf_ScalarLogical(HAS_NPSOL); }
 
+static SEXP has_openmp()
+{
+#if defined(_OPENMP)
+	bool opm = true;
+#else
+	bool opm = false;
+#endif
+	return Rf_ScalarLogical(opm);
+}
+
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 10},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -50,6 +60,7 @@ static R_CallMethodDef callMethods[] = {
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
+	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
 	{NULL, NULL, 0}
 };
 
