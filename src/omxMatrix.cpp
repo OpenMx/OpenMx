@@ -391,8 +391,8 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
 			memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
 		} else {
-			om->owner = matrix;
-			om->data = REAL(om->owner);
+			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
+			memcpy(om->data, REAL(matrix), om->rows * om->cols * sizeof(double));
 		}
 
 		SEXP dimnames;
