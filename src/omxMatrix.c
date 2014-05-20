@@ -443,8 +443,8 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	if(om == NULL) {
 		om = omxInitMatrix(NULL, 0, 0, FALSE, state);
 	}
-
-	om->data = REAL(AS_NUMERIC(matrix));	// TODO: Class-check first?
+  
+  //om->data = REAL(AS_NUMERIC(matrix));	// TODO: Class-check first?
 
 	if(isMatrix(matrix)) {
 		PROTECT(matrixDims = getAttrib(matrix, R_DimSymbol));
@@ -458,6 +458,9 @@ omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 		om->cols = length(matrix);
 	}
 	if(OMX_DEBUG) { Rprintf("Matrix connected to (%d, %d) matrix or MxMatrix.\n", om->rows, om->cols); }
+  
+  om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
+  memcpy(om->data, REAL(AS_NUMERIC(matrix)), om->rows * om->cols * sizeof(double));
 
 	om->localData = FALSE;
 	om->colMajor = TRUE;
