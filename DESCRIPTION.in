@@ -1,5 +1,5 @@
 Package: OpenMx
-Date: 2012-08-03
+Date: 2014-05-20
 Title: Multipurpose Software for Statistical Modeling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -11,12 +11,13 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "D."), "Hunter", role="aut"), person(c("Daniel", "C."), "Hackett", role="ctb"),
     person("Julian", "Karch", role="ctb"), person(c("Andreas", "M."), "Brandmaier", role="ctb"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
-    role="aut"), person("Team", "OpenMx",
+    role="aut"), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"), 
+    person("Team", "OpenMx",
     email='openmx-developers@list.mail.virginia.edu', role='cre'))
 Author: Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde,
     Michael Spiegel, Timothy R. Brick, Ryne Estabrook, Timothy C. Bates, Paras
     Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C.
-    Hackett, Julian Karch, Andreas M. Brandmaier, Joshua N. Pritikin
+    Hackett, Julian Karch, Andreas M. Brandmaier, Joshua N. Pritikin, Mahsa Zahery, Robert M. Kirkpatrick
 Maintainer: OpenMx Development Team <openmx-developers@list.mail.virginia.edu>
 URL: http://openmx.psyc.virginia.edu
 Description: The OpenMx Project intends to rewrite and extend the popular
