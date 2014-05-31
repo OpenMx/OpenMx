@@ -1,6 +1,7 @@
 OPENMP = yes
 export OPENMP
 REXEC = R
+export REXEC
 BUILDARGS = --dsym  # need for MacOS debug symbols
 RPDF = Rd2pdf
 BUILDPRE = 999.0.0
