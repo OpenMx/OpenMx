@@ -29,7 +29,7 @@ setGeneric("displayCompute",
 		   return(standardGeneric("displayCompute"))
 	   })
 
-setMethod("displayCompute", signature("BaseCompute"),
+setMethod("displayCompute", signature(Ob="BaseCompute", indent="integer"),
 	  function(Ob, indent) {
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, class(Ob), omxQuotes(Ob@name), '\n')
@@ -222,7 +222,7 @@ mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 	new("MxComputeOnce", from, what, how, freeSet, verbose, .is.bestfit)
 }
 
-setMethod("displayCompute", signature("MxComputeOnce"),
+setMethod("displayCompute", signature(Ob="MxComputeOnce", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -346,7 +346,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	    tolerance, warmStart)
 }
 
-setMethod("displayCompute", signature("MxComputeGradientDescent"),
+setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -429,7 +429,7 @@ mxComputeConfidenceInterval <- function(freeSet=NA_character_, ...,
 	new("MxComputeConfidenceInterval", freeSet, engine, fitfunction, verbose, tolerance)
 }
 
-setMethod("displayCompute", signature("MxComputeConfidenceInterval"),
+setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -517,7 +517,7 @@ mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitf
 	new("MxComputeNewtonRaphson", freeSet, fitfunction, maxIter, tolerance, verbose)
 }
 
-setMethod("displayCompute", signature("MxComputeEM"),
+setMethod("displayCompute", signature(Ob="MxComputeNewtonRaphson", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -625,7 +625,7 @@ mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, freeSet)
 }
 
-setMethod("displayCompute", signature("MxComputeIterate"),
+setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -805,7 +805,7 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
 
-setMethod("displayCompute", signature("MxComputeEM"),
+setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -911,7 +911,7 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose)
 }
 
-setMethod("displayCompute", signature("MxComputeNumericDeriv"),
+setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -1040,7 +1040,7 @@ mxComputeNothing <- function() {
 	mxComputeSequence(freeSet=c())
 }
 
-setMethod("displayCompute", signature("MxComputeSequence"),
+setMethod("displayCompute", signature(Ob="MxComputeSequence", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
