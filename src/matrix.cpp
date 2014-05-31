@@ -207,6 +207,7 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 	for (int px=0; px < numParams; ++px) {
 		// record how many eigenvalues are zeroed TODO
 		if (w[px] < 0) {
+			evalDiag[px * numParams + px] = 1e-6; // exactly zero can still fail
 			continue;
 		}
 		evalDiag[px * numParams + px] = w[px];
