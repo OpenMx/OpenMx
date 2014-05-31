@@ -34,22 +34,45 @@ enum expectation_type {
 struct BA81Dense {};
 struct BA81TwoTier {};
 
-template <typename BA81CovType>
+template <typename CovType>
+struct BA81Config {
+	int getPrimaryPoints(struct BA81Expect *state);
+};
+
+template <typename CovType>
+struct BA81RefreshPatLik : BA81Config<CovType> {
+	void begin(struct BA81Expect *state);
+	bool skipRow(struct BA81Expect *state, int px);
+	double getPatLik(struct BA81Expect *state, int px, double *lxk);
+};
+
+template <typename CovType>
+struct BA81ReusePatLik : BA81Config<CovType> {
+	void begin(struct BA81Expect *state) {}
+	bool skipRow(struct BA81Expect *state, int px);
+	double getPatLik(struct BA81Expect *state, int px, double *lxk);
+};
+
+template <typename CovType>
 struct BA81Estep {
 	std::vector<double> thrExpected;
+	int numItems;
+	int totalQuadPoints;
+	const int *colMap;
+	omxData *data;
 
-	void startEstep(struct BA81Expect *state);
+	void begin(struct BA81Expect *state);
 	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId);
 	void recordTable(struct BA81Expect *state);
 };
 
-template <typename BA81CovType>
+template <typename CovType>
 struct BA81OmitEstep {
-	void startEstep(struct BA81Expect *state) {};
+	void begin(struct BA81Expect *state) {};
 };
 
 struct BA81LatentFixed {
-	void startEstep(struct BA81Expect *state) {}
+	void begin(struct BA81Expect *state) {}
 	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrid);
 	void recordLatentDistribution(struct BA81Expect *state) {};
 };
@@ -59,7 +82,7 @@ struct BA81LatentSummary {
 	std::vector<double> thrDweight;
 	std::vector<double> latentDist;
 
-	void startEstep(struct BA81Expect *state);
+	void begin(struct BA81Expect *state);
 	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrId);
 	void mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
 			   const double *whereGram, double *latentDist);
@@ -69,11 +92,12 @@ struct BA81LatentSummary {
 };
 
 template <
-  typename CovType,
+  typename CovTypePar,
+  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-struct BA81Engine : LatentPolicy, EstepPolicy<CovType> {
+struct BA81Engine : PatLikPolicy<CovTypePar>, LatentPolicy, EstepPolicy<CovTypePar> {
 	void ba81Estep1(struct BA81Expect *state);
 };
 
@@ -98,13 +122,13 @@ struct BA81Expect {
 	int maxDims;
 	int maxAbilities;
 	int numSpecific;
-	int *Sgroup;              // item's specific group 0..numSpecific-1
+	int *Sgroup;                   // item's specific group 0..numSpecific-1
 	Eigen::MatrixXi design;        // items * maxDims
 
 	// quadrature related
 	double Qwidth;
 	double targetQpoints;
-	long quadGridSize;
+	long quadGridSize;  // change to int type TODO
 	long totalQuadPoints;                 // quadGridSize ^ maxDims
 	long totalPrimaryPoints;              // totalQuadPoints except for specific dim TODO
 	std::vector<double> wherePrep;        // totalQuadPoints * maxDims

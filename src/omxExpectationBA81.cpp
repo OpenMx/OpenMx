@@ -173,13 +173,13 @@ void BA81LatentSummary::mapSpecificSpace(struct BA81Expect *state, int sgroup, d
 {
 	int pmax = state->primaryDims;
 
-		int sdim = pmax + sgroup;
-		double piece_w1 = piece * where[pmax];
-		latentDist[sdim] += piece_w1;
+	int sdim = pmax + sgroup;
+	double piece_w1 = piece * where[pmax];
+	latentDist[sdim] += piece_w1;
 
-		double piece_var = piece * whereGram[triangleLoc0(pmax)];
-		int to = state->maxAbilities + triangleLoc0(sdim);
-		latentDist[to] += piece_var;
+	double piece_var = piece * whereGram[triangleLoc0(pmax)];
+	int to = state->maxAbilities + triangleLoc0(sdim);
+	latentDist[to] += piece_var;
 }
 
 // Depends on item parameters, but not latent distribution
@@ -220,7 +220,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	}
 }
 
-void BA81LatentSummary::startEstep(struct BA81Expect *state)
+void BA81LatentSummary::begin(struct BA81Expect *state)
 {
 	thrDweight.assign(state->ptsPerThread * Global->numThreads, 0.0);
 	numLatents = state->maxAbilities + triangleLoc1(state->maxAbilities);
@@ -311,21 +311,93 @@ void BA81LatentSummary::recordLatentDistribution(struct BA81Expect *state)
 }
 
 template <typename CovType>
-void BA81Estep<CovType>::startEstep(BA81Expect *state)
+void BA81RefreshPatLik<CovType>::begin(struct BA81Expect *state)
 {
+	const int numUnique = (int) state->rowMap.size();
+	state->excludedPatterns = 0;
+	state->patternLik = Realloc(state->patternLik, numUnique, double);
+}
+
+template <typename CovType>
+bool BA81RefreshPatLik<CovType>::skipRow(struct BA81Expect *state, int px)
+{
+	double *patternLik = state->patternLik;
+	std::vector<bool> &rowSkip = state->rowSkip;
+	bool yes = rowSkip[px];
+	if (yes) patternLik[px] = 0;
+	return yes;
+}
+
+template <>
+int BA81Config<BA81Dense>::getPrimaryPoints(struct BA81Expect *state)
+{
+	return state->totalQuadPoints;
+}
+
+template <>
+int BA81Config<BA81TwoTier>::getPrimaryPoints(struct BA81Expect *state)
+{
+	return state->totalPrimaryPoints;
+}
+
+template <typename CovType>
+double BA81RefreshPatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
+{
+	const int pts = BA81Config<CovType>::getPrimaryPoints(state);
+	double *patternLik = state->patternLik;
+	double patternLik1 = 0;
+
+	for (int qx=0; qx < pts; qx++) {
+		patternLik1 += lxk[qx];
+	}
+
+	// This uses the previous iteration's latent distribution.
+	// If we recompute patternLikelihood to get the current
+	// iteration's expected scores then it speeds up convergence.
+	// However, recomputing patternLikelihood and dependent
+	// math takes much longer than simply using the data
+	// we have available here. This is even more true for the
+	// two-tier model.
+	if (!validPatternLik(state, patternLik1)) {
+#pragma omp atomic
+		state->excludedPatterns += 1;
+		patternLik[px] = 0;
+		return 0;
+	}
+
+	patternLik[px] = patternLik1;
+	return patternLik1;
+}
+
+template <typename CovType>
+bool BA81ReusePatLik<CovType>::skipRow(struct BA81Expect *state, int px)
+{
+	double *patternLik = state->patternLik;
+	return patternLik[px] == 0;
+}
+
+template <typename CovType>
+double BA81ReusePatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
+{
+	return state->patternLik[px];
+}
+
+template <typename CovType>
+void BA81Estep<CovType>::begin(BA81Expect *state)
+{
+	totalQuadPoints = state->totalQuadPoints;
+	numItems = int(state->itemSpec.size());
+	colMap = state->colMap;
+	data = state->data;
 	thrExpected.assign(state->totalOutcomes * state->totalQuadPoints * Global->numThreads, 0.0);
 }
 
 template<>
 void BA81Estep<BA81Dense>::addRow(struct BA81Expect *state, int px, double *Qweight, int thrId)
 {
-	const int numItems = int(state->itemSpec.size());
-	const int totalQuadPoints = state->totalQuadPoints;
 	double *out = thrExpected.data() + thrId * state->totalOutcomes * totalQuadPoints;
 	std::vector<int> &rowMap = state->rowMap;
-	const int *colMap = state->colMap;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	omxData *data = state->data;
 
 	for (int ix=0; ix < numItems; ++ix) {
 		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
@@ -345,13 +417,9 @@ void BA81Estep<BA81Dense>::addRow(struct BA81Expect *state, int px, double *Qwei
 template<>
 void BA81Estep<BA81TwoTier>::addRow(struct BA81Expect *state, int px, double *Qweight, int thrId)
 {
-	const int numItems = int(state->itemSpec.size());
-	const int totalQuadPoints = state->totalQuadPoints;
 	double *out = thrExpected.data() + thrId * state->totalOutcomes * totalQuadPoints;
 	std::vector<int> &rowMap = state->rowMap;
-	const int *colMap = state->colMap;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	omxData *data = state->data;
 	const int numSpecific = state->numSpecific;
 
 	for (int ix=0; ix < numItems; ++ix) {
@@ -389,107 +457,87 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	}
 }
 
-template <typename LatentPolicy, template <typename> class EstepPolicy>
-struct BA81Engine<BA81Dense, LatentPolicy, EstepPolicy> : LatentPolicy, EstepPolicy<BA81Dense> {
+template <
+  template <typename> class PatLikPolicy,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+struct BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy> :
+	PatLikPolicy<BA81Dense>, LatentPolicy, EstepPolicy<BA81Dense> {
+	typedef BA81Dense CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
 
-template <typename LatentPolicy, template <typename> class EstepPolicy>
-void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
+template <
+  template <typename> class PatLikPolicy,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
-	Eigen::VectorXd thrQweight;
 	const int numThreads = Global->numThreads;
-	const int totalQuadPoints = state->totalQuadPoints;
-	const int maxDims = state->maxDims;
-	state->ptsPerThread = totalQuadPoints;
-	state->primaryDims  = maxDims;
+	state->ptsPerThread = state->totalQuadPoints;
+	state->primaryDims  = state->maxDims;
 	double *rowWeight = state->rowWeight;
 	const int numUnique = (int) state->rowMap.size();
-
-	state->excludedPatterns = 0;
-	state->patternLik = Realloc(state->patternLik, numUnique, double);
-	double *patternLik = state->patternLik;
-
-	std::vector<bool> &rowSkip = state->rowSkip;
+	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
 
-	EstepPolicy<BA81Dense>::startEstep(state);
-	LatentPolicy::startEstep(state);
-
-	omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
+	PatLikPolicy<CovType>::begin(state);
+	EstepPolicy<CovType>::begin(state);
+	LatentPolicy::begin(state);
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (rowSkip[px]) {
-			patternLik[px] = 0;
-			continue;
-		}
+		if (PatLikPolicy<CovType>::skipRow(state, px)) continue;
+
 		int thrId = omx_absolute_thread_num();
 		double *Qweight = thrQweight.data() + state->ptsPerThread * thrId;
-		double *lxk = thrLxk.data() + thrId * totalQuadPoints;
-		ba81LikelihoodSlow2(state, px, lxk);
+		ba81LikelihoodSlow2(state, px, Qweight);
 
-		double patternLik1 = 0;
-		for (long qx=0; qx < totalQuadPoints; qx++) {
-			double tmp = lxk[qx];
-			Qweight[qx] = tmp;
-			patternLik1 += tmp;
-		}
-
-		patternLik[px] = patternLik1;
-
-		// This uses the previous iteration's latent distribution.
-		// If we recompute patternLikelihood to get the current
-		// iteration's expected scores then it speeds up convergence.
-		// However, recomputing patternLikelihood and dependent
-		// math takes much longer than simply using the data
-		// we have available here. This is even more true for the
-		// two-tier model.
-		if (!validPatternLik(state, patternLik1)) {
-#pragma omp atomic
-			state->excludedPatterns += 1;
-			continue;
-		}
+		double patternLik1 = PatLikPolicy<CovType>::getPatLik(state, px, Qweight);
+		if (patternLik1 == 0) continue;
 
 		double weight = rowWeight[px] / patternLik1;
 		LatentPolicy::normalizeWeights(state, Qweight, weight, thrId);
-
-		EstepPolicy<BA81Dense>::addRow(state, px, Qweight, thrId);
+		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
-	EstepPolicy<BA81Dense>::recordTable(state);
+	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::recordLatentDistribution(state);
 }
 
-template <typename LatentPolicy, template <typename> class EstepPolicy>
-struct BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy> : LatentPolicy, EstepPolicy<BA81TwoTier> {
+template <
+  template <typename> class PatLikPolicy,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+struct BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy> :
+	PatLikPolicy<BA81TwoTier>, LatentPolicy, EstepPolicy<BA81TwoTier> {
+	typedef BA81TwoTier CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
 
-template <typename LatentPolicy, template <typename> class EstepPolicy>
-void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
+template <
+  template <typename> class PatLikPolicy,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
 	const int numSpecific = state->numSpecific;
-	Eigen::VectorXd thrQweight;
 	const int numThreads = Global->numThreads;
-	const int totalQuadPoints = state->totalQuadPoints;
-	const int maxDims = state->maxDims;
-	state->ptsPerThread = totalQuadPoints * numSpecific;
-	state->primaryDims  = maxDims-1;
+	state->ptsPerThread = state->totalQuadPoints * numSpecific;
+	state->primaryDims  = state->maxDims - 1;
 	double *rowWeight = state->rowWeight;
 	const int numUnique = (int) state->rowMap.size();
-
-	state->excludedPatterns = 0;
-	state->patternLik = Realloc(state->patternLik, numUnique, double);
-	double *patternLik = state->patternLik;
-
-	std::vector<bool> &rowSkip = state->rowSkip;
+	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
 
-	EstepPolicy<BA81TwoTier>::startEstep(state);
-	LatentPolicy::startEstep(state);
+	PatLikPolicy<CovType>::begin(state);
+	EstepPolicy<CovType>::begin(state);
+	LatentPolicy::begin(state);
 
-	omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 	const long totalPrimaryPoints = state->totalPrimaryPoints;
 	const long specificPoints = state->quadGridSize;
 	omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
@@ -497,49 +545,35 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (rowSkip[px]) {
-			patternLik[px] = 0;
-			continue;
-		}
+		if (PatLikPolicy<CovType>::skipRow(state, px)) continue;
+
 		int thrId = omx_absolute_thread_num();
 		double *Qweight = thrQweight.data() + state->ptsPerThread * thrId;
-
-		double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 		double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
 		double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
-		cai2010EiEis(state, px, lxk, Eis, Ei);
+		cai2010EiEis(state, px, Qweight, Eis, Ei);
+
+		double patternLik1 = PatLikPolicy<CovType>::getPatLik(state, px, Ei);
+		if (patternLik1 == 0) continue;
+
+		// Can omit rest if we only want BA81RefreshPatLik TODO
+		// Move Eis normalization loop here TODO
 
 		for (long qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 			for (long sx=0; sx < specificPoints; sx++) {
 				for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-					double lxk1 = lxk[qloc];
-					double Eis1 = Eis[eisloc + Sgroup];
-					double tmp = Eis1 * lxk1;
-					Qweight[qloc] = tmp;
+					Qweight[qloc] *= Eis[eisloc + Sgroup];
 					++qloc;
 				}
 			}
 		}
 
-		double patternLik1 = 0;
-		for (long qx=0; qx < totalPrimaryPoints; ++qx) {
-			patternLik1 += Ei[qx];
-		}
-		patternLik[px] = patternLik1;
-
-		if (!validPatternLik(state, patternLik1)) {
-#pragma omp atomic
-			state->excludedPatterns += 1;
-			continue;
-		}
-
 		double weight = rowWeight[px] / patternLik1;
 		LatentPolicy::normalizeWeights(state, Qweight, weight, thrId);
-
-		EstepPolicy<BA81TwoTier>::addRow(state, px, Qweight, thrId);
+		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
-	EstepPolicy<BA81TwoTier>::recordTable(state);
+	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::recordLatentDistribution(state);
 }
 
@@ -859,7 +893,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 		}
 	}
 
-	for (int px=0; px < numUnique; px++) {
+	for (int px=0; px < numUnique; px++) { // do row-by-row instead of here TODO
 		double denom = patternLik[px];
 		if (state->rowSkip[px] || !validPatternLik(state, denom)) {
 			for (int ax=0; ax < maxAbilities; ++ax) {
@@ -933,18 +967,18 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		ba81OutcomeProb(state, TRUE, FALSE);
 		if (state->numSpecific == 0) {
 			if (oo->dynamicDataSource) {
-				BA81Engine<BA81Dense, BA81LatentSummary, BA81Estep> engine;
+				BA81Engine<BA81Dense, BA81RefreshPatLik, BA81LatentSummary, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			} else {
-				BA81Engine<BA81Dense, BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81Dense, BA81RefreshPatLik, BA81LatentFixed, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			}
 		} else {
 			if (oo->dynamicDataSource) {
-				BA81Engine<BA81TwoTier, BA81LatentSummary, BA81Estep> engine;
+				BA81Engine<BA81TwoTier, BA81RefreshPatLik, BA81LatentSummary, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			} else {
-				BA81Engine<BA81TwoTier, BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81TwoTier, BA81RefreshPatLik, BA81LatentFixed, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			}
 		}
@@ -1059,7 +1093,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	int rows = data->rows;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
-	Rf_protect(Rscores = Rf_allocMatrix(REALSXP, rows, cols));
+	Rf_protect(Rscores = Rf_allocMatrix(REALSXP, rows, cols));  // change to data.frame TODO
 	double *scores = REAL(Rscores);
 
 	const int SMALLBUF = 10;
