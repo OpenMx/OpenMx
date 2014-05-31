@@ -393,19 +393,6 @@ void BA81LatentSummary::end(struct BA81Expect *state)
 template <typename CovType>
 void BA81RefreshPatLik<CovType>::begin(struct BA81Expect *state)
 {
-	const int numUnique = (int) state->rowMap.size();
-	state->excludedPatterns = 0;
-	state->patternLik = Realloc(state->patternLik, numUnique, double);
-}
-
-template <typename CovType>
-bool BA81RefreshPatLik<CovType>::skipRow(struct BA81Expect *state, int px)
-{
-	double *patternLik = state->patternLik;
-	std::vector<bool> &rowSkip = state->rowSkip;
-	bool yes = rowSkip[px];
-	if (yes) patternLik[px] = 0;
-	return yes;
 }
 
 template <>
@@ -418,48 +405,6 @@ template <>
 int BA81Config<BA81TwoTier>::getPrimaryPoints(struct BA81Expect *state)
 {
 	return state->totalPrimaryPoints;
-}
-
-template <typename CovType>
-double BA81RefreshPatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
-{
-	const int pts = BA81Config<CovType>::getPrimaryPoints(state);
-	double *patternLik = state->patternLik;
-	double patternLik1 = 0;
-
-	for (int qx=0; qx < pts; qx++) {
-		patternLik1 += lxk[qx];
-	}
-
-	// This uses the previous iteration's latent distribution.
-	// If we recompute patternLikelihood to get the current
-	// iteration's expected scores then it speeds up convergence.
-	// However, recomputing patternLikelihood and dependent
-	// math takes much longer than simply using the data
-	// we have available here. This is even more true for the
-	// two-tier model.
-	if (!validPatternLik(state, patternLik1)) {
-#pragma omp atomic
-		state->excludedPatterns += 1;
-		patternLik[px] = 0;
-		return 0;
-	}
-
-	patternLik[px] = patternLik1;
-	return patternLik1;
-}
-
-template <typename CovType>
-bool BA81ReusePatLik<CovType>::skipRow(struct BA81Expect *state, int px)
-{
-	double *patternLik = state->patternLik;
-	return patternLik[px] == 0;
-}
-
-template <typename CovType>
-double BA81ReusePatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
-{
-	return state->patternLik[px];
 }
 
 template <typename CovType>
@@ -537,23 +482,50 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	}
 }
 
+template <typename CovType>
+double BA81PatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
+{
+	const int pts = BA81Config<CovType>::getPrimaryPoints(state);
+	double *patternLik = state->patternLik;
+	double patternLik1 = 0;
+
+	for (int qx=0; qx < pts; qx++) {
+		patternLik1 += lxk[qx];
+	}
+
+	// This uses the previous iteration's latent distribution.
+	// If we recompute patternLikelihood to get the current
+	// iteration's expected scores then it speeds up convergence.
+	// However, recomputing patternLikelihood and dependent
+	// math takes much longer than simply using the data
+	// we have available here. This is even more true for the
+	// two-tier model.
+	if (!validPatternLik(state, patternLik1)) {
+#pragma omp atomic
+		state->excludedPatterns += 1;
+		patternLik[px] = 0;
+		return 0;
+	}
+
+	patternLik[px] = patternLik1;
+	return patternLik1;
+}
+
 template <
-  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-struct BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy> :
-	PatLikPolicy<BA81Dense>, LatentPolicy, EstepPolicy<BA81Dense> {
+struct BA81Engine<BA81Dense, LatentPolicy, EstepPolicy> :
+	LatentPolicy, EstepPolicy<BA81Dense>, BA81PatLik<BA81Dense> {
 	typedef BA81Dense CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
 
 template <
-  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
+void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
 	const int numThreads = Global->numThreads;
 	state->ptsPerThread = state->totalQuadPoints;
@@ -561,20 +533,26 @@ void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
+	state->excludedPatterns = 0;
+	state->patternLik = Realloc(state->patternLik, numUnique, double);
+	double *patternLik = state->patternLik;
+	std::vector<bool> &rowSkip = state->rowSkip;
 
-	PatLikPolicy<CovType>::begin(state);
 	EstepPolicy<CovType>::begin(state);
 	LatentPolicy::begin(state);
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (PatLikPolicy<CovType>::skipRow(state, px)) continue;
+		if (rowSkip[px]) {
+			patternLik[px] = 0;
+			continue;
+		}
 
 		int thrId = omx_absolute_thread_num();
 		double *Qweight = thrQweight.data() + state->ptsPerThread * thrId;
 		ba81LikelihoodSlow2(state, px, Qweight);
 
-		double patternLik1 = PatLikPolicy<CovType>::getPatLik(state, px, Qweight);
+		double patternLik1 = BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::getPatLik(state, px, Qweight);
 		if (patternLik1 == 0) continue;
 
 		LatentPolicy::normalizeWeights(state, px, Qweight, patternLik1, thrId);
@@ -590,22 +568,20 @@ void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(
 }
 
 template <
-  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-struct BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy> :
-	PatLikPolicy<BA81TwoTier>, LatentPolicy, EstepPolicy<BA81TwoTier> {
+struct BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy> :
+	LatentPolicy, EstepPolicy<BA81TwoTier>, BA81PatLik<BA81TwoTier> {
 	typedef BA81TwoTier CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
 
 template <
-  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
+void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
 	const int numSpecific = state->numSpecific;
 	const int numThreads = Global->numThreads;
@@ -614,8 +590,11 @@ void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
+	state->excludedPatterns = 0;
+	state->patternLik = Realloc(state->patternLik, numUnique, double);
+	double *patternLik = state->patternLik;
+	std::vector<bool> &rowSkip = state->rowSkip;
 
-	PatLikPolicy<CovType>::begin(state);
 	EstepPolicy<CovType>::begin(state);
 	LatentPolicy::begin(state);
 
@@ -626,7 +605,10 @@ void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
-		if (PatLikPolicy<CovType>::skipRow(state, px)) continue;
+		if (rowSkip[px]) {
+			patternLik[px] = 0;
+			continue;
+		}
 
 		int thrId = omx_absolute_thread_num();
 		double *Qweight = thrQweight.data() + state->ptsPerThread * thrId;
@@ -634,7 +616,7 @@ void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep
 		double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
 		cai2010EiEis(state, px, Qweight, Eis, Ei);
 
-		double patternLik1 = PatLikPolicy<CovType>::getPatLik(state, px, Ei);
+		double patternLik1 = BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::getPatLik(state, px, Ei);
 		if (patternLik1 == 0) continue;
 
 		// Can omit rest if we only want BA81RefreshPatLik TODO
@@ -901,18 +883,18 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		ba81OutcomeProb(state, TRUE, FALSE);
 		if (state->numSpecific == 0) {
 			if (oo->dynamicDataSource) {
-				BA81Engine<BA81Dense, BA81RefreshPatLik, BA81LatentSummary, BA81Estep> engine;
+				BA81Engine<BA81Dense, BA81LatentSummary, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			} else {
-				BA81Engine<BA81Dense, BA81RefreshPatLik, BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81Dense, BA81LatentFixed, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			}
 		} else {
 			if (oo->dynamicDataSource) {
-				BA81Engine<BA81TwoTier, BA81RefreshPatLik, BA81LatentSummary, BA81Estep> engine;
+				BA81Engine<BA81TwoTier, BA81LatentSummary, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			} else {
-				BA81Engine<BA81TwoTier, BA81RefreshPatLik, BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81TwoTier, BA81LatentFixed, BA81Estep> engine;
 				engine.ba81Estep1(state);
 			}
 		}
@@ -1038,10 +1020,10 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	Rf_setAttrib(Rscores, R_RowNamesSymbol, data->getRowNames());
 
 	if (state->numSpecific == 0) {
-		BA81Engine<BA81Dense, BA81ReusePatLik, BA81LatentScores, BA81OmitEstep> engine;
+		BA81Engine<BA81Dense, BA81LatentScores, BA81OmitEstep> engine;
 		engine.ba81Estep1(state);
 	} else {
-		BA81Engine<BA81TwoTier, BA81ReusePatLik, BA81LatentScores, BA81OmitEstep> engine;
+		BA81Engine<BA81TwoTier, BA81LatentScores, BA81OmitEstep> engine;
 		engine.ba81Estep1(state);
 	}
 

@@ -40,15 +40,13 @@ struct BA81Config {
 };
 
 template <typename CovType>
-struct BA81RefreshPatLik : BA81Config<CovType> {
-	void begin(struct BA81Expect *state);
-	bool skipRow(struct BA81Expect *state, int px);
+struct BA81PatLik : BA81Config<CovType> {
 	double getPatLik(struct BA81Expect *state, int px, double *lxk);
 };
 
 template <typename CovType>
-struct BA81ReusePatLik : BA81Config<CovType> {
-	void begin(struct BA81Expect *state) {}
+struct BA81RefreshPatLik : BA81Config<CovType> {
+	void begin(struct BA81Expect *state);
 	bool skipRow(struct BA81Expect *state, int px);
 	double getPatLik(struct BA81Expect *state, int px, double *lxk);
 };
@@ -108,11 +106,11 @@ struct BA81LatentScores : BA81LatentEstimate {
 
 template <
   typename CovTypePar,
-  template <typename> class PatLikPolicy,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-struct BA81Engine : PatLikPolicy<CovTypePar>, LatentPolicy, EstepPolicy<CovTypePar> {
+struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81PatLik<CovTypePar> {
+	double getPatLik(struct BA81Expect *state, int px, double *lxk);
 	void ba81Estep1(struct BA81Expect *state);
 };
 
