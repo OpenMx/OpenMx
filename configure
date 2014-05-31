@@ -97,35 +97,37 @@ esac
 
 npsol_dir='inst/npsol'
 
-os=$(uname -s)
-case "$os" in
-    *Linux)
-	omx_os=linux
-	pick="linux/${omx_arch}/gcc${cxx_version}"
-	npsol_url="http://openmx.psyc.virginia.edu/packages/npsol/$pick/libnpsol.a"
-	if [ ! -f src/libnpsol.a ]; then
-	    curl -s -o src/libnpsol.a "$npsol_url"
-	fi
-	want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ')
-	got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
-	if [ "x$got" != "x$want" ]; then
-	    rm -f src/libnpsol.a
-	    echo "WARNING: Failed to download libnpsol.a from $npsol_url"
-	else
-	    npsol_library="src"
-	fi
-	;;
-    *Darwin)
-	omx_os=osx
-	arch_LDFLAGS="-mmacosx-version-min=10.4"
-	arch_CXXFLAGS="-mmacosx-version-min=10.4"
-	npsol_library="${npsol_dir}/osx"
-	;;
-    *)
-	echo "Host os is not recognized: $os"
-	exit 1
-	;;
-esac
+if [ -r inst/npsol/checksum ]; then
+    os=$(uname -s)
+    case "$os" in
+	*Linux)
+	    omx_os=linux
+	    pick="linux/${omx_arch}/gcc${cxx_version}"
+	    npsol_url="http://openmx.psyc.virginia.edu/packages/npsol/$pick/libnpsol.a"
+	    if [ ! -f src/libnpsol.a ]; then
+		curl -s -o src/libnpsol.a "$npsol_url"
+	    fi
+	    want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ')
+	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
+	    if [ "x$got" != "x$want" ]; then
+		rm -f src/libnpsol.a
+		echo "WARNING: Failed to download libnpsol.a from $npsol_url"
+	    else
+		npsol_library="src"
+	    fi
+	    ;;
+	*Darwin)
+	    omx_os=osx
+	    arch_LDFLAGS="-mmacosx-version-min=10.4"
+	    arch_CXXFLAGS="-mmacosx-version-min=10.4"
+	    npsol_library="${npsol_dir}/osx"
+	    ;;
+	*)
+	    echo "Host os is not recognized: $os"
+	    exit 1
+	    ;;
+    esac
+fi
 
 echo "### Generated $(date)" > src/Makevars
 echo >> src/Makevars
