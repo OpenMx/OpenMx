@@ -45,7 +45,7 @@ template <
   template <typename> class EstepPolicy
 >
 struct BA81EngineBase : BA81Config<CovType> {
-	void verboseLog(struct BA81Expect *state);
+	void engineDone(struct BA81Expect *state);
 	double getPatLik(struct BA81Expect *state, int px, double *lxk);
 };
 
@@ -73,7 +73,7 @@ template <typename CovType>
 struct BA81OmitEstep {
 	void begin(struct BA81Expect *state) {};
 	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId) {};
-	void recordTable(struct BA81Expect *state) {};
+	void recordTable(struct BA81Expect *state);
 };
 
 struct BA81LatentFixed {
@@ -164,6 +164,7 @@ struct BA81Expect {
 	int totalOutcomes;
 	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
 	double *expected;                     // totalOutcomes * totalQuadPoints
+	bool expectedUsed;
 	int ElatentVersion;
 	omxMatrix *latentMeanOut;
 	omxMatrix *latentCovOut;

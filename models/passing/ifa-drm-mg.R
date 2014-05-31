@@ -46,8 +46,10 @@ if (0) {
 }
 
 plan <- mxComputeIterate(list(
+    mxComputeOnce('expectation', 'scores'),
   mxComputeGradientDescent(paste('latent',c('mean','cov'), sep="."),
                            fitfunction="latent.fitfunction"),
+    mxComputeOnce('expectation'),
   mxComputeOnce('fitfunction', 'fit')))
 
 m1 <- mxModel(model="latentTest", ip.fix, latent,

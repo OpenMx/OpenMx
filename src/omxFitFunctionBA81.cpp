@@ -520,6 +520,13 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			}
 			patternLik[px] = patternLik1;
 
+			for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+				for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+					Eis[qloc] = Ei[qx] / Eis[qloc];
+					++qloc;
+				}
+			}
+
 			// WARNING: I didn't work out the math. I just coded this the way
 			// it seems to make sense.
 			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
@@ -922,6 +929,13 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			double *meat = thrMeat.data() + thrId * numParam * numParam;
 			cai2010EiEis(estate, px, lxk, Eis, Ei);
 
+			for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+				for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+					Eis[qloc] = Ei[qx] / Eis[qloc];
+					++qloc;
+				}
+			}
+
 			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 				for (long sx=0; sx < specificPoints; sx++) {
 					mapLatentDeriv(state, estate, Eis[eisloc] * lxk[qloc],
@@ -1002,6 +1016,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
+		estate->expectedUsed = true;
 		buildItemParamMap(oo, fc);
 
 		if (want & FF_COMPUTE_PARAMFLAVOR) {

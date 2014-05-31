@@ -143,13 +143,6 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 		}
 		eisloc += numSpecific;
 	}
-
-	for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
-		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
-			Eis[qloc] = Ei[qx] / Eis[qloc];
-			++qloc;
-		}
-	}
 }
 
 void BA81LatentEstimate::mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
@@ -472,6 +465,8 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	const int numThreads = Global->numThreads;
 	const long expectedSize = state->totalQuadPoints * state->totalOutcomes;
 	double *e1 = thrExpected.data();
+
+	state->expected = Realloc(state->expected, state->totalOutcomes * state->totalQuadPoints, double);
 	memcpy(state->expected, e1, sizeof(double) * expectedSize);
 	e1 += expectedSize;
 
@@ -483,13 +478,21 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	}
 }
 
+template <typename CovType>
+void BA81OmitEstep<CovType>::recordTable(struct BA81Expect *state)
+{
+	Free(state->expected);
+}
+
 template <
   typename CovTypePar,
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-void BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy>::verboseLog(struct BA81Expect *state)
+void BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy>::engineDone(struct BA81Expect *state)
 {
+	state->expectedUsed = false;
+
 	if (state->verbose >= 1) {
 		const int numUnique = (int) state->rowMap.size();
 		mxLog("%s: estep(item version %d)<%s, %s, %s> %d/%d rows excluded",
@@ -591,7 +594,7 @@ void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Exp
 
 	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::end(state);
-	BA81Engine<CovType, LatentPolicy, EstepPolicy>::verboseLog(state);
+	BA81Engine<CovType, LatentPolicy, EstepPolicy>::engineDone(state);
 }
 
 template <
@@ -646,8 +649,14 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 		double patternLik1 = BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::getPatLik(state, px, Ei);
 		if (patternLik1 == 0) continue;
 
-		// Can omit rest if we only want BA81RefreshPatLik TODO
-		// Move Eis normalization loop here TODO
+		// Can omit rest if we only want patternLik TODO
+
+		for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+				Eis[qloc] = Ei[qx] / Eis[qloc];
+				++qloc;
+			}
+		}
 
 		for (long qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
 			for (long sx=0; sx < specificPoints; sx++) {
@@ -664,7 +673,7 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 
 	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::end(state);
-	BA81Engine<CovType, LatentPolicy, EstepPolicy>::verboseLog(state);
+	BA81Engine<CovType, LatentPolicy, EstepPolicy>::engineDone(state);
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -870,7 +879,6 @@ void ba81SetupQuadrature(omxExpectation* oo)
 
 	state->SmallestPatternLik = 1e16 * std::numeric_limits<double>::min();
 
-	state->expected = Realloc(state->expected, state->totalOutcomes * totalQuadPoints, double);
 	state->latentParamVersion = getLatentVersion(state);
 }
 
@@ -888,11 +896,16 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 
 		if (strcmp(what, "scores")==0) {
 			state->type = EXPECTATION_AUGMENTED;
+			state->expectedUsed = true;
 		} else if (strcmp(what, "nothing")==0) {
 			state->type = EXPECTATION_OBSERVED;
 		} else {
 			omxRaiseErrorf("%s: don't know how to predict '%s'",
 				       oo->name, what);
+		}
+
+		if (state->verbose >= 1) {
+			mxLog("%s: predict %s", oo->name, what);
 		}
 		return;
 	}
@@ -901,28 +914,38 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam) && latentClean;
 
 	if (state->verbose >= 1) {
-		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean)",
-		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean);
+		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean) expectedUsed=%d",
+		      oo->name, state->Qpoint.size() != 0, itemClean, latentClean, state->expectedUsed);
 	}
 
 	if (!latentClean) ba81SetupQuadrature(oo);
 
 	if (!itemClean) {
 		ba81OutcomeProb(state, TRUE, FALSE);
-		if (state->numSpecific == 0) {
-			if (oo->dynamicDataSource) {
-				BA81Engine<BA81Dense, BA81LatentSummary, BA81Estep> engine;
-				engine.ba81Estep1(state);
+		if (state->expectedUsed) {
+			if (state->numSpecific == 0) {
+				if (oo->dynamicDataSource) {
+					BA81Engine<BA81Dense, BA81LatentSummary, BA81Estep> engine;
+					engine.ba81Estep1(state);
+				} else {
+					BA81Engine<BA81Dense, BA81LatentFixed, BA81Estep> engine;
+					engine.ba81Estep1(state);
+				}
 			} else {
-				BA81Engine<BA81Dense, BA81LatentFixed, BA81Estep> engine;
-				engine.ba81Estep1(state);
+				if (oo->dynamicDataSource) {
+					BA81Engine<BA81TwoTier, BA81LatentSummary, BA81Estep> engine;
+					engine.ba81Estep1(state);
+				} else {
+					BA81Engine<BA81TwoTier, BA81LatentFixed, BA81Estep> engine;
+					engine.ba81Estep1(state);
+				}
 			}
 		} else {
-			if (oo->dynamicDataSource) {
-				BA81Engine<BA81TwoTier, BA81LatentSummary, BA81Estep> engine;
+			if (state->numSpecific == 0) {
+				BA81Engine<BA81Dense, BA81LatentFixed, BA81OmitEstep> engine;
 				engine.ba81Estep1(state);
 			} else {
-				BA81Engine<BA81TwoTier, BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81TwoTier, BA81LatentFixed, BA81OmitEstep> engine;
 				engine.ba81Estep1(state);
 			}
 		}
@@ -964,12 +987,14 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 			lik_out[px] = log(lik_out[px]) - LogLargest;
 		}
 
-		Rf_protect(Rexpected = Rf_allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
-		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
-
 		MxRList dbg;
 		dbg.add("patternLikelihood", Rlik);
-		dbg.add("em.expected", Rexpected);
+
+		if (state->expected) {
+			Rf_protect(Rexpected = Rf_allocVector(REALSXP, state->totalQuadPoints * totalOutcomes));
+			memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->totalQuadPoints);
+			dbg.add("em.expected", Rexpected);
+		}
 
 		SEXP Rmean, Rcov;
 		Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
@@ -1122,6 +1147,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
 	state->LargestDouble = exp(state->LogLargestDouble);
 	state->OneOverLargestDouble = 1/state->LargestDouble;
+	state->expectedUsed = true;
 
 	state->numObsMat = NULL;
 	state->estLatentMean = NULL;
