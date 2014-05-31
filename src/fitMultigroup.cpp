@@ -51,13 +51,12 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 			}
 		} else {
 			omxRecompute(f1);
-
-			// This should really be checked elsewhere. TODO
-			if(f1->rows != 1 || f1->cols != 1) {
-				Rf_error("%s algebra %d does not evaluate to a 1x1 matrix", oo->fitType, ex);
-			}
 		}
 		if (want & FF_COMPUTE_FIT) {
+			if(f1->rows != 1 || f1->cols != 1) {
+				omxRaiseErrorf("%s[%d]: %s of type %s does not evaluate to a 1x1 matrix",
+					       fitMatrix->name, (int)ex, f1->name, f1->fitFunction->fitType);
+			}
 			fitMatrix->data[0] += f1->data[0];
 			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name, f1->name, f1->data[0]); }
 		}

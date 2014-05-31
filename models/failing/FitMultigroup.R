@@ -16,6 +16,25 @@
 #options(error = utils::recover)
 require(OpenMx)
 
+data(multiData1)
+
+manifests <- c("x1", "y")
+
+uniRegModelRaw <- mxModel("uniRegModelRaw",
+    type="RAM",
+    manifestVars=manifests,
+    mxPath(from="x1", to="y", arrows=1, 
+           free=TRUE, values=.2, labels="b1"),
+    mxPath(from=manifests, 
+           arrows=2, free=TRUE, values=.8, 
+           labels=c("VarX1", "VarE")),
+    mxPath(from="one", to=manifests, 
+           arrows=1, free=TRUE, values=.1, 
+           labels=c("MeanX1", "MeanY")),
+    mxData(observed=multiData1, type="raw"),
+    mxFitFunctionML(vector=TRUE)  # should fail
+    )
+
 varNames <- c('x')
 
 data1 <- mxData(matrix(1, dimnames = list(varNames,varNames)), type="cov", numObs=100)
@@ -57,4 +76,9 @@ if (1) {
 	model <- mxModel("both", obj, model1, model2, alg)
         model.est <- mxRun(model, suppressWarnings = TRUE)
         omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
+}
+if (1) {
+	obj <- mxFitFunctionMultigroup(c("uniRegModelRaw", paste("model", 1:2, sep="")))
+	model <- mxModel(model="vector", obj, model1, model2, uniRegModelRaw)
+	omxCheckError(mxRun(model, suppressWarnings = TRUE), "The job for model 'vector' exited abnormally with the error message: vector.fitfunction[0]: uniRegModelRaw.fitfunction of type imxFitFunctionFIML does not evaluate to a 1x1 matrix")
 }

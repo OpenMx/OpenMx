@@ -136,7 +136,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	*f = NPSOL_fc->fit;
 
-	if (!std::isfinite(*f)) {
+	if (!std::isfinite(*f) || isErrorRaised()) {
 		*mode = -1;
 	}
 

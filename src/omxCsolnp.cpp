@@ -64,7 +64,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
 
-	if (!std::isfinite(GLOB_fc->fit)) {
+	if (!std::isfinite(GLOB_fc->fit) || isErrorRaised()) {
 		GLOB_fc->fit = 1e24;
 	}
     
