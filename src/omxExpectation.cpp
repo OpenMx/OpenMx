@@ -332,6 +332,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 
 	expect->currentState = os;
 	expect->canDuplicate = true;
+	expect->dynamicDataSource = false;
 
 	return expect;
 }

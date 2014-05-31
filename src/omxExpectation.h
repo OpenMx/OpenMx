@@ -98,6 +98,7 @@ struct omxExpectation {					// An Expectation
 	const char *name;
 
 	bool canDuplicate;
+	bool dynamicDataSource;
 };
 
 omxExpectation *

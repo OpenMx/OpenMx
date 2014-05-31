@@ -50,6 +50,7 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
 	od->expectation = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
+	od->expectation->dynamicDataSource = true;
 }
 
 static void newDataStatic(SEXP dataObject, omxData *od)

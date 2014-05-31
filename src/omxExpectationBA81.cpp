@@ -151,21 +151,13 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	}
 }
 
-// Use static polymorphism to omit estimation of the latent distribution TODO
-// when the latent parameters are fixed. TODO
-//
 // Maybe specialize this for regular and cai2010 TODO
-//
-// http://en.wikipedia.org/wiki/Curiously_Recurring_Template_Pattern
 
-OMXINLINE static void
-mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
-	       const double *whereGram, double *latentDist)
+void BA81EngineLatentFree::mapLatentSpace(int sgroup, double piece, const double *where,
+					  const double *whereGram, double *latentDist)
 {
-	int maxDims = state->maxDims;
-	int maxAbilities = state->maxAbilities;
 	int pmax = maxDims;
-	if (state->numSpecific) pmax -= 1;
+	if (numSpecific) pmax -= 1;
 
 	if (sgroup == 0) {
 		int gx = 0;
@@ -181,7 +173,7 @@ mapLatentSpace(BA81Expect *state, int sgroup, double piece, const double *where,
 		}
 	}
 
-	if (state->numSpecific) {
+	if (numSpecific) {
 		int sdim = pmax + sgroup;
 		double piece_w1 = piece * where[pmax];
 		latentDist[sdim] += piece_w1;
@@ -230,28 +222,132 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	}
 }
 
-static void ba81Estep1(omxExpectation *oo)
+template <typename T>
+BA81EngineBase<T>::BA81EngineBase(BA81Expect *_conf) :
+	super(_conf),
+	numSpecific    (conf->numSpecific),
+	numThreads     (Global->numThreads),
+	totalQuadPoints(conf->totalQuadPoints),
+	maxDims        (conf->maxDims),
+	maxAbilities   (conf->maxAbilities),
+	whereGramSize  (triangleLoc1(maxDims)),
+	primaryDims    (numSpecific? maxDims-1 : maxDims)
 {
-	if(OMX_DEBUG) {mxLog("Beginning %s Computation.", oo->name);}
+	if (numSpecific == 0) {
+		ptsPerThread = totalQuadPoints;
+	} else {
+		ptsPerThread = totalQuadPoints * numSpecific;
+	}
+}
 
-	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	const int numThreads = Global->numThreads;
+void BA81EngineLatentFixed::startEstep()
+{
+	thrQweight.resize(ptsPerThread * numThreads);
+}
+
+void BA81EngineLatentFree::startEstep()
+{
+	thrDweight.assign(ptsPerThread * numThreads, 0.0);
+	thrQweight.resize(ptsPerThread * numThreads);
+	latentDist.assign(numLatents, 0.0);
+}
+
+template <typename T>
+double *BA81EngineBase<T>::getThrQweight(int thrId)
+{
+	return thrQweight.data() + ptsPerThread * thrId;
+}
+
+void BA81EngineLatentFixed::normalizeWeights(int thrId, double weight)
+{
+	double *Qweight = getThrQweight(thrId);
+	for (long qx=0; qx < ptsPerThread; ++qx) {
+		double tmp = Qweight[qx] * weight;
+		Qweight[qx] = tmp;
+	}
+}
+
+void BA81EngineLatentFree::normalizeWeights(int thrId, double weight)
+{
+	double *Qweight = getThrQweight(thrId);
+	double *Dweight = thrDweight.data() + ptsPerThread * thrId;
+	for (long qx=0; qx < ptsPerThread; ++qx) {
+		double tmp = Qweight[qx] * weight;
+		Dweight[qx] += tmp;
+		Qweight[qx] = tmp;
+	}
+}
+
+void BA81EngineLatentFree::weightsToLatentDistribution()
+{
+	for (int tx=1; tx < numThreads; ++tx) {
+		double *Dweight = thrDweight.data() + ptsPerThread * tx;
+		double *dest = thrDweight.data();
+		for (long qx=0; qx < ptsPerThread; ++qx) {
+			dest[qx] += Dweight[qx];
+		}
+	}
+
+	if (numSpecific == 0) {
+		for (long qx=0; qx < totalQuadPoints; ++qx) {
+			mapLatentSpace(0, thrDweight[qx], wherePrep + qx * maxDims,
+				       whereGram + qx * whereGramSize, latentDist.data());
+		}
+	} else {
+		long qloc=0;
+		for (long qx=0; qx < totalQuadPoints; qx++) {
+			const double *whPrep = wherePrep + qx * maxDims;
+			const double *whGram = whereGram + qx * whereGramSize;
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				mapLatentSpace(Sgroup, thrDweight[qloc], whPrep, whGram, latentDist.data());
+				++qloc;
+			}
+		}
+	}
+}
+
+void BA81EngineLatentFree::recordLatentDistribution()
+{
+	omxMatrix *meanOut = conf->estLatentMean;
+	omxMatrix *covOut = conf->estLatentCov;
+	const double weightSum = conf->weightSum;
+
+	double *latentDist1 = latentDist.data();
+	for (int d1=0; d1 < maxAbilities; d1++) {
+		omxSetVectorElement(meanOut, d1, latentDist1[d1] / weightSum);
+	}
+
+	for (int d1=0; d1 < primaryDims; d1++) {
+		int cx = maxAbilities + triangleLoc1(d1);
+		for (int d2=0; d2 <= d1; d2++) {
+			double cov = (latentDist1[cx] / weightSum -
+				      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d2));
+			omxSetMatrixElement(covOut, d1, d2, cov);
+			if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
+			++cx;
+		}
+	}
+	for (int d1=primaryDims; d1 < maxAbilities; d1++) {
+		int loc = maxAbilities + triangleLoc0(d1);
+		double cov = (latentDist1[loc] / weightSum -
+			      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d1));
+		omxSetMatrixElement(covOut, d1, d1, cov);
+	}
+}
+
+template <typename T>
+void BA81EngineBase<T>::ba81Estep1()
+{
+	BA81Expect *state = conf;
+	wherePrep = conf->wherePrep.data();
+	whereGram = conf->whereGram.data();
 	const int numUnique = (int) state->rowMap.size();
-	const int numSpecific = state->numSpecific;
-	const int maxDims = state->maxDims;
-	const int whereGramSize = triangleLoc1(maxDims);
-	const int maxAbilities = state->maxAbilities;
-	const int primaryDims = numSpecific? maxDims-1 : maxDims;
 	omxData *data = state->data;
 	double *rowWeight = state->rowWeight;
-	const long totalQuadPoints = state->totalQuadPoints;
 
 	state->excludedPatterns = 0;
 	state->patternLik = Realloc(state->patternLik, numUnique, double);
 	double *patternLik = state->patternLik;
-
-	const int numLatents = maxAbilities + triangleLoc1(maxAbilities);
-	std::vector<double> latentDist(numLatents, 0.0);
 
 	const size_t numItems = state->itemSpec.size();
 	const int totalOutcomes = state->totalOutcomes;
@@ -260,13 +356,10 @@ static void ba81Estep1(omxExpectation *oo)
 	std::vector<int> &rowMap = state->rowMap;
 	std::vector<bool> &rowSkip = state->rowSkip;
 	std::vector<double> thrExpected(totalOutcomes * totalQuadPoints * numThreads, 0.0);
-	double *wherePrep = state->wherePrep.data();
-	double *whereGram = state->whereGram.data();
 
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
-		omxBuffer<double> thrQweight(totalQuadPoints * numThreads);
-		std::vector<double> thrDweight(totalQuadPoints * numThreads, 0.0);
+		startEstep();
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
@@ -275,8 +368,7 @@ static void ba81Estep1(omxExpectation *oo)
 				continue;
 			}
 			int thrId = omx_absolute_thread_num();
-			double *Qweight = thrQweight.data() + totalQuadPoints * thrId;
-			double *Dweight = thrDweight.data() + totalQuadPoints * thrId;
+			double *Qweight = getThrQweight(thrId);
 			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
 			ba81LikelihoodSlow2(state, px, lxk);
 
@@ -303,14 +395,9 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 
 			double weight = rowWeight[px] / patternLik1;
-			for (long qx=0; qx < totalQuadPoints; ++qx) {
-				double tmp = Qweight[qx] * weight;
-				Dweight[qx] += tmp;
-				Qweight[qx] = tmp;
-			}
+			normalizeWeights(thrId, weight);
 
-			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
-			double *out = myExpected;
+			double *out = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 			for (size_t ix=0; ix < numItems; ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 				if (pick == NA_INTEGER) {
@@ -326,26 +413,14 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 		}
 
-		for (int tx=1; tx < numThreads; ++tx) {
-			double *Dweight = thrDweight.data() + totalQuadPoints * tx;
-			double *dest = thrDweight.data();
-			for (long qx=0; qx < totalQuadPoints; ++qx) {
-				dest[qx] += Dweight[qx];
-			}
-		}
-
-		for (long qx=0; qx < totalQuadPoints; ++qx) {
-			mapLatentSpace(state, 0, thrDweight[qx], wherePrep + qx * maxDims,
-				       whereGram + qx * whereGramSize, latentDist.data());
-		}
+		weightsToLatentDistribution();
 	} else {
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		const long totalPrimaryPoints = state->totalPrimaryPoints;
 		const long specificPoints = state->quadGridSize;
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
-		omxBuffer<double> thrQweight(totalQuadPoints * numSpecific * numThreads);
-		std::vector<double> thrDweight(totalQuadPoints * numSpecific * numThreads);
+		startEstep();
 
 #pragma omp parallel for num_threads(numThreads)
 		for (int px=0; px < numUnique; px++) {
@@ -354,8 +429,7 @@ static void ba81Estep1(omxExpectation *oo)
 				continue;
 			}
 			int thrId = omx_absolute_thread_num();
-			double *Qweight = thrQweight.data() + totalQuadPoints * numSpecific * thrId;
-			double *Dweight = thrDweight.data() + totalQuadPoints * numSpecific * thrId;
+			double *Qweight = getThrQweight(thrId);
 
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
@@ -386,15 +460,10 @@ static void ba81Estep1(omxExpectation *oo)
 				continue;
 			}
 
-			double *myExpected = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 			double weight = rowWeight[px] / patternLik1;
-			for (long qx=0; qx < totalQuadPoints * numSpecific; qx++) {
-				double tmp = Qweight[qx] * weight;
-				Qweight[qx] = tmp;
-				Dweight[qx] += tmp;
-			}
+			normalizeWeights(thrId, weight);
 
-			double *out = myExpected;
+			double *out = thrExpected.data() + thrId * totalOutcomes * totalQuadPoints;
 			for (size_t ix=0; ix < numItems; ++ix) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
 				if (pick == NA_INTEGER) {
@@ -413,23 +482,7 @@ static void ba81Estep1(omxExpectation *oo)
 			}
 		}
 
-		for (int tx=1; tx < numThreads; ++tx) {
-			double *Dweight = thrDweight.data() + totalQuadPoints * numSpecific * tx;
-			double *dest = thrDweight.data();
-			for (long qx=0; qx < totalQuadPoints * numSpecific; ++qx) {
-				dest[qx] += Dweight[qx];
-			}
-		}
-
-		long qloc=0;
-		for (long qx=0; qx < totalQuadPoints; qx++) {
-			double *whPrep = wherePrep + qx * maxDims;
-			double *whGram = whereGram + qx * whereGramSize;
-			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-				mapLatentSpace(state, Sgroup, thrDweight[qloc], whPrep, whGram, latentDist.data());
-				++qloc;
-			}
-		}
+		weightsToLatentDistribution();
 	}
 
 	const long expectedSize = totalQuadPoints * totalOutcomes;
@@ -447,43 +500,7 @@ static void ba81Estep1(omxExpectation *oo)
 	//mxLog("raw latent after weighting");
 	//pda(latentDist, numLatents, numUnique);
 
-	{
-		omxMatrix *meanOut = state->estLatentMean;
-		omxMatrix *covOut = state->estLatentCov;
-		const int nn = data->rows;
-
-		double *latentDist1 = latentDist.data();
-		for (int d1=0; d1 < maxAbilities; d1++) {
-			omxSetVectorElement(meanOut, d1, latentDist1[d1] / nn);
-		}
-
-		for (int d1=0; d1 < primaryDims; d1++) {
-			int cx = maxAbilities + triangleLoc1(d1);
-			for (int d2=0; d2 <= d1; d2++) {
-				double cov = (latentDist1[cx] / nn -
-					      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d2));
-				omxSetMatrixElement(covOut, d1, d2, cov);
-				if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
-				++cx;
-			}
-		}
-		for (int d1=primaryDims; d1 < maxAbilities; d1++) {
-			int loc = maxAbilities + triangleLoc0(d1);
-			double cov = (latentDist1[loc] / nn -
-				      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d1));
-			omxSetMatrixElement(covOut, d1, d1, cov);
-		}
-	}
-
-	if (state->verbose >= 1) {
-		mxLog("%s: lxk(item version %d) patternLik (%d/%d excluded)",
-		      oo->name, omxGetMatrixVersion(state->itemParam),
-		      state->excludedPatterns, numUnique);
-		if (state->verbose >= 2) {
-			omxPrint(state->estLatentMean, "mean");
-			omxPrint(state->estLatentCov, "cov");
-		}
-	}
+	recordLatentDistribution();
 
 	++state->ElatentVersion;
 }
@@ -876,7 +893,26 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 
 	if (!itemClean) {
 		ba81OutcomeProb(state, TRUE, FALSE);
-		ba81Estep1(oo);
+		if (oo->dynamicDataSource) {
+			//mxLog("%s: creating free latent engine", oo->name);
+			BA81EngineLatentFree engine(state);
+			engine.ba81Estep1();
+		} else {
+			//mxLog("%s: creating fixed latent engine", oo->name);
+			BA81EngineLatentFixed engine(state);
+			engine.ba81Estep1();
+		}
+
+		if (state->verbose >= 1) {
+			const int numUnique = (int) state->rowMap.size();
+			mxLog("%s: Estep(item version %d) patternLik (%d/%d excluded)",
+			      oo->name, omxGetMatrixVersion(state->itemParam),
+			      state->excludedPatterns, numUnique);
+			if (state->verbose >= 2) {
+				omxPrint(state->estLatentMean, "mean");
+				omxPrint(state->estLatentCov, "cov");
+			}
+		}
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);
@@ -1177,6 +1213,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			++numUnique;
 		}
 		state->rowMap.resize(numUnique);
+		state->weightSum = state->data->rows;
 	}
 	else {
 		if (omxDataColumnIsFactor(data, weightCol)) {
@@ -1184,8 +1221,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			return;
 		}
 		state->rowWeight = omxDoubleDataColumn(data, weightCol);
+		state->weightSum = 0;
+		for (int rx=0; rx < data->rows; ++rx) { state->weightSum += state->rowWeight[rx]; }
 		state->rowMap.resize(data->rows);
-		for (size_t rx=0; rx < state->rowMap.size(); ++rx) state->rowMap[rx] = rx;
+		for (size_t rx=0; rx < state->rowMap.size(); ++rx) {
+			state->rowMap[rx] = rx;
+		}
 	}
 
 	std::vector<int> &rowMap = state->rowMap;

@@ -38,7 +38,7 @@ struct BA81FitState {
 
 	int haveLatentMap;
 	std::vector<int> latentMap;
-	bool freeLatents;
+	bool freeLatents;                    // only to support old style direct latents, remove TODO
 	int ElatentVersion;
 
 	int haveItemMap;
@@ -1018,7 +1018,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_INFO) {
 			buildLatentParamMap(oo, fc);
-			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams) {
 				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 				return;
@@ -1081,6 +1080,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_FIT) {
+			// only need patternLik, can optimize if EXPECTATION_AUGMENTED is not in use TODO
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
