@@ -154,6 +154,9 @@ bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
 )
 
     bivHetFit <- mxRun(bivHetModel)
+
+omxCheckTrue(is.null(bivHetFit$group1.fitfunction$info$likelihoods))
+
     EM1Het <- bivHetFit$group1.fitfunction$info$expMean
     EM2Het <- bivHetFit$group2.fitfunction$info$expMean
     EC1Het <- bivHetFit$group1.fitfunction$info$expCov

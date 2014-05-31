@@ -52,10 +52,9 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating FIML Attributes."); }
 	omxFIMLFitFunction *argStruct = ((omxFIMLFitFunction*)off->argStruct);
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
-	omxMatrix *expCovInt, *expMeanInt, *rowLikelihoodsInt;
+	omxMatrix *expCovInt, *expMeanInt;
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
-	rowLikelihoodsInt = argStruct->rowLikelihoods;
 
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
@@ -71,15 +70,17 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	} else {
 		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}
-	Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
-	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
-		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
 
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 
-	Rf_unprotect(3); // expCovExp, expCovInt, rowLikelihoodsExt
+	if (argStruct->returnRowLikelihoods) {
+		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
+		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+	}
 }
 
 void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar) {
