@@ -89,6 +89,7 @@ class omxMatrix {
 	std::vector<const char *> colnames;
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
+	void setNotConstant();
 };
 
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.

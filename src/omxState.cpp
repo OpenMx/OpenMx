@@ -85,6 +85,11 @@ void FreeVarGroup::cacheDependencies()
 		}
 	}
 
+	for(size_t i = 0; i < numMats; i++) {
+		if (!locations[i]) continue;
+		os->matrixList[i]->setNotConstant();
+	}
+
 	// Everything is set up. This is a good place to log.
 	if (OMX_DEBUG) { log(); }
 }

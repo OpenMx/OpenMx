@@ -391,8 +391,8 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
 			memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
 		} else {
-			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
-			memcpy(om->data, REAL(matrix), om->rows * om->cols * sizeof(double));
+			om->owner = matrix;
+			om->data = REAL(om->owner);
 		}
 
 		SEXP dimnames;
@@ -432,14 +432,17 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 {
-	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", Rf_length(matStruct) - 1); }
+	if(Rf_length(matStruct) <= 1) return;
 
-	if(Rf_length(matStruct) > 1) {
-		int numPopLocs = Rf_length(matStruct) - 1;
-		populate.resize(numPopLocs);
-	}
+	const int numPopLocs = Rf_length(matStruct) - 1;
 
-	for(int i = 0; i < Rf_length(matStruct)-1; i++) {
+	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", numPopLocs); }
+
+	setNotConstant();
+
+	populate.resize(numPopLocs);
+
+	for(int i = 0; i < numPopLocs; i++) {
 		SEXP subList;
 		Rf_protect(subList = VECTOR_ELT(matStruct, i+1));
 
@@ -452,6 +455,16 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 		pl.destCol = locations[4];
 		Rf_unprotect(1); //subList
 	}
+}
+
+void omxMatrix::setNotConstant()
+{
+	if (!owner) return;
+
+	double *copy = (double*) Realloc(NULL, rows * cols, double);
+	memcpy(copy, data, rows * cols * sizeof(double));
+	data = copy;
+	owner = NULL;
 }
 
 void omxToggleRowColumnMajor(omxMatrix *mat) {
