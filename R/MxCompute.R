@@ -786,14 +786,14 @@ setMethod("initialize", "MxComputeEM",
 ##' @references
 ##' Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from
 ##' incomplete data via the EM algorithm. \emph{Journal of the Royal Statistical Society.
-##' Series B (Methodological)}, 1–38.
+##' Series B (Methodological)}, 1-38.
 ##'
 ##' Meng, X.-L. & Rubin, D. B. (1991). Using EM to obtain asymptotic variance-covariance
 ##' matrices: The SEM algorithm. \emph{Journal of the American Statistical Association,
-##' 86} (416), 899–909.
+##' 86} (416), 899-909.
 ##' 
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
-##' \emph{Psychometrika, 40} (3), 337–360.
+##' \emph{Psychometrika, 40} (3), 337-360.
 mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
 			maxIter=500L, tolerance=1e-4, verbose=0L, freeSet=NA_character_,
 			accel="ramsay1975", information=NA_character_, infoArgs=list()) {
