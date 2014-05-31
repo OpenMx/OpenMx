@@ -1531,7 +1531,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	const char *accelName = CHAR(STRING_ELT(slotValue, 0));
 	if (strEQ(accelName, "ramsay1975")) {
 		useRamsay = true;
-	} else if (STRING_ELT(slotValue, 0) == NA_STRING) {
+	} else if (STRING_ELT(slotValue, 0) == NA_STRING || strEQ(accelName, "")) {
 		// OK
 	} else {
 		Rf_warning("%s: unknown acceleration method %s ignored", name, accelName);
