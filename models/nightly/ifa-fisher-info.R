@@ -23,6 +23,7 @@ if (0) {
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=dim(param)[1], ncol=numItems,
                    values=param, free=TRUE)
+rownames(ip.mat) <- c('f1', 'b')
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 rownames(m.mat) <- 'f1'
 cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)

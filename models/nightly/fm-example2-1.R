@@ -23,6 +23,7 @@ m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
                    values=c(1, 0), free=TRUE)
+rownames(ip.mat) <- c('f1', 'b')
 colnames(ip.mat) <- colnames(m2.data)
 
 #  m2.fmfit <- read.flexmirt("~/2012/sy/fm/ms-rasch-prm.txt")

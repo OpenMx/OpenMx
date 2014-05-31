@@ -21,6 +21,7 @@ g341 <- as.data.frame(lapply(g341, mxFactor, levels=0:1))
 ip.mat <- mxMatrix(name="ItemParam", nrow=4, ncol=numItems,
                    values=c(1,0, NA, logit(1)), free=c(TRUE, TRUE, TRUE, FALSE))
 colnames(ip.mat) <- colnames(g341)
+rownames(ip.mat) <- c('f1', 'b', 'g', 'u')
 plabel <- paste("g", 1:numItems, sep="")
 ip.mat$labels[3,] <- plabel
 ip.mat$values[3,] <- logit(seq(.1, .2, length.out=numItems))

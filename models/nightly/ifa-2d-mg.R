@@ -49,6 +49,7 @@ if (0) {
 mkgroup <- function(model.name, data, latent.free) {  
   ip.mat <- mxMatrix(name="ItemParam", values=startpar, free=TRUE)
   colnames(ip.mat) <- colnames(data)
+  rownames(ip.mat) <- c(paste('f', 1:2, sep=""), 'b')
   ip.mat$free[correct.mat==0] <- FALSE
   
   for (ix in 1:numItems) {

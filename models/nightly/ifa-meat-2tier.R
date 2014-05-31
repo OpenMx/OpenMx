@@ -36,6 +36,7 @@ data <- rpf.sample(numPeople, items, correct, mean=true.mean, cov=true.cov)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct, free=FALSE)
+rownames(ip.mat) <- c(paste('f', 1:6, sep=""), rep('p', nrow(ip.mat)-6))
 colnames(ip.mat) <- colnames(data)
 col6mask <- correct[,6] != 0
 ip.mat$free[col6mask,6] <- TRUE

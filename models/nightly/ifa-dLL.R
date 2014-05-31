@@ -39,6 +39,7 @@ starting.len <- max(vapply(starting, length, 0))
 ip.mat <- mxMatrix(name="itemParam", nrow=starting.len, ncol=numItems,
                    values=0, free=FALSE)
 colnames(ip.mat) <- colnames(data)
+rownames(ip.mat) <- c(paste('f', 1:2, sep=""), rep('p', nrow(ip.mat)-2))
 
 for (sx in 1:length(starting)) {
   v <- starting[[sx]]

@@ -14,6 +14,7 @@ data <- rpf.sample(ability, spec, correct)
 
 ip.mat <- mxMatrix(name="itemParam", nrow=max(sapply(correct, length)), ncol=numItems)
 colnames(ip.mat) <- colnames(data)
+rownames(ip.mat) <- c('f1', paste('b', 1:(nrow(ip.mat)-1), sep=""))
 correct.mat <- ip.mat$values
 for (ix in 1:numItems) {
   len <- length(correct[[ix]])

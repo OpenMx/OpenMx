@@ -27,6 +27,7 @@ data <- rpf.sample(numPeople, items, correct.mat, mean=true.mean, cov=true.cov)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
+rownames(ip.mat) <- c(paste('f', 1:2, sep=""), rep('p', nrow(ip.mat)-2))
 colnames(ip.mat) <- colnames(data)
 ip.mat$free[,1:2] <- TRUE
 

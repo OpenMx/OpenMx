@@ -19,9 +19,9 @@ data <- rpf.sample(4, items, correct.mat)
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 1, 0), free=TRUE)
 colnames(ip.mat) <- colnames(data)
-rownames(ip.mat) <- rownames(correct.mat)
-ip.mat$values['a3',1:2] <- 0
-ip.mat$values['a2',3:4] <- 0
+rownames(ip.mat) <- c(paste("f", 1:3, sep=""), 'b')
+ip.mat$values['f3',1:2] <- 0
+ip.mat$values['f2',3:4] <- 0
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 colnames(m.mat) <- paste("f", 1:3, sep="")
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
@@ -79,6 +79,7 @@ for (m in seq(.1, .9, .05)) {
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems, values=correct.mat)
 colnames(ip.mat) <- colnames(data)
+rownames(ip.mat) <- c('f1', 'b')
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0)
 colnames(m.mat) <- 'f1'

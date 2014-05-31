@@ -79,7 +79,14 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  verifyMvnNames(.Object@cov, .Object@mean, "prior", flatModel, model@name, class(.Object))
 
+		  fnames <- dimnames(flatModel[[.Object@cov]])[[1]]
+
 		  ItemParam <- flatModel@matrices[[.Object@ItemParam]]
+		  if (is.null(rownames(ItemParam)) || any(rownames(ItemParam)[1:length(fnames)] != fnames)) {
+			  msg <- paste("The first", length(fnames), "rownames of ItemParam",
+				       "must be", omxQuotes(fnames))
+			  stop(msg)
+		  }
 
 		  name <- .Object@name
 		  for (s in c("data", "ItemParam", "mean", "cov")) {

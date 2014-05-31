@@ -25,6 +25,7 @@ data <- data[,sample.int(numItems)]
 ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
+rownames(ip.mat) <- c('f1','b','g','u')
 colnames(ip.mat) <- cols
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)

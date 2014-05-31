@@ -47,11 +47,11 @@ ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 1, 0, logit(0), logit(1)),
 		   free=c(rep(TRUE, 4), FALSE, FALSE))
 colnames(ip.mat) <- colnames(data)
-rownames(ip.mat) <- rownames(correct.mat)
-ip.mat$values['a3', 1:10] <- 0
-ip.mat$free['a3', 1:10] <- FALSE
-ip.mat$values['a2', 11:20] <- 0
-ip.mat$free['a2', 11:20] <- FALSE
+rownames(ip.mat) <- c(paste('f', 1:3, sep=""), 'b', 'g', 'u')
+ip.mat$values['f3', 1:10] <- 0
+ip.mat$free['f3', 1:10] <- FALSE
+ip.mat$values['f2', 11:20] <- 0
+ip.mat$free['f2', 11:20] <- FALSE
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 colnames(m.mat) <- paste('f', 1:3, sep="")

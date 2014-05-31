@@ -45,6 +45,7 @@ true.cov <- matrix(c(.5, -.2, -.2, .5), nrow=2)
 
 data <- rpf.sample(numPeople, items, correct.mat, mean=true.mean, cov=true.cov)
 colnames(ip.mat) <- colnames(data)
+rownames(ip.mat) <- c(paste('f', 1:2, sep=""), rep('p', nrow(ip.mat) - 2))
   
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=2, values=c(0,0), free=TRUE)
 colnames(m.mat) <- paste('f', 1:2, sep="")

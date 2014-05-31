@@ -17,6 +17,7 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(FALSE, TRUE, FALSE, FALSE))
 colnames(ip.mat) <- paste("i", 1:numItems, sep="")
+rownames(ip.mat) <- c('f1', 'b','g','u')
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=TRUE)
 rownames(m.mat) <- 'f1'
@@ -108,6 +109,7 @@ if (1) {
                      values=c(1,0, logit(0), logit(1)),
                      free=c(TRUE, TRUE, FALSE, FALSE))
   colnames(ip.mat) <- paste("i", 1:numItems, sep="")
+  rownames(ip.mat) <- c('f1', 'b','g','u')
   ip.mat$labels[1,] <- 'a1'
   
   m.mat$free[,] <- FALSE
