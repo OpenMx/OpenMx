@@ -96,23 +96,6 @@ extern int rpf_numModels;
 
 void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
 
-OMXINLINE static void
-pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
-{
-	for (int dx=0; dx < upto; dx++) {
-		where[dx] = state->Qpoint[quad[dx]];
-	}
-}
-
-OMXINLINE static void
-decodeLocation(long qx, const int dims, const long grid, int *quad)
-{
-	for (int dx=dims-1; dx >= 0; --dx) {
-		quad[dx] = qx % grid;
-		qx = qx / grid;
-	}
-}
-
 // state->speQarea[sIndex(state, sgroup, sx)]
 OMXINLINE static
 int sIndex(BA81Expect *state, int sx, int qx)
@@ -120,20 +103,6 @@ int sIndex(BA81Expect *state, int sx, int qx)
 	//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
 	//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
 	return qx * state->numSpecific + sx;
-}
-
-OMXINLINE static double
-areaProduct(BA81Expect *state, long qx, int sx, const int sg)
-{
-	if (state->numSpecific == 0) {
-		return state->priQarea[qx];
-	} else {
-		if (sx == -1) {
-			sx = qx % state->quadGridSize;
-			qx /= state->quadGridSize;
-		}
-		return state->priQarea[qx] * state->speQarea[sIndex(state, sg, sx)];
-	}
 }
 
 OMXINLINE static void

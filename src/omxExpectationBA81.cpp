@@ -493,6 +493,29 @@ static int getLatentVersion(BA81Expect *state)
 	return omxGetMatrixVersion(state->latentMeanOut) + omxGetMatrixVersion(state->latentCovOut);
 }
 
+OMXINLINE static void
+pointToWhere(BA81Expect *state, const int *quad, double *where, int upto)
+{
+	for (int dx=0; dx < upto; dx++) {
+		where[dx] = state->Qpoint[quad[dx]];
+	}
+}
+
+OMXINLINE static void
+decodeLocation(long qx, const int dims, const long grid, int *quad)
+{
+	for (int dx=dims-1; dx >= 0; --dx) {
+		quad[dx] = qx % grid;
+		qx = qx / grid;
+	}
+}
+
+struct sortAreaHelper {  // could be generalized with a template
+	std::vector<double> &target;
+	bool operator() (int i,int j) { return target[i] > target[j]; }
+	sortAreaHelper(std::vector<double> &tgt) : target(tgt) {}
+};
+
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
 void ba81SetupQuadrature(omxExpectation* oo)
 {
@@ -519,44 +542,39 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	int numSpecific = state->numSpecific;
 	int priDims = maxDims - (numSpecific? 1 : 0);
 
+	// try starting small and increasing to the cap? TODO
+	state->quadGridSize = gridsize;
+
 	state->totalQuadPoints = 1;
 	for (int dx=0; dx < maxDims; dx++) {
 		state->totalQuadPoints *= gridsize;
 	}
+	const long totalQuadPoints = state->totalQuadPoints;
 
-	state->Qpoint.resize(gridsize);
-	double qgs = gridsize-1;
-	for (int px=0; px < gridsize; ++px) {
-		state->Qpoint[px] = Qwidth - px * 2 * Qwidth / qgs;
-	}
-
-	if (state->quadGridSize != gridsize) {
-		const long totalQuadPoints = state->totalQuadPoints;
-		std::vector<double> &wherePrep = state->wherePrep;
-		wherePrep.resize(totalQuadPoints * maxDims);
-		std::vector<double> &whereGram = state->whereGram;
-		whereGram.resize(totalQuadPoints * triangleLoc1(maxDims));
-		
-		for (long qx=0; qx < totalQuadPoints; qx++) {
-			double *wh = wherePrep.data() + qx * maxDims;
-			int quad[maxDims];
-			decodeLocation(qx, maxDims, gridsize, quad);
-			pointToWhere(state, quad, wh, maxDims);
-			gramProduct(wh, maxDims, whereGram.data() + qx * triangleLoc1(maxDims));
+	if (int(state->Qpoint.size()) != gridsize) {
+		state->Qpoint.clear();
+		state->Qpoint.reserve(gridsize);
+		double qgs = gridsize-1;
+		for (int px=0; px < gridsize; ++px) {
+			state->Qpoint.push_back(Qwidth - px * 2 * Qwidth / qgs);
 		}
-
-		// try starting small and increasing to the cap? TODO
-		state->quadGridSize = gridsize;
 	}
 
-	state->totalPrimaryPoints = state->totalQuadPoints;
+	std::vector<double> wherePrep(totalQuadPoints * maxDims);
 
+	for (long qx=0; qx < totalQuadPoints; qx++) {
+		double *wh = wherePrep.data() + qx * maxDims;
+		int quad[maxDims];
+		decodeLocation(qx, maxDims, gridsize, quad);
+		pointToWhere(state, quad, wh, maxDims);
+	}
+
+	state->totalPrimaryPoints = totalQuadPoints;
 	if (numSpecific) {
-		state->totalPrimaryPoints /= state->quadGridSize;
+		state->totalPrimaryPoints /= gridsize;
 		state->speQarea.resize(gridsize * numSpecific);
 	}
-
-	state->priQarea.resize(state->totalPrimaryPoints);
+	const int totalPrimaryPoints = state->totalPrimaryPoints;
 
 	omxBuffer<double> priCovData(priDims * priDims);
 	for (int d1=0; d1 < priDims; ++d1) {
@@ -574,18 +592,40 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	}
 
 	const double Largest = state->LargestDouble;
-	double totalArea = 0;
-	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+	std::vector<double> priQarea;
+	priQarea.reserve(totalPrimaryPoints);
+	for (int qx=0; qx < totalPrimaryPoints; qx++) {
 		int quad[priDims];
 		decodeLocation(qx, priDims, state->quadGridSize, quad);
 		double where[priDims];
 		pointToWhere(state, quad, where, priDims);
-		state->priQarea[qx] = exp(dmvnorm(priDims, where,
-						  state->latentMeanOut->data,
-						  priCovData.data()));
-		totalArea += state->priQarea[qx];
+		double den = exp(dmvnorm(priDims, where, state->latentMeanOut->data, priCovData.data()));
+		priQarea.push_back(den);
 	}
-	for (int qx=0; qx < state->totalPrimaryPoints; qx++) {
+
+	std::vector<int> priOrder;
+	priOrder.reserve(totalPrimaryPoints);
+	for (int qx=0; qx < totalPrimaryPoints; qx++) {
+		priOrder.push_back(qx);
+	}
+	sortAreaHelper priCmp(priQarea);
+	std::sort(priOrder.begin(), priOrder.end(), priCmp);
+
+	state->priQarea.clear();
+	state->priQarea.reserve(totalPrimaryPoints);
+
+	double totalArea = 0;
+	for (int qx=0; qx < totalPrimaryPoints; qx++) {
+		double den = priQarea[priOrder[qx]];
+		state->priQarea.push_back(den);
+		//double prevTotalArea = totalArea;
+		totalArea += den;
+		// if (totalArea == prevTotalArea) {
+		// 	mxLog("%.4g / %.4g = %.4g", den, totalArea, den / totalArea);
+		// }
+	}
+
+	for (int qx=0; qx < totalPrimaryPoints; qx++) {
 		state->priQarea[qx] *= Largest;
 		state->priQarea[qx] /= totalArea;
 		//mxLog("%.5g,", state->priQarea[qx]);
@@ -598,17 +638,50 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		double var = state->latentCovOut->data[covCell];
 		if (forcePositiveSemiDefinite && var < BA81_MIN_VARIANCE) var = BA81_MIN_VARIANCE;
 		//mxLog("setup[%d] %.2f %.2f", sx, mean, var);
-		for (int qx=0; qx < state->quadGridSize; qx++) {
+		for (int qx=0; qx < gridsize; qx++) {
 			double den = dnorm(state->Qpoint[qx], mean, sqrt(var), FALSE);
 			state->speQarea[sIndex(state, sgroup, qx)] = den;
 			totalArea += den;
 		}
-		for (int qx=0; qx < state->quadGridSize; qx++) {
+		for (int qx=0; qx < gridsize; qx++) {
 			state->speQarea[sIndex(state, sgroup, qx)] *= Largest;
 			state->speQarea[sIndex(state, sgroup, qx)] /= totalArea;
 		}
-		//pda(state->speQarea.data() + sIndex(state, sgroup, 0), 1, state->quadGridSize);
+		//pda(state->speQarea.data() + sIndex(state, sgroup, 0), 1, gridsize);
 	}
+
+	state->wherePrep.clear();
+	state->wherePrep.reserve(totalQuadPoints * maxDims);
+
+	if (numSpecific == 0) {
+		for (int qx=0; qx < totalPrimaryPoints; qx++) {
+			int sortq = priOrder[qx] * maxDims;
+			for (int dx=0; dx < maxDims; ++dx) {
+				state->wherePrep.push_back(wherePrep[sortq + dx]);
+			}
+		}
+	} else {
+		for (int qx=0; qx < totalPrimaryPoints; ++qx) {
+			int sortq = priOrder[qx] * gridsize;
+			for (int sx=0; sx < gridsize; ++sx) {
+				int base = (sortq + sx) * maxDims;
+				for (int dx=0; dx < maxDims; ++dx) {
+					state->wherePrep.push_back(wherePrep[base + dx]);
+				}
+			}
+		}
+	}
+
+	// recompute whereGram because the order might have changed
+	std::vector<double> &whereGram = state->whereGram;
+	whereGram.resize(totalQuadPoints * triangleLoc1(maxDims));
+
+	for (int qx=0; qx < totalQuadPoints; qx++) {
+		double *wh = state->wherePrep.data() + qx * maxDims;
+		gramProduct(wh, maxDims, whereGram.data() + qx * triangleLoc1(maxDims));
+	}
+
+	//pda(wherePrep.data(), maxDims, totalQuadPoints);
 
 	// The idea here is to avoid denormalized values if they are
 	// enabled (5e-324 vs 2e-308).  It would be bad if results
@@ -618,7 +691,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 
 	state->SmallestPatternLik = 1e16 * std::numeric_limits<double>::min();
 
-	state->expected = Realloc(state->expected, state->totalOutcomes * state->totalQuadPoints, double);
+	state->expected = Realloc(state->expected, state->totalOutcomes * totalQuadPoints, double);
 	state->latentParamVersion = getLatentVersion(state);
 }
 
@@ -670,6 +743,7 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 	double *patternLik = state->patternLik;
 	const long totalQuadPoints = state->totalQuadPoints;
 	const long totalPrimaryPoints = state->totalPrimaryPoints;
+	double *wherePrep = state->wherePrep.data();
 
 	mean->assign(numUnique * maxAbilities, 0);
 	cov->assign(numUnique * covEntries, 0);
@@ -688,17 +762,12 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			ba81LikelihoodSlow2(state, px, lxk);
 
 			for (long qx=0; qx < state->totalQuadPoints; qx++) {
-				int quad[maxDims];
-				decodeLocation(qx, maxDims, state->quadGridSize, quad);
-				double where[maxDims];
-				pointToWhere(state, quad, where, maxDims);
-
 				double tmp = lxk[qx];
-				accumulateScores(state, px, 0, tmp, where, primaryDims, covEntries, mean, cov);
+				accumulateScores(state, px, 0, tmp, wherePrep + qx * maxDims,
+						 primaryDims, covEntries, mean, cov);
 			}
 		}
 	} else {
-		int sDim = primaryDims;
 		const long specificPoints = state->quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
@@ -719,17 +788,13 @@ EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<doubl
 			long qloc = 0;
 			long eisloc = 0;
 			for (long qx=0; qx < totalPrimaryPoints; qx++) {
-				int quad[maxDims];
-				decodeLocation(qx, primaryDims, state->quadGridSize, quad);
 				for (long sx=0; sx < specificPoints; sx++) {
+					double *whPrep = wherePrep + (qx * state->quadGridSize + sx) * maxDims;
 					for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
-						quad[sDim] = sx;
-						double where[maxDims];
-						pointToWhere(state, quad, where, maxDims);
 						double lxk1 = lxk[qloc];
 						double Eis1 = Eis[eisloc + Sgroup];
 						double tmp = Eis1 * lxk1;
-						accumulateScores(state, px, Sgroup, tmp, where, primaryDims,
+						accumulateScores(state, px, Sgroup, tmp, whPrep, primaryDims,
 								 covEntries, mean, cov);
 						++qloc;
 					}
