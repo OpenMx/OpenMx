@@ -82,7 +82,6 @@ class omxData {
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
  public:
 	int rows, cols;						// Matrix size 
-	std::vector<double> rowWeight;
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	struct omxExpectation *expectation;   // weak pointer
@@ -99,7 +98,8 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 
 /* Getters 'n Setters */
 static inline bool omxDataIsSorted(omxData* data) { return data->isSorted; }
-double omxDoubleDataElement(omxData *od, int row, int col);					// Returns one data object as a double
+double omxDoubleDataElement(omxData *od, int row, int col);
+double *omxDoubleDataColumn(omxData *od, int col);
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
@@ -126,7 +126,7 @@ omxIntDataElementUnsafe(omxData *od, int row, int col)
 }
 	
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
-unsigned short int omxDataColumnIsFactor(omxData *od, int col);				// Returns 0 if column is not a factor
+bool omxDataColumnIsFactor(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: Should this be an ENUM?
 	
 int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set

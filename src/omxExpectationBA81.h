@@ -40,7 +40,8 @@ struct BA81Expect {
 	omxData *data;
 	const int *colMap;             // item column to data column mapping
 	std::vector<int> rowMap;       // row index into MxData
-	std::vector<double> rowWeight;
+	double *rowWeight;
+	bool ownWeights;
 	std::vector<bool> rowSkip;     // whether to treat the row as NA
 
 	// item description related

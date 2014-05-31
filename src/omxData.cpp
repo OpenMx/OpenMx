@@ -249,6 +249,16 @@ double omxDoubleDataElement(omxData *od, int row, int col) {
 	}
 }
 
+double *omxDoubleDataColumn(omxData *od, int col)
+{
+	int location = od->location[col];
+	if(location < 0) {
+		Rf_error("Column %d is integer, not real", col);
+	} else {
+		return od->realData[location];
+	}
+}
+
 int omxIntDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
 		Rf_error("Use a data frame for factor data");
@@ -308,7 +318,8 @@ omxMatrix* omxDataAcov(omxData *od) {
 	return om;
 }
 
-unsigned short int omxDataColumnIsFactor(omxData *od, int col) {
+bool omxDataColumnIsFactor(omxData *od, int col)
+{
 	if(od->dataMat != NULL) return FALSE;
 	if(col <= od->cols) return (od->location[col] < 0);
 

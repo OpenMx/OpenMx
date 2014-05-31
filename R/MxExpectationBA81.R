@@ -33,13 +33,14 @@ setClass(Class = "MxExpectationBA81",
 	     output = "list",
 	     debug = "list",
 	     naAction = "character",
-	     minItemsPerScore = "integer"),
+	     minItemsPerScore = "integer",
+	     weightColumn = "MxCharOrNumber"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam, design,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
-		   naAction, minItemsPerScore, name = 'expectation') {
+		   naAction, minItemsPerScore, weightColumn, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
 	    .Object@ItemParam <- ItemParam
@@ -55,6 +56,7 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@debugInternal <- debugInternal
 	    .Object@naAction <- naAction
 	    .Object@minItemsPerScore <- minItemsPerScore
+	    .Object@weightColumn <- weightColumn
             return(.Object)
           }
 )
@@ -90,12 +92,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed) # for summary
 
-		  if (length(.Object@dims) != ncol(ItemParam)) {
-			  msg <- paste("There must be exactly 1 column in the ItemParam matrix",
-				       "for every observed data column")
-			  stop(msg, call.=FALSE)
-		  }
-
 		  if (is.null(colnames(ItemParam))) {
 			  stop(paste(class(.Object),
 				     ": the ItemParam matrix must have column names",
@@ -108,6 +104,15 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 				  stop(msg, call.=FALSE)
 			  }
 			  .Object@dataColumns <- dc
+			  if (!is.na(.Object@weightColumn)) {
+				  wc <- match(.Object@weightColumn, .Object@dims) - 1L
+				  if (is.na(wc)) {
+					  msg <- paste("Weight column",.Object@weightColumn,
+						       "not found in observed data columns")
+					  stop(msg, call.=FALSE)
+				  }
+				  .Object@weightColumn <- wc
+			  }
 		  }
 		  return(.Object)
 	  })
@@ -157,7 +162,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
-			      naAction="fail", minItemsPerScore=1L) {
+			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
 
 	if (packageVersion("rpf") < "0.28") stop("Please install 'rpf' version 0.28 or newer")
 	if (missing(qpoints)) qpoints <- 49
@@ -185,7 +190,9 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 
 	if (minItemsPerScore < 0L) stop("minItemsPerScore must be non-negative")
 
+	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
+
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
-		   naAction, minItemsPerScore))
+		   naAction, minItemsPerScore, weightColumn))
 }

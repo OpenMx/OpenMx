@@ -398,7 +398,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	omxData *data = estate->data;
 	const int *colMap = estate->colMap;
 	std::vector<int> &rowMap = estate->rowMap;
-	std::vector<double> &rowWeight = estate->rowWeight;
+	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
@@ -789,7 +789,7 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	omxData *data = estate->data;
 	const int *colMap = estate->colMap;
 	std::vector<int> &rowMap = estate->rowMap;
-	std::vector<double> &rowWeight = estate->rowWeight;
+	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const long totalQuadPoints = estate->totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
@@ -1076,7 +1076,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
-			std::vector<double> &rowWeight = estate->rowWeight;
+			double *rowWeight = estate->rowWeight;
 			const int numUnique = (int) estate->rowMap.size();
 			estate->excludedPatterns = 0;
 			const double LogLargest = estate->LogLargestDouble;

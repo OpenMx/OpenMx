@@ -243,7 +243,7 @@ static void ba81Estep1(omxExpectation *oo)
 	const int maxAbilities = state->maxAbilities;
 	const int primaryDims = numSpecific? maxDims-1 : maxDims;
 	omxData *data = state->data;
-	std::vector<double> &rowWeight = state->rowWeight;
+	double *rowWeight = state->rowWeight;
 	const long totalQuadPoints = state->totalQuadPoints;
 
 	state->excludedPatterns = 0;
@@ -959,6 +959,7 @@ static void ba81Destroy(omxExpectation *oo) {
 	Free(state->Sgroup);
 	Free(state->expected);
 	Free(state->outcomeProb);
+	if (state->ownWeights) Free(state->rowWeight);
 	delete state;
 }
 
@@ -1092,21 +1093,17 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// The sorting algorithm ought to remove them so we get better cache behavior.
 	// The following summary stats would be cheaper to calculate too.
 
-	int numUnique = 0;
 	omxData *data = state->data;
-	if (omxDataNumFactor(data) != data->cols) {
-		// verify they are ordered factors TODO
-		omxRaiseErrorf("%s: all columns must be factors", oo->name);
-		omxPrintData(data, "data", 5);
-		return;
-	}
 
-	//if (state->rowWeight.size() == 0)
-	{
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("weightColumn")));
+	int weightCol = INTEGER(tmp)[0];
+	state->ownWeights = weightCol == NA_INTEGER;
+	if (state->ownWeights) {
 		// Should rowMap be part of omxData? This is essentially a
 		// generic compression step that shouldn't be specific to IFA models.
-		state->rowWeight.resize(data->rows);
+		state->rowWeight = Realloc(NULL, data->rows, double);
 		state->rowMap.resize(data->rows);
+		int numUnique = 0;
 		for (int rx=0; rx < data->rows; ) {
 			int rw = omxDataNumIdenticalRows(state->data, rx);
 			state->rowWeight[numUnique] = rw;
@@ -1114,21 +1111,21 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			rx += rw;
 			++numUnique;
 		}
-		state->rowWeight.resize(numUnique);
 		state->rowMap.resize(numUnique);
 	}
-	// else {
-	// 	numUnique = state->rowWeight.size();
-	// 	state->rowMap.resize(numUnique);
-	// 	for (int rx=0; rx < numUnique; ++rx) state->rowMap[rx] = rx;
-	// }
+	else {
+		if (omxDataColumnIsFactor(data, weightCol)) {
+			omxRaiseErrorf("%s: weightColumn %d is a factor", oo->name, 1 + weightCol);
+			return;
+		}
+		state->rowWeight = omxDoubleDataColumn(data, weightCol);
+		state->rowMap.resize(data->rows);
+		for (size_t rx=0; rx < state->rowMap.size(); ++rx) state->rowMap[rx] = rx;
+	}
 
 	std::vector<int> &rowMap = state->rowMap;
 
 	const int numItems = state->itemParam->cols;
-	if (data->cols != numItems) {
-		Rf_error("Data has %d columns for %d items", data->cols, numItems);
-	}
 	if (state->itemSpec.size() == 1) {
 		for (int ix=1; ix < numItems; ++ix) {
 			state->itemSpec.push_back(state->itemSpec[0]);
@@ -1149,7 +1146,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	itemOutcomes.resize(numItems);
 	cumItemOutcomes.resize(numItems);
 	int totalOutcomes = 0;
-	for (int cx = 0; cx < data->cols; cx++) {
+	for (int cx = 0; cx < numItems; cx++) {
+		if (!omxDataColumnIsFactor(data, colMap[cx])) {
+			omxRaiseErrorf("%s: column %d is not a factor", oo->name, 1 + colMap[cx]);
+			return;
+		}
+
 		const double *spec = state->itemSpec[cx];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
@@ -1183,7 +1185,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->totalOutcomes = totalOutcomes;
 
-	if (int(state->itemSpec.size()) != data->cols) {
+	if (int(state->itemSpec.size()) != numItems) {
 		omxRaiseErrorf("ItemSpec must contain %d item model specifications",
 			       data->cols);
 		return;
