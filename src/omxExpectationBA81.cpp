@@ -1070,7 +1070,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			int version;
 			get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
 			(*get_librpf)(&version, &rpf_numModels, &rpf_model);
-			if (version < wantVersion) Rf_error("librpf binary API %d Rf_installed, at least %d is required",
+			if (version < wantVersion) Rf_error("librpf binary API %d installed, at least %d is required",
 							 version, wantVersion);
 		} else {
 			rpf_numModels = librpf_numModels;
