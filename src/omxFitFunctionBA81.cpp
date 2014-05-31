@@ -59,6 +59,8 @@ struct BA81FitState {
 	omxMatrix *latentMean;
 	omxMatrix *latentCov;
 
+	bool returnRowLikelihoods;
+
 	BA81FitState();
 	~BA81FitState();
 };
@@ -270,6 +272,11 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (do_deriv && !state->freeItemParams) {
 		omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
+		return NA_REAL;
+	}
+
+	if (state->returnRowLikelihoods) {
+		omxRaiseErrorf("%s: vector=TRUE not implemented", oo->matrix->name);
 		return NA_REAL;
 	}
 
@@ -984,14 +991,14 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	return TRUE;
 }
 
-static double
+static void
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
-	if (want & FF_COMPUTE_INITIAL_FIT) return 0;
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		buildItemParamMap(oo, fc);
@@ -1001,12 +1008,12 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				if (state->paramFlavor[px] == NULL) continue;
 				fc->flavor[px] = state->paramFlavor[px];
 			}
-			return 0;
+			return;
 		}
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			omxExpectationCompute(oo->expectation, NULL);
-			return 0;
+			return;
 		}
 
 		if (want & FF_COMPUTE_INFO) {
@@ -1014,7 +1021,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams) {
 				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
-				return NA_REAL;
+				return;
 			}
 			ba81SetupQuadrature(oo->expectation);
 
@@ -1023,19 +1030,20 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			} else {
 				omxRaiseErrorf("Information matrix approximation method %d is not available",
 					       fc->infoMethod);
-				return NA_REAL;
+				return;
 			}
-			return 0;
+			return;
 		}
 
 		double got = ba81ComputeEMFit(oo, want, fc);
-		return got;
+		oo->matrix->data[0] = got;
+		return;
 	} else if (estate->type == EXPECTATION_OBSERVED) {
 
 		if (want == FF_COMPUTE_STARTING) {
 			buildLatentParamMap(oo, fc);
 			if (state->freeLatents) setLatentStartingValues(oo, fc);
-			return 0;
+			return;
 		}
 
 		if (want & (FF_COMPUTE_INFO | FF_COMPUTE_GRADIENT)) {
@@ -1043,7 +1051,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams && !state->freeLatents) {
 				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
-				return NA_REAL;
+				return;
 			}
 			ba81SetupQuadrature(oo->expectation);
 
@@ -1052,11 +1060,11 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					omxRaiseErrorf("Information matrix approximation method %d is not available",
 						       fc->infoMethod);
 				}
-				if (!gradCov(oo, fc)) return INFINITY;
+				if (!gradCov(oo, fc)) return;
 			} else {
 				if (!state->freeItemParams) {
 					omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
-					return NA_REAL;
+					return;
 				}
 				sandwich(oo, fc);
 			}
@@ -1076,37 +1084,47 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
-			double *rowWeight = estate->rowWeight;
 			const int numUnique = (int) estate->rowMap.size();
-			estate->excludedPatterns = 0;
-			const double LogLargest = estate->LogLargestDouble;
-			double got = 0;
-#pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)
-			for (int ux=0; ux < numUnique; ux++) {
-				if (!validPatternLik(estate, patternLik[ux])) {
-#pragma omp atomic
-					++estate->excludedPatterns;
-					// somehow indicate that this -2LL is provisional TODO
-					continue;
+			if (state->returnRowLikelihoods) {
+				const double OneOverLargest = estate->OneOverLargestDouble;
+				omxData *data = estate->data;
+				for (int rx=0; rx < numUnique; rx++) {
+					int dups = omxDataNumIdenticalRows(data, estate->rowMap[rx]);
+					for (int dup=0; dup < dups; dup++) {
+						int dest = omxDataIndex(data, estate->rowMap[rx]+dup);
+						oo->matrix->data[dest] = patternLik[rx] * OneOverLargest;
+					}
 				}
-				got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);
+			} else {
+				double *rowWeight = estate->rowWeight;
+				estate->excludedPatterns = 0;
+				const double LogLargest = estate->LogLargestDouble;
+				double got = 0;
+#pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)
+				for (int ux=0; ux < numUnique; ux++) {
+					if (!validPatternLik(estate, patternLik[ux])) {
+#pragma omp atomic
+						++estate->excludedPatterns;
+						// somehow indicate that this -2LL is provisional TODO
+						continue;
+					}
+					got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);
+				}
+				double fit = Global->llScale * got;
+				if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
+								oo->matrix->name, fit, estate->excludedPatterns, numUnique);
+				oo->matrix->data[0] = fit;
 			}
-			double fit = Global->llScale * got;
-			if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
-							oo->matrix->name, fit, estate->excludedPatterns, numUnique);
-			return fit;
 		}
 	} else {
 		Rf_error("%s: Predict nothing or scores before computing %d", oo->matrix->name, want);
 	}
-	return 0;
 }
 
 static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
 {
 	if (!want) return;
-	double got = ba81ComputeFit(oo, want, fc);
-	if (got) oo->matrix->data[0] = got;
+	ba81ComputeFit(oo, want, fc);
 }
 
 BA81FitState::~BA81FitState()
@@ -1134,8 +1152,6 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	estate->fit = oo;
 
-	//newObj->data = oo->expectation->data;
-
 	oo->computeFun = ba81Compute;
 	oo->setVarGroup = ba81SetFreeVarGroup;
 	oo->destructFun = ba81Destroy;
@@ -1158,4 +1174,9 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	state->latentMean = omxInitMatrix(0, 0, TRUE, globalState);
 	state->latentCov = omxInitMatrix(0, 0, TRUE, globalState);
 	state->copyEstimates(estate);
+
+	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
+	if (state->returnRowLikelihoods) {
+		omxResizeMatrix(oo->matrix, expectation->data->rows, 1);
+	}
 }

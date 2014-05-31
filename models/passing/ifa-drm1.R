@@ -96,6 +96,12 @@ omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804,
 omxCheckCloseEnough(scores[,1], as.vector(ability), 3.5*max(scores[,2]))
 omxCheckCloseEnough(cor(c(scores[,1]), ability), .737, .01)
 
+m3 <- mxModel(m2,
+              mxFitFunctionML(vector=TRUE),
+              mxComputeOnce('fitfunction', 'fit'))
+m3 <- mxRun(m3, silent=TRUE)
+omxCheckCloseEnough(-2 * sum(log(m3$fitfunction$result)), 6216.272, .01)
+
 #mxOption(NULL, 'loglikelihoodScale', -2)
 i1 <- mxModel(m2,
               mxComputeSequence(steps=list(
