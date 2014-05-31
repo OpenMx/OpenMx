@@ -20,6 +20,7 @@
 
 #include "omxExpectation.h"
 #include "omxOpenmpWrap.h"
+#include "ba81quad.h"
 
 enum score_option {
 	SCORES_OMIT,
@@ -116,34 +117,6 @@ template <
 >
 struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy> {
 	void ba81Estep1(struct BA81Expect *state);
-};
-
-class ba81NormalQuad {
- private:
-	void pointToWhere(const int *quad, double *where, int upto);
-	void decodeLocation(int qx, const int dims, int *quad);
-	double One;
-
-	int sIndex(int sx, int qx) {
-		//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
-		//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
-		return qx * numSpecific + sx;
-	};
-
- public:
-	int quadGridSize;
-	int numSpecific;
-	std::vector<double> Qpoint;           // quadGridSize
-	int totalQuadPoints;                  // quadGridSize ^ maxDims
-	int totalPrimaryPoints;               // totalQuadPoints except for specific dim
-	std::vector<double> priQarea;         // totalPrimaryPoints
-	std::vector<double> speQarea;         // quadGridSize * numSpecific
-	std::vector<double> wherePrep;        // totalQuadPoints * maxDims
-
-	ba81NormalQuad();
-	void setOne(double one) { One = one; }
-	void setup(double Qwidth, int Qpoints, double *means,
-		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
 };
 
 struct BA81Expect {
