@@ -31,71 +31,50 @@ enum expectation_type {
 	EXPECTATION_OBSERVED,  // regular
 };
 
-// http://en.wikipedia.org/wiki/Curiously_Recurring_Template_Pattern
+struct BA81Dense {};
+struct BA81TwoTier {};
 
-struct BA81Engine {
-	struct BA81Expect *conf;
+template <typename BA81CovType>
+struct BA81Estep {
+	std::vector<double> thrExpected;
 
-	BA81Engine(struct BA81Expect *_conf) : conf(_conf) {};
-	virtual void ba81Estep1() = 0;
-	virtual ~BA81Engine() {};
+	void startEstep(struct BA81Expect *state);
+	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId);
+	void recordTable(struct BA81Expect *state);
 };
 
-template <typename Derived>
-struct BA81EngineBase : BA81Engine {
-	typedef BA81Engine super;
-	int numSpecific;
-	int ptsPerThread;
-	Eigen::VectorXd thrQweight;
-	const int numThreads;
-	const int totalQuadPoints;
-	const int maxDims;
-	const int maxAbilities;
-	const double *wherePrep;
-	const double *whereGram;
-	const int whereGramSize;
-	const int primaryDims;
-
-	BA81EngineBase(BA81Expect *_conf);
-	virtual void ba81Estep1();
-	void startEstep() { static_cast<Derived*>(this)->startEstep(); };
-	double *getThrQweight(int thrId);
-	void normalizeWeights(int thrId, double weight) {
-		static_cast<Derived*>(this)->normalizeWeights(thrId, weight);
-	};
-	void weightsToLatentDistribution() {
-		static_cast<Derived*>(this)->weightsToLatentDistribution();
-	};
-	void recordLatentDistribution() {
-		static_cast<Derived*>(this)->recordLatentDistribution();
-	};
+template <typename BA81CovType>
+struct BA81OmitEstep {
+	void startEstep(struct BA81Expect *state) {};
 };
 
-struct BA81EngineLatentFixed : BA81EngineBase<BA81EngineLatentFixed> {
-	typedef BA81EngineBase<BA81EngineLatentFixed> super;
- 	BA81EngineLatentFixed(BA81Expect *_conf) : super(_conf) {};
-
-	void startEstep();
-	void normalizeWeights(int thrId, double weight);
-	void weightsToLatentDistribution() {};
-	void recordLatentDistribution() {};
+struct BA81LatentFixed {
+	void startEstep(struct BA81Expect *state) {}
+	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrid);
+	void recordLatentDistribution(struct BA81Expect *state) {};
 };
 
-struct BA81EngineLatentFree : BA81EngineBase<BA81EngineLatentFree> {
-	typedef BA81EngineBase<BA81EngineLatentFree> super;
-
-	const int numLatents;
+struct BA81LatentSummary {
+	int numLatents;
 	std::vector<double> thrDweight;
 	std::vector<double> latentDist;
 
-	BA81EngineLatentFree(BA81Expect *_conf) : super(_conf),
-		numLatents(maxAbilities + triangleLoc1(maxAbilities)) {};
-	void startEstep();
-	void normalizeWeights(int thrId, double weight);
-	void weightsToLatentDistribution();
-	void mapLatentSpace(int sgroup, double piece, const double *where,
-			    const double *whereGram, double *latentDist);
-	void recordLatentDistribution();
+	void startEstep(struct BA81Expect *state);
+	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrId);
+	void mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
+			   const double *whereGram, double *latentDist);
+	void mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
+			      const double *whereGram, double *latentDist);
+	void recordLatentDistribution(struct BA81Expect *state);
+};
+
+template <
+  typename CovType,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+struct BA81Engine : LatentPolicy, EstepPolicy<CovType> {
+	void ba81Estep1(struct BA81Expect *state);
 };
 
 struct BA81Expect {
@@ -157,6 +136,10 @@ struct BA81Expect {
 	int verbose;
 	bool debugInternal;
 	struct omxFitFunction *fit;  // weak pointer
+
+	// workspace
+	int ptsPerThread;
+	int primaryDims;
 };
 
 extern const struct rpf *rpf_model;
