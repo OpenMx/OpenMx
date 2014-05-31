@@ -151,7 +151,7 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	}
 }
 
-void BA81LatentSummary::mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
+void BA81LatentEstimate::mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
 				      const double *whereGram, double *latentDist)
 {
 	const int pmax = state->primaryDims;
@@ -168,8 +168,8 @@ void BA81LatentSummary::mapDenseSpace(struct BA81Expect *state, double piece, co
 	}
 }
 
-void BA81LatentSummary::mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
-					 const double *whereGram, double *latentDist)
+void BA81LatentEstimate::mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
+					  const double *whereGram, double *latentDist)
 {
 	int pmax = state->primaryDims;
 
@@ -220,6 +220,88 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	}
 }
 
+void BA81LatentFixed::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
+{
+	double weight = state->rowWeight[px] / patternLik1;
+	for (long qx=0; qx < state->ptsPerThread; ++qx) {
+		Qweight[qx] *= weight;
+	}
+}
+
+void BA81LatentScores::begin(struct BA81Expect *state)
+{
+	numLatents = state->maxAbilities + triangleLoc1(state->maxAbilities);
+	thrScore.resize(numLatents * Global->numThreads);
+}
+
+void BA81LatentScores::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
+{
+	const int maxAbilities = state->maxAbilities;
+	const int primaryDims = state->primaryDims;
+	omxData *data = state->data;
+
+	// NOTE: Qweight remains unnormalized
+
+	double *scorePad = thrScore.data() + numLatents * thrId;
+	OMXZERO(scorePad, numLatents);
+	mapSpace(state, Qweight, scorePad);
+
+	double OneOverPatternLik = 1/patternLik1;
+	for (int lx=0; lx < numLatents; ++lx) {
+		scorePad[lx] *= OneOverPatternLik;
+	}
+
+	int cx = maxAbilities;
+	for (int a1=0; a1 < primaryDims; ++a1) {
+		for (int a2=0; a2 <= a1; ++a2) {
+			double ma1 = scorePad[a1];
+			double ma2 = scorePad[a2];
+			scorePad[cx] -= ma1 * ma2;
+			++cx;
+		}
+	}
+	for (int sx=0; sx < state->numSpecific; sx++) {
+		int sdim = primaryDims + sx;
+		double ma1 = scorePad[sdim];
+		scorePad[maxAbilities + triangleLoc0(sdim)] -= ma1 * ma1;
+	}
+
+	std::vector<double*> &out = state->scoresOut;
+	int dups = omxDataNumIdenticalRows(data, state->rowMap[px]); // should == rowWeight[px]
+	for (int dup=0; dup < dups; dup++) {
+		int dest = omxDataIndex(data, state->rowMap[px]+dup);
+
+		for (int ax=0; ax < maxAbilities; ++ax) {
+			out[ax][dest] = scorePad[ax];
+		}
+		for (int ax=0; ax < maxAbilities; ++ax) {
+			out[maxAbilities + ax][dest] = sqrt(scorePad[maxAbilities + triangleLoc0(ax)]);
+		}
+		for (int ax=0; ax < triangleLoc1(maxAbilities); ++ax) {
+			out[2*maxAbilities + ax][dest] = scorePad[maxAbilities + ax];
+		}
+	}
+}
+
+void BA81LatentScores::end(struct BA81Expect *state)
+{
+	const int numUnique = (int) state->rowMap.size();
+	std::vector<double*> &out = state->scoresOut;
+	omxData *data = state->data;
+	double *patternLik = state->patternLik;
+
+	for (int px=0; px < numUnique; px++) {
+		if (patternLik[px]) continue;
+		int dups = omxDataNumIdenticalRows(data, state->rowMap[px]);
+		for (int dup=0; dup < dups; dup++) {
+			int dest = omxDataIndex(data, state->rowMap[px]+dup);
+			for (int ax=0; ax < int(out.size()); ++ax) {
+				out[ax][dest] = NA_REAL;
+			}
+		}
+	}
+}
+
 void BA81LatentSummary::begin(struct BA81Expect *state)
 {
 	thrDweight.assign(state->ptsPerThread * Global->numThreads, 0.0);
@@ -227,16 +309,9 @@ void BA81LatentSummary::begin(struct BA81Expect *state)
 	latentDist.assign(numLatents, 0.0);
 }
 
-void BA81LatentFixed::normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrId)
+void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
-	for (long qx=0; qx < state->ptsPerThread; ++qx) {
-		double tmp = Qweight[qx] * weight;
-		Qweight[qx] = tmp;
-	}
-}
-
-void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrId)
-{
+	double weight = state->rowWeight[px] / patternLik1;
 	double *Dweight = thrDweight.data() + state->ptsPerThread * thrId;
 	for (long qx=0; qx < state->ptsPerThread; ++qx) {
 		double tmp = Qweight[qx] * weight;
@@ -245,14 +320,35 @@ void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, double *Qweig
 	}
 }
 
-void BA81LatentSummary::recordLatentDistribution(struct BA81Expect *state)
+void BA81LatentEstimate::mapSpace(struct BA81Expect *state, double *thrDweight, double *latentDist)
 {
-	const int maxDims = state->maxDims;
-	const int whereGramSize = triangleLoc1(maxDims);
 	const double *wherePrep = state->wherePrep.data();
 	const double *whereGram = state->whereGram.data();
+	const int maxDims = state->maxDims;
+	const int whereGramSize = triangleLoc1(maxDims);
 	const int numSpecific = state->numSpecific;
 
+	if (numSpecific == 0) { // use template to handle this branch at compile time TODO
+		for (long qx=0; qx < state->totalQuadPoints; ++qx) {
+			mapDenseSpace(state, thrDweight[qx], wherePrep + qx * maxDims,
+				      whereGram + qx * whereGramSize, latentDist);
+		}
+	} else {
+		long qloc=0;
+		for (long qx=0; qx < state->totalQuadPoints; qx++) {
+			const double *whPrep = wherePrep + qx * maxDims;
+			const double *whGram = whereGram + qx * whereGramSize;
+			mapDenseSpace(state, thrDweight[qloc], whPrep, whGram, latentDist);
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				mapSpecificSpace(state, Sgroup, thrDweight[qloc], whPrep, whGram, latentDist);
+				++qloc;
+			}
+		}
+	}
+}
+
+void BA81LatentSummary::end(struct BA81Expect *state)
+{
 	for (int tx=1; tx < Global->numThreads; ++tx) {
 		double *Dweight = thrDweight.data() + state->ptsPerThread * tx;
 		double *dest = thrDweight.data();
@@ -261,23 +357,7 @@ void BA81LatentSummary::recordLatentDistribution(struct BA81Expect *state)
 		}
 	}
 
-	if (numSpecific == 0) {
-		for (long qx=0; qx < state->totalQuadPoints; ++qx) {
-			mapDenseSpace(state, thrDweight[qx], wherePrep + qx * maxDims,
-				      whereGram + qx * whereGramSize, latentDist.data());
-		}
-	} else {
-		long qloc=0;
-		for (long qx=0; qx < state->totalQuadPoints; qx++) {
-			const double *whPrep = wherePrep + qx * maxDims;
-			const double *whGram = whereGram + qx * whereGramSize;
-			mapDenseSpace(state, thrDweight[qloc], whPrep, whGram, latentDist.data());
-			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-				mapSpecificSpace(state, Sgroup, thrDweight[qloc], whPrep, whGram, latentDist.data());
-				++qloc;
-			}
-		}
-	}
+	mapSpace(state, thrDweight.data(), latentDist.data());
 
 	omxMatrix *meanOut = state->estLatentMean;
 	omxMatrix *covOut = state->estLatentCov;
@@ -478,7 +558,6 @@ void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(
 	const int numThreads = Global->numThreads;
 	state->ptsPerThread = state->totalQuadPoints;
 	state->primaryDims  = state->maxDims;
-	double *rowWeight = state->rowWeight;
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
@@ -498,13 +577,16 @@ void BA81Engine<BA81Dense, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep1(
 		double patternLik1 = PatLikPolicy<CovType>::getPatLik(state, px, Qweight);
 		if (patternLik1 == 0) continue;
 
-		double weight = rowWeight[px] / patternLik1;
-		LatentPolicy::normalizeWeights(state, Qweight, weight, thrId);
+		LatentPolicy::normalizeWeights(state, px, Qweight, patternLik1, thrId);
 		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
+	// Can do these last steps in parallel, but it only saves 2%
+	// in one test. Plus, this optimization is counterproductive
+	// when EstepPolicy does nothing.
+
 	EstepPolicy<CovType>::recordTable(state);
-	LatentPolicy::recordLatentDistribution(state);
+	LatentPolicy::end(state);
 }
 
 template <
@@ -529,7 +611,6 @@ void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep
 	const int numThreads = Global->numThreads;
 	state->ptsPerThread = state->totalQuadPoints * numSpecific;
 	state->primaryDims  = state->maxDims - 1;
-	double *rowWeight = state->rowWeight;
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
@@ -568,13 +649,12 @@ void BA81Engine<BA81TwoTier, PatLikPolicy, LatentPolicy, EstepPolicy>::ba81Estep
 			}
 		}
 
-		double weight = rowWeight[px] / patternLik1;
-		LatentPolicy::normalizeWeights(state, Qweight, weight, thrId);
+		LatentPolicy::normalizeWeights(state, px, Qweight, patternLik1, thrId);
 		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
 	EstepPolicy<CovType>::recordTable(state);
-	LatentPolicy::recordLatentDistribution(state);
+	LatentPolicy::end(state);
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -784,152 +864,6 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	state->latentParamVersion = getLatentVersion(state);
 }
 
-OMXINLINE static void
-accumulateScores(BA81Expect *state, int px, int sgroup, double piece, const double *where,
-		 int primaryDims, int covEntries, std::vector<double> *mean, std::vector<double> *cov)
-{
-	int maxDims = state->maxDims;
-	int maxAbilities = state->maxAbilities;
-
-	if (sgroup == 0) {
-		int cx=0;
-		for (int d1=0; d1 < primaryDims; d1++) {
-			double piece_w1 = piece * where[d1];
-			double &dest1 = (*mean)[px * maxAbilities + d1];
-			dest1 += piece_w1;
-			for (int d2=0; d2 <= d1; d2++) {
-				double &dest2 = (*cov)[px * covEntries + cx];
-				dest2 += where[d2] * piece_w1;
-				++cx;
-			}
-		}
-	}
-
-	if (state->numSpecific) {
-		int sdim = maxDims + sgroup - 1;
-		double piece_w1 = piece * where[primaryDims];
-		double &dest3 = (*mean)[px * maxAbilities + sdim];
-		dest3 += piece_w1;
-
-		double &dest4 = (*cov)[px * covEntries + triangleLoc0(sdim)];
-		dest4 += piece_w1 * where[primaryDims];
-	}
-}
-
-// re-factor to share code with E-step TODO
-static void
-EAPinternalFast(omxExpectation *oo, std::vector<double> *mean, std::vector<double> *cov)
-{
-	BA81Expect *state = (BA81Expect*) oo->argStruct;
-	if (state->verbose >= 1) mxLog("%s: EAP", oo->name);
-
-	const int numUnique = (int) state->rowMap.size();
-	const int numSpecific = state->numSpecific;
-	const int maxDims = state->maxDims;
-	const int maxAbilities = state->maxAbilities;
-	const int primaryDims = numSpecific? maxDims-1 : maxDims;
-	const int covEntries = triangleLoc1(maxAbilities);
-	double *patternLik = state->patternLik;
-	const long totalQuadPoints = state->totalQuadPoints;
-	const long totalPrimaryPoints = state->totalPrimaryPoints;
-	double *wherePrep = state->wherePrep.data();
-
-	mean->assign(numUnique * maxAbilities, 0);
-	cov->assign(numUnique * covEntries, 0);
-
-	if (numSpecific == 0) {
-		omxBuffer<double> thrLxk(totalQuadPoints * Global->numThreads);
-
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (int px=0; px < numUnique; px++) {
-			if (!validPatternLik(state, patternLik[px])) {
-				continue;
-			}
-
-			int thrId = omx_absolute_thread_num();
-			double *lxk = thrLxk.data() + thrId * totalQuadPoints;
-			ba81LikelihoodSlow2(state, px, lxk);
-
-			for (long qx=0; qx < state->totalQuadPoints; qx++) {
-				double tmp = lxk[qx];
-				accumulateScores(state, px, 0, tmp, wherePrep + qx * maxDims,
-						 primaryDims, covEntries, mean, cov);
-			}
-		}
-	} else {
-		const long specificPoints = state->quadGridSize;
-		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * Global->numThreads);
-		omxBuffer<double> thrEi(totalPrimaryPoints * Global->numThreads);
-		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * Global->numThreads);
-
-#pragma omp parallel for num_threads(Global->numThreads)
-		for (int px=0; px < numUnique; px++) {
-			if (!validPatternLik(state, patternLik[px])) {
-				continue;
-			}
-
-			int thrId = omx_absolute_thread_num();
-			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
-			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
-			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
-			cai2010EiEis(state, px, lxk, Eis, Ei);
-
-			long qloc = 0;
-			long eisloc = 0;
-			for (long qx=0; qx < totalPrimaryPoints; qx++) {
-				for (long sx=0; sx < specificPoints; sx++) {
-					double *whPrep = wherePrep + (qx * state->quadGridSize + sx) * maxDims;
-					for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
-						double lxk1 = lxk[qloc];
-						double Eis1 = Eis[eisloc + Sgroup];
-						double tmp = Eis1 * lxk1;
-						accumulateScores(state, px, Sgroup, tmp, whPrep, primaryDims,
-								 covEntries, mean, cov);
-						++qloc;
-					}
-				}
-				eisloc += numSpecific;
-			}
-		}
-	}
-
-	for (int px=0; px < numUnique; px++) { // do row-by-row instead of here TODO
-		double denom = patternLik[px];
-		if (state->rowSkip[px] || !validPatternLik(state, denom)) {
-			for (int ax=0; ax < maxAbilities; ++ax) {
-				(*mean)[px * maxAbilities + ax] = NA_REAL;
-			}
-			for (int cx=0; cx < covEntries; ++cx) {
-				(*cov)[px * covEntries + cx] = NA_REAL;
-			}
-			continue;
-		}
-		for (int ax=0; ax < maxAbilities; ax++) {
-			(*mean)[px * maxAbilities + ax] /= denom;
-		}
-		for (int cx=0; cx < triangleLoc1(primaryDims); ++cx) {
-			(*cov)[px * covEntries + cx] /= denom;
-		}
-		for (int sx=0; sx < numSpecific; sx++) {
-			(*cov)[px * covEntries + triangleLoc0(primaryDims + sx)] /= denom;
-		}
-		int cx=0;
-		for (int a1=0; a1 < primaryDims; ++a1) {
-			for (int a2=0; a2 <= a1; ++a2) {
-				double ma1 = (*mean)[px * maxAbilities + a1];
-				double ma2 = (*mean)[px * maxAbilities + a2];
-				(*cov)[px * covEntries + cx] -= ma1 * ma2;
-				++cx;
-			}
-		}
-		for (int sx=0; sx < numSpecific; sx++) {
-			int sdim = primaryDims + sx;
-			double ma1 = (*mean)[px * maxAbilities + sdim];
-			(*cov)[px * covEntries + triangleLoc0(sdim)] -= ma1 * ma1;
-		}
-        }
-}
-
 static void
 ba81compute(omxExpectation *oo, const char *what, const char *how)
 {
@@ -996,26 +930,6 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);
-}
-
-static void
-copyScore(int rows, int maxAbilities, std::vector<double> &mean,
-	  std::vector<double> &cov, const int rx, SEXP Rscores, const int dest)
-{
-	SEXP rcol;
-
-	for (int ax=0; ax < maxAbilities; ++ax) {
-		rcol = VECTOR_ELT(Rscores, ax);
-		REAL(rcol)[dest] = mean[maxAbilities * rx + ax];
-	}
-	for (int ax=0; ax < maxAbilities; ++ax) {
-		rcol = VECTOR_ELT(Rscores, maxAbilities + ax);
-		REAL(rcol)[dest] = sqrt(cov[triangleLoc1(maxAbilities) * rx + triangleLoc0(ax)]);
-	}
-	for (int ax=0; ax < triangleLoc1(maxAbilities); ++ax) {
-		rcol = VECTOR_ELT(Rscores, 2*maxAbilities + ax);
-		REAL(rcol)[dest] = cov[triangleLoc1(maxAbilities) * rx + ax];
-	}
 }
 
 /**
@@ -1088,17 +1002,17 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	ba81Estep1(oo);
 	*/
 
-	std::vector<double> mean;
-	std::vector<double> cov;
-	EAPinternalFast(oo, &mean, &cov);
-
 	omxData *data = state->data;
 	int rows = data->rows;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
+	state->scoresOut.clear();
+	state->scoresOut.reserve(cols);
 	SEXP Rscores;
 	Rf_protect(Rscores = Rf_allocVector(VECSXP, cols));
 	for (int cx=0; cx < cols; ++cx) {
-		SET_VECTOR_ELT(Rscores, cx, Rf_allocVector(REALSXP, rows));
+		SEXP vec = Rf_allocVector(REALSXP, rows);
+		SET_VECTOR_ELT(Rscores, cx, vec);
+		state->scoresOut.push_back(REAL(vec));
 	}
 
 	const int SMALLBUF = 10;
@@ -1123,13 +1037,12 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	Rf_setAttrib(Rscores, R_RowNamesSymbol, data->getRowNames());
 
-#pragma omp parallel for num_threads(Global->numThreads)
-	for (int rx=0; rx < numUnique; rx++) {
-		int dups = omxDataNumIdenticalRows(data, state->rowMap[rx]);
-		for (int dup=0; dup < dups; dup++) {
-			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-			copyScore(rows, maxAbilities, mean, cov, rx, Rscores, dest);
-		}
+	if (state->numSpecific == 0) {
+		BA81Engine<BA81Dense, BA81ReusePatLik, BA81LatentScores, BA81OmitEstep> engine;
+		engine.ba81Estep1(state);
+	} else {
+		BA81Engine<BA81TwoTier, BA81ReusePatLik, BA81LatentScores, BA81OmitEstep> engine;
+		engine.ba81Estep1(state);
 	}
 
 	MxRList out;
@@ -1317,6 +1230,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			state->rowMap[rx] = rx;
 		}
 	}
+	// complain about non-integral rowWeights (EAP can't work) TODO
 
 	std::vector<int> &rowMap = state->rowMap;
 

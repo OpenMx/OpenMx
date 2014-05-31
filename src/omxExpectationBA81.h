@@ -69,26 +69,41 @@ struct BA81Estep {
 template <typename CovType>
 struct BA81OmitEstep {
 	void begin(struct BA81Expect *state) {};
+	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId) {};
+	void recordTable(struct BA81Expect *state) {};
 };
 
 struct BA81LatentFixed {
 	void begin(struct BA81Expect *state) {}
-	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrid);
-	void recordLatentDistribution(struct BA81Expect *state) {};
+	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrid);
+	void end(struct BA81Expect *state) {};
 };
 
-struct BA81LatentSummary {
+struct BA81LatentEstimate {
+	void mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
+			   const double *whereGram, double *latentDist);
+	void mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
+			      const double *whereGram, double *latentDist);
+	void mapSpace(struct BA81Expect *state, double *thrDweight, double *latentDist);
+};
+
+struct BA81LatentSummary : BA81LatentEstimate {
 	int numLatents;
 	std::vector<double> thrDweight;
 	std::vector<double> latentDist;
 
 	void begin(struct BA81Expect *state);
-	void normalizeWeights(struct BA81Expect *state, double *Qweight, double weight, int thrId);
-	void mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
-			   const double *whereGram, double *latentDist);
-	void mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
-			      const double *whereGram, double *latentDist);
-	void recordLatentDistribution(struct BA81Expect *state);
+	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
+	void end(struct BA81Expect *state);
+};
+
+struct BA81LatentScores : BA81LatentEstimate {
+	int numLatents;
+	Eigen::VectorXd thrScore;
+
+	void begin(struct BA81Expect *state);
+	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
+	void end(struct BA81Expect *state);
 };
 
 template <
@@ -164,6 +179,7 @@ struct BA81Expect {
 	// workspace
 	int ptsPerThread;
 	int primaryDims;
+	std::vector<double*> scoresOut;
 };
 
 extern const struct rpf *rpf_model;
