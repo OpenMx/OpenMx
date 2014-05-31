@@ -134,14 +134,26 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 	}
 	if (doFit) {
 		if (fitMat->rows != 1) {
-			// NOTE: Floating-point addition is not
-			// associative. If we compute this in parallel
-			// then we introduce non-determinancy.
-			double sum = 0;
-			for(int i = 0; i < fitMat->rows; i++) {
-				sum += log(omxVectorElement(fitMat, i));
+			if (strEQ(ff->fitType, "MxFitFunctionML") || strEQ(ff->fitType, "imxFitFunctionFIML")) {
+				// NOTE: Floating-point addition is not
+				// associative. If we compute this in parallel
+				// then we introduce non-determinancy.
+				double sum = 0;
+				for(int i = 0; i < fitMat->rows; i++) {
+					sum += log(omxVectorElement(fitMat, i));
+				}
+				fc->fit = sum * Global->llScale;
+				if (!Global->rowLikelihoodsWarning) {
+					Rf_warning("%s does not evaluate to a 1x1 matrix. Fixing model by adding "
+						   "mxAlgebra(-2*sum(log(%s)), 'm2ll'), mxFitFunctionAlgebra('m2ll')",
+						   fitMat->name, fitMat->name);
+					Global->rowLikelihoodsWarning = true;
+				}
+			} else {
+				omxRaiseErrorf("%s of type %s returned %d values instead of 1, not sure how to proceed",
+					       fitMat->name, ff->fitType, fitMat->rows);
+				fc->fit = nan("unknown");
 			}
-			fc->fit = sum * Global->llScale;
 		} else {
 			fc->fit = fitMat->data[0];
 		}

@@ -163,6 +163,7 @@ class omxGlobal {
 	int analyticGradients;
 	double llScale;
 	int anonAlgebra;
+	bool rowLikelihoodsWarning;
 
 	double maxptsa;
 	double maxptsb;

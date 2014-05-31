@@ -191,22 +191,33 @@ trim <- function(input) {
 	return(input)
 }
 
+tryCatch.W <- function(expr) {
+	# see demo(error.catching)
+	W <- NULL
+	w.handler <- function(w) {
+		W <<- w
+		invokeRestart("muffleWarning")
+	}
+	list(value = withCallingHandlers(tryCatch(expr), warning = w.handler),
+	     warning = W)
+}
+
 omxCheckWarning <- function(expression, message) {
 	inputExpression <- match.call()$expression
-	checkWarningState <- FALSE
-	tryCatch(eval(inputExpression), warning = function(x) {
-		if(trim(x$message) != trim(message)) {
-			stop(paste("An warning was thrown with the wrong message:",
-				x$message), call. = FALSE)
-		} else { checkWarningState <<- TRUE }
-	})
-	if (!checkWarningState) {
+	result <- tryCatch.W(expression)
+	if (is.null(result$warning)) {
 		stop(paste("No warning was observed for the expression",
 			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste("The expected warning was observed for the expression",
-			deparse(inputExpression, width.cutoff = 500L), '\n'))
 	}
+	if (trim(result$warning$message) != trim(message)) {
+		stop(paste("A warning was thrown with the wrong message:",
+			   result$warning$message), call. = FALSE)
+	}
+	if (getOption("mxPrintUnitTests")) {
+		cat(paste("The expected warning was observed for the expression",
+			  deparse(inputExpression, width.cutoff = 500L), '\n'))
+	}
+	result$value
 }
 
 omxCheckError <- function(expression, message) {

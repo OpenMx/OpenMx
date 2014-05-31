@@ -164,6 +164,7 @@ omxGlobal::omxGlobal()
 	llScale = -2.0;
 	computeCount = 0;
 	anonAlgebra = 0;
+	rowLikelihoodsWarning = false;
 }
 
 void omxGlobal::deduplicateVarGroups()
