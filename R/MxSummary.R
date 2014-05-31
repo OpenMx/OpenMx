@@ -678,7 +678,8 @@ setMethod("summary", "MxModel",
 	}
 )
 
-logLik.MxModel <- function(model) {
+logLik.MxModel <- function(object, ...) {
+	model <- object
 	if (length(model@runstate) && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run. The log likelihood may be out-of-date.")
