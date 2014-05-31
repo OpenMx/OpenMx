@@ -433,10 +433,11 @@ static void ba81Estep1(omxExpectation *oo)
 	}
 
 	const long expectedSize = totalQuadPoints * totalOutcomes;
-	OMXZERO(state->expected, expectedSize);
-
 	double *e1 = thrExpected.data();
-	for (int tx=0; tx < numThreads; ++tx) {
+	memcpy(state->expected, e1, sizeof(double) * expectedSize);
+	e1 += expectedSize;
+
+	for (int tx=1; tx < numThreads; ++tx) {
 		for (long ex=0; ex < expectedSize; ++ex) {
 			state->expected[ex] += *e1;
 			++e1;
