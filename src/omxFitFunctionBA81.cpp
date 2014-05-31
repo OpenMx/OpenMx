@@ -302,7 +302,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const double *iparam = omxMatrixColumn(itemParam, ix);
 		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
 
-		for (long qx=0; qx < estate->quad.totalQuadPoints; qx++) {
+		for (int qx=0; qx < estate->quad.totalQuadPoints; qx++) {
 			if (do_fit) {
 				for (int ox=0; ox < iOutcomes; ox++) {
 					ll += weight[ox] * oProb[ox];
@@ -407,7 +407,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	std::vector<int> &rowMap = estate->rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
-	const long totalQuadPoints = estate->quad.totalQuadPoints;
+	const int totalQuadPoints = estate->quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
 
@@ -438,7 +438,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
-			for (long qx=0; qx < totalQuadPoints; qx++) {
+			for (int qx=0; qx < totalQuadPoints; qx++) {
 				patternLik1 += lxk[qx];
 			}
 			patternLik[px] = patternLik1;
@@ -446,7 +446,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			// if (!validPatternLik(state, patternLik1))  complain
 
 			double weight = 1 / patternLik[px];
-			for (long qx=0; qx < totalQuadPoints; qx++) {
+			for (int qx=0; qx < totalQuadPoints; qx++) {
 				double tmp = lxk[qx] * weight;
 				double sqrtTmp = sqrt(tmp);
 
@@ -492,8 +492,8 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 		}
 
 	} else {
-		const long totalPrimaryPoints = estate->quad.totalPrimaryPoints;
-		const long specificPoints = estate->quad.quadGridSize;
+		const int totalPrimaryPoints = estate->quad.totalPrimaryPoints;
+		const int specificPoints = estate->quad.quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
@@ -515,12 +515,12 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
-			for (long qx=0; qx < totalPrimaryPoints; ++qx) {
+			for (int qx=0; qx < totalPrimaryPoints; ++qx) {
 				patternLik1 += Ei[qx];
 			}
 			patternLik[px] = patternLik1;
 
-			for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+			for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 				for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
 					Eis[qloc] = Ei[qx] / Eis[qloc];
 					++qloc;
@@ -529,8 +529,8 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 			// WARNING: I didn't work out the math. I just coded this the way
 			// it seems to make sense.
-			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
-				for (long sx=0; sx < specificPoints; sx++) {
+			for (int qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+				for (int sx=0; sx < specificPoints; sx++) {
 					for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
 						std::vector<double> gradBuf(numParam);
 						int gradOffset = 0;
@@ -805,7 +805,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	std::vector<int> &rowMap = estate->rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
-	const long totalQuadPoints = estate->quad.totalQuadPoints;
+	const int totalQuadPoints = estate->quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
 
@@ -844,7 +844,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		omxBuffer<double> derivCoef(totalQuadPoints * priDerivCoef);
 
 #pragma omp parallel for num_threads(numThreads)
-		for (long qx=0; qx < totalQuadPoints; qx++) {
+		for (int qx=0; qx < totalQuadPoints; qx++) {
 			const double *where = wherePrep + qx * maxDims;
 			calcDerivCoef(state, estate, icovBuffer, where,
 				      derivCoef.data() + qx * priDerivCoef);
@@ -865,14 +865,14 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
-			for (long qx=0; qx < totalQuadPoints; qx++) {
+			for (int qx=0; qx < totalQuadPoints; qx++) {
 				patternLik1 += lxk[qx];
 			}
 			patternLik[px] = patternLik1;
 
 			// if (!validPatternLik(state, patternLik1))  complain, TODO
 
-			for (long qx=0; qx < totalQuadPoints; qx++) {
+			for (int qx=0; qx < totalQuadPoints; qx++) {
 				double tmp = lxk[qx];
 				mapLatentDeriv(state, estate, tmp, derivCoef.data() + qx * priDerivCoef,
 					       latentGrad.data());
@@ -895,8 +895,8 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	} else {
-		const long totalPrimaryPoints = estate->quad.totalPrimaryPoints;
-		const long specificPoints = estate->quad.quadGridSize;
+		const int totalPrimaryPoints = estate->quad.totalPrimaryPoints;
+		const int specificPoints = estate->quad.quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
@@ -904,7 +904,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		omxBuffer<double> derivCoef(totalQuadPoints * derivPerPoint);
 
 #pragma omp parallel for num_threads(numThreads)
-		for (long qx=0; qx < totalQuadPoints; qx++) {
+		for (int qx=0; qx < totalQuadPoints; qx++) {
 			const double *where = wherePrep + qx * maxDims;
 			calcDerivCoef(state, estate, icovBuffer, where,
 				      derivCoef.data() + qx * derivPerPoint);
@@ -929,15 +929,15 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			double *meat = thrMeat.data() + thrId * numParam * numParam;
 			cai2010EiEis(estate, px, lxk, Eis, Ei);
 
-			for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+			for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 				for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
 					Eis[qloc] = Ei[qx] / Eis[qloc];
 					++qloc;
 				}
 			}
 
-			for (long qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
-				for (long sx=0; sx < specificPoints; sx++) {
+			for (int qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+				for (int sx=0; sx < specificPoints; sx++) {
 					mapLatentDeriv(state, estate, Eis[eisloc] * lxk[qloc],
 						       derivCoef.data() + qx * derivPerPoint,
 						       latentGrad.data());
@@ -971,7 +971,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
-			for (long qx=0; qx < totalPrimaryPoints; ++qx) {
+			for (int qx=0; qx < totalPrimaryPoints; ++qx) {
 				patternLik1 += Ei[qx];
 			}
 			patternLik[px] = patternLik1;

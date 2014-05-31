@@ -57,7 +57,7 @@ void pia(const int *ar, int rows, int cols)
 
 void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 {
-	const long totalQuadPoints = state->quad.totalQuadPoints;
+	const int totalQuadPoints = state->quad.totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const size_t numItems = state->itemSpec.size();
 	omxData *data = state->data;
@@ -66,7 +66,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 	double *oProb = state->outcomeProb;
 	std::vector<double> &priQarea = state->quad.priQarea;
 
-	for (long qx=0; qx < totalQuadPoints; ++qx) {
+	for (int qx=0; qx < totalQuadPoints; ++qx) {
 		out[qx] = priQarea[qx];
 	}
 
@@ -79,7 +79,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 		}
 		pick -= 1;
 
-		for (long qx=0; qx < totalQuadPoints; ++qx) {
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
 			out[qx] *= oProb[pick];
 			oProb += itemOutcomes[ix];
 		}
@@ -91,9 +91,9 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	const int numSpecific = state->numSpecific;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	double *oProb = state->outcomeProb;
-	const long totalQuadPoints = state->quad.totalQuadPoints;
-	const long totalPrimaryPoints = state->quad.totalPrimaryPoints;
-	const long specificPoints = state->quad.quadGridSize;
+	const int totalQuadPoints = state->quad.totalQuadPoints;
+	const int totalPrimaryPoints = state->quad.totalPrimaryPoints;
+	const int specificPoints = state->quad.quadGridSize;
 	const size_t numItems = state->itemSpec.size();
 	const double OneOverLargest = state->OneOverLargestDouble;
 	omxData *data = state->data;
@@ -102,8 +102,8 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	std::vector<double> &speQarea = state->quad.speQarea;
 	std::vector<double> &priQarea = state->quad.priQarea;
 
-	for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
-		for (long sx=0; sx < specificPoints * numSpecific; sx++) {
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints * numSpecific; sx++) {
 			lxk[qloc] = speQarea[sx];
 			++qloc;
 		}
@@ -119,19 +119,19 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 		pick -= 1;
 		int Sgroup = state->Sgroup[ix];
 		double *out1 = lxk;
-		for (long qx=0; qx < state->quad.totalQuadPoints; qx++) {
+		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
 			out1[Sgroup] *= oProb[pick];
 			oProb += itemOutcomes[ix];
 			out1 += numSpecific;
 		}
 	}
 
-	for (long qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
-	for (long qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = priQarea[qx];
+	for (int qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
+	for (int qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = priQarea[qx];
 
-	long eisloc = 0;
-	for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
-		for (long sx=0; sx < specificPoints; sx++) {
+	int eisloc = 0;
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints; sx++) {
 			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
 				double piece = lxk[qloc];
 				Eis[eisloc + sgroup] += piece;
@@ -197,7 +197,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 		double *iparam = param + ix * itemParam->rows;
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
-		for (long qx=0; qx < state->quad.totalQuadPoints; qx++) {
+		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
 			double *where = state->quad.wherePrep.data() + qx * maxDims;
 
 			double ptheta[dims];
@@ -217,7 +217,7 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 void BA81LatentFixed::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
 	double weight = state->rowWeight[px] / patternLik1;
-	for (long qx=0; qx < state->ptsPerThread; ++qx) {
+	for (int qx=0; qx < state->ptsPerThread; ++qx) {
 		Qweight[qx] *= weight;
 	}
 }
@@ -307,7 +307,7 @@ void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, int px, doubl
 {
 	double weight = state->rowWeight[px] / patternLik1;
 	double *Dweight = thrDweight.data() + state->ptsPerThread * thrId;
-	for (long qx=0; qx < state->ptsPerThread; ++qx) {
+	for (int qx=0; qx < state->ptsPerThread; ++qx) {
 		double tmp = Qweight[qx] * weight;
 		Dweight[qx] += tmp;
 		Qweight[qx] = tmp;
@@ -323,13 +323,13 @@ void BA81LatentEstimate::mapSpace(struct BA81Expect *state, double *thrDweight, 
 	const int numSpecific = state->numSpecific;
 
 	if (numSpecific == 0) { // use template to handle this branch at compile time TODO
-		for (long qx=0; qx < state->quad.totalQuadPoints; ++qx) {
+		for (int qx=0; qx < state->quad.totalQuadPoints; ++qx) {
 			mapDenseSpace(state, thrDweight[qx], wherePrep + qx * maxDims,
 				      whereGram + qx * whereGramSize, latentDist);
 		}
 	} else {
-		long qloc=0;
-		for (long qx=0; qx < state->quad.totalQuadPoints; qx++) {
+		int qloc=0;
+		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
 			const double *whPrep = wherePrep + qx * maxDims;
 			const double *whGram = whereGram + qx * whereGramSize;
 			mapDenseSpace(state, thrDweight[qloc], whPrep, whGram, latentDist);
@@ -346,7 +346,7 @@ void BA81LatentSummary::end(struct BA81Expect *state)
 	for (int tx=1; tx < Global->numThreads; ++tx) {
 		double *Dweight = thrDweight.data() + state->ptsPerThread * tx;
 		double *dest = thrDweight.data();
-		for (long qx=0; qx < state->ptsPerThread; ++qx) {
+		for (int qx=0; qx < state->ptsPerThread; ++qx) {
 			dest[qx] += Dweight[qx];
 		}
 	}
@@ -426,7 +426,7 @@ void BA81Estep<BA81Dense>::addRow(struct BA81Expect *state, int px, double *Qwei
 		}
 		pick -= 1;
 
-		for (long qx=0; qx < totalQuadPoints; ++qx) {
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
 			out[pick] += Qweight[qx];
 			out += itemOutcomes[ix];
 		}
@@ -451,7 +451,7 @@ void BA81Estep<BA81TwoTier>::addRow(struct BA81Expect *state, int px, double *Qw
 
 		int Sgroup = state->Sgroup[ix];
 		double *Qw = Qweight;
-		for (long qx=0; qx < totalQuadPoints; ++qx) {
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
 			out[pick] += Qw[Sgroup];
 			out += itemOutcomes[ix];
 			Qw += numSpecific;
@@ -463,7 +463,7 @@ template <typename CovType>
 void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 {
 	const int numThreads = Global->numThreads;
-	const long expectedSize = state->quad.totalQuadPoints * state->totalOutcomes;
+	const int expectedSize = state->quad.totalQuadPoints * state->totalOutcomes;
 	double *e1 = thrExpected.data();
 
 	state->expected = Realloc(state->expected, state->totalOutcomes * state->quad.totalQuadPoints, double);
@@ -471,7 +471,7 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	e1 += expectedSize;
 
 	for (int tx=1; tx < numThreads; ++tx) {
-		for (long ex=0; ex < expectedSize; ++ex) {
+		for (int ex=0; ex < expectedSize; ++ex) {
 			state->expected[ex] += *e1;
 			++e1;
 		}
@@ -628,8 +628,8 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 	EstepPolicy<CovType>::begin(state);
 	LatentPolicy::begin(state);
 
-	const long totalPrimaryPoints = state->quad.totalPrimaryPoints;
-	const long specificPoints = state->quad.quadGridSize;
+	const int totalPrimaryPoints = state->quad.totalPrimaryPoints;
+	const int specificPoints = state->quad.quadGridSize;
 	omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 	omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
 
@@ -651,15 +651,15 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 
 		// Can omit rest if we only want patternLik TODO
 
-		for (long qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
 				Eis[qloc] = Ei[qx] / Eis[qloc];
 				++qloc;
 			}
 		}
 
-		for (long qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
-			for (long sx=0; sx < specificPoints; sx++) {
+		for (int qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+			for (int sx=0; sx < specificPoints; sx++) {
 				for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
 					Qweight[qloc] *= Eis[eisloc + Sgroup];
 					++qloc;
