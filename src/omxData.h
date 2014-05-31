@@ -62,6 +62,8 @@ struct omxThresholdColumn {		 	// Threshold
 };
 
 class omxData {
+ private:
+	SEXP rownames;
  public: // move everything to private TODO
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
@@ -87,6 +89,8 @@ class omxData {
 	struct omxExpectation *expectation;   // weak pointer
 
 	omxData();
+	void newDataStatic(SEXP dataObject);
+	SEXP getRowNames();
 };
 
 /* Initialize and Destroy */

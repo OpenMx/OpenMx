@@ -28,7 +28,7 @@
 #include "glue.h"
 #include "omxState.h"
 
-omxData::omxData() : dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+omxData::omxData() : rownames(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), location(0), realData(0),
 		     intData(0), indexVector(0), identicalDefs(0), identicalMissingness(0),
 		     identicalRows(0), numFactor(0), numNumeric(0), rows(0), cols(0),
@@ -53,8 +53,9 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	od->expectation->dynamicDataSource = true;
 }
 
-static void newDataStatic(SEXP dataObject, omxData *od)
+void omxData::newDataStatic(SEXP dataObject)
 {
+	omxData *od = this;
 	omxState *state = globalState;
 	SEXP dataLoc, dataVal;
 	int numCols;
@@ -74,6 +75,7 @@ static void newDataStatic(SEXP dataObject, omxData *od)
 	if (Rf_isFrame(dataLoc)) {
 		if(OMX_DEBUG) {mxLog("Data is a frame.");}
 		// Process Data Frame into Columns
+		od->rownames = Rf_getAttrib(dataLoc, R_RowNamesSymbol);
 		od->cols = Rf_length(dataLoc);
 		if(OMX_DEBUG) {mxLog("Data has %d columns.", od->cols);}
 		numCols = od->cols;
@@ -215,7 +217,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject)
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData;
 	globalState->dataList.push_back(od);
-	if (strcmp(dclass, "MxDataStatic")==0) newDataStatic(dataObject, od);
+	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(dataObject);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
 	else Rf_error("Unknown data class %s", dclass);
 	return od;
@@ -763,4 +765,26 @@ double omxDataDF(omxData *od)
 		return df;
 	}
 	return NA_REAL;
+}
+
+SEXP omxData::getRowNames()
+{
+	if (!strEQ(_type, "raw")) Rf_error("getRowNames only works for type=raw data");
+
+	if (!isSorted) return rownames;
+
+	// We could notice if the original order was sorted and in the special
+	// form c(NA, #rows) to avoid recreating the rownames.
+
+	SEXP unsorted;
+	if (Rf_isString(rownames)) {
+		Rf_protect(unsorted = Rf_allocVector(STRSXP, rows));
+		for (int rx=0; rx < rows; rx++) {
+			int dest = omxDataIndex(this, rx);
+			SET_STRING_ELT(unsorted, dest, STRING_ELT(rownames, rx));
+		}
+	} else {
+		Rf_error("Type %d rownames not implemented", TYPEOF(rownames));
+	}
+	return unsorted;
 }

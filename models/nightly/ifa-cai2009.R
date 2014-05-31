@@ -110,11 +110,11 @@ groups <- paste("g", 1:2, sep="")
   colnames(fm.sco.g1) <- c("grp","id",colnames(cModel.eap$submodels$g1$expectation$output$scores))
   colnames(fm.sco.g2) <- c("grp","id",colnames(cModel.eap$submodels$g2$expectation$output$scores))
   
-  scores.g1 <- cModel.eap$submodels$g1$expectation$output$scores
+  scores.g1 <- as.matrix(cModel.eap$submodels$g1$expectation$output$scores)
   omxCheckCloseEnough(as.matrix(fm.sco.g1[,-1:-2]),
                       scores.g1, 1e-3)
   omxCheckCloseEnough(as.matrix(fm.sco.g2[,-1:-2]),
-                      cModel.eap$submodels$g2$expectation$output$scores, 1e-3)
+                      as.matrix(cModel.eap$submodels$g2$expectation$output$scores), 1e-3)
 
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(cModel,

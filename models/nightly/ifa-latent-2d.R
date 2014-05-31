@@ -13,7 +13,7 @@ compute.factored.ll <- function(m, obs) {
   
   spec <- m$expectation$ItemSpec
   ip <- m$ItemParam$values
-  scores <- m$expectation$output$scores[,1:2]
+  scores <- as.matrix(m$expectation$output$scores[,1:2])
   
   ll <- 0
   for (ii in 1:nrow(obs)) {

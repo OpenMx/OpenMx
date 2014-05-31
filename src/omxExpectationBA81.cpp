@@ -1000,18 +1000,21 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 
 static void
 copyScore(int rows, int maxAbilities, std::vector<double> &mean,
-	  std::vector<double> &cov, const int rx, double *scores, const int dest)
+	  std::vector<double> &cov, const int rx, SEXP Rscores, const int dest)
 {
+	SEXP rcol;
+
 	for (int ax=0; ax < maxAbilities; ++ax) {
-		scores[rows * ax + dest] = mean[maxAbilities * rx + ax];
+		rcol = VECTOR_ELT(Rscores, ax);
+		REAL(rcol)[dest] = mean[maxAbilities * rx + ax];
 	}
 	for (int ax=0; ax < maxAbilities; ++ax) {
-		scores[rows * (maxAbilities + ax) + dest] =
-			sqrt(cov[triangleLoc1(maxAbilities) * rx + triangleLoc0(ax)]);
+		rcol = VECTOR_ELT(Rscores, maxAbilities + ax);
+		REAL(rcol)[dest] = sqrt(cov[triangleLoc1(maxAbilities) * rx + triangleLoc0(ax)]);
 	}
 	for (int ax=0; ax < triangleLoc1(maxAbilities); ++ax) {
-		scores[rows * (2*maxAbilities + ax) + dest] =
-			cov[triangleLoc1(maxAbilities) * rx + ax];
+		rcol = VECTOR_ELT(Rscores, 2*maxAbilities + ax);
+		REAL(rcol)[dest] = cov[triangleLoc1(maxAbilities) * rx + ax];
 	}
 }
 
@@ -1093,8 +1096,10 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	int rows = data->rows;
 	int cols = 2 * maxAbilities + triangleLoc1(maxAbilities);
 	SEXP Rscores;
-	Rf_protect(Rscores = Rf_allocMatrix(REALSXP, rows, cols));  // change to data.frame TODO
-	double *scores = REAL(Rscores);
+	Rf_protect(Rscores = Rf_allocVector(VECSXP, cols));
+	for (int cx=0; cx < cols; ++cx) {
+		SET_VECTOR_ELT(Rscores, cx, Rf_allocVector(REALSXP, rows));
+	}
 
 	const int SMALLBUF = 10;
 	char buf[SMALLBUF];
@@ -1109,17 +1114,21 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		snprintf(buf, SMALLBUF, "cov%d", nx+1);
 		SET_STRING_ELT(names, maxAbilities*2 + nx, Rf_mkChar(buf));
 	}
-	SEXP dimnames;
-	Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
-	SET_VECTOR_ELT(dimnames, 1, names);
-	Rf_setAttrib(Rscores, R_DimNamesSymbol, dimnames);
+	Rf_setAttrib(Rscores, R_NamesSymbol, names);
+
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
+	Rf_setAttrib(Rscores, R_ClassSymbol, classes);
+
+	Rf_setAttrib(Rscores, R_RowNamesSymbol, data->getRowNames());
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (int rx=0; rx < numUnique; rx++) {
-		int dups = omxDataNumIdenticalRows(state->data, state->rowMap[rx]);
+		int dups = omxDataNumIdenticalRows(data, state->rowMap[rx]);
 		for (int dup=0; dup < dups; dup++) {
 			int dest = omxDataIndex(data, state->rowMap[rx]+dup);
-			copyScore(rows, maxAbilities, mean, cov, rx, scores, dest);
+			copyScore(rows, maxAbilities, mean, cov, rx, Rscores, dest);
 		}
 	}
 

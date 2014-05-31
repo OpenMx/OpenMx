@@ -88,4 +88,4 @@ omxCheckCloseEnough(cor(c(m1$matrices$ItemParam$values[mask]),
 scores.out <- m1$expectation$output$scores
 max.se <- max(scores.out[,3:4])
 omxCheckCloseEnough(sum(abs(scores.out[,1:2] - t(ability)) < max.se) / (numPeople*2), .797, .02)
-omxCheckCloseEnough(.689, cor(c(scores.out[,1:2]), c(t(ability))), .02)
+omxCheckCloseEnough(.689, cor(c(scores.out[,1], scores.out[,2]), c(t(ability))), .02)
