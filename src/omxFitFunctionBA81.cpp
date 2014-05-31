@@ -53,7 +53,6 @@ struct BA81FitState {
 	std::vector<int> hbMap;              // itemParam->cols * itemDerivPadSize -> per-item HessianBlock offset
 	std::vector<int> itemGradMap;        // index of gradient -> index of free parameter
 	std::vector<int> itemParamFree;      // itemParam->cols * itemParam->rows : remove TODO
-	std::vector<bool> posDef;
 
 	// The following are only used to compute FF_COMPUTE_MAXABSCHANGE
 	omxMatrix *itemParam;
@@ -1006,7 +1005,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			state->posDef.assign(estate->itemParam->cols, false);
 			omxExpectationCompute(oo->expectation, NULL);
 			return 0;
 		}
