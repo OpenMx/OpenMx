@@ -39,8 +39,13 @@ struct BA81Config {
 	int getPrimaryPoints(struct BA81Expect *state);
 };
 
-template <typename CovType>
-struct BA81PatLik : BA81Config<CovType> {
+template <
+  typename CovType,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+struct BA81EngineBase : BA81Config<CovType> {
+	void verboseLog(struct BA81Expect *state);
 	double getPatLik(struct BA81Expect *state, int px, double *lxk);
 };
 
@@ -109,12 +114,12 @@ template <
   typename LatentPolicy,
   template <typename> class EstepPolicy
 >
-struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81PatLik<CovTypePar> {
-	double getPatLik(struct BA81Expect *state, int px, double *lxk);
+struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy> {
 	void ba81Estep1(struct BA81Expect *state);
 };
 
 struct BA81Expect {
+	const char *name;              // from omxExpectation
 	double LogLargestDouble;       // should be const but need constexpr
 	double LargestDouble;          // should be const but need constexpr
 	double OneOverLargestDouble;   // should be const but need constexpr

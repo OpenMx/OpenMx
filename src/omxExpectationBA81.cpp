@@ -16,6 +16,7 @@
 */
 
 #include <limits>
+#include <typeinfo>
 #include <Rmath.h>
 
 #include "omxExpectationBA81.h"
@@ -482,8 +483,33 @@ void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 	}
 }
 
-template <typename CovType>
-double BA81PatLik<CovType>::getPatLik(struct BA81Expect *state, int px, double *lxk)
+template <
+  typename CovTypePar,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+void BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy>::verboseLog(struct BA81Expect *state)
+{
+	if (state->verbose >= 1) {
+		const int numUnique = (int) state->rowMap.size();
+		mxLog("%s: estep(item version %d)<%s, %s, %s> %d/%d rows excluded",
+		      state->name, omxGetMatrixVersion(state->itemParam),
+		      typeid(CovTypePar).name(),
+		      typeid(LatentPolicy).name(), typeid(EstepPolicy<CovTypePar>).name(),
+		      state->excludedPatterns, numUnique);
+		if (state->verbose >= 2) {
+			omxPrint(state->estLatentMean, "mean");
+			omxPrint(state->estLatentCov, "cov");
+		}
+	}
+}
+
+template <
+  typename CovType,
+  typename LatentPolicy,
+  template <typename> class EstepPolicy
+>
+double BA81EngineBase<CovType, LatentPolicy, EstepPolicy>::getPatLik(struct BA81Expect *state, int px, double *lxk)
 {
 	const int pts = BA81Config<CovType>::getPrimaryPoints(state);
 	double *patternLik = state->patternLik;
@@ -516,7 +542,7 @@ template <
   template <typename> class EstepPolicy
 >
 struct BA81Engine<BA81Dense, LatentPolicy, EstepPolicy> :
-	LatentPolicy, EstepPolicy<BA81Dense>, BA81PatLik<BA81Dense> {
+	LatentPolicy, EstepPolicy<BA81Dense>, BA81EngineBase<BA81Dense, LatentPolicy, EstepPolicy> {
 	typedef BA81Dense CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
@@ -565,6 +591,7 @@ void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Exp
 
 	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::end(state);
+	BA81Engine<CovType, LatentPolicy, EstepPolicy>::verboseLog(state);
 }
 
 template <
@@ -572,7 +599,7 @@ template <
   template <typename> class EstepPolicy
 >
 struct BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy> :
-	LatentPolicy, EstepPolicy<BA81TwoTier>, BA81PatLik<BA81TwoTier> {
+	LatentPolicy, EstepPolicy<BA81TwoTier>, BA81EngineBase<BA81TwoTier, LatentPolicy, EstepPolicy> {
 	typedef BA81TwoTier CovType;
 	void ba81Estep1(struct BA81Expect *state);
 };
@@ -637,6 +664,7 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 
 	EstepPolicy<CovType>::recordTable(state);
 	LatentPolicy::end(state);
+	BA81Engine<CovType, LatentPolicy, EstepPolicy>::verboseLog(state);
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -898,17 +926,6 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 				engine.ba81Estep1(state);
 			}
 		}
-
-		if (state->verbose >= 1) {
-			const int numUnique = (int) state->rowMap.size();
-			mxLog("%s: Estep(item version %d) patternLik (%d/%d excluded)",
-			      oo->name, omxGetMatrixVersion(state->itemParam),
-			      state->excludedPatterns, numUnique);
-			if (state->verbose >= 2) {
-				omxPrint(state->estLatentMean, "mean");
-				omxPrint(state->estLatentCov, "cov");
-			}
-		}
 	}
 
 	state->itemParamVersion = omxGetMatrixVersion(state->itemParam);
@@ -1101,6 +1118,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	BA81Expect *state = new BA81Expect;
 
 	// These two constants should be as identical as possible
+	state->name = oo->name;
 	state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
 	state->LargestDouble = exp(state->LogLargestDouble);
 	state->OneOverLargestDouble = 1/state->LargestDouble;
