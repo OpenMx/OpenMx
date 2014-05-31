@@ -12,3 +12,4 @@ cachegrind.out.*
 ^src/Makevars$
 ^src/libnpsol.a$
 ^.Rbuildignore*
+^man/README$
