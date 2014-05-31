@@ -1,17 +1,176 @@
 trunk
 =====
+* Reimplement omxData storage to facilitate dynamic data
+* omxAssignFirstParameters should not explode with 0 free parameters
+* Move packageStartupMessage to .onAttach
+* Reject vector=TRUE as part of MxFitFunctionMultigroup
+* Make FIML respect vector=FALSE
+
+Release 2.0.beta1-3473 (May 30, 2014)
+=======================================
+* Fix for R 3.1
+* Add packageStartupMessage if compiled without OpenMP
+* Remove extra copy of # of evaluations
+* Fix algebra dependency tracking
+* Name anonymous algebras to aid debugging
+* numThreads is always 1 without openmp
+* MxRAMModel should not assume MxExpectationRAM
+* Permit optimization directly on mxFitFunctionML(vector=TRUE)
+* Remove unimplemented and crashing omxSetFinalReturnsFIMLFitFunction
+* Added a warning about using "one" as a label in mxPaths.
+* minor error msg mod to suggest action if non-square matrix declared as cov
+* Warn if summary is called on a model that was modified after mxRun
+* Bug Fix: the backend resized 1x1 matrices to MxN when used in scalar/elementwise multiplication, but then did not resize them back in the frontend.
+* Fix mxRename with constraints bug.
+* Learn mxMatrix dimnames from values if explicit dimnames omitted
+* fix issue 'summary() of fitted mxModel object returns error'
+* Confidence Intervals now give the name of the parameter if they are from an MxMatrix instead of the MatrixName[row,col].
+* Exterminate strncmp
+* Distinguish between sorted/unsorted and whether sorting is requested
+* Remove unneeded parameter from isErrorRaised()
+* Fixed Saturated Likelihood Bug by not populating that attribute for FIML.
+* Support NPSOL warmStart
+* Add option to checkpoint every evaluation
+* Bug fix the number of observed statistics in non-IFA models with raw data.
+* In addition to the mxOption, let mxData(sort=FALSE) request unsorted data
+* Add a git bisect script
+* Fixed bug where mxOption 'Default optimizer', and other options as well, get overwritten to the global defaults
+* logLik for mxModel (contributed by Andreas Brandmaier)
+* mxOption without a value to show the current setting
+* Place likelihood-based CI code into a separate MxCompute step
+* Add rownames to standardErrors
+* Do not resetDataSortingFlags
+* Remove unused arguments from omxRaiseError, omxRaiseErrorf
+* Remove unused argument from omxResizeMatrix
+* Handle omxRemoveRowsAndColumns for row-major order; add tests
+* omxAliasMatrix, omxResetAliasedMatrix are essentially omxCopyMatrix
+* Simplify implementation of aliased matrices
+* Fix memory corruption in omxResetAliasedMatrix
+* Checkpoint rewrite
+* Allow standard errors without Richardson extrapolation
+* Preserve dimnames in assignments to MxMatrix slots
+* Rework reporting of iterations and optimizer status; add failing test
+* Fix memory corruption in matrix populate lists
+* Remove unused omxInitMatrix argument
+* Add more gdb hints
+* Fix misuse of stdargs macros
+* Enable gdb for the regular 'make test' variants
+* Hook up recordIterationError for FIML
+* Add FitContext::recordIterationError
+* Enumerate errors if there is more than one
+* Report all the errors instead of only the most recent one
+* mxCI should not interfere with SEs (or fit)
+* Add dimnames to @output$hessian and @output$ihessian
+* Fix omxMatrix memory model
+* Remember how many cores we detected
+* Fix mxCI for a vector of parameter names; add test
+* Hook up numerical integration precision parameters
+* Improve detection of CPU architecture
+* Minor bug fix in saturated model generator
+* Pull libnpsol.a from our website (linux only, so far)
+* Hint the correct way to customize the compiler/compiler options
+* Add info on using omxAssignFirstParameters with SetParameters
+* Add mxOption for max stack depth
+* Factor out lots of calls to Rf_mkChar
+* Remove "at iteration" from error messages (simplifies log diff)
+* Make elementwise algebra ops conformable for the scalar-matrix case
+* Continue with omxMatrix API simplification
+* Enable R_NO_REMAP for a cleaner namespace
+* Add check for algebra dimnames
+* Don't use R to calculate our algebra result matrix dimensions
+* Initial compute protocol for the whole tree of dependencies
+* Don't rely on R to evaluate our algebra
+* Remove non-reproducable pointer addresses from logs (makes it possible to diff logs)
+* Change backend initialization order
+* Set up the usual gdb breakpoints automatically
+* Update references to mxFitFunctionAlgebra and correct dot multiplication explanation in mxAlgebra.Rd
+* Improve some conformability checks by showing the dimension mismatch
+* Always report @output$fit but don't report @output$minimum unless it is
+* Using the name "stderr" with #pragma omp critical can cause conflicts when building multithread binaries under Windows.
+* Permit rescaling of log-likelihood
+* Compute condition number of information matrix
+* Control some ComputeEstimatedHessian knobs from R
+* Do not use roxygen to create Collate field
+* Reduce use of protect stack
+* Suggest how to debug protect stack overflow
+* Permit easy specification of the default optimizer in R code
+* Keep parameters within bounds
+* Rename most PPML functions to keep them unexported
+* Allow summary to work with unnamed estimates
+* Fixed a bug where ML fit functions with raw data (FIML) and vector=TRUE set were returning a single value instead of a vector.
+* Updating twinData.Rd to document the reuse of zyg 6:10. Also added Nick Martin reference
+* Document how to find & adjust R's default compiler flags
+* Add back some UNPROTECTs
+* Be more paranoid about importing mxData to backend
+* Avoid final copyParamToModel when not needed
+* Remove obsolete performance counters
+* Fix/remove improper printf style formats
+* Change how dirty matrices are indicated
+* Rewrite dependency tracking
+* Grab expectation names in the backend
+* Disable NPSOL gradient verification by default (this is a developer feature)
+* Permit better control over whether NPSOL uses gradients
+* Remove most instances of setFinalReturns, mark deprecated
+* Don't communicate unused dependency information to the backend
+* Store fit function name (regression fix?)
+* Free parameter groups
+* Store omxGlobal as a pointer to ensure proper init & destruction
+* Threads don't help RFitFunction, force single threaded
+* NPSOL linear constraints are unused (deadcode)
+* Set up a build rule for installing without NPSOL
+* Replace bloated autoconf script with a simple shell script
+* Prevent developers from using Rprintf
+* Split omxState into truly global stuff and per-thread stuff
+* Modified mxSaturatedModel to take either a model or a data set, and added a run= argument with FALSE as the default.
+* mxSaturated model support for ordinal data.
+* Skip recomputing thresholds when they don't exist
+* Replace completely broken PBS cpus detection
+* Add thread-safe logging functions
+* Changed all objective functions to return NAMED lists of expectation and fitfunction.
+* Switch over to new structured Compute system
+* Added manual page for mxFitFunctionML
+* Encapsulate NPSOL into omxComputeGD; rework error status reporting
+* Pass blank gradient and hessian to omxNPSOLConfidenceIntervals
+* Reorder matrix name processing
+* Dump matrices using valid R syntax (debugging)
+* Remove unimplemented OMX_SOCKET_CHECKPOINT
+* Simplify management of omxData.type
+* Switched backend from C to C++
+* Fixed maximum number of dimensions bug so that only dimensions other than those -inf to +inf are counted
+* Add API for internal expectations; remove redundent copy of rObj
+* C-side support for submodels
+* Add deps on MASS and mvtnorm
+* Remove lots of UNPROTECTs
+* Refactor allocation of omxAlgebra.args
+* Teach MxExpectation to store its relationship in the model tree
+* Add default A,S,F matrix names for mxExpectationRAM
+* Process submodels concurrently with manifest & latent variables (early)
+* Simplify error reporting of unrecognized arguments to mxModel
+* Factor out interpretation of mxPath's connect argument
+* fix insertMeansPathRAM to catch arrows=2
+* minor fix to insertMeansPathRAM() 1. catch arrows != 1 in means paths; 2. reword error
+* Automatically balance PROTECT/UNPROTECT
+* Added suggestion for solution when mxData are cov/cor and not symmetric.
+* Improved mxData error messages
+* Added cov2cor and chol to supported functions.
+* Update mxCompare() to handle missing comparison parameter
+* update showFitStatistics() to handle empty compareSummaries list
+* Added comment to RAM model error, prompting user to view ?mxData when their model has no data
+* Add varargs replacement for omxRaiseError
+* Make omxCheckCloseEnough compare missingness pattern too
+* Complain if any starting values are missing
+* Fix uninitialised memory access in omxSelectRows & omxSelectCols,
+  Bug only affected non-square matrices
 * changed FIML fit functions to report all elements when vector=TRUE
 * added mxThreshold() function
 * migrated from MxObjective* to mxFitFunction* and mxExpectation*
 * bug fix in multiple-iteration upper confidence interval estimation
-* renamed global state from "currentState" to "globalState"
 * bug fix in mxRun() where a model with grandchildren submodels can
   have its internal state corrupted
+* Added vech2full and vechs2full mxAlgebras: inverses of vech and vechs
 * detect non-conformable arrays for elementwise division in the front-end
-* added 'return' statements to error conditions in the backend algebra
-  calculations.
 * fix crash in Hessian calculation when no objective function is specified
-* throw an error if standard errors are enabled and Hessian calculation is disabled
+* warn if standard errors are enabled and the numeric Hessian calculation is disabled
 * added confidence interval calculations to checkpoint output
 
 Release 1.3.0-2168 (September 17, 2012)
