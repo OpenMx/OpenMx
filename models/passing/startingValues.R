@@ -16,3 +16,7 @@ model[["A"]]$values[2,1] <- NA   # oops
 
 omxCheckError(mxRun(model, silent=TRUE),
 	      "Starting value in missingtest.A[2,1] is missing")
+
+model$A$free[,] <- FALSE
+model$S$free[,] <- FALSE
+model <- omxAssignFirstParameters(model)  # should do nothing with no free parameters

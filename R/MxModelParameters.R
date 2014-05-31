@@ -301,6 +301,7 @@ getAnonymousNames <- function(rows) {
 
 omxAssignFirstParameters <- function(model, indep = FALSE) {
 	params <- omxGetParameters(model, indep)
+	if (!length(params)) return(model)
 	pnames <- names(params)
 	model <- omxSetParameters(model, pnames[!is.na(pnames)], 
 		values = params[!is.na(pnames)], indep = indep)
