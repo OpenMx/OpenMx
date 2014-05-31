@@ -10,3 +10,5 @@ annotated
 cachegrind.out.*
 ^src/Makevars.win.in
 ^src/Makevars$
+^src/libnpsol.a$
+^.Rbuildignore*
