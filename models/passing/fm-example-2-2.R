@@ -103,7 +103,7 @@ if (1) {
   cpmodel$gparam$values[,] <- citem$ItemParam$values[3,]
   fm1 <- mxModel(fm1, citem, cpmodel)
   fm1 <- mxRun(fm1, silent=TRUE)
-  omxCheckCloseEnough(max(abs(fm1$output$gradient)), 1.29, .1)
+  omxCheckCloseEnough(max(abs(fm1$output$gradient)), 0, .02)  # sandwich obtains 1.29 TODO
   omxCheckCloseEnough(fm1$output$fit - fm1$submodels$pmodel$fitfunction$result, 33335.75, .01)
   
   if (0) {
@@ -161,7 +161,7 @@ m2 <- mxOption(m2,"Checkpoint Count",1)
 m2 <- mxRun(m2, silent=TRUE, checkpoint=FALSE)
 # flexmirt's LL is reported w/o prior
 omxCheckCloseEnough(m2$output$fit - m2$submodels$pmodel$fitfunction$result, 33335.75, .1)
-omxCheckCloseEnough(max(abs(m2$output$gradient)), 1.29, .1)
+omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .01)
 #cat(deparse(round(m2$output$confidenceIntervals,3)))
 omxCheckCloseEnough(m2$output$confidenceIntervals['g1',], c(-1.687, -0.726), .01)
 

@@ -776,7 +776,7 @@ static void gradCov_finish_1pat(const double weight, const double rowWeight, con
 	addSymOuterProd(fabs(Scale) * rowWeight, patGrad.data(), numParam, meat);
 }
 
-static bool gradCov(omxFitFunction *oo, FitContext *fc)
+static void gradCov(omxFitFunction *oo, FitContext *fc)
 {
 	const double Scale = Global->llScale;
 	omxExpectation *expectation = oo->expectation;
@@ -810,7 +810,10 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 	}
 	Matrix icovMat(icovBuffer.data(), pDims, pDims);
 	int info = InvertSymmetricPosDef(icovMat, 'U');
-	if (info) return FALSE;
+	if (info) {
+		omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->matrix->name);
+		return;
+	}
 
 	// fill in rest from upper triangle
 	for (int rx=1; rx < pDims; ++rx) {
@@ -987,8 +990,6 @@ static bool gradCov(omxFitFunction *oo, FitContext *fc)
 			}
 		}
 	}
-
-	return TRUE;
 }
 
 static void
@@ -1054,13 +1055,15 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			}
 			ba81SetupQuadrature(oo->expectation);
 
-			if (state->freeLatents) {
-				if (want & FF_COMPUTE_INFO && fc->infoMethod != INFO_METHOD_MEAT) {
+			if (want & FF_COMPUTE_GRADIENT ||
+			    (want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_MEAT)) {
+				gradCov(oo, fc);
+			} else {
+				if (state->freeLatents) {
 					omxRaiseErrorf("Information matrix approximation method %d is not available",
 						       fc->infoMethod);
+					return;
 				}
-				if (!gradCov(oo, fc)) return;
-			} else {
 				if (!state->freeItemParams) {
 					omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
 					return;
