@@ -118,6 +118,34 @@ struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81EngineBase<CovTyp
 	void ba81Estep1(struct BA81Expect *state);
 };
 
+class ba81NormalQuad {
+ private:
+	void pointToWhere(const int *quad, double *where, int upto);
+	void decodeLocation(int qx, const int dims, int *quad);
+	double One;
+
+	int sIndex(int sx, int qx) {
+		//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
+		//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
+		return qx * numSpecific + sx;
+	};
+
+ public:
+	int quadGridSize;
+	int numSpecific;
+	std::vector<double> Qpoint;           // quadGridSize
+	int totalQuadPoints;                  // quadGridSize ^ maxDims
+	int totalPrimaryPoints;               // totalQuadPoints except for specific dim
+	std::vector<double> priQarea;         // totalPrimaryPoints
+	std::vector<double> speQarea;         // quadGridSize * numSpecific
+	std::vector<double> wherePrep;        // totalQuadPoints * maxDims
+
+	ba81NormalQuad();
+	void setOne(double one) { One = one; }
+	void setup(double Qwidth, int Qpoints, double *means,
+		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
+};
+
 struct BA81Expect {
 	const char *name;              // from omxExpectation
 	double LogLargestDouble;       // should be const but need constexpr
@@ -145,15 +173,9 @@ struct BA81Expect {
 
 	// quadrature related
 	double Qwidth;
-	double targetQpoints;
-	long quadGridSize;  // change to int type TODO
-	long totalQuadPoints;                 // quadGridSize ^ maxDims
-	long totalPrimaryPoints;              // totalQuadPoints except for specific dim TODO
-	std::vector<double> wherePrep;        // totalQuadPoints * maxDims
+	int targetQpoints;
+	struct ba81NormalQuad quad;
 	std::vector<double> whereGram;        // totalQuadPoints * triangleLoc1(maxDims)
-	std::vector<double> Qpoint;           // quadGridSize
-	std::vector<double> priQarea;         // totalPrimaryPoints
-	std::vector<double> speQarea;         // quadGridSize * numSpecific
 
 	// estimation related
 	omxMatrix *itemParam;
@@ -190,15 +212,6 @@ extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
 void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
-
-// state->speQarea[sIndex(state, sgroup, sx)]
-OMXINLINE static
-int sIndex(BA81Expect *state, int sx, int qx)
-{
-	//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
-	//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
-	return qx * state->numSpecific + sx;
-}
 
 OMXINLINE static void
 gramProduct(double *vec, size_t len, double *out)

@@ -286,7 +286,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
-	double *wherePrep = estate->wherePrep.data();
+	double *wherePrep = estate->quad.wherePrep.data();
 
 	double ll = 0;
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
@@ -296,13 +296,13 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const int id = spec[RPF_ISpecID];
 		const rpf_dLL1_t dLL1 = rpf_model[id].dLL1;
 		const int iOutcomes = estate->itemOutcomes[ix];
-		const int outcomeBase = cumItemOutcomes[ix] * estate->totalQuadPoints;
+		const int outcomeBase = cumItemOutcomes[ix] * estate->quad.totalQuadPoints;
 		const double *weight = estate->expected + outcomeBase;
                 const double *oProb = estate->outcomeProb + outcomeBase;
 		const double *iparam = omxMatrixColumn(itemParam, ix);
 		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
 
-		for (long qx=0; qx < estate->totalQuadPoints; qx++) {
+		for (long qx=0; qx < estate->quad.totalQuadPoints; qx++) {
 			if (do_fit) {
 				for (int ox=0; ox < iOutcomes; ox++) {
 					ll += weight[ox] * oProb[ox];
@@ -407,14 +407,14 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	std::vector<int> &rowMap = estate->rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
-	const long totalQuadPoints = estate->totalQuadPoints;
+	const long totalQuadPoints = estate->quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
 
 	const int totalOutcomes = estate->totalOutcomes;
 	const size_t numItems = estate->itemSpec.size();
 	const size_t numParam = fc->varGroup->vars.size();
-	const double *wherePrep = estate->wherePrep.data();
+	const double *wherePrep = estate->quad.wherePrep.data();
 	std::vector<double> thrBreadG(numThreads * numParam * numParam);
 	std::vector<double> thrBreadH(numThreads * numParam * numParam);
 	std::vector<double> thrMeat(numThreads * numParam * numParam);
@@ -492,8 +492,8 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 		}
 
 	} else {
-		const long totalPrimaryPoints = estate->totalPrimaryPoints;
-		const long specificPoints = estate->quadGridSize;
+		const long totalPrimaryPoints = estate->quad.totalPrimaryPoints;
+		const long specificPoints = estate->quad.quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
@@ -805,7 +805,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	std::vector<int> &rowMap = estate->rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
-	const long totalQuadPoints = estate->totalQuadPoints;
+	const long totalQuadPoints = estate->quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
 
@@ -837,7 +837,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	const size_t numParam = fc->varGroup->vars.size();
 	std::vector<double> thrGrad(numThreads * numParam);
 	std::vector<double> thrMeat(numThreads * numParam * numParam);
-	const double *wherePrep = estate->wherePrep.data();
+	const double *wherePrep = estate->quad.wherePrep.data();
 
 	if (numSpecific == 0) {
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
@@ -895,8 +895,8 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 					state, estate, itemParam, deriv0, latentGrad, Scale, patGrad, grad, meat);
 		}
 	} else {
-		const long totalPrimaryPoints = estate->totalPrimaryPoints;
-		const long specificPoints = estate->quadGridSize;
+		const long totalPrimaryPoints = estate->quad.totalPrimaryPoints;
+		const long specificPoints = estate->quad.quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
 		omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 		omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
