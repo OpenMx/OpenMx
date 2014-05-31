@@ -28,6 +28,9 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
 .onLoad <- function(libname, pkgname) {
 	mxSetDefaultOptions()
+}
+
+.onAttach <- function(libname, pkgname) {
 	if (!imxHasOpenMP()) {
 		packageStartupMessage("OpenMx is not compiled to take advantage of computers with multiple cores.")
 	}
