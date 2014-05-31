@@ -61,6 +61,13 @@ struct omxThresholdColumn {		 	// Threshold
 
 };
 
+struct ColumnData {
+	const char *name;
+	// exactly one of these is non-null
+	double *realData;
+	int    *intData;
+};
+
 class omxData {
  private:
 	SEXP rownames;
@@ -73,15 +80,14 @@ class omxData {
 	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
 
+	// type=="raw"
+	std::vector<ColumnData> rawCols;
+	int numFactor, numNumeric;			// Number of ordinal and continuous columns
 	bool isSorted;
-	int* location;						// Which of the following contains the data column
-	double** realData;					// The actual data objects if numeric
-	int** intData;						// The actual data objects if ordinal
 	int* indexVector;						// The "official" index into the data set
 	int* identicalDefs;					// Number of consecutive rows with identical def. vars
 	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
 	int* identicalRows;					// Number of consecutive rows with identical data
-	int numFactor, numNumeric;			// Number of ordinal and continuous columns
  public:
 	int rows, cols;						// Matrix size 
 
@@ -124,9 +130,7 @@ int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number o
 static int OMXINLINE
 omxIntDataElementUnsafe(omxData *od, int row, int col)
 {
-	// All columns must be factors for this to work. You have been warned.
-	//	int location = od->location[col];
-	return od->intData[col][row];
+	return od->rawCols[col].intData[row];
 }
 	
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset

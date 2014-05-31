@@ -29,9 +29,9 @@
 #include "omxState.h"
 
 omxData::omxData() : rownames(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
-		     thresholdCols(0), numObs(0), _type(0), location(0), realData(0),
-		     intData(0), indexVector(0), identicalDefs(0), identicalMissingness(0),
-		     identicalRows(0), numFactor(0), numNumeric(0), rows(0), cols(0),
+		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
+		     indexVector(0), identicalDefs(0), identicalMissingness(0),
+		     identicalRows(0), rows(0), cols(0),
 		     expectation(0)
 {}
 
@@ -49,8 +49,14 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	od->_type = CHAR(dataVal);
 
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
-	od->expectation = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
-	od->expectation->dynamicDataSource = true;
+	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
+	if (od->expectation) {
+		omxRaiseErrorf("%s: Cannot be a dynamic data source for "
+			       "more than 1 data object (not implemented)", ex->name);
+		return;
+	}
+	od->expectation = ex;
+	ex->dynamicDataSource = od;
 }
 
 void omxData::newDataStatic(SEXP dataObject)
@@ -79,33 +85,30 @@ void omxData::newDataStatic(SEXP dataObject)
 		od->cols = Rf_length(dataLoc);
 		if(OMX_DEBUG) {mxLog("Data has %d columns.", od->cols);}
 		numCols = od->cols;
-		od->realData = (double**) R_alloc(numCols, sizeof(double*));
-		OMXZERO(od->realData, numCols);
-		od->intData = (int**) R_alloc(numCols, sizeof(int*));
-		OMXZERO(od->intData, numCols);
-		od->location = (int*) R_alloc(numCols, sizeof(int));
 		SEXP colnames;
 		Rf_protect(colnames = Rf_getAttrib(dataLoc, R_NamesSymbol));
+		od->rawCols.reserve(numCols);
 		for(int j = 0; j < numCols; j++) {
+			const char *colname = CHAR(STRING_ELT(colnames, j));
+			ColumnData cd = { colname, NULL, NULL };
 			SEXP rcol;
 			Rf_protect(rcol = VECTOR_ELT(dataLoc, j));
 			if(Rf_isFactor(rcol)) {
 				if (Rf_isUnordered(rcol)) {
 					Rf_warning("Data[%d] '%s' must be an ordered factor. Please use mxFactor()",
-						j+1, CHAR(STRING_ELT(colnames, j)));
+						j+1, colname);
 				}
 				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
-				od->intData[j] = INTEGER(rcol);
-				od->location[j] = ~j;
+				cd.intData = INTEGER(rcol);
 				od->numFactor++;
 			} else if (Rf_isInteger(rcol)) {
 				Rf_error("Internal Rf_error: Column %d is in integer format.", j);
 			} else {
 				if(OMX_DEBUG) {mxLog("Column %d is a numeric.", j);}
-				od->realData[j] = REAL(rcol);
-				od->location[j] = j;
+				cd.realData = REAL(rcol);
 				od->numNumeric++;
 			}
+			od->rawCols.push_back(cd);
 		}
 		od->rows = Rf_length(VECTOR_ELT(dataLoc, 0));
 		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
@@ -244,22 +247,16 @@ double omxDoubleDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
 		return omxMatrixElement(od->dataMat, row, col);
 	}
-	int location = od->location[col];
-	if(location < 0) {
-		return (double)(od->intData[~location][row]);
-	} else {
-		return od->realData[location][row];
-	}
+	ColumnData &cd = od->rawCols[col];
+	if (cd.realData) return cd.realData[row];
+	else return cd.intData[row];
 }
 
 double *omxDoubleDataColumn(omxData *od, int col)
 {
-	int location = od->location[col];
-	if(location < 0) {
-		Rf_error("Column %d is integer, not real", col);
-	} else {
-		return od->realData[location];
-	}
+	ColumnData &cd = od->rawCols[col];
+	if (!cd.realData) Rf_error("Column '%s' is integer, not real", cd.name);
+	else return cd.realData;
 }
 
 int omxIntDataElement(omxData *od, int row, int col) {
@@ -267,12 +264,9 @@ int omxIntDataElement(omxData *od, int row, int col) {
 		Rf_error("Use a data frame for factor data");
 	}
 
-	int location = od->location[col];
-	if(location < 0) {
-		return (od->intData[~location][row]);
-	} else {
-		return (int)(od->realData[location][row]);
-	}
+	ColumnData &cd = od->rawCols[col];
+	if (cd.realData) return cd.realData[row];
+	else return cd.intData[row];
 }
 
 omxMatrix* omxDataCovariance(omxData *od)
@@ -283,31 +277,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 		return omxGetExpectationComponent(od->expectation, NULL, "covariance");
 	}
 
-	// The frontend should ensure matrix storage we we can delete the rest
-	// of this function. TODO
-
-	int numRows = od->rows, numCols = od->cols;
-
-	// should we store the new matrix in od->dataMat? TODO
-	omxMatrix *om = omxInitMatrix(numRows, numCols, TRUE, globalState);
-
-	if(om->rows != numRows || om->cols != numCols) {
-		omxResizeMatrix(om, numRows, numCols);
-	}
-
-	double dataElement;
-	for(int j = 0; j < numCols; j++) {
-		for(int k = 0; k < numRows; k++) {
-			int location = od->location[j];
-			if(location < 0) {
-				dataElement = (double) od->intData[~location][k];
-			} else {
-				dataElement = od->realData[location][k];
-			}
-			omxSetMatrixElement(om, k, j, dataElement);
-		}
-	}
-	return om;
+	Rf_error("type=cov data must be in matrix storage");
 }
 
 omxMatrix* omxDataAcov(omxData *od) {
@@ -317,17 +287,15 @@ omxMatrix* omxDataAcov(omxData *od) {
 	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
 	
 	omxMatrix* om = omxInitMatrix(numRows, numRows, TRUE, globalState);
-	omxCopyMatrix(om, od->acovMat);//omxAliasMatrix(om, od->acovMat); // Could also be done with omxCopyMatrix.
+	omxCopyMatrix(om, od->acovMat);
 	return om;
 }
 
 bool omxDataColumnIsFactor(omxData *od, int col)
 {
 	if(od->dataMat != NULL) return FALSE;
-	if(col <= od->cols) return (od->location[col] < 0);
-
-	Rf_error("Attempted to access column %d of a %d-column data object", col, od->cols);
-	return 0; // not reached
+	ColumnData &cd = od->rawCols[col];
+	return cd.intData;
 }
 
 omxMatrix* omxDataMeans(omxData *od)
@@ -393,18 +361,9 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 								       omxVectorElement(colList, j)));
 		}
 	} else {		// Data Frame object
-		double dataElement;
-		int* locations = od->location;
-		int** intDataColumns = od->intData;
-		double **realDataColumns = od->realData;
 		for(int j = 0; j < numcols; j++) {
-			int location = locations[(int)omxVectorElement(colList, j)];
-			if(location < 0) {
-				dataElement = (double) intDataColumns[~location][row];
-			} else {
-				dataElement = realDataColumns[location][row];
-			}
-			omxSetMatrixElement(om, 0, j, dataElement);
+			int col = omxVectorElement(colList, j);
+			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, col));
 		}
 	}
 }
@@ -696,10 +655,10 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
         int upto = od->numObs;
         if (maxRows >= 0 && maxRows < upto) upto = maxRows;
 
-	if (od->location) {
+	if (od->rawCols.size()) {
 		for(int j = 0; j < od->cols; j++) {
-			int loc = od->location[j];
-			if (loc < 0) {
+			ColumnData &cd = od->rawCols[j];
+			if (cd.intData) {
 				buf += " I";
 			} else {
 				buf += " N";
@@ -709,17 +668,17 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 
 		for (int vx=0; vx < upto; vx++) {
 			for (int j = 0; j < od->cols; j++) {
-				int loc = od->location[j];
-				if (loc < 0) {
-					int *val = od->intData[~loc];
+				ColumnData &cd = od->rawCols[j];
+				if (cd.intData) {
+					int *val = cd.intData;
 					if (val[vx] == NA_INTEGER) {
 						buf += " NA,";
 					} else {
 						buf += string_snprintf(" %d,", val[vx]);
 					}
 				} else {
-					double *val = od->realData[loc];
-					if (val[vx] == NA_REAL) {
+					double *val = cd.realData;
+					if (!std::isfinite(val[vx])) {
 						buf += " NA,";
 					} else {
 						buf += string_snprintf(" %.3g,", val[vx]);
@@ -731,7 +690,7 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 	}
 
 	if (od->identicalRows) {
-		buf += "DUPS\trow\tmissing\tdefvars\n";
+		buf += "row\tidentical\tmissing\tdefvars\n";
 		for(int j = 0; j < upto; j++) {
 			buf += string_snprintf("%d\t%d\t%d\t%d\n", j, od->identicalRows[j],
 					       od->identicalMissingness[j], od->identicalDefs[j]);
