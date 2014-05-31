@@ -182,7 +182,6 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	omxMatrix *itemParam = state->itemParam;
-	Eigen::MatrixXi &design = state->design;
 	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->quad.totalQuadPoints, double);
@@ -202,13 +201,10 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 
 			double ptheta[dims];
 			for (int dx=0; dx < dims; dx++) {
-				int ability = design(dx, ix) - 1; // remove -1 here TODO
-				if (ability >= maxDims) ability = maxDims-1;
-				ptheta[dx] = where[ability];
+				ptheta[dx] = where[std::min(dx, maxDims-1)];
 			}
 
 			(*prob_fn)(spec, iparam, ptheta, qProb);
-
 			qProb += itemOutcomes[ix];
 		}
 	}
@@ -1034,6 +1030,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;
+	state->Sgroup = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
 	oo->argStruct = (void*) state;
@@ -1057,13 +1054,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->itemSpec.push_back(REAL(spec));
 	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("design")));
-	if (!Rf_isNull(tmp)) {
-		int rows, cols;
-		getMatrixDims(tmp, &rows, &cols);
-		state->design.resize(rows, cols);
-		memcpy(state->design.data(), INTEGER(tmp), sizeof(int) * rows * cols);
-	}
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
+	state->verbose = Rf_asInteger(tmp);
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) Rf_error("Failed to retrieve mean matrix");
@@ -1146,7 +1138,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int maxSpec = 0;
 	int maxParam = 0;
-	int maxItemDims = 0;
 
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
@@ -1161,10 +1152,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 		const double *spec = state->itemSpec[cx];
 		int id = spec[RPF_ISpecID];
-		int dims = spec[RPF_ISpecDims];
-		if (maxItemDims < dims)
-			maxItemDims = dims;
-
 		int no = spec[RPF_ISpecOutcomes];
 		itemOutcomes[cx] = no;
 		cumItemOutcomes[cx] = totalOutcomes;
@@ -1198,71 +1185,70 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	if (state->design.rows() == 0) {
-		state->maxDims = maxItemDims;
-		state->maxAbilities = maxItemDims;
-		state->design.resize(state->maxDims, numItems);
-		for (int ix=0; ix < numItems; ix++) {
-			const double *spec = state->itemSpec[ix];
-			int dims = spec[RPF_ISpecDims];
-			for (int dx=0; dx < state->maxDims; dx++) {
-				state->design(dx, ix) = dx < dims? dx+1 : NA_INTEGER;
-			}
-		}
-	} else {
-		Eigen::MatrixXi &design = state->design;
-		if (design.cols() != numItems) {
-			omxRaiseErrorf("Design matrix should have %d columns", numItems);
-			return;
-		}
+	state->maxAbilities = state->latentMeanOut->rows * state->latentMeanOut->cols;
 
-		state->maxAbilities = design.maxCoeff();
-		maxItemDims = 0;
-		for (int ix=0; ix < design.cols(); ix++) {
-			int ddim = 0;
-			for (int rx=0; rx < design.rows(); rx++) {
-				if (design(rx,ix) != NA_INTEGER) ddim += 1;
-			}
-			const double *spec = state->itemSpec[ix];
-			int dims = spec[RPF_ISpecDims];
-			if (ddim > dims) Rf_error("Item %d has %d dims but design assigns %d dims", ix, dims, ddim);
-			if (maxItemDims < ddim) {
-				maxItemDims = ddim;
+	if (state->latentCovOut->rows != state->maxAbilities ||
+	    state->latentCovOut->cols != state->maxAbilities) {
+		Rf_error("The cov matrix '%s' must be %dx%d",
+		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
+	}
+
+	// detect two-tier covariance structure
+	std::vector<int> orthogonal;
+	if (state->maxAbilities >= 3) {
+		int mlen = state->maxAbilities;
+		Eigen::Map<Eigen::MatrixXd> Ecov(state->latentCovOut->data, mlen, mlen);
+		Eigen::Matrix<long, Eigen::Dynamic, 1> numCov((Ecov.array() != 0.0).matrix().colwise().count());
+		std::vector<int> candidate;
+		for (int fx=0; fx < numCov.rows(); ++fx) {
+			if (numCov(fx) == 1) candidate.push_back(fx);
+		}
+		if (candidate.size() > 1) {
+			std::vector<bool> mask(numItems);
+			for (int cx=candidate.size() - 1; cx >= 0; --cx) {
+				std::vector<bool> loading(numItems);
+				for (int ix=0; ix < numItems; ++ix) {
+					loading[ix] = state->itemParam->data[ix * maxParam + candidate[cx]] != 0;
+				}
+				std::vector<bool> overlap(loading.size());
+				std::transform(loading.begin(), loading.end(),
+					       mask.begin(), overlap.begin(),
+					       std::logical_and<bool>());
+				if (std::find(overlap.begin(), overlap.end(), true) == overlap.end()) {
+					std::transform(loading.begin(), loading.end(),
+						       mask.begin(), mask.begin(),
+						       std::logical_or<bool>());
+					orthogonal.push_back(candidate[cx]);
+				}
 			}
 		}
-		state->maxDims = maxItemDims;
+		std::reverse(orthogonal.begin(), orthogonal.end());
 	}
-	if (state->maxAbilities <= state->maxDims) {
-		state->Sgroup = Calloc(numItems, int);
+	if (orthogonal.size() && orthogonal[0] != state->maxAbilities - int(orthogonal.size())) {
+		Rf_error("%s: Independent factors must be given after dense factors in %s",
+			 oo->name, state->itemParam->name);
+	}
+	if (orthogonal.size() == 0) {
+		state->maxDims = state->maxAbilities;
 	} else {
-		// Not sure if this is correct, revisit TODO
-		int Sgroup0 = -1;
+		state->numSpecific = orthogonal.size();
+		state->maxDims = state->maxAbilities - orthogonal.size() + 1;
+		if (state->verbose >= 1) mxLog("%s: Two-tier structure detected; "
+					       "%d abilities reduced to %d dimensions",
+					       oo->name, state->maxAbilities, state->maxDims);
 		state->Sgroup = Realloc(NULL, numItems, int);
-		for (int dx=0; dx < state->maxDims; dx++) {
-			for (int ix=0; ix < numItems; ix++) {
-				int ability = state->design(dx, ix);
-				if (dx < state->maxDims - 1) {
-					if (Sgroup0 <= ability)
-						Sgroup0 = ability+1;
+		for (int ix=0; ix < numItems; ix++) {
+			for (int dx=orthogonal[0]; dx < state->maxAbilities; ++dx) {
+				if (state->itemParam->data[ix * maxParam + dx] != 0) {
+					state->Sgroup[ix] = dx - orthogonal[0];
 					continue;
 				}
-				int ss=-1;
-				if (ability >= Sgroup0) {
-					if (ss == -1) {
-						ss = ability;
-					} else {
-						omxRaiseErrorf("Item %d cannot belong to more than "
-							       "1 specific dimension (both %d and %d)",
-							       ix, ss, ability);
-						return;
-					}
-				}
-				if (ss == -1) ss = Sgroup0;
-				state->Sgroup[ix] = ss - Sgroup0;
 			}
 		}
-		state->numSpecific = state->maxAbilities - state->maxDims + 1;
 	}
+
+	// TODO: Items with zero loadings can be replaced with equivalent items
+	// with fewer factors. This would speed up calculation of derivatives.
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("naAction")));
 	bool naFail = strEQ(CHAR(Rf_asChar(tmp)), "fail");
@@ -1287,16 +1273,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			if (pick == NA_INTEGER) continue;
 			const double *spec = state->itemSpec[ix];
 			int dims = spec[RPF_ISpecDims];
-			int dr = 0;
 			for (int dx=0; dx < dims; dx++) {
-				int ability = state->design(dr + dx, ix);
-				while (ability == NA_INTEGER) {
-					++dr;
-					ability = state->design(dr + dx, ix);
-				}
 				// assume factor loadings are the first item parameters
 				if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;
-				contribution[ability - 1] += 1;
+				contribution[dx] += 1;
 			}
 		}
 		for (int ax=0; ax < state->maxAbilities; ++ax) {
@@ -1315,19 +1295,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 
 	if (isErrorRaised()) return;
-
-	if (state->latentMeanOut->rows * state->latentMeanOut->cols != state->maxAbilities) {
-		Rf_error("The mean matrix '%s' must be 1x%d or %dx1", state->latentMeanOut->name,
-		      state->maxAbilities, state->maxAbilities);
-	}
-	if (state->latentCovOut->rows != state->maxAbilities ||
-	    state->latentCovOut->cols != state->maxAbilities) {
-		Rf_error("The cov matrix '%s' must be %dx%d",
-		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
-	}
-
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
-	state->verbose = Rf_asInteger(tmp);
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("debugInternal")));
 	state->debugInternal = Rf_asLogical(tmp);

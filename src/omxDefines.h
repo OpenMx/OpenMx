@@ -38,7 +38,7 @@
 
 #define OMXZERO(ptr, num)	memset(ptr, 0, sizeof(*ptr)*num)
 
-inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)==0; }
+static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)==0; }
 
 #define OMX_STATIC_ARRAY_SIZE(ar) (sizeof(ar)/sizeof(ar[0]))
 

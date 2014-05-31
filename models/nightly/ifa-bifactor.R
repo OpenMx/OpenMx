@@ -23,14 +23,19 @@ for (ix in 1:numItems) {
 }
 correct.mat <- simplify2array(correct)
 
+# unpack factor structure
+
+correct.mat <- rbind(correct.mat[1:2,], a3=0, correct.mat[3:5,])
+correct.mat['a3',11:20] <- correct.mat['a2',11:20]
+correct.mat['a2',11:20] <- 0
+maxDim <- 3
+items[1:numItems] <- rpf.drm(factors=maxDim)
+
 maxParam <- max(vapply(items, rpf.numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
-design <- matrix(c(rep(1L,numItems),
-		   rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
-
 theta <- t(rmvnorm(numPersons, mean=rnorm(3, sd=.25)))
-data <- rpf.sample(theta, items, correct, design)
+data <- rpf.sample(theta, items, correct.mat)
 
 if (0) {
   rdata <- sapply(data, unclass)-1
@@ -39,11 +44,14 @@ if (0) {
 }
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(1.414, 1, 0, logit(0), logit(1)),
-		   free=c(rep(TRUE, 3), FALSE, FALSE))
+                   values=c(1.414, 1, 1, 0, logit(0), logit(1)),
+		   free=c(rep(TRUE, 4), FALSE, FALSE))
 colnames(ip.mat) <- colnames(data)
-#ip.mat$values[2,1] <- correct.mat[2,1]
-#ip.mat$free[2,1] <- FALSE
+rownames(ip.mat) <- rownames(correct.mat)
+ip.mat$values['a3', 1:10] <- 0
+ip.mat$free['a3', 1:10] <- FALSE
+ip.mat$values['a2', 11:20] <- 0
+ip.mat$free['a2', 11:20] <- FALSE
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 colnames(m.mat) <- paste('f', 1:3, sep="")
@@ -54,7 +62,7 @@ m1 <- mxModel(model="bifactor",
           ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
-			    ItemSpec=items, design=design, ItemParam="ItemParam", qpoints=29),
+			    ItemSpec=items, ItemParam="ItemParam", qpoints=29, verbose=0L),
 	      mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 m1 <- mxRun(m1)
@@ -82,7 +90,6 @@ m1 <- mxModel(m1,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
-                                design=design,
                                 ItemParam="ItemParam",
                                 qpoints=29, scores="full"),
               mxComputeEM('expectation', 'scores',

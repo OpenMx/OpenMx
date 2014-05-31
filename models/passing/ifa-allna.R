@@ -3,23 +3,25 @@ require(OpenMx)
 require(rpf)
 
 numItems <- 4
-maxDim <- 2
+maxDim <- 3
 
 items <- list()
 items[1:numItems] <- rpf.grm(factors=maxDim)
 correct.mat <- sapply(items, rpf.rparam)
+correct.mat['a3',1:2] <- 0
+correct.mat['a2',3:4] <- 0
 
 maxParam <- max(vapply(items, rpf.numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
-design <- matrix(c(rep(1L,numItems),
-		   rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
-
-data <- rpf.sample(4, items, correct.mat, design)
+data <- rpf.sample(4, items, correct.mat)
 
 ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                   values=c(1.414, 1, 0), free=TRUE)
+                   values=c(1.414, 1, 1, 0), free=TRUE)
 colnames(ip.mat) <- colnames(data)
+rownames(ip.mat) <- rownames(correct.mat)
+ip.mat$values['a3',1:2] <- 0
+ip.mat$values['a2',3:4] <- 0
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
 colnames(m.mat) <- paste("f", 1:3, sep="")
 cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
@@ -30,7 +32,7 @@ mkmodel <- function(data) {
           ip.mat, m.mat, cov.mat,
           mxData(observed=data, type="raw"),
           mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
-                            ItemSpec=items, design=design, ItemParam="ItemParam", qpoints=29),
+                            ItemSpec=items, ItemParam="ItemParam", qpoints=29),
           mxFitFunctionML(),
           mxComputeOnce('expectation', 'scores'))
 }

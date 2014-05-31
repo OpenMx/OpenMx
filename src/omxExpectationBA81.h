@@ -142,7 +142,6 @@ struct BA81Expect {
 	int maxAbilities;
 	int numSpecific;
 	int *Sgroup;                   // item's specific group 0..numSpecific-1
-	Eigen::MatrixXi design;        // items * maxDims
 
 	// quadrature related
 	double Qwidth;

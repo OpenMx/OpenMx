@@ -19,7 +19,6 @@ setClass(Class = "MxExpectationBA81",
 	   ItemSpec = "list",
 	   ItemParam = "MxCharOrNumber",
 	   EItemParam = "MxOptionalMatrix",
-	   design = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
 	   scores = "character",
@@ -38,14 +37,13 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, EItemParam, design,
+          function(.Object, ItemSpec, ItemParam, EItemParam,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
 	    .Object@ItemParam <- ItemParam
 	    .Object@EItemParam <- EItemParam
-            .Object@design <- design
             .Object@qpoints <- qpoints
             .Object@qwidth <- qwidth
             .Object@scores <- scores
@@ -143,8 +141,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' 
 ##' @param ItemParam one column for each item with parameters starting
 ##' at row 1 and extra rows filled with NA
-##' @param design one column per item, assignment of person abilities
-##' to item dimensions (optional)
 ##' @param qpoints number of points to use for rectangular quadrature integrations (default 49)
 ##' See Seong (1990) for some considerations on specifying this parameter.
 ##' @references
@@ -159,7 +155,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
+mxExpectationBA81 <- function(ItemSpec, ItemParam,
 			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
@@ -179,10 +175,6 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 		stop(paste("Valid score options are", omxQuotes(score.options)))
 	}
 
-	if (!missing(design) && !is.integer(design)) {
-		stop("Design must be an integer matrix")
-	}
-
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
 
 	actions <- c("pass", "fail")
@@ -192,7 +184,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, design=NULL,
 
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam, design,
+	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn))
 }

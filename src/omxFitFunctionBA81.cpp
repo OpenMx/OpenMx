@@ -294,6 +294,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const int thrId = omx_absolute_thread_num();
 		const double *spec = estate->itemSpec[ix];
 		const int id = spec[RPF_ISpecID];
+		const int dims = spec[RPF_ISpecDims];
 		const rpf_dLL1_t dLL1 = rpf_model[id].dLL1;
 		const int iOutcomes = estate->itemOutcomes[ix];
 		const int outcomeBase = cumItemOutcomes[ix] * estate->quad.totalQuadPoints;
@@ -309,7 +310,13 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 			}
 			if (do_deriv) {
-				(*dLL1)(spec, iparam, wherePrep + qx * maxDims, weight, myDeriv);
+				double *where = wherePrep + qx * maxDims;
+				double ptheta[dims];
+				for (int dx=0; dx < dims; dx++) {
+					ptheta[dx] = where[std::min(dx, maxDims-1)];
+				}
+
+				(*dLL1)(spec, iparam, ptheta, weight, myDeriv);
 			}
 			weight += iOutcomes;
 			oProb += iOutcomes;
@@ -548,8 +555,14 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 							const double *spec = estate->itemSpec[ix];
 							double *iparam = omxMatrixColumn(itemParam, ix);
 							const int id = spec[RPF_ISpecID];
+							const int dims = spec[RPF_ISpecDims];
 							OMXZERO(itemDeriv.data(), state->itemDerivPadSize);
-							(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
+							const double *where = wherePrep + qx * maxDims;
+							double ptheta[dims];
+							for (int dx=0; dx < dims; dx++) {
+								ptheta[dx] = where[std::min(dx, maxDims-1)];
+							}
+							(*rpf_model[id].dLL1)(spec, iparam, ptheta,
 									      expected.data(), itemDeriv.data());
 							(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
@@ -959,8 +972,14 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 							const double *spec = estate->itemSpec[ix];
 							double *iparam = omxMatrixColumn(itemParam, ix);
 							const int id = spec[RPF_ISpecID];
+							const int dims = spec[RPF_ISpecDims];
 							double *myDeriv = deriv0.data() + ix * state->itemDerivPadSize;
-							(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
+							const double *where = wherePrep + qx * maxDims;
+							double ptheta[dims];
+							for (int dx=0; dx < dims; dx++) {
+								ptheta[dx] = where[std::min(dx, maxDims-1)];
+							}
+							(*rpf_model[id].dLL1)(spec, iparam, ptheta,
 									      expected.data(), myDeriv);
 						}
 						++qloc;

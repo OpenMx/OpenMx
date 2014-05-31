@@ -36,22 +36,26 @@ for (col in colnames(data.g2)) data.g2[[col]] <- mxFactor(data.g2[[col]], levels
 # This function creates a model for a single group.
 mk.model <- function(name, data, latent.free) {
   numItems <- dim(data)[2]
+  dims <- (1 + numItems/4)
   numPersons <- dim(data)[1]
   spec <- list()
-  spec[1:numItems] <- rpf.grm(factors = 2)
+  spec[1:numItems] <- rpf.grm(factors = dims)
   
-  dims <- (1 + numItems/4)
-  design <- matrix(c(rep(1L,numItems),
-                     as.integer(kronecker(2:dims,rep(1,4)))), byrow=TRUE, ncol=numItems)
-  
-  ip.mat <- mxMatrix(name="ItemParam", nrow=3, ncol=numItems,
-                     values=c(1.4,1,0),
-                     free=c(TRUE,TRUE,TRUE))
+  ip.mat <- mxMatrix(name="ItemParam", nrow=dims+1, ncol=numItems,
+                     values=c(1.4,rep(0,dims-1),0), free=FALSE)
+  rownames(ip.mat) <- c(paste('f', 1:dims, sep=""), "b")
+  ip.mat$free[1,] <- TRUE
+  ip.mat$free[dims+1,] <- TRUE
   colnames(ip.mat) <- colnames(data)
+  for (ix in seq(0,numItems-1,4)) {
+    ip.mat$values[2 + ix/4, 1:4 + ix] <- 1
+    ip.mat$free[2 + ix/4, 1:4 + ix] <- TRUE
+  }
   
   for (ix in 1:numItems) {
-    for (px in 1:3) {
-      ip.mat$labels[px,ix] <- paste(c('p',ix,',',px), collapse='')
+    for (px in 1:nrow(ip.mat)) {
+      if (!ip.mat$free[px,ix]) next
+      ip.mat$labels[px,ix] <- paste(c('p',ix,',',rownames(ip.mat)[px]), collapse='')
     }
   }
 
@@ -75,7 +79,7 @@ mk.model <- function(name, data, latent.free) {
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
 		    ItemSpec=spec,
-		    design=design, ItemParam="ItemParam",
+		    ItemParam="ItemParam",
 		    mean=paste(lname, "mean",sep="."),
 		    cov=paste(lname, "cov", sep="."),
 		    qpoints=21, qwidth=5),
@@ -90,12 +94,10 @@ groups <- paste("g", 1:2, sep="")
 	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
-  g1$ifa$ItemParam$values[,] <-
-    rbind(fm$G1$param[1,], apply(fm$G1$param[2:4,], 2, sum), fm$G1$param[5,])
+  g1$ifa$ItemParam$values[,] <- fm$G1$param
   g1$latent$mean$values <- t(fm$G1$mean)
   g1$latent$cov$values <- fm$G1$cov
-  g2$ifa$ItemParam$values <-
-    rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,])
+  g2$ifa$ItemParam$values[,] <- fm$G2$param
   
   g1$ifa$expectation$scores <- 'full'
   g2$ifa$expectation$scores <- 'full'
@@ -188,7 +190,7 @@ latent <- mxModel("latent",
 
  omxCheckCloseEnough(grpModel$output$fit, flexmirt.LL, .01)
   omxCheckCloseEnough(grpModel$submodels$g2$matrices$ItemParam$values,
-                      rbind(fm$G2$param[1,], apply(fm$G2$param[2:5,], 2, sum), fm$G2$param[6,]), .02)
+                      fm$G2$param, .02)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$cov$values, fm$G1$cov, .1)
   
