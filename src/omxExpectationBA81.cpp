@@ -1198,7 +1198,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (state->maxAbilities >= 3) {
 		int mlen = state->maxAbilities;
 		Eigen::Map<Eigen::MatrixXd> Ecov(state->latentCovOut->data, mlen, mlen);
-		Eigen::Matrix<long, Eigen::Dynamic, 1> numCov((Ecov.array() != 0.0).matrix().colwise().count());
+		Eigen::Matrix<Eigen::DenseIndex, Eigen::Dynamic, 1> numCov((Ecov.array() != 0.0).matrix().colwise().count());
 		std::vector<int> candidate;
 		for (int fx=0; fx < numCov.rows(); ++fx) {
 			if (numCov(fx) == 1) candidate.push_back(fx);
