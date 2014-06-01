@@ -203,7 +203,7 @@ latent <- mxModel("latent",
  print( max(abs(c(grpModel$output$standardErrors) - semse)))
   
   # These are extremely sensitive to small differences in model estimation.
-omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .05)
+omxCheckCloseEnough(c(grpModel$output$standardErrors), semse, .1)
 omxCheckCloseEnough(log(grpModel$output$conditionNumber), 5.5, 1)
 omxCheckTrue(grpModel$output$infoDefinite)
   
