@@ -131,6 +131,12 @@ runHelper <- function(model, frontendStart,
 	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
 	
 	defaultCompute <- NULL
+	if (!is.null(model@expectation) && is.null(model@fitfunction) && is.null(model@compute)) {
+		# The purpose of this check is to prevent analysts new to OpenMx
+		# from running nonsensical models.
+		stop(paste(model@name, " has expectation ", class(model@expectation),
+			   ", no default fitfunction, and no custom compute plan", sep=""))
+	}
 	if (!is.null(model@fitfunction) && is.null(model@compute)) {
 		# horrible hack, sorry
 		compute <- NULL
