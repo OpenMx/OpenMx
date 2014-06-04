@@ -119,7 +119,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;
-	// R_CheckUserInterrupt(); add here? TODO
+	R_CheckUserInterrupt();
 
 #pragma omp atomic
 	++Global->computeCount; // could avoid lock by keeping in FitContext
