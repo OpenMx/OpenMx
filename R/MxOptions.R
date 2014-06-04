@@ -70,6 +70,9 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			omxQuotes(optionsNames[[match]]), ": please correct",
 			"the capitalization and re-run mxOption()."))
 	}
+	if (key == "Default optimizer") {
+		stop(paste(key, "is a global option and cannot be set on models"))
+	}
 	model@options[[key]] <- value
 	return(model)
 }
