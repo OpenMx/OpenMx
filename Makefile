@@ -21,9 +21,9 @@ FAILTESTFILE = inst/tools/failTestModels.R
 MEMORYTESTFILE = inst/tools/memoryTestModels.sh
 GDBWRAP = $(shell if which gdb >/dev/null; then echo '-d gdb --debugger-args="--nx --batch --return-child-result --command util/gdb-where"'; fi)
 
-#INSTALLMAKEFLAGS=""
+INSTALLMAKEFLAGS=""
 #INSTALLMAKEFLAGS="--debug=b"   #debug dependencies
-INSTALLMAKEFLAGS="-j 8"   #much faster compiles
+#INSTALLMAKEFLAGS="-j 8"   #much faster compiles
 
 # subdirectories
 RSOURCE = R
