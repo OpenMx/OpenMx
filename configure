@@ -75,7 +75,7 @@ if [ "$cxx_type" = gcc ]; then
     if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto"
     fi
-    if [ "$OPENMP" = yes ]; then
+    if [ ${OPENMP-yes} = yes ]; then
 	OPENMP_CXXFLAGS="-fopenmp"
 	OPENMP_LDFLAGS="-fopenmp"
     fi
