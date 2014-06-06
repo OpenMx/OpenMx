@@ -135,7 +135,8 @@ runHelper <- function(model, frontendStart,
 		# The purpose of this check is to prevent analysts new to OpenMx
 		# from running nonsensical models.
 		stop(paste(model@name, " has expectation ", class(model@expectation),
-			   ", no default fitfunction, and no custom compute plan", sep=""))
+			   ", but there is no fitfunction given, and no default.\n",
+			   "To fix, see, e.g. help(mxFitFunctionML) for an example fit function, and how these pair with the expectation", sep = ""))
 	}
 	if (!is.null(model@fitfunction) && is.null(model@compute)) {
 		# horrible hack, sorry

@@ -71,7 +71,9 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			"the capitalization and re-run mxOption()."))
 	}
 	if (key == "Default optimizer") {
-		stop(paste(key, "is a global option and cannot be set on models"))
+		stop(paste(key, "is a global option and cannot be set on models.\n",
+		"To switch optimizers globally, use, e.g.:\n",
+		"mxOption(NULL, 'Default optimizer', 'CSOLNP')", sep = ""))
 	}
 	model@options[[key]] <- value
 	return(model)
