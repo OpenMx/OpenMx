@@ -111,29 +111,30 @@ omxSaturatedModel <- function(x, run=FALSE) {
 			mxExpectationNormal("satCov", "satMea"),
 			mxFitFunctionML()
 		)
-	}
-	if(any(ordinalCols)) {
-		unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
-		thresholdDeviations <- mxMatrix("Full", 
-				name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
-				values=.2,
-				free = TRUE, 
-				lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
-				dimnames = list(c(), varnam[ordinalCols]), # TODO Add threshold names
-						)
-		saturatedModel <- mxModel(saturatedModel,
-			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
-					  thresholdDeviations, unitLower,
-			mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-			mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix"),
-			mxFitFunctionML()
-		)
+		if(any(ordinalCols)) {
+			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
+			thresholdDeviations <- mxMatrix("Full", 
+					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
+					values=.2,
+					free = TRUE, 
+					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
+					dimnames = list(c(), varnam[ordinalCols]), # TODO Add threshold names
+							)
+			saturatedModel <- mxModel(saturatedModel,
+				mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
+						  thresholdDeviations, unitLower,
+				mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
+				mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix"),
+				mxFitFunctionML()
+			)
+		}
 	} else {
 		saturatedModel <- mxModel(saturatedModel,
 			mxExpectationNormal("satCov"),
 			mxFitFunctionML()
 		)
 	}
+
 	
 	saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
 	saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")

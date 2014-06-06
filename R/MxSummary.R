@@ -147,8 +147,10 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	indDoF <- retval$independenceDoF
 	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
+	chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
+	retval[['ChiDoF']] <- chiDoF
 	retval[['Chi']] <- chi
-	retval[['p']] <- suppressWarnings(pchisq(chi, DoF, lower.tail = FALSE))
+	retval[['p']] <- suppressWarnings(pchisq(chi, chiDoF, lower.tail = FALSE))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
 	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
 	AIC.p <- Fvalue + 2 * nParam
@@ -370,7 +372,11 @@ print.summary.mxmodel <- function(x,...) {
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
 	cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
 	cat("number of observations: ", x$numObs, '\n')
-	cat("chi-square: ", x$Chi, '\n')
+	if(is.na(x$SaturatedLikelihood)){
+		cat("chi-square (degrees of freedom): ", x$Chi, '( df =', NA, ')', '\n')
+	} else {
+		cat("chi-square (degrees of freedom): ", x$Chi, '( df =', x$ChiDoF, ')', '\n')
+	}
 	cat("p: ", x$p, '\n')
 	cat("Information Criteria: \n")
 	IC <- x$informationCriteria
