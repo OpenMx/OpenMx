@@ -17,8 +17,8 @@ and
 
 For (former) users of the first version of Mx, scripts for that software can be found here:
     
-    * http://openmx.psyc.virginia.edu/svn/trunk/models/passing/mx-scripts/one.mx
-    * http://openmx.psyc.virginia.edu/svn/trunk/models/passing/mx-scripts/two.mx
+    * http://openmx.psyc.virginia.edu/svn/trunk/inst/mx-scripts/one.mx
+    * http://openmx.psyc.virginia.edu/svn/trunk/inst/mx-scripts/two.mx
 
 
 Specification of the Single Locus Model

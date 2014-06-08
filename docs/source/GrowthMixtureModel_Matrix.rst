@@ -237,7 +237,7 @@ Multiple Runs: Serial Method
 
 The results of a mixture model can sometimes depend on starting values. It is a good idea to run a mixture model with a variety of starting values to make sure results you find are not the result of a local minimum in the likelihood space. This section will describe a serial (i.e., running one model at a time) method for randomly generating starting values and re-running a model, which is appropriate for a wide range of methods. The next section will cover parallel (multiple models simultaneously) estimation procedures. Both of these examples are available in the ``GrowthMixtureModelRandomStarts`` demo.
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/GrowthMixtureModelRandomStarts.R
+** http://openmx.psyc.virginia.edu/svn/trunk/models/nightly/GrowthMixtureModelRandomStarts.R
 
 One way to access the starting values in a model is by using the ``omxGetParameters`` function. This function takes an existing model as an argument and returns the names and values of all free parameters. Using this function on our growth mixture model, which is stored in an objected called ``gmm``, gives us back the starting values we specified above.
 

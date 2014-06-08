@@ -133,7 +133,7 @@ The selection on both rows and columns yields the following filtered expected co
     2 & 6 & 8\\
     \end{array} \right)$
 
-In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row fit implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/svn/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/svn/trunk/src/omxFIMLObjective.c .
+In practical implementations of FIML, the data are first sorted based on their pattern of missingness, so that all the rows missing on variables 3, 5, and 6 are computed together followed by all the rows with a different missingness pattern.  This sorting allows fewer filterings to be performed and often accelerates the likelihood computation.  In the row fit implementation shown below there is no data sorting because it is for demonstration purposes only.  The implementation of FIML in the backend of OpenMx uses this data sorting and other techniques to provide speed ups.  The details are in the source code at http://openmx.psyc.virginia.edu/svn/trunk/R/MxFIMLObjective.R and http://openmx.psyc.virginia.edu/svn/trunk/src/omxFIMLFitFunction.cpp .
 
 Quadratic Products
 ******************
