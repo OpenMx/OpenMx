@@ -725,7 +725,7 @@ Model functions
 
 We introduce here several new features by building a basic factor model to real data.  A useful tool to represent such a model is drawing a path diagram which is mathematically equivalent to equations describing the model.  If you're not familiar with the method of path analysis, we suggest you read one of the key reference books [LI1986]_.
 
-..[LI1986]  Li, C.C. (1986). Path Analysis - A Primer.  The Boxwood Press, Pacific Grove, CA.
+.. [LI1986]  Li, C.C. (1986). Path Analysis - A Primer.  The Boxwood Press, Pacific Grove, CA.
 
 Briefly, squares are used for observed variables; latent variables are drawn in circles.  One-headed arrows are drawn to represent causal relationships.  Correlations between variables are represented with two-headed arrows.  Double-headed paths are also used for variances of variables.  Below is a figure of a one factor model with five indicators (x1..x5). We have added a value of 1.0 to the variance of the latent variable **G** as a fixed value.  All the other paths in the models are considered free parameters and are to be estimated.
 

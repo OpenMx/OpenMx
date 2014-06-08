@@ -61,7 +61,7 @@ Input
 | “Matrix” is a structure containing three fields being:
 | int rows: Number of rows of the matrix.
 | int cols: Number of columns of the matrix.
-| double *t: Pointer to an array of doubles storing the matrix elements.
+| double \*t: Pointer to an array of doubles storing the matrix elements.
 |
 | The arguments are:
 | - solPars: A Matrix of starting values for decision variables.

@@ -53,14 +53,13 @@ As an example, the data prep example above includes two binary variables (``z1``
 
 .. code-block:: r
 
-mxMatrix(type="Full", nrow=2, ncol=3,
-	free=c(TRUE,  TRUE,  TRUE,
-		FALSE, FALSE, TRUE), 
-	values=c(-1,  0,  -.5,
-		NA, NA, 1.2),
-	byrow=TRUE,
-	name="thresh"
-)
+	mxMatrix(type="Full", nrow=2, ncol=3,
+		 free=c(TRUE,  TRUE,  TRUE,
+		        FALSE, FALSE, TRUE), 
+		 values=c(-1,  0,  -.5,
+		          NA, NA, 1.2),
+		 byrow=TRUE,
+		 name="thresh")
 
 There are a few common errors regarding the use of thresholds in OpenMx. First, threshold values within each row must be strictly increasing, such that the value in any element of the threshold matrix must be greater than all values above it in that column. In the above example, the second threshold for ``z3`` is set at 1.2, above the value of -.5 for the first threshold. OpenMx will return an error when your thresholds are not strictly increasing. There are no restrictions on values across columns or variables: the second threshold for ``z3`` could be below all thresholds for ``z1`` and ``z2`` provided it exceeded the value for the first ``z3`` threshold. Second, the dimnames of the threshold matrix must match ordinal factors in the data. Additionally, free parameters should only be included for thresholds present in your data: including a second freely estimated threshold for ``z1`` or ``z2`` in this example would not directly impede model estimation, but would remain at its starting value and count as a free parameter for the purposes of calculating fit statistics.
 
