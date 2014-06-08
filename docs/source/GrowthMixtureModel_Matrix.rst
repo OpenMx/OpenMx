@@ -362,7 +362,7 @@ Multiple Runs: Parallel Method
 
 OpenMx supports multicore processing through the ``snowfall`` library, which is described in the "Multicore Execution" section of the documentation and in the following demo:
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/BootstrapParallel.R
+** http://openmx.psyc.virginia.edu/svn/trunk/models/passing/BootstrapParallel.R
 
 Using multiple processors can greatly improve processing time for model estimation when a model contains independent submodels. While the growth mixture model in this example does contain submodels (i.e., the class specific models), they are not independent, as they both depend on a set of shared parameters ("residual", "pclass1").
 
