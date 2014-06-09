@@ -13,6 +13,9 @@ ALLSPHINXOPTS   = -d build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest rcheck
 
+source/conf.py: ../DESCRIPTION.in source/conf.py.in ./substVersion
+	./substVersion
+
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html      to make standalone HTML files"
@@ -31,6 +34,7 @@ clean:
 	-rm -rf build
 	-rm source/*.R source/*.Rout
 	-rm source/*.omx # from checkpointing in examples
+	-rm source/conf.py
 
 html: rcheck
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
@@ -83,7 +87,7 @@ changes:
 	@echo
 	@echo "The overview file is in build/changes."
 
-rcheck:
+rcheck: source/conf.py
 	./rcheck
 
 linkcheck:
