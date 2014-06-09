@@ -258,7 +258,7 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
 			values=input[i,]
 			)
 
-		temp1$name <- paste("Starting Values Set", i)
+		temp1 <- mxModel(model=temp1, name=paste("Starting Values Set", i))
 
 		temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE, checkpoint=TRUE)
 
@@ -351,7 +351,7 @@ From there, parallel optimization requires that a holder or top model (named "To
 
 	mySubs <- lapply(1:20, makeModel)
 
-	topModel$submodels <- mySubs
+	topModel <- mxModel(topModel, mySubs)
 
 	results <- mxRun(topModel)
 

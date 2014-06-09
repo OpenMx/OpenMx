@@ -326,7 +326,7 @@ The free parameters in the model can then be estimated using maximum likelihood 
 
 .. code-block:: r
 
-    mxExpectationRAM("A", "S", "F", "M"),
+    mxExpectationRAM("A", "S", "F", "M")
     mxFitFunctionML()
 
 The model now includes an observed covariance matrix (i.e., data), model matrices, an expectation function, and a fit function.  So the model has all the required elements to define the expected covariance matrix and estimate parameters.

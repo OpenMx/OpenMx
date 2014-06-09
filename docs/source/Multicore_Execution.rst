@@ -9,6 +9,7 @@ To use the snowfall library, you must start your R environment with the followin
 
 .. code-block:: r
 
+	# DO NOT EXECUTE
 	library(OpenMx)
 	library(snowfall)
 	sfInit(parallel = TRUE, cpus = 8)

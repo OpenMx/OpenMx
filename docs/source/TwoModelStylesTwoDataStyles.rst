@@ -196,11 +196,6 @@ Instead of fitting models to summary statistics, it is now popular to fit models
 .. image:: graph/UnivariateSaturatedModel.png
 
 
-..  
-    With RAM path specification, and raw data input, OpenMx has a default model for the means, in
-    which every observed variable has a free parameter for its mean [NB this should change in future
-    versions to require means model].  
-
 The only change required is in the ``mxData`` command, which now takes either an R matrix or a data.frame with the observed data as first argument, and the ``type="raw"`` as the second argument.
 
 .. code-block:: r

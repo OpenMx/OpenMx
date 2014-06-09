@@ -19,7 +19,7 @@ The main function of OpenMx is to provide a way to design a statistical model wh
 .. cssclass:: input
 ..
 
-   OpenMx Code
+   DO NOT EXECUTE
    
    .. code-block:: r
        

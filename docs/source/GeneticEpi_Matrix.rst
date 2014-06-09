@@ -25,6 +25,7 @@ Let us assume you have collected data on a large sample of twin pairs for your p
 .. code-block:: r
 
     require(OpenMx)
+    require(psych)
 
     # Load Data
     data(twinData)

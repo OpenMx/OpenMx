@@ -257,7 +257,7 @@ The final parts of this model are the expectation function and the fit function.
         means="expMeans", 
         dimnames=bananaNames, 
         thresholds="expThresholds"
-    ),
+    )
     mxFitFunctionML()
 
 The free parameters in the model can then be estimated using full information maximum likelihood (FIML) for covariances, means and thresholds.  FIML is specified by using raw data with the ``mxFitFunctionML``.  To estimate free parameters, the model is run using the ``mxRun`` function, and the output of the model can be accessed from the ``@output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.

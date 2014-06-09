@@ -46,7 +46,7 @@ You probably have your favorite data set ready to go, but before reading in data
 .. cssclass:: input
 ..
 
-   OpenMx Code
+   OpenMx Code, DO NOT EXECUTE
    
    .. code-block:: r
        

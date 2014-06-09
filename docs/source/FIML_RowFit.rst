@@ -1,17 +1,7 @@
 .. _fiml-rowfit:
 
-..
-    build with the following in OpenMx/trunk/docs/source
-    sphinx-build -b html . ../build/html
-
-
 Full Information Maximum Likelihood, Row Fit Specification
 ================================================================
-
-..
-    This document was authored by Michael D. Hunter, M.A.
-    Last updated: Thu 20 Mar 2014 12:28:54 Central Daylight Time by Michael Hunter
-
 
 This example will show how full information maximum likelihood (FIML) can be implemented using a row-by-row evaluation of a likelihood function.  **Note: You do not have to implement your own FIML! The method of FIML used in this example  is for didactic purposes only.**  If you are looking for how to get your model to use FIML, then look for any model that uses raw data.  For example
 

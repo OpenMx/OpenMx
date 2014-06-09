@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+
+dir=source
+
+for f in $dir/*.rst; do
+  rsrc=$dir/$(basename "$f" .rst).R
+  if [ "$f" -nt "$rsrc" ]; then
+    echo "extract $f to $rsrc"
+    ./extract "$f"
+  fi
+  rout="$rsrc"out
+  if [ -s "$rsrc" -a "$rsrc" -nt "$rout" ]; then
+    echo -n "check   $rsrc .. "
+    if R --no-save -f "$rsrc" > "$rout" 2>&1; then
+	echo "pass"
+    else
+	echo "FAIL"
+	echo ">>> See $rout"
+	exit 1
+    fi
+  fi
+done

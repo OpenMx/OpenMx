@@ -1,0 +1,45 @@
+#!/usr/bin/perl
+
+use Modern::Perl '2012';
+use Fatal qw(open);
+
+my $source = shift @ARGV;
+my $dest = $source;
+$dest =~ s/\.rst$/.R/;
+open(my($in), '<', $source);
+open(my($out), ">", $dest);
+
+my @lines = <$in>;
+my $code;
+
+sub require_openmx {
+    our $openmx;
+    if ($openmx) { return }
+    print $out "library(OpenMx)\n";
+    $openmx = 1;
+}
+
+for (my $lx=0; $lx < @lines; ++$lx) {
+    my $l = $lines[$lx];
+    if (!$code) {
+	if ($l =~ /^\.\.\s*$/ or $l =~ /^\.\.\s+code-block\:\:\s+r\s*$/) {
+	    $code = 1;
+	}
+	next;
+    } else {
+	if ($l =~ /^\s*$/) {
+	    require_openmx();
+	    print $out $l;
+	    next;
+	} elsif ($l =~ /^\s+/) {
+	    if ($l =~ /DO NOT EXECUTE/) { last }
+	    if ($l =~ /\:linenos\:/) { next }
+	    require_openmx();
+	    print $out $l;
+	    next;
+	} else {
+	    $code = 0;
+	    next;
+	}
+    }
+}
