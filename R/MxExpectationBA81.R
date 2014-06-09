@@ -215,3 +215,33 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam,
 		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn))
 }
+
+##' Like simplify2array but works with vectors of different lengths
+##'
+##' Vectors are filled column-by-column into a matrix. Shorter vectors
+##' are padded with NAs to fill whole columns.
+##' @param x a list of vectors
+##' @examples
+##' v1 <- 1:3
+##' v2 <- 4:5
+##' v3 <- 6:10
+##' mxSimplify2Array(list(v1,v2,v3))
+##'
+##' #     [,1] [,2] [,3]
+##' # [1,]    1    4    6
+##' # [2,]    2    5    7
+##' # [3,]    3   NA    8
+##' # [4,]   NA   NA    9
+##' # [5,]   NA   NA   10
+
+mxSimplify2Array <- function(x) {
+	par <- x
+  len <- sapply(par, length)
+  biggest <- which(len == max(len))[1]
+  out <- matrix(NA, nrow=max(len), ncol=length(par))
+  for (x in 1:length(par)) {
+    out[1:len[x],x] <- par[[x]]
+  }
+  rownames(out) <- names(par[[biggest]])
+  out
+}
