@@ -1,8 +1,6 @@
 Welcome to OpenMx's documentation!
 ==================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 3
 
