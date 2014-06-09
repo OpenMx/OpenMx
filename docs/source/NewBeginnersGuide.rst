@@ -860,9 +860,9 @@ When using a path specification of the model, the fit function is always ``RAM``
 
         type="RAM"
     
-To gain a better understanding of the RAM principles, we recommend reading [RAM1990]
+To gain a better understanding of the RAM principles, we recommend reading [RAM1990]_
 
-..[RAM1990]  McArdle, J.J. & Boker, S.M. (1990). RAMpath: Path diagram software. Denver: Data Transforms Inc.
+.. [RAM1990]  McArdle, J.J. & Boker, S.M. (1990). RAMpath: Path diagram software. Denver: Data Transforms Inc.
 
 Normal Expectation
 ^^^^^^^^^^^^^^^^^^
