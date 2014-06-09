@@ -28,24 +28,31 @@ algebra-like objects such as MxExpectation or MxFitFunction.
 MxModel Lifecycle
 -----------------
 
-MxEval will evaluate some piece of a model, however, the real action
-happens in MxRun. MxModels are created in R, consisting of R data
-structures. MxRun translates all the information contained in an R
+MxModels are created in R, consisting of R data structures. An MxModel
+can only have 1 MxData and 1 MxExpectation.  This implies that
+multigroup and multilevel models require more than 1 MxModel.
+MxRun translates all the information contained in an R
 MxModel into corresponding C data structures. At this stage, as much
 as possible is checked to make sure that the model is correctly
-specified to avoid errors during optimization. For MxExpectation and
-MxFitFunction, the initFun is called. Algebras have a chance to check
-conformability.  A list of free variables is created recording
-locations where they are stored in which matrices. The optimizer is
-invoked. Free variables are moved around, repopulateFun is invoked,
-and everything is recomputed according to free variable
-dependencies. MxFitFunction.gradient can speed this up.  Eventually,
-the optimizer will become satisfied (or give up). Thereafter, the free
-variables will be further probed to compute the Hessian, confidence
-intervals, and standard errors (also see
-getStandardErrorFun). populateAttrFun and setFinalReturns will see to
-it that all the freshly baked numbers are copied back into R data
-structures. All C-side memory is freed.
+specified to avoid errors during optimization.
+
+* MxMatrices are torn apart. Free variable labels are matched to
+  create a list of free variables recording locations where they are
+  stored in which matrices. Starting values and upper and lower bounds
+  are collected for each free variable.
+* The model tree is flattened. The hierarchy is preserved in
+  MxBaseExpectation container and submodel slots, but otherwise, the
+  whole model tree is flattened into lists of matrices, algebras,
+  expectations, and fitfunctions. This treatment is applied separately
+  to MxModels marked as independent.
+* MxCompute controls what happens in the backend.
+* After the backend returns, the model is updated with everything that
+  changed.
+* The model\@runstate slot is suppose to preserve the post-backend
+  state of the model so that summary output doesn't change after the
+  user changes something in the model after mxRun.
+
+Note that MxEval is almost pure R code.
 
 Parallelization Facilities
 --------------------------
@@ -61,10 +68,3 @@ optimizations without the added complexity of duplicating the model
 (see sadmvn.f).  The second facility is Snowfall. Snowfall works at
 the granularity of machines or processes with a machine while OpenMP
 is only concerned with exploiting all the CPU within a single machine.
-
-Questions
----------
-
-What is the flat model?
-
-How do submodels work?
