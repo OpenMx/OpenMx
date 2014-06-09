@@ -862,8 +862,6 @@ When using a path specification of the model, the fit function is always ``RAM``
     
 To gain a better understanding of the RAM principles, we recommend reading [RAM1990]_
 
-.. [RAM1990]  McArdle, J.J. & Boker, S.M. (1990). RAMpath: Path diagram software. Denver: Data Transforms Inc.
-
 Normal Expectation
 ^^^^^^^^^^^^^^^^^^
 
@@ -1335,3 +1333,5 @@ The basic unit of abstraction in the OpenMx library is the model.  A model serve
                     +--------------------+---------------------+
 
 All of the entities listed in the table are identified by the OpenMx library by the name assigned to them.  A name is any character string that does not contain the "." character.  In the parlance of the OpenMx library, a model is a container of named entities.  The name of an OpenMx entity bears no relation to the R object that is used to identify the entity. In our example, the object ``factorModel`` is created with the ``mxModel()`` function and stores a value that is an "MxModel" object with the name 'One Factor'.
+
+.. [RAM1990]  McArdle, J.J. & Boker, S.M. (1990). RAMpath: Path diagram software. Denver: Data Transforms Inc.
