@@ -7,9 +7,11 @@ This section will cover how take advantage of multiple cores on your machine.  T
 
 To use the snowfall library, you must start your R environment with the following commands:
 
+..
+	DO NOT EXECUTE
+
 .. code-block:: r
 
-	# DO NOT EXECUTE
 	library(OpenMx)
 	library(snowfall)
 	sfInit(parallel = TRUE, cpus = 8)

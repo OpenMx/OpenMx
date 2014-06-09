@@ -43,10 +43,10 @@ Data Handling
 
 You probably have your favorite data set ready to go, but before reading in data from an external file, we simulate a simple dataset directly in R, and use some of R's great capabilities.  As this is not an R manual, we just provide the code here with minimal explanation. There are several helpful sites for learning R, for instance http://www.statmethods.net/
     
-.. cssclass:: input
 ..
+   DO NOT EXECUTE
 
-   OpenMx Code, DO NOT EXECUTE
+.. cssclass:: input
    
    .. code-block:: r
        

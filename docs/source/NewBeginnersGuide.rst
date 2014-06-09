@@ -16,10 +16,10 @@ Basic Introduction
 
 The main function of OpenMx is to provide a way to design a statistical model which can be used to test a hypothesis with a set of data.  The way to do this is to use one of the functions written in the R language as part of the OpenMx package.  The function to create an Mx model is (you guessed it) ``mxModel()``.  Note that i) R is case sensitive and ii) the OpenMx package must be loaded before any of the OpenMx functions are used (this only has to be done once in an R session).
 
-.. cssclass:: input
 ..
-
    DO NOT EXECUTE
+
+.. cssclass:: input
    
    .. code-block:: r
        
