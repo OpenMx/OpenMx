@@ -10,6 +10,8 @@ Welcome to OpenMx's documentation!
 
    Examples_Matrix
   
+   ItemFactorAnalysis
+
    Advanced_Concepts
 
    changes

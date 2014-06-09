@@ -10,6 +10,7 @@ The OpenMx scripts for the examples in this guide are available in the following
 
 * http://www.vipbg.vcu.edu/OpenMx/html/NewBeginnersGuide.R
 
+.. _BasicIntroduction:
 
 Basic Introduction 
 ------------------
