@@ -4,12 +4,14 @@ set -o errexit
 set -o nounset
 
 dir=source
+cd $dir
+mkdir -p cache
 
-for f in $dir/*.rst; do
-  rsrc=$dir/$(basename "$f" .rst).R
+for f in *.rst; do
+  rsrc=$(basename "$f" .rst).R
   if [ "$f" -nt "$rsrc" ]; then
     echo "extract $f to $rsrc"
-    ./extract "$f"
+    ../extract "$f"
   fi
   rout="$rsrc"out
   if [ -s "$rsrc" -a "$rsrc" -nt "$rout" ]; then
@@ -18,7 +20,7 @@ for f in $dir/*.rst; do
 	echo "pass"
     else
 	echo "FAIL"
-	echo ">>> See $rout"
+	echo ">>> See $dir/$rout"
 	exit 1
     fi
   fi

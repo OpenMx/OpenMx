@@ -26,40 +26,39 @@ help:
 	@echo "  changes   to make an overview of all changed/added/deprecated items"
 	@echo "  linkcheck to check all external links for integrity"
 	@echo "  rcheck    extract and run R code"
-	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
 
 clean:
 	-rm -rf build
 	-rm source/*.R source/*.Rout
-	-rm *.omx # from checkpointing in examples
+	-rm source/*.omx # from checkpointing in examples
 
-html:
+html: rcheck
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
-dirhtml:
+dirhtml: rcheck
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) build/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in build/dirhtml."
 
-pickle:
+pickle: rcheck
 	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) build/pickle
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
-json:
+json: rcheck
 	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) build/json
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
-htmlhelp:
+htmlhelp: rcheck
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) build/htmlhelp
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in build/htmlhelp."
 
-qthelp:
+qthelp: rcheck
 	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) build/qthelp
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
@@ -68,14 +67,14 @@ qthelp:
 	@echo "To view the help file:"
 	@echo "# assistant -collectionFile build/qthelp/OpenMx.qhc"
 
-latex:
+latex: rcheck
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) build/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in build/latex."
 	@echo "Run \`make all-pdf' or \`make all-ps' in that directory to" \
 	      "run these through (pdf)latex."
 
-pdf:
+pdf: rcheck
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) build/latex
 	cd build/latex && make all-pdf
 
@@ -93,7 +92,7 @@ linkcheck:
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in build/linkcheck/output.txt."
 
-doctest:
-	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) build/doctest
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in build/doctest/output.txt."
+# doctest:
+# 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) build/doctest
+# 	@echo "Testing of doctests in the sources finished, look at the " \
+# 	      "results in build/doctest/output.txt."
