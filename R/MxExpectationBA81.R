@@ -141,15 +141,36 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
+##' When a two-tier covariance matrix is recognized, this expectation
+##' automatically enables analytic dimension reduction (Cai, 2010).
+##' 
 ##' The standard Normal distribution of the quadrature acts like a
 ##' prior distribution for difficulty. It is not necessary to impose
 ##' any additional Bayesian prior on difficulty estimates (Baker &
 ##' Kim, 2004, p. 196).
-##' 
-##' @param ItemParam one column for each item with parameters starting
-##' at row 1 and extra rows filled with NA
-##' @param qpoints number of points to use for rectangular quadrature integrations (default 49)
-##' See Seong (1990) for some considerations on specifying this parameter.
+##'
+##' @param ItemSpec a single item model (to replicate) or a list of
+##' item models in the same order as the column of \code{ItemParam}
+##' @param ItemParam the name of the mxMatrix holding item parameters
+##' with one column for each item model with parameters starting at
+##' row 1 and extra rows filled with NA
+##' @param qpoints number of points to use for equal interval quadrature integration (default 49L)
+##' @param qwidth the width of the quadrature as a positive Z score (default 6.0)
+##' @param mean the name of the mxMatrix holding the mean vector
+##' @param cov the name of the mxMatrix holding the covariance matrix
+##' @param scores whether to return EAP scores. Pass "full" to obtain
+##' EAP scores in $output (default "omit")
+##' @param verbose the level of runtime diagnostics (default 0L)
+##' @param EItemParam a simple matrix of item parameters for the
+##' E-step. This option is mainly of use for debugging derivatives.
+##' @param debugInternal when enabled, some of the internal tables are
+##' returned in $debug. This is mainly of use to developers.
+##' @param minItemsPerScore scores with fewer than this many items are considered NA (default 1L)
+##' @param naAction how to deal with NA scores. If "fail" then an
+##' error will be thrown. If "pass" then NAs will be excluded from the
+##' estimation but faithfully filled into the EAP scores. (default "fail")
+##' @param weightColumn the name of the column in the data containing the row weights (default NA)
+##' @seealso \href{http://cran.r-project.org/web/packages/rpf/index.html}{RPF}
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 ##' parameters: Application of an EM algorithm. Psychometrika, 46, 443-459.
@@ -163,12 +184,11 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam,
-			      qpoints=NULL, qwidth=6.0, mean=NULL, cov=NULL,
+			      qpoints=49L, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
 
 	if (packageVersion("rpf") < "0.28") stop("Please install 'rpf' version 0.28 or newer")
-	if (missing(qpoints)) qpoints <- 49
 	if (qpoints < 3) {
 		stop("qpoints must be 3 or greater")
 	}
