@@ -15,6 +15,12 @@
 
 require(OpenMx)
 
+v <- 1:3
+omxCheckError(mxFactor(v, levels=1:3, exclude=3), "Factor levels and exclude vector are not disjoint; both contain '3'")
+
+v <- 1:4
+omxCheckError(mxFactor(v, levels=1:3), "The following values are not mapped to factor levels and not excluded: '4'")
+
 #Ordinal Data test, based on poly3dz.mx
 
 # Data
