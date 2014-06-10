@@ -164,4 +164,78 @@ tmpModel <- mxModel(model="exampleModel", mLX, mTD, mPH, expFunction, mxData(obs
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 
+
+#--------------------------------------
+# Fit factor model with means
+
+require(OpenMx)
+
+data(demoOneFactor)
+nvar <- ncol(demoOneFactor)
+varnames <- colnames(demoOneFactor)
+
+factorMeans <- mxMatrix("Zero", 1, 1, name="Kappa", dimnames=list("F1", NA))
+xIntercepts <- mxMatrix("Zero", nvar, 1, name="TauX", dimnames=list(varnames, NA))
+factorLoadings <- mxMatrix("Full", nvar, 1, TRUE, .6, name="LambdaX", labels=paste("lambda", 1:nvar, sep=""), dimnames=list(varnames, "F1"))
+factorCovariance <- mxMatrix("Diag", 1, 1, FALSE, 1, name="Phi")
+xResidualVariance <- mxMatrix("Diag", nvar, nvar, TRUE, .2, name="ThetaDelta", labels=paste("theta", 1:nvar, sep=""))
+
+liModel <- mxModel(model="LISREL Factor Model",
+	factorMeans, xIntercepts, factorLoadings, factorCovariance, xResidualVariance,
+	mxExpectationLISREL(LX="LambdaX", PH="Phi", TD="ThetaDelta", TX="TauX", KA="Kappa"),
+	mxFitFunctionML(),
+	mxData(demoOneFactor, "raw")
+)
+
+liRun <- mxRun(liModel)
+
+summary(liRun)
+
+
+#--------------------------------------
+# Fit Joint Ordinal/Continuous Factor Model
+
+require(OpenMx)
+
+# get data (loaded from demo data sets in OpenMx package)
+data(jointdata)
+
+# specify ordinal columns as ordered factors
+jointdata[,c(2,4,5)] <- mxFactor(jointdata[,c(2,4,5)], 
+	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
+
+loadings <- mxMatrix("Full", 5, 1,
+	free=TRUE, values=1, name="L", dimnames=list(names(jointdata), "Factor1"))
+
+resid <- mxMatrix("Diag", 5, 5,
+	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
+
+means <- mxMatrix("Full", 5, 1,
+	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M", dimnames=list(names(jointdata), NA))
+
+ident <- mxMatrix("Diag", 1, 1, FALSE, 1, name="I")
+zerom <- mxMatrix("Zero", 1, 1, name="Z", dimnames=list("Factor1", NA))
+
+thrFre <- c(TRUE, FALSE, FALSE, rep(TRUE, 5), FALSE)
+thrVal <- c(0, NA, NA, -1, 0, 1, -1, 1, NA)
+thrLab <- c("z2t1", NA, NA, "z4t1", "z4t2", "z4t3", "z5t1", "z5t2", NA)
+thresh <- mxMatrix("Full", 3, 3, free=thrFre, values=thrVal, labels=thrLab, name="T", dimnames=list(c(NA, NA, NA), c("z2", "z4", "z5")))
+
+
+# run factor model
+jointModel1 <- mxModel("ContinuousOrdinalData",
+	mxData(jointdata, "raw"),
+	loadings, resid, means, ident, zerom, thresh,
+	mxFitFunctionML(),
+	mxExpectationLISREL(LX="L", TX="M", PH="I", KA="Z", TD="U",
+		dimnames=names(jointdata),
+		thresholds="T",
+		threshnames=c("z2", "z4", "z5"))
+)
+
+# Heads up, running this model could take up to 30 seconds.
+jointResults1 <- mxRun(jointModel1, suppressWarnings=TRUE)
+
+
+
 }
