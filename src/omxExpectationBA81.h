@@ -83,15 +83,7 @@ struct BA81LatentFixed {
 	void end(struct BA81Expect *state) {};
 };
 
-struct BA81LatentEstimate {
-	void mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
-			   const double *whereGram, double *latentDist);
-	void mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
-			      const double *whereGram, double *latentDist);
-	void mapSpace(struct BA81Expect *state, double *thrDweight, double *latentDist);
-};
-
-struct BA81LatentSummary : BA81LatentEstimate {
+struct BA81LatentSummary {
 	int numLatents;
 	std::vector<double> thrDweight;
 	std::vector<double> latentDist;
@@ -101,7 +93,7 @@ struct BA81LatentSummary : BA81LatentEstimate {
 	void end(struct BA81Expect *state);
 };
 
-struct BA81LatentScores : BA81LatentEstimate {
+struct BA81LatentScores {
 	int numLatents;
 	Eigen::VectorXd thrScore;
 
@@ -147,7 +139,6 @@ struct BA81Expect {
 	double Qwidth;
 	int targetQpoints;
 	struct ba81NormalQuad quad;
-	std::vector<double> whereGram;        // totalQuadPoints * triangleLoc1(maxDims)
 
 	// estimation related
 	omxMatrix *itemParam;

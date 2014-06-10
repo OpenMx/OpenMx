@@ -18,6 +18,17 @@
 #include "ba81quad.h"
 #include "dmvnorm.h"
 
+static inline void gramProduct(double *vec, size_t len, double *out)
+{
+	int cell = 0;
+	for (size_t v1=0; v1 < len; ++v1) {
+		for (size_t v2=0; v2 <= v1; ++v2) {
+			out[cell] = vec[v1] * vec[v2];
+			++cell;
+		}
+	}
+}
+
 struct sortAreaHelper {  // could be generalized with a template
 	std::vector<double> &target;
 	bool operator() (int i,int j) { return target[i] > target[j]; }
@@ -49,8 +60,9 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 {
 	quadGridSize = Qpoints;
 	numSpecific = sVar.rows() * sVar.cols();
-	int priDims = priCov.rows();
-	int maxDims = priDims + (numSpecific? 1 : 0);
+	primaryDims = priCov.rows();
+	maxDims = primaryDims + (numSpecific? 1 : 0);
+	maxAbilities = primaryDims + numSpecific;
 
 	totalQuadPoints = 1;
 	for (int dx=0; dx < maxDims; dx++) {
@@ -84,11 +96,11 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 	std::vector<double> tmpPriQarea;
 	tmpPriQarea.reserve(totalPrimaryPoints);
 	for (int qx=0; qx < totalPrimaryPoints; qx++) {
-		int quad[priDims];
-		decodeLocation(qx, priDims, quad);
-		double where[priDims];
-		pointToWhere(quad, where, priDims);
-		double den = exp(dmvnorm(priDims, where, means, priCov.data()));
+		int quad[primaryDims];
+		decodeLocation(qx, primaryDims, quad);
+		double where[primaryDims];
+		pointToWhere(quad, where, primaryDims);
+		double den = exp(dmvnorm(primaryDims, where, means, priCov.data()));
 		tmpPriQarea.push_back(den);
 	}
 
@@ -122,7 +134,7 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 
 	for (int sgroup=0; sgroup < numSpecific; sgroup++) {
 		totalArea = 0;
-		double mean = means[priDims + sgroup];
+		double mean = means[primaryDims + sgroup];
 		double var = sVar(sgroup);
 		for (int qx=0; qx < quadGridSize; qx++) {
 			double den = exp(dmvnorm(1, &Qpoint[qx], &mean, &var));
@@ -161,5 +173,84 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 			}
 		}
 	}
+
+	// recompute whereGram because the order might have changed
+	whereGram.resize(triangleLoc1(maxDims), totalQuadPoints);
+
+	for (int qx=0; qx < totalQuadPoints; qx++) {
+		double *wh = wherePrep.data() + qx * maxDims;
+		gramProduct(wh, maxDims, &whereGram.coeffRef(0, qx));
+	}
 }
 
+void ba81NormalQuad::mapDenseSpace(double piece, const double *where,
+				   const double *whereGram, double *latentDist)
+{
+	const int pmax = primaryDims;
+	int gx = 0;
+	int cx = maxAbilities;
+	for (int d1=0; d1 < pmax; d1++) {
+		double piece_w1 = piece * where[d1];
+		latentDist[d1] += piece_w1;
+		for (int d2=0; d2 <= d1; d2++) {
+			double piece_cov = piece * whereGram[gx];
+			latentDist[cx] += piece_cov;
+			++cx; ++gx;
+		}
+	}
+}
+
+void ba81NormalQuad::mapSpecificSpace(int sgroup, double piece, const double *where,
+				      const double *whereGram, double *latentDist)
+{
+	const int pmax = primaryDims;
+
+	int sdim = pmax + sgroup;
+	double piece_w1 = piece * where[pmax];
+	latentDist[sdim] += piece_w1;
+
+	double piece_var = piece * whereGram[triangleLoc0(pmax)];
+	int to = maxAbilities + triangleLoc0(sdim);
+	latentDist[to] += piece_var;
+}
+
+void ba81NormalQuad::EAP(double *thrDweight, double scalingFactor, double *scorePad)
+{
+	if (numSpecific == 0) { // use template to handle this branch at compile time? TODO
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
+			mapDenseSpace(thrDweight[qx], &wherePrep[qx * maxDims],
+				      &whereGram.coeffRef(0, qx), scorePad);
+		}
+	} else {
+		int qloc=0;
+		for (int qx=0; qx < totalQuadPoints; qx++) {
+			const double *whPrep = &wherePrep[qx * maxDims];
+			const double *whGram = &whereGram.coeffRef(0, qx);
+			mapDenseSpace(thrDweight[qloc], whPrep, whGram, scorePad);
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				mapSpecificSpace(Sgroup, thrDweight[qloc], whPrep, whGram, scorePad);
+				++qloc;
+			}
+		}
+	}
+
+	const int padSize = maxAbilities + triangleLoc1(maxAbilities);
+	for (int d1=0; d1 < padSize; d1++) {
+		scorePad[d1] *= scalingFactor;
+	}
+
+	int cx = maxAbilities;
+	for (int a1=0; a1 < primaryDims; ++a1) {
+		for (int a2=0; a2 <= a1; ++a2) {
+			double ma1 = scorePad[a1];
+			double ma2 = scorePad[a2];
+			scorePad[cx] -= ma1 * ma2;
+			++cx;
+		}
+	}
+	for (int sx=0; sx < numSpecific; sx++) {
+		int sdim = primaryDims + sx;
+		double ma1 = scorePad[sdim];
+		scorePad[maxAbilities + triangleLoc0(sdim)] -= ma1 * ma1;
+	}
+}

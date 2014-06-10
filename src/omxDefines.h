@@ -145,4 +145,14 @@ struct Param_Obj;
 void pda(const double *ar, int rows, int cols);
 void pia(const int *ar, int rows, int cols);
 
+static inline int triangleLoc1(int diag)
+{
+	return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
+}
+
+static inline int triangleLoc0(int diag)
+{
+	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
+}
+
 #endif /* _OMXDEFINES_H_ */

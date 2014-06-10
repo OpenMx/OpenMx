@@ -33,20 +33,33 @@ class ba81NormalQuad {
 		return qx * numSpecific + sx;
 	};
 
+	void mapDenseSpace(double piece, const double *where,
+			   const double *whereGram, double *latentDist);
+	void mapSpecificSpace(int sgroup, double piece, const double *where,
+			      const double *whereGram, double *latentDist);
+
  public:
 	int quadGridSize;
+	int maxDims;
+	int primaryDims;
 	int numSpecific;
+	int maxAbilities;
 	std::vector<double> Qpoint;           // quadGridSize
 	int totalQuadPoints;                  // quadGridSize ^ maxDims
 	int totalPrimaryPoints;               // totalQuadPoints except for specific dim
 	std::vector<double> priQarea;         // totalPrimaryPoints
 	std::vector<double> speQarea;         // quadGridSize * numSpecific
 	std::vector<double> wherePrep;        // totalQuadPoints * maxDims
+	Eigen::MatrixXd whereGram;            // triangleLoc1(maxDims) x totalQuadPoints
 
 	ba81NormalQuad();
 	void setOne(double one) { One = one; }
 	void setup(double Qwidth, int Qpoints, double *means,
 		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
+
+	// For dense cov, Dweight is size totalQuadPoints
+	// For two-tier, Dweight is numSpecific x totalQuadPoints
+	void EAP(double *thrDweight, double scalingFactor, double *scorePad);
 };
 
 #endif

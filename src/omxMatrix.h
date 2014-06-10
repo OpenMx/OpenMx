@@ -340,18 +340,4 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 
-OMXINLINE static int
-triangleLoc1(int diag)
-{
-	//if (diag < 1) error("Out of domain");
-	return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
-}
-
-OMXINLINE static int
-triangleLoc0(int diag)
-{
-	//if (diag < 0) error("Out of domain");
-	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
-}
-
 #endif /* _OMXMATRIX_H_ */

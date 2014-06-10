@@ -145,37 +145,6 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	}
 }
 
-void BA81LatentEstimate::mapDenseSpace(struct BA81Expect *state, double piece, const double *where,
-				      const double *whereGram, double *latentDist)
-{
-	const int pmax = state->primaryDims;
-	int gx = 0;
-	int cx = state->maxAbilities;
-	for (int d1=0; d1 < pmax; d1++) {
-		double piece_w1 = piece * where[d1];
-		latentDist[d1] += piece_w1;
-		for (int d2=0; d2 <= d1; d2++) {
-			double piece_cov = piece * whereGram[gx];
-			latentDist[cx] += piece_cov;
-			++cx; ++gx;
-		}
-	}
-}
-
-void BA81LatentEstimate::mapSpecificSpace(struct BA81Expect *state, int sgroup, double piece, const double *where,
-					  const double *whereGram, double *latentDist)
-{
-	int pmax = state->primaryDims;
-
-	int sdim = pmax + sgroup;
-	double piece_w1 = piece * where[pmax];
-	latentDist[sdim] += piece_w1;
-
-	double piece_var = piece * whereGram[triangleLoc0(pmax)];
-	int to = state->maxAbilities + triangleLoc0(sdim);
-	latentDist[to] += piece_var;
-}
-
 // Depends on item parameters, but not latent distribution
 void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 {
@@ -227,34 +196,14 @@ void BA81LatentScores::begin(struct BA81Expect *state)
 void BA81LatentScores::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
 	const int maxAbilities = state->maxAbilities;
-	const int primaryDims = state->primaryDims;
 	omxData *data = state->data;
 
 	// NOTE: Qweight remains unnormalized
 
 	double *scorePad = thrScore.data() + numLatents * thrId;
 	OMXZERO(scorePad, numLatents);
-	mapSpace(state, Qweight, scorePad);
 
-	double OneOverPatternLik = 1/patternLik1;
-	for (int lx=0; lx < numLatents; ++lx) {
-		scorePad[lx] *= OneOverPatternLik;
-	}
-
-	int cx = maxAbilities;
-	for (int a1=0; a1 < primaryDims; ++a1) {
-		for (int a2=0; a2 <= a1; ++a2) {
-			double ma1 = scorePad[a1];
-			double ma2 = scorePad[a2];
-			scorePad[cx] -= ma1 * ma2;
-			++cx;
-		}
-	}
-	for (int sx=0; sx < state->numSpecific; sx++) {
-		int sdim = primaryDims + sx;
-		double ma1 = scorePad[sdim];
-		scorePad[maxAbilities + triangleLoc0(sdim)] -= ma1 * ma1;
-	}
+	state->quad.EAP(Qweight, 1/patternLik1, scorePad);
 
 	std::vector<double*> &out = state->scoresOut;
 	int dups = omxDataNumIdenticalRows(data, state->rowMap[px]); // should == rowWeight[px]
@@ -310,33 +259,6 @@ void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, int px, doubl
 	}
 }
 
-void BA81LatentEstimate::mapSpace(struct BA81Expect *state, double *thrDweight, double *latentDist)
-{
-	const double *wherePrep = state->quad.wherePrep.data();
-	const double *whereGram = state->whereGram.data();
-	const int maxDims = state->maxDims;
-	const int whereGramSize = triangleLoc1(maxDims);
-	const int numSpecific = state->numSpecific;
-
-	if (numSpecific == 0) { // use template to handle this branch at compile time TODO
-		for (int qx=0; qx < state->quad.totalQuadPoints; ++qx) {
-			mapDenseSpace(state, thrDweight[qx], wherePrep + qx * maxDims,
-				      whereGram + qx * whereGramSize, latentDist);
-		}
-	} else {
-		int qloc=0;
-		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
-			const double *whPrep = wherePrep + qx * maxDims;
-			const double *whGram = whereGram + qx * whereGramSize;
-			mapDenseSpace(state, thrDweight[qloc], whPrep, whGram, latentDist);
-			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-				mapSpecificSpace(state, Sgroup, thrDweight[qloc], whPrep, whGram, latentDist);
-				++qloc;
-			}
-		}
-	}
-}
-
 void BA81LatentSummary::end(struct BA81Expect *state)
 {
 	for (int tx=1; tx < Global->numThreads; ++tx) {
@@ -347,24 +269,22 @@ void BA81LatentSummary::end(struct BA81Expect *state)
 		}
 	}
 
-	mapSpace(state, thrDweight.data(), latentDist.data());
+	state->quad.EAP(thrDweight.data(), 1/state->weightSum, latentDist.data());
 
 	omxMatrix *meanOut = state->estLatentMean;
 	omxMatrix *covOut = state->estLatentCov;
-	const double weightSum = state->weightSum;
 	const int maxAbilities = state->maxAbilities;
 	const int primaryDims = state->primaryDims;
 
 	double *latentDist1 = latentDist.data();
 	for (int d1=0; d1 < maxAbilities; d1++) {
-		omxSetVectorElement(meanOut, d1, latentDist1[d1] / weightSum);
+		omxSetVectorElement(meanOut, d1, latentDist1[d1]);
 	}
 
 	for (int d1=0; d1 < primaryDims; d1++) {
 		int cx = maxAbilities + triangleLoc1(d1);
 		for (int d2=0; d2 <= d1; d2++) {
-			double cov = (latentDist1[cx] / weightSum -
-				      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d2));
+			double cov = latentDist1[cx];
 			omxSetMatrixElement(covOut, d1, d2, cov);
 			if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
 			++cx;
@@ -372,9 +292,7 @@ void BA81LatentSummary::end(struct BA81Expect *state)
 	}
 	for (int d1=primaryDims; d1 < maxAbilities; d1++) {
 		int loc = maxAbilities + triangleLoc0(d1);
-		double cov = (latentDist1[loc] / weightSum -
-			      omxVectorElement(meanOut, d1) * omxVectorElement(meanOut, d1));
-		omxSetMatrixElement(covOut, d1, d1, cov);
+		omxSetMatrixElement(covOut, d1, d1, latentDist1[loc]);
 	}
 
 	++state->ElatentVersion;
@@ -729,15 +647,6 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	}
 
 	state->quad.setup(state->Qwidth, state->targetQpoints, state->latentMeanOut->data, cov, sVar);
-
-	// recompute whereGram because the order might have changed
-	std::vector<double> &whereGram = state->whereGram;
-	whereGram.resize(state->quad.totalQuadPoints * triangleLoc1(maxDims));
-
-	for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
-		double *wh = state->quad.wherePrep.data() + qx * maxDims;
-		gramProduct(wh, maxDims, whereGram.data() + qx * triangleLoc1(maxDims));
-	}
 
 	state->latentParamVersion = getLatentVersion(state);
 }
