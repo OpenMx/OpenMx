@@ -195,7 +195,7 @@ setReplaceMethod("[[", "MxModel",
 setMethod("$", "MxModel",
 	function(x, name) {
         result <- imxExtractMethod(x, name)
-        if(name %in% c("name", "matrices", "algebras", "data", "submodels", "output", "compute")) {
+        if(name %in% c("name", "matrices", "algebras", "data", "submodels", "output", "compute", "options")) {
             result <- imxExtractSlot(x, name)
         }
 		return(result)
