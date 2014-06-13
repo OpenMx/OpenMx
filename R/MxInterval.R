@@ -212,8 +212,10 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 	} else {
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",
-			"specification in model", omxQuotes(modelname), "in",
-			deparse(width.cutoff = 400L, sys.call(-3))), call. = FALSE)
+			"specification in model", omxQuotes(modelname), 
+			"\nYou should check spelling (case-sensitive), and also addressing the right model: to refer to an algebra", 
+			"\nSee help(mxCI) to see how to refer to an algebra in a submodel.\n", 
+			"FYI, I got as far as: ", deparse(width.cutoff = 400L, sys.call(-3))), call. = FALSE)
 	}
 }
 
