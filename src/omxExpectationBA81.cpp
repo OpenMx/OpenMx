@@ -162,18 +162,17 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 		const double *spec = state->itemSpec[ix];
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
+		Eigen::VectorXd ptheta(dims);
 		double *iparam = param + ix * itemParam->rows;
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
 		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
 			double *where = state->quad.wherePrep.data() + qx * maxDims;
-
-			double ptheta[dims];
 			for (int dx=0; dx < dims; dx++) {
 				ptheta[dx] = where[std::min(dx, maxDims-1)];
 			}
 
-			(*prob_fn)(spec, iparam, ptheta, qProb);
+			(*prob_fn)(spec, iparam, ptheta.data(), qProb);
 			qProb += itemOutcomes[ix];
 		}
 	}

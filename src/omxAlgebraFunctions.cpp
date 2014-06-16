@@ -1544,7 +1544,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	double likelihood;
 	int inform;
 	int numVars = cov->rows;
-	int Infin[cov->rows];
+	Eigen::VectorXi Infin(cov->rows);
 	int fortranThreadId = omx_absolute_thread_num() + 1;
 
 	for(int i = 0; i < nElements; i++) {
@@ -1577,7 +1577,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 	double absEps = Global->absEps;
 	double relEps = Global->relEps;
 	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin.data(), corList, 
 		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
@@ -1833,7 +1833,7 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 		return;
 	}
 
-	double* sortArray[original->rows];
+	std::vector<double*> sortArray(original->rows);
 	int numElements = original->cols;
 	int numRows = original->rows;
 
@@ -1843,7 +1843,7 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 		sortArray[i] = sortOrder + i;
 	}
 
-	freebsd_mergesort(sortArray, numElements, sizeof(double*), omxComparePointerContentsHelper, NULL);
+	freebsd_mergesort(sortArray.data(), numElements, sizeof(double*), omxComparePointerContentsHelper, NULL);
 
 	if(OMX_DEBUG) {mxLog("Original is (%d x %d), result is (%d x %d).", original->rows, original->cols, result->rows, result->cols);}
 
@@ -2165,7 +2165,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int rows = inMat->rows;
     int selectLength = selector->rows * selector->cols;
-    int toRemove[rows];
+    Eigen::VectorXi toRemove(rows);
     int numRemoves = 0;
     
     if((selector->cols != 1) && selector->rows !=1) {
@@ -2203,9 +2203,8 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
     }
     
-    int zeros[inMat->cols];
-    memset(zeros, 0, sizeof(*zeros) * inMat->cols);
-    omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove, zeros);
+    std::vector<int> zeros(inMat->cols);
+    omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove.data(), zeros.data());
 
 }
 
@@ -2216,7 +2215,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	int cols = inMat->cols;
     int selectLength = selector->rows * selector->cols;
-    int toRemove[cols];
+    Eigen::VectorXi toRemove(cols);
     int numRemoves = 0;
 
     if((selector->cols != 1) && selector->rows !=1) {
@@ -2254,10 +2253,8 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
     }
     
-    int zeros[inMat->rows];
-    memset(zeros, 0, sizeof(*zeros) * inMat->rows);
-    omxRemoveRowsAndColumns(result, 0, numRemoves, zeros, toRemove);
-    
+    std::vector<int> zeros(inMat->rows);
+    omxRemoveRowsAndColumns(result, 0, numRemoves, zeros.data(), toRemove.data());
 }
 
 void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2268,7 +2265,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 	int rows = inMat->rows;
 	int cols = inMat->cols;
     int selectLength = selector->rows * selector->cols;
-    int toRemove[cols];
+    Eigen::VectorXi toRemove(cols);
     int numRemoves = 0;
 
     if((selector->cols != 1) && selector->rows !=1) {
@@ -2314,8 +2311,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
 		return;
     }
     
-    omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove, toRemove);
-
+    omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove.data(), toRemove.data());
 }
 
 void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {

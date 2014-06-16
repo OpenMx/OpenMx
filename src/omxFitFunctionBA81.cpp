@@ -295,6 +295,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const double *spec = estate->itemSpec[ix];
 		const int id = spec[RPF_ISpecID];
 		const int dims = spec[RPF_ISpecDims];
+		Eigen::VectorXd ptheta(dims);
 		const rpf_dLL1_t dLL1 = rpf_model[id].dLL1;
 		const int iOutcomes = estate->itemOutcomes[ix];
 		const int outcomeBase = cumItemOutcomes[ix] * estate->quad.totalQuadPoints;
@@ -311,12 +312,11 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 			}
 			if (do_deriv) {
 				double *where = wherePrep + qx * maxDims;
-				double ptheta[dims];
 				for (int dx=0; dx < dims; dx++) {
 					ptheta[dx] = where[std::min(dx, maxDims-1)];
 				}
 
-				(*dLL1)(spec, iparam, ptheta, weight, myDeriv);
+				(*dLL1)(spec, iparam, ptheta.data(), weight, myDeriv);
 			}
 			weight += iOutcomes;
 			oProb += iOutcomes;
@@ -558,11 +558,11 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 							const int dims = spec[RPF_ISpecDims];
 							OMXZERO(itemDeriv.data(), state->itemDerivPadSize);
 							const double *where = wherePrep + qx * maxDims;
-							double ptheta[dims];
+							Eigen::VectorXd ptheta(dims);
 							for (int dx=0; dx < dims; dx++) {
 								ptheta[dx] = where[std::min(dx, maxDims-1)];
 							}
-							(*rpf_model[id].dLL1)(spec, iparam, ptheta,
+							(*rpf_model[id].dLL1)(spec, iparam, ptheta.data(),
 									      expected.data(), itemDeriv.data());
 							(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
@@ -975,11 +975,11 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 							const int dims = spec[RPF_ISpecDims];
 							double *myDeriv = deriv0.data() + ix * state->itemDerivPadSize;
 							const double *where = wherePrep + qx * maxDims;
-							double ptheta[dims];
+							Eigen::VectorXd ptheta(dims);
 							for (int dx=0; dx < dims; dx++) {
 								ptheta[dx] = where[std::min(dx, maxDims-1)];
 							}
-							(*rpf_model[id].dLL1)(spec, iparam, ptheta,
+							(*rpf_model[id].dLL1)(spec, iparam, ptheta.data(),
 									      expected.data(), myDeriv);
 						}
 						++qloc;

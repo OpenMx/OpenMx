@@ -21,6 +21,7 @@
 #include <math.h>
 #include <string.h>
 #include "libifa-rpf.h"
+#include "Eigen/Core"
 
 #ifndef M_LN2
 #define M_LN2           0.693147180559945309417232121458        /* ln(2) */
@@ -33,12 +34,6 @@
 
 static const double EXP_STABLE_DOMAIN = 35;
 static const double SMALLEST_PROB = 6.305116760146989222002e-16;  // exp(-35), need constexpr
-
-// This is far away from the item's difficulty so it is less
-// interesting for estimation and the gradient becomes numerically
-// unstable as athb < -25. For symmetry, it is necessary to clamp at
-// 25 as well.
-static const double GRADIENT_STABLE_DOMAIN = 25;
 
 static void
 irt_rpf_logprob_adapter(const double *spec,
@@ -468,6 +463,7 @@ irt_rpf_mdim_grm_rawprob(const double *spec,
   out[numOutcomes] = 0;
 }
 
+// Compare with Cai (2010, p. 54) Appendix B
 static void
 irt_rpf_mdim_grm_deriv1(const double *spec,
 			const double *param,
@@ -477,9 +473,9 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
   int nfact = spec[RPF_ISpecDims];
   int outcomes = spec[RPF_ISpecOutcomes];
   int nzeta = spec[RPF_ISpecOutcomes] - 1;
-  double P[nzeta+2];
-  double PQfull[nzeta+2];
-  irt_rpf_mdim_grm_rawprob(spec, param, where, P);
+  Eigen::VectorXd P(nzeta+2);
+  Eigen::VectorXd PQfull(nzeta+2);
+  irt_rpf_mdim_grm_rawprob(spec, param, where, P.data());
   PQfull[0] = 0;
   PQfull[outcomes] = 0;
   for (int kx=1; kx <= nzeta; kx++) PQfull[kx] = P[kx] * (1-P[kx]);
@@ -523,7 +519,7 @@ irt_rpf_mdim_grm_deriv1(const double *spec,
       out[kx] -= dif1 * (PQ_1 - PQ) * where[kx];
     }
 
-    double temp[nfact];
+    Eigen::VectorXd temp(nfact);
     for(int ix = 0; ix < nfact; ix++)
       temp[ix] = PQ_1 * where[ix] - PQ * where[ix];
 
@@ -570,8 +566,8 @@ irt_rpf_mdim_grm_dTheta(const double *spec, const double *param,
   int numDims = spec[RPF_ISpecDims];
   int outcomes = spec[RPF_ISpecOutcomes];
   const double *aa = param;
-  double P[outcomes+1];
-  irt_rpf_mdim_grm_rawprob(spec, param, where, P);
+  Eigen::VectorXd P(outcomes+1);
+  irt_rpf_mdim_grm_rawprob(spec, param, where, P.data());
   for (int jx=0; jx < numDims; jx++) {
     for (int ix=0; ix < outcomes; ix++) {
       double w1 = P[ix] * (1-P[ix]) * aa[jx];
@@ -713,9 +709,9 @@ irt_rpf_nominal_prob(const double *spec,
 {
   int numOutcomes = spec[RPF_ISpecOutcomes];
   int numDims = spec[RPF_ISpecDims];
-  double ak[numOutcomes];
+  Eigen::VectorXd ak(numOutcomes);
   double discr = dotprod(param, th, numDims);
-  _nominal_rawprob2(spec, param, th, discr, ak, out);
+  _nominal_rawprob2(spec, param, th, discr, ak.data(), out);
 }
 
 static void
@@ -725,11 +721,11 @@ irt_rpf_nominal_logprob(const double *spec,
 {
   int numOutcomes = spec[RPF_ISpecOutcomes];
   int numDims = spec[RPF_ISpecDims];
-  double num[numOutcomes];
-  double ak[numOutcomes];
+  Eigen::VectorXd num(numOutcomes);
+  Eigen::VectorXd ak(numOutcomes);
   double discr = dotprod(param, th, numDims);
   double maxZ;
-  _nominal_rawprob1(spec, param, th, discr, ak, num, &maxZ);
+  _nominal_rawprob1(spec, param, th, discr, ak.data(), num.data(), &maxZ);
   double den = 0;
 
   if (maxZ > EXP_STABLE_DOMAIN) {
@@ -780,19 +776,19 @@ irt_rpf_nominal_deriv1(const double *spec,
   double aTheta = dotprod(param, where, nfact);
   double aTheta2 = aTheta * aTheta;
 
-  double num[ncat];
-  double ak[ncat];
-  _nominal_rawprob2(spec, param, where, aTheta, ak, num);
+  Eigen::VectorXd num(ncat);
+  Eigen::VectorXd ak(ncat);
+  _nominal_rawprob2(spec, param, where, aTheta, ak.data(), num.data());
 
-  double P[ncat];
-  double P2[ncat];
-  double P3[ncat];
-  double ak2[ncat];
-  double dat_num[ncat];
+  Eigen::VectorXd P(ncat);
+  Eigen::VectorXd P2(ncat);
+  Eigen::VectorXd P3(ncat);
+  Eigen::VectorXd ak2(ncat);
+  Eigen::VectorXd dat_num(ncat);
   double numsum = 0;
   double numakD = 0;
   double numak2D2 = 0;
-  double numakDTheta_numsum[nfact];
+  Eigen::VectorXd numakDTheta_numsum(nfact);
 
   for (int kx=0; kx < ncat; kx++) {
     ak2[kx] = ak[kx] * ak[kx];
@@ -809,7 +805,7 @@ irt_rpf_nominal_deriv1(const double *spec,
     P3[kx] = P2[kx] * P[kx];
   }
 
-  double sumNumak = dotprod(num, ak, ncat);
+  double sumNumak = dotprod(num.data(), ak.data(), ncat);
   for (int fx=0; fx < nfact; fx++) {
     numakDTheta_numsum[fx] = sumNumak * where[fx] / numsum;
   }
@@ -957,8 +953,8 @@ irt_rpf_nominal_deriv2(const double *spec,
   const double *Ta = spec + RPF_ISpecCount;
   const double *Tc = spec + RPF_ISpecCount + nzeta * nzeta;
   const int numParam = irt_rpf_nominal_numParam(spec);
-  double rawOut[numParam];
-  memcpy(rawOut, out, sizeof(double) * numParam);
+  Eigen::VectorXd rawOut(numParam);
+  memcpy(rawOut.data(), out, sizeof(double) * numParam);
 
   // gradient
   for (int tx=0; tx < nzeta; tx++) {
@@ -1041,32 +1037,32 @@ irt_rpf_mdim_nrm_dTheta(const double *spec, const double *param,
   int numDims = spec[RPF_ISpecDims];
   int outcomes = spec[RPF_ISpecOutcomes];
   const double *aa = param;
-  double num[outcomes];
-  double ak[outcomes];
+  Eigen::VectorXd num(outcomes);
+  Eigen::VectorXd ak(outcomes);
   double discr = dotprod(param, where, numDims);
-  _nominal_rawprob2(spec, param, where, discr, ak, num);
+  _nominal_rawprob2(spec, param, where, discr, ak.data(), num.data());
 
   double den = 0;
   for (int kx=0; kx < outcomes; kx++) {
     den += num[kx];
   }
 
-  double P[outcomes];
+  Eigen::VectorXd P(outcomes);
   for (int kx=0; kx < outcomes; kx++) {
     P[kx] = num[kx]/den;
   }
 
   for(int jx=0; jx < numDims; jx++) {
-    double jak[outcomes];
-    double jak2[outcomes];
+	  Eigen::VectorXd jak(outcomes);
+	  Eigen::VectorXd jak2(outcomes);
     for (int ax=0; ax < outcomes; ax++) {
       jak[ax] = ak[ax] * aa[jx];
       jak2[ax] = jak[ax] * jak[ax];
     }
-    double numjak = dotprod(num, jak, outcomes);
+    double numjak = dotprod(num.data(), jak.data(), outcomes);
     double numjakden2 = numjak / den;
     numjakden2 *= numjakden2;
-    double numjak2den = dotprod(num, jak2, outcomes) / den;
+    double numjak2den = dotprod(num.data(), jak2.data(), outcomes) / den;
 
     for(int ix=0; ix < outcomes; ix++) {
       grad[ix] += dir[jx] * (ak[ix] * aa[jx] * P[ix] - P[ix] * numjak / den);
@@ -1096,10 +1092,10 @@ irt_rpf_mdim_nrm_rescale(const double *spec, double *param, const int *paramMask
     param[d1] = dotprod(param+d1, cov + d1 * numDims + d1, numDims-d1);
   }
 
-  double ak[nzeta];
-  double ck[nzeta];
-  memset(ak, 0, sizeof(double)*nzeta);
-  memset(ck, 0, sizeof(double)*nzeta);
+  Eigen::VectorXd ak(nzeta);
+  ak.setZero();
+  Eigen::VectorXd ck(nzeta);
+  ck.setZero();
 
   for (int kx=0; kx < nzeta; kx++) {
     for (int tx=0; tx < nzeta; tx++) {

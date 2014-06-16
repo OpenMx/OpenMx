@@ -71,7 +71,7 @@ fi
 cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
 
 if [ "$cxx_type" = gcc ]; then
-    COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter"
+    COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter -Wvla"
     if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto"
     fi

@@ -131,13 +131,13 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	}
 
 
-	int ipiv[nrow];
+	Eigen::VectorXi ipiv(nrow);
 	int l = 0;
 	const char trans = 'N';
 
-	F77_CALL(dgetrf)(&nrow, &nrow, D->data, &(D->leading), ipiv, &l);
+	F77_CALL(dgetrf)(&nrow, &nrow, D->data, &(D->leading), ipiv.data(), &l);
 
-	F77_CALL(dgetrs)(&trans, &nrow, &nrow, D->data, &(D->leading), ipiv, 
+	F77_CALL(dgetrs)(&trans, &nrow, &nrow, D->data, &(D->leading), ipiv.data(), 
 		N->data, &(N->leading), &l);
 
 	if (j > 0) {  

@@ -160,7 +160,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(y, "....State Space: y"); }
 	// omxMatrix* K = ose->K; //unused
 	omxMatrix* P = ose->P;
-	omxMatrix* S = ose->S;
+	//omxMatrix* S = ose->S;  //unused
 	// omxMatrix* Y = ose->Y; //unused
 	// omxMatrix* Cov = ose->cov; //unused
 	omxMatrix* Means = ose->means;
@@ -178,12 +178,12 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxMatrix* smallY = ose->smallY;
 	int ny = y->rows;
 	int nx = x->rows;
-	int toRemoveSS[ny];
+	Eigen::VectorXi toRemoveSS(ny);
 	int numRemovesSS = 0;
-	int toRemoveNoneLat[nx];
-	int toRemoveNoneOne[1];
-	memset(toRemoveNoneLat, 0, sizeof(int) * nx);
-	memset(toRemoveNoneOne, 0, sizeof(int) * 1);
+	Eigen::VectorXi toRemoveNoneLat(nx);
+	toRemoveNoneLat.setZero();
+	Eigen::VectorXi toRemoveNoneOne(1);
+	toRemoveNoneOne.setZero();
 	
 	omxMatrix* covInfo = ose->covInfo;
 	int info = 0; // Used for computing inverse for Kalman gain
@@ -215,7 +215,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	//If entire data vector, y, is missing, then set residual, r, to zero.
 	//otherwise, compute residual.
-	memset(toRemoveSS, 0, sizeof(int) * ny);
+	toRemoveSS.setZero();
 	for(int j = 0; j < y->rows; j++) {
 		double dataValue = omxMatrixElement(y, j, 0);
 		int dataValuefpclass = std::fpclassify(dataValue);
@@ -239,24 +239,24 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(numRemovesSS < ny && numRemovesSS > 0) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S"); }
 		if(OMX_DEBUG) { mxLog("Filtering S, R, C, r, K, and Y."); }
-		omxRemoveRowsAndColumns(smallS, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		omxRemoveRowsAndColumns(smallS, numRemovesSS, numRemovesSS, toRemoveSS.data(), toRemoveSS.data());
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S (Filtered)"); }
 		
-		omxRemoveRowsAndColumns(smallR, numRemovesSS, numRemovesSS, toRemoveSS, toRemoveSS);
+		omxRemoveRowsAndColumns(smallR, numRemovesSS, numRemovesSS, toRemoveSS.data(), toRemoveSS.data());
 		
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C"); }
-		omxRemoveRowsAndColumns(smallC, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		omxRemoveRowsAndColumns(smallC, numRemovesSS, 0, toRemoveSS.data(), toRemoveNoneLat.data());
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Filtered)"); }
 		
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r"); }
-		omxRemoveRowsAndColumns(smallr, numRemovesSS, 0, toRemoveSS, toRemoveNoneOne);
+		omxRemoveRowsAndColumns(smallr, numRemovesSS, 0, toRemoveSS.data(), toRemoveNoneOne.data());
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Filtered)"); }
 		
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K"); }
-		omxRemoveRowsAndColumns(smallK, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		omxRemoveRowsAndColumns(smallK, numRemovesSS, 0, toRemoveSS.data(), toRemoveNoneLat.data());
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K (Filtered)"); }
 		
-		omxRemoveRowsAndColumns(smallY, numRemovesSS, 0, toRemoveSS, toRemoveNoneLat);
+		omxRemoveRowsAndColumns(smallY, numRemovesSS, 0, toRemoveSS.data(), toRemoveNoneLat.data());
 	}
 	if(numRemovesSS == ny) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Completely missing row of data found."); }

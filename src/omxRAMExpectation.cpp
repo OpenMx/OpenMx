@@ -538,7 +538,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
         nParam = 0;
         size_t nTotalParams = freeVarGroup->vars.size();
         if(OMX_DEBUG) { mxLog("Planning Memory for Fast Gradient Calculation: Using %d params.", nParam); }
-        unsigned short int calc[nTotalParams]; 
+	Eigen::VectorXi calc(nTotalParams);
         // Work out the set of parameters for which we can calculate gradients
         // TODO: Potential speedup by splitting this to calculate dA, dS, and dM separately
         for(size_t parm = 0; parm < nTotalParams; parm++) {
@@ -616,8 +616,8 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
         eqnOuts = oro->eqnOuts;
     }
 
-    double covInfluence[nParam];
-    double meanInfluence[nParam];
+    Eigen::VectorXd covInfluence(nParam);
+    Eigen::VectorXd meanInfluence(nParam);
     
     // 1) (Re) Calculate current A, S, F, M, and Z (where Z = (I-A)^-1)
     // 2) cov = current Expected Covariance (fxf)
@@ -711,7 +711,7 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
     omxMatrixTrace(eqnOuts[0], nParam, paramVec);
 
     //      2) sum = eqnList1 + eqnList2
-    F77_CALL(daxpy)(&nParam, &oned, paramVec->data, &onei, covInfluence, &onei);
+    F77_CALL(daxpy)(&nParam, &oned, paramVec->data, &onei, covInfluence.data(), &onei);
 
     //      If Means:
     if(M != NULL) {

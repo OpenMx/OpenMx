@@ -208,7 +208,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
 
-	omxMatrix *args[Rf_length(matList)];
+	std::vector<omxMatrix *> args(Rf_length(matList));
 	for(k = 0; k < Rf_length(matList); k++) {
 		Rf_protect(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
 		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
@@ -219,7 +219,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 		}
 	}
 
-	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args, Rf_length(matList), globalState);
+	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args.data(), Rf_length(matList), globalState);
 
 	if(algebra==NULL) {
 		Rf_error("Failed to build algebra");

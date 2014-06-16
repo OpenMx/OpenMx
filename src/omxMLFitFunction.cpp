@@ -635,7 +635,7 @@ static void omxCalculateMLGradient(omxFitFunction* oo, double* gradient) {
     int info;
     double minusoned = -1.0;
     int onei = 1;
-    int status[gradientSize];
+    Eigen::VectorXi status(gradientSize);
     int nLocs = gradientSize;
     
     // Calculate current FitFunction values

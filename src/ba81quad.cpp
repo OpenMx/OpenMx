@@ -80,11 +80,11 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 
 	std::vector<double> tmpWherePrep(totalQuadPoints * maxDims);
 
+	Eigen::VectorXi quad(maxDims);
 	for (int qx=0; qx < totalQuadPoints; qx++) {
 		double *wh = tmpWherePrep.data() + qx * maxDims;
-		int quad[maxDims];
-		decodeLocation(qx, maxDims, quad);
-		pointToWhere(quad, wh, maxDims);
+		decodeLocation(qx, maxDims, quad.data());
+		pointToWhere(quad.data(), wh, maxDims);
 	}
 
 	totalPrimaryPoints = totalQuadPoints;
@@ -95,13 +95,14 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 
 	std::vector<double> tmpPriQarea;
 	tmpPriQarea.reserve(totalPrimaryPoints);
-	for (int qx=0; qx < totalPrimaryPoints; qx++) {
-		int quad[primaryDims];
-		decodeLocation(qx, primaryDims, quad);
-		double where[primaryDims];
-		pointToWhere(quad, where, primaryDims);
-		double den = exp(dmvnorm(primaryDims, where, means, priCov.data()));
-		tmpPriQarea.push_back(den);
+	{
+		Eigen::VectorXd where(primaryDims);
+		for (int qx=0; qx < totalPrimaryPoints; qx++) {
+			decodeLocation(qx, primaryDims, quad.data());
+			pointToWhere(quad.data(), where.data(), primaryDims);
+			double den = exp(dmvnorm(primaryDims, where.data(), means, priCov.data()));
+			tmpPriQarea.push_back(den);
+		}
 	}
 
 	std::vector<int> priOrder;

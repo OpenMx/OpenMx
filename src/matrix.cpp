@@ -1198,10 +1198,10 @@ Matrix condNumPurpose(Matrix inMat)
 	int iunused;
 	double abstol = 0;
 	int m = inMat.cols;
-	double w[inMat.cols];
-	double Z[inMat.cols];
+	Eigen::VectorXd w(inMat.cols);
+	Eigen::VectorXd Z(inMat.cols);
 	int ldz=1;
-	int isuppz[2*inMat.cols];
+	Eigen::VectorXi isuppz(2*inMat.cols);
 	int lwork = -1;
 	double optlWork;
 	int optliWork;
@@ -1209,7 +1209,7 @@ Matrix condNumPurpose(Matrix inMat)
 	int info;
     
     F77_CALL(dsyevr)(&jobz, &range, &uplo, &(result.cols), result.t, &(result.cols),
-                 &vunused, &vunused, &iunused, &iunused, &abstol, &m, w, Z, &ldz, isuppz,
+		     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w.data(), Z.data(), &ldz, isuppz.data(),
                      &optlWork, &lwork, &optliWork, &liwork, &info);
     lwork = optlWork;
 	std::vector<double> work(lwork);
@@ -1217,7 +1217,7 @@ Matrix condNumPurpose(Matrix inMat)
 	std::vector<int> iwork(liwork);
     
     F77_CALL(dsyevr)(&jobz, &range, &uplo, &(result.cols), result.t, &(result.cols),
-                     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w, Z, &ldz, isuppz,
+                     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w.data(), Z.data(), &ldz, isuppz.data(),
                      work.data(), &lwork, iwork.data(), &liwork, &info);
     
     Matrix eigenVals = fill(result.cols, 1, (double)0.0);
