@@ -1,0 +1,11 @@
+@import url("default.css");
+
+div.figure {
+	   border: medium dotted gray;
+	   padding: .5cm;
+}
+
+div.figure > p.caption:before {
+	   content: "Caption: ";
+	   font-weight: bold;
+}
