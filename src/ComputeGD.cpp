@@ -172,10 +172,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 		dest.noalias() = hcT * hc;
 #endif
-		// NPSOL does not leave things in a consistent state!
-		if (fitMatrix->rows == 1) {
-			fitMatrix->data[0] = fc->fit;
-		}
 		break;}
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
@@ -185,6 +181,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
+	omxFreeChildStates(globalState);
+
+	// It seems we cannot avoid this. Both optimizers can terminate
+	// with fit not at the optimum.
+	ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+
 	if (fitMatrix->rows == 1) {
 		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 			std::string diag = fc->getIterationError();
@@ -194,8 +196,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 	}
 
-	omxFreeChildStates(globalState);
-    
 	fc->wanted |= FF_COMPUTE_BESTFIT;
     /*printf("fc->hess in computeGD\n");
     printf("%2f", fc->hess[0]); putchar('\n');
