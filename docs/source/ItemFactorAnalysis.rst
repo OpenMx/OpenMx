@@ -143,6 +143,7 @@ will only consider the positive affect part of the scale.
    colnames(data) <- c("interested", "excited", "strong", "enthusiastic", "proud",
                        "alert", "inspired", "determined", "attentive", "active")
    head(data)  # much easier to understand with labels
+   origData <- data
    
    startingValues <- matrix(c(1, seq(1,-1,length.out=4)), ncol=length(spec), nrow=5)
    ip.mat <- mxMatrix(name="ItemParam", values=startingValues,
@@ -156,12 +157,12 @@ will only consider the positive affect part of the scale.
    cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1,
 		free=FALSE, dimnames=list('posAff', 'posAff'))
 
-   panas1 <- mxModel(model="panas1", ip.mat, m.mat, cov.mat,
+   originalPanas1 <- mxModel(model="panas1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(ItemSpec=spec, ItemParam="ItemParam", mean="mean", cov="cov"),
               mxFitFunctionML(),
 	      mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
-   panas1 <- mxRun(panas1)
+   panas1 <- mxRun(originalPanas1)
 
 A PANAS item always has 5 possible outcomes, but best practice is to
 list the outcomes labels and let R count them for you. If you work on a
@@ -174,7 +175,7 @@ collapsing two outcomes and see how the model fit changes.
    spec <- list()
    spec[1:10] <- rpf.grm(outcomes = length(PANASItem))
 
-The ``rpf.grm`` function creates a ``rpf.base`` class object that
+The ``rpf.grm`` function creates an ``rpf.base`` class object that
 represents an item response function. An item response function
 assigns probabilities to response outcomes. The ``grm`` in the
 function name ``rpf.grm`` stands for *graded response model*. You can inspect the
@@ -205,8 +206,8 @@ values is with,
    startingValues[1,] <- 1  # these parameters must be equal
 
 This is convenient because it will work for a non-homogeneous list of
-items. If you need to set some starting values to specific values then
-you might start with random starting values and then override the rows
+items. If you need to set some starting values to something specific then
+you might start with random starting values and then override any rows
 and columns as needed.
 
 .. code-block:: r
@@ -228,7 +229,7 @@ names. The column names must match the column names of the data.
 
    ip.mat$labels[1,] <- 'slope'
 
-Here set the label of every parameter in the first row to
+Here we set the label of every parameter in the first row to
 ``slope``. This acts like an equality constraint. The effect is that
 we assume all items work equally well at measuring the latent trait.
 This constraint is what makes the difference between a Rasch model and
@@ -262,11 +263,11 @@ Here we put everything together. There are a few things that are new.
 
    mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson())
 
-The custom compute plan is a somewhat more sophisticated version of
+The ``mxComputeEM`` plan is a somewhat more sophisticated version of
 
 .. code-block:: r
 
-   mxComputeIterate(list(
+   mxComputeIterate(steps=list(
                     mxComputeOnce('expectation', 'scores'),
                     mxComputeNewtonRaphson(),
                     mxComputeOnce('expectation'),
@@ -284,16 +285,274 @@ After running the model, we can inspect the parameters estimates,
 
 .. code-block:: r
 
-   panas1 <- mxRun(panas1)
+   panas1 <- mxRun(originalPanas1)
    panas1$ItemParam$values
    # or
    summary(panas1)
+
+At this point, you might notice something unsettling about the summary
+output. No standard errors are reported. How do we know whether our
+model converged? Excellent question. There are a few things that we
+can check. We can look at the count of EM cycles and M-step
+Newton-Raphson iterations.
+
+.. code-block:: r
+
+   panas1$compute$output
+
+If the number of EM cycles is 2 or less then it is likely that the
+parameters are still sitting at their starting values. Since our
+starting values were mostly random, that's probably not the solution
+we were looking for. Instead of digging into the ``MxComputeEM`` output, we
+can also re-run the model with extra diagnostics enabled.
+
+.. code-block:: r
+
+   panas1 <- mxModel(model=originalPanas1,
+                  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), verbose=2L))
+   panas1 <- mxRun(panas1)
+
+Note the addition of ``verbose=2L`` to ``mxComputeEM``.
+The ``mxComputeNewtonRaphson`` object takes a ``verbose`` parameter as
+well if you want to examine the progress of the optimization in (much)
+more detail. From this diagnostic output, we can discern that the
+parameters are changing, but we still do not know whether the solution
+is a candidate global optimum.
+
+.. code-block:: r
+
+  info1 <- mxModel(panas1,
+                mxComputeSequence(steps=list(
+                  mxComputeOnce('fitfunction', 'information', "meat"),
+                  mxComputeStandardError(),
+                  mxComputeHessianQuality())))
+  info1 <- mxRun(info1)
+
+As a starting point, we can estimate the information matrix by
+taking the inverse of the covariance of the first derivatives.
+This estimate is called ``meat`` because it forms the inside
+of a sandwich covariance matrix [White1994]_.
+The first thing to look at is the condition number of the
+information matrix.
+
+.. code-block:: r
+
+  info1$output$conditionNumber
+  # 525.8942     # yours may be different
+
+A finite condition number implies that the information matrix is
+positive definite.  Since the condition number is roughly closer to
+zero than to positive infinity, there is a good chance that the parameters
+are at a candidate global optimum. We can examine the standard errors.
+
+.. code-block:: r
+
+  summary(info1)
+
+Further diagnostics are available from the `RPF package <http://cran.r-project.org/web/packages/rpf/index.html>`_.
+Many of these
+diagnostic functions are most convenient to use when all the relevant
+information is packaged up into an IFA group object. An IFA group is
+not an object in the usual R sense, but you can think of it like an
+object. The problem with R objects is that they are a little
+mysterious. IFA groups are deliberately designed as simple lists to
+eliminate the mystery and encourage interoperability between IFA
+software.
+
+.. code-block:: r
+
+   grp1 <- list(spec=panas1$expectation$ItemSpec,
+            param=panas1$ItemParam$values,
+            mean=panas1$mean$values,
+            cov=panas1$cov$values,
+            data=origData)
+
+Note that we used ``origData`` instead of ``panas1$data$observed``.
+That is because the observed data in the model has been sorted by ``mxRun``.
+
+A fundamental assumption of IFA is that items are conditionally
+independent. That is, the outcome on a given item only depends on its
+item parameters and examinee skill, not on the outcome of other items.
+At least some attempt should be made to check this assumption.
+
+.. code-block:: r
+
+   ChenThissen1997(grp1)
+
+Item pairs that exhibit statistically significant local dependence
+and positively correlated residuals should be investigated.
+If ignored, local dependence exaggerates the accuracy
+of measurement.
+Standard errors will be smaller and
+items will seem to fit the data better than they otherwise would [Yen1993]_.
+
+.. code-block:: r
+
+   score1 <- mxModel(panas1,
+                  mxExpectationBA81(ItemSpec=spec, ItemParam="ItemParam",
+		    mean="mean", cov="cov", scores="full"),
+                  mxComputeOnce('expectation'))
+
+   score1 <- mxRun(score1)
+   head(score1$expectation$output$scores)
+
+Since we have a single factor Rasch model, the residuals are easily
+interpretable. We can examine Rasch fit statistics *infit* and
+*outfit*.  Before we do that, however, we need to compute EAP
+scores. To get EAP scores, we need to add ``scores="full"`` to
+``mxExpectationBA81``. We could have done this from the beginning, but
+sometimes the extra overhead of computing EAP scores is undesirable.
+Note that the scores are in the original data order, not the
+sorted data order.
+ 
+.. code-block:: r
+
+   grp1$scores <- score1$expectation$output$scores
+
+   rpf.1dim.fit(group=grp1, margin=2)
+
+..
+	item.map <- function(grp, factor=1) {
+	item.mask <- grp$param[factor,] > 0
+	result <- NULL
+	for (ix in rev(colnames(grp$param)[item.mask])) {
+	  lev <- levels(grp$data[,ix])
+	  for (ox in 1:length(lev)) {
+	  mask <- grp$data[,ix]==lev[ox]
+	  mask <- !is.na(mask) & mask
+	  if (all(!mask)) next
+	  result <- rbind(result, data.frame(item=ix,
+                                         outcome=ox, outcome.name=lev[ox],
+                                         score=mean(grp$scores[mask, factor], na.rm=TRUE)))
+	  }
+	}
+	result
+	}
+	map1 <- item.map(grp1, 1)
+	pl <- ggplot(map1, aes(x=score, y=item, label=outcome)) + geom_text(size=4, position=position_jitter(h=.25))
+	pdf("cache/ifa-1pl-itemMap.pdf", height=2.5)
+	print(pl)
+	dev.off()
+	png("cache/ifa-1pl-itemMap.png", height=180)
+	print(pl)
+	dev.off()
+
+.. _figure-ifa-1pl-itemMap:
+.. figure:: cache/ifa-1pl-itemMap.*
+
+	Example item map
+
+	Outcomes located at the mean of the ability of every examinee
+	who picked that outcome.
+
+This gives us item-wise statistics. For person-wise statistics, we can
+replace ``margin=2`` with ``margin=1``. For some discussion on the
+interpretation of these statistics, visit the `Infit and Outfit page
+<http://www.rasch.org/rmt/rmt162f.htm>`_ at the Institute for
+Objective Measurement.
+Another way to look at the results is to create an item plot.
+An item plot assigns to every outcome the mean of the ability of
+every examinee who picked that outcome (:ref:`figure-ifa-1pl-itemMap`).
+
+.. code-block:: r
+
+   sumScoreEAP(grp1)
+
+Finally, we can generate a sum-score EAP table. The ``posAff`` column
+contains the interval-scale score corresponding to the row-wise
+sum-score. You could use this table to score the PANAS instead of
+merely using the sum-score. The EAP sum-score will likely provide
+higher accuracy measurement of the latent trait *positive affect*.
+
+A 2PL model
+-------------
+
+Suppose you are skeptical that all positive affect items work equally
+well at measuring positive affect.
+We can relax this assumption and let the optimizer estimate
+how well each items is working.
+Continuing our previous example,
+all that is needed is to remove the label from the item parameter matrix.
+
+.. code-block:: r
+
+   panas2 <- mxModel(model=panas1,
+                mxComputeSequence(list(
+		mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()),
+                mxComputeOnce('fitfunction', 'information', "meat"),
+                mxComputeStandardError(),
+                mxComputeHessianQuality())))
+   panas2$ItemParam$labels[1,] <- NA
+   panas2 <- mxRun(panas2)
+
+The compute plan is the same as before except that we combined both
+the ``mxComputeEM`` fit step and computation of standard errors
+in a single ``mxComputeSequence``.
+As usual, we start by inspecting the condition number of the Hessian
+then look at the parameter estimates with standard errors.
+
+.. code-block:: r
+
+   panas2$output$conditionNumber
+   summary(panas2)
+
+Since these models are nested, we can conduct a likelihood ratio test
+to determine whether ``panas2`` fits the data significantly better than
+our Rasch constrained model ``panas1``.
+
+.. code-block:: r
+
+   mxCompare(panas2, panas1)
+
+Rasch fit statistics are not appropriate for a 2PL model because
+residuals from different items have different weights. However, we can
+compare expected item outcome proportions against sum-scores.  First
+we need to create IFA group object for ``panas2`` then we can run the
+S test [OrlandoThissen2000]_.
+
+.. code-block:: r
+
+   grp2 <- list(spec=panas2$expectation$ItemSpec,
+            param=panas2$ItemParam$values,
+            mean=panas2$mean$values,
+            cov=panas2$cov$values,
+            data=origData,
+	    free=panas2$ItemParam$free)
+   SitemFit(grp2)
+   
+The additional ``free`` logical matrix is included in the group for
+a degrees of freedom adjustment to the test.
+However, this adjustment is somewhat controversial and
+typically makes little difference in the outcome of the test.
+
+
+Additional possible topics:
+
+* 3PL with Bayesian priors (with likelihood-based CIs)
+* multiple group models
+* special features to cope with missing data
+* automatic-ish item construction (especially for the nominal model)
+* two-tier models
+* simulation studies
+* more than 1 primary factor
+* more plots
 
 .. [BockAitkin1981] Bock, R. D. & Aitkin, M. (1981). Marginal maximum likelihood estimation of item parameters:
 		    Application of an EM algorithm. Psychometrika, 46, 443–459.
 
 .. [Embretson1996] Embretson, S. E. (1996). The new rules of measurement. Psychological Assessment, 8(4), 341-349.
 
+.. [OrlandoThissen2000] Orlando, M. and Thissen, D. (2000). Likelihood-Based
+			Item-Fit Indices for Dichotomous Item Response Theory Models.
+			Applied Psychological Measurement, 24(1), 50-64.
+
 .. [WatsonEtal1988] Watson, D., Clark, L. A., & Tellegen, A. (1988). Development and validation of brief
 		    measures of positive and negative affect: The PANAS scales. Journal of Personality
 		    and Social Psychology, 54 (6), 1063.
+
+.. [White1994] Estimation, Inference and Specification
+	       Analysis. Cambridge University Press, Cambridge.
+
+.. [Yen1993] Yen, W. M. (1993). Scaling performance assessments:
+             Strategies for managing local item dependence. Journal of
+             Educational Measurement, 30, 187-213.
