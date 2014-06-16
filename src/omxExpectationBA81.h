@@ -133,7 +133,7 @@ struct BA81Expect {
 	int maxDims;
 	int maxAbilities;
 	int numSpecific;
-	int *Sgroup;                   // item's specific group 0..numSpecific-1
+	std::vector<int> Sgroup;       // item's specific group 0..numSpecific-1
 
 	// quadrature related
 	double Qwidth;

@@ -851,7 +851,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeMatrix(state->estLatentCov);
 	omxFreeMatrix(state->numObsMat);
 	Free(state->patternLik);
-	Free(state->Sgroup);
 	Free(state->expected);
 	Free(state->outcomeProb);
 	if (state->ownWeights) Free(state->rowWeight);
@@ -938,7 +937,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->scores = SCORES_OMIT;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;
-	state->Sgroup = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
 	oo->argStruct = (void*) state;
@@ -1145,7 +1143,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		if (state->verbose >= 1) mxLog("%s: Two-tier structure detected; "
 					       "%d abilities reduced to %d dimensions",
 					       oo->name, state->maxAbilities, state->maxDims);
-		state->Sgroup = Realloc(NULL, numItems, int);
+		state->Sgroup.assign(numItems, 0);
 		for (int ix=0; ix < numItems; ix++) {
 			for (int dx=orthogonal[0]; dx < state->maxAbilities; ++dx) {
 				if (state->itemParam->data[ix * maxParam + dx] != 0) {
