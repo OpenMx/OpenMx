@@ -1033,7 +1033,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	std::vector<int> &rowMap = state->rowMap;
 
 	const int numItems = state->itemParam->cols;
-	if (state->itemSpec.size() == 1) {
+	// This is probably not worth it
+	if (0 && state->itemSpec.size() == 1) {
 		for (int ix=1; ix < numItems; ++ix) {
 			state->itemSpec.push_back(state->itemSpec[0]);
 		}
