@@ -154,6 +154,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param ItemParam the name of the mxMatrix holding item parameters
 ##' with one column for each item model with parameters starting at
 ##' row 1 and extra rows filled with NA
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param qpoints number of points to use for equal interval quadrature integration (default 49L)
 ##' @param qwidth the width of the quadrature as a positive Z score (default 6.0)
 ##' @param mean the name of the mxMatrix holding the mean vector
@@ -183,10 +184,14 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam,
+mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
 			      qpoints=49L, qwidth=6.0, mean=NULL, cov=NULL,
 			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
+
+	if (length(list(...)) > 0) {
+		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
+	}
 
 	if (packageVersion("rpf") < "0.28") stop("Please install 'rpf' version 0.28 or newer")
 	if (qpoints < 3) {
