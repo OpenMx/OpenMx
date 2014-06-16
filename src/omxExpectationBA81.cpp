@@ -501,12 +501,18 @@ void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Exp
 		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
-	// Can do these last steps in parallel, but it only saves 2%
-	// in one test. Plus, this optimization is counterproductive
-	// when EstepPolicy does nothing.
+	if (EstepPolicy<CovType>::hasEnd() && LatentPolicy::hasEnd()) {
+#pragma omp parallel sections
+		{
+		{ EstepPolicy<CovType>::recordTable(state); }
+#pragma omp section
+		{ LatentPolicy::end(state); }
+		}
+	} else {
+		EstepPolicy<CovType>::recordTable(state);
+		LatentPolicy::end(state);
+	}
 
-	EstepPolicy<CovType>::recordTable(state);
-	LatentPolicy::end(state);
 	BA81Engine<CovType, LatentPolicy, EstepPolicy>::engineDone(state);
 }
 
@@ -584,8 +590,18 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 		EstepPolicy<CovType>::addRow(state, px, Qweight, thrId);
 	}
 
-	EstepPolicy<CovType>::recordTable(state);
-	LatentPolicy::end(state);
+	if (EstepPolicy<CovType>::hasEnd() && LatentPolicy::hasEnd()) {
+#pragma omp parallel sections
+		{
+		{ EstepPolicy<CovType>::recordTable(state); }
+#pragma omp section
+		{ LatentPolicy::end(state); }
+		}
+	} else {
+		EstepPolicy<CovType>::recordTable(state);
+		LatentPolicy::end(state);
+	}
+
 	BA81Engine<CovType, LatentPolicy, EstepPolicy>::engineDone(state);
 }
 

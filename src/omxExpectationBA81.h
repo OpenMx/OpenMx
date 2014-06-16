@@ -68,6 +68,7 @@ struct BA81Estep {
 	void begin(struct BA81Expect *state);
 	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId);
 	void recordTable(struct BA81Expect *state);
+	bool hasEnd() { return true; }
 };
 
 template <typename CovType>
@@ -75,12 +76,14 @@ struct BA81OmitEstep {
 	void begin(struct BA81Expect *state) {};
 	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId) {};
 	void recordTable(struct BA81Expect *state);
+	bool hasEnd() { return false; }
 };
 
 struct BA81LatentFixed {
 	void begin(struct BA81Expect *state) {}
 	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrid);
 	void end(struct BA81Expect *state) {};
+	bool hasEnd() { return false; }
 };
 
 struct BA81LatentSummary {
@@ -91,6 +94,7 @@ struct BA81LatentSummary {
 	void begin(struct BA81Expect *state);
 	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
 	void end(struct BA81Expect *state);
+	bool hasEnd() { return true; }
 };
 
 struct BA81LatentScores {
@@ -100,6 +104,7 @@ struct BA81LatentScores {
 	void begin(struct BA81Expect *state);
 	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
 	void end(struct BA81Expect *state);
+	bool hasEnd() { return true; }
 };
 
 template <
