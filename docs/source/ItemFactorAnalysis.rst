@@ -41,7 +41,7 @@ What is Item Factor Analysis?
 	print(pl)
 	dev.off()
 
-.. _figure-ifa-intervalize:
+.. _figure-intervalize:
 .. figure:: cache/ifa-intervalize.*
 
 	    Percentage correct of responses by skill bin
@@ -85,7 +85,7 @@ from an unrepresentative sample [Embretson1996]_.
 	      plot.icc(rpf.drm(), i2, width=6) + labs(title="b."), ncol=2)
 	dev.off()
 
-.. _figure-ifa-1pl-rpf:
+.. _figure-1pl-rpf:
 .. figure:: cache/ifa-1pl-rpf.*
 
 	Example plots of the logistic curve
@@ -94,13 +94,13 @@ from an unrepresentative sample [Embretson1996]_.
 	The interval data are fit against the blue curve.
 	The *c* parameter is set to 1.5 for (a) and -0.9 for (b).
 	Which curve would fit the data better? Answer: Curve (a) is a better fit
-	because the 50% level occurs near skill=1.5 in :ref:`figure-ifa-intervalize`.
+	because the 50% level occurs near skill=1.5 in :num:`Figure #figure-intervalize`.
 
 IFA is based on the idea of fitting models to data. The first step
 is to convert nominal or ordinal data into interval scale data. To understand how this is
 accomplished, assume that the true skill (traditionally :math:`\theta`) of participants is known. We can
 plot item outcome by true skill, partition the skill distribution into bins, and count the
-proportion of correct responses in each bin (:ref:`figure-ifa-intervalize`). We can fit a model to these data.
+proportion of correct responses in each bin (:num:`Figure #figure-intervalize`). We can fit a model to these data.
 One popular model is the logistic model (also called the 1PL or Rasch model),
 
 .. math::
@@ -108,10 +108,13 @@ One popular model is the logistic model (also called the 1PL or Rasch model),
   Pr(pick=1|c,\theta) = \frac{1}{1+\exp(-(\theta-c))}
 
 where :math:`\theta` is the participant's skill and *c* is the estimated parameter to describe the item's
-difficulty. See :ref:`figure-ifa-1pl-rpf`. While the examinee's
+difficulty (:num:`Figure #figure-1pl-rpf`). While the examinee's
 true skill is assumed known in this simplified introduction, such an assumption is unnecessary.
-[BockAitkin1981]_ can estimate both item parameters and person skills
-simultaneously.
+There is a circular dependency.
+Items parameters depend on examinee skill which, in turn, depends on item parameters.
+These kinds of models cannot be optimized directly.
+However, optimization is possible by switching back and
+forth between item and person parameters [BockAitkin1981]_.
 
 Simple Models
 =============
@@ -134,10 +137,12 @@ will only consider the positive affect part of the scale.
    PANASItem <- c("Very Slightly or Not at All",  "A Little",
 		"Moderately", "Quite a Bit",	"Extremely")
    spec <- list()
-   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))
+   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))  # grm="graded response model"
 
    # replace with your own data
-   data <- rpf.sample(500, spec, sapply(spec, rpf.rparam))
+   simParam <- sapply(spec, rpf.rparam)
+   simParam[1,] <- simParam[1,] + 3  # prettier plots
+   data <- rpf.sample(750, spec, simParam)
 
    for (cx in 1:10) levels(data[[cx]]) <- PANASItem          # repair level labels
    colnames(data) <- c("interested", "excited", "strong", "enthusiastic", "proud",
@@ -180,13 +185,20 @@ represents an item response function. An item response function
 assigns probabilities to response outcomes. The ``grm`` in the
 function name ``rpf.grm`` stands for *graded response model*. You can inspect the
 mathematical formula for the graded response model by requesting the
-manual page with ``?rpf.grm``.
+manual page with ``?rpf.grm``. Experiment with the ``rpf.*`` functions
+to get a feel for how they work.
 
 .. code-block:: r
 
+   rpf.rparam(spec[[1]])    # generates random parameters
+   rpf.numParam(spec[[1]])  # same as length(rpf.rparam(spec[[1]]))
+   rpf.paramInfo(spec[[1]]) # type and default upper & lower bounds
+   rpf.prob(spec[[1]], startingValues[,1], 0)   # probabilities at score=0
+   rpf.prob(spec[[1]], startingValues[,1], .5)  # probabilities at score=.5
+
    data <- rpf.sample(500, spec, sapply(spec, rpf.rparam))
 
-This line creates some fake data for 500 random participants based on
+This last line (``rpf.sample``) creates fake data for 500 random participants based on
 our list of item models and random item parameters.  Instead of this
 line, you would typically read in your data using ``read.csv`` and
 convert it to ordered factors using ``mxFactor``.
@@ -315,7 +327,7 @@ can also re-run the model with extra diagnostics enabled.
 Note the addition of ``verbose=2L`` to ``mxComputeEM``.
 The ``mxComputeNewtonRaphson`` object takes a ``verbose`` parameter as
 well if you want to examine the progress of the optimization in (much)
-more detail. From this diagnostic output, we can discern that the
+more detail. From this diagnostic output, we discern that the
 parameters are changing, but we still do not know whether the solution
 is a candidate global optimum.
 
@@ -329,7 +341,7 @@ is a candidate global optimum.
   info1 <- mxRun(info1)
 
 As a starting point, we can estimate the information matrix by
-taking the inverse of the covariance of the first derivatives.
+taking the inverse of the covariance of the per-row first derivatives.
 This estimate is called ``meat`` because it forms the inside
 of a sandwich covariance matrix [White1994]_.
 The first thing to look at is the condition number of the
@@ -369,6 +381,9 @@ software.
 
 Note that we used ``origData`` instead of ``panas1$data$observed``.
 That is because the observed data in the model has been sorted by ``mxRun``.
+Later on, when we compute EAP scores,
+the scores come back in the original row order, not the sorted order.
+When we analyze the data and scores together, obviously, the orders must match.
 
 A fundamental assumption of IFA is that items are conditionally
 independent. That is, the outcome on a given item only depends on its
@@ -400,8 +415,15 @@ Since we have a single factor Rasch model, the residuals are easily
 interpretable. We can examine Rasch fit statistics *infit* and
 *outfit*.  Before we do that, however, we need to compute EAP
 scores. To get EAP scores, we need to add ``scores="full"`` to
-``mxExpectationBA81``. We could have done this from the beginning, but
-sometimes the extra overhead of computing EAP scores is undesirable.
+``mxExpectationBA81``. We could have done this from the beginning,
+but it may be necessary to increase the number of quadrature
+points.
+At least :math:`1 + 2 (\text{numberOfItems})^\frac{1}{2}` points
+are recommended for accurate EAP scores [ThissenOrlando2001]_.
+It may require an impractical amount of time
+to conduct a full optimization with a very fine quadrature,
+but we can fit a model with fewer quadrature points
+and increase the number of points for downstream analyses.
 Note that the scores are in the original data order, not the
 sorted data order.
  
@@ -412,6 +434,7 @@ sorted data order.
    rpf.1dim.fit(group=grp1, margin=2)
 
 ..
+	warnings()  # flush warnings from rpf.1dim.fit
 	item.map <- function(grp, factor=1) {
 	item.mask <- grp$param[factor,] > 0
 	result <- NULL
@@ -437,7 +460,7 @@ sorted data order.
 	print(pl)
 	dev.off()
 
-.. _figure-ifa-1pl-itemMap:
+.. _figure-1pl-itemmap:
 .. figure:: cache/ifa-1pl-itemMap.*
 
 	Example item map
@@ -452,7 +475,7 @@ interpretation of these statistics, visit the `Infit and Outfit page
 Objective Measurement.
 Another way to look at the results is to create an item plot.
 An item plot assigns to every outcome the mean of the ability of
-every examinee who picked that outcome (:ref:`figure-ifa-1pl-itemMap`).
+every examinee who picked that outcome (:num:`Figure #figure-1pl-itemmap`).
 
 .. code-block:: r
 
@@ -470,7 +493,7 @@ A 2PL model
 Suppose you are skeptical that all positive affect items work equally
 well at measuring positive affect.
 We can relax this assumption and let the optimizer estimate
-how well each items is working.
+how well each item is working.
 Continuing our previous example,
 all that is needed is to remove the label from the item parameter matrix.
 
@@ -482,7 +505,7 @@ all that is needed is to remove the label from the item parameter matrix.
                 mxComputeOnce('fitfunction', 'information', "meat"),
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
-   panas2$ItemParam$labels[1,] <- NA
+   panas2$ItemParam$labels[1,] <- NA  # here we remove the label
    panas2 <- mxRun(panas2)
 
 The compute plan is the same as before except that we combined both
@@ -519,14 +542,62 @@ S test [OrlandoThissen2000]_.
             data=origData,
 	    free=panas2$ItemParam$free)
    SitemFit(grp2)
-   
+
+..
+	S.plot <- function(grp, sout, itemName) {
+	  s1 <- sout[[itemName]]
+	  obs <- s1$orig.observed
+	  ex <- s1$orig.expected
+	  rowTotal <- apply(obs, 1, sum)
+	  mask <- rowTotal > 0
+	  obs <- (obs / rowTotal)[mask,]
+	  ex <- (ex / rowTotal)[mask,]
+	  ss <- data.frame(sscore=as.numeric(names(rowTotal)), n=rowTotal)
+	  both <- rbind(cbind(type="expected", melt(ex)),
+	                cbind(type="observed", melt(obs)))
+	  both$outcome <- factor(both$outcome, colnames(obs))
+	  plot <- ggplot(both, aes(x=sumScore, y=value)) + facet_wrap(~type) + ylim(0,1) +
+	    labs(y="probability", title=itemName)
+	  guide.style <- guide_legend(keywidth=.1, keyheight=.5, direction = "horizontal", title.position = "top",
+	                              label.position="bottom", label.hjust = 0.5, label.vjust = .5,
+	                              label.theme = element_text(angle = 90, size=8))
+	  plot <- plot + geom_line(aes(color=outcome)) + guides(color = guide.style) +
+	    geom_text(data=ss, aes(label=n, x=sscore), y = 1, size=2, angle=90)
+	  plot
+	}
+	sout <- SitemFit(grp2)
+	pl <- S.plot(grp2, sout, colnames(grp2$param)[ order(-grp2$param[1,])[1] ])
+	pdf("cache/ifa-Splot.pdf", height=2.5)
+	print(pl)
+	dev.off()
+	png("cache/ifa-Splot.png", height=250, width=640)
+	print(pl)
+	dev.off()
+
+.. _figure-splot:
+.. figure:: cache/ifa-Splot.*
+
+	    Expected vs observed outcome frequencies at each sum-score level
+
+	    The observed trace lines bounce around because this is a
+	    small sample size. The per-sum-score sample size is given
+	    along the ``probability=1`` line. One reason that this is an
+	    interesting plot is because the plot methodology works
+	    regardless of the number of latent factors.
+
 The additional ``free`` logical matrix is included in the group for
 a degrees of freedom adjustment to the test.
 However, this adjustment is somewhat controversial and
-typically makes little difference in the outcome of the test.
-
+typically makes little difference in the outcome.
+The internal tables of ``SitemFit`` can easily be plotted (:num:`Figure #figure-splot`).
+Sometimes it is easier to diagnose the source of misfit
+by examining such a plot than by inspection of large tables of probabilities.
+However, the S test is not a panacea.
+Poorly fitting items will cause other items to fit poorly.
+The S test is just one more tool in the toolbox.
 
 Additional possible topics:
+---------------------------
 
 * 3PL with Bayesian priors (with likelihood-based CIs)
 * multiple group models
@@ -545,6 +616,10 @@ Additional possible topics:
 .. [OrlandoThissen2000] Orlando, M. and Thissen, D. (2000). Likelihood-Based
 			Item-Fit Indices for Dichotomous Item Response Theory Models.
 			Applied Psychological Measurement, 24(1), 50-64.
+
+.. [ThissenOrlando2001] Thissen, D. & Orlando, M. (2001). IRT for items scored in two
+			categories. In D. Thissen & H. Wainer (Eds.), Test scoring
+			(pp 73-140). Lawrence Erlbaum Associates, Inc.
 
 .. [WatsonEtal1988] Watson, D., Clark, L. A., & Tellegen, A. (1988). Development and validation of brief
 		    measures of positive and negative affect: The PANAS scales. Journal of Personality

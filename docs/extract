@@ -37,6 +37,9 @@ for (my $lx=0; $lx < @lines; ++$lx) {
 	    require_openmx();
 	    print $out $l;
 	    next;
+	} elsif ($l =~ /^\.\.\s*$/ or $l =~ /^\.\.\s+code-block\:\:\s+r\s*$/) {
+	    # consecutive code blocks
+	    next;
 	} else {
 	    $code = 0;
 	    next;
