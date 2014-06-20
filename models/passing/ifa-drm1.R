@@ -10,7 +10,7 @@ items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
   items[[ix]] <- i1
-  correct[[ix]] <- rpf.rparam(i1)
+  correct[[ix]] <- rpf.rparam(i1, version=1)
   correct[[ix]][3] <- logit(0)
   correct[[ix]][4] <- logit(1)
 }

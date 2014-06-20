@@ -20,7 +20,7 @@ items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
   items[[ix]] <- i1
-  correct[[ix]] <- rpf.rparam(i1)
+  correct[[ix]] <- rpf.rparam(i1, version=1)
 }
 correct.mat <- simplify2array(correct)
 correct.mat[2,] <- 1

@@ -111,7 +111,7 @@ if (1) {
     dm <- fm1
     dm$submodels$item$expectation$EItemParam <- dm$submodels$item$matrices$ItemParam$values[,]
     dm$submodels$item$matrices$ItemParam$free[,3:12] <- FALSE
-    dm$submodels$item$matrices$ItemParam$values[1:3,1:2] <- sapply(spec[1:2], rpf.rparam)[1:3,]
+    dm$submodels$item$matrices$ItemParam$values[1:3,1:2] <- sapply(spec[1:2], rpf.rparam, version=1)[1:3,]
     dm$submodels$pmodel$matrices$gparam$free[1,3:12] <- FALSE
     dm$submodels$pmodel$matrices$gparam$values[,] <-
       dm$submodels$item$matrices$ItemParam$values[3,]

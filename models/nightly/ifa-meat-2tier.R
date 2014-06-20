@@ -15,7 +15,7 @@ numPeople <- 1000
 items <- list()
 correct <- list()
 items[1:numItems] <- rpf.grm(factor=6)
-correct <- sapply(items, rpf.rparam)
+correct <- sapply(items, rpf.rparam, version=1)
 correct['a1', 12:16] <- 0
 correct['a2', 1:5] <- 0
 correct['a3', 5:16] <- 0
@@ -58,7 +58,7 @@ diff <- matrix(NA, trials, 17)
 for (seed in 1:trials) {
   set.seed(seed)
   
-  ip.mat$values[col6mask,6] <- rpf.rparam(items[[6]])[col6mask]
+  ip.mat$values[col6mask,6] <- rpf.rparam(items[[6]], version=1)[col6mask]
   
   m.mat <- mxMatrix(name="mean", nrow=1, ncol=6, values=runif(6, -1, 1), free=TRUE)
   colnames(m.mat) <- paste('f', 1:6, sep="")

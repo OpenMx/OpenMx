@@ -7,7 +7,7 @@ maxDim <- 3
 
 items <- list()
 items[1:numItems] <- rpf.grm(factors=maxDim)
-correct.mat <- sapply(items, rpf.rparam)
+correct.mat <- sapply(items, rpf.rparam, version=1)
 correct.mat['a3',1:2] <- 0
 correct.mat['a2',3:4] <- 0
 
@@ -67,7 +67,7 @@ set.seed(1)
 numItems <- 12
 items <- list()
 items[1:numItems] <- rpf.grm()
-correct.mat <- sapply(items, rpf.rparam)
+correct.mat <- sapply(items, rpf.rparam, version=1)
 
 maxParam <- max(vapply(items, rpf.numParam, 0))
 

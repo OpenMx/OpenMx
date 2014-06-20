@@ -18,14 +18,14 @@ items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
 	items[[ix]] <- rpf.grm(factors=2)
-	correct[[ix]] <- rpf.rparam(items[[ix]])
+	correct[[ix]] <- rpf.rparam(items[[ix]], version=1)
 }
 correct.mat <- simplify2array(correct)
 correct.mat[1,1:10] <- 0
 correct.mat[2,20:30] <- 0
 
 if (0) {
-  startpar <- sapply(items, rpf.rparam)
+  startpar <- sapply(items, rpf.rparam, version=1)
 } else {
   startpar <- matrix(c(1.4, 1, 0), nrow=3, ncol=numItems)
 }

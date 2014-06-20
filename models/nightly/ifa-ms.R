@@ -33,7 +33,7 @@ colnames(ip.mat) <- colnames(m2.data)
 rownames(ip.mat) <- c('f1', rep('n', nrow(ip.mat)-1))
 ip.mat$labels[1,] <- 'a1'
 ip.mat$free[1,] <- TRUE
-rstart <- lapply(m2.spec, rpf.rparam)
+rstart <- lapply(m2.spec, rpf.rparam, version=1)
 for (ix in 1:m2.numItems) {
   thr <- m2.spec[[ix]]$outcomes - 1
   ip.mat$free[(2+thr):(1+2*thr), ix] <- TRUE

@@ -8,7 +8,7 @@ i1 <- rpf.drm(multidimensional=TRUE)
 items <- list()
 items[1:numItems] <- i1
 correct <- matrix(NA, 4, numItems)
-for (x in 1:numItems) correct[,x] <- rpf.rparam(i1)
+for (x in 1:numItems) correct[,x] <- rpf.rparam(i1, version=1)
 correct[1,] <- 1
 correct[3,] <- logit(0)
 correct[4,] <- logit(1)

@@ -9,7 +9,7 @@ items <- list()
 items[1:numItems] <- rpf.grm(outcomes=2)  # equivalent to 2PL
 
 # create random item parameters
-correct <- sapply(items, rpf.rparam)
+correct <- sapply(items, rpf.rparam, version=1)
 
 # simulate data
 data.g1 <- rpf.sample(500, items, correct)

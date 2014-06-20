@@ -28,7 +28,7 @@ items[[3]] <- rpf.nrm(outcomes=4, factors=2,
                       T.a=diag(3), T.c=diag(3))
 numItems <- length(items)
 
-params <- lapply(items, rpf.rparam)
+params <- lapply(items, rpf.rparam, version=1)
 data <- rpf.sample(5000, items, params)
 
 starting <- list(c(1.4, 1, 0, logit(.1), logit(.9)),
@@ -72,7 +72,7 @@ if (0) {   # enable to generate answer file
       m2$itemParam$values <- starting.values
       m2$itemParam$free[,] <- FALSE
       
-      spoint <- rpf.rparam(items[[ii]])
+      spoint <- rpf.rparam(items[[ii]], version=1)
       # exclude GRM with close adjacent intercepts, too much curvature for numDeriv
       if (ii==2 && min(abs(diff(spoint[3:6]/max(spoint[1:2])))) < .3) next
 

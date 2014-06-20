@@ -15,7 +15,7 @@ items <- list()
 correct <- list()
 for (ix in 1:numItems) {
 	items[[ix]] <- rpf.grm(factors=2)
-	correct[[ix]] <- rpf.rparam(items[[ix]])
+	correct[[ix]] <- rpf.rparam(items[[ix]], version=1)
 }
 correct.mat <- simplify2array(correct)
 

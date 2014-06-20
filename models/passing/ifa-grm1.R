@@ -7,7 +7,7 @@ set.seed(9)
 numItems <- 14
 spec <- vector("list", numItems)
 for (ix in 1:numItems) { spec[[ix]] <- rpf.grm(outcomes=sample(2:7, 1)) }
-correct <- lapply(spec, rpf.rparam)
+correct <- lapply(spec, rpf.rparam, version=1)
 
 ability <- rnorm(500)
 data <- rpf.sample(ability, spec, correct)
@@ -19,7 +19,7 @@ correct.mat <- ip.mat$values
 for (ix in 1:numItems) {
   len <- length(correct[[ix]])
   ip.mat$free[1:len,ix] <- TRUE
-  ip.mat$values[1:len,ix] <- rpf.rparam(spec[[ix]])
+  ip.mat$values[1:len,ix] <- rpf.rparam(spec[[ix]], version=1)
   correct.mat[1:len,ix] <- correct[[ix]]
 }
 ip.mat$values[!ip.mat$free] <- NA
