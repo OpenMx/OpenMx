@@ -55,6 +55,23 @@ void ba81NormalQuad::decodeLocation(int qx, const int dims, int *quad)
 	}
 }
 
+void ba81NormalQuad::setup0()
+{
+	quadGridSize = 1;
+	numSpecific = 0;
+	primaryDims = 0;
+	maxDims = 1;
+	maxAbilities = 0;
+	totalQuadPoints = 1;
+	Qpoint.clear();
+	Qpoint.reserve(1);
+	Qpoint.push_back(0);
+	priQarea.clear();
+	priQarea.push_back(One);
+	wherePrep.clear();
+	wherePrep.push_back(0);
+}
+
 void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 			   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar)
 {

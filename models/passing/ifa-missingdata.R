@@ -114,3 +114,18 @@ if (0) {
   pars <- mirt(rdata, 1, itemtype="gpcm", D=1, quadpts=49, SE=TRUE)
   # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
 }
+
+nullm2 <- mxModel(m2,
+                  mxMatrix(name="mean", nrow=0, ncol=0),
+                  mxMatrix(name="cov", nrow=0, ncol=0),
+                  mxExpectationBA81(
+                    ItemSpec=items, ItemParam="itemParam",
+                    mean="mean", cov="cov"),
+                  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
+
+nullm2$itemParam$values[,] <- mxSimplify2Array(lapply(items, rpf.rparam))
+nullm2$itemParam$values['f1',] <- 0
+nullm2$itemParam$free['f1',] <- FALSE
+
+nullm2 <- mxRun(nullm2)
+omxCheckCloseEnough(nullm2$output$fit, 2926.20, .01)

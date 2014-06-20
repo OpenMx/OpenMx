@@ -5,25 +5,19 @@ library(rpf)
 set.seed(9)
 
 numItems <- 14
-spec <- vector("list", numItems)
+spec <- list()
 for (ix in 1:numItems) { spec[[ix]] <- rpf.grm(outcomes=sample(2:7, 1)) }
-correct <- lapply(spec, rpf.rparam, version=1)
+correct.mat <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
 ability <- rnorm(500)
-data <- rpf.sample(ability, spec, correct)
+data <- rpf.sample(ability, spec, correct.mat)
 
-ip.mat <- mxMatrix(name="itemParam", nrow=max(sapply(correct, length)), ncol=numItems)
+ip.mat <- mxMatrix(name="itemParam", nrow=nrow(correct.mat), ncol=numItems)
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', paste('b', 1:(nrow(ip.mat)-1), sep=""))
-correct.mat <- ip.mat$values
-for (ix in 1:numItems) {
-  len <- length(correct[[ix]])
-  ip.mat$free[1:len,ix] <- TRUE
-  ip.mat$values[1:len,ix] <- rpf.rparam(spec[[ix]], version=1)
-  correct.mat[1:len,ix] <- correct[[ix]]
-}
+ip.mat$free[!is.na(correct.mat)] <- TRUE
 ip.mat$values[!ip.mat$free] <- NA
-correct.mat[!ip.mat$free] <- NA
+ip.mat$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
 m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
 rownames(m.mat) <- "f1"
@@ -119,3 +113,18 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
           0.141, 0.134, 0.145, 0.116, 0.112,  0.116, 0.116, 0.151, 0.162, 0.124,
           0.115, 0.097, 0.104, 0.125,  0.098, 0.099, 0.104, 0.107, 0.111, 0.139, 0.156, 0.11)
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
+
+nullm2 <- mxModel(m2,
+              mxMatrix(name="mean", nrow=0, ncol=0),
+              mxMatrix(name="cov", nrow=0, ncol=0),
+              mxExpectationBA81(
+                ItemSpec=spec, ItemParam="itemParam",
+                mean="mean", cov="cov"),
+              mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
+
+nullm2$itemParam$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam))
+nullm2$itemParam$values['f1',] <- 0
+nullm2$itemParam$free['f1',] <- FALSE
+
+nullm2 <- mxRun(nullm2)
+omxCheckCloseEnough(nullm2$output$fit, 14810.21, .01)

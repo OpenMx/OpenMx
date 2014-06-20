@@ -626,6 +626,12 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	}
 
 	const int maxDims = state->maxDims;
+	if (maxDims == 0) {
+		state->quad.setup0();
+		state->latentParamVersion = getLatentVersion(state);
+		return;
+	}
+
 	int numSpecific = state->numSpecific;
 	int priDims = maxDims - (numSpecific? 1 : 0);
 
@@ -1116,6 +1122,19 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
 	}
 
+	for (int cx = 0; cx < numItems; cx++) {
+		const double *spec = state->itemSpec[cx];
+		int dims = spec[RPF_ISpecDims];
+		int loadings = 0;
+		for (int dx=0; dx < dims; ++dx) {
+			if (omxMatrixElement(state->itemParam, dx, cx) != 0) loadings += 1;
+		}
+		if (loadings > state->maxAbilities) {
+			omxRaiseErrorf("Item %d has more factor loadings (%d) than there are factors (%d)",
+				       1+cx, loadings, state->maxAbilities);
+		}
+	}
+
 	// detect two-tier covariance structure
 	std::vector<int> orthogonal;
 	if (state->maxAbilities >= 3) {
@@ -1186,33 +1205,35 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->rowSkip.assign(rowMap.size(), false);
 
-	// Rows with no information about an ability will obtain the
-	// prior distribution as an ability estimate. This will
-	// throw off multigroup latent distribution estimates.
-	for (size_t rx=0; rx < rowMap.size(); rx++) {
-		std::vector<int> contribution(state->maxAbilities);
-		for (int ix=0; ix < numItems; ix++) {
-			int pick = omxIntDataElementUnsafe(data, rowMap[rx], colMap[ix]);
-			if (pick == NA_INTEGER) continue;
-			const double *spec = state->itemSpec[ix];
-			int dims = spec[RPF_ISpecDims];
-			for (int dx=0; dx < dims; dx++) {
-				// assume factor loadings are the first item parameters
-				if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;
-				contribution[dx] += 1;
-			}
-		}
-		for (int ax=0; ax < state->maxAbilities; ++ax) {
-			if (contribution[ax] < minItemsPerScore) {
-				if (naFail) {
-					int dest = omxDataIndex(data, state->rowMap[rx]);
-					omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
+	if (state->maxAbilities) {
+		// Rows with no information about an ability will obtain the
+		// prior distribution as an ability estimate. This will
+		// throw off multigroup latent distribution estimates.
+		for (size_t rx=0; rx < rowMap.size(); rx++) {
+			std::vector<int> contribution(state->maxAbilities);
+			for (int ix=0; ix < numItems; ix++) {
+				int pick = omxIntDataElementUnsafe(data, rowMap[rx], colMap[ix]);
+				if (pick == NA_INTEGER) continue;
+				const double *spec = state->itemSpec[ix];
+				int dims = spec[RPF_ISpecDims];
+				for (int dx=0; dx < dims; dx++) {
+					// assume factor loadings are the first item parameters
+					if (omxMatrixElement(state->itemParam, dx, ix) == 0) continue;
+					contribution[dx] += 1;
 				}
-				// We could compute the other scores, but estimation of the
-				// latent distribution is in the hot code path. We can reconsider
-				// this choice when we try generating scores instead of the
-				// score distribution.
-				state->rowSkip[rx] = true;
+			}
+			for (int ax=0; ax < state->maxAbilities; ++ax) {
+				if (contribution[ax] < minItemsPerScore) {
+					if (naFail) {
+						int dest = omxDataIndex(data, state->rowMap[rx]);
+						omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
+					}
+					// We could compute the other scores, but estimation of the
+					// latent distribution is in the hot code path. We can reconsider
+					// this choice when we try generating scores instead of the
+					// score distribution.
+					state->rowSkip[rx] = true;
+				}
 			}
 		}
 	}

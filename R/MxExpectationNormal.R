@@ -181,24 +181,26 @@ verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expec
 		means <- flatModel[[meansName]]
 	}
 	covariance <- flatModel[[covName]]
-	covariance <- dimnames(covariance)
-	if (is.null(covariance)) {
+	if (length(covariance)) {
+		covDimnames <- dimnames(covariance)
+		if (is.null(covDimnames)) {
 			msg <- paste("The",type,"covariance matrix associated",
-				"with", expectationName, "in model",
-				omxQuotes(modelname), "does not contain dimnames.")
+				     "with", expectationName, "in model",
+				     omxQuotes(modelname), "does not contain dimnames.")
 			stop(msg, call. = FALSE)	
-	}
-	covRows <- covariance[[1]]
-	covCols <- covariance[[2]]	
-	if (is.null(covRows) || is.null(covCols) ||
-		(length(covRows) != length(covCols)) || !all(covRows == covCols)) {
+		}
+		covRows <- covDimnames[[1]]
+		covCols <- covDimnames[[2]]
+		if (is.null(covRows) || is.null(covCols) ||
+		    (length(covRows) != length(covCols)) || !all(covRows == covCols)) {
 			msg <- paste("The",type,"covariance matrix associated",
-				"with", expectationName, "in model",
-				omxQuotes(modelname), "does not contain identical",
-				"row and column dimnames.")
+				     "with", expectationName, "in model",
+				     omxQuotes(modelname), "does not contain identical",
+				     "row and column dimnames.")
 			stop(msg, call.=FALSE)
+		}
 	}
-	if (!isS4(means) && is.na(means)) return()
+	if ((!isS4(means) && is.na(means)) || !length(means)) return()
 	meanDimnames <- dimnames(means)
 	if (is.null(meanDimnames)) {
 			msg <- paste("The",type,"means matrix associated",

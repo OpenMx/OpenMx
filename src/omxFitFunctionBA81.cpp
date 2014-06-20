@@ -1081,6 +1081,10 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & (FF_COMPUTE_INFO | FF_COMPUTE_GRADIENT)) {
+			if (estate->maxAbilities == 0) {
+				omxRaiseErrorf("%s: null model has no information matrix", oo->matrix->name);
+				return;
+			}
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams && !state->freeLatents) {
@@ -1117,7 +1121,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_FIT) {
-			// only need patternLik, can optimize if EXPECTATION_AUGMENTED is not in use TODO
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;

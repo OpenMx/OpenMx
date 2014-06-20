@@ -54,6 +54,7 @@ class ba81NormalQuad {
 
 	ba81NormalQuad();
 	void setOne(double one) { One = one; }
+	void setup0();
 	void setup(double Qwidth, int Qpoints, double *means,
 		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
 
