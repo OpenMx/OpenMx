@@ -299,10 +299,6 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 		}
 
 		int numLocs = Rf_length(nextVar) - 5;
-		if(OMX_DEBUG) { 
-			mxLog("Free parameter %d bounded (%f, %f): %d locations", fx, 
-			      fv->lbound, fv->ubound, numLocs);
-		}
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
 			Rf_protect(nextLoc = VECTOR_ELT(nextVar, locIndex+4));
 			int* theVarList = INTEGER(nextLoc);
@@ -326,6 +322,10 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 			sv = fv->ubound;
 		}*/
 		(*startingValues)[fx] = sv;
+		if(OMX_DEBUG) {
+			mxLog("Free var %d %s, bounds (%.3g, %.3g), %d loc, starting %f", fx, fv->name,
+			      fv->lbound, fv->ubound, numLocs, sv);
+		}
 	}
 
 	Global->deduplicateVarGroups();

@@ -53,8 +53,6 @@ Matrix fillMatrix(int cols, int rows, double* array)
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars, int verbose)
 {
-	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
-    
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
     
 	GLOB_fc->iterations += 1;   // ought to be major iterations only
@@ -68,10 +66,6 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 		GLOB_fc->fit = 1e24;
 	}
     
-	if(verbose >= 1) {
-		mxLog("Fit function value is: %.32f", GLOB_fc->fit);
-	}
-
 	return GLOB_fc->fit;
 }
 
@@ -340,7 +334,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 
     if(OMX_DEBUG) {
         mxLog("--------------------------");
-        mxLog("Setting up optimizer...");
     }
         
     

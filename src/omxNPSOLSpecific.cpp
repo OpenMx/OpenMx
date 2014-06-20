@@ -115,8 +115,6 @@ static void
 npsolObjectiveFunction1(int* mode, int* n, double* x,
 			double* f, double* g, double *hessian, int* nstate )
 {
-	if(OMX_DEBUG) {mxLog("Starting Objective Run.");}
-
 	if (*mode == 1) NPSOL_fc->iterations += 1;  //major iteration
 
 	omxMatrix* fitMatrix = NPSOL_fitMatrix;
@@ -138,10 +136,6 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 
 	if (!std::isfinite(*f) || isErrorRaised()) {
 		*mode = -1;
-	}
-
-	if (NPSOL_verbose >= 2 || OMX_VERBOSE) {
-		mxLog("Fit function value is: %f, Mode is %d.", *f, *mode);
 	}
 }
 
@@ -332,7 +326,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         }
         if(OMX_DEBUG) {
             mxLog("--------------------------");
-            mxLog("Setting up optimizer...");
         }
  
     /*  F77_CALL(npsol)
@@ -372,18 +365,12 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
  
         */
  
-        if(OMX_DEBUG) {
-            mxLog("Set.");
-        }
- 
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
 			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out, istate, c, cJac,
 			clambda, &fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
-        if(OMX_DEBUG) { mxLog("Final Objective Value is: %f", fc->fit); }
- 
 	NPSOL_fc->fit = fit;
 	NPSOL_fc->copyParamToModel(globalState);
  

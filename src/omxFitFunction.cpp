@@ -124,7 +124,15 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 #pragma omp atomic
 	++Global->computeCount; // could avoid lock by keeping in FitContext
 
-	if (doFit) Global->checkpointPrefit(fc, fc->est, false);
+	// old version of openmp can't do this as part of the atomic instruction
+	int evaluation = Global->computeCount;
+
+	if (doFit) {
+		if (OMX_DEBUG || OMX_VERBOSE) {
+			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
+		}
+		Global->checkpointPrefit(fc, fc->est, false);
+	}
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
 		omxFitFunctionCompute(ff, want, fc);
@@ -161,6 +169,9 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 			fc->resetIterationError();
 		}
 		Global->checkpointPostfit(fc);
+		if (OMX_DEBUG || OMX_VERBOSE) {
+			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name, evaluation, fc->fit);
+		}
 	}
 }
 
