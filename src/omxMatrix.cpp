@@ -692,6 +692,12 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 	omxMatrix* origZ = Z;
     double oned = 1, minusOned = -1.0;
 
+    if (I->rows != A->rows) {
+	    omxResizeMatrix(I, A->rows, A->cols);
+	    Eigen::Map<Eigen::MatrixXd> mat(I->data, A->rows, A->cols);
+	    mat.setIdentity();
+    }
+
 	if(numIters == NA_INTEGER) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("RAM Algebra (I-A) inversion using standard (general) inversion."); }
 
