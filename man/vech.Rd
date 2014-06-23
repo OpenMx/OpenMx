@@ -35,7 +35,7 @@ vech(x)
 }
 
 \seealso{
-\code{\link{vechs}}, \code{\link{rvectorize}}, \code{\link{cvectorize}}
+\code{\link{vech2full}}, \code{\link{vechs}}, \code{\link{rvectorize}}, \code{\link{cvectorize}}
 }
 
 \examples{
