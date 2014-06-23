@@ -65,13 +65,13 @@
     type="RAM"
     univSatModel1 <- mxModel("univSat1", manifestVars=selVars, obsCovData, expVariance, type="RAM" )
        univSatModel1
-       univSatModel1@matrices$S
+       univSatModel1$matrices$S
     univSatFit1 <- mxRun(univSatModel1)
-       univSatFit1@matrices$S@values
-       univSatFit1[['S']]@values
+       univSatFit1$matrices$S$values
+       univSatFit1[['S']]$values
     EC1 <- mxEval(S, univSatFit1)
        EC1   
-    SL1 <- univSatFit1@output$other$Saturated
+    SL1 <- univSatFit1$output$SaturatedLikelihood
     LL1 <- mxEval(objective, univSatFit1)
     Chi1 <- LL1-SL1
        SL1
