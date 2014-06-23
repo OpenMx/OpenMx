@@ -91,7 +91,10 @@ algebraErrorChecking <- function(formula, context) {
 	} else {
 		msg <- paste("Unknown matrix operator or function",
 			omxQuotes(operator), "in",
-			deparse(width.cutoff = 400L, imxLocateFunction(context)))
+			deparse(width.cutoff = 400L, imxLocateFunction(context)),
+			"\n view the list of valid operators at help(mxAlgebra).\n",
+			"nb: some R operators are implemented differently in algebras",
+			", for instance diag() is implemented as diag2vec() and vec2diag()")
 		stop(msg, call. = FALSE)
 	}
 	lapply(formula[-1], algebraErrorChecking, context)
