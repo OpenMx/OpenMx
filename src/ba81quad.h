@@ -18,8 +18,9 @@
 #ifndef _BA81QUAD_H_
 #define _BA81QUAD_H_
 
-#include "omxDefines.h"
+#include "omxState.h"
 #include "Eigen/Core"
+#include "libifa-rpf.h"
 
 class ba81NormalQuad {
  private:
@@ -61,6 +62,54 @@ class ba81NormalQuad {
 	// For dense cov, Dweight is size totalQuadPoints
 	// For two-tier, Dweight is numSpecific x totalQuadPoints
 	void EAP(double *thrDweight, double scalingFactor, double *scorePad);
+};
+
+class ifaGroup {
+ private:
+	SEXP Rdata;
+ public:
+	// item description related
+	std::vector<const double*> spec;
+	int numItems() const { return (int) spec.size(); }
+	int paramRows;
+	double *param;  // itemParam->data
+	std::vector<const char*> itemNames;
+	std::vector<int> itemOutcomes;
+	std::vector<int> cumItemOutcomes;
+	int totalOutcomes;
+	std::vector<int> Sgroup;       // item's specific group 0..numSpecific-1
+
+	// latent distribution
+	ba81NormalQuad quad;
+	bool twotier;  // rename to detectTwoTier TODO
+	int maxAbilities;
+	int numSpecific;
+	double *mean;
+	double *cov;
+	std::vector<const char*> factorNames;
+
+	// data related
+	std::vector<const int*> dataColumns;
+	int dataRows;
+
+	// TODO:
+	// scores
+
+ 	ifaGroup(bool _twotier) : Rdata(NULL),
+		twotier(_twotier),  
+		maxAbilities(0),
+		numSpecific(0),
+		mean(0),
+		cov(0),
+		dataRows(0) {};
+	void import(SEXP Rlist);
+	void importSpec(SEXP slotValue);
+	void setLatentDistribution(int dims, double *mean, double *cov);
+	double *getItemParam(int ix) { return param + paramRows * ix; }
+	double area(int qx, int ix);
+	const int *dataColumn(int col) { return dataColumns[col]; };
+	void detectTwoTier();
+	void sanityCheck();
 };
 
 #endif

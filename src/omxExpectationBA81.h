@@ -62,7 +62,6 @@ struct BA81Estep {
 	std::vector<double> thrExpected;
 	int numItems;
 	int totalQuadPoints;
-	const int *colMap;
 	omxData *data;
 
 	void begin(struct BA81Expect *state);
@@ -116,7 +115,14 @@ struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81EngineBase<CovTyp
 	void ba81Estep1(struct BA81Expect *state);
 };
 
-struct BA81Expect {
+class BA81Expect {
+ public:
+	class ifaGroup grp;
+	int totalOutcomes() { return grp.totalOutcomes; }
+	const double *itemSpec(int ix) { return grp.spec[ix]; }
+	int numItems() { return grp.numItems(); }
+	int itemOutcomes(int ix) { return grp.itemOutcomes[ix]; }
+
 	const char *name;              // from omxExpectation
 	double LogLargestDouble;       // should be const but need constexpr
 	double LargestDouble;          // should be const but need constexpr
@@ -124,38 +130,25 @@ struct BA81Expect {
 
 	// data characteristics
 	omxData *data;
-	const int *colMap;             // item column to data column mapping
-	std::vector<int*> dataColumns;
 	std::vector<int> rowMap;       // row index into MxData
 	double *rowWeight;
 	double weightSum;              // sum of rowWeight
 	bool ownWeights;
 	std::vector<bool> rowSkip;     // whether to treat the row as NA
 
-	// item description related
-	std::vector<const double*> itemSpec;
-	std::vector<int> itemOutcomes;
-	std::vector<int> cumItemOutcomes;
-	int maxDims;
-	int maxAbilities;
-	int numSpecific;
-	std::vector<int> Sgroup;       // item's specific group 0..numSpecific-1
-
 	// quadrature related
 	double Qwidth;
 	int targetQpoints;
-	struct ba81NormalQuad quad;
+	struct ba81NormalQuad &getQuad() { return grp.quad; }
 
 	// estimation related
 	omxMatrix *itemParam;
-	int maxParam;                         // itemParam.rows
 	double *EitemParam;
 	double *patternLik;                   // numUnique
 	double SmallestPatternLik;
 	int excludedPatterns;
-	int totalOutcomes;
 	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
-	double *expected;                     // totalOutcomes * totalQuadPoints
+	double *expected;                     // totalOutcomes * totalQuadPoints (E-step table)
 	bool expectedUsed;
 	int ElatentVersion;
 	omxMatrix *latentMeanOut;
@@ -176,6 +169,8 @@ struct BA81Expect {
 	int ptsPerThread;
 	int primaryDims;
 	std::vector<double*> scoresOut;
+
+	BA81Expect() : grp(true) {};
 };
 
 extern const struct rpf *rpf_model;

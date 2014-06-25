@@ -57,20 +57,21 @@ void pia(const int *ar, int rows, int cols)
 
 void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 {
-	const int totalQuadPoints = state->quad.totalQuadPoints;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	const size_t numItems = state->itemSpec.size();
+	ba81NormalQuad &quad = state->getQuad();
+	const int totalQuadPoints = quad.totalQuadPoints;
+	std::vector<int> &itemOutcomes = state->grp.itemOutcomes;
+	const int numItems = state->numItems();
 	std::vector<int> &rowMap = state->rowMap;
 	double *oProb = state->outcomeProb;
-	std::vector<double> &priQarea = state->quad.priQarea;
-	std::vector<int*> &dataColumns = state->dataColumns;
+	std::vector<double> &priQarea = quad.priQarea;
+	std::vector<const int*> &dataColumns = state->grp.dataColumns;
 
 	for (int qx=0; qx < totalQuadPoints; ++qx) {
 		out[qx] = priQarea[qx];
 	}
 
 	const int row = rowMap[px];
-	for (size_t ix=0; ix < numItems; ix++) {
+	for (int ix=0; ix < numItems; ix++) {
 		int pick = dataColumns[ix][row];
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
@@ -87,18 +88,19 @@ void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 
 void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, double *Ei)
 {
-	const int numSpecific = state->numSpecific;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	ba81NormalQuad &quad = state->getQuad();
+	const int numSpecific = quad.numSpecific;
+	std::vector<int> &itemOutcomes = state->grp.itemOutcomes;
 	double *oProb = state->outcomeProb;
-	const int totalQuadPoints = state->quad.totalQuadPoints;
-	const int totalPrimaryPoints = state->quad.totalPrimaryPoints;
-	const int specificPoints = state->quad.quadGridSize;
-	const size_t numItems = state->itemSpec.size();
+	const int totalQuadPoints = quad.totalQuadPoints;
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
+	const int numItems = state->numItems();
 	const double OneOverLargest = state->OneOverLargestDouble;
 	std::vector<int> &rowMap = state->rowMap;
-	std::vector<double> &speQarea = state->quad.speQarea;
-	std::vector<double> &priQarea = state->quad.priQarea;
-	std::vector<int*> &dataColumns = state->dataColumns;
+	std::vector<double> &speQarea = quad.speQarea;
+	std::vector<double> &priQarea = quad.priQarea;
+	std::vector<const int*> &dataColumns = state->grp.dataColumns;
 
 	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 		for (int sx=0; sx < specificPoints * numSpecific; sx++) {
@@ -108,16 +110,16 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	}
 
 	const int row = rowMap[px];
-	for (size_t ix=0; ix < numItems; ix++) {
+	for (int ix=0; ix < numItems; ix++) {
 		int pick = dataColumns[ix][row];
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
 		}
 		pick -= 1;
-		int Sgroup = state->Sgroup[ix];
+		int Sgroup = state->grp.Sgroup[ix];
 		double *out1 = lxk;
-		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
 			out1[Sgroup] *= oProb[pick];
 			oProb += itemOutcomes[ix];
 			out1 += numSpecific;
@@ -146,25 +148,25 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 // Depends on item parameters, but not latent distribution
 void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog)
 {
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
-	int maxParam = state->maxParam;
-	const int maxDims = state->maxDims;
-	const size_t numItems = state->itemSpec.size();
-	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->quad.totalQuadPoints, double);
+	std::vector<int> &itemOutcomes = state->grp.itemOutcomes;
+	std::vector<int> &cumItemOutcomes = state->grp.cumItemOutcomes;
+	ba81NormalQuad &quad = state->getQuad();
+	const int maxDims = quad.maxDims;
+	const int numItems = state->numItems();
+	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes() * quad.totalQuadPoints, double);
 
 #pragma omp parallel for num_threads(Global->numThreads)
-	for (size_t ix=0; ix < numItems; ix++) {
-		double *qProb = state->outcomeProb + cumItemOutcomes[ix] * state->quad.totalQuadPoints;
-		const double *spec = state->itemSpec[ix];
+	for (int ix=0; ix < numItems; ix++) {
+		double *qProb = state->outcomeProb + cumItemOutcomes[ix] * quad.totalQuadPoints;
+		const double *spec = state->itemSpec(ix);
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		Eigen::VectorXd ptheta(dims);
-		double *iparam = param + ix * maxParam;
+		double *iparam = param + state->grp.paramRows * ix;
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
-		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
-			double *where = state->quad.wherePrep.data() + qx * maxDims;
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
+			double *where = quad.wherePrep.data() + qx * maxDims;
 			for (int dx=0; dx < dims; dx++) {
 				ptheta[dx] = where[std::min(dx, maxDims-1)];
 			}
@@ -185,13 +187,15 @@ void BA81LatentFixed::normalizeWeights(struct BA81Expect *state, int px, double 
 
 void BA81LatentScores::begin(struct BA81Expect *state)
 {
-	numLatents = state->maxAbilities + triangleLoc1(state->maxAbilities);
+	ba81NormalQuad &quad = state->getQuad();
+	numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
 	thrScore.resize(numLatents * Global->numThreads);
 }
 
 void BA81LatentScores::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
-	const int maxAbilities = state->maxAbilities;
+	ba81NormalQuad &quad = state->getQuad();
+	const int maxAbilities = quad.maxAbilities;
 	omxData *data = state->data;
 
 	// NOTE: Qweight remains unnormalized
@@ -199,7 +203,7 @@ void BA81LatentScores::normalizeWeights(struct BA81Expect *state, int px, double
 	double *scorePad = thrScore.data() + numLatents * thrId;
 	OMXZERO(scorePad, numLatents);
 
-	state->quad.EAP(Qweight, 1/patternLik1, scorePad);
+	quad.EAP(Qweight, 1/patternLik1, scorePad);
 
 	std::vector<double*> &out = state->scoresOut;
 	int dups = omxDataNumIdenticalRows(data, state->rowMap[px]); // should == rowWeight[px]
@@ -240,7 +244,8 @@ void BA81LatentScores::end(struct BA81Expect *state)
 void BA81LatentSummary::begin(struct BA81Expect *state)
 {
 	thrDweight.assign(state->ptsPerThread * Global->numThreads, 0.0);
-	numLatents = state->maxAbilities + triangleLoc1(state->maxAbilities);
+	ba81NormalQuad &quad = state->getQuad();
+	numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
 	latentDist.assign(numLatents, 0.0);
 }
 
@@ -265,12 +270,13 @@ void BA81LatentSummary::end(struct BA81Expect *state)
 		}
 	}
 
-	state->quad.EAP(thrDweight.data(), 1/state->weightSum, latentDist.data());
+	ba81NormalQuad &quad = state->getQuad();
+	quad.EAP(thrDweight.data(), 1/state->weightSum, latentDist.data());
 
 	omxMatrix *meanOut = state->estLatentMean;
 	omxMatrix *covOut = state->estLatentCov;
-	const int maxAbilities = state->maxAbilities;
-	const int primaryDims = state->primaryDims;
+	const int maxAbilities = quad.maxAbilities;
+	const int primaryDims = quad.primaryDims;
 
 	double *latentDist1 = latentDist.data();
 	for (int d1=0; d1 < maxAbilities; d1++) {
@@ -302,34 +308,34 @@ void BA81RefreshPatLik<CovType>::begin(struct BA81Expect *state)
 template <>
 int BA81Config<BA81Dense>::getPrimaryPoints(struct BA81Expect *state)
 {
-	return state->quad.totalQuadPoints;
+	return state->getQuad().totalQuadPoints;
 }
 
 template <>
 int BA81Config<BA81TwoTier>::getPrimaryPoints(struct BA81Expect *state)
 {
-	return state->quad.totalPrimaryPoints;
+	return state->getQuad().totalPrimaryPoints;
 }
 
 template <typename CovType>
 void BA81Estep<CovType>::begin(BA81Expect *state)
 {
-	totalQuadPoints = state->quad.totalQuadPoints;
-	numItems = int(state->itemSpec.size());
-	colMap = state->colMap;
+	ba81NormalQuad &quad = state->getQuad();
+	totalQuadPoints = quad.totalQuadPoints;
+	numItems = state->numItems();
 	data = state->data;
-	thrExpected.assign(state->totalOutcomes * state->quad.totalQuadPoints * Global->numThreads, 0.0);
+	thrExpected.assign(state->totalOutcomes() * quad.totalQuadPoints * Global->numThreads, 0.0);
 }
 
 template<>
 void BA81Estep<BA81Dense>::addRow(struct BA81Expect *state, int px, double *Qweight, int thrId)
 {
-	double *out = thrExpected.data() + thrId * state->totalOutcomes * totalQuadPoints;
+	double *out = thrExpected.data() + thrId * state->totalOutcomes() * totalQuadPoints;
 	std::vector<int> &rowMap = state->rowMap;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
+	std::vector<int> &itemOutcomes = state->grp.itemOutcomes;
 
 	for (int ix=0; ix < numItems; ++ix) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
+		int pick = state->grp.dataColumns[ix][rowMap[px]];
 		if (pick == NA_INTEGER) {
 			out += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -346,20 +352,21 @@ void BA81Estep<BA81Dense>::addRow(struct BA81Expect *state, int px, double *Qwei
 template<>
 void BA81Estep<BA81TwoTier>::addRow(struct BA81Expect *state, int px, double *Qweight, int thrId)
 {
-	double *out = thrExpected.data() + thrId * state->totalOutcomes * totalQuadPoints;
+	double *out = thrExpected.data() + thrId * state->totalOutcomes() * totalQuadPoints;
 	std::vector<int> &rowMap = state->rowMap;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	const int numSpecific = state->numSpecific;
+	std::vector<int> &itemOutcomes = state->grp.itemOutcomes;
+	ba81NormalQuad &quad = state->getQuad();
+	const int numSpecific = quad.numSpecific;
 
 	for (int ix=0; ix < numItems; ++ix) {
-		int pick = omxIntDataElementUnsafe(data, rowMap[px], colMap[ix]);
+		int pick = state->grp.dataColumns[ix][rowMap[px]];
 		if (pick == NA_INTEGER) {
 			out += itemOutcomes[ix] * totalQuadPoints;
 			continue;
 		}
 		pick -= 1;
 
-		int Sgroup = state->Sgroup[ix];
+		int Sgroup = state->grp.Sgroup[ix];
 		double *Qw = Qweight;
 		for (int qx=0; qx < totalQuadPoints; ++qx) {
 			out[pick] += Qw[Sgroup];
@@ -373,10 +380,11 @@ template <typename CovType>
 void BA81Estep<CovType>::recordTable(struct BA81Expect *state)
 {
 	const int numThreads = Global->numThreads;
-	const int expectedSize = state->quad.totalQuadPoints * state->totalOutcomes;
+	ba81NormalQuad &quad = state->getQuad();
+	const int expectedSize = quad.totalQuadPoints * state->totalOutcomes();
 	double *e1 = thrExpected.data();
 
-	state->expected = Realloc(state->expected, state->totalOutcomes * state->quad.totalQuadPoints, double);
+	state->expected = Realloc(state->expected, state->totalOutcomes() * quad.totalQuadPoints, double);
 	memcpy(state->expected, e1, sizeof(double) * expectedSize);
 	e1 += expectedSize;
 
@@ -467,8 +475,9 @@ template <
 void BA81Engine<BA81Dense, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
 	const int numThreads = Global->numThreads;
-	state->ptsPerThread = state->quad.totalQuadPoints;
-	state->primaryDims  = state->maxDims;
+	ba81NormalQuad &quad = state->getQuad();
+	state->ptsPerThread = quad.totalQuadPoints;
+	state->primaryDims  = quad.maxDims;
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
@@ -529,10 +538,11 @@ template <
 >
 void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81Expect *state)
 {
-	const int numSpecific = state->numSpecific;
+	ba81NormalQuad &quad = state->getQuad();
+	const int numSpecific = quad.numSpecific;
 	const int numThreads = Global->numThreads;
-	state->ptsPerThread = state->quad.totalQuadPoints * numSpecific;
-	state->primaryDims  = state->maxDims - 1;
+	state->ptsPerThread = quad.totalQuadPoints * numSpecific;
+	state->primaryDims  = quad.maxDims - 1;
 	const int numUnique = (int) state->rowMap.size();
 	Eigen::VectorXd thrQweight;
 	thrQweight.resize(state->ptsPerThread * numThreads);
@@ -544,8 +554,8 @@ void BA81Engine<BA81TwoTier, LatentPolicy, EstepPolicy>::ba81Estep1(struct BA81E
 	EstepPolicy<CovType>::begin(state);
 	LatentPolicy::begin(state);
 
-	const int totalPrimaryPoints = state->quad.totalPrimaryPoints;
-	const int specificPoints = state->quad.quadGridSize;
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
 	omxBuffer<double> thrEi(totalPrimaryPoints * numThreads);
 	omxBuffer<double> thrEis(totalPrimaryPoints * numSpecific * numThreads);
 
@@ -611,26 +621,28 @@ static int getLatentVersion(BA81Expect *state)
 void ba81SetupQuadrature(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	ba81NormalQuad &quad = state->getQuad();
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
-	if (state->quad.Qpoint.size() == 0 && latentClean) return;
+	if (quad.Qpoint.size() == 0 && latentClean) return;
+
+	int maxAbilities = state->grp.maxAbilities;
 
 	if (state->verbose >= 1) {
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
 		if (state->verbose >= 2) {
-			pda(state->latentMeanOut->data, 1, state->maxAbilities);
-			pda(state->latentCovOut->data, state->maxAbilities, state->maxAbilities);
+			pda(state->latentMeanOut->data, 1, maxAbilities);
+			pda(state->latentCovOut->data, maxAbilities, maxAbilities);
 		}
 	}
 
-	const int maxDims = state->maxDims;
-	if (maxDims == 0) {
-		state->quad.setup0();
+	if (maxAbilities == 0) {
+		quad.setup0();
 		state->latentParamVersion = getLatentVersion(state);
 		return;
 	}
 
-	int numSpecific = state->numSpecific;
-	int priDims = maxDims - (numSpecific? 1 : 0);
+	int numSpecific = state->grp.numSpecific;
+	int priDims = maxAbilities - state->grp.numSpecific;
 
 	omxMatrix *inputCov = state->latentCovOut;
 	Eigen::MatrixXd cov;
@@ -664,7 +676,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		sVar(sx) = tmp;
 	}
 
-	state->quad.setup(state->Qwidth, state->targetQpoints, state->latentMeanOut->data, cov, sVar);
+	quad.setup(state->Qwidth, state->targetQpoints, state->latentMeanOut->data, cov, sVar);
 
 	state->latentParamVersion = getLatentVersion(state);
 }
@@ -700,9 +712,11 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 	bool latentClean = state->latentParamVersion == getLatentVersion(state);
 	bool itemClean = state->itemParamVersion == omxGetMatrixVersion(state->itemParam) && latentClean;
 
+	ba81NormalQuad &quad = state->getQuad();
+
 	if (state->verbose >= 1) {
 		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean) expectedUsed=%d",
-		      oo->name, state->quad.Qpoint.size() != 0, itemClean, latentClean, state->expectedUsed);
+		      oo->name, quad.Qpoint.size() != 0, itemClean, latentClean, state->expectedUsed);
 	}
 
 	if (!latentClean) ba81SetupQuadrature(oo);
@@ -712,7 +726,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		ba81OutcomeProb(state, param, FALSE);
 
 		if (state->expectedUsed) {
-			if (state->numSpecific == 0) {
+			if (quad.numSpecific == 0) {
 				if (oo->dynamicDataSource) {
 					BA81Engine<BA81Dense, BA81LatentSummary, BA81Estep> engine;
 					engine.ba81Estep1(state);
@@ -730,7 +744,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 				}
 			}
 		} else {
-			if (state->numSpecific == 0) {
+			if (quad.numSpecific == 0) {
 				BA81Engine<BA81Dense, BA81LatentFixed, BA81OmitEstep> engine;
 				engine.ba81Estep1(state);
 			} else {
@@ -757,14 +771,15 @@ static void
 ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	int maxAbilities = state->maxAbilities;
+	ba81NormalQuad &quad = state->getQuad();
+	int maxAbilities = quad.maxAbilities;
 	const int numUnique = (int) state->rowMap.size();
 
 	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(numUnique - 1)); // missingness? latent params? TODO
 
 	if (state->debugInternal) {
 		const double LogLargest = state->LogLargestDouble;
-		int totalOutcomes = state->totalOutcomes;
+		int totalOutcomes = state->totalOutcomes();
 		SEXP Rlik;
 		SEXP Rexpected;
 
@@ -780,8 +795,8 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		dbg.add("patternLikelihood", Rlik);
 
 		if (state->expected) {
-			Rf_protect(Rexpected = Rf_allocVector(REALSXP, state->quad.totalQuadPoints * totalOutcomes));
-			memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * state->quad.totalQuadPoints);
+			Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.totalQuadPoints * totalOutcomes));
+			memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * quad.totalQuadPoints);
 			dbg.add("em.expected", Rexpected);
 		}
 
@@ -850,7 +865,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 
 	Rf_setAttrib(Rscores, R_RowNamesSymbol, data->getRowNames());
 
-	if (state->numSpecific == 0) {
+	if (quad.numSpecific == 0) {
 		BA81Engine<BA81Dense, BA81LatentScores, BA81OmitEstep> engine;
 		engine.ba81Estep1(state);
 	} else {
@@ -878,16 +893,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	delete state;
 }
 
-void getMatrixDims(SEXP r_theta, int *rows, int *cols)
-{
-    SEXP matrixDims;
-    Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));
-    int *dimList = INTEGER(matrixDims);
-    *rows = dimList[0];
-    *cols = dimList[1];
-    Rf_unprotect(1);
-}
-
 static void ignoreSetVarGroup(omxExpectation*, FreeVarGroup *)
 {}
 
@@ -904,6 +909,16 @@ static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *
 	} else {
 		return NULL;
 	}
+}
+
+static inline void getMatrixDims(SEXP r_theta, int *rows, int *cols)
+{
+    SEXP matrixDims;
+    Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));
+    int *dimList = INTEGER(matrixDims);
+    *rows = dimList[0];
+    *cols = dimList[1];
+    Rf_unprotect(1);
 }
 
 void omxInitExpectationBA81(omxExpectation* oo) {
@@ -934,7 +949,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->name = oo->name;
 	state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
 	state->LargestDouble = exp(state->LogLargestDouble);
-	state->quad.setOne(state->LargestDouble);
+	ba81NormalQuad &quad = state->getQuad();
+	quad.setOne(state->LargestDouble);
 	state->OneOverLargestDouble = 1/state->LargestDouble;
 
 	// The idea here is to avoid denormalized values if they are
@@ -949,7 +965,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->numObsMat = NULL;
 	state->estLatentMean = NULL;
 	state->estLatentCov = NULL;
-	state->numSpecific = 0;
 	state->excludedPatterns = 0;
 	state->patternLik = NULL;
 	state->outcomeProb = NULL;
@@ -970,19 +985,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("ItemSpec")));
-	for (int sx=0; sx < Rf_length(tmp); ++sx) {
-		SEXP model = VECTOR_ELT(tmp, sx);
-		if (!OBJECT(model)) {
-			Rf_error("Item models must inherit rpf.base");
-		}
-		SEXP spec;
-		Rf_protect(spec = R_do_slot(model, Rf_install("spec")));
-		state->itemSpec.push_back(REAL(spec));
-	}
-
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
 	state->verbose = Rf_asInteger(tmp);
+
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("ItemSpec")));
+	state->grp.importSpec(tmp);
+	if (state->verbose >= 2) mxLog("%s: found %d item specs", oo->name, state->numItems());
 
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	if (!state->latentMeanOut) Rf_error("Failed to retrieve mean matrix");
@@ -991,6 +999,18 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (!state->latentCovOut) Rf_error("Failed to retrieve cov matrix");
 
 	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
+	state->grp.param = state->itemParam->data; // algebra not allowed yet TODO
+
+	const int numItems = state->itemParam->cols;
+	if (state->numItems() != numItems) {
+		omxRaiseErrorf("ItemSpec length %d must match the number of item columns (%d)",
+			       state->numItems(), numItems);
+		return;
+	}
+	if (state->itemParam->rows != state->grp.paramRows) {
+		omxRaiseErrorf("ItemParam matrix must have %d rows", state->grp.paramRows);
+		return;
+	}
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EItemParam")));
 	if (!Rf_isNull(tmp)) {
@@ -1051,44 +1071,23 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	std::vector<int> &rowMap = state->rowMap;
 
-	const int numItems = state->itemParam->cols;
-	// This is probably not worth it
-	if (0 && state->itemSpec.size() == 1) {
-		for (int ix=1; ix < numItems; ++ix) {
-			state->itemSpec.push_back(state->itemSpec[0]);
-		}
-	}
-
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("dataColumns")));
 	if (Rf_length(tmp) != numItems) Rf_error("dataColumns must be length %d", numItems);
-	state->colMap = INTEGER(tmp);
-	const int *colMap = state->colMap;
+	const int *colMap = INTEGER(tmp);
 
-	int maxSpec = 0;
-	int maxParam = 0;
+	for (int cx = 0; cx < numItems; cx++) {
+		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);
+		state->grp.dataColumns.push_back(col);
+	}
 
-	state->dataColumns.reserve(numItems);
-
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
-	itemOutcomes.resize(numItems);
-	cumItemOutcomes.resize(numItems);
-	int totalOutcomes = 0;
+	// sanity check data
 	for (int cx = 0; cx < numItems; cx++) {
 		if (!omxDataColumnIsFactor(data, colMap[cx])) {
 			omxRaiseErrorf("%s: column %d is not a factor", oo->name, 1 + colMap[cx]);
 			return;
 		}
 
-		const double *spec = state->itemSpec[cx];
-		int id = spec[RPF_ISpecID];
-		int no = spec[RPF_ISpecOutcomes];
-		itemOutcomes[cx] = no;
-		cumItemOutcomes[cx] = totalOutcomes;
-		totalOutcomes += no;
-
-		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);
-		state->dataColumns.push_back(col);
+		const int *col = state->grp.dataColumns[cx];
 
 		// TODO this summary stat should be available from omxData
 		int dataMax=0;
@@ -1097,106 +1096,29 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			if (dataMax < pick)
 				dataMax = pick;
 		}
+		int no = state->grp.itemOutcomes[cx];
 		if (dataMax > no) {
-			Rf_error("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
+			omxRaiseErrorf("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
 		}
-
-		int numSpec = (*rpf_model[id].numSpec)(spec);
-		if (maxSpec < numSpec)
-			maxSpec = numSpec;
-
-		int numParam = (*rpf_model[id].numParam)(spec);
-		if (maxParam < numParam)
-			maxParam = numParam;
 	}
 
-	if (state->itemParam->rows != maxParam) {
-		omxRaiseErrorf("ItemParam matrix must have %d rows", maxParam);
-		return;
-	}
+	int maxAbilities = state->latentMeanOut->rows * state->latentMeanOut->cols;
 
-	state->maxParam = maxParam;
-	state->totalOutcomes = totalOutcomes;
-
-	if (int(state->itemSpec.size()) != numItems) {
-		omxRaiseErrorf("ItemSpec must contain %d item model specifications",
-			       data->cols);
-		return;
-	}
-
-	state->maxAbilities = state->latentMeanOut->rows * state->latentMeanOut->cols;
-
-	if (state->latentCovOut->rows != state->maxAbilities ||
-	    state->latentCovOut->cols != state->maxAbilities) {
+	if (state->latentCovOut->rows != maxAbilities ||
+	    state->latentCovOut->cols != maxAbilities) {
 		Rf_error("The cov matrix '%s' must be %dx%d",
-		      state->latentCovOut->name, state->maxAbilities, state->maxAbilities);
+		      state->latentCovOut->name, maxAbilities, maxAbilities);
 	}
 
-	for (int cx = 0; cx < numItems; cx++) {
-		const double *spec = state->itemSpec[cx];
-		int dims = spec[RPF_ISpecDims];
-		int loadings = 0;
-		for (int dx=0; dx < dims; ++dx) {
-			if (omxMatrixElement(state->itemParam, dx, cx) != 0) loadings += 1;
-		}
-		if (loadings > state->maxAbilities) {
-			omxRaiseErrorf("Item %d has more factor loadings (%d) than there are factors (%d)",
-				       1+cx, loadings, state->maxAbilities);
-		}
-	}
+	state->grp.setLatentDistribution(maxAbilities,
+					 state->latentMeanOut->data,
+					 state->latentCovOut->data);
+	state->grp.detectTwoTier();
 
-	// detect two-tier covariance structure
-	std::vector<int> orthogonal;
-	if (state->maxAbilities >= 3) {
-		int mlen = state->maxAbilities;
-		Eigen::Map<Eigen::MatrixXd> Ecov(state->latentCovOut->data, mlen, mlen);
-		Eigen::Matrix<Eigen::DenseIndex, Eigen::Dynamic, 1> numCov((Ecov.array() != 0.0).matrix().colwise().count());
-		std::vector<int> candidate;
-		for (int fx=0; fx < numCov.rows(); ++fx) {
-			if (numCov(fx) == 1) candidate.push_back(fx);
-		}
-		if (candidate.size() > 1) {
-			std::vector<bool> mask(numItems);
-			for (int cx=candidate.size() - 1; cx >= 0; --cx) {
-				std::vector<bool> loading(numItems);
-				for (int ix=0; ix < numItems; ++ix) {
-					loading[ix] = state->itemParam->data[ix * maxParam + candidate[cx]] != 0;
-				}
-				std::vector<bool> overlap(loading.size());
-				std::transform(loading.begin(), loading.end(),
-					       mask.begin(), overlap.begin(),
-					       std::logical_and<bool>());
-				if (std::find(overlap.begin(), overlap.end(), true) == overlap.end()) {
-					std::transform(loading.begin(), loading.end(),
-						       mask.begin(), mask.begin(),
-						       std::logical_or<bool>());
-					orthogonal.push_back(candidate[cx]);
-				}
-			}
-		}
-		std::reverse(orthogonal.begin(), orthogonal.end());
-	}
-	if (orthogonal.size() && orthogonal[0] != state->maxAbilities - int(orthogonal.size())) {
-		Rf_error("%s: Independent factors must be given after dense factors in %s",
-			 oo->name, state->itemParam->name);
-	}
-	if (orthogonal.size() == 0) {
-		state->maxDims = state->maxAbilities;
-	} else {
-		state->numSpecific = orthogonal.size();
-		state->maxDims = state->maxAbilities - orthogonal.size() + 1;
-		if (state->verbose >= 1) mxLog("%s: Two-tier structure detected; "
-					       "%d abilities reduced to %d dimensions",
-					       oo->name, state->maxAbilities, state->maxDims);
-		state->Sgroup.assign(numItems, 0);
-		for (int ix=0; ix < numItems; ix++) {
-			for (int dx=orthogonal[0]; dx < state->maxAbilities; ++dx) {
-				if (state->itemParam->data[ix * maxParam + dx] != 0) {
-					state->Sgroup[ix] = dx - orthogonal[0];
-					continue;
-				}
-			}
-		}
+	if (state->verbose >= 1 && state->grp.numSpecific) {
+		mxLog("%s: Two-tier structure detected; "
+		      "%d abilities reduced to %d dimensions",
+		      oo->name, maxAbilities, maxAbilities - state->grp.numSpecific + 1);
 	}
 
 	// TODO: Items with zero loadings can be replaced with equivalent items
@@ -1215,16 +1137,16 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->rowSkip.assign(rowMap.size(), false);
 
-	if (state->maxAbilities) {
+	if (maxAbilities) {
 		// Rows with no information about an ability will obtain the
 		// prior distribution as an ability estimate. This will
 		// throw off multigroup latent distribution estimates.
 		for (size_t rx=0; rx < rowMap.size(); rx++) {
-			std::vector<int> contribution(state->maxAbilities);
+			std::vector<int> contribution(maxAbilities);
 			for (int ix=0; ix < numItems; ix++) {
 				int pick = omxIntDataElementUnsafe(data, rowMap[rx], colMap[ix]);
 				if (pick == NA_INTEGER) continue;
-				const double *spec = state->itemSpec[ix];
+				const double *spec = state->itemSpec(ix);
 				int dims = spec[RPF_ISpecDims];
 				for (int dx=0; dx < dims; dx++) {
 					// assume factor loadings are the first item parameters
@@ -1232,7 +1154,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 					contribution[dx] += 1;
 				}
 			}
-			for (int ax=0; ax < state->maxAbilities; ++ax) {
+			for (int ax=0; ax < maxAbilities; ++ax) {
 				if (contribution[ax] < minItemsPerScore) {
 					if (naFail) {
 						int dest = omxDataIndex(data, state->rowMap[rx]);
@@ -1247,6 +1169,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			}
 		}
 	}
+
+	state->grp.sanityCheck();
 
 	if (isErrorRaised()) return;
 
@@ -1265,8 +1189,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if (strEQ(score_option, "full")) state->scores = SCORES_FULL;
 
 	state->ElatentVersion = 0;
-	state->estLatentMean = omxInitMatrix(state->maxAbilities, 1, TRUE, currentState);
-	state->estLatentCov = omxInitMatrix(state->maxAbilities, state->maxAbilities, TRUE, currentState);
+	state->estLatentMean = omxInitMatrix(maxAbilities, 1, TRUE, currentState);
+	state->estLatentCov = omxInitMatrix(maxAbilities, maxAbilities, TRUE, currentState);
 	omxCopyMatrix(state->estLatentMean, state->latentMeanOut); // rename matrices TODO
 	omxCopyMatrix(state->estLatentCov, state->latentCovOut);
 	state->numObsMat = omxInitMatrix(1, 1, TRUE, currentState);
