@@ -102,7 +102,7 @@ void omxData::newDataStatic(SEXP dataObject)
 				cd.intData = INTEGER(rcol);
 				od->numFactor++;
 			} else if (Rf_isInteger(rcol)) {
-				Rf_error("Internal Rf_error: Column %d is in integer format.", j);
+				Rf_error("Data column '%s' is in integer format but is not an ordered factor (see ?mxFactor)", colname);
 			} else {
 				if(OMX_DEBUG) {mxLog("Column %d is a numeric.", j);}
 				cd.realData = REAL(rcol);
