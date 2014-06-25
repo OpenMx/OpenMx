@@ -18,16 +18,6 @@
 #include "ba81quad.h"
 #include "dmvnorm.h"
 
-static inline void getMatrixDims(SEXP r_theta, int *rows, int *cols)
-{
-    SEXP matrixDims;
-    Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));
-    int *dimList = INTEGER(matrixDims);
-    *rows = dimList[0];
-    *cols = dimList[1];
-    Rf_unprotect(1);
-}
-
 static inline void gramProduct(double *vec, size_t len, double *out)
 {
 	int cell = 0;

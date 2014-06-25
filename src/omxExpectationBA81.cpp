@@ -789,7 +789,7 @@ static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *
 	}
 }
 
-static inline void getMatrixDims(SEXP r_theta, int *rows, int *cols)
+void getMatrixDims(SEXP r_theta, int *rows, int *cols)
 {
     SEXP matrixDims;
     Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));

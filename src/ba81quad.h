@@ -18,7 +18,7 @@
 #ifndef _BA81QUAD_H_
 #define _BA81QUAD_H_
 
-#include "omxState.h"
+#include "glue.h"
 #include "Eigen/Core"
 #include "libifa-rpf.h"
 

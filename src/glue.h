@@ -66,4 +66,6 @@ void string_to_try_Rf_error( const std::string& str) __attribute__ ((noreturn));
 
 void exception_to_try_Rf_error( const std::exception& ex ) __attribute__ ((noreturn));
 
+void getMatrixDims(SEXP r_theta, int *rows, int *cols);
+
 #endif // #define _NPSOLWRAP_H
