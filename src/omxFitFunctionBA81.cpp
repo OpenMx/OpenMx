@@ -282,7 +282,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
-	if (do_fit) ba81OutcomeProb(estate, FALSE, TRUE);
+	if (do_fit) ba81OutcomeProb(estate, itemParam->data, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
@@ -403,7 +403,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->matrix->name);
 
-	ba81OutcomeProb(estate, FALSE, FALSE);
+	ba81OutcomeProb(estate, estate->itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
 	const int numUnique = (int) estate->rowMap.size();
@@ -804,7 +804,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->matrix->name);
 
-	ba81OutcomeProb(estate, FALSE, FALSE);
+	ba81OutcomeProb(estate, estate->itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
 	const int numUnique = (int) estate->rowMap.size();

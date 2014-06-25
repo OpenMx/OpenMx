@@ -146,7 +146,7 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 }
 
 // Depends on item parameters, but not latent distribution
-void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
+void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog)
 {
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
@@ -154,7 +154,6 @@ void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog)
 	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->quad.totalQuadPoints, double);
-	double *param = (estep && state->EitemParam)? state->EitemParam : itemParam->data;
 
 #pragma omp parallel for num_threads(Global->numThreads)
 	for (size_t ix=0; ix < numItems; ix++) {
@@ -711,7 +710,9 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 	if (!latentClean) ba81SetupQuadrature(oo);
 
 	if (!itemClean) {
-		ba81OutcomeProb(state, TRUE, FALSE);
+		double *param = state->EitemParam? state->EitemParam : state->itemParam->data;
+		ba81OutcomeProb(state, param, FALSE);
+
 		if (state->expectedUsed) {
 			if (state->numSpecific == 0) {
 				if (oo->dynamicDataSource) {

@@ -179,7 +179,7 @@ struct BA81Expect {
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-void ba81OutcomeProb(BA81Expect *state, bool estep, bool wantLog);
+void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog);
 
 OMXINLINE static void
 gramProduct(double *vec, size_t len, double *out)
