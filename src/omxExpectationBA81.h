@@ -125,6 +125,7 @@ struct BA81Expect {
 	// data characteristics
 	omxData *data;
 	const int *colMap;             // item column to data column mapping
+	std::vector<int*> dataColumns;
 	std::vector<int> rowMap;       // row index into MxData
 	double *rowWeight;
 	double weightSum;              // sum of rowWeight
@@ -147,6 +148,7 @@ struct BA81Expect {
 
 	// estimation related
 	omxMatrix *itemParam;
+	int maxParam;                         // itemParam.rows
 	double *EitemParam;
 	double *patternLik;                   // numUnique
 	double SmallestPatternLik;

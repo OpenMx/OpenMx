@@ -60,11 +60,10 @@ void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 	const int totalQuadPoints = state->quad.totalQuadPoints;
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	const size_t numItems = state->itemSpec.size();
-	omxData *data = state->data;
-	const int *colMap = state->colMap;
 	std::vector<int> &rowMap = state->rowMap;
 	double *oProb = state->outcomeProb;
 	std::vector<double> &priQarea = state->quad.priQarea;
+	std::vector<int*> &dataColumns = state->dataColumns;
 
 	for (int qx=0; qx < totalQuadPoints; ++qx) {
 		out[qx] = priQarea[qx];
@@ -72,7 +71,7 @@ void ba81LikelihoodSlow2(BA81Expect *state, const int px, double *out)
 
 	const int row = rowMap[px];
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, row, colMap[ix]);
+		int pick = dataColumns[ix][row];
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -96,11 +95,10 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 	const int specificPoints = state->quad.quadGridSize;
 	const size_t numItems = state->itemSpec.size();
 	const double OneOverLargest = state->OneOverLargestDouble;
-	omxData *data = state->data;
-	const int *colMap = state->colMap;
 	std::vector<int> &rowMap = state->rowMap;
 	std::vector<double> &speQarea = state->quad.speQarea;
 	std::vector<double> &priQarea = state->quad.priQarea;
+	std::vector<int*> &dataColumns = state->dataColumns;
 
 	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 		for (int sx=0; sx < specificPoints * numSpecific; sx++) {
@@ -111,7 +109,7 @@ void cai2010EiEis(BA81Expect *state, const int px, double *lxk, double *Eis, dou
 
 	const int row = rowMap[px];
 	for (size_t ix=0; ix < numItems; ix++) {
-		int pick = omxIntDataElementUnsafe(data, row, colMap[ix]);
+		int pick = dataColumns[ix][row];
 		if (pick == NA_INTEGER) {
 			oProb += itemOutcomes[ix] * totalQuadPoints;
 			continue;
@@ -150,7 +148,7 @@ void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog)
 {
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
-	omxMatrix *itemParam = state->itemParam;
+	int maxParam = state->maxParam;
 	const int maxDims = state->maxDims;
 	const size_t numItems = state->itemSpec.size();
 	state->outcomeProb = Realloc(state->outcomeProb, state->totalOutcomes * state->quad.totalQuadPoints, double);
@@ -162,7 +160,7 @@ void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog)
 		int id = spec[RPF_ISpecID];
 		int dims = spec[RPF_ISpecDims];
 		Eigen::VectorXd ptheta(dims);
-		double *iparam = param + ix * itemParam->rows;
+		double *iparam = param + ix * maxParam;
 		rpf_prob_t prob_fn = wantLog? rpf_model[id].logprob : rpf_model[id].prob;
 
 		for (int qx=0; qx < state->quad.totalQuadPoints; qx++) {
@@ -1069,6 +1067,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	int maxSpec = 0;
 	int maxParam = 0;
 
+	state->dataColumns.reserve(numItems);
+
 	std::vector<int> &itemOutcomes = state->itemOutcomes;
 	std::vector<int> &cumItemOutcomes = state->cumItemOutcomes;
 	itemOutcomes.resize(numItems);
@@ -1087,10 +1087,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		cumItemOutcomes[cx] = totalOutcomes;
 		totalOutcomes += no;
 
+		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);
+		state->dataColumns.push_back(col);
+
 		// TODO this summary stat should be available from omxData
 		int dataMax=0;
 		for (int rx=0; rx < data->rows; rx++) {
-			int pick = omxIntDataElementUnsafe(data, rx, colMap[cx]);
+			int pick = col[rx];
 			if (dataMax < pick)
 				dataMax = pick;
 		}
@@ -1107,6 +1110,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			maxParam = numParam;
 	}
 
+	if (state->itemParam->rows != maxParam) {
+		omxRaiseErrorf("ItemParam matrix must have %d rows", maxParam);
+		return;
+	}
+
+	state->maxParam = maxParam;
 	state->totalOutcomes = totalOutcomes;
 
 	if (int(state->itemSpec.size()) != numItems) {

@@ -127,12 +127,17 @@ int omxDataNumIdenticalOrdinalRows(omxData *od, int row);
 int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row);
 int omxDataNumIdenticalDefs(omxData *od, int row);							// Returns the number of rows with definition variables identical to this one in the data set
 
-static int OMXINLINE
+static OMXINLINE int
 omxIntDataElementUnsafe(omxData *od, int row, int col)
 {
 	return od->rawCols[col].intData[row];
 }
-	
+
+static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
+{
+	return od->rawCols[col].intData;
+}
+
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 bool omxDataColumnIsFactor(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: Should this be an ENUM?
