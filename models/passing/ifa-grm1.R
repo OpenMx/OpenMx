@@ -68,6 +68,20 @@ m2 <- mxModel(m2,
 				  
 m2 <- mxRun(m2)
 
+grp <- list(spec=m2$expectation$ItemSpec,
+            param=m2$itemParam$values,
+            mean=m2$mean$values,
+            cov=m2$cov$values,
+            data=m2$data$observed)
+
+if (0) {
+  # only includes rows without missingness!
+  got <- rpf.SitemFit(grp, method="pearson")
+  sapply(got, function (r) r$pval)
+  got <- rpf.SitemFit(grp, method="rms")
+  sapply(got, function (r) r$pval)
+}
+
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 14, 1)
 omxCheckCloseEnough(emstat$totalMstep, 51, 5)

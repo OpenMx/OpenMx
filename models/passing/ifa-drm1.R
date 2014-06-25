@@ -19,6 +19,9 @@ correct.mat[2,] <- correct.mat[2,] * -correct.mat[1,]
 
 ability <- rnorm(500)
 data <- rpf.sample(ability, items, correct.mat)
+if (0) {
+	write.table(sapply(data, unclass)-1, file="drm1.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
+}
 cols <- colnames(data)
 data <- data[,sample.int(numItems)]
 

@@ -53,6 +53,20 @@ m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
 
+grp <- list(spec=m2$expectation$ItemSpec,
+            param=m2$ItemParam$values,
+            mean=m2$mean$values,
+            cov=m2$cov$values,
+            data=m2$data$observed)
+
+if (0) {
+  # matches flexmirt exactly except for some minor df mismatch
+  got <- rpf.SitemFit(grp, method="pearson")
+  sapply(got, function (r) r$pval)
+  got <- rpf.SitemFit(grp, method="rms")
+  sapply(got, function (r) r$pval)
+}
+
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 17, 1)
 omxCheckCloseEnough(emstat$totalMstep, 53, 10)
