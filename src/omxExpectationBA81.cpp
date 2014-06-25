@@ -57,7 +57,7 @@ void pia(const int *ar, int rows, int cols)
 
 void BA81LatentFixed::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
-	double weight = state->rowWeight[px] / patternLik1;
+	double weight = state->grp.rowWeight[px] / patternLik1;
 	for (int qx=0; qx < state->ptsPerThread; ++qx) {
 		Qweight[qx] *= weight;
 	}
@@ -130,7 +130,7 @@ void BA81LatentSummary::begin(struct BA81Expect *state)
 
 void BA81LatentSummary::normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double patternLik1, int thrId)
 {
-	double weight = state->rowWeight[px] / patternLik1;
+	double weight = state->grp.rowWeight[px] / patternLik1;
 	double *Dweight = thrDweight.data() + state->ptsPerThread * thrId;
 	for (int qx=0; qx < state->ptsPerThread; ++qx) {
 		double tmp = Qweight[qx] * weight;
@@ -555,7 +555,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		sVar(sx) = tmp;
 	}
 
-	quad.setup(state->Qwidth, state->targetQpoints, state->latentMeanOut->data, cov, sVar);
+	quad.setup(state->grp.qwidth, state->grp.qpoints, state->latentMeanOut->data, cov, sVar);
 
 	state->latentParamVersion = getLatentVersion(state);
 }
@@ -767,7 +767,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	omxFreeMatrix(state->numObsMat);
 	Free(state->patternLik);
 	Free(state->expected);
-	if (state->ownWeights) Free(state->rowWeight);
 	delete state;
 }
 
@@ -864,6 +863,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
 	state->verbose = Rf_asInteger(tmp);
 
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qpoints")));
+	int targetQpoints = Rf_asInteger(tmp);
+
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qwidth")));
+	state->grp.setGridFineness(Rf_asReal(tmp), targetQpoints);
+
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("ItemSpec")));
 	state->grp.importSpec(tmp);
 	if (state->verbose >= 2) mxLog("%s: found %d item specs", oo->name, state->numItems());
@@ -914,16 +919,15 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("weightColumn")));
 	int weightCol = INTEGER(tmp)[0];
-	state->ownWeights = weightCol == NA_INTEGER;
-	if (state->ownWeights) {
+	if (weightCol == NA_INTEGER) {
 		// Should rowMap be part of omxData? This is essentially a
 		// generic compression step that shouldn't be specific to IFA models.
-		state->rowWeight = Realloc(NULL, data->rows, double);
+		state->grp.rowWeight = (double*) R_alloc(data->rows, sizeof(double));
 		rowMap.resize(data->rows);
 		int numUnique = 0;
 		for (int rx=0; rx < data->rows; ) {
 			int rw = omxDataNumIdenticalRows(state->data, rx);
-			state->rowWeight[numUnique] = rw;
+			state->grp.rowWeight[numUnique] = rw;
 			rowMap[numUnique] = rx;
 			rx += rw;
 			++numUnique;
@@ -936,9 +940,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			omxRaiseErrorf("%s: weightColumn %d is a factor", oo->name, 1 + weightCol);
 			return;
 		}
-		state->rowWeight = omxDoubleDataColumn(data, weightCol);
+		state->grp.rowWeight = omxDoubleDataColumn(data, weightCol);
 		state->weightSum = 0;
-		for (int rx=0; rx < data->rows; ++rx) { state->weightSum += state->rowWeight[rx]; }
+		for (int rx=0; rx < data->rows; ++rx) { state->weightSum += state->grp.rowWeight[rx]; }
 		rowMap.resize(data->rows);
 		for (size_t rx=0; rx < rowMap.size(); ++rx) {
 			rowMap[rx] = rx;
@@ -1051,12 +1055,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("debugInternal")));
 	state->debugInternal = Rf_asLogical(tmp);
-
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qpoints")));
-	state->targetQpoints = Rf_asInteger(tmp);
-
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qwidth")));
-	state->Qwidth = Rf_asReal(tmp);
 
 	Rf_protect(tmp = R_do_slot(rObj, Rf_install("scores")));
 	const char *score_option = CHAR(Rf_asChar(tmp));

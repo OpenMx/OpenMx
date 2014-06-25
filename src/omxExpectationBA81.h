@@ -130,14 +130,10 @@ class BA81Expect {
 
 	// data characteristics
 	omxData *data;
-	double *rowWeight;
 	double weightSum;              // sum of rowWeight
-	bool ownWeights;
 	std::vector<bool> rowSkip;     // whether to treat the row as NA
 
 	// quadrature related
-	double Qwidth;
-	int targetQpoints;
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
 
 	// estimation related

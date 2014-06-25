@@ -413,7 +413,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	const int numSpecific = quad.numSpecific;
 	const int maxDims = quad.maxDims;
 	std::vector<int> &rowMap = estate->grp.rowMap;
-	double *rowWeight = estate->rowWeight;
+	double *rowWeight = estate->grp.rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
@@ -822,7 +822,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	const int maxAbilities = quad.maxAbilities;
 	omxMatrix *cov = estate->latentCovOut;
 	std::vector<int> &rowMap = estate->grp.rowMap;
-	double *rowWeight = estate->rowWeight;
+	double *rowWeight = estate->grp.rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
@@ -1138,7 +1138,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					}
 				}
 			} else {
-				double *rowWeight = estate->rowWeight;
+				double *rowWeight = estate->grp.rowWeight;
 				estate->excludedPatterns = 0;
 				const double LogLargest = estate->LogLargestDouble;
 				double got = 0;

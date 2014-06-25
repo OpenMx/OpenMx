@@ -81,6 +81,8 @@ class ifaGroup {
 	std::vector<int> Sgroup;       // item's specific group 0..numSpecific-1
 
 	// latent distribution
+	double qwidth;
+	int qpoints;
 	ba81NormalQuad quad;
 	bool twotier;  // rename to detectTwoTier TODO
 	int maxAbilities;
@@ -93,6 +95,8 @@ class ifaGroup {
 	std::vector<const int*> dataColumns;
 	std::vector<int> rowMap;       // row index into MxData
 	int dataRows;
+	const char *weightColumnName;
+	double *rowWeight;
 
 	// workspace
 	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
@@ -100,14 +104,9 @@ class ifaGroup {
 	// TODO:
 	// scores
 
- 	ifaGroup(bool _twotier) : Rdata(NULL),
-		twotier(_twotier),  
-		maxAbilities(0),
-		numSpecific(0),
-		mean(0),
-		cov(0),
-		dataRows(0), outcomeProb(0) {};
+	ifaGroup(bool _twotier);
 	~ifaGroup();
+	void setGridFineness(double width, int points);
 	void import(SEXP Rlist);
 	void importSpec(SEXP slotValue);
 	void setLatentDistribution(int dims, double *mean, double *cov);

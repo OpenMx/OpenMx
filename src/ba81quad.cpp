@@ -274,6 +274,16 @@ void ba81NormalQuad::EAP(double *thrDweight, double scalingFactor, double *score
 	}
 }
 
+ifaGroup::ifaGroup(bool _twotier) : Rdata(NULL),
+		qwidth(6.0), qpoints(49),
+		twotier(_twotier),
+		maxAbilities(0),
+		numSpecific(0),
+		mean(0),
+		cov(0),
+		dataRows(0), weightColumnName(0), rowWeight(0), outcomeProb(0)
+{}
+
 ifaGroup::~ifaGroup()
 {
 	Free(outcomeProb);
@@ -373,6 +383,15 @@ void ifaGroup::import(SEXP Rlist)
 			for (int nx=0; nx < nlen; ++nx) {
 				dataColNames.push_back(CHAR(STRING_ELT(names, nx)));
 			}
+		} else if (strEQ(key, "weightColumn")) {
+			if (Rf_length(slotValue) != 1) {
+				Rf_error("You can only have one weightColumn");
+			}
+			weightColumnName = CHAR(STRING_ELT(slotValue, 0));
+		} else if (strEQ(key, "qwidth")) {
+			qwidth = Rf_asReal(slotValue);
+		} else if (strEQ(key, "qpoints")) {
+			qpoints = Rf_asInteger(slotValue);
 		} else {
 			// ignore
 		}
@@ -399,14 +418,37 @@ void ifaGroup::import(SEXP Rlist)
 				Rf_error("Cannot find item '%s' in data", itemNames[ix]);
 			}
 		}
+		if (weightColumnName) {
+			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
+				if (strEQ(weightColumnName, dataColNames[dc])) {
+					rowWeight = REAL(VECTOR_ELT(Rdata, dc));
+					break;
+				}
+			}
+			if (!rowWeight) {
+				Rf_error("Cannot find weight column '%s'", weightColumnName);
+			}
+		}
+		rowMap.reserve(dataRows);
+		for (int rx=0; rx < dataRows; ++rx) rowMap.push_back(rx);
 	}
 
 	maxAbilities = mlen;
 	detectTwoTier();
+	sanityCheck();
 
 	if (pmatRows < paramRows) {
 		Rf_error("At least %d rows are required in the item parameter matrix, only %d found",
 			 paramRows, pmatRows);
+	}
+
+	if (mean) {
+		Eigen::Map<Eigen::MatrixXd> fullCov(cov, maxAbilities, maxAbilities);
+		int dense = maxAbilities - numSpecific;
+		Eigen::MatrixXd priCov = fullCov.block(0, 0, dense, dense);
+		Eigen::VectorXd sVar = fullCov.diagonal().tail(numSpecific);
+
+		quad.setup(qwidth, qpoints, mean, priCov, sVar);
 	}
 }
 
@@ -474,6 +516,8 @@ void ifaGroup::detectTwoTier()
 
 void ifaGroup::sanityCheck()
 {
+	if (!mean) return;
+
 	for (int ix=0; ix < numItems(); ++ix) {
 		const int dims = spec[ix][RPF_ISpecDims];
 
@@ -482,8 +526,8 @@ void ifaGroup::sanityCheck()
 			if (getItemParam(ix)[dx] != 0) loadings += 1;
 		}
 		if (loadings > maxAbilities) {
-			omxRaiseErrorf("Item %d has more factor loadings (%d) than there are factors (%d)",
-				       1+ix, loadings, maxAbilities);
+			Rf_error("Item %d has more factor loadings (%d) than there are factors (%d)",
+				 1+ix, loadings, maxAbilities);
 		}
 	}
 }
@@ -603,4 +647,10 @@ void ifaGroup::cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei)
 		}
 		eisloc += numSpecific;
 	}
+}
+
+void ifaGroup::setGridFineness(double width, int points)
+{
+	if (std::isfinite(width)) qwidth = width;
+	if (points != NA_INTEGER) qpoints = points;
 }
