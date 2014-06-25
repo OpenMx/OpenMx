@@ -26,7 +26,7 @@ class ba81NormalQuad {
  private:
 	void pointToWhere(const int *quad, double *where, int upto);
 	void decodeLocation(int qx, const int dims, int *quad);
-	double One;
+	double One, ReciprocalOfOne;
 
 	int sIndex(int sx, int qx) {
 		//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
@@ -54,10 +54,11 @@ class ba81NormalQuad {
 	Eigen::MatrixXd whereGram;            // triangleLoc1(maxDims) x totalQuadPoints
 
 	ba81NormalQuad();
-	void setOne(double one) { One = one; }
+	void setOne(double one) { One = one; ReciprocalOfOne = 1/one; }
 	void setup0();
 	void setup(double Qwidth, int Qpoints, double *means,
 		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
+	double getReciprocalOfOne() const { return ReciprocalOfOne; };
 
 	// For dense cov, Dweight is size totalQuadPoints
 	// For two-tier, Dweight is numSpecific x totalQuadPoints
@@ -90,7 +91,11 @@ class ifaGroup {
 
 	// data related
 	std::vector<const int*> dataColumns;
+	std::vector<int> rowMap;       // row index into MxData
 	int dataRows;
+
+	// workspace
+	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
 
 	// TODO:
 	// scores
@@ -101,7 +106,8 @@ class ifaGroup {
 		numSpecific(0),
 		mean(0),
 		cov(0),
-		dataRows(0) {};
+		dataRows(0), outcomeProb(0) {};
+	~ifaGroup();
 	void import(SEXP Rlist);
 	void importSpec(SEXP slotValue);
 	void setLatentDistribution(int dims, double *mean, double *cov);
@@ -110,6 +116,9 @@ class ifaGroup {
 	const int *dataColumn(int col) { return dataColumns[col]; };
 	void detectTwoTier();
 	void sanityCheck();
+	void ba81OutcomeProb(double *param, bool wantLog);
+	void ba81LikelihoodSlow2(const int px, double *out);
+	void cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei);
 };
 
 #endif

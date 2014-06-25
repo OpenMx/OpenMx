@@ -121,16 +121,15 @@ class BA81Expect {
 	int totalOutcomes() { return grp.totalOutcomes; }
 	const double *itemSpec(int ix) { return grp.spec[ix]; }
 	int numItems() { return grp.numItems(); }
+	int getNumUnique() { return (int) grp.rowMap.size(); }
 	int itemOutcomes(int ix) { return grp.itemOutcomes[ix]; }
 
 	const char *name;              // from omxExpectation
 	double LogLargestDouble;       // should be const but need constexpr
 	double LargestDouble;          // should be const but need constexpr
-	double OneOverLargestDouble;   // should be const but need constexpr
 
 	// data characteristics
 	omxData *data;
-	std::vector<int> rowMap;       // row index into MxData
 	double *rowWeight;
 	double weightSum;              // sum of rowWeight
 	bool ownWeights;
@@ -147,7 +146,6 @@ class BA81Expect {
 	double *patternLik;                   // numUnique
 	double SmallestPatternLik;
 	int excludedPatterns;
-	double *outcomeProb;                  // totalOutcomes * totalQuadPoints
 	double *expected;                     // totalOutcomes * totalQuadPoints (E-step table)
 	bool expectedUsed;
 	int ElatentVersion;

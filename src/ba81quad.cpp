@@ -284,6 +284,11 @@ void ba81NormalQuad::EAP(double *thrDweight, double scalingFactor, double *score
 	}
 }
 
+ifaGroup::~ifaGroup()
+{
+	Free(outcomeProb);
+}
+
 void ifaGroup::importSpec(SEXP slotValue)
 {
 	for (int sx=0; sx < Rf_length(slotValue); ++sx) {
@@ -501,5 +506,111 @@ double ifaGroup::area(int qx, int ix)
 		int px = qx / quad.quadGridSize;
 		int sx = qx % quad.quadGridSize;
 		return quad.priQarea[px] * quad.speQarea[sx * quad.numSpecific + Sgroup[ix]];
+	}
+}
+
+// Depends on item parameters, but not latent distribution
+void ifaGroup::ba81OutcomeProb(double *param, bool wantLog)
+{
+	const int maxDims = quad.maxDims;
+	outcomeProb = Realloc(outcomeProb, totalOutcomes * quad.totalQuadPoints, double);
+
+#pragma omp parallel for num_threads(Global->numThreads)
+	for (int ix=0; ix < numItems(); ix++) {
+		double *qProb = outcomeProb + cumItemOutcomes[ix] * quad.totalQuadPoints;
+		const double *ispec = spec[ix];
+		int id = ispec[RPF_ISpecID];
+		int dims = ispec[RPF_ISpecDims];
+		Eigen::VectorXd ptheta(dims);
+		double *iparam = param + paramRows * ix;
+		rpf_prob_t prob_fn = wantLog? librpf_model[id].logprob : librpf_model[id].prob;
+
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
+			double *where = quad.wherePrep.data() + qx * maxDims;
+			for (int dx=0; dx < dims; dx++) {
+				ptheta[dx] = where[std::min(dx, maxDims-1)];
+			}
+
+			(*prob_fn)(ispec, iparam, ptheta.data(), qProb);
+			qProb += itemOutcomes[ix];
+		}
+	}
+}
+
+void ifaGroup::ba81LikelihoodSlow2(const int px, double *out)
+{
+	const int totalQuadPoints = quad.totalQuadPoints;
+	double *oProb = outcomeProb;
+	std::vector<double> &priQarea = quad.priQarea;
+
+	for (int qx=0; qx < totalQuadPoints; ++qx) {
+		out[qx] = priQarea[qx];
+	}
+
+	const int row = rowMap[px];
+	for (int ix=0; ix < numItems(); ix++) {
+		int pick = dataColumns[ix][row];
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
+			out[qx] *= oProb[pick];
+			oProb += itemOutcomes[ix];
+		}
+	}
+}
+
+void ifaGroup::cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei)
+{
+	double *oProb = outcomeProb;
+	const int totalQuadPoints = quad.totalQuadPoints;
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
+	std::vector<double> &speQarea = quad.speQarea;
+	std::vector<double> &priQarea = quad.priQarea;
+
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints * numSpecific; sx++) {
+			lxk[qloc] = speQarea[sx];
+			++qloc;
+		}
+	}
+
+	const int row = rowMap[px];
+	for (int ix=0; ix < numItems(); ix++) {
+		int pick = dataColumns[ix][row];
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+		int Sgroup1 = Sgroup[ix];
+		double *out1 = lxk;
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
+			out1[Sgroup1] *= oProb[pick];
+			oProb += itemOutcomes[ix];
+			out1 += numSpecific;
+		}
+	}
+
+	for (int qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
+	for (int qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = priQarea[qx];
+
+	int eisloc = 0;
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints; sx++) {
+			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+				double piece = lxk[qloc];
+				Eis[eisloc + sgroup] += piece;
+				++qloc;
+			}
+		}
+		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+			Ei[qx] *= Eis[eisloc + sgroup] * quad.getReciprocalOfOne();
+		}
+		eisloc += numSpecific;
 	}
 }

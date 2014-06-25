@@ -284,7 +284,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
 
-	if (do_fit) ba81OutcomeProb(estate, itemParam->data, TRUE);
+	if (do_fit) estate->grp.ba81OutcomeProb(itemParam->data, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
@@ -302,7 +302,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const int iOutcomes = estate->grp.itemOutcomes[ix];
 		const int outcomeBase = cumItemOutcomes[ix] * quad.totalQuadPoints;
 		const double *weight = estate->expected + outcomeBase;
-                const double *oProb = estate->outcomeProb + outcomeBase;
+                const double *oProb = estate->grp.outcomeProb + outcomeBase;
 		const double *iparam = omxMatrixColumn(itemParam, ix);
 		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
 
@@ -405,14 +405,14 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->matrix->name);
 
-	ba81OutcomeProb(estate, estate->itemParam->data, FALSE);
+	estate->grp.ba81OutcomeProb(estate->itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
-	const int numUnique = (int) estate->rowMap.size();
+	const int numUnique = estate->getNumUnique();
 	ba81NormalQuad &quad = estate->getQuad();
 	const int numSpecific = quad.numSpecific;
 	const int maxDims = quad.maxDims;
-	std::vector<int> &rowMap = estate->rowMap;
+	std::vector<int> &rowMap = estate->grp.rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
@@ -443,7 +443,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			double *meat = thrMeat.data() + thrId * numParam * numParam;   //b
 			std::vector<double> patGrad(numParam);
 
-			ba81LikelihoodSlow2(estate, px, lxk);
+			estate->grp.ba81LikelihoodSlow2(px, lxk);
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
@@ -520,7 +520,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			double *lxk = thrLxk.data() + totalQuadPoints * numSpecific * thrId;
 			double *Ei = thrEi.data() + totalPrimaryPoints * thrId;
 			double *Eis = thrEis.data() + totalPrimaryPoints * numSpecific * thrId;
-			cai2010EiEis(estate, px, lxk, Eis, Ei);
+			estate->grp.cai2010EiEis(px, lxk, Eis, Ei);
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
@@ -811,17 +811,17 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
 	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->matrix->name);
 
-	ba81OutcomeProb(estate, estate->itemParam->data, FALSE);
+	estate->grp.ba81OutcomeProb(estate->itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
-	const int numUnique = (int) estate->rowMap.size();
+	const int numUnique = estate->getNumUnique();
 	ba81NormalQuad &quad = estate->getQuad();
 	const int numSpecific = quad.numSpecific;
 	const int maxDims = quad.maxDims;
 	const int pDims = numSpecific? maxDims-1 : maxDims;
 	const int maxAbilities = quad.maxAbilities;
 	omxMatrix *cov = estate->latentCovOut;
-	std::vector<int> &rowMap = estate->rowMap;
+	std::vector<int> &rowMap = estate->grp.rowMap;
 	double *rowWeight = estate->rowWeight;
 	std::vector<bool> &rowSkip = estate->rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
@@ -880,7 +880,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			std::vector<double> patGrad(numParam);
 			double *grad = thrGrad.data() + thrId * numParam;
 			double *meat = thrMeat.data() + thrId * numParam * numParam;
-			ba81LikelihoodSlow2(estate, px, lxk);
+			estate->grp.ba81LikelihoodSlow2(px, lxk);
 
 			// If patternLik is already valid, maybe could avoid this loop TODO
 			double patternLik1 = 0;
@@ -946,7 +946,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			std::vector<double> patGrad(numParam);
 			double *grad = thrGrad.data() + thrId * numParam;
 			double *meat = thrMeat.data() + thrId * numParam * numParam;
-			cai2010EiEis(estate, px, lxk, Eis, Ei);
+			estate->grp.cai2010EiEis(px, lxk, Eis, Ei);
 
 			for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
 				for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
@@ -1126,14 +1126,14 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			omxExpectationCompute(oo->expectation, NULL);
 
 			double *patternLik = estate->patternLik;
-			const int numUnique = (int) estate->rowMap.size();
+			const int numUnique = estate->getNumUnique();
 			if (state->returnRowLikelihoods) {
-				const double OneOverLargest = estate->OneOverLargestDouble;
+				const double OneOverLargest = estate->grp.quad.getReciprocalOfOne();
 				omxData *data = estate->data;
 				for (int rx=0; rx < numUnique; rx++) {
-					int dups = omxDataNumIdenticalRows(data, estate->rowMap[rx]);
+					int dups = omxDataNumIdenticalRows(data, estate->grp.rowMap[rx]);
 					for (int dup=0; dup < dups; dup++) {
-						int dest = omxDataIndex(data, estate->rowMap[rx]+dup);
+						int dest = omxDataIndex(data, estate->grp.rowMap[rx]+dup);
 						oo->matrix->data[dest] = patternLik[rx] * OneOverLargest;
 					}
 				}
