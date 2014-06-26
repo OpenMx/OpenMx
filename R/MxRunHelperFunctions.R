@@ -59,7 +59,7 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 
 
 nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
-		algebraNames, parameterNames, intervalNames, output) {
+		algebraNames, parameterNames, output) {
 	output$mxVersion <- mxVersion()
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
@@ -84,12 +84,6 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	if (length(output$standardErrors) == length(parameterNames)) {
 		rownames(output$standardErrors) <- parameterNames
-	}
-	if (length(output$confidenceIntervals) > 0) {
-		dimnames(output$confidenceIntervals) <- list(
-			intervalNames, c('lbound', 'ubound'))
-		dimnames(output$confidenceIntervalCodes) <- list(
-			intervalNames, c('lbound', 'ubound'))
 	}
 	return(output)
 }

@@ -142,6 +142,7 @@ class omxCheckpoint {
 };
 
 struct omxConfidenceInterval {		// For Confidence interval request
+	const char *name;
 	omxMatrix* matrix;				// The matrix
 	int row, col;					// Location of element to calculate
 	double ubound;					// Fit-space upper boundary
@@ -151,12 +152,14 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	int lCode;						// Optimizer code at lower bound
 	int uCode;						// Optimizer code at upper bound
 	unsigned short calcLower;		// Are we currently calculating lbound?
+	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 };
 
 #define MAX_STRING_LEN 250
 
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
+	bool unpackedConfidenceIntervals;
  public:
 	int ciMaxIterations;
 	int numThreads;
@@ -173,8 +176,8 @@ class omxGlobal {
 
 	int maxStackDepth;
 
-	int numIntervals;
-	omxConfidenceInterval* intervalList;
+	std::vector< omxConfidenceInterval* > intervalList;
+	void unpackConfidenceIntervals();
 
 	int computeCount; // protected by openmp atomic
 

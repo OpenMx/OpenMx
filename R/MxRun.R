@@ -182,7 +182,7 @@ runHelper <- function(model, frontendStart,
 	model <- imxReplaceModels(model, independents)
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
-		names(parameters), names(intervalList), output)
+		names(parameters), output)
 
 	# Currently runstate preserves the pre-backend state of the model.
 	# Eventually this needs to capture the post-backend state,

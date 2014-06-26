@@ -151,11 +151,11 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval].calcLower?"lower":"upper"));
+		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval]->calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
-		omxConfidenceInterval *oCI = &(Global->intervalList[NPSOL_currentInterval]);
+		omxConfidenceInterval *oCI = Global->intervalList[NPSOL_currentInterval];
 		
 		omxRecompute(oCI->matrix);
 		
@@ -469,9 +469,9 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
 
 	const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
 
-        for(int i = 0; i < Global->numIntervals; i++) {
+        for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 
-		omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
+		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
 		const char *matName = anonMatrix;
 		if (currentCI->matrix->name) {

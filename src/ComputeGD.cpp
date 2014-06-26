@@ -231,7 +231,9 @@ void ComputeCI::initFromFrontend(SEXP rObj)
 
 void ComputeCI::computeImpl(FitContext *fc)
 {
-	int numInts = Global->numIntervals;
+	Global->unpackConfidenceIntervals();
+
+	int numInts = (int) Global->intervalList.size();
 	if (verbose >= 1) mxLog("%s: starting work on %d intervals", name, numInts);
 	if (!numInts) return;
 
@@ -242,7 +244,7 @@ void ComputeCI::computeImpl(FitContext *fc)
 		return;
 	}
 
-	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 2));
+	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
 	switch (engine) {
@@ -260,23 +262,56 @@ void ComputeCI::computeImpl(FitContext *fc)
 
 	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
 
-	double* interval = REAL(intervals);
+	fc->copyParamToModel(globalState);
+
+	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
-		omxConfidenceInterval *oCI = Global->intervalList + j;
-		interval[j] = oCI->min;
-		interval[j + numInts] = oCI->max;
+		omxConfidenceInterval *oCI = Global->intervalList[j];
+		interval(j, 0) = oCI->min;
+		omxRecompute(oCI->matrix);
+		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+		interval(j, 2) = oCI->max;
 		intervalCode[j] = oCI->lCode;
 		intervalCode[j + numInts] = oCI->uCode;
 	}
-
-	fc->copyParamToModel(globalState);
 }
 
 void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
-	if (intervals && intervalCodes) {
-		out->add("confidenceIntervals", intervals);
-		out->add("confidenceIntervalCodes", intervalCodes);
+	if (!intervals) return;
+
+	int numInt = (int) Global->intervalList.size();
+
+	SEXP dimnames;
+	SEXP names;
+	Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
+	Rf_protect(names = Rf_allocVector(STRSXP, 3));
+	SET_STRING_ELT(names, 0, Rf_mkChar("lbound"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("estimate"));
+	SET_STRING_ELT(names, 2, Rf_mkChar("ubound"));
+	SET_VECTOR_ELT(dimnames, 1, names);
+
+	Rf_protect(names = Rf_allocVector(STRSXP, numInt)); //shared between the two matrices
+	for (int nx=0; nx < numInt; ++nx) {
+		omxConfidenceInterval *ci = Global->intervalList[nx];
+		SET_STRING_ELT(names, nx, Rf_mkChar(ci->name));
 	}
+	SET_VECTOR_ELT(dimnames, 0, names);
+
+	Rf_setAttrib(intervals, R_DimNamesSymbol, dimnames);
+
+	out->add("confidenceIntervals", intervals);
+
+	Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(dimnames, 0, names);
+
+	Rf_protect(names = Rf_allocVector(STRSXP, 2));
+	SET_STRING_ELT(names, 0, Rf_mkChar("lbound"));
+	SET_STRING_ELT(names, 1, Rf_mkChar("ubound"));
+	SET_VECTOR_ELT(dimnames, 1, names);
+
+	Rf_setAttrib(intervalCodes, R_DimNamesSymbol, dimnames);
+
+	out->add("confidenceIntervalCodes", intervalCodes);
 }

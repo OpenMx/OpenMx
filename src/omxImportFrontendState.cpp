@@ -338,16 +338,18 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 	for which bounds are to be calculated, and are cast to ints here for speed.
 	The last two are the upper and lower boundaries for the confidence space (respectively).
 */
-void omxProcessConfidenceIntervals(SEXP intervalList)  {
+void omxProcessConfidenceIntervals(SEXP intervalList)
+{
+	SEXP names = Rf_getAttrib(intervalList, R_NamesSymbol);
 	SEXP nextVar;
-	if(OMX_VERBOSE) { mxLog("Processing Confidence Interval Requests.");}
-	Global->numIntervals = Rf_length(intervalList);
-	if(OMX_DEBUG) {mxLog("Found %d requests.", Global->numIntervals); }
-	Global->intervalList = (omxConfidenceInterval*) R_alloc(Global->numIntervals, sizeof(omxConfidenceInterval));
-	for(int index = 0; index < Global->numIntervals; index++) {
-		omxConfidenceInterval *oCI = &(Global->intervalList[index]);
+	int numIntervals = Rf_length(intervalList);
+	if(OMX_DEBUG) {mxLog("Found %d Confidence Interval requests.", numIntervals); }
+	Global->intervalList.reserve(numIntervals);
+	for(int index = 0; index < numIntervals; index++) {
+		omxConfidenceInterval *oCI = new omxConfidenceInterval;
 		Rf_protect(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
+		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
@@ -355,9 +357,8 @@ void omxProcessConfidenceIntervals(SEXP intervalList)  {
 		oCI->ubound = intervalInfo[4];
 		oCI->max = R_NaReal;					// NAs, in case something goes wrong
 		oCI->min = R_NaReal;
+		Global->intervalList.push_back(oCI);
 	}
-	if(OMX_VERBOSE) { mxLog("Processed."); }
-	if(OMX_DEBUG) { mxLog("%d intervals requested.", Global->numIntervals); }
 }
 
 void omxProcessConstraints(SEXP constraints)  {

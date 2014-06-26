@@ -150,29 +150,28 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		return(retval)
 	}
 	entity <- flatModel[[reference]]
+	retval <- list()
 	if (!is.null(entity)) {
-		tuple <- evaluateMxObject(reference, flatModel, labelsData, new.env(parent = emptyenv()))
-		entityValue <- as.matrix(tuple[[1]])
-		rows <- nrow(entityValue)
-		cols <- ncol(entityValue)
-		if (is(entity, "MxMatrix")) {
-			free <- entity@free
-		} else {
-			free <- matrix(TRUE, rows, cols)
-		}
 		entityNumber <- imxLocateIndex(flatModel, reference, 
-			paste("confidence interval", reference))
-		retval <- list()
-		for(i in 1:rows) {
-			for(j in 1:cols) {
-				if (free[i, j]) {
-					if( is(entity, "MxMatrix") && !is.na(entity@labels[i,j]) ){
+					       paste("confidence interval", reference))
+		if (is(entity, "MxAlgebra")) {
+			newName <- reference
+			retval[[newName]] <- makeIntervalReference(entityNumber, 0L, 0L, 
+								   interval@lowerdelta, interval@upperdelta)
+		} else {
+			rows <- nrow(entity)
+			cols <- ncol(entity)
+			free <- entity@free
+			for(i in 1:rows) {
+				for(j in 1:cols) {
+					if (!free[i, j]) next
+					if(!is.na(entity@labels[i,j]) ){
 						newName <- entity@labels[i,j]
 					} else {
 						newName <- paste(reference, '[', i, ',', j, ']', sep = '')
 					}
 					retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
-						interval@lowerdelta, interval@upperdelta)
+										   interval@lowerdelta, interval@upperdelta)
 				}
 			}
 		}
@@ -339,9 +338,9 @@ omxParallelCI <- function(model, run = TRUE) {
 		return(container)
 	}
 	container <- mxRun(container, intervals = TRUE, suppressWarnings = TRUE)
-	tableCI <- matrix(as.numeric(NA), 0, 2)
+	tableCI <- matrix(as.numeric(NA), 0, 3)
 	tableCodes <- matrix(0, 0, 2)
-	dimnames(tableCI) <- list(NULL, c('lbound', 'ubound'))
+	dimnames(tableCI) <- list(NULL, c('lbound', 'estimate', 'ubound'))
 	dimnames(tableCodes) <- list(NULL, c('lbound', 'ubound'))
 	submodels <- container@submodels
 	for(i in 1:length(submodels)) {

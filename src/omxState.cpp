@@ -165,6 +165,37 @@ omxGlobal::omxGlobal()
 	computeCount = 0;
 	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
+	unpackedConfidenceIntervals = false;
+}
+
+void omxGlobal::unpackConfidenceIntervals()
+{
+	if (unpackedConfidenceIntervals) return;
+	unpackedConfidenceIntervals = true;
+
+	// take care to preserve order
+	std::vector<omxConfidenceInterval*> tmp;
+	std::swap(tmp, intervalList);
+
+	for (int ix=0; ix < (int) tmp.size(); ++ix) {
+		omxConfidenceInterval *ci = tmp[ix];
+		if (!ci->isWholeAlgebra()) {
+			intervalList.push_back(ci);
+			continue;
+		}
+		omxMatrix *mat = ci->matrix;
+		for (int cx=0; cx < mat->cols; ++cx) {
+			for (int rx=0; rx < mat->rows; ++rx) {
+				omxConfidenceInterval *cell = new omxConfidenceInterval(*ci);
+				std::string name = string_snprintf("%s[%d,%d]", ci->name, 1+rx, 1+cx);
+				cell->name = CHAR(Rf_mkChar(name.c_str()));
+				cell->row = rx;
+				cell->col = cx;
+				intervalList.push_back(cell);
+			}
+		}
+		delete ci;
+	}
 }
 
 void omxGlobal::deduplicateVarGroups()
@@ -312,6 +343,9 @@ void omxFreeChildStates(omxState *state)
 
 omxGlobal::~omxGlobal()
 {
+	for (size_t cx=0; cx < intervalList.size(); ++cx) {
+		delete intervalList[cx];
+	}
 	for (size_t cx=0; cx < computeList.size(); ++cx) {
 		delete computeList[cx];
 	}

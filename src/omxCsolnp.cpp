@@ -83,7 +83,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     
     GLOB_fc->fit = csolnpObjectiveFunction(myPars, verbose);
     
-    omxConfidenceInterval *oCI = &(Global->intervalList[CSOLNP_currentInterval]);
+    omxConfidenceInterval *oCI = Global->intervalList[CSOLNP_currentInterval];
     
     omxRecompute(oCI->matrix);
     
@@ -497,15 +497,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
-    
-    if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals.");
-        mxLog("numIntervals is: %d", Global->numIntervals);
-    }
-    
     const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
 
-    for(int i = 0; i < Global->numIntervals; i++) {
-        omxConfidenceInterval *currentCI = &(Global->intervalList[i]);
+    for(int i = 0; i < (int) Global->intervalList.size(); i++) {
+        omxConfidenceInterval *currentCI = Global->intervalList[i];
         
 	const char *matName = anonMatrix;
 	if (currentCI->matrix->name) {

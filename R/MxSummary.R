@@ -521,18 +521,6 @@ highlightBounds <- function(bound, boundMet){
 	}
 }
 
-generateConfidenceIntervalTable <- function(model) {
-	base <- model@output$confidenceIntervals
-	if (length(base) == 0) return(matrix(0, 0, 3))
-	entities <- rownames(base)
-	# summary should not use mxEval but only examine the information in runstate
-	estimates <- sapply(entities, imxEvalByName, model, compute=TRUE, show=FALSE)
-	retval <- cbind(base[, 'lbound'], estimates, base[, 'ubound'])
-	rownames(retval) <- entities
-	colnames(retval) <- c('lbound', 'estimate', 'ubound')
-	return(retval)
-}
-
 translateSaturatedLikelihood <- function(input) {
 	if (is.null(input)) {
 		return(input)
@@ -659,7 +647,7 @@ setMethod("summary", "MxModel",
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
-		retval$CI <- generateConfidenceIntervalTable(model)
+		retval$CI <- model@output$confidenceIntervals
 		retval$CIcodes <- model@output$confidenceIntervalCodes
 		if (!is.null(model@output$npsol.code)) {
 			message <- npsolMessages[[as.character(model@output$npsol.code)]]
