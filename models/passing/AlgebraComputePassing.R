@@ -247,6 +247,9 @@ model <- mxModel(model, mxAlgebra(omxSelectRowsAndCols(t(O),omxNot(t(N))), name=
 model <- mxModel(model, mxAlgebra(omxSelectRows(t(O),t(N)%x%5), name='test65f'))
 model <- mxModel(model, mxAlgebra(omxSelectCols(t(O),t(N)%x%5), name='test66f'))
 model <- mxModel(model, mxAlgebra(omxSelectRowsAndCols(t(O),t(N)%x%5), name='test67f'))
+model <- mxModel(model, mxAlgebra(logm(A), name = 'test68a'))
+model <- mxModel(model, mxAlgebra(logm(B), name = 'test68b'))
+model <- mxModel(model, mxAlgebra(logm(I), name = 'test68c'))
 model <- mxRun(model)
 
 # Check passing tests
@@ -458,3 +461,6 @@ omxCheckCloseEnough(model[['test67e']]$result, mxEval(omxSelectRowsAndCols(t(O),
 omxCheckCloseEnough(model[['test65f']]$result, mxEval(omxSelectRows(t(O),t(N)%x%5), model), 0.001)
 omxCheckCloseEnough(model[['test66f']]$result, mxEval(omxSelectCols(t(O),t(N)%x%5), model), 0.001)
 omxCheckCloseEnough(model[['test67f']]$result, mxEval(omxSelectRowsAndCols(t(O),t(N)%x%5), model), 0.001)
+omxCheckCloseEnough(model[['test68a']]$result, mxEval(logm(A), model), .001)
+omxCheckCloseEnough(model[['test68b']]$result, mxEval(logm(B), model), .001)
+omxCheckCloseEnough(model[['test68c']]$result, mxEval(logm(I), model), .001)

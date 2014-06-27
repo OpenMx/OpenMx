@@ -71,3 +71,16 @@ omxExponential <- function(x, order = 7) {
 	}
     return(F)
 }
+
+##' Matrix logarithm
+##'
+##' This is copied from http://cran.r-project.org/web/packages/expm/index.html
+logm <- function(x, tol = .Machine$double.eps) {
+    d <- dim(x)
+    if(length(d) != 2 || d[1] != d[2]) stop("'x' must be a quadratic matrix")
+
+    ## AUTHOR: Christophe Dutang
+    ## matrix exponential using eigenvalues / spectral decomposition and
+    ## Ward(1977) algorithm if x is numerically non diagonalisable
+    .Call(do_logm_eigen, x, tol)
+}

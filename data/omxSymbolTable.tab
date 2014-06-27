@@ -60,3 +60,4 @@
 58		"Covariance to Correlation"	"cov2cor"	1	"omxCovToCor"
 59		"Inverse Half vectorization"	"vech2full"			1			"omxVechToMatrix"
 60		"Inverse 1/2 vector (strict)"	"vechs2full"			1			"omxVechsToMatrix"
+61		"Matrix Logarithm"				"logm"	1			"mxMatrixLog"

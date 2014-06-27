@@ -171,5 +171,15 @@ void omxExponentialOrder(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	matrixExponential(inMat, order, result);
 }
 
-
-
+void mxMatrixLog(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	if (!inMat->colMajor) {
+		omxToggleRowColumnMajor(inMat);
+	}
+	if (inMat->rows != inMat->cols) Rf_error("logm requires a symmetric matrix");
+	omxResizeMatrix(result, inMat->rows, inMat->cols);
+	result->colMajor = true;
+	double tol = std::numeric_limits<double>::epsilon();
+	logm_eigen(inMat->data, inMat->rows, result->data, tol);
+}

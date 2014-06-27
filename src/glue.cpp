@@ -61,6 +61,7 @@ static R_CallMethodDef callMethods[] = {
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
 	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
+	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 2},
 	{NULL, NULL, 0}
 };
 
