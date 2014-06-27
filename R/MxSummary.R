@@ -327,14 +327,16 @@ print.summary.mxmodel <- function(x,...) {
 	if (x$stale) {
 		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n\n")
 	}
-	if (length(x$compute)) {
-		cat("compute plan:\n")
-		print(x$compute)
-		cat("\n")
-	}
-	if (length(x$dataSummary) > 0) {
-		cat("data:\n")
-		print(x$dataSummary)
+	if(x$verbose==TRUE){
+		if (length(x$compute)) {
+			cat("compute plan:\n")
+			print(x$compute)
+			cat("\n")
+		}
+		if (length(x$dataSummary) > 0) {
+			cat("data:\n")
+			print(x$dataSummary)
+		}
 	}
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
@@ -370,35 +372,52 @@ print.summary.mxmodel <- function(x,...) {
 	cat("estimated parameters: ", x$estimatedParameters, '\n')
 	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
-	cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
-	cat("number of observations: ", x$numObs, '\n')
-	if(is.na(x$SaturatedLikelihood)){
-		cat("chi-square (degrees of freedom): ", x$Chi, '( df =', NA, ')', '\n')
-	} else {
-		cat("chi-square (degrees of freedom): ", x$Chi, '( df =', x$ChiDoF, ')', '\n')
+	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
+		cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
 	}
-	cat("p: ", x$p, '\n')
+	cat("number of observations: ", x$numObs, '\n')
+	#
+	# Chi-square goodness of fit test
+	if(x$verbose==TRUE || !is.na(x$Chi)){
+		cat("chi-square: ", x$Chi, '\n')
+		if(is.na(x$SaturatedLikelihood)){
+			cat("chi-square degrees of freedom: ", NA, '\n')
+		} else {
+			cat("chi-square degrees of freedom: ", x$ChiDoF, '\n')
+		}
+		cat("chi-square p-value: ", x$p, '\n')
+	}
+	#
+	# Relative fit indices
 	cat("Information Criteria: \n")
 	IC <- x$informationCriteria
 	colnames(IC) <- c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted")
 	print(IC)
 	# cat("\n")
 	# cat("adjusted BIC:", '\n')
-	cat("CFI:", x$CFI, '\n')
-	cat("TLI:", x$TLI, '\n')
-	# cat("satDoF", x$satDoF, "\n")
-	# cat("indDoF", x$indDoF, "\n")
-	if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
-		cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
-	} else {
-		cat("RMSEA: ", x$RMSEA, '\n')
+	#
+	# Absolute fit indices
+	if(x$verbose==TRUE || any(!is.na(c(x$CFI, x$TLI, x$RMSEA)))){
+		cat("CFI:", x$CFI, '\n')
+		cat("TLI:", x$TLI, '\n')
+		# cat("satDoF", x$satDoF, "\n")
+		# cat("indDoF", x$indDoF, "\n")
+		if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
+			cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
+		} else {
+			cat("RMSEA: ", x$RMSEA, '\n')
+		}
 	}
+	#
+	# Timing information
 	cat("timestamp:", format(x$timestamp), '\n')
-	cat("frontend time:", format(x$frontendTime), '\n')
-	cat("backend time:", format(x$backendTime), '\n')
-	cat("independent submodels time:", format(x$independentTime), '\n')
+	if(x$verbose==TRUE){
+		cat("frontend time:", format(x$frontendTime), '\n')
+		cat("backend time:", format(x$backendTime), '\n')
+		cat("independent submodels time:", format(x$independentTime), '\n')
+		cat("cpu time:", format(x$cpuTime), '\n')
+	}
 	cat("wall clock time:", format(x$wallTime), '\n')
-	cat("cpu time:", format(x$cpuTime), '\n')
 	cat("OpenMx version number:", format(x$mxVersion), '\n')
 	cat('\n')
 	if (x$stale) {
@@ -629,7 +648,7 @@ translateIndependenceDoF <- function(input) {
 }
 
 setMethod("summary", "MxModel",
-	function(object, ...) {
+	function(object, ..., verbose=FALSE) {
 		model <- object
 		dotArguments <- list(...)
 		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
@@ -667,6 +686,7 @@ setMethod("summary", "MxModel",
 		} else {
 			retval$compute <- model@compute
 		}
+		retval$verbose <- verbose
 		class(retval) <- "summary.mxmodel"
 		return(retval)
 	}

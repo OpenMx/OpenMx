@@ -26,12 +26,13 @@
 
 
 \usage{
-summary(object, ...)
+summary(object, ..., verbose=FALSE)
 }
 
 \arguments{
    \item{object}{A MxModel object.}
    \item{...}{Any number of named arguments (see below).}
+   \item{verbose}{logical. Changes the printing style for summary (see Details)}
 }
 
 \details{
@@ -42,8 +43,11 @@ mxSummary allows the user to set or override the following parameters of the mod
 \item{numObs}{Numeric. Specify the total number of observations for the model.}
 \item{numStats}{Numeric. Specify the total number of observed statistics for the model.}
 \item{SaturatedLikelihood}{Numeric or MxModel object. Specify a saturated likelihood for testing.}
+\item{SaturatedDoF}{Numeric. When SaturatedLikelihood is numeric, specify the degrees of freedom of the saturated likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 }
+
+The \code{verbose} argument changes the printing style for the \code{summary} of a model.  When \code{verbose=FALSE}, a relatively minimal amount of information is printed: the free parameters, the likelihood, and a few fit indices.  When more information is available, more is printed.  For example, when the model has a saturated likelihood, several additional fit indices are printed.  On the other hand, when \code{verbose=TRUE}, the compute plan, the data summary, and additional timing information are always printed.  Moreover, available fit indices are printed regarless of whether or not they are defined.  The undefined fit indices are printed as \code{NA}.  Running a saturated model and including it with the call to \code{summary} will define these fit indices and they will dislay meaningful values.  It should be noted that the \code{verbose} argument only changes the printing style, all of the same information is calculated and exists in the output of \code{summary}.  More information is displayed when \code{verbose=TRUE}, and less when \code{verbose=FALSE}.
    
 This function can report Error codes as follows:
    
