@@ -1,7 +1,7 @@
 CSOLNP Documentation
 ====================
 
-CSOLNP is the new default optimizer engine of the OpenMx package. It is a C++ translation of solnp function from the Rsolnp package, available on CRAN. The algorithm solves nonlinear programming problems in general form of:
+CSOLNP is an open-source optimizer engine for the OpenMx package. It is a C++ translation of solnp function from the Rsolnp package, available on CRAN. The algorithm solves nonlinear programming problems in general form of:
 
 .. math::  
    :nowrap:
