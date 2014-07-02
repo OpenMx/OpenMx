@@ -21,7 +21,7 @@ if (0) {
   write.table(data.fm, file="info.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
 }
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=dim(param)[1], ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=dim(param)[1], ncol=numItems,
                    values=param, free=TRUE)
 rownames(ip.mat) <- c('f1', 'b')
 
@@ -35,8 +35,7 @@ compute.gradient <- function(v) {
 
   m1 <- mxModel(model="latent", ip.mat,
                 mxData(observed=pat, type="raw"),
-                mxExpectationBA81(debugInternal=TRUE,
-                                  ItemSpec=spec, ItemParam="ItemParam"),
+                mxExpectationBA81(ItemSpec=spec, debugInternal=TRUE),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation', 'scores'),

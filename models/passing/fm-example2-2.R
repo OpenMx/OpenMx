@@ -18,7 +18,7 @@ if (0) {
 
 g341 <- as.data.frame(lapply(g341, mxFactor, levels=0:1))
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=4, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=4, ncol=numItems,
                    values=c(1,0, NA, logit(1)), free=c(TRUE, TRUE, TRUE, FALSE))
 colnames(ip.mat) <- colnames(g341)
 rownames(ip.mat) <- c('f1', 'b', 'g', 'u')
@@ -42,9 +42,9 @@ prior.hess <- mxAlgebra(vec2diag(10*exp(gparam)/(exp(gparam)+1)^2),
 pm <- mxModel(model="pmodel", g.mat, prior, prior.grad, prior.hess,
               mxFitFunctionAlgebra("prior", gradient="pgrad", hessian="phess"))
 
-m1 <- mxModel(model="item", ip.mat,
+m1 <- mxModel(model="itemModel", ip.mat,
               mxData(observed=g341, type="raw"),
-              mxExpectationBA81(ItemSpec=spec, ItemParam="ItemParam"),
+              mxExpectationBA81(ItemSpec=spec),
               mxFitFunctionML())
 
 gm <- mxModel(model="gm", pm,
@@ -84,18 +84,18 @@ omxCheckCloseEnough(ponly.fit$submodels$pmodel$matrices$gparam$values[,],
 
 if (1) {
   fm1 <- mxModel("fm", m1, pm,
-                 mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'item.fitfunction')),
+                 mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'itemModel.fitfunction')),
                  mxComputeSequence(list(
                    mxComputeOnce('fitfunction', c('fit','gradient')),
                    mxComputeReportDeriv())))
-  citem <- fm1$submodels$item
-  citem$ItemParam$values[1:3,] <-
+  citem <- fm1$submodels$itemModel
+  citem$item$values[1:3,] <-
     c(1.8391, -0.5642, -1.0869, 1.2723, 2.7656, -2.0005,  1.504, -0.9809, -1.193, 1.3107,
       0.4609, -1.1923, 1.348, -0.422,  -1.076, 1.3897, 1.9059, -1.9338, 1.9577, 4.2709,
       -2.2242, 1.0483,  1.2432, -1.5608, 1.9411, 3.3146, -2.5864, 1.3474, 2.2773, -2.2306,
       1.7741, -1.398, -1.254, 1.5506, -0.5158, -1.3686)
   cpmodel <- fm1$submodels$pmodel
-  cpmodel$gparam$values[,] <- citem$ItemParam$values[3,]
+  cpmodel$gparam$values[,] <- citem$item$values[3,]
   fm1 <- mxModel(fm1, citem, cpmodel)
   fm1 <- mxRun(fm1, silent=TRUE)
   omxCheckCloseEnough(max(abs(fm1$output$gradient)), 0, .02)  # sandwich obtains 1.29 TODO
@@ -103,12 +103,12 @@ if (1) {
   
   if (0) {
     dm <- fm1
-    dm$submodels$item$expectation$EItemParam <- dm$submodels$item$matrices$ItemParam$values[,]
-    dm$submodels$item$matrices$ItemParam$free[,3:12] <- FALSE
-    dm$submodels$item$matrices$ItemParam$values[1:3,1:2] <- sapply(spec[1:2], rpf.rparam, version=1)[1:3,]
+    dm$submodels$itemModel$expectation$EstepItem <- dm$submodels$item$matrices$ItemParam$values[,]
+    dm$submodels$itemModel$matrices$item$free[,3:12] <- FALSE
+    dm$submodels$itemModel$matrices$item$values[1:3,1:2] <- sapply(spec[1:2], rpf.rparam, version=1)[1:3,]
     dm$submodels$pmodel$matrices$gparam$free[1,3:12] <- FALSE
     dm$submodels$pmodel$matrices$gparam$values[,] <-
-      dm$submodels$item$matrices$ItemParam$values[3,]
+      dm$submodels$itemModel$matrices$item$values[3,]
     dm$compute <- mxComputeSequence(list(
       mxComputeOnce('fitfunction', c('fit','gradient', 'hessian')),
       mxComputeReportDeriv()))
@@ -118,12 +118,12 @@ if (1) {
       mxComputeOnce('fitfunction', c('fit'))))
     require("numDeriv")
     got <- genD(function(x) {
-      dm$submodels$item$matrices$ItemParam$values[1:3,1:2] <- x
+      dm$submodels$itemModel$matrices$item$values[1:3,1:2] <- x
       dm$submodels$pmodel$matrices$gparam$values[,] <-
-        dm$submodels$item$matrices$ItemParam$values[3,]
+        dm$submodels$itemModel$matrices$item$values[3,]
       fit <- mxRun(dm, silent=TRUE)
       fit$output$fit
-    }, dm$submodels$item$matrices$ItemParam$values[1:3,1:2], method.args=list(r=2))
+    }, dm$submodels$itemModel$matrices$item$values[1:3,1:2], method.args=list(r=2))
     
     unpackHessian <- function(deriv, np) {
       hess <- matrix(NA, nrow=np, ncol=np)
@@ -141,11 +141,11 @@ if (1) {
 }
 
 m2 <- mxModel("ex", m1, pm,
-                    mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'item.fitfunction'),
+                    mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'itemModel.fitfunction'),
                                             verbose=0L),
                     mxCI(c('g1')),
                     mxComputeSequence(list(
-                      mxComputeEM('item.expectation', 'scores',
+                      mxComputeEM('itemModel.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
                                 tolerance=1e-5, verbose=0L),
                       mxComputeConfidenceInterval(),
@@ -164,7 +164,7 @@ g1 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeOnce('pmodel.fitfunction', 'gradient'),
   mxComputeReportDeriv()))), silent=TRUE)
 g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
-  mxComputeOnce('item.fitfunction', 'gradient'),
+  mxComputeOnce('itemModel.fitfunction', 'gradient'),
   mxComputeReportDeriv()))), silent=TRUE)
 
 emstat <- m2$compute$steps[[1]]$output

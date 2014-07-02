@@ -26,7 +26,7 @@ if (0) {
 cols <- colnames(data)
 data <- data[,sample.int(numItems)]
 
-ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
 rownames(ip.mat) <- c('f1','b','g','u')
@@ -34,8 +34,7 @@ colnames(ip.mat) <- cols
 
 m2 <- mxModel(model="drm1", ip.mat,
 	      mxData(observed=data, type="raw"),
-              mxExpectationBA81(debugInternal=TRUE,
-                ItemSpec=items, ItemParam="itemParam", qpoints=31),
+              mxExpectationBA81(items, qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 m2 <- mxRun(m2)
@@ -65,9 +64,7 @@ omxCheckCloseEnough(fivenum(testDeriv$output$hessian[testDeriv$output$hessian !=
 omxCheckCloseEnough(solve(testDeriv$output$hessian), testDeriv$output$ihessian, 1e-2)
 
 m2 <- mxModel(m2,
-              mxExpectationBA81(
-                ItemSpec=items, ItemParam="itemParam",
-                qpoints=31),
+              mxExpectationBA81(ItemSpec=items, qpoints=31),
 	      mxComputeEM('expectation', 'scores',
 	                  mxComputeNewtonRaphson()))
 
@@ -80,17 +77,17 @@ emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 12, 1)
 omxCheckCloseEnough(emstat$totalMstep, 33, 5)
 
-#print(m2$matrices$itemParam$values)
+#print(m2$matrices$item$values)
 #print(correct.mat)
 omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
-got <- cor(c(m2$matrices$itemParam$values[1:2,]),
+got <- cor(c(m2$matrices$item$values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
 
 grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$itemParam$values,
+            param=m2$item$values,
             data=data,
-            free=m2$itemParam$free,
+            free=m2$item$free,
             qpoints=31)
 
 scores <- EAPscores(grp)

@@ -25,7 +25,7 @@ true.mean <- c(.2,-.1)
 true.cov <- matrix(c(.5, -.2, -.2, .5), nrow=2)
 data <- rpf.sample(numPeople, items, correct.mat, mean=true.mean, cov=true.cov)
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
 rownames(ip.mat) <- c(paste('f', 1:2, sep=""), rep('p', nrow(ip.mat)-2))
 colnames(ip.mat) <- colnames(data)
@@ -61,9 +61,7 @@ for (seed in 1:trials) {
   m1 <- mxModel(model="latent",
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items,
-                                  ItemParam="ItemParam"),
+                mxExpectationBA81(ItemSpec=items, mean="mean", cov="cov"),
                 mxFitFunctionML(),
                 mxComputeSequence(list(
 		    mxComputeOnce('fitfunction', 'gradient'),

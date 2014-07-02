@@ -21,7 +21,7 @@ for (c in 1:m2.numItems) {
 
 m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
+ip.mat <- mxMatrix(name="item", nrow=m2.maxParam, ncol=m2.numItems,
                    values=c(1, 0), free=TRUE)
 rownames(ip.mat) <- c('f1', 'b')
 colnames(ip.mat) <- colnames(m2.data)
@@ -32,12 +32,11 @@ colnames(ip.mat) <- colnames(m2.data)
 
 m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(ItemSpec=m2.spec,
-                                ItemParam="ItemParam"),
+              mxExpectationBA81(ItemSpec=m2.spec),
               mxFitFunctionML(),
 	      mxComputeSequence(steps=list(
 				    mxComputeEM('expectation', 'scores',
-				                mxComputeNewtonRaphson(freeSet='ItemParam'),
+				                mxComputeNewtonRaphson(freeSet='item'),
 				                information="mr1991",
 						infoArgs=list(fitfunction=c('fitfunction'), semDebug=TRUE)),
 				    mxComputeStandardError(),
@@ -48,7 +47,7 @@ m2 <- mxModel(model="m2", ip.mat,
 m2 <- mxRun(m2, silent=TRUE)
 
 grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$ItemParam$values,
+            param=m2$item$values,
             data=m2$data$observed)
 
 if (0) {
@@ -103,7 +102,7 @@ if (0) {
     fit
   }
   require(numDeriv)
-  H.nd <- hessian(probe, m2$matrices$ItemParam$values, method.args=list(r=2))
+  H.nd <- hessian(probe, m2$matrices$item$values, method.args=list(r=2))
 }
 
 quantifyAsymmetry <- function(info) {
@@ -139,8 +138,8 @@ if(1) {
   omxCheckCloseEnough(quantifyAsymmetry(emHess2), 0, 1e-6)
   #hist(abs(diag(emHess) - diag(solve(m5$output$hessian))))
   
-  omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2$output$standardErrors)), 0, 5e-5)
-  #print(m2$matrices$ItemParam$values - fmfit)
+  omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2$output$standardErrors)), 0, 2e-4)
+  #print(m2$matrices$item$values - fmfit)
 }
 
 print(m2$output$backendTime)

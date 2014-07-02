@@ -12,7 +12,7 @@ compute.factored.ll <- function(m, obs) {
   # Equation 8 from Cai (2010, p. 37)
   
 	spec <- m$expectation$ItemSpec
-	ip <- m$ItemParam$values
+	ip <- m$item$values
 	grp <- list(spec=spec,
 		    param=ip,
 		    mean=m$mean$values,
@@ -45,7 +45,7 @@ correct.mat <- sapply(items, rpf.rparam, version=1)
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
                    values=correct.mat, free=FALSE)
 true.mean <- c(.2,-.1)
 true.cov <- matrix(c(.5, -.2, -.2, .5), nrow=2)
@@ -63,8 +63,7 @@ dimnames(cov.mat) <- list(paste('f', 1:2, sep=""), paste('f', 1:2, sep=""))
 m2 <- mxModel(model="latent",
               ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items, ItemParam="ItemParam"),
+              mxExpectationBA81(ItemSpec=items),
               mxFitFunctionML(),
 	      mxComputeIterate(steps=list(
 				   mxComputeOnce('fitfunction', "fit"),

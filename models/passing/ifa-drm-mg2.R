@@ -26,7 +26,7 @@ if (0) {
 # This create an IFA model for each group. Item parameters are
 # constrained equal across groups.
 mkgroup <- function(model.name, data, latent.free) {
-  ip.mat <- mxMatrix(name="ItemParam", nrow=2, ncol=numItems,
+  ip.mat <- mxMatrix(name="item", nrow=2, ncol=numItems,
                      values=c(1,0), free=TRUE)
   colnames(ip.mat) <- colnames(data)
   rownames(ip.mat) <- c('f1', 'b')
@@ -54,7 +54,7 @@ mkgroup <- function(model.name, data, latent.free) {
   
   m1 <- mxModel(model=model.name, ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(ItemSpec=items, ItemParam="ItemParam", mean=mean, cov=cov,
+                mxExpectationBA81(ItemSpec=items, mean=mean, cov=cov,
                                   verbose=ifelse(latent.free, 0L, 0L)),
                 mxFitFunctionML())
   m1
@@ -121,7 +121,7 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                     mxComputeSequence(list(
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(
-				      mxComputeNewtonRaphson(freeSet=paste(groups,'ItemParam',sep=".")),
+				      mxComputeNewtonRaphson(freeSet=paste(groups,'item',sep=".")),
 				      latent.plan)),
                                   information="mr1991", tolerance=1e-5, verbose=0L,
 				  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
@@ -223,5 +223,5 @@ if (0) {
   print(got$GroupPars)
   # COV 4.551
   got$GroupPars <- NULL
-  round(m2$matrices$itemParam$values - simplify2array(got), 2)
+  round(m2$matrices$item$values - simplify2array(got), 2)
 }

@@ -16,7 +16,7 @@ maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
 
 data <- rpf.sample(4, items, correct.mat)
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 1, 0), free=TRUE)
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c(paste("f", 1:3, sep=""), 'b')
@@ -27,8 +27,7 @@ mkmodel <- function(data) {
   mxModel(model="bifactor",
           ip.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(debugInternal=TRUE,
-                            ItemSpec=items, ItemParam="ItemParam", qpoints=29),
+          mxExpectationBA81(items, qpoints=29, debugInternal=TRUE),
           mxFitFunctionML(),
           mxComputeOnce('expectation', 'scores'))
 }

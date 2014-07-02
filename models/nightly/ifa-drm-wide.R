@@ -24,19 +24,17 @@ if (0) {
   q()
 }
 
-ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=4, ncol=numItems,
                    values=c(1,0, logit(0), logit(1)),
                    free=c(TRUE, TRUE, FALSE, FALSE))
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', 'b', 'g', 'u')
 
-m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
+m2 <- mxModel(model="drm1", ip.mat,
               mxData(observed=data, type="raw", sort=FALSE),
-              mxExpectationBA81(debugInternal=TRUE,
-                ItemSpec=items, ItemParam="itemParam"),
+              mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
               mxFitFunctionML(),
-              mxComputeOnce('expectation', 'scores')
-              )
+              mxComputeOnce('expectation', 'scores'))
 m2 <- mxRun(m2)
 
 # cat(deparse(fivenum(round(m2$expectation$debug$patternLikelihood,2))))
@@ -45,12 +43,13 @@ omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
 omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), numItems * numPersons, .1)
 
 m2 <- mxModel(m2,
+              mxExpectationBA81(ItemSpec=items),
               mxComputeEM('expectation', 'scores',
                           mxComputeNewtonRaphson(), verbose=0L))
 
 m2 <- mxRun(m2)
 
-#print(m2$matrices$itemParam$values)
+#print(m2$matrices$item$values)
 #print(correct.mat)
 omxCheckCloseEnough(m2$fitfunction$result, 4045796.236378, .01)
 

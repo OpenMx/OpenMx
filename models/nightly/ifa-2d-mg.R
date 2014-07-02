@@ -47,7 +47,7 @@ if (0) {
 }
 
 mkgroup <- function(model.name, data, latent.free) {  
-  ip.mat <- mxMatrix(name="ItemParam", values=startpar, free=TRUE)
+  ip.mat <- mxMatrix(name="item", values=startpar, free=TRUE)
   colnames(ip.mat) <- colnames(data)
   rownames(ip.mat) <- c(paste('f', 1:2, sep=""), 'b')
   ip.mat$free[correct.mat==0] <- FALSE
@@ -75,8 +75,7 @@ mkgroup <- function(model.name, data, latent.free) {
   m1 <- mxModel(model=model.name,
                 ip.mat, m.mat, cov.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean=mean, cov=cov,
-                                  ItemSpec=items, ItemParam="ItemParam",
+                mxExpectationBA81(ItemSpec=items, mean=mean, cov=cov,
                                   qpoints=21, qwidth=5, verbose=0L),
                 mxFitFunctionML())
   m1
@@ -136,7 +135,7 @@ g1 <- mkgroup("g1", data.g1, FALSE)
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(
-				      mxComputeNewtonRaphson(paste(groups, 'ItemParam', sep=".")),
+				      mxComputeNewtonRaphson(paste(groups, 'item', sep=".")),
 				      latent.plan))))
   
 grpModel <- mxRun(grpModel, silent=TRUE)
@@ -155,7 +154,7 @@ omxCheckCloseEnough(emstat$totalMstep, 222, 10)
 }
 
 grp1 <- list(spec=grpModel$submodels$g1$expectation$ItemSpec,
-            param=grpModel$submodels$g1$ItemParam$values,
+            param=grpModel$submodels$g1$item$values,
             mean=grpModel$submodels$g1$mean$values,
             cov=grpModel$submodels$g1$cov$values,
             data=grpModel$submodels$g1$data$observed)

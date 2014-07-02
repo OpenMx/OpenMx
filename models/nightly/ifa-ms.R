@@ -27,7 +27,7 @@ for (c in 1:m2.numItems) {
 
 m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
+ip.mat <- mxMatrix(name="item", nrow=m2.maxParam, ncol=m2.numItems,
                    values=c(1, 1, rep(0, m2.maxParam-2)), free=FALSE)
 colnames(ip.mat) <- colnames(m2.data)
 rownames(ip.mat) <- c('f1', rep('n', nrow(ip.mat)-1))
@@ -50,10 +50,9 @@ fmfit <- structure(c(0.941583, 1, 0, 0, 0, -0.676556, 0.758794, -0.802595,  1.28
 if (1) {
   cip.mat <- ip.mat
   cip.mat$values <- fmfit
-  cM <- mxModel(model="ms", m.mat, cov.mat, cip.mat,
+  cM <- mxModel(model="ms", cip.mat,
                 mxData(observed=m2.data, type="raw"),
-                mxExpectationBA81(ItemSpec=m2.spec,
-                                  ItemParam="ItemParam"),
+                mxExpectationBA81(ItemSpec=m2.spec),
                 mxFitFunctionML(),
 		mxComputeOnce('fitfunction', 'fit', freeSet=c("mean", "cov")))
   cM <- mxRun(cM, silent=TRUE)
@@ -62,15 +61,14 @@ if (1) {
 
 plan <- mxComputeSequence(steps=list(
   mxComputeEM('expectation', 'scores',
-              mxComputeNewtonRaphson(freeSet='ItemParam'),
+              mxComputeNewtonRaphson(freeSet='item'),
               information="mr1991", infoArgs=list(fitfunction='fitfunction')),
   mxComputeStandardError(),
   mxComputeHessianQuality()))
 
 m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(ItemSpec=m2.spec,
-                                ItemParam="ItemParam"),
+              mxExpectationBA81(ItemSpec=m2.spec),
               mxFitFunctionML(),
               plan)
 #  m2 <- mxOption(m2, "Number of Threads", 1)
@@ -95,7 +93,7 @@ omxCheckCloseEnough(emstat$EMcycles, 37, 2)
 omxCheckCloseEnough(emstat$totalMstep, 116, 10)
 omxCheckCloseEnough(emstat$semProbeCount / length(semse), 3, .1)
 
-#print(m2$matrices$ItemParam$values - fmfit)
+#print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
 
 n <- apply(!is.na(m2.data), 2, sum)

@@ -571,7 +571,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 
-	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "ItemParam");
+	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "item");
 	state->grp.param = state->itemParam->data; // algebra not allowed yet TODO
 
 	const int numItems = state->itemParam->cols;
@@ -581,7 +581,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		return;
 	}
 	if (state->itemParam->rows != state->grp.paramRows) {
-		omxRaiseErrorf("ItemParam matrix must have %d rows", state->grp.paramRows);
+		omxRaiseErrorf("item matrix must have %d rows", state->grp.paramRows);
 		return;
 	}
 
@@ -590,12 +590,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int maxAbilities = state->grp.maxAbilities;
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EItemParam")));
+	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EstepItem")));
 	if (!Rf_isNull(tmp)) {
 		int rows, cols;
 		getMatrixDims(tmp, &rows, &cols);
 		if (rows != state->itemParam->rows || cols != state->itemParam->cols) {
-			Rf_error("EItemParam must have same dimensions as ItemParam");
+			Rf_error("EstepItem must have the same dimensions as the item MxMatrix");
 		}
 		state->EitemParam = REAL(tmp);
 	}

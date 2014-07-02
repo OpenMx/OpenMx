@@ -41,7 +41,7 @@ mk.model <- function(name, data, latent.free) {
   spec <- list()
   spec[1:numItems] <- rpf.grm(factors = dims)
   
-  ip.mat <- mxMatrix(name="ItemParam", nrow=dims+1, ncol=numItems,
+  ip.mat <- mxMatrix(name="item", nrow=dims+1, ncol=numItems,
                      values=c(1.4,rep(0,dims-1),0), free=FALSE)
   rownames(ip.mat) <- c(paste('f', 1:dims, sep=""), "b")
   ip.mat$free[1,] <- TRUE
@@ -79,7 +79,6 @@ mk.model <- function(name, data, latent.free) {
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(
 		    ItemSpec=spec,
-		    ItemParam="ItemParam",
 		    mean=paste(lname, "mean",sep="."),
 		    cov=paste(lname, "cov", sep="."),
 		    qpoints=21, qwidth=5),
@@ -94,10 +93,10 @@ groups <- paste("g", 1:2, sep="")
 	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
-  g1$ifa$ItemParam$values[,] <- fm$G1$param
+  g1$ifa$item$values[,] <- fm$G1$param
   g1$latent$mean$values <- t(fm$G1$mean)
   g1$latent$cov$values <- fm$G1$cov
-  g2$ifa$ItemParam$values[,] <- fm$G2$param
+  g2$ifa$item$values[,] <- fm$G2$param
   
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(model="cModel", c(g1, g2),
@@ -141,7 +140,7 @@ omxIFAComputePlan <- function(groups) {
   mxComputeSequence(steps=list(
     mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                 mxComputeSequence(list(
-		    mxComputeNewtonRaphson(freeSet=paste(groups, 'ItemParam', sep="."), verbose=0L),
+		    mxComputeNewtonRaphson(freeSet=paste(groups, 'item', sep="."), verbose=0L),
 		    latent.plan)),
                 tolerance=1e-5, information="mr1991",
                 infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")), verbose=0L),
@@ -170,7 +169,7 @@ latent <- mxModel("latent",
   grpModel <- mxRun(grpModel)
 
  omxCheckCloseEnough(grpModel$output$fit, flexmirt.LL, .01)
-  omxCheckCloseEnough(grpModel$submodels$g2$matrices$ItemParam$values,
+  omxCheckCloseEnough(grpModel$submodels$g2$matrices$item$values,
                       fm$G2$param, .02)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .01)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$cov$values, fm$G1$cov, .1)

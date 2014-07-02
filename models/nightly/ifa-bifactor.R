@@ -43,7 +43,7 @@ if (0) {
   write.table(rdata, file="ifa-bifactor.csv", quote=FALSE, row.names=FALSE, col.names=FALSE)
 }
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
+ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
                    values=c(1.414, 1, 1, 0, logit(0), logit(1)),
 		   free=c(rep(TRUE, 4), FALSE, FALSE))
 colnames(ip.mat) <- colnames(data)
@@ -56,8 +56,7 @@ ip.mat$free['f2', 11:20] <- FALSE
 m1 <- mxModel(model="bifactor",
           ip.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(debugInternal=TRUE,
-			    ItemSpec=items, ItemParam="ItemParam", qpoints=29, verbose=0L),
+          mxExpectationBA81(ItemSpec=items, qpoints=29, verbose=0L, debugInternal=TRUE),
 	      mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 m1 <- mxRun(m1)
@@ -83,11 +82,9 @@ omxCheckCloseEnough(fivenum(m1$output$hessian[m1$output$hessian != 0]),
 
 m1 <- mxModel(m1,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(ItemSpec=items,
-                                ItemParam="ItemParam",
-                                qpoints=29),
+              mxExpectationBA81(ItemSpec=items, qpoints=29),
               mxComputeEM('expectation', 'scores',
-                          mxComputeNewtonRaphson(freeSet='ItemParam')))
+                          mxComputeNewtonRaphson(freeSet='item')))
 
 m1 <- mxRun(m1, silent=TRUE)
 
@@ -96,14 +93,14 @@ omxCheckCloseEnough(emstat$EMcycles, 60, 2)
 omxCheckCloseEnough(emstat$totalMstep, 146, 10)
 
 #print(correct.mat)
-#print(m1$matrices$ItemParam$values)
+#print(m1$matrices$item$values)
 omxCheckCloseEnough(m1$output$minimum, 20859.87, .01)
 mask <- is.finite(correct.mat)
-got <- cor(c(m1$matrices$ItemParam$values[mask]), c(correct.mat[mask]))
+got <- cor(c(m1$matrices$item$values[mask]), c(correct.mat[mask]))
 omxCheckCloseEnough(got, .977, .01) 
 
 grp <- list(spec=m1$expectation$ItemSpec,
-            param=m1$ItemParam$values,
+            param=m1$item$values,
             data=data)
 
 scores <- EAPscores(grp)

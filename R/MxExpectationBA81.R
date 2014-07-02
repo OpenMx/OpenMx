@@ -17,8 +17,8 @@
 setClass(Class = "MxExpectationBA81",
          representation = representation(
 	   ItemSpec = "list",
-	   ItemParam = "MxCharOrNumber",
-	   EItemParam = "MxOptionalMatrix",
+	   item = "MxCharOrNumber",
+	   EstepItem = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
 	   mean = "MxOptionalCharOrNumber",
@@ -36,13 +36,13 @@ setClass(Class = "MxExpectationBA81",
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
-          function(.Object, ItemSpec, ItemParam, EItemParam,
+          function(.Object, ItemSpec, item, EstepItem,
 		   qpoints, qwidth, mean, cov, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
-	    .Object@ItemParam <- ItemParam
-	    .Object@EItemParam <- EItemParam
+	    .Object@item <- item
+	    .Object@EstepItem <- EstepItem
             .Object@qpoints <- qpoints
             .Object@qwidth <- qwidth
             .Object@data <- as.integer(NA)
@@ -59,8 +59,7 @@ setMethod("initialize", "MxExpectationBA81",
 
 setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  function(.Object, dependencies) {
-		  sources <- c(.Object@mean, .Object@cov,
-			       .Object@ItemParam)
+		  sources <- c(.Object@mean, .Object@cov, .Object@item)
 		  dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		  return(dependencies)
 	  })
@@ -79,15 +78,15 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  fnames <- dimnames(flatModel[[.Object@cov]])[[1]]
 
-		  ItemParam <- flatModel@matrices[[.Object@ItemParam]]
-		  if (is.null(rownames(ItemParam)) || any(rownames(ItemParam)[1:length(fnames)] != fnames)) {
-			  msg <- paste("The first", length(fnames), "rownames of ItemParam",
+		  item <- flatModel@matrices[[.Object@item]]
+		  if (is.null(rownames(item)) || any(rownames(item)[1:length(fnames)] != fnames)) {
+			  msg <- paste("The first", length(fnames), "rownames of item",
 				       "must be", omxQuotes(fnames))
 			  stop(msg)
 		  }
 
 		  name <- .Object@name
-		  for (s in c("data", "ItemParam")) {
+		  for (s in c("data", "item")) {
 			  if (is.null(slot(.Object, s))) next
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
@@ -104,15 +103,15 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed) # for summary
 
-		  if (is.null(colnames(ItemParam))) {
+		  if (is.null(colnames(item))) {
 			  stop(paste(class(.Object),
-				     ": the ItemParam matrix must have column names",
+				     ": the item matrix must have column names",
 				     "to match against the observed data column names."))
 		  } else {
-			  dc <- match(colnames(ItemParam), .Object@dims) - 1L
+			  dc <- match(colnames(item), .Object@dims) - 1L
 			  if (any(is.na(dc))) {
 				  msg <- paste("Some items are not found among the observed data columns:",
-					       omxQuotes(colnames(ItemParam)[is.na(dc)]))
+					       omxQuotes(colnames(item)[is.na(dc)]))
 				  stop(msg, call.=FALSE)
 			  }
 			  .Object@dataColumns <- dc
@@ -132,7 +131,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 setMethod("qualifyNames", signature("MxExpectationBA81"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		for (s in c("ItemParam", "mean", "cov")) {
+		for (s in c("item", "mean", "cov")) {
 			if (is.null(slot(.Object, s))) next;
 			slot(.Object, s) <-
 			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
@@ -158,7 +157,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##'
 ##' @param ItemSpec a single item model (to replicate) or a list of
 ##' item models in the same order as the column of \code{ItemParam}
-##' @param ItemParam the name of the mxMatrix holding item parameters
+##' @param item the name of the mxMatrix holding item parameters
 ##' with one column for each item model with parameters starting at
 ##' row 1 and extra rows filled with NA
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -167,15 +166,15 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param mean the name of the mxMatrix holding the mean vector
 ##' @param cov the name of the mxMatrix holding the covariance matrix
 ##' @param verbose the level of runtime diagnostics (default 0L)
-##' @param EItemParam a simple matrix of item parameters for the
-##' E-step. This option is mainly of use for debugging derivatives.
-##' @param debugInternal when enabled, some of the internal tables are
-##' returned in $debug. This is mainly of use to developers.
 ##' @param minItemsPerScore scores with fewer than this many items are considered NA (default 1L)
 ##' @param naAction how to deal with NA scores. If "fail" then an
 ##' error will be thrown. If "pass" then NAs will be excluded from the
 ##' estimation but faithfully filled into the EAP scores. (default "fail")
 ##' @param weightColumn the name of the column in the data containing the row weights (default NA)
+##' @param EstepItem a simple matrix of item parameters for the
+##' E-step. This option is mainly of use for debugging derivatives.
+##' @param debugInternal when enabled, some of the internal tables are
+##' returned in $debug. This is mainly of use to developers.
 ##' @seealso \href{http://cran.r-project.org/web/packages/rpf/index.html}{RPF}
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
@@ -189,10 +188,10 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' of the prior ability distributions. Applied Psychological
 ##' Measurement, 14(3), 299-311.
 
-mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
+mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 			      qpoints=49L, qwidth=6.0, mean="mean", cov="cov",
-			      verbose=0L, EItemParam=NULL, debugInternal=FALSE,
-			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
+			      verbose=0L, naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_,
+			      EstepItem=NULL, debugInternal=FALSE) {
 
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
@@ -216,7 +215,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
 
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 
-	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam,
+	return(new("MxExpectationBA81", ItemSpec, item, EstepItem,
 		   qpoints, qwidth, mean, cov, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn))
 }

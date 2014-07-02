@@ -17,7 +17,7 @@ for (c in 1:m2.numItems) {
 
 m2.maxParam <-max(sapply(m2.spec, rpf.numParam))
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=m2.maxParam, ncol=m2.numItems,
+ip.mat <- mxMatrix(name="item", nrow=m2.maxParam, ncol=m2.numItems,
                    values=c(1, seq(1,-1,length.out=4)), free=TRUE)
 rownames(ip.mat) <- c('f1', paste('b', 1:4, sep=""))
 colnames(ip.mat) <- colnames(m2.data)
@@ -28,20 +28,19 @@ colnames(ip.mat) <- colnames(m2.data)
 
 m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(ItemSpec=m2.spec,
-                                ItemParam="ItemParam"),
+              mxExpectationBA81(ItemSpec=m2.spec),
               mxFitFunctionML(),
               mxComputeEM('expectation', 'scores',
-                          mxComputeNewtonRaphson(freeSet='ItemParam')))
+                          mxComputeNewtonRaphson(freeSet='item')))
 #  m2 <- mxOption(m2, "Number of Threads", 1)
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2$fitfunction$result, 140199.13, .01)
 
-#print(m2$matrices$ItemParam$values - fmfit)
+#print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
 
 grp <- list(spec=m2.spec,
-            param=m2$matrices$ItemParam$values,
+            param=m2$matrices$item$values,
             free=apply(ip.mat$free, 2, sum))
 colnames(grp$param) <- paste("i", 1:dim(grp$param)[2], sep="")
 #got <- chen.thissen.1997(grp, m2.data)

@@ -12,7 +12,7 @@ correct.mat <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 ability <- rnorm(500)
 data <- rpf.sample(ability, spec, correct.mat)
 
-ip.mat <- mxMatrix(name="itemParam", nrow=nrow(correct.mat), ncol=numItems)
+ip.mat <- mxMatrix(name="item", nrow=nrow(correct.mat), ncol=numItems)
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', paste('b', 1:(nrow(ip.mat)-1), sep=""))
 ip.mat$free[!is.na(correct.mat)] <- TRUE
@@ -21,8 +21,7 @@ ip.mat$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
 m2 <- mxModel(model="grm1", ip.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(ItemSpec=spec, ItemParam="itemParam",
-                qpoints=31, debugInternal=TRUE),
+              mxExpectationBA81(ItemSpec=spec, qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 middle <- mxRun(m2)
@@ -54,15 +53,13 @@ plan <- mxComputeSequence(list(mxComputeEM('expectation', 'scores',
                                mxComputeStandardError()))
 
 m2 <- mxModel(m2,
-              mxExpectationBA81(
-                ItemSpec=spec, ItemParam="itemParam",
-                qpoints=31),
+              mxExpectationBA81(ItemSpec=spec, qpoints=31),
 	      plan)
 				  
 m2 <- mxRun(m2)
 
 grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$itemParam$values,
+            param=m2$item$values,
             data=data)
 
 if (0) {
@@ -77,10 +74,10 @@ emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 14, 1)
 omxCheckCloseEnough(emstat$totalMstep, 51, 5)
 
-#print(m2$matrices$itemParam$values)
+#print(m2$matrices$item$values)
 #print(correct.mat)
 omxCheckCloseEnough(m2$fitfunction$result, 13969.747, .01)
-got <- cor(c(m2$matrices$itemParam$values[ip.mat$free]),
+got <- cor(c(m2$matrices$item$values[ip.mat$free]),
            c(correct.mat[ip.mat$free]))
 omxCheckCloseEnough(got, .993, .01)
 
@@ -121,12 +118,12 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
 
 nullm2 <- mxModel(m2,
-              mxExpectationBA81(ItemSpec=spec, ItemParam="itemParam"),
+              mxExpectationBA81(ItemSpec=spec),
               mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
 
-nullm2$itemParam$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam))
-nullm2$itemParam$values['f1',] <- 0
-nullm2$itemParam$free['f1',] <- FALSE
+nullm2$item$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam))
+nullm2$item$values['f1',] <- 0
+nullm2$item$free['f1',] <- FALSE
 
 nullm2 <- mxRun(nullm2)
 omxCheckCloseEnough(nullm2$output$fit, 14810.21, .01)
