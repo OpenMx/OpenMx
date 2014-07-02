@@ -167,8 +167,9 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
 	double targetImprovement = searchDir.dot(fc->grad);
-	if (targetImprovement < tolerance) {
-		if (verbose >= 4) mxLog("%s: target improvement %f too small, using steepest descent",
+	if (!std::isfinite(targetImprovement) || targetImprovement < tolerance ||
+	    refFit*refFit < targetImprovement) {
+		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
 					name, targetImprovement);
 		steepestDescent = true;
 		searchDir = fc->grad;
@@ -195,7 +196,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		++minorIter;
 		fc->copyParamToModel(globalState, trial.data());
 		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
-		if (verbose >= 4) mxLog("%s: speed %f for target %.3g fit %f ref %f",
+		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, fc->fit, refFit);
 		if (!std::isfinite(fc->fit)) {
 			speed *= .1;
@@ -203,7 +204,13 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		}
 		const double improved = refFit - fc->fit;
 		if (improved <= 0) {
-			speed *= .1;
+			const double minSpeedReduction = .1;
+			double howBad = -improved / scaledTarget;
+			if (howBad < minSpeedReduction && verbose >= 4) {
+				mxLog("%s: scaledTarget is over optimistic by %f", name, howBad);
+			}
+			if (howBad > minSpeedReduction) howBad = minSpeedReduction;
+			speed *= howBad;
 			continue;
 		}
 		bestImproved = improved;
@@ -215,6 +222,31 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		break;
 	}
 	if (bestSpeed == 0) return;
+
+	const double epsilon = .3;
+	if (speed < 1 && goodness < epsilon) {
+		int retries = 8;
+		while (--retries > 0) {
+			speed *= 1.5;
+			++probeCount;
+			trial = prevEst - speed * searchDir;
+			++minorIter;
+			fc->copyParamToModel(globalState, trial.data());
+			ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+			if (!std::isfinite(fc->fit)) break;
+			const double improved = refFit - fc->fit;
+			if (bestImproved >= improved) break;
+			double improvementOverBest = improved - bestImproved;
+			if (verbose >= 4) {
+				mxLog("%s: [%d] incr speed for fit improvement of %.2g",
+				      name, retries, improvementOverBest);
+			}
+			bestFit = fc->fit;
+			bestImproved = improved;
+			bestSpeed = speed;
+			if (improvementOverBest < tolerance) break;
+		}
+	}
 
 	if (verbose >= 3) mxLog("%s: using steepestDescent %d probes %d speed %f improved %.3g",
 				name, steepestDescent, probeCount, bestSpeed, bestImproved);
@@ -277,11 +309,11 @@ void ComputeNR::computeImpl(FitContext *fc)
 		int iter = fc->iterations - startIter;
 		if (verbose >= 2) {
 			if (iter == 1) {
-				mxLog("%s: begin iter %d/%d", name, iter, maxIter);
+				mxLog("%s: iter %d/%d", name, iter, maxIter);
 			} else {
 				const char *pname = "none";
 				if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
-				mxLog("%s: begin iter %d/%d (prev maxAdj %.3g for %s %s)",
+				mxLog("%s: iter %d/%d (prev maxAdj %.3g for %s %s)",
 				      name, iter, maxIter, maxAdjSigned, maxAdjFlavor, pname);
 			}
 		}

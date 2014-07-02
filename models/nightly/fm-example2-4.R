@@ -36,6 +36,11 @@ m2 <- mxModel(model="m2", ip.mat,
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2$fitfunction$result, 140199.13, .01)
 
+emstat <- m2$compute$output
+omxCheckCloseEnough(emstat$EMcycles, 37, 2)
+omxCheckCloseEnough(emstat$totalMstep, 95, 10)
+omxCheckCloseEnough(m2$output$evaluations, 265, 5)
+
 #print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
 

@@ -156,7 +156,7 @@ m2 <- mxOption(m2,"Checkpoint Count",1)
 m2 <- mxRun(m2, silent=TRUE, checkpoint=FALSE)
 # flexmirt's LL is reported w/o prior
 omxCheckCloseEnough(m2$output$fit - m2$submodels$pmodel$fitfunction$result, 33335.75, .1)
-omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .01)
+omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .011)
 #cat(deparse(round(m2$output$confidenceIntervals,3)))
 omxCheckCloseEnough(m2$output$confidenceIntervals['g1',c('lbound','ubound')], c(-1.687, -0.726), .01)
 
