@@ -237,7 +237,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
 		if (state->verbose >= 2) {
 			if (state->latentMeanOut) pda(state->latentMeanOut->data, 1, maxAbilities);
-			if (state->latentCovOut->data) pda(state->latentCovOut->data, maxAbilities, maxAbilities);
+			if (state->latentCovOut)  pda(state->latentCovOut->data, maxAbilities, maxAbilities);
 		}
 	}
 
