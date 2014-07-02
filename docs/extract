@@ -6,8 +6,9 @@ use Fatal qw(open);
 my $source = shift @ARGV;
 my $dest = $source;
 $dest =~ s/\.rst$/.R/;
+my $tmp = "$dest.new";
 open(my($in), '<', $source);
-open(my($out), ">", $dest);
+open(my($out), ">", $tmp);
 
 my @lines = <$in>;
 my $code;

@@ -37,6 +37,8 @@ clean:
 	-rm source/conf.py
 
 html: rcheck
+	-rm -rf build/doctrees  # latex interferes with html somehow
+	# https://bitbucket.org/arjones6/sphinx-numfig/issue/7/make-html-needs-to-be-run-before-make
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
@@ -89,6 +91,9 @@ changes:
 
 rcheck: source/conf.py
 	./rcheck
+
+extract: source/conf.py
+	./rcheck extract
 
 linkcheck:
 	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) build/linkcheck

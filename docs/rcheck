@@ -3,18 +3,31 @@
 set -o errexit
 set -o nounset
 
+check=1
+if [ "${1-default}" = extract ]; then
+  check=0
+fi
+
 dir=source
 cd $dir
 mkdir -p cache
 
 for f in *.rst; do
   rsrc=$(basename "$f" .rst).R
+  rout="$rsrc"out
   if [ "$f" -nt "$rsrc" ]; then
     echo "extract $f to $rsrc"
     ../extract "$f"
+    if ! cmp -s "$rsrc.new" "$rsrc"; then
+	mv "$rsrc.new" "$rsrc"
+    else
+	rm "$rsrc.new"
+	# just fix the timestamps
+	touch "$rsrc"
+	if [ -f "$rout" ]; then touch "$rout"; fi
+    fi
   fi
-  rout="$rsrc"out
-  if [ -s "$rsrc" -a "$rsrc" -nt "$rout" ]; then
+  if [ "$check" -eq 1 -a -s "$rsrc" -a "$rsrc" -nt "$rout" ]; then
     echo -n "check   $rsrc .. "
     if R --no-save -f "$rsrc" > "$rout" 2>&1; then
 	echo "pass"

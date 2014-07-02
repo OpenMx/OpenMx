@@ -33,7 +33,8 @@ g.mat <- mxMatrix(name="gparam", nrow=1, ncol=numItems, free=TRUE, labels=plabel
 # plot(function (x) dbeta(1/(1+exp(-x)),2,5), -10,10)
 #beta.const <- 1/beta(2,5)  #=30
 
-prior <- mxAlgebra(-2* sum(log(30 * exp(gparam) / (1 + exp(gparam))^5 )), name="prior")
+#prior <- mxAlgebra(-2* sum(log(30 * exp(gparam) / (1 + exp(gparam))^5 )), name="prior")
+prior <- mxAlgebra(2 * sum((1+4)*log(exp(gparam)+1) - 1 * gparam + log(1/30)), name="prior")
 prior.grad <- mxAlgebra(2 * (4 * exp(gparam) - 1) / (exp(gparam)+1), name="pgrad",
                         dimnames=list(c(),plabel))
 prior.hess <- mxAlgebra(vec2diag(10*exp(gparam)/(exp(gparam)+1)^2),
@@ -52,6 +53,7 @@ gm <- mxModel(model="gm", pm,
     mxComputeOnce('pmodel.fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')),
     mxComputeReportDeriv())))
 testDeriv <- mxRun(gm)
+
 omxCheckCloseEnough(testDeriv$output$fit, -2 * sum(dbeta(1/(1+exp(-ip.mat$values[3,])), 2, 5, log=TRUE)), .01)
 #cat(deparse(round(fivenum(testDeriv$output$gradient), 3)))
 omxCheckCloseEnough(fivenum(testDeriv$output$gradient),
