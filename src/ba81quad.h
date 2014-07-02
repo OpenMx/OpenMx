@@ -24,20 +24,20 @@
 
 class ba81NormalQuad {
  private:
-	void pointToWhere(const int *quad, double *where, int upto);
-	void decodeLocation(int qx, const int dims, int *quad);
+	inline void pointToWhere(const int *quad, double *where, int upto);
+	inline void decodeLocation(int qx, const int dims, int *quad);
 	double One, ReciprocalOfOne;
 
-	int sIndex(int sx, int qx) {
+	inline int sIndex(int sx, int qx) {
 		//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
 		//if (qx < 0 || qx >= state->quadGridSize) Rf_error("Out of domain");
 		return qx * numSpecific + sx;
 	};
 
-	void mapDenseSpace(double piece, const double *where,
-			   const double *whereGram, double *latentDist);
-	void mapSpecificSpace(int sgroup, double piece, const double *where,
-			      const double *whereGram, double *latentDist);
+	inline void mapDenseSpace(double piece, const double *where,
+				  const double *whereGram, double *latentDist);
+	inline void mapSpecificSpace(int sgroup, double piece, const double *where,
+				     const double *whereGram, double *latentDist);
 
  public:
 	int quadGridSize;                     // rename to gridSize TODO
@@ -59,12 +59,84 @@ class ba81NormalQuad {
 	void setup0();
 	void setup(double Qwidth, int Qpoints, double *means,
 		   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar);
-	double getReciprocalOfOne() const { return ReciprocalOfOne; };
+	inline double getReciprocalOfOne() const { return ReciprocalOfOne; };
 
 	// For dense cov, Dweight is size totalQuadPoints
 	// For two-tier, Dweight is numSpecific x totalQuadPoints
-	void EAP(double *thrDweight, double scalingFactor, double *scorePad);
+	inline void EAP(double *thrDweight, double scalingFactor, double *scorePad);
 };
+
+void ba81NormalQuad::mapDenseSpace(double piece, const double *where,
+				   const double *whereGram, double *latentDist)
+{
+	const int pmax = primaryDims;
+	int gx = 0;
+	int cx = maxAbilities;
+	for (int d1=0; d1 < pmax; d1++) {
+		double piece_w1 = piece * where[d1];
+		latentDist[d1] += piece_w1;
+		for (int d2=0; d2 <= d1; d2++) {
+			double piece_cov = piece * whereGram[gx];
+			latentDist[cx] += piece_cov;
+			++cx; ++gx;
+		}
+	}
+}
+
+void ba81NormalQuad::mapSpecificSpace(int sgroup, double piece, const double *where,
+				      const double *whereGram, double *latentDist)
+{
+	const int pmax = primaryDims;
+
+	int sdim = pmax + sgroup;
+	double piece_w1 = piece * where[pmax];
+	latentDist[sdim] += piece_w1;
+
+	double piece_var = piece * whereGram[triangleLoc0(pmax)];
+	int to = maxAbilities + triangleLoc0(sdim);
+	latentDist[to] += piece_var;
+}
+
+void ba81NormalQuad::EAP(double *thrDweight, double scalingFactor, double *scorePad)
+{
+	if (numSpecific == 0) { // use template to handle this branch at compile time? TODO
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
+			mapDenseSpace(thrDweight[qx], &wherePrep[qx * maxDims],
+				      &whereGram.coeffRef(0, qx), scorePad);
+		}
+	} else {
+		int qloc=0;
+		for (int qx=0; qx < totalQuadPoints; qx++) {
+			const double *whPrep = &wherePrep[qx * maxDims];
+			const double *whGram = &whereGram.coeffRef(0, qx);
+			mapDenseSpace(thrDweight[qloc], whPrep, whGram, scorePad);
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				mapSpecificSpace(Sgroup, thrDweight[qloc], whPrep, whGram, scorePad);
+				++qloc;
+			}
+		}
+	}
+
+	const int padSize = maxAbilities + triangleLoc1(maxAbilities);
+	for (int d1=0; d1 < padSize; d1++) {
+		scorePad[d1] *= scalingFactor;
+	}
+
+	int cx = maxAbilities;
+	for (int a1=0; a1 < primaryDims; ++a1) {
+		for (int a2=0; a2 <= a1; ++a2) {
+			double ma1 = scorePad[a1];
+			double ma2 = scorePad[a2];
+			scorePad[cx] -= ma1 * ma2;
+			++cx;
+		}
+	}
+	for (int sx=0; sx < numSpecific; sx++) {
+		int sdim = primaryDims + sx;
+		double ma1 = scorePad[sdim];
+		scorePad[maxAbilities + triangleLoc0(sdim)] -= ma1 * ma1;
+	}
+}
 
 class ifaGroup {
  private:
@@ -116,7 +188,7 @@ class ifaGroup {
 	int excludedPatterns;
 	Eigen::ArrayXd patternLik;            // numUnique
 
-	static bool validPatternLik(double pl)
+	inline static bool validPatternLik(double pl)
 	{ return std::isfinite(pl) && pl > SmallestPatternLik; }
 
 	// TODO:
@@ -129,15 +201,15 @@ class ifaGroup {
 	void importSpec(SEXP slotValue);
 	void learnMaxAbilities();
 	void setLatentDistribution(int dims, double *mean, double *cov);
-	double *getItemParam(int ix) { return param + paramRows * ix; }
-	const int *dataColumn(int col) { return dataColumns[col]; };
+	inline double *getItemParam(int ix) { return param + paramRows * ix; }
+	inline const int *dataColumn(int col) { return dataColumns[col]; };
 	void detectTwoTier();
 	template <typename T> void buildRowSkip(T, void (*naActionType)(T, int row, int ability));
 	void sanityCheck();
-	void ba81OutcomeProb(double *param, bool wantLog);
-	void ba81LikelihoodSlow2(const int px, double *out);
-	void cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei);
-	void cai2010part2(double *Qweight, double *Eis, double *Ei);
+	inline void ba81OutcomeProb(double *param, bool wantLog);
+	inline void ba81LikelihoodSlow2(const int px, double *out);
+	inline void cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei);
+	inline void cai2010part2(double *Qweight, double *Eis, double *Ei);
 };
 
 template <typename T>
@@ -178,13 +250,170 @@ void ifaGroup::buildRowSkip(T userdata, void (*naActionType)(T, int row, int abi
 	}
 }
 
+// Depends on item parameters, but not latent distribution
+void ifaGroup::ba81OutcomeProb(double *param, bool wantLog)
+{
+	const int maxDims = quad.maxDims;
+	outcomeProb = Realloc(outcomeProb, totalOutcomes * quad.totalQuadPoints, double);
+
+#pragma omp parallel for num_threads(numThreads)
+	for (int ix=0; ix < numItems(); ix++) {
+		double *qProb = outcomeProb + cumItemOutcomes[ix] * quad.totalQuadPoints;
+		const double *ispec = spec[ix];
+		int id = ispec[RPF_ISpecID];
+		int dims = ispec[RPF_ISpecDims];
+		Eigen::VectorXd ptheta(dims);
+		double *iparam = param + paramRows * ix;
+		rpf_prob_t prob_fn = wantLog? librpf_model[id].logprob : librpf_model[id].prob;
+
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
+			double *where = quad.wherePrep.data() + qx * maxDims;
+			for (int dx=0; dx < dims; dx++) {
+				ptheta[dx] = where[std::min(dx, maxDims-1)];
+			}
+
+			(*prob_fn)(ispec, iparam, ptheta.data(), qProb);
+			qProb += itemOutcomes[ix];
+		}
+	}
+}
+
+void ifaGroup::ba81LikelihoodSlow2(const int px, double *out)
+{
+	const int totalQuadPoints = quad.totalQuadPoints;
+	double *oProb = outcomeProb;
+	std::vector<double> &priQarea = quad.priQarea;
+
+	for (int qx=0; qx < totalQuadPoints; ++qx) {
+		out[qx] = priQarea[qx];
+	}
+
+	const int row = rowMap[px];
+	for (int ix=0; ix < numItems(); ix++) {
+		int pick = dataColumns[ix][row];
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+
+		for (int qx=0; qx < totalQuadPoints; ++qx) {
+			out[qx] *= oProb[pick];
+			oProb += itemOutcomes[ix];
+		}
+	}
+}
+
+void ifaGroup::cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei)
+{
+	double *oProb = outcomeProb;
+	const int totalQuadPoints = quad.totalQuadPoints;
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
+	std::vector<double> &speQarea = quad.speQarea;
+	std::vector<double> &priQarea = quad.priQarea;
+
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints * numSpecific; sx++) {
+			lxk[qloc] = speQarea[sx];
+			++qloc;
+		}
+	}
+
+	const int row = rowMap[px];
+	for (int ix=0; ix < numItems(); ix++) {
+		int pick = dataColumns[ix][row];
+		if (pick == NA_INTEGER) {
+			oProb += itemOutcomes[ix] * totalQuadPoints;
+			continue;
+		}
+		pick -= 1;
+		int Sgroup1 = Sgroup[ix];
+		double *out1 = lxk;
+		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
+			out1[Sgroup1] *= oProb[pick];
+			oProb += itemOutcomes[ix];
+			out1 += numSpecific;
+		}
+	}
+
+	for (int qx=0; qx < totalPrimaryPoints * numSpecific; ++qx) Eis[qx] = 0;
+	for (int qx=0; qx < totalPrimaryPoints; ++qx) Ei[qx] = priQarea[qx];
+
+	int eisloc = 0;
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sx=0; sx < specificPoints; sx++) {
+			for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+				double piece = lxk[qloc];
+				Eis[eisloc + sgroup] += piece;
+				++qloc;
+			}
+		}
+		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+			Ei[qx] *= Eis[eisloc + sgroup] * quad.getReciprocalOfOne();
+		}
+		eisloc += numSpecific;
+	}
+}
+
+void ifaGroup::cai2010part2(double *Qweight, double *Eis, double *Ei)
+{
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
+
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+			Eis[qloc] = Ei[qx] / Eis[qloc];
+			++qloc;
+		}
+	}
+
+	for (int qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+		for (int sx=0; sx < specificPoints; sx++) {
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				Qweight[qloc] *= Eis[eisloc + Sgroup];
+				++qloc;
+			}
+		}
+	}
+}
+
 struct BA81Dense {};
 struct BA81TwoTier {};
 
 struct BA81EngineBase {
-	int getPrimaryPoints(class ifaGroup *state) { return state->quad.totalPrimaryPoints; };
-	double getPatLik(class ifaGroup *state, int px, double *lxk);
+	inline int getPrimaryPoints(class ifaGroup *state) { return state->quad.totalPrimaryPoints; };
+	inline double getPatLik(class ifaGroup *state, int px, double *lxk);
 };
+
+
+double BA81EngineBase::getPatLik(class ifaGroup *state, int px, double *lxk)
+{
+	const int pts = getPrimaryPoints(state);
+	Eigen::ArrayXd &patternLik = state->patternLik;
+	double patternLik1 = 0;
+
+	for (int qx=0; qx < pts; qx++) {
+		patternLik1 += lxk[qx];
+	}
+
+	// This uses the previous iteration's latent distribution.
+	// If we recompute patternLikelihood to get the current
+	// iteration's expected scores then it speeds up convergence.
+	// However, recomputing patternLikelihood and dependent
+	// math takes much longer than simply using the data
+	// we have available here. This is even more true for the
+	// two-tier model.
+	if (!ifaGroup::validPatternLik(patternLik1)) {
+#pragma omp atomic
+		state->excludedPatterns += 1;
+		patternLik[px] = 0;
+		return 0;
+	}
+
+	patternLik[px] = patternLik1;
+	return patternLik1;
+}
 
 template <typename T, typename CovType>
 struct BA81OmitEstep {
