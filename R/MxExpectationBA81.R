@@ -21,7 +21,6 @@ setClass(Class = "MxExpectationBA81",
 	   EItemParam = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
-	   scores = "character",
 	   mean = "MxCharOrNumber",
 	   cov = "MxCharOrNumber",
 	     debugInternal="logical",
@@ -38,7 +37,7 @@ setClass(Class = "MxExpectationBA81",
 
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, ItemParam, EItemParam,
-		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
+		   qpoints, qwidth, mean, cov, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
@@ -46,7 +45,6 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@EItemParam <- EItemParam
             .Object@qpoints <- qpoints
             .Object@qwidth <- qwidth
-            .Object@scores <- scores
             .Object@data <- as.integer(NA)
 	    .Object@mean <- mean
 	    .Object@cov <- cov
@@ -159,8 +157,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param qwidth the width of the quadrature as a positive Z score (default 6.0)
 ##' @param mean the name of the mxMatrix holding the mean vector
 ##' @param cov the name of the mxMatrix holding the covariance matrix
-##' @param scores whether to return EAP scores. Pass "full" to obtain
-##' EAP scores in $output (default "omit")
 ##' @param verbose the level of runtime diagnostics (default 0L)
 ##' @param EItemParam a simple matrix of item parameters for the
 ##' E-step. This option is mainly of use for debugging derivatives.
@@ -186,7 +182,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
 			      qpoints=49L, qwidth=6.0, mean=NULL, cov=NULL,
-			      scores="omit", verbose=0L, EItemParam=NULL, debugInternal=FALSE,
+			      verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
 
 	if (length(list(...)) > 0) {
@@ -202,11 +198,6 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
 		stop("qwidth must be positive")
 	}
   
-	score.options <- c("omit", "full")
-	if (!match(scores, score.options)) {
-		stop(paste("Valid score options are", omxQuotes(score.options)))
-	}
-
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
 
 	actions <- c("pass", "fail")
@@ -217,7 +208,7 @@ mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 
 	return(new("MxExpectationBA81", ItemSpec, ItemParam, EItemParam,
-		   qpoints, qwidth, mean, cov, scores, verbose, debugInternal,
+		   qpoints, qwidth, mean, cov, verbose, debugInternal,
 		   naAction, minItemsPerScore, weightColumn))
 }
 

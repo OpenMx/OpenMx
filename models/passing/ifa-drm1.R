@@ -73,8 +73,7 @@ m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=items, ItemParam="itemParam",
                 mean="mean", cov="cov",
-                qpoints=31,
-                scores="full"),
+                qpoints=31),
 	      mxComputeEM('expectation', 'scores',
 	                  mxComputeNewtonRaphson()))
 
@@ -93,7 +92,16 @@ omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
 got <- cor(c(m2$matrices$itemParam$values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
-scores <- m2$expectation$output$scores
+
+grp <- list(spec=m2$expectation$ItemSpec,
+            param=m2$itemParam$values,
+            mean=m2$mean$values,
+            cov=m2$cov$values,
+            data=data,
+            free=m2$itemParam$free,
+            qpoints=31)
+
+scores <- EAPscores(grp)
 omxCheckIdentical(colnames(scores)[1], "f1")
 omxCheckCloseEnough(scores[1:5,1], c(0.6783773, 0.2848123, -0.3438632, -0.1026575, -1.0820213), .001)
 omxCheckCloseEnough(scores[1:5,2], c(0.6769653, 0.6667262, 0.6629124, 0.6624804, 0.6796952), 1e-4)

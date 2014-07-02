@@ -69,31 +69,27 @@ items <- list()
 items[1:numItems] <- rpf.grm()
 correct.mat <- sapply(items, rpf.rparam, version=1)
 
-maxParam <- max(vapply(items, rpf.numParam, 0))
-
 slicen <- 50
 data <- rpf.sample(slicen, items, correct.mat)
 for (m in seq(.1, .9, .05)) {
   data <- rbind(data, mcar(rpf.sample(slicen, items, correct.mat), m))
 }
 
-ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems, values=correct.mat)
-colnames(ip.mat) <- colnames(data)
-rownames(ip.mat) <- c('f1', 'b')
-
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0)
-colnames(m.mat) <- 'f1'
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, dimnames=list('f1','f1'))
+dimnames(correct.mat) <- list(c('f1', 'b'), colnames(data))
 
 result <- expand.grid(ips=0:numItems, v=NA)
+
 for (r in 1:nrow(result)) {
-  m1 <- mxModel(model="perScore", ip.mat, m.mat, cov.mat,
-                mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov", ItemSpec=items, ItemParam="ItemParam",
-                                  naAction="pass", scores="full", minItemsPerScore=result$ips[r]),
-                mxComputeOnce('expectation'))
-  fit1 <- mxRun(m1, silent=TRUE)
-  v <- var(fit1$expectation$output$scores[,1], na.rm=TRUE)
+  grp <- list(spec=items,
+              param=correct.mat,
+              mean=c(0),
+              cov=diag(1),
+              data=data,
+              minItemsPerScore=result$ips[r])
+
+  sc <- EAPscores(grp, naAction = "pass")
+  
+  v <- var(sc[,'f1'], na.rm=TRUE)
   result$v[r] <- v
 }
 
@@ -103,10 +99,12 @@ omxCheckCloseEnough(c1, c(0.5763, 0.0144), .001)
 
 # ------------------------------
 
-m1 <- mxModel(model="perScore", ip.mat, m.mat, cov.mat,
-	      mxData(observed=data, type="raw"),
-	      mxExpectationBA81(mean="mean", cov="cov", ItemSpec=items, ItemParam="ItemParam",
-				naAction="pass", scores="full", minItemsPerScore=as.integer(numItems+1)),
-	      mxComputeOnce('expectation'))
-omxCheckError(mxRun(m1, silent=TRUE),
-	      "perScore.expectation: minItemsPerScore (=13) cannot be larger than the number of items (=12)")
+grp <- list(spec=items,
+            param=correct.mat,
+            mean=c(0),
+            cov=diag(1),
+            data=data,
+            minItemsPerScore=ncol(correct.mat)+1)
+
+omxCheckError(EAPscores(grp, naAction = "pass"),
+	      "minItemsPerScore (=13) cannot be larger than the number of items (=12)")

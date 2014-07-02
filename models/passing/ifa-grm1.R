@@ -62,8 +62,7 @@ m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=spec, ItemParam="itemParam",
                 mean="mean", cov="cov",
-                qpoints=31,
-                scores="full"),
+                qpoints=31),
 	      plan)
 				  
 m2 <- mxRun(m2)
@@ -72,7 +71,7 @@ grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$itemParam$values,
             mean=m2$mean$values,
             cov=m2$cov$values,
-            data=m2$data$observed)
+            data=data)
 
 if (0) {
   # only includes rows without missingness!
@@ -92,7 +91,8 @@ omxCheckCloseEnough(m2$fitfunction$result, 13969.747, .01)
 got <- cor(c(m2$matrices$itemParam$values[ip.mat$free]),
            c(correct.mat[ip.mat$free]))
 omxCheckCloseEnough(got, .993, .01)
-scores <- m2$expectation$output$scores
+
+scores <- EAPscores(grp)
 omxCheckCloseEnough(scores[1:5,1], c(0.81609, 0.74994, -0.83515, 0.79766, 0.16879), .001)
 omxCheckCloseEnough(scores[1:5,2], c(0.43522, 0.44211, 0.4686, 0.43515, 0.3842), .001)
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 1*scores[,2])/500, .714, .01)

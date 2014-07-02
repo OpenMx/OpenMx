@@ -36,9 +36,10 @@ struct sortAreaHelper {  // could be generalized with a template
 };
 
 ba81NormalQuad::ba81NormalQuad() :
-	One(1.0), quadGridSize(0), maxDims(-1), primaryDims(-1), numSpecific(-1),
+	quadGridSize(0), maxDims(-1), primaryDims(-1), numSpecific(-1),
 	maxAbilities(-1)
 {
+	setOne(1);
 }
 
 void ba81NormalQuad::pointToWhere(const int *quad, double *where, int upto)
@@ -64,6 +65,8 @@ void ba81NormalQuad::setup0()
 	maxDims = 1;
 	maxAbilities = 0;
 	totalQuadPoints = 1;
+	totalPrimaryPoints = 1;
+	weightTableSize = 1;
 	Qpoint.clear();
 	Qpoint.reserve(1);
 	Qpoint.push_back(0);
@@ -92,7 +95,7 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 		Qpoint.reserve(quadGridSize);
 		double qgs = quadGridSize-1;
 		for (int px=0; px < quadGridSize; ++px) {
-			Qpoint.push_back(Qwidth - px * 2 * Qwidth / qgs);
+			Qpoint.push_back(px * 2 * Qwidth / qgs - Qwidth);
 		}
 	}
 
@@ -106,9 +109,12 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 	}
 
 	totalPrimaryPoints = totalQuadPoints;
+	weightTableSize = totalQuadPoints;
+
 	if (numSpecific) {
 		totalPrimaryPoints /= quadGridSize;
 		speQarea.resize(quadGridSize * numSpecific);
+		weightTableSize *= numSpecific;
 	}
 
 	std::vector<double> tmpPriQarea;
@@ -128,8 +134,10 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 	for (int qx=0; qx < totalPrimaryPoints; qx++) {
 		priOrder.push_back(qx);
 	}
-	sortAreaHelper priCmp(tmpPriQarea);
-	std::sort(priOrder.begin(), priOrder.end(), priCmp);
+	if (0) {
+		sortAreaHelper priCmp(tmpPriQarea);
+		std::sort(priOrder.begin(), priOrder.end(), priCmp);
+	}
 
 	priQarea.clear();
 	priQarea.reserve(totalPrimaryPoints);
@@ -274,15 +282,25 @@ void ba81NormalQuad::EAP(double *thrDweight, double scalingFactor, double *score
 	}
 }
 
-ifaGroup::ifaGroup(bool _twotier) : Rdata(NULL),
-		qwidth(6.0), qpoints(49),
+ifaGroup::ifaGroup(int cores, bool _twotier) : Rdata(NULL),
+		numThreads(cores), qwidth(6.0), qpoints(49),
 		twotier(_twotier),
 		maxAbilities(0),
 		numSpecific(0),
 		mean(0),
 		cov(0),
-		dataRows(0), weightColumnName(0), rowWeight(0), outcomeProb(0)
+	    weightColumnName(0), rowWeight(0),
+					       minItemsPerScore(1),
+					       outcomeProb(0), excludedPatterns(-1)
 {}
+
+// The idea here is to avoid denormalized values if they are
+// enabled (5e-324 vs 2e-308).  It would be bad if results
+// changed depending on the denormalization setting.
+// Moreover, we don't lose too much even if denormalized
+// values are disabled. This mainly affects models with
+// more than a thousand items.
+const double ifaGroup::SmallestPatternLik = 1e16 * std::numeric_limits<double>::min();  //constexpr
 
 ifaGroup::~ifaGroup()
 {
@@ -307,9 +325,13 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 	paramRows = 0;
 	totalOutcomes = 0;
+	itemMaxDims = 0;
 	for (int cx = 0; cx < numItems(); cx++) {
 		const double *ispec = spec[cx];
 		int id = ispec[RPF_ISpecID];
+		int dims = ispec[RPF_ISpecDims];
+		if (itemMaxDims < dims)
+			itemMaxDims = dims;
 		int no = ispec[RPF_ISpecOutcomes];
 		itemOutcomes.push_back(no);
 		cumItemOutcomes.push_back(totalOutcomes);
@@ -321,10 +343,37 @@ void ifaGroup::importSpec(SEXP slotValue)
 	}
 }
 
+void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
+{
+	if (!mat) return;
+
+	static const char *dimname[] = { "row", "col" };
+
+	SEXP dimnames;
+	Rf_protect(dimnames = Rf_getAttrib(mat, R_DimNamesSymbol));
+	if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
+		for (int dx=0; dx < 2; ++dx) {
+			SEXP names;
+			Rf_protect(names = VECTOR_ELT(dimnames, dx));
+			if (!Rf_length(names)) continue;
+			int nlen = std::min((int) factorNames.size(), Rf_length(names));
+			for (int nx=0; nx < nlen; ++nx) {
+				const char *name = CHAR(STRING_ELT(names, nx));
+				if (strEQ(factorNames[nx], name)) continue;
+				Rf_error("%s %snames[%d] is '%s', does not match factor name '%s'",
+					 matName, dimname[dx], 1+nx, name, factorNames[nx]);
+			}
+		}
+	}
+}
+
 void ifaGroup::import(SEXP Rlist)
 {
 	SEXP argNames;
 	Rf_protect(argNames = Rf_getAttrib(Rlist, R_NamesSymbol));
+	if (Rf_length(Rlist) != Rf_length(argNames)) {
+		Rf_error("All list elements must be named");
+	}
 
 	std::vector<const char *> dataColNames;
 
@@ -332,6 +381,9 @@ void ifaGroup::import(SEXP Rlist)
 	int nrow=0, ncol=0; // cov size
 
 	int pmatRows=-1, pmatCols=-1;
+	int mips = 1;
+	int dataRows = 0;
+	SEXP Rmean=0, Rcov=0;
 
 	for (int ax=0; ax < Rf_length(Rlist); ++ax) {
 		const char *key = R_CHAR(STRING_ELT(argNames, ax));
@@ -339,27 +391,9 @@ void ifaGroup::import(SEXP Rlist)
 		if (strEQ(key, "spec")) {
 			importSpec(slotValue);
 		} else if (strEQ(key, "param")) {
+			if (!Rf_isReal(slotValue)) Rf_error("'param' must be a numeric matrix of item parameters");
 			param = REAL(slotValue);
 			getMatrixDims(slotValue, &pmatRows, &pmatCols);
-
-			SEXP dimnames;
-			Rf_protect(dimnames = Rf_getAttrib(slotValue, R_DimNamesSymbol));
-			if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
-				SEXP names;
-				Rf_protect(names = VECTOR_ELT(dimnames, 1));
-				int nlen = Rf_length(names);
-				itemNames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					itemNames[nx] = CHAR(STRING_ELT(names, nx));
-				}
-			}
-		} else if (strEQ(key, "mean")) {
-			mlen = Rf_length(slotValue);
-			mean = REAL(slotValue);
-		} else if (strEQ(key, "cov")) {
-			getMatrixDims(slotValue, &nrow, &ncol);
-			if (nrow != ncol) Rf_error("cov must be a square matrix (not %dx%d)", nrow, ncol);
-			cov = REAL(slotValue);
 
 			SEXP dimnames;
 			Rf_protect(dimnames = Rf_getAttrib(slotValue, R_DimNamesSymbol));
@@ -371,7 +405,24 @@ void ifaGroup::import(SEXP Rlist)
 				for (int nx=0; nx < nlen; ++nx) {
 					factorNames[nx] = CHAR(STRING_ELT(names, nx));
 				}
+				Rf_protect(names = VECTOR_ELT(dimnames, 1));
+				nlen = Rf_length(names);
+				itemNames.resize(nlen);
+				for (int nx=0; nx < nlen; ++nx) {
+					itemNames[nx] = CHAR(STRING_ELT(names, nx));
+				}
 			}
+		} else if (strEQ(key, "mean")) {
+			Rmean = slotValue;
+			if (!Rf_isReal(slotValue)) Rf_error("'mean' must be a numeric vector or matrix");
+			mlen = Rf_length(slotValue);
+			mean = REAL(slotValue);
+		} else if (strEQ(key, "cov")) {
+			Rcov = slotValue;
+			if (!Rf_isReal(slotValue)) Rf_error("'cov' must be a numeric matrix");
+			getMatrixDims(slotValue, &nrow, &ncol);
+			if (nrow != ncol) Rf_error("cov must be a square matrix (not %dx%d)", nrow, ncol);
+			cov = REAL(slotValue);
 		} else if (strEQ(key, "data")) {
 			Rdata = slotValue;
 			dataRows = Rf_length(VECTOR_ELT(Rdata, 0));
@@ -383,6 +434,7 @@ void ifaGroup::import(SEXP Rlist)
 			for (int nx=0; nx < nlen; ++nx) {
 				dataColNames.push_back(CHAR(STRING_ELT(names, nx)));
 			}
+			dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol);
 		} else if (strEQ(key, "weightColumn")) {
 			if (Rf_length(slotValue) != 1) {
 				Rf_error("You can only have one weightColumn");
@@ -392,19 +444,39 @@ void ifaGroup::import(SEXP Rlist)
 			qwidth = Rf_asReal(slotValue);
 		} else if (strEQ(key, "qpoints")) {
 			qpoints = Rf_asInteger(slotValue);
+		} else if (strEQ(key, "minItemsPerScore")) {
+			mips = Rf_asInteger(slotValue);
 		} else {
 			// ignore
 		}
 	}
 	if (mlen != nrow) Rf_error("Mean length %d does not match cov size %d", mlen, nrow);
 
+	if (itemMaxDims < (int) factorNames.size())
+		factorNames.resize(itemMaxDims);
+
+	verifyFactorNames(Rmean, "mean");
+	verifyFactorNames(Rcov, "cov");
+
+	setMinItemsPerScore(mips);
+
+	if (!factorNames.size()) {
+		factorNames.reserve(mlen);
+		const int SMALLBUF = 10;
+		char buf[SMALLBUF];
+		for (int sx=0; sx < mlen; ++sx) {
+			snprintf(buf, SMALLBUF, "s%d", sx+1);
+			factorNames.push_back(CHAR(Rf_mkChar(buf)));
+		}
+	}
+
 	if (numItems() != pmatCols) {
-		Rf_error("param implies %d items but spec is length %d",
+		Rf_error("item matrix implies %d items but spec is length %d",
 			 pmatCols, numItems());
 	}
 
 	if (Rdata) {
-		if (itemNames.size() == 0) Rf_error("Item parameter matrix must have colnames");
+		if (itemNames.size() == 0) Rf_error("Item matrix must have colnames");
 		for (int ix=0; ix < numItems(); ++ix) {
 			bool found=false;
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
@@ -514,6 +586,15 @@ void ifaGroup::detectTwoTier()
 	}
 }
 
+void ifaGroup::setMinItemsPerScore(int mips)
+{
+	if (numItems() && mips > numItems()) {
+		Rf_error("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
+			 mips, numItems());
+	}
+	minItemsPerScore = mips;
+}
+
 void ifaGroup::sanityCheck()
 {
 	if (!mean) return;
@@ -532,24 +613,13 @@ void ifaGroup::sanityCheck()
 	}
 }
 
-double ifaGroup::area(int qx, int ix)
-{
-	if (numSpecific == 0) {
-		return quad.priQarea[qx];
-	} else {
-		int px = qx / quad.quadGridSize;
-		int sx = qx % quad.quadGridSize;
-		return quad.priQarea[px] * quad.speQarea[sx * quad.numSpecific + Sgroup[ix]];
-	}
-}
-
 // Depends on item parameters, but not latent distribution
 void ifaGroup::ba81OutcomeProb(double *param, bool wantLog)
 {
 	const int maxDims = quad.maxDims;
 	outcomeProb = Realloc(outcomeProb, totalOutcomes * quad.totalQuadPoints, double);
 
-#pragma omp parallel for num_threads(Global->numThreads)
+#pragma omp parallel for num_threads(numThreads)
 	for (int ix=0; ix < numItems(); ix++) {
 		double *qProb = outcomeProb + cumItemOutcomes[ix] * quad.totalQuadPoints;
 		const double *ispec = spec[ix];
@@ -649,8 +719,58 @@ void ifaGroup::cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei)
 	}
 }
 
+void ifaGroup::cai2010part2(double *Qweight, double *Eis, double *Ei)
+{
+	const int totalPrimaryPoints = quad.totalPrimaryPoints;
+	const int specificPoints = quad.quadGridSize;
+
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+			Eis[qloc] = Ei[qx] / Eis[qloc];
+			++qloc;
+		}
+	}
+
+	for (int qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+		for (int sx=0; sx < specificPoints; sx++) {
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				Qweight[qloc] *= Eis[eisloc + Sgroup];
+				++qloc;
+			}
+		}
+	}
+}
+
 void ifaGroup::setGridFineness(double width, int points)
 {
 	if (std::isfinite(width)) qwidth = width;
 	if (points != NA_INTEGER) qpoints = points;
+}
+
+double BA81EngineBase::getPatLik(class ifaGroup *state, int px, double *lxk)
+{
+	const int pts = getPrimaryPoints(state);
+	Eigen::ArrayXd &patternLik = state->patternLik;
+	double patternLik1 = 0;
+
+	for (int qx=0; qx < pts; qx++) {
+		patternLik1 += lxk[qx];
+	}
+
+	// This uses the previous iteration's latent distribution.
+	// If we recompute patternLikelihood to get the current
+	// iteration's expected scores then it speeds up convergence.
+	// However, recomputing patternLikelihood and dependent
+	// math takes much longer than simply using the data
+	// we have available here. This is even more true for the
+	// two-tier model.
+	if (!ifaGroup::validPatternLik(patternLik1)) {
+#pragma omp atomic
+		state->excludedPatterns += 1;
+		patternLik[px] = 0;
+		return 0;
+	}
+
+	patternLik[px] = patternLik1;
+	return patternLik1;
 }

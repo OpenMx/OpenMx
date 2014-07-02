@@ -414,7 +414,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	const int maxDims = quad.maxDims;
 	std::vector<int> &rowMap = estate->grp.rowMap;
 	double *rowWeight = estate->grp.rowWeight;
-	std::vector<bool> &rowSkip = estate->rowSkip;
+	std::vector<bool> &rowSkip = estate->grp.rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -823,7 +823,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	omxMatrix *cov = estate->latentCovOut;
 	std::vector<int> &rowMap = estate->grp.rowMap;
 	double *rowWeight = estate->grp.rowWeight;
-	std::vector<bool> &rowSkip = estate->rowSkip;
+	std::vector<bool> &rowSkip = estate->grp.rowSkip;
 	const int totalQuadPoints = quad.totalQuadPoints;
 	omxMatrix *itemParam = estate->itemParam;
 	omxBuffer<double> patternLik(numUnique);
@@ -1125,7 +1125,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_FIT) {
 			omxExpectationCompute(oo->expectation, NULL);
 
-			double *patternLik = estate->patternLik;
+			Eigen::ArrayXd &patternLik = estate->grp.patternLik;
 			const int numUnique = estate->getNumUnique();
 			if (state->returnRowLikelihoods) {
 				const double OneOverLargest = estate->grp.quad.getReciprocalOfOne();
@@ -1139,22 +1139,16 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 			} else {
 				double *rowWeight = estate->grp.rowWeight;
-				estate->excludedPatterns = 0;
 				const double LogLargest = estate->LogLargestDouble;
 				double got = 0;
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)
 				for (int ux=0; ux < numUnique; ux++) {
-					if (!validPatternLik(estate, patternLik[ux])) {
-#pragma omp atomic
-						++estate->excludedPatterns;
-						// somehow indicate that this -2LL is provisional TODO
-						continue;
-					}
+					if (patternLik[ux] == 0) continue;
 					got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);
 				}
 				double fit = Global->llScale * got;
 				if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
-								oo->matrix->name, fit, estate->excludedPatterns, numUnique);
+								oo->matrix->name, fit, estate->grp.excludedPatterns, numUnique);
 				oo->matrix->data[0] = fit;
 			}
 		}

@@ -91,7 +91,7 @@ m1 <- mxModel(m1,
               mxExpectationBA81(mean="mean", cov="cov",
                                 ItemSpec=items,
                                 ItemParam="ItemParam",
-                                qpoints=29, scores="full"),
+                                qpoints=29),
               mxComputeEM('expectation', 'scores',
                           mxComputeNewtonRaphson(freeSet='ItemParam')))
 
@@ -107,7 +107,14 @@ omxCheckCloseEnough(m1$output$minimum, 20859.87, .01)
 mask <- is.finite(correct.mat)
 got <- cor(c(m1$matrices$ItemParam$values[mask]), c(correct.mat[mask]))
 omxCheckCloseEnough(got, .977, .01) 
-scores <- m1$expectation$output$scores
+
+grp <- list(spec=m1$expectation$ItemSpec,
+            param=m1$ItemParam$values,
+            mean=m1$mean$values,
+            cov=m1$cov$values,
+            data=data)
+
+scores <- EAPscores(grp)
 omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)
 omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
 omxCheckCloseEnough(cor(c(scores[,3]), c(theta[3,])), .679, .01)

@@ -102,7 +102,8 @@ grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$itemParam$values,
             mean=m2$mean$values,
             cov=m2$cov$values,
-            data=m2$data$observed)
+            data=m2$data$observed,
+            free=m2$itemParam$free)
 
 if (0) {
   # only includes rows without missingness!

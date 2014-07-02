@@ -99,27 +99,8 @@ groups <- paste("g", 1:2, sep="")
   g1$latent$cov$values <- fm$G1$cov
   g2$ifa$ItemParam$values[,] <- fm$G2$param
   
-  g1$ifa$expectation$scores <- 'full'
-  g2$ifa$expectation$scores <- 'full'
-  cModel <- mxModel(model="cModel", c(g1, g2))
-#  cModel <- mxOption(cModel, "Number of Threads", 1)
-  cModel.eap <- mxRun(cModel)
-
-  fm.sco.g1 <- suppressWarnings(try(read.table("models/nightly/data/cai2009-sco-g1.txt"), silent=TRUE))
-  if (is(fm.sco.g1, "try-error")) fm.sco.g1 <- read.table("data/cai2009-sco-g1.txt")
-  fm.sco.g2 <- suppressWarnings(try(read.table("models/nightly/data/cai2009-sco-g2.txt"), silent=TRUE))
-  if (is(fm.sco.g2, "try-error")) fm.sco.g2 <- read.table("data/cai2009-sco-g2.txt")
-  colnames(fm.sco.g1) <- c("grp","id",colnames(cModel.eap$submodels$g1$expectation$output$scores))
-  colnames(fm.sco.g2) <- c("grp","id",colnames(cModel.eap$submodels$g2$expectation$output$scores))
-  
-  scores.g1 <- as.matrix(cModel.eap$submodels$g1$expectation$output$scores)
-  omxCheckCloseEnough(as.matrix(fm.sco.g1[,-1:-2]),
-                      scores.g1, 1e-3)
-  omxCheckCloseEnough(as.matrix(fm.sco.g2[,-1:-2]),
-                      as.matrix(cModel.eap$submodels$g2$expectation$output$scores), 1e-3)
-
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
-    cModel <- mxModel(cModel,
+    cModel <- mxModel(model="cModel", c(g1, g2),
                       mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
 		      mxComputeOnce('fitfunction', 'fit'))
     cModel.fit <- mxRun(cModel)

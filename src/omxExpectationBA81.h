@@ -22,97 +22,44 @@
 #include "omxOpenmpWrap.h"
 #include "ba81quad.h"
 
-enum score_option {
-	SCORES_OMIT,
-	SCORES_FULL
-};
-
 enum expectation_type {
 	EXPECTATION_AUGMENTED, // E-M
 	EXPECTATION_OBSERVED,  // regular
 };
 
-struct BA81Dense {};
-struct BA81TwoTier {};
-
 template <typename CovType>
-struct BA81Config {
-	int getPrimaryPoints(struct BA81Expect *state);
+struct BA81EstepBase {
+	void addRow1(class ifaGroup *state, int px, double *Qweight, double *out);
 };
 
-template <
-  typename CovType,
-  typename LatentPolicy,
-  template <typename> class EstepPolicy
->
-struct BA81EngineBase : BA81Config<CovType> {
-	void engineDone(struct BA81Expect *state);
-	double getPatLik(struct BA81Expect *state, int px, double *lxk);
-};
-
-template <typename CovType>
-struct BA81RefreshPatLik : BA81Config<CovType> {
-	void begin(struct BA81Expect *state);
-	bool skipRow(struct BA81Expect *state, int px);
-	double getPatLik(struct BA81Expect *state, int px, double *lxk);
-};
-
-template <typename CovType>
-struct BA81Estep {
+template <typename T, typename CovType>
+struct BA81Estep : BA81EstepBase<CovType> {
 	std::vector<double> thrExpected;
-	int numItems;
-	int totalQuadPoints;
-	omxData *data;
 
-	void begin(struct BA81Expect *state);
-	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId);
-	void recordTable(struct BA81Expect *state);
+	void begin(class ifaGroup *state, T extraData);
+	void addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId);
+	void recordTable(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
 };
 
-template <typename CovType>
-struct BA81OmitEstep {
-	void begin(struct BA81Expect *state) {};
-	void addRow(struct BA81Expect *state, int px, double *Qweight, int thrId) {};
-	void recordTable(struct BA81Expect *state);
-	bool hasEnd() { return false; }
-};
-
+template <typename T>
 struct BA81LatentFixed {
-	void begin(struct BA81Expect *state) {}
-	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrid);
-	void end(struct BA81Expect *state) {};
+	void begin(class ifaGroup *state, T extraData) {}
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrid);
+	void end(class ifaGroup *state, T extraData) {};
 	bool hasEnd() { return false; }
 };
 
+template <typename T>
 struct BA81LatentSummary {
 	int numLatents;
 	std::vector<double> thrDweight;
 	std::vector<double> latentDist;
 
-	void begin(struct BA81Expect *state);
-	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
-	void end(struct BA81Expect *state);
+	void begin(class ifaGroup *state, T extraData);
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrId);
+	void end(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
-};
-
-struct BA81LatentScores {
-	int numLatents;
-	Eigen::VectorXd thrScore;
-
-	void begin(struct BA81Expect *state);
-	void normalizeWeights(struct BA81Expect *state, int px, double *Qweight, double weight, int thrId);
-	void end(struct BA81Expect *state);
-	bool hasEnd() { return true; }
-};
-
-template <
-  typename CovTypePar,
-  typename LatentPolicy,
-  template <typename> class EstepPolicy
->
-struct BA81Engine : LatentPolicy, EstepPolicy<CovTypePar>, BA81EngineBase<CovTypePar, LatentPolicy, EstepPolicy> {
-	void ba81Estep1(struct BA81Expect *state);
 };
 
 class BA81Expect {
@@ -131,7 +78,7 @@ class BA81Expect {
 	// data characteristics
 	omxData *data;
 	double weightSum;              // sum of rowWeight
-	std::vector<bool> rowSkip;     // whether to treat the row as NA
+	bool naFail;
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
@@ -139,9 +86,7 @@ class BA81Expect {
 	// estimation related
 	omxMatrix *itemParam;
 	double *EitemParam;
-	double *patternLik;                   // numUnique
 	double SmallestPatternLik;
-	int excludedPatterns;
 	double *expected;                     // totalOutcomes * totalQuadPoints (E-step table)
 	bool expectedUsed;
 	int ElatentVersion;
@@ -154,17 +99,11 @@ class BA81Expect {
 	int itemParamVersion;
 	int latentParamVersion;
 	enum expectation_type type;
-	enum score_option scores;
 	int verbose;
 	bool debugInternal;
 	struct omxFitFunction *fit;  // weak pointer
 
-	// workspace
-	int ptsPerThread;
-	int primaryDims;
-	std::vector<double*> scoresOut;
-
-	BA81Expect() : grp(true) {};
+	BA81Expect() : grp(Global->numThreads, true) {};
 };
 
 extern const struct rpf *rpf_model;
@@ -182,12 +121,6 @@ gramProduct(double *vec, size_t len, double *out)
 			++cell;
 		}
 	}
-}
-
-OMXINLINE static bool
-validPatternLik(BA81Expect *state, double pl)
-{
-	return std::isfinite(pl) && pl > state->SmallestPatternLik;
 }
 
 void ba81SetupQuadrature(omxExpectation* oo);

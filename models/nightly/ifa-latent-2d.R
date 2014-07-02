@@ -11,9 +11,16 @@ compute.factored.ll <- function(m, obs) {
   # Factored form of the complete data likelihood
   # Equation 8 from Cai (2010, p. 37)
   
-  spec <- m$expectation$ItemSpec
-  ip <- m$ItemParam$values
-  scores <- as.matrix(m$expectation$output$scores[,1:2])
+	spec <- m$expectation$ItemSpec
+	ip <- m$ItemParam$values
+	grp <- list(spec=spec,
+		    param=ip,
+		    mean=m$mean$values,
+		    cov=m$cov$values,
+		    data=obs)
+	
+	sc <- EAPscores(grp)
+	scores <- as.matrix(sc[,1:2])
   
   ll <- 0
   for (ii in 1:nrow(obs)) {
@@ -57,7 +64,7 @@ m2 <- mxModel(model="latent",
               ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items, ItemParam="ItemParam", scores="full"),
+                                ItemSpec=items, ItemParam="ItemParam"),
               mxFitFunctionML(),
 	      mxComputeIterate(steps=list(
 				   mxComputeOnce('fitfunction', "fit"),

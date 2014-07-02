@@ -78,6 +78,8 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) loc
 #endif // #ifdef _OPENMP
 
 
-
+#ifndef _OPENMP
+static inline int omp_get_thread_num() { return 0; }
+#endif
 
 #endif // #ifndef _OMX_OPENMP_WRAP_H
