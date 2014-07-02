@@ -225,6 +225,7 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 ##' Vectors are filled column-by-column into a matrix. Shorter vectors
 ##' are padded with NAs to fill whole columns.
 ##' @param x a list of vectors
+##' @param higher whether to produce a higher rank array (defaults to FALSE)
 ##' @examples
 ##' v1 <- 1:3
 ##' v2 <- 4:5
@@ -238,7 +239,10 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 ##' # [4,]   NA   NA    9
 ##' # [5,]   NA   NA   10
 
-mxSimplify2Array <- function(x) {
+mxSimplify2Array <- function(x, higher=FALSE) {
+	if (higher) {
+		stop("higher=TRUE is not implemented. Consider using simplify2array")
+	}
 	par <- x
   len <- sapply(par, length)
   biggest <- which(len == max(len))[1]
