@@ -288,7 +288,7 @@ ifaGroup::ifaGroup(int cores, bool _twotier) : Rdata(NULL),
 		maxAbilities(0),
 		numSpecific(0),
 		mean(0),
-		cov(0),
+					       cov(0), dataRowNames(0),
 	    weightColumnName(0), rowWeight(0),
 					       minItemsPerScore(1),
 					       outcomeProb(0), excludedPatterns(-1)
@@ -325,13 +325,13 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 	paramRows = 0;
 	totalOutcomes = 0;
-	itemMaxDims = 0;
+	maxItemDims = 0;
 	for (int cx = 0; cx < numItems(); cx++) {
 		const double *ispec = spec[cx];
 		int id = ispec[RPF_ISpecID];
 		int dims = ispec[RPF_ISpecDims];
-		if (itemMaxDims < dims)
-			itemMaxDims = dims;
+		if (maxItemDims < dims)
+			maxItemDims = dims;
 		int no = ispec[RPF_ISpecOutcomes];
 		itemOutcomes.push_back(no);
 		cumItemOutcomes.push_back(totalOutcomes);
@@ -345,8 +345,6 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 {
-	if (!mat) return;
-
 	static const char *dimname[] = { "row", "col" };
 
 	SEXP dimnames;
@@ -356,7 +354,11 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 			SEXP names;
 			Rf_protect(names = VECTOR_ELT(dimnames, dx));
 			if (!Rf_length(names)) continue;
-			int nlen = std::min((int) factorNames.size(), Rf_length(names));
+			if (int(factorNames.size()) != Rf_length(names)) {
+				Rf_error("%s %snames must be length %d",
+					 matName, dimname[dx], (int) factorNames.size());
+			}
+			int nlen = Rf_length(names);
 			for (int nx=0; nx < nlen; ++nx) {
 				const char *name = CHAR(STRING_ELT(names, nx));
 				if (strEQ(factorNames[nx], name)) continue;
@@ -365,6 +367,19 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 			}
 		}
 	}
+}
+
+void ifaGroup::learnMaxAbilities()
+{
+	maxAbilities = 0;
+	Eigen::ArrayXi loadings(maxItemDims);
+	loadings.setZero();
+	for (int cx = 0; cx < numItems(); cx++) {
+		for (int dx=0; dx < maxItemDims; ++dx) {
+			if (getItemParam(cx)[dx] != 0) loadings[dx] += 1;
+		}
+	}
+	maxAbilities = (loadings != 0).count();
 }
 
 void ifaGroup::import(SEXP Rlist)
@@ -376,9 +391,6 @@ void ifaGroup::import(SEXP Rlist)
 	}
 
 	std::vector<const char *> dataColNames;
-
-	int mlen = 0;
-	int nrow=0, ncol=0; // cov size
 
 	int pmatRows=-1, pmatCols=-1;
 	int mips = 1;
@@ -415,13 +427,10 @@ void ifaGroup::import(SEXP Rlist)
 		} else if (strEQ(key, "mean")) {
 			Rmean = slotValue;
 			if (!Rf_isReal(slotValue)) Rf_error("'mean' must be a numeric vector or matrix");
-			mlen = Rf_length(slotValue);
 			mean = REAL(slotValue);
 		} else if (strEQ(key, "cov")) {
 			Rcov = slotValue;
 			if (!Rf_isReal(slotValue)) Rf_error("'cov' must be a numeric matrix");
-			getMatrixDims(slotValue, &nrow, &ncol);
-			if (nrow != ncol) Rf_error("cov must be a square matrix (not %dx%d)", nrow, ncol);
 			cov = REAL(slotValue);
 		} else if (strEQ(key, "data")) {
 			Rdata = slotValue;
@@ -434,7 +443,7 @@ void ifaGroup::import(SEXP Rlist)
 			for (int nx=0; nx < nlen; ++nx) {
 				dataColNames.push_back(CHAR(STRING_ELT(names, nx)));
 			}
-			dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol);
+			Rf_protect(dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol));
 		} else if (strEQ(key, "weightColumn")) {
 			if (Rf_length(slotValue) != 1) {
 				Rf_error("You can only have one weightColumn");
@@ -450,25 +459,57 @@ void ifaGroup::import(SEXP Rlist)
 			// ignore
 		}
 	}
-	if (mlen != nrow) Rf_error("Mean length %d does not match cov size %d", mlen, nrow);
 
-	if (itemMaxDims < (int) factorNames.size())
-		factorNames.resize(itemMaxDims);
+	learnMaxAbilities();
 
-	verifyFactorNames(Rmean, "mean");
-	verifyFactorNames(Rcov, "cov");
-
-	setMinItemsPerScore(mips);
+	if (maxAbilities < (int) factorNames.size())
+		factorNames.resize(maxAbilities);
 
 	if (!factorNames.size()) {
-		factorNames.reserve(mlen);
+		factorNames.reserve(maxAbilities);
 		const int SMALLBUF = 10;
 		char buf[SMALLBUF];
-		for (int sx=0; sx < mlen; ++sx) {
+		for (int sx=0; sx < maxAbilities; ++sx) {
 			snprintf(buf, SMALLBUF, "s%d", sx+1);
 			factorNames.push_back(CHAR(Rf_mkChar(buf)));
 		}
 	}
+
+	if (Rmean) {
+		if (Rf_isMatrix(Rmean)) {
+			int nrow, ncol;
+			getMatrixDims(Rmean, &nrow, &ncol);
+			if (!(nrow * ncol == maxAbilities && (nrow==1 || ncol==1))) {
+				Rf_error("mean must be a column or row matrix of length %d", maxAbilities);
+			}
+		} else {
+			if (Rf_length(Rmean) != maxAbilities) {
+				Rf_error("mean must be a vector of length %d", maxAbilities);
+			}
+		}
+
+		verifyFactorNames(Rmean, "mean");
+	}
+
+	if (Rcov) {
+		if (Rf_isMatrix(Rcov)) {
+			int nrow, ncol;
+			getMatrixDims(Rcov, &nrow, &ncol);
+			if (nrow != maxAbilities || ncol != maxAbilities) {
+				Rf_error("cov must be %dx%d matrix", maxAbilities, maxAbilities);
+			}
+		} else {
+			if (Rf_length(Rcov) != 1) {
+				Rf_error("cov must be %dx%d matrix", maxAbilities, maxAbilities);
+			}
+		}
+
+		verifyFactorNames(Rcov, "cov");
+	}
+
+	setLatentDistribution(maxAbilities, mean, cov);
+
+	setMinItemsPerScore(mips);
 
 	if (numItems() != pmatCols) {
 		Rf_error("item matrix implies %d items but spec is length %d",
@@ -505,7 +546,6 @@ void ifaGroup::import(SEXP Rlist)
 		for (int rx=0; rx < dataRows; ++rx) rowMap.push_back(rx);
 	}
 
-	maxAbilities = mlen;
 	detectTwoTier();
 	sanityCheck();
 
@@ -514,21 +554,33 @@ void ifaGroup::import(SEXP Rlist)
 			 paramRows, pmatRows);
 	}
 
-	if (mean) {
-		Eigen::Map<Eigen::MatrixXd> fullCov(cov, maxAbilities, maxAbilities);
-		int dense = maxAbilities - numSpecific;
-		Eigen::MatrixXd priCov = fullCov.block(0, 0, dense, dense);
-		Eigen::VectorXd sVar = fullCov.diagonal().tail(numSpecific);
+	Eigen::Map<Eigen::MatrixXd> fullCov(cov, maxAbilities, maxAbilities);
+	int dense = maxAbilities - numSpecific;
+	Eigen::MatrixXd priCov = fullCov.block(0, 0, dense, dense);
+	Eigen::VectorXd sVar = fullCov.diagonal().tail(numSpecific);
 
-		quad.setup(qwidth, qpoints, mean, priCov, sVar);
-	}
+	quad.setup(qwidth, qpoints, mean, priCov, sVar);
 }
 
 void ifaGroup::setLatentDistribution(int dims, double *_mean, double *_cov)
 {
 	maxAbilities = dims;
-	mean = _mean;
-	cov = _cov;
+	if (maxAbilities < 0) Rf_error("maxAbilities must be non-negative");
+
+	if (!mean) {
+		mean = (double *) R_alloc(maxAbilities, sizeof(double));
+		memset(mean, 0, maxAbilities * sizeof(double));
+	} else {
+		mean = _mean;
+	}
+
+	if (!cov) {
+		cov = (double *) R_alloc(maxAbilities * maxAbilities, sizeof(double));
+		Eigen::Map< Eigen::MatrixXd > covMat(cov, maxAbilities, maxAbilities);
+		covMat.setIdentity();
+	} else {
+		cov = _cov;
+	}
 }
 
 void ifaGroup::detectTwoTier()
@@ -595,22 +647,8 @@ void ifaGroup::setMinItemsPerScore(int mips)
 	minItemsPerScore = mips;
 }
 
-void ifaGroup::sanityCheck()
+void ifaGroup::sanityCheck() // remove TODO
 {
-	if (!mean) return;
-
-	for (int ix=0; ix < numItems(); ++ix) {
-		const int dims = spec[ix][RPF_ISpecDims];
-
-		int loadings = 0;
-		for (int dx=0; dx < dims; ++dx) {
-			if (getItemParam(ix)[dx] != 0) loadings += 1;
-		}
-		if (loadings > maxAbilities) {
-			Rf_error("Item %d has more factor loadings (%d) than there are factors (%d)",
-				 1+ix, loadings, maxAbilities);
-		}
-	}
 }
 
 // Depends on item parameters, but not latent distribution

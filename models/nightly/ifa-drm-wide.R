@@ -30,16 +30,10 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', 'b', 'g', 'u')
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-colnames(m.mat) <- 'f1'
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE,
-		    dimnames=list('f1', 'f1'))
-
 m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
               mxData(observed=data, type="raw", sort=FALSE),
               mxExpectationBA81(debugInternal=TRUE,
-                ItemSpec=items, ItemParam="itemParam",
-                mean="mean", cov="cov"),
+                ItemSpec=items, ItemParam="itemParam"),
               mxFitFunctionML(),
               mxComputeOnce('expectation', 'scores')
               )

@@ -200,7 +200,7 @@ verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expec
 			stop(msg, call.=FALSE)
 		}
 	}
-	if ((!isS4(means) && is.na(means)) || !length(means)) return()
+	if (is.null(means) || (!isS4(means) && is.na(means)) || !length(means)) return()
 	meanDimnames <- dimnames(means)
 	if (is.null(meanDimnames)) {
 			msg <- paste("The",type,"means matrix associated",

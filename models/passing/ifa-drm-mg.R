@@ -112,13 +112,9 @@ if (1) {
   rownames(ip.mat) <- c('f1', 'b','g','u')
   ip.mat$labels[1,] <- 'a1'
   
-  m.mat$free[,] <- FALSE
-  cov.mat$free[,] <- FALSE
-
-  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
+  m2 <- mxModel(model="drmmg", ip.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items, ItemParam="itemParam"),
+                mxExpectationBA81(ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeSequence(steps=list(
                   mxComputeOnce('expectation', 'scores'),
@@ -137,10 +133,9 @@ if (1) {
     stop("ok")
   }
   
-  m2 <- mxModel(model="drmmg", ip.mat, m.mat, cov.mat,
+  m2 <- mxModel(model="drmmg", ip.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items, ItemParam="itemParam"),
+                mxExpectationBA81(ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeEM('expectation', 'scores',
                             mxComputeNewtonRaphson(freeSet='itemParam')))

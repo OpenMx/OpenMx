@@ -22,16 +22,12 @@ colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c(paste("f", 1:3, sep=""), 'b')
 ip.mat$values['f3',1:2] <- 0
 ip.mat$values['f2',3:4] <- 0
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
-colnames(m.mat) <- paste("f", 1:3, sep="")
-cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
-dimnames(cov.mat) <- list(paste("f", 1:3, sep=""), paste("f", 1:3, sep=""))
 
 mkmodel <- function(data) {
   mxModel(model="bifactor",
-          ip.mat, m.mat, cov.mat,
+          ip.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+          mxExpectationBA81(debugInternal=TRUE,
                             ItemSpec=items, ItemParam="ItemParam", qpoints=29),
           mxFitFunctionML(),
           mxComputeOnce('expectation', 'scores'))
@@ -82,8 +78,6 @@ result <- expand.grid(ips=0:numItems, v=NA)
 for (r in 1:nrow(result)) {
   grp <- list(spec=items,
               param=correct.mat,
-              mean=c(0),
-              cov=diag(1),
               data=data,
               minItemsPerScore=result$ips[r])
 
@@ -101,8 +95,6 @@ omxCheckCloseEnough(c1, c(0.5763, 0.0144), .001)
 
 grp <- list(spec=items,
             param=correct.mat,
-            mean=c(0),
-            cov=diag(1),
             data=data,
             minItemsPerScore=ncol(correct.mat)+1)
 

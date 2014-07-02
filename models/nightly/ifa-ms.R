@@ -47,18 +47,12 @@ ip.mat$values[!is.na(ip.mat$labels) & ip.mat$labels == 'a1'] <-
 fmfit <- structure(c(0.941583, 1, 0, 0, 0, -0.676556, 0.758794, -0.802595,  1.28891, 0.941583, 1, 0, 0, -0.182632, 0.897435, 1.30626, NA,  NA, 0.941583, 1, 0, 0, 0, 0.177835, -1.82185, 0.005832, -0.81109,  0.941583, 1, 0, 0, 0, -1.15962, -1.229, 0.032677, 0.4922, 0.941583,  1, 0, 0.457533, 0.324595, NA, NA, NA, NA, 0.941583, 1, 0, 0,  -2.69186, -1.04012, 1.61232, NA, NA, 0.941583, 1, 0, 0, 0, -1.38231,  0.034368, -1.214, -0.648291, 0.941583, 1, 0, 0, 0, -1.85655,  -1.17135, -0.262079, -0.531158, 0.941583, 1, 0, 0, 0, -1.29475,  -0.376539, 0.02024, 0.135187, 0.941583, 1, 0, 0, 0, -1.38279,  0.524151, -0.508742, 0.633671, 0.941583, 1, 0, 0, 0, -0.979595,  -0.048528, 0.659669, 0.544857, 0.941583, 1, 0, 0, 0, -2.09039,  -1.45472, -0.472137, -0.666386, 0.941583, 1, 0, 0, 0.174682,  0.645437, 0.907132, NA, NA, 0.941583, 1, 0, 0, -0.842216, 0.490717,  1.28034, NA, NA, 0.941583, 1, 0, 0, 0, -0.913355, -0.319602,  -0.310164, -0.15536, 0.941583, 1, 0, 0, 0, 0.567085, -1.56762,  0.884553, 0.122113, 0.941583, 1, 0, 0, 0, -0.152985, -0.341317,  -0.183837, 1.17952, 0.941583, 1, 0, 0, 0, 0.168869, -0.490354,  0.373892, 1.29714, 0.941583, 1, 0, 0, 0, -0.827385, 0.626197,  -1.52994, 0.494209, 0.941583, 1, 0, 0, 0, 0.511263, -0.750358,  1.01852, 0.840026, 0.941583, 1, 0, 0, 0, 0.968905, -0.009671,  1.52297, 1.69255, 0.941583, 1, 0, 0, 0, 1.89582, 0.051828, 2.25758,  1.52469), .Dim = c(9L, 22L), .Dimnames = list(NULL, c("i1", "i2",  "i3", "i4", "i5", "i6", "i7", "i8", "i9", "i10", "i11", "i12",  "i13", "i14", "i15", "i16", "i17", "i18", "i19", "i20", "i21",  "i22")))
 #  ip.mat$values <- m2.fmfit$G1$param
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- "f1"
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list("f1", "f1")
-
 if (1) {
   cip.mat <- ip.mat
   cip.mat$values <- fmfit
   cM <- mxModel(model="ms", m.mat, cov.mat, cip.mat,
                 mxData(observed=m2.data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=m2.spec,
+                mxExpectationBA81(ItemSpec=m2.spec,
                                   ItemParam="ItemParam"),
                 mxFitFunctionML(),
 		mxComputeOnce('fitfunction', 'fit', freeSet=c("mean", "cov")))
@@ -73,10 +67,9 @@ plan <- mxComputeSequence(steps=list(
   mxComputeStandardError(),
   mxComputeHessianQuality()))
 
-m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
+m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=m2.spec,
+              mxExpectationBA81(ItemSpec=m2.spec,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
               plan)

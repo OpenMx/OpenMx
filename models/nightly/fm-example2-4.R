@@ -26,15 +26,9 @@ colnames(ip.mat) <- colnames(m2.data)
 # cat(deparse(round(m2.fmfit$G1$param,6)))
 #  ip.mat$values <- m2.fmfit$G1$param
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- 'f1'
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list('f1','f1')
-
-m2 <- mxModel(model="m2", m.mat, cov.mat, ip.mat,
+m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=m2.spec,
+              mxExpectationBA81(ItemSpec=m2.spec,
                                 ItemParam="ItemParam"),
               mxFitFunctionML(),
               mxComputeEM('expectation', 'scores',
@@ -48,8 +42,7 @@ print(m2$output$backendTime)
 
 grp <- list(spec=m2.spec,
             param=m2$matrices$ItemParam$values,
-            free=apply(ip.mat$free, 2, sum),
-            mean=m2$matrices$mean$values, cov=m2$matrices$cov$values)
+            free=apply(ip.mat$free, 2, sum))
 colnames(grp$param) <- paste("i", 1:dim(grp$param)[2], sep="")
 #got <- chen.thissen.1997(grp, m2.data)
 #got$std

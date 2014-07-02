@@ -53,15 +53,10 @@ ip.mat$free['f3', 1:10] <- FALSE
 ip.mat$values['f2', 11:20] <- 0
 ip.mat$free['f2', 11:20] <- FALSE
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
-colnames(m.mat) <- paste('f', 1:3, sep="")
-cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE)
-dimnames(cov.mat) <- list(paste('f', 1:3, sep=""), paste('f', 1:3, sep=""))
-
 m1 <- mxModel(model="bifactor",
-          ip.mat, m.mat, cov.mat,
+          ip.mat,
           mxData(observed=data, type="raw"),
-          mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+          mxExpectationBA81(debugInternal=TRUE,
 			    ItemSpec=items, ItemParam="ItemParam", qpoints=29, verbose=0L),
 	      mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
@@ -88,8 +83,7 @@ omxCheckCloseEnough(fivenum(m1$output$hessian[m1$output$hessian != 0]),
 
 m1 <- mxModel(m1,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items,
+              mxExpectationBA81(ItemSpec=items,
                                 ItemParam="ItemParam",
                                 qpoints=29),
               mxComputeEM('expectation', 'scores',
@@ -110,8 +104,6 @@ omxCheckCloseEnough(got, .977, .01)
 
 grp <- list(spec=m1$expectation$ItemSpec,
             param=m1$ItemParam$values,
-            mean=m1$mean$values,
-            cov=m1$cov$values,
             data=data)
 
 scores <- EAPscores(grp)

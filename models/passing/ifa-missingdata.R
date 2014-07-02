@@ -44,21 +44,15 @@ ip.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems,
 colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', paste('a',1:2,sep=""), paste('c',1:2,sep=""))
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- 'f1'
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list('f1','f1')
-
 if (1) {
 #  fm <- read.flexmirt("~/irt/ifa-missingdata/ifa-md-prm.txt")
   fm.est <- structure(c(0.906661, 1, 0, -0.66474, 0.523485, 0.916341, 1,  0, -3.285, -0.882019, 0.73849, 1, 0, -1.14314, -0.0300753, 0.617796,  1, 0, -0.58211, 1.4276, 2.50623, 1, 0, 0.541075, 2.1527), .Dim = c(5L,  5L))
   fm.est.mat <- mxMatrix(name="itemParam", nrow=5, ncol=numItems, values=fm.est)
   colnames(fm.est.mat) <- colnames(data)
   rownames(fm.est.mat) <- c('f1', paste('a',1:2,sep=""), paste('c',1:2,sep=""))
-  cModel <- mxModel(model="test3", fm.est.mat, m.mat, cov.mat,
+  cModel <- mxModel(model="test3", fm.est.mat,
                     mxData(observed=data, type="raw"),
-                    mxExpectationBA81(mean="mean", cov="cov",
-                                      ItemSpec=items,
+                    mxExpectationBA81(ItemSpec=items,
                                       ItemParam="itemParam"),
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
@@ -68,9 +62,9 @@ if (1) {
 }
 
 if (1) {
-  m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
+  m2 <- mxModel(model="test3", ip.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(mean="mean", cov="cov", debugInternal=TRUE,
+                mxExpectationBA81(debugInternal=TRUE,
                                   ItemSpec=items, ItemParam="itemParam"),
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', 'scores'))
@@ -85,10 +79,9 @@ if (1) {
 plan <- mxComputeEM('expectation', 'scores',
                     mxComputeNewtonRaphson())
 
-m2 <- mxModel(model="test3", ip.mat, m.mat, cov.mat,
+m2 <- mxModel(model="test3", ip.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(mean="mean", cov="cov",
-                                ItemSpec=items,
+              mxExpectationBA81(ItemSpec=items,
                                 ItemParam="itemParam"),
               mxFitFunctionML(),
               plan)
@@ -100,8 +93,6 @@ m2 <- mxRun(m2)
 
 grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$itemParam$values,
-            mean=m2$mean$values,
-            cov=m2$cov$values,
             data=m2$data$observed,
             free=m2$itemParam$free)
 
@@ -132,11 +123,8 @@ if (0) {
 }
 
 nullm2 <- mxModel(m2,
-                  mxMatrix(name="mean", nrow=0, ncol=0),
-                  mxMatrix(name="cov", nrow=0, ncol=0),
                   mxExpectationBA81(
-                    ItemSpec=items, ItemParam="itemParam",
-                    mean="mean", cov="cov"),
+                    ItemSpec=items, ItemParam="itemParam"),
                   mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
 
 nullm2$itemParam$values[,] <- mxSimplify2Array(lapply(items, rpf.rparam))

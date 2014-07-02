@@ -19,15 +19,10 @@ ip.mat$free[!is.na(correct.mat)] <- TRUE
 ip.mat$values[!ip.mat$free] <- NA
 ip.mat$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- "f1"
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list("f1", "f1")
-
-m2 <- mxModel(model="grm1", ip.mat, m.mat, cov.mat,
+m2 <- mxModel(model="grm1", ip.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(ItemSpec=spec, ItemParam="itemParam",
-                mean="mean", cov="cov", qpoints=31, debugInternal=TRUE),
+                qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 middle <- mxRun(m2)
@@ -61,7 +56,6 @@ plan <- mxComputeSequence(list(mxComputeEM('expectation', 'scores',
 m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=spec, ItemParam="itemParam",
-                mean="mean", cov="cov",
                 qpoints=31),
 	      plan)
 				  
@@ -69,8 +63,6 @@ m2 <- mxRun(m2)
 
 grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$itemParam$values,
-            mean=m2$mean$values,
-            cov=m2$cov$values,
             data=data)
 
 if (0) {
@@ -129,11 +121,7 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
 
 nullm2 <- mxModel(m2,
-              mxMatrix(name="mean", nrow=0, ncol=0),
-              mxMatrix(name="cov", nrow=0, ncol=0),
-              mxExpectationBA81(
-                ItemSpec=spec, ItemParam="itemParam",
-                mean="mean", cov="cov"),
+              mxExpectationBA81(ItemSpec=spec, ItemParam="itemParam"),
               mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
 
 nullm2$itemParam$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam))

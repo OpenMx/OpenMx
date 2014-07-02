@@ -84,8 +84,8 @@ BA81FitState::BA81FitState()
 void BA81FitState::copyEstimates(BA81Expect *estate)
 {
 	omxCopyMatrix(itemParam, estate->itemParam);
-	omxCopyMatrix(latentMean, estate->latentMeanOut);
-	omxCopyMatrix(latentCov, estate->latentCovOut);
+	if (estate->latentMeanOut) omxCopyMatrix(latentMean, estate->latentMeanOut);
+	if (estate->latentCovOut)  omxCopyMatrix(latentCov, estate->latentCovOut);
 }
 
 static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
@@ -94,17 +94,21 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	int meanNum = ~estate->latentMeanOut->matrixNumber;
-	int covNum = ~estate->latentCovOut->matrixNumber;
 	int maxAbilities = estate->grp.maxAbilities;
-	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 
 	if (state->haveLatentMap == fc->varGroup->id[0]) return;
 	if (estate->verbose >= 1) mxLog("%s: rebuild latent parameter map for var group %d",
 					oo->matrix->name, fc->varGroup->id[0]);
 
 	state->freeLatents = false;
+
+	int numLatents = maxAbilities + triangleLoc1(maxAbilities);
 	latentMap.assign(numLatents, -1);
+
+	int meanNum = 0;
+	if (estate->latentMeanOut) meanNum = ~estate->latentMeanOut->matrixNumber;
+	int covNum = 0;
+	if (estate->latentCovOut) covNum = ~estate->latentCovOut->matrixNumber;
 
 	int numParam = int(fvg->vars.size());
 	for (int px=0; px < numParam; px++) {
@@ -112,10 +116,10 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = loc->matrix;
-			if (matNum == meanNum) {
+			if (matNum == meanNum && estate->latentMeanOut) {
 				latentMap[loc->row + loc->col] = px;
 				state->freeLatents = true;
-			} else if (matNum == covNum) {
+			} else if (matNum == covNum && estate->latentCovOut) {
 				int a1 = loc->row;
 				int a2 = loc->col;
 				if (a1 < a2) std::swap(a1, a2);
@@ -667,6 +671,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove
 static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece,
 			   double *derivCoef, double *derivOut)
 {
+	if (!state->freeLatents) return;
 	ba81NormalQuad &quad = estate->getQuad();
 	const int maxAbilities = quad.maxAbilities;
 	const int pmax = quad.numSpecific? quad.maxDims - 1 : quad.maxDims;
@@ -687,6 +692,7 @@ static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece
 static void mapLatentDerivS(BA81FitState *state, BA81Expect *estate, int sgroup, double piece,
 			    double *derivCoef, double *derivOut)
 {
+	if (!state->freeLatents) return;
 	ba81NormalQuad &quad = estate->getQuad();
 	int maxAbilities = quad.maxAbilities;
 	int maxDims = quad.maxDims;
@@ -829,22 +835,24 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	omxBuffer<double> patternLik(numUnique);
 
 	omxBuffer<double> icovBuffer(pDims * pDims);
-	for (int d1=0; d1 < pDims; ++d1) {
-		for (int d2=0; d2 < pDims; ++d2) {
-			icovBuffer[d1 * pDims + d2] = omxMatrixElement(cov, d1, d2);
+	if (cov) {
+		for (int d1=0; d1 < pDims; ++d1) {
+			for (int d2=0; d2 < pDims; ++d2) {
+				icovBuffer[d1 * pDims + d2] = omxMatrixElement(cov, d1, d2);
+			}
 		}
-	}
-	Matrix icovMat(icovBuffer.data(), pDims, pDims);
-	int info = InvertSymmetricPosDef(icovMat, 'U');
-	if (info) {
-		omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->matrix->name);
-		return;
-	}
+		Matrix icovMat(icovBuffer.data(), pDims, pDims);
+		int info = InvertSymmetricPosDef(icovMat, 'U');
+		if (info) {
+			omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->matrix->name);
+			return;
+		}
 
-	// fill in rest from upper triangle
-	for (int rx=1; rx < pDims; ++rx) {
-		for (int cx=0; cx < rx; ++cx) {
-			icovBuffer[cx * pDims + rx] = icovBuffer[rx * pDims + cx];
+		// fill in rest from upper triangle
+		for (int rx=1; rx < pDims; ++rx) {
+			for (int cx=0; cx < rx; ++cx) {
+				icovBuffer[cx * pDims + rx] = icovBuffer[rx * pDims + cx];
+			}
 		}
 	}
 
@@ -862,11 +870,13 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		omxBuffer<double> thrLxk(totalQuadPoints * numThreads);
 		omxBuffer<double> derivCoef(totalQuadPoints * priDerivCoef);
 
+		if (state->freeLatents) {
 #pragma omp parallel for num_threads(numThreads)
-		for (int qx=0; qx < totalQuadPoints; qx++) {
-			const double *where = wherePrep + qx * maxDims;
-			calcDerivCoef(state, estate, icovBuffer, where,
-				      derivCoef.data() + qx * priDerivCoef);
+			for (int qx=0; qx < totalQuadPoints; qx++) {
+				const double *where = wherePrep + qx * maxDims;
+				calcDerivCoef(state, estate, icovBuffer, where,
+					      derivCoef.data() + qx * priDerivCoef);
+			}
 		}
 
 #pragma omp parallel for num_threads(numThreads)
@@ -922,14 +932,16 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		const int derivPerPoint = priDerivCoef + 2 * numSpecific;
 		omxBuffer<double> derivCoef(totalQuadPoints * derivPerPoint);
 
+		if (state->freeLatents) {
 #pragma omp parallel for num_threads(numThreads)
-		for (int qx=0; qx < totalQuadPoints; qx++) {
-			const double *where = wherePrep + qx * maxDims;
-			calcDerivCoef(state, estate, icovBuffer, where,
-				      derivCoef.data() + qx * derivPerPoint);
-			for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
-				calcDerivCoef1(state, estate, where, Sgroup,
-					       derivCoef.data() + qx * derivPerPoint + priDerivCoef + 2 * Sgroup);
+			for (int qx=0; qx < totalQuadPoints; qx++) {
+				const double *where = wherePrep + qx * maxDims;
+				calcDerivCoef(state, estate, icovBuffer, where,
+					      derivCoef.data() + qx * derivPerPoint);
+				for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
+					calcDerivCoef1(state, estate, where, Sgroup,
+						       derivCoef.data() + qx * derivPerPoint + priDerivCoef + 2 * Sgroup);
+				}
 			}
 		}
 

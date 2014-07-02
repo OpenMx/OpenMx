@@ -21,8 +21,8 @@ setClass(Class = "MxExpectationBA81",
 	   EItemParam = "MxOptionalMatrix",
 	   qpoints = "numeric",
 	   qwidth = "numeric",
-	   mean = "MxCharOrNumber",
-	   cov = "MxCharOrNumber",
+	   mean = "MxOptionalCharOrNumber",
+	   cov = "MxOptionalCharOrNumber",
 	     debugInternal="logical",
 	     dataColumns="integer",
 	   dims = "character",
@@ -87,10 +87,19 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  }
 
 		  name <- .Object@name
-		  for (s in c("data", "ItemParam", "mean", "cov")) {
+		  for (s in c("data", "ItemParam")) {
 			  if (is.null(slot(.Object, s))) next
 			  slot(.Object, s) <-
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
+		  }
+		  for (s in c("mean", "cov")) {
+			  name <- slot(.Object, s)
+			  matrixNumber <- match(name, names(flatModel@matrices))
+			  if (is.na(matrixNumber)) {
+				  slot(.Object, s) <- NULL
+			  } else {
+				  slot(.Object, s) <- -matrixNumber
+			  }
 		  }
 
 		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed) # for summary
@@ -181,7 +190,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Measurement, 14(3), 299-311.
 
 mxExpectationBA81 <- function(ItemSpec, ItemParam, ...,
-			      qpoints=49L, qwidth=6.0, mean=NULL, cov=NULL,
+			      qpoints=49L, qwidth=6.0, mean="mean", cov="cov",
 			      verbose=0L, EItemParam=NULL, debugInternal=FALSE,
 			      naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_) {
 

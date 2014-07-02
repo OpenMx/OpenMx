@@ -1,4 +1,5 @@
-#options(error = utils::recover)
+#options(error = browser)
+#options(warn = 2)
 library(OpenMx)
 library(rpf)
 
@@ -31,16 +32,10 @@ ip.mat <- mxMatrix(name="itemParam", nrow=4, ncol=numItems,
 rownames(ip.mat) <- c('f1','b','g','u')
 colnames(ip.mat) <- cols
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- 'f1'
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list('f1','f1')
-
-m2 <- mxModel(model="drm1", ip.mat, m.mat, cov.mat,
+m2 <- mxModel(model="drm1", ip.mat,
 	      mxData(observed=data, type="raw"),
               mxExpectationBA81(debugInternal=TRUE,
-                ItemSpec=items, ItemParam="itemParam",
-                mean="mean", cov="cov", qpoints=31),
+                ItemSpec=items, ItemParam="itemParam", qpoints=31),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
 m2 <- mxRun(m2)
@@ -72,7 +67,6 @@ omxCheckCloseEnough(solve(testDeriv$output$hessian), testDeriv$output$ihessian, 
 m2 <- mxModel(m2,
               mxExpectationBA81(
                 ItemSpec=items, ItemParam="itemParam",
-                mean="mean", cov="cov",
                 qpoints=31),
 	      mxComputeEM('expectation', 'scores',
 	                  mxComputeNewtonRaphson()))
@@ -95,8 +89,6 @@ omxCheckCloseEnough(got, .988, .01)
 
 grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$itemParam$values,
-            mean=m2$mean$values,
-            cov=m2$cov$values,
             data=data,
             free=m2$itemParam$free,
             qpoints=31)

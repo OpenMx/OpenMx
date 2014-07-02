@@ -27,11 +27,6 @@ ip.mat$labels[3,] <- plabel
 ip.mat$values[3,] <- logit(seq(.1, .2, length.out=numItems))
 ip.mat$ubound[3,] <- logit(.9)
 
-m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
-rownames(m.mat) <- "f1"
-cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE)
-dimnames(cov.mat) <- list("f1", "f1")
-
 g.mat <- mxMatrix(name="gparam", nrow=1, ncol=numItems, free=TRUE, labels=plabel,
                   values=ip.mat$values[3,], ubound=ip.mat$ubound[3,])
 
@@ -47,10 +42,9 @@ prior.hess <- mxAlgebra(vec2diag(10*exp(gparam)/(exp(gparam)+1)^2),
 pm <- mxModel(model="pmodel", g.mat, prior, prior.grad, prior.hess,
               mxFitFunctionAlgebra("prior", gradient="pgrad", hessian="phess"))
 
-m1 <- mxModel(model="item", ip.mat, m.mat, cov.mat,
+m1 <- mxModel(model="item", ip.mat,
               mxData(observed=g341, type="raw"),
-              mxExpectationBA81(ItemSpec=spec, ItemParam="ItemParam",
-                                mean="mean", cov="cov"),
+              mxExpectationBA81(ItemSpec=spec, ItemParam="ItemParam"),
               mxFitFunctionML())
 
 gm <- mxModel(model="gm", pm,

@@ -75,7 +75,7 @@ class ifaGroup {
 
 	// item description related
 	std::vector<const double*> spec;
-	int itemMaxDims;
+	int maxItemDims;
 	int numItems() const { return (int) spec.size(); }
 	int paramRows;
 	double *param;  // itemParam->data
@@ -127,6 +127,7 @@ class ifaGroup {
 	void setGridFineness(double width, int points);
 	void import(SEXP Rlist);
 	void importSpec(SEXP slotValue);
+	void learnMaxAbilities();
 	void setLatentDistribution(int dims, double *mean, double *cov);
 	double *getItemParam(int ix) { return param + paramRows * ix; }
 	const int *dataColumn(int col) { return dataColumns[col]; };
