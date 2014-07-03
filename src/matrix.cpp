@@ -160,6 +160,7 @@ Matrix matrix_mult(Matrix a, Matrix b) {
 
 void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 {
+	const double tooSmallEV = 1e-6;
 	double *target = mat.t;
 	int numParams = mat.rows;
 	if (mat.rows != mat.cols) Rf_error("InplaceForcePosDef must be square");
@@ -206,8 +207,8 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 	if (origEv) memcpy(origEv, w.data(), sizeof(double) * numParams);
 	for (int px=0; px < numParams; ++px) {
 		// record how many eigenvalues are zeroed TODO
-		if (w[px] < 0) {
-			evalDiag[px * numParams + px] = 1e-6; // exactly zero can still fail
+		if (w[px] < tooSmallEV) {
+			evalDiag[px * numParams + px] = tooSmallEV; // exactly zero can still fail
 			continue;
 		}
 		evalDiag[px * numParams + px] = w[px];
