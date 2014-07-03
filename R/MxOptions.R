@@ -124,7 +124,6 @@ npsolOptions <- list(
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "1.0e-05",
-	"Optimality tolerance" = as.character(1e-14 ^ 0.8),
 	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
 	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
