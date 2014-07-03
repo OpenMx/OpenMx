@@ -1053,8 +1053,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
-		estate->expectedUsed = true;
 		buildItemParamMap(oo, fc);
+		if (state->freeItemParams) estate->expectedUsed = true;
 
 		if (want & FF_COMPUTE_PARAMFLAVOR) {
 			for (size_t px=0; px < state->numFreeParam; ++px) {

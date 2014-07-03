@@ -294,16 +294,26 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	state->latentParamVersion = getLatentVersion(state);
 }
 
-void refreshPatternLikelihood(BA81Expect *state)
+void refreshPatternLikelihood(BA81Expect *state, bool hasFreeLatent)
 {
 	ba81NormalQuad &quad = state->getQuad();
 
-	if (quad.numSpecific == 0) {
-		BA81Engine<typeof(state), BA81Dense, BA81LatentFixed, BA81OmitEstep> engine;
-		engine.ba81Estep1(&state->grp, state);
+	if (hasFreeLatent) {
+		if (quad.numSpecific == 0) {
+			BA81Engine<typeof(state), BA81Dense, BA81LatentSummary, BA81OmitEstep> engine;
+			engine.ba81Estep1(&state->grp, state);
+		} else {
+			BA81Engine<typeof(state), BA81TwoTier, BA81LatentSummary, BA81OmitEstep> engine;
+			engine.ba81Estep1(&state->grp, state);
+		}
 	} else {
-		BA81Engine<typeof(state), BA81TwoTier, BA81LatentFixed, BA81OmitEstep> engine;
-		engine.ba81Estep1(&state->grp, state);
+		if (quad.numSpecific == 0) {
+			BA81Engine<typeof(state), BA81Dense, BA81LatentFixed, BA81OmitEstep> engine;
+			engine.ba81Estep1(&state->grp, state);
+		} else {
+			BA81Engine<typeof(state), BA81TwoTier, BA81LatentFixed, BA81OmitEstep> engine;
+			engine.ba81Estep1(&state->grp, state);
+		}
 	}
 }
 
@@ -321,7 +331,6 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 
 		if (strcmp(what, "scores")==0) {
 			state->type = EXPECTATION_AUGMENTED;
-			state->expectedUsed = true;
 		} else if (strcmp(what, "nothing")==0) {
 			state->type = EXPECTATION_OBSERVED;
 		} else {
@@ -370,14 +379,14 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 					engine.ba81Estep1(&state->grp, state);
 				}
 			}
-			if (oo->dynamicDataSource && state->verbose >= 2) {
-				omxPrint(state->estLatentMean, "mean");
-				omxPrint(state->estLatentCov, "cov");
-			}
 			state->expectedUsed = false;
 		} else {
 			Free(state->expected);
-			refreshPatternLikelihood(state);
+			refreshPatternLikelihood(state, oo->dynamicDataSource);
+		}
+		if (oo->dynamicDataSource && state->verbose >= 2) {
+			omxPrint(state->estLatentMean, "mean");
+			omxPrint(state->estLatentCov, "cov");
 		}
 		if (state->verbose >= 1) {
 			const int numUnique = state->getNumUnique();
@@ -420,7 +429,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 		SEXP Rexpected;
 
 		if (state->grp.patternLik.size() != numUnique) {
-			refreshPatternLikelihood(state);
+			refreshPatternLikelihood(state, oo->dynamicDataSource);
 		}
 
 		Rf_protect(Rlik = Rf_allocVector(REALSXP, numUnique));
