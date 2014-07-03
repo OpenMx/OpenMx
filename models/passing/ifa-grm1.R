@@ -73,7 +73,7 @@ if (0) {
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 14, 1)
 omxCheckCloseEnough(emstat$totalMstep, 51, 5)
-omxCheckCloseEnough(m2$output$evaluations, 127, 5)
+omxCheckCloseEnough(m2$output$evaluations, 103, 5)
 
 #print(m2$matrices$item$values)
 #print(correct.mat)

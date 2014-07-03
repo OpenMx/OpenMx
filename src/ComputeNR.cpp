@@ -157,6 +157,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	Eigen::Map<Eigen::VectorXd> prevEst(fc->est, numParam);
 
 	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
+	if (verbose >= 5) want |= FF_COMPUTE_HESSIAN;
 	if (iter == 1) {
 		want |= FF_COMPUTE_FIT;
 	}
@@ -167,8 +168,21 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
 	double targetImprovement = searchDir.dot(fc->grad);
-	if (!std::isfinite(targetImprovement) || targetImprovement < tolerance ||
-	    refFit*refFit < targetImprovement) {
+
+	if (verbose >= 5) {
+		fc->log(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
+
+		std::string buf;
+		buf += "searchDir: c(";
+		for (int vx=0; vx < searchDir.size(); ++vx) {
+			buf += string_snprintf("%.5f", searchDir[vx]);
+			if (vx < searchDir.size() - 1) buf += ", ";
+		}
+		buf += ")\n";
+		mxLogBig(buf);
+	}
+
+	if (!std::isfinite(targetImprovement)) {
 		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
 					name, targetImprovement);
 		steepestDescent = true;
@@ -205,9 +219,13 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		const double improved = refFit - fc->fit;
 		if (improved <= 0) {
 			const double minSpeedReduction = .1;
-			double howBad = -improved / scaledTarget;
+			double howBad = refFit / (scaledTarget - improved);
+			if (verbose >= 5) {
+				mxLog("refFit %.2g / scaledTarget - improved %.2g = %.4g",
+				      refFit, scaledTarget - improved, howBad);
+			}
 			if (howBad < minSpeedReduction && verbose >= 4) {
-				mxLog("%s: scaledTarget is over optimistic by %f", name, howBad);
+				mxLog("%s: scaledTarget is %2.g times over optimistic", name, 1/howBad);
 			}
 			if (howBad > minSpeedReduction) howBad = minSpeedReduction;
 			speed *= howBad;
@@ -217,7 +235,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		bestSpeed = speed;
 		bestFit = fc->fit;
 		goodness = improved / scaledTarget;
-		if (verbose >= 3) mxLog("%s: viable speed %f for improvement %.3g goodness %f",
+		if (verbose >= 3) mxLog("%s: viable speed %.2g for improvement %.3g goodness %f",
 					name, bestSpeed, bestImproved, goodness);
 		break;
 	}

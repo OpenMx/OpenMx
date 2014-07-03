@@ -187,7 +187,10 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 			int at = loc->col * state->itemDerivPadSize + loc->row;
 			state->paramMap[at] = px;
-			state->hBlocks[loc->col].vars.push_back(px);
+			std::vector<int> &varMap = state->hBlocks[loc->col].vars;
+			if (std::find(varMap.begin(), varMap.end(), px) == varMap.end()) {
+				varMap.push_back(px);
+			}
 			state->itemParamFree[loc->col * itemParam->rows + loc->row] = TRUE;
 			state->freeItemParams = true;
 

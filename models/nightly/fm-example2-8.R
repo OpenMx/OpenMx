@@ -35,6 +35,6 @@ m1 <- mxModel(model="ex28", ip.mat,
 m1 <- mxRun(mxModel(m1, mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson())), silent=TRUE)
 omxCheckCloseEnough(m1$output$fit, 2766.688, .01)
 fitstat <- m1$compute$output
-omxCheckCloseEnough(m1$output$evaluations, 1616, 50)
+omxCheckCloseEnough(m1$output$evaluations, 159, 5)
 omxCheckCloseEnough(fitstat$EMcycles, 16, 1)
-omxCheckCloseEnough(fitstat$totalMstep, 297, 10)
+omxCheckCloseEnough(fitstat$totalMstep, 77, 5)

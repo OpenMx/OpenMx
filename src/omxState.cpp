@@ -400,20 +400,22 @@ std::string string_snprintf(const char *fmt, ...)
 void mxLogBig(const std::string str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
+	if (len == 0) Rf_error("Attempt to log 0 characters with mxLogBig");
 	ssize_t wrote = 0;
 	int maxRetries = 20;
 	ssize_t got;
+	const char *outBuf = str.c_str();
 #pragma omp critical(stderp)
 	{
 		while (--maxRetries > 0) {
-			got = write(2, str.data() + wrote, len - wrote);
+			got = write(2, outBuf + wrote, len - wrote);
 			if (got == -EINTR) continue;
-			if (got <= 0) break;
+			if (got < 0) break;
 			wrote += got;
 			if (wrote == len) break;
 		}
 	}
-	if (got <= 0) Rf_error("mxLogBig failed with errno=%d", got);
+	if (wrote != len) Rf_error("mxLogBig only wrote %d/%d, errno %d", wrote, len, errno);
 
 }
 

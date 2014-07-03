@@ -36,6 +36,19 @@ void FitContext::queue(HessianBlock *hb)
 		return;
 	}
 
+	// std::cout << "queue " << allBlocks.size() << " var map: ";
+	// for (int vm=0; vm < (int) hb->vars.size(); ++vm) {
+	// 	std::cout << vm << ":" << hb->vars[vm] << ",";
+	// }
+	// std::cout << "\n" << hb->mat << "\n";
+
+	if (OMX_DEBUG) {
+		std::vector<int>::iterator it = std::unique(hb->vars.begin(), hb->vars.end());
+		if (std::distance(hb->vars.end(),it) != 0) {
+			Rf_error("HessianBlock var mapping is not 1-to-1");
+		}
+	}
+
 	minBlockSize = std::max(int(hb->vars.size()), minBlockSize);
 	allBlocks.push_back(hb);
 }
@@ -387,7 +400,11 @@ void FitContext::testMerge()
 		if (hb->useId == UseId) continue;
 		hb->useId = UseId;
 
-		//std::cout << hb->id << " ";
+		// std::cout << "add block " << vx << "\nvar map: ";
+		// for (int vm=0; vm < (int) hb->vars.size(); ++vm) {
+		// 	std::cout << vm << ":" << hb->vars[vm] << ",";
+		// }
+		// std::cout << "\n" << hb->mmat << "\n";
 
 		size_t size = hb->mmat.rows();
 		for (size_t col=0; col < size; ++col) {
@@ -398,14 +415,13 @@ void FitContext::testMerge()
 			}
 		}
 	}
-	//std::cout << "\n";
 
 	refreshDenseHess();
 	Eigen::MatrixXd dense = sparseHess;
 	Eigen::MatrixXd diff = (dense - hess).selfadjointView<Eigen::Upper>();
-	//std::cout << diff << std::endl;
-	//std::cout << "fancy\n" << dense << std::endl;
-	//std::cout << "correct\n" << hess << std::endl;
+	// std::cout << "difference\n" << diff << std::endl;
+	// std::cout << "sparse\n" << dense << std::endl;
+	// std::cout << "dense\n" << hess << std::endl;
 	double bad = diff.cwiseAbs().maxCoeff();
 	if (bad > .0001) Rf_error("Hess: dense sparse mismatch %f", bad);
 }
@@ -415,7 +431,7 @@ bool FitContext::refreshSparseIHess()
 	if (haveSparseIHess) return true;
 
 	const int AcceptableDenseInvertSize = 100;
-	const bool checkResult = false;
+	const bool checkResult = OMX_DEBUG;
 
 	//testMerge();
 
@@ -460,31 +476,32 @@ bool FitContext::refreshSparseIHess()
 	}
 
 	if (checkResult) {
-		int nonZero = 0;
 		refreshDenseHess();
-		for (size_t cx=0; cx < numParam; ++cx) {
-			for (size_t rx=0; rx <= cx; ++rx) {
-				if (hess(rx,cx) != 0) {
-					if (rx == cx) nonZero += 1;
-					else nonZero += 2;
-				}
-			}
-		}
+		InvertSymmetricNR(hess, ihess);
+		ihess.triangularView<Eigen::Lower>() = ihess.transpose().triangularView<Eigen::Lower>();
 		Eigen::MatrixXd denseI = sparseIHess;
 		denseI.triangularView<Eigen::Lower>() = denseI.transpose().triangularView<Eigen::Lower>();
-		Eigen::MatrixXd resid = denseI * hess.selfadjointView<Eigen::Upper>();
-		for (int dx=0; dx < resid.rows(); ++dx) {
-			resid.coeffRef(dx,dx) -= 1;
-		}
+		Eigen::MatrixXd resid = ihess - denseI;
 		double bad = resid.cwiseAbs().maxCoeff();
 		if (bad > .01) {
+			// std::cout << "dense\n" << ihess << std::endl;
+			// std::cout << "sparse\n" << denseI << std::endl;
 			Rf_error("IHess: dense sparse mismatch %f", bad);
 		}
 
 		if (0) {
-		mxLog("done %f maxBlocksize %d est sparse %f actual sparse %f", bad, maxBlockSize,
-		      estNonZero / double(numParam * numParam),
-		      nonZero / double(numParam * numParam));
+			int nonZero = 0;
+			for (size_t cx=0; cx < numParam; ++cx) {
+				for (size_t rx=0; rx <= cx; ++rx) {
+					if (hess(rx,cx) != 0) {
+						if (rx == cx) nonZero += 1;
+						else nonZero += 2;
+					}
+				}
+			}
+			mxLog("done %f maxBlocksize %d est sparse %f actual sparse %f", bad, maxBlockSize,
+			      estNonZero / double(numParam * numParam),
+			      nonZero / double(numParam * numParam));
 		}
 	}
 
@@ -756,6 +773,32 @@ void FitContext::log(int what)
 		for (size_t vx=0; vx < count; ++vx) {
 			buf += string_snprintf("%.5f", est[vx]);
 			if (vx < count - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
+	if (what & FF_COMPUTE_GRADIENT) {
+		buf += string_snprintf("gradient %d: c(", (int) count);
+		for (size_t vx=0; vx < count; ++vx) {
+			buf += string_snprintf("%.5f", grad[vx]);
+			if (vx < count - 1) buf += ", ";
+		}
+		buf += ")\n";
+	}
+	if (what & FF_COMPUTE_HESSIAN) {
+		refreshDenseHess();
+		buf += string_snprintf("hessian %d x %d: c(\n", (int) count, (int) count);
+		for (size_t v1=0; v1 < count; ++v1) {
+			for (size_t v2=0; v2 < count; ++v2) {
+				double coef;
+				if (v1 > v2) {
+					coef = hess.selfadjointView<Eigen::Upper>()(v2,v1);
+				} else {
+					coef = hess.selfadjointView<Eigen::Upper>()(v1,v2);
+				}
+				buf += string_snprintf("%.5f", coef);
+				if (v1 < count - 1 || v2 < count - 1) buf += ", ";
+			}
+			buf += "\n";
 		}
 		buf += ")\n";
 	}
