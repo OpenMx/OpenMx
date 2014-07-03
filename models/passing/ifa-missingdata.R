@@ -52,7 +52,7 @@ if (1) {
   rownames(fm.est.mat) <- c('f1', paste('a',1:2,sep=""), paste('c',1:2,sep=""))
   cModel <- mxModel(model="test3", fm.est.mat,
                     mxData(observed=data, type="raw"),
-                    mxExpectationBA81(ItemSpec=items),
+                    mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
                       mxComputeOnce('fitfunction', 'fit'))))
@@ -63,7 +63,7 @@ if (1) {
 if (1) {
   m2 <- mxModel(model="test3", ip.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
+                mxExpectationBA81(ItemSpec=items, debugInternal=TRUE, minItemsPerScore=1L),
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', 'scores'))
   m2 <- mxRun(m2)
@@ -79,7 +79,7 @@ plan <- mxComputeEM('expectation', 'scores',
 
 m2 <- mxModel(model="test3", ip.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(ItemSpec=items),
+              mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
               mxFitFunctionML(),
               plan)
 
@@ -121,7 +121,7 @@ if (0) {
 }
 
 nullm2 <- mxModel(m2,
-                  mxExpectationBA81(ItemSpec=items),
+                  mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
                   mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
 
 nullm2$item$values[,] <- mxSimplify2Array(lapply(items, rpf.rparam))

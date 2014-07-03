@@ -30,7 +30,6 @@ setClass(Class = "MxExpectationBA81",
 	   verbose = "integer",
 	     output = "list",
 	     debug = "list",
-	     naAction = "character",
 	     minItemsPerScore = "integer",
 	     weightColumn = "MxCharOrNumber"),
          contains = "MxBaseExpectation")
@@ -38,7 +37,7 @@ setClass(Class = "MxExpectationBA81",
 setMethod("initialize", "MxExpectationBA81",
           function(.Object, ItemSpec, item, EstepItem,
 		   qpoints, qwidth, mean, cov, verbose, debugInternal,
-		   naAction, minItemsPerScore, weightColumn, name = 'expectation') {
+		   minItemsPerScore, weightColumn, name = 'expectation') {
             .Object@name <- name
 	    .Object@ItemSpec <- ItemSpec
 	    .Object@item <- item
@@ -50,7 +49,6 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@cov <- cov
 	    .Object@verbose <- verbose
 	    .Object@debugInternal <- debugInternal
-	    .Object@naAction <- naAction
 	    .Object@minItemsPerScore <- minItemsPerScore
 	    .Object@weightColumn <- weightColumn
             return(.Object)
@@ -166,10 +164,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param mean the name of the mxMatrix holding the mean vector
 ##' @param cov the name of the mxMatrix holding the covariance matrix
 ##' @param verbose the level of runtime diagnostics (default 0L)
-##' @param minItemsPerScore scores with fewer than this many items are considered NA (default 1L)
-##' @param naAction how to deal with NA scores. If "fail" then an
-##' error will be thrown. If "pass" then NAs will be excluded from the
-##' estimation but faithfully filled into the EAP scores. (default "fail")
+##' @param minItemsPerScore scores with fewer than this many items are considered NA
 ##' @param weightColumn the name of the column in the data containing the row weights (default NA)
 ##' @param EstepItem a simple matrix of item parameters for the
 ##' E-step. This option is mainly of use for debugging derivatives.
@@ -190,7 +185,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 			      qpoints=49L, qwidth=6.0, mean="mean", cov="cov",
-			      verbose=0L, naAction="fail", minItemsPerScore=1L, weightColumn=NA_integer_,
+			      verbose=0L, minItemsPerScore=NA_integer_, weightColumn=NA_integer_,
 			      EstepItem=NULL, debugInternal=FALSE) {
 
 	if (length(list(...)) > 0) {
@@ -208,16 +203,14 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
   
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
 
-	actions <- c("pass", "fail")
-	if (!match(naAction, actions)) stop(paste("Valid choices for naAction are", omxQuotes(actions)))
-
-	if (minItemsPerScore < 0L) stop("minItemsPerScore must be non-negative")
+	minItemsPerScore <- as.integer(minItemsPerScore)
+	if (!is.na(minItemsPerScore) && minItemsPerScore < 0L) stop("minItemsPerScore must be non-negative")
 
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 
 	return(new("MxExpectationBA81", ItemSpec, item, EstepItem,
 		   qpoints, qwidth, mean, cov, verbose, debugInternal,
-		   naAction, minItemsPerScore, weightColumn))
+		   minItemsPerScore, weightColumn))
 }
 
 ##' Like simplify2array but works with vectors of different lengths

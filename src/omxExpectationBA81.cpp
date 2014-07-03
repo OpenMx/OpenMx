@@ -505,13 +505,6 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols)
     Rf_unprotect(1);
 }
 
-static void naAction(BA81Expect *state, int rx, int ax)
-{
-	if (!state->naFail) return;
-	int dest = omxDataIndex(state->data, rx);
-	omxRaiseErrorf("Data row %d has no information about ability %d", 1+dest, 1+ax);
-}
-
 void omxInitExpectationBA81(omxExpectation* oo) {
 	omxState* currentState = oo->currentState;	
 	SEXP rObj = oo->rObj;
@@ -717,10 +710,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->grp.sanityCheck();
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("naAction")));
-	state->naFail = strEQ(CHAR(Rf_asChar(tmp)), "fail");
-
-	state->grp.buildRowSkip(state, naAction);
+	state->grp.buildRowSkip();
 
 	if (isErrorRaised()) return;
 

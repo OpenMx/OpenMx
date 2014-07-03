@@ -34,17 +34,7 @@ mkmodel <- function(data) {
 
 tdata <- data
 tdata[1,] <- NA
-omxCheckError(mxRun(mkmodel(tdata)), "1:Data row 1 has no information about ability 1
-2:Data row 1 has no information about ability 2
-3:Data row 1 has no information about ability 3")
-
-tdata <- data
-tdata[2,1:2] <- NA
-omxCheckError(mxRun(mkmodel(tdata)), "Data row 2 has no information about ability 2")
-
-tdata <- data
-tdata[3,3:4] <- NA
-omxCheckError(mxRun(mkmodel(tdata)), "Data row 3 has no information about ability 3")
+omxCheckError(mxRun(mkmodel(tdata)), "You have missing data. You must set minItemsPerScore")
 
 #-------------------------------------------------
 

@@ -218,7 +218,7 @@ ifaGroup::ifaGroup(int cores, bool _twotier) : Rdata(NULL),
 		mean(0),
 					       cov(0), dataRowNames(0),
 	    weightColumnName(0), rowWeight(0),
-					       minItemsPerScore(1),
+					       minItemsPerScore(NA_INTEGER),
 					       outcomeProb(0), excludedPatterns(-1)
 {}
 
@@ -573,6 +573,49 @@ void ifaGroup::setMinItemsPerScore(int mips)
 			 mips, numItems());
 	}
 	minItemsPerScore = mips;
+}
+
+void ifaGroup::buildRowSkip()
+{
+	rowSkip.assign(rowMap.size(), false);
+
+	if (maxAbilities == 0) return;
+
+	// Rows with no information about an ability will obtain the
+	// prior distribution as an ability estimate. This will
+	// throw off multigroup latent distribution estimates.
+	for (size_t rx=0; rx < rowMap.size(); rx++) {
+		bool hasNA = false;
+		std::vector<int> contribution(maxAbilities);
+		for (int ix=0; ix < numItems(); ix++) {
+			int pick = dataColumn(ix)[ rowMap[rx] ];
+			if (pick == NA_INTEGER) {
+				hasNA = true;
+				continue;
+			}
+			const double *ispec = spec[ix];
+			int dims = ispec[RPF_ISpecDims];
+			double *iparam = getItemParam(ix);
+			for (int dx=0; dx < dims; dx++) {
+				// assume factor loadings are the first item parameters
+				if (iparam[dx] == 0) continue;
+				contribution[dx] += 1;
+			}
+		}
+		if (!hasNA) continue;
+		if (minItemsPerScore == NA_INTEGER) {
+			Rf_error("You have missing data. You must set minItemsPerScore");
+		}
+		for (int ax=0; ax < maxAbilities; ++ax) {
+			if (contribution[ax] < minItemsPerScore) {
+				// We could compute the other scores, but estimation of the
+				// latent distribution is in the hot code path. We can reconsider
+				// this choice when we try generating scores instead of the
+				// score distribution.
+				rowSkip[rx] = true;
+			}
+		}
+	}
 }
 
 void ifaGroup::sanityCheck() // remove TODO

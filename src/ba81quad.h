@@ -204,51 +204,13 @@ class ifaGroup {
 	inline double *getItemParam(int ix) { return param + paramRows * ix; }
 	inline const int *dataColumn(int col) { return dataColumns[col]; };
 	void detectTwoTier();
-	template <typename T> void buildRowSkip(T, void (*naActionType)(T, int row, int ability));
+	void buildRowSkip();
 	void sanityCheck();
 	inline void ba81OutcomeProb(double *param, bool wantLog);
 	inline void ba81LikelihoodSlow2(const int px, double *out);
 	inline void cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei);
 	inline void cai2010part2(double *Qweight, double *Eis, double *Ei);
 };
-
-template <typename T>
-void ifaGroup::buildRowSkip(T userdata, void (*naActionType)(T, int row, int ability))
-{
-	rowSkip.assign(rowMap.size(), false);
-
-	if (maxAbilities == 0) return;
-
-	// Rows with no information about an ability will obtain the
-	// prior distribution as an ability estimate. This will
-	// throw off multigroup latent distribution estimates.
-	for (size_t rx=0; rx < rowMap.size(); rx++) {
-		std::vector<int> contribution(maxAbilities);
-		for (int ix=0; ix < numItems(); ix++) {
-			int pick = dataColumn(ix)[ rowMap[rx] ];
-			if (pick == NA_INTEGER) continue;
-			const double *ispec = spec[ix];
-			int dims = ispec[RPF_ISpecDims];
-			double *iparam = getItemParam(ix);
-			for (int dx=0; dx < dims; dx++) {
-				// assume factor loadings are the first item parameters
-				if (iparam[dx] == 0) continue;
-				contribution[dx] += 1;
-			}
-		}
-		for (int ax=0; ax < maxAbilities; ++ax) {
-			if (contribution[ax] < minItemsPerScore) {
-				naAction(userdata, rx, ax);
-
-				// We could compute the other scores, but estimation of the
-				// latent distribution is in the hot code path. We can reconsider
-				// this choice when we try generating scores instead of the
-				// score distribution.
-				rowSkip[rx] = true;
-			}
-		}
-	}
-}
 
 // Depends on item parameters, but not latent distribution
 void ifaGroup::ba81OutcomeProb(double *param, bool wantLog)

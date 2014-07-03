@@ -78,7 +78,6 @@ class BA81Expect {
 	// data characteristics
 	omxData *data;
 	double weightSum;              // sum of rowWeight
-	bool naFail;
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
