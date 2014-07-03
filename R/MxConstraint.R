@@ -102,6 +102,7 @@ setReplaceMethod("$", "MxConstraint",
 		return(imxReplaceSlot(x, name, value, check=TRUE))
 	}
 )
+setMethod("names", "MxConstraint", slotNames)
 
 displayConstraint <- function(object) {
 	cat("MxConstraint", omxQuotes(object@name), '\n')

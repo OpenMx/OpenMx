@@ -45,6 +45,7 @@ setReplaceMethod("$", "MxThreshold",
 	}
 )
 
+setMethod("names", "MxThreshold", slotNames)
 
 omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
 	if(length(nBreaks) > 1) {

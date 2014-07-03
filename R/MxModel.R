@@ -174,12 +174,6 @@ generateLocalNames <- function(model) {
 	return(retval)
 }
 
-setMethod("names", "MxModel",
-	function(x) {
-		generateParentNames(x)
-	}
-)
-
 setMethod("[[", "MxModel",
 	function(x, i, j, ..., drop = FALSE) {
 		return(imxExtractMethod(x, i))
@@ -192,15 +186,29 @@ setReplaceMethod("[[", "MxModel",
 	}
 )
 
+# These are slots that are intended to be directly viewable by the user.
+# Included separately so that they are the same between the $ and names() operators.
+publicMxModelSlots <- c("name", "matrices", "algebras", "data", "submodels", "output", "compute", "options", "intervals")
+
 setMethod("$", "MxModel",
 	function(x, name) {
         result <- imxExtractMethod(x, name)
-        if(name %in% c("name", "matrices", "algebras", "data", "submodels", "output", "compute", "options", "intervals")) {
+        if(name %in% publicMxModelSlots) {
             result <- imxExtractSlot(x, name)
         }
 		return(result)
 	}
 )
+
+setMethod("names", "MxModel",
+	function(x) {
+		submodels <- omxQuotes(names(x@submodels))
+		locals <- generateLocalNames(x)
+		slots <- publicMxModelSlots
+		return(c(submodels, locals, slots))
+	}
+)
+
 
 setReplaceMethod("$", "MxModel",
 	function(x, name, value) {

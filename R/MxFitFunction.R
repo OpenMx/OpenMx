@@ -74,6 +74,8 @@ setReplaceMethod("$", "MxBaseFitFunction",
 	}
 )
 
+setMethod("names", "MxBaseFitFunction", slotNames)
+
 ##' Add dependencies
 ##'
 ##' If there is an expectation, then the fitfunction should always

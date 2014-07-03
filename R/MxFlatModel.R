@@ -79,6 +79,16 @@ setReplaceMethod("$", "MxFlatModel",
 	}
 )
 
+setMethod("names", "MxFlatModel", 
+	function(x) {
+			return(flatNamesMethod(x))
+	}
+)
+
+flatNamesMethod <- function(model) {
+	return(flatNamespaceList(model))
+}
+
 flatExtractMethod <- function(model, index) {
 	return(flatNamespaceSearch(model, index))
 }

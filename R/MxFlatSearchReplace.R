@@ -98,6 +98,20 @@ doFlatNamespaceSearch <- function(model, name) {
 }
 
 #
+# Provide the list of named entities valid in the namespace
+#
+flatNamespaceList <- function(model) {
+	result <- c(names(model@matrices), 
+	names(model@algebras),
+	names(model@constraints),
+	names(model@fitfunctions),
+	names(model@expectations),
+	names(model@datasets))
+	return(result)
+}
+
+
+#
 # First portion of flatNamespaceSearchReplace(model, name, value)
 # Replaces the entire flat model if name matches
 #

@@ -120,6 +120,8 @@ setReplaceMethod("$", "BaseCompute",
 	}
 )
 
+setMethod("names", "BaseCompute", slotNames)
+
 #----------------------------------------------------
 
 setClass(Class = "MxComputeOnce",

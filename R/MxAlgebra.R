@@ -61,6 +61,7 @@ setReplaceMethod("$", "MxAlgebra",
 	}
 )
 
+setMethod("names", "MxAlgebra", slotNames)
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) {
 	garbageArguments <- list(...)

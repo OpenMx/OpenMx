@@ -102,7 +102,7 @@ setReplaceMethod("$", "MxBaseExpectation",
 	}
 )
 
-
+setMethod("names", "MxBaseExpectation", slotNames)
 
 convertExpectationFunctions <- function(flatModel, model, labelsData, defVars, dependencies) {
 	retval <- lapply(flatModel@expectations, function(ex) {

@@ -42,6 +42,8 @@ setReplaceMethod("$", "MxInterval",
 	}
 )
 
+setMethod("names", "MxInterval", slotNames)
+
 expandSingleInterval <- function(interval) {
 	references <- interval@reference
 	if (length(references) == 1) {

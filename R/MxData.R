@@ -79,6 +79,8 @@ setReplaceMethod("$", "MxData",
        }
 )
 
+setMethod("names", "MxData", slotNames)
+
 ##' Valid types of data that can be contained by MxData
 imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 

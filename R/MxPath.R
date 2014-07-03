@@ -50,6 +50,7 @@ setReplaceMethod("$", "MxPath",
 	}
 )
 
+setMethod("names", "MxPath", slotNames)
 
 expandPathConnect <- function(from, to, connect) {
 	# now expand the paths to check for errors

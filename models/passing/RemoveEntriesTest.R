@@ -27,4 +27,4 @@ omxCheckError(mxModel(model, A, B, remove=TRUE),
 	"the name of the entity when removing it.",
 	"See http://openmx.psyc.virginia.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
 model <- mxModel(model, 'A', 'B', remove=TRUE)
-omxCheckEquals(length(names(model)), 0)
+omxCheckEquals(length(names(model)), 9)

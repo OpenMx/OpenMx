@@ -315,6 +315,8 @@ setReplaceMethod("$", "MxMatrix",
 	}
 )
 
+setMethod("names", "MxMatrix", slotNames)
+
 matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 
