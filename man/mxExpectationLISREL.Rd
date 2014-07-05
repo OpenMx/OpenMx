@@ -158,9 +158,14 @@ mPH <- mxMatrix("Symm", values=c(1, .3, 1),
 
 expFunction <- mxExpectationLISREL(LX="LX", TD="TD", PH="PH")
 
+# Create fit function and data
+
+tmpData <- mxData(observed=covData, type="cov", numObs=100)
+fitFunction <- mxFitFunctionML()
+
 # Create the model, fit it, and print a summary.
 
-tmpModel <- mxModel(model="exampleModel", mLX, mTD, mPH, expFunction, mxData(observed=covData, type="cov", numObs=100))
+tmpModel <- mxModel(model="exampleModel", mLX, mTD, mPH, expFunction, fitFunction, tmpData)
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 
