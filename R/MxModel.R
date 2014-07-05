@@ -202,10 +202,12 @@ setMethod("$", "MxModel",
 
 setMethod("names", "MxModel",
 	function(x) {
-		submodels <- omxQuotes(names(x@submodels))
+		submodels <- names(x@submodels)
 		locals <- generateLocalNames(x)
 		slots <- publicMxModelSlots
-		return(c(submodels, locals, slots))
+		output <- c(submodels, locals, slots)
+		output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+		return(output)
 	}
 )
 
