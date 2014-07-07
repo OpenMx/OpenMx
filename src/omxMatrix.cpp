@@ -213,6 +213,9 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	newMat->matrixNumber    = src->matrixNumber;
 	newMat->name = src->name;
     
+	newMat->rownames = src->rownames;
+	newMat->colnames = src->colnames;
+
     return newMat;    
 }
 
@@ -651,6 +654,10 @@ void omxRecompute(omxMatrix *matrix, int want, FitContext *fc)
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, want, fc);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
+	}
+
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
+		omxMarkClean(matrix);
 	}
 }
 

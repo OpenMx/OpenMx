@@ -15,8 +15,6 @@
 
 
 setClass(Class = "MxFitFunctionML",
-	representation = representation(
-		vector = "logical"),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionML",

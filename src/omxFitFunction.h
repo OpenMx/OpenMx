@@ -84,7 +84,7 @@ struct omxFitFunction {					// A fit function
 };
 
 /* Initialize and Destroy */
-void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber);
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj);
 void omxCompleteFitFunction(omxMatrix *om);
 void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 

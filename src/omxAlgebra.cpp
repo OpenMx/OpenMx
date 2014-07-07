@@ -30,8 +30,7 @@
 #include "omxMatrix.h"
 #include "omxFitFunction.h"
 
-static void
-omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
+void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 {
 	if (numArgs <= 0) {
 		oa->numArgs = 0;
@@ -78,6 +77,7 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name, NULL);
 	    tgt->algebra->rownames = src->algebra->rownames;
 	    tgt->algebra->colnames = src->algebra->colnames;
+	    omxMarkDirty(tgt);
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -117,8 +117,6 @@ void omxAlgebraRecompute(omxAlgebra *oa, int want, FitContext *fc)
 		(*(algebra_op_t)oa->funWrapper)(fc, want, oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
-	omxMarkClean(oa->matrix);
-	
 	if(OMX_DEBUG_ALGEBRA) {
 		std::string name = string_snprintf("Algebra '%s' result", oa->matrix->name);
 		omxAlgebraPrint(oa, name.c_str());
@@ -142,8 +140,8 @@ static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *
 	return om;
 }
 
-static void
-omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs) {
+void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs)
+{
 	/* TODO: check for full initialization */
 	if(oa == NULL) Rf_error("Internal Error: Null Algebra Detected in fillAlgebra.");
 
@@ -241,8 +239,7 @@ omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
-	std::string name = string_snprintf("%s_%d", d, oa->numArgs);
-	omxPrintMatrix(oa->matrix, name.c_str());
+	omxPrintMatrix(oa->matrix, d);
 }
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {

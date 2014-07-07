@@ -202,8 +202,9 @@ Matrix csolnpIneqFun(int verbose)
         myIneqFun = fill(ineq_n, 1, EMPTY);
         
         for(j = 0; j < globalState->numConstraints; j++) {
-            if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2)
-		    {   omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, GLOB_fc);}
+            if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
+		    omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, GLOB_fc);
+	    }
             for(k = 0; k < globalState->conList[j].size; k++){
                 M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
                 l = l + 1;

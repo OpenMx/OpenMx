@@ -72,6 +72,7 @@ class omxData {
  private:
 	SEXP rownames;
  public: // move everything to private TODO
+	SEXP dataObject;
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
@@ -97,6 +98,7 @@ class omxData {
 	omxData();
 	void newDataStatic(SEXP dataObject);
 	SEXP getRowNames();
+	void connectDynamicData();
 };
 
 /* Initialize and Destroy */

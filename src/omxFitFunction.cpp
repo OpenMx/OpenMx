@@ -74,6 +74,8 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 {
 	if (Global->numThreads <= 1) return;
 
+	if (OMX_DEBUG) mxLog("Create %d omxState", Global->numThreads);
+
 	for(size_t j = 0; j < globalState->expectationList.size(); j++) {
 		if (!globalState->expectationList[j]->canDuplicate) return;
 	}
@@ -89,6 +91,8 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 		omxInitState(globalState->childList[ii]);
 		omxDuplicateState(globalState->childList[ii], globalState);
 	}
+
+	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
 }
 
 void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
@@ -98,22 +102,18 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	omxFitFunction *ff = src->fitFunction;
 	if(ff == NULL) return;
     
-	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber);
+	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber, ff->rObj);
 	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
-	tgt->fitFunction->rObj = ff->rObj;
-	omxCompleteFitFunction(tgt);
 }
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
+	if (want == FF_COMPUTE_DIMS) return;
+
 	if (!off->initialized) Rf_error("FitFunction not initialized");
 
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;
-
-	if (want & FF_COMPUTE_FIT) {
-		omxMarkClean(off->matrix);
-	}
 }
 
 void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
@@ -178,14 +178,14 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)
 {}
 
-void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber)
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj)
 {
 	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
 	memset(obj, 0, sizeof(omxFitFunction));
 
 	/* Register FitFunction and Matrix with each other */
 	obj->matrix = om;
-	omxResizeMatrix(om, 1, 1);					// FitFunction matrices MUST be 1x1.
+	obj->rObj = rObj;
 	om->fitFunction = obj;
 	om->hasMatrixNumber = TRUE;
 	om->matrixNumber = matrixNumber;
@@ -206,13 +206,6 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 	}
 
 	if (obj->initFun == NULL) Rf_error("Fit function %s not implemented", fitType);
-}
-
-void omxCompleteFitFunction(omxMatrix *om)
-{
-	omxFitFunction *obj = om->fitFunction;
-	if (obj->initialized) return;
-	SEXP rObj = obj->rObj;
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
@@ -220,12 +213,29 @@ void omxCompleteFitFunction(omxMatrix *om)
 		int expNumber = INTEGER(slotValue)[0];	
 		if(expNumber != NA_INTEGER) {
 			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
-			setFreeVarGroup(obj->expectation, obj->freeVarGroup);
-			omxCompleteExpectation(obj->expectation);
 		}
 	}
-	Rf_unprotect(1);	/* slotValue */
-	
+	Rf_unprotect(1);
+
+	bool rowLik = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
+	if (rowLik && obj->expectation && obj->expectation->data) {
+		omxData *dat = obj->expectation->data;
+		omxResizeMatrix(om, dat->rows, 1);
+	} else {
+		omxResizeMatrix(om, 1, 1);
+	}
+}
+
+void omxCompleteFitFunction(omxMatrix *om)
+{
+	omxFitFunction *obj = om->fitFunction;
+	if (obj->initialized) return;
+
+	if (obj->expectation) {
+		setFreeVarGroup(obj->expectation, obj->freeVarGroup);
+		omxCompleteExpectation(obj->expectation);
+	}
+
 	obj->initFun(obj);
 
 	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 

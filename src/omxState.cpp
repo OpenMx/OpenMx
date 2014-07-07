@@ -238,23 +238,34 @@ void omxGlobal::deduplicateVarGroups()
 			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt);
 		}
 
-		for(size_t j = 0; j < src->algebraList.size(); j++) {
-			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
-		}
-
 		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate
 			tgt->expectationList.push_back(omxDuplicateExpectation(src->expectationList[j], tgt));
+		}
+
+		for(size_t j = 0; j < src->algebraList.size(); j++) {
+			// TODO: Smarter inference for which algebras to duplicate
+			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
 		}
 
 		for(size_t j = 0; j < tgt->algebraList.size(); j++) {
 			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
 		}
 
+		for (int ax=0; ax < (int) tgt->algebraList.size(); ++ax) {
+			omxMatrix *matrix = tgt->algebraList[ax];
+			omxRecompute(matrix, FF_COMPUTE_DIMS, NULL);
+		}
+
 		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate
 			omxCompleteExpectation(tgt->expectationList[j]);
+		}
+
+		for (int ax=0; ax < (int) tgt->algebraList.size(); ++ax) {
+			omxMatrix *matrix = tgt->algebraList[ax];
+			if (!matrix->fitFunction) continue;
+			omxCompleteFitFunction(matrix);
 		}
 
 		tgt->currentRow 		= src->currentRow;

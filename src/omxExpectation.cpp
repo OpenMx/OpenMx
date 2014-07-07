@@ -113,6 +113,10 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->rObj = rObj;
 	expect->expNum = expNum;
 	
+	SEXP nextMatrix;
+	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("data")));
+	expect->data = omxDataLookupFromState(nextMatrix, os);
+
 	return expect;
 }
 
@@ -128,10 +132,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	SEXP nextMatrix, itemList, nextItem, threshMatrix; 
 	
 	if(rObj == NULL) return;
-
-	if(OMX_DEBUG) { mxLog("Retrieving data."); }
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("data")));
-	ox->data = omxDataLookupFromState(nextMatrix, ox->currentState);
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");

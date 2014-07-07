@@ -52,6 +52,8 @@ struct omxAlgebra {						// A matrix
 
 /* Initialize and Destroy */
 	omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os);			// Constructor 
+void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs);
+void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs);
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
 void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name, SEXP dimnames);

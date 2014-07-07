@@ -1227,7 +1227,4 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	state->copyEstimates(estate);
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
-	if (state->returnRowLikelihoods) {
-		omxResizeMatrix(oo->matrix, expectation->data->rows, 1);
-	}
 }

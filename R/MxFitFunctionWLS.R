@@ -36,6 +36,7 @@ setMethod("initialize", "MxFitFunctionWLS",
 	function(.Object, weights, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@weights <- weights
+		.Object@vector <- FALSE
 		return(.Object)
 	}
 )

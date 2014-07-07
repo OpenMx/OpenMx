@@ -22,6 +22,7 @@ setClass(Class = "MxBaseFitFunction",
 	   info = "list",
 		dependencies = "integer",
 		expectation = "integer",
+	        vector = "logical",
 		result = "matrix", "VIRTUAL"),
 	 contains = "MxBaseNamed")
 

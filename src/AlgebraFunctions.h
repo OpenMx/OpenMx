@@ -38,8 +38,8 @@
 
 /* omxAlgebraFunction Wrappers */
 
-static void omxMatrixTranspose(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
-
+static void omxMatrixTranspose(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
 	omxMatrix* inMat = matList[0];
 
 	omxCopyMatrix(result, inMat);
@@ -64,31 +64,83 @@ static void omxMatrixInvert(FitContext *fc, int want, omxMatrix** matList, int n
 	}
 }
 
-static void scalar2matrix(omxMatrix *scalar, omxMatrix *templ)
+static int BroadcastIndex = 0;
+
+static void nameBroadcastAlg(omxMatrix *bc)
 {
-	double val = scalar->data[0];
-	omxResizeMatrix(scalar, templ->rows, templ->cols);
-	const int size = templ->rows * templ->cols;
-	for (int vx=0; vx < size; ++vx) scalar->data[vx] = val;
+	std::string str = string_snprintf("broadcast%03d", ++BroadcastIndex);
+	SEXP name;
+	Rf_protect(name = Rf_mkChar(str.c_str()));
+	bc->name = CHAR(name);
 }
 
-static bool isElemConformable(const char *op, omxMatrix *mat1, omxMatrix *mat2)
+static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *result)
 {
-	if (mat1->cols == mat2->cols && mat1->rows == mat2->rows) return true;
+	omxMatrix *mat0 = matList[0];
+	omxMatrix *mat1 = matList[1];
 
+	// This is for backward compatibility with opcodes that
+	// do not do anything special for FF_COMPUTE_DIMS.
+	if (mat0->cols == 0 || mat0->rows == 0) {
+		omxRecompute(mat0, FF_COMPUTE_INITIAL_FIT, NULL);
+	}
+	if (mat1->cols == 0 || mat1->rows == 0) {
+		omxRecompute(mat1, FF_COMPUTE_INITIAL_FIT, NULL);
+	}
+
+	if (mat0->cols == mat1->cols && mat0->rows == mat1->rows) {
+		if(OMX_DEBUG_ALGEBRA) { 
+			mxLog("Resize %s to %dx%d", result->name, mat0->rows, mat0->cols);
+		}
+		omxResizeMatrix(result, mat0->rows, mat0->cols);
+		return;
+	}
+
+	if (mat0->cols == 1 && mat0->rows == 1) {
+		omxResizeMatrix(result, mat1->rows, mat1->cols);
+		omxMatrix* om = omxInitMatrix(mat1->rows, mat1->cols, TRUE, result->currentState);
+		nameBroadcastAlg(om);
+		omxAlgebra *oa = new omxAlgebra;
+		omxInitAlgebraWithMatrix(oa, om);
+		omxAlgebraAllocArgs(oa, 1);
+		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[62]); // broadcast
+		omxFillAlgebraFromTableEntry(oa, entry, 1);
+		oa->algArgs[0] = mat0;
+		matList[0] = om;
+		return;
+	}
 	if (mat1->cols == 1 && mat1->rows == 1) {
-		scalar2matrix(mat1, mat2);
-		return true;
-	}
-	if (mat2->cols == 1 && mat2->rows == 1) {
-		scalar2matrix(mat2, mat1);
-		return true;
+		omxResizeMatrix(result, mat0->rows, mat0->cols);
+		omxMatrix* om = omxInitMatrix(mat0->rows, mat0->cols, TRUE, result->currentState);
+		nameBroadcastAlg(om);
+		omxAlgebra *oa = new omxAlgebra;
+		omxInitAlgebraWithMatrix(oa, om);
+		omxAlgebraAllocArgs(oa, 1);
+		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[62]); // broadcast
+		omxFillAlgebraFromTableEntry(oa, entry, 1);
+		oa->algArgs[0] = mat1;
+		matList[1] = om;
+		return;
 	}
 
-	omxRaiseErrorf("Matrices %s and %s are non-conformable in %s; rows %d != %d or cols %d != %d",
-		       mat1->name, mat2->name, op, mat1->rows, mat2->rows, mat1->cols, mat2->cols);
+	Rf_error("Matrices %s and %s are non-conformable in %s; rows %d != %d or cols %d != %d",
+		 mat0->name, mat1->name, op, mat0->rows, mat1->rows, mat0->cols, mat1->cols);
+}
 
-	return false;
+static void omxBroadcast(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (want == FF_COMPUTE_DIMS) return;
+
+	omxMatrix *src = matList[0];
+
+	if (src->rows != 1 || src->cols != 1) {
+		Rf_error("Don't know how to broadcast from a non 1x1 source matrix");
+	}
+
+	int size = result->rows * result->cols;
+	for (int dx=0; dx < size; ++dx) {
+		result->data[dx] = src->data[0];
+	}
 }
 
 static void omxMatrixMult(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -124,19 +176,17 @@ static void omxMatrixMult(FitContext *fc, int want, omxMatrix** matList, int num
 
 static void omxElementPower(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("elementwise power", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("elementwise power", first, second)) return;
-
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
 
-	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols);
-	}
-	
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -158,18 +208,16 @@ static void omxElementPower(FitContext *fc, int want, omxMatrix** matList, int n
 
 static void omxMatrixElementMult(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("elementwise multiplication", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("elementwise multiplication", first, second)) return;
-
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols);
-	}
 	
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -271,19 +319,17 @@ static void omxQuadraticProd(FitContext *fc, int want, omxMatrix** matList, int 
 
 static void omxElementDivide(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("elementwise divide", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("elementwise divide", first, second)) return;
-
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
 
-	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols);
-	}
-	
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -330,18 +376,16 @@ static void omxUnaryNegation(FitContext *fc, int want, omxMatrix** matList, int 
 
 static void omxBinaryOr(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("binary or", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("binary or", first, second)) return;
-
-		int rows = first->rows;
-		int cols = first->cols;
+	int rows = first->rows;
+	int cols = first->cols;
 		int size = rows * cols;
-
-	    if((rows != result->rows) || (cols != result->cols)){
-	        	omxResizeMatrix(result, rows, cols);
-	    }
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -372,19 +416,18 @@ static void omxBinaryOr(FitContext *fc, int want, omxMatrix** matList, int numAr
 		}
 }
 
-static void omxBinaryAnd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result){
-	        omxMatrix* first = matList[0];
-		    omxMatrix* second = matList[1];
+static void omxBinaryAnd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("binary and", matList, result);
+		return;
+	}
 
-	if (!isElemConformable("binary and", first, second)) return;
-
-		int rows = first->rows;
-		int cols = first->cols;
+	omxMatrix* first = matList[0];
+	omxMatrix* second = matList[1];
+	int rows = first->rows;
+	int cols = first->cols;
 		int size = rows * cols;
-
-	    if((rows != result->rows) || (cols != result->cols)){
-	             omxResizeMatrix(result, rows, cols);
-	    }
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -415,19 +458,18 @@ static void omxBinaryAnd(FitContext *fc, int want, omxMatrix** matList, int numA
 		}
 }
 
-static void omxBinaryLessThan(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result){
-	        omxMatrix* first = matList[0];
-		    omxMatrix* second = matList[1];
+static void omxBinaryLessThan(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("binary less than", matList, result);
+		return;
+	}
 
-	if (!isElemConformable("binary less than", first, second)) return;
-
-		int rows = first->rows;
-		int cols = first->cols;
+	omxMatrix* first = matList[0];
+	omxMatrix* second = matList[1];
+	int rows = first->rows;
+	int cols = first->cols;
 		int size = rows * cols;
-
-	    if((rows != result->rows) || (cols != result->cols)){
-	             omxResizeMatrix(result, rows, cols);
-	    }
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -461,18 +503,16 @@ static void omxBinaryLessThan(FitContext *fc, int want, omxMatrix** matList, int
 
 static void omxBinaryGreaterThan(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("binary greater than", matList, result);
+		return;
+	}
+	
         omxMatrix* first = matList[0];
-	    omxMatrix* second = matList[1];
-
-	if (!isElemConformable("binary greater than", first, second)) return;
-
+	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-        if((rows != result->rows) || (cols != result->cols)){
-                omxResizeMatrix(result, rows, cols);
-        }
 
 	if (first->colMajor == second->colMajor) {
         	for(int i = 0; i < size; i++) {
@@ -507,20 +547,14 @@ static void omxBinaryGreaterThan(FitContext *fc, int want, omxMatrix** matList, 
 static void omxBinaryApproxEquals(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
         omxMatrix* first  = matList[0];
-	    omxMatrix* second = matList[1];
-		omxMatrix* epsilon = matList[2]; 
-		
-	if (!isElemConformable("binary approx equals", first, second)) return;
-	if (!isElemConformable("binary approx equals", first, epsilon)) return;
-
+	omxMatrix* second = matList[1];
+	omxMatrix* epsilon = matList[2]; 
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
 	double negativeOne = -1.0;
 
-    if((rows != result->rows) || (cols != result->cols)){
-                omxResizeMatrix(result, rows, cols);
-    }
+	omxResizeMatrix(result, first->rows, first->cols);
 
 	if (first->colMajor == second->colMajor && second->colMajor == epsilon->colMajor) {
         	for(int i = 0; i < size; i++) {
@@ -564,19 +598,17 @@ static void omxBinaryApproxEquals(FitContext *fc, int want, omxMatrix** matList,
 
 static void omxMatrixAdd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("matrix add", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("matrix add", first, second)) return;
-
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
 
-	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols);
-	}
-	
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -730,19 +762,17 @@ static void omxMatrixExtract(FitContext *fc, int want, omxMatrix** matList, int 
 
 static void omxMatrixSubtract(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
+	if (want == FF_COMPUTE_DIMS) {
+		ensureElemConform("matrix subtract", matList, result);
+		return;
+	}
+
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
-
-	if (!isElemConformable("matrix subtract", first, second)) return;
-
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
 
-	if((rows != result->rows) || (cols != result->cols)) {
-		omxResizeMatrix(result, rows, cols);
-	}
-	
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,

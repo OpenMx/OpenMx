@@ -28,7 +28,7 @@
 #include "glue.h"
 #include "omxState.h"
 
-omxData::omxData() : rownames(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+omxData::omxData() : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     indexVector(0), identicalDefs(0), identicalMissingness(0),
 		     identicalRows(0), rows(0), cols(0),
@@ -47,16 +47,23 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("type")));
 	Rf_protect(dataVal = STRING_ELT(dataLoc,0));
 	od->_type = CHAR(dataVal);
+	od->dataObject = dataObject;
+}
 
+void omxData::connectDynamicData()
+{
+	if (!dataObject) return;
+
+	SEXP dataLoc;
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
 	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
-	if (od->expectation) {
+	if (expectation) {
 		omxRaiseErrorf("%s: Cannot be a dynamic data source for "
 			       "more than 1 data object (not implemented)", ex->name);
 		return;
 	}
-	od->expectation = ex;
-	ex->dynamicDataSource = od;
+	expectation = ex;
+	ex->dynamicDataSource = this;
 }
 
 void omxData::newDataStatic(SEXP dataObject)

@@ -78,7 +78,13 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 		omxManageProtectInsanity protectManager;
 		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
-			// fitfunction, delay until expectations are ready
+			SEXP fitFunctionClass;
+			Rf_protect(fitFunctionClass = STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
+			const char *fitType = CHAR(fitFunctionClass);
+			omxMatrix *fm = globalState->algebraList[index];
+			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
+			fm->name = CHAR(STRING_ELT(algListNames, index));
+			Rf_unprotect(1);	// fitFunctionClass
 		} else {								// This is an algebra spec.
 			SEXP dimnames, formula;
 			omxMatrix *amat = globalState->algebraList[index];
@@ -89,28 +95,6 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			omxMarkDirty(amat);
 		}
 		if (isErrorRaised()) return;
-	}
-}
-
-void omxProcessMxFitFunction(SEXP algList)
-{
-	SEXP nextAlgTuple;
-	SEXP algListNames = Rf_getAttrib(algList, R_NamesSymbol);
-
-	for(int index = 0; index < Rf_length(algList); index++) {
-		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));		// The next algebra or fit function to process
-		if(IS_S4_OBJECT(nextAlgTuple)) {
-			SEXP fitFunctionClass;
-			Rf_protect(fitFunctionClass = STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
-			const char *fitType = CHAR(fitFunctionClass);
-			omxMatrix *fm = globalState->algebraList[index];
-			omxFillMatrixFromMxFitFunction(fm, fitType, index);
-			fm->fitFunction->rObj = nextAlgTuple;
-			fm->name = CHAR(STRING_ELT(algListNames, index));
-			Rf_unprotect(1);	// fitFunctionClass
-		}
-		if (isErrorRaised()) return;
-		Rf_unprotect(1); //nextAlgTuple
 	}
 }
 
@@ -389,7 +373,7 @@ void omxProcessConstraints(SEXP constraints, FitContext *fc)
 		globalState->conList[constraintIndex].opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
 		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
-		omxRecompute(globalState->conList[constraintIndex].result, FF_COMPUTE_FIT, fc);
+		omxRecompute(globalState->conList[constraintIndex].result, FF_COMPUTE_DIMS, fc);
 		int nrows = globalState->conList[constraintIndex].result->rows;
 		int ncols = globalState->conList[constraintIndex].result->cols;
 		globalState->conList[constraintIndex].size = nrows * ncols;
