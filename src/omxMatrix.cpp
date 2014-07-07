@@ -327,7 +327,7 @@ void omxMarkDirty(omxMatrix *om) {
 	if (OMX_DEBUG_ALGEBRA) {
 		const char *name = "?";
 		if (om->name) name = om->name;
-		mxLog("Marking matrix %s dirty (version %d)", name, om->version);
+		mxLog("Marking matrix %s dirty", name);
 	}
 }
 
@@ -337,7 +337,7 @@ void omxMarkClean(omxMatrix *om) {
 	if (OMX_DEBUG_ALGEBRA) {
 		const char *name = "?";
 		if (om->name) name = om->name;
-		mxLog("Marking matrix %s clean (version %d)", name, om->version);
+		mxLog("Marking matrix %s clean", name);
 	}
 }
 
