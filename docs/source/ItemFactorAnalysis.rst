@@ -959,31 +959,153 @@ will be wrong.
 For example, examine the change in EAP scores with and without
 the estimated latent distribution (:num:`Figure #figure-eap-latent`).
 
-Two-tier Latent Covariance
+Two-Tier Latent Covariance
 --------------------------
 
-music perception accuracy test
-2 factor, tonal rhythm
-3 correlated groups of items
+Suppose a music researcher published item parameters for a measure of
+music perception accuracy.
+Items load to some extent on a tonal factor and a rhythm factor.
+In addition, there are 3 items associated with each stimulus.
+Since questions asking about the same stimulus are expected to be more
+correlated than items about different stimulus,
+these groups of items share extra variance.
+You have administered this measure to a few classes of music students
+and wish to know about the distribution of their tonal and rhythmic
+perception accuracy.
+
+.. code-block:: r
+
+   # replace with published item parameters
+   spec <- list()
+   spec[1:21] <- rpf.grm(factors=9, outcomes=5)
+   factors <- c('tonal', 'rhythm', paste('s', 1:7, sep=""))
+   imat <- mxMatrix(name="item", values=simplify2array(lapply(spec, rpf.rparam)),
+                 dimnames=list(c(factors, paste('b', 1:4, sep="")),
+                               paste("i", 1:length(spec), sep="")))
+
+   # arrange the per-stimulus covariance structure
+   for (stimulus in 1:7) {
+     imat$values[2 + stimulus, -(((stimulus - 1) * 3 + 1) : (stimulus*3))] <- 0
+   }
+
+   # replace with your own data
+   require(MASS)  # for mvrnorm
+   simCov <- matrix(0, length(factors), length(factors))
+   diag(simCov) <- rlnorm(length(factors), .5, .5)
+   simCov[1:2, 1:2] <- c(1.2, .4, .4, .8)
+   skill <- mvrnorm(200, c(1.1, .7, runif(7)), simCov)
+   data <- rpf.sample(t(skill), spec, imat$values)
+
+   # set up the matrices to hold our latent free parameters
+   mMat <- mxMatrix(name="mean", nrow=length(factors), ncol=1, values=0, free=TRUE)
+   rownames(mMat) <- factors
+   covMat <- mxMatrix(name="cov", values=diag(length(factors)), free=FALSE)
+   covMat$labels[1,2] <- covMat$labels[2,1] <- 'cov1'  # ensure symmetric
+   dimnames(covMat) <- list(factors, factors)
+   covMat$free[1:2, 1:2] <- TRUE
+   diag(covMat$free) <- TRUE
+
+   trModel <- mxModel(model="tr", mMat, covMat, imat,
+		mxExpectationBA81(spec, qpoints=15, qwidth=5),
+		mxFitFunctionML(),
+		mxData(observed=data, type="raw"))
+
+   latentModel <- mxModel(model="latent",
+		      mxDataDynamic(type="cov", expectation="tr.expectation"),
+		      mxExpectationNormal(covariance="tr.cov", means="tr.mean"),
+		      mxFitFunctionML())
+
+   m1Model <- mxModel(model="music1", trModel, latentModel,
+                    mxFitFunctionMultigroup(c("tr.fitfunction", "latent.fitfunction")),
+                    mxComputeEM('tr.expectation', 'scores',
+		            mxComputeGradientDescent(fitfunction="latent.fitfunction"),
+			    tolerance=1))
+
+   m1Model <- mxRun(m1Model)
+
+There are 9 factors which usually would entail 9 dimensional integration
+over the latent density.
+Such high dimensional integration is either intractable or takes an
+impractical amount of time.
+However, this model happens to have a two-tier covariance structure
+that permits analytic reduction to 3 dimensional integration.
+Formally,  a two-tier covariance matrix is restricted to
+
+.. math::
+   \Sigma_{\mathrm{two-tier}} =
+   \begin{pmatrix}
+     G & 0 \\
+     0 & \mathrm{diag}(\tau) \label{eqn:2tier}
+   \end{pmatrix},
+
+where the covariance sub-matrix :math:`G` is unrestricted (subject to identification),
+covariance sub-matrix :math:`\mathrm{diag}(\tau)` is diagonal,
+and :math:`\tau` is a vector of variances.
+The factors that make up
+:math:`G` are called primary factors and the factors that comprise
+:math:`\tau` are called specific factors.
+Furthermore, each item is permitted to load on at most one specific factor.
+
+.. code-block:: r
+
+	mxExpectationBA81(spec, qpoints=15, qwidth=5)
+
+The default quadrature uses 49 points per dimension.
+That works out to :math:`49^3 = 117649` points for 3 dimensions.
+To speed things up at the cost of some accuracy,
+we reduced the equal-interval quadrature to 15 points,
+ranging from Z score -5 to 5.
+This reduces the number of quadrature points to :math:`15^3 = 3375`.
+
+.. code-block:: r
+
+   mxComputeEM('tr.expectation', 'scores',
+		mxComputeGradientDescent(fitfunction="latent.fitfunction"),
+		tolerance=1)
+
+You may have noticed that latent parameter models have used
+``mxComputeGradientDescent`` instead of ``mxComputeNewtonRaphson``.
+That is because the analytic derivatives for the multivariate normal
+required by the Newton-Raphson optimizer had not been coded into
+``OpenMx`` at the time of writing.
+At least for item parameters, the availability of two optimizers
+offers a way to verify that the optimization algorithm is working.
+You can always replace ``mxComputeNewtonRaphson`` by
+``mxComputeGradientDescent``.
+The optimization will take more time, but you can check whether you
+arrive at the same optimum.
+The ability to easily swap-out and replace components
+of a model is invaluable for debugging unexpected behavior.
+Finally, the option ``tolerance=1`` is there to terminate optimization early.
+This is meant to be a quick demonstration and requesting higher accuracy
+slows down estimation substantially.
 
 * multiple group models
 * special features to cope with missing data
 * automatic-ish item construction (especially for the nominal model)
-* two-tier models
 * simulation studies
-* more than 1 primary factor
-* more plots
 
 Future Extensions
 =================
 
-* The ``item`` matrix could be provided as an algebra that contains
-the expected mean vector of a general structural model.  This would be
-a generalization of the linear latent trait model.
+* In addition to ``mxExpectationNormal``, it should be possible to fit
+  the latent distribution to an arbitrary structural model created
+  using ``RAM`` or ``LISREL`` notation.  Currently, the dimensionality
+  of the latent space is limited by the use of quadrature
+  integration. However, the Metropolis-Hastings Robbins-Monro (MH-RM)
+  algorithm can efficiently fit high-dimensional models [Cai2010]_.
+  The MH-RM algorithm would make a useful addition to ``OpenMx``.
+
+* The ``item`` matrix could be provided as an arbitrary algebra.  This
+  would be a generalization of the linear latent trait model.
 
 
 .. [BockAitkin1981] Bock, R. D. & Aitkin, M. (1981). Marginal maximum likelihood estimation of item parameters:
 		    Application of an EM algorithm. Psychometrika, 46, 443–459.
+
+.. [Cai2010] Cai, L. (2010). High-dimensional exploratory item factor
+	     analysis by a Metropolis–Hastings Robbins–Monro
+	     algorithm. Psychometrika, 75(1), 33-57.
 
 .. [CaiYangHansen2011] Cai, L., Yang, J. S., &
                        Hansen, M. (2011). Generalized full-information

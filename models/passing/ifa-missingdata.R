@@ -90,7 +90,7 @@ m2 <- mxRun(m2)
 
 grp <- list(spec=m2$expectation$ItemSpec,
             param=m2$item$values,
-            data=m2$data$observed,
+            data=data,
             free=m2$item$free)
 
 if (0) {
@@ -130,3 +130,26 @@ nullm2$item$free['f1',] <- FALSE
 
 nullm2 <- mxRun(nullm2)
 omxCheckCloseEnough(nullm2$output$fit, 2926.20, .01)
+
+# -------------- MAP -------------
+require(mvtnorm)
+mapFn <- function(grp, row, theta) {
+  dims <- 1
+  mean <- grp$mean
+  if (is.null(mean)) mean <- rep(0, dims)
+  cov <- grp$cov
+  if (is.null(cov)) cov <- diag(dims)
+  prob <- sapply(1:ncol(grp$param), function(ix) {
+    rpf.logprob(grp$spec[[ix]], grp$param[,ix], theta)[unclass(grp$data[row,ix])]
+  })
+#  print(prob)
+  sum(prob, na.rm=TRUE) + dmvnorm(theta, mean, cov, log = TRUE)
+}
+if (0) {
+  mapScore <- matrix(NA, nrow(grp$data), 2)
+  for (row in 1:nrow(grp$data)) {
+    got <- nlm(function(x) -mapFn(grp, row, x), 0, hessian = TRUE)
+    mapScore[row,] <- c(got$estimate, sqrt(solve(got$hessian)))
+  }
+}
+#plot(Vectorize(function(x) mapFn(grp, 6, x)), -5,5)
