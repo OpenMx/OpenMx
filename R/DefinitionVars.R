@@ -37,7 +37,9 @@ definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row =
 			"is out of bounds for definition variable",
 			omxQuotes(simplifyName(defName, flatModel@name)), 
 			"used in the context of",
-			omxQuotes(simplifyName(matrixName, flatModel@name))), call. = FALSE)
+			omxQuotes(simplifyName(matrixName, flatModel@name)),
+			"\nOne possibility is you didn't add this variable to the data for this group?"
+		), call. = FALSE)
 	}
 	return(dataSet@observed[defvar.row, components[[3]]])
 }
