@@ -47,8 +47,6 @@ typedef struct {
 	double *work;
 	int lwork;
 
-	bool resized;
-
 } omxRAMExpectation;
 
 static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix**, omxMatrix**, int*);
@@ -152,25 +150,6 @@ static void omxCallRAMExpectation(omxExpectation* oo, const char *, const char *
 	if(oro->M != NULL)
 	    omxRecompute(oro->M);
 	    
-	// If A matrix is an algebra then we know the dimensions now.
-	if (!oro->resized) {
-		oro->resized = true;
-		int l = oro->F->rows;
-		int k = oro->A->cols;
-		omxResizeMatrix(oro->Z, k, k);
-		omxResizeMatrix(oro->Ax, k, k);
-		omxResizeMatrix(oro->W, k, k);
-		omxResizeMatrix(oro->U, l, k);
-		omxResizeMatrix(oro->Y, l, k);
-		omxResizeMatrix(oro->X, l, k);
-		omxResizeMatrix(oro->EF, k, l);
-		omxResizeMatrix(oro->V, l, k);
-		omxResizeMatrix(oro->ZSBC, k, l);
-		omxResizeMatrix(oro->C, l, l);
-
-		// probably more needed, TODO
-	}
-
 	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
 }
@@ -291,6 +270,17 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 		return; // We're not populating anything, so why bother running the calculation?
 	}
 	
+	// if(   (Cov->rows != Cov->cols)  || (A->rows  != A->cols)  // Conformance check
+	// 	|| (X->rows  != Cov->cols)  || (X->cols  != A->rows)
+	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
+	// 	|| (Ax->rows != Cov->cols)  || (Ax->cols != A->rows)
+	// 	|| (I->rows  != Cov->cols)  || (I->cols  != Cov->rows)
+	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
+	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
+	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
+	// 		Rf_error("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMExpectation Calculation.\n Please report this to the OpenMx development team.");
+	// }
+	
 	omxShallowInverse(NULL, numIters, A, Z, Ax, I );
 	
 	/* Cov = FZSZ'F' */
@@ -333,7 +323,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
 
-	RAMexp->resized = false;
 	if(OMX_DEBUG) { mxLog("Processing M."); }
 	RAMexp->M = omxNewMatrixFromSlot(rObj, currentState, "M");
 
@@ -346,7 +335,9 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Processing F."); }
 	RAMexp->F = omxNewMatrixFromSlot(rObj, currentState, "F");
 
-	RAMexp->I = omxNewIdentityMatrix(0, currentState);
+	/* Identity Matrix, Size Of A */
+	if(OMX_DEBUG) { mxLog("Generating I."); }
+	RAMexp->I = omxNewIdentityMatrix(RAMexp->A->rows, currentState);
 	omxRecompute(RAMexp->I);
 	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
 	omxRecompute(RAMexp->lilI);
@@ -359,8 +350,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	Rf_unprotect(1);
 
 	l = RAMexp->F->rows;
-
-	// If A matrix is an algebra then the dimension is unknown until later
 	k = RAMexp->A->cols;
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
