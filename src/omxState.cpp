@@ -99,8 +99,13 @@ void FreeVarGroup::markDirty(omxState *os)
 	size_t numMats = os->matrixList.size();
 	size_t numAlgs = os->algebraList.size();
 
-	for(size_t i = 0; i < numMats; i++) {
+        for(size_t i = 0; i < numMats; i++) {
 		if (!locations[i]) continue;
+
+		// The point of this is to increment the version numbers
+		// on matrices holding free parameters. Otherwise there
+		// is no way to tell which free parameters changes when
+		// freeSet is used to partition parameters.
 		omxMarkClean(os->matrixList[i]);
 	}
 

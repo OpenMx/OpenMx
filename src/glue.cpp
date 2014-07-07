@@ -343,19 +343,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		Rf_error(Global->getBads());
 	}
 
-	/*
-	// Fit functions may not have computed anything because want=0.
-	// We shouldn't leave them marked clean because, for example,
-	// ComputeNumericDeriv will see an invalid reference fit value.
-        //
-	// Wait, does dirty/clean make sense for fitfunctions?
-        //
-	for(size_t index = 0; index < globalState->algebraList.size(); ++index) {
-		omxMatrix *mat = globalState->algebraList[index];
-		if (mat->fitFunction) omxMarkDirty(mat);
-	}
-	*/
-
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 

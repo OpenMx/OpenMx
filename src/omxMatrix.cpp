@@ -94,7 +94,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 	om->currentState = os;
 	om->name = NULL;
 	om->version = 1;
-	omxMarkClean(om);
+	om->cleanVersion = 0;
 
 	omxMatrixLeadingLagging(om);
 
@@ -334,7 +334,8 @@ void omxMarkDirty(omxMatrix *om) {
 	}
 }
 
-void omxMarkClean(omxMatrix *om) {
+void omxMarkClean(omxMatrix *om)
+{
 	om->version += 1;
 	om->cleanVersion = om->version;
 	if (OMX_DEBUG_ALGEBRA) {
@@ -426,7 +427,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	om->hasMatrixNumber = hasMatrixNumber;
 	om->matrixNumber = matrixNumber;
 	om->version = 1;
-	omxMarkClean(om);
+	om->cleanVersion = 0;
 
 	omxMatrixLeadingLagging(om);
 

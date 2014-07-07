@@ -92,7 +92,6 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			omxFillMatrixFromRPrimitive(amat, NULL, globalState, 1, index);
 			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)), dimnames);
-			omxMarkDirty(amat);
 		}
 		if (isErrorRaised()) return;
 	}

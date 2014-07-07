@@ -115,7 +115,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState
 
 	double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col);
 	void omxMarkDirty(omxMatrix *om);
-	void omxMarkClean(omxMatrix *om);
+void omxMarkClean(omxMatrix *om);
 
 /* Matrix Modification Functions */
 	void omxZeroByZeroMatrix(omxMatrix *source);

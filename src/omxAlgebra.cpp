@@ -77,7 +77,6 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name, NULL);
 	    tgt->algebra->rownames = src->algebra->rownames;
 	    tgt->algebra->colnames = src->algebra->colnames;
-	    omxMarkDirty(tgt);
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -291,8 +290,6 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	for(int i = 0; i < numArgs;i++) {
 		oa->algArgs[i] = args[i];
 	}
-	
-	omxMarkDirty(om);
 	
 	return om;
 	

@@ -241,7 +241,6 @@ void omxCompleteFitFunction(omxMatrix *om)
 	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 
 	
 	obj->matrix->data[0] = NA_REAL;
-	omxMarkDirty(obj->matrix);
 	obj->initialized = TRUE;
 }
 
