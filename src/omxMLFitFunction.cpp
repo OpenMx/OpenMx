@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-#include "omxAlgebraFunctions.h"
 #include "omxExpectation.h"
 #include "omxFIMLFitFunction.h"
 #include "omxRAMExpectation.h"
@@ -199,7 +198,7 @@ static void mvnFit(omxFitFunction *oo, FitContext *fc)
 
 	if(means != NULL) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Means Likelihood Calculation"); }
-		omxRecompute(means);
+		omxRecompute(means, FF_COMPUTE_FIT, fc);
 		omxCopyMatrix(P, means);
 		// P = means - smeans
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(means, "means");}

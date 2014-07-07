@@ -15,7 +15,6 @@
  */
 
 #include "omxDefines.h"
-#include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxRowFitFunction.h"
@@ -54,7 +53,8 @@ void markDataRowDependencies(omxState* os, omxRowFitFunction* orff) {
 
 }
 
-void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount) {
+static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount,
+					     FitContext *fc) {
 
     omxRowFitFunction* oro = ((omxRowFitFunction*) localobj->argStruct);
     omxRowFitFunction* shared_oro = ((omxRowFitFunction*) sharedobj->argStruct);
@@ -136,7 +136,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 		omxCopyMatrix(filteredDataRow, dataRow);
 		omxRemoveRowsAndColumns(filteredDataRow, 0, numRemoves, zeros, toRemove);
 
-		omxRecompute(rowAlgebra);							// Compute this row
+		omxRecompute(rowAlgebra, FF_COMPUTE_FIT, fc);
 
 		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
 	}
@@ -144,7 +144,7 @@ void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *
 	free(zeros);
 }
 
-static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
+static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) {
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
@@ -189,21 +189,21 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
-		#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
 			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i);
+				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);
 			} else {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride);
+				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
 			}
 		}
 	} else {
-		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows);
+		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows, fc);
 	}
 
-	omxRecompute(reduceAlgebra);
+	omxRecompute(reduceAlgebra, want, fc);
 
 	omxCopyMatrix(oo->matrix, reduceAlgebra);
 

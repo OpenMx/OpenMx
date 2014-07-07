@@ -2263,13 +2263,13 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
 				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-				omxFitFunctionCompute(algebra->fitFunction, want, fc);
+				ComputeFit(algebra, want, fc);
 				fc->fit = algebra->data[0];
 				if (infoMat) {
 					fc->postInfo();
 				}
 			} else {
-				omxForceCompute(algebra);
+				omxRecompute(algebra, want, fc);
 			}
 		}
 	} else if (expectations.size()) {

@@ -593,9 +593,12 @@ void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrix(source, d);
 }
 
-void omxMatrix::omxPopulateSubstitutions()
+void omxMatrix::omxPopulateSubstitutions(FitContext *fc)
 {
 	if (populate.size() == 0) return;
+	if (OMX_DEBUG_ALGEBRA) {
+		mxLog("omxPopulateSubstitutions %s, %d locations", name, (int) populate.size());
+	}
 	for (size_t pi = 0; pi < populate.size(); pi++) {
 		populateLocation &pl = populate[pi];
 		int index = pl.from;
@@ -606,9 +609,14 @@ void omxMatrix::omxPopulateSubstitutions()
 			sourceMatrix = currentState->algebraList[index];
 		}
 
-		omxRecompute(sourceMatrix);
+		omxRecompute(sourceMatrix, FF_COMPUTE_FIT, fc);
 		double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
 		omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
+		if (OMX_DEBUG_ALGEBRA) {
+			mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
+			      value, sourceMatrix->name, pl.srcRow, pl.srcCol,
+			      name, pl.destRow, pl.destCol);
+		}
 	}
 }
 
@@ -619,7 +627,8 @@ void omxMatrixLeadingLagging(omxMatrix *om) {
 	om->lagging = (om->colMajor?om->cols:om->rows);
 }
 
-unsigned short omxNeedsUpdate(omxMatrix *matrix) {
+static bool omxNeedsUpdate(omxMatrix *matrix)
+{
 	bool yes;
 	if (matrix->hasMatrixNumber && omxMatrixIsClean(matrix)) {
 		yes = FALSE;
@@ -634,44 +643,21 @@ unsigned short omxNeedsUpdate(omxMatrix *matrix) {
 	return yes;
 }
 
-static void maybeCompute(omxMatrix *matrix, int want)
+void omxRecompute(omxMatrix *matrix, int want, FitContext *fc)
 {
-	matrix->omxPopulateSubstitutions(); // could be an algebra!
+	matrix->omxPopulateSubstitutions(fc); // could be an algebra!
 
 	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra);
+	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, want, fc);
 	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, want, NULL);
-	}
-}
-
-void omxRecompute(omxMatrix *matrix)
-{
-	maybeCompute(matrix, FF_COMPUTE_FIT);
-}
-
-void omxInitialCompute(omxMatrix *matrix)
-{
-	matrix->omxPopulateSubstitutions();
-
-	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra != NULL) omxAlgebraInitialCompute(matrix->algebra);
-	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, NULL);
-	}
-}
-
-void omxForceCompute(omxMatrix *matrix) {
-	matrix->omxPopulateSubstitutions();
-
-	if (matrix->algebra != NULL) omxAlgebraForceCompute(matrix->algebra);
-	else if(matrix->fitFunction != NULL) {
-		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_FIT, NULL);
+		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}
 }
 
 void omxMatrix::transposePopulate()
 {
+	// This is sub-optimal. If the rows & cols were stored as vectors
+	// then we could just swap them.
 	for (size_t px=0; px < populate.size(); ++px) populate[px].transpose();
 }
 
@@ -762,3 +748,169 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 	}
 	return mad;
 }
+
+void checkIncreasing(omxMatrix* om, int column)
+{
+	double previous = - INFINITY;
+	double current;
+	for(int j = 0; j < om->rows; j++ ) {
+		current = omxMatrixElement(om, j, column);
+		if(std::isnan(current) || current == NA_INTEGER) {
+			continue;
+		}
+		if(current <= previous) {
+			char *errstr = (char*) calloc(250, sizeof(char));
+			sprintf(errstr, "Thresholds are not strictly increasing.");
+			//TODO: Count 'em all, then throw an Rf_error that lists which ones.
+			omxRaiseError(errstr);
+			free(errstr);
+		}
+	}
+}
+
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
+	// Maybe coerce this into an algebra or sequence of algebras?
+
+	if(OMX_DEBUG) { mxLog("Standardizing matrix."); }
+
+	int rows = cov->rows;
+
+	for(int i = 0; i < rows; i++) {
+		weights[i] = sqrt(omxMatrixElement(cov, i, i));
+	}
+
+	for(int i = 0; i < rows; i++) {
+		for(int j = 0; j < i; j++) {
+			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (weights[i] * weights[j]);
+		}
+	}
+}
+
+void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	int totalRows = 0, totalCols = 0, currentCol=0;
+
+	if(numArgs == 0) return;
+
+	totalRows = matList[0]->rows;			// Assumed constant.  Assert this below.
+
+	for(int j = 0; j < numArgs; j++) {
+		if(totalRows != matList[j]->rows) {
+			char *errstr = (char*) calloc(250, sizeof(char));
+			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
+			omxRaiseError(errstr);
+			free(errstr);
+			return;
+		}
+		totalCols += matList[j]->cols;
+	}
+
+	if(result->rows != totalRows || result->cols != totalCols) {
+		if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: HorizCat: resizing result.");}
+		omxResizeMatrix(result, totalRows, totalCols);
+	}
+
+	int allArgumentsColMajor = result->colMajor;
+	for(int j = 0; j < numArgs && allArgumentsColMajor; j++) {
+		if (!matList[j]->colMajor) allArgumentsColMajor = 0;
+	}
+
+	if (allArgumentsColMajor) {
+		int offset = 0;
+		for(int j = 0; j < numArgs; j++) {	
+			omxMatrix* current = matList[j];
+			int size = current->rows * current->cols;
+			memcpy(result->data + offset, current->data, size * sizeof(double));
+			offset += size;
+		}
+	} else {
+		for(int j = 0; j < numArgs; j++) {
+			for(int k = 0; k < matList[j]->cols; k++) {
+				for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
+					omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
+				}
+				currentCol++;
+			}
+		}
+	}
+}
+
+void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	int totalRows = 0, totalCols = 0, currentRow=0;
+
+	if(numArgs == 0) return;
+
+	totalCols = matList[0]->cols;			// Assumed constant.  Assert this below.
+
+	for(int j = 0; j < numArgs; j++) {
+		if(totalCols != matList[j]->cols) {
+			char *errstr = (char*) calloc(250, sizeof(char));
+			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
+			omxRaiseError(errstr);
+			free(errstr);
+			return;
+		}
+		totalRows += matList[j]->rows;
+	}
+
+	if(result->rows != totalRows || result->cols != totalCols) {
+		omxResizeMatrix(result, totalRows, totalCols);
+	}
+
+	int allArgumentsRowMajor = !result->colMajor;
+	for(int j = 0; j < numArgs && allArgumentsRowMajor; j++) {
+		if (matList[j]->colMajor) allArgumentsRowMajor = 0;
+	}
+
+	if (allArgumentsRowMajor) {
+		int offset = 0;
+		for(int j = 0; j < numArgs; j++) {	
+			omxMatrix* current = matList[j];
+			int size = current->rows * current->cols;	
+			memcpy(result->data + offset, current->data, size * sizeof(double));
+			offset += size;
+		}
+	} else {
+		for(int j = 0; j < numArgs; j++) {
+			for(int k = 0; k < matList[j]->rows; k++) {
+				for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
+					omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
+				}
+				currentRow++;
+			}
+		}
+	}
+
+}
+
+void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	/* Consistency check: */
+	if(result->rows != numArgs && result->cols != numArgs) {
+		omxResizeMatrix(result, numArgs, 1);
+	}
+
+    for(int i = 0; i < numArgs; i++) {
+    	double trace = 0.0;
+    	omxMatrix* inMat = matList[i];
+        double* values = inMat->data;
+        int nrow  = inMat->rows;
+        int ncol  = inMat->cols;
+
+    	if(nrow != ncol) {
+    		char *errstr = (char*) calloc(250, sizeof(char));
+    		sprintf(errstr, "Non-square matrix in Trace().\n");
+    		omxRaiseError(errstr);
+    		free(errstr);
+            return;
+    	}
+
+    	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
+        for(int j = 0; j < nrow; j++)
+           trace += values[j * nrow + j];
+
+    	omxSetVectorElement(result, i, trace);
+    }
+}
+

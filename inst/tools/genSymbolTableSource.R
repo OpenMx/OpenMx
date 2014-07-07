@@ -1,5 +1,7 @@
 header <- paste(
 	"#include \"omxSymbolTable.h\"",
+	"#include \"AlgebraFunctions.h\"",
+	"#include \"Exponential.h\"",
 
 	"const omxAlgebraTableEntry omxAlgebraSymbolTable[] = {",
 	sep = "\n"

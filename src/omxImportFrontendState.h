@@ -11,11 +11,11 @@ void omxCompleteMxExpectationEntities();
 void omxProcessMxFitFunction(SEXP algList);
 void omxCompleteMxFitFunction(SEXP algList);
 void omxProcessMxComputeEntities(SEXP computeList);
-void omxInitialMatrixAlgebraCompute();
+void omxInitialMatrixAlgebraCompute(FitContext *fc);
 void omxProcessCheckpointOptions(SEXP checkpointList);
 void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 void omxProcessConfidenceIntervals(SEXP intervalList);
-void omxProcessConstraints(SEXP constraints);
+void omxProcessConstraints(SEXP constraints, FitContext *fc);
 
 void omxProcessConstraintsCsolnp(struct Matrix *lb_ineq, struct Matrix *ub_ineq, struct Matrix *eqb);
 void omxSetupBoundsAndConstraints(double * bl, double * bu, int n, int nclin);

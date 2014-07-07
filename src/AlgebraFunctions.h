@@ -27,7 +27,6 @@
 *
 **********************************************************/
 
-#include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 #include "merge.h"
 #include "omxBLAS.h"
@@ -35,49 +34,11 @@
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
 
-void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
-	// Maybe coerce this into an algebra or sequence of algebras?
-
-	if(OMX_DEBUG) { mxLog("Standardizing matrix."); }
-
-	int rows = cov->rows;
-
-	for(int i = 0; i < rows; i++) {
-		weights[i] = sqrt(omxMatrixElement(cov, i, i));
-	}
-
-	for(int i = 0; i < rows; i++) {
-		for(int j = 0; j < i; j++) {
-			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (weights[i] * weights[j]);
-		}
-	}
-}
-
-void checkIncreasing(omxMatrix* om, int column) {
-	double previous = - INFINITY;
-	double current;
-	for(int j = 0; j < om->rows; j++ ) {
-		current = omxMatrixElement(om, j, column);
-		if(std::isnan(current) || current == NA_INTEGER) {
-			continue;
-		}
-		if(current <= previous) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Thresholds are not strictly increasing.");
-			//TODO: Count 'em all, then throw an Rf_error that lists which ones.
-			omxRaiseError(errstr);
-			free(errstr);
-		}
-	}
-}
-
-
-
 // TODO: Implement wrappers for BLAS functions used here.
 
 /* omxAlgebraFunction Wrappers */
 
-void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxMatrixTranspose(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix* inMat = matList[0];
 
@@ -90,7 +51,7 @@ void omxMatrixTranspose(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrixLeadingLagging(result);
 }
 
-void omxMatrixInvert(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixInvert(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxCopyMatrix(result, inMat);
@@ -130,7 +91,7 @@ static bool isElemConformable(const char *op, omxMatrix *mat1, omxMatrix *mat2)
 	return false;
 }
 
-void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixMult(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -161,7 +122,7 @@ void omxMatrixMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrixLeadingLagging(result);
 }
 
-void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementPower(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -195,7 +156,7 @@ void omxElementPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixElementMult(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -230,7 +191,7 @@ void omxMatrixElementMult(omxMatrix** matList, int numArgs, omxMatrix* result)
 }
 
 
-void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxKroneckerProd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -254,7 +215,7 @@ void omxKroneckerProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 						omxMatrixElement(preMul, preRow, preCol) * omxMatrixElement(postMul, postRow, postCol));
 }
 
-void omxKroneckerPower(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxKroneckerPower(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -274,7 +235,7 @@ void omxKroneckerPower(omxMatrix** matList, int numArgs, omxMatrix* result)
 						pow(omxMatrixElement(preMul, preRow, preCol), omxMatrixElement(postMul, postRow, postCol)));
 }
 
-void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxQuadraticProd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
@@ -308,7 +269,7 @@ void omxQuadraticProd(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementDivide(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -342,7 +303,7 @@ void omxElementDivide(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxUnaryNegation(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -367,7 +328,7 @@ void omxUnaryNegation(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxMatrixLeadingLagging(result);
 }
 
-void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxBinaryOr(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -411,7 +372,7 @@ void omxBinaryOr(omxMatrix** matList, int numArgs, omxMatrix* result)
 		}
 }
 
-void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
+static void omxBinaryAnd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result){
 	        omxMatrix* first = matList[0];
 		    omxMatrix* second = matList[1];
 
@@ -454,7 +415,7 @@ void omxBinaryAnd(omxMatrix** matList, int numArgs, omxMatrix* result){
 		}
 }
 
-void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
+static void omxBinaryLessThan(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result){
 	        omxMatrix* first = matList[0];
 		    omxMatrix* second = matList[1];
 
@@ -498,7 +459,7 @@ void omxBinaryLessThan(omxMatrix** matList, int numArgs, omxMatrix* result){
 		}
 }
 
-void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxBinaryGreaterThan(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
         omxMatrix* first = matList[0];
 	    omxMatrix* second = matList[1];
@@ -543,7 +504,7 @@ void omxBinaryGreaterThan(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxBinaryApproxEquals(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
         omxMatrix* first  = matList[0];
 	    omxMatrix* second = matList[1];
@@ -601,7 +562,7 @@ void omxBinaryApproxEquals(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixAdd(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -635,7 +596,7 @@ void omxMatrixAdd(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMatrix *result) {
+static int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMatrix *result) {
 
 	int *retval;
 	/* Case 1: the source vector contains no elements */
@@ -735,7 +696,7 @@ int matrixExtractIndices(omxMatrix *source, int dimLength, int **indices, omxMat
 	return(0);
 }
 
-void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixExtract(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* rowMatrix = matList[1];
@@ -767,7 +728,7 @@ void omxMatrixExtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixSubtract(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -801,7 +762,7 @@ void omxMatrixSubtract(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxUnaryMinus(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -822,106 +783,17 @@ void omxUnaryMinus(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixHorizCatOp(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	int totalRows = 0, totalCols = 0, currentCol=0;
-
-	if(numArgs == 0) return;
-
-	totalRows = matList[0]->rows;			// Assumed constant.  Assert this below.
-
-	for(int j = 0; j < numArgs; j++) {
-		if(totalRows != matList[j]->rows) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
-			omxRaiseError(errstr);
-			free(errstr);
-			return;
-		}
-		totalCols += matList[j]->cols;
-	}
-
-	if(result->rows != totalRows || result->cols != totalCols) {
-		if(OMX_DEBUG_ALGEBRA) { mxLog("ALGEBRA: HorizCat: resizing result.");}
-		omxResizeMatrix(result, totalRows, totalCols);
-	}
-
-	int allArgumentsColMajor = result->colMajor;
-	for(int j = 0; j < numArgs && allArgumentsColMajor; j++) {
-		if (!matList[j]->colMajor) allArgumentsColMajor = 0;
-	}
-
-	if (allArgumentsColMajor) {
-		int offset = 0;
-		for(int j = 0; j < numArgs; j++) {	
-			omxMatrix* current = matList[j];
-			int size = current->rows * current->cols;
-			memcpy(result->data + offset, current->data, size * sizeof(double));
-			offset += size;
-		}
-	} else {
-		for(int j = 0; j < numArgs; j++) {
-			for(int k = 0; k < matList[j]->cols; k++) {
-				for(int l = 0; l < totalRows; l++) {		// Gotta be a faster way to do this.
-					omxSetMatrixElement(result, l, currentCol, omxMatrixElement(matList[j], l, k));
-				}
-				currentCol++;
-			}
-		}
-	}
-
+	omxMatrixHorizCat(matList, numArgs, result);
 }
 
-void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixVertCatOp(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	int totalRows = 0, totalCols = 0, currentRow=0;
-
-	if(numArgs == 0) return;
-
-	totalCols = matList[0]->cols;			// Assumed constant.  Assert this below.
-
-	for(int j = 0; j < numArgs; j++) {
-		if(totalCols != matList[j]->cols) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
-			omxRaiseError(errstr);
-			free(errstr);
-			return;
-		}
-		totalRows += matList[j]->rows;
-	}
-
-	if(result->rows != totalRows || result->cols != totalCols) {
-		omxResizeMatrix(result, totalRows, totalCols);
-	}
-
-	int allArgumentsRowMajor = !result->colMajor;
-	for(int j = 0; j < numArgs && allArgumentsRowMajor; j++) {
-		if (matList[j]->colMajor) allArgumentsRowMajor = 0;
-	}
-
-	if (allArgumentsRowMajor) {
-		int offset = 0;
-		for(int j = 0; j < numArgs; j++) {	
-			omxMatrix* current = matList[j];
-			int size = current->rows * current->cols;	
-			memcpy(result->data + offset, current->data, size * sizeof(double));
-			offset += size;
-		}
-	} else {
-		for(int j = 0; j < numArgs; j++) {
-			for(int k = 0; k < matList[j]->rows; k++) {
-				for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
-					omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
-				}
-				currentRow++;
-			}
-		}
-	}
-
+	omxMatrixVertCat(matList, numArgs, result);
 }
 
-void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixDeterminant(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* calcMat;					// This should be preallocated.
@@ -981,37 +853,12 @@ void omxMatrixDeterminant(omxMatrix** matList, int numArgs, omxMatrix* result)
 	free(ipiv);
 }
 
-void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixTraceOp(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	/* Consistency check: */
-	if(result->rows != numArgs && result->cols != numArgs) {
-		omxResizeMatrix(result, numArgs, 1);
-	}
+	omxMatrixTrace(matList, numArgs, result);
+}
 
-    for(int i = 0; i < numArgs; i++) {
-    	double trace = 0.0;
-    	omxMatrix* inMat = matList[i];
-        double* values = inMat->data;
-        int nrow  = inMat->rows;
-        int ncol  = inMat->cols;
-
-    	if(nrow != ncol) {
-    		char *errstr = (char*) calloc(250, sizeof(char));
-    		sprintf(errstr, "Non-square matrix in Trace().\n");
-    		omxRaiseError(errstr);
-    		free(errstr);
-            return;
-    	}
-
-    	/* Note: This algorithm is numerically unstable.  Sorry, dudes. */
-        for(int j = 0; j < nrow; j++)
-           trace += values[j * nrow + j];
-
-    	omxSetVectorElement(result, i, trace);
-	}
-};
-
-void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixTotalSum(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -1032,7 +879,7 @@ void omxMatrixTotalSum(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSetMatrixElement(result, 0, 0, sum);
 }
 
-void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixTotalProduct(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -1053,7 +900,7 @@ void omxMatrixTotalProduct(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSetMatrixElement(result, 0, 0, product);
 }
 
-void omxMatrixArithmeticMean(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixArithmeticMean(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -1072,7 +919,7 @@ void omxMatrixArithmeticMean(omxMatrix** matList, int numArgs, omxMatrix* result
 	omxSetMatrixElement(result, 0, 0, mean);
 }
 
-void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixMinimum(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -1093,7 +940,7 @@ void omxMatrixMinimum(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSetMatrixElement(result, 0, 0, min);
 }
 
-void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixMaximum(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	/* Consistency check: */
 	if(result->rows != 1 || result->cols != 1) {
@@ -1113,7 +960,7 @@ void omxMatrixMaximum(omxMatrix** matList, int numArgs, omxMatrix* result)
 	omxSetMatrixElement(result, 0, 0, max);
 }
 
-void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixAbsolute(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1128,7 +975,7 @@ void omxMatrixAbsolute(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixDiagonal(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
@@ -1146,7 +993,7 @@ void omxMatrixDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxMatrixFromDiagonal(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
@@ -1178,7 +1025,7 @@ void omxMatrixFromDiagonal(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementCosine(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1193,7 +1040,7 @@ void omxElementCosine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementCosh(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1208,7 +1055,7 @@ void omxElementCosh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementSine(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1223,7 +1070,7 @@ void omxElementSine(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementSinh(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1238,7 +1085,7 @@ void omxElementSinh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementTangent(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1253,7 +1100,7 @@ void omxElementTangent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementTanh(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1268,7 +1115,7 @@ void omxElementTanh(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementExponent(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1283,7 +1130,7 @@ void omxElementExponent(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementNaturalLog(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -1298,7 +1145,7 @@ void omxElementNaturalLog(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementSquareRoot(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
 
@@ -1312,7 +1159,7 @@ void omxElementSquareRoot(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxMatrixVech(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix *inMat = matList[0];
 
 	int size;
@@ -1344,7 +1191,7 @@ void omxMatrixVech(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 }
 
-void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxMatrixVechs(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix *inMat = matList[0];
 
 	int size;
@@ -1376,7 +1223,7 @@ void omxMatrixVechs(omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 }
 
-void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxRowVectorize(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
 
@@ -1398,7 +1245,7 @@ void omxRowVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxColVectorize(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
 
@@ -1420,7 +1267,7 @@ void omxColVectorize(omxMatrix** matList, int numArgs, omxMatrix* result)
 }
 
 
-void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxSequenceGenerator(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	double start = omxVectorElement(matList[0], 0);
 	double stop = omxVectorElement(matList[1], 0);
@@ -1472,7 +1319,7 @@ void omxSequenceGenerator(omxMatrix** matList, int numArgs, omxMatrix* result) {
 	}
 }
 
-void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxMultivariateNormalIntegration(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
@@ -1603,7 +1450,7 @@ void omxMultivariateNormalIntegration(omxMatrix** matList, int numArgs, omxMatri
 
 }
 
-void omxAllIntegrationNorms(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxAllIntegrationNorms(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
@@ -1799,17 +1646,7 @@ AllIntCleanup:
 	free(currentThresholds);
 }
 
-int omxCompareDoubleHelper(const void* one, const void* two, void *ign) {
-	double diff = *(double*) two - *(double*) one;
-	if(diff > EPSILON) {
-		return 1;
-	} else if(diff < -EPSILON) {
-		return -1;
-	} else return 0;
-}
-
-
-int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {
+static int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {
 	double diff = (*(*(double**) two)) - (*(*(double**) one));
 	if(diff > EPSILON) {
 		return 1;
@@ -1818,7 +1655,7 @@ int omxComparePointerContentsHelper(const void* one, const void* two, void *ign)
 	} else return 0;
 }
 
-void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
+static void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 	/* Sorts the columns of a matrix or the rows of a column vector
 					in decreasing order of the elements of sortOrder. */
 
@@ -1859,7 +1696,7 @@ void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
 	return;
 }
 
-void omxRealEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxRealEigenvalues(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
@@ -1929,7 +1766,7 @@ RealEigenValCleanup:
 	free(WI);
 }
 
-void omxRealEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxRealEigenvectors(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
@@ -2006,7 +1843,7 @@ RealEigenVecCleanup:
 	free(work);	
 }
 
-void omxImaginaryEigenvalues(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxImaginaryEigenvalues(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
@@ -2079,7 +1916,7 @@ ImagEigenValCleanup:
 	free(work);
 }
 
-void omxImaginaryEigenvectors(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxImaginaryEigenvectors(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
@@ -2158,7 +1995,7 @@ ImagEigenVecCleanup:
 
 }
 
-void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxSelectRows(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
@@ -2208,7 +2045,7 @@ void omxSelectRows(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 }
 
-void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxSelectCols(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
@@ -2257,7 +2094,7 @@ void omxSelectCols(omxMatrix** matList, int numArgs, omxMatrix* result)
     omxRemoveRowsAndColumns(result, 0, numRemoves, zeros.data(), toRemove.data());
 }
 
-void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxSelectRowsAndCols(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
@@ -2314,32 +2151,7 @@ void omxSelectRowsAndCols(omxMatrix** matList, int numArgs, omxMatrix* result)
     omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove.data(), toRemove.data());
 }
 
-void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
-    omxMatrix* M = *matlist;
-
-    if(M->rows != M->cols || M->rows != result->cols || result->rows != result->cols) {
-        char *errstr = (char*) calloc(250, sizeof(char));
-        sprintf(errstr, "A + A^T attempted on asymmetric matrix.\n");
-        omxRaiseError(errstr);
-        free(errstr);
-		return;
-    }
-    
-    double total;
-    
-    for(int i = 0; i < result->rows; i++) {
-        for(int j = 0; j < i; j++) {
-            total = omxMatrixElement(M, i, j);
-            total += omxMatrixElement(M, j, i);
-            omxSetMatrixElement(result, i, j, total);
-            omxSetMatrixElement(result, j, i, total);
-        }
-        omxSetMatrixElement(result, i, i, 2 * omxMatrixElement(M, i, i));
-    }
-    
-}
-
-void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxCovToCor(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 
     omxMatrix* inMat = matList[0];
@@ -2389,7 +2201,7 @@ void omxCovToCor(omxMatrix** matList, int numArgs, omxMatrix* result)
     omxFreeMatrix(intermediate);
 }
 
-void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxCholesky(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 
@@ -2419,7 +2231,7 @@ void omxCholesky(omxMatrix** matList, int numArgs, omxMatrix* result)
 	}
 }
 
-void omxVechToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxVechToMatrix(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 
 	omxMatrix *inMat = matList[0];
 	
@@ -2457,7 +2269,7 @@ void omxVechToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
 }
 
 
-void omxVechsToMatrix(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxVechsToMatrix(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix *inMat = matList[0];
 	
 	int dim = (inMat->cols > inMat->rows) ? inMat->cols : inMat->rows;

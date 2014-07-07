@@ -96,8 +96,10 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
-static void dispatchOp(omxAlgebra *oa)
+void omxAlgebraRecompute(omxAlgebra *oa, int want, FitContext *fc)
 {
+	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], want, fc);
+
 	if(oa->funWrapper == NULL) {
 		if(oa->numArgs != 1) Rf_error("Internal Error: Empty algebra evaluated");
 		if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->algArgs[0], "Copy no-op algebra"); }
@@ -112,7 +114,7 @@ static void dispatchOp(omxAlgebra *oa)
 			}
 			mxLog("Algebra '%s' %s(%s)", oa->matrix->name, oa->oate->rName, buf.c_str());
 		}
-		(*((void(*)(omxMatrix**, int, omxMatrix*))oa->funWrapper))(oa->algArgs, (oa->numArgs), oa->matrix);
+		(*(algebra_op_t)oa->funWrapper)(fc, want, oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
 	omxMarkClean(oa->matrix);
@@ -121,24 +123,6 @@ static void dispatchOp(omxAlgebra *oa)
 		std::string name = string_snprintf("Algebra '%s' result", oa->matrix->name);
 		omxAlgebraPrint(oa, name.c_str());
 	}
-}
-
-void omxAlgebraInitialCompute(omxAlgebra *oa)
-{
-	for(int j = 0; j < oa->numArgs; j++) omxInitialCompute(oa->algArgs[j]);
-	dispatchOp(oa);
-}
-
-void omxAlgebraRecompute(omxAlgebra *oa)
-{
-	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j]);
-	dispatchOp(oa);
-}
-
-void omxAlgebraForceCompute(omxAlgebra *oa)
-{
-	for(int j = 0; j < oa->numArgs; j++) omxForceCompute(oa->algArgs[j]);
-	dispatchOp(oa);
 }
 
 omxAlgebra::omxAlgebra()

@@ -15,7 +15,6 @@
  */
 
 #include "omxDefines.h"
-#include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"

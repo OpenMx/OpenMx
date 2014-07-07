@@ -15,7 +15,6 @@
  */
 
 #include "omxDefines.h"
-#include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
@@ -186,7 +185,7 @@ static void omxCallJointFIMLFitFunction(omxFitFunction *off, int want, FitContex
 			int var = omxVectorElement(dataColumns, j);
 			if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[var].matrix;
-				omxRecompute(nextMatrix);
+				omxRecompute(nextMatrix, want, fc);
 				checkIncreasing(nextMatrix, thresholdCols[var].column);
 				for(int index = 0; index < numChildren; index++) {
 					omxMatrix *target = omxLookupDuplicateElement(parentState->childList[index], nextMatrix);
@@ -378,7 +377,7 @@ static void omxCallFIMLOrdinalFitFunction(omxFitFunction *off, int want, FitCont
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;
-				omxRecompute(nextMatrix);
+				omxRecompute(nextMatrix, want, fc);
 				checkIncreasing(nextMatrix, thresholdCols[j].column);
 				for(int index = 0; index < numChildren; index++) {
 					omxMatrix *target = omxLookupDuplicateElement(parentState->childList[index], nextMatrix);

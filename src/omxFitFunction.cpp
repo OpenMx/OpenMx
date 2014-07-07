@@ -138,7 +138,7 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 		omxFitFunctionCompute(ff, want, fc);
 	} else {
 		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
-		omxForceCompute(fitMat);
+		omxRecompute(fitMat, want, fc);
 	}
 	if (doFit) {
 		if (fitMat->rows != 1) {

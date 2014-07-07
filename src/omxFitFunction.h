@@ -39,7 +39,6 @@
 #include "omxDefines.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
-#include "omxAlgebraFunctions.h"
 #include "omxData.h"
 #include "omxState.h"
 #include "omxExpectation.h"

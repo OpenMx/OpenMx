@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-#include "omxAlgebraFunctions.h"
 #include "omxWLSFitFunction.h"
 
 void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* thresholds, int nThresholds, omxMatrix* vector) {

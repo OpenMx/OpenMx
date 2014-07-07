@@ -26,22 +26,22 @@ void omxCallLISRELExpectation(omxExpectation* oo, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
 	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	
-	omxRecompute(oro->LX);
-	omxRecompute(oro->LY);
-	omxRecompute(oro->BE);
-	omxRecompute(oro->GA);
-	omxRecompute(oro->PH);
-	omxRecompute(oro->PS);
-	omxRecompute(oro->TD);
-	omxRecompute(oro->TE);
-	omxRecompute(oro->TH);
+	omxRecompute(oro->LX, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->LY, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->BE, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->GA, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->PH, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->PS, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->TD, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->TE, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->TH, FF_COMPUTE_FIT, NULL);
 	if(oro->TX != NULL) {     // Update means?
-		omxRecompute(oro->TX);
-		omxRecompute(oro->KA);
+		omxRecompute(oro->TX, FF_COMPUTE_FIT, NULL);
+		omxRecompute(oro->KA, FF_COMPUTE_FIT, NULL);
 	}
 	if(oro->TY != NULL) {
-		omxRecompute(oro->TY);
-		omxRecompute(oro->AL);
+		omxRecompute(oro->TY, FF_COMPUTE_FIT, NULL);
+		omxRecompute(oro->AL, FF_COMPUTE_FIT, NULL);
 	}
 	
 	omxCalculateLISRELCovarianceAndMeans(oro);
@@ -464,7 +464,6 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	/* Identity Matrix, Size Of BE */
 	if(OMX_DEBUG) { mxLog("Generating I."); }
 	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
-	omxRecompute(LISobj->I);
 	
 	
 	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */

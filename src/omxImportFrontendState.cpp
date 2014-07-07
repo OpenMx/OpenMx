@@ -166,19 +166,28 @@ void omxProcessMxComputeEntities(SEXP rObj)
 	Global->computeList.push_back(compute);
 }
 
-void omxInitialMatrixAlgebraCompute() {
+void omxInitialMatrixAlgebraCompute(FitContext *fc)
+{
 	size_t numMats = globalState->matrixList.size();
 	int numAlgs = globalState->algebraList.size();
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
+	// This is required because we have chosen to evaluate
+	// substitutions in models without anything else. This is the
+	// only place that we loop over _all_ matrix and compute them.
+
 	for(size_t index = 0; index < numMats; index++) {
-		omxRecompute(globalState->matrixList[index]);
+		omxRecompute(globalState->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);
 	}
+
+	// This is required because we have chosen to compute algebras
+	// in models without a fitfunction. This is the only place
+	// that we loop over _all_ algebras and compute them.
 
 	for(int index = 0; index < numAlgs; index++) {
 		omxMatrix *matrix = globalState->algebraList[index];
-		omxInitialCompute(matrix);
+		omxRecompute(matrix, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 
@@ -361,7 +370,8 @@ void omxProcessConfidenceIntervals(SEXP intervalList)
 	}
 }
 
-void omxProcessConstraints(SEXP constraints)  {
+void omxProcessConstraints(SEXP constraints, FitContext *fc)
+{
 	int ncnln = 0; 
 	if(OMX_VERBOSE) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
@@ -379,7 +389,7 @@ void omxProcessConstraints(SEXP constraints)  {
 		globalState->conList[constraintIndex].opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
 		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
-		omxRecompute(globalState->conList[constraintIndex].result);
+		omxRecompute(globalState->conList[constraintIndex].result, FF_COMPUTE_FIT, fc);
 		int nrows = globalState->conList[constraintIndex].result->rows;
 		int ncols = globalState->conList[constraintIndex].result->cols;
 		globalState->conList[constraintIndex].size = nrows * ncols;

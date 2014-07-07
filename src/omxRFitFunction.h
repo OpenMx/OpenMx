@@ -17,8 +17,6 @@
 #ifndef _OMX_R_FITFUNCTION_
 #define _OMX_R_FITFUNCTION_
 
-#include "omxAlgebraFunctions.h"
-
 typedef struct omxRFitFunction {
 
 	SEXP fitfun;

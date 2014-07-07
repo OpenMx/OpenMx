@@ -42,7 +42,6 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Matrix %d.", (int) index); }
 		omxMatrix* nextMatrix = currentState->matrixList[index];
-		omxRecompute(nextMatrix);
 		nextMat = omxExportMatrix(nextMatrix);
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
@@ -50,7 +49,6 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	for(size_t index = 0; index < currentState->algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
 		omxMatrix* nextAlgebra = currentState->algebraList[index];
-		omxInitialCompute(nextAlgebra);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;

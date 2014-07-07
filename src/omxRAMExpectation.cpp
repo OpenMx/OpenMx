@@ -144,11 +144,11 @@ static void omxCallRAMExpectation(omxExpectation* oo, const char *, const char *
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
-	omxRecompute(oro->A);
-	omxRecompute(oro->S);
-	omxRecompute(oro->F);
+	omxRecompute(oro->A, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->S, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->F, FF_COMPUTE_FIT, NULL);
 	if(oro->M != NULL)
-	    omxRecompute(oro->M);
+	    omxRecompute(oro->M, FF_COMPUTE_FIT, NULL);
 	    
 	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
@@ -218,8 +218,8 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     int numIters = oro->numIters;
     double oned = 1.0, zerod = 0.0;
     
-    omxRecompute(A);
-    omxRecompute(S);
+    omxRecompute(A, FF_COMPUTE_FIT, NULL);
+    omxRecompute(S, FF_COMPUTE_FIT, NULL);
 	
     omxShallowInverse(NULL, numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	
@@ -338,10 +338,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	/* Identity Matrix, Size Of A */
 	if(OMX_DEBUG) { mxLog("Generating I."); }
 	RAMexp->I = omxNewIdentityMatrix(RAMexp->A->rows, currentState);
-	omxRecompute(RAMexp->I);
 	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
-	omxRecompute(RAMexp->lilI);
-	
 
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("depth")));
@@ -862,6 +859,29 @@ static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* r
 
 }
 
+static void omxAddOwnTranspose(omxMatrix** matlist, int numArgs, omxMatrix* result) {
+    omxMatrix* M = *matlist;
+
+    if(M->rows != M->cols || M->rows != result->cols || result->rows != result->cols) {
+        char *errstr = (char*) calloc(250, sizeof(char));
+        sprintf(errstr, "A + A^T attempted on asymmetric matrix.\n");
+        omxRaiseError(errstr);
+        free(errstr);
+		return;
+    }
+    
+    double total;
+    
+    for(int i = 0; i < result->rows; i++) {
+        for(int j = 0; j < i; j++) {
+            total = omxMatrixElement(M, i, j);
+            total += omxMatrixElement(M, j, i);
+            omxSetMatrixElement(result, i, j, total);
+            omxSetMatrixElement(result, j, i, total);
+        }
+        omxSetMatrixElement(result, i, i, 2 * omxMatrixElement(M, i, i));
+    }
+}
 
 static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigmas, omxMatrix** dMus, int* status) {
 

@@ -40,12 +40,12 @@ void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
-	omxRecompute(ose->A);
-	omxRecompute(ose->B);
-	omxRecompute(ose->C);
-	omxRecompute(ose->D);
-	omxRecompute(ose->Q);
-	omxRecompute(ose->R);
+	omxRecompute(ose->A, FF_COMPUTE_FIT, NULL);
+	omxRecompute(ose->B, FF_COMPUTE_FIT, NULL);
+	omxRecompute(ose->C, FF_COMPUTE_FIT, NULL);
+	omxRecompute(ose->D, FF_COMPUTE_FIT, NULL);
+	omxRecompute(ose->Q, FF_COMPUTE_FIT, NULL);
+	omxRecompute(ose->R, FF_COMPUTE_FIT, NULL);
 	//omxRecompute(ose->x0); //Don't think I need to recompute these b.c. kalmanP/U functions do not use these.  They are recomputed on resetting these components.
 	//omxRecompute(ose->P0);
 	//omxRecompute(ose->u);
@@ -457,8 +457,8 @@ void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* of
 		//ose->y = om;
 	}
 	if(!strcmp("Reset", component)) {
-		omxRecompute(ose->x0);
-		omxRecompute(ose->P0);
+		omxRecompute(ose->x0, FF_COMPUTE_FIT, NULL);
+		omxRecompute(ose->P0, FF_COMPUTE_FIT, NULL);
 		omxCopyMatrix(ose->x, ose->x0);
 		omxCopyMatrix(ose->P, ose->P0);
 	}

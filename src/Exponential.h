@@ -32,11 +32,10 @@
 
 // Translated from the function linalg.expm in the SciPy library
 
-#include "omxAlgebraFunctions.h"
 #include "omxMatrix.h"
 #include "omxBLAS.h"
 
-void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
+static void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 	int nrow = inMat->rows;
 	int ncol = inMat->cols;
 	if (nrow != ncol) {
@@ -159,19 +158,19 @@ void matrixExponential(omxMatrix* inMat, int order, omxMatrix* result) {
 }
 
 
-void omxExponential(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxExponential(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix* inMat = matList[0];
 	matrixExponential(inMat, 7, result);
 }
 
-void omxExponentialOrder(omxMatrix** matList, int numArgs, omxMatrix* result) {
+static void omxExponentialOrder(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result) {
 	omxMatrix* inMat = matList[0];
 	omxMatrix* orderMat = matList[1];
 	int order = (int) omxVectorElement(orderMat, 0);
 	matrixExponential(inMat, order, result);
 }
 
-void mxMatrixLog(omxMatrix** matList, int numArgs, omxMatrix* result)
+static void mxMatrixLog(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
 	if (!inMat->colMajor) {

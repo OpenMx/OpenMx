@@ -228,7 +228,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
-	omxRecompute(algebra);
+	omxRecompute(algebra, FF_COMPUTE_FIT, NULL);
 
 	Rf_protect(ans = Rf_allocMatrix(REALSXP, algebra->rows, algebra->cols));
 	for(l = 0; l < algebra->rows; l++)
@@ -302,6 +302,24 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxAlgebraEntities(algList);
 
+	/* Process Matrix and Algebra Population Function */
+	/*
+	  Each matrix is a list containing a matrix and the other matrices/algebras that are
+	  populated into it at each iteration.  The first element is already processed, above.
+	  The rest of the list will be processed here.
+	*/
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	for(int j = 0; j < Rf_length(matList); j++) {
+		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
+	}
+
+	FitContext fc(startingValues);
+	for (int ax=0; ax < (int) globalState->algebraList.size(); ++ax) {
+		omxMatrix *matrix = globalState->algebraList[ax];
+		//omxRecompute(matrix, FF_COMPUTE_DIMS, &fc);
+	}
+
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxFitFunction(algList);
 
@@ -315,7 +333,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxCompleteMxFitFunction(algList);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxInitialMatrixAlgebraCompute();
+	omxInitialMatrixAlgebraCompute(&fc);
 
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
@@ -337,20 +355,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
-	/* Process Matrix and Algebra Population Function */
-	/*
-	  Each matrix is a list containing a matrix and the other matrices/algebras that are
-	  populated into it at each iteration.  The first element is already processed, above.
-	  The rest of the list will be processed here.
-	*/
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	for(int j = 0; j < Rf_length(matList); j++) {
-		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
-		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
-	}
-
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessConstraints(constraints);
+	omxProcessConstraints(constraints, &fc);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessConfidenceIntervals(intervalList);
@@ -365,7 +371,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (protectManager.getDepth() > Global->maxStackDepth) {
 		Rf_error("Protection stack too large; report this problem to the OpenMx forum");
 	}
-	FitContext fc(startingValues);
 
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(&fc);
@@ -383,7 +388,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	MxRList result;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxExportResults(globalState, &result); 
+	omxExportResults(globalState, &result);
 
 	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;

@@ -269,7 +269,7 @@ void ComputeCI::computeImpl(FitContext *fc)
 	for(int j = 0; j < numInts; j++) {
 		omxConfidenceInterval *oCI = Global->intervalList[j];
 		interval(j, 0) = oCI->min;
-		omxRecompute(oCI->matrix);
+		omxRecompute(oCI->matrix, FF_COMPUTE_FIT, fc);
 		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 		interval(j, 2) = oCI->max;
 		intervalCode[j] = oCI->lCode;

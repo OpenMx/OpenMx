@@ -119,7 +119,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[i] = optima[i] - iOffset;
@@ -127,7 +127,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
@@ -173,7 +173,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[i] = optima[i] - iOffset;
@@ -182,7 +182,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		fitContext->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
@@ -305,7 +305,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int numChildren = 0;
 	if (parallel) numChildren = globalState->childList.size();
 
-	omxRecompute(fitMat);
+	omxRecompute(fitMat, FF_COMPUTE_FIT, fc);
 	minimum = omxMatrixElement(fitMat, 0, 0);
 	if (!std::isfinite(minimum)) {
 		omxRaiseErrorf("mxComputeNumericDeriv: reference fit is %f", minimum);

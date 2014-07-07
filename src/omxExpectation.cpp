@@ -60,7 +60,7 @@ void omxExpectationRecompute(omxExpectation *ox) {
 	if(ox->thresholds != NULL) {
 		for(int i = 0; i < ox->numOrdinal; i++) {
 			if (!ox->thresholds[i].matrix) continue;
-			omxRecompute(ox->thresholds[i].matrix);
+			omxRecompute(ox->thresholds[i].matrix, FF_COMPUTE_FIT, NULL);
 		}
 	}
 

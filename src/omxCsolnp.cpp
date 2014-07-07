@@ -85,7 +85,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
     
     omxConfidenceInterval *oCI = Global->intervalList[CSOLNP_currentInterval];
     
-    omxRecompute(oCI->matrix);
+    omxRecompute(oCI->matrix, FF_COMPUTE_FIT, GLOB_fc);
     
     double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
     
@@ -151,7 +151,7 @@ Matrix csolnpEqualityFunction(int verbose)
 			    if (verbose >= 3) {
 				    mxLog("result is: %2f", globalState->conList[j].result->data[0]);
 			    }
-			    omxRecompute(globalState->conList[j].result);
+			    omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, GLOB_fc);
 			    if (verbose >= 3) {
 				    mxLog("%.16f", globalState->conList[j].result->data[0]);
 				    mxLog("size is: %d", globalState->conList[j].size);
@@ -203,7 +203,7 @@ Matrix csolnpIneqFun(int verbose)
         
         for(j = 0; j < globalState->numConstraints; j++) {
             if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2)
-            {   omxRecompute(globalState->conList[j].result);}
+		    {   omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, GLOB_fc);}
             for(k = 0; k < globalState->conList[j].size; k++){
                 M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
                 l = l + 1;

@@ -52,7 +52,7 @@ class omxMatrix {
  public:
 	void transposePopulate();
 	void omxProcessMatrixPopulationList(SEXP matStruct);
-	void omxPopulateSubstitutions();
+	void omxPopulateSubstitutions(FitContext *fc);
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
@@ -127,10 +127,9 @@ void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, const char* d);
-	unsigned short int omxNeedsUpdate(omxMatrix *matrix);								// Does this need to be recomputed?
-void omxInitialCompute(omxMatrix *matrix);
-	void omxRecompute(omxMatrix *matrix);												// Recompute the matrix if needed.
-	void omxForceCompute(omxMatrix *matrix);
+
+void omxRecompute(omxMatrix *matrix, int want, FitContext *fc);
+
 
 void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);
 void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
@@ -339,5 +338,15 @@ static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert 
 void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
+
+void checkIncreasing(omxMatrix* om, int column);
+
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights);
+
+void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result);
+
+void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result);
+
+void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 #endif /* _OMXMATRIX_H_ */

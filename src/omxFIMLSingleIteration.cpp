@@ -16,7 +16,6 @@
 
 
 #include "omxDefines.h"
-#include "omxAlgebraFunctions.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
@@ -246,7 +245,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			for(int j=0; j < dataColumns->cols; j++) {
 				int var = omxVectorElement(dataColumns, j);
 				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-					omxRecompute(thresholdCols[var].matrix); // Only one of these--save time by only doing this once
+					omxRecompute(thresholdCols[var].matrix, FF_COMPUTE_FIT, fc); // Only one of these--save time by only doing this once
 					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
 				}
 			}
@@ -695,7 +694,7 @@ bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj, omx
 					omxExpectationCompute(expectation, NULL);
 					for(int j=0; j < dataColumns->cols; j++) {
 						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
-							omxRecompute(thresholdCols[j].matrix);
+							omxRecompute(thresholdCols[j].matrix, FF_COMPUTE_FIT, fc);
 							checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
 						}
 					}

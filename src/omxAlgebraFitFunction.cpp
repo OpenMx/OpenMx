@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-#include "omxAlgebraFunctions.h"
+#include "omxFitFunction.h"
 #include "matrix.h"
 #include "omxBuffer.h"
 #include <algorithm>
@@ -44,8 +44,8 @@ void AlgebraFitFunction::buildParamMap(FitContext *fc)
 	varGroup = fc->varGroup;
 	numDeriv = 0;
 
-	if (gradient) omxRecompute(gradient);
-	if (hessian)  omxRecompute(hessian);
+	if (gradient) omxRecompute(gradient, FF_COMPUTE_DIMS, fc);
+	if (hessian)  omxRecompute(hessian, FF_COMPUTE_DIMS, fc);
 
 	if (gradient) {
 		if (int(std::max(gradient->algebra->rownames.size(),
@@ -134,7 +134,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 
 	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT)) {
 		if (algebra) {
-			omxRecompute(algebra);
+			omxRecompute(algebra, want, fc);
 			ff->matrix->data[0] = algebra->data[0];
 		} else {
 			ff->matrix->data[0] = 0;
@@ -143,7 +143,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 
 	if (gradMap.size() == 0) return;
 	if (gradient) {
-		omxRecompute(gradient);
+		omxRecompute(gradient, FF_COMPUTE_FIT, fc);
 		if (want & FF_COMPUTE_GRADIENT) {
 			for (size_t v1=0; v1 < gradMap.size(); ++v1) {
 				int to = gradMap[v1];
@@ -163,7 +163,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 	}
 	if (hessian && ((want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) ||
 			(want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_HESSIAN))) {
-		omxRecompute(hessian);
+		omxRecompute(hessian, FF_COMPUTE_FIT, fc);
 
 		if (!vec2diag) {
 			HessianBlock *hb = new HessianBlock;

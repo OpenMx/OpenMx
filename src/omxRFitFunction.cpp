@@ -14,11 +14,9 @@
  *  limitations under the License.
  */
 
-#include "omxAlgebraFunctions.h"
-#include "omxRFitFunction.h"
-#include "omxOpenmpWrap.h"
 #include "glue.h"
 #include "Compute.h"
+#include "omxRFitFunction.h"
 
 void omxDestroyRFitFunction(omxFitFunction *off) {
 	Rf_unprotect(4); 			// fitfun, model, flatModel, and state
