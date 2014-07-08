@@ -52,7 +52,7 @@ class omxMatrix {
  public:
 	void transposePopulate();
 	void omxProcessMatrixPopulationList(SEXP matStruct);
-	void omxPopulateSubstitutions(FitContext *fc);
+	void omxPopulateSubstitutions(int want, FitContext *fc);
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)

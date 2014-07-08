@@ -597,7 +597,7 @@ void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrix(source, d);
 }
 
-void omxMatrix::omxPopulateSubstitutions(FitContext *fc)
+void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 {
 	if (populate.size() == 0) return;
 	if (OMX_DEBUG_ALGEBRA) {
@@ -613,13 +613,16 @@ void omxMatrix::omxPopulateSubstitutions(FitContext *fc)
 			sourceMatrix = currentState->algebraList[index];
 		}
 
-		omxRecompute(sourceMatrix, FF_COMPUTE_FIT, fc);
-		double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
-		omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
-		if (OMX_DEBUG_ALGEBRA) {
-			mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
-			      value, sourceMatrix->name, pl.srcRow, pl.srcCol,
-			      name, pl.destRow, pl.destCol);
+		omxRecompute(sourceMatrix, want, fc);
+
+		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
+			double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
+			omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
+			if (OMX_DEBUG_ALGEBRA) {
+				mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
+				      value, sourceMatrix->name, pl.srcRow, pl.srcCol,
+				      name, pl.destRow, pl.destCol);
+			}
 		}
 	}
 }
@@ -649,7 +652,7 @@ static bool omxNeedsUpdate(omxMatrix *matrix)
 
 void omxRecompute(omxMatrix *matrix, int want, FitContext *fc)
 {
-	matrix->omxPopulateSubstitutions(fc); // could be an algebra!
+	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
 	if(!omxNeedsUpdate(matrix)) /* do nothing */;
 	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, want, fc);
