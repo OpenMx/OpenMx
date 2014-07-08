@@ -113,6 +113,9 @@ omxCheckCloseEnough(got, .9824, .01)
 
 omxCheckTrue(all(abs(m2$matrices$item$values[c(1,4,5),] - fm.est[c(1,4,5),]) < .025))
 
+omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 2763.844, .01)
+omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 2826.943, .01)
+
 if (0) {
   require(mirt)
   rdata <- sapply(data, unclass)-1

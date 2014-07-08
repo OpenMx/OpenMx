@@ -416,53 +416,51 @@ static void
 ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	if (!state->debugInternal) return;
+
 	ba81NormalQuad &quad = state->getQuad();
 	int maxAbilities = quad.maxAbilities;
 	const int numUnique = state->getNumUnique();
 
-	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(numUnique - 1)); // missingness? latent params? TODO
+	const double LogLargest = state->LogLargestDouble;
+	int totalOutcomes = state->totalOutcomes();
+	SEXP Rlik;
+	SEXP Rexpected;
 
-	if (state->debugInternal) {
-		const double LogLargest = state->LogLargestDouble;
-		int totalOutcomes = state->totalOutcomes();
-		SEXP Rlik;
-		SEXP Rexpected;
-
-		if (state->grp.patternLik.size() != numUnique) {
-			refreshPatternLikelihood(state, oo->dynamicDataSource);
-		}
-
-		Rf_protect(Rlik = Rf_allocVector(REALSXP, numUnique));
-		memcpy(REAL(Rlik), state->grp.patternLik.data(), sizeof(double) * numUnique);
-		double *lik_out = REAL(Rlik);
-		for (int px=0; px < numUnique; ++px) {
-			// Must return value in log units because it may not be representable otherwise
-			lik_out[px] = log(lik_out[px]) - LogLargest;
-		}
-
-		MxRList dbg;
-		dbg.add("patternLikelihood", Rlik);
-
-		if (state->expected) {
-			Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.totalQuadPoints * totalOutcomes));
-			memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * quad.totalQuadPoints);
-			dbg.add("em.expected", Rexpected);
-		}
-
-		SEXP Rmean, Rcov;
-		if (state->estLatentMean) {
-			Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
-			memcpy(REAL(Rmean), state->estLatentMean->data, maxAbilities * sizeof(double));
-			dbg.add("mean", Rmean);
-		}
-		if (state->estLatentCov) {
-			Rf_protect(Rcov = Rf_allocMatrix(REALSXP, maxAbilities, maxAbilities));
-			memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
-			dbg.add("cov", Rcov);
-		}
-
-		Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
+	if (state->grp.patternLik.size() != numUnique) {
+		refreshPatternLikelihood(state, oo->dynamicDataSource);
 	}
+
+	Rf_protect(Rlik = Rf_allocVector(REALSXP, numUnique));
+	memcpy(REAL(Rlik), state->grp.patternLik.data(), sizeof(double) * numUnique);
+	double *lik_out = REAL(Rlik);
+	for (int px=0; px < numUnique; ++px) {
+		// Must return value in log units because it may not be representable otherwise
+		lik_out[px] = log(lik_out[px]) - LogLargest;
+	}
+
+	MxRList dbg;
+	dbg.add("patternLikelihood", Rlik);
+
+	if (state->expected) {
+		Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.totalQuadPoints * totalOutcomes));
+		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * quad.totalQuadPoints);
+		dbg.add("em.expected", Rexpected);
+	}
+
+	SEXP Rmean, Rcov;
+	if (state->estLatentMean) {
+		Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
+		memcpy(REAL(Rmean), state->estLatentMean->data, maxAbilities * sizeof(double));
+		dbg.add("mean", Rmean);
+	}
+	if (state->estLatentCov) {
+		Rf_protect(Rcov = Rf_allocMatrix(REALSXP, maxAbilities, maxAbilities));
+		memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
+		dbg.add("cov", Rcov);
+	}
+
+	Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 }
 
 static void ba81Destroy(omxExpectation *oo) {

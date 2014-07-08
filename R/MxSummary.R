@@ -122,6 +122,7 @@ fitfunctionNumberObservations <- function(fitfunction) {
 }
 
 numberObservations <- function(datalist, fitfunctions) {
+	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
 	dataObservations <- sapply(datalist, slot, name = "numObs")
 	fitfunctionObservations <- sapply(fitfunctions, fitfunctionNumberObservations)
 	return(sum(as.numeric(dataObservations), as.numeric(fitfunctionObservations)))
@@ -129,6 +130,7 @@ numberObservations <- function(datalist, fitfunctions) {
 
 computeFValue <- function(datalist, likelihood, chi) {
 	if(length(datalist) == 0) return(NA)
+	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'raw'}))) return(likelihood)
 	if(all(sapply(datalist, function(x) 
@@ -700,13 +702,15 @@ logLik.MxModel <- function(object, ...) {
 		warning(msg)
 	}
 	ll <- NA
-	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood))
-	ll <- -0.5*model@output$Minus2LogLikelihood
+	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood)) {
+		ll <- -0.5*model@output$Minus2LogLikelihood
+	}
 
-	if (!is.null(model@data))
-		attr(ll,"nobs") <- model@data@numObs
-	else
-		attr(ll,"nobs") <- NA
+	nobs <- numberObservations(model@runstate$datalist, model@runstate$fitfunctions)
+	if (!is.na(nobs)) {
+		attr(ll,"nobs") <- nobs
+	}
+
 	if (!is.null(model@output))
 		attr(ll,"df")<- length(model@output$estimate)
 	else

@@ -99,30 +99,43 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			  }
 		  }
 
-		  .Object@dims <- colnames(flatModel@datasets[[.Object@data + 1]]@observed) # for summary
+		  mxData <- flatModel@datasets[[.Object@data + 1]]
+		  .Object@dims <- colnames(mxData@observed) # for summary
+		  if (mxData@.isSorted) {
+			  .Object@numStats <- nrow(mxData@observed) - 1L
+		  }
 
 		  if (is.null(colnames(item))) {
 			  stop(paste(class(.Object),
 				     ": the item matrix must have column names",
 				     "to match against the observed data column names."))
-		  } else {
-			  dc <- match(colnames(item), .Object@dims) - 1L
-			  if (any(is.na(dc))) {
-				  msg <- paste("Some items are not found among the observed data columns:",
-					       omxQuotes(colnames(item)[is.na(dc)]))
+		  }
+		  
+		  dc <- match(colnames(item), .Object@dims) - 1L
+		  if (any(is.na(dc))) {
+			  msg <- paste("Some items are not found among the observed data columns:",
+				       omxQuotes(colnames(item)[is.na(dc)]))
+			  stop(msg, call.=FALSE)
+		  }
+
+		  .Object@dataColumns <- dc
+		  if (!is.na(.Object@weightColumn)) {
+			  wc <- match(.Object@weightColumn, .Object@dims) - 1L
+			  if (is.na(wc)) {
+				  msg <- paste("Weight column",.Object@weightColumn,
+					       "not found in observed data columns")
 				  stop(msg, call.=FALSE)
 			  }
-			  .Object@dataColumns <- dc
-			  if (!is.na(.Object@weightColumn)) {
-				  wc <- match(.Object@weightColumn, .Object@dims) - 1L
-				  if (is.na(wc)) {
-					  msg <- paste("Weight column",.Object@weightColumn,
-						       "not found in observed data columns")
-					  stop(msg, call.=FALSE)
-				  }
-				  .Object@weightColumn <- wc
+			  numObs <- sum(mxData@observed[, .Object@weightColumn])
+			  if (mxData@numObs != numObs) {
+				  stop(paste("For mxData, the number of observations must be set to ", numObs,
+					     "; try mxData(observed=obs, type='raw',",
+					     " numObs=sum(obs$", .Object@weightColumn, "), ...)", sep=""))
 			  }
+			  .Object@numStats <- nrow(mxData@observed) - 1
+			  .Object@weightColumn <- wc
 		  }
+
 		  return(.Object)
 	  })
 
@@ -164,7 +177,8 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param mean the name of the mxMatrix holding the mean vector
 ##' @param cov the name of the mxMatrix holding the covariance matrix
 ##' @param verbose the level of runtime diagnostics (default 0L)
-##' @param minItemsPerScore scores with fewer than this many items are considered NA
+##' @param minItemsPerScore scores with fewer than this many items are considered NA.
+##' A good choice is 1 since full-information maximum likelihood is used and missing data should not cause bias.
 ##' @param weightColumn the name of the column in the data containing the row weights (default NA)
 ##' @param EstepItem a simple matrix of item parameters for the
 ##' E-step. This option is mainly of use for debugging derivatives.

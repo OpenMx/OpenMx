@@ -169,6 +169,9 @@ latent <- mxModel("latent",
   grpModel <- mxRun(grpModel)
 
  omxCheckCloseEnough(grpModel$output$fit, flexmirt.LL, .01)
+omxCheckCloseEnough(summary(grpModel)$informationCriteria['AIC:','par'], 30107.30, .01)
+omxCheckCloseEnough(summary(grpModel)$informationCriteria['BIC:','par'], 30420.953, .01)
+
   omxCheckCloseEnough(grpModel$submodels$g2$matrices$item$values,
                       fm$G2$param, .02)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .01)

@@ -128,7 +128,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
-	if (type == "raw") {
+	if (type == "raw" && missing(numObs)) {
 		numObs <- nrow(observed)
 	}
 	if (type == "cov") {

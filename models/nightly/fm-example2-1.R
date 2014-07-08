@@ -69,6 +69,9 @@ omxCheckTrue(m2$output$infoDefinite)
 omxCheckCloseEnough(m2$output$conditionNumber, 51, 1)
 #cat(deparse(round(c(m2$output$standardErrors),3)))
 
+omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 33456.047, .01)
+omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 33598.919, .01)
+
 se <- c(0.071, 0.047, 0.109, 0.113, 0.062, 0.043, 0.073, 0.052, 0.063,
         0.044, 0.098, 0.086, 0.181, 0.233, 0.075, 0.061, 0.153, 0.166,
         0.102, 0.096, 0.064, 0.044, 0.069, 0.045)
