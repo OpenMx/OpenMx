@@ -25,6 +25,7 @@ void omxDestroyRowFitFunction(omxFitFunction *oo) {
 	omxRowFitFunction* argStruct = (omxRowFitFunction*)(oo->argStruct);
 
 	omxFreeMatrix(argStruct->dataRow);
+	omxFreeMatrix(argStruct->dataColumns);
 }
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
