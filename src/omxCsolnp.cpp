@@ -37,19 +37,6 @@ static omxMatrix *GLOB_fitMatrix = NULL;
 static FitContext *GLOB_fc = NULL;
 static int CSOLNP_currentInterval = -1;
 
-Matrix fillMatrix(int cols, int rows, double* array)
-{
-    Matrix t = new_matrix(cols, rows);
-	int i,j;
-	for(i=0;i<rows;i++){
-		for(j=0;j<cols;j++) {
-			M(t,j,i)=array[j];
-		}
-	}
-	return t;
-}
-
-
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars, int verbose)
 {

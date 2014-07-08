@@ -212,7 +212,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 	}
 	
 	// does not have a function gradient (currently not supported in Rsolnp)
-    
+    M(ind, 1, 0) = 0;
 	//# do function checks and return starting value
     
     funv = solFun(pars, verbose);
@@ -463,7 +463,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 			mxLog("ob information: ");
             for (i = 0; i < ob.cols; i++) mxLog("%f",ob.t[i]);
 			mxLog("hessv information: ");
-            for (i = 0; i < hessv.cols; i++) mxLog("%f",hessv.t[i]);
+            for (i = 0; i < hessv.cols*hessv.cols; i++) mxLog("%f",hessv.t[i]);
 			mxLog("mu information: ");
 			mxLog("%2f", mu);
 			mxLog("vscale information: ");
@@ -591,12 +591,12 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 					Matrix copyValues = subset(constraint, 0, neq, tc-1);
 					p = copyInto(p, copyValues, 0, 0, nineq-1);
 				}
+                Matrix diff = subtract(subset(constraint, 0, neq, tc-1),
+                                       subset(p, 0, 0, nineq-1));
+                
+                constraint = copyInto(constraint, diff, 0, neq, tc-1);
 			} // end if (ind[0][3] > 0.5){
             
-			Matrix diff = subtract(subset(constraint, 0, neq, tc-1),
-                                   subset(p, 0, 0, nineq-1));
-            
-			constraint = copyInto(constraint, diff, 0, neq, tc-1);
 			M(tt, 0, 2) = vnorm(constraint);
             
             
@@ -623,7 +623,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 				//hessv = diag( diag ( hessv ) )
 				/** DOESN'T AFFECT US NOW EVENTUALLY IT WILL **/
 				lambda = fill(1, 1, (double)0.0);
-				hessv = diag(diag(hessv));
+				hessv = diag(diag2(hessv));
 			}
             
 			M(tt, 0, 1) = M(tt, 0, 2);
@@ -885,8 +885,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		// yy [total constraints = nineq + neq]
 		// scale here is [tc] and dot multiplied by yy
 		//yy = vscale[ 2:(nc + 1) ] * yy / vscale[ 1 ]
+        yy = multiply(transpose(subset(vscale, 0, 1, nc)), yy);
 		yy = divideByScalar2D(yy, M(vscale,0,0));
-		yy = multiply(transpose(subset(vscale, 0, 1, nc)), yy);
 	}
 
 	// hessv [ (np+nineq) x (np+nineq) ]
@@ -999,9 +999,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             
 			if (verbose >= 3){
 				mxLog("g is: \n");
-				for (i = 0; i < g.cols; i++) mxLog("%f",g.t[i]);
+				for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
                 mxLog("a is: \n");
-				for (i = 0; i < a.cols; i++) mxLog("%f",a.t[i]);
+				for (int ilog = 0; ilog < a.cols; ilog++) mxLog("%f",a.t[ilog]);
             
 			}
 			Matrix colValues = subtract(subset(ob, 0, 1, nc), constraint);
@@ -1021,6 +1021,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			constraint = copyInto(constraint, values, 0, neq, (neq+nineq-1));
             
 		}
+        
+        double solveconded = solvecond(a);
+        
+        if (solvecond(a) > 1/DBL_EPSILON)
+        {
+            Rf_error("Redundant constraints were found. Poor intermediate results may result.Suggest that you remove redundant constraints and re-OPTIMIZE.");
+        }
         
 		b = fill(nc, 1, (double)0.0);
         
@@ -1078,12 +1085,11 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                     
                 }
                 
-                y = qrSolve(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
-                
-                //Matrix y = QRd(transpose(timess(a, transpose(diag(dx)))) , transpose(multiply(dx, transpose(cx))));
-                y = subset(y, 0, 0, nc - 1);
-                
-                Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),transpose(y)))));
+                Matrix argum1 = transpose(timess(a, transpose(diag(dx))));
+                Matrix argum2 = multiply(transpose(dx), transpose(cx));
+                Matrix y = QRdsolve(argum1, argum2);
+                Matrix v = multiply(transpose(dx), multiply(transpose(dx), subtract(transpose(cx),timess(transpose(a),y))));
+                v = transpose(v);
                 
                 int indexx = npic;
                 int i;
@@ -1129,8 +1135,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 
             }// end while(go >= tol)
             
-			if (minit >= 10){
-				mxLog("m2 solnp Rf_error message being reported.");
+            if (minit >= 10){
+				mxLog("The linearized problem has no feasible solution. The problem may not be feasible.");
 			}
 			int h;
 			Matrix aMatrix = fill(npic, nc, (double)0.0);
@@ -1211,7 +1217,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
     
 	if (nc > 0){
         
-		ob = copyInto(ob, add(subtract(subset(ob, 0, 1, nc), matrixDotProduct(a, p)), b), 0, 1, nc);
+		ob = copyInto(ob, add(subtract(subset(ob, 0, 1, nc), transpose(timess(a, transpose(p)))), b), 0, 1, nc);
         
 		Matrix temp = subset(ob, 0, 1, nc);
         
@@ -1229,7 +1235,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 	Matrix yg = fill(npic, 1, (double)0.0);
 	Matrix sx = fill(p.cols, 1, (double)0.0);
 	Matrix sc = fill(2, 1, (double)0.0);
-	Matrix cz;
+	Matrix cz = fill(np, np, (double)0.0);
 	Matrix czSolution;
 	Matrix u;
     
@@ -1276,7 +1282,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				obm = divide(firstPart, secondPart);
 				if (verbose >= 3){
 					mxLog("obm is: \n");
-					for (i = 0; i < obm.cols; i++) mxLog("%f",obm.t[i]);
+					for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
 					mxLog("j is: \n");
 					mxLog("%.20f", j);
 				}
@@ -1287,7 +1293,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 
 				if (nc > 0){
                     
-					Matrix first_part = subtract(subset(obm, 0, 1, nc),matrixDotProduct(a, p));
+					Matrix first_part = subtract(subset(obm, 0, 1, nc),transpose(timess(a, transpose(p))));
 					obm = copyInto(obm, add(first_part, b), 0, 1, nc);
 					Matrix temp = subset(obm, 0, 1, nc);
 					double vnormTerm = vnorm(temp) * vnorm(temp);
@@ -1302,9 +1308,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 
 				if (verbose >= 3){
 					mxLog("g is: \n");
-					for (i = 0; i < g.cols; i++) mxLog("%f",g.t[i]);
+					for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
 					mxLog("p is: \n");
-					for (i = 0; i < p.cols; i++) mxLog("%f",p.t[i]);
+					for (int ilog = 0; ilog < p.cols; ilog++) mxLog("%f",p.t[ilog]);
 				}
 			} // end for (i=0; i<np; i++){
             
@@ -1322,14 +1328,17 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		if (minit > 1){
 			yg = subtract(g, yg);
 			sx = subtract(p, sx);
-			M(sc, 0, 0) = dotProduct(getRow(matrixDotProduct(hessv, sx), 0), getRow(sx, 0));
-			M(sc, 1, 0) = dotProduct(getRow(sx, 0), getRow(yg, 0));
+			Matrix m_sc = timess(timess(sx, hessv), transpose(sx));
+            M(sc, 0, 0) = M(m_sc, 0, 0);
+            Matrix m_sc2 = timess(sx, transpose(yg));
+            M(sc, 1, 0) = M(m_sc2, 0, 0);
+
 			if ((M(sc, 0, 0) * M(sc, 1, 0)) > 0){
 				//hessv  = hessv - ( sx %*% t(sx) ) / sc[ 1 ] + ( yg %*% t(yg) ) / sc[ 2 ]
-				sx = matrixDotProduct(hessv, sx);
+                sx = timess(hessv, transpose(sx));
                 
-				Matrix sxMatrix = divideByScalar2D(transpose2D(sx), M(sc, 0, 0));
-				Matrix ygMatrix = divideByScalar2D(transpose2D(yg), M(sc, 1, 0));
+                Matrix sxMatrix = divideByScalar2D(timess(sx, transpose(sx)), M(sc, 0, 0));
+                Matrix ygMatrix = divideByScalar2D(timess(transpose(yg), yg), M(sc, 1, 0));
 				
 				hessv = subtract(hessv, sxMatrix);
 				hessv = add(hessv, ygMatrix);
@@ -1360,7 +1369,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             
 			gap = rowSort(gap);
             
-			gap = add(getColumn(gap, 0), multiplyByScalar2D(fill(1, mm,(double)1.0),sqrt(eps)));
+			gap = add(getColumn(gap, 0), multiplyByScalar2D(fill(1, mm,(double)1.0),sqrt(DBL_EPSILON)));
             
 			dx = copyInto(dx, divide(fill(mm, 1, (double)1.0), gap), 0, 0, mm-1);
             
@@ -1409,14 +1418,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			Matrix addMatrices = add(hessv, dxMultbyLambda);
 			if (verbose >= 3){
 				mxLog("addMatrices is: \n");
-				for (i = 0; i < addMatrices.cols; i++) mxLog("%f",addMatrices.t[i]);
+				for (i = 0; i < addMatrices.cols*addMatrices.cols; i++) mxLog("%f",addMatrices.t[i]);
 			}
-			cz = cholesky(addMatrices);
+			cz = chol_lpk(addMatrices);
 			if (verbose >= 3){
 				mxLog("cz is: \n");
-				for (i = 0; i < cz.cols; i++) mxLog("%f",cz.t[i]);
+				for (i = 0; i < cz.cols*cz.cols; i++) mxLog("%f",cz.t[i]);
 			}
-            
             if (!R_FINITE(findMax(cz)))
             {
                 double nudge = 1.490116e-08;
@@ -1433,14 +1441,15 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
                 resLambda = lambda;
                 return g;
             }
-			//Matrix identityMatrix = diag(fill(hessv.cols, 1, (double)1.0));
+
+            //Matrix identityMatrix = diag(fill(hessv.cols, 1, (double)1.0));
             
             cz = solveinv(cz);
             //cz = luSolve(cz, identityMatrix);
 			
             if (verbose >= 3){
 				mxLog("cz is: \n");
-				for (i = 0; i < cz.cols; i++) mxLog("%f",cz.t[i]);
+				for (i = 0; i < cz.cols*cz.cols; i++) mxLog("%f",cz.t[i]);
 			}
             
 			//Matrix getRowed = getRow(cz, 0);
@@ -1450,13 +1459,14 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			}
 			//Matrix getRowedtwo = getRow(g, 0);
 			//double rr = dotProduct(getRowed, getRowedtwo);
-			yg = matrixDotProduct(cz, g);
+			yg = timess(transpose(cz), transpose(g));
 			if (verbose >= 3){
 				mxLog("yg is: \n");
 				for (i = 0; i < yg.cols; i++) mxLog("%f",yg.t[i]);
 			}
 			if (nc <= 0){
-				u = matrixDotProduct(divideByScalar2D(transpose(cz), -1.0), yg);
+                u = timess(divideByScalar2D(cz, -1.0), yg);
+                u = transpose(u);
 				if (verbose >= 3){
 					mxLog("u inside nc <=0 is: \n");
 					for (i = 0; i < u.cols; i++) mxLog("%f",u.t[i]);
@@ -1469,17 +1479,17 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					mxLog("aTranspose is: \n");
 					for (i = 0; i < aTranspose.cols; i++) mxLog("%f",aTranspose.t[i]);
 				}
-				Matrix firstMatrix = timess(cz, aTranspose);
+                Matrix firstMatrix = timess(transpose(cz), aTranspose);
 				if (verbose >= 3){
 					mxLog("firstMatrix is: \n");
 					for (i = 0; i < firstMatrix.cols; i++) mxLog("%f",firstMatrix.t[i]);
 				}
-				Matrix secondMatrix = transpose(yg);
+				Matrix secondMatrix = yg;
 				if (verbose >= 3){
 					mxLog("secondMatrix is: \n");
 					for (i = 0; i < secondMatrix.cols; i++) mxLog("%f",secondMatrix.t[i]);
 				}
-				Matrix solution = qrSolve(firstMatrix, secondMatrix);
+                Matrix solution = QRdsolve(firstMatrix, secondMatrix);
 				if (verbose >= 3){
 					mxLog("solution is: \n");
 					for (i = 0; i < solution.cols; i++) mxLog("%f",solution.t[i]);
@@ -1497,7 +1507,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					for (i = 0; i < yMatrix.cols; i++) mxLog("%f",yMatrix.t[i]);
 				}
 				//u = -cz %*% (yg - ( t(cz) %*% t(a) ) %*% y)
-				Matrix minuscz = multiplyByScalar2D(transpose(cz), -1.0);
+				Matrix minuscz = multiplyByScalar2D(cz, -1.0);
 				Matrix toSubtract = timess(firstMatrix, yMatrix);
 				Matrix partU = subtract(secondMatrix, toSubtract);
                 
@@ -1629,14 +1639,14 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			Matrix diff = fill((nineq+1), 1, (double)0.0);
 			Matrix partOne = subset(ob3, 0, neq+1, nc);
 			Matrix tempPttCol = getColumn(ptt, 2);
-			Matrix partTwo = subset(tempPttCol, 0, 0, nineq);
+			Matrix partTwo = subset(tempPttCol, 0, 0, nineq-1);
 			diff = subtract(partOne, partTwo);
 			ob3 = copyInto(ob3, diff, 0, neq+1, nc);
 		}
         
 		if (nc > 0){
 			//sob[ 3 ] = ob3[ 1 ] - t(yy) %*% ob3[ 2:(nc + 1) ] + rho * .vnorm(ob3[ 2:(nc + 1) ]) ^ 2
-			Matrix firstp = subtract(subset(ob3, 0, 1, nc), matrixDotProduct(a, getColumn(ptt, 2)));
+            Matrix firstp = subtract(subset(ob3, 0, 1, nc), transpose(timess(a, transpose(getColumn(ptt, 2)))));
             
             ob3 = copyInto(ob3, add(firstp, b), 0, 1, nc);
             Matrix temp = subset(ob3, 0, 1, nc);
@@ -1700,7 +1710,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             
 			secondPart = subset(vscale, 0, 0, nc);
             
-			Matrix ob2 = divide(firstPart, secondPart);
+            ob2 = divide(firstPart, secondPart);
 			if (verbose >= 3){
 				mxLog("ob2 is: \n");
 				for (i = 0; i < ob2.cols; i++) mxLog("%f",ob2.t[i]);
@@ -1723,7 +1733,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			}
             
 			if (nc > 0){
-				ob2 = copyInto(ob2, add(subtract(subset(ob2, 0, 1, nc), matrixDotProduct(a, getColumn(ptt, 1))), b), 0, 1, nc);
+                ob2 = copyInto(ob2, add(subtract(subset(ob2, 0, 1, nc), transpose(timess(a, transpose(getColumn(ptt, 1))))), b), 0, 1, nc);
 				Matrix temp = subset(ob2, 0, 1, nc);
 				double vnormTerm = vnorm(temp) * vnorm(temp);
 				Matrix yyTerm = transpose(yy);

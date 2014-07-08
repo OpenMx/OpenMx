@@ -32,7 +32,17 @@ struct Param_Obj {
 };
 
 
-#define M(m,x,y) m.t[x+y*m.cols]
+#define M(m,x,y) m.t[y+x*m.rows]
+
+Matrix fillMatrix(int cols, int rows, double* array);
+
+double solvecond(Matrix inMat);
+
+Matrix diag2(Matrix A);
+
+Matrix chol_lpk(Matrix mainMat);
+
+Matrix QRdsolve(Matrix mainMat, Matrix RHSMat);
 
 Matrix solveinv(Matrix inMat);
 

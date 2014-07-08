@@ -10,7 +10,7 @@ using std::endl;
 #include <list>
 #include <algorithm>
 #include <iterator>
-
+#include <limits>
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
@@ -312,7 +312,18 @@ Matrix diag(Matrix A){
     return result;
 }
 
-//Mahsa: this was wrong. it was "value <= M(t,j,i)", and "j<=t.cols". both are wrong.
+Matrix diag2(Matrix A){
+    int i,j;
+    Matrix result = fill(A.cols, A.cols, (double)0.0);
+    for (i=0; i<A.cols; i++){
+        for (j=0; j<=A.cols; j++){
+            if (i==j)
+                M(result, j, 0) = M(A, j, i);
+        }
+    }
+    return result;
+}
+
 bool allGreaterThan(Matrix t, double value){
 	int i,j;
 	for (i=0; i<t.rows; i++){
@@ -441,6 +452,15 @@ Matrix minMaxAbs(Matrix t, double tol)
 
 Matrix add(Matrix x,  Matrix y)
 {
+    if (x.cols != y.cols || x.rows != y.rows)
+    {
+        if (x.cols == y.rows)
+        {
+            y = duplicateIt(transpose(y));
+        }
+        else Rf_error("noncomformant matrices are added");
+    }
+
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
     for ( r = 0; r < x.rows; r++ )
@@ -455,6 +475,11 @@ Matrix add(Matrix x,  Matrix y)
 
 Matrix subtract(Matrix x,  Matrix y)
 {
+    if (x.cols != y.cols || x.rows != y.rows)
+    {
+        Rf_error("noncomformant matrices are subtracted");
+    }
+    
     Matrix result = fill(x.cols, x.rows, (double)0.0);
     
     int r,c;
@@ -760,6 +785,10 @@ Matrix rbind(Matrix x,  Matrix y){
 
 Matrix timess(Matrix a,  Matrix b){
     int i, j, k;
+    if (a.cols != b.rows)
+    {
+        Rf_error("noncomformant matrices");
+    }
     Matrix result = fill(b.cols, a.rows, (double)0.0);
     Matrix Bcolj = fill(a.cols, 1, (double)0.0);
 	for (j=0; j<b.cols; j++){
@@ -1256,4 +1285,96 @@ Matrix solveinv(Matrix inMat)
 	print(c);
 }*/
 
+
+Matrix QRdsolve(Matrix mainMat, Matrix RHSMat)
+
+{
+    int lwork = 4 * mainMat.rows * mainMat.cols;
+    
+    int l;
+    
+    char TRANS = 'N';
+    
+    Matrix result, input;
+    
+    result = duplicateIt(RHSMat);
+    input = duplicateIt(mainMat);
+    
+    double* work = (double*) malloc(lwork * sizeof(double));
+    
+    dgels_(&TRANS, &(input.rows), &(input.cols), &(result.cols), input.t, &(input.rows), result.t, &(result.rows), work, &lwork, &l);
+    
+    Matrix Final_result = new_matrix(RHSMat.cols, mainMat.cols);
+    for (int i = 0; i < mainMat.cols; i++)
+    {
+        for(int j = 0; j < RHSMat.cols; j++)
+        {
+            M(Final_result, j, i) = M(result, j, i);
+        }
+    }
+    
+    return Final_result;
+}
+
+Matrix chol_lpk(Matrix mainMat)
+{
+    int l;
+    char UPLO = 'U';
+    Matrix result = duplicateIt(mainMat);
+    
+    dpotrf_(&UPLO, &(result.cols), result.t, &(result.rows), &l);
+    for(int i = 0; i < result.rows; i++) {
+        for(int j = i+1; j < result.cols; j++) {
+                M(result, i, j) = 0;
+        }
+    }
+    
+    return result;
+}
+
+double solvecond(Matrix inMat)
+{
+    Matrix result = duplicateIt(inMat);
+    double ret;
+    int l;
+    char JOBZ = 'S';
+    int lwork = -1;
+    double wkopt;
+    double* work;
+    int* iwork = (int*) malloc(8*result.cols * sizeof(double));
+    int dim_s = min(result.cols, result.rows);
+    double* s = (double*) malloc(dim_s * sizeof(double));
+    double* u = (double*) malloc(result.rows*result.rows * sizeof(double));
+    double* vt = (double*) malloc(result.cols*result.cols * sizeof(double));
+    dgesdd_(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), s, u, &(result.rows), vt, &(result.cols), &wkopt, &lwork, iwork, &l);
+    lwork = (int)wkopt;
+    work = (double*) malloc(lwork * sizeof(double));
+    dgesdd_(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), s, u, &(result.rows), vt, &(result.cols), work, &lwork, iwork, &l);
+    if (l < 0) Rf_error("the i-th argument had an illegal value");
+    else if (l > 0) Rf_error("DBDSDC did not converge, updating process failed.");
+    else
+    {
+        Matrix s_M = fillMatrix(dim_s, 1, s);
+        for (int i = 0; i < dim_s; i++)
+        {
+            if(s[i] == 0)
+            {ret = std::numeric_limits<double>::infinity();}
+            else ret = findMax(s_M)/findMin(s_M);
+        }
+    }
+    return ret;
+    
+}
+
+Matrix fillMatrix(int cols, int rows, double* array)
+{
+    Matrix t = new_matrix(cols, rows);
+	int i,j;
+	for(i=0;i<rows;i++){
+		for(j=0;j<cols;j++) {
+			M(t,j,i)=array[j];
+		}
+	}
+	return t;
+}
 
