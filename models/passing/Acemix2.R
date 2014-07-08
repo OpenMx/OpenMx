@@ -31,31 +31,31 @@
 
 require(OpenMx)
 
-DataMZ<-read.table("data/sim1.mz",header<-F)
-selVars<-c("T1","T2","pMZ")
-names(DataMZ)<-selVars
-frameMZ<-data.frame(pMZ<-DataMZ$pMZ)
+DataMZ <- read.table("data/sim1.mz", header = F)
+selVars <- c("T1", "T2", "pMZ")
+names(DataMZ) <- selVars
+frameMZ <- data.frame(pMZ = DataMZ$pMZ)
 
 twinACEModel <- mxModel("twinACE", 
-                # Matrix expMean for expected mean vector for MZ and DZ twins    
-        mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=20, label="mean", name="expMean"), 
+	        # Matrix expMean for expected mean vector for MZ and DZ twins    
+	mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=20, label="mean", name="expMean"), 
 
-                # Matrices X, Y, and Z to store the a, c, and e path coefficients
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
-        mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e", name="Z", lbound=.1, ubound=10),
+	        # Matrices X, Y, and Z to store the a, c, and e path coefficients
+	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
+	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="c", name="Y"),
+	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="e", name="Z", lbound=.1, ubound=10),
 
-                # Matrixes A, C, and E to compute A, C, and E variance components
-        mxAlgebra(X * t(X), name="A"),
-        mxAlgebra(Y * t(Y), name="C"),
-        mxAlgebra(Z * t(Z), name="E"),  
+	        # Matrixes A, C, and E to compute A, C, and E variance components
+	mxAlgebra(X * t(X), name="A"),
+	mxAlgebra(Y * t(Y), name="C"),
+	mxAlgebra(Z * t(Z), name="E"),  
 
-                # Matrix expCOVMZ for expected covariance matrix for MZ twins
-        mxAlgebra(rbind(cbind(A+C+E   , A+C),
-                        cbind(A+C     , A+C+E)), name="expCovMZ"),
-                # Matrix expCOVMZ for expected covariance matrix for DZ twins
-        mxAlgebra(rbind(cbind(A+C+E   , .5%x%A+C),
-                       cbind(.5%x%A+C , A+C+E)), name="expCovDZ"),
+	        # Matrix expCOVMZ for expected covariance matrix for MZ twins
+	mxAlgebra(rbind(cbind(A+C+E   , A+C),
+	                cbind(A+C     , A+C+E)), name="expCovMZ"),
+	        # Matrix expCOVMZ for expected covariance matrix for DZ twins
+	mxAlgebra(rbind(cbind(A+C+E   , .5%x%A+C),
+	               cbind(.5%x%A+C , A+C+E)), name="expCovDZ"),
                        
 #
 # MZ likelihood is set up as pright*(Likelihood|Zygosity=MZ) + pwrong*(Likelihood|DZ)
@@ -63,21 +63,21 @@ twinACEModel <- mxModel("twinACE",
 #
 # vector=TRUE argument to mxFitFunctionML(),mxExpectationNormal allows mixture distribution on individual likelihoods
 #
-        mxModel("MZlike",
-                mxData(DataMZ, type="raw"), 
-                mxExpectationNormal("twinACE.expCovMZ", "twinACE.expMean",c("T1","T2")),
-		mxFitFunctionML(vector=T)),
-        mxModel("DZlike",
-                mxData(DataMZ, type="raw"), 
-                mxExpectationNormal("twinACE.expCovDZ", "twinACE.expMean",c("T1","T2")),
-		mxFitFunctionML(vector=T)),
+	mxModel("MZlike",
+		mxData(DataMZ, type="raw"), 
+		mxExpectationNormal("twinACE.expCovMZ", "twinACE.expMean",c("T1","T2")),
+		mxFitFunctionML(vector=T)
+	),
+	mxModel("DZlike",
+		mxData(DataMZ, type="raw"), 
+		mxExpectationNormal("twinACE.expCovDZ", "twinACE.expMean",c("T1","T2")),
+		mxFitFunctionML(vector=T)
+	),
+	mxMatrix(type="Full", nrow=dim(frameMZ)[1], ncol=1, values = frameMZ$pMZ, name="pMZ"),
+	mxMatrix(type="Unit", nrow=dim(frameMZ)[1], ncol=1, name="unit"),
 
-        mxMatrix(type="Full", nrow=dim(frameMZ)[1], ncol=1, values=frameMZ$pMZ, name="pMZ"),
-        mxMatrix(type="Unit", nrow=dim(frameMZ)[1], ncol=1, name="unit"),
-        
-        mxAlgebra(-2*sum(log(pMZ * MZlike.objective + (unit-pMZ) * DZlike.objective)), name="twin"), 
-        mxFitFunctionAlgebra("twin")
-        )
+	mxAlgebra(-2*sum(log(pMZ * MZlike.objective + (unit-pMZ) * DZlike.objective)), name="twin"), 
+	mxFitFunctionAlgebra("twin")
+)
 
-twinACEFit <- mxRun(twinACEModel, suppressWarnings=TRUE)
-
+twinACEFit <- mxRun(twinACEModel, suppressWarnings = TRUE)
