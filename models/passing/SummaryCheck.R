@@ -161,4 +161,17 @@ omxCheckEquals(covs.sum$ChiDoF, chi.df)
 omxCheckTrue(is.na(raw.sum$RMSEA))
 omxCheckTrue(!is.na(raws.sum$RMSEA))
 
+omxCheckCloseEnough(raw.sum$informationCriteria['AIC:','par'], 9298.67, .01)
+omxCheckCloseEnough(raw.sum$informationCriteria['BIC:','par'], 9429.32, .01)
 
+omxCheckCloseEnough(sat.sum$informationCriteria['AIC:','par'], 9316.91, .01)
+omxCheckCloseEnough(sat.sum$informationCriteria['BIC:','par'], 9590.86, .01)
+
+omxCheckCloseEnough(raws.sum$informationCriteria['AIC:','par'], 9298.67, .01)
+omxCheckCloseEnough(raws.sum$informationCriteria['BIC:','par'], 9429.32, .01)
+
+omxCheckCloseEnough(cov.sum$informationCriteria['AIC:','par'], 91.66, .01)
+omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.17, .01)
+
+omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.66, .01)
+omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.31, .01)
