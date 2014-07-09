@@ -1022,14 +1022,12 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
             
 		}
         
-        double solveconded = solvecond(a);
-        
-        if (solvecond(a) > 1/DBL_EPSILON)
-        {
-            Rf_error("Redundant constraints were found. Poor intermediate results may result.Suggest that you remove redundant constraints and re-OPTIMIZE.");
+        if (false && solvecond(a) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
+        Rf_error("Redundant constraints were found. Poor intermediate results may result. "
+            "Remove redundant constraints and re-OPTIMIZE.");
         }
-        
-		b = fill(nc, 1, (double)0.0);
+		
+        b = fill(nc, 1, (double)0.0);
         
         Matrix timess_a_p0 = timess(a, transpose(p0));
         //  b [nc,1]

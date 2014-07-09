@@ -1300,9 +1300,9 @@ Matrix QRdsolve(Matrix mainMat, Matrix RHSMat)
     result = duplicateIt(RHSMat);
     input = duplicateIt(mainMat);
     
-    double* work = (double*) malloc(lwork * sizeof(double));
+    Eigen::ArrayXd work(lwork);
     
-    dgels_(&TRANS, &(input.rows), &(input.cols), &(result.cols), input.t, &(input.rows), result.t, &(result.rows), work, &lwork, &l);
+    F77_CALL(dgels)(&TRANS, &(input.rows), &(input.cols), &(result.cols), input.t, &(input.rows), result.t, &(result.rows), work.data(), &lwork, &l);
     
     Matrix Final_result = new_matrix(RHSMat.cols, mainMat.cols);
     for (int i = 0; i < mainMat.cols; i++)
@@ -1322,7 +1322,8 @@ Matrix chol_lpk(Matrix mainMat)
     char UPLO = 'U';
     Matrix result = duplicateIt(mainMat);
     
-    dpotrf_(&UPLO, &(result.cols), result.t, &(result.rows), &l);
+    F77_CALL(dpotrf)(&UPLO, &(result.cols), result.t, &(result.rows), &l);
+    
     for(int i = 0; i < result.rows; i++) {
         for(int j = i+1; j < result.cols; j++) {
                 M(result, i, j) = 0;
@@ -1335,35 +1336,27 @@ Matrix chol_lpk(Matrix mainMat)
 double solvecond(Matrix inMat)
 {
     Matrix result = duplicateIt(inMat);
-    double ret;
     int l;
     char JOBZ = 'S';
     int lwork = -1;
     double wkopt;
-    double* work;
-    int* iwork = (int*) malloc(8*result.cols * sizeof(double));
-    int dim_s = min(result.cols, result.rows);
-    double* s = (double*) malloc(dim_s * sizeof(double));
-    double* u = (double*) malloc(result.rows*result.rows * sizeof(double));
-    double* vt = (double*) malloc(result.cols*result.cols * sizeof(double));
-    dgesdd_(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), s, u, &(result.rows), vt, &(result.cols), &wkopt, &lwork, iwork, &l);
+    int dim_s = std::max(result.cols, result.rows); // maybe min is sufficient
+    Eigen::ArrayXi iwork(8 * dim_s);
+    Eigen::ArrayXd sv(dim_s);
+    Eigen::ArrayXd u(dim_s * result.rows);
+    Eigen::ArrayXd vt(dim_s * result.cols);
+    F77_CALL(dgesdd)(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), sv.data(), u.data(), &(result.rows), vt.data(), &(result.cols), &wkopt, &lwork, iwork.data(), &l);
     lwork = (int)wkopt;
-    work = (double*) malloc(lwork * sizeof(double));
-    dgesdd_(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), s, u, &(result.rows), vt, &(result.cols), work, &lwork, iwork, &l);
+    Eigen::ArrayXd work(lwork);
+    F77_CALL(dgesdd)(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), sv.data(), u.data(), &(result.rows), vt.data(), &(result.cols), work.data(), &lwork, iwork.data(), &l);
+    
     if (l < 0) Rf_error("the i-th argument had an illegal value");
     else if (l > 0) Rf_error("DBDSDC did not converge, updating process failed.");
     else
     {
-        Matrix s_M = fillMatrix(dim_s, 1, s);
-        for (int i = 0; i < dim_s; i++)
-        {
-            if(s[i] == 0)
-            {ret = std::numeric_limits<double>::infinity();}
-            else ret = findMax(s_M)/findMin(s_M);
-        }
+        if ((sv == 0).count()) return std::numeric_limits<double>::infinity();
+        else return sv.maxCoeff() / sv.minCoeff();
     }
-    return ret;
-    
 }
 
 Matrix fillMatrix(int cols, int rows, double* array)
