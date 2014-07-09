@@ -287,8 +287,11 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	ox->initFun(ox);
 
 	if(ox->computeFun == NULL) {
-		// Should never happen
-		Rf_error("Could not initialize Expectation function %s", ox->expType);
+		if (isErrorRaised()) {
+			Rf_error("Failed to initialize '%s' of type %s: %s", ox->name, ox->expType, Global->getBads());
+		} else {
+			Rf_error("Failed to initialize '%s' of type %s", ox->name, ox->expType);
+		}
 	}
 
 	ox->isComplete = TRUE;
