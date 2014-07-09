@@ -187,6 +187,8 @@ static void omxElementPower(FitContext *fc, int want, omxMatrix** matList, int n
 	int cols = first->cols;
 	int size = rows * cols;
 
+	omxResizeMatrix(result, rows, cols);
+
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -219,6 +221,8 @@ static void omxMatrixElementMult(FitContext *fc, int want, omxMatrix** matList, 
 	int cols = first->cols;
 	int size = rows * cols;
 	
+	omxResizeMatrix(result, rows, cols);
+
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -330,6 +334,8 @@ static void omxElementDivide(FitContext *fc, int want, omxMatrix** matList, int 
 	int cols = first->cols;
 	int size = rows * cols;
 
+	omxResizeMatrix(result, rows, cols);
+
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -387,6 +393,8 @@ static void omxBinaryOr(FitContext *fc, int want, omxMatrix** matList, int numAr
 	int cols = first->cols;
 		int size = rows * cols;
 
+	omxResizeMatrix(result, rows, cols);
+
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
 					double ith_first  = omxVectorElement(first, i);
@@ -428,6 +436,8 @@ static void omxBinaryAnd(FitContext *fc, int want, omxMatrix** matList, int numA
 	int rows = first->rows;
 	int cols = first->cols;
 		int size = rows * cols;
+
+	omxResizeMatrix(result, rows, cols);
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -471,6 +481,8 @@ static void omxBinaryLessThan(FitContext *fc, int want, omxMatrix** matList, int
 	int cols = first->cols;
 		int size = rows * cols;
 
+	omxResizeMatrix(result, rows, cols);
+
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
 	                	double ith_value = omxVectorElement(first, i) -
@@ -513,6 +525,8 @@ static void omxBinaryGreaterThan(FitContext *fc, int want, omxMatrix** matList, 
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
+
+	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
         	for(int i = 0; i < size; i++) {
@@ -608,6 +622,8 @@ static void omxMatrixAdd(FitContext *fc, int want, omxMatrix** matList, int numA
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
+
+	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -772,6 +788,8 @@ static void omxMatrixSubtract(FitContext *fc, int want, omxMatrix** matList, int
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
+
+	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
