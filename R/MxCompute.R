@@ -221,6 +221,7 @@ mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
 		stop("mxComputeOnce does not accept values for the '...' argument")
 	}
 	if (length(from) == 0) warning("mxComputeOnce from nothing will have no effect")
+	verbose <- as.integer(verbose)
 	new("MxComputeOnce", from, what, how, freeSet, verbose, .is.bestfit)
 }
 
@@ -343,6 +344,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	if (!is.null(warmStart) && engine != "NPSOL") {
 		stop("Only NPSOL supports warmStart")
 	}
+	verbose <- as.integer(verbose)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
 	    tolerance, warmStart)
@@ -428,6 +430,7 @@ mxComputeConfidenceInterval <- function(freeSet=NA_character_, ...,
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
 
+	verbose <- as.integer(verbose)
 	new("MxComputeConfidenceInterval", freeSet, engine, fitfunction, verbose, tolerance)
 }
 
@@ -516,6 +519,8 @@ mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitf
 		stop("mxComputeNewtonRaphson does not accept values for the '...' argument")
 	}
 
+	verbose <- as.integer(verbose)
+	maxIter <- as.integer(maxIter)
 	new("MxComputeNewtonRaphson", freeSet, fitfunction, maxIter, tolerance, verbose)
 }
 
@@ -624,6 +629,8 @@ mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0
 		stop("mxComputeIterate does not accept values for the '...' argument")
 	}
 
+	verbose <- as.integer(verbose)
+	maxIter <- as.integer(maxIter)
 	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, freeSet)
 }
 
@@ -803,6 +810,8 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
 	}
+	verbose <- as.integer(verbose)
+	maxIter <- as.integer(maxIter)
 	new("MxComputeEM", expectation, predict, mstep, observedFit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
@@ -910,6 +919,8 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 		stop("mxComputeNumericDeriv does not accept values for the '...' argument")
 	}
 
+	verbose <- as.integer(verbose)
+	iterations <- as.integer(iterations)
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose)
 }
 
