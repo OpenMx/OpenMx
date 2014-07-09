@@ -59,10 +59,10 @@ Laplace_rgsn_mod1 <- mxModel(
 
 Laplace_rgsn_fit1 <- mxRun(Laplace_rgsn_mod1)
 
-Laplace_rgsn_mod2 <- mxOption(Laplace_rgsn_mod1,"Default optimizer",
-                              ifelse(options()$mxOption$'Default optimizer'=="CSOLNP","NPSOL","CSOLNP"))
-Laplace_rgsn_fit2 <- mxRun(Laplace_rgsn_mod2)
+mxOption(NULL,"Default optimizer",
+         ifelse(options()$mxOption$'Default optimizer'=="CSOLNP","NPSOL","CSOLNP"))
 
-omxCheckEquals(
-  (Laplace_rgsn_fit1$output$status$code==6) + (Laplace_rgsn_fit2$output$status$code==6),
-  2)
+Laplace_rgsn_fit2 <- mxRun(Laplace_rgsn_mod1)
+
+omxCheckEquals(Laplace_rgsn_fit1$output$status$code,
+               Laplace_rgsn_fit2$output$status$code)
