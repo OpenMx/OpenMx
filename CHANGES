@@ -1,5 +1,46 @@
 trunk
 =====
+
+Release 2.0.beta2-3635 (Jun 10, 2014)
+=======================================
+* Provide more helpful error messages when an expectation fails to initialize
+* CSOLNP: potential fix for CI and non-linear constraint issues
+* Add checks for AIC, BIC
+* Add a conformability checking step to the backend
+* better error when definition variable is missing
+* Added names() support to the base R object types.  Changed the
+  return value of MxModel names(). [For those who enjoy
+  tab-completion]
+* Make NPSOL the default if available
+* Added verbose=FALSE argument to mxSummary to change amount of information that is printed.
+* Add matrix logarithm algebra operator
+* Move more CI code from frontend to backend
+* Better way to label and reference figures (like APA style)
+* Visually decorate figures so they stand out from the rest of the text [manual, HTML version]
+* Recompute fit at the end of mxComputeGradientDescent
+* CRAN prohibits variable length arrays
+* Better error message when a CI is not found. Let user know what to check and do
+* Fix for a minor bug that dates back to version 1.3.2 (at
+  least). Now, mxVersion() reports the version number of the OpenMx
+  package loaded into R's workspace, not the version number of the
+  OpenMx package installed in the first directory in .libPaths()
+* Added check of many (but not all) of the parts of MxSummary.
+* Added joint ordinal continuous example and an example with means to LISREL man page.
+* Improve safety of mxFactor
+* Automatically extract and run code from the manual to ensure that it works
+* Added reporting of Chi square DoF.
+* Minor bug fix in saturated model helper.
+* Fixed bug in Chi square degrees of freedom calculation.
+* modified error msg in mxRun and mxOption to tell user how to change
+  default optimizer, and how to add a fit function
+* Refuse to set "Default optimizer" on models
+* Reinstate R_CheckUserInterrupt (got commented out by mistake)
+* Fail if a model has an expectation, no fitfunction, and no custom compute plan
+* Fix signature mismatch in displayCompute
+* Remove non-ascii em dashes
+* Fix our signature for logLik S3 method
+* If an MxMatrix is constant, avoid copy
+* Advertise our version as 2.0.0 instead of 999.0.0
 * Reimplement omxData storage to facilitate dynamic data
 * omxAssignFirstParameters should not explode with 0 free parameters
 * Move packageStartupMessage to .onAttach
