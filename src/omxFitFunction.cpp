@@ -108,7 +108,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (want == FF_COMPUTE_DIMS) return;
+	if (want & (FF_COMPUTE_DIMS | FF_COMPUTE_INITIAL_FIT)) return;
 
 	if (!off->initialized) Rf_error("FitFunction not initialized");
 

@@ -20,6 +20,7 @@
 #include "omxState.h"
 #include "Compute.h"
 #include "omxOpenmpWrap.h"
+#include "omxImportFrontendState.h"
 
 struct omxGlobal *Global = NULL;
 
@@ -261,6 +262,8 @@ void omxGlobal::deduplicateVarGroups()
 			omxMatrix *matrix = tgt->algebraList[ax];
 			omxRecompute(matrix, FF_COMPUTE_DIMS, NULL);
 		}
+
+		omxInitialMatrixAlgebraCompute(tgt, NULL);
 
 		for(size_t j = 0; j < src->expectationList.size(); j++) {
 			// TODO: Smarter inference for which expectations to duplicate

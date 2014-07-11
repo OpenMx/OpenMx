@@ -149,10 +149,15 @@ void omxProcessMxComputeEntities(SEXP rObj)
 	Global->computeList.push_back(compute);
 }
 
-void omxInitialMatrixAlgebraCompute(FitContext *fc)
+void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 {
-	size_t numMats = globalState->matrixList.size();
-	int numAlgs = globalState->algebraList.size();
+	// We use FF_COMPUTE_INITIAL_FIT because an expectation
+	// could depend on the value of an algebra. However, we
+	// don't mark anything clean because an algebra could
+	// depend on an expectation (via a fit function).
+
+	size_t numMats = state->matrixList.size();
+	int numAlgs = state->algebraList.size();
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
@@ -161,7 +166,7 @@ void omxInitialMatrixAlgebraCompute(FitContext *fc)
 	// only place that we loop over _all_ matrix and compute them.
 
 	for(size_t index = 0; index < numMats; index++) {
-		omxRecompute(globalState->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);
+		omxRecompute(state->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);
 	}
 
 	// This is required because we have chosen to compute algebras
@@ -169,7 +174,7 @@ void omxInitialMatrixAlgebraCompute(FitContext *fc)
 	// that we loop over _all_ algebras and compute them.
 
 	for(int index = 0; index < numAlgs; index++) {
-		omxMatrix *matrix = globalState->algebraList[index];
+		omxMatrix *matrix = state->algebraList[index];
 		omxRecompute(matrix, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }

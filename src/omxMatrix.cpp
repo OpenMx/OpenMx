@@ -660,7 +660,7 @@ void omxRecompute(omxMatrix *matrix, int want, FitContext *fc)
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}
 
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
+	if (want & FF_COMPUTE_FIT) {
 		omxMarkClean(matrix);
 	}
 }

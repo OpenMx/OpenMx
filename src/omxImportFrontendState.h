@@ -10,7 +10,7 @@ void omxProcessMxExpectationEntities(SEXP expList);
 void omxCompleteMxExpectationEntities();
 void omxCompleteMxFitFunction(SEXP algList);
 void omxProcessMxComputeEntities(SEXP computeList);
-void omxInitialMatrixAlgebraCompute(FitContext *fc);
+void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc);
 void omxProcessCheckpointOptions(SEXP checkpointList);
 void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 void omxProcessConfidenceIntervals(SEXP intervalList);
