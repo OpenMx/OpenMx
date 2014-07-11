@@ -20,7 +20,7 @@ A parallel version of this example, using matrix specification of models rather 
 Statistical Model
 ^^^^^^^^^^^^^^^^^
 
-Algebraically, we are going to fit the following model to the observed x and y variables:
+Algebraically, we are going to fit the following model to the observed *x* and *y* variables:
 
 .. math::
    :nowrap:
@@ -30,7 +30,7 @@ Algebraically, we are going to fit the following model to the observed x and y v
    y_{i} = \mu_{y} + \beta_y * def + \epsilon_{yi}
    \end{eqnarray*}
 
-where :math:`def` is the definition variable and the residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\rho`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having :math:`def` set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`).
+where :math:`def` is the definition variable.  The residual sources of variance, :math:`\epsilon_{xi}` and :math:`\epsilon_{yi}` covary to the extent :math:`\sigma_{xy}`.  So, the task is to estimate: the two means :math:`\mu_{x}` and :math:`\mu_{y}`; the deviations from these means due to belonging to the group identified by having :math:`def` set to 1 (as opposed to zero), :math:`\beta_{x}` and :math:`\beta_{y}`; and the parameters of the variance covariance matrix: cov(:math:`\epsilon_{x},\epsilon_{y}`).
 
 Our task is to implement the model shown in the figure below:
 
@@ -45,162 +45,85 @@ Our first step to running this model is to simulate the data to be analyzed. Eac
 .. code-block:: r
 
     library(MASS)    # to get hold of mvrnorm function 
-
     set.seed(200)    # to make the simulation repeatable
-    N <- 500    # sample size, per group
-  
-    Sigma <- matrix(c(1,.5,.5,1),2,2)
-    group1 <- mvrnorm(N, c(1,2), Sigma)
-    group2 <- mvrnorm(N, c(0,0), Sigma)
+    N              <- 500    # sample size, per group
+    Sigma          <- matrix(c(1,.5,.5,1),2,2)
+    group1         <- mvrnorm(N, c(1,2), Sigma) # Use mvrnorm from MASS package
+    group2         <- mvrnorm(N, c(0,0), Sigma)
 
-We make use of the superb R function ``mvrnorm`` in order to simulate N=500 records of data for each group.  These observations correlate .5 and have a variance of 1, per the matrix Sigma.  The means of *x* and *y* in group 1 are 1.0 and 2.0, respectively; those in group 2 are both zero.  The output of the ``mvrnorm`` function calls are matrices with 500 rows and 2 columns, which are stored in group 1 and group 2.  Now we create the definition variable
+We make use of the superb R function ``mvrnorm`` in order to simulate N=500 records of data for each group.  These observations correlate 0.5 and have a variance of 1, per the matrix *Sigma*.  The means of *x* and *y* in group 1 are 1.0 and 2.0, respectively; those in group 2 are both zero.  The output of the ``mvrnorm`` function calls are matrices with 500 rows and 2 columns, which are stored in group 1 and group 2.  Now we create the definition variable
 
 .. code-block:: r
 
     # Put the two groups together, create a definition variable, 
     # and make a list of which variables are to be analyzed (selVars)
-    xy <- rbind(group1,group2)
-    dimnames(xy)[2] <- list(c("x","y"))
-    def <- rep(c(1,0),each=N)
-    selVars <- c("x","y")
+    xy             <- rbind(group1,group2)      # Bind groups together by rows
+    dimnames(xy)[2]<- list(c("x","y"))          # Add names
+    def            <- rep(c(1,0),each=N);       # Add def var [2n] for group status
+    selVars        <- c("x","y")                # Make selection variables object
 
-The objects ``xy`` and ``def`` might be combined in a data frame.  However, in this case we won't bother to do it externally, and simply paste them together in the ``mxData`` function call.
+The objects *xy* and *def* might be combined in a data frame.  However, in this case we won't bother to do it externally, and simply paste them together in the ``mxData`` function call.
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
-The following code contains all of the components of our model.  Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``mxModel`` object, which we'll then run.  Note that all the objects required for estimation (data, matrices, an expectation function, and a fit function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
+The following code contains all of the components of our model.  Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an MxModel object, which we'll then run.  Note that all the objects required for estimation (data, matrices, an expectation function, and a fit function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
 
 .. code-block:: r
 
-    defMeansModel <- mxModel("Definition Means Path Specification", 
-        type="RAM",
-        manifestVars=selVars,
-        latentVars  ="DefDummy",
-        # variances
-        mxPath(
-            from=c("x","y"), 
-            arrows=2, 
-            free= TRUE, 
-            values=1,  
-            labels=c("Varx","Vary")
-        ),
-        # covariances  
-        mxPath(
-            from="x", 
-            to="y", 
-            arrows=2, 
-            free= TRUE, 
-            values=.1, 
-            labels=c("Covxy")
-        ), 
-        # means      
-        mxPath(
-            from="one", 
-            to=c("x","y"), 
-            arrows=1, 
-            free= TRUE, 
-            values=1, 
-            labels=c("meanx","meany")
-        ), 
-        # definition value 
-        mxPath(
-            from="one", 
-            to="DefDummy", 
-            arrows=1, 
-            free= FALSE, 
-            values=1, 
-            labels="data.def"
-        ),    
-        # beta weights
-        mxPath(
-            from="DefDummy", 
-            to=c("x","y"), 
-            arrows=1, 
-            free= TRUE, 
-            values=1, 
-            labels=c("beta_1","beta_2")
-        ), 
-        mxData(
-            observed=data.frame(xy,def), 
-            type="raw"
-        )
-    )
+    dataRaw      <- mxData( observed=data.frame(xy,def), type="raw" )
+    # variances
+    variances    <- mxPath( from=c("x","y"), arrows=2, 
+                            free=TRUE, values=1, labels=c("Varx","Vary") )
+    # covariances
+    covariances  <- mxPath( from="x", to="y", arrows=2, 
+                            free=TRUE, values=.1, labels=c("Covxy") )
+    # means
+    means        <- mxPath( from="one", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=1, labels=c("meanx","meany") )
+    # definition value
+    defValues    <- mxPath( from="one", to="DefDummy", arrows=1, 
+                            free=FALSE, values=1, labels="data.def" )
+    # beta weights
+    betaWeights  <- mxPath( from="DefDummy", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=1, labels=c("beta_1","beta_2") )
 
-The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.
+    defMeansModel <- mxModel("Definition Means Path Specification", type="RAM",
+                             manifestVars=selVars, latentVars="DefDummy",
+                             dataRaw, variances, covariances, means, 
+                             defValues, betaWeights)
+
+The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.  The second argument of the ``mxModel`` function call declares that we are going to be using RAM specification of the model, using directional and bidirectional path coefficients between the variables.  Model specification is carried out using two lists of variables, ``manifestVars`` and ``latentVars``.
 
 .. code-block:: r
 
-    require(OpenMx)
-    
-    defMeansModel<-mxModel("Definition Means Path Specification", 
-        type="RAM",
+    manifestVars=c("x","y"), latentVars="DefDummy"
 
-The second line of the ``mxModel`` function call declares that we are going to be using RAM specification of the model, using directional and bidirectional path coefficients between the variables. 
+Next, we declare where the data are, and their type, by creating an MxData object with the ``mxData`` function. This code first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
 
-.. code-block:: r
+    .. code-block:: r
 
-    manifestVars=c("x","y"),
-    latentVars="DefDummy",
+        dataRaw      <- mxData( observed=data.frame(y,def), type="raw" )
 
-Model specification is carried out using two lists of variables, ``manifestVars`` and ``latentVars``.  Then ``mxPath`` functions are used to specify paths between them. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword ``one``, to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Definition variables are part of the data so the first part is always ``data.``.  The second part refers to the actual variable in the dataset whose values are modeled.  The Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 from that of those with ``data.def`` values of zero.
+Then ``mxPath`` functions are used to specify paths between the manifest and latent variables. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword ``one``, to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Definition variables are part of the data so the first part is always ``data.``.  The second part refers to the actual variable in the dataset whose values are modeled.  Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 versus those with ``data.def`` values of zero.
 
 .. code-block:: r
 
     # variances
-    mxPath(
-        from=c("x","y"), 
-        arrows=2, 
-        free= TRUE, 
-        values=1,  
-        labels=c("Varx","Vary")
-    ),
-    # covariances  
-    mxPath(
-        from="x", 
-        to="y", 
-        arrows=2, 
-        free= TRUE, 
-        values=.1, 
-        labels=c("Covxy")
-    ), 
-    # means      
-    mxPath(
-        from="one", 
-        to=c("x","y"), 
-        arrows=1, 
-        free=TRUE, 
-        values=1, 
-        labels=c("meanx","meany")
-    ), 
+    variances    <- mxPath( from=c("x","y"), arrows=2, 
+                            free=TRUE, values=1, labels=c("Varx","Vary") )
+    # covariances
+    covariances  <- mxPath( from="x", to="y", arrows=2, 
+                            free=TRUE, values=.1, labels=c("Covxy") )
+    # means
+    means        <- mxPath( from="one", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=1, labels=c("meanx","meany") )
     # definition value
-    mxPath(
-        from="one", 
-        to="DefDummy", 
-        arrows=1, 
-        free= FALSE, 
-        values=1, 
-        labels="data.def"
-    ),    
+    defValues    <- mxPath( from="one", to="DefDummy", arrows=1, 
+                            free=FALSE, values=1, labels="data.def" )
     # beta weights
-    mxPath(
-        from="DefDummy", 
-        to=c("x","y"), 
-        arrows=1, 
-        free= TRUE, 
-        values=1, 
-        labels=c("beta_1","beta_2")
-    ), 
-
-
-Next, we declare where the data are, and their type, by creating an ``MxData`` object with the ``mxData`` function. This code first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
-
-.. code-block:: r
-
-    mxData(
-        observed=data.frame(xy,def), 
-        type="raw"
-    ))
+    betaWeights  <- mxPath( from="DefDummy", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=1, labels=c("beta_1","beta_2") )
 
 We can then run the model and examine the output with a few simple commands.
 
@@ -212,9 +135,9 @@ Model Fitting
     # Run the model
     defMeansFit<-mxRun(defMeansModel)
 
-    defMeansFit@matrices
+    defMeansFit$matrices
 
-The R object ``defmeansFit`` contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFi@matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix **A**, the two-headed arrows in **S**, and the mean vector single headed arrows in **M**.
+The R object *defmeansFit* contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFit$matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix **A**, the two-headed arrows in **S**, and the mean vector single headed arrows in **M**.
 
 .. code-block:: r
 

@@ -59,13 +59,12 @@ You probably have your favorite data set ready to go, but before reading in data
         mean(univData)
         var(univData)
 
-
-The first line is a comment (starting with a #).  We set a seed for the simulation so that we generate the same data each time and get a reproducible answer.  We then create a variable **x** for 1000 subjects, with a mean of 0 and a variance of 1, using R's normal distribution function ``rnorm``.  We read the data in as a matrix into an object ``univData`` and give the variable a name *"X"* using the ``dimnames`` command.  We can easily produce some descriptive statistics in R using built-in functions ``summary``, ``mean`` and ``var``, just to make sure the data look like what we expect.  The output generated looks like this:   
+The first line is a comment (starting with a #).  We set a seed for the simulation so that we generate the same data each time and get a reproducible answer.  We then create a variable **x** for 1000 subjects, with a mean of 0 and a variance of 1, using R's normal distribution function ``rnorm``.  We read the data in as a matrix into an object *univData* and give the variable a name *"X"* using the ``dimnames`` command.  We can easily produce some descriptive statistics in R using built-in functions ``summary``, ``mean`` and ``var``, just to make sure the data look like what we expect.  The output generated looks like this:   
     
     .. code-block:: r 
 
          summary(univData)
-                V1          
+                X          
          Min.   :-3.32078  
          1st Qu.:-0.64970  
          Median : 0.03690  
@@ -75,11 +74,11 @@ The first line is a comment (starting with a #).  We set a seed for the simulati
         > mean(univData)
         [1] 0.01680509
         > var(univData)
-              [,1]
-        [1,] 1.062112
+                 X
+        X 1.062112
 
 For our second example, we will be fitting models to two variables which may be correlated.
-The data used for the second example were generated using the multivariate normal function (``mvrnorm`` in the R package MASS).  The ``mvrnorm`` has three arguments: (i) sample size, (ii) vector of means, and (iii) covariance matrix.  We are simulating data on two variables named *X* and *Y* for 1000 individuals with means of zero, variances of one and a covariance of 0.5 using the following R code, and saved is as ``bivData``.  Note that we can now use the R function ``colMeans`` to generate the predicted means for the columns of our data frame and the ``cov`` to generate the observed covariance matrix.
+The data used for the second example were generated using the multivariate normal function (``mvrnorm`` in the R package MASS).  The ``mvrnorm`` has three arguments: (i) sample size, (ii) vector of means, and (iii) covariance matrix.  We are simulating data on two variables named *X* and *Y* for 1000 individuals with means of zero, variances of one and a covariance of 0.5 using the following R code, and saved is as *bivData*.  Note that we can now use the R function ``colMeans`` to generate the predicted means for the columns of our data frame and the ``cov`` to generate the observed covariance matrix.
 
 .. cssclass:: input
 ..
@@ -91,9 +90,7 @@ The data used for the second example were generated using the multivariate norma
          # Simulate Data
          require(MASS)
          set.seed(200)
-         rs=.5
-         xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
-         bivData <- xy
+         bivData <- mvrnorm (1000, c(0,0), matrix(c(1,.5,.5,1),2,2))
          dimnames(bivData) <- list(NULL, c('X','Y'))
          summary(bivData)
          colMeans(bivData)
@@ -118,7 +115,6 @@ Notice that the simulated data are close to what we expected.
                    X         Y
          X 0.9945328 0.4818317
          Y 0.4818317 1.0102951
-                  
 
 Data Types
 ^^^^^^^^^^
@@ -146,15 +142,15 @@ Continuous data can be summarized by their mean and standard deviation.  Two or 
 Categorical Data
 ++++++++++++++++
 
-A lot of variables, however, are not measured on a continuous scale, but using a limited number of categories.  If the categories are ordered in a logical way, we refer to them as *ordinal* variables and often assume that the underlying construct follows a normal distribution.  This assumption can actually be tested for any ordinal variable with a minimum of three categories, when more than one variable is available or the same variable is measured in related individuals or over time.
+A lot of variables, however, are not measured on a continuous scale, but using a limited number of categories.  If the categories are ordered in a logical way, we refer to them as **ordinal** variables and often assume that the underlying construct follows a normal distribution.  This assumption can actually be tested for any ordinal variable with a minimum of three categories, when more than one variable is available or the same variable is measured in related individuals or over time.
 
 Categorical data contain less information than continuous data, and are summarized by thresholds which predict the proportion of individuals in a specific category.  As the sum of the proportions of each of the categories adds up to one, there is no information about the variance.  The relationship between two or more variables can be summarized in a correlation matrix.  Rather than estimating two (or more) thresholds and a correlation(s), one could fix the first threshold to zero and the second to one and estimate the means and covariance matrices instead, which can be interpreted in the same way as for continuous variables.  The estimated proportion in each of the categories can then be calculated by rescaling the statistics.
 
-Often, unfortunately, variables are only measured with two categories (Yes/No, affected/unaffected, etc.) and are called *binary* variables.  The only statistic to be estimated in the univariate case is the threshold and no information is available about the variance.  With two or more variables, their relationship is also summarized in a correlation matrix.
+Often, unfortunately, variables are only measured with two categories (Yes/No, affected/unaffected, etc.) and called **binary** variables.  The only statistic to be estimated in the univariate case is the threshold and no information is available about the variance.  With two or more variables, their relationship is also summarized in a correlation matrix.
 
 The power of your study is directly related to the type of variable analyzed, and is typically higher for continuous variables compared to categorical variables, with ordinal variables providing more power than binary variables.  Whenever possible, use continuous variables or at least ordinal variables.
 
-As a lot of real data are only available as categorical variables, we will generate both an ordinal and a binary variable from the simulated continuous variable in 'univData'.  The code below uses the ``cut`` and ``breaks`` commands to cut the continuous variable into 5 ordered categories.
+As a lot of real data are only available as categorical variables, we will generate both an ordinal and a binary variable from the simulated continuous variable in *univData*.  The code below uses the ``cut`` and ``breaks`` commands to cut the continuous variable into 5 ordered categories.
 
 .. cssclass:: input
 ..
@@ -175,8 +171,7 @@ A summary of the resulting data set can be generated as follows:
         univDataOrd
           0   1   2   3   4 
          28 216 483 244  29
-       
-    
+
 A similar approach could be used to create a binary variable.  However, here we show an alternative way to generate a binary variable using a specific cutoff using the ``ifelse`` command.  We will assign a value of 1 when the value of our original standardized continuous variable is above 0.5; otherwise a value of 0 will be assigned.
 
 .. cssclass:: input
@@ -214,7 +209,6 @@ We will go through the same steps to generate ordinal and binary data from the s
         bivDataBin <- data.frame(bivData)
         for (i in 1:2) { bivDataBin[,i] <- ifelse(bivData[,i] >.5,1,0) }
            table(bivDataBin[,1],bivDataBin[,2])
-        
 
 Data Formats
 ^^^^^^^^^^^^
@@ -255,7 +249,7 @@ First, we read the data matrix in with the ``observed`` argument.  Then, we tell
         
 A look at this newly created object shows that it was given the  ``name`` *data*, which is done by default.  It has the ``type`` that we specified, and ``numObs`` are automatically counted for us.  The actual data for the variable *X* are then listed; we only show the first two values.
 
-In a similar manner we create a MxData object for the second example.  We read in the ``observed`` 'bivData', and indicate the ``type`` as raw.  We refer to this object as *obsBivData*.
+In a similar manner we create a MxData object for the second example.  We read in the ``observed`` *bivData*, and indicate the ``type`` as raw.  We refer to this object as *obsBivData*.
 
 .. cssclass:: input
 ..
@@ -280,7 +274,6 @@ If we want to fit models to categorical data, we need to read in the ordinal or 
           bivDataOrdF  <- mxFactor( x=bivDataOrd, levels=c(0:4) )
           bivDataBinF  <- mxFactor( x=bivDataBin, levels=c(0,1) )
 
-
 Next, we generate the corresponding MxData objects.
 
 .. cssclass:: input
@@ -294,8 +287,6 @@ Next, we generate the corresponding MxData objects.
          obsRawDataBin <- mxData( observed=univDataBinF, type="raw" )
          obsBivDataOrd <- mxData( observed=bivDataOrdF, type="raw" )
          obsBivDataBin <- mxData( observed=bivDataBinF, type="raw" )
-         
-
 
 Summary Stats
 +++++++++++++
@@ -324,7 +315,7 @@ or
    
    .. code-block:: r
        
-         obsCovData <- mxData( observed=var(univData), type="cov", numObs=1000 )
+         obsCovData  <- mxData( observed=var(univData), type="cov", numObs=1000 )
 
 Given our first example has only one variable, we use the ``var()`` function (as there is no covariance for a single variable).  When summary statistics are used as input, the number of observations (``numObs``) needs to be supplied.  The resulting MxData object looks as follows:
 
@@ -365,7 +356,7 @@ For the second, bivariate example the only change we'd have to make - besides re
 Correlations
 ............
 
-To analyze categorical data, we can also fit the models to summary statistics, in this case, correlation matrices, as indicated by using the ``cor()`` R command to generate them and by the ``type=`` =cor, which also requires the ``numObs`` argument to indicate how many observations (data records) are in the dataset.
+To analyze categorical data, we can also fit the models to summary statistics, in this case, correlation matrices, as indicated by using the ``cor()`` R command to generate them and by the ``type=`` cor, which also requires the ``numObs`` argument to indicate how many observations (data records) are in the dataset.
  
 .. cssclass:: input
 ..
@@ -375,7 +366,6 @@ To analyze categorical data, we can also fit the models to summary statistics, i
    .. code-block:: r
        
          obsOrdData <- mxData( observed=cor(univDataOrdF), type="cor", numObs=1000 )
-
 
 We will start by fitting a simple univariate model to the continuous data and then show which changes have to be made when dealing with ordinal or binary variables.  For the continuous data example, we will start with fitting the model to the summary statistics prior to fitting to raw data and show their equivalence (in the absence of missing data).
 
@@ -389,14 +379,14 @@ Path Method
 Summary Stats 
 +++++++++++++
 
-If we have data on a single variable X summarized in its variance, the basic univariate model will simply estimate the variance of the variable X.  We call this model saturated because there is a free parameter corresponding to each and every observed statistic.  Here we have covariance matrix input only, so we can estimate one variance.  This model can be represented by the following path diagram:
+If we have data on a single variable **X** summarized in its variance, the basic univariate model will simply estimate the variance of the variable **X**.  We call this model saturated because there is a free parameter corresponding to each and every observed statistic.  Here we have covariance matrix input only, so we can estimate one variance.  This model can be represented by the following path diagram:
 
 .. image:: graph/UnivariateSaturatedModelNoMean.png
 
 Model Building
 ..............
 
-When using the path specification, it is easiest to work from the path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see [LI1986]*), we have a box for the observed/manifest variable *X*, and one double headed arrow, labeled /sigma^2_x.  To indicate which variable we are analyzing, we use the ``manifestVars`` argument, which takes a vector of labels.  In this example, we are selecting one variable, which we pre-specified in the *selVars* object.
+When using the path specification, it is easiest to work from the path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see [LI1986]*), we have a box for the observed/manifest variable **X**, and one double headed arrow, labeled :math:/sigma^2_x.  To indicate which variable we are analyzing, we use the ``manifestVars`` argument, which takes a vector of labels.  In this example, we are selecting one variable, which we pre-specified in the *selVars* object.
 
 .. cssclass:: input
 ..
@@ -427,7 +417,7 @@ The ``mxPath`` command indicates where the path originates (``from``) and where 
              labels="vX"
          ),
 
-Note that all arguments could be listed on one line; in either case they are separated by comma's:
+Note that all arguments could be listed on one (or two) lines; in either case they are separated by comma's:
 
 .. cssclass:: input
 ..
@@ -455,7 +445,7 @@ The resulting MxPath object looks as follows:
         $ubound:  NA
         $connect:  single   
     
-To evaluate the model that we have built, we need an expectation and a fit function that obtains the best solution for the model given the data.  When using the path specification, both are automatically generated by invoking the ``type=RAM`` argument in the model.  The 'RAM' objective function has a predefined structure.
+To evaluate the model that we have built, we need an expectation and a fit function that obtain the best solution for the model given the data.  When using the path specification, both are automatically generated by invoking the ``type="RAM"`` argument in the model.  The 'RAM' objective function has a predefined structure.
 
 .. cssclass:: input
 ..
@@ -466,7 +456,7 @@ To evaluate the model that we have built, we need an expectation and a fit funct
        
          type="RAM"
 
-Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see RAM1990].  Before we can 'run' the model through the optimizer, we need to put all the arguments into an MxModel using the ``mxModel`` command.  Its first argument is a name, and therefore is in quotes.  We then add all the arguments we have built so far, including the list of variables to be analyzed in ``manifestVars``, the MxData object, and the predicted model specified using paths.
+Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see RAM1990].  Before we can 'run' the model through the optimizer, we need to put all the arguments into an MxModel using the ``mxModel`` command.  Its first argument is a ``name``, and therefore is in quotes.  We then add all the arguments we have built so far, including the list of variables to be analyzed in ``manifestVars``, the MxData object, and the predicted model specified using paths.
 
 .. cssclass:: input
 ..
@@ -527,11 +517,10 @@ Note that only the relevant arguments have been updated, and that the path infor
     
         $ubound: No upper bounds assigned.
     
-    
 Model Fitting
 .............
 
-So far, we have specified the model, but nothing has been evaluated.  We have 'saved' the specification in the object ``univSatModel1``.  This object is evaluated when we invoke the ``mxRun`` command with the MxModel object as its argument.
+So far, we have specified the model, but nothing has been evaluated.  We have 'saved' the specification in the object *univSatModel1*.  This object is evaluated when we invoke the ``mxRun`` command with the MxModel object as its argument.
 
 .. cssclass:: input
 ..
@@ -567,7 +556,6 @@ There are actually a variety of ways to generate output.  We will promote the us
                      X
             X 1.062112
     
-    
 We can then use any regular R function in the ``mxEval`` command to generate derived fit statistics, some of which are built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.  The saturated likelihood, here named 'SL1' is obtained from the ``$output$Saturated`` argument of the fitted object *univSatFit1* which contains a range of statistics.  We get the likelihood of the data, here referred to as *LL1*, from the ``$output$fit`` argument of the fitted object *univSatFit1*.
 
 .. cssclass:: input
@@ -592,7 +580,6 @@ The output of these objects like as follows
         > Chi1
         [1] 0
         
-        
 An alternative to requesting specific output is to generate the default summary of the model, which can be done with the ``summary`` function, and can also be saved in another R object, i.e. *univSatSumm1*.
 
 .. cssclass:: input
@@ -615,7 +602,6 @@ This output includes a summary of the data (if available), a list of all the fre
         $univSat1.data$cov
                  X
         X 1.062112
-    
     
         free parameters:
           name matrix row col Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
@@ -643,9 +629,8 @@ This output includes a summary of the data (if available), a list of all the fre
         wall clock time: 0.1015751 secs 
         cpu time: 0.1015751 secs 
         openmx version number: 999.0.0-3160 
-    
 
-In addition to providing a covariance matrix as input data, we could add a means vector.  As this requires a few minor changes, lets highlight those.  The path diagram for this model, now including means (path from triangle of value 1) is as follows:
+In addition to providing a covariance matrix as input data, we could add a means vector.  As this requires a few minor changes, let's highlight those.  The path diagram for this model, now including means (path from triangle of value 1) is as follows:
 
 .. image:: graph/UnivariateSaturatedModel.png
 
@@ -723,7 +708,7 @@ Note the following changes in the modified MxModel below.  First, the name is ch
          $options :  
          $output : FALSE
     
-When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be extracted from the output in a similar way as the expected variance before, and is called 'EM1', short for expected mean.
+When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be extracted from the output in a similar way as the expected variance before, and is called *EM1*, short for expected mean.
 
 .. cssclass:: input
 ..
@@ -769,7 +754,6 @@ The new summary object *univSatSumm1M* is different from the previous one in the
               df Penalty Parameters Penalty Sample-Size Adjusted
         AIC 8.867573e-12            4.00000                   NA
         BIC 8.867573e-12           13.81551             7.463399
-    
 
 Raw Data 
 ++++++++
@@ -847,8 +831,6 @@ The estimates for the predicted mean and covariance matrix are exactly the same 
            df Penalty Parameters Penalty Sample-Size Adjusted
        AIC   901.1355           2901.135                   NA
        BIC -3996.8043           2910.951             2904.599
-        
-    
 
 Matrix Method
 ^^^^^^^^^^^^^
@@ -896,7 +878,7 @@ The resulting MxMatrix object *expCovMat* looks as follows.  Note that the start
     
         $ubound: No upper bounds assigned.
         
-To link the model for the covariance matrix to the data, an ``mxExpectation`` needs to be specified which will then be evaluated with an ``mxFitFunction``.  The ``mxExpectationNormal`` command  takes two arguments, ``covariance`` to hold the expected covariance matrix (which we named "expCov" above using the ``mxMatrix`` command), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.  ``mxFitFunctionML()`` will invoke the maximum likelihood ('ML'), to obtain the best estimates for the free parameters.
+To link the model for the covariance matrix to the data, an ``mxExpectation`` needs to be specified which will  be evaluated with an ``mxFitFunctionML``.  The ``mxExpectationNormal`` command  takes two arguments, ``covariance`` to hold the expected covariance matrix (which we named "expCov" above using the ``mxMatrix`` command), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.  ``mxFitFunctionML()`` will invoke the maximum likelihood ('ML'), to obtain the best estimates for the free parameters.
 
 .. cssclass:: input
 ..
@@ -905,8 +887,8 @@ To link the model for the covariance matrix to the data, an ``mxExpectation`` ne
    
    .. code-block:: r
        
-         expectCov <- mxExpectationNormal( covariance="expCov", dimnames=selVars )
-         funML <- mxFitFunctionML()
+         expectCov    <- mxExpectationNormal( covariance="expCov", dimnames=selVars )
+         funML        <- mxFitFunctionML()
          
 The internal name of an MxExpectationNormal object is by default *expectation* and that for an MxFitFunctionML object is by default *fitfunction*.  We can thus inspect these two objects by using the names of the resulting objects, here *expCovFun* and *ML* as shown below. The result of applying the fit function is not yet computed and thus reported as *<0 x 0 matrix>*; its arguments will change after running the model successfully.
     
@@ -947,8 +929,7 @@ Note that the estimates for the free parameters and the goodness-of-fit statisti
         $univSat3.data
         $univSat3.data$cov
                  X
-        X 1.062112
-    
+        X 1.062112    
     
         free parameters:
           name matrix row col Estimate  Std.Error lbound ubound
@@ -995,12 +976,11 @@ We can also obtain the values of the likelihood by accessing the fitted object w
         [1] 1059.199
         attr(,"IndependenceLikelihood")
         [1] 1059.199
-        
     
 Covariances + Means
 ...................
 
-A means vector can also be added to the observed data as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is required to specify the vector of expected means. In this case a matrix of ``type`` ='Full', with one row and one column, is assigned ``free`` =T with start value zero, and the name *expMean*.  The object is saved as *expMeanMat*.  
+A means vector can also be added to the observed data as the fourth argument of the ``mxData`` command.  When means are requested to be modeled, a second ``mxMatrix`` command is required to specify the vector of expected means. In this case a matrix of ``type`` ="Full", with one row and one column, is assigned ``free`` =TRUE with start value zero, and the name *expMean*.  The object is saved as *expMeanMat*.  
 
 .. cssclass:: input
 ..
@@ -1081,6 +1061,8 @@ The MxModel object for the saturated model applied to raw data has a name *univS
          univSatFit4   <- mxRun(univSatModel4)
          univSatSumm4  <- summary(univSatFit4)
 
+The output looks like this:
+
     ..  code-block:: r
     
         > univSatSumm4
@@ -1158,7 +1140,7 @@ Let's inspect the latter matrix.
 
         $ubound: No upper bounds assigned.
         
-The final change is adding an additional ``threshold`` argument to the ``mxExpectationNormal`` function for the expected threshold, here *expThreMatBin*.
+The final change is adding an additional ``threshold`` argument to the ``mxExpectationNormal`` function for the expected threshold, here "expThre".
 
 .. cssclass:: input
 ..
@@ -1220,9 +1202,7 @@ The summary of the univariate model fitted to binary data includes a summary of 
          independent submodels time: 5.102158e-05 secs 
          wall clock time: 0.137254 secs 
          cpu time: 0.137254 secs 
-         openmx version number: 999.0.0-1661 
-        
-
+         openmx version number: 999.0.0-1661
 
 Ordinal Data
 ............
@@ -1287,7 +1267,7 @@ The remainder of the model statements is almost identical to those of the binary
         univSatSumm6  <- summary(univSatFit6)
 
 Thresholds
-............
+..........
 
 An alternative approach to ensure that the thresholds are increasing can be enforced through multiplying the threshold matrix with a lower triangular matrix of 'Ones' and bounding all threshold increments except the first to be positive. The first threshold will be estimated as before.  The remaining thresholds are estimated as increments from the previous thresholds.  To generalize this, we specify a start value for the lower threshold ('svLTh') and for the increments ('svITh'), and then create a vector of start values to match the number of thresholds ('svTh').  Similarly, a vector of lower bounds is defined with all thresholds, except the first bounded to be positive ('lbTh').  These start values and lower bounds are read in to a MxMatrix object, of size *nth x 1*, similar to the threshold matrix in the previous example.  Then, we create a lower triangular matrix of ones which will be pre-multiplied with the threshold matrix to generate the expected threshold matrix *expThreMatOrd*.  The rest of the model is not changed, except that all the intermediate matrices, named *threG* and *inc* also have to be included in the MxModel object *univSatModel6I*.
 
@@ -1315,7 +1295,6 @@ An alternative approach to ensure that the thresholds are increasing can be enfo
                                   Inc, Thre, expThreMatOrd, expectOrd, funML )
         univSatFit6I   <- mxRun(univSatModel6I, unsafe=T)
         univSatSumm6I  <- summary(univSatFit6I)
-        
 
 Approaches 
 ----------
@@ -1325,7 +1304,7 @@ Rarely will we analyze a single variable.  As soon as a second variable is added
 .. image:: graph/BivariateSaturatedModel.png
     :height: 1.0in
   
-The path diagram for our bivariate example includes two boxes for the observed variables 'X' and 'Y', each with a two-headed arrow for the variance of each of the variables.  We also estimate a covariance between the two variables with the two-headed arrow connecting the two boxes.  The optional means are represented as single-headed arrows from a triangle to the two boxes.
+The path diagram for our bivariate example includes two boxes for the observed variables **X** and **Y**, each with a two-headed arrow for the variance of each of the variables.  We also estimate a covariance between the two variables with the two-headed arrow connecting the two boxes.  The optional means are represented as single-headed arrows from a triangle to the two boxes.
 
 As raw data are now standard for data analysis, we will focus this example on fitting directly to the raw data.  We will present the example in both the path and the matrix specification, and furthermore show not only the piecewise style but also the stepwise and the classic style of writing OpenMx scripts.
 
@@ -1418,7 +1397,6 @@ The "one" argument in the ``from`` argument is used exclusively for means object
         $labels:  meanX meanY 
         $lbound:  NA 
         $ubound:  NA 
-        
 
 To fit this bivariate model to the simulated data, we have to combine the data and model statements in a MxModel objects.
 
@@ -1469,7 +1447,6 @@ As you can see below, the maximum likelihood (ML) estimates are very close to th
              df Penalty Parameters Penalty Sample-Size Adjusted
         AIC:   5425.772           5425.772                   NA
         BIC:   5450.311           5450.311             5434.431
-
 
 Matrix Method
 ++++++++++++++
@@ -1608,7 +1585,7 @@ Given we used the same names for the resulting matrices for the expected covaria
          expectBiv <- mxExpectationNormal( covariance="expCov", means="expMean", 
                                            dimnames=selVars )
  
-Combining these two ``mxMatrix`` and the ``mxAlgebra`` objects with the raw data, specified in the ``mxData`` object 'obsBivData' created earlier and the ``mxExpectationNormal`` command with the appropriate arguments is all that is needed to fit a saturated bivariate model.
+Combining these two ``mxMatrix`` and the ``mxAlgebra`` objects with the raw data, specified in the ``mxData`` object *obsBivData* created earlier and the ``mxExpectationNormal`` command with the appropriate arguments is all that is needed to fit a saturated bivariate model.
 
 .. cssclass:: input
 ..
@@ -1658,7 +1635,6 @@ The goodness-of-fit statistics in the output from the path and matrix specificat
          AIC:   1425.772           5425.772                   NA
          BIC:  -8365.200           5450.311             5434.431
          
-         
 We can obtain the predicted variances and covariances by printing the *expCov* matrix which can be done with the ``mxEval`` command - either by recalculating or by just printing the calculated algebra, or by grabbing the predicted covariance matrix from the fitted object *bivSatFit2*
 
 .. cssclass:: input
@@ -1696,12 +1672,11 @@ Here, we simply repeat all the lines that make up the model.
                                   expCovMA, expMeanM, expectBiv, funML )
           bivSatFit2   <- mxRun(bivSatModel2)
           bivSatSumm2  <- summary(bivSatFit2)
-    
 
 Stepwise Style
 ^^^^^^^^^^^^^^
 
-Looking back at the MxModel we just built (*bivSatModel2*), the first argument after the name (in quotes) was the MxData object.  Let's now build a new model that just has a new name and the data object to start, specified from scratch - assuming we had not built the object before.  Note we need to close both the ``mxData`` command which resides within the ``mxModel`` command.  We can execute it in R, to check for syntax errors.
+Looking back at the MxModel we just built (*bivSatModel2*), the first argument after the name (in quotes) was the MxData object.  Let's now build a new model that just has a new name and the data object to start, specified from scratch - assuming we had not built the object before.  Note we need to close both the ``mxData`` command which resides within the ``mxModel`` command and the ``mxModel`` command itself.  We can execute it in R, to check for syntax errors.
 
 .. cssclass:: input
 ..
@@ -1725,7 +1700,7 @@ If it checks out to be syntactically correct, we can add another argument, i.e. 
                                   mxMatrix( type="Lower", nrow=2, ncol=2, 
                                             free=TRUE, values=.5, name="Chol" ) )
 
-Note that we used the same name for the MxModel object to be generated, thus it will overwrite the previous one.  One might choose a new name if uncertain about the syntax of the new model, to avoid having to rerun the previous step to correct the original model.  As everyone checks out OK after step two, let us add another argument, this time the ``mxAlgebra`` object for the expected covariance matrix. 
+Note that we used the same name for the MxModel object to be generated, thus it will overwrite the previous one.  One might choose a new name if uncertain about the syntax of the new model, to avoid having to rerun the previous step to correct the original model.  As everything checks out OK after step two, let us add another argument, this time the ``mxAlgebra`` object for the expected covariance matrix. 
 
 .. cssclass:: input
 ..
@@ -1749,9 +1724,8 @@ As everything still appears OK, we continue to add arguments.  It's not necessar
           bivSatModel3 <- mxModel(bivSatModel3, 
                                   mxMatrix( type="Full", nrow=1, ncol=2, 
                                   free=TRUE, values=0, name="expMean" ) )
-     
 
-The only argument left to add is the ``mxExpectationNormal`` and the ``mxFitFunctionML()`` to specify what function to use on test the fit between covariances and means predicted by the observed data and those expected by the model.
+The only argument left to add is the ``mxExpectationNormal`` and the ``mxFitFunctionML()`` to specify what function to use to test the fit between covariances and means predicted by the observed data and those expected by the model.
 
 .. cssclass:: input
 ..
@@ -1803,7 +1777,6 @@ We here combine all the separate lines to see the full picture.
           bivSatFit3   <- mxRun(bivSatModel3)
           bivSatSumm3  <- summary(bivSatFit3)
 
-
 Classic Style
 ^^^^^^^^^^^^^
 
@@ -1831,8 +1804,7 @@ Here, we present the complete bivariate saturated model, with each argument prin
            bivSatFit4 <- mxRun(bivSatModel4)
            bivSatSumm4 <- summary(bivSatFit4)
 
-
-Again, as you might expect by now, the output of this model run will be identical to that of both thez piecewise and the stepwise approach.  Given their equivalence, it is really up to the OpenMx user to decide which method (path or matrix) and which approach (piecewise, stepwise or classic) is preferred.  It is also not necessary to pick just one of these approaches, as they can be 'mixed and matched'.  For didactic purposes, we recommend the piecewise approach, which we will use in the majority of this documentation.  We will, however, provide some parallel classic scripts.  Furthermore, given some people do better with path diagrams and others with matrix algebra, we present some models both ways, in so far that this is doable.
+Again, as you might expect by now, the output of this model run will be identical to that of both the piecewise and the stepwise approach.  Given their equivalence, it is really up to the OpenMx user to decide which method (path or matrix) and which approach (piecewise, stepwise or classic) is preferred.  It is also not necessary to pick just one of these approaches, as they can be 'mixed and matched'.  For didactic purposes, we recommend the piecewise approach, which we will use in the majority of this documentation.  We will, however, provide some parallel classic scripts.  Furthermore, given some people do better with path diagrams and others with matrix algebra, we present some models both ways, in so far that this is doable.
 
 The following sections describe OpenMx examples in detail beginning with regression, factor analysis, time series analysis, multiple group models, including twin models, and analysis using definition variables.  Each is presented in both path and matrix styles and where relevant, contrasting data input from covariance matrices versus raw data input are also illustrated.  Additional examples will be added as they are implemented in OpenMx.
 

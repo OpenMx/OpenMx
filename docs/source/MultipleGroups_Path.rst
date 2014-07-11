@@ -29,12 +29,12 @@ The path diagram of the heterogeneity model for a set of variables :math:`x` and
 ..   \end{eqnarray*}
 
 .. image:: graph/HeterogeneityModel.png
-    :height: 2.5in  
+    :height: 2in  
 
 Data
 ^^^^
 
-For this example we simulated two datasets (``xy1`` and ``xy2``) each with zero means and unit variances, one with a correlation of 0.5, and the other with a correlation of 0.4 with 1000 subjects each.  We use the ``mvrnorm`` function in the ``MASS`` package, which takes three arguments: ``Sample Size``, ``Means``, ``Covariance Matrix``).  We check the means and covariance matrix in R and provide ``dimnames`` for the dataframe.  See attached R code for simulation and data summary.
+For this example we simulated two datasets (*xy1* and *xy2*) each with zero means and unit variances, one with a correlation of 0.5, and the other with a correlation of 0.4 with 1000 subjects each.  We use the ``mvrnorm`` function in the ``MASS`` package, which takes three arguments: ``Sample Size``, ``Means``, ``Covariance Matrix``.  We check the means and covariance matrix in R and provide ``dimnames`` for the dataframe.  See attached R code for simulation and data summary.
 
 .. code-block:: r
 
@@ -42,12 +42,10 @@ For this example we simulated two datasets (``xy1`` and ``xy2``) each with zero 
     require(MASS)
     #group 1
     set.seed(200)
-    rs=.5
-    xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
-    set.seed(200)
+    xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,.5,.5,1),2,2))
     #group 2
-    rs=.4
-    xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+    set.seed(200)
+    xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,.4,.4,1),2,2))
 
     #Print Descriptive Statistics
     selVars <- c('X','Y')
@@ -62,7 +60,7 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 As before, we include the OpenMx package using a ``require`` statement.
-We first fit a heterogeneity model, allowing differences in both the mean and covariance structure of the two groups.  As we are interested whether the two structures can be equated, we have to specify the models for the two groups, named ``group1`` and ``group2`` within another model, named ``bivHet``.  The structure of the job thus look as follows, with two ``mxModel`` commands as arguments of another ``mxModel`` command.  Note that ``mxModel`` commands are unlimited in the number of arguments.
+We first fit a heterogeneity model, allowing differences in both the mean and covariance structure of the two groups.  As we are interested whether the two structures can be equated, we have to specify the models for the two groups, named ``group1`` and ``group2`` within another model, named ``bivHet``.  The structure of the job thus looks as follows, with two ``mxModel`` commands as arguments of another ``mxModel`` command.  Note that ``mxModel`` commands are unlimited in the number of arguments.
 
 .. code-block:: r
 
@@ -71,116 +69,55 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
     bivHetModel <- mxModel("bivHet",
         mxModel("group1"), 
         mxModel("group2"), 
-        mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
-    )
+        mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction")) )
      
 For each of the groups, we fit a saturated model, by specifying paths with free parameters for the variances and the covariance using two-headed arrows to generate the expected covariance matrix.  Single-headed arrows from the constant ``one`` to the manifest variables contain the free parameters for the expected means.  Note that we have specified different labels for all the free elements, in the two ``mxModel`` statements.  The type is RAM by default.
 
 .. code-block:: r
 
-    #Fit Heterogeneity Model
-    bivHetModel <- mxModel("bivHet",
-        mxModel("group1",
-            manifestVars= selVars,
-            # variances
-            mxPath(
-                from=c("X", "Y"), 
-                arrows=2, 
-                free=T, 
-                values=1, 
-                lbound=.01, 
-                labels=c("vX1","vY1")
-            ),
-            # covariance
-            mxPath(
-                from="X", 
-                to="Y", 
-                arrows=2, 
-                free=T, 
-                values=.2, 
-                lbound=.01, 
-                labels="cXY1"
-            ),
-            # means
-                mxPath(
-                from="one", 
-                to=c("X", "Y"), 
-                arrows=1, 
-                free=T, 
-                values=0, 
-                labels=c("mX1", "mY1")
-            ),
-            mxData(
-                observed=xy1, 
-                type="raw", 
-            ),
-            type="RAM"
-        ),
-        mxModel("group2",
-            manifestVars= selVars,
-            # variances
-            mxPath(
-                from=c("X", "Y"), 
-                arrows=2, 
-                free=T, 
-                values=1, 
-                lbound=.01, 
-                labels=c("vX2","vY2")
-            ),
-            # covariance
-            mxPath(
-                from="X", 
-                to="Y", 
-                arrows=2, 
-                free=T, 
-                values=.2, 
-                lbound=.01, 
-                labels="cXY2"
-            ),
-            # means
-            mxPath(
-                from="one", 
-                to=c("X", "Y"), 
-                arrows=1, 
-                free=T, 
-                values=0, 
-                labels=c("mX2", "mY2")
-            ),
-            mxData(
-                observed=xy2, 
-                type="raw", 
-            ),
-            type="RAM"
-        ),
+    dataRaw1     <- mxData( observed=xy1, type="raw")
+    variances1   <- mxPath( from=selVars, arrows=2, 
+                            free=T, values=1, lbound=.01, labels=c("vX1","vY1") )
+    covariance1  <- mxPath( from="X", to="Y", arrows=2, 
+                            free=T, values=.2, lbound=.01, labels="cXY1")
+    means1       <- mxPath( from="one", to=selVars, arrows=1, 
+                            free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+                            labels=c("mX1","mY1") )
+    model1       <- mxModel("group1", type="RAM", manifestVars=selVars,
+                             dataRaw1, variances1, covariance1, means1)
 
-We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1@matrices`` and ``bivHetModel$group2@matrices``::
+    dataRaw2     <- mxData( observed=xy2, type="raw")
+    variances2   <- mxPath( from=selVars, arrows=2, 
+                            free=T, values=1, lbound=.01, labels=c("vX2","vY2") )
+    covariance2  <- mxPath( from="X", to="Y", arrows=2, 
+                            free=T, values=.2, lbound=.01, labels="cXY2")
+    means2       <- mxPath( from="one", to=selVars, arrows=1, 
+                            free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+                            labels=c("mX2","mY2") )
+    model2       <- mxModel("group2", type="RAM", manifestVars=selVars,
+                             dataRaw2, variances2, covariance2, means2)
+    
+We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1$matrices`` and ``bivHetModel$group2$matrices``::
 
-    in group1
-        $S
-                X      Y     
-        X   "vX1" "cXY1"
-        Y  "cXY1"  "vY1" 
-
-        $M
-                X      Y    
-        [1,] "mX1" "mY1"
-
-    in group2
-        $S
-                X      Y     
-        X   "vX2" "cXY2"
-        Y  "cXY2"  "vY2" 
-
-        $M
-                X      Y    
-        [1,] "mX2" "mY2"
+    in group1                           in group2
+        $S                                  $S
+                X      Y                            X      Y 
+        X   "vX1" "cXY1"                    X   "vX2" "cXY2"
+        Y  "cXY1"  "vY1"                    Y  "cXY2"  "vY2" 
+                                    
+        $M                                  $M
+                X      Y                            X      Y 
+        [1,] "mX1" "mY1"                    [1,] "mX2" "mY2"
 
 To evaluate both models together, we use an ``mxFitFunctionMultigroup`` command that adds up the values of the fit functions of the two groups.
 
 .. code-block:: r
 
-        mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
-    )
+    fun           <- mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
+
+    bivHetModel   <- mxModel("bivariate Heterogeneity Path Specification",
+                            model1, model2, fun )
+    
 
 Model Fitting
 ^^^^^^^^^^^^^
@@ -199,7 +136,7 @@ A variety of output can be printed.  We chose here to print the expected means a
     EM2Het <- bivHetFit$group2.fitfunction$info$expMean
     EC1Het <- bivHetFit$group1.fitfunction$info$expCov
     EC2Het <- bivHetFit$group2.fitfunction$info$expCov
-    LLHet <- summary(bivHetFit)$Minus2LogLikelihood
+    LLHet <- bivHetFit$output$fit
 
 
 Homogeneity Model: a Submodel
@@ -217,7 +154,7 @@ Rather than having to specify the entire model again, we copy the previous model
     #Fit Homogeneity Model
     bivHomModel <- bivHetModel
 
-As the free parameters of the paths are translated into RAM matrices, and matrix elements can be equated by assigning the same label, we now have to equate the labels of the free parameters in group1 to the labels of the corresponding elements in group2.  This can be done by referring to the relevant matrices using the ``ModelName$MatrixName`` syntax, followed by ``@labels``.  Note that in the same way, one can refer to other arguments of the objects in the model.  Here we assign the labels from group1 to the labels of group2, separately for the 'covariance' matrices (in **S**) used for the expected covariance matrices and the 'means' matrices (in **M**) for the expected mean vectors.
+As the free parameters of the paths are translated into RAM matrices, and matrix elements can be equated by assigning the same label, we now have to equate the labels of the free parameters in group1 to the labels of the corresponding elements in group2.  This can be done by referring to the relevant matrices using the ``ModelName$MatrixName`` syntax, followed by ``$labels``.  Note that in the same way, one can refer to other arguments of the objects in the model.  Here we assign the labels from group1 to the labels of group2, separately for the 'covariance' matrices (in **S**) used for the expected covariance matrices and the 'means' matrices (in **M**) for the expected mean vectors.
 
 .. code-block:: r
 
@@ -226,26 +163,17 @@ As the free parameters of the paths are translated into RAM matrices, and matrix
 
 The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below::
 
-    in group1
-        $S
-                X      Y     
-        X   "vX1" "cXY1"
-        Y  "cXY1"  "vY1" 
+    in group1                           in group2
+        $S                                  $S
+                X      Y                            X      Y  
+        X   "vX1" "cXY1"                    X   "vX1" "cXY1"
+        Y  "cXY1"  "vY1"                    Y  "cXY1"  "vY1" 
+                                      
+        $M                                  $M
+                X      Y                            X      Y  
+        [1,] "mX1" "mY1"                    [1,] "mX1" "mY1"
 
-        $M
-                X      Y    
-        [1,] "mX1" "mY1"
-        
-    in group2
-        $S
-                X      Y     
-        X   "vX1" "cXY1"
-        Y  "cXY1"  "vY1" 
 
-        $M
-                X      Y    
-        [1,] "mX1" "mY1"
-            
 Model Fitting
 ^^^^^^^^^^^^^
 
@@ -254,11 +182,11 @@ We can produce similar output for the submodel, i.e. expected means and covarian
 .. code-block:: r
 
     bivHomFit <- mxRun(bivHomModel)
-        EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
-        EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
-        EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
-        EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
-        LLHom <- summary(bivHomFit)$Minus2LogLikelihood
+    EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
+    EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
+    EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
+    EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
+    LLHom <- bivHomFit$output$fit
         
 
 Finally, to evaluate which model fits the data best, we generate a likelihood ratio test from the difference between -2 times the log-likelihood of the homogeneity model and -2 times the log-likelihood of the heterogeneity model.  This statistic is asymptotically distributed as a Chi-square, which can be interpreted with the difference in degrees of freedom of the two models, in this case 5 df.

@@ -1,13 +1,12 @@
 Beginners Guide to OpenMx
 =========================
 
-This document is a basic introduction to the OpenMx library.  It assumes that the reader has installed the R statistical programming language [http://www.r-project.org/] and the OpenMx library for R [http://openmx.psyc.virginia.edu].  Detailed introductions to R can be found on the internet.  We recommend [http://faculty.washington.edu/tlumley/Rcourse] for a short course but Google search for 'introduction to R' provides many options.
+This document is a basic introduction to OpenMx.  It assumes that the reader has installed the R statistical programming language [http://www.r-project.org/] and the OpenMx library for R [http://openmx.psyc.virginia.edu].  Detailed introductions to R can be found on the internet.  We recommend [http://faculty.washington.edu/tlumley/Rcourse] for a short course but Google search for 'introduction to R' provides many options.
 
 The OpenMx scripts for the examples in this guide are available in the following files:
 
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorPathDemo.R
 * http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorMatrixDemo.R
-
 * http://www.vipbg.vcu.edu/OpenMx/html/NewBeginnersGuide.R
 
 .. _BasicIntroduction:
@@ -15,7 +14,7 @@ The OpenMx scripts for the examples in this guide are available in the following
 Basic Introduction 
 ------------------
 
-The main function of OpenMx is to provide a way to design a statistical model which can be used to test a hypothesis with a set of data.  The way to do this is to use one of the functions written in the R language as part of the OpenMx package.  The function to create an Mx model is (you guessed it) ``mxModel()``.  Note that i) R is case sensitive and ii) the OpenMx package must be loaded before any of the OpenMx functions are used (this only has to be done once in an R session).
+The main function of OpenMx is to design a statistical model which can be used to test a hypothesis with a set of data.  The way to do this is to use one of the functions written in the R language as part of the OpenMx package.  The function to create an Mx model is (you guessed it) ``mxModel()``.  Note that i) R is case sensitive and ii) the OpenMx package must be loaded before any of the OpenMx functions are used (this only has to be done once in an R session).
 
 ..
    DO NOT EXECUTE
@@ -26,7 +25,7 @@ The main function of OpenMx is to provide a way to design a statistical model wh
        
         require(OpenMx)
 
-We will start by building a model with the ``mxModel()`` function, which takes a number of arguments.  We will explain each of these gradually below.  Usually we save the result of applying the ``mxModel()`` function as an R object, here called *myModel*.  This R object has a special class named MxModel.
+We start by building a model with the ``mxModel()`` function, which takes a number of arguments.  We explain each of these below.  Usually we save the result of applying the ``mxModel()`` function as an R object, here called *myModel*.  
 
 .. cssclass:: input
 ..
@@ -37,7 +36,7 @@ We will start by building a model with the ``mxModel()`` function, which takes a
        
         myModel <- mxModel() 
 
-We might read the above line 'myModel gets mxModel left paren right paren'. In this case we have provided no arguments in the parentheses, but R has still created an empty MxModel object *myModel*. Obviously this model needs arguments to do anything useful, but just to get the idea of the process of 'Model Building - Model Fitting' here is how we would go about fitting this model.  The *myModel* object becomes the argument of the OpenMx function ``mxRun()`` to fit the model.  The result is stored in a new R object, *myModelRun* of the same class as the previous object but updated with the results from the model fitting.
+This R object has a special class named MxModel. We might read the above line 'myModel gets mxModel left paren right paren'. In this case we have provided no arguments in the parentheses, but R has still created an empty MxModel object *myModel*. Obviously this model needs arguments to do anything useful, but just to get the idea of the process of 'Model Building - Model Fitting' here is how we would go about fitting this model.  The *myModel* object becomes the argument of the OpenMx function ``mxRun()`` to fit the model.  The result is stored in a new R object, *myModelRun* of the same class as the previous object but updated with the results from the model fitting.
 
 .. cssclass:: input
 ..
@@ -47,7 +46,6 @@ We might read the above line 'myModel gets mxModel left paren right paren'. In t
    .. code-block:: r
        
         myModelRun <- mxRun(myModel) 
-
 
 A model typically contains data, free and/or fixed parameters and some function to be applied to the data according to the model.  Models can be build in a variety of ways, due to the flexibility of OpenMx which it inherited from classic **Mx** - for those of you who familiar with that software - and further expanded.
 
@@ -66,7 +64,7 @@ To introduce the model fitting process in OpenMx, we will present the basics of 
 Matrix Creation
 ^^^^^^^^^^^^^^^
 
-Although ``mxModel()`` can have a range of arguments, we will start with the most simple one.  Models are fitted to data which must be in numeric format (for continuous data) or factor format (for ordinal data).  Here we consider continuous data.  Numbers (data/parameter estimates) are typically put into matrices, except for fixed constants.  The function created to put numbers into matrices is (unsurprisingly) ``mxMatrix()``.  Here we start with a basic matrix call and make use of only some of its possible arguments. All arguments are separated by comma's. To make it clear and explicit, we will include the names of the arguments, although that is optional if the.arguments are included in the default order.
+Although ``mxModel()`` can have a range of arguments, we will start with the most simple one.  Models are fitted to data which must be in numeric format (for continuous data) or factor format (for ordinal data).  Here we consider continuous data.  Numbers (data/parameter estimates) are typically put into matrices, except for fixed constants.  The function created to put numbers into matrices is (unsurprisingly) ``mxMatrix()``.  Here we start with a basic matrix call and make use of only some of its possible arguments. All arguments are separated by comma's. To make it clear and explicit, we will include the names of the arguments, although that is optional if the arguments are included in the default order.
 
 .. cssclass:: input
 ..
@@ -75,8 +73,7 @@ Although ``mxModel()`` can have a range of arguments, we will start with the mos
    
    .. code-block:: r
        
-        myAmatrix <- mxMatrix(type="Full", nrow=1, ncol=1, values=4myModel, name="Amatrix")
-    
+        myAmatrix <- mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix")
     
 The above call to the ``mxMatrix()`` function has five arguments.  The ``type`` and ``name`` arguments are alphanumeric and therefore their values are in quotes.  The ``nrows``, ``ncols`` and ``values`` arguments are numeric, and refer respectively to the number of rows, the number of columns of the matrix and the value for the (in this case only one) element of the matrix.
 
@@ -102,7 +99,6 @@ Once you have run/executed this statement in R, a new R object has been created,
         
         $ubound: No upper bounds assigned.
 
-
 Most of these attributes start with the ``$`` symbol.  The contents of a particular attribute can be displayed by typing the name of the R object followed by the ``$`` symbol and the name of the attribute, for example here we're displaying the values of the matrix *myAmatrix*
    
    .. code-block:: r
@@ -111,7 +107,6 @@ Most of these attributes start with the ``$`` symbol.  The contents of a particu
                [,1]
           [1,]    4
 
-
 Note that the attribute ``name`` is part of the header of the output but is not displayed as an ``$`` attribute.  However, it does exist as one and can be seen by typing
    
    .. code-block:: r
@@ -119,13 +114,12 @@ Note that the attribute ``name`` is part of the header of the output but is not 
         > myAmatrix$name
         [1] "Amatrix"
 
-
 Wait a minute, this is confusing.  The matrix has a name, here "Amatrix", and the R object to represent the matrix has a name, here "myAmatrix".  Remember that when you call up *myAmatrix* you get the contents of the entire MxMatrix R object.  When you call up "Amatrix", you get 
 
     .. code-block:: r
 
         Error: object 'Amatrix' not found   
-    
+
 unless you had previously created another R object with that same name.  Why do we need two names?  The matrix name (here, "Amatrix") is used within OpenMx when performing an operation on this matrix using algebra (see below) or manipulating/using the matrix in any way within a model.  When you want to manipulate/use/view the matrix outside of OpenMx, or build a model by building each of the elements as R objects in the 'piecewise' approach, you use the R object name (here, *myAmatrix*).  Let's clarify this with an example.  
 
 Model Creation
@@ -140,9 +134,7 @@ First, we will build a model *myModel1* with just one matrix.  Obviously that is
    
    .. code-block:: r
 
-        myModel1 <- mxModel( 
-                        mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix") 
-                    )
+        myModel1     <- mxModel( mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix") )
                     
 Model Execution
 ^^^^^^^^^^^^^^^^
@@ -156,7 +148,7 @@ The ``mxRun()`` function will run a model through the optimizer.  The return val
    
    .. code-block:: r
    
-        myModel1Run <- mxRun(myModel1)
+        myModel1Run  <- mxRun(myModel1)
 
 Model Contents
 ^^^^^^^^^^^^^^
@@ -203,7 +195,7 @@ As you can see from viewing the contents of the new object, the current model on
     
         $ubound: No upper bounds assigned.
     
-This lists all the matrices within the MxModel *myModel1Run*.  In the current case there is only one.  If we want to display just a specific argument of that matrix, we first add a dollar sign, followed by the name of the matrix, and an ``$`` symbol prior to the required argument.  Thus arguments within an object are preceded by the ``$`` symbol; specific elements of the same argument type are preceded by the ``$`` sign.
+This lists all the matrices within the MxModel *myModel1Run*.  In the current case there is only one.  If we want to display just a specific argument of that matrix, we first add a dollar sign ``$``, followed by the name of the matrix, and an ``$`` sign prior to the required argument.  Thus both arguments within an object and specific elements of the same argument type are preceded by the ``$`` symbol.
 
     .. code-block:: r
 
@@ -223,26 +215,7 @@ Similarly, we can inspect the output which also includes the matrices in ``$matr
              [,1]
         [1,]    4
 
-        $algebras
-        list()
-
-        $expectations
-        list()
-
-        $status
-        $status$code
-        [1] -1
-
-        $status$status
-        [1] 0
-
-
-        $iterations
-        [1] 0
-
-        $evaluations
-        [1] 1 1
-
+        ....
         $mxVersion
         [1] "999.0.0-3297"
 
@@ -263,7 +236,6 @@ Similarly, we can inspect the output which also includes the matrices in ``$matr
 
         $cpuTime
         Time difference of 0.0602169 secs
-        
 
 Alternative 
 ^^^^^^^^^^^
@@ -277,11 +249,10 @@ Now let's go back to the model *myModel1* for a minute.  We specified the matrix
    
    .. code-block:: r
 
-        myModel2 <- mxModel(myAmatrix, name="model2")
-    
-        myModel2Run <- mxRun(myModel2)
+        myModel2     <- mxModel(myAmatrix, name="model2")
+        myModel2Run  <- mxRun(myModel2)
 
-You can verify for yourself that the contents of *myModel2* is identical to that of *myModel1*, and the same applies to *myModel1Run* and *myModel2Run*, and as a result to the matrix contained in the model.  The value of the matrix element is still 4, both in the original model and the fitted model, as we did not manipulate the matrix in any way.  We refer to this alternative style of coding as 'iterative'.
+You can verify for yourself that the contents of *myModel2* is identical to that of *myModel1*, and the same applies to *myModel1Run* and *myModel2Run*, and as a result to the matrix contained in the model.  The value of the matrix element is still 4, both in the original model and the fitted model, as we did not manipulate the matrix in any way.  We refer to this alternative style of coding as **iterative**.
 
 Algebra Creation
 ^^^^^^^^^^^^^^^^
@@ -295,7 +266,7 @@ Now, let's take it one step further and use OpenMx to evaluate some matrix algeb
    
    .. code-block:: r
 
-        myBmatrix <- mxAlgebra(expression=Amatrix+1, name="Bmatrix")
+        myBmatrix    <- mxAlgebra(expression=Amatrix+1, name="Bmatrix")
     
 Algebra Contents
 ^^^^^^^^^^^^^^^^
@@ -310,7 +281,6 @@ We can view the contents of this new matrix. Notice that the result has not yet 
         $result: (not yet computed) <0 x 0 matrix>
         dimnames: NULL
 
-
 Built Model
 ^^^^^^^^^^^
 
@@ -323,10 +293,8 @@ Now we can combine the two statements - one defining the matrix, and the other d
    
    .. code-block:: r
 
-        myModel3 <- mxModel(myAmatrix,myBmatrix, name="model3")
-    
-        myModel3Run <- mxRun(myModel3)
-
+        myModel3     <- mxModel(myAmatrix, myBmatrix, name="model3")
+        myModel3Run  <- mxRun(myModel3)
 
 First of all, let us view *myModel3* and more specifically the values of the matrices within that model.  Note that the ``$matrices`` lists one matrix, "Amatrix", and that the ``$algebras`` lists another, "Bmatrix".  To view values of matrices created with the ``mxMatrix()`` function, the argument is ``$values``; for matrices created with the ``mxAlgebra()`` function, the argument is ``$result``.  Note that when viewing a specific matrix, you can omit the ``$matrices`` or the ``$algebras`` arguments.
 
@@ -398,7 +366,7 @@ Given we're looking at the model *myModel3* before it is run, results of algebra
              [,1]
         [1,]    5
 
-You will notice that the structure of the MxModel objects is identical, the value of the "Amatrix" has not changed, as it was a fixed element.  However, the value of the "Bmatrix" is now the result of the operation on the "Amatrix".  Note that we're here looking at the "Bmatrix" within the MxModel object *myModel3Run*.   Please verify that the original MxAlgebra objects *myBmatrix* and *myAmatrix* remain unchanged.  The mxModel() function call has made its own internal copies of these objects, and it is only these internal copies that are being manipulated.  In computer science terms, this is referred to as *pass by value*.
+You will notice that the structure of the MxModel objects is identical, the value of the "Amatrix" has not changed, as it was a fixed element.  However, the value of the "Bmatrix" is now the result of the operation on the "Amatrix".  Note that we're here looking at the "Bmatrix" within the MxModel object *myModel3Run*.   Please verify that the original MxAlgebra objects *myBmatrix* and *myAmatrix* remain unchanged.  The ``mxModel()`` function call has made its own internal copies of these objects, and it is only these internal copies that are being manipulated.  In computer science terms, this is referred to as *pass by value*.
 
 
 Pass By Value
@@ -406,7 +374,7 @@ Pass By Value
 
 Let us insert a mini-lecture on the R programming language.  Our experience has found that this exercise will greatly increase your understanding of the OpenMx language. 
 
-As this is such a crucial concept in R (unlike many other programming languages), let us look at it in a simple R example.  We will start by assigning the value 4 to the object "avariable", and then display it.  If we then add 1 to this object, and display it again, notice that the value of "avariable" has not changed.
+As this is such a crucial concept in R (unlike many other programming languages), let us look at it in a simple R example.  We will start by assigning the value 4 to the object *avariable*, and then display it.  If we then add 1 to this object, and display it again, notice that the value of *avariable* has not changed.
 
 .. cssclass:: input
 ..
@@ -415,13 +383,15 @@ As this is such a crucial concept in R (unlike many other programming languages)
    
    .. code-block:: r
 
-        avariable <- 4
-        avariable
+        > avariable <- 4
+        > avariable
+        [1] 4
+        > avariable +1
+        [1] 5
+        > avariable
+        [1] 4
     
-        avariable +1
-        avariable
-    
-Now we introduce a function, as OpenMx is a collection of purposely built functions.  The function takes a single argument (the object "number"), adds one to the argument "number" and assigns the result to "number", and then returns the incremented number back to the user.  This function is given the name ``addone()``.  We then apply the function to the object "avariable", as well as display "avariable".  Thus, the objects "addone" and "avariable" are defined. The object assigned to "addone" is a function, while the value assigned to "avariable" is the number 4. 
+Now we introduce a function, as OpenMx is a collection of purposely built functions.  The function takes a single argument (the object *number*), adds one to the argument *number* and assigns the result to *number*, and then returns the incremented number back to the user.  This function is given the name ``addone()``.  We then apply the function to the object *avariable*, as well as display *avariable*.  Thus, the objects *addone* and *avariable* are defined. The object assigned to *addone* is a function, while the value assigned to *avariable* is the number 4. 
 
 .. cssclass:: input
 ..
@@ -430,13 +400,15 @@ Now we introduce a function, as OpenMx is a collection of purposely built functi
    
    .. code-block:: r
 
-        addone <- function(number) {
+        > addone <- function(number) {
             number <- number + 1
             return(number)
             }
 
-        addone(avariable)
-        avariable
+        > addone(avariable)
+        [1] 5
+        > avariable
+        [1] 4
 
 Note that it may be prudent to use the ``print()`` function to display the results back to the user.  When R is run from a script rather than interactively, results will not be displayed unless the function ``print()`` is used as shown below.
 
@@ -447,14 +419,16 @@ Note that it may be prudent to use the ``print()`` function to display the resul
    
    .. code-block:: r
 
-        print(addone(avariable))
-        print(avariable)
+        > print(addone(avariable))
+        [1] 5
+        > print(avariable)
+        [1] 4
 
-What is the result of executing this code? Try it. The correct results are 5 and 4.  But why is the object "avariable" still 4, even after the ``addone()`` function was called? The answer to this question is that R uses pass-by-value function call semantics.
+What is the result of executing this code? Try it. The correct results are 5 and 4.  But why is the object *avariable* still 4, even after the ``addone()`` function was called? The answer to this question is that R uses pass-by-value function call semantics.
 
-In order to understand pass-by-value semantics, we must understand the difference between *objects* and *values*. The *objects* declared in this example are "addone", "avariable", and "number".  The *values* refer to the things that are stored by the *objects*.  In programming languages that use pass-by-value semantics, at the beginning of a function call it is the *values* of the argument list that are passed to the function.  
+In order to understand pass-by-value semantics, we must understand the difference between *objects* and *values*. The *objects* declared in this example are *addone*, *avariable*, and *number*.  The *values* refer to the things that are stored by the *objects*.  In programming languages that use pass-by-value semantics, at the beginning of a function call it is the *values* of the argument list that are passed to the function.  
 
-The object "avariable" cannot be modified by the function ``addone()``.  If I wanted to update the value stored in the object, I would have needed to replace the expression as follows:
+The object *avariable* cannot be modified by the function ``addone()``.  If I wanted to update the value stored in the object, I would have needed to replace the expression as follows:
 
 .. cssclass:: input
 ..
@@ -463,8 +437,10 @@ The object "avariable" cannot be modified by the function ``addone()``.  If I wa
    
    .. code-block:: r
 
-        print(avariable <- addone(avariable))
-        print(avariable)
+        > print(avariable <- addone(avariable))
+        [1] 5
+        > print(avariable)
+        [1] 5
     
 Try it.  The updated example prints out 5 and 5.  The lesson from this exercise is that the only way to update a object in a function call is to capture the result of the function call [#f1]_.  This lesson is sooo important that we'll repeat it:
 
@@ -494,12 +470,11 @@ The style we used in *myModel3* is the piecewise style.  We repeat the different
    
    .. code-block:: r
 
-        myAmatrix <- mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix")
-        myBmatrix <- mxAlgebra(expression=Amatrix+1, name="Bmatrix")
+        myAmatrix    <- mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix")
+        myBmatrix    <- mxAlgebra(expression=Amatrix+1, name="Bmatrix")
 
-        myModel3 <- mxModel(myAmatrix,myBmatrix, name="model3")
-    
-        myModel3Run <- mxRun(myModel3)
+        myModel3     <- mxModel(myAmatrix, myBmatrix, name="model3")
+        myModel3Run  <- mxRun(myModel3)
 
 Each argument of the ``mxModel()`` statement is defined separately first as independent R objects which are then combined in one model statement.
 
@@ -515,11 +490,8 @@ For the stepwise style, we start with an ``mxModel()`` with just one argument, a
 
     .. code-block:: r
 
-        myModel1 <- mxModel(
-                        mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix") 
-                    )
-
-        myModel1Run <- mxRun(myModel1)
+        myModel1     <- mxModel( mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix") )
+        myModel1Run  <- mxRun(myModel1)
  
 Then we would build a new model starting from the first model.  To do this, we invoke a special feature of the first argument of an ``mxModel()``.  If it is the name of a saved MxModel object, for example *myModel1*, the arguments of that model would be automatically included in the new model.  These arguments can be changed (or not) and new arguments can be added.  Thus, in our example, where we want to keep the "Amatrix" and add the "Bmatrix", our second model would look like this.  
 
@@ -530,12 +502,11 @@ Then we would build a new model starting from the first model.  To do this, we i
    
    .. code-block:: r
 
-        myModel4 <- mxModel(myModel1,
-                        mxAlgebra(expression=Amatrix+1, name="Bmatrix"), 
+        myModel4     <- mxModel(myModel1,
+                        mxAlgebra(expression=Amatrix+1, name="Bmatrix"),
                         name="model4"
                         )
-        
-        myModel4Run <- mxRun(myModel4)
+        myModel4Run  <- mxRun(myModel4)
     
 Note that we call it "model4", by adding a ``name`` argument to the ``mxModel()`` as to not overwrite our previous "model1".
 
@@ -551,13 +522,12 @@ The final style may be reminiscent of classic Mx.  Here we build all the argumen
    
    .. code-block:: r
 
-        myModel5 <- mxModel(
+        myModel5     <- mxModel(
                         mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix"),
                         mxAlgebra(expression=Amatrix+1, name="Bmatrix"), 
                         name="model5"
                         )
-        
-        myModel5Run <- mxRun(myModel5)
+        myModel5Run  <- mxRun(myModel5)
 
 You may have seen an alternative version with the first argument in quotes.  In that case, that argument refers to the name of the model and not to a previously defined model.  Thus, the following specification is identical to the previous one.  Note also that it is not necessary to add the 'names' of the arguments, as long as the arguments are listed in their default order, which can easily be verified by using the standard way to get help about a function (in this case ``?mxMatrix()`` ).
 
@@ -568,12 +538,11 @@ You may have seen an alternative version with the first argument in quotes.  In 
    
    .. code-block:: r
 
-        myModel5 <- mxModel("model5",
+        myModel5     <- mxModel("model5",
                         mxMatrix(type="Full", nrow=1, ncol=1, values=4, name="Amatrix"),
                         mxAlgebra(expression=Amatrix+1, name="Bmatrix")
                         )
-        
-        myModel5run <- mxRun(myModel5)
+        myModel5run  <- mxRun(myModel5)
 
 Note that all arguments are separated by commas.  In this case, we've also separated the arguments on different lines, but that is only for clarity.  No comma is needed after the last argument!  If you accidentally put one in, you get the generic error message *'argument is missing, with no default'* meaning that you forgot something and R doesn't know what it should be. The bracket on the following line closes the ``mxModel()`` statement.
 
@@ -619,7 +588,6 @@ The output of this function is shown below.
         x3   3 500 -0.06 0.61  -0.03   -0.05 0.58 -2.29 1.83  4.12 -0.17     0.23 0.03
         x4   4 500 -0.06 0.73  -0.08   -0.05 0.75 -2.48 2.45  4.93 -0.08     0.05 0.03
         x5   5 500 -0.08 0.82  -0.08   -0.07 0.89 -2.62 2.18  4.80 -0.10    -0.23 0.04
-    
 
 Now that the data are accessible in R, we need to make them readable into our OpenMx model.
 
@@ -685,8 +653,6 @@ The output for *exampleDataCovMeans* would have the following extra lines.
         Means : 
                       x1          x2          x3          x4          x5
         [1,] -0.04007841 -0.04583873 -0.05588236 -0.05581416 -0.07555022
-        Acov : NA 
-        Thresholds : NA
     
 Raw Data
 ^^^^^^^^
@@ -718,7 +684,6 @@ Printing this MxData object would result in listing the whole data set.  We show
          4    2.150340e-02 -0.2552252972  0.097330513 -0.117444884 -0.380906486
          5    ....
 
-
 The data to be used for our example are now ready in either **covariance matrix** or **raw data** format.
 
 Model functions
@@ -730,7 +695,7 @@ We introduce here several new features by building a basic factor model to real 
 
 Briefly, squares are used for observed variables; latent variables are drawn in circles.  One-headed arrows are drawn to represent causal relationships.  Correlations between variables are represented with two-headed arrows.  Double-headed paths are also used for variances of variables.  Below is a figure of a one factor model with five indicators (x1..x5). We have added a value of 1.0 to the variance of the latent variable **G** as a fixed value.  All the other paths in the models are considered free parameters and are to be estimated.
 
-.. image:: graph/OneFactorModel.png
+.. image:: graph/OneFactor.png
     :height: 2in
     
 Variables
@@ -823,7 +788,7 @@ The next three lines create three ``MxMatrix()`` objects, using the ``mxMatrix()
         mxResVariances <-  mxMatrix(type="Diag", nrow=5, ncol=5, 
                                     free=TRUE, values=1, name="resVariances")
 
-Each ``MxMatrix()`` object is a container that stores five matrices of equal dimensions.  The five matrices stored in a ``MxMatrix()`` object are:``free``, ``values``, ``labels``, ``lbound``, and ``ubound``.  ``Free`` stores a boolean vector that determines whether a element is free or fixed.  ``Values`` stores the current values of each element in the matrix.  ``Labels`` stores a character label for each element in the matrix. And ``lbound`` and ``ubound`` store the lower and upper bounds, respectively, for each element that is a free parameter.  If a element has no label, lower bound, or upper bound, then an NA value is stored in the element of the respective matrix.
+Each ``MxMatrix()`` object is a container that stores five matrices of equal dimensions.  The five matrices stored in a ``MxMatrix()`` object are: ``free``, ``values``, ``labels``, ``lbound``, and ``ubound``.  ``Free`` stores a boolean vector that determines whether a element is free or fixed.  ``Values`` stores the current values of each element in the matrix.  ``Labels`` stores a character label for each element in the matrix. And ``lbound`` and ``ubound`` store the lower and upper bounds, respectively, for each element that is a free parameter.  If a element has no label, lower bound, or upper bound, then an NA value is stored in the element of the respective matrix.
  
 Algebra Creation
 ^^^^^^^^^^^^^^^^
@@ -837,20 +802,20 @@ An ``mxAlgebra()`` function is used to construct an expression for any algebra, 
    
    .. code-block:: r
 
-        mxExpCov <- mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) 
-                                        + resVariances, name="expCov")
+        mxExpCov     <- mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) 
+                                  + resVariances, name="expCov")
 
 You can see a direct correspondence between the formula above and the expression used to create the expected covariance matrix *myExpCov*.
 
-Expectation-FitFunction
------------------------
+Expectation - Fit Function
+--------------------------
 
-To fit a model to data, the differences between the observed covariance matrix (the data, in this case the summary statistics) and model-implied expected covariance matrix are minimized using a fit function.  Fit functions are functions for which free parameter values are chosen such that the value of the fit function is minimized.  Now that we have specified data objects and path or matrix/algebra objects for the predicted covariances of our model, we need to link the two and execute them which is typically done with ``Expectation`` and ``FitFunction`` statements.  PS. These two statements replace the mxObjective functions in earlier versions of OpenMx.  
+To fit a model to data, the differences between the observed covariance matrix (the data, in this case the summary statistics) and model-implied expected covariance matrix are minimized using a fit function.  Fit functions are functions for which free parameter values are chosen such that the value of the fit function is minimized.  Now that we have specified data objects and path or matrix/algebra objects for the predicted covariances of our model, we need to link the two and execute them which is typically done with ``mxExpectation()`` and ``mxFitFunction()`` statements.  PS. These two statements replace the ``mxObjective()`` functions`` in earlier versions of OpenMx.  
 
 RAM Expectation 
 ^^^^^^^^^^^^^^^
 
-When using a path specification of the model, the fit function is always ``RAM`` which is indicated by using the ``type`` argument.  We don't have to specify the fit function explicitly with an ``mxExpectation()`` and ``FitFunction`` argument, instead we simply add the following argument to the model.
+When using a path specification of the model, the fit function is always ``RAM`` which is indicated by using the ``type`` argument.  We don't have to specify the fit function explicitly with an ``mxExpectation()`` and ``FitFunction()`` argument, instead we simply add the following argument to the model.
 
 .. cssclass:: input
 ..
@@ -875,9 +840,9 @@ When using a matrix specification, ``mxExpectationNormal()`` defines how model e
    
    .. code-block:: r
 
-        expectCov <- mxExpectationNormal(covariance="expCov", 
-                                         dimnames=names(demoOneFactor))
-        funML <- mxFitFunctionML()
+        expectCov    <- mxExpectationNormal(covariance="expCov", 
+                                            dimnames=names(demoOneFactor))
+        funML        <- mxFitFunctionML()
 
 The above expectation and fit function can be used when fitting to covariance matrices.  A model for the predicted means is optional.  However, when fitting to raw data, an expectation has to be used that specifies both a model for the means and for the covariance matrices, paired with the appropriate fit function.  In the case of raw data, the ``mxFitFunctionML()`` function uses full-information maximum likelihood to provide maximum likelihood estimates of free parameters in the algebra defined by the ``covariance`` and ``means`` arguments. The ``covariance`` argument takes an ``MxMatrix`` or ``MxAlgebra`` object, which defines the expected covariance of an associated ``MxData`` object. Similarly, the ``means`` argument takes an ``MxMatrix`` or ``MxAlgebra`` object to define the expected means of an associated ``MxData`` object. The ``dimnames`` arguments takes an optional character vector. This vector is assigned to be the ``dimnames`` of the means vector, and the row and columns ``dimnames`` of the covariance matrix. 
 
@@ -890,11 +855,11 @@ The above expectation and fit function can be used when fitting to covariance ma
 
         expectCovMeans <- mxExpectationNormal(covariance="expCov", means="expMeans", 
                                               dimnames=names(demoOneFactor))
-        funML <- mxFitFunctionML()
+        funML        <- mxFitFunctionML()
 
 Raw data can come in two forms, continuous or categorical.  While **continuous data** have an unlimited number of possible values, their frequencies typically form a normal distribution.
 
-There are basically two flavors of **categorical data**.  If only two response categories exist, for example Yes and No, or affected and unaffected, we are dealing with binary data.  Variables with three or more categories are considered ordinal.
+There are basically two flavors of **categorical data**.  If only two response categories exist, for example Yes and No, or affected and unaffected, we are dealing with binary data.  Variables with three or more ordered categories are considered ordinal.
 
 Continuous Data
 ^^^^^^^^^^^^^^^
@@ -908,9 +873,9 @@ When the data to be analyzed are continuous, and models are fitted to raw data, 
    
    .. code-block:: r
 
-        expectRaw <- mxExpectationNormal(covariance="expCov", means="expMeans", 
-                                         dimnames=manifests)
-        funML <- mxFitFunctionFIML()
+        expectRaw    <- mxExpectationNormal(covariance="expCov", means="expMeans", 
+                                            dimnames=manifests)
+        funML        <- mxFitFunctionML()
 
 If the variables to be analyzed have at least 15 possible values, we recommend to treat them as continuous data.  As will be discussed later in the documentation, the power of the study is typically higher when dealing with continuous rather than categorical data.
 
@@ -926,9 +891,9 @@ For categorical - be they binary or ordinal - data, an additional argument is ne
 
     .. code-block:: r
 
-        expFunOrd <- mxExpectationNormal(covariance="expCov", means="expMeans", 
-                                         thresholds="expThres", dimnames=manifests)
-        funML <- mxFitFunctionFIML()
+        expFunOrd    <- mxExpectationNormal(covariance="expCov", means="expMeans", 
+                                            thresholds="expThres", dimnames=manifests)
+        funML        <- mxFitFunctionML()
 
 For now, we will stick with the factor model example and fit it to covariance matrices, calculated from the raw continuous data.
 
@@ -936,7 +901,7 @@ For now, we will stick with the factor model example and fit it to covariance ma
 Methods
 -------
 
-We have introduced two ways to create a model.  One is the **path method**, in which observed and latent variables are specified as well as the causal and correlational paths that connect the variables to form the model.  This method may be more intuitive as the model maps on directly to the diagram.  This of course assumes that the path diagram is drawn mathematically correct.  Once the model is 'drawn' or specified correctly in this way, OpenMx translates the paths into RAM notation for predicted covariance matrices.
+We have introduced two ways to create a model.  One is the **path method**, in which observed and latent variables are specified as well as the causal and correlational paths that connect the variables to form the model.  This method may be more intuitive as the model maps on directly to the diagram.  This of course assumes that the path diagram is drawn mathematically correct.  Once the model is 'drawn' or specified correctly in this way, OpenMx translates the paths into RAM notation for the predicted covariance matrices.
 
 Alternatively, we can specify the model using the **matrix method** by creating the necessary matrices and combining them using algebra to generate the expected covariance matrices (and optionally the mean/threshold vectors).  Although less intuitive, this method provides greater flexibility for developing more complex models.  Let us look at examples of both.
 
@@ -956,13 +921,13 @@ The  following ``mxModel()`` function is used to create the 'one-factor' model, 
 
         factorModel1 <- mxModel(name="One Factor", 
             type="RAM",
-            manifestVars = manifests,
-            latentVars = latents,
+            manifestVars=manifests,
+            latentVars=latents,
             exampleDataCov, causalPaths, residualVars, factorVars)
 
-When we display the contents of this model, note that we now have manifest and latent variables specified.  By using ``type`` ="RAM" we automatically use the expectation ``mxExpectationRAM`` which translates the path model into RAM specification [RAM1990] as reflected in the matrices **A**, **S** and **F**,  and the function ``mxFitFunctionML()``.  Briefly, the **A** matrix contains the asymmetric paths, which are the unidirectional paths in the *causalPaths* object, and represent the factor loadings from the latent variable onto the manifest variables.  The **S** matrix contains the symmetric paths which include both the bidirectional paths in *residualVars* and in *factorVars*.  The **F** matrix is the filter matrix.
+When we display the contents of this model, note that we now have manifest and latent variables specified.  By using ``type``="RAM" we automatically use the expectation ``mxExpectationRAM`` which translates the path model into RAM specification [RAM1990] as reflected in the matrices **A**, **S** and **F**,  and the function ``mxFitFunctionML()``.  Briefly, the **A** matrix contains the asymmetric paths, which are the unidirectional paths in the *causalPaths* object, and represent the factor loadings from the latent variable onto the manifest variables.  The **S** matrix contains the symmetric paths which include both the bidirectional paths in *residualVars* and in *factorVars*.  The **F** matrix is the filter matrix.
 
-The formula :math:`F(I-A)~*S*(I-A)~'F'`, where I is an identity matrix, ~ denotes the inverse and ' the transpose, generates the expected covariance matrix.
+The formula :math:`F(I-A)^-1*S*(I-A)^-1'F'`, where I is an identity matrix, :math:`^-1` denotes the inverse and ' the transpose, generates the expected covariance matrix.
 
    .. code-block:: r
 
@@ -1030,7 +995,7 @@ We can also specify all the arguments directly within the ``mxModel()`` function
 
         data(demoOneFactor)
         manifests <- names(demoOneFactor)
-        latents <- c("G")
+        latents   <- c("G")
         
         factorModel1 <- mxModel(name="One Factor", 
             type="RAM",
@@ -1069,7 +1034,6 @@ We have already created separate objects for each of the parts of the model, whi
         factorFit2 <- mxRun(factorModel2)
         summary(factorFit2)
 
-
 Alternatively, we can write the script in the **classical** style and specify  all the matrices, algebras, objective function and data as arguments to the ``mxModel()``.
 
 .. cssclass:: input
@@ -1095,8 +1059,7 @@ Alternatively, we can write the script in the **classical** style and specify  a
         factorFit2 <- mxRun(factorModel2)
         summary(factorFit2)
 
-Now that we've specified the model with both methods, we can run both examples and verify that they indeed provide the same answer by inspecting the two fitted R objects "factorFit1" and "factorFit2".
-
+Now that we've specified the model with both methods, we can run both examples and verify that they indeed provide the same answer by inspecting the two fitted R objects *factorFit1* and *factorFit2*.
 
 Output
 ------
@@ -1108,7 +1071,7 @@ Note that the fitted model is an R object that can be further manipulated, for e
 Model Summary
 ^^^^^^^^^^^^^
 
-The summary function (``summary(modelname)``) is a convenient method for displaying the highlights of a model after it has been executed.  Many R functions have an associated ``summary()`` function which summarizes all key aspects of the model.  In the case of OpenMx, the ``summary(model)`` includes a summary of the data, a list of all the free parameters with their name, matrix element locators, estimate and standard error, as well as lower and upper bounds if those were assigned.  Currently the list of goodness-of-fit statistics printed include the number of observed statistics, the number of estimated parameters, the degrees of freedom, minus twice the log-likelihood of the data, the number of observations, the chi-square and associated p-value and several information criteria.  Various time-stamps and the OpenMx version number are also displayed.
+The summary function (``summary(modelname)``) is a convenient method for displaying the highlights of a model after it has been executed.  Many R functions have an associated ``summary()`` function which summarizes all key aspects of the model.  In the case of OpenMx, the ``summary(model)`` includes a summary of the data, a list of all the free parameters with their name, matrix element locators, parameter estimate and standard error, as well as lower and upper bounds if those were assigned.  Currently the list of goodness-of-fit statistics printed include the number of observed statistics, the number of estimated parameters, the degrees of freedom, minus twice the log-likelihood of the data, the number of observations, the chi-square and associated p-value and several information criteria.  Various time-stamps and the OpenMx version number are also displayed.
 
    .. code-block:: r
 
@@ -1158,10 +1121,9 @@ The summary function (``summary(modelname)``) is a convenient method for display
         independent submodels time: 1.907349e-05 secs 
         wall clock time: 0.03485513 secs 
         cpu time: 0.03485513 secs 
-        openmx version number: 999.0.0-3297 
-         
+        openmx version number: 999.0.0
 
-The table of free parameters requires a little more explanation.  First, ``<NA>`` are given for the name of elements that were not assigned a label.  Second, the columns 'row' and 'col' display the variables at the tail of the paths and the variables at the head of the paths respectively.  Third, standard errors are calculated.  We will discuss the use of standard errors versus confidence intervals later on.
+The table of free parameters requires a little more explanation.  First, ``<NA>`` is given for the name of elements that were not assigned a label.  Second, the columns 'row' and 'col' display the variables at the tail of the paths and the variables at the head of the paths respectively.  Third, standard errors are calculated.  We will discuss the use of standard errors versus confidence intervals later on.
 
 Model Evaluation 
 ^^^^^^^^^^^^^^^^
@@ -1175,18 +1137,17 @@ The ``mxEval()`` function should be your primary tool for observing and manipula
    
    .. code-block:: r
 
-        myModel6 <- mxModel('topmodel', 
+        myModel6      <- mxModel('topmodel', 
             mxMatrix('Full', 1, 1, values=1, free=TRUE, labels='p1', name='A'),
             mxModel('submodel', 
                 mxMatrix('Full', 1, 1, values=2, free=FALSE, labels='p2', name='B')
             )
         )
+        myModel6Run   <- mxRun(myModel6)
 
-        myModel6Run <- mxRun(myModel6)
-        mxEval(A + submodel.B + p1 + p2, myModel6)       # initial values
-        mxEval(A + submodel.B + p1 + p2, myModel6Run)    # final values
+The example above has a model ("submodel") embedded in another model ("topmodel").  Note that the name of the arguments can be omitted if they are used in the default order (``type``, ``nrow`` and ``ncol``).
 
-Note that the ``expression`` can include both matrices, algebras as well as matrix element labels, each taking on the value of the model specified in the ``model`` argument.  To reinforce an earlier point, it is not necessary to restrict the expression only to valid MxAlgebra expressions.  In the following example, we use the ``harmonic.mean()`` function from the psych package.
+The ``expression`` of the ``mxEval`` statement can include both matrices, algebras as well as matrix element labels, each taking on the value of the model specified in the ``model`` argument.  To reinforce an earlier point, it is not necessary to restrict the expression only to valid MxAlgebra expressions.  In the following example, we use the ``harmonic.mean()`` function from the ``psych`` package.
 
 .. cssclass:: input
 ..
@@ -1194,6 +1155,9 @@ Note that the ``expression`` can include both matrices, algebras as well as matr
    OpenMx Code
    
    .. code-block:: r
+ 
+        mxEval(A + submodel.B + p1 + p2, myModel6)       # initial values
+        mxEval(A + submodel.B + p1 + p2, myModel6Run)    # final values
 
         library(psych)
         nVars <- 4
@@ -1222,13 +1186,11 @@ MxModel objects support the ``$`` operator, also known as the list indexing oper
                 mxAlgebra(A, name='B'),
                 mxModel('submodel1', 
                     mxConstraint(topmodel1.A == topmodel1.B, name = 'C'),
-                    mxModel('undersub1', 
-                        mxData(diag(3), type='cov', numObs=10)
-                    )
+                    mxModel('undersub1', mxData(diag(3), type='cov', numObs=10) )
                 ),
-                    mxModel('submodel2', 
-                        mxFitFunctionAlgebra('topmodel1.A')
-                    )
+                mxModel('submodel2', 
+                    mxFitFunctionAlgebra('topmodel1.A')
+                )
             )
 
 Access Elements

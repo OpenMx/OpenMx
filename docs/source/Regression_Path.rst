@@ -36,7 +36,7 @@ We begin with a single dependent variable (*y*) and a single independent variabl
    \end{eqnarray*}
 
 .. image:: graph/SimpleRegression.png
-    :height: 2.5in
+    :height: 2in
 
 In this model, the mean of *y* is dependent on both regression coefficients (and by extension, the mean of *x*). The variance of *y* depends on both the residual variance (:math:`\sigma^{2}_{\epsilon}`) and the product of the regression slope (:math:`\beta_{1}`) and the variance of *x* (:math:`\sigma^{2}_{x}`).  This model contains five parameters from a structural modeling perspective :math:`\beta_{0}`, :math:`\beta_{1}`, :math:`\sigma^{2}_{\epsilon}`, and the mean and variance of *x*, :math:`\mu^{2}_x` and :math:`\sigma^{2}_x`. We are modeling a covariance matrix with three degrees of freedom (two variances and one covariance) and a means vector with two degrees of freedom (two means). Because the model has as many parameters (5) as the data have degrees of freedom, this model is fully saturated.
 
@@ -74,11 +74,7 @@ For covariance data, we do something very similar. We create an object to house 
          -0.110, 1.116, 0.539, 0.289,
           0.089, 0.539, 0.933, 0.312,
           0.361, 0.289, 0.312, 0.836),
-        nrow=4,
-        dimnames=list(
-            c("w","x","y","z"),
-            c("w","x","y","z"))
-    )
+        nrow=4, dimnames=list( c("w","x","y","z"), c("w","x","y","z")) )
 
     SimpleDataCov <- myRegDataCov[c("x","y"),c("x","y")]	
  
@@ -96,40 +92,21 @@ The following code contains all of the components of our model. Before running a
 
     require(OpenMx)
 
-    uniRegModel <- mxModel("Simple Regression Path Specification", 
-        type="RAM",
-        mxData(
-            observed=SimpleDataRaw, 
-            type="raw"
-        ),
-        manifestVars=c("x", "y"),
-        # variance paths
-        mxPath(
-            from=c("x", "y"), 
-            arrows=2,
-            free=TRUE, 
-            values = c(1, 1),
-            labels=c("varx", "residual")
-        ),
-        # regression weights
-        mxPath(
-            from="x",
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels="beta1"
-        ), 
-        # means and intercepts
-        mxPath(
-            from="one",
-            to=c("x", "y"),
-            arrows=1,
-            free=TRUE,
-            values=c(1, 1),
-            labels=c("meanx", "beta0")
-        )
-    ) # close model
+    dataRaw      <- mxData( observed=SimpleDataRaw,  type="raw" )
+    # variance paths
+    varPaths     <- mxPath( from=c("x","y"), arrows=2, 
+                            free=TRUE, values = c(1,1), labels=c("varx","residual") )
+    # regression weights
+    regPaths     <- mxPath( from="x", to="y", arrows=1, 
+                            free=TRUE, values=1, labels="beta1" ) 
+    # means and intercepts
+    means        <- mxPath( from="one", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=c(1,1), labels=c("meanx","beta0") )
+    
+    uniRegModel  <- mxModel(model="Simple Regression Path Specification", type="RAM", 
+                            dataRaw, manifestVars=c("x","y"), varPaths, regPaths, means)
+
+We are presenting the code here in the piecewise style and thus will create several of the pieces up front before putting them together in the ``mxModel`` statement.  We will pre-specify the MxData object *dataRaw*, and the various MxPath objects to define the variance paths *varPaths*, regression weights *regPaths* and the means and intercepts in *means*.  These are then included as arguments of the MxModel object.
 
 This ``mxModel`` function can be split into several parts. First, we give the model a title. The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model.  Models may also be named by including a ``name`` argument.  This model is named "Simple Regression Path Specification".
 
@@ -139,21 +116,14 @@ The third component of our code creates an ``MxData`` object. The example above,
 
 .. code-block:: r
 
-    mxData(
-        observed=SimpleDataRaw, 
-        type="raw"
-	)
+    dataRaw      <- mxData( observed=SimpleDataRaw, type="raw" )
 
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
 
 .. code-block:: r
 
-    mxData(
-        observed=SimpleDataCov, 
-        type="cov",
-        numObs=100,
-        means=SimpleDataMeans
-    )
+    dataCov      <- mxData( observed=SimpleDataCov, type="cov", numObs=100, 
+                            means=SimpleDataMeans )
 
 We must also specify the list of observed variables using the ``manifestVars`` argument. In the code below, we include a list of both observed variables, *x* and *y*. 
 
@@ -163,53 +133,36 @@ We must also specify the list of observed variables using the ``manifestVars`` a
 
 The last features of our code are three ``mxPath`` functions, which describe the relationships between variables. Each function first describes the variables involved in any path. Paths go from the variables listed in the ``from`` argument, and to the variables listed in the ``to`` argument. When ``arrows`` is set to ``1``, then one-headed arrows (regressions) are drawn from the ``from`` variables to the ``to`` variables. When ``arrows`` is set to ``2``, two headed arrows (variances or covariances) are drawn from the the ``from`` variables to the ``to`` variables. If ``arrows`` is set to ``2``, then the ``to`` argument may be omitted to draw paths both to and from the list of ``from`` variables.
 
-The variance terms of our model (that is, the variance of *x* and the residual variance of y) are created with the following ``mxPath`` function. We want two headed arrows from ``x`` to ``x``, and from ``y`` to ``y``. These paths should be freely estimated (``free=TRUE``), have starting values of ``1``, and be labeled ``"varx"`` and ``"residual"``, respectively.
+The variance terms of our model (that is, the variance of *x* and the residual variance of *y*) are created with the following ``mxPath`` function. We want two headed arrows from *x* to *x*, and from *y* to *y*. These paths should be freely estimated (``free=TRUE``), have starting values of ``1``, and be labeled ``"varx"`` and ``"residual"``, respectively.
 
 .. code-block:: r
 
     # variance paths
-    mxPath(
-        from=c("x", "y"), 
-        arrows=2,
-        free=TRUE, 
-        values = c(1, 1),
-        labels=c("varx", "residual")
-    )
+    varPaths     <- mxPath( from=c("x","y"), arrows=2, 
+                            free=TRUE, values = c(1,1), labels=c("varx","residual") )
       
-The regression term of our model (that is, the regression of *y* on *x*) is created with the following ``mxPath`` function. We want a single one-headed arrow from ``x`` to ``y``. This path should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``"beta1"``.     
+The regression term of our model (that is, the regression of *y* on *x*) is created with the following ``mxPath`` function. We want a single one-headed arrow from *x* to *y*. This path should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``"beta1"``.     
           
 .. code-block:: r
 
     # regression weights
-    mxPath(
-        from="x",
-        to="y",
-        arrows=1,
-        free=TRUE,
-        values=1,
-        labels="beta1"
-    )
+    regPaths     <- mxPath( from="x", to="y", arrows=1, 
+                            free=TRUE, values=1, labels="beta1" )
 
-We also need means and intercepts in our model. Exogenous or independent variables have means, while endogenous or dependent variables have intercepts. These can be included by regressing both ``x`` and ``y`` on a constant, which can be refered to in OpenMx by ``"one"``. The intercept terms of our model are created with the following ``mxPath`` function. We want single one-headed arrows from the constant to both ``x`` and ``y``. These paths should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``meanx`` and ``"beta1"``, respectively.           
+We also need means and intercepts in our model. Exogenous or independent variables have means, while endogenous or dependent variables have intercepts. These can be included by regressing both *x* and *y* on a constant, which can be refered to in OpenMx by ``"one"``. The intercept terms of our model are created with the following ``mxPath`` function. We want single one-headed arrows from the constant to both *x* and *y*. These paths should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``meanx`` and ``"beta1"``, respectively.           
       
 .. code-block:: r
 
     # means and intercepts
-    mxPath(
-        from="one",
-        to=c("x", "y"),
-        arrows=1,
-        free=TRUE,
-        values=c(1, 1),
-        labels=c("meanx", "beta0")
-    )
+    means        <- mxPath( from="one", to=c("x","y"), arrows=1, 
+                            free=TRUE, values=c(1,1), labels=c("meanx","beta0") )
 
 Our model is now complete!
 
 Model Fitting
 ^^^^^^^^^^^^^
 
-We've created an ``MxModel`` object, and placed it into an object or variable named ``uniRegModel``. We can run this model by using the ``mxRun`` function, and the output is placed in the object ``uniRegFit`` in the code below. We then view the output by referencing the ``output`` slot, as shown here.
+We've created an ``MxModel`` object, and placed it into an object or variable named *uniRegModel*. We can run this model by using the ``mxRun`` function, and the output is placed in the object *uniRegFit* in the code below. We then view the output by referencing the ``output`` slot, as shown here.
 
 .. code-block:: r
 
@@ -219,7 +172,7 @@ The ``output`` slot contains a great deal of information, including parameter es
 
 .. code-block:: r
 
-    uniRegFit@output
+    uniRegFit$output
     summary(uniRegFit)
 
 Multiple Regression
@@ -235,7 +188,7 @@ In the next part of this demonstration, we move to multiple regression. The regr
    \end{eqnarray*}
 
 .. image:: graph/MultipleRegression.png
-    :height: 2.5in
+    :height: 2in
 
 Our dependent variable *y* is now predicted from two independent variables, *x* and *z*. Our model includes 3 regression parameters (:math:`\beta_{0}`, :math:`\beta_{x}`, :math:`\beta_{z}`), a residual variance (:math:`\sigma^{2}_{\epsilon}`) and the observed means, variances and covariance of *x* and *z*, for a total of 9 parameters. Just as with our simple regression, this model is fully saturated.
 
@@ -255,56 +208,33 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 
     require(OpenMx)
 
-    multiRegModel <- mxModel("Multiple Regression Path Specification", 
-        type="RAM",
-        mxData(
-            observed=MultipleDataRaw, 
-            type="raw"
-        ),
-        manifestVars=c("x", "y", "z"),
-        # variance paths
-        mxPath(
-            from=c("x", "y", "z"), 
-            arrows=2,
-            free=TRUE, 
-            values = c(1, 1, 1),
-            labels=c("varx", "residual", "varz")
-        ),
-        # covariance of x and z
-        mxPath(
-            from="x",
-            to="z",
-            arrows=2,
-            free=TRUE,
-            values=0.5,
-            labels="covxz"
-        ), 
-        # regression weights
-        mxPath(
-            from=c("x","z"),
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels=c("betax","betaz")
-        ), 
-        # means and intercepts
-        mxPath(
-            from="one",
-            to=c("x", "y", "z"),
-            arrows=1,
-            free=TRUE,
-            values=c(1, 1),
-            labels=c("meanx", "beta0", "meanz")
-        )
-    ) # close model
-  
+    dataCov      <- mxData( observed=MultipleDataCov,  type="cov", numObs=100, 
+                            means=MultipleDataMeans )
+    # variance paths      
+    varPaths     <- mxPath( from=c("x","y","z"),  arrows=2, 
+                            free=TRUE, values = c(1,1,1), labels=c("varx","res","varz") )
+    # covariance of x and z
+    covPaths     <- mxPath( from="x", to="z", arrows=2, 
+                            free=TRUE, values=0.5, labels="covxz" )
+    # regression weights
+    regPaths     <- mxPath( from=c("x","z"), to="y", arrows=1, 
+                            free=TRUE, values=1, labels=c("betax","betaz") )
+    # means and intercepts
+    means        <- mxPath( from="one", to=c("x","y","z"), arrows=1, 
+                            free=TRUE, values=c(1,1), labels=c("meanx","beta0","meanz") )
+
+    multiRegModel <- mxModel("Multiple Regression Path Specification", type="RAM",
+                            dataCov, manifestVars=c("x","y","z"), 
+                            varPaths, covPaths, regPaths, means)
+
     multiRegFit <- mxRun(multiRegModel)
 
-    multiRegFit@output
+    multiRegFit$output
     summary(multiRegFit)
 
-The first bit of our code should look very familiar. ``require(OpenMx)`` makes sure the OpenMx library is loaded into R. This only needs to be done at the first model of any R session. The ``type="RAM"`` argument is identical. The ``mxData`` function references our multiple regression data, which contains one more variable than our simple regression data. Similarly, our ``manifestVars`` list contains an extra label, ``"z"``.
+As the code should look more or less familiar, we will focus on the parts that are new or changed.  As I'm sure you know by now, ``require(OpenMx)`` makes sure the OpenMx library is loaded into R. This only needs to be done at the first model of any R session.  Note that we will discuss the various objects of the piecewise style script as they are included in the ``mxModel`` statement.  
+
+First, the title is changed to reflect the purpose of this model.  The ``type="RAM"`` argument is identical. The ``mxData`` function references our multiple regression data, which contains one more variable than our simple regression data, and is saved in the *dataCov* object. Similarly, our ``manifestVars`` list contains an extra label, ``"z"``.
 
 The ``mxPath`` functions work just as before. Our first function defines the variances of our variables. Whereas our simple regression included just the variance of *x* and the residual variance of *y*, our multiple regression includes the variance of *z* as well. 
 
@@ -313,18 +243,12 @@ Our second ``mxPath`` function specifies a two-headed arrow (covariance) between
 .. code-block:: r
 
     # covariance of x and z
-    mxPath(
-        from="x",
-        to="z",
-        arrows=2,
-        free=TRUE,
-        values=0.5,
-        labels="covxz"
-    )
+    covPaths     <- mxPath( from="x", to="z", arrows=2, 
+                            free=TRUE, values=0.5, labels="covxz" )
 
 The third and fourth ``mxPath`` functions mirror the second and third ``mxPath`` functions from our simple regression, defining the regressions of *y* on both *x* and *z* as well as the means and intercepts of our model.
 
-The model is run and output is viewed just as before, using the ``mxRun`` function, and ``@output`` and the ``summary`` function to run, view and summarize the completed model.
+The model is run and output is viewed just as before, using the ``mxRun`` function, and ``$output`` and the ``summary`` function to run, view and summarize the completed model.
 
 Multivariate Regression
 -----------------------
@@ -339,8 +263,10 @@ The structural modeling approach allows for the inclusion of not only multiple i
    w = \beta_{w} + \beta_{wx} * x + \beta_{wz} * z + \epsilon_{w}
    \end{eqnarray*}
 
+
 .. image:: graph/MultivariateRegression.png
-    :height: 2.5in
+    :height: 2in
+
 
 We now have twice as many regression parameters, a second residual variance, and the same means, variances and covariances of our independent variables. As with all of our other examples, this is a fully saturated model.
 
@@ -350,79 +276,45 @@ Data import for this analysis will actually be slightly simpler than before. The
 
     data(myRegDataRaw)
   
-    myRegDataCov <- matrix(
+    myRegDataCov <- matrix( 
         c(0.808,-0.110, 0.089, 0.361,
          -0.110, 1.116, 0.539, 0.289,
           0.089, 0.539, 0.933, 0.312,
           0.361, 0.289, 0.312, 0.836),
-        nrow=4,
-        dimnames=list(
-            c("w","x","y","z"),
-            c("w","x","y","z"))
-    )
+        nrow=4, dimnames=list( c("w","x","y","z"), c("w","x","y","z")) )
  
-	myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
+    myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 Our code should look very similar to our previous two models. It includes the same ``type`` argument, ``mxData`` function, and ``manifestVars`` argument as previous models, with a different version of the data and additional variables in the latter two components.
 
 .. code-block:: r
 
+    dataRaw      <- mxData( observed=myRegDataRaw, type="raw" )
+    # variance paths
+    varPaths     <- mxPath( from=c("w","x","y","z"), arrows=2, 
+                            free=TRUE, values=1, 
+                            labels=c("residualw","varx","residualy","varz") )
+    # covariance of x and z
+    covPaths     <- mxPath( from="x", to="z", arrows=2, 
+                            free=TRUE, values=0.5, labels="covxz" ) 
+    # regression weights for y
+    regPathsY    <- mxPath( from=c("x","z"), to="y", arrows=1, 
+                            free=TRUE, values=1, labels=c("betayx","betayz") ) 
+    # regression weights for w
+    regPathsW    <- mxPath( from=c("x","z"), to="w", arrows=1, 
+                            free=TRUE, values=1, labels=c("betawx","betawz") ) 
+    # means and intercepts
+    means        <- mxPath( from="one", to=c("w","x","y","z"), arrows=1, 
+                            free=TRUE, values=c(1, 1), 
+                            labels=c("betaw","meanx","betay","meanz") )
+
     multivariateRegModel <- mxModel("MultiVariate Regression Path Specification", 
-        type="RAM",
-        mxData(
-            observed=myRegDataRaw, 
-            type="raw"
-        ),
-        manifestVars=c("w", "x", "y", "z"),
-        # variance paths
-        mxPath(
-            from=c("w", "x", "y", "z"), 
-            arrows=2,
-            free=TRUE, 
-            values = c(1, 1, 1, 1),
-            labels=c("residualw", "varx", "residualy", "varz")
-        ),
-        # covariance of x and z
-        mxPath(
-            from="x",
-            to="z",
-            arrows=2,
-            free=TRUE,
-            values=0.5,
-            labels="covxz"
-        ), 
-        # regression weights for y
-        mxPath(
-            from=c("x","z"),
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels=c("betayx","betayz")
-        ), 
-        # regression weights for w
-        mxPath(
-            from=c("x","z"),
-            to="w",
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels=c("betawx","betawz")
-        ), 
-        # means and intercepts
-        mxPath(
-            from="one",
-            to=c("w", "x", "y", "z"),
-            arrows=1,
-            free=TRUE,
-            values=c(1, 1, 1 , 1),
-            labels=c("betaw", "meanx", "betay", "meanz")
-        )
-    ) # close model
+                            type="RAM", dataRaw, manifestVars=c("w","x","y","z"),
+                            varPaths, covPaths, regPathsY, regPathsW, means )
 
     multivariateRegFit <- mxRun(multivariateRegModel)
 
-    multivariateRegFit@output
+    multivariateRegFit$output
     summary(multivariateRegFit)  
 
 The only additional components to our ``mxPath`` functions are the inclusion of the *w* variable and the additional set of regression coefficients for *w*. Running the model and viewing output works exactly as before.

@@ -57,102 +57,60 @@ The fit function for each of the class-specific models must return the likelihoo
 
 .. code-block:: r
 
-	class1 <- mxModel("Class1", 
-	    type="RAM",
-	    manifestVars=c("x1","x2","x3","x4","x5"),
-	    latentVars=c("intercept","slope"),
-		# residual variances
-	    mxPath(
-	    	from=c("x1","x2","x3","x4","x5"), 
-	        arrows=2,
-	        free=TRUE, 
-	        values = c(1, 1, 1, 1, 1),
-	        labels=c("residual","residual","residual","residual","residual")
-	    ),
-  	  # latent variances and covariance
-	    mxPath(
-	    	from=c("intercept","slope"), 
-	        arrows=2,
-	        connect="unique.pairs",
-	        free=TRUE, 
-	        values=c(1, .4, 1),
-	        labels=c("vari1", "cov1", "vars1")
-	    ),
-	    # intercept loadings
-	    mxPath(
-	    	from="intercept",
-	        to=c("x1","x2","x3","x4","x5"),
-	        arrows=1,
-	        free=FALSE,
-	        values=c(1, 1, 1, 1, 1)
-	    ),
-	    # slope loadings
-	    mxPath(
-	    	from="slope",
-	        to=c("x1","x2","x3","x4","x5"),
-	        arrows=1,
-	        free=FALSE,
-	        values=c(0, 1, 2, 3, 4)
-	    ),
-	    # manifest means
-	    mxPath(from="one",
-	        to=c("x1", "x2", "x3", "x4", "x5"),
-	        arrows=1,
-	        free=FALSE,
-	        values=c(0, 0, 0, 0, 0)
-	    ),
-	    # latent means
-	    mxPath(from="one",
-	        to=c("intercept", "slope"),
-	        arrows=1,
-	        free=TRUE,
-	        values=c(0, -1),
-	        labels=c("meani1", "means1")
-	    ),
-	    # enable the likelihood vector
-	    mxFitFunctionML(vector=TRUE)
-	) # close model
+    # residual variances
+    resVars      <- mxPath( from=c("x1","x2","x3","x4","x5"), arrows=2,
+                            free=TRUE, values = c(1,1,1,1,1),
+                            labels=c("residual","residual","residual","residual","residual") )
+    # latent variances and covariance
+    latVars      <- mxPath( from=c("intercept","slope"), arrows=2, connect="unique.pairs",
+                            free=TRUE, values=c(1,.4,1), labels=c("vari1","cov1","vars1") )
+    # intercept loadings
+    intLoads     <- mxPath( from="intercept", to=c("x1","x2","x3","x4","x5"), arrows=1,
+                            free=FALSE, values=c(1,1,1,1,1) )
+    # slope loadings
+    sloLoads     <- mxPath( from="slope", to=c("x1","x2","x3","x4","x5"), arrows=1,
+                            free=FALSE, values=c(0,1,2,3,4) )
+    # manifest means
+    manMeans     <- mxPath( from="one", to=c("x1","x2", "x3", "x4","x5"), arrows=1,
+                            free=FALSE, values=c(0,0,0,0,0) )
+    # latent means
+    latMeans     <- mxPath( from="one", to=c("intercept","slope"), arrows=1,
+                            free=TRUE,  values=c(0,-1), labels=c("meani1","means1") )
+    # enable the likelihood vector
+    funML        <- mxFitFunctionML(vector=TRUE)
+    class1       <- mxModel("Class1", type="RAM",
+                            manifestVars=c("x1","x2","x3","x4","x5"), 
+                            latentVars=c("intercept","slope"), 
+                            resVars, latVars, intLoads, sloLoads, manMeans, latMeans,
+                            funML)
 	
 We could create the model for our second class by copy and pasting the code above, but that can yield needlessly long scripts. We can also use the ``mxModel`` function to edit an existing model object, allowing us to change only the parameters that vary across classes. The ``mxModel`` call below begins with an existing ``MxModel`` object (``class1``) rather than a model name. The subsequent ``mxPath`` functions add new paths to the model, replacing any existing paths that describe the same relationship. As we did not give the model a name at the beginning of the ``mxModel`` function, we must use the ``name`` argument to identify this model by name.
 
 .. code-block:: r
 
-	class2 <- mxModel(class1,
-		# latent variances and covariance
-	    mxPath(
-	    	from=c("intercept","slope"), 
-	        arrows=2,
-	        connect="unique.pairs",
-	        free=TRUE, 
-	        values=c(1, .5, 1),
-	        labels=c("vari2", "cov2", "vars2")
-	    ),
-	    # latent means
-	    mxPath(from="one",
-	        to=c("intercept", "slope"),
-	        arrows=1,
-	        free=TRUE,
-	        values=c(5, 1),
-	        labels=c("meani2", "means2")
-	    ),
-		name="Class2"
-	) # close model
-	
+    # latent variances and covariance
+    latVars2     <- mxPath( from=c("intercept","slope"), arrows=2, connect="unique.pairs",
+                            free=TRUE, values=c(1,.5,1), labels=c("vari2","cov2","vars2") )
+    # latent means
+    latMeans2    <- mxPath( from="one", to=c("intercept", "slope"), arrows=1,
+                            free=TRUE, values=c(5,1), labels=c("meani2","means2") )
+    class2       <- mxModel(class1, name="Class2", latVars2, latMeans2)
+
 While the class-specific models can be specified using either path or matrix specification, the class proportion parameters must be specified using a matrix, though it can be specified a number of different ways. The challenge of specifying class probabilities lies in their inherent constraint: class probabilities must be non-negative and sum to unity. The code below demonstrates one method of specifying class proportion parameters and rescaling them as probabilities. 
 
 This method for specifying class probabilities consists of two parts. In the first part, the matrix in the object ``classP`` contains two elements representing the class proportions for each class. One class is designated as a reference class by fixing their proportion at a value of one (class 2 below). All other classes are assigned free parameters in this matrix, and should be interpreted as proportion of sample in that class per person in the reference class. These parameters should have a lower bound at or near zero. Specifying class proportions rather than class probabilities avoids the degrees of freedom issue inherent to class probability parameters by only estimating k-1 parameters for k classes.
 
 .. code-block:: r
 
-	classP <- mxMatrix("Full", 2, 1, free=c(TRUE, FALSE), 
-	          values=1, lbound=0.001, 
-	          labels = c("p1", "ps"), name="Props")
+    classP       <- mxMatrix( type="Full", nrow=2, ncol=1, 
+                            free=c(TRUE, FALSE), values=1, lbound=0.001, 
+                            labels = c("p1","p2"), name="Props" )
 
 We still need probabilities, which require the second step shown below. Dividing the class proportion matrix above by its sum will rescale the proportions into probabilities. This is slightly more difficult that it appears at first, as the k x 1 matrix of class proportions and the scalar sum of that matrix aren't conformable to either matrix or element-wise operations. Instead, we can use a Kronecker product of the class proportion matrix and the inverse of the sum of that matrix. This operation is carried out by the ``mxAlgebra`` function placed in the object ``classS`` below.
 
 .. code-block:: r
 
-	classS <- mxAlgebra(Props %x% (1 / sum(Props)), name="classProbs")
+    classS       <- mxAlgebra( Props%x%(1/sum(Props)), name="classProbs" )
 
 There are several alternatives to the two functions above that merit discussion. While the``mxConstraint`` function would appear at first to be a simpler way to specify the class probabilities, but using the ``mxConstraint`` function complicates this type of model estimation. When all k class probabilities are freely estimated then constrained, then the class probability parameters are collinear, creating a parameter covariance matrix that is not of full rank. This prevents OpenMx from calculating standard errors for any model parameters. Additionally, there are multiple ways to use algebras different than the one above to specify the class proportion and/or class probability parameters, each varying in complexity and utility. While specifying models with two classes can be done slightly more simply than presented here, the above method is equally appropriate for all numbers of classes.
 
@@ -169,25 +127,18 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
 
 .. code-block:: r
 
-	algFit <- mxAlgebra(-2*sum(
-	          log(classProbs[1,1]%x%Class1.fitfunction + classProbs[2,1]%x%Class2.fitfunction)), 
-	          name="mixtureFit")
+    algFit       <- mxAlgebra( -2*sum(log(classProbs[1,1]%x%Class1.fitfunction 
+                               + classProbs[2,1]%x%Class2.fitfunction)), 
+                               name="mixtureObj")
+    fit          <- mxFitFunctionAlgebra("mixtureObj")
+    dataRaw      <- mxData( observed=myGrowthMixtureData, type="raw" )
 
-	fit <- mxFitFunctionAlgebra("mixtureFit")
+    gmm          <- mxModel("Growth Mixture Model",
+                            dataRaw, class1, class2, classP, classS, algFit, fit )      
 
-	gmm <- mxModel("Growth Mixture Model",
-		mxData(
-	    	observed=myGrowthMixtureData,
-	        type="raw"
-	    ),
-	    class1, class2,
-	    classP, classS,
-	    algFit, fit
-		)    
+    gmmFit       <- mxRun(gmm, suppressWarnings=TRUE)
 
-	gmmFit <- mxRun(gmm)
-
-	summary(gmmFit)
+    summary(gmmFit)
 
 Multiple Runs: Serial Method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,117 +152,108 @@ One way to access the starting values in a model is by using the ``omxGetParamet
 .. code-block:: r
 
         omxGetParameters(gmm)
-    #        pclass1 residual    vari1     cov1    vars1   meani1   means1    vari2     cov2    vars2   meani2 
-    #        	0.2      1.0      1.0      0.4      1.0      0.0     -1.0      1.0      0.5      1.0      5.0 
-    #        means2 
-    #        	1.0
+    #      p1 residual    vari1     cov1    vars1   meani1   means1 
+    #     1.0      1.0      1.0      0.4      1.0      0.0     -1.0 
+    #   vari2     cov2    vars2   meani2   means2 
+    #     1.0      0.5      1.0      5.0      1.0
 
 A companion function to ``omxGetParameters`` is ``omxSetParameters``, which can be used to alter one or more named parameters in a model. This function can be used to change the values, freedom and labels of any parameters in a model, returning an MxModel object with the specified changes. The code below shows how to change the residual variance starting value from 1.0 to 0.5. Note that the output of the ``omxSetParameters`` function is placed back into the object ``gmm``.
 
 .. code-block:: r
 
-		gmm <- omxSetParameters(gmm, labels="residual", values=0.5)
+    gmm <- omxSetParameters(gmm, labels="residual", values=0.5)
 
 The MxModel in the object ``gmm`` can now be run and the results compared with other sets of staring values. Starting values can also be sampled from distributions, allowing users to automate starting value generation, which is demonstrated below. The ``omxGetParameters`` function is used to find the names of the free parameters and define three matrices: a matrix ``input`` that holds the starting values for any run; a matrix ``output`` that holds the converged values of each parameter; and a matrix ``fit`` that contains the -2 log likelihoods and other relevant model fit statistics. Each of these matrices contains one row for every set of starting values. Starting values are randomly generated from a set of uniform distributions using the ``runif`` function, allowing the ranges inherent to each parameter to be enforced (i.e., variances are positive, etc). A ``for`` loop repeatedly runs the model with starting values from the ``input`` matrix and places the final estimates and fit statistics in the ``output`` and ``fit`` matrices, respectively.
 
 .. code-block:: r
 
-	# how many trials?
-	trials <- 20
+    # how many trials?
+    trials <- 20
 
-	# place all of the parameter names in a vector
-	parNames <- names(omxGetParameters(gmm))
+    # place all of the parameter names in a vector
+    parNames <- names(omxGetParameters(gmm))
 
-	# make a matrix to hold all of the 
-	input <- matrix(NA, trials, length(parNames))
-	dimnames(input) <- list(c(1: trials), c(parNames))
+    # make a matrix to hold all of the 
+    input <- matrix(NA, trials, length(parNames))
+    dimnames(input) <- list(c(1: trials), c(parNames))
 
-	output <- matrix(NA, trials, length(parNames))
-	dimnames(output) <- list(c(1: trials), c(parNames))
+    output <- matrix(NA, trials, length(parNames))
+    dimnames(output) <- list(c(1: trials), c(parNames))
 
-	fit <- matrix(NA, trials, 5)
-	dimnames(fit) <- list(c(1: trials), c("Minus2LL", "Status", "Iterations", "pclass1", "time"))
+    fit <- matrix(NA, trials, 5)
+    dimnames(fit) <- list(c(1:trials), c("Minus2LL","Status","Iterations","pclass1","time"))
 
-	# populate the class probabilities
-	input[,"p1"] <- runif(trials, 0.1, 0.9)
-	input[,"p1"] <- input[,"p1"]/(1-input[,"p1"])
+    # populate the class probabilities
+    input[,"p1"] <- runif(trials, 0.1, 0.9)
+    input[,"p1"] <- input[,"p1"]/(1-input[,"p1"])
 
-	# populate the variances
-	v <- c("vari1", "vars1", "vari2", "vars2", "residual")
-	input[,v] <- runif(trials*5, 0, 10)
+    # populate the variances
+    v <- c("vari1", "vars1", "vari2", "vars2", "residual")
+    input[,v] <- runif(trials*5, 0, 10)
 
-	# populate the means
-	m <- c("meani1", "means1", "meani2", "means2")
-	input[,m] <- runif(trials*4, -5, 5)
+    # populate the means
+    m <- c("meani1", "means1", "meani2", "means2")
+    input[,m] <- runif(trials*4, -5, 5)
 
-	# populate the covariances
-	r <- runif(trials*2, -0.9, 0.9)
-	scale <- c(
-	    sqrt(input[,"vari1"]*input[,"vars1"]),
-	    sqrt(input[,"vari2"]*input[,"vars2"]))
-	input[,c("cov1", "cov2")] <- r * scale
+    # populate the covariances
+    r <- runif(trials*2, -0.9, 0.9)
+    scale <- c( sqrt(input[,"vari1"]*input[,"vars1"]), sqrt(input[,"vari2"]*input[,"vars2"]))
+    input[,c("cov1", "cov2")] <- r * scale
 
+    for (i in 1: trials){
+        temp1 <- omxSetParameters(gmm, labels=parNames, values=input[i,] )
+        temp1 <- mxModel(model=temp1, name=paste("Starting Values Set", i))
+        temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE, checkpoint=TRUE)
 
-	for (i in 1: trials){
-		temp1 <- omxSetParameters(gmm,
-			labels=parNames,
-			values=input[i,]
-			)
-
-		temp1 <- mxModel(model=temp1, name=paste("Starting Values Set", i))
-
-		temp2 <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE, checkpoint=TRUE)
-
-		output[i,] <- omxGetParameters(temp2)
-		fit[i,] <- c(
-			temp2$output$Minus2LogLikelihood,
-			temp2$output$status[[1]],
-			temp2$output$iterations,
-			round(temp2$classProbs$result[1,1], 4),
-			temp2$output$wallTime
-			)
-		}
-
+        output[i,] <- omxGetParameters(temp2)
+        fit[i,] <- c(
+            temp2$output$Minus2LogLikelihood,
+            temp2$output$status[[1]],
+            temp2$output$iterations,
+            round(temp2$classProbs$result[1,1], 4),
+            temp2$output$wallTime
+            )
+        }
 
 Viewing the contents of the ``fit`` matrix shows the -2 log likelihoods for each of the runs, as well as the convergence status, number of iterations and class probabilities, shown below.
 
 .. code-block:: r
 
-	fit[,1:4]
-    #	   Minus2LL Status Iterations   pclass1
-    #	1  8739.050      0         41 0.3991078
-    #	2  8739.050      0         40 0.6008913
-    #	3  8739.050      0         44 0.3991078
-    #	4  8739.050      1         31 0.3991079
-    #	5  8739.050      0         32 0.3991082
-    #	6  8739.050      1         34 0.3991089
-    #	7  8966.628      0         22 0.9990000
-    #	8  8966.628      0         24 0.9990000
-    #	9  8966.628      0         23 0.0010000
-    #	10 8966.628      1         36 0.0010000
-    #	11 8963.437      6         25 0.9990000
-    #	12 8966.628      0         28 0.9990000
-    #	13 8739.050      1         47 0.6008916
-    #	14 8739.050      1         36 0.3991082
-    #	15 8739.050      0         43 0.3991076
-    #	16 8739.050      0         46 0.6008948
-    #	17 8739.050      1         50 0.3991092
-    #	18 8945.756      6         50 0.9902127
-    #	19 8739.050      0         53 0.3991085
-    # 	20 8966.628      0         23 0.9990000
+    fit[,1:4]
+    #       Minus2LL Status Iterations   pclass1
+    #    1  8739.050      0         41 0.3991078
+    #    2  8739.050      0         40 0.6008913
+    #    3  8739.050      0         44 0.3991078
+    #    4  8739.050      1         31 0.3991079
+    #    5  8739.050      0         32 0.3991082
+    #    6  8739.050      1         34 0.3991089
+    #    7  8966.628      0         22 0.9990000
+    #    8  8966.628      0         24 0.9990000
+    #    9  8966.628      0         23 0.0010000
+    #    10 8966.628      1         36 0.0010000
+    #    11 8963.437      6         25 0.9990000
+    #    12 8966.628      0         28 0.9990000
+    #    13 8739.050      1         47 0.6008916
+    #    14 8739.050      1         36 0.3991082
+    #    15 8739.050      0         43 0.3991076
+    #    16 8739.050      0         46 0.6008948
+    #    17 8739.050      1         50 0.3991092
+    #    18 8945.756      6         50 0.9902127
+    #    19 8739.050      0         53 0.3991085
+    #    20 8966.628      0         23 0.9990000
 
 There are several things to note about the above results. First, the minimum -2 log likelihood was reached in 12 of 20 sets of staring values, all with NPSOL statuses of either zero (seven times) or one (five times). Additionally, the class probabilities are equivalent within five digits of precision, keeping in mind that no the model as specified contains no restriction as to which class is labeled "class 1" (probability equals .3991) and "class 2" (probability equals .6009). The other eight sets of starting values showed higher -2 log likelihood values and class probabilities at the set upper or lower bounds, indicating a local minimum. We can also view this information using R's ``table`` function.
 
 .. code-block:: r
 
-	table(round(fit[,1], 3), fit[,2])
+    table(round(fit[,1], 3), fit[,2])
 
-    #	           0 1 6
-    #	  8739.05  7 5 0
-    #	  8945.756 0 0 1
-    #	  8963.437 0 0 1
-    #	  8966.628 5 1 0
-
+    #              0 1 6
+    #     8739.05  7 5 0
+    #     8945.756 0 0 1
+    #     8963.437 0 0 1
+    #     8966.628 5 1 0
+    
 We should have a great deal of confidence that the solution with class probabilities of .399 and .601 is the correct one.
 
 Multiple Runs: Parallel Method
@@ -329,43 +271,37 @@ The example below first initializes the ``snowfall`` library, which also loads t
 
 .. code-block:: r
 
-	require(snowfall)
-	sfInit(parallel=TRUE, cpus=4)
-	sfLibrary(OpenMx)
+    require(snowfall)
+    sfInit(parallel=TRUE, cpus=4)
+    sfLibrary(OpenMx)
 
 From there, parallel optimization requires that a holder or top model (named "Top" in the object ``topModel`` below) contain a set of independent submodels. In our example, each independent submodel will consist of a copy of the above ``gmm`` model with a different set of starting values. Using the matrix of starting values from the serial example above (``input``), we can create a function called ``makeModel`` that can be used to create these submodels. While this function is entirely optional, it allows us to use the ``lapply`` function to create a list of submodels for optimization. Once those submodels are placed in the ``submodels`` slot of the object ``topModel``, we can run this model just like any other. A second function, ``fitStats``, can then be used to get the results from each submodel.
 
 .. code-block:: r
 
-	topModel <- mxModel("Top")	
+    topModel    <- mxModel("Top")	
 
-	makeModel <- function(modelNumber){
-		temp <- mxModel(gmm, 
-			independent=TRUE,
-			name=paste("Iteration", modelNumber, sep=""))
-		temp <- omxSetParameters(temp,
-			labels=parNames,
-			values=input[modelNumber,])
-		return(temp)
-	}
+    makeModel   <- function(modelNumber){
+        temp    <- mxModel(gmm, independent=TRUE, name=paste("Iteration", modelNumber, sep=""))
+        temp    <- omxSetParameters(temp, labels=parNames, values=input[modelNumber,])
+        return(temp)
+    }
 
-	mySubs <- lapply(1:20, makeModel)
+    mySubs      <- lapply(1:20, makeModel)
+    topModel    <- mxModel(topModel, mySubs)
+    results     <- mxRun(topModel)
 
-	topModel <- mxModel(topModel, mySubs)
+    fitStats    <- function(model){
+        retval  <- c(
+            model$output$Minus2LogLikelihood,
+            model$output$status[[1]],
+            model$output$iterations,
+            round(model$classProbs$result[1,1], 4)
+            )
+        return(retval)
+    }
 
-	results <- mxRun(topModel)
-
-	fitStats <- function(model){
-		retval <- c(
-			model$output$Minus2LogLikelihood,
-			model$output$status[[1]],
-			model$output$iterations,
-			round(model$classProbs$result[1,1], 4)
-			)	
-		return(retval)
-	}
-
-	resultsFit <- t(omxSapply(results$submodels, fitStats))
-	sfStop()
+    resultsFit  <- t(omxSapply(results$submodels, fitStats))
+    sfStop()
 
 This parallel method saves computational time, but requires additional coding. For models as small as the one in this example (total processing time of approximately 2 seconds), the speed-up from using the parallel version is marginal (approximately 35-50 seconds for the serial method against 20-30 seconds for the parallel version). However, as models get more complex or require a greater number of random starts, the parallel method can provide substantial time savings. Regardless of method, re-running models with varying starting values is an essential part of running multivariate models.

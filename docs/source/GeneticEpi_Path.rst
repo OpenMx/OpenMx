@@ -20,16 +20,15 @@ ACE Model: a Twin Analysis
 A twin analysis is a typical example of multiple groups, in this case MZ twins and DZ twins, with different expectations for the covariance structure (and possibly means).  We illustrate the model here with the corresponding two path diagrams:
 
 .. image:: graph/TwinACEModelMZ.png
-    :height: 2.5in
+    :height: 2in
     
 .. image:: graph/TwinACEModelDZ.png
-    :height: 2.5in
-
+    :height: 2in
 
 Data
 ^^^^
 
-Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file 'myTwinData.txt'.  We use R to read the data into a data.frame and define the objects ``selVars`` for the variables selected for analysis, and ``aceVars`` for the latent variables to simplify the OpenMx code.  We then create two subsets of the data for MZ females (mzData) and DZ females (dzData) respectively with the code below, and generate some descriptive statistics, namely means and covariances.
+Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file *twinData*, which comes with the OpenMx package.  We use R to read the data into a data.frame and define the objects ``selVars`` for the variables selected for analysis, and ``aceVars`` for the latent variables to simplify the OpenMx code.  We then create two subsets of the data for MZ females (mzData) and DZ females (dzData) respectively with the code below, and generate some descriptive statistics, namely means and covariances.
 
 .. code-block:: r
 
@@ -164,7 +163,7 @@ As the common environmental factors are by definition the same for both twins, w
     covC1C2      <- mxPath( from="C1", to="C2", arrows=2, 
                             free=FALSE, values=1 )
 
-Next we create the paths that are specific to the MZ group or the DZ group and are later included into the respective models, ``modelMZ`` and ``modelDZ``, which are combined in ``modelACE``.   In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  In the DZ model the correlation between **A1** and **A2** is fixed to 0.5 instead.
+Next we create the paths that are specific to the MZ group or the DZ group and are later included into the respective models, ``modelMZ`` and ``modelDZ``, which are combined in *modelACE*.   In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  In the DZ model the correlation between **A1** and **A2** is fixed to 0.5 instead.
 
 .. code-block:: r
 
@@ -175,7 +174,7 @@ Next we create the paths that are specific to the MZ group or the DZ group and a
     covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, 
                             free=FALSE, values=.5 )
 
-That concludes the specification of the paths from which the models will be generated for MZ and DZ twins separately.  Next we move to the ``mxData`` commands that call up the data.frame with the MZ raw data, *mzData*, and the DZ raw data, *dzData*, respectively, with the type specified explicitly as *raw*.  These are stored in two MxData objects.
+That concludes the specification of the paths from which the models will be generated for MZ and DZ twins separately.  Next we move to the ``mxData`` commands that call up the data.frame with the MZ raw data, *mzData*, and the DZ raw data, *dzData*, respectively, with the type specified explicitly as ``raw``.  These are stored in two MxData objects.
 
 .. code-block:: r
 
@@ -242,7 +241,7 @@ Often, however, one is interested in specific parts of the output.  In the case 
 Alternative Models: an AE Model
 -------------------------------
 
-To evaluate the significance of each of the model parameters, nested submodels are fit in which the parameters of interest are fixed to zero.  If the likelihood ratio test between the two models (one including the parameter and the other not) is significant, the parameter that is dropped from the model significantly contributes to the variance of the phenotype in question.  Here we show how we can fit the AE model as a submodel with a change in the two ``mxPath`` commands.  We re-specify the path from **C1** to **bmi1** to be fixed to zero, and do the same for the path from **C2** to **bmi2**.  We need to rebuild both modelMZ and  modelDZ, so that they are now built with the changed paths, as well as the overall model which we now call modelAE.  We can run this model in the same way as before, by combining the fit functions of the two groups and generate similar summaries of the results.
+To evaluate the significance of each of the model parameters, nested submodels are fit in which the parameters of interest are fixed to zero.  If the likelihood ratio test between the two models (one including the parameter and the other not) is significant, the parameter that is dropped from the model significantly contributes to the variance of the phenotype in question.  Here we show how we can fit the AE model as a submodel with a change in the two ``mxPath`` commands.  We re-specify the path from **C1** to **bmi1** to be fixed to zero, and do the same for the path from **C2** to **bmi2**.  We need to rebuild both *modelMZ* and *modelDZ*, so that they are now built with the changed paths, as well as the overall model which we now call *modelAE*.  We can run this model in the same way as before, by combining the fit functions of the two groups and generate similar summaries of the results.
 
 .. code-block:: r
 
@@ -284,7 +283,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
     
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models, for the difference in degrees of freedom) to determine the best fitting model.  In this example, the Chi-square likelihood ratio test is 0 for 1 degree of freedom, indicating the the *c* parameter does not contribute to the variance at all.  This can also be seen in the 0 estimates for the *c* parameter in the ACE model and identical parameters for *a* and *e* in the ACE and AE models.
 
-While the approach outlined above works just fine, the same can be accomplished with the ``omxSetParameters`` helper function, that allows the user to specify a parameter label in a model whose attributes are changed, in this case by setting ``free`` to FALSE and ``values`` to 0.  Prior to making this changed, we copied the original model into a new model and gave it a new name, so that we have separate model objects for the two nested models that can then be compared with ``mxCompare``.
+While the approach outlined above works just fine, the same can be accomplished with the ``omxSetParameters`` helper function, that allows the user to specify a parameter label in a model whose attributes are to be changed, in this case by setting ``free`` to FALSE and ``values`` to 0.  Prior to making this change, we copied the original model into a new model and gave it a new name, so that we have separate model objects for the two nested models that can then be compared with ``mxCompare``.
 
 .. code-block:: r
     
