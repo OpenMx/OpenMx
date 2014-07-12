@@ -99,7 +99,7 @@ Model specification can be achieved by appending the above threshold matrix and 
 
 .. code-block:: r
 
-    dataRaw      <- mxData(oneFactorOrd, type="raw"),
+    dataRaw      <- mxData(oneFactorOrd, type="raw")
     # asymmetric paths
     matrA        <- mxMatrix( type="Full", nrow=4, ncol=4,
                               free=c(F,F,F,T,
@@ -118,7 +118,7 @@ Model specification can be achieved by appending the above threshold matrix and 
     # symmetric paths
     matrS        <- mxMatrix( type="Symm", nrow=4, ncol=4, 
                               free=FALSE, 
-                              values=diag(4)
+                              values=diag(4),
                               labels=c("e1", NA, NA,  NA,
                                         NA,"e2", NA,  NA,
                                         NA,  NA,"e3", NA,
@@ -136,7 +136,7 @@ Model specification can be achieved by appending the above threshold matrix and 
                               free=c(TRUE,TRUE,TRUE,FALSE,FALSE,TRUE), 
                               values=c(-1,0,-.5,NA,NA,1.2), byrow=TRUE, name="thresh" )
     exp          <- mxExpectationRAM("A","S","F","M", dimnames=c("z1","z2","z3","F1"), 
-                              thresholds="thresh", threshnames=c("z1","z2","z3")),
+                              thresholds="thresh", threshnames=c("z1","z2","z3"))
     funML        <- mxFitFunctionML()
 
     oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 

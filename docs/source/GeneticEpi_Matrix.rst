@@ -267,11 +267,11 @@ We use a likelihood ratio test (or take the difference between -2 times the log-
 
 .. code-block:: r
 
-    LRT_ACE_AE <- LL_AE-LL_ACE
+    LRT_ACE_AE <- LL_AE - LL_ACE
 
     #Print relevant output
-    ACEest
-    AEest
+    estACE
+    estAE
     LRT_ACE_AE
 
 These models may also be specified using paths instead of matrices, which allow for easier submodel specification. See :ref:`geneticepidemiology-path-specification` for path specification of these models.

@@ -86,14 +86,14 @@ The following code contains all of the components of our model. Before running a
     threDevs     <- mxMatrix( type="Full", nrow=nThresholds, ncol=nVariables,
                               free=TRUE, values=.2,
                               lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
-                              dimnames=list(c(), fruitynames), name="thresholdDeviations" )
+                              dimnames=list(c(), bananaNames), name="thresholdDeviations" )
     unitLower    <- mxMatrix( type="Lower", nrow=nThresholds, ncol=nThresholds,
                               free=FALSE, values=1, name="unitLower" )
     expThres     <- mxAlgebra( expression=unitLower %*% thresholdDeviations, 
                                name="expThresholds" )
     dataRaw      <- mxData( observed=ordinalData, type='raw' )
     exp          <- mxExpectationNormal( covariance="expCovariances", means="expMeans", 
-                                         dimnames=fruitynames, thresholds="expThresholds" )
+                                         dimnames=bananaNames, thresholds="expThresholds" )
     funML        <- mxFitFunctionML()
 
     oneFactorThresholdModel <- mxModel("oneFactorThresholdModel", dataRaw,
@@ -153,7 +153,7 @@ We estimate the ``Full`` **nThresholds x nVariables** matrix.  To make sure that
     threDevs     <- mxMatrix( type="Full", nrow=nThresholds, ncol=nVariables,
                               free=TRUE, values=.2,
                               lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
-                              dimnames=list(c(), fruitynames), name="thresholdDeviations" )
+                              dimnames=list(c(), bananaNames), name="thresholdDeviations" )
     unitLower    <- mxMatrix( type="Lower", nrow=nThresholds, ncol=nThresholds,
                               free=FALSE, values=1, name="unitLower" )
     # expected thresholds

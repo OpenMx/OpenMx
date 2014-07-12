@@ -105,7 +105,7 @@ The following code contains all of the components of our model. Before running a
                               free=c(F,F,F,F,F,T,T), values=c(0,0,0,0,0,1,1),
                               labels=c(NA,NA,NA,NA,NA,"meani","means"), name="M" )
     exp          <- mxExpectationRAM("A","S","F","M", 
-                                      dimnames=c(names(myLongitudinalData),"intercept","slope")))
+                                      dimnames=c(names(myLongitudinalData),"intercept","slope"))
     funML        <- mxFitFunctionML()
 
     growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
