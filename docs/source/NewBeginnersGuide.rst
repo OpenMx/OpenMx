@@ -695,7 +695,7 @@ We introduce here several new features by building a basic factor model to real 
 
 Briefly, squares are used for observed variables; latent variables are drawn in circles.  One-headed arrows are drawn to represent causal relationships.  Correlations between variables are represented with two-headed arrows.  Double-headed paths are also used for variances of variables.  Below is a figure of a one factor model with five indicators (x1..x5). We have added a value of 1.0 to the variance of the latent variable **G** as a fixed value.  All the other paths in the models are considered free parameters and are to be estimated.
 
-.. image:: graph/OneFactor.png
+.. image:: graph/OneFactorModel.png
     :height: 2in
     
 Variables
