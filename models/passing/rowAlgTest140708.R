@@ -15,13 +15,15 @@ cmod <- mxModel(
   mxAlgebra((filteredDataRow-fM)%^%2, name='rowAlgebra'),
   mxAlgebra(sum(rowResults), name='reduceAlgebra'),
   mxAlgebra(sum(log(M)), name="sumlog"),
+  mxMatrix(nrow=0, ncol=0, name="M0"),
+  mxConstraint(M0 == M0, name="empty"),
   mxFitFunctionRow(
     rowAlgebra='rowAlgebra',
     reduceAlgebra='reduceAlgebra',
     dimnames=c('a', 'b'))
 )
 
-cmodFit <- mxRun(cmod)
+cmodFit <- omxCheckWarning(mxRun(cmod), "Constraint 'Estimation Row Model with Missingness.empty' evaluated to a 0x0 matrix and will have no effect")
 if (0) {
 	cmodFit$M$values
 	colMeans(xdat, na.rm=T)

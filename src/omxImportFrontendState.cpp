@@ -360,6 +360,8 @@ void omxProcessConfidenceIntervals(SEXP intervalList)
 
 void omxProcessConstraints(SEXP constraints, FitContext *fc)
 {
+	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);
+
 	int ncnln = 0; 
 	if(OMX_VERBOSE) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
@@ -368,22 +370,28 @@ void omxProcessConstraints(SEXP constraints, FitContext *fc)
 	if(OMX_DEBUG) {mxLog("Found %d constraints.", globalState->numConstraints); }
 	globalState->conList = (omxConstraint*) R_alloc(globalState->numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
-		Rf_protect(nextVar = VECTOR_ELT(constraints, constraintIndex));
+	for(int ci = 0; ci < globalState->numConstraints; ci++) {
+		omxConstraint &constr = globalState->conList[ci];
+		constr.name = CHAR(Rf_asChar(STRING_ELT(names, ci)));
+		Rf_protect(nextVar = VECTOR_ELT(constraints, ci));
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
 		arg1 = omxMatrixLookupFromState1(nextLoc, globalState);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		arg2 = omxMatrixLookupFromState1(nextLoc, globalState);
-		globalState->conList[constraintIndex].opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
+		constr.opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
-		globalState->conList[constraintIndex].result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
-		omxRecompute(globalState->conList[constraintIndex].result, FF_COMPUTE_DIMS, fc);
-		int nrows = globalState->conList[constraintIndex].result->rows;
-		int ncols = globalState->conList[constraintIndex].result->cols;
-		globalState->conList[constraintIndex].size = nrows * ncols;
-		ncnln += globalState->conList[constraintIndex].size;
+		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
+		omxRecompute(constr.result, FF_COMPUTE_DIMS, fc);
+		omxRecompute(constr.result, FF_COMPUTE_INITIAL_FIT, fc);
+		int nrows = constr.result->rows;
+		int ncols = constr.result->cols;
+		constr.size = nrows * ncols;
+		if (constr.size == 0) {
+			Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect",
+				   constr.name);
+		}
+		ncnln += constr.size;
 	}
-	if(OMX_VERBOSE) { mxLog("Processed."); }
 	if(OMX_DEBUG) { mxLog("%d effective constraints.", ncnln); }
 	globalState->ncnln = ncnln;
 }

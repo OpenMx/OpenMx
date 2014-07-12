@@ -104,6 +104,7 @@ struct FreeVarGroup {
 #define INF 2e20
 
 struct omxConstraint {		// Free Variable Constraints
+	const char *name;
 	int size;
 	int opCode;
 	double* lbound;
