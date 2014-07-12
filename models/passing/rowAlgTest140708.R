@@ -14,6 +14,7 @@ cmod <- mxModel(
   mxAlgebra(omxSelectCols(M, existenceVector), name='fM'),
   mxAlgebra((filteredDataRow-fM)%^%2, name='rowAlgebra'),
   mxAlgebra(sum(rowResults), name='reduceAlgebra'),
+  mxAlgebra(sum(log(M)), name="sumlog"),
   mxFitFunctionRow(
     rowAlgebra='rowAlgebra',
     reduceAlgebra='reduceAlgebra',
@@ -26,3 +27,4 @@ if (0) {
 	colMeans(xdat, na.rm=T)
 }
 omxCheckCloseEnough(as.vector(mxEval(M, cmodFit)), as.vector(colMeans(xdat, na.rm=T)), epsilon=10^(-5))
+omxCheckCloseEnough(as.vector(mxEval(sumlog, cmodFit)), sum(log(colMeans(xdat, na.rm=T))), epsilon=10^(-5))
