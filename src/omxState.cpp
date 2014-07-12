@@ -258,11 +258,6 @@ void omxGlobal::deduplicateVarGroups()
 			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
 		}
 
-		for (int ax=0; ax < (int) tgt->algebraList.size(); ++ax) {
-			omxMatrix *matrix = tgt->algebraList[ax];
-			omxRecompute(matrix, FF_COMPUTE_DIMS, NULL);
-		}
-
 		omxInitialMatrixAlgebraCompute(tgt, NULL);
 
 		for(size_t j = 0; j < src->expectationList.size(); j++) {

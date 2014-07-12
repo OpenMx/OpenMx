@@ -159,6 +159,11 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	size_t numMats = state->matrixList.size();
 	int numAlgs = state->algebraList.size();
 
+	for (int ax=0; ax < numAlgs; ++ax) {
+		omxMatrix *matrix = state->algebraList[ax];
+		omxRecompute(matrix, FF_COMPUTE_DIMS, fc);
+	}
+
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
 	// This is required because we have chosen to evaluate
