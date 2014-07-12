@@ -35,6 +35,7 @@ struct AlgebraFitFunction {
 	void compute(FitContext *fc, int want);
 };
 
+// better to call this from omxInitAlgebraFitFunction? TODO
 void AlgebraFitFunction::buildParamMap(FitContext *fc)
 {
 	if (verbose) {
@@ -44,8 +45,8 @@ void AlgebraFitFunction::buildParamMap(FitContext *fc)
 	varGroup = fc->varGroup;
 	numDeriv = 0;
 
-	if (gradient) omxRecompute(gradient, FF_COMPUTE_DIMS, fc);
-	if (hessian)  omxRecompute(hessian, FF_COMPUTE_DIMS, fc);
+	if (gradient) omxRecompute(gradient, FF_COMPUTE_INITIAL_FIT, fc);
+	if (hessian)  omxRecompute(hessian, FF_COMPUTE_INITIAL_FIT, fc);
 
 	if (gradient) {
 		if (int(std::max(gradient->algebra->rownames.size(),
