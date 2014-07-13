@@ -146,7 +146,7 @@ This is specified using an ``mxAlgebra`` function, and used as the argument to t
     dataRaw      <- mxData( observed=myGrowthMixtureData, type="raw" )
 
     gmm          <- mxModel("Growth Mixture Model",
-                            dataRaw, class1, class2, classP, classS, algFit, fit )     
+                            dataRaw, class1, class2, classP, classQ, algFit, fit )     
 
     gmmFit <- mxRun(gmm)
 
@@ -213,9 +213,7 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
     input[,c("cov1", "cov2")] <- r * scale
 
     for (i in 1: trials){
-        temp1    <- omxSetParameters(gmm, labels=parNames, values=input[i,] )
-        temp1$name <- paste("Starting Values Set", i)
-        
+        temp1    <- omxSetParameters(gmm, labels=parNames, values=input[i,], name = paste("Starting Values Set", i))
         temp2    <- mxRun(temp1, unsafe=TRUE, suppressWarnings=TRUE, checkpoint=TRUE)
         output[i,] <- omxGetParameters(temp2)
         fit[i,] <- c(
@@ -300,7 +298,7 @@ From there, parallel optimization requires that a holder or top model (named ``T
     }
     
     mySubs       <- lapply(1:20, makeModel)
-    topModel$submodels <- mySubs
+    topModel = mxModel(topModel, mySubs)
 
     results <- mxRun(topModel)
 
