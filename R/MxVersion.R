@@ -13,8 +13,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxVersion <- function() {
-	pvers <- try(packageVersion("OpenMx"))
-	if("try-error" %in% class(pvers)){return(NA)}
-	return(pvers)
+mxVersion <- function (model=NULL, verbose=T) {
+    pvers <- try(packageVersion("OpenMx"))
+    if ("try-error" %in% class(pvers)) {
+        pvers = NA
+    }
+	if(verbose){
+	    if ("try-error" %in% class(pvers)) {
+			msg = paste0("OpenMx version: unknown - please report this to http://openmx.psyc.virginia.edu/forums")
+	    }else{
+			msg = paste0("OpenMx version: ", pvers)	    	
+	    }
+
+		msg = paste0(msg, "\nR version: ", version$version.string)	    	
+		msg = paste0(msg, "\nPlatform: ", version$platform)	    	
+
+		msg = paste0(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"))
+		if (!is.null(model)) {
+		    msg = paste0(msg, "(optimizer for this model is ", mxOption(model, "Default optimizer"), ")")
+		}
+	    message(msg)
+	}
+	invisible(pvers)
 }
