@@ -87,9 +87,11 @@ void omxFitFunctionCreateChildren(omxState *globalState)
 	globalState->childList.resize(numThreads);
 
 	for(int ii = 0; ii < numThreads; ii++) {
+		//omxManageProtectInsanity mpi;
 		globalState->childList[ii] = new omxState;
 		omxInitState(globalState->childList[ii]);
 		omxDuplicateState(globalState->childList[ii], globalState);
+		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
 	}
 
 	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);

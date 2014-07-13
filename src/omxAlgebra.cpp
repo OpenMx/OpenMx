@@ -153,7 +153,6 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 {
 	int value;
 	omxAlgebra *oa = NULL;
-	SEXP algebraArg, algebraElt;
 	
 	value = Rf_asInteger(VECTOR_ELT(algebra, 0));
 
@@ -167,18 +166,22 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
+			SEXP algebraArg;
 			Rf_protect(algebraArg = VECTOR_ELT(algebra, j+1));
 			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
+			Rf_unprotect(1);
 			if (!oa->algArgs[j]->name) {
 				// A bit inefficient but invaluable for debugging
 				std::string str = string_snprintf("alg%03d", ++Global->anonAlgebra);
 				SEXP name;
 				Rf_protect(name = Rf_mkChar(str.c_str()));
 				oa->algArgs[j]->name = CHAR(name);
+				Rf_unprotect(1); // See 5.9.7 Handling character data
 			}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
+		SEXP algebraElt;
 		Rf_protect(algebraElt = VECTOR_ELT(algebra, 1));
 		
 		if(!Rf_isInteger(algebraElt)) {   			// A List: only happens if bad optimization has occurred.

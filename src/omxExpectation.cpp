@@ -107,6 +107,7 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	SEXP ExpectationClass;
 	Rf_protect(ExpectationClass = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
 	const char* expType = CHAR(ExpectationClass);
+	Rf_unprotect(1);
 
 	omxExpectation* expect = omxNewInternalExpectation(expType, os);
 
