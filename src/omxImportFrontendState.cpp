@@ -173,6 +173,15 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	for(size_t index = 0; index < numMats; index++) {
 		omxRecompute(state->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);
 	}
+
+	// This is required because we have chosen to compute algebras
+	// in models without a fitfunction. This is the only place
+	// that we loop over _all_ algebras and compute them.
+
+	for(int index = 0; index < numAlgs; index++) {
+		omxMatrix *matrix = state->algebraList[index];
+		omxRecompute(matrix, FF_COMPUTE_INITIAL_FIT, fc);
+	}
 }
 
 /*
