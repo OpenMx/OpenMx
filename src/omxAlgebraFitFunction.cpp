@@ -44,9 +44,6 @@ void AlgebraFitFunction::buildParamMap(FitContext *fc)
 	varGroup = fc->varGroup;
 	numDeriv = 0;
 
-	if (gradient) omxRecompute(gradient, FF_COMPUTE_DIMS, fc);
-	if (hessian)  omxRecompute(hessian, FF_COMPUTE_DIMS, fc);
-
 	if (gradient) {
 		if (int(std::max(gradient->algebra->rownames.size(),
 				 gradient->algebra->colnames.size())) !=

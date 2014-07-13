@@ -166,9 +166,8 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
-	// This is required because we have chosen to evaluate
-	// substitutions in models without anything else. This is the
-	// only place that we loop over _all_ matrix and compute them.
+	// This is required because FF_COMPUTE_DIMS cannot compute
+	// dims for all algebra ops.
 
 	for(size_t index = 0; index < numMats; index++) {
 		omxRecompute(state->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);

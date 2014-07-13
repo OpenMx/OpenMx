@@ -22,7 +22,7 @@ vi <- c(0.086,0.106,0.055,0.084,0.071,0.078,0.051,0.093,0.149,0.095,0.110,0.054,
 my.df <- cbind(yi,vi)
 test <- mxModel("test", type="default",
 	mxMatrix("Zero", ncol=1, nrow=1, free=F, name="Amat"),
-		mxAlgebra(Amat, name="A"),  # just to test with A as an algebra
+		mxAlgebra(Amat[1,1], name="A"),  # just to test with A as an algebra
 	mxMatrix("Full", ncol=1, nrow=1, free=F, values=0,   labels="data.vi", name="V"),
 	mxMatrix("Full", ncol=1, nrow=1, free=T, values=0.1, lbound=0.0000001, name="Tau"),
 	mxMatrix("Full", ncol=1, nrow=1, free=T, values=0,   name="M"),
