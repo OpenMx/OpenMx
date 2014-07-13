@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use Modern::Perl '2012';
+use strict;
+use warnings;
 use Fatal qw(open);
 
 my $source = shift @ARGV;
