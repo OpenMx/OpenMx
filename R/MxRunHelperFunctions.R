@@ -52,7 +52,7 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	model@output <- calculateTiming(model@output, frontendElapsed, 
 		0, indepElapsed, frontendStop, independents)
-	model@output$mxVersion <- mxVersion()
+	model@output$mxVersion <- mxVersion(verbose=FALSE)
 	model@runstate$independents <- independents
 	return(model)
 }
@@ -60,7 +60,7 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 
 nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
 		algebraNames, parameterNames, output) {
-	output$mxVersion <- mxVersion()
+	output$mxVersion <- mxVersion(verbose=FALSE)
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
 	}

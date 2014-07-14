@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxVersion <- function (model=NULL, verbose=T) {
+mxVersion <- function (model=NULL, verbose=TRUE) {
     pvers <- try(packageVersion("OpenMx"))
     if ("try-error" %in% class(pvers)) {
         pvers = NA
