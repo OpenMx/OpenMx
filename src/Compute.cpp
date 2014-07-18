@@ -2398,7 +2398,7 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
 		if (!fc->grad.data()) {
-			Rf_warning("ComputeReportDeriv: Gradient requested but not available");
+			// oh well
 		} else {
 			SEXP Rgradient;
 			Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
