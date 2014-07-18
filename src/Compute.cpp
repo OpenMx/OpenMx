@@ -2264,7 +2264,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 			if (algebra->fitFunction) {
 				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 				ComputeFit(algebra, want, fc);
-				fc->fit = algebra->data[0];
 				if (infoMat) {
 					fc->postInfo();
 				}

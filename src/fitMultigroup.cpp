@@ -37,7 +37,7 @@ static void mgDestroy(omxFitFunction* oo)
 static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 {
 	omxMatrix *fitMatrix  = oo->matrix;
-	fitMatrix->data[0] = 0;
+	double fit = 0;
 	double mac = 0;
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
@@ -57,12 +57,17 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 				omxRaiseErrorf("%s[%d]: %s of type %s does not evaluate to a 1x1 matrix",
 					       fitMatrix->name, (int)ex, f1->name, f1->fitFunction->fitType);
 			}
-			fitMatrix->data[0] += f1->data[0];
+			fit += f1->data[0];
 			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name, f1->name, f1->data[0]); }
 		}
 	}
+
 	if (fc) fc->mac = mac;
-	if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name, fitMatrix->data[0]); }
+
+	if (want & FF_COMPUTE_FIT) {
+		fitMatrix->data[0] = fit;
+		if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name, fit); }
+	}
 }
 
 void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
