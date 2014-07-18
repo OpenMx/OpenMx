@@ -1126,8 +1126,8 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				sandwich(oo, fc);
 			}
 		}
-		if (want & FF_COMPUTE_HESSIAN) {
-			Rf_warning("%s: Hessian not available", oo->matrix->name);
+		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+			omxRaiseErrorf("%s: Hessian is not available for observed data", oo->matrix->name);
 		}
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
