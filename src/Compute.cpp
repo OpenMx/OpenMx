@@ -555,7 +555,6 @@ double *FitContext::getDenseHessianish()
 {
 	if (haveDenseHess) return hess.data();
 	if (haveDenseIHess) return ihess.data();
-	// try harder TODO
 	return NULL;
 }
 
@@ -2340,6 +2339,10 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 	int numParams = int(fc->varGroup->vars.size());
 
 	double *mat = fc->getDenseHessianish();
+	if (!mat) {
+		fc->infoDefinite = false;
+		return;
+	}
 	omxBuffer<double> hessWork(numParams * numParams);
 	memcpy(hessWork.data(), mat, sizeof(double) * numParams * numParams);
 
