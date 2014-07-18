@@ -36,3 +36,4 @@ omxCheckCloseEnough(mxEval(A, modelOut),
 	rbind(c(4, 3), c(2, 1)), 
 	epsilon = 0.001)
 
+omxCheckCloseEnough(modelOut$output$hessian, diag(2, 4), 1e-10)

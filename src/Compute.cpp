@@ -857,6 +857,8 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	R_Reprotect(rFitFunction->model = Rf_eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
 
 	Rf_unprotect(2); // theCall, estimate
+
+	omxMarkDirty(oo->matrix);
 }
 
 void FitContext::copyParamToModel(omxState* os)
