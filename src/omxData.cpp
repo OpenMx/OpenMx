@@ -310,6 +310,7 @@ omxMatrix* omxDataMeans(omxData *od)
 	if (od->meansMat) return od->meansMat;
 	if (od->expectation) {
 		omxMatrix *mat = omxGetExpectationComponent(od->expectation, NULL, "mean");
+		if (!mat) return NULL;
 		if (mat->rows != 1) omxTransposeMatrix(mat);
 		return mat;
 	}
