@@ -1371,3 +1371,19 @@ Matrix fillMatrix(int cols, int rows, double* array)
 	return t;
 }
 
+Matrix MatrixToVector(Matrix mat)
+{
+    Matrix result = new_matrix(mat.rows*mat.cols, 1);
+    
+	int ind_hess = 0;
+	for (int i = 0; i < mat.cols; i++)
+    {
+        for (int j = 0; j < mat.rows; j++)
+        {
+            M(result, ind_hess, 0) = M(mat, i, j);
+            ind_hess = ind_hess + 1;
+        }
+    }
+    return result;
+}
+

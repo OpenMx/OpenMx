@@ -33,13 +33,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
 void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose,
 				  double tolerance);
 
-Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int),
+Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int),
                 Matrix solEqB, Matrix (*solEqBFun)(int),  Matrix (*myineqFun)(int),
                 Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,
                 Matrix solctrl, bool debugToggle, int verbose);
 
-double csolnpObjectiveFunction(Matrix myPars, int verbose);
-double csolnpLimitObjectiveFunction(Matrix myPars, int verbose);
+double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose);
+double csolnpLimitObjectiveFunction(Matrix myPars, int* mode, int verbose);
 struct Matrix csolnpEqualityFunction(int verbose);
 //struct Matrix csolnpEqualityFunction(Matrix myEqBFun_arg, int verbose);
 

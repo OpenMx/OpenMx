@@ -38,7 +38,7 @@ static FitContext *GLOB_fc = NULL;
 static int CSOLNP_currentInterval = -1;
 
 //****** Objective Function *********//
-double csolnpObjectiveFunction(Matrix myPars, int verbose)
+double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose)
 {
 	omxMatrix* fitMatrix = GLOB_fitMatrix;
     
@@ -50,7 +50,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
 
 	if (!std::isfinite(GLOB_fc->fit) || isErrorRaised()) {
-		GLOB_fc->fit = 1e24;
+        *mode = -1;
 	}
     
 	return GLOB_fc->fit;
@@ -59,7 +59,7 @@ double csolnpObjectiveFunction(Matrix myPars, int verbose)
 
 /* Objective function for confidence interval limit finding.
  * Replaces the standard objective function when finding confidence intervals. */
-double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
+double csolnpLimitObjectiveFunction(Matrix myPars, int* mode, int verbose)
 {
     //double* f = NULL;
 	if (verbose >= 3) {
@@ -68,7 +68,7 @@ double csolnpLimitObjectiveFunction(Matrix myPars, int verbose)
             mxLog("%f", myPars.t[i]);
 	}
     
-    GLOB_fc->fit = csolnpObjectiveFunction(myPars, verbose);
+    GLOB_fc->fit = csolnpObjectiveFunction(myPars, mode, verbose);
     
     omxConfidenceInterval *oCI = Global->intervalList[CSOLNP_currentInterval];
     
@@ -238,7 +238,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Matrix myPars = fillMatrix(n, 1, fc->est);
     
-    double (*solFun)(struct Matrix myPars, int verbose);
+    double (*solFun)(struct Matrix myPars, int* mode, int verbose);
     solFun = &csolnpObjectiveFunction;
     Matrix (*solEqBFun)(int verbose);
     solEqBFun = &csolnpEqualityFunction;
@@ -413,7 +413,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     Matrix solEqB;
     
     Matrix myPars = fillMatrix(n, 1, opt->est);
-    double (*solFun)(struct Matrix myPars, int verbose);
+    double (*solFun)(struct Matrix myPars, int* mode, int verbose);
     solFun = &csolnpLimitObjectiveFunction;
     Matrix (*solEqBFun)(int verbose);
     solEqBFun = &csolnpEqualityFunction;

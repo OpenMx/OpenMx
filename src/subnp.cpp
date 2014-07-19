@@ -38,21 +38,28 @@ int LBLength;
 int UBLength;
 int parsLength;
 int eqBLength;
-double eps;
 int outerIter;
+int mode_val;
+int* mode = &mode_val;
+Matrix inform;
+Matrix hessi;
+Matrix p_hess;
+Matrix p_grad;
+struct Param_Obj pfunv;
 
 
-Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int),
+Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int),
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
 
-Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
+Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
 {
     int i;
+    mode_val = 0;
 	if(verbose >= 3){
 		mxLog("solPars is: \n");
         for (i = 0; i < solPars.cols; i++) mxLog("%f", solPars.t[i]);
 		mxLog("4th call is: \n");
-		mxLog("%2f", solFun(solPars, 0));
+		mxLog("%2f", solFun(solPars, mode, 0));
 		mxLog("solEqB is: \n");
 		for (i = 0; i < solEqB.cols; i++) mxLog("%f", solEqB.t[i]);
 		mxLog("solEqBFun is: \n");
@@ -73,7 +80,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     double funv;
     double resultForTT;
 	double solnp_nfn = 0;
-	eps = 2.220446e-16;
+
     //time_t sec;
     //sec = time (NULL);
 	ind = fill(11, 1, (double) 0.0);
@@ -92,7 +99,6 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 	Matrix grad = fill(solPars.cols, 1, (double)0.0);
     //free(matrices.front().t);
-    Matrix inform;
     Matrix ineqLBx;
     Matrix ineqUBx;
     Matrix pb_cont;
@@ -163,19 +169,19 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     {
         for (int i = 0; i < LB.cols; i++)
         {
-            if (M(LB, i, 0) <= M(pars, i, 0) && M(UB, i, 0) >= M(pars, i, 0))
+            if (M(LB, i, 0) < M(pars, i, 0) && M(UB, i, 0) > M(pars, i, 0))
             { continue;  }
-            else if (M(pars, i, 0) < M(LB, i, 0))
+            else if (M(pars, i, 0) <= M(LB, i, 0))
             {   inform = fill(1, 1, 9);
                 flag_L = 1;
                 index_flag_L = i;
-                M(pars, i, 0) = M(LB, i, 0);
+                M(pars, i, 0) = M(LB, i, 0) + M(control, 4, 0); 
             }
-            else if (M(pars, i, 0) > M(UB, i, 0))
+            else if (M(pars, i, 0) >= M(UB, i, 0))
             {   inform = fill(1, 1, 9);
                 flag_U = 1;
                 index_flag_U = i;
-                M(pars, i, 0) = M(UB, i, 0);
+                M(pars, i, 0) = M(UB, i, 0) - M(control, 4, 0);
             }
         }
     }
@@ -192,7 +198,10 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     }
         
 	int np = pars.cols;
-    
+    inform = new_matrix(1, 1);
+    hessi = new_matrix(np*np, 1);
+    p_hess = new_matrix(np+(np*np), 1);
+    p_grad = new_matrix(np+(np*np)+np, 1);
 	// [0] Rf_length of pars
 	// [1] has function gradient?
 	// [2] has hessian?
@@ -215,7 +224,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     M(ind, 1, 0) = 0;
 	//# do function checks and return starting value
     
-    funv = solFun(pars, verbose);
+    funv = solFun(pars, mode, verbose);
     
 	// does not have a hessian (currently not supported in Rsolnp)
 	M(ind, 2, 0) = 0;
@@ -473,12 +482,23 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
 			mxLog("------------------------END CALLING SUBNP------------------------");
         }
         
+        if (*mode == -1)
+        {
+            M(inform, 0, 0) = 6;
+            hessi = MatrixToVector(fill(np, np, (double)0.0));
+            p_hess = copy(pars, hessi);
+            p_grad = copy(p_hess, grad);
+            pfunv.parameter = copy(p_grad, inform);
+            pfunv.objValue = funv;
+            return pfunv;
+        }
+
 		grad = subnp(p, solFun, solEqBFun, myineqFun, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         
         if (flag == 1)
         {
             p = duplicateIt(resP);
-            funv = solFun(p, verbose);
+            funv = solFun(p, mode, verbose);
             funvMatrix = fill(1, 1, funv);
             eqv = solEqBFun(verbose);
             ineqv = myineqFun(verbose);
@@ -532,7 +552,18 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         
 		Matrix temp = subset(p, 0, nineq, (nineq+np-1));
         
-        funv = solFun(temp, verbose);
+        funv = solFun(temp, mode, verbose);
+        if (*mode == -1)
+        {
+            M(inform, 0, 0) = 6;
+            hessi = MatrixToVector(hessv);
+            p_hess = copy(pars, hessi);
+            p_grad = copy(p_hess, grad);
+            pfunv.parameter = copy(p_grad, inform);
+            pfunv.objValue = funv;
+            return pfunv;
+        }
+
 		solnp_nfn = solnp_nfn + 1;
         
 		//Matrix funv_mat = fill(1, 1, funv);
@@ -726,8 +757,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
             }
         }
     }
-	struct Param_Obj pfunv;
-	Matrix hessi = fill(hessv.cols*hessv.cols,1 , (double)0.0);
+	
+    hessi = fill(hessv.cols*hessv.cols,1 , (double)0.0);
     
 	int ii;
 	int ind_hess = 0;
@@ -745,8 +776,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
         for (i = 0; i < inform.cols; i++) mxLog("%f",inform.t[i]);
     }
     
-    Matrix p_hess = copy(p, hessi);
-	Matrix p_grad = copy(p_hess, grad);
+    //hessi = MatrixToVector(hessv);
+    p_hess = copy(p, hessi);
+	p_grad = copy(p_hess, grad);
 	pfunv.parameter = copy(p_grad, inform);
     pfunv.objValue = funv;
     
@@ -755,7 +787,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int), Matrix solEqB, Ma
     
 }
 
-Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
+Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
              Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose)
 {
 
@@ -963,7 +995,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			if (verbose >= 2){
 				mxLog("7th call is \n");
 			}
-			funv = solFun(tmpv, verbose);
+			funv = solFun(tmpv, mode, verbose);
             
 			eqv = solEqBFun(verbose);
 
@@ -1011,6 +1043,12 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			M(p0, index, 0) = M(p0, index, 0) - delta;
 		} // end for (int i=0; i<np, i++){
         
+        if (*mode == -1)
+        {
+            funv = 1e24;
+            *mode = 0;
+        }
+
 		if(M(ind, 3, 0) > 0){
 			//constraint[ (neq + 1):(neq + nineq) ] = constraint[ (neq + 1):(neq + nineq) ] - p0[ 1:nineq ]
 			Matrix firstPart, secondPart;
@@ -1166,11 +1204,18 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			for (int i = 0; i < tmpv.cols; i++) mxLog("%f",tmpv.t[i]);
 			mxLog("8th call is \n");
 		}
-		funv = solFun(tmpv, verbose);
+		funv = solFun(tmpv, mode, verbose);
 		if (verbose >= 3){
 			mxLog("funv is: \n");
 			mxLog("%2f", funv);
 		}
+        
+        if (*mode == -1)
+        {
+            funv = 1e24;
+            *mode = 0;
+        }
+
 		eqv = solEqBFun(verbose);
 		if (verbose >= 3){
 			mxLog("eqv is: \n");
@@ -1251,11 +1296,17 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 					mxLog("9th call is \n");
                     
 				}
-				funv = solFun(tmpv, verbose);
+				funv = solFun(tmpv, mode, verbose);
 				if (verbose >= 3){
 					mxLog("funv is: \n");
 					mxLog("%2f", funv);
 				}
+                
+                if (*mode == -1)
+                {
+                    funv = 1e24;
+                    *mode = 0;
+                }
 				eqv = solEqBFun(verbose);
 				ineqv = myineqFun(verbose);
 				solnp_nfn = solnp_nfn + 1;
@@ -1589,7 +1640,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 		if (verbose >= 2){        
 			//printf("10th call is \n");
 		}
-		funv = solFun(tmpv, verbose);
+		funv = solFun(tmpv, mode, verbose);
 		if (verbose >= 3){
             mxLog("hessv is: \n");
             for (i = 0; i < hessv.cols; i++) mxLog("%f",hessv.t[i]);
@@ -1600,6 +1651,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 			mxLog("funv is: \n");
 			mxLog("%.20f", funv);
 		}
+        
+        if (*mode == -1)
+        {
+            funv = 1e24;
+            *mode = 0;
+        }
+
 		eqv = solEqBFun(verbose);
 
 		ineqv = myineqFun(verbose);
@@ -1680,12 +1738,18 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int), Matrix (*solEqBFun)(int
 				mxLog("11th call is \n");
 			}
             
-			funv = solFun(tmpv, verbose);
+			funv = solFun(tmpv, mode, verbose);
 			if (verbose >= 3){
 				mxLog("funv is: \n");
 				mxLog("%2f", funv);
 			}
             
+            if (*mode == -1)
+            {
+                funv = 1e24;
+                *mode = 0;
+            }
+
 			eqv = solEqBFun(verbose);
             
 			ineqv = myineqFun(verbose);

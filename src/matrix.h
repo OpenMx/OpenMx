@@ -34,6 +34,8 @@ struct Param_Obj {
 
 #define M(m,x,y) m.t[y+x*m.rows]
 
+Matrix MatrixToVector(Matrix mat);
+
 Matrix fillMatrix(int cols, int rows, double* array);
 
 double solvecond(Matrix inMat);
