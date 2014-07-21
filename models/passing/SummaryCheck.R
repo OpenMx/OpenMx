@@ -86,8 +86,8 @@ covm.fit <- mxRun(covm)
 # Get summaries of models
 
 raw.sum <- summary(raw.fit)
-sat.sum <- summary(sat.fit)
-raws.sum <- summary(raw.fit, SaturatedLikelihood=sat.fit)
+sat.sum <- summary(sat.fit[[1]])
+raws.sum <- summary(raw.fit, SaturatedLikelihood=sat.fit[[1]])
 cov.sum <- summary(cov.fit)
 covs.sum <- summary(covm.fit)
 
