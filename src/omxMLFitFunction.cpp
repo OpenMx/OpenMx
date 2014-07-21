@@ -275,11 +275,12 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 		HessianBlock &hb = state->lhBlocks[0];
 		int at1 = latentMap[p1];
 		if (at1 < 0) continue;
-		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
+		const int outer_hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
 
 		for (int p2=0; p2 <= p1; p2++) {
 			int at2 = latentMap[p2];
 			if (at2 < 0) continue;
+			int hb1 = outer_hb1;
 			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
 
 			if (hb1 < hb2) std::swap(hb1, hb2);
@@ -292,11 +293,12 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 		HessianBlock &hb = state->lhBlocks[1];
 		int at1 = latentMap[p1];
 		if (at1 < 0) continue;
-		int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
+		const int outer_hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
 
 		for (int p2=maxAbilities; p2 <= p1; p2++) {
 			int at2 = latentMap[p2];
 			if (at2 < 0) continue;
+			int hb1 = outer_hb1;
 			int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
 
 			if (hb1 < hb2) std::swap(hb1, hb2);

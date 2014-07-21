@@ -236,21 +236,25 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 		HessianBlock &hb = state->hBlocks[cx];
 		int numParam = state->paramPerItem[cx];
 		for (int p1=0; p1 < numParam; p1++) {
-			int at1 = state->paramMap[cx * state->itemDerivPadSize + p1];
-			if (at1 < 0) continue;
-			int hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at1) - hb.vars.begin();
-			if (hb.vars[hb1] != at1) Rf_error("oops");
+			const int outer_at1 = state->paramMap[cx * state->itemDerivPadSize + p1];
+			if (outer_at1 < 0) continue;
+			const int outer_hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), outer_at1) - hb.vars.begin();
+			if (hb.vars[outer_hb1] != outer_at1) Rf_error("oops");
 
 			for (int p2=0; p2 <= p1; p2++) {
+				int at1 = outer_at1;
+				int hb1 = outer_hb1;
 				int at2 = state->paramMap[cx * state->itemDerivPadSize + p2];
 				if (at2 < 0) continue;
+				if (p1 == p2 && at1 != at2) Rf_error("oops");
 				int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
 				if (hb.vars[hb2] != at2) Rf_error("oops");
 
-				if (at1 < at2) std::swap(at1, at2);
-				if (hb1 < hb2) std::swap(hb1, hb2);
+				if (at1 < at2) std::swap(at1, at2); // outer_at1 unaffected
+				if (hb1 < hb2) std::swap(hb1, hb2); // outer_hb1 unaffected
 
-				//mxLog("Item %d param(%d,%d) -> H[%d,%d]", cx, p1, p2, at1, at2);
+				//				mxLog("Item %d param(%d,%d) -> H[%d,%d] B[%d,%d]",
+				//				      cx, p1, p2, at1, at2, hb1, hb2);
 				int at = cx * state->itemDerivPadSize + numParam + triangleLoc1(p1) + p2;
 				int hoffset = at1 * numFreeParam + at2;
 
