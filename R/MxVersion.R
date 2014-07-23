@@ -30,7 +30,10 @@ mxVersion <- function (model=NULL, verbose=TRUE) {
 
 		msg = paste0(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"))
 		if (!is.null(model)) {
-		    msg = paste0(msg, "(optimizer for this model is ", mxOption(model, "Default optimizer"), ")")
+			thisModelsOptimiser = mxOption(model, "Default optimizer")
+		    if(!is.null(thisModelsOptimiser)){
+				msg = paste0(msg, "(optimizer for this model is ", thisModelsOptimiser, ")")
+		    }
 		}
 	    message(msg)
 	}
