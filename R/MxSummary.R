@@ -165,7 +165,7 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
 	rownames(IC) <- c("AIC:", "BIC:")
 	retval[['informationCriteria']] <- IC
-	rmseaSquared <- (chi / (DoF-satDoF) - 1) / retval[['numObs']]
+	rmseaSquared <- (chi / (chiDoF) - 1) / retval[['numObs']]
 	retval[['RMSEASquared']] <- rmseaSquared
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		is.nan(rmseaSquared)) { 
@@ -175,8 +175,43 @@ fitStatistics <- function(model, useSubmodels, retval) {
 		retval[['RMSEA']] <- 0.0
 	} else {
 		retval[['RMSEA']] <- sqrt(rmseaSquared)
+		retval[['RMSEACI']] <- rmseaConfidenceIntervalHelper(chi, chiDoF, retval[['numObs']], .025, .975)
 	}
 	return(retval)
+}
+
+omxRMSEA <- function(model, lower, upper){
+	smod <- summary(model)
+	x2 <- smod$Chi
+	df <- smod$ChiDoF
+	N <- smod$numObs
+	rmsea <- smod$RMSEA
+	ci <- rmseaConfidenceIntervalHelper(chi.squared=x2, df=df, N=N, lower=lower, upper=upper)
+	return(c(ci[1], est.rmsea=rmsea, ci[2]))
+}
+
+rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
+	# Lower confidence interval
+	if( pchisq(chi.squared, df=df, ncp=0) >= upper){ #sic
+		lower.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared, degf=df, goal=upper)$root
+		# solve pchisq(ch, df=df, ncp=x) == upper for x
+	} else{
+		lower.lam <- 0
+	}
+	# Upper confidence interval
+	if( pchisq(chi.squared, df=df, ncp=0) >= lower){ #sic
+		upper.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared, degf=df, goal=lower)$root
+		# solve pchisq(ch, df=df, ncp=x) == lower for x
+	} else{
+		upper.lam <- 0
+	}
+	lower.rmsea <- sqrt(lower.lam/(N*df))
+	upper.rmsea <- sqrt(upper.lam/(N*df))
+	return(c(lower.rmsea=lower.rmsea, upper.rmsea=upper.rmsea))
+}
+
+pChiSqFun <- function(x, val, degf, goal){
+	goal - pchisq(val, degf, ncp=x)
 }
 
 
@@ -393,7 +428,7 @@ print.summary.mxmodel <- function(x,...) {
 	# Relative fit indices
 	cat("Information Criteria: \n")
 	IC <- x$informationCriteria
-	colnames(IC) <- c("df Penalty", "Parameters Penalty", "Sample-Size Adjusted")
+	colnames(IC) <- c(" |  df Penalty", " |  Parameters Penalty", " |  Sample-Size Adjusted")
 	print(IC)
 	# cat("\n")
 	# cat("adjusted BIC:", '\n')
@@ -408,7 +443,13 @@ print.summary.mxmodel <- function(x,...) {
 			cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
 		} else {
 			cat("RMSEA: ", x$RMSEA, '\n')
+			cat("RMSEA 95% CI: ", paste("(", round(x$RMSEACI[1], 8), ", ", round(x$RMSEACI[2], 8), ")", sep=""), '\n')
 		}
+	}
+	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){
+		cat("Some of your fit indices are missing.\n",
+			" To get them, fit saturated and independence models, and include them with\n",
+			" summary(yourModel, SaturatedLikelihood=..., IndependenceLikelihood=...).", '\n')
 	}
 	#
 	# Timing information
@@ -421,6 +462,7 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	cat("wall clock time:", format(x$wallTime), '\n')
 	cat("OpenMx version number:", format(x$mxVersion), '\n')
+	cat("Need help?  See help(mxSummary)", '\n')
 	cat('\n')
 	if (x$stale) {
 		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n")
