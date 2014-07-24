@@ -55,11 +55,14 @@ omxSaturatedModel <- function(x, run=FALSE) {
 		fittype <- x$fitfunction
 		modelName <- x@name
 		if( is(fittype, "MxFitFunctionAlgebra") || is(fittype, "MxFitFunctionRow") || is(fittype, "MxFitFunctionR") ){
+			msg <- paste("Cannot make a saturated model for models with ", is(fittype)[1], "fit functions.", sep="")
 			if(is(fittype, "MxFitFunctionAlgebra")){
-				message("Algebra Fit Function detected.  If you're using this to do mutligroup modeling.  Try mxFitFunctionMultigroup.  I'll work for those.")
+				msg <- paste(msg, "\n",
+					"If you're using this for a mutligroup model, very likely, you can replace your mxFitFunctionAlgebra() call with", "\n",
+					"mxFitFunctionMultigroup(c('submodelName1', 'submodelName2', ...))", "\n\n",
+					"See ?mxFitFunctionMultigroup() to learn more.", sep="")
 			}
-			stop(paste("I will not make a saturated model for models with ",
-				is(fittype)[1], "fit functions.", sep=""))
+			stop(msg)
 		}
 		# Handle multigroup models
 		if(is(fittype, "MxFitFunctionMultigroup")){
