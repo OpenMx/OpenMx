@@ -171,8 +171,10 @@ fitStatistics <- function(model, useSubmodels, retval) {
 		is.nan(rmseaSquared)) { 
 		# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 		retval[['RMSEA']] <- NA
+		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
 	} else if (rmseaSquared < 0) {
 		retval[['RMSEA']] <- 0.0
+		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
 	} else {
 		retval[['RMSEA']] <- sqrt(rmseaSquared)
 		retval[['RMSEACI']] <- rmseaConfidenceIntervalHelper(chi, chiDoF, retval[['numObs']], .025, .975)
