@@ -363,6 +363,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 }
 
 print.summary.mxmodel <- function(x,...) {
+	cat("Summary of model", x$modelName, '\n', '\n')
 	if (x$stale) {
 		cat("WARNING: This model was modified since it was run. Summary information may be out-of-date.\n\n")
 	}
