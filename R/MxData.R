@@ -474,24 +474,24 @@ displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')
 	cat("numObs :", omxQuotes(object@numObs), '\n')
-	cat("Data Frame or Matrix : \n") 
+	cat("observed : \n") 
 	print(object@observed)
 	if (length(object@means) == 1 && is.na(object@means)) {
-		cat("Means : NA \n")
+		cat("means : NA \n")
 	} else {
-		cat("Means : \n") 
+		cat("means : \n") 
 		print(object@means)		
 	}
 	if (length(object@acov) == 1 && is.na(object@acov)) {
-		cat("Acov : NA \n")
+		cat("acov : NA \n")
 	} else {
-		cat("Acov : \n")
+		cat("acov : \n")
 		print(object@acov)
 	}
 	if (length(object@thresholds) == 1 && is.na(object@thresholds)) {
-		cat("Thresholds : NA \n")
+		cat("thresholds : NA \n")
 	} else {
-		cat("Thresholds : \n")
+		cat("thresholds : \n")
 		print(object@thresholds)
 	}
 	invisible(object)
