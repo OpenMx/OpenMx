@@ -171,6 +171,19 @@ double *FitContext::getDenseHessUninitialized()
 	return hess.data();
 }
 
+struct allFiniteHelper {
+	typedef double Scalar;
+	typedef Eigen::DenseIndex  Index;
+	bool finite;
+	void init(const Scalar& value, Index i, Index j) {
+		finite = true;
+		if (i <= j) finite = std::isfinite(value);
+	};
+	void operator() (const Scalar& value, Index i, Index j) {
+		if (i <= j) finite &= std::isfinite(value);
+	};
+};
+
 static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
 {
 	ihess = hess;
@@ -185,6 +198,13 @@ static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
 	if (!InvertSymmetricPosDef(ihessMat, 'U')) return;
 
 	int numParams = hess.rows();
+	allFiniteHelper afh;
+	hess.visit(afh);
+	if (!afh.finite) {
+		ihess = Eigen::MatrixXd::Zero(numParams, numParams);
+		return;
+	}
+
 	omxBuffer<double> hessWork(numParams * numParams);
 	memcpy(hessWork.data(), hess.data(), sizeof(double) * numParams * numParams);
 	//pda(hess.data(), numParams, numParams);
@@ -1322,7 +1342,7 @@ class ComputeEM : public omxCompute {
 	int semProbeCount;
 
 	void setExpectationPrediction(const char *context);
-	void probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
+	bool probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
 	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			double *stdDiff, bool *mengOK);
 
@@ -1676,8 +1696,9 @@ void ComputeEM::setExpectationPrediction(const char *context)
 	}
 }
 
-void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork)
+bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork)
 {
+	bool failed = false;
 	const size_t freeVars = fc->varGroup->vars.size();
 	const int base = paramHistLen[vx] * freeVars;
 	probeOffset[vx * maxHistLen + paramHistLen[vx]] = offset;
@@ -1687,14 +1708,18 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->est[vx] += offset;
 	fc->copyParamToModel(globalState);
 
+	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
+				paramHistLen[vx], fc->varGroup->vars[vx]->name, offset);
+
 	setExpectationPrediction(predict);
 	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
 	fit1->compute(fc);
+	if (fc->inform > INFORM_UNCONVERGED_OPTIMUM) {
+		if (verbose >= 3) mxLog("ComputeEM: probe failed with code %d", fc->inform);
+		failed = true;
+	}
 	fc->inform = informSave;
 	setExpectationPrediction("nothing");
-
-	if (verbose >= 3) mxLog("ComputeEM: probe %d of param %d offset %.6f",
-				paramHistLen[vx], vx, offset);
 
 	for (size_t v1=0; v1 < freeVars; ++v1) {
 		double got = (fc->est[v1] - optimum[v1]) / offset;
@@ -1702,6 +1727,7 @@ void ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	}
 	//pda(rij.data() + base, 1, freeVars);
 	++semProbeCount;
+	return failed;
 }
 
 void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
@@ -1878,14 +1904,15 @@ void ComputeEM::computeImpl(FitContext *fc)
 				if (offset1 > 1000 * tolerance) offset1 = 1000 * tolerance;
 			}
 
-			probeEM(fc, v1, sign * offset1, &rijWork);
+			if (probeEM(fc, v1, sign * offset1, &rijWork)) break;
 			double offset2 = offset1 + stepSize;
-			probeEM(fc, v1, sign * offset2, &rijWork);
+			if (probeEM(fc, v1, sign * offset2, &rijWork)) break;
 			double diff;
 			bool mengOK;
 			recordDiff(fc, v1, rijWork, &diff, &mengOK);
 			double midOffset = (offset1 + offset2) / 2;
 
+			paramConverged = true;
 			int iter = 0;
 			omxBuffer<double> coefHist(agileMaxIter);
 			while (++iter <= agileMaxIter &&
@@ -1896,16 +1923,21 @@ void ComputeEM::computeImpl(FitContext *fc)
 				coef /= iter;
 				if (verbose >= 4) mxLog("ComputeEM: agile iter[%d] coef=%.6g", iter, coef);
 				offset1 = sqrt(coef/noiseTarget);
-				probeEM(fc, v1, sign * offset1, &rijWork);
+				if (probeEM(fc, v1, sign * offset1, &rijWork)) {
+					paramConverged = false;
+					break;
+				}
 				if (iter < agileMaxIter || semDebug) {
 					offset2 = offset1 + stepSize;
-					probeEM(fc, v1, sign * offset2, &rijWork);
+					if (probeEM(fc, v1, sign * offset2, &rijWork)) {
+						paramConverged = false;
+						break;
+					}
 					midOffset = (offset1 + offset2) / 2;
 					recordDiff(fc, v1, rijWork, &diff, &mengOK);
 				}
 				pick += 2;
 			}
-			paramConverged = true;
 		} else if (semMethod == ClassicSEM || semMethod == TianSEM) {
 			if (!estHistory.size()) {
 				if (verbose >= 1) mxLog("ComputeEM: no history available;"
@@ -1918,7 +1950,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 				if (paramHistLen[v1] && fabs(probeOffset[v1 * maxHistLen + paramHistLen[v1]-1] -
 							     offset1) < tolerance) continue;
 				if (fabs(offset1) < tolerance) continue;
-				probeEM(fc, v1, offset1, &rijWork);
+				if (probeEM(fc, v1, offset1, &rijWork)) break;
 				if (hx == 0) continue;
 				pick = hx;
 				double diff;
@@ -1931,7 +1963,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			}
 		} else {
 			for (int hx=0; hx < semMethodLen; ++hx) {
-				probeEM(fc, v1, semMethodData[hx], &rijWork);
+				probeEM(fc, v1, semMethodData[hx], &rijWork); // ignore errors
 				if (hx == 0) continue;
 				double diff;
 				bool mengOK;
@@ -1940,14 +1972,15 @@ void ComputeEM::computeImpl(FitContext *fc)
 			paramConverged = true;
 		}
 
+		const char *pname = fc->varGroup->vars[v1]->name;
 		if (paramConverged) {
 			++semConverged;
 			memcpy(rij.data() + v1 * freeVars, rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
-			if (verbose >= 2) mxLog("ComputeEM: param %d converged in %d probes",
-						(int) v1, paramHistLen[v1]);
+			if (verbose >= 2) mxLog("ComputeEM: %s converged in %d probes",
+						pname, paramHistLen[v1]);
 		} else {
-			if (verbose >= 2) mxLog("ComputeEM: param %d failed to converge after %d probes",
-						(int) v1, paramHistLen[v1]);
+			if (verbose >= 2) mxLog("ComputeEM: %s failed to converge after %d probes",
+						pname, paramHistLen[v1]);
 			break;
 		}
 	}

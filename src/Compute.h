@@ -25,6 +25,7 @@
 #include "glue.h"
 
 // See R/MxRunHelperFunctions.R npsolMessages
+// Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
 // These are ordered from good to bad so we can use max() on a set
 // of inform results to obtain a bound on convergence status.
 typedef int ComputeInform;

@@ -188,6 +188,10 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		steepestDescent = true;
 		searchDir = fc->grad;
 		targetImprovement = searchDir.norm();
+		if (!std::isfinite(targetImprovement)) {
+			fc->inform = INFORM_BAD_DERIVATIVES;
+			return;
+		}
 		if (targetImprovement < tolerance) return;
 		//speed = std::max(speed, .1);  // expect steepestDescent
 	}
@@ -298,6 +302,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 		return;
 	}
 
+	fc->inform = INFORM_UNINITIALIZED;
 	fc->flavor.assign(numParam, NULL);
 
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
@@ -342,6 +347,12 @@ void ComputeNR::computeImpl(FitContext *fc)
 		maxAdj = 0;
 		double improvement = 0;
 		lineSearch(fc, iter, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
+		if (fc->inform != INFORM_UNINITIALIZED) {
+			if (verbose >= 2) {
+				mxLog("%s: line search failed with code %d", name, fc->inform);
+			}
+			return;
+		}
 
 		converged = improvement < tolerance;
 		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
