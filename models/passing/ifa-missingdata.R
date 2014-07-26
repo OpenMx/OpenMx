@@ -104,7 +104,7 @@ if (0) {
 emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 32, 1)
 omxCheckCloseEnough(emstat$totalMstep, 87, 5)
-omxCheckCloseEnough(m2$output$evaluations, 175, 5)
+omxCheckCloseEnough(m2$output$evaluations, 169, 5)
 
 omxCheckCloseEnough(m2$output$minimum, 2733.845, .01)
 got <- cor(c(m2$matrices$item$values[c(1,4,5),]),

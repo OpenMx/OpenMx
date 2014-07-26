@@ -1582,6 +1582,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
+	if (maxIter < 0) Rf_error("maxIter must be non-negative");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
@@ -1788,7 +1789,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 	fc->flavor.assign(freeVars, flavor);
 	ramsay.push_back(new Ramsay1975(fc, flavor, verbose, -1.25));
 
-	while (1) {
+	while (EMcycles < maxIter) {
+		++ EMcycles;
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
 		setExpectationPrediction(predict);
 
@@ -1806,6 +1808,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		{
 			if (useRamsay) {
 				bool wantRestart;
+				// parameterize the delay until the first recalibration? TODO
 				if (EMcycles > 3 && EMcycles % 3 == 0) {
 					for (size_t rx=0; rx < ramsay.size(); ++rx) {
 						ramsay[rx]->recalibrate(&wantRestart);
@@ -1848,7 +1851,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		prevFit = fc->fit;
 		converged = mac < tolerance;
 		++fc->iterations;
-		if (isErrorRaised() || ++EMcycles > maxIter || converged) break;
+		if (isErrorRaised() || converged) break;
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {
 			double *estCopy = new double[freeVars];
