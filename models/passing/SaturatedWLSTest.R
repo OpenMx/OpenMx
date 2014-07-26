@@ -26,7 +26,6 @@
 # Load packages and old WLS data
 
 require(mvtnorm)
-require(Matrix)
 require(OpenMx)
 
 #load("wlsTest1.RData")

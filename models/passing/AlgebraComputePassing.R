@@ -15,7 +15,6 @@
 
 
 require(OpenMx)
-require(Matrix) # using expm for testing
 
 A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
 B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')

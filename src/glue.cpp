@@ -39,6 +39,59 @@
 #include "Compute.h"
 #include "dmvnorm.h"
 #include "npsolswitch.h"
+#include "matrix.h"
+
+static SEXP do_logm_eigen(SEXP x)
+{
+    SEXP dims, z;
+    int n, m;
+    double *rx = REAL(x), *rz;
+
+    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) Rf_error("invalid argument");
+
+    dims = Rf_getAttrib(x, R_DimSymbol);
+    n = INTEGER(dims)[0];
+    m = INTEGER(dims)[0];
+    if (n != m) Rf_error("non-square matrix");
+    if (n == 0) return(Rf_allocVector(REALSXP, 0));
+
+    PROTECT(z = Rf_allocMatrix(REALSXP, n, n));
+    rz = REAL(z);
+
+    logm_eigen(n, rx, rz);
+
+    Rf_setAttrib(z, R_DimNamesSymbol, Rf_getAttrib(x, R_DimNamesSymbol));
+
+    UNPROTECT(1);
+
+    return z;
+}
+
+static SEXP do_expm_eigen(SEXP x)
+{
+    SEXP dims, z;
+    int n, m;
+    double *rx = REAL(x), *rz;
+
+    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) Rf_error("invalid argument");
+
+    dims = Rf_getAttrib(x, R_DimSymbol);
+    n = INTEGER(dims)[0];
+    m = INTEGER(dims)[0];
+    if (n != m) Rf_error("non-square matrix");
+    if (n == 0) return(Rf_allocVector(REALSXP, 0));
+
+    PROTECT(z = Rf_allocMatrix(REALSXP, n, n));
+    rz = REAL(z);
+
+    expm_eigen(n, rx, rz);
+
+    Rf_setAttrib(z, R_DimNamesSymbol, Rf_getAttrib(x, R_DimNamesSymbol));
+
+    UNPROTECT(1);
+
+    return z;
+}
 
 static SEXP has_NPSOL()
 { return Rf_ScalarLogical(HAS_NPSOL); }
@@ -61,7 +114,8 @@ static R_CallMethodDef callMethods[] = {
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
 	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
-	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 2},
+	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
+	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
 	{NULL, NULL, 0}
 };
 

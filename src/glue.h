@@ -31,8 +31,6 @@ SEXP omxBackend(SEXP constraints, SEXP matList,
 SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
 SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 	SEXP skipMissingness, SEXP skipDefvars);
-SEXP do_logm_eigen(SEXP x, SEXP tolin);
-void logm_eigen(double *x, int n, double *z, double tol);
 
 class omxManageProtectInsanity {
 	PROTECT_INDEX initialpix;

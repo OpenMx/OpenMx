@@ -36,17 +36,15 @@ glue.o: Makevars.in glue.cpp omxDefines.h glue.h omxState.h omxMatrix.h omxBLAS.
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h     \
    omxOpenmpWrap.h omxNPSOLSpecific.h \
- omxImportFrontendState.h omxExportBackendState.h dmvnorm.h npsolswitch.h
+ omxImportFrontendState.h omxExportBackendState.h dmvnorm.h npsolswitch.h \
+ matrix.h
 libifa-rpf.o: Makevars.in libifa-rpf.cpp libifa-rpf.h   \
   
-logm-eigen.o: Makevars.in logm-eigen.cpp glue.h omxState.h omxDefines.h omxMatrix.h \
- omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h \
- omxData.h omxExpectation.h Compute.h     \
-   omxOpenmpWrap.h
 matrix.o: Makevars.in matrix.cpp omxDefines.h omxBuffer.h matrix.h omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxExpectation.h omxData.h omxFitFunction.h Compute.h   \
-   glue.h omxOpenmpWrap.h
+   glue.h omxOpenmpWrap.h \
+  
 merge.o: Makevars.in merge.cpp merge.h
 omxAlgebra.o: Makevars.in omxAlgebra.cpp omxMatrix.h omxDefines.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxExpectation.h \
@@ -161,7 +159,8 @@ omxSadmvnWrapper.o: Makevars.in omxSadmvnWrapper.cpp omxDefines.h omxSymbolTable
 omxState.o: Makevars.in omxState.cpp omxState.h omxDefines.h omxMatrix.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h     \
-   glue.h omxOpenmpWrap.h
+   glue.h omxOpenmpWrap.h \
+ omxImportFrontendState.h
 omxStateSpaceExpectation.o: Makevars.in omxStateSpaceExpectation.cpp omxExpectation.h \
  omxDefines.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
  algebraOp.h omxState.h omxFitFunction.h omxData.h Compute.h \
@@ -171,7 +170,7 @@ omxSymbolTable.o: Makevars.in omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
  omxDefines.h omxBLAS.h omxAlgebra.h omxState.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h     \
    glue.h omxOpenmpWrap.h algebraOp.h \
- AlgebraFunctions.h merge.h omxSadmvnWrapper.h matrix.h Exponential.h
+ AlgebraFunctions.h merge.h omxSadmvnWrapper.h matrix.h
 omxWLSFitFunction.o: Makevars.in omxWLSFitFunction.cpp omxWLSFitFunction.h omxData.h \
  omxDefines.h omxAlgebra.h omxSymbolTable.h omxMatrix.h omxBLAS.h \
  omxFitFunction.h omxState.h omxExpectation.h Compute.h   \

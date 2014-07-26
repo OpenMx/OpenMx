@@ -14,6 +14,7 @@ using std::endl;
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
+#include "unsupported/Eigen/MatrixFunctions"
 
 template <typename T> void printList( const std::list< T > &listRef);
 
@@ -1387,3 +1388,19 @@ Matrix MatrixToVector(Matrix mat)
     return result;
 }
 
+// For background, see
+// http://epubs.siam.org/doi/abs/10.1137/090768539
+
+void logm_eigen(int n, double *rz, double *out)
+{
+	Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
+	Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
+	outMat = inMat.log();
+}
+
+void expm_eigen(int n, double *rz, double *out)
+{
+	Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
+	Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
+	outMat = inMat.exp();
+}

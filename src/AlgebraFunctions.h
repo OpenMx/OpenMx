@@ -2469,4 +2469,41 @@ static void omxVechsToMatrix(FitContext *fc, int want, omxMatrix** matList, int 
 
 }
 
+static void omxExponential(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (want == FF_COMPUTE_DIMS) {
+		if (numArgs == 2) {
+			Rf_warning("The second argument to omxExponential is ignored");
+		}
+		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
+		return;
+	}
 
+	omxMatrix* inMat = matList[0];
+	if (inMat->rows != inMat->cols) Rf_error("omxExponential requires a symmetric matrix");
+	if (!inMat->colMajor) {
+		omxToggleRowColumnMajor(inMat);
+	}
+	omxResizeMatrix(result, inMat->rows, inMat->cols);
+	result->colMajor = true;
+
+	expm_eigen(inMat->rows, inMat->data, result->data);
+}
+
+static void mxMatrixLog(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	if (want == FF_COMPUTE_DIMS) {
+		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
+		return;
+	}
+
+	omxMatrix* inMat = matList[0];
+	if (inMat->rows != inMat->cols) Rf_error("logm requires a symmetric matrix");
+	if (!inMat->colMajor) {
+		omxToggleRowColumnMajor(inMat);
+	}
+	omxResizeMatrix(result, inMat->rows, inMat->cols);
+	result->colMajor = true;
+
+	logm_eigen(inMat->rows, inMat->data, result->data);
+}

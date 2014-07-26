@@ -160,4 +160,7 @@ struct Matrix qrDecomposition(struct Matrix t, bool rDecomp);
 
 struct Matrix rowSort(struct Matrix t);
 
+void logm_eigen(int n, double *rz, double *out);
+void expm_eigen(int n, double *rz, double *out);
+
 #endif
