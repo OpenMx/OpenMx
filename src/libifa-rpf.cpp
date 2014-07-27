@@ -124,7 +124,10 @@ irt_rpf_mdim_drm_numSpec(const double *spec)
 
 static int
 irt_rpf_mdim_drm_numParam(const double *spec)
-{ return 3 + spec[RPF_ISpecDims]; }
+{
+	if (spec[RPF_ISpecDims] == 0) return 1;
+	else return 3 + spec[RPF_ISpecDims];
+}
 
 static void
 irt_rpf_mdim_drm_paramInfo(const double *spec, const int param,
@@ -133,6 +136,10 @@ irt_rpf_mdim_drm_paramInfo(const double *spec, const int param,
 	int numDims = spec[RPF_ISpecDims];
 	*upper = nan("unset");
 	*lower = nan("unset");
+	if (numDims == 0) {
+		*type = "intercept";
+		return;
+	}
 	*type = NULL;
 	if (param >= 0 && param < numDims) {
 		*type = "slope";
@@ -152,12 +159,17 @@ irt_rpf_mdim_drm_prob(const double *spec,
   int numDims = spec[RPF_ISpecDims];
   double dprod = dotprod(param, th, numDims);
   double diff = param[numDims];
-  const double gg = antilogit(param[numDims+1]);
-  const double uu = antilogit(param[numDims+2]);
   double athb = -(dprod + diff);
   if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
   else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
-  double tmp = gg + (uu-gg) / (1 + exp(athb));
+  double tmp;
+  if (numDims == 0) {
+	  tmp = 1/(1+exp(athb));
+  } else {
+	  const double gg = antilogit(param[numDims+1]);
+	  const double uu = antilogit(param[numDims+2]);
+	  tmp = gg + (uu-gg) / (1 + exp(athb));
+  }
   out[0] = 1-tmp;
   out[1] = tmp;
 }
@@ -170,15 +182,17 @@ irt_rpf_mdim_drm_prob2(const double *spec,
   int numDims = spec[RPF_ISpecDims];
   double dprod = dotprod(param, th, numDims);
   double diff = param[numDims];
-  const double gg = antilogit(param[numDims+1]);
-  const double uu = antilogit(param[numDims+2]);
   double athb = -(dprod + diff);
   if (athb < -EXP_STABLE_DOMAIN) athb = -EXP_STABLE_DOMAIN;
   else if (athb > EXP_STABLE_DOMAIN) athb = EXP_STABLE_DOMAIN;
   double tmp = 1 / (1 + exp(athb));
   out1[0] = 1-tmp;
   out1[1] = tmp;
-  tmp = gg + (uu-gg) * tmp;
+  if (numDims) {
+	  const double gg = antilogit(param[numDims+1]);
+	  const double uu = antilogit(param[numDims+2]);
+	  tmp = gg + (uu-gg) * tmp;
+  }
   out2[0] = 1-tmp;
   out2[1] = tmp;
 }
@@ -190,17 +204,6 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
 		       const double *weight, double *out)
 {
   const int numDims = spec[RPF_ISpecDims];
-  const double expgg = param[numDims+1];
-  const double expuu = param[numDims+2];
-  const double gg = antilogit(expgg);
-  const double uu = antilogit(expuu);
-  const double difexpgg = gg * (1-gg);
-  const double difexpuu = uu * (1-uu);
-  const double gm1 = (1.0 - gg);
-  const double um1 = (1.0 - uu);
-  const double u_1u = uu * um1;
-  const double g_1g = gg * gm1;
-  const double ugD = (uu-gg);
   double QP[2];
   double QPstar[2];
   irt_rpf_mdim_drm_prob2(spec, param, where, QPstar, QP);
@@ -215,6 +218,26 @@ irt_rpf_mdim_drm_deriv1(const double *spec,
   const double Pstar2 = Pstar * Pstar;
   const double Pstar3 = Pstar2 * Pstar;
   const double Qstar = QPstar[0];
+  if (numDims == 0) {
+	  out[0] -= Pstar * Qstar * r1_Pr2_Q;
+	  double chunk1 = (Pstar - Pstar2);
+	  out[1] -= (r1_P * ((Pstar - 3*Pstar2 + 2*Pstar3)) -
+		     r1_P2 * chunk1*chunk1 +
+		     r2_Q * ((-Pstar + 3*Pstar2 - 2*Pstar3)) -
+		     r2_Q2 * chunk1*chunk1);   // cc^2
+	  return;
+  }
+  const double expgg = param[numDims+1];
+  const double expuu = param[numDims+2];
+  const double gg = antilogit(expgg);
+  const double uu = antilogit(expuu);
+  const double difexpgg = gg * (1-gg);
+  const double difexpuu = uu * (1-uu);
+  const double gm1 = (1.0 - gg);
+  const double um1 = (1.0 - uu);
+  const double u_1u = uu * um1;
+  const double g_1g = gg * gm1;
+  const double ugD = (uu-gg);
   for (int dx=0; dx < numDims; dx++) {
     out[dx] -= where[dx] * Pstar * Qstar * ugD * r1_Pr2_Q;
   }
@@ -288,6 +311,7 @@ irt_rpf_mdim_drm_deriv2(const double *spec,
 			double *out)
 {
   int numDims = spec[RPF_ISpecDims];
+  if (numDims == 0) return;
   const double *aa = param;
   double gg = param[numDims+1];
   double uu = param[numDims+2];
@@ -611,7 +635,14 @@ irt_rpf_nominal_numSpec(const double *spec)
 
 static int
 irt_rpf_nominal_numParam(const double *spec)
-{ return spec[RPF_ISpecDims] + 2 * (spec[RPF_ISpecOutcomes]-1); }
+{
+	int dims = spec[RPF_ISpecDims];
+	if (dims == 0) {
+		return spec[RPF_ISpecOutcomes]-1;
+	} else {
+		return dims + 2 * (spec[RPF_ISpecOutcomes]-1);
+	}
+}
 
 
 static void
@@ -622,6 +653,10 @@ irt_rpf_nominal_paramInfo(const double *spec, const int param,
 	const int numOutcomes = spec[RPF_ISpecOutcomes];
 	*upper = nan("unset");
 	*lower = nan("unset");
+	if (numDims == 0) {
+		*type = "intercept";
+		return;
+	}
 	*type = NULL;
 	if (param >= 0 && param < numDims) {
 		*type = "slope";
@@ -641,7 +676,13 @@ _nominal_rawprob1(const double *spec,
   int numDims = spec[RPF_ISpecDims];
   int numOutcomes = spec[RPF_ISpecOutcomes];
   const double *alpha = param + numDims;
-  const double *gamma = param + numDims + numOutcomes - 1;
+  const double *gamma;
+  if (numDims == 0) {
+	  // alpha doesn't matter
+	  gamma = param + numDims;
+  } else {
+	  gamma = param + numDims + numOutcomes - 1;
+  }
   const double *Ta = spec + RPF_ISpecCount;
   const double *Tc = spec + RPF_ISpecCount + (numOutcomes-1) * (numOutcomes-1);
 
@@ -818,16 +859,24 @@ irt_rpf_nominal_deriv1(const double *spec,
     }
     out[jx] -= tmpvec;
   }
+  int dkoffset;
+  if (nfact == 0) {
+	  dkoffset = 0;
+  } else {
+	  dkoffset = ncat - 1;
+  }
   for(int i = 1; i < ncat; i++) {
-    double offterm = makeOffterm(weight, P[i], aTheta, ncat, i);
+	  if (nfact) {
+		  double offterm = makeOffterm(weight, P[i], aTheta, ncat, i);
+		  double tmpvec = dat_num[i] * (aTheta * P[i] - P2[i] * aTheta) * numsum - offterm;
+		  out[nfact + i - 1] -= tmpvec;
+	  }
     double offterm2 = makeOffterm(weight, P[i], 1, ncat, i);
-    double tmpvec = dat_num[i] * (aTheta * P[i] - P2[i] * aTheta) * numsum - offterm;
     double tmpvec2 = dat_num[i] * (P[i] - P2[i]) * numsum - offterm2;
-    out[nfact + i - 1] -= tmpvec;
-    out[nfact + ncat + i - 2] -= tmpvec2;
+    out[nfact + dkoffset + i - 1] -= tmpvec2;
   }
 
-  int hessbase = nfact + (ncat-1)*2;
+  int hessbase = nfact + (ncat-1) + dkoffset;
   int d2ind = 0;
   //a's
   for (int j = 0; j < nfact; j++) {
@@ -884,7 +933,7 @@ irt_rpf_nominal_deriv1(const double *spec,
   //ak's and d's
   for(int j = 1; j < ncat; j++){
     int akrow = hessbase + (nfact+j)*(nfact+j-1)/2;
-    int dkrow = hessbase + (nfact+ncat+j-1)*(nfact+ncat+j-2)/2;
+    int dkrow = hessbase + (nfact+dkoffset+j)*(nfact+dkoffset+j-1)/2;
 
     double tmpvec = makeOffterm(weight, P2[j], aTheta2, ncat, j);
     double tmpvec2 = makeOffterm(weight, P[j], aTheta2, ncat, j);
@@ -893,28 +942,33 @@ irt_rpf_nominal_deriv1(const double *spec,
     tmpvec2 = makeOffterm(weight, P[j], 1, ncat, j);
     double offterm2 = tmpvec - tmpvec2;
 
-    out[akrow + nfact + j - 1] -=
-      (dat_num[j]*(aTheta2*P[j] - 3*aTheta2*P2[j] +
-			  2*aTheta2*P3[j])*numsum - weight[j]/num[j] *
-	      (aTheta*P[j] - aTheta*P2[j])*numsum*aTheta + weight[j] *
-	      (aTheta*P[j] - aTheta*P2[j])*aTheta + offterm);
+    if (nfact) {
+	    out[akrow + nfact + j - 1] -=
+		    (dat_num[j]*(aTheta2*P[j] - 3*aTheta2*P2[j] +
+				 2*aTheta2*P3[j])*numsum - weight[j]/num[j] *
+		     (aTheta*P[j] - aTheta*P2[j])*numsum*aTheta + weight[j] *
+		     (aTheta*P[j] - aTheta*P2[j])*aTheta + offterm);
+    }
 
-    out[dkrow + nfact + ncat + j - 2] -=
+    out[dkrow + nfact + dkoffset + j - 1] -=
       (dat_num[j]*(P[j] - 3*P2[j] + 2*P3[j])*numsum - weight[j]/num[j] *
 	      (P[j] - P2[j])*numsum + weight[j] *
 	      (P[j] - P2[j]) + offterm2);
 
     for(int i = 1; i < ncat; i++) {
       if(j > i) {
-	offterm = makeOffterm2(weight, P[j], P[i], aTheta2, ncat, i);
+	      if (nfact) {
+		      offterm = makeOffterm2(weight, P[j], P[i], aTheta2, ncat, i);
+		      tmpvec = dat_num[i] * (-aTheta2*P[i]*P[j] + 2*P2[i] *aTheta2*P[j])*numsum + 
+			      dat_num[i] * (aTheta*P[i] - P2[i] * aTheta)*aTheta*num[j]+offterm;
+		      out[akrow + nfact + i - 1] -= tmpvec;
+	      }
 	offterm2 = makeOffterm2(weight, P[j], P[i], 1, ncat, i);
-	tmpvec = dat_num[i] * (-aTheta2*P[i]*P[j] + 2*P2[i] *aTheta2*P[j])*numsum + 
-	  dat_num[i] * (aTheta*P[i] - P2[i] * aTheta)*aTheta*num[j]+offterm;
 	tmpvec2 = dat_num[i] * (-P[i]*P[j] + 2*P2[i] *P[j]) * numsum +
 	  dat_num[i] * (P[i] - P2[i]) * num[j] + offterm2;
-	out[akrow + nfact + i - 1] -= tmpvec;
-	out[dkrow + nfact + ncat + i - 2] -= tmpvec2;
+	out[dkrow + nfact + dkoffset + i - 1] -= tmpvec2;
       }
+      if (nfact == 0) continue;
       if (abs(j-i) == 0) {
 	tmpvec = makeOffterm(weight, P2[i], aTheta, ncat, i);
 	tmpvec2 = makeOffterm(weight, P[i], aTheta, ncat, i);
@@ -950,6 +1004,9 @@ irt_rpf_nominal_deriv2(const double *spec,
     }
   }
 
+  int ckoffset = nzeta;
+  if (nfact == 0) ckoffset = 0;
+
   const double *Ta = spec + RPF_ISpecCount;
   const double *Tc = spec + RPF_ISpecCount + nzeta * nzeta;
   const int numParam = irt_rpf_nominal_numParam(spec);
@@ -963,16 +1020,17 @@ irt_rpf_nominal_deriv2(const double *spec,
     for (int kx=0; kx < nzeta; kx++) {
       int Tcell = tx * nzeta + kx;
       ak1 += rawOut[nfact + kx] * Ta[Tcell];
-      ck1 += rawOut[nfact + nzeta + kx] * Tc[Tcell];
+      ck1 += rawOut[nfact + ckoffset + kx] * Tc[Tcell];
     }
     out[nfact + tx] = ak1;
-    out[nfact + nzeta + tx] = ck1;
+    out[nfact + ckoffset + tx] = ck1;
   }
 
   // don't need to transform the main a parameters TODO
   double *dmat = Realloc(NULL, 3 * numParam * numParam, double);
   const int hsize = hessianIndex(0, numParam-1, numParam-1);
   {
+	  // unpack triangular storage into a full matrix
     int row=0;
     int col=0;
     for (int dx=0; dx <= hsize; dx++) {
@@ -994,7 +1052,7 @@ irt_rpf_nominal_deriv2(const double *spec,
   for (int rx=0; rx < nzeta; rx++) {
     for (int cx=0; cx < nzeta; cx++) {
       tmat[(cx + nfact)*numParam + nfact + rx] = Ta[rx * nzeta + cx];
-      tmat[(cx + nfact + nzeta)*numParam + nfact + nzeta + rx] = Tc[rx * nzeta + cx];
+      tmat[(cx + nfact + ckoffset)*numParam + nfact + ckoffset + rx] = Tc[rx * nzeta + cx];
     }
   }
 
