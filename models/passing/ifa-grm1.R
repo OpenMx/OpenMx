@@ -58,9 +58,7 @@ m2 <- mxModel(m2,
 				  
 m2 <- mxRun(m2)
 
-grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$item$values,
-            data=data)
+grp <- as.IFAgroup(m2)
 
 if (0) {
   # only includes rows without missingness!

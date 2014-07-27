@@ -85,11 +85,7 @@ got <- cor(c(m2$matrices$item$values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
 
-grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$item$values,
-            data=data,
-            free=m2$item$free,
-            qpoints=31)
+grp <- as.IFAgroup(m2)
 
 scores <- EAPscores(grp)
 omxCheckIdentical(colnames(scores)[1], "f1")

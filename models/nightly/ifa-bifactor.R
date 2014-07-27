@@ -100,9 +100,7 @@ mask <- is.finite(correct.mat)
 got <- cor(c(m1$matrices$item$values[mask]), c(correct.mat[mask]))
 omxCheckCloseEnough(got, .977, .01) 
 
-grp <- list(spec=m1$expectation$ItemSpec,
-            param=m1$item$values,
-            data=data)
+grp <- as.IFAgroup(m1)
 
 scores <- EAPscores(grp)
 omxCheckCloseEnough(cor(c(scores[,1]), c(theta[1,])), .758, .01)

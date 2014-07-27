@@ -153,8 +153,4 @@ omxCheckCloseEnough(emstat$EMcycles, 70, 2)
 omxCheckCloseEnough(emstat$totalMstep, 222, 10)
 }
 
-grp1 <- list(spec=grpModel$submodels$g1$expectation$ItemSpec,
-            param=grpModel$submodels$g1$item$values,
-            mean=grpModel$submodels$g1$mean$values,
-            cov=grpModel$submodels$g1$cov$values,
-            data=grpModel$submodels$g1$data$observed)
+grp1 <- as.IFAgroup(grpModel$g1)

@@ -391,27 +391,15 @@ are at a candidate global optimum. We can examine the standard errors.
 Further diagnostics are available from the `RPF package <http://cran.r-project.org/web/packages/rpf/index.html>`_.
 Many of these
 diagnostic functions are most convenient to use when all the relevant
-information is packaged up into an IFA group object. An IFA group is
-not an object in the usual R sense, but you can think of it like an
-object. The problem with R objects is that they are a little
-mysterious. IFA groups are deliberately designed as simple lists to
-eliminate the mystery and encourage interoperability between IFA
-software.
+information is packaged up into an IFA group object.
+A convenient way to create an IFA group object is to use ``as.IFAgroup``.
 
 .. code-block:: r
 
-   panas1Grp <- list(spec=panas1$expectation$ItemSpec,
-            param=panas1$item$values,
-            data=origData)
+   panas1Grp <- as.IFAgroup(panas1)
 
-Note that we used ``origData`` instead of ``panas1$data$observed``.
-That is because the observed data in the model has been sorted by ``mxRun``.
-Later on, when we compute EAP scores,
-we want the scores come back in the original row order, not the sorted order.
-When we analyze the data and scores together, obviously, the orders must match.
-
-We know from inspection of the likelihood that an assumption of
-IFA models is that items are conditionally
+We know from inspection of the likelihood equation that
+IFA models assume that items are conditionally
 independent. That is, the outcome on a given item only depends on its
 item parameters and examinee skill, not on the outcome of other items.
 At least some attempt should be made to check this assumption.
@@ -540,10 +528,7 @@ S test [OrlandoThissen2000]_.
 
 .. code-block:: r
 
-   panas2Grp <- list(spec=panas2$expectation$ItemSpec,
-            param=panas2$item$values,
-            data=origData,
-	    free=panas2$item$free)
+   panas2Grp <- as.IFAgroup(panas2)
    SitemFit(panas2Grp)
 
 ..
@@ -588,8 +573,6 @@ S test [OrlandoThissen2000]_.
 	    interesting plot is because the plot is 2 dimensional
 	    regardless of the number of latent factors.
 
-The additional ``free`` logical matrix is included in the group for
-a degrees of freedom adjustment to the test.
 The internal tables of ``SitemFit`` can easily be plotted (:num:`Figure #figure-splot`).
 Sometimes it is easier to diagnose the source of misfit
 by examining such a plot than by inspection of large tables of probabilities.
@@ -935,10 +918,11 @@ to ``mxExpectationBA81``.
    e1Grp <- list(spec=panas2Grp$spec,
               param=panas2Grp$param,
               data=data)
+   e1Grp <- panas2Grp
+   e1Grp$data <- data
    s1 <- EAPscores(e1Grp)[,1]  #wrong
 
-   e1Grp$mean <- e1Model$panas$mean$values
-   e1Grp$cov <- e1Model$panas$cov$values
+   e1Grp <- as.IFAgroup(e1Model$panas)
    s2 <- EAPscores(e1Grp)[,1]  #correct
 
 ..
@@ -952,11 +936,12 @@ to ``mxExpectationBA81``.
    print(pl)
    dev.off()
 
-When you create an ``e1Grp`` for further analysis or diagnostics,
-take care to include the estimated latent distribution.
-If you omit the latent distribution then downstream analyses
-will be wrong.
-For example, examine the change in EAP scores with and without
+It is instructive to see what happens when
+an ``e1Grp`` object is created that omits
+the estimated latent distribution.
+Without an explicit latent distribution,
+the standard Normal is assumed.
+Examine the change in EAP scores with and without
 the estimated latent distribution (:num:`Figure #figure-eap-latent`).
 
 Two-Tier Latent Covariance

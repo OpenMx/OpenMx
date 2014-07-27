@@ -11,14 +11,9 @@ compute.factored.ll <- function(m, obs) {
   # Factored form of the complete data likelihood
   # Equation 8 from Cai (2010, p. 37)
   
-	spec <- m$expectation$ItemSpec
-	ip <- m$item$values
-	grp <- list(spec=spec,
-		    param=ip,
-		    mean=m$mean$values,
-		    cov=m$cov$values,
-		    data=obs)
-	
+	grp <- as.IFAgroup(m, obs)
+	spec <- grp$spec
+	ip <- grp$param
 	sc <- EAPscores(grp)
 	scores <- as.matrix(sc[,1:2])
   

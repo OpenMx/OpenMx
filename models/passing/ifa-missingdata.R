@@ -88,10 +88,7 @@ m2 <- mxModel(model="test3", ip.mat,
 # m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
-grp <- list(spec=m2$expectation$ItemSpec,
-            param=m2$item$values,
-            data=data,
-            free=m2$item$free)
+grp <- as.IFAgroup(m2)
 
 if (0) {
   # only includes rows without missingness!
