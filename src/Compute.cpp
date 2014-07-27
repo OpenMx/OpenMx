@@ -1644,18 +1644,19 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 				if (semMethodLen == 0) {
 					semMethod = AgileSEM;
 					semMethodData = NULL;
-				} else {
+				} else if (Rf_isReal(slotValue)) {
 					semMethodData = REAL(slotValue);
-					if (semMethodLen > 1) {
-						semMethod = GridSEM;
-					} else if (semMethodData[0] == 1) {
+					semMethod = GridSEM;
+				} else if (Rf_isString(slotValue)) {
+					const char *methodName = CHAR(Rf_asChar(slotValue));
+					if (strEQ(methodName, "mr")) {
 						semMethod = ClassicSEM;
-					} else if (semMethodData[0] == 2) {
+					} else if (strEQ(methodName, "tian")) {
 						semMethod = TianSEM;
-					} else if (semMethodData[0] == 3) {
+					} else if (strEQ(methodName, "agile")) {
 						semMethod = AgileSEM;
 					} else {
-						Rf_error("Unknown SEM method %f", semMethodData[0]);
+						Rf_error("Unknown SEM method '%s'", methodName);
 					}
 				}
 			} else if (strEQ(key, "agileMaxIter")) {
