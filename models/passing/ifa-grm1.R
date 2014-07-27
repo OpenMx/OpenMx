@@ -118,13 +118,13 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
           0.115, 0.097, 0.104, 0.125,  0.098, 0.099, 0.104, 0.107, 0.111, 0.139, 0.156, 0.11)
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
 
+nullspec <- lapply(spec, rpf.modify, 0)
 nullm2 <- mxModel(m2,
-              mxExpectationBA81(ItemSpec=spec),
-              mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
-
-nullm2$item$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam))
-nullm2$item$values['f1',] <- 0
-nullm2$item$free['f1',] <- FALSE
+		  mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)),
+               dimnames=list(NULL, colnames(data))),
+		  mxExpectationBA81(ItemSpec=nullspec),
+		  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), maxIter = 1L))
+nullm2$item$free <- !is.na(nullm2$item$values)
 
 nullm2 <- mxRun(nullm2)
 omxCheckCloseEnough(nullm2$output$fit, 14810.21, .01)

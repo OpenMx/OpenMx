@@ -308,6 +308,11 @@ void ifaGroup::learnMaxAbilities()
 		}
 	}
 	maxAbilities = (loadings != 0).count();
+	if (maxItemDims != maxAbilities) {
+		for (int lx=0; lx < maxItemDims; ++lx) {
+			if (loadings[lx] == 0) Rf_error("Factor %d does not load on any items", 1+lx);
+		}
+	}
 }
 
 void ifaGroup::import(SEXP Rlist)

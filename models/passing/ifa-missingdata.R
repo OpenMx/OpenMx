@@ -123,13 +123,12 @@ if (0) {
   # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
 }
 
+nullspec <- lapply(items, rpf.modify, 0)
 nullm2 <- mxModel(m2,
-                  mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
-                  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
-
-nullm2$item$values[,] <- mxSimplify2Array(lapply(items, rpf.rparam))
-nullm2$item$values['f1',] <- 0
-nullm2$item$free['f1',] <- FALSE
+		  mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)),
+  			   free=TRUE, dimnames=list(NULL, colnames(data))),
+                  mxExpectationBA81(nullspec, minItemsPerScore=1L),
+                  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), maxIter=1L))
 
 nullm2 <- mxRun(nullm2)
 omxCheckCloseEnough(nullm2$output$fit, 2926.20, .01)

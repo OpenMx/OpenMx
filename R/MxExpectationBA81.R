@@ -77,7 +77,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  fnames <- dimnames(flatModel[[.Object@cov]])[[1]]
 
 		  item <- flatModel@matrices[[.Object@item]]
-		  if (is.null(rownames(item)) || any(rownames(item)[1:length(fnames)] != fnames)) {
+		  if (length(fnames) && (is.null(rownames(item)) || any(rownames(item)[1:length(fnames)] != fnames))) {
 			  msg <- paste("The first", length(fnames), "rownames of item",
 				       "must be", omxQuotes(fnames))
 			  stop(msg)
