@@ -65,15 +65,20 @@ omxCheckCloseEnough(solve(testDeriv$output$hessian), testDeriv$output$ihessian, 
 
 m2 <- mxModel(m2,
               mxExpectationBA81(ItemSpec=items, qpoints=31),
-	      mxComputeEM('expectation', 'scores',
-	                  mxComputeNewtonRaphson()))
+	      mxComputeSequence(list(
+		  mxComputeEM('expectation', 'scores',
+	                  mxComputeNewtonRaphson()),
+		  mxComputeOnce('fitfunction', 'gradient'),
+		  mxComputeReportDeriv())))
 
 # 	m2 <- mxOption(m2, "Analytic Gradients", 'Yes')
 # 	m2 <- mxOption(m2, "Verify level", '-1')
 # m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
-emstat <- m2$compute$output
+omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .033)
+
+emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 12, 1)
 omxCheckCloseEnough(emstat$totalMstep, 33, 5)
 omxCheckCloseEnough(m2$output$evaluations, 66, 5)

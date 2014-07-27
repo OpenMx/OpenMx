@@ -49,14 +49,18 @@ omxCheckCloseEnough(max(abs(solve(testDeriv$output$hessian) - testDeriv$output$i
 plan <- mxComputeSequence(list(mxComputeEM('expectation', 'scores',
                                            mxComputeNewtonRaphson()),
                                mxComputeOnce('fitfunction', 'information', "meat"),
+                               mxComputeOnce('fitfunction', 'gradient'),
                                mxComputeHessianQuality(),
-                               mxComputeStandardError()))
+                               mxComputeStandardError(),
+                               mxComputeReportDeriv()))
 
 m2 <- mxModel(m2,
               mxExpectationBA81(ItemSpec=spec, qpoints=31),
 	      plan)
 				  
 m2 <- mxRun(m2)
+
+omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .0195)
 
 grp <- as.IFAgroup(m2)
 

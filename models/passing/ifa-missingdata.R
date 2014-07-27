@@ -74,8 +74,10 @@ if (1) {
   omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 1667, .1)
 }
 
-plan <- mxComputeEM('expectation', 'scores',
-                    mxComputeNewtonRaphson())
+plan <- mxComputeSequence(list(
+  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()),
+  mxComputeOnce('fitfunction', 'gradient'),
+  mxComputeReportDeriv()))
 
 m2 <- mxModel(model="test3", ip.mat,
               mxData(observed=data, type="raw"),
@@ -88,6 +90,8 @@ m2 <- mxModel(model="test3", ip.mat,
 # m2 <- mxOption(m2, "Function precision", '1.0E-5')
 m2 <- mxRun(m2)
 
+omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .028)
+
 grp <- as.IFAgroup(m2)
 
 if (0) {
@@ -98,7 +102,7 @@ if (0) {
   sapply(got, function (r) r$pval)
 }
 
-emstat <- m2$compute$output
+emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 32, 1)
 omxCheckCloseEnough(emstat$totalMstep, 87, 5)
 omxCheckCloseEnough(m2$output$evaluations, 169, 5)

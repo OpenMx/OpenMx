@@ -126,7 +126,9 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                                   information="mr1991", tolerance=1e-5, verbose=0L,
 				  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
                       mxComputeStandardError(),
-                      mxComputeHessianQuality())))
+                      mxComputeHessianQuality(),
+                    mxComputeOnce('fitfunction', 'gradient'),
+                   mxComputeReportDeriv())))
 
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
   
@@ -166,6 +168,8 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
 if (0) {
   plot_em_map(grpModel, grpModel$compute)
 }
+
+omxCheckCloseEnough(max(abs(grpModel$output$gradient)), 0, .17)
 
 omxCheckCloseEnough(grpModel$output$fit, 30114.94, .02)
 omxCheckCloseEnough(AIC(logLik(grpModel)), 30202.95, .02)
