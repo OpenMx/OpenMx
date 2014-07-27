@@ -2185,6 +2185,9 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 			expectations.push_back(expectation);
 		}
 	}
+	if (algebras.size() && expectations.size()) {
+		Rf_error("MxComputeOnce cannot evaluate expectations and fitfunctions at the same time");
+	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
@@ -2246,8 +2249,15 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		omxRaiseErrorf("mxComputeOnce: when how is specified, you can only compute one thing at a time");
 	}
 
-	if (algebras.size() == 1 && algebras[0]->fitFunction) {
-		omxFitFunction *ff = algebras[0]->fitFunction;
+	for (int ax=0; ax < (int) algebras.size(); ++ax) {
+		omxFitFunction *ff = algebras[ax]->fitFunction;
+		if (!ff) {
+			if (mac || starting || gradient || hessian || infoMat || ihessian) {
+				Rf_error("Only fit is available from MxAlgebra");
+			}
+			continue;
+		}
+
 		if (gradient && !ff->gradientAvailable) {
 			Rf_error("Gradient requested but not available");
 		}
@@ -2319,10 +2329,11 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
-	if (algebras.size()==0 || algebras[0]->fitFunction == NULL) return;
-
-	omxMatrix *algebra = algebras[0];
-	omxPopulateFitFunction(algebra, out);
+	for (size_t ax=0; ax < algebras.size(); ++ax) {
+		omxFitFunction *ff = algebras[ax]->fitFunction;
+		if (!ff) continue;
+		omxPopulateFitFunction(algebras[ax], out);
+	}
 }
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)

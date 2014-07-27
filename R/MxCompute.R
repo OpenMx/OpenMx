@@ -157,9 +157,6 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 					# Usually negative numbers indicate matrices; not here
 				.Object@from <- - expNum
 			} else {
-				if (any(algNum > length(flatModel@algebras)) && length(algNum) > 1) {
-					stop("MxComputeOnce cannot evaluate more than 1 fit function")
-				}
 				.Object@from <- algNum - 1L
 			}
 		}
