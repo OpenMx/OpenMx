@@ -211,7 +211,8 @@ runHelper <- function(model, frontendStart,
 		backendElapsed, indepElapsed, frontendStop, independents)
 	processErrorConditions(model, unsafe, suppressWarnings)
 
-	model@.modifiedSinceRun <- FALSE
+	model <- clearModifiedSinceRunRecursive(model)
+
 	return(model)		
 }
 

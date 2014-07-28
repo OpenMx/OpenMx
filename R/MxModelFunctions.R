@@ -305,6 +305,14 @@ updateModelEntitiesHelper <- function(entNames, values, model) {
     return(model)
 }
 
+clearModifiedSinceRunRecursive <- function(model) {
+	if (length(model@submodels) > 0) {
+		model@submodels <- lapply(model@submodels, clearModifiedSinceRunRecursive)
+	}
+	model@.modifiedSinceRun <- FALSE
+	model
+}
+
 ##' imxLocateIndex
 ##'
 ##' This is an internal function exported for those people who know
