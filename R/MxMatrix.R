@@ -549,6 +549,11 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 }
 
 matchDefinitionVariable <- function(parameterName, defNames) {
+	# defNames are of the form paste(modelname,"data",colname, sep=".")
+	# With many datasets, defNames could be very large.
+	# It is worth a quick check to avoid searching it if possible.
+	if (length(grep(".data.", parameterName, fixed=TRUE)) == 0) return()
+
 	if (hasSquareBrackets(parameterName)) {
 		components <- splitSubstitution(parameterName)
 		matched <- match(components[2:3], defNames)
