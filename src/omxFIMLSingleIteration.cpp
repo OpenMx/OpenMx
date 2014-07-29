@@ -512,10 +512,13 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     			if(OMX_DEBUG) { 
     			    mxLog("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d).  Offset is %f and weight is %f",
     			            row, count, j, value, lThresh[count], uThresh[count], Infin[count], offset, weight);
+			    if (0) {
+				    // This diagnostic triggers an omxMatrixElement by models/passing/JointFIMLTest.R
     			    mxLog("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.",
     			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
     			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
                             weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
+			    }
     			}
                 count++;
     		}

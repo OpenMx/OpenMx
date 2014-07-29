@@ -266,7 +266,6 @@ nVars <- dim(cov1)[1]
 set.seed(1234)
 continuousData1 <- data.frame(matrix(mvrnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
 continuousData1[,nVars] <- as.numeric(NA)
-continuousData1[,nVars] <- mxFactor(continuousData1[,nVars], levels=c(1, 2))
 names(continuousData1) <- cNames1
 
 
