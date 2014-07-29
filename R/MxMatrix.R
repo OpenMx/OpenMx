@@ -551,11 +551,12 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 matchDefinitionVariable <- function(parameterName, defNames) {
 	if (hasSquareBrackets(parameterName)) {
 		components <- splitSubstitution(parameterName)
-		if (components[[2]] %in% defNames && components[[3]] %in% defNames) {
+		matched <- match(components[2:3], defNames)
+		if (all(!is.na(matched))) {
 			return(c(components[[2]], components[[3]]))
-		} else if (components[[2]] %in% defNames) {
+		} else if (!is.na(matched[1])) {
 			return(components[[2]])
-		} else if (components[[3]] %in% defNames) {
+		} else if (!is.na(matched[2])) {
 			return(components[[3]])
 		} else {
 			return(c())
