@@ -37,8 +37,9 @@ setMethod("imxTypeName", "MxRAMModel",
 setMethod("imxInitModel", "MxRAMModel", 
 	function(model) {
 		if (any(!is.na(match(model@name, c('A','S','F','M'))))) {
-			stop(paste(omxQuotes(model@name), "is not a valid model name",
-				   "for a type='RAM' model"))
+			stop(paste("The name", omxQuotes(model@name), "is not valid",
+				   "for a type='RAM' model:\n Pick something other than ",
+				   "reserved names ", omxQuotes(c('A','S','F','M'))))
 		}
 		if (is.null(model[['A']])) {
 			model[['A']] <- createMatrixA(model)
