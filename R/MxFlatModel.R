@@ -39,18 +39,8 @@ setClass(Class = "MxFlatModel",
 	contains = "MxModel")
 	
 setMethod("initialize", "MxFlatModel",
-	function(.Object, model, expectations, fitfunctions, datasets) {
-		modelSlotNames <- slotNames(model)
-		for(i in 1:length(modelSlotNames)) {
-			name <- modelSlotNames[[i]]
-			slot(.Object, name) <- slot(model, name)
-		}
-		.Object@expectations <- expectations
-		.Object@fitfunctions <- fitfunctions
-		.Object@datasets <- datasets
-		.Object@constMatrices <- list()
-		.Object@freeMatrices <- list()
-		.Object@parameters <- list()
+	function(.Object, model) {
+		.Object@name <- model@name
 		return(.Object)
 	}
 )

@@ -93,7 +93,7 @@ imxFreezeModel <- function(model) {
 ##' @param model model
 ##' @param namespace namespace
 imxFlattenModel <- function(model, namespace) {
-	flatModel <- new("MxFlatModel", model, list(), list(), list())
+	flatModel <- new("MxFlatModel", model)
 	name <- model@name
 	flatModel@fitfunction <- safeQualifyNames(model@fitfunction, name, namespace)
 	flatModel@expectation <- safeQualifyNames(model@expectation, name, namespace)
