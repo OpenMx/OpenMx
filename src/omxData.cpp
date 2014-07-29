@@ -79,9 +79,11 @@ void omxData::newDataStatic(SEXP dataObject)
 	Rf_protect(dataVal = STRING_ELT(dataLoc,0));
 	od->_type = CHAR(dataVal);
 	if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
+	Rf_unprotect(2);	// dataLoc DataVol
 
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install(".isSorted")));
 	od->isSorted = Rf_asLogical(dataLoc);
+	Rf_unprotect(1);	// dataLoc
 
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
@@ -134,6 +136,7 @@ void omxData::newDataStatic(SEXP dataObject)
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("means")));
 	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	Rf_unprotect(1);  // dataLoc
 	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
@@ -152,6 +155,7 @@ void omxData::newDataStatic(SEXP dataObject)
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("acov")));
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	Rf_unprotect(1);  //dataLoc
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
@@ -162,6 +166,7 @@ void omxData::newDataStatic(SEXP dataObject)
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("thresholds")));
 	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	Rf_unprotect(1);  //dataLoc
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
 	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
 	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
@@ -173,8 +178,12 @@ void omxData::newDataStatic(SEXP dataObject)
 		od->thresholdCols = (omxThresholdColumn*) R_alloc(nCol, sizeof(omxThresholdColumn));
         Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("thresholdColumns")));
         int *columns = INTEGER(dataLoc);
+	Rf_unprotect(1);  //dataLoc
+
         Rf_protect(dataVal = R_do_slot(dataObject, Rf_install("thresholdLevels")));
         int *levels = INTEGER(dataVal);
+	Rf_unprotect(1);  //dataVal
+
         for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
             od->thresholdCols[i].matrix = od->obsThresholdsMat;
             od->thresholdCols[i].column = columns[i];
@@ -191,6 +200,7 @@ void omxData::newDataStatic(SEXP dataObject)
 		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("numObs")));
 		od->numObs = REAL(dataLoc)[0];
+		Rf_unprotect(1); //dataLoc
 	} else {
 		od->numObs = od->rows;
 		if(OMX_DEBUG) {mxLog("Processing presort metadata.");}
@@ -198,19 +208,26 @@ void omxData::newDataStatic(SEXP dataObject)
 		// Process unsorted indices:  // TODO: Generate reverse lookup table
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("indexVector")));
 		od->indexVector = INTEGER(dataLoc);
+		Rf_unprotect(1); //dataLoc
 		if(Rf_length(dataLoc) == 0 || od->indexVector[0] == R_NaInt) od->indexVector = NULL;
+
 		// Process pre-computed identicality checks
 		if(OMX_DEBUG) {mxLog("Processing definition variable identicality.");}
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("identicalDefVars")));
 		od->identicalDefs = INTEGER(dataLoc);
+		Rf_unprotect(1); //dataLoc
+
 		if(Rf_length(dataLoc) == 0 || od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
 		if(OMX_DEBUG) {mxLog("Processing missingness identicality.");}
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("identicalMissingness")));
 		od->identicalMissingness = INTEGER(dataLoc);
+		Rf_unprotect(1); //dataLoc
+
 		if(Rf_length(dataLoc) == 0 || od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
 		if(OMX_DEBUG) {mxLog("Processing row identicality.");}
 		Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("identicalRows")));
 		od->identicalRows = INTEGER(dataLoc);
+		Rf_unprotect(1); //dataLoc
 		if(Rf_length(dataLoc) == 0 || od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
 }
@@ -224,6 +241,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject)
 	SEXP DataClass;
 	Rf_protect(DataClass = STRING_ELT(Rf_getAttrib(dataObject, Rf_install("class")), 0));
 	const char* dclass = CHAR(DataClass);
+	Rf_unprotect(1);	// DataClass
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData;
 	globalState->dataList.push_back(od);

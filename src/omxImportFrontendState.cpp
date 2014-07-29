@@ -41,6 +41,7 @@ void omxProcessMxDataEntities(SEXP data) {
 	for(int index = 0; index < Rf_length(data); index++) {
 		Rf_protect(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc);
+		Rf_unprotect(1);	// nextLoc
 	}
 }
 

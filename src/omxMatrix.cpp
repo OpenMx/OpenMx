@@ -409,12 +409,14 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 			for (int nx=0; nx < nlen; ++nx) {
 				om->rownames[nx] = CHAR(STRING_ELT(names, nx));
 			}
+			Rf_unprotect(1); // names
 			Rf_protect(names = VECTOR_ELT(dimnames, 1));
 			nlen = Rf_length(names);
 			om->colnames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
 				om->colnames[nx] = CHAR(STRING_ELT(names, nx));
 			}
+			Rf_unprotect(1); // names
 		}
 	}
 
