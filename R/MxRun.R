@@ -115,7 +115,10 @@ runHelper <- function(model, frontendStart,
 	flatModel <- generateParameterList(flatModel, dependencies, freeVarGroups)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
-	defVars <- generateDefinitionList(flatModel, dependencies)		
+	if (length(defVars)) {
+		# We're only going to find them if we found them the first time
+		defVars <- generateDefinitionList(flatModel, dependencies)
+	}
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
