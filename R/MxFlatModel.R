@@ -97,6 +97,11 @@ flatReplaceMethod <- function(model, index, value) {
 	return(flatNamespaceSearchReplace(model, index, value))
 }
 
+# This is a dubious function. Why do we need a list of
+# locations? Better to resolve the location once we
+# find a definition variable, no? This gets called
+# regardless of whether there are any definition
+# variables in the model.
 generateDefinitionLocations <- function(datasets) {
 	nameList <- lapply(datasets, function(x) {
 		if (.hasSlot(x, 'observed')) dimnames(x@observed)[[2]]
@@ -262,7 +267,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else {
 					startVals[[label]] <- value
-					freeVars <- append(freeVars, label)
+					freeVars <- union(freeVars, label)
 					bounds[[label]] <- c(lbound, ubound)
 				}
 			} else {
@@ -288,7 +293,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"before running again."), call. = FALSE)
 				} else {
 					startVals[[label]] <- value
-					fixedVars <- append(fixedVars, label)
+					fixedVars <- union(fixedVars, label)
 				}
 			}
 			if(is.null(varlocations[[label]])) {
