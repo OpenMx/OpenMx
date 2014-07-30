@@ -346,10 +346,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxExpectationEntities(expectList);
 
-	for (int dx=0; dx < (int) globalState->dataList.size(); ++dx) {
-		globalState->dataList[dx]->connectDynamicData();
-	}
-
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxMatrixEntities(matList);
 
@@ -376,13 +372,17 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxInitialMatrixAlgebraCompute(globalState, NULL);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxComputeEntities(computeList);
-
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxExpectationEntities();
+
+	for (int dx=0; dx < (int) globalState->dataList.size(); ++dx) {
+		globalState->dataList[dx]->connectDynamicData();
+	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxCompleteMxFitFunction(algList);
+
+	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	omxProcessMxComputeEntities(computeList);
 
 	FitContext fc(startingValues);
 
