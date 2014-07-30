@@ -89,8 +89,12 @@ class BA81Expect {
 	double *expected;                     // totalOutcomes * totalQuadPoints (E-step table)
 	bool expectedUsed;
 	int ElatentVersion;
-	omxMatrix *latentMeanOut;
-	omxMatrix *latentCovOut;
+
+	omxMatrix *_latentMeanOut;
+	omxMatrix *_latentCovOut;
+	template <typename Tmean, typename Tcov>
+	void getLatentDistribution(Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov);
+
 	omxMatrix *estLatentMean;
 	omxMatrix *estLatentCov;
 	omxMatrix *numObsMat; // this is dumb
@@ -104,6 +108,24 @@ class BA81Expect {
 
 	BA81Expect() : grp(Global->numThreads, true) {};
 };
+
+template <typename Tmean, typename Tcov>
+void BA81Expect::getLatentDistribution(Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov)
+{
+	mean.derived().resize(grp.maxAbilities);
+	if (!_latentMeanOut) {
+		mean.setZero();
+	} else {
+		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * grp.maxAbilities);
+	}
+	
+	cov.derived().resize(grp.maxAbilities, grp.maxAbilities);
+	if (!_latentCovOut) {
+		cov.setIdentity();
+	} else {
+		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * grp.maxAbilities * grp.maxAbilities);
+	}
+}
 
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;

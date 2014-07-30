@@ -110,22 +110,26 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 	const int primaryDims = quad.primaryDims;
 
 	double *latentDist1 = latentDist.data();
-	for (int d1=0; d1 < maxAbilities; d1++) {
-		omxSetVectorElement(meanOut, d1, latentDist1[d1]);
-	}
-
-	for (int d1=0; d1 < primaryDims; d1++) {
-		int cx = maxAbilities + triangleLoc1(d1);
-		for (int d2=0; d2 <= d1; d2++) {
-			double cov = latentDist1[cx];
-			omxSetMatrixElement(covOut, d1, d2, cov);
-			if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
-			++cx;
+	if (meanOut) {
+		for (int d1=0; d1 < maxAbilities; d1++) {
+			omxSetVectorElement(meanOut, d1, latentDist1[d1]);
 		}
 	}
-	for (int d1=primaryDims; d1 < maxAbilities; d1++) {
-		int loc = maxAbilities + triangleLoc0(d1);
-		omxSetMatrixElement(covOut, d1, d1, latentDist1[loc]);
+
+	if (covOut) {
+		for (int d1=0; d1 < primaryDims; d1++) {
+			int cx = maxAbilities + triangleLoc1(d1);
+			for (int d2=0; d2 <= d1; d2++) {
+				double cov = latentDist1[cx];
+				omxSetMatrixElement(covOut, d1, d2, cov);
+				if (d1 != d2) omxSetMatrixElement(covOut, d2, d1, cov);
+				++cx;
+			}
+		}
+		for (int d1=primaryDims; d1 < maxAbilities; d1++) {
+			int loc = maxAbilities + triangleLoc0(d1);
+			omxSetMatrixElement(covOut, d1, d1, latentDist1[loc]);
+		}
 	}
 
 	++extraData->ElatentVersion;
@@ -218,8 +222,8 @@ void BA81Estep<T, CovType>::recordTable(class ifaGroup *state, T extraData)
 static int getLatentVersion(BA81Expect *state)
 {
 	int vv = 1;  // to ensure it doesn't match on the first test
-	if (state->latentMeanOut) vv += omxGetMatrixVersion(state->latentMeanOut);
-	if (state->latentCovOut) vv += omxGetMatrixVersion(state->latentCovOut);
+	if (state->_latentMeanOut) vv += omxGetMatrixVersion(state->_latentMeanOut);
+	if (state->_latentCovOut) vv += omxGetMatrixVersion(state->_latentCovOut);
 	return vv;
 }
 
@@ -232,64 +236,47 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	if (quad.Qpoint.size() == 0 && latentClean) return;
 
 	int maxAbilities = state->grp.maxAbilities;
-
-	if (state->verbose >= 1) {
-		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
-		if (state->verbose >= 2) {
-			if (state->latentMeanOut) pda(state->latentMeanOut->data, 1, maxAbilities);
-			if (state->latentCovOut)  pda(state->latentCovOut->data, maxAbilities, maxAbilities);
-		}
-	}
-
 	if (maxAbilities == 0) {
 		quad.setup0();
 		state->latentParamVersion = getLatentVersion(state);
 		return;
 	}
 
+	Eigen::VectorXd mean;
+	Eigen::MatrixXd fullCov;
+	state->getLatentDistribution(mean, fullCov);
+
+	if (state->verbose >= 1) {
+		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
+		if (state->verbose >= 2) {
+			pda(mean.data(), 1, maxAbilities);
+			pda(fullCov.data(), maxAbilities, maxAbilities);
+		}
+	}
+
 	int numSpecific = state->grp.numSpecific;
 	int priDims = maxAbilities - state->grp.numSpecific;
-	Eigen::MatrixXd cov(priDims, priDims);
+	Eigen::MatrixXd cov = fullCov.topLeftCorner(priDims, priDims);
 	Eigen::VectorXd sVar(numSpecific);
 
-	omxMatrix *inputCov = state->latentCovOut;
-	if (inputCov) {
-		for (int d1=0; d1 < priDims; ++d1) {
-			for (int d2=0; d2 < priDims; ++d2) {
-				cov(d1, d2) = omxMatrixElement(inputCov, d1, d2);
-			}
-		}
-
-		// This is required because the EM acceleration can push the
-		// covariance matrix to be slightly non-pd when predictors
-		// are highly correlated.
-
-		if (priDims == 1) {
-			if (cov(0,0) < BA81_MIN_VARIANCE) cov(0,0) = BA81_MIN_VARIANCE;
-		} else {
-			Matrix mat(cov.data(), priDims, priDims);
-			InplaceForcePosSemiDef(mat, NULL, NULL);
-		}
-
-		//pda(inputCov->data, inputCov->rows, inputCov->cols);
-
-		for (int sx=0; sx < numSpecific; ++sx) {
-			int loc = priDims + sx;
-			double tmp = inputCov->data[loc * inputCov->rows + loc];
-			if (tmp < BA81_MIN_VARIANCE) tmp = BA81_MIN_VARIANCE;
-			sVar(sx) = tmp;
-		}
+	// This is required because the EM acceleration can push the
+	// covariance matrix to be slightly non-pd when predictors
+	// are highly correlated.
+	if (priDims == 1) {
+		if (cov(0,0) < BA81_MIN_VARIANCE) cov(0,0) = BA81_MIN_VARIANCE;
 	} else {
-		cov.setIdentity();
-		sVar.setOnes();
+		Matrix mat(cov.data(), priDims, priDims);
+		InplaceForcePosSemiDef(mat, NULL, NULL);
 	}
 
-	if (state->latentMeanOut) {
-		quad.setup(state->grp.qwidth, state->grp.qpoints, state->latentMeanOut->data, cov, sVar);
-	} else {
-		std::vector<double> meanVec(maxAbilities);
-		quad.setup(state->grp.qwidth, state->grp.qpoints, meanVec.data(), cov, sVar);
+	for (int sx=0; sx < numSpecific; ++sx) {
+		int loc = priDims + sx;
+		double tmp = fullCov(loc, loc);
+		if (tmp < BA81_MIN_VARIANCE) tmp = BA81_MIN_VARIANCE;
+		sVar(sx) = tmp;
 	}
+
+	quad.setup(state->grp.qwidth, state->grp.qpoints, mean.data(), cov, sVar);
 
 	state->latentParamVersion = getLatentVersion(state);
 }
@@ -324,8 +311,8 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 
 	if (what) {
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
-			omxCopyMatrix(state->latentMeanOut, state->estLatentMean);
-			omxCopyMatrix(state->latentCovOut, state->estLatentCov);
+			omxCopyMatrix(state->_latentMeanOut, state->estLatentMean);
+			omxCopyMatrix(state->_latentCovOut, state->estLatentCov);
 			return;
 		}
 
@@ -568,8 +555,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->grp.importSpec(tmp);
 	if (state->verbose >= 2) mxLog("%s: found %d item specs", oo->name, state->numItems());
 
-	state->latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
-	state->latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
+	state->_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
+	state->_latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 
 	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "item");
 	state->grp.param = state->itemParam->data; // algebra not allowed yet TODO
@@ -678,20 +665,20 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 	}
 
-	if (state->latentMeanOut && state->latentMeanOut->rows * state->latentMeanOut->cols != maxAbilities) {
+	if (state->_latentMeanOut && state->_latentMeanOut->rows * state->_latentMeanOut->cols != maxAbilities) {
 		Rf_error("The mean matrix '%s' must be a row or column vector of size %d",
-		      state->latentMeanOut->name, maxAbilities);
+		      state->_latentMeanOut->name, maxAbilities);
 	}
 
-	if (state->latentCovOut && (state->latentCovOut->rows != maxAbilities ||
-				    state->latentCovOut->cols != maxAbilities)) {
+	if (state->_latentCovOut && (state->_latentCovOut->rows != maxAbilities ||
+				    state->_latentCovOut->cols != maxAbilities)) {
 		Rf_error("The cov matrix '%s' must be %dx%d",
-		      state->latentCovOut->name, maxAbilities, maxAbilities);
+		      state->_latentCovOut->name, maxAbilities, maxAbilities);
 	}
 
 	state->grp.setLatentDistribution(maxAbilities,
-					 state->latentMeanOut? state->latentMeanOut->data : NULL,
-					 state->latentCovOut? state->latentCovOut->data : NULL);
+					 state->_latentMeanOut? state->_latentMeanOut->data : NULL,
+					 state->_latentCovOut? state->_latentCovOut->data : NULL);
 	state->grp.detectTwoTier();
 
 	if (state->verbose >= 1 && state->grp.numSpecific) {
@@ -716,13 +703,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->debugInternal = Rf_asLogical(tmp);
 
 	state->ElatentVersion = 0;
-	if (state->latentMeanOut) {
+	if (state->_latentMeanOut) {
 		state->estLatentMean = omxInitMatrix(maxAbilities, 1, TRUE, currentState);
-		omxCopyMatrix(state->estLatentMean, state->latentMeanOut); // rename matrices TODO
+		omxCopyMatrix(state->estLatentMean, state->_latentMeanOut); // rename matrices TODO
 	}
-	if (state->latentCovOut) {
+	if (state->_latentCovOut) {
 		state->estLatentCov = omxInitMatrix(maxAbilities, maxAbilities, TRUE, currentState);
-		omxCopyMatrix(state->estLatentCov, state->latentCovOut);
+		omxCopyMatrix(state->estLatentCov, state->_latentCovOut);
 	}
 	state->numObsMat = omxInitMatrix(1, 1, TRUE, currentState);
 	omxSetVectorElement(state->numObsMat, 0, data->rows);
