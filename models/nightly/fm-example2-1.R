@@ -131,7 +131,7 @@ if(1) {
   tmp2 <- (tmp + t(tmp))/2
   emHess2 <- solve(tmp2)
   kappa(emHess2, exact=TRUE)
-  omxCheckCloseEnough(max(abs(m2$output$ihessian - emHess2)), 0, 1e-4)
+  omxCheckCloseEnough(max(abs(m2$output$ihessian - emHess2)), 0, 2e-4)
   #  sv <- svd(emHess)$d
 #  max(sv)/min(sv)
   omxCheckCloseEnough(kappa(emHess, exact=TRUE), 51, 1)
