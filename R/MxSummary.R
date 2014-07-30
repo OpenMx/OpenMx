@@ -378,15 +378,24 @@ print.summary.mxmodel <- function(x,...) {
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
 	}
-	if (length(x$parameters) > 0) {
+	params <- x$parameters
+	if (!is.null(params) && nrow(params)) {
 		cat("free parameters:\n")
-		params <- x$parameters
 		params$lbound <- mapply(highlightBounds, params$lbound, params$lboundMet)
 		params$ubound <- mapply(highlightBounds, params$ubound, params$uboundMet)
 		params$lbound[is.na(params$lbound)] <- ""
 		params$ubound[is.na(params$ubound)] <- ""
 		params$lboundMet <- NULL
 		params$uboundMet <- NULL
+		if (!x$verbose) {
+			if (all(is.na(params[['Std.Error']]))) {
+				params[['Std.Error']] <- NULL
+			}
+			if (all(params$lbound == "" & params$ubound == "")) {
+				params[['lbound']] <- NULL
+				params[['ubound']] <- NULL
+			}
+		}
 		print(params)
 		cat('\n')
 	}
