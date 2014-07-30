@@ -118,7 +118,9 @@ void omxData::newDataStatic(SEXP dataObject)
 				od->numNumeric++;
 			}
 			od->rawCols.push_back(cd);
+			Rf_unprotect(1); //rcol
 		}
+		Rf_unprotect(1); //colnames
 		od->rows = Rf_length(VECTOR_ELT(dataLoc, 0));
 		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
 	} else {
@@ -132,6 +134,7 @@ void omxData::newDataStatic(SEXP dataObject)
 		od->rows = od->dataMat->rows;
 		od->numNumeric = od->cols;
 	}
+	Rf_unprotect(1); // dataLoc
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("means")));
