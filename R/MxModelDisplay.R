@@ -80,14 +80,19 @@ displayModel <- function(model, expand = FALSE) {
 	if (is.null(data)) {
 		cat("$data : NULL\n")
 	} else {
-		cat("$data :", nrow(data@observed), 
-			"x", ncol(data@observed), "\n")
-		if(length(data@means) == 1 && is.na(data@means)) {
-			cat("$data means : NA\n")
+		if (is(data, "MxDataDynamic")) {
+			cat("$data type:", omxQuotes(data@type), '\n')
+			cat("$data$expectation :", omxQuotes(data@expectation), "\n")
 		} else {
-			cat("$data means : 1 x", length(data@means), "\n")
+			cat("$data :", nrow(data@observed), 
+			    "x", ncol(data@observed), "\n")
+			if(length(data@means) == 1 && is.na(data@means)) {
+				cat("$data means : NA\n")
+			} else {
+				cat("$data means : 1 x", length(data@means), "\n")
+			}
+			cat("$data type:", omxQuotes(data@type), '\n')
 		}
-		cat("$data type:", omxQuotes(data@type), '\n')
 	}
 	cat("$submodels :", omxQuotes(names(model@submodels)), '\n')
 	expectation <- model@expectation

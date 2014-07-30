@@ -504,3 +504,19 @@ setMethod("print", "MxDataStatic", function(x,...) {
 setMethod("show", "MxDataStatic", function(object) {
 	displayMxData(object) 
 })
+
+displayMxDataDynamic <- function(object) {
+	cat("MxDataDynamic", omxQuotes(object@name), '\n')
+	cat("type :", omxQuotes(object@type), '\n')
+	cat("verbose :", omxQuotes(object@verbose), '\n')
+	cat("expectation :", omxQuotes(object@expectation), '\n')
+	invisible(object)
+}
+
+setMethod("print", "MxDataDynamic", function(x,...) {
+	displayMxDataDynamic(x) 
+})
+
+setMethod("show", "MxDataDynamic", function(object) {
+	displayMxDataDynamic(object) 
+})
