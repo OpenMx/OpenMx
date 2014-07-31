@@ -268,7 +268,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
-		Global->freeGroup[0]->vars.push_back(fv);
+		Global->freeGroup[FREEVARGROUP_ALL]->vars.push_back(fv);
 
 		fv->id = fx;
 		fv->name = CHAR(Rf_asChar(STRING_ELT(Rf_getAttrib(varList, R_NamesSymbol), fx)));
