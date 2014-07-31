@@ -26,7 +26,10 @@ csolnpImportFrontend.o: Makevars.in csolnpImportFrontend.cpp omxDefines.h omxSta
    glue.h omxOpenmpWrap.h \
  omxNPSOLSpecific.h omxImportFrontendState.h matrix.h
 dmvnorm.o: Makevars.in dmvnorm.cpp omxDefines.h   \
-   omxBuffer.h matrix.h
+   omxBuffer.h matrix.h glue.h \
+ omxState.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
+ algebraOp.h omxFitFunction.h omxData.h omxExpectation.h Compute.h \
+   omxOpenmpWrap.h
 fitMultigroup.o: Makevars.in fitMultigroup.cpp omxDefines.h omxExpectation.h \
  omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
  omxState.h omxFitFunction.h omxData.h Compute.h   \

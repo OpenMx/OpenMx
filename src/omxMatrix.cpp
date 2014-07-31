@@ -376,11 +376,10 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	if (matrix) {
 		if(Rf_isMatrix(matrix)) {
 			SEXP matrixDims;
-			Rf_protect(matrixDims = Rf_getAttrib(matrix, R_DimSymbol));
+			ScopedProtect p1(matrixDims, Rf_getAttrib(matrix, R_DimSymbol));
 			dimList = INTEGER(matrixDims);
 			om->rows = dimList[0];
 			om->cols = dimList[1];
-			Rf_unprotect(1); // matrixDims
 		} else if (Rf_isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 			if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
 			om->rows = 1;
@@ -400,23 +399,24 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		}
 
 		SEXP dimnames;
-		Rf_protect(dimnames = Rf_getAttrib(matrix, R_DimNamesSymbol));
+		ScopedProtect pdn(dimnames, Rf_getAttrib(matrix, R_DimNamesSymbol));
 		if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
 			SEXP names;
-			Rf_protect(names = VECTOR_ELT(dimnames, 0));
+			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
 			int nlen = Rf_length(names);
 			om->rownames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
 				om->rownames[nx] = CHAR(STRING_ELT(names, nx));
 			}
-			Rf_unprotect(1); // names
-			Rf_protect(names = VECTOR_ELT(dimnames, 1));
-			nlen = Rf_length(names);
+			}
+
+			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
+				int nlen = Rf_length(names);
 			om->colnames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
 				om->colnames[nx] = CHAR(STRING_ELT(names, nx));
 			}
-			Rf_unprotect(1); // names
+			}
 		}
 	}
 
@@ -450,7 +450,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 
 	for(int i = 0; i < numPopLocs; i++) {
 		SEXP subList;
-		Rf_protect(subList = VECTOR_ELT(matStruct, i+1));
+		ScopedProtect p1(subList, VECTOR_ELT(matStruct, i+1));
 
 		int* locations = INTEGER(subList);
 		populateLocation &pl = populate[i];
@@ -459,7 +459,6 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 		pl.srcCol = locations[2];
 		pl.destRow = locations[3];
 		pl.destCol = locations[4];
-		Rf_unprotect(1); //subList
 	}
 }
 

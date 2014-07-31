@@ -23,6 +23,9 @@
 #include "omxState.h"
 #include "omxOpenmpWrap.h"
 
+#undef PROTECT_WITH_INDEX
+#undef UNPROTECT
+
 /* Functions for Export */
 SEXP omxBackend(SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
@@ -36,18 +39,18 @@ class omxManageProtectInsanity {
 	PROTECT_INDEX initialpix;
  public:
 	omxManageProtectInsanity() {
-		PROTECT_WITH_INDEX(R_NilValue, &initialpix);
-		UNPROTECT(1);
+		R_ProtectWithIndex(R_NilValue, &initialpix);
+		Rf_unprotect(1);
 	}
 	PROTECT_INDEX getDepth() {
 		PROTECT_INDEX pix;
-		PROTECT_WITH_INDEX(R_NilValue, &pix);
+		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		UNPROTECT(1);
+		Rf_unprotect(1);
 		return diff;
 	}
 	~omxManageProtectInsanity() {
-		UNPROTECT(getDepth());
+		Rf_unprotect(getDepth());
 	}
 };
 
@@ -60,6 +63,24 @@ class MxRList : private MxRListBase {
 		Rf_protect(val);
 		push_back(std::make_pair(key, val));
 	};
+};
+
+class ScopedProtect {
+	PROTECT_INDEX initialpix;
+ public:
+	ScopedProtect(SEXP &var, SEXP src) {
+		R_ProtectWithIndex(R_NilValue, &initialpix);
+		Rf_unprotect(1);
+		Rf_protect(src);
+		var = src;
+	}
+	~ScopedProtect() {
+		PROTECT_INDEX pix;
+		R_ProtectWithIndex(R_NilValue, &pix);
+		PROTECT_INDEX diff = pix - initialpix;
+		if (diff != 1) Rf_error("Depth %d != 1, ScopedProtect was nested", diff);
+		Rf_unprotect(2);
+	}
 };
 
 void string_to_try_Rf_error( const std::string& str) __attribute__ ((noreturn));

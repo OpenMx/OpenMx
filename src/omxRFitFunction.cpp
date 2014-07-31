@@ -18,22 +18,19 @@
 #include "Compute.h"
 #include "omxRFitFunction.h"
 
-void omxDestroyRFitFunction(omxFitFunction *off) {
-	Rf_unprotect(4); 			// fitfun, model, flatModel, and state
-}
-
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
 
 	SEXP theCall, theReturn;
-	Rf_protect(theCall = Rf_allocVector(LANGSXP, 3));
+	ScopedProtect p2(theCall, Rf_allocVector(LANGSXP, 3));
 	SETCAR(theCall, rFitFunction->fitfun);
 	SETCADR(theCall, rFitFunction->model);
 	SETCADDR(theCall, rFitFunction->state);
 
-	Rf_protect(theReturn = Rf_eval(theCall, R_GlobalEnv));
+	{
+		ScopedProtect p1(theReturn, Rf_eval(theCall, R_GlobalEnv));
 
 	if (LENGTH(theReturn) < 1) {
 		// seems impossible, but report it if it happens
@@ -46,8 +43,7 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	} else if (LENGTH(theReturn) > 2) {
 		omxRaiseErrorf("FitFunction returned more than 2 arguments");
 	}
-
-	Rf_unprotect(2); // theCall and theReturn
+	}
 }
 
 void omxInitRFitFunction(omxFitFunction* oo) {
@@ -60,7 +56,6 @@ void omxInitRFitFunction(omxFitFunction* oo) {
 
 	/* Set Fit Function Calls to RFitFunction Calls */
 	oo->computeFun = omxCallRFitFunction;
-	oo->destructFun = omxDestroyRFitFunction;
 	oo->argStruct = (void*) newObj;
 	
 	Rf_protect(newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun")));

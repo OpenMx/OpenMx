@@ -105,9 +105,10 @@ omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* new
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;
-	Rf_protect(ExpectationClass = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
-	const char* expType = CHAR(ExpectationClass);
-	Rf_unprotect(1);
+	const char *expType;
+	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
+		expType = CHAR(ExpectationClass);
+	}
 
 	omxExpectation* expect = omxNewInternalExpectation(expType, os);
 
@@ -115,8 +116,9 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->expNum = expNum;
 	
 	SEXP nextMatrix;
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("data")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
 	expect->data = omxDataLookupFromState(nextMatrix, os);
+	}
 
 	return expect;
 }
@@ -139,8 +141,10 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 	}
 
 	if (R_has_slot(rObj, Rf_install("dataColumns"))) {
-		Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("dataColumns")));
+		{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
 		ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
+		}
+
 		if(OMX_DEBUG) {
 			omxPrint(ox->dataColumns, "Variable mapping");
 		}
@@ -151,7 +155,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			if(OMX_DEBUG) {
 				mxLog("Accessing Threshold matrix.");
 			}
-			Rf_protect(threshMatrix = R_do_slot(rObj, Rf_install("thresholds")));
+			ScopedProtect p1(threshMatrix, R_do_slot(rObj, Rf_install("thresholds")));
 
 			if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 				if(OMX_DEBUG) {
@@ -162,11 +166,13 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
 				 * and fill all the thresholds with {NULL, 0, 0}.
 				 * However the current path does not have a lot of overhead. */
-				Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("thresholdColumns")));
-				Rf_protect(itemList = R_do_slot(rObj, Rf_install("thresholdLevels")));
 				int* thresholdColumn, *thresholdNumber;
+				{ScopedProtect pc(nextMatrix, R_do_slot(rObj, Rf_install("thresholdColumns")));
 				thresholdColumn = INTEGER(nextMatrix);
+				}
+				{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
 				thresholdNumber = INTEGER(itemList);
+				}
 				ox->thresholds = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
 				for(index = 0; index < numCols; index++) {
 					if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
@@ -246,7 +252,7 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			ox->defVars[nextDef].rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
 			ox->defVars[nextDef].cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
 			for(index = 3; index < Rf_length(itemList); index++) {
-				Rf_protect(nextItem = VECTOR_ELT(itemList, index));
+				ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
 				ox->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
 				ox->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
 				ox->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
@@ -264,13 +270,14 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 	if (ox->rObj) {
 		SEXP slot;
-		Rf_protect(slot = R_do_slot(ox->rObj, Rf_install("container")));
+		{ScopedProtect(slot, R_do_slot(ox->rObj, Rf_install("container")));
 		if (Rf_length(slot) == 1) {
 			int ex = INTEGER(slot)[0];
 			ox->container = os->expectationList.at(ex);
 		}
+		}
 
-		Rf_protect(slot = R_do_slot(ox->rObj, Rf_install("submodels")));
+		{ScopedProtect(slot, R_do_slot(ox->rObj, Rf_install("submodels")));
 		if (Rf_length(slot)) {
 			ox->numSubmodels = Rf_length(slot);
 			ox->submodels = Realloc(NULL, Rf_length(slot), omxExpectation*);
@@ -280,6 +287,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 				ox->submodels[ex] = omxExpectationFromIndex(sx, os);
 				omxCompleteExpectation(ox->submodels[ex]);
 			}
+		}
 		}
 
 		omxExpectationProcessDataStructures(ox, ox->rObj);

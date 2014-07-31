@@ -175,9 +175,6 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
 	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
 	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
-	
-	if(OMX_DEBUG) { mxLog("Unprotecting WLS Attributes."); }
-	Rf_unprotect(4);
 }
 
 void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
@@ -235,7 +232,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     newObj->weights = weights;
     newObj->n = omxDataNumObs(dataMat);
     newObj->nThresholds = omxDataNumFactor(dataMat);
-	//Rf_unprotect(1); //MDH: Why is this here?!?
 	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.

@@ -39,9 +39,8 @@ void omxProcessMxDataEntities(SEXP data) {
 	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
 
 	for(int index = 0; index < Rf_length(data); index++) {
-		Rf_protect(nextLoc = VECTOR_ELT(data, index));			// Retrieve the data object
+		ScopedProtect p1(nextLoc, VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc);
-		Rf_unprotect(1);	// nextLoc
 	}
 }
 
@@ -80,12 +79,11 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			SEXP fitFunctionClass;
-			Rf_protect(fitFunctionClass = STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
+			ScopedProtect p1(fitFunctionClass, STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
 			const char *fitType = CHAR(fitFunctionClass);
 			omxMatrix *fm = globalState->algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
 			fm->name = CHAR(STRING_ELT(algListNames, index));
-			Rf_unprotect(1);	// fitFunctionClass
 		} else {								// This is an algebra spec.
 			SEXP dimnames, formula;
 			omxMatrix *amat = globalState->algebraList[index];
@@ -103,15 +101,17 @@ void omxCompleteMxFitFunction(SEXP algList)
 	SEXP nextAlgTuple;
 
 	for(int index = 0; index < Rf_length(algList); index++) {
-		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));             // The next algebra or fit function to process
-		if(IS_S4_OBJECT(nextAlgTuple)) {
-			omxMatrix *fm = globalState->algebraList[index];
-			if (!fm->fitFunction->freeVarGroup) {
-				setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
-			}
-			omxCompleteFitFunction(fm);
+		bool s4;
+		{
+			ScopedProtect p1(nextAlgTuple, VECTOR_ELT(algList, index));
+			s4 = IS_S4_OBJECT(nextAlgTuple);
 		}
-		Rf_unprotect(1);
+		if(!s4) continue;
+		omxMatrix *fm = globalState->algebraList[index];
+		if (!fm->fitFunction->freeVarGroup) {
+			setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
+		}
+		omxCompleteFitFunction(fm);
 	}
 }
 

@@ -55,14 +55,12 @@ static SEXP do_logm_eigen(SEXP x)
     if (n != m) Rf_error("non-square matrix");
     if (n == 0) return(Rf_allocVector(REALSXP, 0));
 
-    PROTECT(z = Rf_allocMatrix(REALSXP, n, n));
+    ScopedProtect p1(z, Rf_allocMatrix(REALSXP, n, n));
     rz = REAL(z);
 
     logm_eigen(n, rx, rz);
 
     Rf_setAttrib(z, R_DimNamesSymbol, Rf_getAttrib(x, R_DimNamesSymbol));
-
-    UNPROTECT(1);
 
     return z;
 }
@@ -81,14 +79,12 @@ static SEXP do_expm_eigen(SEXP x)
     if (n != m) Rf_error("non-square matrix");
     if (n == 0) return(Rf_allocVector(REALSXP, 0));
 
-    PROTECT(z = Rf_allocMatrix(REALSXP, n, n));
+    ScopedProtect(z, Rf_allocMatrix(REALSXP, n, n));
     rz = REAL(z);
 
     expm_eigen(n, rx, rz);
 
     Rf_setAttrib(z, R_DimNamesSymbol, Rf_getAttrib(x, R_DimNamesSymbol));
-
-    UNPROTECT(1);
 
     return z;
 }
@@ -234,7 +230,6 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				// ignore
 			}
 		}
-		Rf_unprotect(1); // optionNames
 }
 
 /* Main functions */

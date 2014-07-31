@@ -139,7 +139,6 @@ void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra)
 			REAL(expCovExt)[col * Ax->rows + row] =
 				omxMatrixElement(Ax, row, col);
 	setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
-	Rf_unprotect(1);
 	*/
 }
 
@@ -468,11 +467,10 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	
 	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("depth")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("depth")));
 	LISobj->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", LISobj->numIters); }
-	Rf_unprotect(1);
-	
+	}
 	
 	/* Initialize the place holder matrices used in calculations */
 	nx = LISobj->LX->rows;

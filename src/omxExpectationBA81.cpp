@@ -483,11 +483,10 @@ static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *
 void getMatrixDims(SEXP r_theta, int *rows, int *cols)
 {
     SEXP matrixDims;
-    Rf_protect(matrixDims = Rf_getAttrib(r_theta, R_DimSymbol));
+    ScopedProtect p1(matrixDims, Rf_getAttrib(r_theta, R_DimSymbol));
     int *dimList = INTEGER(matrixDims);
     *rows = dimList[0];
     *cols = dimList[1];
-    Rf_unprotect(1);
 }
 
 void omxInitExpectationBA81(omxExpectation* oo) {
@@ -534,26 +533,32 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->latentParamVersion = 0;
 	oo->argStruct = (void*) state;
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("data")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("data")));
 	state->data = omxDataLookupFromState(tmp, currentState);
+	}
 
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
 		omxRaiseErrorf("%s unable to handle data type %s", oo->name, omxDataType(state->data));
 		return;
 	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("verbose")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("verbose")));
 	state->verbose = Rf_asInteger(tmp);
+	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qpoints")));
-	int targetQpoints = Rf_asInteger(tmp);
+	int targetQpoints;
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("qpoints")));
+		targetQpoints = Rf_asInteger(tmp);
+	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("qwidth")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("qwidth")));
 	state->grp.setGridFineness(Rf_asReal(tmp), targetQpoints);
+	}
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("ItemSpec")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("ItemSpec")));
 	state->grp.importSpec(tmp);
 	if (state->verbose >= 2) mxLog("%s: found %d item specs", oo->name, state->numItems());
+	}
 
 	state->_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	state->_latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
@@ -577,7 +582,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	int maxAbilities = state->grp.maxAbilities;
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("EstepItem")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("EstepItem")));
 	if (!Rf_isNull(tmp)) {
 		int rows, cols;
 		getMatrixDims(tmp, &rows, &cols);
@@ -585,6 +590,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			Rf_error("EstepItem must have the same dimensions as the item MxMatrix");
 		}
 		state->EitemParam = REAL(tmp);
+	}
 	}
 
 	oo->computeFun = ba81compute;
@@ -601,8 +607,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	omxData *data = state->data;
 	std::vector<int> &rowMap = state->grp.rowMap;
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("weightColumn")));
-	int weightCol = INTEGER(tmp)[0];
+	int weightCol;
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("weightColumn")));
+		weightCol = INTEGER(tmp)[0];
+	}
+
 	if (weightCol == NA_INTEGER) {
 		// Should rowMap be part of omxData? This is essentially a
 		// generic compression step that shouldn't be specific to IFA models.
@@ -634,9 +643,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	// complain about non-integral rowWeights (EAP can't work) TODO
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("dataColumns")));
+	const double *colMap; // should be integer TODO
+	{
+	ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("dataColumns")));
 	if (Rf_length(tmp) != numItems) Rf_error("dataColumns must be length %d", numItems);
-	const int *colMap = INTEGER(tmp);
+	colMap = REAL(tmp);
+	}
 
 	for (int cx = 0; cx < numItems; cx++) {
 		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);
@@ -690,8 +702,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// TODO: Items with zero loadings can be replaced with equivalent items
 	// with fewer factors. This would speed up calculation of derivatives.
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("minItemsPerScore")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("minItemsPerScore")));
 	state->grp.setMinItemsPerScore(Rf_asInteger(tmp));
+	}
 
 	state->grp.sanityCheck();
 
@@ -699,8 +712,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	if (isErrorRaised()) return;
 
-	Rf_protect(tmp = R_do_slot(rObj, Rf_install("debugInternal")));
+	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("debugInternal")));
 	state->debugInternal = Rf_asLogical(tmp);
+	}
 
 	state->ElatentVersion = 0;
 	if (state->_latentMeanOut) {

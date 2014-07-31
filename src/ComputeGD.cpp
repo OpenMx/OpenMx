@@ -24,6 +24,7 @@
 #include "omxCsolnp.h"
 #include "Compute.h"
 #include "npsolswitch.h"
+#include "glue.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
@@ -92,13 +93,13 @@ void ComputeGDBase::initFromFrontend(SEXP rObj)
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
     
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
+	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	optimalityTolerance = Rf_asReal(slotValue);
     
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("engine")));
+	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strcmp(engine_name, "CSOLNP")==0) {
 		engine = OptEngine_CSOLNP;
@@ -118,14 +119,14 @@ void omxComputeGD::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
     
 	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("useGradient")));
+	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
 	if (Rf_length(slotValue)) {
 		useGradient = Rf_asLogical(slotValue);
 	} else {
 		useGradient = Global->analyticGradients;
 	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("warmStart")));
+	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {
 		SEXP matrixDims;
 		Rf_protect(matrixDims = Rf_getAttrib(slotValue, R_DimSymbol));
@@ -154,7 +155,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	switch (engine) {
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
-		Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
+		if (!hessChol) {
+			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
+		}
 		bool doWarm = false;
 		if (warmStart) {
 			if (warmStartSize != int(numParam)) {

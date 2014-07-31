@@ -228,15 +228,16 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
 	// Ax = ZSZ' = Covariance matrix including latent variables
 	
+	{
 	SEXP expCovExt;
-	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
+	ScopedProtect p1(expCovExt, Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 	for(int row = 0; row < Ax->rows; row++)
 		for(int col = 0; col < Ax->cols; col++)
 			REAL(expCovExt)[col * Ax->rows + row] =
 				omxMatrixElement(Ax, row, col);
 	Rf_setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
+	}
 	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
-	Rf_unprotect(1);
 }
 
 /*
@@ -341,10 +342,10 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	RAMexp->lilI = omxNewIdentityMatrix(RAMexp->F->rows, currentState);
 
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("depth")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("depth")));
 	RAMexp->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
-	Rf_unprotect(1);
+	}
 
 	l = RAMexp->F->rows;
 	k = RAMexp->A->cols;

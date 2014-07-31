@@ -583,6 +583,8 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
  
 void omxSetNPSOLOpts(SEXP options)
 {
+	omxManageProtectInsanity mpi;
+
 	static const char *whitelist[] = {
 		"Central Difference Interval",
 		"Crash Tolerance",
@@ -630,7 +632,6 @@ void omxSetNPSOLOpts(SEXP options)
 			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
 			if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
 		}
-		Rf_unprotect(1); // optionNames
 }
 
 #endif

@@ -26,6 +26,7 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 #include "omxState.h"
+#include "glue.h"
 
 void pda(const double *ar, int rows, int cols);
 
@@ -860,13 +861,13 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 
 	SEXP theCall, estimate;
 
-	Rf_protect(estimate = Rf_allocVector(REALSXP, n));
+	ScopedProtect(estimate, Rf_allocVector(REALSXP, n));
 	double *est = REAL(estimate);
 	for(int i = 0; i < n ; i++) {
 		est[i] = x[i];
 	}
 
-	Rf_protect(theCall = Rf_allocVector(LANGSXP, 4));
+	{ScopedProtect p1(theCall, Rf_allocVector(LANGSXP, 4));
 
 	SETCAR(theCall, Rf_install("imxUpdateModelValues"));
 	SETCADR(theCall, rFitFunction->model);
@@ -874,8 +875,7 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	SETCADDDR(theCall, estimate);
 
 	R_Reprotect(rFitFunction->model = Rf_eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
-
-	Rf_unprotect(2); // theCall, estimate
+	}
 
 	omxMarkDirty(oo->matrix);
 }
@@ -1204,14 +1204,15 @@ omxCompute::~omxCompute()
 void omxCompute::initFromFrontend(SEXP rObj)
 {
 	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("id")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("id")));
 	if (Rf_length(slotValue) != 1) Rf_error("MxCompute has no ID");
-
 	computeId = INTEGER(slotValue)[0];
+	}
+
 	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		Rf_protect(slotValue = R_do_slot(rObj, Rf_install("freeSet")));
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("freeSet")));
 		if (Rf_length(slotValue) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
@@ -1443,8 +1444,12 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
 		SEXP s4class;
-		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
-		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
+		const char *s4name;
+		{
+			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
+			s4name = CHAR(s4class);
+		}
+		omxCompute *compute = omxNewCompute(globalState, s4name);
 		compute->initFromFrontend(step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
@@ -1472,27 +1477,35 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 
 	super::initFromFrontend(rObj);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
+	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
 	if (tolerance <= 0) Rf_error("tolerance must be positive");
+	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
 		SEXP s4class;
-		Rf_protect(s4class = STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
-		omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
+		const char *s4name;
+		{
+			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
+			s4name = CHAR(s4class);
+		}
+		omxCompute *compute = omxNewCompute(globalState, s4name);
 		compute->initFromFrontend(step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
-	verbose = Rf_asInteger(slotValue);
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(slotValue);
+	}
 }
 
 void omxComputeIterate::computeImpl(FitContext *fc)
@@ -1580,16 +1593,19 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		omxCompleteFitFunction(fit3);
 	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("maxIter")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
 	if (maxIter < 0) Rf_error("maxIter must be non-negative");
+	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
 	if (tolerance <= 0) Rf_error("tolerance must be positive");
+	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
+	}
 
 	useRamsay = false;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("accel")));
@@ -2190,8 +2206,9 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 		Rf_error("MxComputeOnce cannot evaluate expectations and fitfunctions at the same time");
 	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
+	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("what")));
 	int whatLen = Rf_length(slotValue);
@@ -2214,13 +2231,14 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	} else {
 		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
-			Rf_protect(elem = STRING_ELT(slotValue, wx));
+			ScopedProtect p1(elem, STRING_ELT(slotValue, wx));
 			predict.push_back(CHAR(elem));
 		}
 	}
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install(".is.bestfit")));
+	{ ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install(".is.bestfit")));
 	isBestFit = Rf_asLogical(slotValue);
+	}
 
 	bool howConflict = false;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("how")));
@@ -2449,21 +2467,21 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 			// oh well
 		} else {
 			SEXP Rgradient;
-			Rf_protect(Rgradient = Rf_allocVector(REALSXP, numFree));
-			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
+			Rgradient = Rf_allocVector(REALSXP, numFree);
 			result->add("gradient", Rgradient);
+			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
 		}
 	}
 	if (fc->wanted & FF_COMPUTE_HESSIAN) {
 		SEXP Rhessian;
-		Rf_protect(Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-		fc->copyDenseHess(REAL(Rhessian));
+		Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree);
 		result->add("hessian", Rhessian);
+		fc->copyDenseHess(REAL(Rhessian));
 	}
 	if (fc->wanted & FF_COMPUTE_IHESSIAN) {
 		SEXP Rihessian;
-		Rf_protect(Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree));
-		fc->copyDenseIHess(REAL(Rihessian));
+		Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree);
 		result->add("ihessian", Rihessian);
+		fc->copyDenseIHess(REAL(Rihessian));
 	}
 }

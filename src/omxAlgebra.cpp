@@ -167,22 +167,22 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			SEXP algebraArg;
-			Rf_protect(algebraArg = VECTOR_ELT(algebra, j+1));
-			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
-			Rf_unprotect(1);
+			{
+				ScopedProtect p1(algebraArg, VECTOR_ELT(algebra, j+1));
+				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
+			}
 			if (!oa->algArgs[j]->name) {
 				// A bit inefficient but invaluable for debugging
 				std::string str = string_snprintf("alg%03d", ++Global->anonAlgebra);
 				SEXP name;
-				Rf_protect(name = Rf_mkChar(str.c_str()));
+				ScopedProtect p1(name, Rf_mkChar(str.c_str()));
 				oa->algArgs[j]->name = CHAR(name);
-				Rf_unprotect(1); // See 5.9.7 Handling character data
 			}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
 		SEXP algebraElt;
-		Rf_protect(algebraElt = VECTOR_ELT(algebra, 1));
+		ScopedProtect p1(algebraElt, VECTOR_ELT(algebra, 1));
 		
 		if(!Rf_isInteger(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
 			Rf_error("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
@@ -208,7 +208,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 	if (dimnames && !Rf_isNull(dimnames)) {
 		SEXP names;
 		if (Rf_length(dimnames) >= 1) {
-			Rf_protect(names = VECTOR_ELT(dimnames, 0));
+			ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
 			int nlen = Rf_length(names);
 			oa->rownames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
@@ -216,7 +216,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			}
 		}
 		if (Rf_length(dimnames) >= 2) {
-			Rf_protect(names = VECTOR_ELT(dimnames, 1));
+			ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
 			int nlen = Rf_length(names);
 			oa->colnames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {

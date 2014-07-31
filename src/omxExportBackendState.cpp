@@ -86,9 +86,8 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	for(size_t index = 0; index < currentState->dataList.size(); ++index) {
 		omxData* dat = currentState->dataList[index];
 		SEXP rData;
-		Rf_protect(rData = Rf_ScalarReal(omxDataNumObs(dat)));
+		ScopedProtect p1(rData, Rf_ScalarReal(omxDataNumObs(dat)));
 		SET_VECTOR_ELT(datums, index, rData);
-		Rf_unprotect(1);
 	}
 
 	out->add("matrices", matrices);

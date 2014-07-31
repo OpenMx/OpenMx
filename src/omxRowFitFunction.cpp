@@ -221,7 +221,7 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	omxRowFitFunction *newObj = (omxRowFitFunction*) R_alloc(1, sizeof(omxRowFitFunction));
 
 	if(OMX_DEBUG) {mxLog("Accessing data source."); }
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("data")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
 	newObj->data = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -229,9 +229,9 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	Rf_unprotect(1); // nextMatrix
+	}
 
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("rowAlgebra")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("rowAlgebra")));
 	newObj->rowAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -239,10 +239,11 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	Rf_unprotect(1);// nextMatrix
+	}
 
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("filteredDataRow")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("filteredDataRow")));
 	newObj->filteredDataRow = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
+	}
 	if(newObj->filteredDataRow == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
@@ -250,12 +251,13 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		free(errstr);
 	}
 	// Create the original data row from which to filter.
-    newObj->dataRow = omxInitMatrix(newObj->filteredDataRow->rows, newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
-    omxCopyMatrix(newObj->filteredDataRow, newObj->dataRow);
-	Rf_unprotect(1);// nextMatrix
+	newObj->dataRow = omxInitMatrix(newObj->filteredDataRow->rows,
+					newObj->filteredDataRow->cols, TRUE, oo->matrix->currentState);
+	omxCopyMatrix(newObj->filteredDataRow, newObj->dataRow);
 
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("existenceVector")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("existenceVector")));
 	newObj->existenceVector = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
+	}
     // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
 	if(newObj->existenceVector == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -263,47 +265,46 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	Rf_unprotect(1);// nextMatrix
 
 
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("rowResults")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("rowResults")));
 	newObj->rowResults = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
+	}
 	if(newObj->rowResults == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	Rf_unprotect(1);// nextMatrix
 
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("reduceAlgebra")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("reduceAlgebra")));
 	newObj->reduceAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
+	}
 	if(newObj->reduceAlgebra == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "No row reduction algebra in omxRowFitFunction.");
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	Rf_unprotect(1);// nextMatrix
 	
 	if(OMX_DEBUG) {mxLog("Accessing variable mapping structure."); }
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("dataColumns")));
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
+	}
 	if(OMX_DEBUG) { omxPrint(newObj->dataColumns, "Variable mapping"); }
-	Rf_unprotect(1);
 
 	if(OMX_DEBUG) {mxLog("Accessing data row dependencies."); }
-	Rf_protect(nextItem = R_do_slot(rObj, Rf_install("dataRowDeps")));
+	{ ScopedProtect p1(nextItem, R_do_slot(rObj, Rf_install("dataRowDeps")));
 	numDeps = LENGTH(nextItem);
 	newObj->numDataRowDeps = numDeps;
 	newObj->dataRowDeps = (int*) R_alloc(numDeps, sizeof(int));
 	for(int i = 0; i < numDeps; i++) {
 		newObj->dataRowDeps[i] = INTEGER(nextItem)[i];
 	}
-	Rf_unprotect(1);
+	}
 
 	if(OMX_DEBUG) {mxLog("Accessing definition variables structure."); }
-	Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("definitionVars")));
+	{ScopedProtect pm(nextMatrix, R_do_slot(rObj, Rf_install("definitionVars")));
 	newObj->numDefs = Rf_length(nextMatrix);
 	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
 	if(OMX_DEBUG) {mxLog("Number of definition variables is %d.", newObj->numDefs); }
@@ -311,22 +312,22 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
 		SEXP dataSource, columnSource, depsSource; 
 
-		Rf_protect(itemList = VECTOR_ELT(nextMatrix, nextDef));
-		Rf_protect(dataSource = VECTOR_ELT(itemList, 0));
+		ScopedProtect p0(itemList, VECTOR_ELT(nextMatrix, nextDef));
+		{ScopedProtect p1(dataSource, VECTOR_ELT(itemList, 0));
 		if(OMX_DEBUG) {mxLog("Data source number is %d.", INTEGER(dataSource)[0]); }
 		newObj->defVars[nextDef].data = INTEGER(dataSource)[0];
 		newObj->defVars[nextDef].source = oo->matrix->currentState->dataList[INTEGER(dataSource)[0]];
-		Rf_protect(columnSource = VECTOR_ELT(itemList, 1));
+		{ScopedProtect p2(columnSource, VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG) {mxLog("Data column number is %d.", INTEGER(columnSource)[0]); }
 		newObj->defVars[nextDef].column = INTEGER(columnSource)[0];
-		Rf_protect(depsSource = VECTOR_ELT(itemList, 2));
+		{ScopedProtect p3(depsSource, VECTOR_ELT(itemList, 2));
 		numDeps = LENGTH(depsSource);
 		newObj->defVars[nextDef].numDeps = numDeps;
 		newObj->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
 		for(int i = 0; i < numDeps; i++) {
 			newObj->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
 		}
-		Rf_unprotect(3); // unprotect dataSource, columnSource, and depsSource
+		}}}
 
 		newObj->defVars[nextDef].numLocations = Rf_length(itemList) - 3;
 		newObj->defVars[nextDef].matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
@@ -334,15 +335,13 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 		newObj->defVars[nextDef].cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
 
 		for(index = 3; index < Rf_length(itemList); index++) {
-			Rf_protect(nextItem = VECTOR_ELT(itemList, index));
+			ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
 			newObj->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
 			newObj->defVars[nextDef].rows[index-3]     = INTEGER(nextItem)[1];
 			newObj->defVars[nextDef].cols[index-3]     = INTEGER(nextItem)[2];
-			Rf_unprotect(1); // unprotect nextItem
 		}
-		Rf_unprotect(1); // unprotect itemList
 	}
-	Rf_unprotect(1); // unprotect nextMatrix
+	}
 	
 	/* Set up data columns */
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);

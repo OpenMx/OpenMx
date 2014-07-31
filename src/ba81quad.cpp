@@ -243,7 +243,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 			Rf_error("Item models must inherit rpf.base");
 		}
 		SEXP Rspec;
-		Rf_protect(Rspec = R_do_slot(model, Rf_install("spec")));
+		ScopedProtect p1(Rspec, R_do_slot(model, Rf_install("spec")));
 		spec.push_back(REAL(Rspec));
 	}
 

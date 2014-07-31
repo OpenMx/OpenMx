@@ -210,14 +210,14 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 	if (obj->initFun == NULL) Rf_error("Fit function %s not implemented", fitType);
 
 	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("expectation")));
 	if (LENGTH(slotValue) == 1) {
 		int expNumber = INTEGER(slotValue)[0];	
 		if(expNumber != NA_INTEGER) {
 			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
 		}
 	}
-	Rf_unprotect(1);
+	}
 
 	bool rowLik = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	if (rowLik && obj->expectation && obj->expectation->data) {
@@ -260,9 +260,8 @@ void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
 /* Helper functions */
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* slotName) {
 	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install(slotName)));
+	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install(slotName)));
 	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
-	Rf_unprotect(1);
 	return newMatrix;
 }
 

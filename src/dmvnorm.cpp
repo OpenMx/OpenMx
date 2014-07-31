@@ -9,6 +9,7 @@
 #include "Eigen/Core"
 #include "omxBuffer.h"
 #include "matrix.h"
+#include "glue.h"
 
 static const int ERROR_LEN = 80;
 
@@ -128,8 +129,7 @@ dmvnorm(int dim, double *loc, double *mean, double *sigma)
 SEXP dmvnorm_wrapper(SEXP Rloc, SEXP Rmean, SEXP Rsigma)
 {
 	SEXP ret;
-	Rf_protect(ret = Rf_allocVector(REALSXP, 1));
+	ScopedProtect p1(ret, Rf_allocVector(REALSXP, 1));
 	REAL(ret)[0] = dmvnorm(Rf_length(Rloc), REAL(Rloc), REAL(Rmean), REAL(Rsigma));
-	Rf_unprotect(1);
 	return ret;
 }
