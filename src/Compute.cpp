@@ -881,12 +881,13 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	omxMarkDirty(oo->matrix);
 }
 
-void FitContext::copyParamToModel(omxState* os)
+void FitContext::copyParamToModel(omxState* os, double *at)
 {
-	copyParamToModel(os, est);
+	copyParamToModelClean(os, at);
+	varGroup->markDirty(os);
 }
 
-void FitContext::copyParamToModel(omxState* os, double *at)
+void FitContext::copyParamToModelClean(omxState* os, double *at)
 {
 	size_t numParam = varGroup->vars.size();
 
@@ -924,8 +925,6 @@ void FitContext::copyParamToModel(omxState* os, double *at)
 	}
 
 	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, at, numParam);
-
-	varGroup->markDirty(os);
 
 	if (os->childList.size() == 0) return;
 
@@ -1316,8 +1315,12 @@ class ComputeEM : public omxCompute {
 	double semTolerance;
 	int verbose;
 	bool useRamsay;
-	bool information;
-	std::vector< omxMatrix * > semFitFunction;
+	enum EMInfoMethod {
+		EMInfoNone,
+		EMInfoMengRubinFamily,
+		EMInfoOakes
+	} information;
+	std::vector< omxMatrix * > infoFitFunction;
 	enum ComputeInfoMethod infoMethod;
 	enum SEMMethod { ClassicSEM, TianSEM, GridSEM, AgileSEM } semMethod;
 	double *semMethodData;
@@ -1337,7 +1340,7 @@ class ComputeEM : public omxCompute {
 	std::vector<double> probeOffset;
 	std::vector<double> diffWork;
 	std::vector<int> paramHistLen;
-	std::vector<double> optimum;
+	Eigen::ArrayXd optimum;
 	double bestFit;
  	static const double MIDDLE_START;
 	static const double MIDDLE_END;
@@ -1348,6 +1351,8 @@ class ComputeEM : public omxCompute {
 	bool probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
 	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			double *stdDiff, bool *mengOK);
+	void MengRubinFamily(FitContext *fc);
+	void Oakes(FitContext *fc);
 
  public:
         virtual void initFromFrontend(SEXP rObj);
@@ -1641,16 +1646,43 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("information")));
 	const char *infoName = CHAR(STRING_ELT(slotValue, 0));
-	information = false;
+	information = EMInfoNone;
 	if (STRING_ELT(slotValue, 0) == NA_STRING) {
 		// ok
 	} else if (strEQ(infoName, "mr1991")) {
-		information = true;
+		information = EMInfoMengRubinFamily;
+	} else if (strEQ(infoName, "oakes1999")) {
+		information = EMInfoOakes;
 	} else {
 		Rf_warning("%s: unknown information method %s ignored", name, infoName);
 	}
 
-	if (information) {
+	if (information == EMInfoOakes) {
+		infoMethod = INFO_METHOD_HESSIAN;
+
+		SEXP infoArgs, argNames;
+		Rf_protect(infoArgs = R_do_slot(rObj, Rf_install("infoArgs")));
+		Rf_protect(argNames = Rf_getAttrib(infoArgs, R_NamesSymbol));
+
+		for (int ax=0; ax < Rf_length(infoArgs); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(argNames, ax));
+			slotValue = VECTOR_ELT(infoArgs, ax);
+			if (strEQ(key, "fitfunction")) {
+				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
+					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
+					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
+					infoFitFunction.push_back(ff);
+				}
+			} else if (strEQ(key, "inputInfo")) {
+				infoMethod = stringToInfoMethod(CHAR(slotValue));
+			} else {
+				mxLog("%s: unknown key %s", name, key);
+			}
+		}
+	}
+
+	if (information == EMInfoMengRubinFamily) {
+		// TODO remove SEM prefix everywhere
 		infoMethod = INFO_METHOD_HESSIAN;
 		semMethod = AgileSEM;
 		agileMaxIter = 1;
@@ -1672,7 +1704,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
 					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
 					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
-					semFitFunction.push_back(ff);
+					infoFitFunction.push_back(ff);
 				}
 			} else if (strEQ(key, "inputInfo")) {
 				infoMethod = stringToInfoMethod(CHAR(slotValue));
@@ -1718,6 +1750,11 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 			Rf_warning("%s: semFixSymmetry must be enabled for semForcePD", name);
 			semForcePD = false;
 		}
+	}
+
+	if (information != EMInfoNone && infoFitFunction.size() == 0) {
+		omxRaiseErrorf("%s: at least one fitfunction is required to estimate the information matrix. "
+			       "Add something like infoArgs=list(fitfunction='fitfunction')", name);
 	}
 
 	inputInfoMatrix = NULL;
@@ -1904,9 +1941,82 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
 				EMcycles, maxIter, totalMstepIter, bestFit);
 
-	if (!converged || !information) return;
+	if (!converged || information == EMInfoNone) return;
 
-	if (verbose >= 1) mxLog("ComputeEM: tolerance=%f semMethod=%d, semTolerance=%f ideal noise=[%f,%f]",
+	if (information == EMInfoMengRubinFamily) {
+		MengRubinFamily(fc);
+	} else if (information == EMInfoOakes) {
+		Oakes(fc);
+	} else {
+		Rf_error("Unknown information method %d", information);
+	}
+}
+
+void ComputeEM::Oakes(FitContext *fc)
+{
+	const double perturb = 1e-3;  // config option TODO
+
+	if (verbose >= 1) mxLog("ComputeEM: Oakes1999 method=simple perturbation=%f", perturb);
+
+	int wanted = fc->wanted;
+	const int freeVars = (int) fc->varGroup->vars.size();
+	optimum.resize(freeVars);
+	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
+
+	setExpectationPrediction(predict);
+	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
+	}
+
+	Eigen::ArrayXd refGrad(freeVars);
+	refGrad = fc->grad;
+	//std::cout << "refGrad" << refGrad << "\n";
+
+	Eigen::MatrixXd jacobian(freeVars, freeVars);
+	for (int vx=0; vx < freeVars; ++vx) {
+		fc->est[vx] += perturb;
+		fc->copyParamToModel(globalState);
+
+		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+			omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+		}
+
+		memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
+		fc->copyParamToModelClean(globalState);
+
+		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+			omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
+		}
+		//std::cout << "col" << vx << ":" << ((fc->grad.array() - refGrad) / perturb) << "\n";
+		jacobian.col(vx) = (fc->grad.array() - refGrad) / perturb;
+		if (verbose >= 2) mxLog("ComputeEM: deriv of gradient for %d", vx);
+		R_CheckUserInterrupt();
+	}
+
+	fc->infoMethod = infoMethod;
+	fc->preInfo();
+	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
+	}
+	fc->postInfo();
+	setExpectationPrediction("nothing");
+
+	fc->refreshDenseHess();
+	double *hess = fc->getDenseHessUninitialized();
+	Eigen::Map< Eigen::MatrixXd > hessMat(hess, freeVars, freeVars);
+	hessMat += (jacobian + jacobian.transpose()) / 2;  //only need upper triangle TODO
+
+	fc->wanted = wanted | FF_COMPUTE_HESSIAN;
+}
+
+void ComputeEM::MengRubinFamily(FitContext *fc)
+{
+	const size_t freeVars = fc->varGroup->vars.size();
+
+	if (verbose >= 1) mxLog("ComputeEM: MengRubinFamily tolerance=%f semMethod=%d, semTolerance=%f ideal noise=[%f,%f]",
 				tolerance, semMethod, semTolerance,
 				noiseTarget/noiseTolerance, noiseTarget*noiseTolerance);
 
@@ -2059,11 +2169,12 @@ void ComputeEM::computeImpl(FitContext *fc)
 	//pda(rij.data(), freeVars, freeVars);
 
 	setExpectationPrediction(predict);
+	int wanted = fc->wanted;
 	fc->wanted = 0;
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
-	for (size_t fx=0; fx < semFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(semFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
+	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
 	}
 	fc->postInfo();
 	setExpectationPrediction("nothing");

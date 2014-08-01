@@ -132,11 +132,14 @@ class FitContext {
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void allocStderrs();
 	// Instead of using estimates not in est, it is less confusing
-	// to clone the FitContext and use fc->est.
+	// to clone the FitContext and use fc->est. Hence, we deprecate
+	// some of these APIs.
 	void copyParamToModel(omxState* os, double *at); // deprecated
 	void copyParamToModel(omxMatrix *mat, double *at); // deprecated
-	void copyParamToModel(omxState *os);
+	void copyParamToModel(omxState *os) { copyParamToModel(os, est); };
 	void copyParamToModel(omxMatrix *mat);
+	void copyParamToModelClean(omxState *os, double *at); // deprecated
+	void copyParamToModelClean(omxState* os) { copyParamToModelClean(os, est); };
 	double *take(int want);
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
