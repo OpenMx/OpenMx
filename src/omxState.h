@@ -98,6 +98,7 @@ struct FreeVarGroup {
 	void markDirty(omxState *os);
 	void log();
 	bool hasSameVars(FreeVarGroup *g2);
+	bool isDisjoint(FreeVarGroup *other);
 };
 
 #define NEG_INF -2e20

@@ -1014,13 +1014,17 @@ mxComputeReportDeriv <- function(freeSet=NA_character_) {
 #----------------------------------------------------
 
 setClass(Class = "MxComputeSequence",
-	 contains = "ComputeSteps")
+	 contains = "ComputeSteps",
+	 representation = representation(
+	     independent="logical"
+	     ))
 
 setMethod("initialize", "MxComputeSequence",
-	  function(.Object, steps, freeSet) {
+	  function(.Object, steps, freeSet, independent) {
 		  .Object@name <- 'compute'
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
+		  .Object@independent <- independent
 		  .Object
 	  })
 
@@ -1031,13 +1035,13 @@ setMethod("initialize", "MxComputeSequence",
 ##' @param freeSet Names of matrices containing free parameters.
 ##' @aliases
 ##' MxComputeSequence-class
-mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_) {
+mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_, independent=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeSequence does not accept values for the '...' argument")
 	}
 
-	new("MxComputeSequence", steps=steps, freeSet)
+	new("MxComputeSequence", steps=steps, freeSet, independent)
 }
 
 ##' Compute nothing
@@ -1054,6 +1058,7 @@ setMethod("displayCompute", signature(Ob="MxComputeSequence", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "independent :", Ob@independent, '\n')
 		  for (step in 1:length(Ob@steps)) {
 			  cat(sp, "steps[[", step, "]] :", '\n')
 			  displayCompute(Ob@steps[[step]], indent+1L)

@@ -95,6 +95,20 @@ void FreeVarGroup::cacheDependencies()
 	if (OMX_DEBUG) { log(); }
 }
 
+static int freeVarComp(omxFreeVar *fv1, omxFreeVar *fv2)
+{ return fv1->id < fv2->id; }
+
+// NOTE: This assumes that free variables are sorted.
+bool FreeVarGroup::isDisjoint(FreeVarGroup *other)
+{
+	std::vector< omxFreeVar* > overlap(std::max(vars.size(), other->vars.size()));
+	std::vector< omxFreeVar* >::iterator it =
+		std::set_intersection(vars.begin(), vars.end(),
+				      other->vars.begin(), other->vars.end(),
+				      overlap.begin(), freeVarComp);
+	return it - overlap.begin() == 0;
+}
+
 void FreeVarGroup::markDirty(omxState *os)
 {
 	size_t numMats = os->matrixList.size();

@@ -19,6 +19,7 @@
 
 //#include <iostream>
 
+#include "glue.h"
 #include "Compute.h"
 #include "omxState.h"
 #include "omxExportBackendState.h"
@@ -1257,6 +1258,7 @@ void ComputeContainer::collectResults(FitContext *fc, LocalComputeResult *lcr, M
 
 class omxComputeSequence : public ComputeContainer {
 	typedef ComputeContainer super;
+	bool independent;
 
  public:
 	virtual void initFromFrontend(SEXP rObj);
@@ -1439,6 +1441,10 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 	super::initFromFrontend(rObj);
 
 	SEXP slotValue;
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("independent")));
+	independent = Rf_asLogical(slotValue);
+	}
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
@@ -1453,6 +1459,21 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 		compute->initFromFrontend(step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
+	}
+
+	if (independent) {
+		bool fail = false;
+		for (int c1 = 1; c1 < (int) clist.size(); ++c1) {
+			for (int c2 = 0; c2 < c1; ++c2) {
+				if (clist[c1]->varGroup->isDisjoint(clist[c2]->varGroup)) continue;
+				omxRaiseErrorf("mxComputeSequence(independent=TRUE) but steps "
+					       "%d and %d contain some of the same "
+					       "free parameters", 1+c1, 1+c2);
+				fail = true;
+				break;
+			}
+			if (fail) break;
+		}
 	}
 }
 
