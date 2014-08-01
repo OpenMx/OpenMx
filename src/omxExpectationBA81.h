@@ -52,10 +52,6 @@ struct BA81LatentFixed {
 
 template <typename T>
 struct BA81LatentSummary {
-	int numLatents;
-	std::vector<double> thrDweight;
-	std::vector<double> latentDist;
-
 	void begin(class ifaGroup *state, T extraData);
 	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrId);
 	void end(class ifaGroup *state, T extraData);
@@ -77,7 +73,9 @@ class BA81Expect {
 
 	// data characteristics
 	omxData *data;
-	double weightSum;              // sum of rowWeight
+	double weightSum;                // sum of rowWeight
+	// aggregate distribution of data in quadrature
+	std::vector<double> thrDweight;  // quad.weightTableSize * numThreads
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
@@ -97,7 +95,6 @@ class BA81Expect {
 
 	omxMatrix *estLatentMean;
 	omxMatrix *estLatentCov;
-	omxMatrix *numObsMat; // this is dumb
 
 	int itemParamVersion;
 	int latentParamVersion;
@@ -107,6 +104,7 @@ class BA81Expect {
 	struct omxFitFunction *fit;  // weak pointer
 
 	BA81Expect() : grp(Global->numThreads, true) {};
+	const char *getLatentIncompatible(BA81Expect *other);
 };
 
 template <typename Tmean, typename Tcov>
@@ -132,8 +130,6 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 extern const struct rpf *rpf_model;
 extern int rpf_numModels;
 
-void ba81OutcomeProb(BA81Expect *state, double *param, bool wantLog);
-
 OMXINLINE static void
 gramProduct(double *vec, size_t len, double *out)
 {
@@ -147,8 +143,10 @@ gramProduct(double *vec, size_t len, double *out)
 }
 
 void ba81SetupQuadrature(omxExpectation* oo);
-void ba81LikelihoodSlow2(BA81Expect *state, int px, double *out);
-void cai2010EiEis(BA81Expect *state, int px, double *lxk, double *Eis, double *Ei);
+
+void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
+				int *version, omxMatrix *meanMat, omxMatrix *covMat);
+
 static const double BA81_MIN_VARIANCE = .01;
 
 #endif

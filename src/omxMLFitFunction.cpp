@@ -481,17 +481,14 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	omxData* dataMat = oo->expectation->data;
 
-	if(!(dataMat == NULL) && !strEQ(omxDataType(dataMat), "cov") && !strEQ(omxDataType(dataMat), "cor")) {
-		if(strEQ(omxDataType(dataMat), "raw")) {
-			if(OMX_DEBUG) { mxLog("Raw Data: Converting to FIML."); }
-			omxInitFIMLFitFunction(oo);
-			return;
-		}
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "ML FitFunction unable to handle data type %s.\n", omxDataType(dataMat));
-		omxRaiseError(errstr);
-		free(errstr);
-		if(OMX_DEBUG) { mxLog("ML FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
+	if(strEQ(omxDataType(dataMat), "raw")) {
+		if(OMX_DEBUG) { mxLog("Raw Data: Converting from multivariate Normal ML to FIML"); }
+		omxInitFIMLFitFunction(oo);
+		return;
+	}
+
+	if(!strEQ(omxDataType(dataMat), "cov") && !strEQ(omxDataType(dataMat), "cor")) {
+		omxRaiseErrorf("ML FitFunction unable to handle data type %s", omxDataType(dataMat));
 		return;
 	}
 
@@ -522,7 +519,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		} else {
-			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			omxRaiseErrorf("%s: Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n", oo->matrix->name);
 			return;	        
 		}
 	}

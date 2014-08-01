@@ -43,7 +43,8 @@ setClass(Class = "MxDataDynamic",
 	     type        = "character",
 	     expectation = "MxCharOrNumber",
 	     numObs = "numeric",             # output
-	     name        = "character"))
+	     name        = "character",
+	     verbose = "integer"))
 
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
@@ -63,9 +64,10 @@ setMethod("initialize", "MxDataStatic",
 )
 
 setMethod("initialize", "MxDataDynamic",
-	function(.Object, type, expectation, name = "data") {
+	function(.Object, type, expectation, verbose, name = "data") {
 		.Object@type <- type
 		.Object@expectation <- expectation
+		.Object@verbose <- verbose
 		.Object@name <- name
 		return(.Object)
 	}
@@ -91,13 +93,14 @@ imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 ##' @param expectation the name of the expectation to provide the data
 ##' @aliases
 ##' MxDataDynamic-class
-mxDataDynamic <- function(type, ..., expectation) {
+mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxDataDynamic does not accept values for the '...' argument")
 	}
 	if (type != "cov") stop("Type must be set to 'cov'")
-	return(new("MxDataDynamic", type, expectation))
+	verbose <- as.integer(verbose)
+	return(new("MxDataDynamic", type, expectation, verbose))
 }
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA, ...,
@@ -216,8 +219,11 @@ setMethod("summarize", signature("MxDataStatic"),
 setMethod("convertDataForBackend", signature("MxDataDynamic"),
 	  function(data, model, flatModel) {
 		  expNum <- match(data@expectation, names(flatModel@expectations))
-		  if (is.na(expNum)) stop(paste("Cannot find expectation", data@expectation,
+		  if (any(is.na(expNum))) {
+			  missing <- data@expectation[is.na(expNum)]
+			  stop(paste("Cannot find expectation", omxQuotes(missing),
 						"referenced by data in", model@name))
+		  }
 		  data@expectation <- expNum - 1L
 		  data
 	  })

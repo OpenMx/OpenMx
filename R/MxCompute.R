@@ -703,8 +703,8 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 		if (any(!is.integer(.Object@expectation))) {
 			expNum <- match(.Object@expectation, names(flatModel@expectations))
 			if (any(is.na(expNum))) {
-				stop(paste("MxComputeEM: MxExpectation",
-					   deparse(.Object@expectation), "not found"))
+				stop(paste("MxComputeEM: MxExpectation not found:",
+					   omxQuotes(.Object@expectation[is.na(expNum)])))
 			}
 			.Object@expectation <- expNum - 1L
 		}

@@ -130,6 +130,7 @@ void initFitMultigroup(omxFitFunction *oo)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("groups")));
 	int *fits = INTEGER(slotValue);
 	for(int gx = 0; gx < Rf_length(slotValue); gx++) {
+		if (isErrorRaised()) break;
 		omxMatrix *mat;
 		if (fits[gx] >= 0) {
 			mat = os->algebraList[fits[gx]];

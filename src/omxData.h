@@ -71,8 +71,11 @@ struct ColumnData {
 class omxData {
  private:
 	SEXP rownames;
+	void addDynamicDataSource(omxExpectation *ex);
+
  public: // move everything to private TODO
-	SEXP dataObject;
+	const char *name;
+	SEXP dataObject;                                // only used for dynamic data
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
@@ -80,6 +83,7 @@ class omxData {
 	omxThresholdColumn* thresholdCols;  // Wrapper structure for thresholds
 	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
+	const char *getType() const { return _type; };
 
 	// type=="raw"
 	std::vector<ColumnData> rawCols;
@@ -91,18 +95,20 @@ class omxData {
 	int* identicalRows;					// Number of consecutive rows with identical data
  public:
 	int rows, cols;						// Matrix size 
+	int verbose;
 
 	// Used when the expectation provides the observed data (DataDynamic)
-	struct omxExpectation *expectation;   // weak pointer
+	std::vector<struct omxExpectation *> expectation;   // weak pointers
+	int version;
 
 	omxData();
 	void newDataStatic(SEXP dataObject);
 	SEXP getRowNames();
 	void connectDynamicData();
+	void recompute();
 };
 
-/* Initialize and Destroy */
-omxData* omxNewDataFromMxData(SEXP dataObject);
+omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
 void omxFreeData(omxData* od);					// Release any held data.
@@ -142,7 +148,7 @@ static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 bool omxDataColumnIsFactor(omxData *od, int col);
-const char *omxDataType(omxData *od);			      // TODO: Should this be an ENUM?
+const char *omxDataType(omxData *od);			      // TODO: convert to ENUM
 	
 int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
 int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set

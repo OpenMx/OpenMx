@@ -68,10 +68,7 @@ void BA81LatentFixed<T>::normalizeWeights(class ifaGroup *grp, T extraData,
 template <typename T>
 void BA81LatentSummary<T>::begin(class ifaGroup *state, T extraData)
 {
-	thrDweight.assign(state->quad.weightTableSize * Global->numThreads, 0.0);
-	ba81NormalQuad &quad = state->quad;
-	numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
-	latentDist.assign(numLatents, 0.0);
+	extraData->thrDweight.assign(state->quad.weightTableSize * Global->numThreads, 0.0);
 }
 
 template <typename T>
@@ -80,7 +77,7 @@ void BA81LatentSummary<T>::normalizeWeights(class ifaGroup *grp, T extraData,
 {
 	double weight = grp->rowWeight[px] / patternLik1;
 	int pts = grp->quad.weightTableSize;
-	double *Dweight = thrDweight.data() + pts * thrId;
+	double *Dweight = extraData->thrDweight.data() + pts * thrId;
 	for (int qx=0; qx < pts; ++qx) {
 		double tmp = Qweight[qx] * weight;
 		Dweight[qx] += tmp;
@@ -88,28 +85,11 @@ void BA81LatentSummary<T>::normalizeWeights(class ifaGroup *grp, T extraData,
 	}
 }
 
-template <typename T>
-void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
+static void exportLatentDistToOMX(ba81NormalQuad &quad, double *latentDist1, omxMatrix *meanOut, omxMatrix *covOut)
 {
-	int pts = grp->quad.weightTableSize;
-
-	for (int tx=1; tx < Global->numThreads; ++tx) {
-		double *Dweight = thrDweight.data() + pts * tx;
-		double *dest = thrDweight.data();
-		for (int qx=0; qx < pts; ++qx) {
-			dest[qx] += Dweight[qx];
-		}
-	}
-
-	ba81NormalQuad &quad = grp->quad;
-	quad.EAP(thrDweight.data(), 1/extraData->weightSum, latentDist.data());
-
-	omxMatrix *meanOut = extraData->estLatentMean;
-	omxMatrix *covOut = extraData->estLatentCov;
 	const int maxAbilities = quad.maxAbilities;
 	const int primaryDims = quad.primaryDims;
 
-	double *latentDist1 = latentDist.data();
 	if (meanOut) {
 		for (int d1=0; d1 < maxAbilities; d1++) {
 			omxSetVectorElement(meanOut, d1, latentDist1[d1]);
@@ -131,8 +111,74 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 			omxSetMatrixElement(covOut, d1, d1, latentDist1[loc]);
 		}
 	}
+}
+
+template <typename T>
+void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
+{
+	int pts = grp->quad.weightTableSize;
+	double *thrDweight = extraData->thrDweight.data();
+
+	for (int tx=1; tx < Global->numThreads; ++tx) {
+		double *Dweight = thrDweight + pts * tx;
+		double *dest = thrDweight;
+		for (int qx=0; qx < pts; ++qx) {
+			dest[qx] += Dweight[qx];
+		}
+	}
+
+	// could shrink thrDweight since thr=0 has all the info
+
+	ba81NormalQuad &quad = grp->quad;
+	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
+	std::vector<double> latentDist;
+	latentDist.assign(numLatents, 0.0);
+	quad.EAP(thrDweight, 1/extraData->weightSum, latentDist.data());
+	exportLatentDistToOMX(quad, latentDist.data(), extraData->estLatentMean, extraData->estLatentCov);
 
 	++extraData->ElatentVersion;
+}
+
+void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
+				int *version, omxMatrix *meanMat, omxMatrix *covMat)
+{
+	BA81Expect *exemplar = (BA81Expect *) expectation[0]->argStruct;
+	ba81NormalQuad &quad = exemplar->getQuad();
+	int pts = quad.weightTableSize;
+	Eigen::ArrayXd dist(pts);
+	dist.setZero();
+
+	int allVer = 0;
+	for (size_t ex=0; ex < expectation.size(); ++ex) {
+		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
+		allVer += ba81->ElatentVersion;
+	}
+	if (*version == allVer) return;
+	*version = allVer;
+
+	int got = 0;
+	for (size_t ex=0; ex < expectation.size(); ++ex) {
+		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
+		if (ba81->thrDweight.size() == 0) continue;
+		double weight = 1/ba81->weightSum;
+		for (int qx = 0; qx < pts; ++qx) {
+			dist[qx] += weight * ba81->thrDweight[qx];
+		}
+		++got;
+	}
+	if (got == 0) return;
+
+	if (got != (int) expectation.size()) {
+		// maybe OK?
+		Rf_error("ba81AggregateDistributions: %d/%d expectations ready",
+			 got, (int) expectation.size());
+	}
+
+	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
+	std::vector<double> latentDist;
+	latentDist.assign(numLatents, 0.0);
+	quad.EAP(dist.data(), 1.0/got, latentDist.data());
+	exportLatentDistToOMX(quad, latentDist.data(), meanMat, covMat);
 }
 
 template <typename T, typename CovType>
@@ -247,7 +293,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 	state->getLatentDistribution(NULL, mean, fullCov);
 
 	if (state->verbose >= 1) {
-		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));
+		mxLog("%s: set up quadrature", oo->name);
 		if (state->verbose >= 2) {
 			pda(mean.data(), 1, maxAbilities);
 			pda(fullCov.data(), maxAbilities, maxAbilities);
@@ -372,13 +418,14 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 			refreshPatternLikelihood(state, oo->dynamicDataSource);
 		}
 		if (oo->dynamicDataSource && state->verbose >= 2) {
+			mxLog("%s: empirical distribution:", state->name);
 			omxPrint(state->estLatentMean, "mean");
 			omxPrint(state->estLatentCov, "cov");
 		}
 		if (state->verbose >= 1) {
 			const int numUnique = state->getNumUnique();
-			mxLog("%s: estep(item version %d)<%s, %s, %s> %d/%d rows excluded",
-			      state->name, omxGetMatrixVersion(state->itemParam),
+			mxLog("%s: estep<%s, %s, %s> %d/%d rows excluded",
+			      state->name,
 			      (quad.numSpecific == 0? "dense":"twotier"),
 			      (estep && oo->dynamicDataSource? "summary":"fixed"),
 			      (estep? "estep":"omitEstep"),
@@ -457,7 +504,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	omxFreeMatrix(state->estLatentMean);
 	omxFreeMatrix(state->estLatentCov);
-	omxFreeMatrix(state->numObsMat);
 	Free(state->expected);
 	delete state;
 }
@@ -473,8 +519,6 @@ static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *
 		return state->estLatentCov;
 	} else if (strcmp(what, "mean")==0) {
 		return state->estLatentMean;
-	} else if (strcmp(what, "numObs")==0) {
-		return state->numObsMat;
 	} else {
 		return NULL;
 	}
@@ -522,7 +566,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->expectedUsed = true;
 
-	state->numObsMat = NULL;
 	state->estLatentMean = NULL;
 	state->estLatentCov = NULL;
 	state->expected = NULL;
@@ -658,6 +701,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// sanity check data
 	for (int cx = 0; cx < numItems; cx++) {
 		if (!omxDataColumnIsFactor(data, colMap[cx])) {
+			omxPrintData(data, "diagnostic", 3);
 			omxRaiseErrorf("%s: column %d is not a factor", oo->name, 1 + colMap[cx]);
 			return;
 		}
@@ -725,6 +769,17 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		state->estLatentCov = omxInitMatrix(maxAbilities, maxAbilities, TRUE, currentState);
 		omxCopyMatrix(state->estLatentCov, state->_latentCovOut);
 	}
-	state->numObsMat = omxInitMatrix(1, 1, TRUE, currentState);
-	omxSetVectorElement(state->numObsMat, 0, data->rows);
 }
+
+const char *BA81Expect::getLatentIncompatible(BA81Expect *other)
+{
+	// NOTE: grp.quad not initialized yet
+	// make method of ifaGroup ?
+	if (grp.itemOutcomes != other->grp.itemOutcomes) return "items";
+	if (grp.maxAbilities != other->grp.maxAbilities) return "number of factors";
+	if (grp.numSpecific != other->grp.numSpecific) return "number of specific factors";
+	if (grp.qpoints != other->grp.qpoints) return "qpoints";
+	if (grp.qwidth != other->grp.qwidth) return "qwidth";
+	return 0;
+}
+

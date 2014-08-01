@@ -38,9 +38,11 @@ void omxProcessMxDataEntities(SEXP data) {
 	SEXP nextLoc;
 	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
 
+	SEXP listNames = Rf_getAttrib(data, R_NamesSymbol);
+
 	for(int index = 0; index < Rf_length(data); index++) {
 		ScopedProtect p1(nextLoc, VECTOR_ELT(data, index));			// Retrieve the data object
-		omxNewDataFromMxData(nextLoc);
+		omxNewDataFromMxData(nextLoc, CHAR(STRING_ELT(listNames, index)));
 	}
 }
 
@@ -121,11 +123,11 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 	SEXP eNames = Rf_getAttrib(expList, R_NamesSymbol);
 
 	for(int index = 0; index < Rf_length(expList); index++) {
+		if (isErrorRaised()) return;
 		Rf_protect(nextExp = VECTOR_ELT(expList, index));
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
 		ex->name = CHAR(STRING_ELT(eNames, index));
 		globalState->expectationList.push_back(ex);
-		if (isErrorRaised()) return;
 	}
 }
 
@@ -134,8 +136,8 @@ void omxCompleteMxExpectationEntities() {
 	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) globalState->expectationList.size());}
 	
 	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
-		omxCompleteExpectation(globalState->expectationList[index]);
 		if (isErrorRaised()) return;
+		omxCompleteExpectation(globalState->expectationList[index]);
 	}
 }
 

@@ -71,6 +71,7 @@ void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how
 {
 	if (!ox) return;
 
+	ox->data->recompute(); // for dynamic data
 	ox->computeFun(ox, what, how);
 }
 

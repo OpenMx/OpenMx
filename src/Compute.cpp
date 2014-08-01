@@ -2208,6 +2208,7 @@ void omxComputeOnce::initFromFrontend(SEXP rObj)
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("from")));
 	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
+		if (isErrorRaised()) return;
 		int objNum = INTEGER(slotValue)[wx];
 		if (objNum >= 0) {
 			omxMatrix *algebra = globalState->algebraList[objNum];

@@ -27,6 +27,7 @@
 #include "omxData.h"
 #include "glue.h"
 #include "omxState.h"
+#include "omxExpectationBA81.h"  // improve encapsulation TODO
 
 omxData::omxData() : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
@@ -47,22 +48,97 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("type")));
 	od->_type = CHAR(STRING_ELT(dataLoc,0));
 	od->dataObject = dataObject;
+	if (!strEQ(od->getType(), "cov")) {
+		omxRaiseErrorf("Don't know how to create dynamic data with type '%s'", od->getType());
+	}
+
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("verbose")));
+	od->verbose = Rf_asInteger(dataLoc);
+	}
+}
+
+void omxData::addDynamicDataSource(omxExpectation *ex)
+{
+	expectation.push_back(ex);
+	ex->dynamicDataSource = true;
 }
 
 void omxData::connectDynamicData()
 {
 	if (!dataObject) return;
 
+	if (expectation.size()) {
+		Rf_error("omxData::connectDynamicData called more than once");
+	}
+
 	SEXP dataLoc;
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
-	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
-	if (expectation) {
-		omxRaiseErrorf("%s: Cannot be a dynamic data source for "
-			       "more than 1 data object (not implemented)", ex->name);
+	if (Rf_length(dataLoc) == 0) {
+		omxRaiseError("mxDataDynamic is not connected to a data source");
 		return;
 	}
-	expectation = ex;
-	ex->dynamicDataSource = this;
+
+	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
+	if (Rf_length(dataLoc) == 1) {
+		BA81Expect *other = (BA81Expect *) ex->argStruct;
+		numObs = other->weightSum;
+		addDynamicDataSource(ex);
+		// nothing special to do
+	} else {
+		int num = Rf_length(dataLoc);
+		expectation.reserve(num);
+		int *evec = INTEGER(dataLoc);
+
+		omxExpectation *refE = NULL;
+		BA81Expect *refBA81;
+		double weightSum = 0;
+
+		for (int sx=0; sx < num; ++sx) {
+			omxExpectation *ex = omxExpectationFromIndex(evec[sx], globalState);
+			if (!strEQ(ex->expType, "MxExpectationBA81")) {
+				omxRaiseErrorf("MxDataDynamic: type='cov' is only valid for MxExpectationBA81, not '%s'",
+					       ex->expType);
+				continue;
+			}
+			BA81Expect *other = (BA81Expect *) ex->argStruct;
+			weightSum += other->weightSum;
+			if (!refE) {
+				refE = ex;
+				refBA81 = other;
+			} else {
+				const char *why = refBA81->getLatentIncompatible(other);
+				if (why) {
+					omxRaiseErrorf("MxDataDynamic: '%s' is not compatible with '%s' because of %s",
+						       ex->name, refE->name, why);
+					continue;
+				}
+			}
+
+			addDynamicDataSource(ex);
+		}
+		numObs = weightSum;
+		if (!refE) return;
+
+		int dims = refBA81->grp.maxAbilities;
+		dataMat = omxNewIdentityMatrix(dims, globalState);
+		meansMat = omxInitMatrix(dims, 1, TRUE, globalState);
+		for (int mx=0; mx < dims; ++mx) omxSetVectorElement(meansMat, mx, 0);
+		version = 0;
+	}
+}
+
+void omxData::recompute()
+{
+	int num = (int) expectation.size();
+	if (num <= 1) return;
+
+	int oldVersion = version;
+	ba81AggregateDistributions(expectation, &version, meansMat, dataMat);
+	if (oldVersion != version && verbose >= 1) {
+		mxLog("MxData: recompute %s", name);
+		omxPrint(meansMat, "mean");
+		omxPrint(dataMat, "cov");
+	}
 }
 
 void omxData::newDataStatic(SEXP dataObject)
@@ -240,7 +316,7 @@ void omxData::newDataStatic(SEXP dataObject)
 	}
 }
 
-omxData* omxNewDataFromMxData(SEXP dataObject)
+omxData* omxNewDataFromMxData(SEXP dataObject, const char *name)
 {
 	if(dataObject == NULL) {
 		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
@@ -257,6 +333,7 @@ omxData* omxNewDataFromMxData(SEXP dataObject)
 	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(dataObject);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
 	else Rf_error("Unknown data class %s", dclass);
+	od->name = name;
 	return od;
 }
 
@@ -307,11 +384,12 @@ omxMatrix* omxDataCovariance(omxData *od)
 {
 	if (od->dataMat) return od->dataMat;
 
-	if (od->expectation) {
-		return omxGetExpectationComponent(od->expectation, NULL, "covariance");
+	if (od->expectation.size()) {
+		omxExpectation *ex = od->expectation[0];
+		return omxGetExpectationComponent(ex, NULL, "covariance");
 	}
 
-	Rf_error("type=cov data must be in matrix storage");
+	Rf_error("%s: type='cov' data must be in matrix storage", od->name);
 }
 
 omxMatrix* omxDataAcov(omxData *od) {
@@ -335,8 +413,9 @@ bool omxDataColumnIsFactor(omxData *od, int col)
 omxMatrix* omxDataMeans(omxData *od)
 {
 	if (od->meansMat) return od->meansMat;
-	if (od->expectation) {
-		omxMatrix *mat = omxGetExpectationComponent(od->expectation, NULL, "mean");
+	if (od->expectation.size()) {
+		omxExpectation *ex = od->expectation[0];
+		omxMatrix *mat = omxGetExpectationComponent(ex, NULL, "mean");
 		if (!mat) return NULL;
 		if (mat->rows != 1) omxTransposeMatrix(mat);
 		return mat;
@@ -459,11 +538,6 @@ int omxDataNumIdenticalOrdinalMissingness(omxData *od, int row) {
 
 double omxDataNumObs(omxData *od)
 {
-	if (od->expectation) {
-		omxMatrix *mat = omxGetExpectationComponent(od->expectation, NULL, "numObs");
-		if (!mat) return 0; // maybe error raised
-		return omxMatrixElement(mat, 0, 0);
-	}
 	return od->numObs;
 }
 
