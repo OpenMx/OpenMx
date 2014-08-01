@@ -31,17 +31,17 @@ struct AlgebraFitFunction {
 	std::vector<int> gradMap;
 	bool vec2diag;
 
-	void buildParamMap(FitContext *fc);
+	void buildParamMap(FreeVarGroup *varGroup);
 	void compute(FitContext *fc, int want);
 };
 
-void AlgebraFitFunction::buildParamMap(FitContext *fc)
+void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 {
+	varGroup = newVarGroup;
 	if (verbose) {
 		mxLog("%s: rebuild parameter map for var group %d",
-		      ff->matrix->name, fc->varGroup->id[0]);
+		      ff->matrix->name, varGroup->id[0]);
 	}
-	varGroup = fc->varGroup;
 	numDeriv = 0;
 
 	if (gradient) {
@@ -127,7 +127,10 @@ static void addSymOuterProd(const double weight, const double *vec, const int le
 
 void AlgebraFitFunction::compute(FitContext *fc, int want)
 {
-	if (fc && varGroup != fc->varGroup) buildParamMap(fc);
+	if (fc && varGroup != fc->varGroup) {
+		// remove this once setVarGroup is working reliably TODO
+		buildParamMap(fc->varGroup);
+	}
 
 	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT)) {
 		if (algebra) {
@@ -207,6 +210,12 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 	// complain if unimplemented FF_COMPUTE_INFO requested? TODO
 }
 
+static void setVarGroup(omxFitFunction *oo, FreeVarGroup *vg)
+{
+	AlgebraFitFunction *aff = (AlgebraFitFunction*)(oo->argStruct);
+	aff->buildParamMap(vg);
+}
+
 static void omxDestroyAlgebraFitFunction(omxFitFunction *off)
 {
 	AlgebraFitFunction *aff = (AlgebraFitFunction*)(off->argStruct);
@@ -239,6 +248,7 @@ void omxInitAlgebraFitFunction(omxFitFunction* off)
 
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;
+	off->setVarGroup = setVarGroup;
 	
 	off->argStruct = (void*) aff;
 }
