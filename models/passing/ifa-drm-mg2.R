@@ -68,15 +68,6 @@ groups <- paste("g", 1:3, sep="")
 
 # Cannot test derivatives at starting values because Hessian starts very close to singular.
 
-if(0) {
-  # for S-EM debugging
-  plan <- mxComputeEM(paste(groups, 'expectation', sep='.'),
-                      mxComputeNewtonRaphson(freeSet=paste(groups,'ItemParam',sep=".")),
-                      mxComputeOnce('fitfunction', 'fit',
-                                    freeSet=apply(expand.grid(groups, c('mean','cov')), 1, paste, collapse='.')),
-                      information=TRUE, info.method="meat", semDebug=TRUE, semMethod=seq(.001, .02, length.out=30))
-}
-
 # This create a latent distribution model that can be used to impose
 # equality constraints on latent distribution parameters.
 mklatent <- function(name) {
@@ -124,7 +115,10 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
 				      mxComputeNewtonRaphson(freeSet=paste(groups,'item',sep=".")),
 				      latent.plan)),
                                   information="mr1991", tolerance=1e-5, verbose=0L,
-				  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
+                                  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")
+                                                # For SEM debugging
+#                                                ,semDebug=TRUE, semMethod=seq(.001, .02, length.out=30)
+                                  )),
                       mxComputeStandardError(),
                       mxComputeHessianQuality(),
                     mxComputeOnce('fitfunction', 'gradient'),
@@ -144,6 +138,7 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
   probeOffset <- cem$debug$probeOffset
   semDiff <- cem$debug$semDiff
 
+  upper <- 20
   modelfit <- NULL
   result <- data.frame()
   for (vx in 1:length(model$output$estimate)) {
@@ -151,7 +146,6 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
     offset <- probeOffset[1:len, vx]
     dd <- semDiff[1:(len-1), vx]
     mid <- offset[1:(len-1)] + diff(offset)/2
-    upper <- 20
     mask <- abs(diff(offset)) < .01 & dd < upper
     df <- data.frame(mid=mid[mask], diff=dd[mask])
     m1 <- lm(diff ~ 1 + I(1/mid^2), data=df)
@@ -162,11 +156,12 @@ plot_em_map <- function(model, cem) {   # for S-EM debugging
   print(mean(modelfit))
   ggplot(subset(result, vx %in% order(modelfit)[1:9])) +
     geom_point(aes(mid, diff), size=2) + geom_line(aes(mid, model), color="green") +
-    facet_wrap(~vname) + labs(x="x midpoint") + ylim(0,5)
+    facet_wrap(~vname) + labs(x="x midpoint") + ylim(0,upper)
 }
 
 if (0) {
-  plot_em_map(grpModel, grpModel$compute)
+  plot_em_map(grpModel, grpModel$compute@steps[[1]])
+  stop("here")
 }
 
 omxCheckCloseEnough(max(abs(grpModel$output$gradient)), 0, .17)

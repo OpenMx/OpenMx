@@ -1689,8 +1689,8 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 		semDebug = false;
 		semFixSymmetry = true;
 		semForcePD = false;
-		noiseTarget = exp(-5.0); //constexpr
-		noiseTolerance = exp(3.3); //constexpr
+		noiseTarget = exp(-5.2); //constexpr
+		noiseTolerance = exp(2); //constexpr
 		semTolerance = sqrt(tolerance);  // override needed?
 
 		SEXP infoArgs, argNames;
@@ -1943,6 +1943,9 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	if (!converged || information == EMInfoNone) return;
 
+	optimum.resize(freeVars);
+	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
+
 	if (information == EMInfoMengRubinFamily) {
 		MengRubinFamily(fc);
 	} else if (information == EMInfoOakes) {
@@ -1950,6 +1953,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 	} else {
 		Rf_error("Unknown information method %d", information);
 	}
+
+	fc->fit = bestFit;
+	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
+	fc->copyParamToModel(globalState);
 }
 
 void ComputeEM::Oakes(FitContext *fc)
@@ -1960,8 +1967,6 @@ void ComputeEM::Oakes(FitContext *fc)
 
 	int wanted = fc->wanted;
 	const int freeVars = (int) fc->varGroup->vars.size();
-	optimum.resize(freeVars);
-	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
 
 	setExpectationPrediction(predict);
 	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
@@ -2020,9 +2025,6 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 				tolerance, semMethod, semTolerance,
 				noiseTarget/noiseTolerance, noiseTarget*noiseTolerance);
 
-	optimum.resize(freeVars);
-	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
-
 	if (semMethod == AgileSEM) {
 		maxHistLen = 2 + agileMaxIter * 2;
 	} else if (semMethod == ClassicSEM || semMethod == TianSEM) {
@@ -2044,17 +2046,8 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		if (semMethod == AgileSEM) {
 			const double stepSize = tolerance;
 
-			double offset1 = tolerance * 50;
+			double offset1 = .001;
 			double sign = 1;
-			if (estHistory.size()) {
-				int hpick = estHistory.size() /2;
-				double popt = optimum[v1];
-				sign = (popt < estHistory[hpick][v1])? 1 : -1;
-				offset1 = fabs(estHistory[hpick][v1] - popt);
-				if (offset1 < 10 * tolerance) offset1 = 10 * tolerance;
-				if (offset1 > 1000 * tolerance) offset1 = 1000 * tolerance;
-			}
-
 			if (probeEM(fc, v1, sign * offset1, &rijWork)) break;
 			double offset2 = offset1 + stepSize;
 			if (probeEM(fc, v1, sign * offset2, &rijWork)) break;
@@ -2145,10 +2138,6 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	}
 	if (semConverged < freeVars) return;
 
-	fc->fit = bestFit;
-	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-	fc->copyParamToModel(globalState);
-
 	if (semDebug) {
 		Rf_protect(rateMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
 		memcpy(REAL(rateMatrix), rij.data(), sizeof(double) * freeVars * freeVars);
@@ -2190,6 +2179,12 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 
 	SymMatrixMultiply('L', 'U', 1, 0, hessMat, rijMat, infoMat);  // result not symmetric!
 
+	if (semDebug) {
+		// ihess is always symmetric, this could be asymmetric
+		Rf_protect(outputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
+		memcpy(REAL(outputInfoMatrix), infoBuf.data(), sizeof(double) * freeVars * freeVars);
+	}
+
 	double *ihess = fc->getDenseIHessUninitialized();
 	int singular;
 	if (semFixSymmetry) {
@@ -2213,12 +2208,6 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		}
 		Matrix mat(ihess, freeVars, freeVars);
 		InplaceForcePosSemiDef(mat, oev, &fc->infoCondNum);
-	}
-
-	if (semDebug) {
-		// ihess is always symmetric, this could be asymmetric
-		Rf_protect(outputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
-		memcpy(REAL(outputInfoMatrix), ihess, sizeof(double) * freeVars * freeVars);
 	}
 
 	fc->wanted = wanted | FF_COMPUTE_IHESSIAN;

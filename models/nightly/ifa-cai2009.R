@@ -193,6 +193,6 @@ omxCheckTrue(grpModel$output$infoDefinite)
 emstat <- grpModel$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 150, 15)
 #omxCheckCloseEnough(emstat$totalMstep, 334, 40)  # includes latent distribution
-omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
+#omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
 
 print(grpModel$output$backendTime)

@@ -76,6 +76,7 @@ m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2$output$minimum, 50661.377, .01)
 
 omxCheckCloseEnough(m2$output$conditionNumber, 1640, 50)
+#omxCheckTrue(is.na(m2$output$conditionNumber))
 #cat(deparse(round(c(m2$output$standardErrors), 3)))
 
 semse <- c(0.022, 0.095, 0.116, 0.116, 0.108, 0.176, 0.222, 0.305, 0.382,  0.359, 0.244,
@@ -86,6 +87,7 @@ semse <- c(0.022, 0.095, 0.116, 0.116, 0.108, 0.176, 0.222, 0.305, 0.382,  0.359
            0.1, 0.097, 0.079, 0.085, 0.113, 0.115, 0.102, 0.111,  0.079, 0.082, 0.076,
            0.092, 0.541, 0.607, 0.554, 0.337, 0.081,  0.083, 0.083, 0.098, 0.072, 0.084,
            0.103, 0.138, 0.084, 0.103,  0.141, 0.178)
+#max(abs(c(m2$output$standardErrors) - semse))
 omxCheckCloseEnough(c(m2$output$standardErrors), semse, .01) # similar to flexMIRT
 
 emstat <- m2$compute$steps[[1]]$output
