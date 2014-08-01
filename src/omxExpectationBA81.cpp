@@ -244,7 +244,7 @@ void ba81SetupQuadrature(omxExpectation* oo)
 
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd fullCov;
-	state->getLatentDistribution(mean, fullCov);
+	state->getLatentDistribution(NULL, mean, fullCov);
 
 	if (state->verbose >= 1) {
 		mxLog("%s: quadrature(%d)", oo->name, getLatentVersion(state));

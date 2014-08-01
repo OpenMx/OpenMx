@@ -93,7 +93,7 @@ class BA81Expect {
 	omxMatrix *_latentMeanOut;
 	omxMatrix *_latentCovOut;
 	template <typename Tmean, typename Tcov>
-	void getLatentDistribution(Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov);
+	void getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov);
 
 	omxMatrix *estLatentMean;
 	omxMatrix *estLatentCov;
@@ -110,12 +110,13 @@ class BA81Expect {
 };
 
 template <typename Tmean, typename Tcov>
-void BA81Expect::getLatentDistribution(Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov)
+void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov)
 {
 	mean.derived().resize(grp.maxAbilities);
 	if (!_latentMeanOut) {
 		mean.setZero();
 	} else {
+		omxRecompute(_latentMeanOut, FF_COMPUTE_FIT, fc);
 		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * grp.maxAbilities);
 	}
 	
@@ -123,6 +124,7 @@ void BA81Expect::getLatentDistribution(Eigen::MatrixBase<Tmean> &mean, Eigen::Ma
 	if (!_latentCovOut) {
 		cov.setIdentity();
 	} else {
+		omxRecompute(_latentCovOut, FF_COMPUTE_FIT, fc);
 		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * grp.maxAbilities * grp.maxAbilities);
 	}
 }

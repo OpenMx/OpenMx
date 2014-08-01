@@ -715,13 +715,13 @@ static void mapLatentDerivS(BA81FitState *state, BA81Expect *estate, int sgroup,
 	derivOut[to] += amt4;
 }
 
-static void calcDerivCoef(BA81FitState *state, BA81Expect *estate, double *icov,
+static void calcDerivCoef(FitContext *fc, BA81FitState *state, BA81Expect *estate, double *icov,
 			  const double *where, double *derivCoef)
 {
 	ba81NormalQuad &quad = estate->getQuad();
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd cov;
-	estate->getLatentDistribution(mean, cov);
+	estate->getLatentDistribution(fc, mean, cov);
 	const int pDims = quad.numSpecific? quad.maxDims - 1 : quad.maxDims;
 	const char R='R';
 	const char L='L';
@@ -770,12 +770,12 @@ static void calcDerivCoef(BA81FitState *state, BA81Expect *estate, double *icov,
 	}
 }
 
-static void calcDerivCoef1(BA81FitState *state, BA81Expect *estate,
+static void calcDerivCoef1(FitContext *fc, BA81FitState *state, BA81Expect *estate,
 			   const double *where, int sgroup, double *derivCoef)
 {
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd cov;
-	estate->getLatentDistribution(mean, cov);
+	estate->getLatentDistribution(fc, mean, cov);
 	ba81NormalQuad &quad = estate->getQuad();
 	const int maxDims = quad.maxDims;
 	const int specific = maxDims - 1 + sgroup;
@@ -839,7 +839,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	{
 		Eigen::VectorXd mean;
 		Eigen::MatrixXd srcMat;
-		estate->getLatentDistribution(mean, srcMat);
+		estate->getLatentDistribution(fc, mean, srcMat);
 		icovMat = srcMat.topLeftCorner(pDims, pDims);
 		Matrix tmp(icovMat.data(), pDims, pDims);
 		int info = InvertSymmetricPosDef(tmp, 'U');
@@ -874,7 +874,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 #pragma omp parallel for num_threads(numThreads)
 			for (int qx=0; qx < totalQuadPoints; qx++) {
 				const double *where = wherePrep + qx * maxDims;
-				calcDerivCoef(state, estate, icovMat.data(), where,
+				calcDerivCoef(fc, state, estate, icovMat.data(), where,
 					      derivCoef.data() + qx * priDerivCoef);
 			}
 		}
@@ -936,10 +936,10 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 #pragma omp parallel for num_threads(numThreads)
 			for (int qx=0; qx < totalQuadPoints; qx++) {
 				const double *where = wherePrep + qx * maxDims;
-				calcDerivCoef(state, estate, icovMat.data(), where,
+				calcDerivCoef(fc, state, estate, icovMat.data(), where,
 					      derivCoef.data() + qx * derivPerPoint);
 				for (int Sgroup=0; Sgroup < numSpecific; ++Sgroup) {
-					calcDerivCoef1(state, estate, where, Sgroup,
+					calcDerivCoef1(fc, state, estate, where, Sgroup,
 						       derivCoef.data() + qx * derivPerPoint + priDerivCoef + 2 * Sgroup);
 				}
 			}
