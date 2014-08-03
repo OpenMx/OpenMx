@@ -87,32 +87,6 @@ flatReplaceMethod <- function(model, index, value) {
 	return(flatNamespaceSearchReplace(model, index, value))
 }
 
-# This is a dubious function. Why do we need a list of
-# locations? Better to resolve the location once we
-# find a definition variable, no? This gets called
-# regardless of whether there are any definition
-# variables in the model.
-generateDefinitionLocations <- function(datasets) {
-	nameList <- lapply(datasets, function(x) {
-		if (.hasSlot(x, 'observed')) dimnames(x@observed)[[2]]
-		else c()
-	})
-	result <- list()
-	if(length(nameList) > 0) {
-		for(i in 1:length(nameList)) {
-			colNames <- nameList[[i]]
-			if(length(colNames) > 0) {
-				dataName <- datasets[[i]]@name
-				for(j in 1:length(colNames)) {
-					name <- imxIdentifier(dataName, colNames[[j]])
-					result[[name]] <- c(i - 1, j - 1)
-				}
-			}	
-		}
-	}
-	return(result)
-}
-
 ##' imxCheckVariables
 ##'
 ##' This is an internal function exported for those people who know

@@ -123,15 +123,12 @@ definitionDependencyList <- function(pList, flatModel, dependencies) {
 }
 
 generateDefinitionList <- function(flatModel, dependencies) {
+	if (length(flatModel@matrices) == 0) return(list())
 	result <- list()
-	defLocations <- generateDefinitionLocations(flatModel@datasets)
-	if (length(flatModel@matrices) == 0) {
-		return(result)
-	}
 	for(i in 1:length(flatModel@matrices)) {
-		result <- generateDefinitionListHelper(
+		result <- matrixDefinitions(flatModel,
 			flatModel@matrices[[i]], 
-			result, defLocations, i - 1L)
+			result, i - 1L)
 	}
 	result <- lapply(result, definitionDependencyList, flatModel, dependencies)
 	return(result)

@@ -548,30 +548,15 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 	return(result)
 }
 
-matchDefinitionVariable <- function(parameterName, defNames) {
-	# defNames are of the form paste(modelname,"data",colname, sep=".")
-	# With many datasets, defNames could be very large.
-	# It is worth a quick check to avoid searching it if possible.
-	if (length(grep(".data.", parameterName, fixed=TRUE)) == 0) return()
+matchDefinitionVariable <- function(parameterName) {
+	# definition variables are of the form paste(modelname,"data",colname, sep=".")
 
 	if (hasSquareBrackets(parameterName)) {
 		components <- splitSubstitution(parameterName)
-		matched <- match(components[2:3], defNames)
-		if (all(!is.na(matched))) {
-			return(c(components[[2]], components[[3]]))
-		} else if (!is.na(matched[1])) {
-			return(components[[2]])
-		} else if (!is.na(matched[2])) {
-			return(components[[3]])
-		} else {
-			return(c())
-		}
+		return(grep(".data.", components[2:3], fixed=TRUE, value=TRUE))
 	}
-	if (parameterName %in% defNames) {
-		return(parameterName)
-	} else {
-		return(c())
-	}
+
+	return(grep(".data.", parameterName, fixed=TRUE, value=TRUE))
 }
 
 # Definition variables is a list:
@@ -579,33 +564,53 @@ matchDefinitionVariable <- function(parameterName, defNames) {
 # first entry of the sublist: data number
 # second entry of the sublist: column number
 # remaining entries of the sublist: c(matrix number, row, column)
-matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) {
-	select <- !is.na(labels)
+matrixDefinitions <- function(flatModel, mxMatrix, result, matrixNumber) {
+	labels <- mxMatrix@labels
+	select <- !is.na(labels) & !mxMatrix@free
 	if (all(select == FALSE)) {
 		return(result)
 	}
-	defNames <- names(defLocations)
 	parameterNames <- labels[select]
 	rows <- row(labels)[select]
 	cols <- col(labels)[select]
-	for(i in 1:length(parameterNames)) {
-		parameterName <- parameterNames[i]
-		row <- rows[i] - 1L
-		col <- cols[i] - 1L
-		defVariables <- matchDefinitionVariable(parameterName, defNames)
-		if (length(defVariables) > 0) {
-			for(i in 1:length(defVariables)) {
-				defVariable <- defVariables[[i]]
-				if (!is.null(result[[defVariable]])) {
-					original <- result[[defVariable]]
-					original[[length(original) + 1]] <- c(matrixNumber, row, col)
-					result[[defVariable]] <- original
-				} else {
-					dataNumber <- as.integer(defLocations[[defVariable]][[1]])
-					columnNumber <- as.integer(defLocations[[defVariable]][[2]])
-					result[[defVariable]] <- list(dataNumber, columnNumber, 
-							c(matrixNumber, row, col))
+	for(px in 1:length(parameterNames)) {
+		defVariables <- matchDefinitionVariable(parameterNames[px])
+		if (length(defVariables) == 0) next
+
+		row <- rows[px] - 1L
+		col <- cols[px] - 1L
+		for(i in 1:length(defVariables)) {
+			defVariable <- defVariables[[i]]
+			if (!is.null(result[[defVariable]])) {
+				original <- result[[defVariable]]
+				original[[length(original) + 1]] <- c(matrixNumber, row, col)
+				result[[defVariable]] <- original
+			} else {
+				components <- unlist(strsplit(defVariable, imxSeparatorChar, fixed = TRUE))
+				dataname <- paste(components[1:2], collapse=".")
+				dataNumber <- match(dataname, names(flatModel@datasets))
+				if (is.na(dataNumber)) {
+					stop(paste("Dataset", omxQuotes(dataname), "not found.",
+						   "Referred to by definition variable",
+						   omxQuotes(defVariable), "in matrix", omxQuotes(mxMatrix@name)))
 				}
+				mxdata <- flatModel@datasets[[dataNumber]]
+				if (!.hasSlot(mxdata, 'observed')) {
+					stop(paste("Definition variable", omxQuotes(defVariable),
+						   "in matrix", omxQuotes(mxMatrix@name),
+						   "refers to", omxQuotes(dataname),
+						   "but this mxData has no observed data"))
+				}
+				observed <- mxdata@observed
+				columnNumber <- match(components[3], colnames(observed))
+				if (is.na(columnNumber)) {
+					stop(paste("Definition variable", omxQuotes(defVariable),
+						   "in matrix", omxQuotes(mxMatrix@name),
+						   "refers to column", omxQuotes(components[3]),
+						   "but this column is not found"))
+				}
+				result[[defVariable]] <- list(dataNumber - 1L, columnNumber - 1L,
+							      c(matrixNumber, row, col))
 			}
 		}
 	}
@@ -614,15 +619,6 @@ matrixDefinitions <- function(free, labels, result, defLocations, matrixNumber) 
 
 generateMatrixValuesHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
-}
-
-generateDefinitionListHelper <- function(mxMatrix,
-	result, defLocations, matrixNumber) {
-	free <- mxMatrix@free
-	labels <- mxMatrix@labels
-	result <- matrixDefinitions(free, labels,
-		result, defLocations, matrixNumber)
-	return(result)
 }
 
 displayMatrix <- function(mxMatrix) {
