@@ -192,7 +192,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			fc->inform = INFORM_BAD_DERIVATIVES;
 			return;
 		}
-		if (targetImprovement < tolerance) return;
+		if (targetImprovement / fabs(refFit) < tolerance) return;
 		//speed = std::max(speed, .1);  // expect steepestDescent
 	}
 	
@@ -209,7 +209,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
-		if (scaledTarget < tolerance) return;
+		if (scaledTarget / fabs(refFit) < tolerance) return;
 		trial = prevEst - speed * searchDir;
 		++minorIter;
 		fc->copyParamToModel(globalState, trial.data());
@@ -266,7 +266,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			bestFit = fc->fit;
 			bestImproved = improved;
 			bestSpeed = speed;
-			if (improvementOverBest < tolerance) break;
+			if (improvementOverBest / fabs(refFit) < tolerance) break;
 		}
 	}
 
@@ -354,7 +354,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 			return;
 		}
 
-		converged = improvement < tolerance;
+		converged = improvement / fabs(refFit) < tolerance;
 		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel(globalState);

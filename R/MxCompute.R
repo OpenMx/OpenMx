@@ -498,7 +498,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param maxIter maximum number of iterations
-##' @param tolerance optimization is considered converged when maximum absolute change in parameters is less than tolerance
+##' @param tolerance optimization is considered converged when the maximum relative change in fit is less than tolerance
 ##' @param verbose level of debugging output
 ##' @aliases
 ##' MxComputeNewtonRaphson-class
@@ -509,7 +509,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' \emph{Psychometrika, 40}(3), 337-360.
 
 mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitfunction', maxIter = 100L,
-				   tolerance=1e-7, verbose=0L)
+				   tolerance=1e-12, verbose=0L)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -615,12 +615,12 @@ setMethod("initialize", "MxComputeIterate",
 ##' @param steps a list of compute objects
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param maxIter the maximum number of iterations
-##' @param tolerance iterates until change is less than tolerance
+##' @param tolerance iterates until maximum relative change is less than tolerance
 ##' @param verbose level of debugging output
 ##' @param freeSet Names of matrices containing free variables.
 ##' @aliases
 ##' MxComputeIterate-class
-mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-4, verbose=0L, freeSet=NA_character_) {
+mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeIterate does not accept values for the '...' argument")
@@ -781,7 +781,7 @@ setMethod("initialize", "MxComputeEM",
 ##' @param observedFit the name of the observed data fit function (defaults to "fitfunction")
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param maxIter maximum number of iterations
-##' @param tolerance maximum change in fit to judge convergence
+##' @param tolerance optimization is considered converged when the maximum relative change in fit is less than tolerance
 ##' @param verbose level of diagnostic output
 ##' @param freeSet names of matrices containing free variables
 ##' @param accel name of acceleration method (defaults to "ramsay1975")
@@ -801,7 +801,7 @@ setMethod("initialize", "MxComputeEM",
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40} (3), 337-360.
 mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
-			maxIter=500L, tolerance=1e-4, verbose=0L, freeSet=NA_character_,
+			maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
 			accel="ramsay1975", information=NA_character_, infoArgs=list()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {

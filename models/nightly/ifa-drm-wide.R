@@ -51,10 +51,10 @@ m2 <- mxRun(m2)
 
 #print(m2$matrices$item$values)
 #print(correct.mat)
-omxCheckCloseEnough(m2$fitfunction$result, 4045796.236378, .01)
+omxCheckCloseEnough(m2$fitfunction$result, 4045796.23, .1)
 
 emstat <- m2$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 75, 3)
-omxCheckCloseEnough(emstat$totalMstep, 188, 5)
+omxCheckCloseEnough(emstat$EMcycles, 53, 3)
+omxCheckCloseEnough(emstat$totalMstep, 137, 5)
 
 print(m2$output$backendTime)

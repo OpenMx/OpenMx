@@ -1560,8 +1560,8 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 				break;
 			}
 			if (prevFit != 0) {
-				double change = prevFit - fc->fit;
-				if (verbose) mxLog("ComputeIterate: fit %.9g change %.9g", fc->fit, change);
+				double change = (prevFit - fc->fit) / fc->fit;
+				if (verbose) mxLog("ComputeIterate: fit %.9g rel change %.9g", fc->fit, change);
 				mac = fabs(change);
 			} else {
 				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->fit);
@@ -1912,8 +1912,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 		}
 		double change = 0;
 		if (prevFit != 0) {
-			change = prevFit - fc->fit;
-			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g change %.9g",
+			change = (prevFit - fc->fit) / fc->fit;
+			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
 						EMcycles, mstepIter, fc->fit, change);
 			mac = fabs(change);
 			if (mac < MIDDLE_START * Scale) in_middle = true;

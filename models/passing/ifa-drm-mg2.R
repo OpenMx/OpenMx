@@ -114,7 +114,7 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                                   mxComputeSequence(list(
 				      mxComputeNewtonRaphson(freeSet=paste(groups,'item',sep=".")),
 				      latent.plan)),
-                                  information="mr1991", tolerance=1e-5, verbose=0L,
+                                  information="mr1991", verbose=0L,
                                   infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")
                                                 # For SEM debugging
 #                                                ,semDebug=TRUE, semMethod=seq(.001, .02, length.out=30)

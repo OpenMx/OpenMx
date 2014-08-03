@@ -109,7 +109,7 @@ i1 <- mxModel(m2,
 i1 <- mxRun(i1, silent=TRUE)
 
 omxCheckTrue(i1$output$infoDefinite)
-omxCheckCloseEnough(i1$output$conditionNumber, 3644, 1)  # matches flexmirt
+omxCheckCloseEnough(log(i1$output$conditionNumber), 8.20, .1)  # matches flexmirt
 
 #cat(deparse(round(c(i1$output$standardErrors), 3)))
 se <- c(0.019, 0.1, 0.123, 0.121, 0.119, 0.237, 0.246, 0.33, 0.417,  0.386, 0.281,

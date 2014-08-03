@@ -51,6 +51,6 @@ omxCheckCloseEnough(summary(m1)$informationCriteria['AIC:','par'], 2784.69, .01)
 omxCheckCloseEnough(summary(m1)$informationCriteria['BIC:','par'], 2824.14, .01)
 
 fitstat <- m1$compute$steps[[1]]$output
-omxCheckCloseEnough(m1$output$evaluations, 165, 5)
-omxCheckCloseEnough(fitstat$EMcycles, 14, 1)
-omxCheckCloseEnough(fitstat$totalMstep, 77, 5)
+omxCheckCloseEnough(m1$output$evaluations, 218, 5)
+omxCheckCloseEnough(fitstat$EMcycles, 16, 1)
+omxCheckCloseEnough(fitstat$totalMstep, 106, 5)
