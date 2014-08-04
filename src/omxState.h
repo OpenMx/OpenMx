@@ -226,14 +226,13 @@ struct omxState {
 	int ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 
-	long int currentRow;											// If we're calculating row-by-row, what row are we on?
+	long int currentRow; // only used for debugging
 };
 
 extern omxState* globalState;
 
 /* Initialize and Destroy */
 	void omxInitState(omxState* state);
-	void omxFillState(omxState* state, /*omxOptimizer *oo,*/ omxMatrix** matrixList, omxMatrix** algebraList, omxData** dataList, omxMatrix* fitFunction);
 void omxFreeChildStates(omxState *state);
 void omxFreeState(omxState *state);
 	void omxDuplicateState(omxState *tgt, omxState* src); 
