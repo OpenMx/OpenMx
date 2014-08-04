@@ -849,7 +849,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	int totalRows = 0, totalCols = 0, currentRow=0;
+	int totalRows = 0, totalCols = 0, bindRow=0;
 
 	if(numArgs == 0) return;
 
@@ -887,9 +887,9 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 		for(int j = 0; j < numArgs; j++) {
 			for(int k = 0; k < matList[j]->rows; k++) {
 				for(int l = 0; l < totalCols; l++) {		// Gotta be a faster way to do this.
-					omxSetMatrixElement(result, currentRow, l, omxMatrixElement(matList[j], k, l));
+					omxSetMatrixElement(result, bindRow, l, omxMatrixElement(matList[j], k, l));
 				}
-				currentRow++;
+				bindRow++;
 			}
 		}
 	}
