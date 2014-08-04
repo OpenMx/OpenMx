@@ -76,7 +76,7 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of Rf_errors), this function is forbidden from return()-ing early.
+ * of errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -151,7 +151,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     double likelihood;
 	int inform;
 
-	int firstRow = 1;
+	bool firstRow = true;
     int row = rowbegin;
 
     resetDefinitionVariables(oldDefs, numDefs);
@@ -166,7 +166,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
         int numIdentical = omxDataNumIdenticalRows(data, row);
         if(numIdentical == 0) numIdentical = 1; 
-        // N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
+        // N.B.: numIdentical == 0 means an error occurred and was not properly handled;
         // it should never be the case.
         
         omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
@@ -180,29 +180,14 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 
         if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow ) {  // If we're keeping covariance from the previous row, do not populate 
             // Handle Definition Variables.
-            if((numDefs != 0 && numIdenticalDefs > 0) || firstRow) {
-				int numVarsFilled = 0;
-				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
-				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
-				if (numVarsFilled < 0) {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-						&numIdenticalContinuousMissingness,
-						&numIdenticalOrdinalMissingness, 
-						&numIdenticalContinuousRows,
-						&numIdenticalOrdinalRows,
-						data, numDefs, numIdentical);
-					continue;
-				} else if (numVarsFilled || firstRow) { 
-					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
-					// N.B. handling of definition var lists always happens, regardless of firstRow.
-					// Recalculate means and covariances.
-					omxExpectationCompute(expectation, NULL);
-				}
+		if((numDefs && numIdenticalDefs <= 0) || firstRow) {
+			int numVarsFilled = 0;
+			if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
+			numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
+			if (numVarsFilled || firstRow) { 
+				omxExpectationCompute(expectation, NULL);
 			}
+		}
             // Filter down correlation matrix and calculate thresholds.
             // TODO: If identical ordinal or continuous missingness, ignore only the appropriate columns.
             numOrdRemoves = 0;
@@ -575,7 +560,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			} 
 
         }
-        if(firstRow) firstRow = 0;
+		if(firstRow) firstRow = false;
 		omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 			&numIdenticalContinuousMissingness,
 			&numIdenticalOrdinalMissingness, 
@@ -602,7 +587,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of Rf_errors), this function is forbidden from return()-ing early.
+ * of errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -670,7 +655,7 @@ bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj, omx
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 		int numIdentical = omxDataNumIdenticalRows(data, row);
 		if(numIdentical == 0) numIdentical = 1; 
-		// N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
+		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
 		// it should never be the case.
 
         Q = 0.0;
@@ -684,16 +669,7 @@ bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj, omx
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
-				if (numVarsFilled < 0) {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-					omxFIMLAdvanceRow(&keepCov, &keepInverse, &row, data, numIdentical);
-					continue;
-				} else if (numVarsFilled || firstRow) {
-					// Use firstrow instead of rows == 0 for the case where the first row is all NAs
-					// N.B. handling of definition var lists always happens, regardless of firstRow.
+				if (numVarsFilled || firstRow) {
 					omxExpectationCompute(expectation, NULL);
 					for(int j=0; j < dataColumns->cols; j++) {
 						if(thresholdCols[j].numThresholds > 0) { // Actually an ordinal column
@@ -832,7 +808,7 @@ bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj, omx
  * Because (1) these functions may be invoked with arbitrary 
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
- * of Rf_errors), this function is forbidden from return()-ing early.
+ * of errors), this function is forbidden from return()-ing early.
  *
  * As another consequence of (1) and (2), if "rowbegin" is in
  * the middle of a sequence of identical rows, then defer
@@ -900,7 +876,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 	}
 	
 	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
-		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and Rf_error cov (P)."); }
+		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
 		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 	}
 
@@ -911,7 +887,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
 
 		int numIdentical = omxDataNumIdenticalRows(data, row);
-		// N.B.: numIdentical == 0 means an Rf_error occurred and was not properly handled;
+		// N.B.: numIdentical == 0 means an error occurred and was not properly handled;
 		// it should never be the case.
 		if (numIdentical == 0) numIdentical = 1; 
 		
@@ -937,21 +913,7 @@ bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj, omxFitFunc
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
-				if (numVarsFilled < 0) {
-					for(int nid = 0; nid < numIdentical; nid++) {
-						if(returnRowLikelihoods) omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-					}
-					if(keepCov <= 0) keepCov = omxDataNumIdenticalDefs(data, row);
-					if(keepInverse  <= 0) keepInverse = omxDataNumIdenticalMissingness(data, row);
-					// mxLog("Incrementing Row."); //:::DEBUG:::
-					row += numIdentical;
-					keepCov -= numIdentical;
-					keepInverse -= numIdentical;
-					continue;
-				} else if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
-				// Use firstrow instead of rows == 0 for the case where the first row is all NAs
-				// N.B. handling of definition var lists always happens, regardless of firstRow.
+				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 					omxExpectationCompute(expectation, NULL);
 					if(OMX_DEBUG_ROWS(row)){ mxLog("Successfully finished expectation compute."); }
 				}
