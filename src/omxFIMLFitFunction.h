@@ -20,6 +20,18 @@
 
 #include "omxFitFunction.h"
 
+typedef bool (*FIMLSingleIterationType)(FitContext *fc, omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
+
+bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
+
+bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
+
+bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj,
+	omxFitFunction *sharedobj, int rowbegin, int rowcount);
+
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
 	double Mahalanobis;		// Square root of Mahalanobis distance Q = (row - means) %*% solve(sigma) %*% (row - means)
@@ -81,6 +93,8 @@ typedef struct omxFIMLFitFunction {
 	int maxPts;					// From MxOptions (?)
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions
+
+	FIMLSingleIterationType SingleIterFn;
 
 } omxFIMLFitFunction;
 
