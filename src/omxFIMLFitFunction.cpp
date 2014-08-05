@@ -295,7 +295,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->corList = NULL;
     newObj->weights = NULL;
 	
-    newObj->SingleIterFn = omxFIMLSingleIteration;
+    newObj->SingleIterFn = omxFIMLSingleIterationJoint;
+
 	off->fitType = "imxFitFunctionFIML";
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
@@ -350,48 +351,45 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 //  newObj->zeros = omxInitMatrix(1, newObj->cov->cols, TRUE, off->matrix->currentState);
 
     omxCopyMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
+    newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+    omxCopyMatrix(newObj->smallMeans, newObj->means);
+    newObj->contRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+    omxCopyMatrix(newObj->contRow, newObj->smallRow );
+    newObj->ordCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
+    omxCopyMatrix(newObj->ordCov, newObj->cov);
+    newObj->ordMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+    omxCopyMatrix(newObj->ordMeans, newObj->means);
+    newObj->ordRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+    omxCopyMatrix(newObj->ordRow, newObj->smallRow );
+    newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
+
     off->argStruct = (void*)newObj;
+
+    if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
+	    newObj->SingleIterFn = omxFIMLSingleIteration;  // remove this TODO
+    }
 
     if(numOrdinal > 0 && numContinuous <= 0) {
         if(OMX_DEBUG) {
             mxLog("Ordinal Data detected.  Using Ordinal FIML.");
         }
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        omxCopyMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
-        newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
-
-        newObj->SingleIterFn = omxFIMLSingleIterationOrdinal;
     } else if(numOrdinal > 0) {
         if(OMX_DEBUG) {
             mxLog("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
         }
 
         newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        newObj->contRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-        newObj->ordCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->ordContCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
-        omxCopyMatrix(newObj->smallMeans, newObj->means);
-        omxCopyMatrix(newObj->ordMeans, newObj->means);
-        omxCopyMatrix(newObj->contRow, newObj->smallRow );
-        omxCopyMatrix(newObj->ordRow, newObj->smallRow );
-        omxCopyMatrix(newObj->ordCov, newObj->cov);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
-        omxCopyMatrix(newObj->smallMeans, newObj->means);
         newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
-        newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
-
-        newObj->SingleIterFn = omxFIMLSingleIterationJoint;
     }
 }

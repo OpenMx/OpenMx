@@ -26,9 +26,6 @@ typedef bool (*FIMLSingleIterationType)(FitContext *fc, omxFitFunction *localobj
 bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 
-bool omxFIMLSingleIterationOrdinal(FitContext *fc, omxFitFunction *localobj,
-	omxFitFunction *sharedobj, int rowbegin, int rowcount);
-
 bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj,
 	omxFitFunction *sharedobj, int rowbegin, int rowcount);
 

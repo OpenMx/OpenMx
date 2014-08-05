@@ -372,7 +372,7 @@ double *omxDoubleDataColumn(omxData *od, int col)
 
 int omxIntDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
-		Rf_error("Use a data frame for factor data");
+		return (int) omxMatrixElement(od->dataMat, row, col);
 	}
 
 	ColumnData &cd = od->rawCols[col];
