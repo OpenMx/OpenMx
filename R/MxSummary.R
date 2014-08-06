@@ -165,7 +165,13 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
 	rownames(IC) <- c("AIC:", "BIC:")
 	retval[['informationCriteria']] <- IC
+
+	# Here we use N in the denominator as given in the original
+	# RMSEA paper. The difference between N and N-1 is negligible
+	# for sample sizes over 30. RMSEA should not be taken seriously
+	# such small samples anyway.
 	rmseaSquared <- (chi / (chiDoF) - 1) / retval[['numObs']]
+
 	retval[['RMSEASquared']] <- rmseaSquared
 	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		is.nan(rmseaSquared)) { 
