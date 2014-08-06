@@ -132,6 +132,56 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
 }
 
+generateIFAReferenceModels <- function(model) {
+	modelName <- model@name
+	expectation <- model@expectation
+
+	spec <- expectation$ItemSpec
+	nullspec <- lapply(spec, rpf.modify, 0)
+	data <- model$data$observed
+	itemName <- expectation$item
+	item <- model[[itemName]]
+	nullitem <- mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)))
+
+	if (is.null(item)) {
+		stop(paste("Cannot find matrix", omxQuotes(itemName),"in model",
+			   omxQuotes(modelName),"to create independence model"))
+	}
+
+	pmap <- matrix(NA, nrow(nullitem), ncol(nullitem))
+	for (cx in 1:ncol(item)) {
+		map1 <- match(names(rpf.rparam(nullspec[[cx]])),
+			      names(rpf.rparam(spec[[cx]])))
+		if (!length(map1)) next
+		pmap[1:length(map1),cx] <- item$labels[map1,cx]
+	}
+	nullitem$labels[,] <- pmap
+
+	ind <- mxModel(name=paste("Independence", modelName),
+		       nullitem, model$data,
+		       mxExpectationBA81(ItemSpec=nullspec,
+					 qpoints = expectation$qpoints,
+					 qwidth = expectation$qwidth),
+		       mxFitFunctionML(),
+		       mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), maxIter = 1L))
+	dimnames(ind$item) = list(paste('p', 1:nrow(ind$item), sep=""), colnames(item))
+	ind$item$free <- !is.na(ind$item$values)
+
+	weightColumn <- expectation$weightColumn
+	if (!is.na(weightColumn)) {
+		ind$expectation$weightColumn <- weightColumn
+		weights <- data[weightColumn]
+	} else {
+		data <- data[orderCompletely(data),]
+		weights <- as.numeric(tabulateRows(data))
+	}
+	# not sure how to handle missingness TODO
+	saturated <- -2 * sum(log(weights / sum(weights)))
+
+	return(list(Saturated=list(saturated, 0),
+		    Independence=ind))
+}
+
 ReferenceModelHelper <- function(x) {
 	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
 		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
@@ -154,10 +204,11 @@ ReferenceModelHelper <- function(x) {
 omxSaturatedModel <- function(x, run=FALSE) {
 	models <- lapply(ReferenceModelHelper(x), function(model) {
 		if (!isS4(model)) return(model)
+		model <- omxAssignFirstParameters(model)
 		model <- mxOption(model, "Standard Errors", "No")
 		model <- mxOption(model, "Calculate Hessian", "No")
 		if (run) {
-			model <- mxRun(model)
+			model <- mxRun(model, silent=TRUE)
 		}
 		model
 	})

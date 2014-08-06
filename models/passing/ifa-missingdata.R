@@ -124,15 +124,8 @@ if (0) {
   # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
 }
 
-nullspec <- lapply(items, rpf.modify, 0)
-nullm2 <- mxModel(m2,
-		  mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)),
-  			   free=TRUE, dimnames=list(NULL, colnames(data))),
-                  mxExpectationBA81(nullspec, minItemsPerScore=1L),
-                  mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), maxIter=1L))
-
-nullm2 <- mxRun(nullm2)
-omxCheckCloseEnough(nullm2$output$fit, 2926.20, .01)
+refModels <- omxSaturatedModel(m2, run=TRUE)
+omxCheckCloseEnough(refModels[['Independence']]$output$fit, 2926.20, .01)
 
 # -------------- MAP -------------
 require(mvtnorm)

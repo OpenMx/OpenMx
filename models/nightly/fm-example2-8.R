@@ -21,21 +21,6 @@ imat$values['a',] <- 0
 imat$free['a',] <- FALSE
 imat$free[c('alf2', 'alf3'),] <- FALSE
 
-nullspec <- lapply(spec, rpf.modify, 0)
-nullm1 <- mxModel(model="ex28",
-                  mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)), free=TRUE),
-                  mxData(observed=ex2.8, type="raw", sort = FALSE, numObs = sum(ex2.8$freq)),
-                  mxExpectationBA81(nullspec, weightColumn="freq"),
-                  mxFitFunctionML())
-colnames(nullm1$item) <- colnames(ex2.8)[c(2,1)]
-nullm1$item$labels[c('gam1','gam2'), 'Match'] <- 'eq2'
-nullm1 <- omxAssignFirstParameters(nullm1)
-nullm1 <- mxRun(mxModel(nullm1, mxComputeEM('expectation', 'scores',
-                                            mxComputeNewtonRaphson(), maxIter=1L)), silent=TRUE)
-omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
-omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)
-omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2917.58, .01)
-
 m1 <- mxModel(model="ex28", ip.mat,
               mxData(observed=ex2.8, type="raw", sort = FALSE, numObs = sum(ex2.8$freq)),
               mxExpectationBA81(spec, weightColumn="freq"),
@@ -54,3 +39,9 @@ fitstat <- m1$compute$steps[[1]]$output
 omxCheckCloseEnough(m1$output$evaluations, 218, 5)
 omxCheckCloseEnough(fitstat$EMcycles, 16, 1)
 omxCheckCloseEnough(fitstat$totalMstep, 106, 5)
+
+refModels <- omxSaturatedModel(m1, run=TRUE)
+nullm1 <- refModels$Independence
+omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
+omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)
+omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2917.58, .01)

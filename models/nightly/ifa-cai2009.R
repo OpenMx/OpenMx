@@ -196,3 +196,6 @@ omxCheckCloseEnough(emstat$EMcycles, 130, 15)
 #omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
 
 print(grpModel$output$backendTime)
+
+refModels <- omxSaturatedModel(grpModel, run=TRUE)
+omxCheckCloseEnough(refModels[['Independence']]$output$fit, 36611.98, .01)

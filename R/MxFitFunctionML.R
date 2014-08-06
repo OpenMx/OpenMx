@@ -108,23 +108,32 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		if (is.null(datasource)) {
 			stop(paste("Model", omxQuotes(modelName), "does not contain any data"))
 		}
+
+		expectation <- model@expectation
+		if (is(expectation, "MxExpectationBA81")) {
+			return(generateIFAReferenceModels(model))
+		}
+		# assume it's multivariate Normal
+
 		datatype <- datasource@type
 		obsdata <- datasource@observed
-		if( length(model@runstate) > 0){
-					# Handle models that don't use all the variables in the data
+		wasRun <- length(model@runstate) != 0
+		if(wasRun) {
+			# runstate is not available for submodels, ugh!
 			if(length(model@runstate$expectations) == 1){
 				selVars <- model@runstate$expectations[[1]]@dims
 			} else{
-				stop("Multiple expectations found.  Saturated models for these are not yet implemented.")
+				stop("Multiple expectations found. Reference models for these are not yet implemented.")
 			}
 			if(nrow(obsdata) == ncol(obsdata)){
 				obsdata <- obsdata[selVars, selVars]
 			} else { obsdata <- obsdata[,selVars] }
-		} else{
-			message(paste("The model", omxQuotes(modelName), "has not been run. So a saturated model",
-				"of all the variables in the data will be made.  For a saturated model",
+		} else {
+			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
+				"of all the variables in the data will be made.  For reference models",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
+
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)))
 	})
 

@@ -836,7 +836,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	const int pDims = numSpecific? maxDims-1 : maxDims;
 	const int maxAbilities = quad.maxAbilities;
 	Eigen::MatrixXd icovMat(pDims, pDims);
-	{
+	if (maxAbilities) {
 		Eigen::VectorXd mean;
 		Eigen::MatrixXd srcMat;
 		estate->getLatentDistribution(fc, mean, srcMat);

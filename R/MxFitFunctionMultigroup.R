@@ -43,19 +43,29 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 		return(.Object)
 })
 
+aggregateSubrefmodels <- function(modelName, submodels) {
+	if (is(submodels[[1]], "MxModel")) {
+		fit <- mxFitFunctionMultigroup(paste(sapply(submodels, slot, name="name"), ".fitfunction", sep=""))
+		mxModel(name=modelName, submodels, fit)
+	} else if (is.numeric(submodels[[1]])) {
+		list(sum(unlist(submodels[1,])),
+		     sum(unlist(submodels[2,])))
+	} else {
+		stop(paste("Not sure how to aggregate:\n", paste(deparse(submodels), collapse="\n")))
+	}
+}
+
 setMethod("generateReferenceModels", "MxFitFunctionMultigroup",
 	function(.Object, model) {
 		grpnames <- unlist(strsplit(model$fitfunction$groups, split=".fitfunction", fixed=TRUE))
 		grpmodels <- list()
 		for(i in 1:length(grpnames)){
-			grpmodels[[i]] <- ReferenceModelHelper(model[[ grpnames[i] ]], run=FALSE)
+			grpmodels[[i]] <- ReferenceModelHelper(model[[ grpnames[i] ]])
 		}
-		sgrpmodels <- sapply(grpmodels, "[[", 1) #extract saturated models
-		sgrpfits <- mxFitFunctionMultigroup(paste(sapply(sgrpmodels, slot, name="name"), ".fitfunction", sep=""))
-		saturatedModel <- mxModel(name=paste("Saturated", modelName), sgrpmodels, sgrpfits)
-		igrpmodels <- sapply(grpmodels, "[[", 2) #extract independence models
-		igrpfits <- mxFitFunctionMultigroup(paste(sapply(igrpmodels, slot, name="name"), ".fitfunction", sep=""))
-		independenceModel <- mxModel(name=paste("Independence", modelName), igrpmodels, igrpfits)
+		sgrpmodels <- sapply(grpmodels, "[[", 1)
+		saturatedModel <- aggregateSubrefmodels(paste("Saturated", model@name), sgrpmodels)
+		igrpmodels <- sapply(grpmodels, "[[", 2)
+		independenceModel <- aggregateSubrefmodels(paste("Independence", model@name), igrpmodels)
 		return(list(Saturated=saturatedModel, Independence=independenceModel))
 	})
 

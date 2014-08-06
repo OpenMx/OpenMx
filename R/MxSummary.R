@@ -599,109 +599,82 @@ highlightBounds <- function(bound, boundMet){
 	}
 }
 
-translateSaturatedLikelihood <- function(input) {
+parseLikelihoodArg <- function(input, arg) {
+	input <- input[[arg]]
 	if (is.null(input)) {
 		return(input)
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
+		name <- input@name
 		if (is.null(input@fitfunction)) {
-			stop(paste("Saturated model passed",
+			stop(paste(omxQuotes(name), "model passed",
 				"to summary function does not",
-				"have top-level fitfunction function in",
+				"have top-level fitfunction in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		if (length(input@fitfunction@result) != 1) {
-			stop(paste("Saturated model passed to summary",
+			stop(paste(omxQuotes(name), "model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in fitfunction function in",
+				"result in fitfunction in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		return(input@fitfunction@result[1,1])
 	} else {
-		stop(paste("Illegal argument passed to",
-			"'SaturatedLikelihood' argument",
-			"of summary function in",
+		stop(paste("Illegal argument passed to", omxQuotes(arg),
+			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }
 
-translateSaturatedDoF <- function(input) {
+parseDfArg <- function(input, arg) {
+	input <- input[[arg]]
 	if (is.null(input)) {
 		return(input)
 	} else if (is.numeric(input)) {
 		return(input)
 	} else if (is(input, "MxModel")) {
+		name <- input@name
 		if (is.null(input@fitfunction)) {
-			stop(paste("Saturated model passed",
+			stop(paste(omxQuotes(name), "model passed",
 				"to summary function does not",
-				"have top-level fitfunction function in",
+				"have top-level fitfunction in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		if (length(input@fitfunction@result) != 1) {
-			stop(paste("Saturated model passed to summary",
+			stop(paste(omxQuotes(name), "model passed to summary",
 				"function does not have a 1x1 matrix",
-				"result in fitfunction function in",
+				"result in fitfunction in",
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		return(summary(input)$degreesOfFreedom)
 	} else {
-		stop(paste("Illegal argument passed to",
-			"'SaturatedLikelihood' argument",
-			"of summary function in",
+		stop(paste("Illegal argument passed to", omxQuotes(arg),
+			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }
 
-translateIndependenceLikelihood <- function(input) {
-	if (is.null(input)) {
-		return(input)
-	} else if (is.numeric(input)) {
-		return(input)
-	} else if (is(input, "MxModel")) {
-		if (is.null(input@fitfunction)) {
-			stop(paste("Independence model passed",
-				"to summary function does not",
-				"have top-level fitfunction function in",
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (length(input@fitfunction@result) != 1) {
-			stop(paste("Independence model passed to summary",
-				"function does not have a 1x1 matrix",
-				"result in fitfunction function in",
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		return(input@fitfunction@result[1,1])
+refToLikelihood <- function(model) {
+	if (is(model, "MxModel")) {
+		model$output$Minus2LogLikelihood
+	} else if (is.list(model)) {
+		model[[1]]
 	} else {
-		stop(paste("Illegal argument passed to",
-			"'IndependenceLikelihood' argument",
-			"of summary function in",
+		stop(paste("Illegal argument passed to refModels",
+			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }
 
-translateIndependenceDoF <- function(input) {
-	if (is.null(input)) {
-		return(input)
-	} else if (is.numeric(input)) {
-		return(input)
-	} else if (is(input, "MxModel")) {
-		if (is.null(input@fitfunction)) {
-			stop(paste("Independence model passed",
-				"to summary function does not",
-				"have top-level fitfunction function in",
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (length(input@fitfunction@result) != 1) {
-			stop(paste("Independence model passed to summary",
-				"function does not have a 1x1 matrix",
-				"result in fitfunction function in",
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		return(summary(input)$degreesOfFreedom) 	} else {
-		stop(paste("Illegal argument passed to",
-			"'IndependenceLikelihood' argument",
-			"of summary function in",
+refToDof <- function(model) {
+	if (is(model, "MxModel")) {
+		return(summary(model)$degreesOfFreedom)
+	} else if (is.list(model)) {
+		model[[2]]
+	} else {
+		stop(paste("Illegal argument passed to refModels",
+			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
 }
@@ -710,10 +683,20 @@ setMethod("summary", "MxModel",
 	function(object, ..., verbose=FALSE) {
 		model <- object
 		dotArguments <- list(...)
-		saturatedLikelihood <- translateSaturatedLikelihood(dotArguments$SaturatedLikelihood)
-		saturatedDoF <- translateSaturatedDoF(dotArguments$SaturatedDoF)
-		independenceLikelihood <- translateIndependenceLikelihood(dotArguments$IndependenceLikelihood)
-		independenceDoF <- translateIndependenceDoF(dotArguments$IndependenceDoF)
+		if (!is.null(dotArguments[["refModels"]])) {
+			refModels <- dotArguments[["refModels"]]
+			satModel <- refModels[['Saturated']]
+			indModel <- refModels[['Independence']]
+			saturatedLikelihood <- refToLikelihood(satModel)
+			saturatedDoF <- refToDof(satModel)
+			independenceLikelihood <- refToLikelihood(indModel)
+			independenceDoF <- refToDof(indModel)
+		} else {
+			saturatedLikelihood <- parseLikelihoodArg(dotArguments, "SaturatedLikelihood")
+			saturatedDoF <- parseDfArg(dotArguments, "SaturatedDoF")
+			independenceLikelihood <- parseLikelihoodArg(dotArguments, "IndependenceLikelihood")
+			independenceDoF <- parseDfArg(dotArguments, "IndependenceDoF")
+		}
 		numObs <- dotArguments$numObs
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep

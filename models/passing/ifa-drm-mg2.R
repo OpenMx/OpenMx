@@ -195,6 +195,9 @@ omxCheckCloseEnough(emstat$semProbeCount, 90, 15)
 omxCheckTrue(grpModel$output$infoDefinite)
 }
 
+refModels <- omxSaturatedModel(grpModel, run=TRUE)
+omxCheckCloseEnough(refModels[['Independence']]$output$fit, 38588.19, .01)
+
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(
                   mxComputeOnce('fitfunction', 'information', "meat"),
