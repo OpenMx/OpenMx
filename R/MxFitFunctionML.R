@@ -101,6 +101,33 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionML",
 		}
 })
 
+setMethod("generateReferenceModels", "MxFitFunctionML",
+	function(.Object, model) {
+		modelName <- model@name
+		datasource <- model$data
+		if (is.null(datasource)) {
+			stop(paste("Model", omxQuotes(modelName), "does not contain any data"))
+		}
+		datatype <- datasource@type
+		obsdata <- datasource@observed
+		if( length(model@runstate) > 0){
+					# Handle models that don't use all the variables in the data
+			if(length(model@runstate$expectations) == 1){
+				selVars <- model@runstate$expectations[[1]]@dims
+			} else{
+				stop("Multiple expectations found.  Saturated models for these are not yet implemented.")
+			}
+			if(nrow(obsdata) == ncol(obsdata)){
+				obsdata <- obsdata[selVars, selVars]
+			} else { obsdata <- obsdata[,selVars] }
+		} else{
+			message(paste("The model", omxQuotes(modelName), "has not been run. So a saturated model",
+				"of all the variables in the data will be made.  For a saturated model",
+				"of only the variables used in the model, provide the model after it has been run."))
+		}
+		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)))
+	})
+
 mxFitFunctionML <- function(vector = FALSE) {
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("'vector' argument is not a logical value")

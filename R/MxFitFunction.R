@@ -54,6 +54,18 @@ setGeneric("genericFitFunConvert",
 	return(standardGeneric("genericFitFunConvert"))	
 })
 
+setGeneric("generateReferenceModels", 
+	function(.Object, model) {
+	return(standardGeneric("generateReferenceModels"))
+})
+
+setMethod("generateReferenceModels", "MxBaseFitFunction",
+	function(.Object, model) {
+		msg <- paste("Don't know how to make reference models for a model with a ",
+			     class(fittype), " fit function.", sep="")
+		stop(msg)
+	})
+
 setMethod("genericFitInitialMatrix", "MxBaseFitFunction",
 	function(.Object, flatModel) {
 		return(matrix(as.double(NA), 1, 1))

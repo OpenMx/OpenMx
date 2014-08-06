@@ -47,68 +47,8 @@
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-SaturatedModelHelper <- function(x) {
-	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
-		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
-	}
-	if ( is(x, "MxModel") ) {
-		fittype <- x$fitfunction
-		modelName <- x@name
-		if( is(fittype, "MxFitFunctionAlgebra") || is(fittype, "MxFitFunctionRow") || is(fittype, "MxFitFunctionR") ){
-			msg <- paste("Cannot make a saturated model for models with ", is(fittype)[1], "fit functions.", sep="")
-			if(is(fittype, "MxFitFunctionAlgebra")){
-				msg <- paste(msg, "\n",
-					"If you're using this for a mutligroup model, very likely, you can replace your mxFitFunctionAlgebra() call with", "\n",
-					"mxFitFunctionMultigroup(c('submodelName1', 'submodelName2', ...))", "\n\n",
-					"See ?mxFitFunctionMultigroup() to learn more.", sep="")
-			}
-			stop(msg)
-		}
-		# Handle multigroup models
-		if(is(fittype, "MxFitFunctionMultigroup")){
-			grpnames <- unlist(strsplit(x$fitfunction$groups, split=".fitfunction", fixed=TRUE))
-			grpmodels <- list()
-			for(i in 1:length(grpnames)){
-				grpmodels[[i]] <- SaturatedModelHelper(x[[ grpnames[i] ]], run=FALSE)
-			}
-			sgrpmodels <- sapply(grpmodels, "[[", 1) #extract saturated models
-			sgrpfits <- mxFitFunctionMultigroup(paste(sapply(sgrpmodels, slot, name="name"), ".fitfunction", sep=""))
-			saturatedModel <- mxModel(name=paste("Saturated", modelName), sgrpmodels, sgrpfits)
-			igrpmodels <- sapply(grpmodels, "[[", 2) #extract independence models
-			igrpfits <- mxFitFunctionMultigroup(paste(sapply(igrpmodels, slot, name="name"), ".fitfunction", sep=""))
-			independenceModel <- mxModel(name=paste("Independence", modelName), igrpmodels, igrpfits)
-			return(list(Saturated=saturatedModel, Independence=independenceModel))
-		}
-		datasource <- x$data
-		if (is.null(datasource)) {
-			stop("'model' argument does not contain any data")
-		}
-		datatype <- datasource@type
-		obsdata <- datasource@observed
-		# Handle models that don't use all the variables in the data
-		if( length(x@runstate) > 0){
-			if(length(x@runstate$expectations) == 1){
-				selVars <- x@runstate$expectations[[1]]@dims
-			} else{
-				stop("Multiple expectations found.  Saturated models for these are not yet implemented.")
-			}
-			if(nrow(obsdata) == ncol(obsdata)){
-				obsdata <- obsdata[selVars, selVars]
-			} else { obsdata <- obsdata[,selVars] }
-		} else{
-			message(paste("The model", modelName, "has not been run. So a saturated model",
-				"of all the variables in the data will be made.  For a saturated model",
-				"of only the variables used in the model, give me the model that has been run."))
-		}
-	} else {
-		obsdata <- x
-		if(ncol(obsdata) != nrow(obsdata)) {
-			datatype <- "raw"
-		}
-		else {datatype <- "cov"}
-		datasource <- mxData(observed=obsdata, type=datatype)
-		modelName <- "Data Model"
-	}
+generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE) {
+	datasource <- mxData(observed=obsdata, type=datatype)
 	numVar <- ncol(obsdata)
 	varnam <- colnames(obsdata)
 	if(is.null(varnam)) {
@@ -141,38 +81,30 @@ SaturatedModelHelper <- function(x) {
 		indepcov <- 0.3
 		startmea <- 3.0
 	}
-	ltCov <- mxMatrix(type="Lower",
-			nrow=numVar,
-			ncol=numVar,
-			values=startcov,
-			free=TRUE,
-			name="ltCov")
-	saturatedModel <- mxModel(
-		name=paste("Saturated", modelName),
-		datasource,
-		ltCov,
-		mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
-	)
-	indCov <- mxMatrix(type="Diag",
-		nrow=numVar,
-		ncol=numVar,
-		values=indepcov,
-		free=TRUE,
-		name="indCov", dimnames=list(varnam, varnam))
-	independenceModel <- mxModel(
-		name=paste("Independence", modelName),
-		datasource,
-		indCov)
-	if(datatype == "raw" || !any(is.na(datasource@means)) ) {
+
+	ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
+			  values=startcov, free=TRUE, name="ltCov")
+	saturatedModel <- mxModel(name=paste("Saturated", modelName),
+				  datasource,
+				  ltCov,
+				  mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam)),
+				  mxExpectationNormal("satCov"),
+				  mxFitFunctionML())
+
+	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=TRUE,
+			   name="indCov", dimnames=list(varnam, varnam))
+	independenceModel <- mxModel(name=paste("Independence", modelName),
+				     datasource, indCov,
+				     mxExpectationNormal("indCov"), mxFitFunctionML())
+
+	if(datatype == "raw" || withMeans) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
-			mxExpectationNormal("satCov", "satMea"),
-			mxFitFunctionML()
+			mxExpectationNormal("satCov", "satMea")
 		)
 		independenceModel <- mxModel(independenceModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
-			mxExpectationNormal("indCov", "satMea"),
-			mxFitFunctionML()
+			mxExpectationNormal("indCov", "satMea")
 		)
 		if(any(ordinalCols)) {
 			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
@@ -187,42 +119,47 @@ SaturatedModelHelper <- function(x) {
 				mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
 				thresholdDeviations, unitLower,
 				mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-				mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix"),
-				mxFitFunctionML()
+				mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix")
 			)
 			independenceModel <- mxModel(independenceModel,
 				mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
 				thresholdDeviations, unitLower,
 				mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix"),
-				mxFitFunctionML()
+				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix")
 			)
 		}
-	} else {
-		saturatedModel <- mxModel(saturatedModel,
-			mxExpectationNormal("satCov"),
-			mxFitFunctionML()
-		)
-		independenceModel <- mxModel(independenceModel,
-			mxExpectationNormal("indCov"),
-			mxFitFunctionML()
-		)
 	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
 }
 
-omxSaturatedModel <- function(x, run=FALSE) {
-	models <- SaturatedModelHelper(x)
-	saturatedModel <- models[['Saturated']]
-	independenceModel <- models[['Independence']]
-	
-	saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
-	saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")
-	independenceModel <- mxOption(independenceModel, "Calculate Hessian", "No")
-	independenceModel <- mxOption(independenceModel, "Standard Errors", "No")
-	if(run) {
-		saturatedModel <- mxRun(saturatedModel)
-		independenceModel <- mxRun(independenceModel)
+ReferenceModelHelper <- function(x) {
+	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
+		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
 	}
-	return(list(Saturated=saturatedModel, Independence=independenceModel))
+	if ( is(x, "MxModel") ) {
+		if (is.null(x$fitfunction)) {
+			stop("Model", omxQuotes(x$name), "has no fitfunction")
+		}
+		generateReferenceModels(x$fitfunction, x)
+	} else {
+		obsdata <- x
+		if(ncol(obsdata) != nrow(obsdata)) {
+			datatype <- "raw"
+		}
+		else {datatype <- "cov"}
+		generateNormalReferenceModels("Data Model", obsdata, datatype)
+	}
+}
+
+omxSaturatedModel <- function(x, run=FALSE) {
+	models <- lapply(ReferenceModelHelper(x), function(model) {
+		if (!isS4(model)) return(model)
+		model <- mxOption(model, "Standard Errors", "No")
+		model <- mxOption(model, "Calculate Hessian", "No")
+		if (run) {
+			model <- mxRun(model)
+		}
+		model
+	})
+	models
 }
