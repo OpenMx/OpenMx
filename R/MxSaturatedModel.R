@@ -47,7 +47,7 @@
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-omxSaturatedModel <- function(x, run=FALSE) {
+SaturatedModelHelper <- function(x) {
 	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
 		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
 	}
@@ -69,22 +69,14 @@ omxSaturatedModel <- function(x, run=FALSE) {
 			grpnames <- unlist(strsplit(x$fitfunction$groups, split=".fitfunction", fixed=TRUE))
 			grpmodels <- list()
 			for(i in 1:length(grpnames)){
-				grpmodels[[i]] <- omxSaturatedModel(x[[ grpnames[i] ]], run=FALSE)
+				grpmodels[[i]] <- SaturatedModelHelper(x[[ grpnames[i] ]], run=FALSE)
 			}
 			sgrpmodels <- sapply(grpmodels, "[[", 1) #extract saturated models
 			sgrpfits <- mxFitFunctionMultigroup(paste(sapply(sgrpmodels, slot, name="name"), ".fitfunction", sep=""))
 			saturatedModel <- mxModel(name=paste("Saturated", modelName), sgrpmodels, sgrpfits)
-			saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
-			saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")
 			igrpmodels <- sapply(grpmodels, "[[", 2) #extract independence models
 			igrpfits <- mxFitFunctionMultigroup(paste(sapply(igrpmodels, slot, name="name"), ".fitfunction", sep=""))
 			independenceModel <- mxModel(name=paste("Independence", modelName), igrpmodels, igrpfits)
-			independenceModel <- mxOption(independenceModel, "Calculate Hessian", "No")
-			independenceModel <- mxOption(independenceModel, "Standard Errors", "No")
-			if(run) {
-				saturatedModel <- mxRun(saturatedModel)
-				independenceModel <- mxRun(independenceModel)
-			}
 			return(list(Saturated=saturatedModel, Independence=independenceModel))
 		}
 		datasource <- x$data
@@ -216,6 +208,13 @@ omxSaturatedModel <- function(x, run=FALSE) {
 			mxFitFunctionML()
 		)
 	}
+	return(list(Saturated=saturatedModel, Independence=independenceModel))
+}
+
+omxSaturatedModel <- function(x, run=FALSE) {
+	models <- SaturatedModelHelper(x)
+	saturatedModel <- models[['Saturated']]
+	independenceModel <- models[['Independence']]
 	
 	saturatedModel <- mxOption(saturatedModel, "Calculate Hessian", "No")
 	saturatedModel <- mxOption(saturatedModel, "Standard Errors", "No")
@@ -227,8 +226,3 @@ omxSaturatedModel <- function(x, run=FALSE) {
 	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
 }
-
-
-#-------------------------------------------------------------------------------------
-# End
-
