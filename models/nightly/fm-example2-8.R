@@ -32,7 +32,10 @@ m1 <- mxRun(mxModel(m1, mxComputeSequence(list(
   mxComputeHessianQuality()))), silent=TRUE)
 
 omxCheckCloseEnough(m1$output$fit, 2766.688, .01)
-omxCheckCloseEnough(summary(m1)$informationCriteria['AIC:','par'], 2784.69, .01)
+
+m1Sum <- summary(m1)
+omxCheckCloseEnough(m1Sum$observedStatistics, 15, .1)
+omxCheckCloseEnough(m1Sum$informationCriteria['AIC:','par'], 2784.69, .01)
 omxCheckCloseEnough(summary(m1)$informationCriteria['BIC:','par'], 2824.14, .01)
 
 fitstat <- m1$compute$steps[[1]]$output

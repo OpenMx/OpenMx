@@ -26,7 +26,6 @@ setClass(Class = "MxExpectationBA81",
 	     debugInternal="logical",
 	     dataColumns="numeric",
 	   dims = "character",
-	   numStats = "numeric",
 	   verbose = "integer",
 	     output = "list",
 	     debug = "list",
@@ -101,9 +100,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 
 		  mxData <- flatModel@datasets[[.Object@data + 1]]
 		  .Object@dims <- colnames(mxData@observed) # for summary
-		  if (mxData@.isSorted) {
-			  .Object@numStats <- nrow(mxData@observed) - 1L
-		  }
 
 		  if (is.null(colnames(item))) {
 			  stop(paste(class(.Object),
@@ -132,7 +128,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 					     "; try mxData(observed=obs, type='raw',",
 					     " numObs=sum(obs$", .Object@weightColumn, "), ...)", sep=""))
 			  }
-			  .Object@numStats <- nrow(mxData@observed) - 1
 			  .Object@weightColumn <- wc
 		  }
 

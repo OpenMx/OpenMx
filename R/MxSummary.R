@@ -79,6 +79,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 			dof <- dof + length(data@means) 
 		}
 		historySet <- append(data, historySet)
+	} else if (is(expectation, "MxExpectationBA81")) {  # refactor TODO
+		if (is.na(expectation@weightColumn)) return(list(NA, historySet))
+		dof <- nrow(data@observed) - 1
+		historySet <- append(data, historySet)
 	} else {
 		dof <- 0
 		observed <- data@observed
@@ -162,8 +166,10 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
-	IC <- data.frame(df=c(retval$AIC.Mx, retval$BIC.Mx), par=c(AIC.p, BIC.p), sample=c(as.numeric(NA), sBIC))
-	rownames(IC) <- c("AIC:", "BIC:")
+	IC <- matrix(NA, nrow=2, ncol=3, dimnames=list(c("AIC:", "BIC:"), c('df', 'par', 'sample')))
+	IC[,'df'] <- c(retval$AIC.Mx, retval$BIC.Mx)
+	IC[,'par'] <- c(AIC.p, BIC.p)
+	IC['BIC:','sample'] <- sBIC
 	retval[['informationCriteria']] <- IC
 
 	# Here we use N in the denominator as given in the original

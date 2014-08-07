@@ -196,8 +196,10 @@ omxCheckTrue(grpModel$output$infoDefinite)
 }
 
 refModels <- omxSaturatedModel(grpModel, run=TRUE)
-omxCheckCloseEnough(refModels[['Independence']]$output$fit, 38588.19, .01)
-#summary(grpModel, refModels=refModels)
+ind <- refModels[['Independence']]
+omxCheckCloseEnough(ind$output$fit, 38588.19, .01)
+omxCheckCloseEnough(summary(ind)$informationCriteria['AIC:','par'], 38628.187, .02)
+omxCheckCloseEnough(summary(ind)$informationCriteria['BIC:','par'], 38734.451, .02)
 
 i1 <- mxModel(grpModel,
                 mxComputeSequence(steps=list(

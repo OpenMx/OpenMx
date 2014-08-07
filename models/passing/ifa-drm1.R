@@ -86,11 +86,29 @@ omxCheckCloseEnough(m2$output$evaluations, 77, 5)
 #print(m2$matrices$item$values)
 #print(correct.mat)
 omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
+omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 6256.27, .02)
+omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)
+
+refModels <- omxSaturatedModel(m2, run=TRUE)
+ind <- refModels[['Independence']]
+omxCheckCloseEnough(ind$output$fit, 6382.24, .01)
+omxCheckCloseEnough(summary(ind)$informationCriteria['AIC:','par'], 6402.24, .02)
+omxCheckCloseEnough(summary(ind)$informationCriteria['BIC:','par'], 6444.39, .02)
+
 got <- cor(c(m2$matrices$item$values[1:2,]),
            c(correct.mat[1:2,]))
 omxCheckCloseEnough(got, .988, .01)
 
 grp <- as.IFAgroup(m2)
+if (0) {
+  mf <- multinomialFit(grp)
+  omxCheckCloseEnough(mf$df, 269, .1)
+  omxCheckCloseEnough(mf$statistic, 750.6623, .1)
+  
+  mf <- multinomialFit(as.IFAgroup(ind))
+  omxCheckCloseEnough(mf$df, 279, .1)
+  omxCheckCloseEnough(mf$statistic, 916.63, .1)
+}
 
 scores <- EAPscores(grp)
 omxCheckIdentical(colnames(scores)[1], "f1")
