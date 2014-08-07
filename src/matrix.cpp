@@ -161,6 +161,15 @@ Matrix matrix_mult(Matrix a, Matrix b) {
 
 void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 {
+	{
+		// Variances must be positive so the diagonal must be
+		// non-zero. If there are no covariances then dsyevr
+		// triggers a valgrind error. It's probably harmless
+		// but annoying. This check avoids it.
+		Eigen::Map< Eigen::ArrayXXd > tmp(mat.t, mat.rows, mat.cols);
+		if ((tmp != 0).count() == mat.rows) return;
+	}
+
 	const double tooSmallEV = 1e-6;
 	double *target = mat.t;
 	int numParams = mat.rows;
