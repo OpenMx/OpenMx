@@ -702,7 +702,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	for (int cx = 0; cx < numItems; cx++) {
 		if (!omxDataColumnIsFactor(data, colMap[cx])) {
 			omxPrintData(data, "diagnostic", 3);
-			omxRaiseErrorf("%s: column %d is not a factor", oo->name, (int) 1 + colMap[cx]);
+			omxRaiseErrorf("%s: column %d is not a factor", oo->name, int(1 + colMap[cx]));
 			return;
 		}
 
