@@ -175,8 +175,10 @@ generateIFAReferenceModels <- function(model) {
 		data <- data[orderCompletely(data),]
 		weights <- as.numeric(tabulateRows(data))
 	}
-	# not sure how to handle missingness TODO
-	saturated <- -2 * sum(log(weights / sum(weights)))
+	saturated <- NA
+	if (!any(is.na(data[1,]))) {  # Not sure how to handle missingness
+		saturated <- -2 * sum(log(weights / sum(weights)))
+	}
 
 	return(list(Saturated=list(saturated, 0),
 		    Independence=ind))
