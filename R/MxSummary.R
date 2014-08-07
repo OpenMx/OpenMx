@@ -485,7 +485,9 @@ print.summary.mxmodel <- function(x,...) {
 	cat("OpenMx version number:", format(x$mxVersion), '\n')
 	cat("Need help?  See help(mxSummary)", '\n')
 	cat('\n')
-	if (x$stale) {
+	if (!x$wasRun) {
+		message("WARNING: This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	} else if (x$stale) {
 		message("WARNING: This model was modified since it was run. Summary information may be out-of-date.")
 	}
 }
@@ -707,7 +709,7 @@ setMethod("summary", "MxModel",
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
-		retval <- list(stale=model@.modifiedSinceRun)
+		retval <- list(wasRun=length(model@runstate), stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
