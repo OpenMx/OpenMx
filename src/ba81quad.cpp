@@ -85,6 +85,11 @@ void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
 	maxDims = primaryDims + (numSpecific? 1 : 0);
 	maxAbilities = primaryDims + numSpecific;
 
+	if (maxAbilities == 0) {
+		setup0();
+		return;
+	}
+
 	totalQuadPoints = 1;
 	for (int dx=0; dx < maxDims; dx++) {
 		totalQuadPoints *= quadGridSize;
