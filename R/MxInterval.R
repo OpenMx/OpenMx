@@ -211,6 +211,18 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		}
 		return(retval)
 	} else {
+		for (entityName in names(flatModel@matrices)) {
+			entity <- flatModel[[entityName]]
+			mask <- !is.na(entity$labels) & !entity$free
+			if (!is.na(match(reference, entity$labels[mask]))) {
+				msg <- paste("Confidence intervals requested for",
+					     omxQuotes(reference), "in matrix", omxQuotes(entityName),
+					     "cannot be estimated since", omxQuotes(reference),
+					     "is not a free parameter")
+				message(msg)
+				return(list())
+			}
+		}
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",
 			"specification in model", omxQuotes(modelname), 
