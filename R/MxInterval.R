@@ -192,35 +192,34 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			cols <- 1:ncol(entityValue)
 		}
 		entity <- flatModel[[entityName]]
-		if (is(entity, "MxMatrix")) {
-			free <- entity@free
-		} else {
-			free <- matrix(TRUE, rows, cols)
-		}
 		entityNumber <- imxLocateIndex(flatModel, entityName, 
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in rows) {
 			for(j in cols) {
-				if (free[i, j]) {
-					newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
-					retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
-						interval@lowerdelta, interval@upperdelta)
-				}
+				newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
+				retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
+									   interval@lowerdelta, interval@upperdelta)
 			}
 		}
 		return(retval)
 	} else {
 		for (entityName in names(flatModel@matrices)) {
 			entity <- flatModel[[entityName]]
-			mask <- !is.na(entity$labels) & !entity$free
-			if (!is.na(match(reference, entity$labels[mask]))) {
-				msg <- paste("Confidence intervals requested for",
-					     omxQuotes(reference), "in matrix", omxQuotes(entityName),
-					     "cannot be estimated since", omxQuotes(reference),
-					     "is not a free parameter")
-				message(msg)
-				return(list())
+			free <- entity@free
+			rows <- nrow(entity)
+			cols <- ncol(entity)
+			for(i in 1:rows) {
+				for(j in 1:cols) {
+					if (free[i, j]) next
+					label <- entity@labels[i,j]
+					if (is.na(label) || label != reference) next
+					entityNumber <- imxLocateIndex(flatModel, entityName, 
+								       paste("confidence interval", reference))
+					retval[[label]] <- makeIntervalReference(entityNumber, i, j, 
+										 interval@lowerdelta, interval@upperdelta)
+					return(retval)
+				}
 			}
 		}
 		stop(paste("Unknown reference to", omxQuotes(reference),

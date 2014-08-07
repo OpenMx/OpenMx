@@ -714,7 +714,16 @@ setMethod("summary", "MxModel",
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
 		retval <- computeOptimizationStatistics(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval)
 		retval$dataSummary <- generateDataSummary(model, useSubmodels)
-		retval$CI <- model@output$confidenceIntervals
+		retval$CI <- as.data.frame(model@output$confidenceIntervals)
+		if (length(retval$CI) && nrow(retval$CI)) {
+			retval$CI <- cbind(retval$CI, note=apply(retval$CI, 1, function(ci) {
+				if (ci[1] == ci[3] || ci[1] > ci[2] || ci[2] > ci[3]) {
+					"!!!"
+				} else {
+					""
+				}
+			}))
+		}
 		retval$CIcodes <- model@output$confidenceIntervalCodes
 		if (!is.null(model@output$npsol.code)) {
 			message <- npsolMessages[[as.character(model@output$npsol.code)]]
