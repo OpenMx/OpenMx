@@ -152,8 +152,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
-	omxState* parentState = objMatrix->currentState;
-	int numChildren = parentState==globalState? globalState->childList.size() : 0;
+	int numChildren = fc->childList.size();
 
     omxMatrix *reduceAlgebra;
 	omxData *data;
@@ -192,7 +191,8 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 
 #pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
-			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], objMatrix);
+			FitContext *kid = fc->childList[i];
+			omxMatrix *childMatrix = kid->lookupDuplicate(objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
 				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);

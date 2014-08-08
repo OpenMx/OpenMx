@@ -150,7 +150,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
     
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
-	omxFitFunctionCreateChildren(globalState);
+	fc->createChildren();
     
 	switch (engine) {
         case OptEngine_NPSOL:{
@@ -184,8 +184,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
-	omxFreeChildStates(globalState);
-
 	// It seems we cannot avoid this. Both optimizers can terminate
 	// with fit not at the optimum.
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);

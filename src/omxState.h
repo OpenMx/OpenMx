@@ -211,33 +211,34 @@ class omxGlobal {
 extern struct omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
-struct omxState {
+class omxState {
+ private:
+	void init();
+ public:
+	// This flag should move to FitContext. We ought to enforce a rule
+	// that the context cannot be stale after compute or reportResults.
 	bool stale;
 
-	// move to FitContext? TOOD
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
-	std::vector< omxState* > childList;
 
-	// move all constraint stuff to omxGlobal TODO
 	int numConstraints;
 	int ncnln;                                               // Number of linear and nonlinear constraints
 	omxConstraint* conList;											// List of constraints
 
 	long int currentRow; // only used for debugging
+
+	omxState() { init(); };
+	omxState(omxState *src);
+	~omxState();
 };
 
 extern omxState* globalState;
 
 /* Initialize and Destroy */
-	void omxInitState(omxState* state);
-void omxFreeChildStates(omxState *state);
-void omxFreeState(omxState *state);
-	void omxDuplicateState(omxState *tgt, omxState* src); 
-
-	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
+omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
 inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED

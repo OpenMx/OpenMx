@@ -249,7 +249,6 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	Global = new omxGlobal;
 
 	globalState = new omxState;
-	omxInitState(globalState);
 
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
@@ -290,7 +289,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	const char *bads = Global->getBads();
 
 	omxFreeMatrix(algebra);
-	omxFreeState(globalState);
+	delete globalState;
 	delete Global;
 
 	if (bads) Rf_error(bads);
@@ -327,7 +326,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	/* Create new omxState for current state storage and initialize it. */
 	globalState = new omxState;
-	omxInitState(globalState);
 
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
@@ -379,11 +377,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxComputeEntities(computeList);
 
-	FitContext fc(startingValues);
+	FitContext *fc = new FitContext(globalState, startingValues);
 
 	// Nothing depend on constraints so we can process them last.
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessConstraints(constraints, &fc);
+	omxProcessConstraints(constraints, fc);
 
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
@@ -407,7 +405,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if (topCompute && !isErrorRaised()) {
-		topCompute->compute(&fc);
+		topCompute->compute(fc);
 	}
 
 	SEXP evaluations;
@@ -416,7 +414,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	REAL(evaluations)[0] = Global->computeCount;
 
 	if (topCompute && !isErrorRaised() && globalState->stale) {
-		fc.copyParamToModel(globalState);
+		fc->copyParamToModel(globalState);
 	}
 
 	MxRList result;
@@ -426,7 +424,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;
-		topCompute->collectResults(&fc, &cResult, &result);
+		topCompute->collectResults(fc, &cResult, &result);
 
 		if (cResult.size()) {
 			SEXP computes;
@@ -440,12 +438,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			result.add("computes", computes);
 		}
 
-		if (fc.wanted & FF_COMPUTE_FIT) {
-			result.add("fit", Rf_ScalarReal(fc.fit));
-			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc.fit));
+		if (fc->wanted & FF_COMPUTE_FIT) {
+			result.add("fit", Rf_ScalarReal(fc->fit));
+			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
 		}
-		if (fc.wanted & FF_COMPUTE_BESTFIT) {
-			result.add("minimum", Rf_ScalarReal(fc.fit));
+		if (fc->wanted & FF_COMPUTE_BESTFIT) {
+			result.add("minimum", Rf_ScalarReal(fc->fit));
 		}
 
 		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
@@ -454,25 +452,25 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 			SEXP estimate;
 			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
-			memcpy(REAL(estimate), fc.est, sizeof(double)*numFree);
+			memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
 			result.add("estimate", estimate);
 
-			if (fc.stderrs) {
+			if (fc->stderrs) {
 				SEXP stdErrors;
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
-				memcpy(REAL(stdErrors), fc.stderrs, sizeof(double) * numFree);
+				memcpy(REAL(stdErrors), fc->stderrs, sizeof(double) * numFree);
 				result.add("standardErrors", stdErrors);
 			}
-			if (fc.wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-				result.add("infoDefinite", Rf_ScalarLogical(fc.infoDefinite));
-				result.add("conditionNumber", Rf_ScalarReal(fc.infoCondNum));
+			if (fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+				result.add("infoDefinite", Rf_ScalarLogical(fc->infoDefinite));
+				result.add("conditionNumber", Rf_ScalarReal(fc->infoCondNum));
 			}
 		}
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.add("code", Rf_ScalarInteger(fc.inform));
+	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->inform));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
 
 	if (isErrorRaised()) {
@@ -484,10 +482,19 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	result.add("status", backwardCompatStatus.asR());
-	result.add("iterations", Rf_ScalarInteger(fc.iterations));
+	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
 
-	omxFreeState(globalState);
+	delete fc;
+
+	// Data are not modified and not copied. The same memory
+	// is shared across all instances of state.
+	// NOTE: This may need to change for MxDataDynamic
+	for(size_t dx = 0; dx < globalState->dataList.size(); dx++) {
+		omxFreeData(globalState->dataList[dx]);
+	}
+
+	delete globalState;
 	delete Global;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());

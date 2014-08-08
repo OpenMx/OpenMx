@@ -145,8 +145,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 	omxMatrix* fitMatrix  = off->matrix;
-	omxState* parentState = fitMatrix->currentState;
-	int numChildren = parentState==globalState? globalState->childList.size() : 0;
+	int numChildren = (int) fc->childList.size();
 
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
@@ -170,7 +169,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				omxRecompute(nextMatrix, want, fc);
 				checkIncreasing(nextMatrix, thresholdCols[var].column);
 				for(int index = 0; index < numChildren; index++) {
-					omxMatrix *target = omxLookupDuplicateElement(parentState->childList[index], nextMatrix);
+					FitContext *kid = fc->childList[index];
+					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
 					omxCopyMatrix(target, nextMatrix);
 				}
 			}
@@ -182,7 +182,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 		}
 		for(int index = 0; index < numChildren; index++) {
-			omxMatrix *childFit = omxLookupDuplicateElement(parentState->childList[index], fitMatrix);
+			FitContext *kid = fc->childList[index];
+			omxMatrix *childFit = kid->lookupDuplicate(fitMatrix);
 			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
 			omxCopyMatrix(childOfiml->cov, cov);
 			omxCopyMatrix(childOfiml->means, means);
@@ -211,12 +212,13 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 #pragma omp parallel for num_threads(parallelism) reduction(||:failed)
 		for(int i = 0; i < parallelism; i++) {
-			omxMatrix *childMatrix = omxLookupDuplicateElement(parentState->childList[i], fitMatrix);
+			FitContext *kid = fc->childList[i];
+			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				failed |= singleIter(fc, childFit, off, stride * i, data->rows - stride * i);
+				failed |= singleIter(kid, childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				failed |= singleIter(fc, childFit, off, stride * i, stride);
+				failed |= singleIter(kid, childFit, off, stride * i, stride);
 			}
 		}
 	} else {

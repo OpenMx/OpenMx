@@ -47,7 +47,6 @@ class omxComputeNumericDeriv : public omxCompute {
 	int totalProbeCount;
 	int verbose;
 
-	FitContext *fitContext;
 	omxMatrix *fitMat;
 	double minimum;
 	int numParams;
@@ -56,7 +55,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	double *hessian;
 
 	void init();
-	void omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state);
+	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
 	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
@@ -73,10 +72,11 @@ struct hess_struct {
 	double* freeParams;
 	double* Haprox;
 	double* Gaprox;
+	FitContext *fc;
 	omxMatrix* fitMatrix;
 };
 
-void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, omxState* state)
+void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)
 {
 	double *freeParams = (double*) Calloc(numParams, double);
 
@@ -87,7 +87,8 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
 		freeParams[i] = optima[i];
 	}
 
-	hess_work->fitMatrix = omxLookupDuplicateElement(state, fitMat);
+	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
+	hess_work->fc = fc;
 }
 
 /**
@@ -106,6 +107,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	double *Gaprox             = hess_work->Gaprox;
 	double *freeParams         = hess_work->freeParams;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
+	FitContext* fc = hess_work->fc; 
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = fabs(stepSize * optima[i]);
@@ -116,18 +118,18 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		freeParams[i] = optima[i] + iOffset;
 
 		
-		fitContext->copyParamToModel(fitMatrix, freeParams);
+		fc->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[i] = optima[i] - iOffset;
 
-		fitContext->copyParamToModel(fitMatrix, freeParams);
+		fc->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fc);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
@@ -160,6 +162,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 	double *Haprox             = hess_work->Haprox;
 	double *freeParams         = hess_work->freeParams;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
+	FitContext* fc = hess_work->fc; 
 
 	double iOffset = fabs(stepSize*optima[i]);
 	if(fabs(iOffset) < eps) iOffset += eps;
@@ -170,19 +173,19 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		freeParams[i] = optima[i] + iOffset;
 		freeParams[l] = optima[l] + lOffset;
 
-		fitContext->copyParamToModel(fitMatrix, freeParams);
+		fc->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[i] = optima[i] - iOffset;
 		freeParams[l] = optima[l] - lOffset;
 
-		fitContext->copyParamToModel(fitMatrix, freeParams);
+		fc->copyParamToModel(fitMatrix, freeParams);
 
 		++hess_work->probeCount;
-		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fitContext);
+		omxRecompute(fitMatrix, FF_COMPUTE_FIT, fc);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
@@ -291,11 +294,10 @@ void omxComputeNumericDeriv::initFromFrontend(SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
-	fitContext = fc;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
 
-	if (parallel) omxFitFunctionCreateChildren(globalState);
+	if (parallel) fc->createChildren();
 
 	optima = fc->est;
 
@@ -303,7 +305,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 0;
-	if (parallel) numChildren = globalState->childList.size();
+	if (parallel) numChildren = fc->childList.size();
 
 	omxRecompute(fitMat, FF_COMPUTE_FIT, fc);
 	minimum = omxMatrixElement(fitMat, 0, 0);
@@ -315,11 +317,11 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	struct hess_struct* hess_work;
 	if (numChildren < 2) {
 		hess_work = Calloc(1, struct hess_struct);
-		omxPopulateHessianWork(hess_work, globalState);
+		omxPopulateHessianWork(hess_work, fc);
 	} else {
 		hess_work = Calloc(numChildren, struct hess_struct);
 		for(int i = 0; i < numChildren; i++) {
-			omxPopulateHessianWork(hess_work + i, globalState->childList[i]);
+			omxPopulateHessianWork(hess_work + i, fc->childList[i]);
 		}
 	}
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
@@ -350,8 +352,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 		Free(hess_work);
 	}
-
-	omxFreeChildStates(globalState);
 }
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)

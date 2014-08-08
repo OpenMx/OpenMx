@@ -232,142 +232,92 @@ void omxGlobal::deduplicateVarGroups()
 	}
 }
 
-/* Initialize and Destroy */
-	void omxInitState(omxState* state) {
-		state->stale = FALSE;
-		state->numConstraints = 0;
-		state->conList = NULL;
-		state->currentRow = -1;
-	}
-
-	void omxDuplicateState(omxState* tgt, omxState* src) {
-		tgt->dataList			= src->dataList;
-		
-		for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
-			// TODO: Smarter inference for which matrices to duplicate
-			tgt->matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], tgt));
-		}
-
-		tgt->numConstraints     = src->numConstraints;
-		tgt->conList			= (omxConstraint*) R_alloc(tgt->numConstraints, sizeof(omxConstraint));
-		for(int j = 0; j < tgt->numConstraints; j++) {
-			tgt->conList[j].size   = src->conList[j].size;
-			tgt->conList[j].opCode = src->conList[j].opCode;
-			tgt->conList[j].lbound = src->conList[j].lbound;
-			tgt->conList[j].ubound = src->conList[j].ubound;
-			tgt->conList[j].result = omxDuplicateMatrix(src->conList[j].result, tgt);
-		}
-
-		for(size_t j = 0; j < src->expectationList.size(); j++) {
-			// TODO: Smarter inference for which expectations to duplicate
-			tgt->expectationList.push_back(omxDuplicateExpectation(src->expectationList[j], tgt));
-		}
-
-		for(size_t j = 0; j < src->algebraList.size(); j++) {
-			// TODO: Smarter inference for which algebras to duplicate
-			tgt->algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], tgt));
-		}
-
-		for(size_t j = 0; j < tgt->algebraList.size(); j++) {
-			omxDuplicateAlgebra(tgt->algebraList[j], src->algebraList[j], tgt);
-		}
-
-		omxInitialMatrixAlgebraCompute(tgt, NULL);
-
-		for(size_t j = 0; j < src->expectationList.size(); j++) {
-			// TODO: Smarter inference for which expectations to duplicate
-			omxCompleteExpectation(tgt->expectationList[j]);
-		}
-
-		for (int ax=0; ax < (int) tgt->algebraList.size(); ++ax) {
-			omxMatrix *matrix = tgt->algebraList[ax];
-			if (!matrix->fitFunction) continue;
-			omxCompleteFitFunction(matrix);
-		}
-
-		tgt->currentRow 		= src->currentRow;
-	}
-
-	omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element) {
-		if(os == NULL || element == NULL) return NULL;
-
-		if (element->hasMatrixNumber) {
-			int matrixNumber = element->matrixNumber;
-			if (matrixNumber >= 0) {
-				return(os->algebraList[matrixNumber]);
-			} else {
-				return(os->matrixList[-matrixNumber - 1]);
-			}
-		}
-
-		omxConstraint* parentConList = globalState->conList;
-
-		for(int i = 0; i < os->numConstraints; i++) {
-			if(parentConList[i].result == element) {
-				if(os->conList[i].result != NULL) {   // Not sure of proper failure behavior here.
-            	return(os->conList[i].result);
-				} else {
-                    omxRaiseError("Initialization Copy Error: Constraint required but not yet processed.");
-            }
-			}
-		}
-
-		return NULL;
-	}
-	
-void omxFreeChildStates(omxState *state)
-{
-	if (state->childList.size() == 0) return;
-
-	for(size_t k = 0; k < state->childList.size(); k++) {
-		// Data are not modified and not copied. The same memory
-		// is shared across all instances of state. We only need
-		// to free the data once, so let the parent do it.
-		state->childList[k]->dataList.clear();
-
-		omxFreeState(state->childList[k]);
-	}
-	state->childList.clear();
+void omxState::init() {
+	stale = FALSE;
+	numConstraints = 0;
+	conList = NULL;
+	currentRow = -1;
 }
 
-	void omxFreeState(omxState *state) {
-		omxFreeChildStates(state);
+omxState::omxState(omxState *src)
+{
+	init();
 
-		if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) state->numConstraints);}
-		for(int k = 0; k < state->numConstraints; k++) {
-			omxFreeMatrix(state->conList[k].result);
-		}
-
-		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
-			// free argument tree
-			omxFreeMatrix(state->algebraList[ax]);
-		}
-
-		for(size_t ax = 0; ax < state->algebraList.size(); ax++) {
-			state->algebraList[ax]->hasMatrixNumber = false;
-			omxFreeMatrix(state->algebraList[ax]);
-		}
-
-		if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", (int) state->matrixList.size());}
-		for(size_t mk = 0; mk < state->matrixList.size(); mk++) {
-			state->matrixList[mk]->hasMatrixNumber = false;
-			omxFreeMatrix(state->matrixList[mk]);
-		}
+	dataList			= src->dataList;
 		
-		if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) state->expectationList.size());}
-		for(size_t ex = 0; ex < state->expectationList.size(); ex++) {
-			omxFreeExpectationArgs(state->expectationList[ex]);
-		}
-
-		if(OMX_DEBUG) { mxLog("Freeing %d Data Sets.", (int) state->dataList.size());}
-		for(size_t dx = 0; dx < state->dataList.size(); dx++) {
-			omxFreeData(state->dataList[dx]);
-		}
-
-		delete state;
-
-		if(OMX_DEBUG) { mxLog("State Freed.");}
+	for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
+		// TODO: Smarter inference for which matrices to duplicate
+		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
 	}
+
+	numConstraints     = src->numConstraints;
+	conList			= (omxConstraint*) R_alloc(numConstraints, sizeof(omxConstraint));
+	for(int j = 0; j < numConstraints; j++) {
+		conList[j].size   = src->conList[j].size;
+		conList[j].opCode = src->conList[j].opCode;
+		conList[j].lbound = src->conList[j].lbound;
+		conList[j].ubound = src->conList[j].ubound;
+		conList[j].result = omxDuplicateMatrix(src->conList[j].result, this);
+	}
+
+	for(size_t j = 0; j < src->expectationList.size(); j++) {
+		// TODO: Smarter inference for which expectations to duplicate
+		expectationList.push_back(omxDuplicateExpectation(src->expectationList[j], this));
+	}
+
+	for(size_t j = 0; j < src->algebraList.size(); j++) {
+		// TODO: Smarter inference for which algebras to duplicate
+		algebraList.push_back(omxDuplicateMatrix(src->algebraList[j], this));
+	}
+
+	for(size_t j = 0; j < algebraList.size(); j++) {
+		omxDuplicateAlgebra(algebraList[j], src->algebraList[j], this);
+	}
+
+	omxInitialMatrixAlgebraCompute(this, NULL); // pass in FC TODO
+
+	for(size_t j = 0; j < src->expectationList.size(); j++) {
+		// TODO: Smarter inference for which expectations to duplicate
+		omxCompleteExpectation(expectationList[j]);
+	}
+
+	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
+		omxMatrix *matrix = algebraList[ax];
+		if (!matrix->fitFunction) continue;
+		omxCompleteFitFunction(matrix);
+	}
+
+	currentRow 		= src->currentRow;
+}
+
+omxState::~omxState()
+{
+	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) numConstraints);}
+	for(int k = 0; k < numConstraints; k++) {
+		omxFreeMatrix(conList[k].result);
+	}
+
+	for(size_t ax = 0; ax < algebraList.size(); ax++) {
+		// free argument tree
+		omxFreeMatrix(algebraList[ax]);
+	}
+
+	for(size_t ax = 0; ax < algebraList.size(); ax++) {
+		algebraList[ax]->hasMatrixNumber = false;
+		omxFreeMatrix(algebraList[ax]);
+	}
+
+	if(OMX_DEBUG) { mxLog("Freeing %d Matrices.", (int) matrixList.size());}
+	for(size_t mk = 0; mk < matrixList.size(); mk++) {
+		matrixList[mk]->hasMatrixNumber = false;
+		omxFreeMatrix(matrixList[mk]);
+	}
+		
+	if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) expectationList.size());}
+	for(size_t ex = 0; ex < expectationList.size(); ex++) {
+		omxFreeExpectationArgs(expectationList[ex]);
+	}
+}
 
 omxGlobal::~omxGlobal()
 {

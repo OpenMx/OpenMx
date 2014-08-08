@@ -99,8 +99,6 @@ void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
-void omxFitFunctionCreateChildren(omxState *globalState);
-
 void omxInitFIMLFitFunction(omxFitFunction* off);
 void omxInitAlgebraFitFunction(omxFitFunction *off);
 void omxInitWLSFitFunction(omxFitFunction *off);

@@ -104,12 +104,14 @@ class FitContext {
 
 	std::string IterationError;
 
+	void init();
 	void analyzeHessian();
 	void analyzeHessianBlock(HessianBlock *hb);
 	void testMerge();
 
  public:
 	FreeVarGroup *varGroup;
+	omxState *state;
 	size_t numParam;               // cached from varGroup
 	std::vector<int> mapToParent;
 	double mac;
@@ -126,10 +128,11 @@ class FitContext {
 	int iterations;
 	ComputeInform inform;
 	int wanted;
+	std::vector< class FitContext* > childList;
 
-	void init();
-	FitContext(std::vector<double> &startingValues);
+	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
+	void createChildren();
 	void allocStderrs();
 	// Instead of using estimates not in est, it is less confusing
 	// to clone the FitContext and use fc->est. Hence, we deprecate
@@ -141,6 +144,7 @@ class FitContext {
 	void copyParamToModelClean(omxState *os, double *at); // deprecated
 	void copyParamToModelClean(omxState* os) { copyParamToModelClean(os, est); };
 	double *take(int want);
+	omxMatrix *lookupDuplicate(omxMatrix* element);
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
 	void updateParentAndFree();

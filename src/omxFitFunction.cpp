@@ -70,33 +70,6 @@ void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	}
 }
 
-void omxFitFunctionCreateChildren(omxState *globalState)
-{
-	if (Global->numThreads <= 1) return;
-
-	if (OMX_DEBUG) mxLog("Create %d omxState", Global->numThreads);
-
-	for(size_t j = 0; j < globalState->expectationList.size(); j++) {
-		if (!globalState->expectationList[j]->canDuplicate) return;
-	}
-
-	if (globalState->childList.size()) Rf_error("Children already created");
-
-	int numThreads = Global->numThreads;
-
-	globalState->childList.resize(numThreads);
-
-	for(int ii = 0; ii < numThreads; ii++) {
-		//omxManageProtectInsanity mpi;
-		globalState->childList[ii] = new omxState;
-		omxInitState(globalState->childList[ii]);
-		omxDuplicateState(globalState->childList[ii], globalState);
-		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
-	}
-
-	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
-}
-
 void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newState) {
 
 	if(tgt == NULL || src == NULL) return;

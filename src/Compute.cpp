@@ -693,12 +693,13 @@ void FitContext::allocStderrs()
 	}
 }
 
-FitContext::FitContext(std::vector<double> &startingValues)
+FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 {
 	parent = NULL;
 	varGroup = Global->freeGroup[FREEVARGROUP_ALL];
 	init();
 
+	state = _state;
 	size_t numParam = varGroup->vars.size();
 	if (startingValues.size() != numParam) {
 		Rf_error("Got %d starting values for %d parameters",
@@ -713,6 +714,7 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	this->varGroup = varGroup;
 	init();
 
+	state = parent->state;
 	FreeVarGroup *src = parent->varGroup;
 	FreeVarGroup *dest = varGroup;
 	size_t dvars = varGroup->vars.size();
@@ -926,13 +928,27 @@ void FitContext::copyParamToModelClean(omxState* os, double *at)
 
 	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, at, numParam);
 
-	if (os->childList.size() == 0) return;
+	if (childList.size() == 0) return;
 
-	for(size_t i = 0; i < os->childList.size(); i++) {
-		copyParamToModel(os->childList[i], at);
+	for(size_t i = 0; i < childList.size(); i++) {
+		childList[i]->copyParamToModel(childList[i]->state, at);
 	}
 }
 
+omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
+{
+	if (element == NULL) return NULL;
+
+	if (!element->hasMatrixNumber) Rf_error("FitContext::lookupDuplicate without matrix number");
+
+	int matrixNumber = element->matrixNumber;
+	if (matrixNumber >= 0) {
+		return(state->algebraList[matrixNumber]);
+	} else {
+		return(state->matrixList[-matrixNumber - 1]);
+	}
+}
+	
 double *FitContext::take(int want)
 {
 	if (!(want & (wanted | FF_COMPUTE_ESTIMATE))) {
@@ -1010,8 +1026,42 @@ void FitContext::postInfo()
 	}
 }
 
+void FitContext::createChildren()
+{
+	if (Global->numThreads <= 1) return;
+
+	for(size_t j = 0; j < globalState->expectationList.size(); j++) {
+		if (!globalState->expectationList[j]->canDuplicate) return;
+	}
+
+	if (childList.size()) return;
+
+	if (OMX_DEBUG) mxLog("Create %d FitContext for parallel processing", Global->numThreads);
+
+	int numThreads = Global->numThreads;
+
+	childList.reserve(numThreads);
+
+	for(int ii = 0; ii < numThreads; ii++) {
+		//omxManageProtectInsanity mpi;
+		FitContext *kid = new FitContext(this, varGroup);
+		kid->state = new omxState(state);
+		childList.push_back(kid);
+		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
+	}
+
+	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
+}
+
 FitContext::~FitContext()
 {
+	for (int cx=0; cx < int(childList.size()); ++cx) {
+		delete childList[cx];
+	}
+	childList.clear();
+	if (parent && parent->state != state) {
+		delete state;
+	}
 	clearHessian();
 	if (est) delete [] est;
 	if (stderrs) delete [] stderrs;
