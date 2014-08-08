@@ -70,7 +70,7 @@ for (r in 1:nrow(result)) {
               data=data,
               minItemsPerScore=result$ips[r])
 
-  sc <- EAPscores(grp, naAction = "pass")
+  sc <- EAPscores(grp)
   
   v <- var(sc[,'f1'], na.rm=TRUE)
   result$v[r] <- v
@@ -87,5 +87,5 @@ grp <- list(spec=items,
             data=data,
             minItemsPerScore=ncol(correct.mat)+1)
 
-omxCheckError(EAPscores(grp, naAction = "pass"),
+omxCheckError(EAPscores(grp),
 	      "minItemsPerScore (=13) cannot be larger than the number of items (=12)")
