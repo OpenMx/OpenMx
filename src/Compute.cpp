@@ -738,12 +738,6 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	iterations = parent->iterations;
 }
 
-void FitContext::copyParamToModel(omxMatrix *mat)
-{ copyParamToModel(mat->currentState); }
-
-void FitContext::copyParamToModel(omxMatrix *mat, double *at)
-{ copyParamToModel(mat->currentState, at); }
-
 void FitContext::updateParent()
 {
 	FreeVarGroup *src = varGroup;
@@ -883,22 +877,20 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	omxMarkDirty(oo->matrix);
 }
 
-void FitContext::copyParamToModel(omxState* os, double *at)
+void FitContext::copyParamToModel()
 {
-	copyParamToModelClean(os, at);
-	varGroup->markDirty(os);
+	copyParamToModelClean();
+	varGroup->markDirty(state);
 }
 
-void FitContext::copyParamToModelClean(omxState* os, double *at)
+void FitContext::copyParamToModelClean()
 {
 	size_t numParam = varGroup->vars.size();
 
 	if(numParam == 0) return;
 
-	// Confidence Intervals & Hessian Calculation probe the parameter space
-	// near the best estimate. If stale, we need to restore the best estimate
-	// before returning results to the user.
-	os->stale = at != est;
+	omxState* os = state;
+	double *at = est;
 
 	if(OMX_VERBOSE) {
 		std::string buf;
@@ -931,7 +923,8 @@ void FitContext::copyParamToModelClean(omxState* os, double *at)
 	if (childList.size() == 0) return;
 
 	for(size_t i = 0; i < childList.size(); i++) {
-		childList[i]->copyParamToModel(childList[i]->state, at);
+		memcpy(childList[i]->est, est, sizeof(double) * numParam);
+		childList[i]->copyParamToModel();
 	}
 }
 
@@ -1285,7 +1278,9 @@ void omxCompute::compute(FitContext *fc)
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
 	narrow->inform = INFORM_UNINITIALIZED;
+	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
 	computeImpl(narrow);
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d", name, varGroup->id[0]); }
 	fc->inform = std::max(origInform, narrow->inform);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
@@ -1832,7 +1827,7 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
 	fc->est[vx] += offset;
-	fc->copyParamToModel(globalState);
+	fc->copyParamToModel();
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
 				paramHistLen[vx], fc->varGroup->vars[vx]->name, offset);
@@ -1943,7 +1938,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 					ramsay[rx]->apply();
 				}
 			}
-			fc->copyParamToModel(globalState);
+			fc->copyParamToModel();
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 			setExpectationPrediction("nothing");
 
@@ -2006,7 +2001,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	fc->fit = bestFit;
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-	fc->copyParamToModel(globalState);
+	fc->copyParamToModel();
 }
 
 void ComputeEM::Oakes(FitContext *fc)
@@ -2032,14 +2027,14 @@ void ComputeEM::Oakes(FitContext *fc)
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
 	for (int vx=0; vx < freeVars; ++vx) {
 		fc->est[vx] += perturb;
-		fc->copyParamToModel(globalState);
+		fc->copyParamToModel();
 
 		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 			omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		}
 
 		memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-		fc->copyParamToModelClean(globalState);
+		fc->copyParamToModelClean();
 
 		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
 		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {

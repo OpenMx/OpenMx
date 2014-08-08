@@ -154,7 +154,8 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	const size_t numParam = varGroup->vars.size();
 	bool steepestDescent = false;
 
-	Eigen::Map<Eigen::VectorXd> prevEst(fc->est, numParam);
+	Eigen::VectorXd prevEst(numParam);
+	memcpy(prevEst.data(), fc->est, numParam * sizeof(double));
 
 	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
 	if (verbose >= 5) want |= FF_COMPUTE_HESSIAN;
@@ -200,8 +201,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	// a lower bound on the improvement.
 
 	int probeCount = 0;
-	Eigen::VectorXd trial;
-	trial.resize(numParam);
+	Eigen::Map< Eigen::VectorXd > trial(fc->est, numParam);
 	double bestSpeed = 0;
 	double bestImproved = 0;
 	double goodness = 0;
@@ -212,7 +212,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		if (scaledTarget / fabs(refFit) < tolerance) return;
 		trial = prevEst - speed * searchDir;
 		++minorIter;
-		fc->copyParamToModel(globalState, trial.data());
+		fc->copyParamToModel();
 		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
 		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, fc->fit, refFit);
@@ -253,7 +253,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			++probeCount;
 			trial = prevEst - speed * searchDir;
 			++minorIter;
-			fc->copyParamToModel(globalState, trial.data());
+			fc->copyParamToModel();
 			ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
 			if (!std::isfinite(fc->fit)) break;
 			const double improved = refFit - fc->fit;
@@ -357,7 +357,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 		converged = improvement / fabs(refFit) < tolerance;
 		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
-		fc->copyParamToModel(globalState);
+		fc->copyParamToModel();
 
 		if (converged || iter >= maxIter || isErrorRaised()) break;
 	}

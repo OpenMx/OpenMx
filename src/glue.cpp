@@ -413,10 +413,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	REAL(evaluations)[0] = Global->computeCount;
 
-	if (topCompute && !isErrorRaised() && globalState->stale) {
-		fc->copyParamToModel(globalState);
-	}
-
 	MxRList result;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());

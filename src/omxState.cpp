@@ -232,8 +232,8 @@ void omxGlobal::deduplicateVarGroups()
 	}
 }
 
-void omxState::init() {
-	stale = FALSE;
+void omxState::init()
+{
 	numConstraints = 0;
 	conList = NULL;
 	currentRow = -1;

@@ -45,7 +45,7 @@ double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose)
 	GLOB_fc->iterations += 1;   // ought to be major iterations only
 
 	memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
-	GLOB_fc->copyParamToModel(globalState);
+	GLOB_fc->copyParamToModel();
 
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
 
@@ -365,7 +365,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         g[i] = mygrad.t[i];
     }
     
-    GLOB_fc->copyParamToModel(globalState);
+    GLOB_fc->copyParamToModel();
     
     *inform_out = inform;
     

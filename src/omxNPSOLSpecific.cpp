@@ -120,7 +120,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 	omxMatrix* fitMatrix = NPSOL_fitMatrix;
 
 	// x == fc->est
-	NPSOL_fc->copyParamToModel(globalState);
+	NPSOL_fc->copyParamToModel();
 
 	int want = FF_COMPUTE_FIT;
 
@@ -208,7 +208,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	int j, k, l = 0;
 
-	NPSOL_fc->copyParamToModel(globalState, x);
+	NPSOL_fc->copyParamToModel();
 
 	for(j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, NPSOL_fc);
@@ -372,7 +372,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 			clambda, &fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
 	NPSOL_fc->fit = fit;
-	NPSOL_fc->copyParamToModel(globalState);
+	NPSOL_fc->copyParamToModel();
  
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;

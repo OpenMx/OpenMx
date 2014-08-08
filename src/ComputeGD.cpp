@@ -245,6 +245,9 @@ void ComputeCI::computeImpl(FitContext *fc)
 		return;
 	}
 
+	Eigen::ArrayXd mle(fc->numParam);
+	memcpy(mle.data(), fc->est, sizeof(double) * fc->numParam);
+
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
@@ -263,7 +266,8 @@ void ComputeCI::computeImpl(FitContext *fc)
 
 	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
 
-	fc->copyParamToModel(globalState);
+	memcpy(fc->est, mle.data(), sizeof(double) * fc->numParam);
+	fc->copyParamToModel();
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 	int* intervalCode = INTEGER(intervalCodes);

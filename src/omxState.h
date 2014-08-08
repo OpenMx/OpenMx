@@ -215,10 +215,6 @@ class omxState {
  private:
 	void init();
  public:
-	// This flag should move to FitContext. We ought to enforce a rule
-	// that the context cannot be stale after compute or reportResults.
-	bool stale;
-
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
