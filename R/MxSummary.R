@@ -709,7 +709,7 @@ setMethod("summary", "MxModel",
 		numStats <- dotArguments$numStats
 		useSubmodels <- dotArguments$indep
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
-		retval <- list(wasRun=length(model@runstate), stale=model@.modifiedSinceRun)
+		retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
 		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
@@ -753,7 +753,7 @@ setMethod("summary", "MxModel",
 
 logLik.MxModel <- function(object, ...) {
 	model <- object
-	if (length(model@runstate) && model@.modifiedSinceRun) {
+	if (model@.wasRun && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run. The log likelihood may be out-of-date.")
 		warning(msg)
@@ -880,7 +880,7 @@ logLik.MxModel <- function(object, ...) {
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE){
-	if (length(model@runstate) && model@.modifiedSinceRun){
+	if (model@.wasRun && model@.modifiedSinceRun){
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run.")
 		warning(msg)

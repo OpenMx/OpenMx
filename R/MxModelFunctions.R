@@ -306,6 +306,7 @@ clearModifiedSinceRunRecursive <- function(model) {
 	if (length(model@submodels) > 0) {
 		model@submodels <- lapply(model@submodels, clearModifiedSinceRunRecursive)
 	}
+	model@.wasRun <- TRUE
 	model@.modifiedSinceRun <- FALSE
 	model
 }
