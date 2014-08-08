@@ -161,7 +161,13 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 		int prevIdentical = omxDataNumIdenticalRows(data, row - 1);
 		row += (prevIdentical - 1);
 	}
-
+	
+	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
+		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
+		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
+	}
+	
+	
 	while(row < data->rows && (row - rowbegin) < rowcount) {
         localobj->matrix->currentState->currentRow = row;		// Set to a new row.
         int numIdentical = omxDataNumIdenticalRows(data, row);
@@ -177,14 +183,19 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                     numIdenticalContinuousRows, numIdenticalContinuousMissingness, 
                     numIdenticalOrdinalRows, numIdenticalOrdinalMissingness);
         }
+		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
+			omxSetExpectationComponent(expectation, localobj, "y", smallRow);
+		}
+		//If the expectation is a state space model then
+		// set the y attribute of the state space expectation to smallRow.
 
-        if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow ) {  // If we're keeping covariance from the previous row, do not populate 
+        if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {  // If we're keeping covariance from the previous row, do not populate 
             // Handle Definition Variables.
-		if((numDefs && numIdenticalDefs <= 0) || firstRow) {
+		if((numDefs && numIdenticalDefs <= 0) || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			int numVarsFilled = 0;
 			if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 			numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
-			if (numVarsFilled || firstRow) { 
+			if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) { 
 				omxExpectationCompute(expectation, NULL);
 			}
 		}
@@ -301,7 +312,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                 // Calculate correlation matrix, correlation list, and weights from covariance
     		    omxStandardizeCovMatrix(ordCov, corList, weights);
             }
-        } else if(numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow) {
+        } else if( (numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow) && strcmp(expectation->expType, "MxExpectationStateSpace")) {
 
             /* Reset and Resample rows if necessary. */
             // First Cov and Means (if they've changed)
@@ -371,6 +382,22 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                     continue;
     			}
             }
+			
+			/* If it's a state space expectation, extract the inverse rather than recompute it */
+			if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
+				if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
+				smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
+				if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
+				//Get covInfo from state space expectation
+				info = (int) omxGetExpectationComponent(expectation, localobj, "covInfo")->data[0];
+				if(info!=0) {
+					if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+					return TRUE;
+				}
+				
+				determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
+				if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
+			}
 
             // Reset continuous data row (always needed)
             omxCopyMatrix(contRow, smallRow);
