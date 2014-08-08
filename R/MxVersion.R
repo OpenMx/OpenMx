@@ -20,19 +20,19 @@ mxVersion <- function (model=NULL, verbose=TRUE) {
     }
 	if(verbose){
 	    if ("try-error" %in% class(pvers)) {
-			msg = paste0("OpenMx version: unknown - please report this to http://openmx.psyc.virginia.edu/forums")
+			msg = paste("OpenMx version: unknown - please report this to http://openmx.psyc.virginia.edu/forums", sep="")
 	    }else{
-			msg = paste0("OpenMx version: ", pvers)	    	
+			msg = paste("OpenMx version: ", pvers, sep="")
 	    }
 
-		msg = paste0(msg, "\nR version: ", version$version.string)	    	
-		msg = paste0(msg, "\nPlatform: ", version$platform)	    	
+		msg = paste(msg, "\nR version: ", version$version.string, sep="")
+		msg = paste(msg, "\nPlatform: ", version$platform, sep="")
 
-		msg = paste0(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"))
+		msg = paste(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"), sep="")
 		if (!is.null(model)) {
 			thisModelsOptimiser = mxOption(model, "Default optimizer")
 		    if(!is.null(thisModelsOptimiser)){
-				msg = paste0(msg, "(optimizer for this model is ", thisModelsOptimiser, ")")
+				msg = paste(msg, "(optimizer for this model is ", thisModelsOptimiser, ")", sep="")
 		    }
 		}
 	    message(msg)
