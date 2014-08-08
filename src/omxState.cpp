@@ -186,6 +186,7 @@ omxGlobal::omxGlobal()
 	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
+	fc = NULL;
 }
 
 void omxGlobal::unpackConfidenceIntervals()
@@ -321,6 +322,11 @@ omxState::~omxState()
 
 omxGlobal::~omxGlobal()
 {
+	if (fc) {
+		omxState *state = fc->state;
+		delete fc;
+		delete state;
+	}
 	for (size_t cx=0; cx < intervalList.size(); ++cx) {
 		delete intervalList[cx];
 	}

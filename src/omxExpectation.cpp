@@ -75,11 +75,9 @@ void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how
 	ox->computeFun(ox, what, how);
 }
 
-omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
-
+omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component)
+{
 	if(component == NULL) return NULL;
-
-	omxCompleteExpectation(ox);
 
 	/* Hard-wired expectation components */
 	if(strEQ("dataColumns", component)) {

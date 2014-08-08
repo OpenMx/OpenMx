@@ -345,6 +345,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
+	FitContext *fc = new FitContext(globalState, startingValues);
+	Global->fc = fc;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxAlgebraEntities(algList);
@@ -376,8 +378,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxProcessMxComputeEntities(computeList);
-
-	FitContext *fc = new FitContext(globalState, startingValues);
 
 	// Nothing depend on constraints so we can process them last.
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
@@ -481,8 +481,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
 
-	delete fc;
-
 	// Data are not modified and not copied. The same memory
 	// is shared across all instances of state.
 	// NOTE: This may need to change for MxDataDynamic
@@ -490,7 +488,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		omxFreeData(globalState->dataList[dx]);
 	}
 
-	delete globalState;
 	delete Global;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
