@@ -54,16 +54,9 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #error "Undefine NDEBUG when debugging"
 #endif // NDEBUG
 #define OMX_DEBUG 1
-#define OMX_VERBOSE 1
 #define OMX_BOUNDS_CHECK 1
 #else
-#ifdef VERBOSEMX
 #define OMX_DEBUG 0
-#define OMX_VERBOSE 1
-#else
-#define OMX_DEBUG 0
-#define OMX_VERBOSE 0
-#endif /* VERBOSEMX */
 #endif /* DEBUGMX */
 
 #ifdef OMX_BOUNDS_CHECK
@@ -78,12 +71,6 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #define OMX_DEBUG_ROWS(row) 0
 #endif /* DEBUGMX_ROWS */
 
-#ifdef DEBUGNPSOL
-#define OMX_DEBUG_OPTIMIZER 1
-#else
-#define OMX_DEBUG_OPTIMIZER 0
-#endif /* DEBUGNPSOL */
-
 #ifdef DEBUGMX_MATRIX
 #define OMX_DEBUG_MATRIX 1
 #else
@@ -95,12 +82,6 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #else
 #define OMX_DEBUG_ALGEBRA 0
 #endif /* DEBUGMX_ALGEBRA */
-
-#ifdef DEBUGMX_DEVELOPER
-#define OMX_DEBUG_DEVELOPER 1
-#else
-#define OMX_DEBUG_DEVELOPER 0
-#endif /* DEBUGMX_DEVELOPER */
 
 // Put forward type declarations here
 

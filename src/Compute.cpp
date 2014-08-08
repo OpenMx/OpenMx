@@ -27,7 +27,6 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 #include "omxState.h"
-#include "glue.h"
 
 void pda(const double *ar, int rows, int cols);
 
@@ -892,7 +891,7 @@ void FitContext::copyParamToModelClean()
 	omxState* os = state;
 	double *at = est;
 
-	if(OMX_VERBOSE) {
+	if(OMX_DEBUG) {
 		std::string buf;
 		buf += string_snprintf("copyParamToModel: %d(%d) ", iterations, Global->computeCount);
 		buf += ("Estimates: [");

@@ -238,7 +238,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 //			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
-		if(OMX_VERBOSE || OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
+		if(OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
 		omxSetMatrixElement(off->matrix, 0, 0, sum);
 	}
 }

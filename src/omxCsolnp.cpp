@@ -309,7 +309,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Matrix buvar = fillMatrix(n, 1, bu);
         
     /* Initialize Starting Values */
-    if(OMX_VERBOSE) {
+    if(OMX_DEBUG) {
         mxLog("--------------------------");
         mxLog("Starting Values (%d) are:", n);
     }
@@ -317,7 +317,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         if((M(myPars, k, 0) == 0.0)) {
             M(myPars, k, 0) += 0.1;
         }
-        if(OMX_VERBOSE) { mxLog("%d: %.8f", k, M(myPars, k, 0)); }
+        if(OMX_DEBUG) { mxLog("%d: %.8f", k, M(myPars, k, 0)); }
     }
 
     if(OMX_DEBUG) {

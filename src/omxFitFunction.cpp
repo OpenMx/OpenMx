@@ -103,7 +103,7 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 	int evaluation = Global->computeCount;
 
 	if (doFit) {
-		if (OMX_DEBUG || OMX_VERBOSE) {
+		if (OMX_DEBUG) {
 			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
 		}
 		Global->checkpointPrefit(fc, fc->est, false);
@@ -144,7 +144,7 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 			fc->resetIterationError();
 		}
 		Global->checkpointPostfit(fc);
-		if (OMX_DEBUG || OMX_VERBOSE) {
+		if (OMX_DEBUG) {
 			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name, evaluation, fc->fit);
 		}
 	}

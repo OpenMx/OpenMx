@@ -151,7 +151,7 @@ void F77_SUB(npsolObjectiveFunction)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_VERBOSE) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval]->calcLower?"lower":"upper"));
+		if(OMX_DEBUG) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval]->calcLower?"lower":"upper"));
 
 		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
 
@@ -212,7 +212,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	for(j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, NPSOL_fc);
-		if(OMX_VERBOSE) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
+		if(OMX_DEBUG) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
 		for(k = 0; k < globalState->conList[j].size; k++){
 			c[l++] = globalState->conList[j].result->data[k];
 		}
@@ -314,7 +314,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
  
         /* Initialize Starting Values */
-        if(OMX_VERBOSE) {
+        if(OMX_DEBUG) {
             mxLog("--------------------------");
             mxLog("Starting Values (%d) are:", n);
         }
@@ -322,7 +322,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             if((x[k] == 0.0)) {
                 x[k] += 0.1;
             }
-            if(OMX_VERBOSE) { mxLog("%d: %f", k, x[k]); }
+            if(OMX_DEBUG) { mxLog("%d: %f", k, x[k]); }
         }
         if(OMX_DEBUG) {
             mxLog("--------------------------");

@@ -220,7 +220,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 			}
 
 			std::string fullname = string_snprintf("%s/%s", pathName, fileName);
-			if(OMX_VERBOSE) { mxLog("Opening File: %s", fullname.c_str()); }
+			if(OMX_DEBUG) { mxLog("Opening File: %s", fullname.c_str()); }
 			oC->file = fopen(fullname.c_str(), "w");
 			if(!oC->file) {
 				Rf_error("Unable to open file %s for checkpoint storage: %s.\n",
@@ -250,7 +250,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 
 void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
-	if(OMX_VERBOSE) { mxLog("Processing Free Parameters."); }
+	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
 	{
 		FreeVarGroup *fvg = new FreeVarGroup;
@@ -370,7 +370,7 @@ void omxProcessConstraints(SEXP constraints, FitContext *fc)
 	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);
 
 	int ncnln = 0; 
-	if(OMX_VERBOSE) { mxLog("Processing Constraints.");}
+	if(OMX_DEBUG) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
 	globalState->numConstraints = Rf_length(constraints);

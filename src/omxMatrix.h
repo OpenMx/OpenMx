@@ -259,7 +259,7 @@ static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, om
 	int onei = 1;
 	int nrows = mat->rows;
 	int ncols = mat->cols;
-	if(OMX_DEBUG_DEVELOPER) {
+	if(OMX_DEBUG_MATRIX) {
 		int nVecEl = vec->rows * vec->cols;
 		// mxLog("DGEMV: %c, %d, %d, %f, 0x%x, %d, 0x%x, %d, 0x%x, %d\n", *(transposeMat?mat->minority:mat->majority), (nrows), (ncols), 
         	// alpha, mat->data, (mat->leading), vec->data, onei, beta, result->data, onei); //:::DEBUG:::
@@ -277,7 +277,7 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 	char u='U';
     int onei = 1;
 
-	if(OMX_DEBUG_DEVELOPER) {
+	if(OMX_DEBUG_MATRIX) {
 		int nVecEl = vec->rows * vec->cols;
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
