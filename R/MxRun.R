@@ -156,7 +156,7 @@ runHelper <- function(model, frontendStart,
 				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
 			}
 			if (options[["Standard Errors"]] == "Yes") {
-				steps <- c(steps, mxComputeStandardError())
+				steps <- c(steps, mxComputeStandardError(), mxComputeHessianQuality())
 			}
 			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
 		}

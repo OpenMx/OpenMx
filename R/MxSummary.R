@@ -430,6 +430,13 @@ print.summary.mxmodel <- function(x,...) {
 	cat("estimated parameters: ", x$estimatedParameters, '\n')
 	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
+	if (!is.na(x$infoDefinite)) {
+		if (!x$infoDefinite) {
+			cat("information matrix is not positive definite (not at a candidate optimum)\n")
+		} else {
+			cat("condition number of the information matrix: ", x$conditionNumber, "\n")
+		}
+	}
 	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
 		cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
 	}
@@ -711,6 +718,8 @@ setMethod("summary", "MxModel",
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
+		retval$infoDefinite <- model@output$infoDefinite
+		retval$conditionNumber <- model@output$conditionNumber
 		retval <- boundsMet(model, retval)
 		retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
 		retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
