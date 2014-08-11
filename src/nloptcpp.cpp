@@ -19,6 +19,7 @@
 #include "omxBuffer.h"
 #include "nloptcpp.h"
 #include <R_ext/Applic.h>
+#include "omxImportFrontendState.h"
 
 #ifdef HAS_NLOPT
 #include <nlopt.h>
@@ -41,56 +42,6 @@ typedef struct ex_struct
     SEXP names;	     /* names for par */
 } ex_struct, *exStruct;
 
-void nloptSetupBounds(FreeVarGroup *freeVarGroup, double * bl, double * bu)
-{
-	size_t n = freeVarGroup->vars.size();
-    
-	/* Set min and max limits */
-	for(size_t index = 0; index < n; index++) {
-		bl[index] = freeVarGroup->vars[index]->lbound;
-		bu[index] = freeVarGroup->vars[index]->ubound;
-	}
-    int index = n;
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
-		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
-		switch(globalState->conList[constraintIndex].opCode) {
-            case 0:									// Less than: Must be strictly less than 0.
-                if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
-                for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-                    bl[index] = NEG_INF;
-                    bu[index] = -0.0;
-                    index++;
-                }
-                break;
-            case 1:									// Equal: Must be roughly equal to 0.
-                if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
-                for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-                    bl[index] = -0.0;
-                    bu[index] = 0.0;
-                    index++;
-                }
-                break;
-            case 2:									// Greater than: Must be strictly greater than 0.
-                if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
-                for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-                    if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
-                    bl[index] = 0.0;
-                    bu[index] = INF;
-                    index++;
-                }
-                break;
-            default:
-                if(OMX_DEBUG) { mxLog("Bounded at (-INF, INF).");}
-                for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-                    bl[index] = NEG_INF;
-                    bu[index] = INF;
-                    index++;
-                }
-                break;
-		}
-	}
-    
-}
 
 double fn(int n, double *par, void *ex)
 {
@@ -221,7 +172,7 @@ void omxInvokeNLOPTorSANN(omxMatrix *fitMatrix, FitContext *fc,
     std::vector<double> buBuf(n);
     double *bl = blBuf.data();
     double *bu = buBuf.data();
-    nloptSetupBounds(freeVarGroup, bl, bu);
+    omxSetupBoundsAndConstraints(fc, bl, bu);
 
     /* Initialize Starting Values */
     if(OMX_DEBUG) {
