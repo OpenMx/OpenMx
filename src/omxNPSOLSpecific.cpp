@@ -55,59 +55,6 @@ extern void F77_SUB(npoptn)(char* string, int Rf_length);
 }
 #endif
 
-// NOTE: All non-linear constraints are applied regardless of free TODO
-// variable group.  This is probably wrong. TODO
-void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu)
-{
-	size_t n = freeVarGroup->vars.size();
-
-	/* Set min and max limits */
-	for(size_t index = 0; index < n; index++) {
-		bl[index] = freeVarGroup->vars[index]->lbound;
-		bu[index] = freeVarGroup->vars[index]->ubound;
-	}
-
-	int index = n;
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
-		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
-		switch(globalState->conList[constraintIndex].opCode) {
-		case 0:									// Less than: Must be strictly less than 0.
-			if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				bl[index] = NEG_INF;
-				bu[index] = -0.0;
-				index++;
-			}
-			break;
-		case 1:									// Equal: Must be roughly equal to 0.
-			if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				bl[index] = -0.0;
-				bu[index] = 0.0;
-				index++;
-			}
-			break;
-		case 2:									// Greater than: Must be strictly greater than 0.
-			if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
-				bl[index] = 0.0;
-				bu[index] = INF;
-				index++;
-			}
-			break;
-		default:
-			if(OMX_DEBUG) { mxLog("Bounded at (-INF, INF).");}
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				bl[index] = NEG_INF;
-				bu[index] = INF;
-				index++;
-			}
-			break;
-		}
-	}
-}
-
 #if HAS_NPSOL
 
 /****** Objective Function *********/
@@ -210,6 +157,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	NPSOL_fc->copyParamToModel();
 
+	omxState *globalState = NPSOL_fc->state;
 	for(j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, NPSOL_fc);
 		if(OMX_DEBUG) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
@@ -260,6 +208,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
     int nctotl, nlinwid, nlnwid;    // Helpful side variables.
  
     int nclin = 0;
+    omxState *globalState = NPSOL_fc->state;
     int ncnln = globalState->ncnln;
  
     /* NPSOL Arguments */
@@ -311,7 +260,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 
         /* Set up actual run */
  
-        omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+        omxSetupBoundsAndConstraints(fc, bl, bu);
  
         /* Initialize Starting Values */
         if(OMX_DEBUG) {
@@ -425,6 +374,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
     funcon = F77_SUB(npsolConstraintFunction);
  
     int nclin = 0;
+    omxState *globalState = NPSOL_fc->state;
     int ncnln = globalState->ncnln;
  
     /* Set boundaries and widths. */
@@ -463,7 +413,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
     iw      = (int*) R_alloc (leniw, sizeof ( int ));
  
  
-    omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+    omxSetupBoundsAndConstraints(opt, bl, bu);
  
         if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 

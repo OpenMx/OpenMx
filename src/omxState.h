@@ -94,9 +94,9 @@ struct FreeVarGroup {
 	std::vector<bool> locations;
 
 	int lookupVar(const char *name);  // index or -1 if not found
-	void cacheDependencies();
+	void cacheDependencies(omxState *os);
 	void markDirty(omxState *os);
-	void log();
+	void log(omxState *os);
 	bool hasSameVars(FreeVarGroup *g2);
 	bool isDisjoint(FreeVarGroup *other);
 };
@@ -180,6 +180,7 @@ class omxGlobal {
 
 	std::vector< omxConfidenceInterval* > intervalList;
 	void unpackConfidenceIntervals();
+	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 
 	int computeCount; // protected by openmp atomic
 
@@ -190,6 +191,8 @@ class omxGlobal {
 
 	// These lists exist only to free memory
 	std::vector< omxCompute* > computeList;
+	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
+
 	std::vector< omxAlgebra* > algebraList;
 
 	std::vector< std::string > bads;
@@ -229,10 +232,18 @@ class omxState {
 
 	omxState() { init(); };
 	omxState(omxState *src);
+	void omxProcessMxMatrixEntities(SEXP matList);
+	void omxProcessMxAlgebraEntities(SEXP algList);
+	void omxCompleteMxFitFunction(SEXP algList);
+	void omxProcessConfidenceIntervals(SEXP intervalList);
+	void omxProcessMxExpectationEntities(SEXP expList);
+	void omxCompleteMxExpectationEntities();
+	void omxProcessConstraints(SEXP constraints, FitContext *fc);
+	void omxProcessMxDataEntities(SEXP data);
+	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
+	void omxExportResults(MxRList *out);
 	~omxState();
 };
-
-extern omxState* globalState;
 
 /* Initialize and Destroy */
 omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);

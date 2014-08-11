@@ -34,7 +34,8 @@ int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
 }
 
-void omxProcessMxDataEntities(SEXP data) {
+void omxState::omxProcessMxDataEntities(SEXP data)
+{
 	SEXP nextLoc;
 	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
 
@@ -46,19 +47,20 @@ void omxProcessMxDataEntities(SEXP data) {
 	}
 }
 
-void omxProcessMxMatrixEntities(SEXP matList) {
+void omxState::omxProcessMxMatrixEntities(SEXP matList)
+{
 	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
 	SEXP nextLoc, nextMat;
-	globalState->matrixList.clear();
+	matrixList.clear();
 	SEXP matListNames = Rf_getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < Rf_length(matList); index++) {
 		omxManageProtectInsanity protectManager;
 		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
-		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, -index - 1);
+		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
 		mat->name = CHAR(STRING_ELT(matListNames, index));
-		globalState->matrixList.push_back(mat);
+		matrixList.push_back(mat);
 
 		if(OMX_DEBUG) { omxPrintMatrix(mat, "Imported"); }
 
@@ -66,14 +68,15 @@ void omxProcessMxMatrixEntities(SEXP matList) {
 	}
 }
 
-void omxProcessMxAlgebraEntities(SEXP algList) {
+void omxState::omxProcessMxAlgebraEntities(SEXP algList)
+{
 	SEXP nextAlgTuple;
 	SEXP algListNames = Rf_getAttrib(algList, R_NamesSymbol);
 
 	if(OMX_DEBUG) { mxLog("Processing %d algebras.", Rf_length(algList)); }
 
 	for(int index = 0; index < Rf_length(algList); index++) {
-		globalState->algebraList.push_back(omxInitMatrix(0, 0, TRUE, globalState));
+		algebraList.push_back(omxInitMatrix(0, 0, TRUE, this));
 	}
 
 	for(int index = 0; index < Rf_length(algList); index++) {
@@ -83,14 +86,14 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 			SEXP fitFunctionClass;
 			ScopedProtect p1(fitFunctionClass, STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
 			const char *fitType = CHAR(fitFunctionClass);
-			omxMatrix *fm = globalState->algebraList[index];
+			omxMatrix *fm = algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
 			fm->name = CHAR(STRING_ELT(algListNames, index));
 		} else {								// This is an algebra spec.
 			SEXP dimnames, formula;
-			omxMatrix *amat = globalState->algebraList[index];
+			omxMatrix *amat = algebraList[index];
 			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
-			omxFillMatrixFromRPrimitive(amat, NULL, globalState, 1, index);
+			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
 			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
 			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)), dimnames);
 		}
@@ -98,7 +101,7 @@ void omxProcessMxAlgebraEntities(SEXP algList) {
 	}
 }
 
-void omxCompleteMxFitFunction(SEXP algList)
+void omxState::omxCompleteMxFitFunction(SEXP algList)
 {
 	SEXP nextAlgTuple;
 
@@ -109,7 +112,7 @@ void omxCompleteMxFitFunction(SEXP algList)
 			s4 = IS_S4_OBJECT(nextAlgTuple);
 		}
 		if(!s4) continue;
-		omxMatrix *fm = globalState->algebraList[index];
+		omxMatrix *fm = algebraList[index];
 		if (!fm->fitFunction->freeVarGroup) {
 			setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
 		}
@@ -117,7 +120,8 @@ void omxCompleteMxFitFunction(SEXP algList)
 	}
 }
 
-void omxProcessMxExpectationEntities(SEXP expList) {
+void omxState::omxProcessMxExpectationEntities(SEXP expList)
+{
 	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", Rf_length(expList));}
 	SEXP nextExp;
 	SEXP eNames = Rf_getAttrib(expList, R_NamesSymbol);
@@ -125,31 +129,32 @@ void omxProcessMxExpectationEntities(SEXP expList) {
 	for(int index = 0; index < Rf_length(expList); index++) {
 		if (isErrorRaised()) return;
 		Rf_protect(nextExp = VECTOR_ELT(expList, index));
-		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, globalState);
+		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, this);
 		ex->name = CHAR(STRING_ELT(eNames, index));
-		globalState->expectationList.push_back(ex);
+		expectationList.push_back(ex);
 	}
 }
 
 
-void omxCompleteMxExpectationEntities() {
-	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) globalState->expectationList.size());}
+void omxState::omxCompleteMxExpectationEntities()
+{
+	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) expectationList.size());}
 	
-	for(size_t index = 0; index < globalState->expectationList.size(); index++) {
+	for(size_t index = 0; index < expectationList.size(); index++) {
 		if (isErrorRaised()) return;
-		omxCompleteExpectation(globalState->expectationList[index]);
+		omxCompleteExpectation(expectationList[index]);
 	}
 }
 
-void omxProcessMxComputeEntities(SEXP rObj)
+void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 {
 	if (Rf_isNull(rObj)) return;
 
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
-	omxCompute *compute = omxNewCompute(globalState, CHAR(s4class));
-	compute->initFromFrontend(rObj);
-	Global->computeList.push_back(compute);
+	omxCompute *compute = omxNewCompute(currentState, CHAR(s4class));
+	compute->initFromFrontend(currentState, rObj);
+	computeList.push_back(compute);
 }
 
 void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
@@ -342,7 +347,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 	for which bounds are to be calculated, and are cast to ints here for speed.
 	The last two are the upper and lower boundaries for the confidence space (respectively).
 */
-void omxProcessConfidenceIntervals(SEXP intervalList)
+void omxGlobal::omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState)
 {
 	SEXP names = Rf_getAttrib(intervalList, R_NamesSymbol);
 	SEXP nextVar;
@@ -354,7 +359,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)
 		Rf_protect(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
-		oCI->matrix = omxMatrixLookupFromState1( nextVar, globalState);	// Expects an R object
+		oCI->matrix = omxMatrixLookupFromState1( nextVar, currentState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
 		oCI->lbound = intervalInfo[3];
@@ -365,7 +370,7 @@ void omxProcessConfidenceIntervals(SEXP intervalList)
 	}
 }
 
-void omxProcessConstraints(SEXP constraints, FitContext *fc)
+void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 {
 	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);
 
@@ -373,21 +378,21 @@ void omxProcessConstraints(SEXP constraints, FitContext *fc)
 	if(OMX_DEBUG) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
-	globalState->numConstraints = Rf_length(constraints);
-	if(OMX_DEBUG) {mxLog("Found %d constraints.", globalState->numConstraints); }
-	globalState->conList = (omxConstraint*) R_alloc(globalState->numConstraints, sizeof(omxConstraint));
+	numConstraints = Rf_length(constraints);
+	if(OMX_DEBUG) {mxLog("Found %d constraints.", numConstraints); }
+	conList = (omxConstraint*) R_alloc(numConstraints, sizeof(omxConstraint));
 	ncnln = 0;
-	for(int ci = 0; ci < globalState->numConstraints; ci++) {
-		omxConstraint &constr = globalState->conList[ci];
+	for(int ci = 0; ci < numConstraints; ci++) {
+		omxConstraint &constr = conList[ci];
 		constr.name = CHAR(Rf_asChar(STRING_ELT(names, ci)));
 		Rf_protect(nextVar = VECTOR_ELT(constraints, ci));
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxMatrixLookupFromState1(nextLoc, globalState);
+		arg1 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxMatrixLookupFromState1(nextLoc, globalState);
+		arg2 = omxMatrixLookupFromState1(nextLoc, this);
 		constr.opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
-		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, globalState); // 10 = binary subtract
+		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
 		omxRecompute(constr.result, FF_COMPUTE_DIMS, fc);
 		omxRecompute(constr.result, FF_COMPUTE_INITIAL_FIT, fc);
 		int nrows = constr.result->rows;
@@ -400,7 +405,7 @@ void omxProcessConstraints(SEXP constraints, FitContext *fc)
 		ncnln += constr.size;
 	}
 	if(OMX_DEBUG) { mxLog("%d effective constraints.", ncnln); }
-	globalState->ncnln = ncnln;
+	this->ncnln = ncnln;
 }
 
 /*
@@ -422,5 +427,60 @@ static int isDir(const char *path)
         isdir &= (access(path, W_OK) == 0);
     }
     return isdir;
+}
+
+// NOTE: All non-linear constraints are applied regardless of free TODO
+// variable group.  This is probably wrong. TODO
+void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
+{
+	FreeVarGroup *freeVarGroup = fc->varGroup;
+	omxState *globalState = fc->state;
+	size_t n = freeVarGroup->vars.size();
+
+	/* Set min and max limits */
+	for(size_t index = 0; index < n; index++) {
+		bl[index] = freeVarGroup->vars[index]->lbound;
+		bu[index] = freeVarGroup->vars[index]->ubound;
+	}
+
+	int index = n;
+	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
+		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
+		switch(globalState->conList[constraintIndex].opCode) {
+		case 0:									// Less than: Must be strictly less than 0.
+			if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				bl[index] = NEG_INF;
+				bu[index] = -0.0;
+				index++;
+			}
+			break;
+		case 1:									// Equal: Must be roughly equal to 0.
+			if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				bl[index] = -0.0;
+				bu[index] = 0.0;
+				index++;
+			}
+			break;
+		case 2:									// Greater than: Must be strictly greater than 0.
+			if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
+				bl[index] = 0.0;
+				bu[index] = INF;
+				index++;
+			}
+			break;
+		default:
+			if(OMX_DEBUG) { mxLog("Bounded at (-INF, INF).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				bl[index] = NEG_INF;
+				bu[index] = INF;
+				index++;
+			}
+			break;
+		}
+	}
 }
 

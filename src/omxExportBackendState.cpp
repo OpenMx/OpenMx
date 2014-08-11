@@ -26,29 +26,29 @@
 #include "glue.h"
 #include "omxExportBackendState.h"
 
-void omxExportResults(omxState *currentState, MxRList *out)
+void omxState::omxExportResults(MxRList *out)
 {
 	SEXP matrices;
 	SEXP algebras;
 	SEXP expectations;
 	SEXP datums;
 
-	Rf_protect(matrices = Rf_allocVector(VECSXP, globalState->matrixList.size()));
-	Rf_protect(algebras = Rf_allocVector(VECSXP, globalState->algebraList.size()));
-	Rf_protect(expectations = Rf_allocVector(VECSXP, globalState->expectationList.size()));
-	Rf_protect(datums = Rf_allocVector(VECSXP, globalState->dataList.size()));
+	Rf_protect(matrices = Rf_allocVector(VECSXP, matrixList.size()));
+	Rf_protect(algebras = Rf_allocVector(VECSXP, algebraList.size()));
+	Rf_protect(expectations = Rf_allocVector(VECSXP, expectationList.size()));
+	Rf_protect(datums = Rf_allocVector(VECSXP, dataList.size()));
 
 	SEXP nextMat, algebra;
-	for(size_t index = 0; index < currentState->matrixList.size(); index++) {
+	for(size_t index = 0; index < matrixList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Matrix %d.", (int) index); }
-		omxMatrix* nextMatrix = currentState->matrixList[index];
+		omxMatrix* nextMatrix = matrixList[index];
 		nextMat = omxExportMatrix(nextMatrix);
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
-	for(size_t index = 0; index < currentState->algebraList.size(); index++) {
+	for(size_t index = 0; index < algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
-		omxMatrix* nextAlgebra = currentState->algebraList[index];
+		omxMatrix* nextAlgebra = algebraList[index];
 		// If a model has algebra that depend on free parameters
 		// but the fitfunction does not depend on those algebra
 		// then they need to be recomputed based on the final
@@ -70,9 +70,9 @@ void omxExportResults(omxState *currentState, MxRList *out)
 	}
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
 	
-	for(size_t index = 0; index < currentState->expectationList.size(); index++) {
+	for(size_t index = 0; index < expectationList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
-		omxExpectation* nextExpectation = currentState->expectationList[index];
+		omxExpectation* nextExpectation = expectationList[index];
 		omxExpectationRecompute(nextExpectation);
 		SEXP rExpect;
 		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
@@ -83,8 +83,8 @@ void omxExportResults(omxState *currentState, MxRList *out)
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
 
-	for(size_t index = 0; index < currentState->dataList.size(); ++index) {
-		omxData* dat = currentState->dataList[index];
+	for(size_t index = 0; index < dataList.size(); ++index) {
+		omxData* dat = dataList[index];
 		SEXP rData;
 		ScopedProtect p1(rData, Rf_ScalarReal(omxDataNumObs(dat)));
 		SET_VECTOR_ELT(datums, index, rData);

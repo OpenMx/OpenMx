@@ -606,7 +606,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
 	state->_latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 
-	state->itemParam = omxNewMatrixFromSlot(rObj, globalState, "item");
+	state->itemParam = omxNewMatrixFromSlot(rObj, currentState, "item");
 	state->grp.param = state->itemParam->data; // algebra not allowed yet TODO
 
 	const int numItems = state->itemParam->cols;

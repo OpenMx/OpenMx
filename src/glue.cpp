@@ -248,7 +248,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 
-	globalState = new omxState;
+	omxState *globalState = new omxState;
 
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
@@ -325,7 +325,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	Global = new omxGlobal;
 
 	/* Create new omxState for current state storage and initialize it. */
-	globalState = new omxState;
+	omxState *globalState = new omxState;
 
 	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
 			&Global->analyticGradients);
@@ -334,13 +334,13 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 #endif
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxDataEntities(data);
+	globalState->omxProcessMxDataEntities(data);
     
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxExpectationEntities(expectList);
+	globalState->omxProcessMxExpectationEntities(expectList);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxMatrixEntities(matList);
+	globalState->omxProcessMxMatrixEntities(matList);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
@@ -349,7 +349,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	Global->fc = fc;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxAlgebraEntities(algList);
+	globalState->omxProcessMxAlgebraEntities(algList);
 
 	/* Process Matrix and Algebra Population Function */
 	/*
@@ -367,21 +367,21 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxInitialMatrixAlgebraCompute(globalState, NULL);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxCompleteMxExpectationEntities();
+	globalState->omxCompleteMxExpectationEntities();
 
 	for (int dx=0; dx < (int) globalState->dataList.size(); ++dx) {
 		globalState->dataList[dx]->connectDynamicData();
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxCompleteMxFitFunction(algList);
+	globalState->omxCompleteMxFitFunction(algList);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessMxComputeEntities(computeList);
+	Global->omxProcessMxComputeEntities(computeList, globalState);
 
 	// Nothing depend on constraints so we can process them last.
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessConstraints(constraints, fc);
+	globalState->omxProcessConstraints(constraints, fc);
 
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
@@ -391,12 +391,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxProcessConfidenceIntervals(intervalList);
+	Global->omxProcessConfidenceIntervals(intervalList, globalState);
 
 	omxProcessCheckpointOptions(checkpointList);
 
 	for (size_t vg=0; vg < Global->freeGroup.size(); ++vg) {
-		Global->freeGroup[vg]->cacheDependencies();
+		Global->freeGroup[vg]->cacheDependencies(globalState);
 	}
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
@@ -416,7 +416,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	MxRList result;
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxExportResults(globalState, &result);
+	globalState->omxExportResults(&result);
 
 	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;

@@ -109,10 +109,6 @@ omxFitFunctionBA81.o: Makevars.in omxFitFunctionBA81.cpp omxFitFunction.h \
    glue.h omxOpenmpWrap.h \
  omxExpectationBA81.h ba81quad.h   libifa-rpf.h matrix.h \
  omxBuffer.h
-omxGlobalState.o: Makevars.in omxGlobalState.cpp omxState.h omxDefines.h omxMatrix.h \
- omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h \
- omxData.h omxExpectation.h Compute.h     \
-   glue.h omxOpenmpWrap.h
 omxHessianCalculation.o: Makevars.in omxHessianCalculation.cpp omxDefines.h glue.h \
  omxState.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
  algebraOp.h omxFitFunction.h omxData.h omxExpectation.h Compute.h \

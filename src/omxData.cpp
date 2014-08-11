@@ -29,10 +29,10 @@
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
 
-omxData::omxData() : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+omxData::omxData(omxState *state) : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     indexVector(0), identicalDefs(0), identicalMissingness(0),
-		     identicalRows(0), rows(0), cols(0),
+				    identicalRows(0), rows(0), cols(0), currentState(state),
 		     expectation(0)
 {}
 
@@ -78,6 +78,7 @@ void omxData::connectDynamicData()
 		return;
 	}
 
+	omxState *globalState = currentState;
 	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], globalState);
 	if (Rf_length(dataLoc) == 1) {
 		BA81Expect *other = (BA81Expect *) ex->argStruct;
@@ -144,7 +145,7 @@ void omxData::recompute()
 void omxData::newDataStatic(SEXP dataObject)
 {
 	omxData *od = this;
-	omxState *state = globalState;
+	omxState *state = currentState;
 	SEXP dataLoc, dataVal;
 	int numCols;
 
@@ -316,8 +317,9 @@ void omxData::newDataStatic(SEXP dataObject)
 	}
 }
 
-omxData* omxNewDataFromMxData(SEXP dataObject, const char *name)
+omxData* omxState::omxNewDataFromMxData(SEXP dataObject, const char *name)
 {
+	omxState *globalState = this;
 	if(dataObject == NULL) {
 		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
 	}
@@ -328,8 +330,8 @@ omxData* omxNewDataFromMxData(SEXP dataObject, const char *name)
 		dclass = CHAR(DataClass);
 	}
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
-	omxData* od = new omxData;
-	globalState->dataList.push_back(od);
+	omxData* od = new omxData(globalState);
+	dataList.push_back(od);
 	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(dataObject);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
 	else Rf_error("Unknown data class %s", dclass);
@@ -398,7 +400,7 @@ omxMatrix* omxDataAcov(omxData *od) {
 	// Otherwise, we must construct the matrix.
 	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
 	
-	omxMatrix* om = omxInitMatrix(numRows, numRows, TRUE, globalState);
+	omxMatrix* om = omxInitMatrix(numRows, numRows, TRUE, od->currentState);
 	omxCopyMatrix(om, od->acovMat);
 	return om;
 }

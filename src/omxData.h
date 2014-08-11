@@ -96,12 +96,13 @@ class omxData {
  public:
 	int rows, cols;						// Matrix size 
 	int verbose;
+	omxState *currentState;
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
 	int version;
 
-	omxData();
+	omxData(omxState *);
 	void newDataStatic(SEXP dataObject);
 	SEXP getRowNames();
 	void connectDynamicData();

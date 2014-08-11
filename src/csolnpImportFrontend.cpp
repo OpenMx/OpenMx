@@ -64,7 +64,8 @@ void setupEqB(struct Matrix *eqPointer, int size)
     }
     
     
-void omxProcessConstraintsCsolnp(struct Matrix *lb_ineq, struct Matrix *ub_ineq, struct Matrix *eqb)  {
+void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix *lb_ineq, struct Matrix *ub_ineq, struct Matrix *eqb)  {
+	omxState *globalState = fc->state;
     if (globalState->numConstraints == 0){
         return;
     }

@@ -183,7 +183,7 @@ class omxCompute {
 	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
-        virtual void initFromFrontend(SEXP rObj);
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);

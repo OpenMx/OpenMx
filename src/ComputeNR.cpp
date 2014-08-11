@@ -39,7 +39,7 @@ class ComputeNR : public omxCompute {
 			int *maxAdjParam, double *improvement);
 
 public:
-	virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(omxState *state, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -49,11 +49,11 @@ class omxCompute *newComputeNewtonRaphson()
 	return new ComputeNR();
 }
 
-void ComputeNR::initFromFrontend(SEXP rObj)
+void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(state, rObj);
 
-	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 

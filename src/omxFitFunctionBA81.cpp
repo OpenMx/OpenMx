@@ -1193,7 +1193,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		BA81FitState *state = new BA81FitState;
 		oo->argStruct = state;
 	}
-
+	omxState *currentState = oo->matrix->currentState;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 
 	omxExpectation *expectation = oo->expectation;
@@ -1218,9 +1218,9 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 		}
 	}
 
-	state->itemParam = omxInitMatrix(0, 0, TRUE, globalState);
-	state->latentMean = omxInitMatrix(0, 0, TRUE, globalState);
-	state->latentCov = omxInitMatrix(0, 0, TRUE, globalState);
+	state->itemParam = omxInitMatrix(0, 0, TRUE, currentState);
+	state->latentMean = omxInitMatrix(0, 0, TRUE, currentState);
+	state->latentCov = omxInitMatrix(0, 0, TRUE, currentState);
 	state->copyEstimates(estate);
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));

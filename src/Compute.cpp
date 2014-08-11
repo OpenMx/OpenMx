@@ -1022,8 +1022,8 @@ void FitContext::createChildren()
 {
 	if (Global->numThreads <= 1) return;
 
-	for(size_t j = 0; j < globalState->expectationList.size(); j++) {
-		if (!globalState->expectationList[j]->canDuplicate) return;
+	for(size_t j = 0; j < state->expectationList.size(); j++) {
+		if (!state->expectationList[j]->canDuplicate) return;
 	}
 
 	if (childList.size()) return;
@@ -1243,7 +1243,7 @@ void omxCompute::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList
 omxCompute::~omxCompute()
 {}
 
-void omxCompute::initFromFrontend(SEXP rObj)
+void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	SEXP slotValue;
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("id")));
@@ -1304,7 +1304,7 @@ class omxComputeSequence : public ComputeContainer {
 	bool independent;
 
  public:
-	virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
 	virtual ~omxComputeSequence();
 };
@@ -1316,7 +1316,7 @@ class omxComputeIterate : public ComputeContainer {
 	int verbose;
 
  public:
-        virtual void initFromFrontend(SEXP rObj);
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
 	virtual ~omxComputeIterate();
 };
@@ -1340,7 +1340,7 @@ class omxComputeOnce : public omxCompute {
 	bool isBestFit; // for backward compatibility
 
  public:
-        virtual void initFromFrontend(SEXP rObj);
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -1399,7 +1399,7 @@ class ComputeEM : public omxCompute {
 	void Oakes(FitContext *fc);
 
  public:
-        virtual void initFromFrontend(SEXP rObj);
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -1485,9 +1485,9 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
         return got;
 }
 
-void omxComputeSequence::initFromFrontend(SEXP rObj)
+void omxComputeSequence::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 
 	SEXP slotValue;
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("independent")));
@@ -1505,7 +1505,7 @@ void omxComputeSequence::initFromFrontend(SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(step);
+		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
@@ -1541,11 +1541,11 @@ omxComputeSequence::~omxComputeSequence()
 	}
 }
 
-void omxComputeIterate::initFromFrontend(SEXP rObj)
+void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	SEXP slotValue;
 
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
 	maxIter = INTEGER(slotValue)[0];
@@ -1567,7 +1567,7 @@ void omxComputeIterate::initFromFrontend(SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(step);
+		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
@@ -1626,12 +1626,12 @@ omxComputeIterate::~omxComputeIterate()
 	}
 }
 
-void ComputeEM::initFromFrontend(SEXP rObj)
+void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	SEXP slotValue;
 	SEXP s4class;
 
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("expectation")));
 	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
@@ -1654,7 +1654,7 @@ void ComputeEM::initFromFrontend(SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("mstep")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
-	fit1->initFromFrontend(slotValue);
+	fit1->initFromFrontend(globalState, slotValue);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observedFit")));
 	fit3 = globalState->algebraList[ INTEGER(slotValue)[0] ];
@@ -2345,9 +2345,9 @@ enum ComputeInfoMethod omxCompute::stringToInfoMethod(const char *iMethod)
 	return infoMethod;
 }
 
-void omxComputeOnce::initFromFrontend(SEXP rObj)
+void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("from")));

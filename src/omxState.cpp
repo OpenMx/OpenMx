@@ -65,9 +65,8 @@ int FreeVarGroup::lookupVar(const char *name)
 	return -1;
 }
 
-void FreeVarGroup::cacheDependencies()
+void FreeVarGroup::cacheDependencies(omxState *os)
 {
-	omxState *os = globalState;
 	size_t numMats = os->matrixList.size();
 	size_t numAlgs = os->algebraList.size();
 
@@ -92,7 +91,7 @@ void FreeVarGroup::cacheDependencies()
 	}
 
 	// Everything is set up. This is a good place to log.
-	if (OMX_DEBUG) { log(); }
+	if (OMX_DEBUG) { log(os); }
 }
 
 static int freeVarComp(omxFreeVar *fv1, omxFreeVar *fv2)
@@ -138,9 +137,8 @@ void FreeVarGroup::markDirty(omxState *os)
 	}
 }
 
-void FreeVarGroup::log()
+void FreeVarGroup::log(omxState *os)
 {
-	omxState *os = globalState;
 	size_t numMats = os->matrixList.size();
 	size_t numAlgs = os->algebraList.size();
 	std::string str;

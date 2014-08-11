@@ -112,6 +112,7 @@ Matrix csolnpEqualityFunction(int verbose)
     int l = 0;
     double EMPTY = -999999.0;
     Matrix myEqBFun;
+    omxState *globalState = GLOB_fc->state;
     
     if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
     
@@ -165,6 +166,7 @@ Matrix csolnpIneqFun(int verbose)
     int l = 0;
     double EMPTY = -999999.0;
     Matrix myIneqFun;
+    omxState *globalState = GLOB_fc->state;
     
     if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
         
@@ -223,6 +225,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     //double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
+    omxState *globalState = fc->state;
     int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
     
@@ -291,7 +294,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
         
-        omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+	    omxProcessConstraintsCsolnp(fc, &solIneqLB, &solIneqUB, &solEqB);
 
         if (verbose == 2) {
             mxLog("solIneqLB is: ");
@@ -303,7 +306,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         }
         
     }
-    omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+    omxSetupBoundsAndConstraints(fc, bl, bu);
     
     Matrix blvar = fillMatrix(n, 1, bl);
     Matrix buvar = fillMatrix(n, 1, bu);
@@ -395,6 +398,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     int inform;
     
     int n = int(freeVarGroup->vars.size());
+    omxState *globalState = opt->state;
     int ncnln = globalState->ncnln;
     
     double f = opt->fit;
@@ -468,7 +472,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
         
-        omxProcessConstraintsCsolnp(&solIneqLB, &solIneqUB, &solEqB);
+	    omxProcessConstraintsCsolnp(opt, &solIneqLB, &solIneqUB, &solEqB);
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
@@ -479,7 +483,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
         }
     }
     
-    omxSetupBoundsAndConstraints(freeVarGroup, bl, bu);
+    omxSetupBoundsAndConstraints(opt, bl, bu);
     Matrix blvar = fillMatrix(n, 1, bl);
     Matrix buvar = fillMatrix(n, 1, bu);
     

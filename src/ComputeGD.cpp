@@ -39,7 +39,7 @@ protected:
 	int verbose;
 	double optimalityTolerance;
 
-	virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(omxState *, SEXP rObj);
 };
 
 class omxComputeGD : public ComputeGDBase {
@@ -52,7 +52,7 @@ class omxComputeGD : public ComputeGDBase {
     
 public:
 	omxComputeGD();
-	virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -68,7 +68,7 @@ class ComputeCI : public ComputeGDBase {
 
 public:
 	ComputeCI();
-	virtual void initFromFrontend(SEXP rObj);
+	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -84,9 +84,9 @@ omxComputeGD::omxComputeGD()
 	warmStart = NULL;
 }
 
-void ComputeGDBase::initFromFrontend(SEXP rObj)
+void ComputeGDBase::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 
 	SEXP slotValue;
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
@@ -120,9 +120,9 @@ void ComputeGDBase::initFromFrontend(SEXP rObj)
 	}
 }
 
-void omxComputeGD::initFromFrontend(SEXP rObj)
+void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
     
 	SEXP slotValue;
 	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
@@ -237,9 +237,9 @@ ComputeCI::ComputeCI()
 	intervalCodes = 0;
 }
 
-void ComputeCI::initFromFrontend(SEXP rObj)
+void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(globalState, rObj);
 }
 
 void ComputeCI::computeImpl(FitContext *fc)

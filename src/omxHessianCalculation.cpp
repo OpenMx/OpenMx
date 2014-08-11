@@ -60,7 +60,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
 
  public:
-        virtual void initFromFrontend(SEXP rObj);
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
@@ -249,11 +249,16 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 	Free(offDiags);
 }
 
-void omxComputeNumericDeriv::initFromFrontend(SEXP rObj)
+void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
-	super::initFromFrontend(rObj);
+	super::initFromFrontend(state, rObj);
 
-	fitMat = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	if (state->numConstraints != 0) {
+		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
+		      state->numConstraints);
+	}
+
+	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 	setFreeVarGroup(fitMat->fitFunction, varGroup);
 
 	SEXP slotValue;
@@ -351,10 +356,6 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 
 omxCompute *newComputeNumericDeriv()
 {
-	if (globalState->numConstraints != 0) {
-		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
-		      globalState->numConstraints);
-	}
 	return new omxComputeNumericDeriv;
 }
 

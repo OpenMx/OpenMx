@@ -28,6 +28,4 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
  
 void omxSetNPSOLOpts(SEXP options);
 
-void omxSetupBoundsAndConstraints(FreeVarGroup *freeVarGroup, double * bl, double * bu);
-
 #endif // #define _OMX_NPSOL_SPECIFIC_H

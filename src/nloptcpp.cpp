@@ -42,8 +42,7 @@ typedef struct ex_struct
     SEXP names;	     /* names for par */
 } ex_struct, *exStruct;
 
-
-double fn(int n, double *par, void *ex)
+static double fn(int n, double *par, void *ex)
 {
     omxMatrix* fitMatrix = nlopt_sann_fitMatrix;
     
@@ -82,6 +81,8 @@ void nloptInequalityFunction(unsigned m, double *result, unsigned n, const doubl
 {
     int j, k, l = 0;
     
+    omxState *globalState = nlopt_sann_fc->state;
+
     for(j = 0; j < globalState->numConstraints; j++) {
         if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
 		    omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, nlopt_sann_fc);
@@ -97,6 +98,7 @@ void nloptInequalityFunction(unsigned m, double *result, unsigned n, const doubl
 void nloptEqualityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
 
 {
+    omxState *globalState = nlopt_sann_fc->state;
     int j, k, l = 0;
     
     for(j = 0; j < globalState->numConstraints; j++) {
@@ -134,6 +136,7 @@ void omxInvokeNLOPTorSANN(omxMatrix *fitMatrix, FitContext *fc,
 	fc->grad.resize(fc->numParam);
 	double *g = fc->grad.data();
     int n = int(freeVarGroup->vars.size());
+    omxState *globalState = fc->state;
     int ncnln = globalState->ncnln;
     int nineq = 0;
     int neq = 0;
