@@ -375,7 +375,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 }
 
 print.summary.mxmodel <- function(x,...) {
-	cat("Summary of model", x$modelName, '\n', '\n')
+	cat("Summary of", x$modelName, '\n', '\n')
 	if(x$verbose==TRUE){
 		if (length(x$compute)) {
 			cat("compute plan:\n")
@@ -430,27 +430,28 @@ print.summary.mxmodel <- function(x,...) {
 	cat("estimated parameters: ", x$estimatedParameters, '\n')
 	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
-	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
+	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
+		cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
+	}
+	cat("number of observations: ", x$numObs, '\n')
+	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite) && x$verbose==TRUE) {
 		if (!x$infoDefinite) {
 			cat("information matrix is not positive definite (not at a candidate optimum)\n")
 		} else {
 			cat("condition number of the information matrix: ", x$conditionNumber, "\n")
 		}
 	}
-	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
-		cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
-	}
-	cat("number of observations: ", x$numObs, '\n')
 	#
 	# Chi-square goodness of fit test
 	if(x$verbose==TRUE || !is.na(x$Chi)){
-		cat("chi-square: ", x$Chi, '\n')
+		chival <- x$Chi
 		if(is.na(x$SaturatedLikelihood)){
-			cat("chi-square degrees of freedom: ", NA, '\n')
+			chidof <- NA
 		} else {
-			cat("chi-square degrees of freedom: ", x$ChiDoF, '\n')
+			chidof <- x$ChiDoF
 		}
-		cat("chi-square p-value: ", x$p, '\n')
+		chipee <- x$p
+		cat("chi-square:  ", "X2 ( df=", chidof, " ) = ", chival, ",  p = ", chipee, '\n', sep="")
 	}
 	#
 	# Relative fit indices
@@ -470,8 +471,8 @@ print.summary.mxmodel <- function(x,...) {
 		if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
 			cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
 		} else {
-			cat("RMSEA: ", x$RMSEA, '\n')
-			cat("RMSEA 95% CI: ", paste("(", round(x$RMSEACI[1], 8), ", ", round(x$RMSEACI[2], 8), ")", sep=""), '\n')
+			cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
+			#cat("RMSEA 95% CI: ", paste("(", round(x$RMSEACI[1], 8), ", ", round(x$RMSEACI[2], 8), ")", sep=""), '\n')
 		}
 	}
 	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){

@@ -26,7 +26,6 @@
 #  summary to your heart's content.
 # TODO add multigroup case to make sure this works
 # TODO add model with constraint to make sure it adds back DoF
-# TODO add RMSEA confidence interval
 #------------------------------------------------------------------------------
 
 
@@ -103,7 +102,8 @@ covs.sum <- summary(covm.fit)
 #	chi-square, chi dof, chi p
 #	AIC df AIV, param, BIC df, BIC param, BIC sample size
 #	CFI, TLI, RMSEA
-#	TODO add RMSEA confidence interval
+
+
 
 #	number of observed statistics
 omxCheckEquals(raw.sum$observedStatistics, 5000)
@@ -148,19 +148,33 @@ omxCheckEquals(raws.sum$ChiDoF, chi.df)
 omxCheckEquals(cov.sum$ChiDoF, chi.df)
 omxCheckEquals(covs.sum$ChiDoF, chi.df)
 
-#raw.sum$p
-#raws.sum$p
-#cov.sum$p
-#covs.sum$p
+omxCheckTrue(is.na(raw.sum$p))
+omxCheckCloseEnough(raws.sum$p, pchisq(raws.sum$Chi, raws.sum$ChiDoF, lower.tail=FALSE), 1e-8)
+omxCheckCloseEnough(cov.sum$p, pchisq(cov.sum$Chi, cov.sum$ChiDoF, lower.tail=FALSE), 1e-8)
+omxCheckCloseEnough(covs.sum$p, pchisq(covs.sum$Chi, covs.sum$ChiDoF, lower.tail=FALSE), 1e-8)
 
 
 #	AIC df, AIC param, BIC df, BIC param, BIC sample size
 #	CFI, TLI, RMSEA
-#	TODO add RMSEA confidence interval
 
+
+# RMSEA
 omxCheckTrue(is.na(raw.sum$RMSEA))
 omxCheckTrue(!is.na(raws.sum$RMSEA))
+omxCheckCloseEnough(raws.sum$RMSEA, 0.03045151, .001)
+omxCheckCloseEnough(raws.sum$RMSEACI, c(0, 0.05064688), .001)
+omxCheckCloseEnough(cov.sum$RMSEA, 0.03035523, .001)
+omxCheckCloseEnough(cov.sum$RMSEACI, c(0, 0.05056999), .001)
 
+# CFI
+omxCheckTrue(is.na(raw.sum$CFI))
+omxCheckCloseEnough(cov.sum$CFI, 0.9978234, .001)
+
+# TLI
+omxCheckTrue(is.na(raw.sum$TLI))
+omxCheckCloseEnough(cov.sum$TLI, 0.9971192, .001)
+
+# Information Criteria
 omxCheckCloseEnough(raw.sum$informationCriteria['AIC:','par'], 9298.67, .01)
 omxCheckCloseEnough(raw.sum$informationCriteria['BIC:','par'], 9429.32, .01)
 
@@ -175,3 +189,5 @@ omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.17, .01)
 
 omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.66, .01)
 omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.31, .01)
+
+
