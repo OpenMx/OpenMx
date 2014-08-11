@@ -14,8 +14,6 @@
  *  limitations under the License.
  */
 
-// Maybe integrate http://ab-initio.mit.edu/wiki/index.php/NLopt_Introduction ?
-
 #include "omxDefines.h"
 #include "omxState.h"
 #include "omxFitFunction.h"
@@ -103,11 +101,15 @@ void ComputeGDBase::initFromFrontend(SEXP rObj)
     
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
-	if (strcmp(engine_name, "CSOLNP")==0) {
+	if (strEQ(engine_name, "CSOLNP")) {
 		engine = OptEngine_CSOLNP;
-	} else if (strcmp(engine_name, "NLOPT")==0) {
-        engine = OptEngine_NLOPT;
-    } else if (strcmp(engine_name, "NPSOL")==0) {
+	} else if (strEQ(engine_name, "NLOPT")) {
+#ifdef HAS_NLOPT
+		engine = OptEngine_NLOPT;
+#else
+		Rf_error("NLOPT is not available in this build");
+#endif
+	} else if (strEQ(engine_name, "NPSOL")) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
@@ -183,11 +185,14 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
 			    fc->getDenseHessUninitialized(), optimalityTolerance);
+	    break;
+#ifdef HAS_NLOPT
         case OptEngine_NLOPT:
             omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
                 fc->getDenseHessUninitialized(), optimalityTolerance);
             break;
-        default: Rf_error("huh?");
+#endif
+        default: Rf_error("Optimizer %d is not available", engine);
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     

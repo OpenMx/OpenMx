@@ -7,7 +7,6 @@
 //
 
 #include <stdio.h>
-#include <nlopt.h>
 #include <cstdlib>
 #include <ctype.h>
 #define R_NO_REMAP
@@ -20,6 +19,9 @@
 #include "omxBuffer.h"
 #include "nloptcpp.h"
 #include <R_ext/Applic.h>
+
+#ifdef HAS_NLOPT
+#include <nlopt.h>
 
 static const char* anonMatrix = "anonymous matrix";
 static omxMatrix * nlopt_sann_fitMatrix = NULL;
@@ -386,5 +388,4 @@ void omxInvokeNLOPTorSANN(omxMatrix *fitMatrix, FitContext *fc,
     }
 }
 
-
-
+#endif
