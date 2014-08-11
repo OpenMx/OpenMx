@@ -142,6 +142,7 @@ if [ ! -e inst/no-npsol ]; then
     fi
 fi
 
+echo "NLOPT_LDFLAGS=-L/usr/local/lib -lnlopt" >> src/Makevars
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars

@@ -22,13 +22,15 @@
 #include "omxNPSOLSpecific.h"
 #include "omxExportBackendState.h"
 #include "omxCsolnp.h"
+#include "nloptcpp.h"
 #include "Compute.h"
 #include "npsolswitch.h"
 #include "glue.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
-	OptEngine_CSOLNP
+	OptEngine_CSOLNP,
+    OptEngine_NLOPT
 };
 
 class ComputeGDBase : public omxCompute {
@@ -103,7 +105,9 @@ void ComputeGDBase::initFromFrontend(SEXP rObj)
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strcmp(engine_name, "CSOLNP")==0) {
 		engine = OptEngine_CSOLNP;
-	} else if (strcmp(engine_name, "NPSOL")==0) {
+	} else if (strcmp(engine_name, "NLOPT")==0) {
+        engine = OptEngine_NLOPT;
+    } else if (strcmp(engine_name, "NPSOL")==0) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
@@ -179,6 +183,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
             omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
 			    fc->getDenseHessUninitialized(), optimalityTolerance);
+        case OptEngine_NLOPT:
+            omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
+                fc->getDenseHessUninitialized(), optimalityTolerance);
             break;
         default: Rf_error("huh?");
 	}

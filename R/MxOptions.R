@@ -74,6 +74,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		stop(paste(key, "is a global option and cannot be set on models.\n",
 		"To switch optimizers globally, use, e.g.:\n",
 		"mxOption(NULL, 'Default optimizer', 'CSOLNP')", sep = ""))
+        # to use NLOPT, use: mxOption(NULL, 'Default optimizer', 'NLOPT')
 	}
 	model@options[[key]] <- value
 	return(model)
@@ -108,6 +109,7 @@ determineDefaultOptimizer <- function() {
 			engine <- "NPSOL"
 		} else {
 			engine <- "CSOLNP"
+            #engine <- "NLOPT"
 		}
 	}
 	engine
