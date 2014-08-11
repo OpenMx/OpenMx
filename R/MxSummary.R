@@ -430,7 +430,7 @@ print.summary.mxmodel <- function(x,...) {
 	cat("estimated parameters: ", x$estimatedParameters, '\n')
 	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
 	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
-	if (!is.na(x$infoDefinite)) {
+	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
 		if (!x$infoDefinite) {
 			cat("information matrix is not positive definite (not at a candidate optimum)\n")
 		} else {
