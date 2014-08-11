@@ -472,7 +472,6 @@ print.summary.mxmodel <- function(x,...) {
 			cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
 		} else {
 			cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
-			#cat("RMSEA 95% CI: ", paste("(", round(x$RMSEACI[1], 8), ", ", round(x$RMSEACI[2], 8), ")", sep=""), '\n')
 		}
 	}
 	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){
