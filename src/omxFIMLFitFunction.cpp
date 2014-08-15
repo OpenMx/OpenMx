@@ -362,9 +362,9 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
     off->argStruct = (void*)newObj;
 
-    if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
-	    newObj->SingleIterFn = omxFIMLSingleIteration;  // remove this TODO
-    }
+    //if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
+	//    newObj->SingleIterFn = omxFIMLSingleIteration;  // remove this TODO
+    //}
 
     if(numOrdinal > 0 && numContinuous <= 0) {
         if(OMX_DEBUG) {

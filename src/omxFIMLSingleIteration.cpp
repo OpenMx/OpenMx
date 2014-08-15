@@ -312,55 +312,76 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                 // Calculate correlation matrix, correlation list, and weights from covariance
     		    omxStandardizeCovMatrix(ordCov, corList, weights);
             }
-        } else if( (numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow) && strcmp(expectation->expType, "MxExpectationStateSpace")) {
+        } else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 
             /* Reset and Resample rows if necessary. */
             // First Cov and Means (if they've changed)
-            if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow) {
-		    omxCopyMatrix(smallMeans, means);
-		    omxRemoveElements(smallMeans, numContRemoves, contRemove.data());
-                omxCopyMatrix(smallCov, cov);
-                omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove.data(), contRemove.data());
+            if( numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+				if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to recompute inverse cov for standard models"); }
+				
+				/* If it's a state space expectation, extract the inverse rather than recompute it */
+				if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
+					smallMeans = omxGetExpectationComponent(expectation, localobj, "means");
+					omxRemoveElements(smallMeans, numContRemoves, contRemove.data());
+					if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
+					smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
+					if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
+					//Get covInfo from state space expectation
+					info = (int) omxGetExpectationComponent(expectation, localobj, "covInfo")->data[0];
+					if(info!=0) {
+						if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+						return TRUE;
+					}
+					
+					determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
+					if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
+				} else {
+	                /* Calculate derminant and inverse of Censored continuousCov matrix */
+					omxCopyMatrix(smallMeans, means);
+					omxRemoveElements(smallMeans, numContRemoves, contRemove.data());
+                	omxCopyMatrix(smallCov, cov);
+                	omxRemoveRowsAndColumns(smallCov, numContRemoves, numContRemoves, contRemove.data(), contRemove.data());
 
-                /* Calculate derminant and inverse of Censored continuousCov matrix */
-                if(OMX_DEBUG_ROWS(row)) { 
-                    omxPrint(smallCov, "Cont Cov to Invert"); 
-                }
-                
-			    F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+	                if(OMX_DEBUG_ROWS(row)) { 
+	                    omxPrint(smallCov, "Cont Cov to Invert"); 
+	                }
+	                
+				    F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 
-                if(info != 0) {
-                    if(!returnRowLikelihoods) {
-                        for(int nid = 0; nid < numIdentical; nid++) {
-                            omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-                        }
-			if (fc) fc->recordIterationError("Expected covariance matrix for continuous variables "
-							 "is not positive-definite in data row %d", omxDataIndex(data, row));
-			return TRUE;
-                    }
-                    for(int nid = 0; nid < numIdentical; nid++) {
-                        if (returnRowLikelihoods)
-					        omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
-                        omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
-                    }
-                    if(OMX_DEBUG) {mxLog("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
-   					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-						&numIdenticalContinuousMissingness,
-						&numIdenticalOrdinalMissingness, 
-						&numIdenticalContinuousRows,
-						&numIdenticalOrdinalRows,
-						data, numDefs, numIdentical);
-                    continue;
-                }
-                // Calculate determinant: squared product of the diagonal of the decomposition
-    			// For speed, use sum of logs rather than log of product.
-    			
-                determinant = 0.0;
-    			for(int diag = 0; diag < (smallCov->rows); diag++) {
-    				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
-    			}
-                // determinant = determinant * determinant;  // Delayed.
-    			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+	                if(info != 0) {
+	                    if(!returnRowLikelihoods) {
+	                        for(int nid = 0; nid < numIdentical; nid++) {
+	                            omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+	                        }
+				if (fc) fc->recordIterationError("Expected covariance matrix for continuous variables "
+								 "is not positive-definite in data row %d", omxDataIndex(data, row));
+				return TRUE;
+	                    }
+	                    for(int nid = 0; nid < numIdentical; nid++) {
+	                        if (returnRowLikelihoods)
+						        omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
+	                        omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
+	                    }
+	                    if(OMX_DEBUG) {mxLog("Non-positive-definite covariance matrix in row likelihood.  Skipping Row.");}
+	   					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
+							&numIdenticalContinuousMissingness,
+							&numIdenticalOrdinalMissingness, 
+							&numIdenticalContinuousRows,
+							&numIdenticalOrdinalRows,
+							data, numDefs, numIdentical);
+	                    continue;
+	                }
+	                // Calculate determinant: squared product of the diagonal of the decomposition
+	    			// For speed, use sum of logs rather than log of product.
+	    			
+	                determinant = 0.0;
+	    			for(int diag = 0; diag < (smallCov->rows); diag++) {
+	    				determinant += log(fabs(omxMatrixElement(smallCov, diag, diag)));
+	    			}
+	                // determinant = determinant * determinant;  // Delayed.
+	    			F77_CALL(dpotri)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
+				}
+				
     			if(info != 0) {
     				if(!returnRowLikelihoods) {
     					char *errstr = (char*) calloc(250, sizeof(char));
@@ -382,22 +403,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                     continue;
     			}
             }
-			
-			/* If it's a state space expectation, extract the inverse rather than recompute it */
-			if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
-				if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
-				smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
-				if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
-				//Get covInfo from state space expectation
-				info = (int) omxGetExpectationComponent(expectation, localobj, "covInfo")->data[0];
-				if(info!=0) {
-					if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
-					return TRUE;
-				}
-				
-				determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
-				if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
-			}
 
             // Reset continuous data row (always needed)
             omxCopyMatrix(contRow, smallRow);
