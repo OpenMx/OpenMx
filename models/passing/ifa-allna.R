@@ -2,42 +2,6 @@
 require(OpenMx)
 require(rpf)
 
-numItems <- 4
-maxDim <- 3
-
-items <- list()
-items[1:numItems] <- rpf.grm(factors=maxDim)
-correct.mat <- sapply(items, rpf.rparam, version=1)
-correct.mat['a3',1:2] <- 0
-correct.mat['a2',3:4] <- 0
-
-maxParam <- max(vapply(items, rpf.numParam, 0))
-maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
-
-data <- rpf.sample(4, items, correct.mat)
-
-ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
-                   values=c(1.414, 1, 1, 0), free=TRUE)
-colnames(ip.mat) <- colnames(data)
-rownames(ip.mat) <- c(paste("f", 1:3, sep=""), 'b')
-ip.mat$values['f3',1:2] <- 0
-ip.mat$values['f2',3:4] <- 0
-
-mkmodel <- function(data) {
-  mxModel(model="bifactor",
-          ip.mat,
-          mxData(observed=data, type="raw"),
-          mxExpectationBA81(items, qpoints=29, debugInternal=TRUE),
-          mxFitFunctionML(),
-          mxComputeOnce('expectation', 'scores'))
-}
-
-tdata <- data
-tdata[1,] <- NA
-omxCheckError(mxRun(mkmodel(tdata)), "You have missing data. You must set minItemsPerScore")
-
-#-------------------------------------------------
-
 mcar <- function(ret, mcar) {
   size <- prod(dim(ret))
   mask <- rep(FALSE, size)

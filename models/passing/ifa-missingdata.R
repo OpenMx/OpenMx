@@ -52,7 +52,7 @@ if (1) {
   rownames(fm.est.mat) <- c('f1', paste('a',1:2,sep=""), paste('c',1:2,sep=""))
   cModel <- mxModel(model="test3", fm.est.mat,
                     mxData(observed=data, type="raw"),
-                    mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
+                    mxExpectationBA81(ItemSpec=items),
                     mxFitFunctionML(),
                     mxComputeSequence(steps=list(
                       mxComputeOnce('fitfunction', 'fit'))))
@@ -63,7 +63,7 @@ if (1) {
 if (1) {
   m2 <- mxModel(model="test3", ip.mat,
                 mxData(observed=data, type="raw"),
-                mxExpectationBA81(ItemSpec=items, debugInternal=TRUE, minItemsPerScore=1L),
+                mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
                 mxFitFunctionML(),
                 mxComputeOnce('expectation', 'scores'))
   m2 <- mxRun(m2)
@@ -81,7 +81,7 @@ plan <- mxComputeSequence(list(
 
 m2 <- mxModel(model="test3", ip.mat,
               mxData(observed=data, type="raw"),
-              mxExpectationBA81(ItemSpec=items, minItemsPerScore=1L),
+              mxExpectationBA81(ItemSpec=items),
               mxFitFunctionML(),
               plan)
 

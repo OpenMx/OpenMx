@@ -172,8 +172,6 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @param mean the name of the mxMatrix holding the mean vector
 ##' @param cov the name of the mxMatrix holding the covariance matrix
 ##' @param verbose the level of runtime diagnostics (default 0L)
-##' @param minItemsPerScore scores with fewer than this many items are considered NA.
-##' A good choice is 1 since full-information maximum likelihood is used and missing data should not cause bias.
 ##' @param weightColumn the name of the column in the data containing the row weights (default NA)
 ##' @param EstepItem a simple matrix of item parameters for the
 ##' E-step. This option is mainly of use for debugging derivatives.
@@ -194,7 +192,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 			      qpoints=49L, qwidth=6.0, mean="mean", cov="cov",
-			      verbose=0L, minItemsPerScore=NA_integer_, weightColumn=NA_integer_,
+			      verbose=0L, weightColumn=NA_integer_,
 			      EstepItem=NULL, debugInternal=FALSE) {
 
 	if (length(list(...)) > 0) {
@@ -212,8 +210,7 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
   
 	if (!is.list(ItemSpec)) ItemSpec <- list(ItemSpec)
 
-	minItemsPerScore <- as.integer(minItemsPerScore)
-	if (!is.na(minItemsPerScore) && minItemsPerScore < 0L) stop("minItemsPerScore must be non-negative")
+	minItemsPerScore <- 0L # remove TODO
 
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 

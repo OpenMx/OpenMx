@@ -52,7 +52,7 @@ if (1) {
   cip.mat$values <- fmfit
   cM <- mxModel(model="ms", cip.mat,
                 mxData(observed=m2.data, type="raw"),
-                mxExpectationBA81(ItemSpec=m2.spec, minItemsPerScore=1L),
+                mxExpectationBA81(ItemSpec=m2.spec),
                 mxFitFunctionML(),
 		mxComputeOnce('fitfunction', 'fit'))
   cM <- mxRun(cM, silent=TRUE)
@@ -68,7 +68,7 @@ plan <- mxComputeSequence(steps=list(
 
 m2 <- mxModel(model="m2", ip.mat,
               mxData(observed=m2.data, type="raw"),
-              mxExpectationBA81(ItemSpec=m2.spec, minItemsPerScore=1L),
+              mxExpectationBA81(ItemSpec=m2.spec),
               mxFitFunctionML(),
               plan)
 #  m2 <- mxOption(m2, "Number of Threads", 1)
