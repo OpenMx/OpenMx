@@ -35,6 +35,7 @@ clean:
 	-rm source/*.R source/*.Rout
 	-rm source/*.omx # from checkpointing in examples
 	-rm source/conf.py
+	-rm -r source/cache
 
 html: rcheck
 	-rm -rf build/doctrees  # latex interferes with html somehow

@@ -229,6 +229,7 @@ clean:
 	-rm src/*.o
 	-rm src/*.so
 	-rm DESCRIPTION
+	-rm runtimes.csv
 
 veryclean: clean
 	find . -name "*~" -exec rm -rf '{}' \;
