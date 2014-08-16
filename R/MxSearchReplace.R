@@ -240,6 +240,15 @@ localNamespaceSearchReplace <- function(model, name, value) {
 	}
 	current <- namespaceLocalSearch(model, name)
 	if (is.null(current) && is.null(value)) {
+		if (!is.na(match(name, c("matrices", "algebras", "constraints",
+					 "intervals", "submodels")))) {
+			msg <- paste("I'm very sorry, but direct modification of objects inside an mxModel is not",
+				     "supported.  The recommended approach to modifying an mxMatrix, mxAlgebra or",
+				     "other object within a model is to rebuild the mxModel.  So, for example,",
+				     "'model <- mxModel(model, Something)' can be used to replace Something",
+				     "inside the model, instead of 'model$Something <- Something' which does not work")
+			stop(msg, call. = FALSE)
+		}
 		return(model)
 	}
 	if(!is.null(current) && !is.null(value) && 

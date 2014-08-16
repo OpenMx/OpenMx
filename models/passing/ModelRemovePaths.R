@@ -111,6 +111,9 @@ twoFactorModel <- mxModel("Two Factor Model Path", type="RAM",
     )
 ) # close model
 
+omxCheckError(twoFactorModel$intervals <- NULL,
+              "I'm very sorry, but direct modification of objects inside an mxModel is not supported.  The recommended approach to modifying an mxMatrix, mxAlgebra or other object within a model is to rebuild the mxModel.  So, for example, 'model <- mxModel(model, Something)' can be used to replace Something inside the model, instead of 'model$Something <- Something' which does not work")
+
 elimination <- twoFactorModel
 
 elimination <- mxModel(elimination, remove = TRUE,
