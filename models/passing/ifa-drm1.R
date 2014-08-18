@@ -89,7 +89,7 @@ omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
 omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 6256.27, .02)
 omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)
 
-refModels <- omxSaturatedModel(m2, run=TRUE)
+refModels <- mxNullModels(m2, run=TRUE)
 ind <- refModels[['Independence']]
 omxCheckCloseEnough(ind$output$fit, 6382.24, .01)
 omxCheckCloseEnough(summary(ind)$informationCriteria['AIC:','par'], 6402.24, .02)

@@ -120,7 +120,7 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
           0.115, 0.097, 0.104, 0.125,  0.098, 0.099, 0.104, 0.107, 0.111, 0.139, 0.156, 0.11)
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
 
-refModels <- omxSaturatedModel(m2, run=TRUE)
+refModels <- mxNullModels(m2, run=TRUE)
 
 omxCheckCloseEnough(refModels[['Independence']]$output$fit, 14810.21, .01)
 #summary(m2, refModels=refModels)

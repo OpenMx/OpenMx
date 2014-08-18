@@ -59,7 +59,7 @@ raw.fit <- mxRun(raw)
 #------------------------------------------------------------------------------
 # Specify Saturated raw data model
 
-sat.fit <- omxSaturatedModel(raw, run=TRUE)
+sat.fit <- mxNullModels(raw, run=TRUE)
 
 
 #------------------------------------------------------------------------------

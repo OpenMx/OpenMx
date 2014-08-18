@@ -203,7 +203,7 @@ ReferenceModelHelper <- function(x) {
 	}
 }
 
-omxSaturatedModel <- function(x, run=FALSE) {
+mxNullModels <- function(x, run=FALSE) {
 	models <- lapply(ReferenceModelHelper(x), function(model) {
 		if (!isS4(model)) return(model)
 		model <- omxAssignFirstParameters(model)
@@ -216,3 +216,5 @@ omxSaturatedModel <- function(x, run=FALSE) {
 	})
 	models
 }
+
+omxSaturatedModel <- mxNullModels # old name
