@@ -1121,10 +1121,11 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
                     
                 }
                 
+                dx = transpose(dx);
                 Matrix argum1 = transpose(timess(a, transpose(diag(dx))));
-                Matrix argum2 = multiply(transpose(dx), transpose(cx));
+                Matrix argum2 = multiply(dx, transpose(cx));
                 Matrix y = QRdsolve(argum1, argum2);
-                Matrix v = multiply(transpose(dx), multiply(transpose(dx), subtract(transpose(cx),timess(transpose(a),y))));
+                Matrix v = multiply(dx, multiply(dx, subtract(transpose(cx),timess(transpose(a),y))));
                 v = transpose(v);
                 
                 int indexx = npic;

@@ -312,11 +312,29 @@ Matrix cholesky(Matrix A){
 
 Matrix diag(Matrix A){
     int i,j;
-    Matrix result = fill(A.cols, A.cols, (double)0.0);
-    for (i=0; i<A.cols; i++){
-        for (j=0; j<=A.cols; j++){
-            if (i==j)
-                M(result, j, i) = M(A, j, 0);
+    double len;
+    Matrix result;
+    if (A.cols > A.rows)
+    {
+        len = A.cols;
+        result = fill(len, len, (double)0.0);
+        for (i=0; i<len; i++){
+            for (j=0; j<=len; j++){
+                if (i==j)
+                    M(result, j, i) = M(A, j, 0);
+            }
+        }
+    }
+    
+    else
+    {
+        len = A.rows;
+        result = fill(len, len, (double)0.0);
+        for (i=0; i<len; i++){
+            for (j=0; j<=len; j++){
+                if (i==j)
+                    M(result, j, i) = M(A, 0, j);
+            }
         }
     }
     return result;
@@ -505,16 +523,50 @@ Matrix subtract(Matrix x,  Matrix y)
 
 Matrix multiply(Matrix x,  Matrix y)
 {
-    Matrix result = fill(x.cols, x.rows, (double)0.0);
-    int r,c;
-    for ( r = 0; r < x.rows; r++ )
+    if (x.cols == y.cols && x.rows == y.rows)
     {
-        for ( c = 0; c < x.cols; c++ )
+        Matrix result = fill(x.cols, x.rows, (double)0.0);
+        int r,c;
+        for ( r = 0; r < x.rows; r++ )
         {
-            M(result, c, r) = M(x, c, r) * M(y, c, r);
+            for ( c = 0; c < x.cols; c++ )
+            {
+                M(result, c, r) = M(x, c, r) * M(y, c, r);
+            }
+        }
+        return result;
+    }
+    else if (y.cols > 1 && y.rows > 1)
+        Rf_error("Only a vector is acceptable");
+    else if ((x.cols * x.rows) % (y.cols * y.rows) != 0)
+        Rf_error("longer object length is not a multiple of shorter object length");
+    else{
+        Matrix result = fill(x.cols, x.rows, (double)0.0);
+        if (y.rows > 1){
+            int r = 0, i = 0;
+            while (i < x.cols * x.rows){
+                for (int l = 0; l < y.rows; l++)
+                {
+                    result.t[r] = x.t[r] * M(y, 0, l);
+                    r++;
+                    i++;
+                }
+            }
+            return result;
+        }
+        else {
+            int c = 0, i = 0;
+            while (i < x.cols * x.rows){
+                for (int l = 0; l < y.cols; l++)
+                {
+                    result.t[c] = x.t[c] * M(y, l, 0);
+                    c++;
+                    i++;
+                }
+            }
+            return result;
         }
     }
-    return result;
 }
 
 Matrix divide(Matrix x,  Matrix y)
