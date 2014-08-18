@@ -129,7 +129,7 @@ cran-winbuild: no-npsol-prep build-prep
 cran-check: cran-build
 	$(REXEC) CMD check build/OpenMx_*.tar.gz
 
-pdf:
+pdf: dev-doc
 	rm -rf $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
@@ -139,7 +139,7 @@ src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
-html: clean npsol-prep build-prep
+html: clean npsol-prep build-prep dev-doc
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
