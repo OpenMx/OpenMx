@@ -135,7 +135,7 @@ with item parameters :math:`\xi_j` and latent ability :math:`\theta_i` is
 
 .. math:: L(x_i|\xi,\theta_i) = \prod_j \mathrm{Pr}(\mathrm{pick}=x_{ij} | \xi_j,\theta_i).
 
-One implication of this equation is that items are conditionally independent.
+One implication of this equation is that items are assumed conditionally independent.
 That is, the outcome of one item does not have any influence on
 another item after controlling for :math:`\xi` and :math:`\theta_i`.
 The unconditional likelihood is obtained by integrating over
@@ -146,8 +146,7 @@ the latent distribution :math:`\theta_i`,
 Typically :math:`\theta_i` is distributed as multivariate Normal.
 Other distributions are possible, but are not implemented in ``OpenMx`` at the time of
 this writing.
-With an assumption that examinees are independently and identically distributed
-(i.e., :math:`\theta_1 = \theta_2 = \dots = \theta_n`),
+With an assumption that examinees are independently and identically distributed,
 we can sum the individual log likelihoods,
 
 .. math:: \mathcal{L}=\sum_i \log L(x_i | \xi).
@@ -175,7 +174,7 @@ A Rasch model
 
 Suppose you regularly administer the PANAS [WatsonEtal1988]_, but
 instead of scoring participants by adding up the item scores, you want
-to try IFA. Here is how you might do it. To simplify this example, we
+to try IFA. Here is how you might do it. Without loss of generality, we
 will only consider the positive affect part of the scale.
 
 .. code-block:: r
@@ -248,8 +247,11 @@ convert it to ordered factors using ``mxFactor``.
 
    startingValues <- matrix(c(1, seq(1,-1,length.out=4)), ncol=length(spec), nrow=5)
 
-We can input particular starting values. That is what we do here. The
-graded response model is a little finicky; the threshold parameters
+We can input particular starting values. That is what we do here.
+Every column is an item and every row is a different parameter.
+Regardless of item model, the first rows are factor loadings and
+the remaining parameters have meanings dependent on the item model.
+The graded response model is a little finicky; the threshold parameters
 must be ordered. Alternately, a good way to obtain random starting
 values is with,
 
@@ -259,7 +261,15 @@ values is with,
    startingValues[1,] <- 1  # these parameters must be equal
 
 This is convenient because it will work for a non-homogeneous list of
-items. If you need to set some starting values to something specific then
+items. There are various circumstances where you will need to
+fix some of the starting values to particular values. For example:
+
+* To constrain the nominal model to act like the generalized partial credit model
+  you will set :math:`\alpha_i=0\ \forall i > 1`.
+* When you have more than 1 factor, you may know a priori that some
+  items do not load on certain factors.
+
+If you need to set some starting values to something specific then
 you might start with random starting values and then override any rows
 and columns as needed.
 
@@ -1010,8 +1020,8 @@ perception accuracy.
 
 There are 9 factors which usually would entail 9 dimensional integration
 over the latent density.
-Such high dimensional integration is either intractable or takes an
-impractical amount of time.
+Such high dimensional integration is either intractable or takes a
+long time to run.
 However, this model happens to have a two-tier covariance structure
 that permits analytic reduction to 3 dimensional integration.
 Formally,  a two-tier covariance matrix is restricted to
