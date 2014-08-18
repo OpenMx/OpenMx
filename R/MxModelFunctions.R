@@ -352,6 +352,22 @@ imxLocateIndex <- function(model, name, referant) {
 	}
 }
 
+LocateOptionalMatrix <- function(model, name, referant) {
+	if (is.na(name)) { return(as.integer(name)) }
+	mNames <- names(model@matrices)
+	aNames <- names(model@algebras)
+	fNames <- names(model@fitfunctions)
+	matrixNumber <- match(name, mNames)
+	algebraNumber <- match(name, append(aNames, fNames))
+	if (is.na(matrixNumber) && is.na(algebraNumber)) {
+		return(NULL)
+	} else if (!is.na(matrixNumber)) {
+		return(- matrixNumber)
+	} else {
+		return(algebraNumber - 1L)
+	}
+}
+
 ##' imxPreprocessModel
 ##'
 ##' This is an internal function exported for those people who know

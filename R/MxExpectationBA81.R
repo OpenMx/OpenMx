@@ -89,13 +89,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			    imxLocateIndex(flatModel, slot(.Object, s), name)
 		  }
 		  for (s in c("mean", "cov")) {
-			  name <- slot(.Object, s)
-			  matrixNumber <- match(name, names(flatModel@matrices))
-			  if (is.na(matrixNumber)) {
-				  slot(.Object, s) <- NULL
-			  } else {
-				  slot(.Object, s) <- -matrixNumber
-			  }
+			  slot(.Object, s) <- LocateOptionalMatrix(flatModel, slot(.Object, s), name)
 		  }
 
 		  mxData <- flatModel@datasets[[.Object@data + 1]]
