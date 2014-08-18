@@ -53,6 +53,8 @@ m2 <- mxRun(m2)
 #print(correct.mat)
 omxCheckCloseEnough(m2$fitfunction$result, 4045796.23, .1)
 
+omxCheckCloseEnough(cor(c(m2$item$values[1:2,]), c(correct.mat[1:2,])), 1, .01)
+
 emstat <- m2$compute$output
 omxCheckCloseEnough(emstat$EMcycles, 53, 3)
 omxCheckCloseEnough(emstat$totalMstep, 137, 5)
