@@ -468,7 +468,7 @@ Matrix add(Matrix x,  Matrix y)
         {
             y = duplicateIt(transpose(y));
         }
-        else Rf_error("noncomformant matrices are added");
+        else Rf_error("CSOLNP BUG: noncomformant matrices are added");
     }
 
     Matrix result = fill(x.cols, x.rows, (double)0.0);
@@ -487,7 +487,7 @@ Matrix subtract(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols || x.rows != y.rows)
     {
-        Rf_error("noncomformant matrices are subtracted");
+        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
     }
     
     Matrix result = fill(x.cols, x.rows, (double)0.0);
@@ -797,7 +797,7 @@ Matrix timess(Matrix a,  Matrix b){
     int i, j, k;
     if (a.cols != b.rows)
     {
-        Rf_error("noncomformant matrices");
+        Rf_error("CSOLNP BUG: noncomformant matrices");
     }
     Matrix result = fill(b.cols, a.rows, (double)0.0);
     Matrix Bcolj = fill(a.cols, 1, (double)0.0);
