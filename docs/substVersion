@@ -3,9 +3,8 @@
 set -o errexit
 set -o nounset
 
-vtemplate=$(grep ^Version ../DESCRIPTION.in | cut -d' ' -f 2)
-svn=$(../inst/tools/findBuildNum.sh)
+vtemplate=$(grep ^Version ../DESCRIPTION | cut -d' ' -f 2)
 short=$(echo -n "$vtemplate" | cut -d- -f 1)
-long=$(echo -n "$vtemplate" | sed s/SVN/$svn/)
+long=$(echo -n "$vtemplate")
 
 cat source/conf.py.in | sed s/@SHORTVERSION@/$short/ | sed s/@LONGVERSION@/$long/ > source/conf.py

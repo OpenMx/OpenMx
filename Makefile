@@ -3,8 +3,7 @@ export OPENMP
 REXEC = R
 export REXEC
 BUILDARGS = --dsym  # need for MacOS debug symbols
-RPDF = Rd2pdf
-BUILDPRE = 999.0.0
+BUILDPRE = 2.0.0
 BUILDNO = $(shell ./inst/tools/findBuildNum.sh)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = build/OpenMx.pdf
@@ -59,6 +58,7 @@ help:
 	@echo ""	
 	@echo "  pdf           create a pdf file (in build) of the OpenMx R documentation"
 	@echo "  html          create Sphinx documentation (in docs/build/html) in html format"
+	@echo "  doc.tar.bz2   create doc tarball suitable for our website"
 	@echo ""
 	@echo "TESTING"
 	@echo ""	
@@ -99,7 +99,7 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 2 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
-	cat DESCRIPTION.in | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
+	cat DESCRIPTION.in | sed -e "s/VERSION/$(BUILDPRE)/" | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
 
 npsol-prep: code-style maybe-dev-doc
 	rm -f inst/no-npsol
@@ -130,8 +130,8 @@ cran-check: cran-build
 	$(REXEC) CMD check build/OpenMx_*.tar.gz
 
 pdf:
-	rm -rf $(PDFFILE); $(REXEC) CMD $(RPDF) --title="OpenMx Reference Manual" --output=$(PDFFILE) .
-	cd docs; make latex; cd build/latex; make all-pdf
+	rm -rf $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
+	cd docs; make pdf
 
 src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableHeader.R  > src/omxSymbolTable.h
@@ -139,15 +139,22 @@ src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
-html: internal-build
-	cd build; $(REXEC) CMD INSTALL --html --build $(TARGET)
-	rm -f build/$(TARGET)
-	cd build; tar -zxf *gz
-	mv build/OpenMx/html build/html
-	mv build/OpenMx/demo build/demo
-	cp build/html/* docs/source/static/Rdoc
-	cp build/demo/* docs/source/static/demo
-	cd docs; make clean; make html
+html: clean npsol-prep build-prep
+	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
+	cd build && tar -zxf *gz
+	mv build/OpenMx/html/* docs/source/static/Rdoc
+	mv build/OpenMx/demo/* docs/source/static/demo
+	cd docs && make html
+	cd docs/build/html && perl -pi -e 's,http://openmx\.psyc\.virginia.edu/svn/trunk/demo/,_static/demo/,g' *.html
+	cd docs/build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
+
+doc.tar.bz2: html pdf
+	rm -r build/$(BUILDPRE)-$(BUILDNO)
+	mkdir -p build/$(BUILDPRE)-$(BUILDNO)
+	mv docs/build/html/* build/$(BUILDPRE)-$(BUILDNO)
+	mv docs/build/latex/OpenMx.pdf build/$(BUILDPRE)-$(BUILDNO)/OpenMxUserGuide.pdf
+	mv build/OpenMx.pdf build/$(BUILDPRE)-$(BUILDNO)
+	cd build && tar jcf ../doc.tar.bz2 $(BUILDPRE)-$(BUILDNO)
 
 build: clean npsol-prep build-prep
 	cd build; $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
