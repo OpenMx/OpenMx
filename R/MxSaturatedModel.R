@@ -47,8 +47,8 @@
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE) {
-	datasource <- mxData(observed=obsdata, type=datatype)
+generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs) {
+	datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs)
 	numVar <- ncol(obsdata)
 	varnam <- colnames(obsdata)
 	if(is.null(varnam)) {

@@ -117,6 +117,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 
 		datatype <- datasource@type
 		obsdata <- datasource@observed
+		datanobs <- datasource@numObs
 		wasRun <- length(model@runstate) != 0
 		if(wasRun) {
 			# runstate is not available for submodels, ugh!
@@ -134,7 +135,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
 
-		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)))
+		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)
 	})
 
 mxFitFunctionML <- function(vector = FALSE) {
