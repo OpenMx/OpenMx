@@ -35,7 +35,7 @@ mxRestore(model, chkpt.directory = ".", chkpt.prefix = "")
 \details{
 In general, the arguments \sQuote{chkpt.directory} and \sQuote{chkpt.prefix} should be identical to the \code{\link{mxOption}}: \sQuote{Checkpoint Directory} and \sQuote{Checkpoint Prefix} that were specificed on the model before execution.
 
-Alternatively, the checkpoint file can be manually loaded as a data.frame in R.  Use \code{\link{read.table}} with the options \sQuote{header=TRUE}, \sQuote{sep="\t"}, \sQuote{stringsAsFactors=FALSE} and \sQuote{check.names=FALSE}.
+Alternatively, the checkpoint file can be manually loaded as a data.frame in R.  Use \code{\link{read.table}} with the options \code{header=TRUE, sep="\t", stringsAsFactors=FALSE, check.names=FALSE}.
 }
 
 \value{
