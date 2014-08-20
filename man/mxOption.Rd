@@ -19,7 +19,7 @@
 \title{Set or Clear an Optimizer Option}
 
 \description{
-The function sets or clears an option that is specific to the optimizer in the back-end.
+The function sets, shows, or clears an option that is specific to the optimizer in the back-end.
 }
 
 \usage{
@@ -34,17 +34,26 @@ mxOption(model, key, value, reset = FALSE)
 }
 
 \details{
-Sets an option that is specific to the particular optimizer used in the back-end. 
-The name of the option is the \sQuote{key} argument. Use value = NULL to remove 
-an existing option. Before the model is submitted to the back-end, all keys and 
-values are converted into strings using the \link{as.character} function. To reset
-all options to their default values, use reset = TRUE. If reset = TRUE, then \sQuote{key}
-and \sQuote{value} are ignored. To set the default optimizer options, use the value 
-NULL for the \sQuote{model} argument. Use \code{getOption('mxOptions')} to see the default 
-optimizer options.
+mxOption is used to set, clear, or query an option (given in the \sQuote{key} argument)
+in the back-end optimizer. Valid option keys are listed below.
 
-The maximum number of major iterations for the NPSOL optimization (the option 
-\dQuote{Major iterations}) can be specified either by using a 
+Use value = NULL to remove an existing option. Leaving value blank will return 
+the current value of the option specified by \sQuote{key}.
+
+To reset all options to their default values, use \sQuote{reset = TRUE}. 
+When reset = TRUE, \sQuote{key} and \sQuote{value} are ignored. 
+
+If the \sQuote{model} argument is set to NULL, the default optimizer option (i.e
+those applying to all models by default) will be set.
+
+To see the defaults, use \code{getOption('mxOptions')}.
+
+Before the model is submitted to the back-end, all keys and values are converted into
+strings using the \link{as.character} function.
+
+
+The maximum number of major iterations (the option  \dQuote{Major iterations}) 
+for optimization for NPSOL  can be specified either by using a 
 numeric value (such as 50, 1000, etc) or by specifying a user-defined function.
 The user-defined function should accept two arguments as input, the number of 
 parameters and the number of constraints, and return a numeric value as output.
@@ -52,65 +61,67 @@ parameters and the number of constraints, and return a numeric value as output.
 OpenMx options
 
 \tabular{rcl}{
-Calculate Hessian \tab [Yes|No] \tab calculate the hessian explicitly after optimization. \cr
-Standard Errors \tab [Yes|No] \tab return standard error estimates from the explicitly calculate hessian. \cr
-CI Max Iterations \tab \var{i} \tab the maximum number of retries when calculating confidence intervals. \cr
-Default optimizer \tab [NPSOL|CSOLNP] \tab the gradient descent optimizer to use. \cr
+Number of Threads \tab \var{i}          \tab the number of processor cores to use. Use \code{\link{omxDetectCores}}
+ to find how many are available. \cr
+Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
+Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
+CI Max Iterations \tab \var{i}          \tab the maximum number of retries when calculating confidence intervals. \cr
+Default optimizer \tab [NPSOL | CSOLNP] \tab the gradient descent optimizer to use. \cr
 Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 returns \link{omxDetectCores()}-1.  \cr
 }
 
 NPSOL-specific options
 
 \tabular{rcl}{
-Nolist \tab \tab this option suppresses printing of the options \cr
-Print level \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the major iterations \cr
-Minor print level \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the minor iterations \cr
-Print file \tab \var{i} \tab for \var{i} > 0 a full log is sent to the file with logical unit number \var{i}. \cr
-Summary file \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
-Function precision \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
-Infinite bound size \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
+Nolist                \tab         \tab this option suppresses printing of the options \cr
+Print level           \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the major iterations \cr
+Minor print level     \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the minor iterations \cr
+Print file            \tab \var{i} \tab for \var{i} > 0 a full log is sent to the file with logical unit number \var{i}. \cr
+Summary file          \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
+Function precision    \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
+Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
-Major iterations \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
-Verify level \tab [-1:3|Yes|No] \tab see NPSOL manual. \cr
-Line search tolerance \tab \var{r} \tab controls the accuracy with which a step is taken. \cr
-Derivative level \tab [0-3] \tab see NPSOL manual. \cr
-Hessian \tab [Yes|No] \tab return the transformed Hessian (if \sQuote{No}) or the Hessian itself (if \sQuote{Yes}). \cr
+Major iterations      \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
+Verify level          \tab [-1:3 | Yes | No] \tab see NPSOL manual. \cr
+Line search tolerance \tab \var{r}  \tab controls the accuracy with which a step is taken. \cr
+Derivative level      \tab [0-3]    \tab see NPSOL manual. \cr
+Hessian               \tab [Yes | No] \tab return the Hessian (Yes) or the transformed Hessian (No). \cr
 }
 
 Checkpointing options
 
-\tabular{rl}{
-Always Checkpoint \tab "Yes" or "No" whether to checkpoint all models during optimization \cr
-Checkpoint Directory \tab the directory where to write checkpoint files \cr
-Checkpoint Prefix \tab the string prefix to add to all checkpoint filenames \cr
-Checkpoint Units \tab the type of units for checkpointing: 'minutes',
-'iterations', or 'evaluations' \cr
-Checkpoint Count \tab the number of units between checkpoint intervals \cr
+\tabular{rcl}{
+Always Checkpoint    \tab [Yes | No]    \tab whether to checkpoint all models during optimization.\cr
+Checkpoint Directory \tab    path       \tab the directory into which checkpoint files are written. \cr
+Checkpoint Prefix    \tab    string     \tab the string prefix to add to all checkpoint filenames. \cr
+Checkpoint Units     \tab    see list   \tab the type of units for checkpointing: 'minutes', 'iterations', or 'evaluations'. \cr
+Checkpoint Count     \tab    \var{i}    \tab the number of units between checkpoint intervals. \cr
 }
 
 Model transformation options
 
-\tabular{rl}{
-Error Checking \tab "Yes" or "No" on whether model consistency checks are performed in the OpenMx front-end \cr
-No Sort Data   \tab character vector of model names for which FIML data sorting is not performed \cr
-RAM Inverse Optimization \tab "Yes" or "No" whether to enable solve(I - A) optimization \cr
-RAM Max Depth \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr
+\tabular{rcl}{
+Error Checking           \tab [Yes | No] \tab whether model consistency checks are performed in the OpenMx front-end \cr
+No Sort Data             \tab            \tab character vector of model names for which FIML data sorting is not performed \cr
+RAM Inverse Optimization \tab [Yes | No] \tab whether to enable solve(I - A) optimization \cr
+RAM Max Depth            \tab \var{i}    \tab the maximum depth to be used when solve(I - A) optimization is enabled \cr
 }
 
 Multivariate normal integration parameters
 
-\tabular{rl}{
-  mvnMaxPointsA \tab base number of integration points \cr
-  mvnMaxPointsB \tab number of integration points per row \cr
-  mvnMaxPointsC \tab number of integration points per rows^2 \cr
-  mvnAbsEps \tab absolute tolerance \cr
-  mvnRelEps \tab relative tolerance \cr
+\tabular{rcl}{
+mvnMaxPointsA \tab \var{i} \tab base number of integration points \cr
+mvnMaxPointsB \tab \var{i} \tab number of integration points per row \cr
+mvnMaxPointsC \tab \var{i} \tab number of integration points per rows^2 \cr
+mvnAbsEps     \tab \var{i} \tab absolute tolerance \cr
+mvnRelEps     \tab \var{i} \tab relative tolerance \cr
 }
 
 }
     
 \value{
-Returns the model with the optimizer option either set or cleared.
+If a model is provided, it is returned with the optimizer option either set
+or cleared. If value is empty, the current value is returned.
 }
 
 \references{
@@ -123,6 +134,9 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 
 \examples{
+# set the Numbder of Threads (cores to use)
+mxOption(NULL, "Number of Threads", omxDetectCores() - 1)
+
 testModel <- mxModel(model="testModel") # make a model to use for example
 testModel$options # show the model options (none yet)
 options()$mxOptions # list all mxOptions (global settings)
