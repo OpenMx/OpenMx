@@ -351,6 +351,7 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data){
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE){
+	message("Calculating asymptotic summary statistics ...")
 	# version 0.2
 	#
 	#available types
@@ -381,8 +382,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
 
-	# if no ordinal variables, stop
-	# if (nvar==0)stop("No Ordinal Variables Detected. Please use mxFactor to specify ordinal variables as factors.")
+	# if no ordinal variables, use continuous-only helper
+	if(nvar ==0){ #N.B. This fails for any missing data
+		wls <- wlsContinuousOnlyHelper(data, type)
+		return(mxData(cov(data), type="acov", acov=wls, numObs=n))
+	}
 	
 	# separate ordinal and continuous variables (temporary)
 	od <- data[,ords]
