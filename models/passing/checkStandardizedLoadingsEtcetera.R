@@ -190,7 +190,7 @@ bigrun2 <- mxRun(bigmod2)
 zpath3 <- mxStandardizeRAMpaths(bigrun2,T)
 omxCheckEquals(names(zpath3),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath3[[2]]),c("MZ","DZ"))
-omxCheckEquals(sum(zpath3$OneFactorPath==zpath,na.rm=T),82)
+omxCheckEquals(sum(zpath3$OneFactorPath==zpath,na.rm=T),93)
 
 
 bigmod3 <- mxModel(
@@ -198,6 +198,6 @@ bigmod3 <- mxModel(
   mxModel(twinACEModel,independent=T),mxModel(growthCurveModel,independent=T))
 bigrun3 <- mxRun(bigmod3)
 zpath4 <- mxStandardizeRAMpaths(bigrun3,T)
-omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),82)
+omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),93)
 omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))

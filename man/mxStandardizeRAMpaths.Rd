@@ -50,6 +50,9 @@ Character.  The colnames of the matrix containing each path coefficient; column 
   \item{Raw.Value}{
 Numeric values of the raw (i.e., UNstandardized) path coefficients.
 }
+  \item{Raw.SE}{
+Numeric values of the asymptotic standard errors of the raw path coefficients if if \code{SE=TRUE}, or \code{NA} otherwise. 
+}
   \item{Std.Value}{
 Numeric values of the standardized path coefficients.
 }

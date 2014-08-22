@@ -839,6 +839,7 @@ logLik.MxModel <- function(object, ...) {
                     matrix=vector(mode="character",length=numelem),
                      row=vector(mode="character",length=numelem),col=vector(mode="character",length=numelem),
                     Raw.Value=vector(mode="numeric",length=numelem),
+                    Raw.SE=vector(mode="numeric",length=numelem),
                     Std.Value=vector(mode="numeric",length=numelem),
                     Std.SE=vector(mode="numeric",length=numelem),stringsAsFactors=FALSE)
   out$label <- NA
@@ -886,6 +887,15 @@ logLik.MxModel <- function(object, ...) {
   #Add standardized values and SEs to output:
   out$Std.Value <- zout
   out$Std.SE <- SEs
+  #Pull in raw SEs if requested:
+  if(SE){
+    for(i in 1:numelem){
+      if( (out$name[i] %in% paramnames) | 
+            (out$label[i] %in% paramnames) ){
+        out$Raw.SE[i] <- sqrt(covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
+                                       ifelse(is.na(out$label[i]),out$name[i],out$label[i])])
+  }}}
+  else{out$Raw.SE <- NA}
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE){
