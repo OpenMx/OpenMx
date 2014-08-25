@@ -489,6 +489,9 @@ print.summary.mxmodel <- function(x,...) {
 		cat("cpu time:", format(x$cpuTime), '\n')
 	}
 	cat("wall clock time:", format(x$wallTime), '\n')
+	if (x$verbose==FALSE && !is.null(x$optimizerEngine)) {
+		cat("optimizer: ", x$optimizerEngine, '\n')
+	}
 	cat("OpenMx version number:", format(x$mxVersion), '\n')
 	cat("Need help?  See help(mxSummary)", '\n')
 	cat('\n')
@@ -751,6 +754,12 @@ setMethod("summary", "MxModel",
 		if (is.null(model@compute)) {
 			# default compute plan
 			retval$compute <- model@runstate$compute
+			if (is(retval$compute, "MxComputeSequence")) {
+				gd <- retval$compute$steps[[1]]
+				if (is(gd, "MxComputeGradientDescent")) {
+					retval$optimizerEngine <- gd$engine
+				}
+			}
 		} else {
 			retval$compute <- model@compute
 		}
