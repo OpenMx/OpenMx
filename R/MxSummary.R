@@ -676,7 +676,7 @@ refToLikelihood <- function(model) {
 	} else if (is.list(model)) {
 		model[[1]]
 	} else {
-		stop(paste("Illegal argument passed to nullModels",
+		stop(paste("Illegal argument passed to refModels",
 			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
@@ -688,7 +688,7 @@ refToDof <- function(model) {
 	} else if (is.list(model)) {
 		model[[2]]
 	} else {
-		stop(paste("Illegal argument passed to nullModels",
+		stop(paste("Illegal argument passed to refModels",
 			"argument of summary function in",
 			deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 	}
@@ -698,10 +698,10 @@ setMethod("summary", "MxModel",
 	function(object, ..., verbose=FALSE) {
 		model <- object
 		dotArguments <- list(...)
-		if (!is.null(dotArguments[["nullModels"]])) {
-			nullModels <- dotArguments[["nullModels"]]
-			satModel <- nullModels[['Saturated']]
-			indModel <- nullModels[['Independence']]
+		if (!is.null(dotArguments[["refModels"]])) {
+			refModels <- dotArguments[["refModels"]]
+			satModel <- refModels[['Saturated']]
+			indModel <- refModels[['Independence']]
 			saturatedLikelihood <- refToLikelihood(satModel)
 			saturatedDoF <- refToDof(satModel)
 			independenceLikelihood <- refToLikelihood(indModel)

@@ -197,5 +197,5 @@ omxCheckCloseEnough(emstat$EMcycles, 130, 15)
 
 print(grpModel$output$backendTime)
 
-refModels <- mxNullModels(grpModel, run=TRUE)
+refModels <- mxRefModels(grpModel, run=TRUE)
 omxCheckCloseEnough(refModels[['Independence']]$output$fit, 36611.98, .01)

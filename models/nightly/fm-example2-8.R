@@ -43,7 +43,7 @@ omxCheckCloseEnough(m1$output$evaluations, 218, 5)
 omxCheckCloseEnough(fitstat$EMcycles, 16, 1)
 omxCheckCloseEnough(fitstat$totalMstep, 106, 5)
 
-refModels <- mxNullModels(m1, run=TRUE)
+refModels <- mxRefModels(m1, run=TRUE)
 nullm1 <- refModels$Independence
 omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)

@@ -124,7 +124,7 @@ if (0) {
   # Iteration: 64, Log-Lik: -1366.922, Max-Change: 0.00009 (old)    -2 * -1366.922 = 2733.844
 }
 
-refModels <- mxNullModels(m2, run=TRUE)
+refModels <- mxRefModels(m2, run=TRUE)
 omxCheckCloseEnough(refModels[['Independence']]$output$fit, 2926.20, .01)
 
 # -------------- MAP -------------

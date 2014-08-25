@@ -195,7 +195,7 @@ omxCheckCloseEnough(emstat$semProbeCount, 90, 15)
 omxCheckTrue(grpModel$output$infoDefinite)
 }
 
-refModels <- mxNullModels(grpModel, run=TRUE)
+refModels <- mxRefModels(grpModel, run=TRUE)
 ind <- refModels[['Independence']]
 omxCheckCloseEnough(ind$output$fit, 38588.19, .01)
 omxCheckCloseEnough(summary(ind)$informationCriteria['AIC:','par'], 38628.187, .02)
