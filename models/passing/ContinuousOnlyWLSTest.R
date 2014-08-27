@@ -15,9 +15,9 @@
 #--------------------------------------
 # Needed packages
 
-require(sem)
-data(Bollen)
+
 require(OpenMx)
+data(Bollen)
 
 
 #--------------------------------------
