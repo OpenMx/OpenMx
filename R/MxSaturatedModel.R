@@ -210,7 +210,7 @@ mxRefModels <- function(x, run=FALSE) {
 		model <- mxOption(model, "Standard Errors", "No")
 		model <- mxOption(model, "Calculate Hessian", "No")
 		if (run) {
-			model <- mxRun(model, silent=TRUE)
+			model <- mxRun(model, silent=FALSE)
 		}
 		model
 	})
