@@ -26,7 +26,7 @@ mxRun <- function(model, ..., intervals = FALSE, silent = FALSE,
 			deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
 	}
 
-	if(!silent) cat("Running", model@name, "\n")
+	if(!silent) message("Running ", model@name)
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
