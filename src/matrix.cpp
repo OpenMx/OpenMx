@@ -1465,3 +1465,10 @@ void expm_eigen(int n, double *rz, double *out)
 	Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
 	outMat = inMat.exp();
 }
+
+bool all(Matrix x)
+{
+    for(int i = 0; i < x.cols * x.rows; i++)
+    {    if (x.t[i] != 0) return false;}
+    return true;
+}

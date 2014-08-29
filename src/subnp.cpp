@@ -10,7 +10,7 @@
 double EMPTY;
 
 bool DEBUG;
-int flag, flag_L, flag_U, index_flag_L, index_flag_U;
+int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
 
 Matrix ineqLB;
 Matrix ineqUB;
@@ -728,7 +728,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
              mxLog("%.20f", iterateConvergeCond);
          }
         
-        if (vnormValue <= tol){
+        if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1 && flag_step == 1){
             if (iterateConverge <= iterateConvergeCond){
                 if (verbose >= 1){
                     mxLog("The solution converged in %d iterations. It is:", solnp_iter);}
@@ -1277,6 +1277,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 	minit = 0;
 	Matrix obm = fill(1, 1, (double)0.0);
 	Matrix yg = fill(npic, 1, (double)0.0);
+    Matrix yg_rec = fill(2, 1, (double)0.0);
 	Matrix sx = fill(p.cols, 1, (double)0.0);
 	Matrix sc = fill(2, 1, (double)0.0);
 	Matrix cz = fill(np, np, (double)0.0);
@@ -1510,6 +1511,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			//Matrix getRowedtwo = getRow(g, 0);
 			//double rr = dotProduct(getRowed, getRowedtwo);
 			yg = timess(transpose(cz), transpose(g));
+            if (minit == 1) M(yg_rec, 0, 0) = vnorm(yg);
+            
 			if (verbose >= 3){
 				mxLog("yg is: \n");
 				for (i = 0; i < yg.cols; i++) mxLog("%f",yg.t[i]);
@@ -1981,8 +1984,13 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			for (i = 0; i < yg.cols; i++) mxLog("%f",yg.t[i]);
 		}
 	} // end while (minit < maxit){
+        
+    M(yg_rec, 1, 0) = vnorm(yg);
+    if(M(yg_rec, 0, 0) / M(yg_rec, 1, 0) > 1000)  flag_NormgZ = 1;
     
+    minr_rec = minit;
 	
+    if (all(subtract(getColumn(ptt, 1), getColumn(ptt, 0))) || all(subtract(getColumn(ptt, 1), getColumn(ptt, 2)))) flag_step = 1;
 	//p = p * vscale[ (neq + 2):(nc + np + 1) ]  # unscale the parameter vector
 	Matrix vscalePart = subset(vscale, 0, (neq+1), (nc+np));
     

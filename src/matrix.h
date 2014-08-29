@@ -31,6 +31,7 @@ struct Param_Obj {
     double objValue;
 };
 
+bool all(Matrix x);
 
 #define M(m,x,y) m.t[y+x*m.rows]
 
