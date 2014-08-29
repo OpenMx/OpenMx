@@ -120,7 +120,7 @@ no-npsol-prep: code-style maybe-dev-doc
 build/$(TARGET): npsol-prep build-prep
 	cd build; $(REXEC) CMD build ..
 
-cran-build: no-npsol-prep build-prep
+cran-build: clean no-npsol-prep build-prep
 	cd build && $(REXEC) CMD build ..
 
 cran-winbuild: no-npsol-prep build-prep
