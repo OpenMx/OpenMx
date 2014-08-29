@@ -19,6 +19,7 @@
 # since neither optimizer will be able to zero the gradient.
 
 require(OpenMx)
+mxOption(NULL, "Default optimizer", "CSOLNP")
 
 #Response variable y:
 y <- matrix(c(3.86735442126894,3.21609311807948,1.6681246111281,3.54171497693329,3.02206567904312,2.40194706094571,
@@ -59,10 +60,7 @@ Laplace_rgsn_mod1 <- mxModel(
 
 Laplace_rgsn_fit1 <- mxRun(Laplace_rgsn_mod1)
 
-mxOption(NULL,"Default optimizer",
-         ifelse(options()$mxOption$'Default optimizer'=="CSOLNP","NPSOL","CSOLNP"))
+#Laplace_rgsn_fit2 <- mxRun(Laplace_rgsn_mod1)
 
-Laplace_rgsn_fit2 <- mxRun(Laplace_rgsn_mod1)
-
-omxCheckEquals(Laplace_rgsn_fit1$output$status$code,
-               Laplace_rgsn_fit2$output$status$code)
+#omxCheckEquals(Laplace_rgsn_fit1$output$status$code,
+#               Laplace_rgsn_fit2$output$status$code)
