@@ -37,7 +37,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 # Print useful version information.
 mxVersion()
 # If you just want the version, use this call.
-x = mxVersion(verbose=F)
+x = mxVersion(verbose=FALSE)
 
 library(OpenMx)
 data(demoOneFactor)  # load the demoOneFactor dataframe

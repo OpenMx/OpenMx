@@ -20,3 +20,9 @@ cachegrind.out.*
 ^src/libnpsol.a$
 ^.Rbuildignore*
 ^man/README$
+.*\.omx$
+^docs/build
+^stan/
+^OpenMx-html\.tar\.bz2$
+^docs/source/static/demo/.*$
+^docs/source/static/Rdoc/.*$
