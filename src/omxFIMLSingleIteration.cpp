@@ -88,7 +88,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	omxMatrix *rowLikelihoods, *rowLogLikelihoods;
     omxMatrix *ordMeans, *ordCov, *ordRow, *contRow;
     omxMatrix *halfCov, *reduceCov, *ordContCov;
-	omxThresholdColumn *thresholdCols;
 	omxData* data;
 	double *lThresh, *uThresh, *corList, *weights, *oldDefs;
 	int *Infin;
@@ -122,13 +121,13 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	weights		= ofo->weights;
 	lThresh		= ofo->lThresh;
 	uThresh		= ofo->uThresh;
-	thresholdCols = ofo->thresholdCols;
 	returnRowLikelihoods = ofo->returnRowLikelihoods;
 	rowLikelihoods = shared_ofo->rowLikelihoods;		// write-only
 	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 
 	Infin			= ofo->Infin;
 	expectation 	= localobj->expectation;
+	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	Eigen::VectorXi ordRemove(cov->cols);
 	Eigen::VectorXi contRemove(cov->cols);

@@ -79,7 +79,7 @@ struct omxExpectation {					// An Expectation
 
 	omxData* data;																// Not sure if this is appropriate, but the expectation passes the actual data object
 	omxMatrix* dataColumns;
-	omxThresholdColumn* thresholds;
+	std::vector< omxThresholdColumn > thresholds;
 	omxDefinitionVar* defVars;
 	int numOrdinal, numDefs;
 	

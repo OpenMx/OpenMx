@@ -70,7 +70,6 @@ typedef struct omxFIMLFitFunction {
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
 	double* weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
-	omxThresholdColumn* thresholdCols;		// List of column thresholds
 	
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row

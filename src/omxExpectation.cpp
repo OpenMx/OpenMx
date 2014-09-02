@@ -57,11 +57,9 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 }
 
 void omxExpectationRecompute(omxExpectation *ox) {
-	if(ox->thresholds != NULL) {
-		for(int i = 0; i < ox->numOrdinal; i++) {
-			if (!ox->thresholds[i].matrix) continue;
-			omxRecompute(ox->thresholds[i].matrix, FF_COMPUTE_FIT, NULL);
-		}
+	for(int i = 0; i < ox->numOrdinal; i++) {
+		if (!ox->thresholds[i].matrix) continue;
+		omxRecompute(ox->thresholds[i].matrix, FF_COMPUTE_FIT, NULL);
 	}
 
 	omxExpectationCompute(ox, NULL);
@@ -172,20 +170,20 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
 				thresholdNumber = INTEGER(itemList);
 				}
-				ox->thresholds = (omxThresholdColumn *) R_alloc(numCols, sizeof(omxThresholdColumn));
+				ox->thresholds.reserve(numCols);
 				for(index = 0; index < numCols; index++) {
 					if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
 						if(OMX_DEBUG) {
 							mxLog("Column %d is continuous.", index);
 						}
-						ox->thresholds[index].matrix = NULL;
-						ox->thresholds[index].column = 0;
-						ox->thresholds[index].numThresholds = 0;
+						omxThresholdColumn col;
+						ox->thresholds.push_back(col);
 					} else {
-						ox->thresholds[index].matrix = omxMatrixLookupFromState1(threshMatrix, 
-												       ox->currentState);
-						ox->thresholds[index].column = thresholdColumn[index];
-						ox->thresholds[index].numThresholds = thresholdNumber[index];
+						omxThresholdColumn col;
+						col.matrix = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
+						col.column = thresholdColumn[index];
+						col.numThresholds = thresholdNumber[index];
+						ox->thresholds.push_back(col);
 						if(OMX_DEBUG) {
 							mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
 								index, thresholdNumber[index], thresholdColumn[index]);
@@ -201,7 +199,6 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 				if (OMX_DEBUG) {
 					mxLog("No thresholds matrix; not processing thresholds.");
 				}
-				ox->thresholds = NULL;
 				ox->numOrdinal = 0;
 			}
 		}

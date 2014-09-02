@@ -53,12 +53,14 @@ struct omxContiguousData {
 	int length;
 };
 
-struct omxThresholdColumn {		 	// Threshold
+struct omxThresholdColumn {
 
 	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
 	int column;				// Which column has the thresholds
 	int numThresholds;		// And how many thresholds
 
+	// for continuous variables, this structure is preserved all zero
+	omxThresholdColumn() : matrix(0), column(0), numThresholds(0) {};
 };
 
 struct ColumnData {
@@ -80,7 +82,7 @@ class omxData {
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
 	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
-	omxThresholdColumn* thresholdCols;  // Wrapper structure for thresholds
+	std::vector< omxThresholdColumn > thresholdCols;
 	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
 	const char *getType() const { return _type; };
@@ -123,7 +125,8 @@ int omxIntDataElement(omxData *od, int row, int col);						// Returns one data o
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
 omxMatrix* omxDataAcov(omxData *od); 						// Populates a matrix with the asymptotic covariance matrix
-omxThresholdColumn* omxDataThresholds(omxData *od); 						// Populates a thresholdCols structure with data thresholds
+
+std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
@@ -149,6 +152,7 @@ static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 bool omxDataColumnIsFactor(omxData *od, int col);
+const char *omxDataColumnName(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: convert to ENUM
 	
 int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set

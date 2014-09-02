@@ -152,10 +152,10 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxData* data           = ofiml->data;                            //  read-only
 	const int numDefs	= ofiml->numDefs;
 	omxMatrix *dataColumns	= ofiml->dataColumns;
-	omxThresholdColumn *thresholdCols = ofiml->thresholdCols;
 
 	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
 	omxExpectation* expectation = off->expectation;
+	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	if(numDefs == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
@@ -318,7 +318,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Accessing Threshold matrix.");
 	}
-	newObj->thresholdCols = off->expectation->thresholds;
 	numOrdinal = off->expectation->numOrdinal;
 	numContinuous = newObj->dataColumns->cols - off->expectation->numOrdinal;
 

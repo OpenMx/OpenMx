@@ -253,9 +253,7 @@ void omxData::newDataStatic(SEXP dataObject)
 		omxFreeMatrix(od->obsThresholdsMat); // Clear just-allocated memory.
 		od->obsThresholdsMat = NULL;
 	} else {
-        int nCol = od->obsThresholdsMat->cols;
-		/* Match threshold column names and build ThresholdCols structure */
-		od->thresholdCols = (omxThresholdColumn*) R_alloc(nCol, sizeof(omxThresholdColumn));
+		od->thresholdCols.reserve(od->obsThresholdsMat->cols);
 		int *columns;
 		{
 			ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("thresholdColumns")));
@@ -268,16 +266,18 @@ void omxData::newDataStatic(SEXP dataObject)
 			levels = INTEGER(dataVal);
 		}
 
-        for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
-            od->thresholdCols[i].matrix = od->obsThresholdsMat;
-            od->thresholdCols[i].column = columns[i];
-            od->thresholdCols[i].numThresholds = levels[i];
+		for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
+			omxThresholdColumn tc;
+			tc.matrix = od->obsThresholdsMat;
+			tc.column = columns[i];
+			tc.numThresholds = levels[i];
+			od->thresholdCols.push_back(tc);
 			od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
 			if(OMX_DEBUG) {
 				mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-					i, levels[i], columns[i]);
+				      i, levels[i], columns[i]);
 			}
-        }
+		}
 	}
 
 	if(!strEQ(od->_type, "raw")) {
@@ -412,6 +412,13 @@ bool omxDataColumnIsFactor(omxData *od, int col)
 	return cd.intData;
 }
 
+const char *omxDataColumnName(omxData *od, int col)
+{
+	if(od->dataMat != NULL) return 0;
+	ColumnData &cd = od->rawCols[col];
+	return cd.name;
+}
+
 omxMatrix* omxDataMeans(omxData *od)
 {
 	if (od->meansMat) return od->meansMat;
@@ -425,7 +432,8 @@ omxMatrix* omxDataMeans(omxData *od)
 	return NULL;
 }
 
-omxThresholdColumn* omxDataThresholds(omxData *od) {
+std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od)
+{
     return od->thresholdCols;
 }
 

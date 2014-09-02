@@ -24,10 +24,8 @@ typedef struct omxWLSFitFunction {
 
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
-	omxThresholdColumn* observedThresholds;
 	omxMatrix* expectedCov;
 	omxMatrix* expectedMeans;
-	omxThresholdColumn* expectedThresholds;
 	omxMatrix* observedFlattened;
 	omxMatrix* expectedFlattened;
 	omxMatrix* weights;

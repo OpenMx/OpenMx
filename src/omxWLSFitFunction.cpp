@@ -16,7 +16,8 @@
 
 #include "omxWLSFitFunction.h"
 
-void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* thresholds, int nThresholds, omxMatrix* vector) {
+void flattenDataToVector(omxMatrix* cov, omxMatrix* means,
+			 std::vector< omxThresholdColumn > &thresholds, int nThresholds, omxMatrix* vector) {
     // TODO: vectorize data flattening
     // if(OMX_DEBUG) { mxLog("Flattening out data vectors: cov 0x%x, mean 0x%x, thresh 0x%x[n=%d] ==> 0x%x", 
     //         cov, means, thresholds, nThresholds, vector); }
@@ -34,15 +35,13 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxThresholdColumn* t
             nextLoc++;
         }
     }
-    if (thresholds != NULL) {
         for(int j = 0; j < nThresholds; j++) {
-            omxThresholdColumn* thresh = thresholds + j;
+            omxThresholdColumn* thresh = &thresholds[j];
             for(int k = 0; k < thresh->numThresholds; k++) {
                 omxSetVectorElement(vector, nextLoc, omxMatrixElement(thresh->matrix, k, thresh->column));
                 nextLoc++;
             }
         }
-    }
 }
 
 void omxDestroyWLSFitFunction(omxFitFunction *oo) {
@@ -67,17 +66,15 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
 	omxMatrix *oCov, *oMeans, *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
 	
-    omxThresholdColumn *oThresh, *eThresh;
-
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
     /* Locals for readability.  Compiler should cut through this. */
 	oCov 		= owo->observedCov;
 	oMeans		= owo->observedMeans;
-	oThresh		= owo->observedThresholds;
+	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
-	eThresh 	= owo->expectedThresholds;
+	std::vector< omxThresholdColumn > &eThresh = oo->expectation->thresholds;
 	oFlat		= owo->observedFlattened;
 	eFlat		= owo->expectedFlattened;
 	weights		= owo->weights;
@@ -217,21 +214,25 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
     newObj->nThresholds = oo->expectation->numOrdinal;
-    newObj->expectedThresholds = oo->expectation->thresholds;
+
     // FIXME: threshold structure should be asked for by omxGetExpectationComponent
 
 	/* Read and set expected means, variances, and weights */
     cov = omxDataCovariance(dataMat);
     means = omxDataMeans(dataMat);
     weights = omxDataAcov(dataMat);
-	//newObj->observedThresholds  = omxDataThresholds(dataMat);
-	newObj->observedThresholds = dataMat->thresholdCols; //FIXME
 
     newObj->observedCov = cov;
     newObj->observedMeans = means;
     newObj->weights = weights;
     newObj->n = omxDataNumObs(dataMat);
     newObj->nThresholds = omxDataNumFactor(dataMat);
+
+    // NOTE: If there are any continuous columns then these vectors
+    // will not match because eThresh is indexed by column number
+    // not by ordinal column number.
+    std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
+    std::vector< omxThresholdColumn > &eThresh = oo->expectation->thresholds;
 	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
@@ -245,8 +246,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	    }
 	}
 
-	if((newObj->expectedThresholds == NULL) ^ (newObj->observedThresholds == NULL)) {
-	    if(newObj->expectedThresholds != NULL) {
+	if((eThresh.size()==0) ^ (oThresh.size()==0)) {
+		if (eThresh.size()) {
 		    omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 		    return;
 	    } else {
@@ -261,9 +262,9 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
     if(newObj->expectedMeans != NULL) {
         vectorSize = vectorSize + ncol;
     }
-    if(newObj->observedThresholds != NULL) {
+    if(oThresh.size()) {
         for(int i = 0; i < newObj->nThresholds; i++) {
-            vectorSize = vectorSize + newObj->observedThresholds[i].numThresholds;
+            vectorSize = vectorSize + oThresh[i].numThresholds;
         }
     }
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
@@ -282,8 +283,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 
-    flattenDataToVector(newObj->observedCov, newObj->observedMeans, newObj->observedThresholds, newObj->nThresholds, newObj->observedFlattened);
-    flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedThresholds, newObj->nThresholds, newObj->expectedFlattened);
+    flattenDataToVector(newObj->observedCov, newObj->observedMeans, oThresh, newObj->nThresholds, newObj->observedFlattened);
+    flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, eThresh, newObj->nThresholds, newObj->expectedFlattened);
 
     //oo->argStruct = (void*)newObj; //MDH: move this earlier?
 
