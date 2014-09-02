@@ -192,36 +192,36 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
             // TODO: If identical ordinal or continuous missingness, ignore only the appropriate columns.
             numOrdRemoves = 0;
             numContRemoves = 0;
-			for(int j = 0; j < dataColumns->cols; j++) {
-    			int var = omxVectorElement(dataColumns, j);
-    			int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
-    			// TODO: Might save time by preseparating ordinal from continuous.
-    			if(std::isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
-    				numOrdRemoves++;
-                    numContRemoves++;
-                    ordRemove[j] = 1;
-                    contRemove[j] = 1;
-    				Infin[j] = -1;
-                    if(OMX_DEBUG_ROWS(row)) { 
+	    for(int j = 0; j < dataColumns->cols; j++) {
+		    int var = omxVectorElement(dataColumns, j);
+		    int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
+		    // TODO: Might save time by preseparating ordinal from continuous.
+		    if(std::isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
+			    numOrdRemoves++;
+			    numContRemoves++;
+			    ordRemove[j] = 1;
+			    contRemove[j] = 1;
+			    Infin[j] = -1;
+			    if(OMX_DEBUG_ROWS(row)) { 
     				    mxLog("Row %d, column %d, value %d.  NA.", row, j, value);
-                    }
-    				continue;
-    			} else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
-                    numContRemoves++;
-                    ordRemove[j] = 0;
-                    contRemove[j] = 1;
-                    if(OMX_DEBUG_ROWS(row)) { 
-    			        mxLog("Row %d, column %d, value %d.  Ordinal.", row, j, value);
-                    }
-    			} else {
+			    }
+			    continue;
+		    } else if(omxDataColumnIsFactor(data, var)) {             // Ordinal column.
+			    numContRemoves++;
+			    ordRemove[j] = 0;
+			    contRemove[j] = 1;
+			    if(OMX_DEBUG_ROWS(row)) { 
+				    mxLog("Row %d, column %d, value %d.  Ordinal.", row, j, value);
+			    }
+		    } else {
     			    numOrdRemoves++;
-                    ordRemove[j] = 1;
-                    contRemove[j] = 0;
-                    if(OMX_DEBUG_ROWS(row)) { 
-    			        mxLog("Row %d, column %d, value %d.  Continuous.", row, j, value);
-                    }
-    			}
-    		}
+			    ordRemove[j] = 1;
+			    contRemove[j] = 0;
+			    if(OMX_DEBUG_ROWS(row)) { 
+				    mxLog("Row %d, column %d, value %d.  Continuous.", row, j, value);
+			    }
+		    }
+	    }
     		
             if(OMX_DEBUG_ROWS(row)) {
                 mxLog("\n\nRemovals: %d ordinal, %d continuous out of %d total.", numOrdRemoves, numContRemoves, dataColumns->cols);
