@@ -32,7 +32,8 @@ License: Apache License 2.0
 Depends:
     methods,
     digest,
-    MASS
+    MASS,
+    parallel
 Suggests:
     snowfall,
     roxygen2 (>= 3.1),
