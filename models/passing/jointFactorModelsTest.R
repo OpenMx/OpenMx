@@ -36,6 +36,10 @@ thresh$free[,3] <- c(TRUE, TRUE, FALSE)
 thresh$values[,3] <- c(-1, 1, NA)
 thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 	
+omxCheckError(mxExpectationNormal("C", "M", dimnames=names(jointData),
+                                  thresholds="T", threshnames=c("z2", "z4", "z2")),
+              "'threshnames' argument contains 'z2' more than once")
+
 # run factor and saturated models
 jointModel1 <- mxModel("ContinuousOrdinalData",
 	mxData(jointData, "raw"),

@@ -407,12 +407,8 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	u <- checkSSMargument(u, "u")
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
-	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
-	}
-	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
-		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
 		stop("Thresholds argument must be a single matrix or algebra name")
@@ -420,15 +416,10 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
-	if (length(threshnames) == 0) {
-		stop("'threshnames' argument cannot be an empty vector")
-	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
 	}
-	if (length(threshnames) > 1 && any(is.na(threshnames))) {
-		stop("NA values are not allowed for 'threshnames' vector")
-	}
+	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames))
 }
 

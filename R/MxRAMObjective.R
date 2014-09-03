@@ -38,12 +38,8 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vect
 	if (is.na(M)) M <- as.integer(NA)
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
-	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
-	}
-	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
-		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
 		stop("Thresholds argument must be a single matrix or algebra name")
@@ -51,18 +47,13 @@ mxRAMObjective <- function(A, S, F, M = NA, dimnames = NA, thresholds = NA, vect
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
-	if (length(threshnames) == 0) {
-		stop("'threshnames' argument cannot be an empty vector")
-	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
-	}
-	if (length(threshnames) > 1 && any(is.na(threshnames))) {
-		stop("NA values are not allowed for 'threshnames' vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
+	threshnames <- checkThreshnames(threshnames)
 	expectation <- mxExpectationRAM(A, S, F, M, dimnames, thresholds, threshnames)
 	fitfunction <- mxFitFunctionML(vector)
 	msg <- paste("Objective functions like mxRAMObjective() have been deprecated in favor of expectation and fit functions.\n",

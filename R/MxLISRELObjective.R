@@ -43,12 +43,8 @@ mxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, T
 	
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
-	if (single.na(threshnames)) threshnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
-	}
-	if (!is.vector(threshnames) || typeof(threshnames) != 'character') {
-		stop("'threshnames' argument is not a character vector")
 	}
 	if (length(thresholds) != 1) {
 		stop("Thresholds argument must be a single matrix or algebra name")
@@ -56,18 +52,13 @@ mxLISRELObjective <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, T
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
 	}
-	if (length(threshnames) == 0) {
-		stop("'threshnames' argument cannot be an empty vector")
-	}
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
-	}
-	if (length(threshnames) > 1 && any(is.na(threshnames))) {
-		stop("NA values are not allowed for 'threshnames' vector")
 	}
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("Vector argument is not a logical value")
 	}
+	threshnames <- checkThreshnames(threshnames)
 	expectation <- mxExpectationLISREL(LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames)
 	fitfunction <- mxFitFunctionML(vector)
 	msg <- paste("Objective functions have been deprecated.",
