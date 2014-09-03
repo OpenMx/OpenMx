@@ -494,21 +494,14 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     			if(means == NULL) offset = 0;
     			else offset = omxVectorElement(ordMeans, count);
     			double weight = weights[count];
-			omxMatrix *thMat = thresholdCols[j].matrix;
-			if (!thMat) {
-				// This should be caught earlier TODO
-				omxRaiseErrorf("Ordinal column '%s' does not have an associated threshold matrix",
-					       omxDataColumnName(data, var));
-				return TRUE;
-			}
     			if(value == 0) { 									// Lowest threshold = -Inf
-    				lThresh[count] = (omxMatrixElement(thMat, 0, thresholdCols[j].column) - offset) / weight;
+    				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - offset) / weight;
     				uThresh[count] = lThresh[count];
     				Infin[count] = 0;
     			} else {
-    				lThresh[count] = (omxMatrixElement(thMat, value-1, thresholdCols[j].column) - offset) / weight;
+    				lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - offset) / weight;
     				if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
-    					double tmp = (omxMatrixElement(thMat, value, thresholdCols[j].column) - offset) / weight;
+    					double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - offset) / weight;
     					uThresh[count] = tmp;
     					Infin[count] = 2;
     				} else {
@@ -527,8 +520,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			    if (0) {
 				    // This diagnostic triggers an omxMatrixElement by models/passing/JointFIMLTest.R
     			    mxLog("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.",
-    			            omxMatrixElement(thMat, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
-    			            omxMatrixElement(thMat, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
+    			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
+    			            omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
                             weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
 			    }
     			}
