@@ -439,7 +439,8 @@ checkThreshnames <- function(threshnames) {
 	tt <- table(threshnames)
 	if (any(tt > 1)) {
 		stop(paste("'threshnames' argument contains", omxQuotes(names(tt)[tt > 1]),
-			   "more than once"))
+			   "more than once. \nIf you are having problems with Doppelgangers",
+			   "perhaps you should check the basement for pods :)"))
 	}
 	return(threshnames)
 }
