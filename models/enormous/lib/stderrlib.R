@@ -185,10 +185,10 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
     sem <- intersect(c('mr', 'tian'), methods)
     if (length(sem)) {
       em$accel <- ""
-      em$tolerance <- 1e-6  # Cai (2008, p. 318) suggested 1e-8 !!
+      em$tolerance <- 1e-11
       for (semType in sem) {
         em$information <- "mr1991"
-        em$infoArgs <- list(fitfunction=fitfun, semMethod=semType)
+        em$infoArgs <- list(fitfunction=fitfun, semMethod=semType, semTolerance=sqrt(1e-6))
         plan <- mxComputeSequence(list(
           em,
           mxComputeHessianQuality(),
@@ -209,7 +209,7 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
     
     # need the MLE
     if (is.null(fit) || inherits(fit, "try-error")) {
-      em$tolerance <- 1e-6
+      em$tolerance <- 1e-11
       model$compute <- em
       fit <- try(mxRun(model, silent=TRUE), silent=TRUE)
       if (inherits(fit, "try-error")) {
@@ -221,7 +221,7 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
     
     if (length(intersect(methods, "agile"))) {
       em$accel <- 'ramsay1975'
-      em$tolerance <- 1e-6
+      em$tolerance <- 1e-11
       em$information <- "mr1991"
       em$infoArgs <- list(fitfunction=fitfun, semMethod="agile")
       plan <- mxComputeSequence(list(
@@ -385,7 +385,7 @@ studyASEM <- function(modelGen, reps = 100, verbose=TRUE) {
     set.seed(rep)
     model <- modelGen()
     em <- model$compute
-    em$tolerance <- 1e-6   # this only affects the MLE, not the individual trials
+    em$tolerance <- 1e-10   # this only affects the MLE, not the individual trials
     em$information <- "mr1991"
     fitfun <- c()
     if (is(em$mstep, "MxComputeSequence")) {
@@ -432,7 +432,7 @@ checkSmoothness <- function(mkmodel, probePoints=50) {
   }
   
   em$information <- "mr1991"
-  em$tolerance <- 1e-5
+  em$tolerance <- 1e-9
   em$infoArgs <- list(fitfunction='fitfunction', semDebug=TRUE,
                       semMethod=seq(.0005, .01, length.out=probePoints))
   model$compute <- em

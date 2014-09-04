@@ -1735,7 +1735,12 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 		semForcePD = false;
 		noiseTarget = exp(-5.2); //constexpr
 		noiseTolerance = exp(2); //constexpr
-		semTolerance = sqrt(tolerance);  // override needed?
+
+		// Meng & Rubin set this parameter in terms of the absolute tolerance
+		// instead of the relative tolerance. semTolerance is used to compare
+		// parameter estimates, not log-likelihood, so we cannot provide a
+		// sane default based on the tolerance.
+		semTolerance = 0.01; // sqrt(1e-4)
 
 		SEXP infoArgs, argNames;
 		Rf_protect(infoArgs = R_do_slot(rObj, Rf_install("infoArgs")));
@@ -1780,6 +1785,9 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 				semFixSymmetry = Rf_asLogical(slotValue);
 			} else if (strEQ(key, "semForcePD")) {
 				semForcePD = Rf_asLogical(slotValue);
+			} else if (strEQ(key, "semTolerance")) {
+				semTolerance = Rf_asReal(slotValue);
+				if (semTolerance <= 0) Rf_error("semTolerance must be positive");
 			} else if (strEQ(key, "noiseTarget")) {
 				noiseTarget = REAL(slotValue)[0];
 				if (noiseTarget <= 0) Rf_error("noiseTarget must be positive");
@@ -1960,8 +1968,11 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
 						EMcycles, mstepIter, fc->fit, change);
 			mac = fabs(change);
-			if (mac < MIDDLE_START * Scale) in_middle = true;
-			if (mac < MIDDLE_END * Scale) in_middle = false;
+
+			// For Tian, in_middle depends on the absolute (not relative) change in LL!
+			const double absMac = fabs(prevFit - fc->fit);
+			if (absMac < MIDDLE_START * Scale) in_middle = true;
+			if (absMac < MIDDLE_END * Scale) in_middle = false;
 		} else {
 			if (verbose >= 2) mxLog("ComputeEM: msteps %d initial fit %.9g",
 						mstepIter, fc->fit);
@@ -2088,9 +2099,9 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		int pick = 0;
 		bool paramConverged = false;
 		if (semMethod == AgileSEM) {
-			const double stepSize = tolerance;
-
 			double offset1 = .001;
+			const double stepSize = offset1 * .01;
+
 			double sign = 1;
 			if (probeEM(fc, v1, sign * offset1, &rijWork)) break;
 			double offset2 = offset1 + stepSize;
