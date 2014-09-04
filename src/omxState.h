@@ -162,6 +162,8 @@ struct omxConfidenceInterval {		// For Confidence interval request
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
+	std::vector< FreeVarGroup* > freeGroup;
+
  public:
 	int ciMaxIterations;
 	int numThreads;
@@ -184,8 +186,6 @@ class omxGlobal {
 
 	int computeCount; // protected by openmp atomic
 
-	std::vector< FreeVarGroup* > freeGroup;
-
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
 
@@ -207,6 +207,12 @@ class omxGlobal {
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
 	void checkpointPrefit(FitContext *fc, double *est, bool force);
 	void checkpointPostfit(FitContext *fc);
+
+	void cacheDependencies(omxState *os) {
+		for (size_t vg=0; vg < freeGroup.size(); ++vg) {
+			freeGroup[vg]->cacheDependencies(os);
+		}
+	};
 
 	~omxGlobal();
 };

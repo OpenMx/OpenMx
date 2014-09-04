@@ -114,7 +114,7 @@ void omxState::omxCompleteMxFitFunction(SEXP algList)
 		if(!s4) continue;
 		omxMatrix *fm = algebraList[index];
 		if (!fm->fitFunction->freeVarGroup) {
-			setFreeVarGroup(fm->fitFunction, Global->freeGroup[0]);
+			setFreeVarGroup(fm->fitFunction, Global->findVarGroup(FREEVARGROUP_ALL));
 		}
 		omxCompleteFitFunction(fm);
 	}
@@ -257,16 +257,6 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
 	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
-	{
-		FreeVarGroup *fvg = new FreeVarGroup;
-		fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
-		Global->freeGroup.push_back(fvg);
-
-		fvg = new FreeVarGroup;
-		fvg->id.push_back(FREEVARGROUP_NONE);  // no variables
-		Global->freeGroup.push_back(fvg);
-	}
-
 	SEXP nextVar, nextLoc;
 	int numVars = Rf_length(varList);
 	startingValues->resize(numVars);
@@ -275,7 +265,7 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
-		Global->freeGroup[FREEVARGROUP_ALL]->vars.push_back(fv);
+		Global->findVarGroup(FREEVARGROUP_ALL)->vars.push_back(fv);
 
 		fv->id = fx;
 		fv->name = CHAR(Rf_asChar(STRING_ELT(Rf_getAttrib(varList, R_NamesSymbol), fx)));

@@ -395,9 +395,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	omxProcessCheckpointOptions(checkpointList);
 
-	for (size_t vg=0; vg < Global->freeGroup.size(); ++vg) {
-		Global->freeGroup[vg]->cacheDependencies(globalState);
-	}
+	Global->cacheDependencies(globalState);
 
 	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	if (protectManager.getDepth() > Global->maxStackDepth) {
@@ -442,7 +440,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			result.add("minimum", Rf_ScalarReal(fc->fit));
 		}
 
-		size_t numFree = Global->freeGroup[FREEVARGROUP_ALL]->vars.size();
+		size_t numFree = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
 		if (numFree) {
 			// move other global reporting here TODO
 

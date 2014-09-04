@@ -695,7 +695,7 @@ void FitContext::allocStderrs()
 FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 {
 	parent = NULL;
-	varGroup = Global->freeGroup[FREEVARGROUP_ALL];
+	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 	init();
 
 	state = _state;
@@ -1258,7 +1258,7 @@ void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 		if (Rf_length(slotValue) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
-			varGroup = Global->freeGroup[FREEVARGROUP_ALL];
+			varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 		} else {
 			Rf_warning("MxCompute ID %d references matrix '%s' in its freeSet "
 				"but this matrix contains no free parameters",

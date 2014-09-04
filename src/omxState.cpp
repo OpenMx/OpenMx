@@ -185,6 +185,14 @@ omxGlobal::omxGlobal()
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
 	fc = NULL;
+
+	FreeVarGroup *fvg = new FreeVarGroup;
+	fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
+	freeGroup.push_back(fvg);
+
+	fvg = new FreeVarGroup;
+	fvg->id.push_back(FREEVARGROUP_NONE);  // no variables
+	freeGroup.push_back(fvg);
 }
 
 void omxGlobal::unpackConfidenceIntervals()
@@ -529,7 +537,7 @@ omxCheckpoint::~omxCheckpoint()
 void omxCheckpoint::omxWriteCheckpointHeader()
 {
 	if (wroteHeader) return;
-	std::vector< omxFreeVar* > &vars = Global->freeGroup[0]->vars;
+	std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
 	size_t numParam = vars.size();
 
 	// New columns should use the OpenMx prefit to avoid clashing with
@@ -571,7 +579,7 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 	fprintf(file, "%s\t%d\t%d\t%d\t%s", context, int(vars.size()), lastEvaluation, lastIterations, timeBuf);
 
 	size_t lx=0;
-	size_t numParam = Global->freeGroup[0]->vars.size();
+	size_t numParam = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
 	for (size_t px=0; px < numParam; ++px) {
 		if (lx < vars.size() && vars[lx]->id == (int)px) {
 			fprintf(file, "\t%.10g", est[lx]);
