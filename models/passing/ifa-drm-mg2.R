@@ -116,8 +116,6 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
 				      latent.plan)),
                                   information="mr1991", verbose=0L,
                                   infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")
-                                                # For SEM debugging
-#                                                ,semDebug=TRUE, semMethod=seq(.001, .02, length.out=30)
                                   )),
                       mxComputeStandardError(),
                       mxComputeHessianQuality(),
@@ -131,38 +129,6 @@ grpModel <- mxOption(grpModel, "Checkpoint Count", 1)
 grpModel <- mxRun(grpModel)  #, checkpoint = TRUE
 
 #dm <- grpModel$compute$steps[[1]]$debug$rateMatrix
-
-plot_em_map <- function(model, cem) {   # for S-EM debugging
-  require(ggplot2)
-  phl <- cem$debug$paramHistLen
-  probeOffset <- cem$debug$probeOffset
-  semDiff <- cem$debug$semDiff
-
-  upper <- 20
-  modelfit <- NULL
-  result <- data.frame()
-  for (vx in 1:length(model$output$estimate)) {
-    len <- phl[vx]
-    offset <- probeOffset[1:len, vx]
-    dd <- semDiff[1:(len-1), vx]
-    mid <- offset[1:(len-1)] + diff(offset)/2
-    mask <- abs(diff(offset)) < .01 & dd < upper
-    df <- data.frame(mid=mid[mask], diff=dd[mask])
-    m1 <- lm(diff ~ 1 + I(1/mid^2), data=df)
-    modelfit <- c(modelfit, summary(m1)$r.squ)
-    df$model <- predict(m1)
-    result <- rbind(result, cbind(vx=vx, vname=names(model$output$estimate)[vx], df))
-  }
-  print(mean(modelfit))
-  ggplot(subset(result, vx %in% order(modelfit)[1:9])) +
-    geom_point(aes(mid, diff), size=2) + geom_line(aes(mid, model), color="green") +
-    facet_wrap(~vname) + labs(x="x midpoint") + ylim(0,upper)
-}
-
-if (0) {
-  plot_em_map(grpModel, grpModel$compute@steps[[1]])
-  stop("here")
-}
 
 omxCheckCloseEnough(max(abs(grpModel$output$gradient)), 0, .17)
 

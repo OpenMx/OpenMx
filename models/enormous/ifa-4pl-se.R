@@ -1,21 +1,25 @@
-# echo 0 > /proc/self/coredump_filter  # normally 023
-# R --vanilla --no-save -f models/failing/bock-aitkin-1981.R
-# R -d gdb --vanilla --no-save -f models/failing/bock-aitkin-1981.R
-
 #options(error = browser)
 require(OpenMx)
 require(rpf)
 
-set.seed(3)
-numItems <- 20
-numPersons <- 1500
-maxDim <- 2
+set.seed(2)
+numItems <- 30
+numPersons <- 2500
+slope <- 8
 
 items <- list()
-items[1:numItems] <- rpf.grm(factors=maxDim)
+items[1:numItems] <- rpf.drm()
 correct.mat <- sapply(items, rpf.rparam)
-correct.mat[3,1:10] <- seq(-2,2,length.out=10)
-correct.mat[3,11:20] <- seq(-2,2,length.out=10)
+correct.mat['a',] <- slope
+correct.mat['b',] <- correct.mat['b',] * correct.mat['a',] / 2
+correct.mat['g',] <- correct.mat['g',kronecker(1:5,rep(1,6))]
+correct.mat['u',] <- correct.mat['u',kronecker(1:5,rep(1,6))]
+colnames(correct.mat) <- paste("i", 1:numItems, sep="")
+
+correct.mask <- matrix(FALSE, 4, numItems)
+correct.mask[2,] <- TRUE
+correct.mask[3,] <- rep(c(TRUE, rep(FALSE, 5)),5)
+correct.mask[4,] <- rep(c(TRUE, rep(FALSE, 5)),5)
 
 mkmodel <- function(seed) {
   set.seed(seed)
@@ -23,26 +27,26 @@ mkmodel <- function(seed) {
   maxParam <- max(vapply(items, rpf.numParam, 0))
   maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
   
-  design <- matrix(c(rep(1L,numItems),
-                     rep(2L,numItems/2), rep(3L, numItems/2)), byrow=TRUE, nrow=2)
-  
-  data <- rpf.sample(numPersons, items, correct.mat, design)
+  data <- rpf.sample(numPersons, items, correct.mat)
 
   ip.mat <- mxMatrix(name="ItemParam", nrow=maxParam, ncol=numItems,
-                     values=c(1.414, 1, 0), free=TRUE)
+                     values=c(slope, 0, logit(.1), logit(.9)), free=TRUE)
   colnames(ip.mat) <- colnames(data)
+  ip.mat$free[1,] <- FALSE
+  ip.mat$labels[3,] <- paste('g', kronecker(1:5,rep(1,6)), sep='')
+  ip.mat$labels[4,] <- paste('u', kronecker(1:5,rep(1,6)), sep='')
+#  ip.mat$labels
   
-  m.mat <- mxMatrix(name="mean", nrow=1, ncol=3, values=0, free=FALSE)
-  colnames(m.mat) <- paste("f", 1:3, sep="")
-  cov.mat <- mxMatrix(name="cov", nrow=3, ncol=3, values=diag(3), free=FALSE,
-                      dimnames=list(colnames(m.mat), colnames(m.mat)))
+  m.mat <- mxMatrix(name="mean", nrow=1, ncol=1, values=0, free=FALSE)
+  rownames(m.mat) <- "f1"
+  cov.mat <- mxMatrix(name="cov", nrow=1, ncol=1, values=1, free=FALSE,
+                      dimnames=list("f1","f1"))
   
-  m1 <- mxModel(model="bifactor",
+  m1 <- mxModel(model="drm",
                 ip.mat, m.mat, cov.mat,
-                mxData(observed=data, type="raw"),
+                mxData(observed=data, type="raw", sort=FALSE),
                 mxExpectationBA81(mean="mean", cov="cov",
-                                  ItemSpec=items, design=design, ItemParam="ItemParam",
-                                  qpoints=31, qwidth=5),
+                                  ItemSpec=items, ItemParam="ItemParam"),
                 mxFitFunctionML())
   m1
 }
@@ -51,8 +55,9 @@ replicate <- function(seed) {
   m1 <- mxModel(mkmodel(seed),
                 mxComputeSequence(steps=list(
                   mxComputeEM('expectation', 'scores',
-                              mxComputeNewtonRaphson(), tolerance=1e-5,
-                              information="mr1991", infoArgs=list(fitfunction='fitfunction')),
+                              mxComputeNewtonRaphson(),
+                              tolerance=1e-5, information="mr1991",
+                              infoArgs=list(fitfunction='fitfunction', semForcePD=TRUE)),
                   mxComputeStandardError(),
                   mxComputeHessianQuality())))
   
@@ -81,15 +86,25 @@ replicate <- function(seed) {
   colnames(got) <- c("est", "sem", "meat", "sw")
   
   sem.condnum <- m1$output$conditionNumber
-  list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum),
+  output <- list(condnum=c(sem=ifelse(is.null(sem.condnum), NA, sem.condnum),
                  meat=i1$output$conditionNumber,
                  sw=i2$output$conditionNumber),
        got=got,
        em=m1$compute$steps[[1]]$output)
+  if (0) {
+    output <- c(output,
+                grp=list(spec=m1$expectation$ItemSpec,
+                param=m1$ItemParam$values,
+                mean=0,
+                cov=matrix(1,1,1),
+                scores=m1$expectation$output$scores,
+                data=m1$data$observed))
+  }
+  output
 }
 
 if (0) {
-  m1 <- mxModel(mkmodel(69),
+  m1 <- mxModel(mkmodel(1),
                 mxComputeSequence(steps=list(
                   mxComputeEM('expectation',
                               mxComputeNewtonRaphson(freeSet='ItemParam'),
@@ -113,8 +128,23 @@ if (0) {
 }
 
 est <- sapply(bank, function (t) t$got[,'est'])
-diff <- apply(est, 2, function(c) (c - correct.mat))
+diff <- apply(est, 2, function(c) (c - correct.mat[correct.mask]))
 emp <- list(bias=apply(diff, 1, mean), se=apply(diff, 1, sd))
+
+if (0) {
+  grp <- bank[[1]]$grp
+  source("~/2012/sy/irtplot.R")
+  
+  booklet(function(item) {
+    rpf.plot(grp, item, data.bins=30, basis=c(1), factor=1)
+  }, colnames(correct.mat), output="4plm.pdf")
+  
+  rpf.plot(grp, "i1")
+  rpf.plot(grp, "i6")
+  rpf.plot(grp, "i11")
+  rpf.plot(grp, "i16")
+  grp$param <- correct.mat
+}
 
 check.se <- function(type) {
   se <- sapply(bank, function (t) t$got[,type])
@@ -123,24 +153,17 @@ check.se <- function(type) {
   apply(rd, 1, mean)
 }
 
-if(1) {
-  omxCheckCloseEnough(max(sapply(bank, function(t) t$condnum['meat'])), 130, 2)
+if (1) {
+  omxCheckCloseEnough(log(max(sapply(bank, function(t) t$condnum['meat']))), 7, 1)
 
-  omxCheckCloseEnough(max(abs(emp$bias)), .0294, .001)
-  omxCheckCloseEnough(norm(check.se("sem"), "2"), .284, .01)
-  omxCheckCloseEnough(norm(check.se("meat"), "2"), .26, .01)
-  omxCheckCloseEnough(norm(check.se("sw"), "2"), .339, .01)
-
-  #hist(check.se("sem"))
-  #hist(check.se("meat"))
-  #hist(check.se("sw"))
+  omxCheckCloseEnough(max(abs(emp$bias)), .04108, .001)
+  omxCheckCloseEnough(norm(check.se("meat"), "2"), .2209, .01)
+  omxCheckCloseEnough(norm(check.se("sem"), "2"), 2.366, .01)
+  omxCheckCloseEnough(norm(check.se("sw"), "2"), 2.735, .01)
   
-#  omxCheckCloseEnough(fivenum(sapply(bank, function (t) t$em$semProbeCount) / length(c(correct.mat))),
-#                      c(2.45, 2.65, 2.73, 2.90, 3.00), .01)
-
-  omxCheckCloseEnough(sum(sapply(bank, function (t) any(is.na(t$got[,'sem'])))), 0)
-  #cor(t(sapply(bank, function(t) t$condnum)), use="complete.obs")
   if (0) {
-    which(sapply(bank, function (t) any(is.na(t$got[,'sem']))))
+    hist(check.se("meat"))
+    hist(check.se("sem"))
+    hist(check.se("sw"))
   }
 }
