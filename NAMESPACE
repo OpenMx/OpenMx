@@ -1,3 +1,4 @@
+import(parallel)
 
 useDynLib(OpenMx, .registration=TRUE)
 
