@@ -209,6 +209,11 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 		SEXP names;
 		if (Rf_length(dimnames) >= 1) {
 			ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
+			if (!Rf_isNull(names) && !Rf_isString(names)) {
+				Rf_error("rownames for algebra '%s' is of "
+					 "type '%s' instead of a string vector",
+					 name, Rf_type2char(TYPEOF(names)));
+			}
 			int nlen = Rf_length(names);
 			oa->rownames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
@@ -217,6 +222,11 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 		}
 		if (Rf_length(dimnames) >= 2) {
 			ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
+			if (!Rf_isNull(names) && !Rf_isString(names)) {
+				Rf_error("colnames for algebra '%s' is of "
+					 "type '%s' instead of a string vector",
+					 name, Rf_type2char(TYPEOF(names)));
+			}
 			int nlen = Rf_length(names);
 			oa->colnames.resize(nlen);
 			for (int nx=0; nx < nlen; ++nx) {
