@@ -191,6 +191,7 @@ setReplaceMethod("[[", "MxModel",
 # These are slots that are intended to be directly viewable by the user.
 # Included separately so that they are the same between the $ and names() operators.
 publicMxModelSlots <- c("name", "matrices", "algebras", "data", "submodels", "output", "compute", "options", "intervals")
+visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
 	function(x, name) {
@@ -213,6 +214,14 @@ setMethod("names", "MxModel",
 	}
 )
 
+.DollarNames.MxModel <- function(x, pattern) {   # .DollarNames is an S3 Generic
+		submodels <- names(x@submodels)
+		locals <- generateLocalNames(x)
+		slots <- imxGetSlotDisplayNames(x, slotList=visibleMxModelSlots)
+		output <- c(submodels, locals, slots)
+		output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+		return(grep(pattern, output, value=TRUE))
+	}
 
 setReplaceMethod("$", "MxModel",
 	function(x, name, value) {
