@@ -219,3 +219,51 @@ runHelper <- function(model, frontendStart,
 	return(model)		
 }
 
+
+# mxTryHard is Wrapper to mxRun that makes multiple attempts to reach an acceptable solution.
+# possible TODO's:
+#   *Randomly disturb start values very close to zero by adding a random number to them, instead of just multiplying 
+#     by a random number.
+#   *Edit function so that it does not go through all attempts if model supplied is bad (unidentifed, etc.)?
+#   *Stop further tries if fit function value is getting worse, or is improving by less than some amount (Mike Neale's
+#     deltas).
+
+mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHess=TRUE,obj2beat=Inf,paste=TRUE,...){
+  stopflag <- FALSE#; stopBecauseMaxTries <- FALSE
+  numdone <- 0
+  while(!stopflag){
+    params <- omxGetParameters(model)
+    numdone <- numdone+1
+    fit <- try(mxRun(model,suppressWarnings=T,...))
+    if(class(fit)=="try-error"){
+      model <- omxSetParameters(model,labels=names(params),values=params*runif(length(params),loc-scale,loc+scale))
+    }
+    else{
+      objval <- fit$output$minimum
+      #Store the best fit found during attempts that beats obj2beat:
+      if(objval<=obj2beat){bestfit <- fit; bestfit.params <- params}
+      if(length(fit$output$calculatedHessian)==0){checkHess <- FALSE}
+      if(checkHess){if(sum(is.na(fit$output$calculatedHessian))>0){checkHess <- FALSE}}
+      stopflag <- ifelse(checkHess,(fit$output$status[[1]]<=greenOK) & 
+                           (all(eigen(fit$output$calculatedHessian,symmetric=T,only.values=T)$values>0)) & (objval<=obj2beat),
+                         (fit$output$status[[1]]<=greenOK) & (objval<=obj2beat))
+      if(!stopflag){
+        model <- fit
+        model <- omxSetParameters(model,labels=names(params),
+                                  values=fit$output$estimate*runif(length(params),loc-scale,loc+scale))
+        obj2beat <- ifelse(objval<obj2beat,objval,obj2beat)
+      }
+    }
+    if(numdone>extraTries){
+      #stopBecauseMaxTries <- ifelse(stopflag,FALSE,TRUE)
+      stopflag <- TRUE
+  }}
+  if(class(fit)!="try-error"){
+    #If bestfit exists and has smaller objective function value than most recent fit, use bestfit instead:
+    if(exists("bestfit")){if(bestfit$output$minimum<fit$output$minimum){fit <- bestfit; params <- bestfit.params}}
+    if(length(summary(fit)$npsolMessage)>0){warning(summary(fit)$npsolMessage)}
+  }
+  print(ifelse(paste,paste(params,collapse=","),params))
+  return(fit)
+}
+  
