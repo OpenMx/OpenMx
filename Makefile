@@ -235,6 +235,7 @@ clean:
 	-rm build/OpenMx_*.tar.gz
 	-rm src/*.o
 	-rm src/*.so
+	-rm src/*.dll
 	-rm DESCRIPTION
 	-rm runtimes.csv
 
