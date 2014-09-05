@@ -190,7 +190,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NLOPT:
             omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
                 fc->getDenseHessUninitialized(), optimalityTolerance);
-            break;
+        break;
 #endif
         default: Rf_error("Optimizer %d is not available", engine);
 	}
@@ -272,6 +272,9 @@ void ComputeCI::computeImpl(FitContext *fc)
 	case OptEngine_CSOLNP:
 		omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
 		break;
+    case OptEngine_NLOPT:
+        omxNLOPTorSANNConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
+        break;
 	default:
 		Rf_error("huh?");
 	}
