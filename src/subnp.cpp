@@ -484,7 +484,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
         
         if (*mode == -1)
         {
-            M(inform, 0, 0) = 6;
+            M(inform, 0, 0) = 0;
             hessi = MatrixToVector(fill(np, np, (double)0.0));
             p_hess = copy(pars, hessi);
             p_grad = copy(p_hess, grad);
@@ -555,7 +555,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
         funv = solFun(temp, mode, verbose);
         if (*mode == -1)
         {
-            M(inform, 0, 0) = 6;
+            M(inform, 0, 0) = 0;
             hessi = MatrixToVector(hessv);
             p_hess = copy(pars, hessi);
             p_grad = copy(p_hess, grad);
