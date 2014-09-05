@@ -1,10 +1,4 @@
-//
-//  nloptcpp.cpp
-//
-//
-//  Created by Mahsa Zahery on 7/22/14.
-//
-//
+#ifdef HAS_NLOPT
 
 #include <stdio.h>
 #include <nlopt.h>
@@ -848,3 +842,5 @@ void omxNLOPTorSANNConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opti, d
     nlopt_sann_fitMatrix = NULL;
 	nlopt_sann_currentInterval = -1;
 }
+
+#endif

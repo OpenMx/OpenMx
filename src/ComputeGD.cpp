@@ -272,9 +272,11 @@ void ComputeCI::computeImpl(FitContext *fc)
 	case OptEngine_CSOLNP:
 		omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
 		break;
+#ifdef HAS_NLOPT
     case OptEngine_NLOPT:
         omxNLOPTorSANNConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
         break;
+#endif
 	default:
 		Rf_error("huh?");
 	}
