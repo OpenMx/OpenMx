@@ -157,8 +157,6 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 };
 
-#define MAX_STRING_LEN 250
-
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
