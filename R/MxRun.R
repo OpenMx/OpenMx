@@ -228,7 +228,7 @@ runHelper <- function(model, frontendStart,
 #   *Stop further tries if fit function value is getting worse, or is improving by less than some amount (Mike Neale's
 #     deltas).
 
-mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHess=TRUE,obj2beat=Inf,paste=TRUE,...){
+mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHess=TRUE,fit2beat=Inf,paste=TRUE,...){
   stopflag <- FALSE#; stopBecauseMaxTries <- FALSE
   numdone <- 0
   while(!stopflag){
@@ -240,18 +240,18 @@ mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHe
     }
     else{
       objval <- fit$output$minimum
-      #Store the best fit found during attempts that beats obj2beat:
-      if(objval<=obj2beat){bestfit <- fit; bestfit.params <- params}
+      #Store the best fit found during attempts that beats fit2beat:
+      if(objval<=fit2beat){bestfit <- fit; bestfit.params <- params}
       if(length(fit$output$calculatedHessian)==0){checkHess <- FALSE}
       if(checkHess){if(sum(is.na(fit$output$calculatedHessian))>0){checkHess <- FALSE}}
       stopflag <- ifelse(checkHess,(fit$output$status[[1]]<=greenOK) & 
-                           (all(eigen(fit$output$calculatedHessian,symmetric=T,only.values=T)$values>0)) & (objval<=obj2beat),
-                         (fit$output$status[[1]]<=greenOK) & (objval<=obj2beat))
+                           (all(eigen(fit$output$calculatedHessian,symmetric=T,only.values=T)$values>0)) & (objval<=fit2beat),
+                         (fit$output$status[[1]]<=greenOK) & (objval<=fit2beat))
       if(!stopflag){
         model <- fit
         model <- omxSetParameters(model,labels=names(params),
                                   values=fit$output$estimate*runif(length(params),loc-scale,loc+scale))
-        obj2beat <- ifelse(objval<obj2beat,objval,obj2beat)
+        fit2beat <- ifelse(objval<fit2beat,objval,fit2beat)
       }
     }
     if(numdone>extraTries){
@@ -263,6 +263,11 @@ mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHe
     if(exists("bestfit")){if(bestfit$output$minimum<fit$output$minimum){fit <- bestfit; params <- bestfit.params}}
     if(length(summary(fit)$npsolMessage)>0){warning(summary(fit)$npsolMessage)}
   }
+  #If most recent try ended in error and bestfit exists, then of course use bestfit:
+  else{if(exists("bestfit")){
+    fit <- bestfit; params <- bestfit.params
+    if(length(summary(fit)$npsolMessage)>0){warning(summary(fit)$npsolMessage)}
+  }}
   print(ifelse(paste,paste(params,collapse=","),params))
   return(fit)
 }
