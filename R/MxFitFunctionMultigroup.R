@@ -30,16 +30,22 @@ setMethod("qualifyNames", signature("MxFitFunctionMultigroup"),
 setMethod("genericFitFunConvert", "MxFitFunctionMultigroup", 
 	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
 		name <- .Object@name
-		if (length(.Object@groups)) .Object@groups <- vapply(.Object@groups, function(group) {
-			path <- unlist(strsplit(group, imxSeparatorChar, fixed = TRUE))
-			if (length(path) == 1) {
-				ff <- paste(path, "fitfunction", sep=".")
-				length(model@algebras) + imxLocateIndex(flatModel, ff, name)
-			} else if (length(path) == 2) {
-				# restrict to algebra or fitfunction TODO
-				imxLocateIndex(flatModel, group, name)
+		if (length(.Object@groups)) {
+			origGroups <- .Object@groups
+			.Object@groups <- vapply(.Object@groups, function(group) {
+				path <- unlist(strsplit(group, imxSeparatorChar, fixed = TRUE))
+				if (length(path) == 1) {
+					group <- paste(path, "fitfunction", sep=".")
+				}
+				algebraNumber <- match(group, append(names(flatModel@algebras),
+								     names(flatModel@fitfunctions)))
+				algebraNumber - 1L
+			}, 1L)
+			if (any(is.na(.Object@groups))) {
+				stop(paste("Cannot locate algebra/fitfunction",
+					   omxQuotes(origGroups[is.na(algebraNumber)])))
 			}
-		}, 1L)
+		}
 		return(.Object)
 })
 
