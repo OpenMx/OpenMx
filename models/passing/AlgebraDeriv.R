@@ -3,7 +3,6 @@ require(OpenMx)
 require(numDeriv)
 
 set.seed(1)
-if (0) {
   
 mat1 <- mxMatrix("Full", rnorm(1), free=TRUE, nrow=1, ncol=1, labels="m1", name="mat1")
 
@@ -11,7 +10,7 @@ mu <- 0
 sigma <- 2
 Scale <- -2
 obj <- mxAlgebra(Scale * -.5 * (log(2*pi) + log(sigma) + (mat1[1,1] - mu)^2/sigma), name = "obj")
-grad <- mxAlgebra(Scale * -(mat1[1,1] - mu)/sigma, name = "grad", dimnames=list("m1"))
+grad <- mxAlgebra(Scale * -(mat1[1,1] - mu)/sigma, name = "grad", dimnames=list("m1", NULL))
 hess <- mxAlgebra(Scale * -1/sigma, name = "hess", dimnames=list("m1", "m1"))
 
 #----------------------------------------------------------- test failures
@@ -29,23 +28,27 @@ omxCheckError(mxRun(mxModel(model2, mxComputeOnce('fitfunction', 'hessian')), si
 
 model1 <- mxModel("model1", mat1, obj, grad, hess,
                   mxFitFunctionAlgebra("obj", gradient="grad", hessian="hess"),
-                  mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')))
+                  mxComputeSequence(list(
+                    mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')),
+                    mxComputeReportDeriv()
+                  )))
 got <- mxRun(model1, silent=TRUE)
 omxCheckCloseEnough(got$output$fit, -2 * log(dnorm(got$output$estimate, sd=sqrt(sigma))), 1e-4)
 omxCheckCloseEnough(got$output$gradient, 2*(mat1$values[1]-mu)/sigma, 1e-4)
 omxCheckCloseEnough(got$output$hessian, 2/sigma)
 omxCheckCloseEnough(got$output$ihessian, sigma/2)
 
-numer <- mxModel(model1, mxComputeNumericDeriv())
+numer <- mxModel(model1, mxComputeSequence(list(
+  mxComputeNumericDeriv(),
+  mxComputeReportDeriv())))
 got <- mxRun(numer, silent=TRUE)
 omxCheckCloseEnough(got$output$hessian, 1, 1e-3)
 
-model3 <- mxModel(model1, mxComputeNewtonRaphson(sparseProduct=FALSE))
+model3 <- mxModel(model1, mxComputeNewtonRaphson())
 got <- mxRun(model3, silent=TRUE)
 omxCheckCloseEnough(got$output$estimate, 0, 1e-4)
-omxCheckCloseEnough(got$compute$output$inform, 0)
-omxCheckCloseEnough(got$compute$output$iterations, 2L)
-}
+omxCheckCloseEnough(got$output$status$code, 0)
+omxCheckCloseEnough(got$output$iterations, 2L)
 
 #----------------------------------------------------------- multivariate
 
