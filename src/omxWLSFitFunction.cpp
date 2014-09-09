@@ -95,10 +95,13 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
 	omxCopyMatrix(B, oFlat);
 
+	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed Vector: "); }
+	if(OMX_DEBUG) {omxPrintMatrix(eFlat, "....WLS Expected Vector: "); }
 	omxDAXPY(-1.0, eFlat, B);
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
+	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 	
     if(weights != NULL) {
+		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
         omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
     } else {
         // ULS Case: Memcpy faster than dgemv.
