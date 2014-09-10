@@ -21,6 +21,7 @@
 typedef struct {
 
 	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrix *thresholds;
 
 	double logDetObserved;
 	double n;

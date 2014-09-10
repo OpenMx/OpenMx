@@ -26,6 +26,7 @@ void omxComputeNormalExpectation(omxExpectation* ox, const char *, const char *)
 	omxRecompute(one->cov, FF_COMPUTE_FIT, NULL);
 	if(one->means != NULL)
 	    omxRecompute(one->means, FF_COMPUTE_FIT, NULL);
+	if (one->thresholds) omxRecompute(one->thresholds, FF_COMPUTE_FIT, NULL);
 }
 
 void omxDestroyNormalExpectation(omxExpectation* ox) {
@@ -95,6 +96,8 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 
 	if(OMX_DEBUG) { mxLog("Processing Means."); }
 	one->means = omxNewMatrixFromSlot(rObj, currentState, "means");
+
+	one->thresholds = omxNewMatrixFromSlot(rObj, currentState, "thresholds");
 }
 
 omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
