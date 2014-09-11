@@ -201,6 +201,25 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 	}
 }
 
+void omxChangeFitType(omxFitFunction *oo, const char *fitType)
+{
+	if (oo->initialized) {
+		Rf_error("%s: cannot omxChangeFitType from %s to %s; already initialized",
+			 oo->matrix->name, oo->fitType, fitType);
+	}
+
+	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
+		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
+		if (strEQ(fitType, entry->name)) {
+			oo->fitType = entry->name;
+			oo->initFun = entry->initFun;
+			return;
+		}
+	}
+
+	Rf_error("Cannot find fit type '%s'", fitType);
+}
+
 void omxCompleteFitFunction(omxMatrix *om)
 {
 	omxFitFunction *obj = om->fitFunction;

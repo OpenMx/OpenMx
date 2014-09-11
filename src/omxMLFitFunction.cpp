@@ -483,7 +483,8 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	if(strEQ(omxDataType(dataMat), "raw")) {
 		if(OMX_DEBUG) { mxLog("Raw Data: Converting from multivariate Normal ML to FIML"); }
-		omxInitFIMLFitFunction(oo);
+		omxChangeFitType(oo, "imxFitFunctionFIML");
+		omxCompleteFitFunction(oo->matrix);
 		return;
 	}
 
