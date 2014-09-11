@@ -84,6 +84,8 @@ struct omxFitFunction {					// A fit function
 };
 
 /* Initialize and Destroy */
+omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
+					  omxExpectation *expect, omxMatrix *matrix, bool rowLik);
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj);
 void omxChangeFitType(omxFitFunction *oo, const char *fitType);
 void omxCompleteFitFunction(omxMatrix *om);

@@ -153,18 +153,12 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)
 {}
 
-void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj)
+omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
+					  omxExpectation *expect, omxMatrix *matrix, bool rowLik)
 {
 	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
-	memset(obj, 0, sizeof(omxFitFunction));
+	OMXZERO(obj, 1);
 
-	/* Register FitFunction and Matrix with each other */
-	obj->matrix = om;
-	obj->rObj = rObj;
-	om->fitFunction = obj;
-	om->hasMatrixNumber = TRUE;
-	om->matrixNumber = matrixNumber;
-	
 	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
 		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
 		if(strcmp(fitType, entry->name) == 0) {
@@ -180,25 +174,53 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matr
 		}
 	}
 
-	if (obj->initFun == NULL) Rf_error("Fit function %s not implemented", fitType);
+	if(obj->initFun == NULL) Rf_error("Fit function '%s' not implemented", fitType);
+
+	if (!matrix) {
+		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
+		obj->matrix->hasMatrixNumber = TRUE;
+		obj->matrix->matrixNumber = ~os->algebraList.size();
+		os->algebraList.push_back(obj->matrix);
+	} else {
+		obj->matrix = matrix;
+	}
+
+	obj->matrix->fitFunction = obj;
+
+	obj->expectation = expect;
+
+	if (rowLik && expect && expect->data) {
+		omxData *dat = expect->data;
+		omxResizeMatrix(matrix, dat->rows, 1);
+	} else {
+		omxResizeMatrix(matrix, 1, 1);
+	}
+
+	return obj;
+}
+
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj)
+{
+	om->hasMatrixNumber = TRUE;
+	om->matrixNumber = matrixNumber;
 
 	SEXP slotValue;
-	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("expectation")));
-	if (LENGTH(slotValue) == 1) {
-		int expNumber = INTEGER(slotValue)[0];	
-		if(expNumber != NA_INTEGER) {
-			obj->expectation = omxExpectationFromIndex(expNumber, om->currentState);
+	omxExpectation *expect = NULL;
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("expectation")));
+		if (Rf_length(slotValue) == 1) {
+			int expNumber = Rf_asInteger(slotValue);
+			if(expNumber != NA_INTEGER) {
+				expect = omxExpectationFromIndex(expNumber, om->currentState);
+			}
 		}
-	}
 	}
 
 	bool rowLik = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
-	if (rowLik && obj->expectation && obj->expectation->data) {
-		omxData *dat = obj->expectation->data;
-		omxResizeMatrix(om, dat->rows, 1);
-	} else {
-		omxResizeMatrix(om, 1, 1);
-	}
+
+	omxFitFunction *ff =
+		omxNewInternalFitFunction(om->currentState, fitType, expect, om, rowLik);
+	ff->rObj = rObj;
 }
 
 void omxChangeFitType(omxFitFunction *oo, const char *fitType)
