@@ -161,9 +161,13 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
 	AIC.p <- Fvalue + 2 * nParam
 	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) 
-	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24)) 
+	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24))
 	retval[['CFI']] <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
-	retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
+	if (!is.na(chiDoF) && chiDoF == 0) {
+		retval[['TLI']] <- 1
+	} else {
+		retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
+	}
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
 	IC <- matrix(NA, nrow=2, ncol=3, dimnames=list(c("AIC:", "BIC:"), c('df', 'par', 'sample')))
@@ -172,24 +176,30 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC['BIC:','sample'] <- sBIC
 	retval[['informationCriteria']] <- IC
 
-	# Here we use N in the denominator as given in the original
-	# RMSEA paper. The difference between N and N-1 is negligible
-	# for sample sizes over 30. RMSEA should not be taken seriously
-	# such small samples anyway.
-	rmseaSquared <- (chi / (chiDoF) - 1) / retval[['numObs']]
-
-	retval[['RMSEASquared']] <- rmseaSquared
-	retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
-	if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
-		is.nan(rmseaSquared)) { 
-		# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
-		retval[['RMSEA']] <- NA
-	} else if (rmseaSquared < 0) {
-		retval[['RMSEA']] <- 0.0
+	if (!is.na(chiDoF) && chiDoF == 0) {
+		retval[['RMSEASquared']] <- 0
+		retval[['RMSEA']] <- 0
+		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
 	} else {
-		retval[['RMSEA']] <- sqrt(rmseaSquared)
-		ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, retval[['numObs']], .025, .975))
-		if (!inherits(ci, "try-error")) retval[['RMSEACI']] <- ci
+					# Here we use N in the denominator as given in the original
+					# RMSEA paper. The difference between N and N-1 is negligible
+					# for sample sizes over 30. RMSEA should not be taken seriously
+					# such small samples anyway.
+		rmseaSquared <- (chi / (chiDoF) - 1) / retval[['numObs']]
+
+		retval[['RMSEASquared']] <- rmseaSquared
+		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
+		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
+		    is.nan(rmseaSquared)) { 
+					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
+			retval[['RMSEA']] <- NA
+		} else if (rmseaSquared < 0) {
+			retval[['RMSEA']] <- 0.0
+		} else {
+			retval[['RMSEA']] <- sqrt(rmseaSquared)
+			ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, retval[['numObs']], .025, .975))
+			if (!inherits(ci, "try-error")) retval[['RMSEACI']] <- ci
+		}
 	}
 	return(retval)
 }

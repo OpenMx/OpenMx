@@ -48,8 +48,11 @@ biRegModel <- mxModel("Bivariate Regression of y on x1 and x2",
 
 biRegModelOut <- mxRun(biRegModel, suppressWarnings=TRUE)
 
-summary(biRegModelOut)
-
+brmSum <- summary(biRegModelOut)
+omxCheckCloseEnough(brmSum$CFI, 1, 1e-6)
+omxCheckCloseEnough(brmSum$TLI, 1, 1e-6)
+omxCheckCloseEnough(brmSum$RMSEA, 0, 1e-6)
+omxCheckTrue(all(is.na(brmSum$RMSEACI)))
 
 # ----------------------------------
 # check for correct values
