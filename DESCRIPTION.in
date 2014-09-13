@@ -29,6 +29,7 @@ Description: The OpenMx Project intends to rewrite and extend the popular
     time-dependent patterning; and increased sophistication in the statistical
     models used to analyze the data.
 License: Apache License 2.0
+LinkingTo: RcppEigen
 Depends:
     methods,
     digest,
