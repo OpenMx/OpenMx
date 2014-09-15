@@ -263,6 +263,8 @@ void ComputeCI::computeImpl(FitContext *fc)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
+	fc->createChildren();
+
 	switch (engine) {
 	case OptEngine_NPSOL:
 #if HAS_NPSOL
