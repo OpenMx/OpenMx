@@ -42,12 +42,19 @@ mxSummary allows the user to set or override the following parameters of the mod
 \describe{
 \item{numObs}{Numeric. Specify the total number of observations for the model.}
 \item{numStats}{Numeric. Specify the total number of observed statistics for the model.}
+\item{refModels}{List of MxModel objects. Specify a saturated and independence likelihoods in single argument for testing.}
 \item{SaturatedLikelihood}{Numeric or MxModel object. Specify a saturated likelihood for testing.}
 \item{SaturatedDoF}{Numeric. When SaturatedLikelihood is numeric, specify the degrees of freedom of the saturated likelihood for testing.}
+\item{IndependenceLikelihood}{Numeric or MxModel object. Specify an independence likelihood for testing.}
+\item{IndependenceDoF}{Numeric. When IndependenceLikelihood is numeric, specify the degrees of freedom of the independence likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 }
 
 The \code{verbose} argument changes the printing style for the \code{summary} of a model.  When \code{verbose=FALSE}, a relatively minimal amount of information is printed: the free parameters, the likelihood, and a few fit indices.  When more information is available, more is printed.  For example, when the model has a saturated likelihood, several additional fit indices are printed.  On the other hand, when \code{verbose=TRUE}, the compute plan, the data summary, and additional timing information are always printed.  Moreover, available fit indices are printed regarless of whether or not they are defined.  The undefined fit indices are printed as \code{NA}.  Running a saturated model and including it with the call to \code{summary} will define these fit indices and they will dislay meaningful values.  It should be noted that the \code{verbose} argument only changes the printing style, all of the same information is calculated and exists in the output of \code{summary}.  More information is displayed when \code{verbose=TRUE}, and less when \code{verbose=FALSE}.
+
+The \code{Information Criteria} (AIC, BIC) are reported in a table.  The table shows different versions of the information criteria.  Each entry in the table is an AIC or BIC obtained using different penalties.  In particular, the entries of the table do not show different penalties, but rather different versions of AIC and BIC.  For example the AIC is reported with both a Parameters Penalty and a Degrees of Freedom Penalty.  AIC generally takes the form \eqn{-2LL + 2*k}.  With the Parameters Penalty \eqn{k} is the number of free parameters.  With the Degrees of Freedom Penalty, \eqn{k} is the model degrees of freedom.  BIC is defined similarly: \eqn{-2LL + k*log(N)} where \eqn{k} is either the number of free parameters or the degrees of freedom.  The Sample-Size Adjusted BIC is only defined for the parameters penalty: \eqn{-2LL + k*log((N+2)/24)}.
+
+The \code{refModels}, \code{SaturatedLikelihood}, \code{SaturatedDoF}, \code{IndependenceLikelihood}, and \code{IndependenceDoF} arguments can be used to obtain further fit statistics (RMSEA, CFI, TLI, Chi-Squared).  For covariance data, saturated and independence models are fitted automatically so all fit indices are reported.  For raw data, these reference models are not estimated to save computational time.  For an easy way to make reference models for most cases is provided by the \link{mxRefModels} function.
    
 This function can report Error codes as follows:
    
