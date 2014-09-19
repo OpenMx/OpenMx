@@ -149,7 +149,7 @@ html: clean npsol-prep build-prep dev-doc
 	cd docs/build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
 
 doc.tar.bz2: html pdf
-	rm -r build/$(BUILDPRE)-$(BUILDNO)
+	-rm -r build/$(BUILDPRE)-$(BUILDNO)
 	mkdir -p build/$(BUILDPRE)-$(BUILDNO)
 	mv docs/build/html/* build/$(BUILDPRE)-$(BUILDNO)
 	mv docs/build/latex/OpenMx.pdf build/$(BUILDPRE)-$(BUILDNO)/OpenMxUserGuide.pdf
