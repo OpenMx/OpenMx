@@ -24,7 +24,7 @@
 //typedef Matrix (*solEqBFun_t)(struct Matrix myPars, int verbose);
 //typedef Matrix (*solIneqFun_t)(struct Matrix myPars, int verbose);
 
-struct Matrix fillMatrix(int cols, int rows, double* array);
+//struct Matrix fillMatrix(int cols, int rows, double* array);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
 		     FreeVarGroup *freeVarGroup, int verbose, double *hessOut,

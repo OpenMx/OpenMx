@@ -19,6 +19,7 @@ using std::endl;
 template <typename T> void printList( const std::list< T > &listRef);
 
 static std::list< double* > matrices;
+static std::list< double* > matrices_l;
 
 
 double rnd_double() { return (double)1.0; }
@@ -39,16 +40,34 @@ void freeMatrices(){
     }
 }
 
+void freeMatrices_l(){
+    while (!matrices_l.empty()){
+    /* printf("matrices.front is: \n");
+     print(matrices.front());
+     printf("matrices.front.t is : \n");
+     for(int i = 0; i <matrices.front().cols; i++){
+     printf("%f", matrices.front().t[i]); putchar('\n');
+     }*/
+    //print(matrices.front());
+    free(matrices_l.front());
+    //printf("matrices.front is: \n");
+    //print(matrices.front());
+    matrices_l.pop_front();
+    }
+}
+
+
 Matrix::Matrix(omxMatrix *mat)
  : rows(mat->rows), cols(mat->cols), t(mat->data) {}
 
-Matrix new_matrix(int cols,int rows)
+Matrix new_matrix(int cols,int rows, bool Delete)
 {
 	Matrix t;
 	t.rows=rows;
 	t.cols=cols;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
-	matrices.push_front(t.t);
+	if (Delete) matrices.push_front(t.t);
+    else matrices_l.push_front(t.t);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
@@ -58,8 +77,8 @@ Matrix new_matrix(int cols,int rows)
 	return t;
 }
 
-Matrix fill(int cols, int rows, double value){
-	Matrix t = new_matrix(cols, rows);
+Matrix fill(int cols, int rows, double value, bool Delete){
+	Matrix t = new_matrix(cols, rows, Delete);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
@@ -710,10 +729,10 @@ Matrix negate(Matrix t)
     return result;
 }
 
-Matrix duplicateIt(Matrix t)
+Matrix duplicateIt(Matrix t, bool Delete)
 {
     int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
+    Matrix result = fill(t.cols, t.rows, (double)0.0, Delete);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
@@ -809,11 +828,11 @@ Matrix subset(Matrix t, int row, int colStart, int colStop)
 }
 
 
-Matrix copy(Matrix x,  Matrix y){
+Matrix copy(Matrix x,  Matrix y, bool Delete){
 	
 	int totalRows = x.rows;
     int totalCols = x.cols + y.cols;
-    Matrix result = fill(totalCols, totalRows, (double)0.0);
+    Matrix result = fill(totalCols, totalRows, (double)0.0, Delete);
 	
 	int r, c;
 	for ( r = 0; r < totalRows; r++ )
@@ -1421,9 +1440,9 @@ double solvecond(Matrix inMat)
     }
 }
 
-Matrix fillMatrix(int cols, int rows, double* array)
+Matrix fillMatrix(int cols, int rows, double* array, bool Delete)
 {
-    Matrix t = new_matrix(cols, rows);
+    Matrix t = new_matrix(cols, rows, Delete);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {

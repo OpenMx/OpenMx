@@ -83,7 +83,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 
     //time_t sec;
     //sec = time (NULL);
-	ind = fill(11, 1, (double) 0.0);
+	ind = fill(11, 1, (double) 0.0, FALSE);
 	DEBUG = debugToggle;
 	EMPTY = -999999.0;
     int maxit_trace = 0;
@@ -106,9 +106,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
     
     pars = duplicateIt(solPars);
 
-	eqB = duplicateIt(solEqB);
+	eqB = duplicateIt(solEqB, FALSE);
     
-	control = duplicateIt(solctrl);
+	control = duplicateIt(solctrl, FALSE);
     
 	if(verbose >= 2){
 		mxLog("control is: \n");
@@ -116,52 +116,52 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 	}
     
 	if (ineqLB.cols > 1){
-		ineqLB = duplicateIt(solIneqLB);
+		ineqLB = duplicateIt(solIneqLB, FALSE);
 		if (ineqUB.cols < 1){
-			ineqUB = fill(ineqLB.cols, 1, (double) DBL_MAX/2);
+			ineqUB = fill(ineqLB.cols, 1, (double) DBL_MAX/2, FALSE);
             
 		}
 	}
 	else
     {
-        ineqLB = fill(1, 1, (double) 0.0);
+        ineqLB = fill(1, 1, (double) 0.0, FALSE);
         M(ineqLB, 0, 0) = EMPTY;
     }
 	
 	if (ineqUB.cols > 1){
-		ineqUB = duplicateIt(solIneqUB);
+		ineqUB = duplicateIt(solIneqUB, FALSE);
 		if (ineqLB.cols < 1){
-			ineqLB = fill(ineqUB.cols, 1, (double) -DBL_MAX/2);
+			ineqLB = fill(ineqUB.cols, 1, (double) -DBL_MAX/2, FALSE);
 		}
 	}
 	else
     {
-        ineqUB = fill(1, 1, (double) 0.0);
+        ineqUB = fill(1, 1, (double) 0.0, FALSE);
         M(ineqUB, 0, 0) = EMPTY;
     }
     
     
 	if (LBLength > 1){
-		LB = duplicateIt(solLB);
+		LB = duplicateIt(solLB, FALSE);
 		if (UB.cols < 1){
-			UB = fill(LB.cols, 1, (double) DBL_MAX/2);
+			UB = fill(LB.cols, 1, (double) DBL_MAX/2, FALSE);
 		}
 	}
 	else
     {
-        LB = fill(1, 1, (double) 0.0);
+        LB = fill(1, 1, (double) 0.0, FALSE);
         M(LB, 0, 0) = EMPTY;
     }
 	
 	if (UBLength > 1){
-		UB = duplicateIt(solUB);
+		UB = duplicateIt(solUB, FALSE);
 		if (LB.cols < 1){
-			LB = fill(UB.cols, 1, (double) -DBL_MAX/2);
+			LB = fill(UB.cols, 1, (double) -DBL_MAX/2, FALSE);
 		}
         
 	}
 	else{
-		UB = fill(1, 1, (double) 0.0);
+		UB = fill(1, 1, (double) 0.0, FALSE);
 		M(UB, 0, 0) = EMPTY;
 	}
     
@@ -308,29 +308,29 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
     
 	if(M(ind, 10, 0))
     {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
-        {   pb = fill(2, nineq, (double)0.0);
+        {   pb = fill(2, nineq, (double)0.0, FALSE);
             pb = setColumn(pb, ineqLB, 0);
             pb = setColumn(pb, ineqUB, 1);
             pb_cont = fill(2, np, (double)0.0);
             pb_cont = setColumn(pb_cont, LB, 0);
             pb_cont = setColumn(pb_cont, UB, 1);
-            pb = transpose(copy(transpose(pb), transpose(pb_cont)));
+            pb = duplicateIt(transpose(copy(transpose(pb), transpose(pb_cont))), FALSE);
         }
         else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {
-            pb = fill(2, nineq, (double)0.0);
+            pb = fill(2, nineq, (double)0.0, FALSE);
             pb = setColumn(pb, ineqLB, 0);
             pb = setColumn(pb, ineqUB, 1);
         }
         else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
         {
-            pb = fill(2, np, (double)0.0);
+            pb = fill(2, np, (double)0.0, FALSE);
             pb = setColumn(pb, LB, 0);
             pb = setColumn(pb, UB, 1);
         }
     }
     
-	else    {pb = fill(1, 1, EMPTY);}
+	else    {pb = fill(1, 1, EMPTY, FALSE);}
     
 	double rho   = M(control, 0, 0);
 	int maxit = M(control, 1, 0);
@@ -342,8 +342,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 	int tc = nineq + neq;
     
 	double j = funv;
-    Matrix jh = fill(1, 1, funv);
-	Matrix tt = fill(1, 3, (double)0.0);
+    Matrix jh = fill(1, 1, funv, FALSE);
+	Matrix tt = fill(1, 3, (double)0.0, FALSE);
     
 	Matrix lambda;
 	Matrix constraint;
@@ -395,13 +395,13 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 	Matrix p;
 	
 	if ( M(ineqx0, 0, 0) != EMPTY){
-		p = copy(ineqx0, pars);
+		p = copy(ineqx0, pars, FALSE);
 	}
 	else{
-		p = duplicateIt(pars);
+		p = duplicateIt(pars, FALSE);
 	}
     
-	Matrix hessv = diag(fill((np+nineq), 1, (double)1.0));
+	Matrix hessv = diag(fill((np+nineq), 1, (double)1.0, FALSE));
     
 	double mu = np;
 	
@@ -486,9 +486,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
         {
             M(inform, 0, 0) = 0;
             hessi = MatrixToVector(fill(np, np, (double)0.0));
-            p_hess = copy(pars, hessi);
+            p_hess = copy(p, hessi);
             p_grad = copy(p_hess, grad);
-            pfunv.parameter = copy(p_grad, inform);
+            pfunv.parameter = copy(p_grad, inform, FALSE);
             pfunv.objValue = funv;
             return pfunv;
         }
@@ -557,9 +557,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
         {
             M(inform, 0, 0) = 0;
             hessi = MatrixToVector(hessv);
-            p_hess = copy(pars, hessi);
+            p_hess = copy(p, hessi);
             p_grad = copy(p_hess, grad);
-            pfunv.parameter = copy(p_grad, inform);
+            pfunv.parameter = copy(p_grad, inform, FALSE);
             pfunv.objValue = funv;
             return pfunv;
         }
@@ -682,7 +682,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
             mxLog("vnormValue in while \n");
             mxLog("%.20f", vnormValue);
 		}
-        jh = copy(jh, fill(1, 1, j));
+        jh = copy(jh, fill(1, 1, j), FALSE);
         
 	} // end while(solnp_iter < maxit){
     
@@ -779,9 +779,10 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
     //hessi = MatrixToVector(hessv);
     p_hess = copy(p, hessi);
 	p_grad = copy(p_hess, grad);
-	pfunv.parameter = copy(p_grad, inform);
+	pfunv.parameter = copy(p_grad, inform, FALSE);
     pfunv.objValue = funv;
     
+    freeMatrices();
     
 	return pfunv;
     
@@ -965,7 +966,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 	if (M(ind, 6, 0)<= 0 && (M(ind, 3, 0) <= 0)){
 		a = fill(np, 1, (double)0.0);
 	}
-	Matrix g = fill(npic, 1, (double)0.0);
+	Matrix g = fill(npic, 1, (double)0.0, FALSE);
 	Matrix p = subset(p0, 0, 0, (npic-1));
     
 	Matrix dx;
@@ -1287,7 +1288,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 	int i;
 	while (minit < maxit){
 		minit = minit + 1;
-        
+
 		if (ch > 0){
             
 			for (i=0; i<np; i++){
@@ -1486,9 +1487,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
                 if (flag_U) {M(p, index_flag_U, 0) = M(p, index_flag_U, 0)- nudge;}
                 if (nc > 0){ y = fill(1, 1, (double)0.0);}
                 hessv = multiplyByScalar2D(divide(hessv, transposeDP(subvscale)), M(vscale, 0, 0));
-                resP = duplicateIt(p);
-                resY = y;
-                resHessv = duplicateIt(hessv);
+                resP = duplicateIt(p, FALSE);
+                resY = duplicateIt(y, FALSE);
+                resHessv = duplicateIt(hessv, FALSE);
                 resLambda = lambda;
                 return g;
             }
@@ -1897,7 +1898,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			mxLog("go is: \n");
 			mxLog("%.16f", go);
 		}
-        sx_Matrix = duplicateIt(sx);
+        sx_Matrix = duplicateIt(sx, FALSE);
 		sx = duplicateIt(p);
 		yg = duplicateIt(g);
 		if (verbose >= 3){
@@ -2013,10 +2014,10 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 		mxLog("m3 solnp Rf_error message being reported.");
     }
 	
-	resP = duplicateIt(p);
-	resY = transpose(subset(y, 0, 0, (yyRows-1)));
+	resP = duplicateIt(p, FALSE);
+	resY = duplicateIt(transpose(subset(y, 0, 0, (yyRows-1))), FALSE);
     
-	resHessv = duplicateIt(hessv);
+	resHessv = duplicateIt(hessv, FALSE);
     
 	resLambda = lambdaValue;
     
@@ -2034,7 +2035,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 		mxLog("%d", minit);
 		mxLog("------------------------END RETURN FROM SUBNP------------------------");
 	}
-
+    
+    freeMatrices();
 	return g;
 	
 } // end subnp

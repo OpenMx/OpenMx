@@ -37,7 +37,7 @@ bool all(Matrix x);
 
 Matrix MatrixToVector(Matrix mat);
 
-Matrix fillMatrix(int cols, int rows, double* array);
+Matrix fillMatrix(int cols, int rows, double* array, bool Delete = TRUE);
 
 double solvecond(Matrix inMat);
 
@@ -53,6 +53,8 @@ void printMatrices();
 
 void freeMatrices();
 
+void freeMatrices_l();
+
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
 void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum);
@@ -67,11 +69,11 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity);
 
 Matrix condNumPurpose(Matrix inMat);
 
-struct Matrix new_matrix(int cols,int rows);
+struct Matrix new_matrix(int cols,int rows, bool Delete = TRUE);
 
 struct Matrix transposeDotProduct(Matrix t);
 
-struct Matrix fill(int cols, int rows, double value);
+struct Matrix fill(int cols, int rows, double value, bool Delete = TRUE);
 
 struct Matrix getRow(struct Matrix t, int row);
 
@@ -131,7 +133,7 @@ struct Matrix transpose(struct Matrix t);
 
 struct Matrix negate(struct Matrix t);
 
-struct Matrix duplicateIt(struct Matrix t);
+struct Matrix duplicateIt(struct Matrix t, bool Delete = TRUE);
 
 struct Matrix matrixAbs(struct Matrix t);
 
@@ -143,7 +145,7 @@ struct Matrix checkControlList(struct Matrix t);
 
 struct Matrix subset(struct Matrix t, int row, int colStart, int colStop);
 
-struct Matrix copy(struct Matrix x, struct Matrix y);
+Matrix copy(Matrix x,  Matrix y, bool Delete = TRUE);
 
 struct Matrix rbind(struct Matrix x, struct Matrix y);
 
