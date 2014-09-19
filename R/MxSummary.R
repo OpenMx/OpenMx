@@ -902,7 +902,7 @@ logLik.MxModel <- function(object, ...) {
     SEs <- sqrt(diag(covSparam))
     #SEs[diag(covSparam)<.Machine$double.eps] <- 0
   }
-  else{SEs <- rep(NA,length(zout)); names(SEs) <- names(zout)}
+  else{SEs <- rep("not requested",length(zout)); names(SEs) <- names(zout)}
   #Add standardized values and SEs to output:
   out$Std.Value <- zout
   out$Std.SE <- SEs
@@ -914,7 +914,7 @@ logLik.MxModel <- function(object, ...) {
         out$Raw.SE[i] <- sqrt(covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
                                        ifelse(is.na(out$label[i]),out$name[i],out$label[i])])
   }}}
-  else{out$Raw.SE <- NA}
+  else{out$Raw.SE <- "not requested"}
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE){
