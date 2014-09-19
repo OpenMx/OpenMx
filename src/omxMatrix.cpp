@@ -387,16 +387,11 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 		}
 		if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
-		if (TYPEOF(matrix) != REALSXP) {
-			// we could avoid a double copy here TODO
-			SEXP copy;
-			Rf_protect(copy = Rf_coerceVector(matrix, REALSXP));
-			om->data = (double*) Realloc(NULL, om->rows * om->cols, double);
-			memcpy(om->data, REAL(copy), om->rows * om->cols * sizeof(double));
-		} else {
-			om->owner = matrix;
-			om->data = REAL(om->owner);
-		}
+		if (TYPEOF(matrix) != REALSXP) Rf_error("matrix is of type '%s'; only type double is accepted",
+							Rf_type2char(TYPEOF(matrix)));
+
+		om->owner = matrix;
+		om->data = REAL(om->owner);
 
 		SEXP dimnames;
 		ScopedProtect pdn(dimnames, Rf_getAttrib(matrix, R_DimNamesSymbol));

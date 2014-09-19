@@ -185,6 +185,16 @@ setMethod("preprocessDataForBackend", signature("NonNullData"),
 setMethod("convertDataForBackend", signature("NonNullData"),
 	  function(data, model, flatModel) { data })
 
+setMethod("convertDataForBackend", signature("MxDataStatic"),
+	  function(data, model, flatModel) {
+		  if (is.matrix(data@observed) && data@type == "raw" && is.integer(data@observed)) {
+			  data@observed <- matrix(as.double(data@observed),
+						  nrow=nrow(data@observed), ncol=ncol(data@observed),
+						  dimnames=dimnames(data@observed))
+		  }
+		  data
+	  })
+
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 	  function(data, model, defVars, modeloptions) {
 		  if (data@.needSort) {
