@@ -313,7 +313,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 		selectMissing <- is.na(sortdata)
 		selectDefvars <- sortdata[, defkeys, drop=FALSE]
 		threeVectors <- .Call(findIdenticalRowsData, sortdata,
-			selectMissing, selectDefvars, sum(nacount)==0,
+			selectMissing, selectDefvars, length(nacount)==0 || sum(nacount)==0,
 			length(selectDefvars) == 0, PACKAGE = "OpenMx")
 		mxData@indexVector <- indexVector - 1L
 		mxData@identicalRows <- threeVectors[[1]]
