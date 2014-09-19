@@ -41,7 +41,8 @@
 # TODO Check that the above are done reasonably correct.
 # TODO Improve interaction between 1 & 2.
 # Added ability to do Independence model.
-
+# Added Fix variances of binary variables to 1.0
+#  via mxConstraint on filtered expected cov.
 
 
 #-------------------------------------------------------------------------------------
@@ -67,9 +68,14 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			startmea <- colMeans(obsdata, na.rm=TRUE)
 		}
 		else {
+			ordnam <- names(obsdata[,ordinalCols])
 			ordinalLevels <- lapply(obsdata[,ordinalCols], levels)
 			numOrdinal <- sum(ordinalCols)
-			maxLevels <- max(sapply(ordinalLevels, length))
+			numOrdinalLevels <- sapply(ordinalLevels, length)
+			isBinary <- numOrdinalLevels %in% 2
+			binnam <- ordnam[isBinary]
+			numBinary <- sum(isBinary)
+			maxLevels <- max(numOrdinalLevels)
 			numThresholds <- maxLevels-1
 			startcov <- t(chol(diag(1, numVar)))
 			startcov <- startcov[lower.tri(startcov, TRUE)]
@@ -115,18 +121,39 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
 					dimnames = list(c(), varnam[ordinalCols]), # TODO Add threshold names
 							)
+			saturatedMeans <- mxMatrix(nrow=1, ncol=numVar,
+				values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam))
+			saturatedThresholds <- mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix")
 			saturatedModel <- mxModel(saturatedModel,
-				mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
-				thresholdDeviations, unitLower,
-				mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
+				saturatedMeans, thresholdDeviations, unitLower, saturatedThresholds,
 				mxExpectationNormal("satCov", "satMea", thresholds="thresholdMatrix")
 			)
 			independenceModel <- mxModel(independenceModel,
-				mxMatrix(nrow=1, ncol=numVar, values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam)),
-				thresholdDeviations, unitLower,
-				mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
+				saturatedMeans, thresholdDeviations, unitLower, saturatedThresholds,
 				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix")
 			)
+			if(any(isBinary)){
+				Iblock <- diag(1, numBinary)
+				colnames(Iblock) <- binnam
+				Zblock <- matrix(0, nrow=numBinary, ncol=numVar-numBinary)
+				colnames(Zblock) <- varnam[!(varnam %in% binnam)]
+				binaryFilterValues <- cbind(Iblock, Zblock)
+				binaryFilterValues <- binaryFilterValues[,varnam]
+				binaryFilter <- mxMatrix('Full', nrow=numBinary, ncol=numVar, values=binaryFilterValues, free=FALSE, name='BinaryVarianceFilteringMatrix')
+				binaryAlgebraSat <- mxAlgebra(
+					BinaryVarianceFilteringMatrix %*% diag2vec(satCov), name='BinaryVarianceFilteringAlgebra')
+				binaryAlgebraInd <- mxAlgebra(
+					BinaryVarianceFilteringMatrix %*% diag2vec(indCov), name='BinaryVarianceFilteringAlgebra')
+				binaryConstant <- mxMatrix('Full', nrow=numBinary, ncol=1, values=1, free=FALSE, name='BinaryConstantVectorOfOnes')
+				binaryConstraint <- mxConstraint(
+					BinaryConstantVectorOfOnes == BinaryVarianceFilteringAlgebra, name='BinaryVarianceConstraint')
+				saturatedModel <- mxModel(saturatedModel,
+					binaryFilter, binaryAlgebraSat, binaryConstant, binaryConstraint
+				)
+				independenceModel <- mxModel(independenceModel,
+					binaryFilter, binaryAlgebraInd, binaryConstant, binaryConstraint
+				)
+			}
 		}
 	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
