@@ -14,6 +14,7 @@
 %   limitations under the License.
 
 \name{omxSaturatedModel}
+\alias{omxSaturatedModel}
 \alias{mxRefModels}
 
 \title{Create Reference (Saturated and Independence) Models}
