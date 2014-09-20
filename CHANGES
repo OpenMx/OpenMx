@@ -1,8 +1,95 @@
 trunk
 =====
+* (Re?)enable parallel processing for confidence intervals
+* Grab Eigen from RcppEigen
+* Add ordinal ML/WLS test with both model identifications
+* For saturated type=cov model, set TLI=1 and RMSEA=0
+* Recompute thresholds (when provided)
+* Rewrite algebra/fitfunction lookup in MxFitFunctionMultigroup
+* Downgrade check of algebra dimnames to a warning for backward compat
+* Edit 'make clean' to also remove src/*.dll (Windows shared library).
+* Add mxTryHard() and its man page.
+* Add check for data type of algebra dimnames
+* Implemented smarter tab-completion for MxObjects.
+* Make the global freeGroup vector private
+* Update SE study for relative tolerance
+* SE simulation studies (IFA)
+* Depend on package parallel (in R core since 2.14)
+* Check threshnames for duplicates
+* Store omxThresholdColumn in a std::vector
+* LAD--CheckCode6.R moved to models/passing
+* CSOLNP: status code report corrected
+* Change the 'running xxxmodel' output from mxRun to a message
+* Toggle silent= back to FALSE as preference for running Reference/Saturated models.
+* Add multilevel model example in state space form.  Data is grabbed from the web.
+* Report optimizer in summary for default compute plan
+* Rename nullModels -> refModels per dev discussion
+* Add column of raw SEs to output of mxStandardizeRAMpaths(); edit its test model and man page appropriately.
+* Fix 'unknown macro '\t'' warning I was getting from mxRestore man page
+* Document Number of Threads option.
+* Modify .svnignore files.  WLS branch and trunk changes.  Added
+  continuous only wls test.  Found and added state space algebra test.
+* Include numObs in data for mxNullModels
+* First draft of mxDataWLS
+* Fixed documentation for reading checkpoint file via read.table
+* Permit BA81 mean & variance specified with algebras
+* Rename omxSaturatedModel to mxNullModels per dev discussion
+* Refuse to clear model slots by assignment to NULL and say why
+* Remove minItemsPerScore option
+* Fix state space in FIML joint.
 
-Release 2.0.beta2-3635 (Jun 10, 2014)
+Release 2.0.beta2-3751 (Aug 20, 2014)
 =======================================
+* Switch default optimizer back to CSOLNP
+* Made MxSummary have prettier printing of Chi-Square and RMSEA with CI.  Also added more checks for SummaryCheck.R
+* Extinguish globalState
+* NLOPT and Simulated annealing added
+* Report condition number when standard erorrs are enabled
+* Improve destruction order
+* Merge OMX_VERBOSE to OMX_DEBUG
+* Simplify copyParamToModel API
+* Move childList from omxState to FitContext
+* Track whether a model has been run for submodels
+* Modify FIML Single Iteration Joint to accomodate State Space expectations for continuous vars.
+* Distinguish between stale models and models which has not been run
+* Improve reporting of CIs for non-free parameters
+* Ignore request for CIs if the label exists and is not a free parameter
+* Add comment about RMSEA formula
+* Reorganize omxSaturatedModel for better modularity
+* Factor out processing of the run argument to omxSaturatedModel
+* Remove our own version of std::max
+* Consolidate FIML to omxFIMLSingleIterationJoint (except for state
+  space). NOTE: This introduced a serious performance regression.
+* Remove a bunch of duplicated code in FIML
+* Add Oakes1999 EM information matrix method
+* Set up setVarGroup handler for MxAlgebraFitFunction
+* Add independent flag to mxComputeSequence
+* Implement new unprotect strategy
+* For summary(verbose=F), suppress SE and bounds if all NA
+* minor error msg change: show user the verboten list of names
+* Various optimizations to improve frontend performance
+* Don't blindly cast all NA columns to double. When the column is a
+  factor, it needs to stay integer
+* Only warn once about the model being modified since run
+* Prohibit clashes between model and matrix names in type='RAM' models
+* Clear modified-since-run flag on submodels
+* Permit more than 1 fitfunction in mxComputeOnce
+* The backend no longer resizes matrices that will be exported to R
+* Switch to more accurate matrix log/exp
+* Adjust pretty-printing of MxData to match slot names
+* Print model name in summary
+* Change error message in saturated model helper when algebra fit function detected.
+* Improvements to mxSummary: RMSEA conf intervals, Information table
+  adjustments, guidance to help page, statement about missing fit
+  indices.
+* CSOLNP: out of bound starting values issue solved. Mode added
+* Revision to saturated model helper that allows multigroup and saturated models
+* ComputeHessianQuality should not SEGV when no Hessian is available
+* Add fix and test for mxFitFunctionR Hessian
+* modified mxVersion to include R and plaform + optimizer
+* Add a few unprotects to reduce stack usage of big algebra
+* Manual update from Hermine H Maes
+* Extensive rework of the conformability checking pass
 * Provide more helpful error messages when an expectation fails to initialize
 * CSOLNP: potential fix for CI and non-linear constraint issues
 * Add checks for AIC, BIC
