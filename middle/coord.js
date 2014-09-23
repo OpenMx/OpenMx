@@ -24,9 +24,11 @@ var gModel = {};
 
 router.post('/model/:name', function(req, res) {
     if (!(req.params.name in gModel)) {
-	model = req.body
-	model.evaluation = 0
-	gModel[req.params.name] = model
+	var model = {};
+	model.model = req.body.model[0];
+	model.minRows = req.body.minRows[0];
+	model.evaluation = 0;
+	gModel[req.params.name] = model;
 	console.log('stored model ' + req.params.name);
 	res.json({ok: true});
     } else {
@@ -53,7 +55,7 @@ router.put('/model/:name/param', function(req, res) {
     model = gModel[req.params.name];
     model.param = req.body.param;
     model.evaluation += 1;
-    model.fit = new Array();
+    model.fit = {};
     model.fitsum = 0;
     console.log('set ' + req.params.name + ' param to ' + model.param);
     gModel[req.params.name] = model;
@@ -67,9 +69,9 @@ router.get('/model/:name/param', function(req, res) {
 })
 
 router.post('/model/:name/fit', function(req, res) {
-    agent = req.body.agent;
+    agent = req.body.agent[0];
     model = gModel[req.params.name];
-    if (model.evaluation != req.body.evaluation || model.fit[agent]) {
+    if (model.evaluation != req.body.evaluation[0] || model.fit[agent]) {
 	console.log("ignored fit reported for old evaluation " + req.body.evaluation);
 	res.json({ok: false});
     } else {
@@ -87,7 +89,7 @@ router.get('/model/:name/fit', function(req, res) {
     for (var fit1 in model.fit) {
 	if (fit1) count += 1;
     }
-    if (count == 0) {
+    if (count < model.minRows) {
 	res.json({evaluation: model.evaluation})
 	return;
     }

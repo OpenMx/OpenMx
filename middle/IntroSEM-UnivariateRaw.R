@@ -1,5 +1,8 @@
+# R --no-save -f IntroSEM-UnivariateRaw.R --args 1
 require(OpenMx)
 library(httr)
+
+args <- commandArgs(trailingOnly = TRUE)
 
 host <- '127.0.0.1'
 port <- 1337
@@ -10,6 +13,8 @@ apiurl <- paste("http://", server, "/api", sep="")
 name <- paste0("agent", sample.int(1e7, 1))
 
 data(multiData1)
+parts <- cut(1:nrow(multiData1), 4)  # chop into 4 partitions
+mask <- parts == levels(parts)[ as.integer(args[[1]]) ]
 
 message("Waiting for model to be published")
 
@@ -23,10 +28,10 @@ while (1) {
 message("Found model")
 
 r <- GET(paste0(apiurl, "/model/test"))
-uniRegModelRaw <- unserialize(charToRaw(content(r)$model[[1]]))
+uniRegModelRaw <- unserialize(charToRaw(content(r)$model))
 
 uniRegModelRaw <- mxModel(uniRegModelRaw,
-                          mxData(observed=multiData1, type="raw"),
+                          mxData(observed=multiData1[mask,], type="raw"),
                           mxComputeOnce('fitfunction', 'fit'))
 
 parNames <- names(omxGetParameters(uniRegModelRaw, FALSE, NA))

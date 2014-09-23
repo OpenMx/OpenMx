@@ -6,6 +6,8 @@ port <- 1337
 server <- paste(host,port,sep=':')
 apiurl <- paste("http://", server, "/api", sep="")
 
+partitions <- 4
+
 #r <- GET(apiurl)
 #content(r)
 
@@ -25,7 +27,8 @@ uniRegModelRaw <- mxModel("FIML Univariate Regression of y on x1",
 
 blob <- rawToChar(serialize(connection=NULL, uniRegModelRaw, ascii=TRUE))
 
-r <- POST(paste0(apiurl, "/model/test"), body=list(model=blob), encode="json")
+r <- POST(paste0(apiurl, "/model/test"),
+          body=list(model=blob, minRows=partitions), encode="json")
 
 #r <- POST(paste0(apiurl, "/model/rabit"), body=list(model=blob), encode="json")
 
@@ -61,15 +64,8 @@ uniRegModelRawOut <- mxRun(uniRegModelRaw, suppressWarnings=TRUE)
 
 expectVal <- c(0.669179, 1.13643, 1.647629, 0.984894, 3.189368)
 
-expectSE <-c(0.053849, 0.071873, 0.104204, 0.047674, 0.078154)
+expectMin <- 3151.492 / partitions
 
-expectMin <- 3151.492
-
-omxCheckCloseEnough(expectVal, uniRegModelRawOut$output$estimate, 0.001)
-
-omxCheckCloseEnough(expectSE, 
-                    as.vector(uniRegModelRawOut$output$standardError), 0.001)
+omxCheckCloseEnough(expectVal, uniRegModelRawOut$output$estimate, 0.01)
 
 omxCheckCloseEnough(expectMin, uniRegModelRawOut$output$minimum, 0.001)
-
-
