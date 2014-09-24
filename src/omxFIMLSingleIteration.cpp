@@ -79,7 +79,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 
 	double Q = 0.0;
-	int numDefs;
 	int numOrdRemoves = 0, numContRemoves=0;
 	int returnRowLikelihoods = 0;
     int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0, numIdenticalOrdinalRows = 0, numOrdinal = 1,
@@ -116,7 +115,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	dataColumns	= ofo->dataColumns;
 	defVars		= ofo->defVars;
 	oldDefs		= ofo->oldDefs;
-	numDefs		= ofo->numDefs;
+	int numDefs		= ofo->numDefs;
+	if (!numDefs) numIdenticalDefs = rowcount;
 
 	corList 	= ofo->corList;
 	weights		= ofo->weights;
