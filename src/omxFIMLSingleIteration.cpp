@@ -31,7 +31,6 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 
 	int rowVal = *row;
 
-    //if(numDefs != 0 && *numIdenticalDefs <= 0) *numIdenticalDefs = 
 	if(*numIdenticalDefs <= 0) *numIdenticalDefs = 
 		omxDataNumIdenticalDefs(data, rowVal);
 	if(*numIdenticalContinuousMissingness <= 0) *numIdenticalContinuousMissingness =
