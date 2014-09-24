@@ -31,7 +31,8 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 
 	int rowVal = *row;
 
-    if(numDefs != 0 && *numIdenticalDefs <= 0) *numIdenticalDefs = 
+    //if(numDefs != 0 && *numIdenticalDefs <= 0) *numIdenticalDefs = 
+	if(*numIdenticalDefs <= 0) *numIdenticalDefs = 
 		omxDataNumIdenticalDefs(data, rowVal);
 	if(*numIdenticalContinuousMissingness <= 0) *numIdenticalContinuousMissingness =
 		omxDataNumIdenticalContinuousMissingness(data, rowVal);
@@ -166,7 +167,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
         omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
         
         if(OMX_DEBUG_ROWS(row)) {
-            mxLog("Identicality check. Is %sfirst. Total: %d rows identical, %d defs, %d missingness: Continuous: %d rows, %d missingness; Ordinal: %d rows, %d missingness.", 
+            mxLog("Identicality check. Is %sfirst row of data. Total: %d rows identical, %d identical definition vars, %d identical missingness patterns. Continuous: %d rows, %d missingness patterns; Ordinal: %d rows, %d missingness patterns.", 
                     (firstRow?"":"not "), numIdentical, numIdenticalDefs, omxDataNumIdenticalRows(data, row), 
                     numIdenticalContinuousRows, numIdenticalContinuousMissingness, 
                     numIdenticalOrdinalRows, numIdenticalOrdinalMissingness);
