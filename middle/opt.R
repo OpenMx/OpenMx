@@ -1,5 +1,10 @@
 library(OpenMx)
 library(httr)
+library(jsonlite)
+
+if (packageVersion("httr") < package_version("0.5.0.9000")) {
+  stop("A newer version of httr is required. You may need to install from https://github.com/hadley/httr")
+}
 
 host <- '127.0.0.1'
 port <- 1337
@@ -28,7 +33,8 @@ uniRegModelRaw <- mxModel("FIML Univariate Regression of y on x1",
 blob <- rawToChar(serialize(connection=NULL, uniRegModelRaw, ascii=TRUE))
 
 r <- POST(paste0(apiurl, "/model/test"),
-          body=list(model=blob, minRows=partitions), encode="json")
+          content_type_json(),
+          body=toJSON(list(model=blob, minRows=partitions), digits=8))
 
 #r <- POST(paste0(apiurl, "/model/rabit"), body=list(model=blob), encode="json")
 
@@ -38,24 +44,26 @@ uniRegModelRaw <- mxModel(
   mxMatrix(values=par, labels=names(par), nrow=length(par), ncol=1, free=TRUE),
   mxComputeGradientDescent(),
   mxFitFunctionR(fitfun = function(model, state) {
-  par <- omxGetParameters(model)
-  r <- PUT(paste0(apiurl, "/model/test/param"), body=list(param=par), encode="json")
-  #content(r)
-
-  fit <- NULL
-  while (1) {
-    Sys.sleep(1)
-    r <- GET(paste0(apiurl, "/model/test/fit"))
-    if (!is.null(content(r)$nan)) {
-      fit <- NA
-      break
+    par <- omxGetParameters(model)
+    r <- PUT(paste0(apiurl, "/model/test/param"),
+             body=toJSON(list(param=par), digits=8),
+             content_type_json())
+    #content(r)
+    
+    fit <- NULL
+    while (1) {
+      Sys.sleep(1)
+      r <- GET(paste0(apiurl, "/model/test/fit"))
+      if (!is.null(content(r)$nan)) {
+        fit <- NA
+        break
+      }
+      fit <- content(r)$fit
+      if (length(fit)) break
     }
-    fit <- content(r)$fit
-    if (length(fit)) break
-  }
-  print(fit)
-  return(fit)
-}))
+    print(fit)
+    return(fit)
+  }))
 
 uniRegModelRawOut <- mxRun(uniRegModelRaw, suppressWarnings=TRUE)
 

@@ -1,6 +1,11 @@
 # R --no-save -f IntroSEM-UnivariateRaw.R --args 1
-require(OpenMx)
+library(OpenMx)
 library(httr)
+library(jsonlite)
+
+if (packageVersion("httr") < package_version("0.5.0.9000")) {
+  stop("A newer version of httr is required. You may need to install from https://github.com/hadley/httr")
+}
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -53,7 +58,10 @@ while (1) {
   uniRegModelRaw <- omxSetParameters(uniRegModelRaw, labels=parNames, values=par)
   uniRegModelRawOut <- mxRun(uniRegModelRaw, silent = TRUE)
   
-  r <- POST(paste0(apiurl, "/model/test/fit"), encode="json",
-            body=list(agent=name, evaluation=cr$evaluation, fit=uniRegModelRawOut$output$fit))
+  r <- POST(paste0(apiurl, "/model/test/fit"), 
+            body=toJSON(list(agent=name, evaluation=cr$evaluation,
+                             fit=uniRegModelRawOut$output$fit), digits=8),
+            content_type_json())
+  
   Sys.sleep(1)
 }
