@@ -8,7 +8,7 @@ require(rpf)
 #library(mvtnorm)
 
 set.seed(7)
-correct.LL <- 48990.18
+correct.LL <- 48990.17
 
 numItems <- 30
 numPeople <- 500
@@ -147,9 +147,9 @@ omxCheckCloseEnough(c(grpModel$submodels$g3latent$mean$values), c(-.027, -.823),
 omxCheckCloseEnough(c(grpModel$submodels$g3latent$cov$values), c(.779, -.279, -.279, .738), .01)
 
 emstat <- grpModel$compute$output
+omxCheckCloseEnough(emstat$EMcycles, 24, 2)
 if (0) {
 # TODO too inconsistent
-omxCheckCloseEnough(emstat$EMcycles, 70, 2)
 omxCheckCloseEnough(emstat$totalMstep, 222, 10)
 }
 

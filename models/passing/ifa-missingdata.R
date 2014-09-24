@@ -103,7 +103,7 @@ if (0) {
 }
 
 emstat <- m2$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 22, 1)
+omxCheckCloseEnough(emstat$EMcycles, 24, 1)
 omxCheckCloseEnough(emstat$totalMstep, 70, 5)
 omxCheckCloseEnough(m2$output$evaluations, 141, 5)
 

@@ -92,7 +92,7 @@ omxCheckCloseEnough(m2$output$fit, 14129.94, .01)
 omxCheckCloseEnough(m2$submodels$latent$matrices$cov$values[1,1], 4.377, .01)
 		
 emstat <- m2$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 15, 3)
+omxCheckCloseEnough(emstat$EMcycles, 23, 4)
 #omxCheckCloseEnough(emstat$totalMstep, 763, 20) # includes the latent distribution
 
 					#print(m2$matrices$item$values)
@@ -140,7 +140,7 @@ if (1) {
 
   m2 <- mxRun(m2)
   emstat <- m2$compute$output
-  omxCheckCloseEnough(emstat$EMcycles, 14, 1)
+  omxCheckCloseEnough(emstat$EMcycles, 16, 1)
   omxCheckCloseEnough(emstat$totalMstep, 42, 5)
   omxCheckCloseEnough(m2$fitfunction$result, 14129.04, .01)
   omxCheckCloseEnough(m2$matrices$item$values[1,], rep(2.133, numItems), .002)

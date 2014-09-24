@@ -175,7 +175,7 @@ omxCheckCloseEnough(summary(grpModel)$informationCriteria['BIC:','par'], 30420.9
 
   omxCheckCloseEnough(grpModel$submodels$g2$matrices$item$values,
                       fm$G2$param, .02)
-  omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .01)
+  omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$mean$values, t(fm$G1$mean), .02)
   omxCheckCloseEnough(grpModel$submodels$g1latent$matrices$cov$values, fm$G1$cov, .1)
   
   semse <- c(0.083, 0.104, 0.077, 0.133, 0.198, 0.097, 0.147,  0.191, 0.102, 0.163, 0.131, 0.122,
@@ -192,7 +192,7 @@ omxCheckCloseEnough(summary(grpModel)$informationCriteria['BIC:','par'], 30420.9
 #omxCheckTrue(grpModel$output$infoDefinite)
   
 emstat <- grpModel$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 86, 10)
+omxCheckCloseEnough(emstat$EMcycles, 48, 5)
 #omxCheckCloseEnough(emstat$totalMstep, 334, 40)  # includes latent distribution
 #omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
 

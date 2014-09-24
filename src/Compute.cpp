@@ -1278,10 +1278,11 @@ void Varadhan2008::recalibrate(bool *restart)
 	memcpy(vv.data(), &prevAdj1[0], sizeof(double) * numParam);
 	vv -= rr;
 
-	alpha = - rr.norm() / vv.norm();
+	double newAlpha = - rr.norm() / vv.norm();
+	alpha = 0.5 + newAlpha;     // slightly more conservative seems to help
 	if (alpha > -1) alpha = -1;
-	if (verbose >= 3) mxLog("Varadhan: alpha = %.2f", alpha);
-	//if (alpha < -2) alpha = -2;
+
+	if (verbose >= 3) mxLog("Varadhan: newAlpha = %.2f alpha = %.2f", newAlpha, alpha);
 
 	for (int vx=0; vx < numParam; ++vx) {
 		double adj2 = prevAdj1[vx] + prevAdj2[vx];
@@ -2009,7 +2010,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 				bool wantRestart;
 				// parameterize the delay until the first recalibration? TODO
-				if (EMcycles > 3 && EMcycles % 3 == 0) {
+				if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
 					accel->recalibrate(&wantRestart);
 				}
 				accel->apply();

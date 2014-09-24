@@ -56,7 +56,7 @@ omxCheckCloseEnough(m2$fitfunction$result, 4045796.23, .1)
 omxCheckCloseEnough(cor(c(m2$item$values[1:2,]), c(correct.mat[1:2,])), 1, .01)
 
 emstat <- m2$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 19, 3)
-omxCheckCloseEnough(emstat$totalMstep, 48, 5)
+omxCheckCloseEnough(emstat$EMcycles, 31, 3)
+omxCheckCloseEnough(emstat$totalMstep, 85, 5)
 
 print(m2$output$backendTime)
