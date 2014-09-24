@@ -89,7 +89,7 @@ mk.model <- function(name, data, latent.free) {
 
 groups <- paste("g", 1:2, sep="")
 
-#if (1) {
+if (1) {
 	# Before fitting the model, check EAP score output against flexMIRT
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
@@ -121,7 +121,7 @@ groups <- paste("g", 1:2, sep="")
           0.101, 0.189, 0.192, 0.13)
   omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
   omxCheckCloseEnough(i1$output$conditionNumber, 199, 1) 
-#}
+}
 
 omxIFAComputePlan <- function(groups) {
   latent.plan <- NULL
@@ -143,7 +143,8 @@ omxIFAComputePlan <- function(groups) {
 		    mxComputeNewtonRaphson(freeSet=paste(groups, 'item', sep="."), verbose=0L),
 		    latent.plan)),
                 #tolerance=1e-10, information="mr1991",
-                infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")), verbose=0L),
+                infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")),
+		verbose=0L),
     mxComputeStandardError(),
     mxComputeHessianQuality()
   ))

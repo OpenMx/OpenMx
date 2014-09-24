@@ -112,7 +112,7 @@ class FitContext {
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
-	size_t numParam;               // cached from varGroup
+	size_t numParam;               // change to int type TODO
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
@@ -141,6 +141,7 @@ class FitContext {
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
 	void updateParentAndFree();
+	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
 	~FitContext();
 	
@@ -188,34 +189,6 @@ class omxCompute {
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
-};
-
-class Ramsay1975 {
-	// Ramsay, J. O. (1975). Solving Implicit Equations in
-	// Psychometric Data Analysis.  Psychometrika, 40(3), 337-360.
-
-	FitContext *fc;
-	size_t numParam;
-	const char *flavor;
-	int verbose;
-	int boundsHit;
-	double minCaution;
-	double highWatermark;
-	std::vector<int> vars;
-	std::vector<double> prevEst;
-	std::vector<double> prevAdj1;
-	std::vector<double> prevAdj2;
-	bool goingWild;
-
-public:
-	double maxCaution;
-	double caution;
-
-	Ramsay1975(FitContext *fc, const char *flavor, int verbose, double minCaution);
-	void recordEstimate(int px, double newEst);
-	void apply();
-	void recalibrate(bool *restart);
-	void restart(bool myFault);
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);

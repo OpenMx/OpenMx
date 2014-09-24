@@ -115,8 +115,8 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
 				      mxComputeNewtonRaphson(freeSet=paste(groups,'item',sep=".")),
 				      latent.plan)),
                                   information="mr1991", verbose=0L,
-                                  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction")
-                                  )),
+				  tolerance=1e-10,
+                                  infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
                       mxComputeStandardError(),
                       mxComputeHessianQuality(),
                     mxComputeOnce('fitfunction', 'gradient'),

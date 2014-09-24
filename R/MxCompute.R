@@ -489,10 +489,8 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' Optimize parameters using the Newton-Raphson algorithm
 ##'
 ##' This optimizer requires analytic 1st and 2nd derivatives of the
-##' fit function. Ramsay (1975) is used to speed convergence. Ramsay
-##' can be differentially applied to different groups of parameters.
-##' Comprehensive diagnostics are available by increasing the verbose
-##' level.
+##' fit function.  Comprehensive diagnostics are available by
+##' increasing the verbose level.
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -504,9 +502,6 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' MxComputeNewtonRaphson-class
 ##' @references
 ##' Luenberger, D. G. & Ye, Y. (2008). \emph{Linear and nonlinear programming.} Springer.
-##' 
-##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
-##' \emph{Psychometrika, 40}(3), 337-360.
 
 mxComputeNewtonRaphson <- function(freeSet=NA_character_, ..., fitfunction='fitfunction', maxIter = 100L,
 				   tolerance=1e-12, verbose=0L)
@@ -784,7 +779,7 @@ setMethod("initialize", "MxComputeEM",
 ##' @param tolerance optimization is considered converged when the maximum relative change in fit is less than tolerance
 ##' @param verbose level of diagnostic output
 ##' @param freeSet names of matrices containing free variables
-##' @param accel name of acceleration method (defaults to "ramsay1975")
+##' @param accel name of acceleration method ("varadhan2008" or "ramsay1975")
 ##' @param information name of information matrix approximation method
 ##' @param infoArgs arguments to control the information matrix method
 ##' @aliases

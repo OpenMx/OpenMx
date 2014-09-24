@@ -778,6 +778,21 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
+template <typename T>
+void FitContext::moveInsideBounds(std::vector<T> &prevEst)
+{
+	for (size_t px=0; px < numParam; ++px) {
+		const double param = est[px];
+		omxFreeVar *fv = varGroup->vars[px];
+		if (param < fv->lbound) {
+			est[px] = prevEst[px] - (prevEst[px] - fv->lbound) / 2;
+		}
+		if (param > fv->ubound) {
+			est[px] = prevEst[px] + (fv->ubound - prevEst[px]) / 2;
+		}
+	}
+}
+
 void FitContext::log(int what)
 {
 	size_t count = varGroup->vars.size();
@@ -1074,57 +1089,40 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
-Ramsay1975::Ramsay1975(FitContext *fc, const char *flavor, int verbose, double minCaution) :
-	fc(fc), flavor(flavor), verbose(verbose), minCaution(minCaution)
-{
-	if (!flavor) Rf_error("Ramsay: flavor cannot be NULL");
+class EMAccel {
+protected:
+	FitContext *fc;
+	int numParam;
+	std::vector<double> prevAdj1;
+	std::vector<double> prevAdj2;
+	int verbose;
 
-	maxCaution = 0.0;
-	boundsHit = 0;
-	caution = 0;
-	highWatermark = std::max(0.5, caution);  // arbitrary guess
+	void recordEstimate(const int px, const double newEst);
+public:
+	EMAccel(FitContext *fc, int verbose) : fc(fc), verbose(verbose) {
+		numParam = fc->varGroup->vars.size();
+		prevAdj1.assign(numParam, 0);
+		prevAdj2.resize(numParam);
+	};
+	virtual ~EMAccel() {};
+	template <typename T> void recordTrajectory(std::vector<T> &prevEst) {
+		prevAdj2 = prevAdj1;
+		for (int px=0; px < numParam; ++px) {
+			prevAdj1[px] = fc->est[px] - prevEst[px];
+		}
+	};
+	virtual void apply() = 0;
+	virtual void recalibrate(bool *restart) = 0;
+};
 
-	numParam = fc->varGroup->vars.size();
-	for (size_t px=0; px < numParam; ++px) {
-		if (strcmp(fc->flavor[px], flavor) != 0) continue;
-		vars.push_back(px);
-	}
-
-	prevAdj1.assign(numParam, 0);
-	prevAdj2.resize(numParam);
-	prevEst.resize(numParam);
-	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
-
-	if (verbose >= 2) {
-		mxLog("Ramsay[%10s]: %d parameters, caution %f, min caution %f",
-		      flavor, (int)vars.size(), caution, minCaution);
-	}
-}
-
-void Ramsay1975::recordEstimate(int px, double newEst)
+void EMAccel::recordEstimate(const int px, const double newEst)
 {
 	omxFreeVar *fv = fc->varGroup->vars[px];
-	bool hitBound=false;
-	double param = newEst;
-	if (param < fv->lbound) {
-		hitBound=true;
-		param = prevEst[px] - (prevEst[px] - fv->lbound) / 2;
-	}
-	if (param > fv->ubound) {
-		hitBound=true;
-		param = prevEst[px] + (fv->ubound - prevEst[px]) / 2;
-	}
-	boundsHit += hitBound;
-	
-	prevAdj2[px] = prevAdj1[px];
-	prevAdj1[px] = param - prevEst[px];
 	
 	if (verbose >= 4) {
 		std::string buf;
-		buf += string_snprintf("Ramsay[%10s]: %d~%s %.4f -> %.4f", flavor, px, fv->name, prevEst[px], param);
-		if (hitBound) {
-			buf += string_snprintf(" wanted %.4f but hit bound", newEst);
-		}
+		buf += string_snprintf("EMAccel: %d~%s %.4f -> %.4f",
+				       px, fv->name, newEst - prevAdj1[px], newEst);
 		if (prevAdj1[px] * prevAdj2[px] < 0) {
 			buf += " *OSC*";
 		}
@@ -1132,47 +1130,88 @@ void Ramsay1975::recordEstimate(int px, double newEst)
 		mxLogBig(buf);
 	}
 
-	fc->est[px] = param;
-	prevEst[px] = param;
+	fc->est[px] = newEst;
+}
+
+class Ramsay1975 : public EMAccel {
+	// Ramsay, J. O. (1975). Solving Implicit Equations in
+	// Psychometric Data Analysis.  Psychometrika, 40(3), 337-360.
+
+	double minCaution;
+	double highWatermark;
+	bool goingWild;
+	void restart(bool myFault);  // no longer in use
+
+public:
+	double maxCaution;
+	double caution;
+
+	Ramsay1975(FitContext *fc, int verbose, double minCaution);
+	virtual void apply();
+	virtual void recalibrate(bool *restart);
+};
+
+// Some evidence suggests that better performance is obtained when the
+// item parameters and latent distribution parameters are split into
+// separate Ramsay1975 groups with different minimum caution limits,
+//
+// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
+// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
+//
+// I had this hardcoded for a while, but in making the API more generic,
+// I'm not sure how to allow specification of the Ramsay1975 grouping.
+// One possibility is list(flavor1=c("ItemParam"), flavor2=c("mean","cov"))
+// but this doesn't allow finer grain than matrix-wise assignment. The
+// other question is whether more Ramsay1975 groups really help or not.
+// nightly/ifa-cai2009.R actually got faster with 1 Ramsay group.
+
+Ramsay1975::Ramsay1975(FitContext *fc, int verbose, double minCaution) :
+	EMAccel(fc, verbose), minCaution(minCaution)
+{
+	maxCaution = 0.0;
+	caution = 0;
+	highWatermark = std::max(0.5, caution);  // arbitrary guess
+
+	if (verbose >= 2) {
+		mxLog("Ramsay: %d parameters, caution %f, min caution %f",
+		      numParam, caution, minCaution);
+	}
 }
 
 void Ramsay1975::apply()
 {
-	for (size_t px=0; px < vars.size(); ++px) {
-		int vx = vars[px];
-		recordEstimate(vx, (1 - caution) * fc->est[vx] + caution * prevEst[vx]);
+	for (int vx=0; vx < numParam; ++vx) {
+		const double prevEst = fc->est[vx] - prevAdj1[vx];
+		recordEstimate(vx, (1 - caution) * fc->est[vx] + caution * prevEst);
 	}
 }
 
 void Ramsay1975::recalibrate(bool *restart)
 {
-	if (vars.size() == 0) return;
+	if (numParam == 0) return;
 
 	double normPrevAdj2 = 0;
 	double normAdjDiff = 0;
 	std::vector<double> adjDiff(numParam);
 
 	// The choice of norm is also arbitrary. Other norms might work better.
-	for (size_t vx=0; vx < vars.size(); ++vx) {
-		int px = vars[vx];
+	for (int px=0; px < numParam; ++px) {
 		adjDiff[px] = prevAdj1[px] - prevAdj2[px];
 		normPrevAdj2 += prevAdj2[px] * prevAdj2[px];
 	}
 
-	for (size_t vx=0; vx < vars.size(); ++vx) {
-		int px = vars[vx];
+	for (int px=0; px < numParam; ++px) {
 		normAdjDiff += adjDiff[px] * adjDiff[px];
 	}
 	if (normAdjDiff == 0) {
 		return;
-		//Rf_error("Ramsay: no free variables of flavor %d", flavor);
 	}
 
 	double ratio = sqrt(normPrevAdj2 / normAdjDiff);
 	//if (verbose >= 3) mxLog("Ramsay[%d]: sqrt(%.5f/%.5f) = %.5f",
 	// flavor, normPrevAdj2, normAdjDiff, ratio);
 
-	double newCaution = 1 - (1-caution) * ratio / (1+boundsHit);
+	double newCaution = 1 - (1-caution) * ratio;
 	if (newCaution > .95) newCaution = .95;  // arbitrary guess
 	if (newCaution < 0) newCaution /= 2;     // don't get overconfident
 	if (newCaution < minCaution) newCaution = minCaution;
@@ -1184,22 +1223,20 @@ void Ramsay1975::recalibrate(bool *restart)
 	maxCaution = std::max(maxCaution, caution);
 	goingWild = false;
 	if (caution < highWatermark || (normPrevAdj2 < 1e-3 && normAdjDiff < 1e-3)) {
-		if (verbose >= 3) mxLog("Ramsay[%10s]: %.2f caution", flavor, caution);
+		if (verbose >= 3) mxLog("Ramsay: %.2f caution", caution);
 	} else {
 		if (verbose >= 3) {
-			mxLog("Ramsay[%10s]: caution %.2f > %.2f, extreme oscillation, restart recommended",
-			      flavor, caution, highWatermark);
+			mxLog("Ramsay: caution %.2f > %.2f, extreme oscillation, restart recommended",
+			      caution, highWatermark);
 		}
 		*restart = TRUE;
 		goingWild = true;
 	}
 	highWatermark += .02; // arbitrary guess
-	boundsHit = 0;
 }
 
 void Ramsay1975::restart(bool myFault)
 {
-	memcpy(prevEst.data(), fc->est, sizeof(double) * numParam);
 	prevAdj1.assign(numParam, 0);
 	prevAdj2.assign(numParam, 0);
 	myFault |= goingWild;
@@ -1209,9 +1246,47 @@ void Ramsay1975::restart(bool myFault)
 		maxCaution = std::max(maxCaution, caution);
 		highWatermark = caution;
 	}
-	if (vars.size() && verbose >= 3) {
-		mxLog("Ramsay[%10s]: restart%s with %.2f caution %.2f highWatermark",
-		      flavor, myFault? " (my fault)":"", caution, highWatermark);
+	if (numParam && verbose >= 3) {
+		mxLog("Ramsay: restart%s with %.2f caution %.2f highWatermark",
+		      myFault? " (my fault)":"", caution, highWatermark);
+	}
+}
+
+class Varadhan2008 : public EMAccel {
+	double alpha;
+public:
+	Varadhan2008(FitContext *fc, int verbose) : EMAccel(fc, verbose) {
+		alpha = 0;
+	};
+	virtual void apply();
+	virtual void recalibrate(bool *restart);
+};
+
+void Varadhan2008::apply()
+{
+	for (int vx=0; vx < numParam; ++vx) {
+		recordEstimate(vx, fc->est[vx]);
+	}
+}
+
+void Varadhan2008::recalibrate(bool *restart)
+{
+	if (numParam == 0) return;
+
+	Eigen::Map< Eigen::VectorXd > rr(&prevAdj2[0], numParam);
+	Eigen::VectorXd vv(numParam);
+	memcpy(vv.data(), &prevAdj1[0], sizeof(double) * numParam);
+	vv -= rr;
+
+	alpha = - rr.norm() / vv.norm();
+	if (alpha > -1) alpha = -1;
+	if (verbose >= 3) mxLog("Varadhan: alpha = %.2f", alpha);
+	//if (alpha < -2) alpha = -2;
+
+	for (int vx=0; vx < numParam; ++vx) {
+		double adj2 = prevAdj1[vx] + prevAdj2[vx];
+		double t0 = fc->est[vx] - adj2;
+		fc->est[vx] = t0 - 2 * alpha * rr[vx] + alpha * alpha * vv[vx];
 	}
 }
 
@@ -1358,7 +1433,10 @@ class ComputeEM : public omxCompute {
 	double tolerance;
 	double semTolerance;
 	int verbose;
+	const char *accelName;
 	bool useRamsay;
+	bool useVaradhan;
+	EMAccel *accel;
 	enum EMInfoMethod {
 		EMInfoNone,
 		EMInfoMengRubinFamily,
@@ -1377,7 +1455,6 @@ class ComputeEM : public omxCompute {
 	SEXP inputInfoMatrix; //debug
 	SEXP outputInfoMatrix; //debug
 	SEXP origEigenvalues; //debug
-	std::vector<Ramsay1975*> ramsay;
 	double noiseTarget;
 	double noiseTolerance;
 	std::vector<double*> estHistory;
@@ -1678,14 +1755,18 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	useRamsay = false;
+	useVaradhan = false;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("accel")));
-	const char *accelName = CHAR(STRING_ELT(slotValue, 0));
+	accelName = CHAR(STRING_ELT(slotValue, 0));
 	if (strEQ(accelName, "ramsay1975")) {
 		useRamsay = true;
+	} else if (strEQ(accelName, "varadhan2008")) {
+		useVaradhan = true;
 	} else if (STRING_ELT(slotValue, 0) == NA_STRING || strEQ(accelName, "")) {
-		// OK
+		accelName = "none";
 	} else {
 		Rf_warning("%s: unknown acceleration method %s ignored", name, accelName);
+		accelName = "none";
 	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("information")));
@@ -1895,29 +1976,18 @@ void ComputeEM::computeImpl(FitContext *fc)
 	EMcycles = 0;
 	semProbeCount = 0;
 
-	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g ramsay=%d info=%d",
-				tolerance, useRamsay, information);
-
-	// Some evidence suggests that better performance is obtained when the
-	// item parameters and latent distribution parameters are split into
-	// separate Ramsay1975 groups with different minimum caution limits,
-	//
-	// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
-	// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
-	//
-	// I had this hardcoded for a while, but in making the API more generic,
-	// I'm not sure how to allow specification of the Ramsay1975 grouping.
-	// One possibility is list(flavor1=c("ItemParam"), flavor2=c("mean","cov"))
-	// but this doesn't allow finer grain than matrix-wise assignment. The
-	// other question is whether more Ramsay1975 groups really help or not.
-	// nightly/ifa-cai2009.R actually got faster with 1 Ramsay group.
+	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
+				tolerance, accelName, information);
 
 	const char *flavor = "EM";
 	fc->flavor.assign(freeVars, flavor);
-	ramsay.push_back(new Ramsay1975(fc, flavor, verbose, -1.25));
+	if (useRamsay) accel = new Ramsay1975(fc, verbose, -1.25);
+	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
 
+	std::vector<double> prevEst(fc->numParam);
 	while (EMcycles < maxIter) {
 		++ EMcycles;
+		memcpy(&prevEst[0], fc->est, sizeof(double) * fc->numParam);
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
 		setExpectationPrediction(predict);
 
@@ -1933,17 +2003,16 @@ void ComputeEM::computeImpl(FitContext *fc)
 		}
 
 		{
-			if (useRamsay) {
+			fc->moveInsideBounds(prevEst);
+			if (accel) {
+				accel->recordTrajectory(prevEst);
+
 				bool wantRestart;
 				// parameterize the delay until the first recalibration? TODO
 				if (EMcycles > 3 && EMcycles % 3 == 0) {
-					for (size_t rx=0; rx < ramsay.size(); ++rx) {
-						ramsay[rx]->recalibrate(&wantRestart);
-					}
+					accel->recalibrate(&wantRestart);
 				}
-				for (size_t rx=0; rx < ramsay.size(); ++rx) {
-					ramsay[rx]->apply();
-				}
+				accel->apply();
 			}
 			fc->copyParamToModel();
 			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
@@ -2326,10 +2395,7 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 
 ComputeEM::~ComputeEM()
 {
-	for (size_t rx=0; rx < ramsay.size(); ++rx) {
-		delete ramsay[rx];
-	}
-	ramsay.clear();
+	if (accel) delete accel;
 
 	delete fit1;
 
