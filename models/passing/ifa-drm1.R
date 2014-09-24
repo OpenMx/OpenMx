@@ -79,9 +79,9 @@ m2 <- mxRun(m2)
 omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .033)
 
 emstat <- m2$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 14, 1)
+omxCheckCloseEnough(emstat$EMcycles, 10, 1)
 omxCheckCloseEnough(emstat$totalMstep, 33, 5)
-omxCheckCloseEnough(m2$output$evaluations, 77, 5)
+omxCheckCloseEnough(m2$output$evaluations, 59, 5)
 
 #print(m2$matrices$item$values)
 #print(correct.mat)

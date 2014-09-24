@@ -192,7 +192,7 @@ omxCheckCloseEnough(summary(grpModel)$informationCriteria['BIC:','par'], 30420.9
 #omxCheckTrue(grpModel$output$infoDefinite)
   
 emstat <- grpModel$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 130, 15)
+omxCheckCloseEnough(emstat$EMcycles, 86, 10)
 #omxCheckCloseEnough(emstat$totalMstep, 334, 40)  # includes latent distribution
 #omxCheckCloseEnough(emstat$semProbeCount, 152, 10)
 

@@ -795,9 +795,13 @@ setMethod("initialize", "MxComputeEM",
 ##' 
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40} (3), 337-360.
+##'
+##' Varadhan, R. & Roland, C. (2008). Simple and globally convergent
+##' methods for accelerating the convergence of any EM
+##' algorithm. \emph{Scandinavian Journal of Statistics, 35}, 335-353.
 mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
 			maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
-			accel="ramsay1975", information=NA_character_, infoArgs=list()) {
+			accel="varadhan2008", information=NA_character_, infoArgs=list()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")

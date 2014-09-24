@@ -91,10 +91,10 @@ semse <- c(0.022, 0.095, 0.116, 0.116, 0.108, 0.176, 0.222, 0.305, 0.382,  0.359
 omxCheckCloseEnough(c(m2$output$standardErrors), semse, .01) # similar to flexMIRT
 
 emstat <- m2$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 37, 2)
-omxCheckCloseEnough(emstat$totalMstep, 116, 10)
+omxCheckCloseEnough(emstat$EMcycles, 19, 2)
+omxCheckCloseEnough(emstat$totalMstep, 85, 10)
 omxCheckCloseEnough(emstat$semProbeCount / length(semse), 3, .1)
-omxCheckCloseEnough(m2$output$evaluations, 1159, 5)
+omxCheckCloseEnough(m2$output$evaluations, 1086, 5)
 
 #print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
