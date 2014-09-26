@@ -209,7 +209,10 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
-		if (scaledTarget / fabs(refFit) < tolerance) return;
+		if (scaledTarget / fabs(refFit) < tolerance) {
+			trial = prevEst;
+			return;
+		}
 		trial = prevEst - speed * searchDir;
 		++minorIter;
 		fc->copyParamToModel();
@@ -243,7 +246,10 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 					name, bestSpeed, bestImproved, goodness);
 		break;
 	}
-	if (bestSpeed == 0) return;
+	if (bestSpeed == 0) {
+		trial = prevEst;
+		return;
+	}
 
 	const double epsilon = .3;
 	if (speed < 1 && goodness < epsilon) {
@@ -278,7 +284,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	*maxAdj = 0;
 	for (size_t px=0; px < numParam; ++px) {
-		double oldEst = fc->est[px];
+		const double oldEst = prevEst[px];
 		double badj = fabs(oldEst - trial(px));
 		if (*maxAdj < badj) {
 			*maxAdj = badj;
@@ -286,7 +292,6 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			*maxAdjParam = px;
 		}
 	}
-	memcpy(fc->est, trial.data(), sizeof(double) * numParam);
 
 	*improvement = bestImproved;
 	refFit = bestFit;
