@@ -1113,6 +1113,7 @@ public:
 	};
 	virtual void apply() = 0;
 	virtual void recalibrate(bool *restart) = 0;
+	virtual bool retry() { return false; };
 };
 
 void EMAccel::recordEstimate(const int px, const double newEst)
@@ -1253,6 +1254,8 @@ void Ramsay1975::restart(bool myFault)
 }
 
 class Varadhan2008 : public EMAccel {
+	bool retried;
+	double maxAlpha;
 	double alpha;
 	Eigen::Map< Eigen::VectorXd > rr;
 	Eigen::VectorXd vv;
@@ -1262,9 +1265,12 @@ public:
 		EMAccel(fc, verbose), rr(&prevAdj2[0], numParam), vv(numParam)
 	{
 		alpha = 0;
+		maxAlpha = 0;
+		retried = false;
 	};
 	virtual void apply();
 	virtual void recalibrate(bool *restart);
+	virtual bool retry();
 };
 
 void Varadhan2008::apply()
@@ -1292,11 +1298,27 @@ void Varadhan2008::recalibrate(bool *restart)
 	memcpy(vv.data(), &prevAdj1[0], sizeof(double) * numParam);
 	vv -= rr;
 
+	if (maxAlpha && !retried && alpha > 0) maxAlpha = alpha*2;
 	double newAlpha = rr.norm() / vv.norm();
 	alpha = newAlpha - 0.5;     // slightly more conservative seems to help
 	if (alpha < 1) alpha = 1;
+	if (maxAlpha && alpha > maxAlpha) alpha = maxAlpha;
 
 	moveEst();
+	retried = false;
+}
+
+bool Varadhan2008::retry()
+{
+	if (alpha == 1) return false;
+
+	retried = true;
+	alpha = alpha / 4;
+	maxAlpha = alpha;
+	if (alpha < 1.5) alpha = 1;
+	if (verbose >= 3) mxLog("Varadhan: retry with alpha = %.2f", alpha);
+	moveEst();
+	return true;
 }
 
 omxCompute::omxCompute()
@@ -2035,12 +2057,23 @@ void ComputeEM::computeImpl(FitContext *fc)
 			bool wantRestart;
 			// parameterize the delay until the first recalibration? TODO
 			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
+				Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
+				Eigen::VectorXd preAccel = pVec;
 				accel->recalibrate(&wantRestart);
+				observedFit(fc);
+				while (0 && prevFit < fc->fit) {
+					pVec = preAccel;
+					if (!accel->retry()) break;
+					observedFit(fc);
+				}
+			} else {
+				observedFit(fc);
 			}
-			accel->apply();
-		}
 
-		observedFit(fc);
+			accel->apply();
+		} else {
+			observedFit(fc);
+		}
 
 		double change = 0;
 		if (prevFit != 0) {
