@@ -808,6 +808,7 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	}
 	verbose <- as.integer(verbose)
 	maxIter <- as.integer(maxIter)
+	accel <- as.character(accel)
 	new("MxComputeEM", expectation, predict, mstep, observedFit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
