@@ -363,6 +363,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		}
 
 		if (strcmp(what, "scores")==0) {
+			state->expectedUsed = true;
 			state->type = EXPECTATION_AUGMENTED;
 		} else if (strcmp(what, "nothing")==0) {
 			state->type = EXPECTATION_OBSERVED;
@@ -394,7 +395,7 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 		state->grp.ba81OutcomeProb(param, FALSE);
 
 		bool estep = state->expectedUsed;
-		if (state->expectedUsed) {
+		if (estep) {
 			if (quad.numSpecific == 0) {
 				if (oo->dynamicDataSource) {
 					BA81Engine<typeof(state), BA81Dense, BA81LatentSummary, BA81Estep> engine;
@@ -412,7 +413,6 @@ ba81compute(omxExpectation *oo, const char *what, const char *how)
 					engine.ba81Estep1(&state->grp, state);
 				}
 			}
-			state->expectedUsed = false;
 		} else {
 			Free(state->expected);
 			refreshPatternLikelihood(state, oo->dynamicDataSource);
@@ -564,7 +564,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	ba81NormalQuad &quad = state->getQuad();
 	quad.setOne(state->LargestDouble);
 
-	state->expectedUsed = true;
+	state->expectedUsed = false;
 
 	state->estLatentMean = NULL;
 	state->estLatentCov = NULL;
