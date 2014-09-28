@@ -1470,6 +1470,7 @@ class ComputeEM : public omxCompute {
 	int semProbeCount;
 
 	void setExpectationPrediction(const char *context);
+	void observedFit(FitContext *fc);
 	bool probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
 	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			double *stdDiff, bool *mengOK);
@@ -1965,6 +1966,21 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 				p1, p2, *mengOK, diff / freeVars, *stdDiff);
 }
 
+void ComputeEM::observedFit(FitContext *fc)
+{
+	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
+	setExpectationPrediction("nothing");
+	fc->copyParamToModel();
+	ComputeFit(fit3, FF_COMPUTE_FIT, fc);
+
+	if (!(fc->wanted & FF_COMPUTE_FIT)) {
+		omxRaiseErrorf("ComputeEM: fit not available");
+	}
+	if (fc->fit == 0) {
+		omxRaiseErrorf("Fit estimated at 0; something is wrong");
+	}
+}
+
 void ComputeEM::computeImpl(FitContext *fc)
 {
 	const double Scale = fabs(Global->llScale);
@@ -1999,39 +2015,25 @@ void ComputeEM::computeImpl(FitContext *fc)
 			int startIter = fc1->iterations;
 			fit1->compute(fc1);
 			mstepIter = fc1->iterations - startIter;
+			totalMstepIter += mstepIter;
 			fc1->updateParentAndFree();
 			fc->inform = informSave;
 		}
 
-		{
-			fc->moveInsideBounds(prevEst);
-			if (accel) {
-				accel->recordTrajectory(prevEst);
+		fc->moveInsideBounds(prevEst);
+		if (accel) {
+			accel->recordTrajectory(prevEst);
 
-				bool wantRestart;
-				// parameterize the delay until the first recalibration? TODO
-				if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
-					accel->recalibrate(&wantRestart);
-				}
-				accel->apply();
+			bool wantRestart;
+			// parameterize the delay until the first recalibration? TODO
+			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
+				accel->recalibrate(&wantRestart);
 			}
-			fc->copyParamToModel();
-			if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
-			setExpectationPrediction("nothing");
-
-			ComputeFit(fit3, FF_COMPUTE_FIT, fc);
+			accel->apply();
 		}
 
-		totalMstepIter += mstepIter;
+		observedFit(fc);
 
-		if (!(fc->wanted & FF_COMPUTE_FIT)) {
-			omxRaiseErrorf("ComputeEM: fit not available");
-			break;
-		}
-		if (fc->fit == 0) {
-			omxRaiseErrorf("Fit estimated at 0; something is wrong");
-			break;
-		}
 		double change = 0;
 		if (prevFit != 0) {
 			change = (prevFit - fc->fit) / fc->fit;
