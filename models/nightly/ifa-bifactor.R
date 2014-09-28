@@ -89,9 +89,9 @@ m1 <- mxModel(m1,
 m1 <- mxRun(m1, silent=TRUE)
 
 emstat <- m1$compute$output
-omxCheckCloseEnough(emstat$EMcycles, 34, 2)
-omxCheckCloseEnough(emstat$totalMstep, 89, 10)
-omxCheckCloseEnough(m1$output$evaluations, 179, 5)
+omxCheckCloseEnough(emstat$EMcycles, 42, 2)
+omxCheckCloseEnough(emstat$totalMstep, 104, 10)
+omxCheckCloseEnough(m1$output$evaluations, 211, 5)
 
 #print(correct.mat)
 #print(m1$matrices$item$values)
@@ -142,4 +142,4 @@ swse <- c(0.255, 0.333, 0.13, 0.133, 0.145, 0.082, 0.464, 0.291,  0.17, 0.161, 0
           0.236, 0.261, 0.168, 0.171, 0.22, 0.129,  0.205, 0.206, 0.11, 0.158, 0.163, 0.103)
 
 #cat(deparse(round(i2$output$standardErrors,3)))
-omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
+omxCheckCloseEnough(c(i2$output$standardErrors), swse, .01)

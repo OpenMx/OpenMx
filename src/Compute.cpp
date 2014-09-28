@@ -1310,13 +1310,12 @@ void Varadhan2008::recalibrate(bool *restart)
 
 bool Varadhan2008::retry()
 {
+	retried = true;
 	if (alpha == 1) return false;
 
-	retried = true;
 	alpha = alpha / 4;
-	maxAlpha = alpha;
 	if (alpha < 1.5) alpha = 1;
-	if (verbose >= 3) mxLog("Varadhan: retry with alpha = %.2f", alpha);
+	maxAlpha = alpha;
 	moveEst();
 	return true;
 }
@@ -2061,7 +2060,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 				Eigen::VectorXd preAccel = pVec;
 				accel->recalibrate(&wantRestart);
 				observedFit(fc);
-				while (0 && prevFit < fc->fit) {
+				while (prevFit < fc->fit) {
 					pVec = preAccel;
 					if (!accel->retry()) break;
 					observedFit(fc);
