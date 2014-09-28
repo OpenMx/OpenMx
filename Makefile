@@ -229,7 +229,7 @@ memorytest:
 
 autodep:
 	@echo "WARNING: These dependencies are not exact because they don't consider #defined CPP macros."
-	cd src && gcc -MM *.cpp | perl -pe 's,\b(unsupported/)?Eigen[^\s]+, ,g' | perl -pe 's,^\s*\\\n,,' | perl -pe 's,:,: Makevars.in,' > autodep
+	cd src && gcc -MM *.cpp | perl -pe 's,[^\s]+/RcppEigen/[^\s]+, ,g' | perl -pe 's,^\s*\\\n,,' | perl -pe 's,:,: Makevars.in,' > autodep
 
 clean:
 	-rm build/OpenMx_*.tar.gz
