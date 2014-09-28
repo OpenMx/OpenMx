@@ -1254,8 +1254,13 @@ void Ramsay1975::restart(bool myFault)
 
 class Varadhan2008 : public EMAccel {
 	double alpha;
+	Eigen::Map< Eigen::VectorXd > rr;
+	Eigen::VectorXd vv;
+	void moveEst();
 public:
-	Varadhan2008(FitContext *fc, int verbose) : EMAccel(fc, verbose) {
+	Varadhan2008(FitContext *fc, int verbose) :
+		EMAccel(fc, verbose), rr(&prevAdj2[0], numParam), vv(numParam)
+	{
 		alpha = 0;
 	};
 	virtual void apply();
@@ -1269,26 +1274,29 @@ void Varadhan2008::apply()
 	}
 }
 
-void Varadhan2008::recalibrate(bool *restart)
+void Varadhan2008::moveEst()
 {
-	if (numParam == 0) return;
-
-	Eigen::Map< Eigen::VectorXd > rr(&prevAdj2[0], numParam);
-	Eigen::VectorXd vv(numParam);
-	memcpy(vv.data(), &prevAdj1[0], sizeof(double) * numParam);
-	vv -= rr;
-
-	double newAlpha = - rr.norm() / vv.norm();
-	alpha = 0.5 + newAlpha;     // slightly more conservative seems to help
-	if (alpha > -1) alpha = -1;
-
-	if (verbose >= 3) mxLog("Varadhan: newAlpha = %.2f alpha = %.2f", newAlpha, alpha);
+	if (verbose >= 3) mxLog("Varadhan: alpha = %.2f", alpha);
 
 	for (int vx=0; vx < numParam; ++vx) {
 		double adj2 = prevAdj1[vx] + prevAdj2[vx];
 		double t0 = fc->est[vx] - adj2;
-		fc->est[vx] = t0 - 2 * alpha * rr[vx] + alpha * alpha * vv[vx];
+		fc->est[vx] = t0 + 2 * alpha * rr[vx] + alpha * alpha * vv[vx];
 	}
+}
+
+void Varadhan2008::recalibrate(bool *restart)
+{
+	if (numParam == 0) return;
+
+	memcpy(vv.data(), &prevAdj1[0], sizeof(double) * numParam);
+	vv -= rr;
+
+	double newAlpha = rr.norm() / vv.norm();
+	alpha = newAlpha - 0.5;     // slightly more conservative seems to help
+	if (alpha < 1) alpha = 1;
+
+	moveEst();
 }
 
 omxCompute::omxCompute()
@@ -1969,7 +1977,6 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 void ComputeEM::observedFit(FitContext *fc)
 {
 	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
-	setExpectationPrediction("nothing");
 	fc->copyParamToModel();
 	ComputeFit(fit3, FF_COMPUTE_FIT, fc);
 
@@ -2020,6 +2027,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			fc->inform = informSave;
 		}
 
+		setExpectationPrediction("nothing");
 		fc->moveInsideBounds(prevEst);
 		if (accel) {
 			accel->recordTrajectory(prevEst);
