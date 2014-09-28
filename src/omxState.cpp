@@ -16,6 +16,7 @@
 
 #include <stdarg.h>
 #include <errno.h>
+#include <set>
 
 #include "omxState.h"
 #include "Compute.h"
@@ -195,6 +196,19 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
+struct ciCmp {
+	bool operator() (const omxConfidenceInterval* x, const omxConfidenceInterval* y) const
+	{
+		if (x->matrix->matrixNumber != y->matrix->matrixNumber) {
+			return x->matrix->matrixNumber < y->matrix->matrixNumber;
+		} else if (x->row != y->row) {
+			return x->row < y->row;
+		} else {
+			return x->col < y->col;
+		}
+	}
+};
+
 void omxGlobal::unpackConfidenceIntervals()
 {
 	if (unpackedConfidenceIntervals) return;
@@ -203,11 +217,15 @@ void omxGlobal::unpackConfidenceIntervals()
 	// take care to preserve order
 	std::vector<omxConfidenceInterval*> tmp;
 	std::swap(tmp, intervalList);
+	std::set<omxConfidenceInterval*, ciCmp> uniqueCIs;
 
 	for (int ix=0; ix < (int) tmp.size(); ++ix) {
 		omxConfidenceInterval *ci = tmp[ix];
 		if (!ci->isWholeAlgebra()) {
-			intervalList.push_back(ci);
+			if (uniqueCIs.count(ci) == 0) {
+				uniqueCIs.insert(ci);
+				intervalList.push_back(ci);
+			}
 			continue;
 		}
 		omxMatrix *mat = ci->matrix;
@@ -218,7 +236,12 @@ void omxGlobal::unpackConfidenceIntervals()
 				cell->name = CHAR(Rf_mkChar(name.c_str()));
 				cell->row = rx;
 				cell->col = cx;
-				intervalList.push_back(cell);
+				if (uniqueCIs.count(ci) == 0) {
+					uniqueCIs.insert(ci);
+					intervalList.push_back(cell);
+				} else {
+					delete cell;
+				}
 			}
 		}
 		delete ci;
