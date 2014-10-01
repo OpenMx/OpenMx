@@ -139,6 +139,8 @@ computeFValue <- function(datalist, likelihood, chi) {
 		{x@type == 'raw'}))) return(likelihood)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'cov'}))) return(chi)
+	if(all(sapply(datalist, function(x) 
+		{x@type == 'cor'}))) return(chi)
 	return(NA)
 }
 
