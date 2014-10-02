@@ -203,8 +203,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	if (fitMatrix->rows == 1) {
 		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 			std::string diag = fc->getIterationError();
-			omxRaiseErrorf("MxComputeGradientDescent: fitfunction %s evaluated to %f (%s)",
-				       fitMatrix->name, fc->fit, diag.c_str());
+			omxRaiseErrorf("MxComputeGradientDescent: fitfunction %s is not finite (%s)",
+				       fitMatrix->name, diag.c_str());
 			return;
 		}
 	}
