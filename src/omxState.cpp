@@ -236,8 +236,8 @@ void omxGlobal::unpackConfidenceIntervals()
 				cell->name = CHAR(Rf_mkChar(name.c_str()));
 				cell->row = rx;
 				cell->col = cx;
-				if (uniqueCIs.count(ci) == 0) {
-					uniqueCIs.insert(ci);
+				if (uniqueCIs.count(cell) == 0) {
+					uniqueCIs.insert(cell);
 					intervalList.push_back(cell);
 				} else {
 					delete cell;
