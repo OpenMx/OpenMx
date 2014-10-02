@@ -39,7 +39,7 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 #' OpenMx: An package for Structural Equation Modeling and Matrix Algebra Optimization
 #'
 #' OpenMx is a package for structural equation modeling, matrix algebra optimization and other statistical estimation problems. 
-#' Try the example below. Have a look at the references and at functions like \code{\link{umxRun}} to learn more.
+#' Try the example below. We try and have useful help files: for instance help(\code{\link{mxRun}}) to learn more. Also the reference manual
 #'
 #' @details OpenMx solves algebra optimization and statistical estimation problems using matrix algebra. 
 #' Most users use it for Structural equation modeling.
