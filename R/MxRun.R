@@ -235,7 +235,7 @@ mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHe
     params <- omxGetParameters(model)
     numdone <- numdone+1
     fit <- try(mxRun(model,suppressWarnings=T,...))
-    if(class(fit)=="try-error"){
+    if(class(fit)=="try-error" || fit$output$status$status == -1 ){ #<--Check for -1 status suggested by Charlie Driver
       model <- omxSetParameters(model,labels=names(params),values=params*runif(length(params),loc-scale,loc+scale))
     }
     else{
@@ -258,12 +258,12 @@ mxTryHard <- function(model,extraTries=10,greenOK=FALSE,loc=1,scale=0.25,checkHe
       #stopBecauseMaxTries <- ifelse(stopflag,FALSE,TRUE)
       stopflag <- TRUE
   }}
-  if(class(fit)!="try-error"){
+  if(class(fit)!="try-error" & fit$output$status$status > -1){
     #If bestfit exists and has smaller objective function value than most recent fit, use bestfit instead:
     if(exists("bestfit")){if(bestfit$output$minimum<fit$output$minimum){fit <- bestfit; params <- bestfit.params}}
     if(length(summary(fit)$npsolMessage)>0){warning(summary(fit)$npsolMessage)}
   }
-  #If most recent try ended in error and bestfit exists, then of course use bestfit:
+  #If most recent try ended in error or optimization failed, and bestfit exists, then of course use bestfit:
   else{if(exists("bestfit")){
     fit <- bestfit; params <- bestfit.params
     if(length(summary(fit)$npsolMessage)>0){warning(summary(fit)$npsolMessage)}
