@@ -165,7 +165,10 @@ Jor82Ex1 <- mxModel(
 #Jor82Ex1 <- mxOption(Jor82Ex1, "Standard Errors", "No")
 #Jor82Ex1 <- mxOption(Jor82Ex1, "Major iterations", 0)
 
-ex1Run <- mxRun(Jor82Ex1)
+ex1Run <- omxCheckWarning(mxRun(Jor82Ex1),
+                          paste("OpenMx does not yet correctly handle mxData(type='cor')",
+                                'standard errors and fit statistics.',
+                                'See Steiger (1980), "Tests for comparing elements of a correlation matrix".'))
 
 summary(ex1Run)
 
