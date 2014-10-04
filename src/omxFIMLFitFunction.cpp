@@ -163,14 +163,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		// MCN Also do the threshold formulae!
 		
 		for(int j=0; j < dataColumns->cols; j++) {
-			if (!omxDataColumnIsFactor(data, j)) continue;
 			int var = omxVectorElement(dataColumns, j);
-			// should catch this earlier TODO
-			if (var >= int(thresholdCols.size())) {
-				Rf_error("Column '%s' is ordinal but has no thresholds",
-					 omxDataColumnName(data, var));
-			}
-			if(thresholdCols[var].numThresholds > 0) { // j is an ordinal column
+			if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[var].matrix;
 				omxRecompute(nextMatrix, want, fc);
 				checkIncreasing(nextMatrix, thresholdCols[var].column);
