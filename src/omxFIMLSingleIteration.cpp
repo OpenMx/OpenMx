@@ -226,13 +226,12 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
                 mxLog("\n\nRemovals: %d ordinal, %d continuous out of %d total.", numOrdRemoves, numContRemoves, dataColumns->cols);
             }
     		
-			for(int j=0; j < dataColumns->cols; j++) {
-				int var = omxVectorElement(dataColumns, j);
-				if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-					omxRecompute(thresholdCols[var].matrix, FF_COMPUTE_FIT, fc); // Only one of these--save time by only doing this once
-					checkIncreasing(thresholdCols[var].matrix, thresholdCols[var].column);
-				}
-			}
+	    for(int j=0; j < dataColumns->cols; j++) {
+		    int var = omxVectorElement(dataColumns, j);
+		    if(!omxDataColumnIsFactor(data, var) || thresholdCols[j].numThresholds == 0) continue;
+		    omxRecompute(thresholdCols[j].matrix, FF_COMPUTE_FIT, fc); // Only one of these--save time by only doing this once
+		    checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
+	    }
             numContinuous = dataColumns->cols - numContRemoves;
             numOrdinal = dataColumns->cols - numOrdRemoves;
 

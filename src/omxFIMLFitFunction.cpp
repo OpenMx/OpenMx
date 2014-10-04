@@ -164,10 +164,11 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		
 		for(int j=0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
-			if(omxDataColumnIsFactor(data, j) && thresholdCols[var].numThresholds > 0) { // j is an ordinal column
-				omxMatrix* nextMatrix = thresholdCols[var].matrix;
+			if (!omxDataColumnIsFactor(data, var)) continue;
+			if(thresholdCols[j].numThresholds > 0) { // j is an ordinal column
+				omxMatrix* nextMatrix = thresholdCols[j].matrix;
 				omxRecompute(nextMatrix, want, fc);
-				checkIncreasing(nextMatrix, thresholdCols[var].column);
+				checkIncreasing(nextMatrix, thresholdCols[j].column);
 				for(int index = 0; index < numChildren; index++) {
 					FitContext *kid = fc->childList[index];
 					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
