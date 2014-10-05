@@ -7,7 +7,7 @@ m1 <- mxModel("m1", type="RAM",
 	manifestVars = manifests, latentVars   = latents,
 	mxPath(from = latents, to = manifests),
 	mxPath(from = manifests, arrows = 2, labels = paste0(manifests, "_resid")),
-	mxPath(from = latents, arrows = 2, free = F, values = 1), # latents fixed@1
+	mxPath(from = latents, arrows = 2, free = F, values = 1), # latents fixed at 1
 	mxData(cov(myFADataRaw, use="complete"), type = "cov", numObs = nrow(myFADataRaw))
 )
 m1 = mxRun(m1)
@@ -25,8 +25,8 @@ q()
 # Add and run 1 CI im each of two models. then concatenate the two model's CIs
 tmp1 = mxRun(mxModel(m1, mxCI("x1_resid")), intervals = T)
 tmp2 = mxRun(mxModel(m1, mxCI("x1_resid")), intervals = T)
-a = tmp1@output$confidenceIntervals
-b = tmp2@output$confidenceIntervals
+a = tmp1$output$confidenceIntervals
+b = tmp2$output$confidenceIntervals
 a_names = attr(a, "dimnames")[[1]]
 b_names = attr(b, "dimnames")[[1]]
 all_names = c(a_names, b_names)
