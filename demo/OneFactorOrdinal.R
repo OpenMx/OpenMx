@@ -25,54 +25,16 @@ oneFactorOrd$z1 <- mxFactor(oneFactorOrd$z1, levels=c(0, 1))
 oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 oneFactorOrd$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-	oneFactorModel <- mxModel("Common Factor Model Path Specification", 
-	type="RAM",
-	mxData(
-		observed=oneFactorOrd,
-		type="raw"
-	),
+oneFactorModel <- mxModel("Common Factor Model Path Specification", type = "RAM",
+	mxData(observed=oneFactorOrd, type = "raw"),
 	manifestVars=c("z1","z2","z3"),
 	latentVars="F1",
 	# residual variances
-	mxPath(
-		from=c("z1","z2","z3"),
-		arrows=2,
-		free=FALSE,
-		values=c(1,1,1),
-		labels=c("e1","e2","e3")
-	),
-	# latent variance
-	mxPath(
-		from="F1",
-		arrows=2,
-		free=TRUE,
-		values=1,
-		labels ="varF1"
-	),
-	# factor loadings
-	mxPath(
-		from="F1",
-		to=c("z1","z2","z3"),
-		arrows=1,
-		free=c(FALSE,TRUE,TRUE),
-		values=c(1,1,1),
-		labels=c("l1","l2","l3")
-	),
-	# means
-	mxPath(
-		from="one",
-		to=c("z1","z2","z3","F1"),
-		arrows=1,
-		free=FALSE,
-		values=0,
-		labels=c("meanz1","meanz2","meanz3","meanF")
-	),
-	# thresholds
-	mxThreshold(vars=c("z1", "z2", "z3"),
-		nThresh=c(1,1,2),
-		free=TRUE,
-		values=c(-1, 0, -.5, 1.2)
-		)
+	mxPath(from=c("z1","z2","z3"), arrows=2, free=F, values=c(1,1,1), labels=c("e1","e2","e3")), # latent variance
+	mxPath(from="F1", arrows=2, free=T, values=1, labels ="varF1"), # factor loadings
+	mxPath(from="F1", to=c("z1","z2","z3"), arrows=1, free=c(F,T,T), values=c(1,1,1), labels=c("l1","l2","l3")), # means
+	mxPath(from="one", to=c("z1","z2","z3","F1"), arrows=1, free=F, values=0, labels=paste("meanz", c(1:3, "F"))), # thresholds
+	mxThreshold(vars=c("z1", "z2", "z3"), nThresh=c(1,1,2), free=T, values=c(-1, 0, -.5, 1.2))
 ) # close model
 
 oneFactorResults <- mxRun(oneFactorModel)
@@ -85,54 +47,21 @@ oneFactorJoint$z1 <- mxFactor(oneFactorOrd$z1, levels=c(0, 1))
 oneFactorJoint$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
 oneFactorJoint$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-    oneFactorJointModel <- mxModel("Common Factor Model Path Specification", 
-        type="RAM",
-        mxData(
-            observed=oneFactorJoint,
-            type="raw"
-        ),
-        manifestVars=c("x1", "x2", "x3", "z1","z2","z3"),
-        latentVars="F1",
-        # residual variances
-        mxPath(
-            from=c("x1", "x2", "x3", "z1","z2","z3"),
-            arrows=2,
-            free=c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
-            values=1,
-            labels=c("e1","e2","e3","e4","e5","e6")
-        ),
-        # latent variance
-        mxPath(
-            from="F1",
-            arrows=2,
-            free=FALSE,
-            values=1,
-            labels ="varF1"
-        ),
-        # factor loadings
-        mxPath(
-            from="F1",
-            to=c("x1", "x2", "x3", "z1","z2","z3"),
-            arrows=1,
-            free=TRUE,
-            values=1,
-            labels=c("l1","l2","l3","l4","l5","l6")
-        ),
-        # means
-        mxPath(
-            from="one",
-            to=c("x1", "x2", "x3","z1","z2","z3","F1"),
-            arrows=1,
-            free=c(TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE),
-            values=0,
-            labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")
-        ),
-	# thresholds
-	mxThreshold(vars=c("z1", "z2", "z3"),
-		nThresh=c(1,1,2),
-		free=TRUE,
-		values=c(-1, 0, -.5, 1.2)
-		)
+oneFactorJointModel <- mxModel("Common Factor Model Path Specification", type="RAM",
+	mxData(observed=oneFactorJoint, type="raw"),
+	manifestVars=c("x1", "x2", "x3", "z1","z2","z3"),
+	latentVars="F1",
+	# residual variances
+	mxPath(from=c("x1", "x2", "x3", "z1","z2","z3"), arrows=2, 
+		   free=c(T, T, T, F, F, F), values=1, 
+		   labels=c("e1","e2","e3","e4","e5","e6")), # latent variance
+	mxPath(from="F1", arrows=2, free=F, values=1, labels ="varF1"), # factor loadings
+	mxPath(from="F1", to=c("x1", "x2", "x3", "z1","z2","z3"), arrows=1, free=T, values=1, 
+	       labels=c("l1","l2","l3","l4","l5","l6")), # means
+	mxPath(from="one", to=c("x1", "x2", "x3","z1","z2","z3","F1"), arrows=1, 
+	       free=c(T,T,T,F,F,F,F), values=0, 
+		   labels=c("meanx1","meanx2","meanx3","meanz1","meanz2","meanz3","meanF")), # thresholds
+	mxThreshold(vars=c("z1", "z2", "z3"), nThresh=c(1,1,2), free=T, values=c(-1, 0, -.5, 1.2))
 ) # close model
 
-oneFactorJointResults <- mxRun(oneFactorJointModel)
+oneFactorJointModelFit <- mxRun(oneFactorJointModel)
