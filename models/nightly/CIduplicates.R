@@ -31,7 +31,7 @@ a_names = attr(a, "dimnames")[[1]]
 b_names = attr(b, "dimnames")[[1]]
 all_names = c(a_names, b_names)
 all_CIs = rbind(a, b)
-tmp1@output$confidenceIntervals = all_CIs
+tmp1$output$confidenceIntervals = all_CIs
 summary(tmp1)
 # confidence intervals:
 #      lbound  estimate    ubound note
