@@ -34,14 +34,18 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE)
    list is treated as NULL, and a list of length one as row names. The
    list can be named, and the list names will be used as names for the
    dimensions.}
-   \item{...}{Not used.  Forces argument 'fixed' to be specified by name.}
+   \item{...}{Not used.  Forces argument \sQuote{fixed} to be specified by name.}
    \item{fixed}{If TRUE, this algebra will not be recomputed
      automatically when things it depends on change. \link{mxComputeOnce}
      can be used to force it to recompute.}
 }
 
 \details{
-The mxAlgebra function is used to create algebraic expressions that operate on one or more \link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} objects and the \code{mxFitFunctionAlgebra} function. The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
+The mxAlgebra function is used to create algebraic expressions that operate on one or more 
+\link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, 
+it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} 
+objects and the \code{mxFitFunctionAlgebra} function. 
+The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
 
 The following operators and functions are supported in mxAlgebra:
 
@@ -95,12 +99,12 @@ Functions
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix (similar to \link{diag}) }
 \item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
 \item{\code{\link{omxAllInt}}}{All cells Multivariate Normal Integration}
-\item{\code{\link[=omxLogical]{omxNot}}}{Perform unary negation on a matrix}
-\item{\code{\link[=omxLogical]{omxAnd}}}{Perform binary and on two matrices}
-\item{\code{\link[=omxLogical]{omxOr}}}{Perform binary or on two matrices}
-\item{\code{\link[=omxLogical]{omxGreaterThan}}}{Perform binary greater on two matrices}
-\item{\code{\link[=omxLogical]{omxLessThan}}}{Perform binary less than on two matrices}
-\item{\code{\link[=omxLogical]{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
+\item{\code{\link{omxNot}}}{Perform unary negation on a matrix}
+\item{\code{\link{omxAnd}}}{Perform binary and on two matrices}
+\item{\code{\link{omxOr}}}{Perform binary or on two matrices}
+\item{\code{\link{omxGreaterThan}}}{Perform binary greater on two matrices}
+\item{\code{\link{omxLessThan}}}{Perform binary less than on two matrices}
+\item{\code{\link{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
 \item{\code{omxExponential}}{Matrix Exponential}
 }}
 
@@ -114,7 +118,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \seealso{
 \link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxFitFunctionAlgebra} for an objective function which takes an  MxAlgebra or MxMatrix object as the function to be minimized. 
-\link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the 'expression' argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the \code{expression} argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{
