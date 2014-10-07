@@ -1,5 +1,30 @@
 trunk
 =====
+* Fix array indexing of ordinal thresholds (when there are unused columns in observed data)
+* Add warning for data.type='cor'
+* removing link to non-existant function in OpenMx [doc]
+* Avoid stringification of non-finite numbers
+* Charlie Driver pointed out that mxTryHard() fit attempts that result
+  in npsolstatus -1 should be treated similarly to fit attempts ending
+  in error
+* Fix bug in summary for AIC/BIC with cor data.
+* Drop duplicates from CI list
+* Prevent acceleration of worsening fit
+* BA81: Make E-step optimization less fragile
+
+Release 2.0.beta3-3838 (Sep 26, 2014)
+=======================================
+* Constrain GRM item parameters more sensibly
+* Newton-Raphson: Restore feasible parameter vector when fit obtains NaN
+* Hopefully, fix performance decrement in FIML.
+* Begin EM acceleration 1 cycle earlier
+* Switch default EM acceleration to varadhan2008
+* Reorg EM acceleration; add Varadhan & Roland (2008)
+* Return SEs as "not requested" strings when argument SE=FALSE in mxStandardizeRAMpaths()
+* Cope with observed data matrix with no NAs (observed data.frame not affected)
+* Mention fomulation of IFA independence model [doc]
+* Drop support for non-double matrices
+* CSOLNP: memory issue and reporting starting values as optimal parameters
 * (Re?)enable parallel processing for confidence intervals
 * Grab Eigen from RcppEigen
 * Add ordinal ML/WLS test with both model identifications
