@@ -30,6 +30,16 @@ require(OpenMx)
 
 #load("wlsTest1.RData")
 
+f1 <- ordered(c("a","b"), levels=c("a","b"))
+f1 <- omxCheckWarning(ordered(f1, levels=c("b"), exclude="a"),
+                      "NAs introduced by coercion")
+
+f2 <- mxFactor(c("a","b"), levels=c("a","b"))
+f2 <- omxCheckWarning(mxFactor(f2, levels=c("b"), exclude="a"), NA)
+
+omxCheckEquals(f1[2], f2[2])
+omxCheckEquals(is.na(f1), is.na(f2))
+omxCheckEquals(levels(f1), levels(f2))
 
 #------------------------------
 # Generate data

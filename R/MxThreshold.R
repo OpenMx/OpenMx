@@ -385,6 +385,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 }
 
 factorize <- function(x, levels, labels, exclude) {
+	x <- as.character(x)
 	if (length(exclude) && all(!is.na(exclude))) {
 		overlap <- match(exclude, levels)
 		if (any(!is.na(overlap))) {
