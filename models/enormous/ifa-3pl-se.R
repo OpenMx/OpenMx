@@ -139,7 +139,7 @@ if (0) {
   fit <- mirt(sapply(m1$data$observed, unclass)-1, 1, "3PL", pars=val,
        constrain=list(gnum[1:6], gnum[7:12], gnum[13:18], gnum[19:24], gnum[25:30]),
        SE=TRUE, SE.type="complete")
-  fit@information
+  fit$information
 }
 
 if (0) {
