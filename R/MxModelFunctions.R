@@ -81,7 +81,7 @@ buildFreeVarGroupList <- function(flatModel) {
 generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
 	mList <- flatModel@matrices
 	pList <- list()
-	for(i in 1:length(mList)) {
+	if (length(mList)) for(i in 1:length(mList)) {
 		matrix <- mList[[i]]
 		pList <- generateParameterListHelper(matrix, pList, i - 1L, freeVarGroups)
 	}
