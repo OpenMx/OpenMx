@@ -42,8 +42,9 @@ setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 				algebraNumber - 1L
 			}, 1L)
 			if (any(is.na(.Object@groups))) {
-				stop(paste("Cannot locate algebra/fitfunction",
-					   omxQuotes(origGroups[is.na(algebraNumber)])))
+				stop(paste(name,": cannot locate algebra/fitfunction ",
+					   omxQuotes(origGroups[is.na(.Object@groups)]), sep=""),
+				     call. = FALSE)
 			}
 		}
 		return(.Object)

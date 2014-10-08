@@ -83,3 +83,6 @@ if (1) {
 	omxCheckError(mxRun(model, suppressWarnings = TRUE), "The job for model 'vector' exited abnormally with the error message: 1:vector.fitfunction[0]: uniRegModelRaw.fitfunction of type imxFitFunctionFIML does not evaluate to a 1x1 matrix
 2:vector.fitfunction[0]: uniRegModelRaw.fitfunction of type imxFitFunctionFIML does not evaluate to a 1x1 matrix")
 }
+
+model <- mxModel(model="fail", mxFitFunctionMultigroup("noExisto"))
+omxCheckError(mxRun(model), "fail.fitfunction: cannot locate algebra/fitfunction 'noExisto'")
