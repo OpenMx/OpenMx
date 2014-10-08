@@ -13,23 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-##' Perform some function on matrices
-##'
-##' There are two ways to implement algebra functions. One way is to
-##' implement the function only in C and use omxCallAlgebra. The other
-##' way is to implement the same function in both R and C. The
-##' advantage of having an R implementation is that users can easily
-##' see it by typing the function name.
-##'
-##' Some OpenMx algebra functions are available in vanilla R and some
-##' are not.  If there is already an existing R function then the C
-##' implementation for OpenMx must match the R version with respect to
-##' arguments and output.
-##'
-##' @docType package
-##' @name MxAlgebraFunction
-##' @rdname MxAlgebraFunction
-
 tr <- function(x) {
 	if (is.matrix(x)) {
 		return(sum(diag(x)))
