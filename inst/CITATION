@@ -40,6 +40,18 @@ citEntry(entry="article",
 		"April 1. 76(2): 306-317."),
               note = "Article available at www.springerlink.com/content/dg37445107026711")
 
+citEntry(entry="article",
+	 title = "Modular open-source software for Item Factor Analysis",
+	 author = c(
+	     person(c("Joshua", "N."), "Pritikin"),
+	     person(c("Mike", "D."), "Hunter"),
+	     person(c("Steven", "M."), "Boker")),
+	 journal = "Educational and Psychological Measurement",
+	 year = "in press",
+	 textVersion = paste("Pritikin, J. N., Hunter, M. D., & Boker, S. M.",
+	     "(in press). Modular open-source software for Item Factor Analysis.",
+	     "Educational and Psychological Measurement"))
+
 citEntry(entry="manual",
 	title = paste("OpenMx", revision, "User Guide"),
     year = year,
