@@ -302,6 +302,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @param useGradient whether to use the analytic gradient (if available)
+##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -1033,6 +1034,7 @@ setMethod("initialize", "MxComputeSequence",
 ##' @param steps a list of compute objects
 ##' @param ... Not used; forces argument 'freeSet' to be specified by name.
 ##' @param freeSet Names of matrices containing free parameters.
+##' @param independent Whether the steps could be executed out-of-order.
 ##' @aliases
 ##' MxComputeSequence-class
 mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_, independent=FALSE) {

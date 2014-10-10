@@ -91,6 +91,7 @@ imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 ##' @param type type of data
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param expectation the name of the expectation to provide the data
+##' @param verbose Increase runtime debugging output
 ##' @aliases
 ##' MxDataDynamic-class
 mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
