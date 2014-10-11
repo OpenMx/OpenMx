@@ -305,7 +305,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
-	if (ox->freeVarGroup && ox->freeVarGroup != fvg) {
+	if (OMX_DEBUG && ox->freeVarGroup && ox->freeVarGroup != fvg) {
 		Rf_warning("setFreeVarGroup called with different group (%d vs %d) on %s",
 			ox->name, ox->freeVarGroup->id[0], fvg->id[0]);
 	}

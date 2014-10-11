@@ -43,7 +43,7 @@ struct omxFitFunctionTableEntry {
 
 static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
 {
-	if (ff->freeVarGroup && ff->freeVarGroup != fvg) {
+	if (OMX_DEBUG && ff->freeVarGroup && ff->freeVarGroup != fvg) {
 		Rf_warning("%s: setFreeVarGroup called with different group (%d vs %d)",
 			ff->matrix->name, ff->freeVarGroup->id[0], fvg->id[0]);
 	}
