@@ -61,13 +61,13 @@ parameters and the number of constraints, and return a numeric value as output.
 OpenMx options
 
 \tabular{rcl}{
-Number of Threads \tab \var{i}          \tab the number of processor cores to use. Use \code{\link{detectCores}}()
+Number of Threads \tab \var{i}          \tab the number of processor cores to use. Use \code{\link[parallel]{detectCores}}()
  to find how many are available. \cr
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
 Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
 CI Max Iterations \tab \var{i}          \tab the maximum number of retries when calculating confidence intervals. \cr
 Default optimizer \tab [NPSOL | CSOLNP] \tab the gradient descent optimizer to use. \cr
-Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 returns \code{detectCores()-1}. \cr
+Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 uses \code{detectCores() - 1}. \cr
 }
 
 NPSOL-specific options
@@ -82,9 +82,9 @@ Function precision    \tab \var{r} \tab a measure of accuracy with which \var{f}
 Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
 Major iterations      \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
-Verify level          \tab [-1:3 | Yes | No] \tab see NPSOL manual. \cr
-Line search tolerance \tab \var{r}  \tab controls the accuracy with which a step is taken. \cr
-Derivative level      \tab [0-3]    \tab see NPSOL manual. \cr
+Verify level          \tab [-1:3 | Yes | No]     \tab see NPSOL manual. \cr
+Line search tolerance \tab \var{r}    \tab controls the accuracy with which a step is taken. \cr
+Derivative level      \tab [0-3]      \tab see NPSOL manual. \cr
 Hessian               \tab [Yes | No] \tab return the Hessian (Yes) or the transformed Hessian (No). \cr
 }
 
@@ -135,10 +135,10 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 # set the Numbder of Threads (cores to use)
-mxOption(NULL, "Number of Threads", omxDetectCores() - 1)
+mxOption(NULL, "Number of Threads", detectCores() - 1)
 
-testModel <- mxModel(model="testModel") # make a model to use for example
-testModel$options # show the model options (none yet)
+testModel <- mxModel(model = "testModel") # make a model to use for example
+testModel$options   # show the model options (none yet)
 options()$mxOptions # list all mxOptions (global settings)
 
 testModel <- mxOption(testModel, "Function precision", 1e-5) # set the precision
