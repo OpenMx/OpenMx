@@ -28,6 +28,10 @@
 mxVersion(model = NULL, verbose = TRUE)
 }
 
+\arguments{
+  \item{model}{ optional \code{\link{MxModel}} to request optimizer from (default = NULL)}
+  \item{verbose}{Whether to print version information to the console (default = TRUE)}
+}
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
