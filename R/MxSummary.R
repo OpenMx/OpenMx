@@ -687,6 +687,7 @@ parseDfArg <- function(input, arg) {
 
 refToLikelihood <- function(model) {
 	if (is(model, "MxModel")) {
+		if (!model@.wasRun) stop("Reference model must be run to obtain fit indices")
 		model$output$Minus2LogLikelihood
 	} else if (is.list(model)) {
 		model[[1]]
@@ -699,6 +700,7 @@ refToLikelihood <- function(model) {
 
 refToDof <- function(model) {
 	if (is(model, "MxModel")) {
+		if (!model@.wasRun) stop("Reference model must be run to obtain fit indices")
 		return(summary(model)$degreesOfFreedom)
 	} else if (is.list(model)) {
 		model[[2]]
