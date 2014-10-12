@@ -936,7 +936,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
     inde.subs <- sapply(model@submodels,function(x){x@independent})==TRUE &
       (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
          sapply(model@submodels,function(x){length(x@submodels)>0}))
-    if(length(inde.subs)>0){
+    if(sum(inde.subs)>0){
       #if ALL submodels are either independent RAM models or non-RAM models:
       if(all(RAM.subs==inde.subs)){ 
         out <- lapply(model@submodels[which(inde.subs)],mxStandardizeRAMpaths,SE=T)
