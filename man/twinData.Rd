@@ -21,16 +21,16 @@ Australian data on body mass index (BMI) assessed in both MZ and DZ twins, and s
 
 Questionnaires were mailed to 5967 pairs age 18 years and over. These data consist of completed questionnaires returned by both members of 3808 (64 percent) pairs. There are two cohort blocks in the data: a younger group (zyg 1:5), and an older group (zyg 6:10)
  
-It is a wide dataset, with two individuals per line. Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as "htwt1" and "htwt2"), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
+It is a wide dataset, with two individuals per line. Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1} and \dQuote{htwt2}), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
 
 fam is a family identifier. Age is entered only once, as the both twins in each pair share a common age.
 
 }
 
 \references{
-Martin, N. G. & Jardine, R. (1986). Eysenck's contribution to behavior genetics. In S. Modgil & C. Modgil (Eds.), Hans Eysenck: Consensus and Controversy. Falmer Press: Lewes, Sussex.
+Martin, N. G. & Jardine, R. (1986). Eysenck's contribution to behavior genetics. In S. Modgil & C. Modgil (Eds.), \emph{Hans Eysenck: Consensus and Controversy.} Falmer Press: Lewes, Sussex.
 
-Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feindgold, L. M., & Eysenck, H. J. (1986). Transmission of social attitudes. Proceedings of the National Academy of Science, 83, 4364-4368.
+Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feindgold, L. M., & Eysenck, H. J. (1986). Transmission of social attitudes. \emph{Proceedings of the National Academy of Science}, \bold{83}, 4364-4368.
 }
 
 \usage{data(twinData)}
