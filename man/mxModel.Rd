@@ -101,16 +101,16 @@ finalModel$A
 finalModel$matrices$A
 
 # A working example using OpenMx Path Syntax
-data(HS.fake.data)  #load the data
+data(HS.ability.data)  # load the data
 
-Spatial   <- c("visual","cubes","paper") # the manifest variables loading on each proposed latent variable
-Verbal    <- c("general","paragrap","sentence")
-Math      <- c("numeric","series","arithmet")
+Spatial   <- c("visual", "cubes", "paper") # The manifest variables loading on each proposed latent variable
+Verbal    <- c("general", "paragrap", "sentence")
+Math      <- c("numeric", "series", "arithmet")
 
-latents   <- c("vis","math","text")
-manifests <-  c(Spatial,Math,Verbal)
+latents   <- c("vis", "math", "text")
+manifests <-  c(Spatial, Math, Verbal)
 
-HSModel <- mxModel(model="Holzinger and Swineford (1939)", type="RAM", 
+HSModel <- mxModel(model="Holzinger_and_Swineford_1939", type="RAM", 
     manifestVars = manifests, # list the measured variables (boxes)
     latentVars   = latents,   # list the latent variables (circles)
     # factor loadings from latents to  manifests
@@ -128,7 +128,7 @@ HSModel <- mxModel(model="Holzinger and Swineford (1939)", type="RAM",
     # Manifest have residual variance
     mxPath(from=manifests, arrows=2),   
     # the data to be analysed
-    mxData(cov(HS.fake.data[,manifests]), type="cov", numObs=301))
+    mxData(cov(HS.ability.data[,manifests]), type = "cov", numObs = 301))
     
 fitModel <- mxRun(HSModel) # run the model
 summary(fitModel) # examine the output: Fit statistics and path loadings
