@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxData(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA)
+   mxData(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA, ..., sort=TRUE)
 }
 
 \arguments{
@@ -31,18 +31,23 @@ mxData(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA)
    \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, or \dQuote{cor}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
-    \item{acov}{Not Yet Implemented.}
-    \item{thresholds}{Not Yet Implemented.}
+   \item{acov}{Not Yet Implemented.}
+   \item{thresholds}{Not Yet Implemented.}
+   \item{...}{Not used. Forces remaining arguments to be specified by name.}
+   \item{sort}{Not Yet Implemented (default (TRUE)}
 }
 
 \details{
-The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects. The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel objects. Four different data types are supported:
+The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects. The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel objects. Four different data types are supported (a fifth, sscp, is not yet implemented):
+
 \describe{
 \item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be designated as the system missing value. The \sQuote{means} and \sQuote{numObs} arguments cannot be specified, as the \sQuote{means} argument is not relevant and the \sQuote{numObs} argument is automatically populated with the number of rows in the data. Data of this type may use fit functions such as \link{mxFitFunctionML} function in MxModel objects, which will automatically use covariance estimation under full-information maximum likelihood for this data type.}
 
 \item{cov}{The contents of the \sQuote{observed} argument are treated as a covariance matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML}, depending on the specified model.}
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
+
+\item{acov}{Not yet documented}
 }
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
@@ -51,7 +56,7 @@ While column names are stored in the \sQuote{observed} slot of MxData objects, t
 
 The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
 
-OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c("your", "columns"). Covariance  and cor matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
+OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
 
 
 }
