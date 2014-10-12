@@ -17,18 +17,20 @@
 # -----------------------------------------------------------------------------
 # Program: OneFactorMatrixDemo.R  
 # Author: Steve Boker
-# Date: 2009.07.30 
+# Date: 2009.08.01 
 #
 # ModelType: Factor
 # DataType: Continuous
 # Field: None
 #
-# Purpose:
-#      OpenMx one factor matrix model demo for front page of website
+# Purpose: 
+#      OpenMx one factor matrix model demo from front page of website
 # 
 # RevisionHistory:
-#      Hermine Maes -- 2010.02.22 updated & reformatted
-#      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+#      Hermine Maes -- 2009.10.08	updated & reformatted
+#      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Mike Hunter -- 2013.09.16	Identified model by fixing variance to 1.0
+#      Tim Bates -- 2014.10.12	reformatted
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -39,26 +41,21 @@ data(demoOneFactor)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-
-manifestVars <- names(demoOneFactor)
-# Prepare Manifests Data
-# -----------------------------------------------------------------------------
-
-factorModel <- mxModel("One Factor",
-    mxMatrix(type="Full", nrow=5, ncol=1, values=0.2, free=TRUE, name="A"),
-    mxMatrix(type="Symm", nrow=1, ncol=1, values=1, free=FALSE, name="L"),
-    mxMatrix(type="Diag", nrow=5, ncol=5, values=1, free=TRUE, name="U"),
+factorModel <- mxModel(name ="One Factor",
+    mxMatrix(type="Full", nrow=5, ncol=1, free=TRUE, values=0.2, name="A"),
+    mxMatrix(type="Symm", nrow=1, ncol=1, free=FALSE, values=1, name="L"),
+    mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
-    mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=manifestVars),
+    mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
     mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 # Create an MxModel object
 # -----------------------------------------------------------------------------
 
-factorFit <- mxRun(factorModel)
+factorModelFit <- mxRun(factorModel)
 # Fit the model to the observed covariances with mxRun
 # -----------------------------------------------------------------------------
 
-summary(factorFit)
+summary(factorModelFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------
