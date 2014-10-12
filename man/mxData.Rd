@@ -34,7 +34,7 @@
    \item{acov}{Not Yet Implemented.}
    \item{thresholds}{Not Yet Implemented.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
-   \item{sort}{Not Yet Implemented (default (TRUE)}
+   \item{sort}{Whether to sort raw data prior to use (default TRUE)}
 }
 
 \details{
