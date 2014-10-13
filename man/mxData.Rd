@@ -31,8 +31,8 @@
    \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, or \dQuote{cor}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
-   \item{acov}{Not Yet Implemented.}
-   \item{thresholds}{Not Yet Implemented.}
+   \item{acov}{Asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares at weight matrix.}
+   \item{thresholds}{Observed thresholds.  Used for weighted least squares with ordinal data.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
    \item{sort}{Whether to sort raw data prior to use (default TRUE)}
 }
@@ -47,7 +47,7 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
 
-\item{acov}{Not yet documented}
+\item{acov}{The contents of the \sQuote{observed} argument are treated as the polychoric correlation matrix of the ordinal variables. The \sQuote{means} argument is not required, but may be included for estimations involving means.  The \sQuote{thresholds} argument is not required, but may be included for estimations involving thresholds and ordinal variables. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the polychoric correlation matrix. Data of this type may use the fit functions such as \link{mxFitFunctionWLS} functions, depending on the specified model.}
 }
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
