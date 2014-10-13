@@ -389,8 +389,6 @@ std::string string_vsnprintf(const char *fmt, va_list orig_ap)
 	va_copy(ap, orig_ap);
         int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
 	va_end(ap);
-	if(OMX_DEBUG) {mxLog("Integer from vsnprintf %i", n);}
-	if(OMX_DEBUG) {mxLog("String from vsnprintf %s", str.c_str());}
         if (n > -1 && n < size) {
             str.resize(n);
             return str;

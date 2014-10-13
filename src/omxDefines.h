@@ -50,9 +50,9 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #define EIGEN_DONT_PARALLELIZE
 
 #ifdef DEBUGMX
-//#ifdef NDEBUG
-//#error "Undefine NDEBUG when debugging"
-//#endif // NDEBUG
+#ifdef NDEBUG
+#error "Undefine NDEBUG when debugging"
+#endif // NDEBUG
 #define OMX_DEBUG 1
 #define OMX_BOUNDS_CHECK 1
 #else
