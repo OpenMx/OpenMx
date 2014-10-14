@@ -88,6 +88,8 @@ Functions
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}
+\item{\code{qnorm}}{Standard-normal quantile}
+\item{\code{lgamma}}{Log-gamma function}
 \item{\code{\link{eigenval}}}{Eigenvalues of a square matrix. Usage: eigenval(x); eigenvec(x); ieigenval(x); ieigenvec(x)}
 \item{\code{\link{rvectorize}}}{Vectorize by row}
 \item{\code{\link{cvectorize}}}{Vectorize by column}

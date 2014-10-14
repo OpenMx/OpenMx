@@ -33,6 +33,8 @@
 #include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
+#include <R.h>
+#include <Rmath.h>
 
 // TODO: Implement wrappers for BLAS functions used here.
 
@@ -1280,6 +1282,44 @@ static void omxElementSquareRoot(FitContext *fc, int want, omxMatrix** matList, 
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = sqrt(data[j]);
+	}
+}
+
+static void omxElementQnorm(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+  if (want == FF_COMPUTE_DIMS) {
+  	omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
+		return;
+	}
+
+	omxMatrix *inMat = matList[0];
+
+	int max = inMat->cols * inMat->rows;
+
+	omxCopyMatrix(result, inMat);
+
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_qnorm5(data[j], 0, 1, 1, 0);
+	}
+}
+
+static void omxElementLgamma(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+  if (want == FF_COMPUTE_DIMS) {
+    omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
+		return;
+	}
+
+	omxMatrix *inMat = matList[0];
+
+	int max = inMat->cols * inMat->rows;
+
+	omxCopyMatrix(result, inMat);
+
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_lgammafn(data[j]);
 	}
 }
 
