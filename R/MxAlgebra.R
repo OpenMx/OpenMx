@@ -68,15 +68,15 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) 
 	if (length(garbageArguments) > 0) {
 		stop("mxAlgebra does not accept values for the '...' argument")
 	}
-	if(is.character(match.call()$expression)){
-		stop("mxAlgebra wants an unquoted expression or formula")
-	}
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
 	retval <- new("MxAlgebra", NA, name, fixed)
 	retval@formula <- match.call()$expression
+	if(is.character(retval@formula)){
+		stop("mxAlgebra wants an unquoted expression or formula")
+	}
     algebraErrorChecking(retval@formula, "mxAlgebra")
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {
 		dimnames(retval) <- dimnames
