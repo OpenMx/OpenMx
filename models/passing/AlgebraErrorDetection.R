@@ -71,7 +71,7 @@ omxCheckError(mxRun(model), paste("A cycle has been detected in model",
 	"'model' involving the following elements:",
 	"'model2.Obj' and 'model2.fitfunction'"))
 mod <- mxModel("amodel", mxMatrix("Full", 4, 1, values=7, name="M"), mxMatrix("Full", 4, 1, values=1:4, name="Thr"))
-omxCheckError(mxEval(M-Thr[1,1], mod), "Error: The following error occurred while evaluating the expression 'M - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
-omxCheckError(mxEval(M[,1]-Thr[1,1], mod), "Error: The following error occurred while evaluating the expression 'M[, 1] - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
+omxCheckError(mxEval(M-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
+omxCheckError(mxEval(M[,1]-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M[, 1] - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
 omxCheckError(mxAlgebra(expression="minG", name="blah"), "mxAlgebra wants an unquoted expression or formula")
 
