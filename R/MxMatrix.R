@@ -128,7 +128,7 @@ setGeneric("imxSquareMatrix", function(.Object) {
 ##' imxCreateMatrix,UnitMatrix-method
 ##' imxCreateMatrix,ZeroMatrix-method
 setGeneric("imxCreateMatrix", 
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, persist, ...) {
 		return(standardGeneric("imxCreateMatrix"))
 })
 
@@ -142,18 +142,19 @@ setClass(Class = "MxMatrix",
 		labels = "matrix", values = "matrix", 
 		free = "matrix", name = "character", 
 		lbound = "matrix", ubound = "matrix",
-		.squareBrackets = "matrix",
+		.squareBrackets = "matrix", .persist = "logical",
 		display = "character", dependencies = "integer",
 	  "VIRTUAL"))
 
 setMethod("imxCreateMatrix", "MxMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, persist=TRUE, ...) {
 		.Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "free", free, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "lbound", lbound, nrow, ncol)
 		.Object <- populateMatrixSlot(.Object, "ubound", ubound, nrow, ncol)
 		.Object@name <- name
+    .Object@.persist <- persist
 		return(.Object)
 	}
 )	

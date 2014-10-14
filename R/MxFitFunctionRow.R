@@ -174,6 +174,7 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 			stop(msg, call. = FALSE)
 		}
 		filteredDataRow <- mxMatrix('Full', nrow = 1, ncol = length(dimnames))
+    filteredDataRow@.persist <- FALSE
 		job[[filteredDataRowName]] <- filteredDataRow
 		flatJob[[filteredDataRowName]] <- filteredDataRow
 
@@ -187,7 +188,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 				stop(msg, call. = FALSE)
 			}
 			existenceVector <- mxMatrix('Full', nrow = 1, ncol = length(dimnames), values = 1)
-			job[[existenceVectorName]] <- existenceVector
+			existenceVector@.persist <- FALSE
+      job[[existenceVectorName]] <- existenceVector
 			flatJob[[existenceVectorName]] <- existenceVector
 		}
 
@@ -226,7 +228,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 			stop(msg, call. = FALSE)
 		}
 		rowResults <- mxMatrix('Full', nrow = rows, ncol = cols)
-		job[[rowResultsName]] <- rowResults
+		rowResults@.persist <- FALSE
+    job[[rowResultsName]] <- rowResults
 
 		# Locate the reduce algebra
 		reduceAlgebra <- job[[reduceAlgebraName]]

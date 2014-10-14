@@ -43,6 +43,7 @@ runHelper <- function(model, frontendStart,
 
 	model <- imxPreprocessModel(model)
 	model <- eliminateObjectiveFunctions(model)
+  model <- zapExtraneousMatrices(model)
 	imxCheckMatrices(model)
 	imxVerifyModel(model)
 	model <- processParentData(model, parentData)

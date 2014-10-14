@@ -368,6 +368,13 @@ LocateOptionalMatrix <- function(model, name, referant) {
 	}
 }
 
+zapExtraneousMatrices <- function(model){
+  keepers <- unlist(lapply(model@matrices,function(x){x@.persist}))
+  if(is.logical(keepers)){model@matrices <- model@matrices[which(keepers)]}
+  if(length(model@submodels)>0){model@submodels <- lapply(model@submodels,zapExtraneousMatrices)}
+  return(model)
+}
+
 ##' imxPreprocessModel
 ##'
 ##' This is an internal function exported for those people who know
