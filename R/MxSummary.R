@@ -500,7 +500,7 @@ print.summary.mxmodel <- function(x,...) {
 		cat("independent submodels time:", format(x$independentTime), '\n')
 		cat("cpu time:", format(x$cpuTime), '\n')
 	}
-	cat("wall clock time:", format(x$wallTime), '\n')
+	cat("Wall clock time (HH:MM:SS.hh):", format(.POSIXct(x$wallTime, tz="GMT"), "%H:%M:%OS2"), "\n")
 	if (x$verbose==FALSE && !is.null(x$optimizerEngine)) {
 		cat("optimizer: ", x$optimizerEngine, '\n')
 	}
