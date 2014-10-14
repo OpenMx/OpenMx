@@ -67,7 +67,9 @@ translateErrorSymbol <- function(symbol, model) {
 
 translateErrorFormula <- function(formula, model) {
 	if(length(formula) == 1) {
-		formula <- translateErrorSymbol(formula, model)
+		if(!identical(as.character(formula), "")){
+			formula <- translateErrorSymbol(formula, model)
+		}
 	} else {
 		formula <- lapply(formula, translateErrorFormula, model)
 		formula <- as.call(formula)
