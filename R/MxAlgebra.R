@@ -68,7 +68,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) 
 	if (length(garbageArguments) > 0) {
 		stop("mxAlgebra does not accept values for the '...' argument")
 	}
-	if(is.character(expression)){
+	if(is.character(match.call()$expression)){
 		stop("mxAlgebra wants an unquoted expression or formula")
 	}
 	if (single.na(name)) {
