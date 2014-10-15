@@ -59,6 +59,8 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 	if(datatype == "raw") {
 		if (is.data.frame(obsdata)) {
 			ordinalCols <- sapply(obsdata, is.ordered)
+		} else {
+			ordinalCols <- rep(FALSE, numVar)
 		}
 		if(!any(ordinalCols)){
 			sampcov <- cov(obsdata, use="pairwise.complete.obs")
