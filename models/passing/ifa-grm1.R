@@ -7,17 +7,16 @@ set.seed(9)
 numItems <- 14
 spec <- list()
 for (ix in 1:numItems) { spec[[ix]] <- rpf.grm(outcomes=sample(2:7, 1)) }
+names(spec) <- paste("i", 1:numItems, sep="")
 correct.mat <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
 ability <- rnorm(500)
 data <- rpf.sample(ability, spec, correct.mat)
 
-ip.mat <- mxMatrix(name="item", nrow=nrow(correct.mat), ncol=numItems)
-colnames(ip.mat) <- colnames(data)
-rownames(ip.mat) <- c('f1', paste('b', 1:(nrow(ip.mat)-1), sep=""))
+ip.mat <- mxMatrix(name="item", values=mxSimplify2Array(lapply(spec, rpf.rparam, version=1)))
+rownames(ip.mat)[1] <- 'f1'
 ip.mat$free[!is.na(correct.mat)] <- TRUE
 ip.mat$values[!ip.mat$free] <- NA
-ip.mat$values[,] <- mxSimplify2Array(lapply(spec, rpf.rparam, version=1))
 
 m2 <- mxModel(model="grm1", ip.mat,
               mxData(observed=data, type="raw"),
