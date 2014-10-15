@@ -65,6 +65,6 @@ const omxAlgebraTableEntry omxAlgebraSymbolTable[] = {
 {61,	"Matrix Logarithm",	"logm",	 1,	mxMatrixLog},
 {62,	"Broadcast",	"",	 1,	omxBroadcast},
 {63,	"Matrix Exponential",	"expm",	 1,	omxExponential},
-{64,	"Standard-normal quantile",	"qnorm",	 1,	omxElementQnorm},
-{65,	"Log-gamma",	"lgamma",	 1,	omxElementLgamma},
+{64,	"Standard-normal quantile",	"p2z",	 1,	omxElementPtoZ},
+{65,	"Log-gamma",	"lgamma",	 1,	omxElementLgamma}
 };

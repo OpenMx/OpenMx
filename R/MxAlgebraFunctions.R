@@ -349,6 +349,10 @@ vechs2full <- function(x) {
 	return(ret)
 }
 
+p2z <- function(x){
+  return(qnorm(x))
+}
+
 ##' A C implementation of dmvnorm
 ##'
 ##' This API is visible to permit testing. Please do not use.

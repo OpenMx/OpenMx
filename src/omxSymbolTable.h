@@ -74,7 +74,7 @@ void omxVechsToMatrix(omxMatrix** args, int numArgs, omxMatrix* result);
 void mxMatrixLog(omxMatrix** args, int numArgs, omxMatrix* result);
 void omxBroadcast(omxMatrix** args, int numArgs, omxMatrix* result);
 void omxExponential(omxMatrix** args, int numArgs, omxMatrix* result);
-void omxElementQnorm(omxMatrix** args, int numArgs, omxMatrix* result);
+void omxElementPtoZ(omxMatrix** args, int numArgs, omxMatrix* result);
 void omxElementLgamma(omxMatrix** args, int numArgs, omxMatrix* result);
 extern const omxAlgebraTableEntry omxAlgebraSymbolTable[];
 #endif

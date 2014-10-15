@@ -1285,7 +1285,7 @@ static void omxElementSquareRoot(FitContext *fc, int want, omxMatrix** matList, 
 	}
 }
 
-static void omxElementQnorm(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
+static void omxElementPtoZ(FitContext *fc, int want, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
   if (want == FF_COMPUTE_DIMS) {
   	omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
