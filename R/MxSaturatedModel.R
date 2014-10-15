@@ -115,13 +115,15 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			mxExpectationNormal("indCov", "satMea")
 		)
 		if(any(ordinalCols)) {
+			thrdnam <- paste(rep(ordnam, each=numThresholds), 'ThrDev', 1:numThresholds, sep='')
 			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
 			thresholdDeviations <- mxMatrix("Full", 
 					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 					values=.2,
-					free = TRUE, 
+					free = TRUE,
+					labels=thrdnam,
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
-					dimnames = list(c(), varnam[ordinalCols]), # TODO Add threshold names
+					dimnames = list(c(), varnam[ordinalCols]),
 							)
 			saturatedMeans <- mxMatrix(nrow=1, ncol=numVar,
 				values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam))
