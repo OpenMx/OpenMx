@@ -232,17 +232,17 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 ##' # [4,]   NA   NA    9
 ##' # [5,]   NA   NA   10
 
-mxSimplify2Array <- function(par, higher=FALSE) {
+mxSimplify2Array <- function(x, higher=FALSE) {
 	if (higher) {
 		stop("higher=TRUE is not implemented. Consider using simplify2array")
 	}
-  len <- sapply(par, length)
+  len <- sapply(x, length)
   biggest <- which(len == max(len))[1]
-  out <- matrix(NA, nrow=max(len), ncol=length(par))
-  for (x in 1:length(par)) {
-    out[1:len[x],x] <- par[[x]]
+  out <- matrix(NA, nrow=max(len), ncol=length(x))
+  for (iter in 1:length(x)) {
+    out[1:len[iter],iter] <- x[[iter]]
   }
-  colnames(out) <- names(par)
-  rownames(out) <- names(par[[biggest]])
+  colnames(out) <- names(x)
+  rownames(out) <- names(x[[biggest]])
   out
 }
