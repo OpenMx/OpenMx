@@ -118,17 +118,20 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		datatype <- datasource@type
 		obsdata <- datasource@observed
 		datanobs <- datasource@numObs
-		wasRun <- length(model@runstate) != 0
+		wasRun <- model@.wasRun
 		if(wasRun) {
-			# runstate is not available for submodels, ugh!
-			if(length(model@runstate$expectations) == 1){
-				selVars <- model@runstate$expectations[[1]]@dims
-			} else{
-				stop("Multiple expectations found. Reference models for these are not yet implemented.")
+			if(.hasSlot(model@expectation, 'dims')){
+				if(!single.na(model@expectation@dims)){
+					selVars <- model@expectation@dims
+					if(nrow(obsdata) == ncol(obsdata)){
+						obsdata <- obsdata[selVars, selVars]
+					} else { obsdata <- obsdata[,selVars] }
+				} else{
+					message(paste("The model", omxQuotes(modelName), "has an expectaion with NA 'dims' slot. So reference models",
+				"of all the variables in the data will be made.  For reference models",
+				"of only the variables used in the model, populate the 'dims' slot with the variable names to use."))
+				}
 			}
-			if(nrow(obsdata) == ncol(obsdata)){
-				obsdata <- obsdata[selVars, selVars]
-			} else { obsdata <- obsdata[,selVars] }
 		} else {
 			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
 				"of all the variables in the data will be made.  For reference models",

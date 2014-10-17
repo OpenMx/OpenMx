@@ -180,6 +180,7 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelMatrices(model, flatModel, output$matrices)
 	model <- updateModelAlgebras(model, flatModel, output$algebras)
 	model <- updateModelExpectations(model, flatModel, output$expectations)
+	model <- updateModelExpectationDims(model, expectations)
 	model <- updateModelData(model, flatModel, output$data)
 	model@compute <-updateModelCompute(model, output$computes)
 	independents <- lapply(independents, undoDataShare, dataList)
@@ -218,6 +219,16 @@ runHelper <- function(model, frontendStart,
 	model <- clearModifiedSinceRunRecursive(model)
 
 	return(model)		
+}
+
+updateModelExpectationDims <- function(model, expectations){
+	expectationNames <- names(expectations)
+	for(aname in expectationNames){
+		if(!is.null(model[[aname]])){
+			model[[aname]]@dims <- expectations[[aname]]@dims
+		}
+	}
+	return(model)
 }
 
 

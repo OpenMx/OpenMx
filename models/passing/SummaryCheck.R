@@ -56,10 +56,51 @@ raw <- mxModel("Raw Test Model to Check MxSummary",
 
 raw.fit <- mxRun(raw)
 
+
 #------------------------------------------------------------------------------
 # Specify Saturated raw data model
 
 sat.fit <- mxRefModels(raw, run=TRUE)
+
+
+#------------------------------------------------------------------------------
+# Specify a multiple group model
+
+
+data(demoOneFactor)
+manifests <- names(demoOneFactor)
+latents <- c("G")
+factorModel <- mxModel("OneFactor",
+      type="RAM",
+      manifestVars = manifests,
+      latentVars = latents,
+      mxPath(from=latents, to=manifests),
+      mxPath(from=manifests, arrows=2),
+      mxPath(from=latents, arrows=2,
+            free=FALSE, values=1.0),
+      mxPath(from = 'one', to = manifests),
+      mxData(demoOneFactor, type="raw"))
+manifests <- manifests[-1]
+factorModelLess <- mxModel("OneFactorLess",
+      type="RAM",
+      manifestVars = manifests,
+      latentVars = latents,
+      mxPath(from=latents, to=manifests),
+      mxPath(from=manifests, arrows=2),
+      mxPath(from=latents, arrows=2,
+            free=FALSE, values=1.0),
+      mxPath(from = 'one', to = manifests),
+      mxData(demoOneFactor, type="raw"))
+mg <- mxModel("bob", factorModel, factorModelLess, mxFitFunctionMultigroup(c("OneFactor", "OneFactorLess")))
+
+
+mg.fit <- mxRun(mg)
+
+mg.sat <- mxRefModels(mgr, run=TRUE)
+
+omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactor`))[1], 5)
+omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactorLess`))[1], 4)
+# the saturated model for OneFactorLess should be only on the variables used x2:x5, not all the variables x1:x5.
 
 
 #------------------------------------------------------------------------------
@@ -87,8 +128,10 @@ covm.fit <- mxRun(covm)
 raw.sum <- summary(raw.fit)
 sat.sum <- summary(sat.fit[[1]])
 raws.sum <- summary(raw.fit, SaturatedLikelihood=sat.fit[[1]])
+rawr.sum <- summary(raw.fit, refModels=sat.fit)
 cov.sum <- summary(cov.fit)
 covs.sum <- summary(covm.fit)
+mg.sum <- summary(mgr, refModels=mgr.sat)
 
 
 #------------------------------------------------------------------------------
@@ -96,7 +139,6 @@ covs.sum <- summary(covm.fit)
 
 # Things to check for raw w/o sat, raw w/ sat, cov, cov & means, multigroup
 #	number of observed statistics
-#	TODO add multigroup case to make sure this works
 #	degrees of freedom
 #	-2LL, sat -2LL, numObs
 #	chi-square, chi dof, chi p
@@ -110,8 +152,8 @@ omxCheckEquals(raw.sum$observedStatistics, 5000)
 omxCheckEquals(raws.sum$observedStatistics, 5000)
 omxCheckEquals(cov.sum$observedStatistics, 55)
 omxCheckEquals(covs.sum$observedStatistics, 65)
+omxCheckEquals(mg.sum$observedStatistics, 5*500 + 4*500)
 
-#	TODO add multigroup case to make sure this works
 
 
 #	degrees of freedom
@@ -123,6 +165,7 @@ omxCheckEquals(sat.sum$degreesOfFreedom, 5000-sat.sum$estimatedParameters)
 omxCheckEquals(raws.sum$satDoF, 5000-sat.sum$estimatedParameters)
 omxCheckEquals(cov.sum$degreesOfFreedom, 55-(ep-10)) #no means estimated
 omxCheckEquals(covs.sum$degreesOfFreedom, 65-ep)
+omxCheckEquals(mg.sum$degreesOfFreedom, 5*500+4*500-27)
 
 
 #	-2LL, sat -2LL, numObs
@@ -133,6 +176,7 @@ omxCheckEquals(raw.sum$numObs, 500)
 omxCheckEquals(raws.sum$numObs, 500)
 omxCheckEquals(cov.sum$numObs, 500)
 omxCheckEquals(covs.sum$numObs, 500)
+omxCheckEquals(mg.sum$numObs, 1000)
 
 
 #	chi-square, chi dof, chi p
@@ -147,6 +191,9 @@ chi.df <- 34
 omxCheckEquals(raws.sum$ChiDoF, chi.df)
 omxCheckEquals(cov.sum$ChiDoF, chi.df)
 omxCheckEquals(covs.sum$ChiDoF, chi.df)
+omxCheckEquals(mg.sum$ChiDoF, 7)
+
+omxCheckCloseEnough(mg.sum$Chi, 13.1811, 0.001)
 
 omxCheckTrue(is.na(raw.sum$p))
 omxCheckCloseEnough(raws.sum$p, pchisq(raws.sum$Chi, raws.sum$ChiDoF, lower.tail=FALSE), 1e-8)
@@ -165,14 +212,20 @@ omxCheckCloseEnough(raws.sum$RMSEA, 0.03045151, .001)
 omxCheckCloseEnough(raws.sum$RMSEACI, c(0, 0.05064688), .001)
 omxCheckCloseEnough(cov.sum$RMSEA, 0.03035523, .001)
 omxCheckCloseEnough(cov.sum$RMSEACI, c(0, 0.05056999), .001)
+omxCheckCloseEnough(mg.sum$RMSEA, 0.02971556, .001)
+omxCheckCloseEnough(mg.sum$RMSEACI, c(0, 0.0582353), .001)
 
 # CFI
 omxCheckTrue(is.na(raw.sum$CFI))
 omxCheckCloseEnough(cov.sum$CFI, 0.9978234, .001)
+omxCheckCloseEnough(rawr.sum$CFI, 0.997814, .001)
+omxCheckCloseEnough(mg.sum$CFI, 0.999077, .001)
 
 # TLI
 omxCheckTrue(is.na(raw.sum$TLI))
 omxCheckCloseEnough(cov.sum$TLI, 0.9971192, .001)
+omxCheckCloseEnough(rawr.sum$TLI, 0.9971067, .001)
+omxCheckCloseEnough(mg.sum$TLI, 0.9978904, .001)
 
 # Information Criteria
 omxCheckCloseEnough(raw.sum$informationCriteria['AIC:','par'], 9298.67, .01)
@@ -189,5 +242,7 @@ omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.17, .01)
 
 omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.66, .01)
 omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.31, .01)
+
+omxCheckCloseEnough(mg.sum$informationCriteria[c(1:4,6)], c(-6936.958, -28889.347, 2063.042, 2195.552, 2109.798), .01)
 
 
