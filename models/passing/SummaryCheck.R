@@ -96,7 +96,7 @@ mg <- mxModel("bob", factorModel, factorModelLess, mxFitFunctionMultigroup(c("On
 
 mg.fit <- mxRun(mg)
 
-mg.sat <- mxRefModels(mgr, run=TRUE)
+mg.sat <- mxRefModels(mg.fit, run=TRUE)
 
 omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactor`))[1], 5)
 omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactorLess`))[1], 4)
@@ -131,7 +131,7 @@ raws.sum <- summary(raw.fit, SaturatedLikelihood=sat.fit[[1]])
 rawr.sum <- summary(raw.fit, refModels=sat.fit)
 cov.sum <- summary(cov.fit)
 covs.sum <- summary(covm.fit)
-mg.sum <- summary(mgr, refModels=mgr.sat)
+mg.sum <- summary(mg.fit, refModels=mg.sat)
 
 
 #------------------------------------------------------------------------------
