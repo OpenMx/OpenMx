@@ -240,6 +240,7 @@ mxSimplify2Array <- function(x, higher=FALSE) {
   biggest <- which(len == max(len))[1]
   out <- matrix(NA, nrow=max(len), ncol=length(x))
   for (iter in 1:length(x)) {
+	  if (len[iter] == 0) next
     out[1:len[iter],iter] <- x[[iter]]
   }
   colnames(out) <- names(x)
