@@ -66,15 +66,15 @@ errorRecover <- function(script, opt, index) {
 	start <- Sys.time()
 	tryCatch(source(script, chdir = TRUE), 
 		error = function(x) {
-			errors[[script]] <<- x
+			errors[[opt]][[script]] <<- x
 		})
 	stop.tm <- Sys.time()
 	timeDifference <- stop.tm - start
 	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
-	if (!is.null(errors[[script]])) {
+	if (!is.null(errors[[opt]][[script]])) {
 		sink(type = 'output')
 		cat("*** ERROR from", script, '***\n')
-		print(errors[[script]]$message)
+		print(errors[[opt]][[script]]$message)
 		sink(null, type = 'output')
 	}
 	rm(envir=globalenv(), 
@@ -96,13 +96,17 @@ for (opt in optimizers) {
 sink(type = 'output')
 close(null)
 
-cat("Number of errors:", length(errors), '\n')
-if (length(errors) > 0) {
-	fileName <- names(errors)
-	for (i in 1:length(errors)) {
-		cat("From model", fileName[[i]], ':\n')
-		print(errors[[i]]$message)
-		cat('\n')
+totalErrors <- sum(sapply(errors, length))
+cat("Number of errors:", totalErrors, '\n')
+if (totalErrors > 0) {
+	for (opt in names(errors)) {
+		oerr <- errors[[opt]]
+		fileName <- names(oerr)
+		for (i in 1:length(oerr)) {
+			cat("Error", opt, fileName[[i]], '***\n')
+			print(oerr[[i]]$message)
+			cat('\n')
+		}
 	}
 }
 
