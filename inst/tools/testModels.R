@@ -71,6 +71,12 @@ errorRecover <- function(script, opt, index) {
 	stop.tm <- Sys.time()
 	timeDifference <- stop.tm - start
 	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
+	if (!is.null(errors[[script]])) {
+		sink(type = 'output')
+		cat("*** ERROR from", script, '***\n')
+		print(errors[[script]]$message)
+		sink(null, type = 'output')
+	}
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
 			c('errors', 'errorRecover', 'opt', 'null', 'files', 'directories', 'runtimes')))
