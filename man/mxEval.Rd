@@ -15,6 +15,7 @@
 
 \name{mxEval}
 \alias{mxEval}
+\alias{mxEvalByName}
 
 \title{Evaluate Values in MxModel}
 
@@ -25,6 +26,8 @@
 \usage{
 mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
     cache = new.env(parent = emptyenv()), cacheBack = FALSE)
+
+mxEvalByName(name, model, compute = FALSE, show = FALSE)
 }
 
 \arguments{
@@ -35,10 +38,13 @@ mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
    \item{defvar.row}{The row number for definition variables when compute=TRUE.}
    \item{cache}{An R environment of matrix values used to speedup computation.}
    \item{cacheBack}{If TRUE then return the list pair (value, cache).}
+   \item{name}{The character name of an object to evaluate.}
 }
 
 \details{
 The argument \sQuote{expression} is an arbitrary R expression.  Any named entities that are used within the R expression are translated into their current value from the model. Any labels from the matrices within the model are translated into their current value from the model. Finally the expression is evaluated and the result is returned.  To enable debugging, the \sQuote{show} argument has been provided.  The most common mistake when using this function is to include named entities in the model that are identical to R function names.  For example, if a model contains a named entity named \sQuote{c}, then the following mxEval call will return an error: \code{mxEval(c(A, B, C), model)}.
+
+The \code{mxEvalByName} function is a wrapper around \code{mxEval} that takes a character instead of an R expression.
 
 If \sQuote{compute} is FALSE, then MxAlgebra expressions return their current values as they have been computed by the optimization call (using \link{mxRun}). If the \sQuote{compute} argument is TRUE, then MxAlgebra expressions will be calculated in R.  Any references to an objective function that has not yet been calculated will return a 1 x 1 matrix with a value of NA.
 
