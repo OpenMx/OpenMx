@@ -190,10 +190,10 @@ winbuild-biarch: build-prep
 	cd build; $(REXEC) CMD INSTALL --force-biarch --build $(TARGET)
 
 install: npsol-prep
-	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) CMD INSTALL $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
 
 cran-install: no-npsol-prep
-	MAKEFLAGS=$(INSTALLMAKEFLAGS) $(REXEC) CMD INSTALL $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
 
 check: internal-build
 	cd build; $(REXEC) CMD check $(TARGET)
