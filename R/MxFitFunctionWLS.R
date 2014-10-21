@@ -116,6 +116,65 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 		return(matrix(as.double(NA), cols, cols))
 })
 
+setMethod("genericFitAddEntities", "MxFitFunctionWLS",
+	function(.Object, job, flatJob, labelsData) {
+		type <- strsplit(is(job@expectation)[1], "MxExpectation")[[1]][2]
+		if(!single.na(job@data@thresholds)){
+			checkWLSIdentification(model=job, type=type)
+		}
+		# Note: only check identification when the data have thresholds
+		#TODO check the job's expectation
+		# if it's expectation Normal
+		#	if it's identified how we want, then do nothing
+		#	else add constraints and change expectation
+		#		might need to re-do expectationFunctionAddEntities and/or flattening
+		# else if it's RAM
+		#	if it's identified how we want, then do nothing
+		#	else throw error
+		# else if it's LISREL
+		#	if it's identified how we want, then do nothing
+		#	else throw error
+		# else throw error that WLS doesn't work for that yet.
+		return(job)
+})
+
+checkWLSIdentification <- function(model, type){
+	if(type=='RAM'){
+		A <- model@expectation@A
+		S <- model@expectation@S
+		F <- model@expectation@F
+		M <- model@expectation@M
+		# ???
+		# mxComputeOnce the RAM expectation?
+		stop("Ordinal WLS with the RAM expectation is not yet implemented.  For now, use mxExpectationNormal.")
+	}
+	else if(type=='LISREL'){
+		# ???
+		# mxComputeOnce the LISREL expectation?
+		stop("Ordinal WLS with the LISREL expectation is not yet implemented.  For now, use mxExpectationNormal.")
+	}
+	else if(type=='Normal'){
+		#Note: below strategy does NOT catch cases where starting values
+		# make the criteria true by accident.
+		theCov <- mxEvalByName(model@expectation@covariance, model, compute=TRUE) #Perhaps save time with cache?
+		covDiagsOne <- all( ( (diag(theCov) - 1)^2 ) < 1e-7 )
+		meanName <- model@expectation@means
+		if(!single.na(meanName)){
+			theMeans <- mxEvalByName(model@expectation@means, model, compute=TRUE)
+			meanZeroNA <- all( ( (diag(theMeans) - 0)^2 ) < 1e-7 )
+		} else {
+			meanZeroNA <- TRUE
+		}
+		if(!covDiagsOne || !meanZeroNA){
+			stop("Model not identified in the way required by WLS.")
+		}
+	}
+	else{
+		stop(paste("The model", omxQuotes(model@name), "has an expectation",
+			"that is not RAM, LISREL, or Normal.  WLS does not know what to do."))
+	}
+}
+
 # **DONE**
 mxFitFunctionWLS <- function(weights="ULS") {
 	if (is.na(weights)) weights <- as.character(NA)
