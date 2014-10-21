@@ -145,6 +145,37 @@ imxVerifyReference <- function(reference, stackNumber) {
 	}
 }
 
+#' mxMakeNames
+#'
+#' Adjust a character vector so that it can be used as MxMatrix column
+#' or row names. OpenMx is (much) more restrictive than base R's make.names.
+#'
+#' @param names a character vector
+#' @param unique whether the pass the result through \link{base::make.unique}
+#' @seealso
+#' \link{base::make.names}
+#' @examples
+#' demo <- c("", "103", "data", "foo.bar[3,2]", "+!", "!+")
+#' mxMakeNames(demo, unique=TRUE)
+mxMakeNames <- function(names, unique = FALSE) {
+	names <- gsub("\\s", "", names, perl=TRUE)
+	names[nchar(names) == 0] <- 'i'
+	names <- sapply(names, function(str) {
+		if (isNumber(str)) {
+			str <- paste("X",str,sep="")
+		}
+		str
+	})
+	names[!is.na(match(names, imxReservedNames))] <- "reserved"
+	broadlyIllegal <- paste("[\\Q", illegalChars, ".[]\\E]", sep="")
+	names <- gsub(broadlyIllegal, "x", names, perl=TRUE)
+
+	if (unique) {
+		names <- make.unique(names, sep="")
+	}
+	names
+}
+
 ##' imxVerifyName
 ##'
 ##' This is an internal function exported for those people who know

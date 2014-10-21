@@ -15,6 +15,13 @@
 
 
 require(OpenMx)
+
+omxCheckEquals(mxMakeNames(""), "i")
+omxCheckEquals(mxMakeNames("103"), "X103")
+omxCheckEquals(mxMakeNames("data"), "reserved")
+omxCheckEquals(mxMakeNames("foo.bar[2,3]"), "fooxbarx2,3x")
+omxCheckEquals(mxMakeNames("+!"), "xx")
+
 omxCheckError(mxModel('abc -- def'), 
 	paste("The name 'abc -- def' is illegal because",
 	"it contains the '-' character in mxModel(\"abc -- def\")"))
