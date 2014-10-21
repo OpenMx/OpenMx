@@ -86,6 +86,7 @@ optimizers <- c('CSOLNP')
 if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
 
 for (opt in optimizers) {
+	errors[[opt]] <- list()
 	if (length(files) > 0) {
 		for (i in 1:length(files)) {
 			errorRecover(files[[i]], opt, i)
@@ -115,4 +116,4 @@ warnings()
 write.csv(as.data.frame(runtimes), "runtimes.csv")
 
 cat("Finished testing models.\n")
-quit(status=length(errors))
+quit(status=totalErrors)
