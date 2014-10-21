@@ -149,6 +149,7 @@ class ifaGroup {
 	std::vector<const double*> spec;
 	int maxItemDims;
 	int numItems() const { return (int) spec.size(); }
+	int impliedParamRows;    // based on spec set
 	int paramRows;
 	double *param;  // itemParam->data
 	std::vector<const char*> itemNames;

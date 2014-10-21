@@ -168,7 +168,11 @@ irt_rpf_mdim_drm_prob(const double *spec,
   } else {
 	  const double gg = antilogit(param[numDims+1]);
 	  const double uu = antilogit(param[numDims+2]);
-	  tmp = gg + (uu-gg) / (1 + exp(athb));
+	  const double width = uu-gg;
+	  if (width < 0) tmp = nan("I");
+	  else {
+		  tmp = gg + width / (1 + exp(athb));
+	  }
   }
   out[0] = 1-tmp;
   out[1] = tmp;
@@ -326,6 +330,10 @@ irt_rpf_mdim_drm_deriv2(const double *spec,
     out[numDims+1] = nan("I");
   }
   if (uu == INFINITY) {
+    out[numDims+2] = nan("I");
+  }
+  if (gg > uu) {
+    out[numDims+1] = nan("I");
     out[numDims+2] = nan("I");
   }
 }

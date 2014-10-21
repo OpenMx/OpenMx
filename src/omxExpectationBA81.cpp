@@ -615,10 +615,11 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			       state->numItems(), numItems);
 		return;
 	}
-	if (state->itemParam->rows != state->grp.paramRows) {
-		omxRaiseErrorf("item matrix must have %d rows", state->grp.paramRows);
+	if (state->itemParam->rows != state->grp.impliedParamRows) {
+		omxRaiseErrorf("item matrix must have %d rows", state->grp.impliedParamRows);
 		return;
 	}
+	state->grp.paramRows = state->itemParam->rows;
 
 	// for algebra item param, will need to defer until later?
 	state->grp.learnMaxAbilities();
