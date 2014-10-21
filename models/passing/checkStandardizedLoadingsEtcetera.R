@@ -34,7 +34,7 @@ factorModelPath <- mxModel("OneFactorPath",
                            mxData(cov(demoOneFactor), type="cov",
                                   numObs=500))
 omxCheckWarning(mxStandardizeRAMpaths(factorModelPath,T),
-                "argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
+                "standard errors will not be computed because model 'OneFactorPath' has not yet been run")
 factorPathFit <- mxRun(factorModelPath)
 
 ( matrixFitPar <- summary(factorMatrixFit)$parameters )
@@ -201,3 +201,8 @@ zpath4 <- mxStandardizeRAMpaths(bigrun3,T)
 omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),93)
 omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))
+
+# #Test mxTryHard(), since the initial run of 'bigmod' gets Code Red:
+# set.seed(420)
+# bigrun_again <- mxTryHard(bigmod)
+# omxCheckEquals(bigrun_again$output$status$code,0)

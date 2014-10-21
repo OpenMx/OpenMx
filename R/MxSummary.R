@@ -950,13 +950,20 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
   #If user requests SEs, check to be sure they can and should be computed:
   if(SE){
     if(length(model@constraints)>0){
-      warning(paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep=""))
+      msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
+      warning(msq)
       SE <- FALSE
     }
     if(SE & length(model@output$hessian)==0){
-      warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
-      SE <- FALSE
-    }
+      if(!model@.wasRun){
+        msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run",sep="")
+        warning(msg)
+        SE <- FALSE
+      }
+      else{
+        warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
+        SE <- FALSE
+    }}
     pkgcheck <- require(numDeriv)
     if(SE & !pkgcheck){
       warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
