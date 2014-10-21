@@ -718,7 +718,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		}
 		int no = state->grp.itemOutcomes[cx];
 		if (dataMax > no) {
-			omxRaiseErrorf("Data for item %d has %d outcomes, not %d", cx+1, dataMax, no);
+			omxRaiseErrorf("Data for item '%s' has %d outcomes, not %d",
+				       state->itemParam->colnames[cx], dataMax, no);
 		}
 	}
 
