@@ -401,6 +401,13 @@ factorize <- function(x, levels, labels, exclude) {
 			     omxQuotes(unique(x[noMatch])))
 		stop(msg)
 	}
+	dups <- duplicated(labels)
+	for (dx in which(dups)) {
+		from <- levels[dx]
+		x[x==from] <- levels[dx-1]
+	}
+	levels <- levels[!dups]
+	labels <- labels[!dups]
 
 	f <- factor(x, levels, labels, exclude, ordered=TRUE)
 	attr(f, 'mxFactor') <- TRUE

@@ -21,6 +21,11 @@ omxCheckError(mxFactor(v, levels=1:3, exclude=3), "Factor levels and exclude vec
 v <- 1:4
 omxCheckError(mxFactor(v, levels=1:3), "The following values are not mapped to factor levels and not excluded: '4'")
 
+cf <- mxFactor(sample(1:2, 10, replace=TRUE), levels=1:2, labels=c("incorrect", "incorrect"))
+omxCheckEquals(length(levels(cf)), 1)
+omxCheckEquals(levels(cf), 'incorrect')
+omxCheckTrue(all(cf == "incorrect"))
+
 #Ordinal Data test, based on poly3dz.mx
 
 # Data
