@@ -193,10 +193,23 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					'standard errors and fit statistics.',
 					'See Steiger (1980), "Tests for comparing elements of a correlation matrix".'))
 		  }
-		  if (is.matrix(data@observed) && data@type == "raw" && is.integer(data@observed)) {
-			  data@observed <- matrix(as.double(data@observed),
-						  nrow=nrow(data@observed), ncol=ncol(data@observed),
-						  dimnames=dimnames(data@observed))
+		  if (data@type == "raw") {
+			  if (is.matrix(data@observed) && is.integer(data@observed)) {
+				  data@observed <- matrix(as.double(data@observed),
+							  nrow=nrow(data@observed), ncol=ncol(data@observed),
+							  dimnames=dimnames(data@observed))
+			  }
+			  if (is.data.frame(data@observed)) {
+				  mapply(function(col, name) {
+					  if (!is.factor(col)) return()
+					  dups <- duplicated(levels(col))
+					  if (any(dups)) {
+						  stop(paste("Ordered factor column '",name,"' in model '",flatModel@name,
+							     "' has more than 1 level with the same name: ",
+							     omxQuotes(unique(levels(col)[dups])), sep=""))
+					  }
+				  }, data@observed, colnames(data@observed))
+			  }
 		  }
 		  data
 	  })
