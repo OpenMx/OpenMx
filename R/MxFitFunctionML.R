@@ -127,7 +127,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 						obsdata <- obsdata[selVars, selVars]
 					} else { obsdata <- obsdata[,selVars] }
 				} else{
-					message(paste("The model", omxQuotes(modelName), "has an expectaion with NA 'dims' slot. So reference models",
+					message(paste("The model", omxQuotes(modelName), "has an expectation with NA 'dims' slot. So reference models",
 				"of all the variables in the data will be made.  For reference models",
 				"of only the variables used in the model, populate the 'dims' slot with the variable names to use."))
 				}
