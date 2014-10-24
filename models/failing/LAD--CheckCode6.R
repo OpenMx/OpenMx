@@ -60,4 +60,5 @@ Laplace_rgsn_mod1 <- mxModel(
 
 Laplace_rgsn_fit1 <- mxRun(Laplace_rgsn_mod1)
 omxCheckEquals(Laplace_rgsn_fit1$output$status$code,6)
+omxCheckEquals(summary(Laplace_rgsn_fit1)$npsolMessage, "The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)")
 Laplace_rgsn_fit2 <- mxTryHard(Laplace_rgsn_fit1)
