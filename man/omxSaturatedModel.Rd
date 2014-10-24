@@ -44,6 +44,8 @@ One potentially important limitation of the \code{mxRefModels} function is for b
 
 Another potential misuse of this function is for models with definition variables.  If definition variables are detect, a warning message is passed because the saturated and independence model may not be correct because they do not account for the definition variables.
 
+When an MxModel has been run, some effort is made to make the reference models for only the variables used in the model.  For covariance data, all variables are modeled by default.  For raw data when the model has been run, only the modeled variables are used in the reference models.  This matches the behavior of \link{mxModel}.
+
 In general, it is best practice to give \code{mxRefModels} a model that has already been run.
 
 For IFA models (\link{mxExpectationBA81}), the independence model
