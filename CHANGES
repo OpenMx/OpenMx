@@ -1,5 +1,37 @@
 trunk
 =====
+* Fix bug that failed to print optimizer messages again in summary.  Add test.
+* Fix mxEval(..., defvar.row) for when data is sorted
+* Check for duplicated level names in factors in MxData
+* Simple category collapsing for mxFactor
+* Change mxStandardizeRAMpaths() to say if the model hasn't been run yet; amend test model accordingly.
+* Add mxMakeNames & test
+* Add eval by name wrapper for mxEval created by Spiegel
+* 'make test' should record errors optimizer-wise
+* Don't INSTALLMAKEFLAGS=""; allow setting from the environment
+* Report 'make test' errors as they happen
+* Throw warning from ref models when definition variables are present.
+* Cope with zero length components in mxSimplify2Array
+* Make mxFactor preserve rownames
+* Update dims slot of expectations for models in mxRun.  Adjust saturated model accordingly.
+* Make mxSimplify2Array preserve colnames
+* Added threshold deviation labels for saturated models
+* Fix bug in saturated model for raw matrix data.
+* Implement qnorm() and lgamma() in mxAlgebras.
+* Make models with row fitfunctions re-runnable from an initial fit
+  and end name collisions with filteredDataRow, existenceVector, and
+  rowResults.
+* Modify quoted formula error catch to only use match.call()$expression once.
+* Smarter way to catch mxAlgebra formulas that are character strings.
+* Catch quoted formula error in mxAlgebra
+* Fix mxEval error and add test for square bracket with blank entry
+* Modify wall time printing as per Dev mailing list discussion
+* Small change so that mxStandardizeRAMpaths() handles independent submodels as intended.
+* Adding correctly named Holzinger 1939 data set
+* mxFitFunctionMultigroup: Fix error for unmatched submodel; add test
+* omxQuotes should do something sensible when passed nothing
+* Permit models with no matrices (to avoid masking other errors)
+* Coerce x argument of mxFactor to character type
 * Fix array indexing of ordinal thresholds (when there are unused columns in observed data)
 * Add warning for data.type='cor'
 * removing link to non-existant function in OpenMx [doc]
