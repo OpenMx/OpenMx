@@ -103,7 +103,7 @@ if (totalErrors > 0) {
 	for (opt in names(errors)) {
 		oerr <- errors[[opt]]
 		fileName <- names(oerr)
-		for (i in 1:length(oerr)) {
+		if (length(oerr)) for (i in 1:length(oerr)) {
 			cat("Error", opt, fileName[[i]], '***\n')
 			print(oerr[[i]]$message)
 			cat('\n')
