@@ -43,12 +43,12 @@ imxExtractSlot <- function(x, name) {
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
-##' @param object The object from which to get slot names
+##' @param x The object from which to get slot names
 ##' @param pattern Initial pattern to match (default of '.*' matches any)
-##' @param slotList List of slots for which toget display names (default = slotNames(object), i.e., all)
-##' @param showDots Include slots whose names start with '.' (default FALSE)
-##' @param showEmpty Include slots with length-zero contents (default FALSE)
-imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(object), showDots=FALSE, showEmpty=FALSE) {
+imxGetSlotDisplayNames <- function(x, pattern='.*') {
+	slotList=slotNames(object)
+	showDots=FALSE
+	showEmpty=FALSE
 	dotSlots <- slotList[substr(slotList,1,1) == "."]	# Eliminate .<anything> slots
 	emptySlots <- slotList[sapply(slotList, 			# Eliminate 0-length slots
 					function(x, object) { length(slot(object, x)) == 0 }, 
