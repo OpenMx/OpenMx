@@ -29,7 +29,7 @@ Also, the \sQuote{levels} parameter is optional in R's \code{factor} function. H
 
 \usage{
 mxFactor(x = character(), levels, labels = levels, 
-    exclude = NA, ordered = TRUE)
+    exclude = NA, ordered = TRUE, collapse = FALSE)
 }
 
 \arguments{
@@ -38,6 +38,8 @@ mxFactor(x = character(), levels, labels = levels,
     \item{labels}{_either_ an optional vector of labels for the levels, _or_ a character string of length 1.}
     \item{exclude}{a vector of values to be excluded from the set of levels.}
     \item{ordered}{logical flag to determine if the levels should be regarded as ordered (in the order given).  Required to be TRUE.}
+    \item{collapse}{logical flag to determine if duplicate labels should
+   collapsed into a single level}
 }
 
 \details{
@@ -65,5 +67,6 @@ factor(ff)      # NOTE: drops the levels that do not occur.
 foo <- data.frame(x=c(1:3),y=c(4:6),z=c(7:9))
 mxFactor(foo, c(1:9))                       # Applys one set of levels to all three columns
 mxFactor(foo, list(c(1:3), c(4:6), c(7:9))) # Apply unique sets of levels to each variable
+mxFactor(foo, c(1:9), labels=c(1,1,1,2,2,2,3,3,3), collapse=TRUE)
     
 }

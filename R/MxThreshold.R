@@ -384,7 +384,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 	return(threshNames)
 }
 
-factorize <- function(x, levels, labels, exclude) {
+factorize <- function(x, levels, labels, exclude, collapse) {
 	x <- as.character(x)
 	if (length(exclude) && all(!is.na(exclude))) {
 		overlap <- match(exclude, levels)
@@ -402,19 +402,27 @@ factorize <- function(x, levels, labels, exclude) {
 		stop(msg)
 	}
 	dups <- duplicated(labels)
-	for (dx in which(dups)) {
-		from <- levels[dx]
-		x[x==from] <- levels[dx-1]
+	if (collapse) {
+		newLevels <- levels[!dups]
+		notDup <- which(!dups)
+		for (dx in which(dups)) {
+			from <- levels[dx]
+			to <- newLevels[findInterval(dx, notDup)]
+			x[x==from] <- to
+		}
+		levels <- newLevels
+		labels <- labels[!dups]
+	} else {
+		if (any(dups)) stop(paste("Duplicate labels and collapse=TRUE not specified:",
+					  omxQuotes(unique(labels[dups]))))
 	}
-	levels <- levels[!dups]
-	labels <- labels[!dups]
 
 	f <- factor(x, levels, labels, exclude, ordered=TRUE)
 	attr(f, 'mxFactor') <- TRUE
 	f
 }
 
-mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ordered = TRUE) {
+mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ordered = TRUE, collapse=FALSE) {
 	if(missing(levels)) {
 		stop("the 'levels' argument is not optional")
 	}
@@ -424,10 +432,10 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	if (is.data.frame(x)) {
 		if (is.list(levels)) {
 			return(data.frame(mapply(factorize, x, levels, labels,
-				MoreArgs=list(exclude = exclude), SIMPLIFY=FALSE),
+				MoreArgs=list(exclude = exclude, collapse=collapse), SIMPLIFY=FALSE),
 				check.names = FALSE, row.names=rownames(x)))
 		} else {
-			return(data.frame(lapply(x, factorize, levels, labels, exclude),
+			return(data.frame(lapply(x, factorize, levels, labels, exclude, collapse),
 				check.names = FALSE, row.names=rownames(x)))
 		}
 	} else if (is.matrix(x)) {
@@ -435,7 +443,7 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 		"is of illegal type matrix,",
 		"legal types are vectors or data.frames"))
 	} else {
-		return(factorize(x, levels, labels, exclude))
+		return(factorize(x, levels, labels, exclude, collapse))
 	}
 }
 

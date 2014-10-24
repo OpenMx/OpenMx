@@ -21,10 +21,18 @@ omxCheckError(mxFactor(v, levels=1:3, exclude=3), "Factor levels and exclude vec
 v <- 1:4
 omxCheckError(mxFactor(v, levels=1:3), "The following values are not mapped to factor levels and not excluded: '4'")
 
-cf <- mxFactor(sample(1:2, 10, replace=TRUE), levels=1:2, labels=c("incorrect", "incorrect"))
+cf <- omxCheckError(mxFactor(sample(1:2, 10, replace=TRUE), levels=1:2,
+                             labels=c("incorrect", "incorrect")),
+                    "Duplicate labels and collapse=TRUE not specified: 'incorrect'")
+cf <- mxFactor(sample(1:2, 10, replace=TRUE), levels=1:2,
+               labels=c("incorrect", "incorrect"), collapse=TRUE)
 omxCheckEquals(length(levels(cf)), 1)
 omxCheckEquals(levels(cf), 'incorrect')
 omxCheckTrue(all(cf == "incorrect"))
+
+foo <- data.frame(x=c(1:3),y=c(4:6),z=c(7:9))
+foo <- mxFactor(foo, c(1:9), labels=c(1,1,1,2,2,2,3,3,3), collapse=TRUE)
+omxCheckTrue(all(foo == matrix(kronecker(1:3, rep(1,3)),3,3)))
 
 #Ordinal Data test, based on poly3dz.mx
 
