@@ -62,6 +62,9 @@ imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(obje
 	grep(pattern, slotList, value=TRUE)
 }
 
+GetSlotDisplayNames <- function(x, pattern='.*') {
+	imxGetSlotDisplayNames(x, pattern)
+}
 
 
 ##' imxReplaceSlot
