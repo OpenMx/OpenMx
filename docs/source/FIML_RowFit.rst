@@ -166,6 +166,9 @@ Data
 
 For this example we will simulate our own data.  We will use the ``mvrnorm()`` function which lives is the ``MASS`` package.  The ``mvrnorm()`` function generates a multivariate random normal sample with a given vector of means and a given covariance matrix.  The following code generates the data.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     require(MASS)
@@ -176,6 +179,9 @@ For this example we will simulate our own data.  We will use the ``mvrnorm()`` f
 The data have 2 variables with 1000 rows.  The true means are 0.  Each variable has a true variance of 1.0, and a covariance of 0.5.
 
 Some further data processing will prove helpful.  First, we recast the generated data as a ``data.frame`` object in R.  Second, we tell R that what we want the variables names to be.  Finally, we look at a summary of the data set and the observed covariance matrix which differs slightly from the covariance matrix used to generate the data.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -191,6 +197,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 We generate an ``mxModel``, give it data, and two ``mxMatrix`` objects.  The first ``mxMatrix`` is a row-vector or completely free parameters and is the model-implied means vector.  Because we are specifying the saturated model, the means are freely estimated.  The second ``mxMatrix`` gives the model-implied covariance matrix.  Because we are specifying the saturated model, the covariance matrix is freely estimated, however it is still constrained to by symmetric and the starting values are picked so that the variances on the diagonal are in general larger than the covariances.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -223,6 +232,9 @@ Filtering
 
 We create a new ``mxModel`` that has everything from the previous model.  We then create ``mxAlgebra`` objects that filter the expected means vector and the expected covariance matrix.  We also create an ``mxAlgebra`` that keeps track of the number of variables that are not missing in a given row.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     bivCorFiltering <- mxModel(
@@ -244,6 +256,9 @@ Calculations
 ^^^^^^^^^^^^
 
 We create a new ``mxModel`` that has everything from the previous models.  
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -268,6 +283,8 @@ Row Fit Specification
 
 We create a new ``mxModel`` that has everything from the previous models.  
 
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -294,6 +311,9 @@ We create a new ``mxModel`` that has everything from the previous models.
 
 Model Fitting
 ^^^^^^^^^^^^^
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

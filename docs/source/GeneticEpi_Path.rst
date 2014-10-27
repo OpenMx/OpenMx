@@ -30,6 +30,9 @@ Data
 
 Let us assume you have collected data on a large sample of twin pairs for your phenotype of interest.  For illustration purposes, we use Australian data on body mass index (BMI) which are saved in a text file *twinData*, which comes with the OpenMx package.  We use R to read the data into a data.frame and define the objects ``selVars`` for the variables selected for analysis, and ``aceVars`` for the latent variables to simplify the OpenMx code.  We then create two subsets of the data for MZ females (mzData) and DZ females (dzData) respectively with the code below, and generate some descriptive statistics, namely means and covariances.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # Load Data
@@ -56,6 +59,9 @@ Model Specification
 There are different ways to draw a path diagram of the ACE model.  The most commonly used approach is with the three latent variables in circles at the top, separately for twin 1 and twin 2 respectively called **A1**, **C1**, **E1** and **A2**, **C2**, **E2**.  The latent variables are connected to the observed variables in boxes at the bottom, representing the measures for twin 1 and twin 2: **T1** and **T2**, by single-headed arrows from the latent to the manifest variables.  Path coefficients **a**, **c** and **e** are estimated but constrained to be the same for twin 1 and twin 2, as well as for MZ and DZ twins.  As MZ twins share all their genotypes, the double-headed path connecting **A1** and **A2** is fixed to one in the MZ diagram.  DZ twins share on average half their genes, and as a result the corresponding path is fixed to 0.5 in the DZ diagram.  Environmental factors that are shared between twins are assumed to increase similarity between twins to the same extent in MZ and DZ twins (equal environments assumption), thus the double-headed path connecting **C1** and **C2** is fixed to one in both diagrams above.  The unique environmental factors are by definition uncorrelated between twins.
 
 Let's go through the paths specification step by step.  First, we start with the ``require(OpenMx)`` statement.  We include the full code here.  As MZ and DZ have to be evaluated together, the models for each will be arguments of a bigger model.  Given the diagrams for the MZ and the DZ group look rather similar, we start by specifying all the common elements  which will be stored in a list *paths* and then shared with the two submodels for each of the twin types, defined in separate ``mxModel`` commands.  The latter two ``MxModel`` objects (*modelMZ* and *modelDZ*) are arguments of the overall model, and will be saved together in the R object *modelACE* and thus be run together.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -115,12 +121,18 @@ Now we will discuss the script line by line.  For further details on RAM, see [R
     ..[RAM1990]  McArdle, J.J. & Boker, S.M. (1990). RAMpath: Path diagram software. Denver: Data Transforms Inc.
     
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
 	        manifestVars=selVars
 	        latentVars=aceVars
 
 We start by specifying paths for the variances and means of the latent variables.  These include double-headed arrows from each latent variable back to itself, fixed at one.
+
+.. cssclass:: input
+..
 
 .. code-block:: r        
 
@@ -130,6 +142,9 @@ We start by specifying paths for the variances and means of the latent variables
 
 and single-headed arrows from the triangle (with a fixed value of one) to each of the latent variables, fixed at zero. 
 
+.. cssclass:: input
+..
+
 .. code-block:: r        
 
     # means of latent variables
@@ -138,6 +153,9 @@ and single-headed arrows from the triangle (with a fixed value of one) to each o
 
 Next we specify paths for the means of the observed variables using single-headed arrows from ``one`` to each of the manifest variables.  These are set to be free and given a start value of 20.  As we use the same label ("mean") for the two means, they are constrained to be equal.  Remember that R 'recycles'.
 
+.. cssclass:: input
+..
+
 .. code-block:: r        
 
     # means of observed variables
@@ -145,6 +163,9 @@ Next we specify paths for the means of the observed variables using single-heade
                             free=TRUE, values=20, labels="mean" )
 
 The main paths of interest are those from each of the latent variables to the respective observed variable.  These are also estimated (thus all are set free), get a start value of 0.5 and appropriate labels.  We chose the start value of .5 by dividing the observed variance, here about .7-.8 in three for the three sources of variance, and then taking the square root as we're estimating the path coefficients, but these are squared to obtain their contribution to the variance.
+
+.. cssclass:: input
+..
 
 .. code-block:: r        
 
@@ -157,6 +178,9 @@ The main paths of interest are those from each of the latent variables to the re
     
 As the common environmental factors are by definition the same for both twins, we fix the correlation between **C1** and **C2** to one.    
 
+.. cssclass:: input
+..
+
 .. code-block:: r        
 
     # covariance between C1 & C2
@@ -164,6 +188,9 @@ As the common environmental factors are by definition the same for both twins, w
                             free=FALSE, values=1 )
 
 Next we create the paths that are specific to the MZ group or the DZ group and are later included into the respective models, ``modelMZ`` and ``modelDZ``, which are combined in *modelACE*.   In the MZ model we add the path for the correlation between **A1** and **A2** which is fixed to one.  In the DZ model the correlation between **A1** and **A2** is fixed to 0.5 instead.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -176,12 +203,18 @@ Next we create the paths that are specific to the MZ group or the DZ group and a
 
 That concludes the specification of the paths from which the models will be generated for MZ and DZ twins separately.  Next we move to the ``mxData`` commands that call up the data.frame with the MZ raw data, *mzData*, and the DZ raw data, *dzData*, respectively, with the type specified explicitly as ``raw``.  These are stored in two MxData objects.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataMZ       <- mxData( observed=mzData, type="raw" )
     dataDZ       <- mxData( observed=dzData, type="raw" )
 
 As we indicated earlier, we're collecting all the mxPaths objects that are in common between the two models in a list called *paths*, which will then be included in the respective models that we'll build next with the ``mxModel`` statements.  First we give the model a name, "MZ", to refer back to it later when we need to add the fit functions.  Next we tell OpenMx that we're specifying a path model by using the RAM ``type``, which requires us to include both the ``manifestVars`` and the ``latentVars`` arguments.  Then we include the list of paths generated before that are common between the two models, and the path that is specific to either the MZ or the DZ model.  Last we add the data objects for the MZ and DZ group respectively.
+
+.. cssclass:: input
+..
 
 .. code-block:: r    
     
@@ -194,6 +227,9 @@ As we indicated earlier, we're collecting all the mxPaths objects that are in co
                             latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
 
 Finally, both models need to be evaluated simultaneously.  We generate the sum of the fit functions for the two groups, using ``mxAlgebra``, and use the result (*minus2loglikelihood*) as argument of the ``mxFitFunctionAlgebra`` command.  We specify a new ``mxModel`` - with a new name using the ``model=""`` notation, which has the *modelMZ* and *modelDZ* as its arguments.  We also include the objects summing the likelihood and evaluating it.
+
+.. cssclass:: input
+..
 
 .. code-block:: r        
 
@@ -208,6 +244,9 @@ Model Fitting
         
 We need to invoke the ``mxRun`` command to start the model evaluation and optimization.  Detailed output will be available in the resulting object, which can be obtained by a ``print()`` statement, or a more succinct output can be obtained with the ``summary`` function.
 
+.. cssclass:: input
+..
+
 .. code-block:: r        
 
     #Run ACE model
@@ -215,6 +254,9 @@ We need to invoke the ``mxRun`` command to start the model evaluation and optimi
     sumACE       <- summary(fitACE)
 
 Often, however, one is interested in specific parts of the output.  In the case of twin modeling, we typically will inspect the likelihood, the expected covariance matrices and mean vectors, the parameter estimates, and possibly some derived quantities, such as the standardized variance components, obtained by dividing each of the components by the total variance.  Note in the code below that the ``mxEval`` command allows easy extraction of the values in the various matrices which form the first argument, with the model name as second argument.  Once these values have been put in new objects, we can use any regular R expression to derive further quantities or organize them in a convenient format for including in tables.  Note that helper functions could easily (and will likely) be written for standard models to produce 'standard' output. 
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -242,6 +284,9 @@ Alternative Models: an AE Model
 -------------------------------
 
 To evaluate the significance of each of the model parameters, nested submodels are fit in which the parameters of interest are fixed to zero.  If the likelihood ratio test between the two models (one including the parameter and the other not) is significant, the parameter that is dropped from the model significantly contributes to the variance of the phenotype in question.  Here we show how we can fit the AE model as a submodel with a change in the two ``mxPath`` commands.  We re-specify the path from **C1** to **bmi1** to be fixed to zero, and do the same for the path from **C2** to **bmi2**.  We need to rebuild both *modelMZ* and *modelDZ*, so that they are now built with the changed paths, as well as the overall model which we now call *modelAE*.  We can run this model in the same way as before, by combining the fit functions of the two groups and generate similar summaries of the results.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -284,6 +329,9 @@ To evaluate the significance of each of the model parameters, nested submodels a
 We use a likelihood ratio test (or take the difference between -2 times the log-likelihoods of the two models, for the difference in degrees of freedom) to determine the best fitting model.  In this example, the Chi-square likelihood ratio test is 0 for 1 degree of freedom, indicating the the *c* parameter does not contribute to the variance at all.  This can also be seen in the 0 estimates for the *c* parameter in the ACE model and identical parameters for *a* and *e* in the ACE and AE models.
 
 While the approach outlined above works just fine, the same can be accomplished with the ``omxSetParameters`` helper function, that allows the user to specify a parameter label in a model whose attributes are to be changed, in this case by setting ``free`` to FALSE and ``values`` to 0.  Prior to making this change, we copied the original model into a new model and gave it a new name, so that we have separate model objects for the two nested models that can then be compared with ``mxCompare``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
     

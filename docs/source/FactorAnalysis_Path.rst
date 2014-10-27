@@ -39,6 +39,9 @@ Data
 
 Our first step to running this model is to include the data to be analyzed. The data for this example contain nine variables. We'll select the six we want for this model using the selection operators used in previous examples. Both raw and covariance data are included below, but only one is required for any model.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     data(myFADataRaw)
@@ -72,6 +75,9 @@ Model Specification
 
 Creating a path-centric factor model will use many of the same functions and arguments used in previous path-centric examples. However, the inclusion of latent variables adds a few extra pieces to our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     require(OpenMx)
@@ -101,12 +107,18 @@ Creating a path-centric factor model will use many of the same functions and arg
 
 As with previous examples, this model begins with a name ("Common Factor Model Path Specification") for the model and a ``type="RAM"`` argument. The name for the model may be omitted, or may be specified in any other place in the model using the ``name`` argument. Including ``type="RAM"`` allows the ``mxModel`` function to interpret the ``mxPath`` functions that follow and turn those paths into an expected covariance matrix and means vector for the ensuing data. The ``mxData`` function works just as in previous examples, and the following raw data specification is included in the code: 
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     dataRaw      <- mxData( observed=myFADataRaw, type="raw" )
 
 can be replaced with a covariance matrix and means, like so:
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     dataCov      <- mxData( observed=oneFactorCov, type="cov", numObs=500,
@@ -114,6 +126,9 @@ can be replaced with a covariance matrix and means, like so:
           
 The first departure from our previous examples can be found in the addition of the ``latentVars`` argument after the ``manifestVars`` argument. The ``manifestVars`` argument includes the six variables in our observed data. The ``latentVars`` argument provides names for the latent variables (here just one), so that it may be referenced in ``mxPath`` functions.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     manifestVars=c("x1","x2","x3","x4","x5","x6")
@@ -121,6 +136,9 @@ The first departure from our previous examples can be found in the addition of t
 
 Our model is defined by four ``mxPath`` functions. The first defines the residual variance terms for our six observed variables. The ``to`` argument is not required, as we are specifiying two headed arrows both from and to the same variables, as specified in the ``from`` argument. These six variances are all freely estimated, have starting values of 1, and are labeled ``e1`` through ``e6``.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # residual variances
@@ -130,6 +148,9 @@ Our model is defined by four ``mxPath`` functions. The first defines the residua
       
 We also must specify the variance of our latent variable. This code is identical to our residual variance code above, with the latent variable ``"F1"`` replacing our six manifest variables.   Alternatively, both could be combined.
       
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # latent variance
@@ -138,6 +159,9 @@ We also must specify the variance of our latent variable. This code is identical
           
 Next come the factor loadings. These are specified as asymmetric paths (regressions) of the manifest variables on the latent variable ``"F1"``. As we have to scale the latent variable, the first factor loading has been given a fixed value of one by setting the first elements of the ``free`` and ``values`` arguments to ``FALSE`` and ``1``, respectively. Alternatively, the latent variable could have been scaled by fixing the factor variance to 1 in the previous ``mxPath`` function and freely estimating all factor loadings. The five factor loadings that are freely estimated are all given starting values of 1 and labels ``l2`` through ``l6``.   
           
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # factor loadings
@@ -147,6 +171,9 @@ Next come the factor loadings. These are specified as asymmetric paths (regressi
 
 Lastly, we must specify the mean structure for this model. As there are a total of seven variables in this model (six manifest and one latent), we have the potential for seven means. However, we must constrain at least one mean to a constant value, as there is not sufficient information to yield seven mean and intercept estimates from the six observed means. The six observed variables receive freely estimated intercepts, while the factor mean is fixed to a value of zero in the code below.
      
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # means
@@ -157,6 +184,9 @@ Lastly, we must specify the mean structure for this model. As there are a total 
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
 A summary of the output can be reached using ``summary()``.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     oneFactorFit <- mxRun(oneFactorModel)
@@ -184,6 +214,9 @@ Our model contains 21 parameters (six manifest variances, six manifest means, si
 
 The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we will select three *x* variables (``x1-x3``) and three *y* variables (``y1-y3``).
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     twoFactorRaw <- myFADataRaw[,c("x1","x2","x3","y1","y2","y3")]
@@ -195,6 +228,9 @@ The data for the two factor model can be found in the ``myFAData`` files introdu
 
 Specifying the two factor model is virtually identical to the single factor case. The last three variables of our ``manifestVars`` argument have changed from ``"x4","x5","x6"`` to ``"y1","y2","y3"``, which is carried through references to the variables in later ``mxPath`` functions.
  
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     dataRaw      <- mxData( observed=twoFactorRaw, type="raw" )
@@ -225,6 +261,9 @@ Specifying the two factor model is virtually identical to the single factor case
   
 We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` and ``latentVars`` arguments previously, so now we will focus on the changes this model makes to the ``mxPath`` functions. The first and last ``mxPath`` functions, which detail residual variances and intercepts, accomodate the changes in manifest and latent variables but carry out identical functions to the common factor model.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r 
 
     # residual variances
@@ -240,6 +279,9 @@ We've covered the ``type`` argument, ``mxData`` function and ``manifestVars`` an
   
 The second, third and fourth ``mxPath`` functions provide some changes to the model. The second ``mxPath`` function specifies the variances and covariance of the two latent variables. Like previous examples, we've omitted the ``to`` argument for this set of two-headed paths. Unlike previous examples, we've set the ``connect`` argument to ``unique.pairs``, which creates all unique paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all unique paths from and to our two latent variables. This results in three paths: from F1 to F1 (the variance of F1), from F1 to F2 (the covariance of the latent variables), and from F2 to F2 (the variance of F2). 
 
+.. cssclass:: input
+..
+   
 .. code-block:: r 
 
     # latent variances and covariance
@@ -249,6 +291,9 @@ The second, third and fourth ``mxPath`` functions provide some changes to the mo
   
 The third and fourth ``mxPath`` functions define the factor loadings for each of the latent variables. We've split these loadings into two functions, one for each latent variable. The first loading for each latent variable is fixed to a value of one, just as in the previous example.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r 
 
     # factor loadings for x variables
@@ -261,6 +306,9 @@ The third and fourth ``mxPath`` functions define the factor loadings for each of
   
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``$output`` slot of the resulting model. A summary of the output can be reached using ``summary()``.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     oneFactorFit <- mxRun(oneFactorModel)

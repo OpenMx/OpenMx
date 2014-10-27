@@ -35,6 +35,9 @@ Data
 
 The first step to running our model is to import data. The code below is used to import both raw data and a covariance matrix and means vector, either of which can be used for our growth curve model. This data contains five variables, which are repeated measurements of the same variable. As growth curve models make specific hypotheses about the variances of the manifest variables, correlation matrices generally aren't used as data for this model.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     data(myLongitudinalData)
@@ -54,6 +57,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, an expectation function, and a fit function) are specified. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -115,6 +121,9 @@ The model begins with a name, in this case "Linear Growth Curve Model Matrix Spe
 
 Data is supplied with the ``mxData`` function. This example uses raw data, but the ``mxData`` function in the code above could be replaced with the function below to include covariance data.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataCov      <- mxData( myLongitudinalDataCov, type="cov", numObs=500,
@@ -123,6 +132,9 @@ Data is supplied with the ``mxData`` function. This example uses raw data, but t
 The four ``mxMatrix`` functions define the **A**, **S**, **F** and **M** matrices used in RAM specification of models. In all four matrices, the first five rows or columns of any matrix represent the five manifest variables, the sixth the latent intercept variable, and the seventh the slope. The **A** and **S** matrices are of order **7x7**, the **F** matrix of order **5x7**, and the **M** matrix **1x7**.
 
 The **A** matrix specifies all of the assymetric paths or regressions among variables. The only assymmetric paths in our model regress the manifest variables on the latent intercept and slope with fixed values. The regressions of the manifest variables on the intercept are in the first five rows and sixth column of the **A** matrix, all of which have a fixed value of one. The regressions of the manifest variables on the slope are in the first five rows and seventh column of the **A** matrix with fixed values in this series: [0, 1, 2, 3, 4]. 
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -139,6 +151,9 @@ The **A** matrix specifies all of the assymetric paths or regressions among vari
                               byrow=TRUE, name="A" )
      
 The **S** matrix specifies all of the symmetric paths among our variables, representing the variances and covariances in our model. The five manifest variables do not have any covariance parameters with any other variables, and all are restricted to have the same residual variance. This variance term is constrained to equality by specifying five free parameters and giving all five parameters the same label ``residual``. The variances and covariance of the latent variables are included as free parameters in the sixth and sevenths rows and columns of this matrix as well.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -169,6 +184,9 @@ The **S** matrix specifies all of the symmetric paths among our variables, repre
       
 The third matrix in our RAM model is the **F** or filter matrix. This is used to "filter" the latent variables from the expected covariance of the observed data.  The **F** matrix will always contain the same number of rows as manifest variables and columns as total (manifest and latent) variables. If the manifest variables in the **A** and **S** matrices precede the latent variables are in the same order as the data, then the **F** matrix will be the horizontal adhesion of an identity matrix and a zero matrix. This matrix contains no free parameters, and is made with the ``mxMatrix`` function below.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # filter matrix
@@ -182,6 +200,9 @@ The third matrix in our RAM model is the **F** or filter matrix. This is used to
                               byrow=T, name="F" )
 
 The final matrix in our RAM model is the **M** or means matrix, which specifies the means and intercepts of the variables in the model. While the manifest variables have expected means in our model, these expected means are entirely dependent on the means of the intercept and slope factors. In the **M** matrix below, the manifest variables are given fixed intercepts of zero while the latent variables are each given freely estimated means with starting values of 1 and labels of ``"meani"`` and ``"means"``
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -211,6 +232,9 @@ The expected means are defined as:
 The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector. The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` function often takes no arguments.
 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``$output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

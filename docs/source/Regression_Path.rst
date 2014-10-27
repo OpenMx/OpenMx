@@ -45,11 +45,17 @@ Data
 
 Our first step to running this model is to include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the ``read.table`` function. The data provided has a header row, indicating the names of the variables.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     data(myRegDataRaw)
 
 The names of the variables provided by the header row can be displayed with the ``names()`` function.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -59,6 +65,9 @@ As you can see, our data has four variables in it. However, our model only conta
 
 .. We can refer to individual rows and columns of a data frame or matrix using square brackets, with selected rows referenced first and selected columns referenced second, separated by a comma. In the code below, we select all rows (there is no selection operator before the comma) and only columns x and y. As we are selecting multiple columns, we use the c() function to concatenate or connect those two names into one object.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
 	SimpleDataRaw <- myRegDataRaw[,c("x","y")]
@@ -66,6 +75,9 @@ As you can see, our data has four variables in it. However, our model only conta
 For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are. As our model also references means, we will include a vector of means in a separate object. Data is selected in the same way as before.
 
 .. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we will just select the second and third elements of that vector.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -87,6 +99,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, paths, and a model type) are included in their own arguments or functions. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.  Note the difference in capitalization for the first letter.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -114,11 +129,17 @@ The next part of our code is the ``type`` argument. By setting ``type="RAM"``, w
 
 The third component of our code creates an ``MxData`` object. The example above, reproduced here in parts, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataRaw      <- mxData( observed=SimpleDataRaw, type="raw" )
 
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -126,6 +147,9 @@ If we were to use a covariance matrix and vector of means as data, we would repl
                             means=SimpleDataMeans )
 
 We must also specify the list of observed variables using the ``manifestVars`` argument. In the code below, we include a list of both observed variables, *x* and *y*. 
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -135,6 +159,9 @@ The last features of our code are three ``mxPath`` functions, which describe the
 
 The variance terms of our model (that is, the variance of *x* and the residual variance of *y*) are created with the following ``mxPath`` function. We want two headed arrows from *x* to *x*, and from *y* to *y*. These paths should be freely estimated (``free=TRUE``), have starting values of ``1``, and be labeled ``"varx"`` and ``"residual"``, respectively.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # variance paths
@@ -143,6 +170,9 @@ The variance terms of our model (that is, the variance of *x* and the residual v
       
 The regression term of our model (that is, the regression of *y* on *x*) is created with the following ``mxPath`` function. We want a single one-headed arrow from *x* to *y*. This path should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``"beta1"``.     
           
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # regression weights
@@ -151,6 +181,9 @@ The regression term of our model (that is, the regression of *y* on *x*) is crea
 
 We also need means and intercepts in our model. Exogenous or independent variables have means, while endogenous or dependent variables have intercepts. These can be included by regressing both *x* and *y* on a constant, which can be refered to in OpenMx by ``"one"``. The intercept terms of our model are created with the following ``mxPath`` function. We want single one-headed arrows from the constant to both *x* and *y*. These paths should be freely estimated (``free=TRUE``), have a starting value of ``1``, and be labeled ``meanx`` and ``"beta1"``, respectively.           
       
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # means and intercepts
@@ -164,11 +197,17 @@ Model Fitting
 
 We've created an ``MxModel`` object, and placed it into an object or variable named *uniRegModel*. We can run this model by using the ``mxRun`` function, and the output is placed in the object *uniRegFit* in the code below. We then view the output by referencing the ``output`` slot, as shown here.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     uniRegFit <- mxRun(uniRegModel)
 
 The ``output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``summary`` function, as shown here.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -194,6 +233,9 @@ Our dependent variable *y* is now predicted from two independent variables, *x* 
 
 We prepare our data the same way as before, selecting three variables instead of two.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     MultipleDataRaw <- myRegDataRaw[,c("x","y","z")]
@@ -203,6 +245,9 @@ We prepare our data the same way as before, selecting three variables instead of
     MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 Now, we can move on to our code. It is identical in structure to our simple regression code, but contains additional paths for the new parts of our model.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -240,6 +285,9 @@ The ``mxPath`` functions work just as before. Our first function defines the var
 
 Our second ``mxPath`` function specifies a two-headed arrow (covariance) between *x* and *z*. We've omitted the ``to`` argument from two-headed arrows up until now, as we have only required variances. Covariances may be specified by using both the ``from`` and ``to`` arguments. This path is freely estimated, has a starting value of 0.5, and is labeled ``covxz``.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # covariance of x and z
@@ -272,6 +320,9 @@ We now have twice as many regression parameters, a second residual variance, and
 
 Data import for this analysis will actually be slightly simpler than before. The data we imported for the previous examples contains only the four variables we need for this model. We can use ``myRegDataRaw``, ``myRegDataCov``, and ``myRegDataMeans`` in our models.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     data(myRegDataRaw)
@@ -286,6 +337,9 @@ Data import for this analysis will actually be slightly simpler than before. The
     myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 Our code should look very similar to our previous two models. It includes the same ``type`` argument, ``mxData`` function, and ``manifestVars`` argument as previous models, with a different version of the data and additional variables in the latter two components.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

@@ -45,11 +45,17 @@ Data
 
 Our first step to running this model is to include the data to be analyzed. The data must first be placed in a variable or object. For raw data, this can be done with the ``read.table`` function. The data provided has a header row, indicating the names of the variables.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     data(myRegDataRaw)
 
 The names of the variables provided by the header row can be displayed with the names() function.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -59,6 +65,9 @@ As you can see, our data has four variables in it. However, our model only conta
 
 .. We can refer to individual rows and columns of a data frame or matrix using square brackets, with selected rows referenced first and selected columns referenced second, separated by a comma. In the code below, we select all rows (there is no selection operator before the comma) and only columns x and y. As we are selecting multiple columns, we use the c() function to concatonate or connect those two names into one object.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     SimpleDataRaw <- myRegDataRaw[,c("x","y")]
@@ -66,6 +75,9 @@ As you can see, our data has four variables in it. However, our model only conta
 For covariance data, we do something very similar. We create an object to house our data. Instead of reading in raw data from an external file, we can include a covariance matrix. This requires the ``matrix()`` function, which needs to know what values are in the covariance matrix, how big it is, and what the row and column names are (in dimnames). As our model also references means, we will include a vector of means in a separate object. Data is selected in the same way as before.
 
 .. We'll select variables in much the same way as before, but we must now select both the rows and columns of the covariance matrix.  This means vector doesn't include names, so we will just select the second and third elements of that vector.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -87,6 +99,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.  Note the difference in capitalization for the first letter.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -115,11 +130,17 @@ This ``mxModel`` function can be split into several parts. First, we give the mo
 
 The second component of our code creates an ``MxData`` object. The example above, reproduced here, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataRaw      <- mxData( observed=SimpleDataRaw, type="raw" )
   
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -130,6 +151,9 @@ The next four functions specify the four matrices that make up the RAM specified
 
 The **A** matrix is created first. This matrix specifies all of the asymmetric paths or regressions among the variables. A free parameter in the **A** matrix defines a regression of the variable represented by that row on the variable represented by that column. For clarity, all matrices are specified with the ``byrow`` argument set to ``TRUE``, which allows better correspondence between the matrices as displayed below and their position in ``mxMatrix`` objects. In the section of code below, a free parameter is specified as the regression of *y* on *x*, with a starting value of 1, and a label of ``"beta1"``. This matrix is named ``"A"``.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # asymmetric paths
@@ -138,6 +162,9 @@ The **A** matrix is created first. This matrix specifies all of the asymmetric p
                               labels=c(NA,NA,"beta1",NA), byrow=TRUE, name="A" )
   
 The second ``mxMatrix`` function specifies the **S** matrix. This matrix specifies all of the symmetric paths or covariances among the variables. By definition, this matrix is symmetric, but all elements are specified in the matrix below.  It is also possible to just specify the unique elements, being the elements on the diagonal and below (or above). A free parameter in the **S** matrix represents a variance or covariance between the variables represented by the row and column that parameter is in. In the code below, two free parameters are specified. The free parameter in the first row and column of the **S** matrix is the variance of *x* (labeled ``"varx"``), while the free parameter in the second row and column is the residual variance of *y* (labeled ``"residual"``). This matrix is named ``"S"``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -152,12 +179,18 @@ The third ``mxMatrix`` function specifies the **F** matrix. This matrix is used 
 
 There are no free parameters in any **F** matrix.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # filter matrix
     matrF        <- mxMatrix( type="Iden", nrow=2, ncol=2, name="F" )
   
 The fourth and final ``mxMatrix`` function specifies the **M** matrix. This matrix is used to specify the means and intercepts of our model. Exogenous or independent variables receive means, while endogenous or dependent variables get intercepts, or means conditional on regression on other variables. This matrix contains only one row. This matrix consists of two free parameters; the mean of *x* (labeled ``"meanx"``) and the intercept of *y* (labeled ``"beta0"``). This matrix gives starting values of 0 for both parameters, and is named ``"M"``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -186,6 +219,9 @@ The expected means are defined as:
 
 The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using ``mxExpectationNormal`` and other functions in OpenMx, the ``mxExpectationRAM`` function computes the expected covariance and means matrices when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector.  The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` yields maximum likelihood estimates of structural equation models.  It uses full information maximum likelihood when the data are raw.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     expRAM       <- mxExpectationRAM("A","S","F","M", dimnames=c("x","y"))
@@ -198,11 +234,17 @@ Model Fitting
 
 We've created an ``MxModel`` object, and placed it into an object or variable named ``uniRegModel``. We can run this model by using the ``mxRun`` function, which is placed in the object ``uniRegFit`` in the code below. We then view the output by referencing the ``output`` slot, as shown here.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     uniRegFit <- mxRun(uniRegModel)
 
 The ``$output`` slot contains a great deal of information, including parameter estimates and information about the matrix operations underlying our model. A more parsimonious report on the results of our model can be viewed using the ``summary()`` function, as shown here.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -213,6 +255,9 @@ Alternative Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Rather than using the RAM approach the regression model with matrices can also be specified differently and more directly comparable to the regression equation.  This approach uses a special kind of variable, called a definition variable, which will be explained in more detail in :ref:`definitionmeans-matrix-specification`.  Below is the complete code.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -239,6 +284,9 @@ Rather than using the RAM approach the regression model with matrices can also b
 
 Note the the ``mxData`` statement has not changed.  The first key change is that we put the variable *x* in a matrix X by using a special type of label assignment in an ``mxMatrix`` statement.  The matrix is a ``Full`` **1x1** fixed matrix.  The label has two parts: the first part is called ``data.`` which indicates that the name used in the second part (``x``) is a variable found in the dataset referred to in the ``mxData`` statement.  This variable can now be used as part of any algebra, and is no longer considered a dependent variable.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataRaw     <- mxData( observed=SimpleDataRaw, type="raw" )
@@ -246,6 +294,9 @@ Note the the ``mxData`` statement has not changed.  The first key change is that
                              free=FALSE, labels=c("data.x"), name="X" )
     
 Next, we specify three matrices, one for the intercept, one for the regression coefficient, and one for the residual variance.  In this example, the first two matrices are ``Full`` **1x1** matrices with a free element.  We give them labels consistent with their names in a regression equation, namely ``beta0`` and ``beta1``.  The third matrix is a ``Diag`` **1x1** matrix with a free element for the residual variance, named ``resVar``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -258,12 +309,18 @@ Next, we specify three matrices, one for the intercept, one for the regression c
     
 Now we can explicitly specify the formula for the expected means and covariances using ``mxAlgebra`` statement.  Note that we here use the variable in the matrix **X** as part of the algebra.  We regress *y* on *x* in the means model and simply have the residual variance in the covariance model.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     expMean     <- mxAlgebra( expression= intercept + regCoef %*% X, name="expMean" )
     expCov      <- mxAlgebra( expression= resVar, name="expCov" )
     
 Finally, we call up the results of the algebras as the arguments for the expectation function.  The dimnames map the data to the model.  Note that ``selVars`` now includes only the *y* variable.  The fit function declares that the model is fit using maximum likelihood.  When combined with raw data this means full information maximum likelihood (FIML) is optimized.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -291,6 +348,9 @@ Our dependent variable *y* is now predicted from two independent variables, *x* 
 
 We prepare our data the same way as before, selecting three variables instead of two.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     MultipleDataRaw <- myRegDataRaw[,c("x","y","z")]
@@ -300,6 +360,9 @@ We prepare our data the same way as before, selecting three variables instead of
     MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 
 Now, we can move on to our code. It is identical in structure to our simple regression code, containing the same **A**, **S**, **F** and **M** matrices. With the addition of a third variable, the **A**, **S** and **F** matrices become **3x3**, while the **M** matrix becomes a **1x3** matrix.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -327,6 +390,9 @@ Now, we can move on to our code. It is identical in structure to our simple regr
 The ``mxData`` function now takes a different data object (``MultipleDataRaw`` replaces ``SingleDataRaw``, adding an additional variable), but is otherwise unchanged. The ``mxExpectationRAM`` and ``mxFitFunctionML`` do not change. The only differences between this model and the simple regression script can be found in the **A**, **S**, **F** and **M** matrices, which have expanded to accommodate a second independent variable.
 
 The **A** matrix now contains two free parameters, representing the regressions of the dependent variable *y* on both *x* and *z*. As regressions appear on the row of the dependent variable and the column of the independent variable, these two parameters are both on the second (*y*) row of the **A** matrix.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -362,6 +428,9 @@ We now have twice as many regression parameters, a second residual variance, and
 
 Data import for this analysis will actually be slightly simpler than before. The data we imported for the previous examples contains only the four variables we need for this model. We can use ``myRegDataRaw``, ``myRegDataCov``, and ``myRegDataMeans`` in our models.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
 	data(myRegDataRaw)
@@ -376,6 +445,9 @@ Data import for this analysis will actually be slightly simpler than before. The
     myRegDataMeans <- c(2.582, 0.054, 2.574, 4.061)
 
 Our code should look very similar to our previous two models. The ``mxData`` function will reference the data referenced above, while the ``mxExpectationRAM`` again refers to the **A**, **S**, **F** and **M** matrices. Just as with the multiple regression example, the **A**, **S** and **F** expand to order **4x4**, and the **M** matrix now contains one row and four columns.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

@@ -8,20 +8,27 @@ This section will cover how take advantage of multiple cores on your machine.  T
 To use the snowfall library, you must start your R environment with the following commands:
 
 ..
-	DO NOT EXECUTE
+    DO NOT EXECUTE
+
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
-	library(OpenMx)
-	library(snowfall)
-	sfInit(parallel = TRUE, cpus = 8)
-	sfLibrary(OpenMx)
+    library(OpenMx)
+    library(snowfall)
+    sfInit(parallel = TRUE, cpus = 8)
+    sfLibrary(OpenMx)
 
 ``sfInit`` will initialize the snowfall cluster. You must specify either the number of CPUs on your machine or the cluster environment (see snowfall package documentation). ``sfLibrary`` exports the OpenMx library to the client nodes in the cluster. At the end of your script, use the command:
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
-	sfStop()
+    sfStop()
 
 To Improve Performance
 ----------------------
@@ -30,80 +37,86 @@ Any sequential portions of your script will quickly become the performance bottl
 
 Some of the functions provided by the OpenMx library can be bottlenecks. Iterative use of the ``mxModel()`` function in order to add submodels can be time consuming. Use the following unsafe idiom to improve performance:
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
-	topModel <- mxModel('container')
-	# generate a list of independent submodels
-	submodels <-  omxLapply(1:100, generateNewSubmodels)
-	names(submodels) <- imxExtractNames(submodels)
-	topModel@submodels <- submodels
+    topModel <- mxModel('container')
+    # generate a list of independent submodels
+    submodels <-  omxLapply(1:100, generateNewSubmodels)
+    names(submodels) <- imxExtractNames(submodels)
+    topModel@submodels <- submodels
 
 An Example
 ----------
 
 The following script can be found with ``demo(BootstrapParallel)``
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
-	# parameters for the simulation: lambda = factor loadings,
-	# specifics = specific variances
-	lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
-	nObs <- 500
-	nReps <- 10
-	nVar <- nrow(lambda)
-	specifics <- diag(nVar)
-	chl <- chol(lambda %*% t(lambda) + specifics)
+    # parameters for the simulation: lambda = factor loadings,
+    # specifics = specific variances
+    lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
+    nObs <- 500
+    nReps <- 10
+    nVar <- nrow(lambda)
+    specifics <- diag(nVar)
+    chl <- chol(lambda %*% t(lambda) + specifics)
 
-	# indices for parameters and hessian estimate in results
-	pStrt <- 3
-	pEnd <- pStrt + 2*nVar - 1
-	hStrt <- pEnd + 1
-	hEnd <- hStrt + 2*nVar - 1
+    # indices for parameters and hessian estimate in results
+    pStrt <- 3
+    pEnd <- pStrt + 2*nVar - 1
+    hStrt <- pEnd + 1
+    hEnd <- hStrt + 2*nVar - 1
 
-	# dimension names for OpenMx
-	dn <- list()
-	dn[[1]] <- paste("Var", 1:4, sep="")
-	dn[[2]] <- dn[[1]]
+    # dimension names for OpenMx
+    dn <- list()
+    dn[[1]] <- paste("Var", 1:4, sep="")
+    dn[[2]] <- dn[[1]]
 
-	# function to get a covariance matrix
-	randomCov <- function(nObs, nVar, chl, dn) {
-		x <- matrix(rnorm(nObs*nVar), nObs, nVar)
-		x <- x %*% chl
-		thisCov <- cov(x)
-		dimnames(thisCov) <- dn
-		return(thisCov)  
-	}
+    # function to get a covariance matrix
+    randomCov <- function(nObs, nVar, chl, dn) {
+        x <- matrix(rnorm(nObs*nVar), nObs, nVar)
+        x <- x %*% chl
+        thisCov <- cov(x)
+        dimnames(thisCov) <- dn
+        return(thisCov)  
+    }
 
-	createNewModel <- function(index, prefix, model) {
-		modelname <- paste(prefix, index, sep='')
-		data <- mxData(randomCov(nObs, nVar, chl, dn), type="cov", numObs=nObs)
-		model <- mxModel(model, data)
-		model <- mxRename(model, modelname)
-		return(model)
-	}
+    createNewModel <- function(index, prefix, model) {
+        modelname <- paste(prefix, index, sep='')
+        data <- mxData(randomCov(nObs, nVar, chl, dn), type="cov", numObs=nObs)
+        model <- mxModel(model, data)
+        model <- mxRename(model, modelname)
+        return(model)
+    }
 
-	getStats <- function(model) {
-		retval <- c(model@output$status[[1]],
-			max(abs(model@output$gradient)),
-			model@output$estimate,
-			sqrt(diag(solve(model@output$hessian))))
-		return(retval)
-	}
+    getStats <- function(model) {
+        retval <- c(model@output$status[[1]],
+            max(abs(model@output$gradient)),
+            model@output$estimate,
+            sqrt(diag(solve(model@output$hessian))))
+        return(retval)
+    }
 
 
-	# initialize obsCov for MxModel
-	obsCov <- randomCov(nObs, nVar, chl, dn)
+    # initialize obsCov for MxModel
+    obsCov <- randomCov(nObs, nVar, chl, dn)
 
-	# results matrix: get results for each simulation
-	results <- matrix(0, nReps, hEnd)
-	dnr <- c("inform", "maxAbsG", paste("lambda", 1:nVar, sep=""),
-		paste("specifics", 1:nVar, sep=""),
-		paste("hessLambda", 1:nVar, sep=""),
-		paste("hessSpecifics", 1:nVar, sep=""))
-	dimnames(results)[[2]] <- dnr
+    # results matrix: get results for each simulation
+    results <- matrix(0, nReps, hEnd)
+    dnr <- c("inform", "maxAbsG", paste("lambda", 1:nVar, sep=""),
+        paste("specifics", 1:nVar, sep=""),
+        paste("hessLambda", 1:nVar, sep=""),
+        paste("hessSpecifics", 1:nVar, sep=""))
+    dimnames(results)[[2]] <- dnr
 
-	# instantiate MxModel
-	template <- mxModel("stErrSim",
+    # instantiate MxModel
+    template <- mxModel("stErrSim",
                        mxMatrix(name="lambda", type="Full", nrow=4, ncol=1,
                                 free=TRUE, values=c(.8, .5, .7, 0)),
                        mxMatrix(name="specifics", type="Diag", nrow=4,
@@ -115,30 +128,30 @@ The following script can be found with ``demo(BootstrapParallel)``
                        mxFitFunctionML(),
                        independent = TRUE)
 
-	topModel <- mxModel("container")
+    topModel <- mxModel("container")
 
-	submodels <- lapply(1:nReps, createNewModel, "stErrSim", template)
+    submodels <- lapply(1:nReps, createNewModel, "stErrSim", template)
 
-	names(submodels) <- imxExtractNames(submodels)
-	topModel@submodels <- submodels
+    names(submodels) <- imxExtractNames(submodels)
+    topModel@submodels <- submodels
 
-	modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
+    modelResults <- mxRun(topModel, silent=TRUE, suppressWarnings=TRUE)
 
-	results <- t(omxSapply(modelResults@submodels, getStats))
+    results <- t(omxSapply(modelResults@submodels, getStats))
 
-	# get rid of bad covergence results
-	results2 <- data.frame(results[which(results[,1] <= 1),])
+    # get rid of bad covergence results
+    results2 <- data.frame(results[which(results[,1] <= 1),])
 
-	# summarize the results
-	means <- mean(results2)
-	stdevs <- sd(results2)
-	sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
+    # summarize the results
+    means <- mean(results2)
+    stdevs <- sd(results2)
+    sumResults <- data.frame(matrix(dnr[pStrt:pEnd], 2*nVar, 1,
                                 dimnames=list(NULL, "Parameter")))
-	sumResults$mean <- means[pStrt:pEnd]
-	sumResults$obsStDev <- stdevs[pStrt:pEnd]
-	sumResults$meanHessEst <- means[hStrt:hEnd]
-	sumResults$sqrt2meanHessEst <- sqrt(2) * sumResults$meanHessEst
+    sumResults$mean <- means[pStrt:pEnd]
+    sumResults$obsStDev <- stdevs[pStrt:pEnd]
+    sumResults$meanHessEst <- means[hStrt:hEnd]
+    sumResults$sqrt2meanHessEst <- sqrt(2) * sumResults$meanHessEst
 
-	# print results
-	print(sumResults)
+    # print results
+    print(sumResults)
 

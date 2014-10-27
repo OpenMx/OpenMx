@@ -4,3 +4,119 @@ div.figure {
 	   border: medium dotted gray;
 	   padding: .5cm;
 }
+
+div.document {
+    background-color: #1c2858;
+}
+
+div.related {
+    background-color: #babecc;
+    color: #fff;
+    width: 100%;
+    height: 30px;
+    line-height: 30px;
+    font-size: 88%;
+}
+
+div.sphinxsidebar {
+    float: left;
+    width: 270px;
+    margin-left: -100%;
+    font-size: 88%;
+}
+
+div.sphinxsidebar a {
+    color: #f2f2f2;
+}
+div.sphinxsidebar h3 {
+    font-family: 'Verdana', 'Helvetica', 'Arial', sans-serif;
+    color: #acafb3;
+    font-size: 1.4em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+
+div.sphinxsidebar h4 {
+    font-family: 'Verdana', 'Helvetica', 'Arial', sans-serif;
+    color: #acafb3;
+    font-size: 1.0em;
+    font-weight: normal;
+    margin: 2px 0 0 0;
+    padding: 0;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #a2bbd5;
+    font-family: 'Verdana', 'Helvetica', 'Arial', sans-serif;
+    font-size: 1em;
+}
+
+a {
+    color: #7f85a1;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #7f85a1;
+    text-decoration: none;
+}
+
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    font-family: 'Verdana', ‘Helvetica', 'Arial', sans-serif;
+    background-color: #dddddd;
+    font-weight: normal;
+    color: #073d61;
+    border-bottom: 1px solid #666;
+    margin: 20px -20px 10px -20px;
+    padding: 3px 0 3px 10px;
+}
+
+.input pre {
+    display: block;
+    font-family: 'Monaco', sans-serif;
+    font-size: 80%;
+    background-color: #FFFFCC;
+    border: 1px solid #777;
+}
+
+.output pre {
+    display: block;
+    font-family: 'Courier', sans-serif;
+    font-size: 80%;
+    line-height: 120%;
+    background-color: #e2f0ff;
+    border: 1px solid #777;
+    border-left: none;
+    border-right: none;
+}
+
+tt {
+    font-family: 'Monaco', sans-serif;
+    background-color: #FFFFCC;
+    font-size: 100%;
+}
+
+div.sphinxsidebar ul ul,
+div.sphinxsidebar ul.want-points {
+    margin-left: 12px;
+    list-style: square;
+}
+
+div.footer {
+    background-color: #1c2858;
+    color: #fff;
+    width: 100%;
+    padding: 9px 0 9px 0;
+    text-align: center;
+    font-size: 75%;
+}
+
+body {
+    background: #1c2858;
+}

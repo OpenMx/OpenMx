@@ -40,6 +40,9 @@ Data
 
 Our first step to running this model is to include the data to be analyzed. The data for this example contain nine variables. We'll select the six we want for this model using the selection operators used in previous examples. Both raw and covariance data are included below, but only one is required for any model.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     data(myFADataRaw)
@@ -73,6 +76,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model. Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. All objects required for estimation (data, matrices, an expectation function, and a fit function) are specified. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -152,12 +158,18 @@ This ``mxModel`` function can be split into several parts. First, we give the mo
 
 The second component of our code creates an ``MxData`` object. The example above, reproduced here, first references the object where our data is, then uses the ``type`` argument to specify that this is raw data.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     dataRaw      <- mxData( observed=myFADataRaw, type="raw" )
 
   
 If we were to use a covariance matrix and vector of means as data, we would replace the existing ``mxData`` function with this one:
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -167,6 +179,9 @@ If we were to use a covariance matrix and vector of means as data, we would repl
 Model specification is carried out using ``mxMatrix`` functions to create matrices for a RAM specified model. The **A** matrix specifies all of the asymmetric paths or regressions in our model. In the common factor model, these parameters are the factor loadings. This matrix is square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). Regressions are specified in the **A** matrix by placing a free parameter in the row of the dependent variable and the column of independent variable. 
 
 The common factor model requires that one parameter (typically either a factor loading or factor variance) be constrained to a constant value. In our model, we will constrain the first factor loading to a value of 1, and let all other loadings be freely estimated. All factor loadings have a starting value of one and labels of ``"l1"`` - ``"l6"``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -196,6 +211,9 @@ The common factor model requires that one parameter (typically either a factor l
                               byrow=TRUE, name="A" )
 
 The second matrix in a RAM model is the **S** matrix, which specifies the symmetric or covariance paths in our model. This matrix is symmetric and square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). The symmetric paths in our model consist of six residual variances and one factor variance. All of these variances are given starting values of one and labels ``"e1"`` - ``"e6"`` and ``"varF1"``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -228,6 +246,9 @@ The third matrix in our RAM model is the **F** or filter matrix. Our data contai
 
 The **F** matrix will always contain the same number of rows as manifest variables and columns as total (manifest and latent) variables. If the manifest variables in the **A** and **S** matrices precede the latent variables and are in the same order as the data, then the **F** matrix will be the horizontal adhesion of an identity matrix and a zero matrix. This matrix contains no free parameters, and is made with the ``mxMatrix`` function below.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # filter matrix
@@ -242,6 +263,9 @@ The **F** matrix will always contain the same number of rows as manifest variabl
                               byrow=TRUE, name="F" )
 
 The last matrix of our model is the **M** matrix, which defines the means and intercepts for our model. This matrix describes all of the regressions on the constant in a path model, or the means conditional on the means of exogenous variables. This matrix contains a single row, and one column for every manifest and latent variable in the model. In our model, the latent variable has a constrained mean of zero, while the manifest variables have freely estimated means, labeled ``"meanx1"`` through ``"meanx6"``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -273,6 +297,9 @@ The expected means are defined as:
 
 The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using ``mxExpectationNormal`` and other functions in OpenMx, the ``mxExpectationRAM`` function computes the expected covariance and means matrices when the **A**, **S**, **F** and **M** matrices are specified. The **M** matrix is required both for raw data and for covariance or correlation data that includes a means vector.  The ``mxExpectationRAM`` function takes four arguments, which are the names of the **A**, **S**, **F** and **M** matrices in your model.  The ``mxFitFunctionML`` yields maximum likelihood estimates of structural equation models.  It uses full information maximum likelihood when the data are raw.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     exp          <- mxExpectationRAM("A","S","F","M", 
@@ -282,6 +309,9 @@ The free parameters in the model can then be estimated using maximum likelihood 
 The model now includes an observed covariance matrix (i.e., data), model matrices, an expectation function, and a fit function.  So the model has all the required elements to define the expected covariance matrix and estimate parameters.
 
 The model can now be run using the ``mxRun`` function, and the output of the model can be accessed from the ``$output`` slot of the resulting model.  A summary of the output can be reached using ``summary()``.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -301,6 +331,9 @@ Rather than specifying the model using RAM notation, we can also write the model
    \end{eqnarray*}
 
 We start with displaying the complete script.  Note that we have used the succinct form of coding and that the ``mxData`` command did not change.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -354,6 +387,9 @@ Our model contains 21 parameters (six manifest variances, six manifest means, si
 
 The data for the two factor model can be found in the ``myFAData`` files introduced in the common factor model. For this model, we will select three *x* variables (``x1-x3``) and three *y* variables (``y1-y3``).
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     twoFactorRaw <- myFADataRaw[,c("x1", "x2", "x3", "y1", "y2", "y3")]
@@ -364,6 +400,9 @@ The data for the two factor model can be found in the ``myFAData`` files introdu
     twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
   
 Specifying the two factor model is virtually identical to the single factor case. The ``mxData`` function has been changed to reference the appropriate data, but is identical in usage. We've added a second latent variable, so the **A** and **S** matrices are now of order **8x8**. Similarly, the **F** matrix is now of order **6x8** and the **M** matrix of order **1x8**. The ``mxExpectationRAM`` has not changed. The code for our two factor model looks like this:
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -444,6 +483,9 @@ Specifying the two factor model is virtually identical to the single factor case
                               
 The four ``mxMatrix`` functions have changed slightly to accomodate the changes in the model. The **A** matrix, shown below, is used to specify the regressions of the manifest variables on the factors. The first three manifest variables (``"x1"``-``"x3"``) are regressed on ``"F1"``, and the second three manifest variables (``"y1"``-``"y3"``) are regressed on ``"F2"``. We must again constrain the model to identify and scale the latent variables, which we do by constraining the first loading for each latent variable to a value of one.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # asymmetric paths
@@ -476,6 +518,9 @@ The four ``mxMatrix`` functions have changed slightly to accomodate the changes 
       
 The **S** matrix has an additional row and column, and two additional parameters. For the two factor model, we must add a variance term for the second latent variable and a covariance between the two latent variables.  
       
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # symmetric paths

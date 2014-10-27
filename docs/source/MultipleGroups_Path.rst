@@ -36,6 +36,9 @@ Data
 
 For this example we simulated two datasets (*xy1* and *xy2*) each with zero means and unit variances, one with a correlation of 0.5, and the other with a correlation of 0.4 with 1000 subjects each.  We use the ``mvrnorm`` function in the ``MASS`` package, which takes three arguments: ``Sample Size``, ``Means``, ``Covariance Matrix``.  We check the means and covariance matrix in R and provide ``dimnames`` for the dataframe.  See attached R code for simulation and data summary.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     #Simulate Data
@@ -62,6 +65,9 @@ Model Specification
 As before, we include the OpenMx package using a ``require`` statement.
 We first fit a heterogeneity model, allowing differences in both the mean and covariance structure of the two groups.  As we are interested whether the two structures can be equated, we have to specify the models for the two groups, named ``group1`` and ``group2`` within another model, named ``bivHet``.  The structure of the job thus looks as follows, with two ``mxModel`` commands as arguments of another ``mxModel`` command.  Note that ``mxModel`` commands are unlimited in the number of arguments.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     require(OpenMx)
@@ -72,6 +78,9 @@ We first fit a heterogeneity model, allowing differences in both the mean and co
         mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction")) )
      
 For each of the groups, we fit a saturated model, by specifying paths with free parameters for the variances and the covariance using two-headed arrows to generate the expected covariance matrix.  Single-headed arrows from the constant ``one`` to the manifest variables contain the free parameters for the expected means.  Note that we have specified different labels for all the free elements, in the two ``mxModel`` statements.  The type is RAM by default.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -97,7 +106,12 @@ For each of the groups, we fit a saturated model, by specifying paths with free 
     model2       <- mxModel("group2", type="RAM", manifestVars=selVars,
                              dataRaw2, variances2, covariance2, means2)
     
-We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1$matrices`` and ``bivHetModel$group2$matrices``::
+We estimate five parameters (two means, two variances, one covariance) per group for a total of 10 free parameters.  We cut the ``Labels matrix:`` parts from the output generated with ``bivHetModel$group1$matrices`` and ``bivHetModel$group2$matrices``.
+
+.. cssclass:: output
+..
+
+.. code-block:: r
 
     in group1                           in group2
         $S                                  $S
@@ -110,6 +124,9 @@ We estimate five parameters (two means, two variances, one covariance) per group
         [1,] "mX1" "mY1"                    [1,] "mX2" "mY2"
 
 To evaluate both models together, we use an ``mxFitFunctionMultigroup`` command that adds up the values of the fit functions of the two groups.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -124,11 +141,17 @@ Model Fitting
 
 The ``mxRun`` command is required to actually evaluate the model.  Note that we have adopted the following notation of the objects.  The result of the ``mxModel`` command ends in ``Model``; the result of the ``mxRun`` command ends in ``Fit``.  Of course, these are just suggested naming conventions.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     bivHetFit <- mxRun(bivHetModel)
 
 A variety of output can be printed.  We chose here to print the expected means and covariance matrices, which the RAM objective function generates based on the path specification, respectively in the matrices **M** and **S** for the two groups.  OpenMx also puts the values for the expected means and covariances in the ``means`` and ``covariance`` objects.  We also print the likelihood of the data given the model.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -149,6 +172,9 @@ Model Specification
 
 Rather than having to specify the entire model again, we copy the previous model ``bivHetModel`` into a new model ``bivHomModel`` to represent homogeneous structures.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     #Fit Homogeneity Model
@@ -156,12 +182,20 @@ Rather than having to specify the entire model again, we copy the previous model
 
 As the free parameters of the paths are translated into RAM matrices, and matrix elements can be equated by assigning the same label, we now have to equate the labels of the free parameters in group1 to the labels of the corresponding elements in group2.  This can be done by referring to the relevant matrices using the ``ModelName$MatrixName`` syntax, followed by ``$labels``.  Note that in the same way, one can refer to other arguments of the objects in the model.  Here we assign the labels from group1 to the labels of group2, separately for the 'covariance' matrices (in **S**) used for the expected covariance matrices and the 'means' matrices (in **M**) for the expected mean vectors.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     bivHomModel$group2.S$labels <- bivHomModel$group1.S$labels
     bivHomModel$group2.M$labels <- bivHomModel$group1.M$labels
 
-The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below::
+The specification for the submodel is reflected in the names of the labels which are now equal for the corresponding elements of the mean and covariance matrices, as below.
+
+.. cssclass:: output
+..
+
+.. code-block:: r
 
     in group1                           in group2
         $S                                  $S
@@ -179,6 +213,9 @@ Model Fitting
 
 We can produce similar output for the submodel, i.e. expected means and covariances and likelihood, the only difference in the code being the model name.  Note that as a result of equating the labels, the expected means and covariances of the two groups should be the same, and a total of 5 parameters is estimated.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     bivHomFit <- mxRun(bivHomModel)
@@ -190,6 +227,9 @@ We can produce similar output for the submodel, i.e. expected means and covarian
         
 
 Finally, to evaluate which model fits the data best, we generate a likelihood ratio test from the difference between -2 times the log-likelihood of the homogeneity model and -2 times the log-likelihood of the heterogeneity model.  This statistic is asymptotically distributed as a Chi-square, which can be interpreted with the difference in degrees of freedom of the two models, in this case 5 df.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

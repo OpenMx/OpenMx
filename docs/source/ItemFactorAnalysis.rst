@@ -177,6 +177,9 @@ instead of scoring participants by adding up the item scores, you want
 to try IFA. Here is how you might do it. Without loss of generality, we
 will only consider the positive affect part of the scale.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    library(OpenMx)
@@ -215,6 +218,9 @@ new measure then you will appreciate the ease with which your script
 can adapt to adding or removing outcomes. Even for PANAS, we could try
 collapsing two outcomes and see how the model fit changes.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    spec <- list()
@@ -227,6 +233,9 @@ function name ``rpf.grm`` stands for *graded response model*. You can inspect th
 mathematical formula for the graded response model by requesting the
 manual page with ``?rpf.grm``. Experiment with the ``rpf.*`` functions
 to get a feel for how they work.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -243,6 +252,9 @@ our list of item models and random item parameters.  Instead of this
 line, you would typically read in your data using ``read.csv`` and
 convert it to ordered factors using ``mxFactor``.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    startingValues <- matrix(c(1, seq(1,-1,length.out=4)), ncol=length(spec), nrow=5)
@@ -254,6 +266,9 @@ the remaining parameters have meanings dependent on the item model.
 The graded response model is a little finicky; the threshold parameters
 must be ordered. Alternately, a good way to obtain random starting
 values is with,
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -273,6 +288,9 @@ If you need to set some starting values to something specific then
 you might start with random starting values and then override any rows
 and columns as needed.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    imat <- mxMatrix(name="item", values=startingValues,
@@ -288,6 +306,9 @@ factor, ``posAff``. The remaining rows can take any label. Since all
 of our items are the same, we can use the default item parameter
 names. The column names must match the column names of the data.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    imat$labels[1,] <- 'slope'
@@ -297,6 +318,9 @@ Here we set the label of every parameter in the first row to
 we assume all items work equally well at measuring the latent trait.
 This constraint is what makes the difference between a Rasch model and
 any other kind of IFA model. A Rasch model makes this assumption.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -308,11 +332,17 @@ any other kind of IFA model. A Rasch model makes this assumption.
 
 Here we put everything together. There are a few things that are new.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson())
 
 The ``mxComputeEM`` plan is a somewhat more sophisticated version of
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -332,6 +362,9 @@ options to speed up convergence and estimate standard errors.
 
 After running the model, we can inspect the parameters estimates,
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas1 <- mxRun(originalPanas1)
@@ -345,6 +378,9 @@ model converged? Excellent question. There are a few things that we
 can check. We can look at the count of EM cycles and M-step
 Newton-Raphson iterations.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas1$compute$output
@@ -354,6 +390,9 @@ parameters are still sitting at their starting values. Since our
 starting values were mostly random, that's probably not the solution
 we were looking for. Instead of digging into the ``MxComputeEM`` output, we
 can also re-run the model with extra diagnostics enabled.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -368,6 +407,9 @@ well if you want to examine the progress of the optimization in (much)
 more detail. From this diagnostic output, we discern that the
 parameters are changing, but we still do not know whether the solution
 is a candidate global optimum.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -385,6 +427,9 @@ of a sandwich covariance matrix [White1994]_.
 The first thing to look at is the condition number of the
 information matrix.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
   info1$output$conditionNumber
@@ -393,6 +438,9 @@ A finite condition number implies that the information matrix is
 positive definite.  Since the condition number is roughly closer to
 zero than to positive infinity, there is a good chance that the parameters
 are at a candidate global optimum. We can examine the standard errors.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -404,6 +452,9 @@ diagnostic functions are most convenient to use when all the relevant
 information is packaged up into an IFA group object.
 A convenient way to create an IFA group object is to use ``as.IFAgroup``.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas1Grp <- as.IFAgroup(panas1)
@@ -413,6 +464,9 @@ IFA models assume that items are conditionally
 independent. That is, the outcome on a given item only depends on its
 item parameters and examinee skill, not on the outcome of other items.
 At least some attempt should be made to check this assumption.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -430,6 +484,9 @@ interpretable. We can examine Rasch fit statistics *infit* and
 *outfit*.  Before we do that, however, we need to compute EAP
 scores.
  
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas1Grp$scores <- EAPscores(panas1Grp)
@@ -480,6 +537,9 @@ Another way to look at the results is to create an item plot.
 An item plot assigns to every outcome the mean of the ability of
 every examinee who picked that outcome (:num:`Figure #figure-1pl-itemmap`).
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    sumScoreEAP(panas1Grp)
@@ -500,6 +560,9 @@ how well each item is working.
 Continuing our previous example,
 all that is needed is to remove the label from the item parameter matrix.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas2 <- mxModel(model=panas1,
@@ -517,6 +580,9 @@ in a single ``mxComputeSequence``.
 As usual, we start by inspecting the condition number of the Hessian
 then look at the parameter estimates with standard errors.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    panas2$output$conditionNumber
@@ -525,6 +591,9 @@ then look at the parameter estimates with standard errors.
 Since these models are nested, we can conduct a likelihood ratio test
 to determine whether ``panas2`` fits the data significantly better than
 our Rasch constrained model ``panas1``.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -535,6 +604,9 @@ residuals from different items have different weights. However, we can
 compare expected item outcome proportions against sum-scores.  First
 we need to create IFA group object for ``panas2`` then we can run the
 S test [OrlandoThissen2000]_.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -619,6 +691,9 @@ To interpret the estimates,
 asymptote parameters should be transformed back into
 probability units using the logistic function, :math:`(1+\exp(-g))^{-1}`.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    spec <- list()
@@ -685,6 +760,9 @@ to develop your mathematical imagination.
 	    from logit(-10) to logit(10).
 	    An exactly symmetric density, like the Gaussian, is slightly easier for the
 	    optimizer to handle in comparison to the beta density.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -757,6 +835,9 @@ The mean of the prior is set to the desired mode and
 the standard deviation can be regarded as the strength of the prior.
 A standard deviation of 0.5 was suggested by [CaiYangHansen2011]_.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    # These are the prior parameter row vectors.
@@ -800,6 +881,9 @@ how to incorporate the effect of the priors.
 Instead, we use ``mxComputeNumericDeriv()``,
 an implementation of Richardson extrapolation.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
                     mxFitFunctionMultigroup(groups=c('itemModel.fitfunction', 'betaModel.fitfunction',
@@ -814,6 +898,9 @@ log likelihood of the model including the priors.
 Although ``OpenMx`` models are a bit more work to set up,
 since you are required to specify the model exactly,
 you will feel confident that you know what you are doing.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -847,6 +934,9 @@ positive affect.
 You have 35 participants so far and wish to check whether
 your sample has significantly more positive affect than
 the general population mean.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -892,6 +982,9 @@ This confidence interval is likelihood-based and is equivalent
 to a likelihood ratio test against a nested model
 with the mean constrained to 0.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
    mxDataDynamic(type="cov", expectation="panas.expectation")
@@ -900,6 +993,9 @@ The ``mxDataDynamic`` in a special adapter to cause the latent model
 to use ``panas.expectation`` as a data source of type ``cov``. Not any
 ``MxExpectation`` can be used in this way. However, ``mxExpectationBA81``
 knows how to provide a Normal distribution as data.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -922,6 +1018,9 @@ to ``mxExpectationBA81``.
 .. figure:: cache/ifa-eap-latent.*
 
 	    EAP scores with a standard Normal latent distribution (wrong) and estimated Normal distribution (correct).
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -967,6 +1066,9 @@ these groups of items share extra variance.
 You have administered this measure to a few classes of music students
 and wish to know about the distribution of their tonal and rhythmic
 perception accuracy.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 
@@ -1041,6 +1143,9 @@ The factors that make up
 :math:`\tau` are called specific factors.
 Furthermore, each item is permitted to load on at most one specific factor.
 
+.. cssclass:: input
+..   
+
 .. code-block:: r
 
 	mxExpectationBA81(spec, qpoints=15, qwidth=5)
@@ -1051,6 +1156,9 @@ To speed things up at the cost of some accuracy,
 we reduced the equal-interval quadrature to 15 points,
 ranging from Z score -5 to 5.
 This reduces the number of quadrature points to :math:`15^3 = 3375`.
+
+.. cssclass:: input
+..   
 
 .. code-block:: r
 

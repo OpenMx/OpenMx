@@ -42,6 +42,9 @@ Data Simulation
 
 Our first step to running this model is to simulate the data to be analyzed. Each individual is measured on two observed variables, *x* and *y*, and a third variable *def* which denotes their group membership with a 1 or a 0.  These values for group membership are not accidental, and must be adhered to in order to obtain readily interpretable results.  Other values such as 1 and 2 would yield the same model fit, but would make the interpretation more difficult.  
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     library(MASS)    # to get hold of mvrnorm function 
@@ -52,6 +55,9 @@ Our first step to running this model is to simulate the data to be analyzed. Eac
     group2         <- mvrnorm(N, c(0,0), Sigma)
 
 We make use of the superb R function ``mvrnorm`` in order to simulate N=500 records of data for each group.  These observations correlate 0.5 and have a variance of 1, per the matrix *Sigma*.  The means of *x* and *y* in group 1 are 1.0 and 2.0, respectively; those in group 2 are both zero.  The output of the ``mvrnorm`` function calls are matrices with 500 rows and 2 columns, which are stored in group 1 and group 2.  Now we create the definition variable
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -68,6 +74,9 @@ Model Specification
 ^^^^^^^^^^^^^^^^^^^
 
 The following code contains all of the components of our model.  Before specifying a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an MxModel object, which we'll then run.  Note that all the objects required for estimation (data, matrices, an expectation function, and a fit function) are declared within the ``mxModel`` function.  This type of code structure is recommended for OpenMx scripts generally.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -95,6 +104,9 @@ The following code contains all of the components of our model.  Before specifyi
 
 The first argument in an ``mxModel`` function has a special function. If an object or variable containing an ``MxModel`` object is placed here, then ``mxModel`` adds to or removes pieces from that model. If a character string (as indicated by double quotes) is placed first, then that becomes the name of the model. Models may also be named by including a ``name`` argument. This model is named ``"Definition Means Path Specification"``.  The second argument of the ``mxModel`` function call declares that we are going to be using RAM specification of the model, using directional and bidirectional path coefficients between the variables.  Model specification is carried out using two lists of variables, ``manifestVars`` and ``latentVars``.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     manifestVars=c("x","y")
@@ -102,11 +114,17 @@ The first argument in an ``mxModel`` function has a special function. If an obje
 
 Next, we declare where the data are, and their type, by creating an MxData object with the ``mxData`` function. This code first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.
 
-    .. code-block:: r
+.. cssclass:: input
+..
 
-        dataRaw      <- mxData( observed=data.frame(y,def), type="raw" )
+.. code-block:: r
+
+    dataRaw      <- mxData( observed=data.frame(y,def), type="raw" )
 
 Then ``mxPath`` functions are used to specify paths between the manifest and latent variables. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword ``one``, to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Definition variables are part of the data so the first part is always ``data.``.  The second part refers to the actual variable in the dataset whose values are modeled.  Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 versus those with ``data.def`` values of zero.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -131,6 +149,9 @@ We can then run the model and examine the output with a few simple commands.
 Model Fitting
 ^^^^^^^^^^^^^^
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # Run the model
@@ -139,6 +160,9 @@ Model Fitting
     defMeansFit$matrices
 
 The R object *defmeansFit* contains matrices and algebras; here we are interested in the matrices, which can be seen with the ``defmeansFit$matrices`` entry.  In path notation, the unidirectional, one-headed arrows appear in the matrix **A**, the two-headed arrows in **S**, and the mean vector single headed arrows in **M**.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

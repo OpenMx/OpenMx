@@ -47,74 +47,79 @@ You probably have your favorite data set ready to go, but before reading in data
    DO NOT EXECUTE
 
 .. cssclass:: input
-   
-   .. code-block:: r
+..   
+
+.. code-block:: r
        
-        # Simulate Data
-        set.seed(100)
-        x <- rnorm (1000, 0, 1)
-        univData <- as.matrix(x)
-        dimnames(univData) <- list(NULL, "X")
-        summary(univData)
-        mean(univData)
-        var(univData)
+    # Simulate Data
+    set.seed(100)
+    x <- rnorm (1000, 0, 1)
+    univData <- as.matrix(x)
+    dimnames(univData) <- list(NULL, "X")
+    summary(univData)
+    mean(univData)
+    var(univData)
 
-The first line is a comment (starting with a #).  We set a seed for the simulation so that we generate the same data each time and get a reproducible answer.  We then create a variable **x** for 1000 subjects, with a mean of 0 and a variance of 1, using R's normal distribution function ``rnorm``.  We read the data in as a matrix into an object *univData* and give the variable a name *"X"* using the ``dimnames`` command.  We can easily produce some descriptive statistics in R using built-in functions ``summary``, ``mean`` and ``var``, just to make sure the data look like what we expect.  The output generated looks like this:   
-    
-    .. code-block:: r 
+The first line is a comment (starting with a #).  We set a seed for the simulation so that we generate the same data each time and get a reproducible answer.  We then create a variable *x* for 1000 subjects, with a mean of 0 and a variance of 1, using R's normal distribution function ``rnorm``.  We read the data in as a matrix into an object *univData* and give the variable a name *"X"* using the ``dimnames`` command.  We can easily produce some descriptive statistics in R using built-in functions ``summary``, ``mean`` and ``var``, just to make sure the data look like what we expect.  The output generated looks like this:   
 
-         summary(univData)
-                X          
-         Min.   :-3.32078  
-         1st Qu.:-0.64970  
-         Median : 0.03690  
-         Mean   : 0.01681  
-         3rd Qu.: 0.70959  
-         Max.   : 3.30415  
-        > mean(univData)
-        [1] 0.01680509
-        > var(univData)
-                 X
-        X 1.062112
+.. cssclass:: output
+..   
+
+.. code-block:: r 
+
+    summary(univData)
+        X          
+    Min.   :-3.32078  
+    1st Qu.:-0.64970  
+    Median : 0.03690  
+    Mean   : 0.01681  
+    3rd Qu.: 0.70959  
+    Max.   : 3.30415  
+    > mean(univData)
+    [1] 0.01680509
+    > var(univData)
+             X
+    X 1.062112
 
 For our second example, we will be fitting models to two variables which may be correlated.
-The data used for the second example were generated using the multivariate normal function (``mvrnorm`` in the R package MASS).  The ``mvrnorm`` has three arguments: (i) sample size, (ii) vector of means, and (iii) covariance matrix.  We are simulating data on two variables named *X* and *Y* for 1000 individuals with means of zero, variances of one and a covariance of 0.5 using the following R code, and saved is as *bivData*.  Note that we can now use the R function ``colMeans`` to generate the predicted means for the columns of our data frame and the ``cov`` to generate the observed covariance matrix.
+The data used for the second example were generated using the multivariate normal function (``mvrnorm()`` in the R package MASS).  The ``mvrnorm()`` has three arguments: (i) sample size, (ii) vector of means, and (iii) covariance matrix.  We are simulating data on two variables named *X* and *Y* for 1000 individuals with means of zero, variances of one and a covariance of 0.5 using the following R code, and saved is as *bivData*.  Note that we can now use the R function ``colMeans()`` to generate the predicted means for the columns of our data frame and the ``cov()`` to generate the observed covariance matrix.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
 
-         # Simulate Data
-         require(MASS)
-         set.seed(200)
-         bivData <- mvrnorm (1000, c(0,0), matrix(c(1,.5,.5,1),2,2))
-         dimnames(bivData) <- list(NULL, c('X','Y'))
-         summary(bivData)
-         colMeans(bivData)
-         cov(bivData)
+    # Simulate Data
+    require(MASS)
+    set.seed(200)
+    bivData <- mvrnorm (1000, c(0,0), matrix(c(1,.5,.5,1),2,2))
+    dimnames(bivData) <- list(NULL, c('X','Y'))
+    summary(bivData)
+    colMeans(bivData)
+    cov(bivData)
 
 Notice that the simulated data are close to what we expected.
-   
-    ..  code-block:: r
+
+.. cssclass:: output
+..   
+
+..  code-block:: r
      
-         > summary(bivData)
-                X                   Y            
-          Min.   :-3.296159   Min.   :-2.942561  
-          1st Qu.:-0.596177   1st Qu.:-0.633711  
-          Median :-0.010538   Median :-0.004139  
-          Mean   :-0.004884   Mean   : 0.032116  
-          3rd Qu.: 0.598326   3rd Qu.: 0.739236  
-          Max.   : 4.006771   Max.   : 4.173841  
-         >     colMeans(bivData)
-                    X            Y 
-         -0.004883811  0.032116480 
-         >     cov(bivData)
-                   X         Y
-         X 0.9945328 0.4818317
-         Y 0.4818317 1.0102951
+    > summary(bivData)
+            X                   Y            
+    Min.   :-3.296159   Min.   :-2.942561  
+    1st Qu.:-0.596177   1st Qu.:-0.633711  
+    Median :-0.010538   Median :-0.004139  
+    Mean   :-0.004884   Mean   : 0.032116  
+    3rd Qu.: 0.598326   3rd Qu.: 0.739236  
+    Max.   : 4.006771   Max.   : 4.173841  
+    > colMeans(bivData)
+            X            Y 
+    -0.004883811  0.032116480 
+    > cov(bivData)
+              X         Y
+    X 0.9945328 0.4818317
+    Y 0.4818317 1.0102951
 
 Data Types
 ^^^^^^^^^^
@@ -126,14 +131,14 @@ The data we simulated are continuous in nature and follow a normal distribution.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         hist(univData)
-    
-.. image:: graph/histogram_testData.png
+    hist(univData)
+
+
+.. image:: graph/Histogram_testData.png
+    :width: 2.0in
 
 This is the ideal type of data, as many of the models we fit to them assume that the data are normally distributed.  However, reality is often different and it might be necessary to apply a transformation to the original data to better approximate a normal distribution.  When there are 15 or more possible values for the variable of interest, it is appropriate to treat them as continuous.  Note that although the simulated data have many more than 15 different values, values are binned to simplify the graph.
 
@@ -155,60 +160,60 @@ As a lot of real data are only available as categorical variables, we will gener
 .. cssclass:: input
 ..
 
-   OpenMx Code
-   
-   .. code-block:: r
+.. code-block:: r
        
-         univDataOrd <- data.frame(X=cut(univData[,1], breaks=5, ordered_result=T, 
-                                   labels=c(0,1,2,3,4)) )
-         table(univDataOrd)
+    univDataOrd <- data.frame(X=cut(univData[,1], breaks=5, ordered_result=T, 
+                              labels=c(0,1,2,3,4)) )
+    table(univDataOrd)
 
-A summary of the resulting data set can be generated as follows:
+A summary of the resulting data set looks as follows:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > table(univDataOrd)
-        univDataOrd
-          0   1   2   3   4 
-         28 216 483 244  29
+    > table(univDataOrd)
+    univDataOrd
+      0   1   2   3   4 
+     28 216 483 244  29
 
 A similar approach could be used to create a binary variable.  However, here we show an alternative way to generate a binary variable using a specific cutoff using the ``ifelse`` command.  We will assign a value of 1 when the value of our original standardized continuous variable is above 0.5; otherwise a value of 0 will be assigned.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univDataBin <- data.frame(X=ifelse(univData[,1] >.5,1,0))
-         table(univDataBin)
+    univDataBin <- data.frame(X=ifelse(univData[,1] >.5,1,0))
+    table(univDataBin)
 
 The resulting data set table looks as follows: 
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > table(univDataBin)
-        univDataBin
-          0   1 
-        680 320
+    > table(univDataBin)
+    univDataBin
+      0   1 
+    680 320
         
 We will go through the same steps to generate ordinal and binary data from the simulated bivariate data.  Given we need to repeat the same statement for the two variables, we employ a ``for`` statement.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        bivDataOrd <- data.frame(bivData)
-        for (i in 1:2) { bivDataOrd[,i] <- cut(bivData[,i], breaks=5, ordered_result=T, 
-                                               labels=c(0,1,2,3,4)) }
-           table(bivDataOrd[,1],bivDataOrd[,2])
-        bivDataBin <- data.frame(bivData)
-        for (i in 1:2) { bivDataBin[,i] <- ifelse(bivData[,i] >.5,1,0) }
-           table(bivDataBin[,1],bivDataBin[,2])
+    bivDataOrd <- data.frame(bivData)
+    for (i in 1:2) { bivDataOrd[,i] <- cut(bivData[,i], breaks=5, ordered_result=T, 
+                                           labels=c(0,1,2,3,4)) }
+       table(bivDataOrd[,1],bivDataOrd[,2])
+    bivDataBin <- data.frame(bivData)
+    for (i in 1:2) { bivDataBin[,i] <- ifelse(bivData[,i] >.5,1,0) }
+       table(bivDataBin[,1],bivDataBin[,2])
 
 Data Formats
 ^^^^^^^^^^^^
@@ -220,32 +225,33 @@ To make these data available for statistical modeling in OpenMx, we need to crea
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        require(OpenMx)
-        obsRawData <- mxData( observed=univData, type="raw" )
-        selVars <- "X"
+    require(OpenMx)
+    obsRawData <- mxData( observed=univData, type="raw" )
+    selVars <- "X"
 
 First, we read the data matrix in with the ``observed`` argument.  Then, we tell OpenMx what format or type the data is in, in this case we're reading in the raw data.  We save this MxData object as *obsRawData*.  As later on, we need to be able to map our data onto the model, we typically create a vector with the variable labels of the variable(s) we are analyzing.  To make our scripts more readable, we use consistent names for objects - something you can decide to copy or change according to your preferences - and we use *selVars* for the variables we select for analysis.  In this example, it is a single variable *X*.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > obsRawData
-        MxData 'data' 
-        type : 'raw' 
-        numObs : '1000' 
-        Data Frame or Matrix : 
-                            X
-           [1,] -5.021924e-01
-           [2,]  1.315312e-01
-           ....
-           [1000,] -2.141428e+00
-           Means : NA 
-           Acov : NA 
-           Thresholds : NA 
+    > obsRawData
+    MxData 'data' 
+    type : 'raw' 
+    numObs : '1000' 
+    Data Frame or Matrix : 
+                        X
+       [1,] -5.021924e-01
+       [2,]  1.315312e-01
+       ....
+       [1000,] -2.141428e+00
+       Means : NA 
+       Acov : NA 
+       Thresholds : NA 
         
 A look at this newly created object shows that it was given the  ``name`` *data*, which is done by default.  It has the ``type`` that we specified, and ``numObs`` are automatically counted for us.  The actual data for the variable *X* are then listed; we only show the first two values.
 
@@ -253,40 +259,34 @@ In a similar manner we create a MxData object for the second example.  We read i
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsBivData <- mxData( observed=bivData, type="raw" )
+    obsBivData <- mxData( observed=bivData, type="raw" )
 
 If we want to fit models to categorical data, we need to read in the ordinal or binary data.  However, when your data are ordinal or binary, OpenMx expects them to be 'ordered factors'.  To ensure that your data have the appropriate format, it is recommended/required to apply the ``mxFactor`` command to the categorical variables, where the ``x`` argument reads in a vector of data or a data.frame, and ``levels`` expects a vector of possible values for those data.  We save the resulting objects as *univDataOrdF* and *univDataBinF*, or *bivDataOrdF* and *bivDataBinF* for the corresponding data in the second example.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          univDataOrdF <- mxFactor( x=univDataOrd, levels=c(0:4) )
-          univDataBinF <- mxFactor( x=univDataBin, levels=c(0,1) )
-          bivDataOrdF  <- mxFactor( x=bivDataOrd, levels=c(0:4) )
-          bivDataBinF  <- mxFactor( x=bivDataBin, levels=c(0,1) )
+    univDataOrdF <- mxFactor( x=univDataOrd, levels=c(0:4) )
+    univDataBinF <- mxFactor( x=univDataBin, levels=c(0,1) )
+    bivDataOrdF  <- mxFactor( x=bivDataOrd, levels=c(0:4) )
+    bivDataBinF  <- mxFactor( x=bivDataBin, levels=c(0,1) )
 
 Next, we generate the corresponding MxData objects.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsRawDataOrd <- mxData( observed=univDataOrdF, type="raw" )
-         obsRawDataBin <- mxData( observed=univDataBinF, type="raw" )
-         obsBivDataOrd <- mxData( observed=bivDataOrdF, type="raw" )
-         obsBivDataBin <- mxData( observed=bivDataBinF, type="raw" )
+    obsRawDataOrd <- mxData( observed=univDataOrdF, type="raw" )
+    obsRawDataBin <- mxData( observed=univDataBinF, type="raw" )
+    obsBivDataOrd <- mxData( observed=bivDataOrdF, type="raw" )
+    obsBivDataBin <- mxData( observed=bivDataBinF, type="raw" )
 
 Summary Stats
 +++++++++++++
@@ -298,56 +298,53 @@ While analyzing raw data is the standard in most statistical modeling these days
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univDataCov <- var(univData)
-         obsCovData  <- mxData( observed=univDataCov, type="cov", numObs=1000 )
+    univDataCov <- var(univData)
+    obsCovData  <- mxData( observed=univDataCov, type="cov", numObs=1000 )
         
 or 
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsCovData  <- mxData( observed=var(univData), type="cov", numObs=1000 )
+    obsCovData  <- mxData( observed=var(univData), type="cov", numObs=1000 )
 
 Given our first example has only one variable, we use the ``var()`` function (as there is no covariance for a single variable).  When summary statistics are used as input, the number of observations (``numObs``) needs to be supplied.  The resulting MxData object looks as follows:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > obsCovData
-        MxData 'data' 
-        type : 'cov' 
-        numObs : '1000' 
-        Data Frame or Matrix : 
+    > obsCovData
+    MxData 'data' 
+    type : 'cov' 
+    numObs : '1000' 
+    Data Frame or Matrix : 
                  X
-        X 1.062112
-        Means : NA
-        Acov : NA 
-        Thresholds : NA
+    X 1.062112
+    Means : NA
+    Acov : NA 
+    Thresholds : NA
     
 The differences with the previous data objects are that the type is now 'cov' and the actual data frame is now a single value, the variance of the 1000 data points.
 
-Covariances and Means
-.....................
+Covariances + Means
+...................
 
 In addition to the observed covariance matrix, a fourth argument ``means`` can be added for the vector of observed means from the data, calculated using the R ``colMeans`` command.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsCovMeanData <- mxData( observed=var(univData),  type="cov", numObs=1000, 
-                                   means=colMeans(univData) )
+    obsCovMeanData <- mxData( observed=var(univData),  type="cov", numObs=1000, 
+                              means=colMeans(univData) )
 
 You can verify that the new *obsCovMeanData* object now has a value for the observed means as well.
 
@@ -356,16 +353,14 @@ For the second, bivariate example the only change we'd have to make - besides re
 Correlations
 ............
 
-To analyze categorical data, we can also fit the models to summary statistics, in this case, correlation matrices, as indicated by using the ``cor()`` R command to generate them and by the ``type=`` cor, which also requires the ``numObs`` argument to indicate how many observations (data records) are in the dataset.
+To analyze categorical data, we can also fit the models to summary statistics, in this case, correlation matrices, as indicated by using the ``cor()`` R command to generate them and by the ``type=``\ cor, which also requires the ``numObs`` argument to indicate how many observations (data records) are in the dataset.
  
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsOrdData <- mxData( observed=cor(univDataOrdF), type="cor", numObs=1000 )
+    obsOrdData <- mxData( observed=cor(univDataOrdF), type="cor", numObs=1000 )
 
 We will start by fitting a simple univariate model to the continuous data and then show which changes have to be made when dealing with ordinal or binary variables.  For the continuous data example, we will start with fitting the model to the summary statistics prior to fitting to raw data and show their equivalence (in the absence of missing data).
 
@@ -379,143 +374,142 @@ Path Method
 Summary Stats 
 +++++++++++++
 
-If we have data on a single variable **X** summarized in its variance, the basic univariate model will simply estimate the variance of the variable **X**.  We call this model saturated because there is a free parameter corresponding to each and every observed statistic.  Here we have covariance matrix input only, so we can estimate one variance.  This model can be represented by the following path diagram:
+If we have data on a single variable *X* summarized in its variance, the basic univariate model will simply estimate the variance of the variable *X*.  We call this model saturated because there is a free parameter corresponding to each and every observed statistic.  Here we have covariance matrix input only, so we can estimate one variance.  This model can be represented by the following path diagram:
 
 .. image:: graph/UnivariateSaturatedModelNoMean.png
 
 Model Building
 ..............
 
-When using the path specification, it is easiest to work from the path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see [LI1986]*), we have a box for the observed/manifest variable **X**, and one double headed arrow, labeled :math:/sigma^2_x.  To indicate which variable we are analyzing, we use the ``manifestVars`` argument, which takes a vector of labels.  In this example, we are selecting one variable, which we pre-specified in the *selVars* object.
+When using the path specification, it is easiest to work from the path diagram.  Assuming you are familiar with path analysis (*for those who are not, there are several excellent introductions, see [LI1986]*), we have a box for the observed/manifest variable *X*, and one double headed arrow, labeled :math:`\sigma^2_x`.  To indicate which variable we are analyzing, we use the ``manifestVars`` argument, which takes a vector of labels.  In this example, we are selecting one variable, which we pre-specified in the *selVars* object.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         selVars   <- c("X")
-         manifestVars=selVars
+    selVars   <- c("X")
+    manifestVars=selVars
 
-We have already built the MxData object above, so here we will build the model by specifying the relevant paths.  Our first model only has one path which has two arrows and goes from the variable X to the variable X.  That path represents the variance of X which we aim to estimate.  Let's see how this translates into the ``mxPath`` object.
+We have already built the MxData object above, so here we will build the model by specifying the relevant paths.  Our first model only has one path which has two arrows and goes from the variable *X* to the variable *X*.  That path represents the variance of *X* which we aim to estimate.  Let's see how this translates into the ``mxPath`` object.
 
-The ``mxPath`` command indicates where the path originates (``from``) and where it ends (``to``).  If the ``to`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguishes one-headed arrows (if arrows=1) from two-headed arrows (if arrows=2).  The ``free`` command is used to specify which elements are free or fixed with a ``TRUE`` or ``FALSE`` option.  If the ``mxPath`` command creates more than one path, a single ``T`` implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for the ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.  Thus for our example, we specify only a ``from`` argument, as the double-headed arrow (``arrows`` =2) goes back to *X*.  This path is estimated (``free`` =TRUE), and given a start value of 1 (``values`` =1) and has to be positive (``lbound`` =.01).  Finally we assign it a label (``labels`` ="vX").  The generated MxPath object is called *expVariance*.
+The ``mxPath`` command indicates where the path originates (``from``) and where it ends (``to``).  If the ``to`` argument is omitted, the path ends at the same variable where it started.  The ``arrows`` argument distinguishes one-headed arrows (if ``arrows``\ =1) from two-headed arrows (if ``arrows``\ =2).  The ``free`` command is used to specify which elements are free or fixed with a ``TRUE`` or ``FALSE`` option.  If the ``mxPath`` command creates more than one path, a single "T" implies that all paths created here are free.  If some of the paths are free and others fixed, a list is expected.  The same applies for the ``values`` command which is used to assign starting values or fixed final values, depending on the corresponding 'free' status.  Optionally, lower and upper bounds can be specified (using ``lbound`` and ``ubound``, again generally for all the paths or specifically for each path).  Labels can also be assigned using the ``labels`` command which expects as many labels (in quotes) as there are elements.  Thus for our example, we specify only a ``from`` argument, as the double-headed arrow (``arrows``\ =2) goes back to *X*.  This path is estimated (``free``\ =TRUE), and given a start value of 1 (``values``\ =1) and has to be positive (``lbound``\ =.01).  Finally we assign it a label (``labels``\ ="vX").  The generated MxPath object is called *expVariance*.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expVariance <- mxPath(
-             from=c("X"), arrows=2, 
-             free=TRUE, 
-             values=1, 
-             lbound=.01, 
-             labels="vX"
-         ),
+    expVariance <- mxPath(
+        from=c("X"), arrows=2, 
+        free=TRUE, 
+        values=1, 
+        lbound=.01, 
+        labels="vX"
+        )
 
 Note that all arguments could be listed on one (or two) lines; in either case they are separated by comma's:
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
 
-         expVariance <- mxPath( from=c("X"), arrows=2, 
-                                free=TRUE, values=1, lbound=.01, labels="vX" )
+    expVariance <- mxPath( from=c("X"), arrows=2, 
+                           free=TRUE, values=1, lbound=.01, labels="vX" )
 
 The resulting MxPath object looks as follows:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > expVariance
-        mxPath 
-        $from:  'X' 
-        $to:  'X' 
-        $arrows:  2 
-        $values:  1 
-        $free:  TRUE 
-        $labels:  vX 
-        $lbound:  0.01 
-        $ubound:  NA
-        $connect:  single   
+    > expVariance
+    mxPath 
+    $from:  'X' 
+    $to:  'X' 
+    $arrows:  2 
+    $values:  1 
+    $free:  TRUE 
+    $labels:  vX 
+    $lbound:  0.01 
+    $ubound:  NA
+    $connect:  single   
     
 To evaluate the model that we have built, we need an expectation and a fit function that obtain the best solution for the model given the data.  When using the path specification, both are automatically generated by invoking the ``type="RAM"`` argument in the model.  The 'RAM' objective function has a predefined structure.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         type="RAM"
+    type="RAM"
 
 Internally, OpenMx translates the paths into RAM notation in the form of the matrices **A**, **S**, and **F** [see RAM1990].  Before we can 'run' the model through the optimizer, we need to put all the arguments into an MxModel using the ``mxModel`` command.  Its first argument is a ``name``, and therefore is in quotes.  We then add all the arguments we have built so far, including the list of variables to be analyzed in ``manifestVars``, the MxData object, and the predicted model specified using paths.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel1 <- mxModel("univSat1", manifestVars=selVars, obsCovData, 
-                                  expVariance, type="RAM" )
+    univSatModel1 <- mxModel("univSat1", manifestVars=selVars, obsCovData, 
+                              expVariance, type="RAM" )
 
 We can inspect the MxModel object generated by this statement.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatModel1
-        MxModel 'univSat1' 
-        type : RAM 
-        $matrices : 'A', 'S', and 'F' 
-        $algebras :  
-        $constraints :  
-        $intervals :  
-        $latentVars : none
-        $manifestVars : 'X' 
-        $data : 1 x 1 
-        $data means : NA
-        $data type: 'cov' 
-        $submodels :  
-        $expectation : MxExpectationRAM 
-        $fitfunction : MxFitFunctionML 
-        $compute : NULL 
-        $independent : FALSE 
-        $options :  
-        $output : FALSE 
+    > univSatModel1
+    MxModel 'univSat1' 
+    type : RAM 
+    $matrices : 'A', 'S', and 'F' 
+    $algebras :  
+    $constraints :  
+    $intervals :  
+    $latentVars : none
+    $manifestVars : 'X' 
+    $data : 1 x 1 
+    $data means : NA
+    $data type: 'cov' 
+    $submodels :  
+    $expectation : MxExpectationRAM 
+    $fitfunction : MxFitFunctionML 
+    $compute : NULL 
+    $independent : FALSE 
+    $options :  
+    $output : FALSE 
     
 Note that only the relevant arguments have been updated, and that the path information has been stored in the **A**, **S**, and **F** matrices.  The free parameter for the variance "vX" ends up in the **S** matrix which holds the symmetric (double-headed) paths.  Here we print the details for this **S** matrix:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > univSatModel1$matrices$S
-        SymmMatrix 'S' 
+    > univSatModel1$matrices$S
+    SymmMatrix 'S' 
     
-        $labels
-          X   
-        X "vX"
+    $labels
+      X   
+    X "vX"
     
-        $values
-          X
-        X 1
+    $values
+      X
+    X 1
     
-        $free
-             X
-        X TRUE
+    $free
+         X
+    X TRUE
     
-        $lbound
-             X
-        X 0.01
+    $lbound
+         X
+    X 0.01
     
-        $ubound: No upper bounds assigned.
+    $ubound: No upper bounds assigned.
     
 Model Fitting
 .............
@@ -524,111 +518,120 @@ So far, we have specified the model, but nothing has been evaluated.  We have 's
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatFit1 <- mxRun(univSatModel1)
+    univSatFit1 <- mxRun(univSatModel1)
 
 You can verify that the arguments of the *univSatModel1* and *univSatFit1* look mostly identical.  What we expect to be updated with the estimated value of variance is the element of the **S** matrix, which we can output as follows:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatFit1$matrices$S$values
-                 X
-        X 1.062112
+    > univSatFit1$matrices$S$values
+             X
+    X 1.062112
         
 An alternative form of extracting values from a matrix is:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatFit1[['S']]$values
-                 X
-        X 1.062112
+    > univSatFit1[['S']]$values
+             X
+    X 1.062112
     
 There are actually a variety of ways to generate output.  We will promote the use of the ``mxEval`` command, which takes two arguments: an ``expression`` and a ``model`` object.  The ``expression`` can be a matrix or algebra  defined in the model, new calculations using any of these matrices/algebras of the model, the objective function, etc.  Here we use ``mxEval`` to simply list the values of the **S** matrix, which formats the output slightly differently as a typical R matrix object, and call it *EC1*, short for the expected covariance:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
 
-        EC1 <- mxEval(S, univSatFit1)
-        >        EC1
-                     X
-            X 1.062112
+..  code-block:: r
+
+    EC1 <- mxEval(S, univSatFit1)
+    >        EC1
+                 X
+        X 1.062112
     
 We can then use any regular R function in the ``mxEval`` command to generate derived fit statistics, some of which are built in as standard.  When fitting to covariance matrices, the saturated likelihood can be easily obtained and subtracted from the likelihood of the data to obtain a Chi-square goodness-of-fit.  The saturated likelihood, here named 'SL1' is obtained from the ``$output$Saturated`` argument of the fitted object *univSatFit1* which contains a range of statistics.  We get the likelihood of the data, here referred to as *LL1*, from the ``$output$fit`` argument of the fitted object *univSatFit1*.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         SL1  <- univSatFit1$output$Saturated
-         LL1  <- univSatFit1$output$fit
-         Chi1 <- LL1-SL1
+    SL1  <- univSatFit1$output$Saturated
+    LL1  <- univSatFit1$output$fit
+    Chi1 <- LL1-SL1
 
 The output of these objects like as follows
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > SL1
-        [1] 1059.199
-        > LL1
-        [1] 1059.199
-        > Chi1
-        [1] 0
+    > SL1
+    [1] 1059.199
+    > LL1
+    [1] 1059.199
+    > Chi1
+    [1] 0
         
 An alternative to requesting specific output is to generate the default summary of the model, which can be done with the ``summary`` function, and can also be saved in another R object, i.e. *univSatSumm1*.
 
 .. cssclass:: input
 ..
 
-   OpenMx Code
-   
-   .. code-block:: r
+.. code-block:: r
        
-         summary(univSatFit1)
-         univSatSumm1 <- summary(univSatFit1)
+    summary(univSatFit1)
+    univSatSumm1 <- summary(univSatFit1)
 
 This output includes a summary of the data (if available), a list of all the free parameters with their estimates (if the model contains free parameters), their confidence intervals (if requested), a list of goodness-of-fit statistics, and a list of job statistics (timestamps and OpenMx version).
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > univSatSumm1
-        data:
-        $univSat1.data
-        $univSat1.data$cov
-                 X
-        X 1.062112
+    > univSatSumm1
+    data:
+    $univSat1.data
+    $univSat1.data$cov
+             X
+    X 1.062112
     
-        free parameters:
-          name matrix row col Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
-        1   vX      S   X   X 1.062112 0.04752282            1 0.04474372   0.01              
+    free parameters:
+      name matrix row col Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
+    1   vX      S   X   X 1.062112 0.04752282            1 0.04474372   0.01              
     
-        observed statistics:  1 
-        estimated parameters:  1 
-        degrees of freedom:  0 
-        -2 log likelihood:  1059.199 
-        saturated -2 log likelihood:  1059.199 
-        number of observations:  1000 
-        chi-square:  0 
-        p:  1 
-        Information Criteria: 
-            df Penalty Parameters Penalty Sample-Size Adjusted
-        AIC          0           2.000000                   NA
-        BIC          0           6.907755             3.731699
-        CFI: NaN 
-        TLI: NaN 
-        RMSEA:  NA 
-        timestamp: 2014-04-02 18:41:35 
-        frontend time: 0.09399414 secs 
-        backend time: 0.007524967 secs 
-        independent submodels time: 5.602837e-05 secs 
-        wall clock time: 0.1015751 secs 
-        cpu time: 0.1015751 secs 
-        openmx version number: 999.0.0-3160 
+    observed statistics:  1 
+    estimated parameters:  1 
+    degrees of freedom:  0 
+    -2 log likelihood:  1059.199 
+    saturated -2 log likelihood:  1059.199 
+    number of observations:  1000 
+    chi-square:  0 
+    p:  1 
+    Information Criteria: 
+        df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC          0           2.000000                   NA
+    BIC          0           6.907755             3.731699
+    CFI: NaN 
+    TLI: NaN 
+    RMSEA:  NA 
+    timestamp: 2014-04-02 18:41:35 
+    frontend time: 0.09399414 secs 
+    backend time: 0.007524967 secs 
+    independent submodels time: 5.602837e-05 secs 
+    wall clock time: 0.1015751 secs 
+    cpu time: 0.1015751 secs 
+    openmx version number: 999.0.0-3160 
 
 In addition to providing a covariance matrix as input data, we could add a means vector.  As this requires a few minor changes, let's highlight those.  The path diagram for this model, now including means (path from triangle of value 1) is as follows:
 
@@ -639,121 +642,122 @@ We have to specify one additional ``mxPath`` command for the means.  In the path
 .. cssclass:: input
 ..
 
-   OpenMx Code
-   
-   .. code-block:: r
+.. code-block:: r
        
-         expMean <- mxPath(from="one", to="X", arrows=1, free=TRUE, values=0, labels="mX")
+    expMean <- mxPath(from="one", to="X", arrows=1, free=TRUE, values=0, labels="mX")
 
 This new path adds one additional parameter, called 'mX'.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        >  expMean
-        mxPath 
-        $from:  'one' 
-        $to:  'X' 
-        $arrows:  1 
-        $values:  0 
-        $free:  TRUE 
-        $labels:  mX 
-        $lbound:  NA 
-        $ubound:  NA
-        $connect:  single 
+    >  expMean
+    mxPath 
+    $from:  'one' 
+    $to:  'X' 
+    $arrows:  1 
+    $values:  0 
+    $free:  TRUE 
+    $labels:  mX 
+    $lbound:  NA 
+    $ubound:  NA
+    $connect:  single 
     
 The other required change is in the ``mxData`` command, which now takes a fourth argument ``means`` for the vector of observed means from the data, calculated using the R ``colMeans`` command.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         obsCovMeanData <- mxData( observed=var(univData), type="cov", numObs=1000, 
-                                   means=colMeans(univData) )
+    obsCovMeanData <- mxData( observed=var(univData), type="cov", numObs=1000, 
+                              means=colMeans(univData) )
 
 As this new object will simply be added to the previous model, we can build onto our existing model.  Therefore, instead of using the first argument for the name, we use it in its other capacity, namely as the name of a previously defined MxModel object that is being modified.  In this case, we start with the previous model *univSatModel1*, which becomes the first argument of our new model *univSatModel1M*.  To change the name of the object, we add a ``name`` argument.  Note that the default order of arguments can be changed by adding the argument's syntax name.  We then add the new argument for the expected means, as well as the modified MxData object.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel1M <- mxModel(univSatModel1, name="univSat1M", expMean, obsCovMeanData )
+    univSatModel1M <- mxModel(univSatModel1, name="univSat1M", expMean, obsCovMeanData )
     
 Note the following changes in the modified MxModel below.  First, the name is changed to 'univSat1M'.  Second, an additional matrix **M** was generated for the expected means vector.  Third, observed means were added, here referred to as '$data means'.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        >  	univSatModel1M
-         MxModel 'univSat1M' 
-         type : RAM 
-         $matrices : 'A', 'S', 'F', and 'M' 
-         $algebras :  
-         $constraints :  
-         $intervals :  
-         $latentVars : none
-         $manifestVars : 'X' 
-         $data : 1 x 1 
-         $data means : 1 x 1 
-         $data type: 'cov' 
-         $submodels :  
-         $expectation : MxExpectationRAM 
-         $fitfunction : MxFitFunctionML 
-         $compute : NULL  
-         $independent : FALSE 
-         $options :  
-         $output : FALSE
+    >  	univSatModel1M
+    MxModel 'univSat1M' 
+    type : RAM 
+    $matrices : 'A', 'S', 'F', and 'M' 
+    $algebras :  
+    $constraints :  
+    $intervals :  
+    $latentVars : none
+    $manifestVars : 'X' 
+    $data : 1 x 1 
+    $data means : 1 x 1 
+    $data type: 'cov' 
+    $submodels :  
+    $expectation : MxExpectationRAM 
+    $fitfunction : MxFitFunctionML 
+    $compute : NULL  
+    $independent : FALSE 
+    $options :  
+    $output : FALSE
     
 When a mean vector is supplied and a parameter added for the estimated mean, the RAM matrices **A**, **S** and **F** are augmented with an **M** matrix which can be extracted from the output in a similar way as the expected variance before, and is called *EM1*, short for expected mean.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatFit1M  <- mxRun(univSatModel1M)
-         EM1M          <- mxEval(M, univSatFit1M) 
-         univSatSumm1M <- summary(univSatFit1M)
+    univSatFit1M  <- mxRun(univSatModel1M)
+    EM1M          <- mxEval(M, univSatFit1M) 
+    univSatSumm1M <- summary(univSatFit1M)
 
 The new summary object *univSatSumm1M* is different from the previous one in the following ways: the observed data means were added, an extra free parameter is listed and estimated, thus the fit statistics are updated.  Notice, however, that the likelihood of both models is the same.  (We have cut part of the summary that is not relevant here.)
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatSumm1M
-        data:
-        $univSat1M.data
-        $univSat1M.data$cov
-                 X
-        X 1.062112
+    > univSatSumm1M
+    data:
+    $univSat1M.data
+    $univSat1M.data$cov
+             X
+    X 1.062112
     
-        $univSat1M.data$means
-                      X
-        [1,] 0.01680509
+    $univSat1M.data$means
+                  X
+    [1,] 0.01680509
     
     
-        free parameters:
-          name matrix row col   Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
-        1   vX      S   X   X 1.06211141 0.04752281            1 0.04474372   0.01       
-        2   mX      M   1   X 0.01680503 0.03259006           NA         NA                            
+    free parameters:
+      name matrix row col   Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
+    1   vX      S   X   X 1.06211141 0.04752281            1 0.04474372   0.01       
+    2   mX      M   1   X 0.01680503 0.03259006           NA         NA                            
     
-        observed statistics:  2 
-        estimated parameters:  2 
-        degrees of freedom:  0 
-        -2 log likelihood:  1059.199 
-        saturated -2 log likelihood:  1059.199 
-        number of observations:  1000 
-        chi-square:  8.867573e-12 
-        p:  0 
-        Information Criteria: 
-              df Penalty Parameters Penalty Sample-Size Adjusted
-        AIC 8.867573e-12            4.00000                   NA
-        BIC 8.867573e-12           13.81551             7.463399
+    observed statistics:  2 
+    estimated parameters:  2 
+    degrees of freedom:  0 
+    -2 log likelihood:  1059.199 
+    saturated -2 log likelihood:  1059.199 
+    number of observations:  1000 
+    chi-square:  8.867573e-12 
+    p:  0 
+    Information Criteria: 
+          df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC 8.867573e-12            4.00000                   NA
+    BIC 8.867573e-12           13.81551             7.463399
 
 Raw Data 
 ++++++++
@@ -765,72 +769,74 @@ The only change required is in the MxData object, *obsRawData* defined above, wh
 .. cssclass:: input
 ..
 
-   OpenMx Code
-   
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel2 <- mxModel(univSatModel1M, obsRawData )
+    univSatModel2 <- mxModel(univSatModel1M, obsRawData )
 
 The resulting model can be run as usual using ``mxRun``:
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatFit2  <- mxRun(univSatModel2)
-         univSatSumm2 <- summary(univSatFit2)
-         EM2          <- mxEval(M, univSatFit2) 
-         EC2          <- mxEval(S, univSatFit2)
-         LL2          <- univSatFit2$output$fit
+    univSatFit2  <- mxRun(univSatModel2)
+    univSatSumm2 <- summary(univSatFit2)
+    EM2          <- mxEval(M, univSatFit2) 
+    EC2          <- mxEval(S, univSatFit2)
+    LL2          <- univSatFit2$output$fit
 
 Note that the estimates for the expected means, as well as the expected covariance matrix are exactly the same as before, as we have no missing data.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        >        EM2
-                      X
-        [1,] 0.01680499
-        >        EC2
-                 X
-        X 1.061049
-        >        LL2
-        [1] 2897.135
+    >        EM2
+                  X
+    [1,] 0.01680499
+    >        EC2
+             X
+    X 1.061049
+    >        LL2
+    [1] 2897.135
 
 The estimates for the predicted mean and covariance matrix are exactly the same as those obtained when fitting to summary statistics.  The likelihood, however, is different.??
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > univSatSumm2
-       data:
-       $univSat1M.data
-              X           
-        Min.   :-3.32078  
-        1st Qu.:-0.64970  
-        Median : 0.03690  
-        Mean   : 0.01681  
-        3rd Qu.: 0.70959  
-        Max.   : 3.30415  
+    > univSatSumm2
+    data:
+    $univSat1M.data
+            X           
+    Min.   :-3.32078  
+    1st Qu.:-0.64970  
+    Median : 0.03690  
+    Mean   : 0.01681  
+    3rd Qu.: 0.70959  
+    Max.   : 3.30415  
     
-       free parameters:
-         name matrix row col   Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
-       1   vX      S   X   X 1.06104923 0.04745170            1 0.04472149   0.01       
-       2   mX      M   1   X 0.01680499 0.03257418           NA         NA                      
+    free parameters:
+     name matrix row col   Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
+    1   vX      S   X   X 1.06104923 0.04745170            1 0.04472149   0.01       
+    2   mX      M   1   X 0.01680499 0.03257418           NA         NA                      
     
-       observed statistics:  1000 
-       estimated parameters:  2 
-       degrees of freedom:  998 
-       -2 log likelihood:  2897.135 
-       saturated -2 log likelihood:  NA 
-       number of observations:  1000 
-       chi-square:  NA 
-       p:  NA 
-       Information Criteria: 
-           df Penalty Parameters Penalty Sample-Size Adjusted
-       AIC   901.1355           2901.135                   NA
-       BIC -3996.8043           2910.951             2904.599
+    observed statistics:  1000 
+    estimated parameters:  2 
+    degrees of freedom:  998 
+    -2 log likelihood:  2897.135 
+    saturated -2 log likelihood:  NA 
+    number of observations:  1000 
+    chi-square:  NA 
+    p:  NA 
+    Information Criteria: 
+       df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC   901.1355           2901.135                   NA
+    BIC -3996.8043           2910.951             2904.599
 
 Matrix Method
 ^^^^^^^^^^^^^
@@ -850,132 +856,138 @@ To specify the model, we now create a matrix for the expected covariance matrix 
 .. cssclass:: input
 ..
 
-   OpenMx Code
-   
-   .. code-block:: r
+.. code-block:: r
        
-         expCovMat <- mxMatrix( type="Symm", nrow=1, ncol=1, 
-                                free=TRUE, values=1, name="expCov" )
+    expCovMat <- mxMatrix( type="Symm", nrow=1, ncol=1, 
+                           free=TRUE, values=1, name="expCov" )
     
 The resulting MxMatrix object *expCovMat* looks as follows.  Note that the starting value for the free parameter is 1 and that optionally labels can be assigned for the rows and columns of the matrix and lower and upper bounds can be assigned to limit the parameter space for the estimation:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > expCovMat
-        SymmMatrix 'expCov' 
+    > expCovMat
+    SymmMatrix 'expCov' 
     
-        $labels: No labels assigned.
+    $labels: No labels assigned.
     
-        $values
-             [,1]
-        [1,]    1
+    $values
+         [,1]
+    [1,]    1
     
-        $free
-             [,1]
-        [1,] TRUE
+    $free
+         [,1]
+    [1,] TRUE
     
-        $lbound: No lower bounds assigned.
+    $lbound: No lower bounds assigned.
     
-        $ubound: No upper bounds assigned.
+    $ubound: No upper bounds assigned.
         
 To link the model for the covariance matrix to the data, an ``mxExpectation`` needs to be specified which will  be evaluated with an ``mxFitFunctionML``.  The ``mxExpectationNormal`` command  takes two arguments, ``covariance`` to hold the expected covariance matrix (which we named "expCov" above using the ``mxMatrix`` command), and ``dimnames`` which allow the mapping of the observed data to the expected covariance matrix, i.e. the model.  ``mxFitFunctionML()`` will invoke the maximum likelihood ('ML'), to obtain the best estimates for the free parameters.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expectCov    <- mxExpectationNormal( covariance="expCov", dimnames=selVars )
-         funML        <- mxFitFunctionML()
+    expectCov    <- mxExpectationNormal( covariance="expCov", dimnames=selVars )
+    funML        <- mxFitFunctionML()
          
 The internal name of an MxExpectationNormal object is by default *expectation* and that for an MxFitFunctionML object is by default *fitfunction*.  We can thus inspect these two objects by using the names of the resulting objects, here *expCovFun* and *ML* as shown below. The result of applying the fit function is not yet computed and thus reported as *<0 x 0 matrix>*; its arguments will change after running the model successfully.
+
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-    ..  code-block:: r
-    
-         > expectCov
-         MxExpectationNormal 'expectation' 
-         $covariance : 'expCov' 
-         $means : NA 
-         $dims : 'X' 
-         $thresholds : NA 
-         $threshnames : 'X'
+    > expectCov
+    MxExpectationNormal 'expectation' 
+    $covariance : 'expCov' 
+    $means : NA 
+    $dims : 'X' 
+    $thresholds : NA 
+    $threshnames : 'X'
          
-         > funML
-         MxFitFunctionML 'fitfunction' 
-         $vector : FALSE 
-         <0 x 0 matrix>
+    > funML
+    MxFitFunctionML 'fitfunction' 
+    $vector : FALSE 
+    <0 x 0 matrix>
     
 We can then simply combine the appropriate elements into a new model and fit it in the usual way to the data.  Please note that within the ``mxExpectationNormal`` function, we refer to the expected covariance matrix by its name within the ``mxMatrix`` function that created the matrix, namely *expCov*.  However when we combine the arguments into the ``mxModel`` function, we use the name of the MxMatrix and MxMLObjective objects, respectively *expCovMat*, *expCovFun* and *ML*, as shown below.   
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel3 <- mxModel("univSat3", obsCovData, expCovMat, expectCov, funML)
-         univSatFit3   <- mxRun(univSatModel3)
-         univSatSumm3  <- summary(univSatFit3)
+    univSatModel3 <- mxModel("univSat3", obsCovData, expCovMat, expectCov, funML)
+    univSatFit3   <- mxRun(univSatModel3)
+    univSatSumm3  <- summary(univSatFit3)
 
 Note that the estimates for the free parameters and the goodness-of-fit statistics are exactly the same for the matrix method as they were for the path method.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatSumm3
-        data:
-        $univSat3.data
-        $univSat3.data$cov
-                 X
-        X 1.062112    
+    > univSatSumm3
+    data:
+    $univSat3.data
+    $univSat3.data$cov
+             X
+    X 1.062112    
     
-        free parameters:
-          name matrix row col Estimate  Std.Error lbound ubound
-        1 <NA> expCov   X   X 1.062112 0.04752287              
+    free parameters:
+      name matrix row col Estimate  Std.Error lbound ubound
+    1 <NA> expCov   X   X 1.062112 0.04752287              
     
-        observed statistics:  1 
-        estimated parameters:  1 
-        degrees of freedom:  0 
-        -2 log likelihood:  1059.199 
-        saturated -2 log likelihood:  1059.199 
-        number of observations:  1000 
-        chi-square:  0 
-        p:  1 
-        Information Criteria: 
-            df Penalty Parameters Penalty Sample-Size Adjusted
-        AIC          0           2.000000                   NA
-        BIC          0           6.907755             3.731699
+    observed statistics:  1 
+    estimated parameters:  1 
+    degrees of freedom:  0 
+    -2 log likelihood:  1059.199 
+    saturated -2 log likelihood:  1059.199 
+    number of observations:  1000 
+    chi-square:  0 
+    p:  1 
+    Information Criteria: 
+        df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC          0           2.000000                   NA
+    BIC          0           6.907755             3.731699
         
 We can also obtain the values of the likelihood by accessing the fitted object with the default name for the fit function, here *univSatFit4$fitfunction*.  Note the the expectation part of the fitted object has not changed.
-        
+
+.. cssclass:: output
+..   
+
 ..  code-block:: r        
         
-        > univSatFit3$expectation
-        MxExpectationNormal 'expectation' 
-        $covariance : 'expCov' 
-        $means : NA 
-        $dims : 'X' 
-        $thresholds : NA 
-        $threshnames : 'X' 
-        
-        > univSatFit3$fitfunction
-        MxFitFunctionML 'fitfunction' 
-        $vector : FALSE 
-                 [,1]
-        [1,] 1059.199
-        attr(,"expCov")
-                 [,1]
-        [1,] 1.062112
-        attr(,"expMean")
-        <0 x 0 matrix>
-        attr(,"gradients")
-        <0 x 0 matrix>
-        attr(,"SaturatedLikelihood")
-        [1] 1059.199
-        attr(,"IndependenceLikelihood")
-        [1] 1059.199
+    > univSatFit3$expectation
+    MxExpectationNormal 'expectation' 
+    $covariance : 'expCov' 
+    $means : NA 
+    $dims : 'X' 
+    $thresholds : NA 
+    $threshnames : 'X' 
+    
+    > univSatFit3$fitfunction
+    MxFitFunctionML 'fitfunction' 
+    $vector : FALSE 
+            [,1]
+    [1,] 1059.199
+    attr(,"expCov")
+             [,1]
+    [1,] 1.062112
+    attr(,"expMean")
+    <0 x 0 matrix>
+    attr(,"gradients")
+    <0 x 0 matrix>
+    attr(,"SaturatedLikelihood")
+    [1] 1059.199
+    attr(,"IndependenceLikelihood")
+    [1] 1059.199
     
 Covariances + Means
 ...................
@@ -984,60 +996,57 @@ A means vector can also be added to the observed data as the fourth argument of 
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expMeanMat <- mxMatrix( type="Full", nrow=1, ncol=1, 
-                                 free=TRUE, values=0, name="expMean" )
+    expMeanMat <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                            free=TRUE, values=0, name="expMean" )
     
 When we inspect this MxMatrix object, note that it looks rather similar to the *expCovMat* object, except for the name and type and start value.  Its estimate depends entirely on which argument of the expectation function it is supposed to represent.  As soon as we move to an example with more than one variable, the difference becomes more obvious as the expected means will be a vector while the expected covariance matrix will always be a symmetric matrix.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
 
-       > exMeanMat
-        SymmMatrix 'expMean' 
+..  code-block:: r
 
-        $labels: No labels assigned.
+    > exMeanMat
+    SymmMatrix 'expMean' 
 
-        $values
-             [,1]
-        [1,]    0
+    $labels: No labels assigned.
 
-        $free
-             [,1]
-        [1,] TRUE
+    $values
+         [,1]
+    [1,]    0
 
-        $lbound: No lower bounds assigned.
+    $free
+         [,1]
+    [1,] TRUE
 
-        $ubound: No upper bounds assigned.
+    $lbound: No lower bounds assigned.
+
+    $ubound: No upper bounds assigned.
 
 The second change is adding an additional argument ``means`` to the ``mxExpectationNormal`` function for the expected mean, here *expMean*.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expextCovMean <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                               dimnames=selVars )
+    expextCovMean <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                          dimnames=selVars )
 
 We now create a new model based on the old one, give it a new name, read in the MxData object with covariance and mean, add the MxMatrix object for the means and change the expectation function to the one created above.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel3M <- mxModel(univSatModel3, name="univSat3M", obsCovMeanData, 
-                                   expMeanMat, expextCovMean, funML )
-         univSatFit3M   <- mxRun(univSatModel3M)
-         univSatSumm3M  <- summary(univSatFit3M)
+    univSatModel3M <- mxModel(univSatModel3, name="univSat3M", obsCovMeanData, 
+                              expMeanMat, expextCovMean, funML )
+    univSatFit3M   <- mxRun(univSatModel3M)
+    univSatSumm3M  <- summary(univSatFit3M)
 
 You can verify that the only changes to the output are the addition of the means to the data and estimates, resulting in two observed statistics and two estimated parameters rather than one.  As a result the values AIC and BIC criteria have changed although the value for the likelihood is exactly the same as before.
 
@@ -1051,48 +1060,49 @@ The MxModel object for the saturated model applied to raw data has a name *univS
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel4 <- mxModel("univSat4", obsRawData, 
-                                  expCovMat, expMeanMat, expectCovMean, funML )
-         univSatFit4   <- mxRun(univSatModel4)
-         univSatSumm4  <- summary(univSatFit4)
+    univSatModel4 <- mxModel("univSat4", obsRawData, 
+                              expCovMat, expMeanMat, expectCovMean, funML )
+    univSatFit4   <- mxRun(univSatModel4)
+    univSatSumm4  <- summary(univSatFit4)
 
 The output looks like this:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > univSatSumm4
-        data:
-        $univSat4.data
-               X           
-         Min.   :-3.32078  
-         1st Qu.:-0.64970  
-         Median : 0.03690  
-         Mean   : 0.01681  
-         3rd Qu.: 0.70959  
-         Max.   : 3.30415  
+    > univSatSumm4
+    data:
+    $univSat4.data
+           X           
+    Min.   :-3.32078  
+    1st Qu.:-0.64970  
+    Median : 0.03690  
+    Mean   : 0.01681  
+    3rd Qu.: 0.70959  
+    Max.   : 3.30415  
     
-        free parameters:
-          name  matrix row col   Estimate  Std.Error lbound ubound
-        1 <NA>  expCov   X   X 1.06104925 0.04745032              
-        2 <NA> expMean   1   X 0.01680499 0.03257294              
+    free parameters:
+      name  matrix row col   Estimate  Std.Error lbound ubound
+    1 <NA>  expCov   X   X 1.06104925 0.04745032              
+    2 <NA> expMean   1   X 0.01680499 0.03257294              
     
-        observed statistics:  1000 
-        estimated parameters:  2 
-        degrees of freedom:  998 
-        -2 log likelihood:  2897.135 
-        saturated -2 log likelihood:  NA 
-        number of observations:  1000 
-        chi-square:  NA 
-        p:  NA 
-        Information Criteria: 
-            df Penalty Parameters Penalty Sample-Size Adjusted
-        AIC   901.1355           2901.135                   NA
-        BIC -3996.8043           2910.951             2904.599
+    observed statistics:  1000 
+    estimated parameters:  2 
+    degrees of freedom:  998 
+    -2 log likelihood:  2897.135 
+    saturated -2 log likelihood:  NA 
+    number of observations:  1000 
+    chi-square:  NA 
+    p:  NA 
+    Information Criteria: 
+        df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC   901.1355           2901.135                   NA
+    BIC -3996.8043           2910.951             2904.599
     
 Note that the output generated for the paths and matrices specification are again completely equivalent, regardless of whether the model was fitted to summary statistics or raw data.  In each of the four versions of the model fitted to the same data, the data objects were generated from the continuous data.  Similar models can be fit to categorical data, with one or more thresholds delineating the proportion of individual in each of the two or more categories, based on the assumption of an underlying (multi)normal probability density function.
 
@@ -1108,101 +1118,101 @@ First, we read in the binary data, *obsRawDataBin* created earlier.  Then we tur
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        expCovMatBin  <- mxMatrix( type="Stand", nrow=1, ncol=1, 
-                                   free=TRUE, values=.5, name="expCov" )
-        expMeanMatBin <- mxMatrix( type="Zero", nrow=1, ncol=1, name="expMean" )
-        expThreMatBin <- mxMatrix( type="Full", nrow=1, ncol=1, 
-                                   free=TRUE, values=0, name="expThre" )
+    expCovMatBin  <- mxMatrix( type="Stand", nrow=1, ncol=1, 
+                               free=TRUE, values=.5, name="expCov" )
+    expMeanMatBin <- mxMatrix( type="Zero", nrow=1, ncol=1, name="expMean" )
+    expThreMatBin <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                               free=TRUE, values=0, name="expThre" )
         
 Let's inspect the latter matrix.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
 
-        > expThreMatBin
-        FullMatrix 'expThre' 
+..  code-block:: r
 
-        $labels: No labels assigned.
+    > expThreMatBin
+    FullMatrix 'expThre' 
 
-        $values
-             [,1]
-        [1,]    0
+    $labels: No labels assigned.
 
-        $free
-             [,1]
-        [1,] TRUE
+    $values
+         [,1]
+    [1,]    0
 
-        $lbound: No lower bounds assigned.
+    $free
+         [,1]
+    [1,] TRUE
 
-        $ubound: No upper bounds assigned.
+    $lbound: No lower bounds assigned.
+
+    $ubound: No upper bounds assigned.
         
 The final change is adding an additional ``threshold`` argument to the ``mxExpectationNormal`` function for the expected threshold, here "expThre".
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expectBin <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                           threshold="expThre", dimnames=selVars )
+    expectBin <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                      threshold="expThre", dimnames=selVars )
 
 We then include all these objects into a model *univSat5* and fit it to the data.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         univSatModel5 <- mxModel("univSat5", obsRawDataBin, 
-                                  expCovMatBin, expMeanMatBin, expThreMatBin, expectBin, funML )
-         univSatFit5   <- mxRun(univSatModel5)
-         univSatSumm5  <- summary(univSatFit5)
+    univSatModel5 <- mxModel("univSat5", obsRawDataBin, 
+                              expCovMatBin, expMeanMatBin, expThreMatBin, expectBin, funML )
+    univSatFit5   <- mxRun(univSatModel5)
+    univSatSumm5  <- summary(univSatFit5)
          
 The summary of the univariate model fitted to binary data includes a summary of the data.  Given binary data have no variance, it is fixed to one while the threshold is estimated.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
 
-         > univSatSumm5
-         data:
-         $univSat5.data
-          X      
-          0:680  
-          1:320  
+..  code-block:: r
 
-         free parameters:
-           name  matrix row col  Estimate  Std.Error lbound ubound
-         1 <NA> expThre   1   X 0.4676989 0.04124951              
+    > univSatSumm5
+    data:
+    $univSat5.data
+     X      
+     0:680  
+     1:320  
 
-         observed statistics:  1000 
-         estimated parameters:  1 
-         degrees of freedom:  999 
-         -2 log likelihood:  1253.739 
-         saturated -2 log likelihood:  NA 
-         number of observations:  1000 
-         chi-square:  NA 
-         p:  NA 
-         Information Criteria: 
-             df Penalty Parameters Penalty Sample-Size Adjusted
-         AIC  -744.2611           1255.739                   NA
-         BIC -5647.1086           1260.647             1257.471
-         CFI: NA 
-         TLI: NA 
-         RMSEA:  NA 
-         timestamp: 2012-02-24 00:32:39 
-         frontend time: 0.1296248 secs 
-         backend time: 0.007578135 secs 
-         independent submodels time: 5.102158e-05 secs 
-         wall clock time: 0.137254 secs 
-         cpu time: 0.137254 secs 
-         openmx version number: 999.0.0-1661
+    free parameters:
+      name  matrix row col  Estimate  Std.Error lbound ubound
+    1 <NA> expThre   1   X 0.4676989 0.04124951              
+
+    observed statistics:  1000 
+    estimated parameters:  1 
+    degrees of freedom:  999 
+    -2 log likelihood:  1253.739 
+    saturated -2 log likelihood:  NA 
+    number of observations:  1000 
+    chi-square:  NA 
+    p:  NA 
+    Information Criteria: 
+        df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC  -744.2611           1255.739                   NA
+    BIC -5647.1086           1260.647             1257.471
+    CFI: NA 
+    TLI: NA 
+    RMSEA:  NA 
+    timestamp: 2012-02-24 00:32:39 
+    frontend time: 0.1296248 secs 
+    backend time: 0.007578135 secs 
+    independent submodels time: 5.102158e-05 secs 
+    wall clock time: 0.137254 secs 
+    cpu time: 0.137254 secs 
+    openmx version number: 999.0.0-1661
 
 Ordinal Data
 ............
@@ -1211,60 +1221,59 @@ Next, we will show how to adapt the model to analyze an ordinal variable.  As th
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        nth <- 4
-        expCovMatOrd  <- mxMatrix( type="Stand", nrow=1, ncol=1, 
-                                   free=TRUE, values=.5, name="expCov" )
-        expMeanMatOrd <- mxMatrix( type="Zero", nrow=1, ncol=1, name="expMean" )
-        expThreMatOrd <- mxMatrix( type="Full", nrow=nth, ncol=1, 
-                                   free=TRUE, values=c(-1.5,-.5,.5,1.5), name="expThre" )
+    nth <- 4
+    expCovMatOrd  <- mxMatrix( type="Stand", nrow=1, ncol=1, 
+                               free=TRUE, values=.5, name="expCov" )
+    expMeanMatOrd <- mxMatrix( type="Zero", nrow=1, ncol=1, name="expMean" )
+    expThreMatOrd <- mxMatrix( type="Full", nrow=nth, ncol=1, 
+                               free=TRUE, values=c(-1.5,-.5,.5,1.5), name="expThre" )
     
 Here we print the matrix of thresholds:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
 
-        > expThreMatOrd
-        FullMatrix 'expThre' 
+..  code-block:: r
 
-        $labels: No labels assigned.
+    > expThreMatOrd
+    FullMatrix 'expThre' 
 
-        $values
-             [,1]
-        [1,] -1.5
-        [2,] -0.5
-        [3,]  0.5
-        [4,]  1.5
+    $labels: No labels assigned.
 
-        $free
-             [,1]
-        [1,] TRUE
-        [2,] TRUE
-        [3,] TRUE
-        [4,] TRUE
+    $values
+         [,1]
+    [1,] -1.5
+    [2,] -0.5
+    [3,]  0.5
+    [4,]  1.5
 
-        $lbound: No lower bounds assigned.
+    $free
+         [,1]
+    [1,] TRUE
+    [2,] TRUE
+    [3,] TRUE
+    [4,] TRUE
 
-        $ubound: No upper bounds assigned.
+    $lbound: No lower bounds assigned.
+
+    $ubound: No upper bounds assigned.
         
 The remainder of the model statements is almost identical to those of the binary model, except for replacing 'Bin' with 'Ord'.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        expFunOrd     <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                              threshold="expThre", dimnames=selVars )
-        univSatModel6 <- mxModel("univSat6", obsRawDataOrd, 
-                                 expCovMatOrd, expMeanMatOrd, expThreMatOrd, expectOrd, funML )
-        univSatFit6   <- mxRun(univSatModel6)
-        univSatSumm6  <- summary(univSatFit6)
+    expFunOrd     <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                          threshold="expThre", dimnames=selVars )
+    univSatModel6 <- mxModel("univSat6", obsRawDataOrd, 
+                             expCovMatOrd, expMeanMatOrd, expThreMatOrd, expectOrd, funML )
+    univSatFit6   <- mxRun(univSatModel6)
+    univSatSumm6  <- summary(univSatFit6)
 
 Thresholds
 ..........
@@ -1273,28 +1282,26 @@ An alternative approach to ensure that the thresholds are increasing can be enfo
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
    
-        svLTh     <- -1.5                              # start value for first threshold
-        svITh     <- 1                                 # start value for increments
-        svTh      <- (c(svLTh,(rep(svITh,nth-1))))     # start value for thresholds
-        lbTh      <- c(-3,(rep(0.001,nth-1)))          # lower bounds for thresholds
+    svLTh     <- -1.5                              # start value for first threshold
+    svITh     <- 1                                 # start value for increments
+    svTh      <- (c(svLTh,(rep(svITh,nth-1))))     # start value for thresholds
+    lbTh      <- c(-3,(rep(0.001,nth-1)))          # lower bounds for thresholds
         
-        threG          <- mxMatrix( type="Full", nrow=nth, ncol=1, 
-                                    free=TRUE, values=svTh, lbound=lbTh, name="Thre" )
-        inc            <- mxMatrix( type="Lower", nrow=nth, ncol=nth, 
-                                    free=FALSE, values=1, name="Inc" )        
-        expThreMatOrd  <- mxAlgebra( expression= Inc %*% Thre, name="expThre" )
-        expectOrd      <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                               threshold="expThre", dimnames=selVars )
-        univSatModel6I <- mxModel("univSat6", obsRawDataOrd, 
-                                  expCovMatOrd, expMeanMatOrd, 
-                                  Inc, Thre, expThreMatOrd, expectOrd, funML )
-        univSatFit6I   <- mxRun(univSatModel6I, unsafe=T)
-        univSatSumm6I  <- summary(univSatFit6I)
+    threG          <- mxMatrix( type="Full", nrow=nth, ncol=1, 
+                                free=TRUE, values=svTh, lbound=lbTh, name="Thre" )
+    inc            <- mxMatrix( type="Lower", nrow=nth, ncol=nth, 
+                                free=FALSE, values=1, name="Inc" )        
+    expThreMatOrd  <- mxAlgebra( expression= Inc %*% Thre, name="expThre" )
+    expectOrd      <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                           threshold="expThre", dimnames=selVars )
+    univSatModel6I <- mxModel("univSat6", obsRawDataOrd, 
+                              expCovMatOrd, expMeanMatOrd, 
+                              Inc, Thre, expThreMatOrd, expectOrd, funML )
+    univSatFit6I   <- mxRun(univSatModel6I, unsafe=T)
+    univSatSumm6I  <- summary(univSatFit6I)
 
 Approaches 
 ----------
@@ -1321,132 +1328,133 @@ In the path specification, we will use three ``mxPath`` commands to specify (i) 
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-        nv      <- 2
-        selVars <- c('X','Y')
+    nv      <- 2
+    selVars <- c('X','Y')
         
-We start with the two-headed paths for the variances and covariances.  The first one specifies two-headed arrows from **X** and **Y** to themselves - the ``to`` argument is omitted - to represent the variances.  This command now generates two free parameters, each with start value of 1 and lower bound of .01, but with a different label indicating that these are separate free parameters.  Note that we could test whether the variances are equal by specifying a model with the same label for the two variances and comparing it with the current model.  The second ``mxPath`` command specifies a two-headed arrow from **X** to **Y** for the covariance, which is also assigned 'free' and given a start value of .2 and a label.
+We start with the two-headed paths for the variances and covariances.  The first one specifies two-headed arrows from *X* and *Y* to themselves - the ``to`` argument is omitted - to represent the variances.  This command now generates two free parameters, each with start value of 1 and lower bound of .01, but with a different label indicating that these are separate free parameters.  Note that we could test whether the variances are equal by specifying a model with the same label for the two variances and comparing it with the current model.  The second ``mxPath`` command specifies a two-headed arrow from *X* to *Y* for the covariance, which is also assigned 'free' and given a start value of .2 and a label.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expVars <- mxPath( from=c("X", "Y"), arrows=2, 
-                            free=TRUE, values=1, lbound=.01, labels=c("varX","varY") )
-         expCovs <- mxPath( from="X", to="Y", arrows=2, 
-                            free=TRUE, values=.2, lbound=.01, labels="covXY" )
+    expVars <- mxPath( from=c("X", "Y"), arrows=2, 
+                       free=TRUE, values=1, lbound=.01, labels=c("varX","varY") )
+    expCovs <- mxPath( from="X", to="Y", arrows=2, 
+                       free=TRUE, values=.2, lbound=.01, labels="covXY" )
 
 The resulting MxPath objects 'expVars' and 'expCovs' are as follows:
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > mxPath( from=c("X", "Y"), arrows=2, 
-                 free=TRUE, values=1, lbound=.01, labels=c("varX","varY") )
-        mxPath 
-        $from:  'X' and 'Y' 
-        $to:  'X' and 'Y' 
-        $arrows:  2 
-        $values:  1 
-        $free:  TRUE 
-        $labels:  varX varY 
-        $lbound:  0.01 
-        $ubound:  NA 
-        >  mxPath( from="X", to="Y", arrows=2, 
-                   free=TRUE, values=.2, lbound=.01, labels="covXY" )
-        mxPath 
-        $from:  'X' 
-        $to:  'Y' 
-        $arrows:  2 
-        $values:  0.2 
-        $free:  TRUE 
-        $labels:  covXY 
-        $lbound:  0.01 
-        $ubound:  NA 
+    > mxPath( from=c("X", "Y"), arrows=2, 
+              free=TRUE, values=1, lbound=.01, labels=c("varX","varY") )
+    mxPath 
+    $from:  'X' and 'Y' 
+    $to:  'X' and 'Y' 
+    $arrows:  2 
+    $values:  1 
+    $free:  TRUE 
+    $labels:  varX varY 
+    $lbound:  0.01 
+    $ubound:  NA 
+    >  mxPath( from="X", to="Y", arrows=2, 
+               free=TRUE, values=.2, lbound=.01, labels="covXY" )
+    mxPath 
+    $from:  'X' 
+    $to:  'Y' 
+    $arrows:  2 
+    $values:  0.2 
+    $free:  TRUE 
+    $labels:  covXY 
+    $lbound:  0.01 
+    $ubound:  NA 
         
 When observed means are included in addition to the observed covariance matrix, as is necessary when fitting to raw data, we add an ``mxPath`` command with single-headed arrows from ``one`` to the variables to represent the two means.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expMeans <- mxPath( from="one", to=c("X", "Y"), arrows=1, 
-                             free=TRUE, values=.01, labels=c("meanX","meanY") )
+    expMeans <- mxPath( from="one", to=c("X", "Y"), arrows=1, 
+                        free=TRUE, values=.01, labels=c("meanX","meanY") )
 
 The "one" argument in the ``from`` argument is used exclusively for means objects, here called *expMeans*.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > mxPath( from="one", to=c("X", "Y"), arrows=1, 
-                 free=TRUE, values=.01, labels=c("meanX","meanY") )
-        mxPath 
-        $from:  'one' 
-        $to:  'X' and 'Y' 
-        $arrows:  1 
-        $values:  0.01 
-        $free:  TRUE 
-        $labels:  meanX meanY 
-        $lbound:  NA 
-        $ubound:  NA 
+    > mxPath( from="one", to=c("X", "Y"), arrows=1, 
+              free=TRUE, values=.01, labels=c("meanX","meanY") )
+    mxPath 
+    $from:  'one' 
+    $to:  'X' and 'Y' 
+    $arrows:  1 
+    $values:  0.01 
+    $free:  TRUE 
+    $labels:  meanX meanY 
+    $lbound:  NA 
+    $ubound:  NA 
 
 To fit this bivariate model to the simulated data, we have to combine the data and model statements in a MxModel objects.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         bivSatModel1 <- mxModel("bivSat1", manifestVars=selVars, obsBivData, 
-                                 expVars, expCovs, expMeans, type="RAM" )
-         bivSatFit1   <- mxRun(bivSatModel1)
-         bivSatSumm1  <- summary(bivSatFit1)
+    bivSatModel1 <- mxModel("bivSat1", manifestVars=selVars, obsBivData, 
+                             expVars, expCovs, expMeans, type="RAM" )
+    bivSatFit1   <- mxRun(bivSatModel1)
+    bivSatSumm1  <- summary(bivSatFit1)
     
 As you can see below, the maximum likelihood (ML) estimates are very close to the summary statistics of the simulated data.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > bivSatSumm1
-        data:
-        $bivSat1.data
-               X                   Y            
-         Min.   :-3.296159   Min.   :-2.942561  
-         1st Qu.:-0.596177   1st Qu.:-0.633711  
-         Median :-0.010538   Median :-0.004139  
-         Mean   :-0.004884   Mean   : 0.032116  
-         3rd Qu.: 0.598326   3rd Qu.: 0.739236  
-         Max.   : 4.006771   Max.   : 4.173841  
+    > bivSatSumm1
+    data:
+    $bivSat1.data
+            X                   Y            
+    Min.   :-3.296159   Min.   :-2.942561  
+    1st Qu.:-0.596177   1st Qu.:-0.633711  
+    Median :-0.010538   Median :-0.004139  
+    Mean   :-0.004884   Mean   : 0.032116  
+    3rd Qu.: 0.598326   3rd Qu.: 0.739236  
+    Max.   : 4.006771   Max.   : 4.173841  
 
-        free parameters:
-           name matrix row col     Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
-        1  varX      S   X   X  0.993537344 0.04443221    1.0000000 0.04472123   0.01       
-        2 covXY      S   X   Y  0.481348846 0.03513471    0.4806856 0.03508630   0.01       
-        3  varY      S   Y   Y  1.009283953 0.04513849    1.0000000 0.04472328   0.01       
-        4 meanX      M   1   X -0.004884421 0.03152067           NA         NA              
-        5 meanY      M   1   Y  0.032116307 0.03177008           NA         NA              
+    free parameters:
+       name matrix row col     Estimate  Std.Error Std.Estimate     Std.SE lbound ubound
+    1  varX      S   X   X  0.993537344 0.04443221    1.0000000 0.04472123   0.01       
+    2 covXY      S   X   Y  0.481348846 0.03513471    0.4806856 0.03508630   0.01       
+    3  varY      S   Y   Y  1.009283953 0.04513849    1.0000000 0.04472328   0.01       
+    4 meanX      M   1   X -0.004884421 0.03152067           NA         NA              
+    5 meanY      M   1   Y  0.032116307 0.03177008           NA         NA              
 
-        observed statistics:  0 
-        estimated parameters:  5 
-        degrees of freedom:  -5 
-        -2 log likelihood:  5415.772 
-        saturated -2 log likelihood:  -2 
-        number of observations:  1000 
-        chi-square:  5417.772 
-        p:  NaN 
-        Information Criteria: 
-             df Penalty Parameters Penalty Sample-Size Adjusted
-        AIC:   5425.772           5425.772                   NA
-        BIC:   5450.311           5450.311             5434.431
+    observed statistics:  0 
+    estimated parameters:  5 
+    degrees of freedom:  -5 
+    -2 log likelihood:  5415.772 
+    saturated -2 log likelihood:  -2 
+    number of observations:  1000 
+    chi-square:  5417.772 
+    p:  NaN 
+    Information Criteria: 
+         df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC:   5425.772           5425.772                   NA
+    BIC:   5450.311           5450.311             5434.431
 
 Matrix Method
 ++++++++++++++
@@ -1455,198 +1463,199 @@ If we use matrices instead of paths to specify the bivariate model, we need to g
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expCovM <- mxMatrix( type="Symm", nrow=2, ncol=2, 
-                              free=TRUE, values=c(1,0.5,1), 
-                              labels=c('V1','Cov','V2'), name="expCov" )
+    expCovM <- mxMatrix( type="Symm", nrow=2, ncol=2, 
+                         free=TRUE, values=c(1,0.5,1), 
+                         labels=c('V1','Cov','V2'), name="expCov" )
     
 By specifying labels, we can tell that the two covariance elements, expCovM[1,2] and expCovM[2,1] are constrained to be equal - implied by the fact that the label is the same.  This of course automatically happens when you specify the matrix to be symmetric.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > expCovM
-        SymmMatrix 'expCov' 
+    > expCovM
+    SymmMatrix 'expCov' 
     
-        $labels
-             [,1]  [,2] 
-        [1,] "V1"  "Cov"
-        [2,] "Cov" "V2" 
+    $labels
+         [,1]  [,2] 
+    [1,] "V1"  "Cov"
+    [2,] "Cov" "V2" 
     
-        $values
-             [,1] [,2]
-        [1,]  1.0  0.5
-        [2,]  0.5  1.0
+    $values
+         [,1] [,2]
+    [1,]  1.0  0.5
+    [2,]  0.5  1.0
     
-        $free
-             [,1] [,2]
-        [1,] TRUE TRUE
-        [2,] TRUE TRUE
+    $free
+         [,1] [,2]
+    [1,] TRUE TRUE
+    [2,] TRUE TRUE
     
-        $lbound: No lower bounds assigned.
+    $lbound: No lower bounds assigned.
     
-        $ubound: No upper bounds assigned.
+    $ubound: No upper bounds assigned.
     
 When fitting to raw data, we also use a ``mxMatrix`` command to specify the expected means as **1x2** row vector with two free parameters, each given a 0 start value.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expMeanM <- mxMatrix( type="Full", nrow=1, ncol=2, 
-                               free=TRUE, values=c(0,0), labels=c('M1','M2'), name="expMean" )
+    expMeanM <- mxMatrix( type="Full", nrow=1, ncol=2, 
+                          free=TRUE, values=c(0,0), labels=c('M1','M2'), name="expMean" )
 
 Similarly to above, the elements in this matrix can also be given labels, although this is entirely optional for both matrices.  However, as soon as we want to change the model to e.g. test equality of means or variances, the most efficient way to do this is by using labels.  Given fitting alternative models to test hypotheses is very common, we highly recommend to use labels at all times.  Note that we truncated the output below as no bounds had been assigned.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-       > expMeanM
-        FullMatrix 'expMean' 
+    > expMeanM
+    FullMatrix 'expMean' 
     
-        $labels
-             [,1] [,2]
-        [1,] "M1" "M2"
+    $labels
+         [,1] [,2]
+    [1,] "M1" "M2"
     
-        $values
-             [,1] [,2]
-        [1,]    0    0
+    $values
+         [,1] [,2]
+    [1,]    0    0
     
-        $free
-             [,1] [,2]
-        [1,] TRUE TRUE
+    $free
+         [,1] [,2]
+    [1,] TRUE TRUE
     
-So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and define a **2x2** lower triangular matrix using ``type`` ="Lower", declare all elements free with 0.5 starting values.  We name this matrix "Chol" and save the object as *lowerTriM*.
+So far, we have specified the expected covariance matrix directly as a symmetric matrix.  However, this may cause optimization problems as the matrix could become not positive-definite which would prevent the likelihood to be evaluated.  To overcome this problem, we can use a Cholesky decomposition of the expected covariance matrix instead, by multiplying a lower triangular matrix with its transpose.  To obtain this, we use a ``mxMatrix`` command and define a **2x2** lower triangular matrix using ``type``\ ="Lower", declare all elements free with 0.5 starting values.  We name this matrix "Chol" and save the object as *lowerTriM*.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         lowerTriM <- mxMatrix( type="Lower", nrow=2, ncol=2, 
-                                free=TRUE, values=.5, name="Chol" )
+    lowerTriM <- mxMatrix( type="Lower", nrow=2, ncol=2, 
+                           free=TRUE, values=.5, name="Chol" )
     
 Given we specified the matrix as lower triangular, the start values and free assignments are only applied to the elements on the diagonal and below the diagonal.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > lowerTriM
-        LowerMatrix 'Chol' 
+    > lowerTriM
+    LowerMatrix 'Chol' 
     
-        $labels: No labels assigned.
+    $labels: No labels assigned.
     
-        $values
-             [,1] [,2]
-        [1,]  0.5  0.0
-        [2,]  0.5  0.5
+    $values
+         [,1] [,2]
+    [1,]  0.5  0.0
+    [2,]  0.5  0.5
     
-        $free
-             [,1]  [,2]
-        [1,] TRUE FALSE
-        [2,] TRUE  TRUE
+    $free
+         [,1]  [,2]
+    [1,] TRUE FALSE
+    [2,] TRUE  TRUE
     
 We then use an ``mxAlgebra`` command to multiply this matrix with its transpose (R function ``t()``).  The ``mxAlgebra`` command is a very useful command to apply any operation or function to matrices.  It only has two arguments, the first for the ``expression`` you intend to generate, the second the name of the resulting matrix.  Note that although the matrix object for the lower triangular matrix was saved as 'lowerTwiM', the matrices in the ``expression`` are referred to by the name given to them within the MxMatrix object.  This is similar to referring to the names of the expected covariance matrices and means when they are needed in the arguments of the ``mxExpectationNormal`` function.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expCovMA <- mxAlgebra( expression=Chol %*% t(Chol), name="expCov" )
+    expCovMA <- mxAlgebra( expression=Chol %*% t(Chol), name="expCov" )
     
 So far, we've only specified the algebra, but not computed it yet as shown when we look at the *expCovMA* object.  We need to combine all elements in an ``mxModel`` prior to ``mxRun`` ning the model to compute the algebra.
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-        > expCovMA
-        mxAlgebra 'expCov' 
-        $formula:  Chol %*% t(Chol) 
-        $result: (not yet computed) <0 x 0 matrix>
-        dimnames: NULL
+    > expCovMA
+    mxAlgebra 'expCov' 
+    $formula:  Chol %*% t(Chol) 
+    $result: (not yet computed) <0 x 0 matrix>
+    dimnames: NULL
     
 Given we used the same names for the resulting matrices for the expected covariances and means as in the univariate example, the ``mxExpectationNormal`` command looks identical.  Note that we have redefined *selVars* when starting the bivariate examples.  When you use the piecewise style and you're running more than one job, make sure you're not accidentally using an object from a previous job, especially if you've made an error in a newly specified object with the same name.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-         expectBiv <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                           dimnames=selVars )
+    expectBiv <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                      dimnames=selVars )
  
 Combining these two ``mxMatrix`` and the ``mxAlgebra`` objects with the raw data, specified in the ``mxData`` object *obsBivData* created earlier and the ``mxExpectationNormal`` command with the appropriate arguments is all that is needed to fit a saturated bivariate model.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel2 <- mxModel("bivSat2", obsBivData, lowerTriM, 
-                                  expCovMA, expMeanM, expectBiv, funML )
-          bivSatFit2   <- mxRun(bivSatModel2)
-          bivSatSumm2  <- summary(bivSatFit2)
+    bivSatModel2 <- mxModel("bivSat2", obsBivData, lowerTriM, 
+                             expCovMA, expMeanM, expectBiv, funML )
+    bivSatFit2   <- mxRun(bivSatModel2)
+    bivSatSumm2  <- summary(bivSatFit2)
     
 The goodness-of-fit statistics in the output from the path and matrix specification appear identical.  However, in the latter model, we do not model the variances and covariance directly but parameterize them using a Cholesky decomposition. 
 
-    ..  code-block:: r
+.. cssclass:: output
+..   
+
+..  code-block:: r
     
-         > bivSatSumm2
-         data:
-         $bivSat2.data
-                X                   Y            
-          Min.   :-3.296159   Min.   :-2.942561  
-          1st Qu.:-0.596177   1st Qu.:-0.633711  
-          Median :-0.010538   Median :-0.004139  
-          Mean   :-0.004884   Mean   : 0.032116  
-          3rd Qu.: 0.598326   3rd Qu.: 0.739236  
-          Max.   : 4.006771   Max.   : 4.173841  
+    > bivSatSumm2
+    data:
+    $bivSat2.data
+            X                   Y            
+    Min.   :-3.296159   Min.   :-2.942561  
+    1st Qu.:-0.596177   1st Qu.:-0.633711  
+    Median :-0.010538   Median :-0.004139  
+    Mean   :-0.004884   Mean   : 0.032116  
+    3rd Qu.: 0.598326   3rd Qu.: 0.739236  
+    Max.   : 4.006771   Max.   : 4.173841  
 
-         free parameters:
-                        name  matrix row col     Estimate  Std.Error lbound ubound
-         1 bivSat2.Chol[1,1]    Chol   1   1  0.996763911 0.02228823              
-         2 bivSat2.Chol[2,1]    Chol   2   1  0.482912544 0.02987720              
-         3 bivSat2.Chol[2,2]    Chol   2   2  0.880954091 0.01969863              
-         4                M1 expMean   1   X -0.004883967 0.03151918              
-         5                M2 expMean   1   Y  0.032116277 0.03176869              
+    free parameters:
+                   name  matrix row col     Estimate  Std.Error lbound ubound
+    1 bivSat2.Chol[1,1]    Chol   1   1  0.996763911 0.02228823              
+    2 bivSat2.Chol[2,1]    Chol   2   1  0.482912544 0.02987720              
+    3 bivSat2.Chol[2,2]    Chol   2   2  0.880954091 0.01969863              
+    4                M1 expMean   1   X -0.004883967 0.03151918              
+    5                M2 expMean   1   Y  0.032116277 0.03176869              
 
-         observed statistics:  2000 
-         estimated parameters:  5 
-         degrees of freedom:  1995 
-         -2 log likelihood:  5415.772 
-         saturated -2 log likelihood:  -2 
-         number of observations:  1000 
-         chi-square:  5417.772 
-         p:  2.595415e-313 
-         Information Criteria: 
-              df Penalty Parameters Penalty Sample-Size Adjusted
-         AIC:   1425.772           5425.772                   NA
-         BIC:  -8365.200           5450.311             5434.431
+    observed statistics:  2000 
+    estimated parameters:  5 
+    degrees of freedom:  1995 
+    -2 log likelihood:  5415.772 
+    saturated -2 log likelihood:  -2 
+    number of observations:  1000 
+    chi-square:  5417.772 
+    p:  2.595415e-313 
+    Information Criteria: 
+         df Penalty Parameters Penalty Sample-Size Adjusted
+    AIC:   1425.772           5425.772                   NA
+    BIC:  -8365.200           5450.311             5434.431
          
 We can obtain the predicted variances and covariances by printing the *expCov* matrix which can be done with the ``mxEval`` command - either by recalculating or by just printing the calculated algebra, or by grabbing the predicted covariance matrix from the fitted object *bivSatFit2*
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          mxEval(Chol %*% t(Chol), bivSatFit2 )
-          mxEval(expCov, bivSatFit2 )
-          bivSatFit2$expCov$result
+    mxEval(Chol %*% t(Chol), bivSatFit2 )
+    mxEval(expCov, bivSatFit2 )
+    bivSatFit2$expCov$result
 
 So far, we have presented the bivariate model (path or matrix method) using the piecewise approach.  As a result, we end up with a series of OpenMx objects, each of which we can check for syntax correctness.  As such, this is a great way to build new models.  An alternative approach is to start the mxModel with one argument, and then add another argument step by step.  We will show the various steps of building the bivariate model with matrices (and algebras).
 
@@ -1654,24 +1663,22 @@ Here, we simply repeat all the lines that make up the model.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          obsBivData   <- mxData( observed=bivData, type="raw" )
-          expMeanM     <- mxMatrix( type="Full", nrow=1, ncol=2, 
-                                    free=TRUE, values=0, labels=c('M1','M2'), name="expMean" )
-          lowerTriM    <- mxMatrix( type="Lower", nrow=2, ncol=2, 
+    obsBivData   <- mxData( observed=bivData, type="raw" )
+    expMeanM     <- mxMatrix( type="Full", nrow=1, ncol=2, 
+                              free=TRUE, values=0, labels=c('M1','M2'), name="expMean" )
+    lowerTriM    <- mxMatrix( type="Lower", nrow=2, ncol=2, 
                                     free=TRUE, values=.5, name="Chol" )
-          expCovMA     <- mxAlgebra( expression=Chol %*% t(Chol), name="expCov" )
-          expectBiv    <- mxExpectationNormal( covariance="expCov", means="expMean", 
-                                               dimnames=selVars )
-          funML        <- mxFitFunctionML()
-          bivSatModel2 <- mxModel("bivSat2", obsBivData, lowerTriM, 
-                                  expCovMA, expMeanM, expectBiv, funML )
-          bivSatFit2   <- mxRun(bivSatModel2)
-          bivSatSumm2  <- summary(bivSatFit2)
+    expCovMA     <- mxAlgebra( expression=Chol %*% t(Chol), name="expCov" )
+    expectBiv    <- mxExpectationNormal( covariance="expCov", means="expMean", 
+                                         dimnames=selVars )
+    funML        <- mxFitFunctionML()
+    bivSatModel2 <- mxModel("bivSat2", obsBivData, lowerTriM, 
+                             expCovMA, expMeanM, expectBiv, funML )
+    bivSatFit2   <- mxRun(bivSatModel2)
+    bivSatSumm2  <- summary(bivSatFit2)
 
 Stepwise Style
 ^^^^^^^^^^^^^^
@@ -1680,76 +1687,64 @@ Looking back at the MxModel we just built (*bivSatModel2*), the first argument a
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel("bivSat3", mxData( observed=bivData, type="raw" ) )
+    bivSatModel3 <- mxModel("bivSat3", mxData( observed=bivData, type="raw" ) )
 
 If it checks out to be syntactically correct, we can add another argument, i.e. the ``mxMatrix`` command to define the lower triangular matrix.  Given we now want to build upon the previous model, we use that as the first argument (without quotes).  As the previous model already has a name argument we don't need to include that and can go straight to the new argument.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxMatrix( type="Lower", nrow=2, ncol=2, 
-                                            free=TRUE, values=.5, name="Chol" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxMatrix( type="Lower", nrow=2, ncol=2, 
+                                      free=TRUE, values=.5, name="Chol" ) )
 
 Note that we used the same name for the MxModel object to be generated, thus it will overwrite the previous one.  One might choose a new name if uncertain about the syntax of the new model, to avoid having to rerun the previous step to correct the original model.  As everything checks out OK after step two, let us add another argument, this time the ``mxAlgebra`` object for the expected covariance matrix. 
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ) )
      
 As everything still appears OK, we continue to add arguments.  It's not necessary to do them one at the time, but if you're just learning to build a model, it might be the safest bet.  Next, we add the ``mxMatrix`` command for the expected means.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxMatrix( type="Full", nrow=1, ncol=2, 
-                                  free=TRUE, values=0, name="expMean" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxMatrix( type="Full", nrow=1, ncol=2, 
+                                      free=TRUE, values=0, name="expMean" ) )
 
 The only argument left to add is the ``mxExpectationNormal`` and the ``mxFitFunctionML()`` to specify what function to use to test the fit between covariances and means predicted by the observed data and those expected by the model.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxExpectationNormal( covariance="expCov", means="expMean", 
-                                  dimnames=selVars ) )
-          bivSatModel3 <- mxModel(bivSatModel3, mxFitFunctionML() )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxExpectationNormal( covariance="expCov", means="expMean", 
+                                                 dimnames=selVars ) )
+    bivSatModel3 <- mxModel(bivSatModel3, mxFitFunctionML() )
 
 Now that we have the complete model built, we can evaluate it using the ``mxRun`` command.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatFit3  <- mxRun(bivSatModel3)
-          bivSatSumm3 <- summary(bivSatFit3)
+    bivSatFit3  <- mxRun(bivSatModel3)
+    bivSatSumm3 <- summary(bivSatFit3)
 
 You can verify for yourself that the results (goodness-of-fit statistics and parameter estimates) are entirely equivalent between this stepwise approach and the piecewise approach.
 
@@ -1757,25 +1752,23 @@ We here combine all the separate lines to see the full picture.
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel3 <- mxModel("bivSat3", mxData( observed=bivData, type="raw" ) )
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxMatrix( type="Lower", nrow=2, ncol=2, 
-                                  free=TRUE, values=.5, name="Chol" ) )
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ) )
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxMatrix( type="Full", nrow=1, ncol=2, 
-                                  free=TRUE, values=0, name="expMean" )
-          bivSatModel3 <- mxModel(bivSatModel3, 
-                                  mxExpectationNormal( covariance="expCov", means="expMean", 
-                                  dimnames=selVars ) )
-          bivSatFit3   <- mxRun(bivSatModel3)
-          bivSatSumm3  <- summary(bivSatFit3)
+    bivSatModel3 <- mxModel("bivSat3", mxData( observed=bivData, type="raw" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxMatrix( type="Lower", nrow=2, ncol=2, 
+                                      free=TRUE, values=.5, name="Chol" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ) )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxMatrix( type="Full", nrow=1, ncol=2, 
+                                      free=TRUE, values=0, name="expMean" )
+    bivSatModel3 <- mxModel(bivSatModel3, 
+                            mxExpectationNormal( covariance="expCov", means="expMean", 
+                                                 dimnames=selVars ) )
+    bivSatFit3   <- mxRun(bivSatModel3)
+    bivSatSumm3  <- summary(bivSatFit3)
 
 Classic Style
 ^^^^^^^^^^^^^
@@ -1786,23 +1779,21 @@ Here, we present the complete bivariate saturated model, with each argument prin
 
 .. cssclass:: input
 ..
-
-   OpenMx Code
    
-   .. code-block:: r
+.. code-block:: r
        
-          bivSatModel4 <- mxModel("bivSat4", 
-                                   mxData( observed=bivData, type="raw" ), 
-                                   mxMatrix( type="Lower", nrow=2, ncol=2, 
-                                             free=TRUE, values=.5, name="Chol" ),
-                                   mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ),
-                                   mxMatrix( type="Full", nrow=1, ncol=2, 
-                                             free=TRUE, values=c(0,0), name="expMean" ),
-                                   mxExpectationNormal( covariance="expCov", means="expMean", 
-                                                        dimnames=selVars )
-                                   mxFitFunctionML() )
-           bivSatFit4 <- mxRun(bivSatModel4)
-           bivSatSumm4 <- summary(bivSatFit4)
+    bivSatModel4 <- mxModel("bivSat4", 
+                            mxData( observed=bivData, type="raw" ), 
+                            mxMatrix( type="Lower", nrow=2, ncol=2, 
+                                      free=TRUE, values=.5, name="Chol" ),
+                            mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ),
+                            mxMatrix( type="Full", nrow=1, ncol=2, 
+                                      free=TRUE, values=c(0,0), name="expMean" ),
+                            mxExpectationNormal( covariance="expCov", means="expMean", 
+                                                 dimnames=selVars )
+                            mxFitFunctionML() )
+    bivSatFit4 <- mxRun(bivSatModel4)
+    bivSatSumm4 <- summary(bivSatFit4)
 
 Again, as you might expect by now, the output of this model run will be identical to that of both the piecewise and the stepwise approach.  Given their equivalence, it is really up to the OpenMx user to decide which method (path or matrix) and which approach (piecewise, stepwise or classic) is preferred.  It is also not necessary to pick just one of these approaches, as they can be 'mixed and matched'.  For didactic purposes, we recommend the piecewise approach, which we will use in the majority of this documentation.  We will, however, provide some parallel classic scripts.  Furthermore, given some people do better with path diagrams and others with matrix algebra, we present some models both ways, in so far that this is doable.
 

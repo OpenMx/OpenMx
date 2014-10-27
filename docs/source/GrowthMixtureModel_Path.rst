@@ -41,6 +41,9 @@ Data
 ^^^^
 The data for this example can be found in the data object ``myGrowthMixtureData``. These data contain five time ordered variables named ``x1`` through ``x5``, just like the growth curve demo mentioned previously. It is important to note that raw data is required for mixture modeling, as moment matrices do not contain all of the information required to estimate the model. 
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
 	data(myGrowthMixtureData)
@@ -54,6 +57,9 @@ Specifying a mixture model can be categorized into two general phases. The first
 Creating the class-specific models is done the same way as every other model. We'll begin by specifying the model for the first class using the ``mxPath`` function. The code below specifies a five-occasion linear growth curve, virtually identical to the one in the linear growth curve example referenced above. The only changes made to this model are the names of the free parameters; the means, variances and covariance of the intercept and slope terms are now followed by the number 1 to distinguish them from free parameters in the other class.
 
 The fit function for each of the class-specific models must return the likelihoods for each individual rather than the default log likelihood for the entire sample. OpenMx fit functions that handle raw data have the option to return a vector of likelihoods for each row rather than a single likelihood value for the dataset. This option can be accessed as an argument in the fit function ``mxFitFunctionML``. 
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -86,6 +92,9 @@ The fit function for each of the class-specific models must return the likelihoo
 	
 We could create the model for our second class by copy and pasting the code above, but that can yield needlessly long scripts. We can also use the ``mxModel`` function to edit an existing model object, allowing us to change only the parameters that vary across classes. The ``mxModel`` call below begins with an existing ``MxModel`` object (``class1``) rather than a model name. The subsequent ``mxPath`` functions add new paths to the model, replacing any existing paths that describe the same relationship. As we did not give the model a name at the beginning of the ``mxModel`` function, we must use the ``name`` argument to identify this model by name.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     # latent variances and covariance
@@ -100,6 +109,9 @@ While the class-specific models can be specified using either path or matrix spe
 
 This method for specifying class probabilities consists of two parts. In the first part, the matrix in the object ``classP`` contains two elements representing the class proportions for each class. One class is designated as a reference class by fixing their proportion at a value of one (class 2 below). All other classes are assigned free parameters in this matrix, and should be interpreted as proportion of sample in that class per person in the reference class. These parameters should have a lower bound at or near zero. Specifying class proportions rather than class probabilities avoids the degrees of freedom issue inherent to class probability parameters by only estimating k-1 parameters for k classes.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     classP       <- mxMatrix( type="Full", nrow=2, ncol=1, 
@@ -107,6 +119,9 @@ This method for specifying class probabilities consists of two parts. In the fir
                             labels = c("p1","p2"), name="Props" )
 
 We still need probabilities, which require the second step shown below. Dividing the class proportion matrix above by its sum will rescale the proportions into probabilities. This is slightly more difficult that it appears at first, as the k x 1 matrix of class proportions and the scalar sum of that matrix aren't conformable to either matrix or element-wise operations. Instead, we can use a Kronecker product of the class proportion matrix and the inverse of the sum of that matrix. This operation is carried out by the ``mxAlgebra`` function placed in the object ``classS`` below.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -124,6 +139,9 @@ Finally, we can specify the mixture model. We must first specify the model's -2 
    \end{eqnarray*}
 
 This is specified using an ``mxAlgebra`` function, and used as the argument to the ``mxFitFunctionAlgebra`` function. Then the fit function, matrices and algebras used to define the mixture distribution, the models for the respective classes and the data are all placed in one final ``mxModel`` object, shown below.	
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -149,6 +167,9 @@ The results of a mixture model can sometimes depend on starting values. It is a 
 
 One way to access the starting values in a model is by using the ``omxGetParameters`` function. This function takes an existing model as an argument and returns the names and values of all free parameters. Using this function on our growth mixture model, which is stored in an objected called ``gmm``, gives us back the starting values we specified above.
 
+.. cssclass:: output
+..
+
 .. code-block:: r
 
         omxGetParameters(gmm)
@@ -159,11 +180,17 @@ One way to access the starting values in a model is by using the ``omxGetParamet
 
 A companion function to ``omxGetParameters`` is ``omxSetParameters``, which can be used to alter one or more named parameters in a model. This function can be used to change the values, freedom and labels of any parameters in a model, returning an MxModel object with the specified changes. The code below shows how to change the residual variance starting value from 1.0 to 0.5. Note that the output of the ``omxSetParameters`` function is placed back into the object ``gmm``.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     gmm <- omxSetParameters(gmm, labels="residual", values=0.5)
 
 The MxModel in the object ``gmm`` can now be run and the results compared with other sets of staring values. Starting values can also be sampled from distributions, allowing users to automate starting value generation, which is demonstrated below. The ``omxGetParameters`` function is used to find the names of the free parameters and define three matrices: a matrix ``input`` that holds the starting values for any run; a matrix ``output`` that holds the converged values of each parameter; and a matrix ``fit`` that contains the -2 log likelihoods and other relevant model fit statistics. Each of these matrices contains one row for every set of starting values. Starting values are randomly generated from a set of uniform distributions using the ``runif`` function, allowing the ranges inherent to each parameter to be enforced (i.e., variances are positive, etc). A ``for`` loop repeatedly runs the model with starting values from the ``input`` matrix and places the final estimates and fit statistics in the ``output`` and ``fit`` matrices, respectively.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -217,6 +244,9 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
 
 Viewing the contents of the ``fit`` matrix shows the -2 log likelihoods for each of the runs, as well as the convergence status, number of iterations and class probabilities, shown below.
 
+.. cssclass:: output
+..
+
 .. code-block:: r
 
     fit[,1:4]
@@ -244,6 +274,9 @@ Viewing the contents of the ``fit`` matrix shows the -2 log likelihoods for each
 
 There are several things to note about the above results. First, the minimum -2 log likelihood was reached in 12 of 20 sets of staring values, all with NPSOL statuses of either zero (seven times) or one (five times). Additionally, the class probabilities are equivalent within five digits of precision, keeping in mind that no the model as specified contains no restriction as to which class is labeled "class 1" (probability equals .3991) and "class 2" (probability equals .6009). The other eight sets of starting values showed higher -2 log likelihood values and class probabilities at the set upper or lower bounds, indicating a local minimum. We can also view this information using R's ``table`` function.
 
+.. cssclass:: output
+..
+
 .. code-block:: r
 
     table(round(fit[,1], 3), fit[,2])
@@ -269,6 +302,9 @@ However, multicore estimation can be used instead of the ``for`` loop in the abo
 
 The example below first initializes the ``snowfall`` library, which also loads the ``snow`` library. The ``sfInit`` function initializes parallel; you must supply the number of processors on your computer or grid for the analysis, then reload OpenMx as a snowfall library.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     require(snowfall)
@@ -276,6 +312,9 @@ The example below first initializes the ``snowfall`` library, which also loads t
     sfLibrary(OpenMx)
 
 From there, parallel optimization requires that a holder or top model (named "Top" in the object ``topModel`` below) contain a set of independent submodels. In our example, each independent submodel will consist of a copy of the above ``gmm`` model with a different set of starting values. Using the matrix of starting values from the serial example above (``input``), we can create a function called ``makeModel`` that can be used to create these submodels. While this function is entirely optional, it allows us to use the ``lapply`` function to create a list of submodels for optimization. Once those submodels are placed in the ``submodels`` slot of the object ``topModel``, we can run this model just like any other. A second function, ``fitStats``, can then be used to get the results from each submodel.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

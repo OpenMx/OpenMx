@@ -34,6 +34,9 @@ Data
 
 The first step to running our model is to import data. The code below is used to import both raw data and a covariance matrix and means vector, either of which can be used for our growth curve model. This data contains five variables, which are repeated measurements of the same variable *x*. As growth curve models make specific hypotheses about the variances of the manifest variables, correlation matrices generally aren't used as data for this model.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     data(myLongitudinalData)
@@ -56,6 +59,9 @@ We'll create a path-centric factor model with the same functions and arguments u
 
 Before running a model, the OpenMx library must be loaded into R using either the ``require()`` or ``library()`` function. This code uses the ``mxModel`` function to create an ``MxModel`` object, which we will then run.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     require(OpenMx)
@@ -91,6 +97,9 @@ The model begins with a name, in this case "Linear Growth Curve Model Path Speci
 
 Data is supplied with the ``mxData`` function. This example uses raw data, but the ``mxData`` function in the code above could be replaced with the function below to include covariance data.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     dataCov      <- mxData( myLongitudinalDataCov, type="cov", numObs=500,
@@ -100,6 +109,9 @@ Next, the manifest and latent variables are specified with the ``manifestVars`` 
 
 There are six ``mxPath`` functions in this model. The first two specify the variances of the manifest and latent variables, respectively. The manifest variables are specified below, which take the form of residual variances. The ``to`` argument is omitted, as it is not required to specify two-headed arrows. The residual variances are freely estimated, but held to a constant value across the five measurement occasions by giving all five variances the same label, ``residual``.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # residual variances
@@ -109,6 +121,9 @@ There are six ``mxPath`` functions in this model. The first two specify the vari
       
 Next are the variances and covariance of the two latent variables. Like the last function, we've omitted the ``to`` argument for this set of two-headed paths. However, we've set the ``connect`` argument to ``unique``, which creates all unique paths between the variables. As omitting the ``to`` argument is identical to putting identical variables in the ``from`` and ``to`` arguments, we are creating all unique paths from and to our two latent variables. This results in three paths: from intercept to intercept (the variance of the intercepts), from intercept to slope (the covariance of the latent variables), and from slope to slope (the variance of the slopes). 
       
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # latent variances and covariance
@@ -117,6 +132,9 @@ Next are the variances and covariance of the two latent variables. Like the last
       
 The third and fourth ``mxPath`` functions specify the factor loadings. As these are defined to be a constant value of 1 for the intercept factor and the set [0, 1, 2, 3, 4] for the slope factor, these functions have no free parameters.       
       
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # intercept loadings
@@ -128,6 +146,9 @@ The third and fourth ``mxPath`` functions specify the factor loadings. As these 
                               
 The last two ``mxPath`` functions specify the means. The manifest variables are not regressed on the constant, and thus have intercepts of zero. The observed means are entirely functions of the means of the intercept and slope. To specify this, the manifest variables are regressed on the constant (denoted ``"one"``) with a fixed value of zero, and the regressions of the latent variables on the constant are estimated as free parameters.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     # manifest means
@@ -140,6 +161,9 @@ The last two ``mxPath`` functions specify the means. The manifest variables are 
 The model is now ready to run using the ``mxRun`` function, and the output of the model can be accessed from the ``output`` slot of the resulting model.
 A summary of the output can be reached using ``summary()``.
 
+.. cssclass:: input
+..
+   
 .. code-block:: r
 
     growthCurveFit <- mxRun(growthCurveModel)

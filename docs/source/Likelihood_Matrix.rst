@@ -47,6 +47,9 @@ Phenotype Genotypes Frequency Proportion
 
 The individuals in this sample are considered to be statistically independent.  Therefore the likelihood of observing, e.g., 234 individuals with blood type A, is simply :math:`(p(p+2r))^{234}` and the log-likelihood is :math:`234\log{p(p+2r)}`.  The OpenMx script will use the four log-likelihoods of the four phenotypes, and sum them to obtain the overall log-likelihood.  Optimization proceeds by minimization by default, so we minimize the negative log-likelihood in order to maximize the log-likelihood.  The following code block specifies this model.  There
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     require(OpenMx)
@@ -99,6 +102,9 @@ O         aabb                        94     :math:`q^2`:math:`t^2`
 
 
 The R script to fit this model is very similar to that of the single locus model.  Note, however, that it does not feature the ``mxConstraint`` function.  There are in fact two constraints, :math:`q=1-p` and :math:`t=1-s`, but these are trivial and easily dealt with using ``mxAlgebra`` statements.  Although one might think that this approach would be suitable for the single locus model, in which :math:`r=1-p-q`, a difficulty arises because there is no straightforward way to restrict :math:`p+q\le 1` which is necessary for :math:`r\ge 0`.  Models specified so that an allele frequency can go negative during optimization are inherently fragile.  A negative allele frequency would potentially result in negative likelihoods, and undefined log-likelihoods.  Bounding the parameters to lie between 0.0 and 1.0 provides sufficient robustness to this potential problem.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 

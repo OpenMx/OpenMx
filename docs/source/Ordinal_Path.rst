@@ -19,7 +19,7 @@ Ordinal Data
 
 OpenMx models ordinal data under a threshold model. A continuous normal distribution is assumed to underly every ordinal variable. These latent continuous distributions are only observed as being above or below a threshold, where there is one fewer threshold than observed categories in the data. For example, consider a variable with three ordered categories indicated by the values zero, one and two. Under this approach, this variable is assumed to follow a normal distribution that is partitioned or cut by two thresholds: individuals with underlying scores below the first threshold have an observed value of zero, individuals with latent scores between the thresholds are observed with values of one, and individuals with underlying scores give observed values of two.
 
-.. image:: graph/thresh.png
+.. image:: graph/ThresholdModel.png
 	:height: 2in
 	
 Each threshold may be freely estimated or assigned as a fixed parameter, depending on the desired model. In addition to the thresholds, ordinal variables still have a mean and variance that describes the parameters of the underlying continuous distribution. However, this underlying distribution must be scaled by fixing at least two parameters to identify the model. One method of identification fixes the mean and variance to specific values, most commonly to a standard normal distribution with a mean of zero and a variance of one. A variation on this method fixes the residual variance of the categorical variable to one, which is often easier to specify. Alternatively, categorical variables may be identified by fixing two thresholds to non-equivalent constant values. These methods will differ in the scale assigned to the ordinal variables (and thus, the scale of the parameters estimated from them), but all identify the same model and should provide equally valid results.
@@ -32,6 +32,9 @@ Specifying Data for Ordinal Models
 To use ordinal variables in OpenMx, users must identify ordinal variables by specifying those variables as ordered factors in the included data. Ordinal models can only be fit to raw data; if data is described as a covariance or other moment matrix, then the categorical nature of the data was already modeled to generate that moment matrix. Ordinal variables must be defined as specific columns in an R data frame.
 
 Factors are a type of variable included in an R data frame. Unlike numeric or continuous variables, which must include only numeric and missing values, observed values for factors are treated as character strings. All factors contain a ``levels`` argument, which lists the possible values for a factor. Ordered factors contain information about the ordering of possible levels. Both R and OpenMx have tools for manipulating factors in data frames. The R functions ``factor()`` and ``as.factor()`` (and companions ``ordered()`` and ``as.ordered()``) can be used to specify ordered factors. OpenMx includes a helper function ``mxFactor()`` which more directly prepares ordinal variables as ordered factors in preparation for inclusion in OpenMx models. The code below demonstrates the ``mxFactor()`` function, replacing the variable *z1* that was initially read as a continuous variable and treating it as an ordinal variable with two levels. This process is repeated for *z2* (two levels) and *z3* (three levels).
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -48,6 +51,9 @@ Specifying Thresholds Using mxThreshold
 
 Just as covariances and means are included in models using ``mxPath`` when ``type='RAM'`` is enabled, thresholds may be included in models using the ``mxThreshold`` function. This function creates a list of thresholds to be added to your model, just as ``mxPath`` creates a list of paths. As an example, the data prep example above includes two binary variables (*z1* and *z2*) and one variable with three categories (*z3*). This means that models fit to this data should contain thresholds for three variables (for *z1*, *z2* and *z3*). This can be done with three separate calls to the ``mxThreshold`` function, as shown here.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     mxThreshold(vars="z1", nThresh=1, free=TRUE, values=-1)
@@ -59,6 +65,9 @@ The ``mxThreshold`` function first requires a variable to assign thresholds to, 
 In this example, variables 'z1' and 'z2' are binary, with a single freely estimated threshold for each variable with starting values of -1 and 0, respectively. The meaning of these thresholds will depend on the mean and variance of these variables; as we are freely estimating thresholds for binary variables, the mean and variances of these variables should be constrained to fixed values. The third function call represents variable 'z3', which contains two thresholds and thus three categories. These two thresholds are assigned free parameters with staring values of -0.5 and 1.2, and the mean and variance of this variable should also be constrained to fixed values for identification. For variables with multiple thresholds, starting values should be monotonically increasing in each column such that the first column represents the first threshold and lowest value and the last column represents the last threshold and highest value.
 	
 Alternatively, ``mxThreshold`` can be used to specify thresholds for multiple variables at once. In the code below, ``mxThreshold`` is used to specify thresholds for all variables simultaneously. First, the ``vars`` argument contains a vector of variable names for which thresholds should be specified. The ``nThresh`` argument then specifies how many thresholds should be assigned to each variable: 1 each for *z1* and *z2*, and two for *z3*. The ``free`` argument states that all specified thresholds are to be freely estimated (the one value is repeated for all four thresholds). Finally, starting values are given using the ``values`` argument: -1 for *z1*, 0 for *z2*, and -.5 and 1.2 for *z3*.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -82,6 +91,9 @@ Common Factor Model for Ordinal Data
 
 All of the raw data examples through the documentation may be converted to ordinal examples by the inclusion of ordinal data, the specification of a threshold matrix and inclusion of that threshold matrix in the objective function. The following example is a version of the continuous data common factor model referenced at the beginning of this chapter. Aside from replacing the continuous variables ``x1-x6`` with the ordinal variables ``z1-z3``, the code below simply incorporates the steps referenced above into the existing example. Data preparation occurs first, with the added ``mxFactor`` statements to identify ordinal variables and their ordered levels.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     require(OpenMx)
@@ -94,6 +106,9 @@ All of the raw data examples through the documentation may be converted to ordin
     oneFactorOrd$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0,1,2))
 
 Model specification can be achieved by appending the above threshold matrix and objective function to either the path or matrix common factor examples. The path example below has been altered by changing the variable names from ``x1-x6`` to ``z1-z3``, adding the threshold matrix and objective function, and identifying the ordinal variables by constraining their means to be zero and their residual variances to be one.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -120,6 +135,9 @@ Model specification can be achieved by appending the above threshold matrix and 
 
 This model may then be optimized using the ``mxRun`` command.
 
+.. cssclass:: input
+..
+
 .. code-block:: r
 
     oneFactorResults <- mxRun(oneFactorModel)
@@ -128,6 +146,9 @@ Common Factor Model for Joint Ordinal-Continuous Data
 -----------------------------------------------------
 
 Models with both continuous and ordinal variables may be specified just like any other ordinal data model. Threshold matrices in these models should contain columns only for the ordinal variables, and should contain column names to designate which variables are to be treated as ordinal. In the example below, the one factor model above is estimated with three continuous variables (``x1-x3``) and three ordinal variables (``z1-z3``).
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
@@ -163,6 +184,9 @@ Models with both continuous and ordinal variables may be specified just like any
                             dataRaw, resVars, latVar, facLoads, means, thresholds)
 
 This model may then be optimized using the ``mxRun`` command.
+
+.. cssclass:: input
+..
 
 .. code-block:: r
 
