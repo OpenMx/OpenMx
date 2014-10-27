@@ -407,7 +407,7 @@ Let us insert a mini-lecture on the R programming language.  Our experience has 
 
 As this is such a crucial concept in R (unlike many other programming languages), let us look at it in a simple R example.  We will start by assigning the value 4 to the object *avariable*, and then display it.  If we then add 1 to this object, and display it again, notice that the value of *avariable* has not changed.
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -422,7 +422,7 @@ As this is such a crucial concept in R (unlike many other programming languages)
     
 Now we introduce a function, as OpenMx is a collection of purposely built functions.  The function takes a single argument (the object *number*), adds one to the argument *number* and assigns the result to *number*, and then returns the incremented number back to the user.  This function is given the name ``addone()``.  We then apply the function to the object *avariable*, as well as display *avariable*.  Thus, the objects *addone* and *avariable* are defined. The object assigned to *addone* is a function, while the value assigned to *avariable* is the number 4. 
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -439,7 +439,7 @@ Now we introduce a function, as OpenMx is a collection of purposely built functi
 
 Note that it may be prudent to use the ``print()`` function to display the results back to the user.  When R is run from a script rather than interactively, results will not be displayed unless the function ``print()`` is used as shown below.
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -455,7 +455,7 @@ In order to understand pass-by-value semantics, we must understand the differenc
 
 The object *avariable* cannot be modified by the function ``addone()``.  If I wanted to update the value stored in the object, I would have needed to replace the expression as follows:
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -654,7 +654,7 @@ Some models may include predictions for the mean(s).  We could add an additional
 .. code-block:: r
 
     exampleDataCovMeans <- mxData(observed=cov(demoOneFactor), 
-                                  means=(colMeans(demoOneFactor), type="cov", numObs=500)
+                                  means=colMeans(demoOneFactor), type="cov", numObs=500)
     
 The output for *exampleDataCovMeans* would have the following extra lines.
 
@@ -1043,7 +1043,7 @@ Alternatively, we can write the script in the **classical** style and specify  a
         mxAlgebra(expression=facLoadings %*% facVariances %*% t(facLoadings) 
                             + resVariances, name="expCov"),
         mxExpectationNormal(covariance="expCov", dimnames=names(demoOneFactor)),
-        mxFitFunctionML()
+        mxFitFunctionML(),
         mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
     )
         
@@ -1217,7 +1217,7 @@ The list indexing operator can also be used to modify the components of an exist
 
 In the first mode, a submodel can be replaced using the unique name of the submodel or even eliminated.
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -1229,7 +1229,7 @@ In the first mode, a submodel can be replaced using the unique name of the submo
 
 In the second mode, the named entities of the parent model are modified using their names.  Existing matrices can be eliminated or new matrices can be created.
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r
@@ -1241,7 +1241,7 @@ In the second mode, the named entities of the parent model are modified using th
 
 In the third mode, named entities of a submodel can be modified using the ``modelname.entityname`` format.  Again existing elements can be eliminated or new elements can be created.
 
-.. cssclass:: input
+.. cssclass:: output
 ..
 
 .. code-block:: r

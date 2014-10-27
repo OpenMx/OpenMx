@@ -758,7 +758,7 @@ to develop your mathematical imagination.
 
 	    Here we plot ``function (x) dbeta(1/(1+exp(-x)), 1+betaParam['a',4], 1+betaParam['b',4])``
 	    from logit(-10) to logit(10).
-	    An exactly symmetric density, like the Gaussian, is slightly easier for the
+	    An exactly quadratic density, like the Gaussian, is slightly easier for the
 	    optimizer to handle in comparison to the beta density.
 
 .. cssclass:: input

@@ -21,11 +21,20 @@ sub require_openmx {
     $openmx = 1;
 }
 
+my $next_block_is_verbatim;
 for (my $lx=0; $lx < @lines; ++$lx) {
     my $l = $lines[$lx];
     if (!$code) {
+	if ($l =~ /^\.\.\s+cssclass\:\:\s+output\s*$/ && $lines[1+$lx] =~ /^\.\.\s*$/) {
+	    $next_block_is_verbatim = 1;
+	    ++ $lx;
+	}
 	if ($l =~ /^\.\.\s*$/ or $l =~ /^\.\.\s+code-block\:\:\s+r\s*$/) {
-	    $code = 1;
+	    if ($next_block_is_verbatim) {
+		$next_block_is_verbatim = 0;
+	    } else {
+		$code = 1;
+	    }
 	}
 	next;
     } else {
