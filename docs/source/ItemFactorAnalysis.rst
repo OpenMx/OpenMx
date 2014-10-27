@@ -741,8 +741,8 @@ and derivatives with respect to :math:`g` are
    :nowrap:
 
    \begin{eqnarray*}
-   \frac{\partial}{\partial g} &=& 2\frac{(b+a)\exp(g)}{\exp(g)+1} - a \\
-   \frac{\partial^2}{\partial g^2} &=& 2\frac{(b+a)\exp(g)}{\exp(2g) + 2\exp(g) + 1}.
+   \frac{\partial}{\partial g} &=& 2\left(b-\frac{(b+a)}{\exp(g)+1}\right) \\
+   \frac{\partial^2}{\partial g^2} &=& 2\frac{(b+a)\exp(g)}{(\exp(g)+ 1)^2}.
    \end{eqnarray*}
 
 The mode of the beta density is :math:`\frac{a}{a+b}` and we can regard
@@ -783,10 +783,9 @@ to develop your mathematical imagination.
    # implement the math given above
    betaFit <- mxAlgebra(2 * sum((betaA + betaB)*log(exp(betaPrior)+1) -
 		betaA * betaPrior + betaC), name="betaFit")
-   betaGrad <- mxAlgebra(2*(betaA+betaB)*exp(betaPrior) / (exp(betaPrior) + 1) -
-		betaA, name="betaGrad", dimnames=list(c(),betaPrior$labels))
-   betaHess <- mxAlgebra(vec2diag(2*(betaA+betaB)*exp(betaPrior) / (exp(2*betaPrior) +
-		2*exp(betaPrior) + 1)), name="betaHess",
+   betaGrad <- mxAlgebra(2*(betaB-(betaA+betaB) / (exp(betaPrior) + 1)),
+		name="betaGrad", dimnames=list(c(),betaPrior$labels))
+   betaHess <- mxAlgebra(vec2diag(2*exp(betaPrior)*(betaA+betaB) / (exp(betaPrior) + 1)^2), name="betaHess",
 		dimnames=list(betaPrior$labels, betaPrior$labels))
 
    # Create a model that will evaluate to the log likelihood of the beta prior
