@@ -119,7 +119,7 @@ Next, we declare where the data are, and their type, by creating an MxData objec
 
 .. code-block:: r
 
-    dataRaw      <- mxData( observed=data.frame(y,def), type="raw" )
+    dataRaw      <- mxData( observed=data.frame(xy,def), type="raw" )
 
 Then ``mxPath`` functions are used to specify paths between the manifest and latent variables. In the present case, we need four mxPath commands to specify the model.  The first is for the variances of the *x* and *y* variables, and the second specifies their covariance.  The third specifies a path from the mean vector, always known by the special keyword ``one``, to each of the observed variables, and to the single latent variable ``DefDummy``.  This last path is specified to contain the definition variable, by virtue of the ``data.def`` label.  Definition variables are part of the data so the first part is always ``data.``.  The second part refers to the actual variable in the dataset whose values are modeled.  Finally, two paths are specified from the ``DefDummy`` latent variable to the observed variables.  These parameters estimate the deviation of the mean of those with a ``data.def`` value of 1 versus those with ``data.def`` values of zero.
 

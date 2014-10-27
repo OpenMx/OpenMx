@@ -335,7 +335,7 @@ While the approach outlined above works just fine, the same can be accomplished 
 
 .. code-block:: r
     
-    modelAE    <- mxModel( fitACE, name="AE" )
+    modelAE    <- mxModel( modelACE, name="AE" )
     modelAE    <- omxSetParameters( modelAE, labels="c", free=FALSE, values=0 )
     fitAE      <- mxRun(modelAE)
     sumAE      <- summary(fitAE)
