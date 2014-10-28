@@ -225,7 +225,7 @@ updateModelExpectationDims <- function(model, expectations){
 	expectationNames <- names(expectations)
 	for(aname in expectationNames){
 		if(!is.null(model[[aname]])){
-			model[[aname]]@dims <- expectations[[aname]]@dims
+			model[[aname]]@.runDims <- expectations[[aname]]@dims
 		}
 	}
 	return(model)

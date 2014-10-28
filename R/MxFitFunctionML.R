@@ -120,18 +120,11 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		datanobs <- datasource@numObs
 		wasRun <- model@.wasRun
 		if(wasRun) {
-			if(.hasSlot(model@expectation, 'dims')){
-				if(!single.na(model@expectation@dims)){
-					selVars <- model@expectation@dims
-					if(nrow(obsdata) == ncol(obsdata)){
-						obsdata <- obsdata[selVars, selVars]
-					} else { obsdata <- obsdata[,selVars] }
-				} else{
-					message(paste("The model", omxQuotes(modelName), "has an expectation with NA 'dims' slot. So reference models",
-				"of all the variables in the data will be made.  For reference models",
-				"of only the variables used in the model, populate the 'dims' slot with the variable names to use."))
-				}
-			}
+			if (is.null(model@expectation@.runDims)) stop("Not clear which data were used to fit model")
+			selVars <- model@expectation@.runDims
+			if(nrow(obsdata) == ncol(obsdata)){
+				obsdata <- obsdata[selVars, selVars]
+			} else { obsdata <- obsdata[,selVars] }
 		} else {
 			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
 				"of all the variables in the data will be made.  For reference models",
