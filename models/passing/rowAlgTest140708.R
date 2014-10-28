@@ -23,7 +23,7 @@ cmod <- mxModel(
     dimnames=c('a', 'b'))
 )
 
-cmodFit <- omxCheckWarning(mxRun(cmod), "Constraint 'Estimation Row Model with Missingness.empty' evaluated to a 0x0 matrix and will have no effect")
+cmodFit <- omxCheckWarning(mxTryHard(cmod),"Constraint 'Estimation Row Model with Missingness.empty' evaluated to a 0x0 matrix and will have no effect")
 if (0) {
 	cmodFit$M$values
 	colMeans(xdat, na.rm=T)
