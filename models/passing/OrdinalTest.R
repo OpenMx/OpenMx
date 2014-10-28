@@ -34,6 +34,12 @@ foo <- data.frame(x=c(1:3),y=c(4:6),z=c(7:9))
 foo <- mxFactor(foo, c(1:9), labels=c(1,1,1,2,2,2,3,3,3), collapse=TRUE)
 omxCheckTrue(all(foo == matrix(kronecker(1:3, rep(1,3)),3,3)))
 
+v <- sample.int(50, 200, replace=TRUE)
+vl <- v %% 11
+mask <- !duplicated(v)
+v2 <- mxFactor(v, levels=v[mask], labels=vl[mask], collapse = TRUE)
+omxCheckTrue(all(v2 == vl))
+
 #Ordinal Data test, based on poly3dz.mx
 
 # Data

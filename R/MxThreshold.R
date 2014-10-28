@@ -401,19 +401,24 @@ factorize <- function(x, levels, labels, exclude, collapse) {
 			     omxQuotes(unique(x[noMatch])))
 		stop(msg)
 	}
-	dups <- duplicated(labels)
 	if (collapse) {
-		newLevels <- levels[!dups]
+    corder <- order(labels)
+    cLabels <- labels[corder]
+    cLevels <- levels[corder]
+	  dups <- duplicated(cLabels)
+	  newLevels <- cLevels[!dups]
 		notDup <- which(!dups)
 		for (dx in which(dups)) {
-			from <- levels[dx]
+			from <- cLevels[dx]
 			to <- newLevels[findInterval(dx, notDup)]
 			x[x==from] <- to
 		}
-		levels <- newLevels
-		labels <- labels[!dups]
+    mask <- !duplicated(labels)
+		levels <- levels[mask]
+		labels <- labels[mask]
 	} else {
-		if (any(dups)) stop(paste("Duplicate labels and collapse=TRUE not specified:",
+	  dups <- duplicated(labels)
+	  if (any(dups)) stop(paste("Duplicate labels and collapse=TRUE not specified:",
 					  omxQuotes(unique(labels[dups]))))
 	}
 
