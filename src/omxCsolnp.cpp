@@ -210,8 +210,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int verbose, double *hessOut, double tolerance)
 
 {
-	freeMatrices();
-    freeMatrices_l(); // maybe left overs from an aborted optimization attempt
+	freeMatrices(); // maybe left overs from an aborted optimization attempt
     
 	GLOB_fitMatrix = fitMatrix;
 	GLOB_fc = fc;
@@ -375,7 +374,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     GLOB_fitMatrix = NULL;
     GLOB_fc = NULL;
-    freeMatrices_l();
 }
 
 
@@ -411,13 +409,13 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     
     Param_Obj p_obj_conf;
     Matrix param_hess;
-    Matrix myhess = fill(n*n, 1, (double)0.0, FALSE);
+    Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
     Matrix solEqB;
     
-    Matrix myPars = fillMatrix(n, 1, opt->est, FALSE);
+    Matrix myPars = fillMatrix(n, 1, opt->est);
     double (*solFun)(struct Matrix myPars, int* mode, int verbose);
     solFun = &csolnpLimitObjectiveFunction;
     Matrix (*solEqBFun)(int verbose);
@@ -434,7 +432,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     double *bu = buBuf.data();
     
     
-    struct Matrix myControl = fill(6,1,(double)0.0, FALSE);
+    struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
     M(myControl,1,0) = 400.0;
     M(myControl,2,0) = 800.0;
@@ -448,9 +446,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     /* needs treatment*/
     if (ncnln == 0)
     {
-        solIneqLB = fill(1, 1, EMPTY, FALSE);
-        solIneqUB = fill(1, 1, EMPTY, FALSE);
-        solEqB = fill(1, 1, EMPTY, FALSE);
+        solIneqLB = fill(1, 1, EMPTY);
+        solIneqUB = fill(1, 1, EMPTY);
+        solEqB = fill(1, 1, EMPTY);
     }
     else{
         int j;
@@ -465,12 +463,12 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
         if (eqn == ncnln) nineqn = 1;
         else nineqn = ncnln - eqn;
         
-        solIneqLB = fill(nineqn, 1, EMPTY, FALSE);
-        solIneqUB = fill(nineqn, 1, EMPTY, FALSE);
+        solIneqLB = fill(nineqn, 1, EMPTY);
+        solIneqUB = fill(nineqn, 1, EMPTY);
 	    if (eqn == 0) {
-		    solEqB = fill(1, 1, EMPTY, FALSE);
+		    solEqB = fill(1, 1, EMPTY);
 	    } else {
-		    solEqB = fill(eqn, 1, EMPTY, FALSE);
+		    solEqB = fill(eqn, 1, EMPTY);
 	    }
         
 	    omxProcessConstraintsCsolnp(opt, &solIneqLB, &solIneqUB, &solEqB);
@@ -485,8 +483,8 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     }
     
     omxSetupBoundsAndConstraints(opt, bl, bu);
-    Matrix blvar = fillMatrix(n, 1, bl, FALSE);
-    Matrix buvar = fillMatrix(n, 1, bu, FALSE);
+    Matrix blvar = fillMatrix(n, 1, bl);
+    Matrix buvar = fillMatrix(n, 1, bu);
     
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
@@ -504,7 +502,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 				  matName, currentCI->row + 1, currentCI->col + 1);
         
         memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-        myPars = fillMatrix(n, 1, opt->est, FALSE);
+        myPars = fillMatrix(n, 1, opt->est);
         CSOLNP_currentInterval = i;
         
         
@@ -578,7 +576,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 
         
         memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-        myPars = fillMatrix(n, 1, opt->est, FALSE);
+        myPars = fillMatrix(n, 1, opt->est);
         
         
         /* Reset for the upper bound */
@@ -641,5 +639,5 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 	GLOB_fc = NULL;
 	GLOB_fitMatrix = NULL;
 	CSOLNP_currentInterval = -1;
-    freeMatrices_l();
+    freeMatrices();
 }
