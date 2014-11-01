@@ -142,7 +142,7 @@ if [ ! -e inst/no-npsol ]; then
     fi
 fi
 
-if false && pkg-config --exists nlopt; then
+if pkg-config --exists nlopt; then
   echo "NLOPT_CXXFLAGS=-DHAS_NLOPT $(pkg-config --cflags nlopt)" >> src/Makevars
   echo "NLOPT_LDFLAGS=$(pkg-config --libs nlopt)" >> src/Makevars
 else
