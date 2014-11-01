@@ -19,27 +19,56 @@ using std::endl;
 template <typename T> void printList( const std::list< T > &listRef);
 
 static std::list< double* > matrices;
+static std::list< double* > matrices_l;
+
 
 double rnd_double() { return (double)1.0; }
 
 void freeMatrices(){
     while (!matrices.empty()){
+        /* printf("matrices.front is: \n");
+         print(matrices.front());
+         printf("matrices.front.t is : \n");
+         for(int i = 0; i <matrices.front().cols; i++){
+         printf("%f", matrices.front().t[i]); putchar('\n');
+         }*/
+        //print(matrices.front());
         free(matrices.front());
+        //printf("matrices.front is: \n");
+        //print(matrices.front());
         matrices.pop_front();
     }
 }
 
-Matrix::Matrix(omxMatrix *mat)
-: rows(mat->rows), cols(mat->cols), t(mat->data) {}
+void freeMatrices_l(){
+    while (!matrices_l.empty()){
+    /* printf("matrices.front is: \n");
+     print(matrices.front());
+     printf("matrices.front.t is : \n");
+     for(int i = 0; i <matrices.front().cols; i++){
+     printf("%f", matrices.front().t[i]); putchar('\n');
+     }*/
+    //print(matrices.front());
+    free(matrices_l.front());
+    //printf("matrices.front is: \n");
+    //print(matrices.front());
+    matrices_l.pop_front();
+    }
+}
 
-Matrix new_matrix(int cols,int rows)
+
+Matrix::Matrix(omxMatrix *mat)
+ : rows(mat->rows), cols(mat->cols), t(mat->data) {}
+
+Matrix new_matrix(int cols,int rows, bool Delete)
 {
 	Matrix t;
 	t.rows=rows;
 	t.cols=cols;
 	t.t=(double *)malloc(sizeof(double)*cols*rows);
-	matrices.push_front(t.t);
-    int i,j;
+	if (Delete) matrices.push_front(t.t);
+    else matrices_l.push_front(t.t);
+	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
 			M(t,j,i)=rnd_double();
@@ -48,101 +77,79 @@ Matrix new_matrix(int cols,int rows)
 	return t;
 }
 
-Matrix fill(int cols, int rows, double value){
-	Matrix t = new_matrix(cols, rows);
+Matrix fill(int cols, int rows, double value, bool Delete){
+	Matrix t = new_matrix(cols, rows, Delete);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
 			M(t,j,i)=value;
 		}
 	}
-    return t;
+	return t;
 }
 
-void fill_t(Matrix t, int cols, int rows, double value){
-	int i,j;
-	for(i=0;i<rows;i++){
-		for(j=0;j<cols;j++) {
-			M(t,j,i)=value;
-		}
-	}
-}
-
-Matrix getRow (Matrix t, int row){
+Matrix getRow( Matrix t, int row){
     Matrix toReturn = fill(t.cols, 1, (double)0.0);
 	int i;
 	for (i=0;i < t.cols; i++){
 		M(toReturn,i,0) = M(t,i,row);
+        // printf("toReturn is: \n");
+        // print(toReturn); putchar('\n');
 	}
-    return toReturn;
+	
+	return toReturn;
 }
 
-void getRow_t (Matrix toReturn, Matrix t, int row){
-    int i;
-	for (i=0;i < t.cols; i++){
-		M(toReturn,i,0) = M(t,i,row);
-	}
-}
-
-void setRow (Matrix x, int row,  Matrix y){
-		
+Matrix setRow( Matrix x, int row,  Matrix y){
+	
+	Matrix toReturn = duplicateIt(x);
+	
 	int i;
+	
 	for (i=0;i < x.cols; i++){
-		M(x,i,row) = M(y,i,0);
+		M(toReturn,i,row) = M(y,i,0);
 	}
+	
+	return toReturn;
 }
 
-Matrix getColumn (Matrix t, int colNum)
+Matrix getColumn( Matrix t, int colNum)
 {
     int r, c;
     int index = 0;
-    Matrix toReturn = fill(t.rows, 1, (double)0.0);
+    Matrix result = fill(t.rows, 1, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
 	        if (c==colNum){
-				M(toReturn, index, 0) = M(t, c, r);
+				M(result, index, 0) = M(t, c, r);
 				index++;
 			}
         }
     }
-    return toReturn;
+    return result;
 }
 
-void getColumn_t (Matrix toReturn, Matrix t, int colNum)
+Matrix setColumn( Matrix x,  Matrix y, int colNum)
 {
     int r, c;
     int index = 0;
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-	        if (c==colNum){
-				M(toReturn, index, 0) = M(t, c, r);
-				index++;
-			}
-        }
-    }
-}
-
-void setColumn( Matrix x,  Matrix y, int colNum)
-{
-    int r, c;
-    int index = 0;
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
     for ( r = 0; r < x.rows; r++ )
     {
         for ( c = 0; c < x.cols; c++ )
         {
             if (c==colNum){
-                M(x, c, r) = M(y, index, 0);
+                M(result, c, r) = M(y, index, 0);
                 index++;
             }
             else{
-                M(x, c, r) = M(x, c, r);
+                M(result, c, r) = M(x, c, r);
             }
         }
     }
+    return result;
 }
 
 void print(Matrix t) {
@@ -181,15 +188,15 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 		Eigen::Map< Eigen::ArrayXXd > tmp(mat.t, mat.rows, mat.cols);
 		if ((tmp != 0).count() == mat.rows) return;
 	}
-    
+
 	const double tooSmallEV = 1e-6;
 	double *target = mat.t;
 	int numParams = mat.rows;
 	if (mat.rows != mat.cols) Rf_error("InplaceForcePosDef must be square");
-    
+
 	omxBuffer<double> hessWork(numParams * numParams);
 	memcpy(hessWork.data(), target, sizeof(double) * numParams * numParams);
-    
+
 	char jobz = 'V';
 	char range = 'A';
 	char uplo = 'U';
@@ -205,24 +212,24 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 	double realIgn = 0;
 	int intIgn = 0;
 	omxBuffer<int> isuppz(numParams * 2);
-    
+
 	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-                     &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-                     z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
-    
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
+
 	lwork = optWork;
 	omxBuffer<double> work(lwork);
 	liwork = optIwork;
 	omxBuffer<int> iwork(liwork);
 	F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-                     &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-                     z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
+			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
+			 z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
 	if (info < 0) {
 		Rf_error("dsyevr %d", info);
 	} else if (info) {
 		return;
 	}
-    
+
 	std::vector<double> evalDiag(numParams * numParams);
 	double minEV = 0;
 	double maxEV = 0;
@@ -240,10 +247,10 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 			maxEV = std::max(maxEV, w[px]);
 		}
 	}
-    
+
 	//fc->infoDefinite = true;  actually we don't know!
 	if (condnum) *condnum = maxEV/minEV;
-    
+
 	Matrix evMat(z.data(), numParams, numParams);
 	Matrix edMat(evalDiag.data(), numParams, numParams);
 	omxBuffer<double> prod1(numParams * numParams);
@@ -254,7 +261,7 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
 	double alpha = 1.0;
 	double beta = 0;
 	F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
-                    prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
+			prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
 }
 
 Matrix solve(Matrix X,  Matrix y){
@@ -274,8 +281,8 @@ Matrix solve(Matrix X,  Matrix y){
         
 		Matrix temp = fill(A.cols, 1, (double)0.0);
 		
-		temp = getRow(A,p); setRow(A,p, getRow(A,max));
-		setRow(A,max, temp);
+		temp = getRow(A,p); A = setRow(A,p, getRow(A,max));
+		A = setRow(A,max, temp);
 		double t = M(b,p,0); M(b,p,0) = M(b,max,0); M(b,max,0)= t;
 		
         
@@ -352,33 +359,6 @@ Matrix diag(Matrix A){
     return result;
 }
 
-void diag_t(Matrix result, Matrix A){
-    int i,j;
-    double len;
-    if (A.cols > A.rows)
-    {
-        len = A.cols;
-        for (i=0; i<len; i++){
-            for (j=0; j<=len; j++){
-                if (i==j)
-                    M(result, j, i) = M(A, j, 0);
-            }
-        }
-    }
-    
-    else
-    {
-        len = A.rows;
-        for (i=0; i<len; i++){
-            for (j=0; j<=len; j++){
-                if (i==j)
-                    M(result, j, i) = M(A, 0, j);
-            }
-        }
-    }
-}
-
-
 Matrix diag2(Matrix A){
     int i,j;
     Matrix result = fill(A.cols, A.cols, (double)0.0);
@@ -442,6 +422,8 @@ double findMax(Matrix t){
         {
             if (max < M(t,j,i) ){
                 max = M(t,j,i);
+                //printf("max is:"); putchar('\n');
+                //printf("%2f", max); putchar('\n');
             }
         }
 	}
@@ -497,10 +479,11 @@ Matrix matrixDotProduct(Matrix a,  Matrix b){
     return result;
 }
 
-void minMaxAbs(Matrix t, double tol)
+Matrix minMaxAbs(Matrix t, double tol)
 {
     // for each x[i]: min( max( abs(x[i]), tol ), 1/tol )
     int r,c;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
@@ -508,12 +491,13 @@ void minMaxAbs(Matrix t, double tol)
             double buf = ourAbs(M(t,c,r));
             buf = max(buf, tol);
             buf = min(buf, 1.0/(tol));
-            M(t,c,r) = buf;
+            M(result,c,r) = buf;
         }
     }
+    return result;
 }
 
-void add(Matrix x,  Matrix y)
+Matrix add(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols || x.rows != y.rows)
     {
@@ -523,111 +507,129 @@ void add(Matrix x,  Matrix y)
         }
         else Rf_error("CSOLNP BUG: noncomformant matrices are added");
     }
+
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
+    int r,c;
+    for ( r = 0; r < x.rows; r++ )
+    {
+        for ( c = 0; c < x.cols; c++ )
+        {
+            M(result, c, r) = M(x, c, r) + M(y, c, r);
+        }
+    }
+    return result;
+}
+
+Matrix subtract(Matrix x,  Matrix y)
+{
+    if (x.cols != y.cols || x.rows != y.rows)
+    {
+        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
+    }
+    
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
     
     int r,c;
     for ( r = 0; r < x.rows; r++ )
     {
         for ( c = 0; c < x.cols; c++ )
         {
-            M(x, c, r) = M(x, c, r) + M(y, c, r);
+            M(result, c, r) = M(x, c, r) - M(y, c, r);
         }
     }
+    return result;
 }
 
-void subtract(Matrix x,  Matrix y)
-{
-    if (x.cols != y.cols || x.rows != y.rows)
-    {
-        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
-    }
-        
-    int r,c;
-    for ( r = 0; r < x.rows; r++ )
-    {
-        for ( c = 0; c < x.cols; c++ )
-        {
-            M(x, c, r) = M(x, c, r) - M(y, c, r);
-        }
-    }
-}
-
-void multiply(Matrix x,  Matrix y)
+Matrix multiply(Matrix x,  Matrix y)
 {
     if (x.cols == y.cols && x.rows == y.rows)
     {
+        Matrix result = fill(x.cols, x.rows, (double)0.0);
         int r,c;
         for ( r = 0; r < x.rows; r++ )
         {
             for ( c = 0; c < x.cols; c++ )
             {
-                M(x, c, r) = M(x, c, r) * M(y, c, r);
+                M(result, c, r) = M(x, c, r) * M(y, c, r);
             }
         }
-        return;
+        return result;
     }
     else if (y.cols > 1 && y.rows > 1)
         Rf_error("Only a vector is acceptable");
     else if ((x.cols * x.rows) % (y.cols * y.rows) != 0)
         Rf_error("longer object length is not a multiple of shorter object length");
     else{
+        Matrix result = fill(x.cols, x.rows, (double)0.0);
         if (y.rows > 1){
             int r = 0, i = 0;
             while (i < x.cols * x.rows){
                 for (int l = 0; l < y.rows; l++)
                 {
-                    x.t[r] = x.t[r] * M(y, 0, l);
+                    result.t[r] = x.t[r] * M(y, 0, l);
                     r++;
                     i++;
                 }
             }
-            return;
+            return result;
         }
         else {
             int c = 0, i = 0;
             while (i < x.cols * x.rows){
                 for (int l = 0; l < y.cols; l++)
                 {
-                    x.t[c] = x.t[c] * M(y, l, 0);
+                    result.t[c] = x.t[c] * M(y, l, 0);
                     c++;
                     i++;
                 }
             }
-            return;
+            return result;
         }
     }
 }
 
-void divide(Matrix x,  Matrix y)
+Matrix divide(Matrix x,  Matrix y)
 {
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
     int r,c;
     if (x.cols != y.cols) {
         if (x.cols > y.cols) y = copy(y, fill(x.cols - y.cols, 1, (double)1.0));
+        //else x = copy(x, fill(y.cols - x.cols), 1, ()
     }
     for ( r = 0; r < x.rows; r++ )
     {
         for ( c = 0; c < x.cols; c++ )
         {
-            M(x, c, r) = M(x, c, r) / M(y, c, r);
+            M(result, c, r) = M(x, c, r) / M(y, c, r);
         }
     }
+    return result;
 }
 
-void copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
+Matrix copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
 	
     int r, c, index;
     index = 0;
+    Matrix result = fill(x.cols, x.rows, (double)0.0);
     for ( r = 0; r < x.rows; r++ )
     {
         for ( c = 0; c < x.cols; c++ )
         {
 			if (r == rowNum){
 				if (c >= colStart && c <= colStop){
-					M(x, c, r) = M(y, index, 0);
+					M(result, c, r) = M(y, index, 0);
 					index++;
 				}
+				else{
+					M(result, c, r) = M(x, c, r);
+				}
+			}
+			else{
+                M(result, c, r) = M(x, c, r);
 			}
         }
     }
+    return result;
 }
 
 Matrix rowWiseMin(Matrix t)
@@ -658,7 +660,8 @@ Matrix transpose2D(Matrix t){ //Mahsa: 1) first row is copied into a matrix with
 			M(result,c,r) = M(t,c,0);
         }
     }
-
+    //printf("result: transpose2D: \n");
+    //print(result); putchar('\n');
     for ( r = 0; r < t.cols; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
@@ -699,18 +702,6 @@ Matrix transposeDP(Matrix t){ //Mahsa: same as transpose2D function
     return toReturn;
 }
 
-void transposeDP_t(Matrix toReturn, Matrix t){ //Mahsa: same as transpose2D function
-    int r, c;
-    for ( r = 0; r < t.cols; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-            M(toReturn, c, r) = M(t, r, 0) * M(t, c, 0);
-        }
-    }
-}
-
-
 Matrix transpose(Matrix t){ // Mahsa: simply transposes the matrix
     Matrix result = fill(t.rows, t.cols, (double)0.0);
 	int r,c;
@@ -724,22 +715,24 @@ Matrix transpose(Matrix t){ // Mahsa: simply transposes the matrix
 	return result;
 }
 
-void negate(Matrix t)
+Matrix negate(Matrix t)
 {
     int r, c;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
-			M(t, c, r) = (M(t, c, r) * -1.0);
+			M(result, c, r) = (M(t, c, r) * -1.0);
         }
     }
+    return result;
 }
 
-Matrix duplicateIt(Matrix t)
+Matrix duplicateIt(Matrix t, bool Delete)
 {
     int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
+    Matrix result = fill(t.cols, t.rows, (double)0.0, Delete);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
@@ -750,52 +743,46 @@ Matrix duplicateIt(Matrix t)
     return result;
 }
 
-void duplicateIt_t(Matrix result, Matrix t)
+Matrix matrixAbs(Matrix t)
 {
     int r, c;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
-			M(result, c, r) = M(t, c, r);
+			M(result, c, r) = ourAbs(M(t, c, r));
         }
     }
+    return result;
 }
 
-void matrixAbs(Matrix t)
+Matrix multiplyByScalar2D(Matrix t, double multiplier)
 {
     int r, c;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
-			M(t, c, r) = ourAbs(M(t, c, r));
+			M(result, c, r) = M(t, c, r)*multiplier;
         }
     }
+    return result;
 }
 
-void multiplyByScalar2D(Matrix t, double multiplier)
+Matrix divideByScalar2D(Matrix t, double divisor)
 {
     int r, c;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
-			M(t, c, r) = M(t, c, r)*multiplier;
+			M(result, c, r) = M(t, c, r)/divisor;
         }
     }
-}
-
-void divideByScalar2D(Matrix t, double divisor)
-{
-    int r, c;
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-			M(t, c, r) = M(t, c, r)/divisor;
-        }
-    }
+    return result;
 }
 
 Matrix checkControlList(Matrix t){
@@ -818,7 +805,7 @@ Matrix checkControlList(Matrix t){
 }
 
 Matrix subset(Matrix t, int row, int colStart, int colStop)
-{//subset(p0, 0, 0, npic-1)
+{
     
     int r, c;
     int count = (colStop - colStart)+1;
@@ -840,31 +827,12 @@ Matrix subset(Matrix t, int row, int colStart, int colStop)
     return result;
 }
 
-void subset_t(Matrix result, Matrix t, int row, int colStart, int colStop)
-{
-    
-    int r, c;
-    int count = (colStop - colStart)+1;
-    int index = 0;
-    
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-            if (r == row){
-                if ( (c >= colStart) && (c <= colStop) ){
-                    M(result, index, 0) = M(t, c, r);
-                    index++;
-                }
-            }
-        }
-    }
-}
 
-void copy_t(Matrix result, Matrix x,  Matrix y){
+Matrix copy(Matrix x,  Matrix y, bool Delete){
 	
 	int totalRows = x.rows;
     int totalCols = x.cols + y.cols;
+    Matrix result = fill(totalCols, totalRows, (double)0.0, Delete);
 	
 	int r, c;
 	for ( r = 0; r < totalRows; r++ )
@@ -879,29 +847,6 @@ void copy_t(Matrix result, Matrix x,  Matrix y){
 			}
 		}
     }
-}
-
-
-Matrix copy(Matrix x,  Matrix y){
-	
-	int totalRows = x.rows;
-    int totalCols = x.cols + y.cols;
-    Matrix result = fill(totalCols, totalRows, (double)0.0);
-	
-	int r, c;
-	for ( r = 0; r < totalRows; r++ )
-    {
-        for ( c = 0; c < totalCols; c++ )
-        {
-			if (c < x.cols){
-				M(result, c, r) = M(x, c, r);
-			}
-			else {
-				M(result, c, r) = M(y, (c-x.cols), r);
-			}
-		}
-    }
-
 	return result;
 }
 
@@ -911,13 +856,13 @@ Matrix rbind(Matrix x,  Matrix y){
 }
 
 /*Matrix copyThree(Matrix a,  Matrix b,  Matrix c){
- Matrix result = copy(a, b);
- Matrix result_three = copy(result, c);
- }*/
+    Matrix result = copy(a, b);
+    Matrix result_three = copy(result, c);
+}*/
 
 /*Matrix copyFive(Matrix a,  Matrix b,  Matrix c,  Matrix d,  Matrix e){
- copy(copy(copy(a,b), copy(c,d)), e);
- }*/
+	copy(copy(copy(a,b), copy(c,d)), e);
+}*/
 
 Matrix timess(Matrix a,  Matrix b){
     int i, j, k;
@@ -934,7 +879,6 @@ Matrix timess(Matrix a,  Matrix b){
 		for (i=0; i<a.rows; i++){
 			double s = 0;
 			for (k=0; k<a.cols; k++){
-                
 				s+= M(a, k, i) * M(Bcolj, k, 0);
 			}
 			M(result, j, i) = s;
@@ -942,29 +886,6 @@ Matrix timess(Matrix a,  Matrix b){
 	}
 	return result;
 }
-
-void timess_t(Matrix result, Matrix a,  Matrix b){
-    int i, j, k;
-    if (a.cols != b.rows)
-    {
-        Rf_error("CSOLNP BUG: noncomformant matrices");
-    }
-    Matrix Bcolj = fill(a.cols, 1, (double)0.0);
-	for (j=0; j<b.cols; j++){
-		for (k=0; k<a.cols; k++){
-			M(Bcolj, k, 0) = M(b, j, k);
-		}
-		for (i=0; i<a.rows; i++){
-			double s = 0;
-			for (k=0; k<a.cols; k++){
-                
-				s+= M(a, k, i) * M(Bcolj, k, 0);
-			}
-			M(result, j, i) = s;
-		}
-	}
-}
-
 
 Matrix luSolve(Matrix a,  Matrix b){
 	int m, n, pivsign;
@@ -995,7 +916,7 @@ Matrix luSolve(Matrix a,  Matrix b){
             for (k = 0; k < kmax; k++) {
 				s += M(LU, k, i) * M(LU,j, k);
             }
-            M(LU,j,i) -= s;
+	    M(LU,j,i) -= s;
         }
         
         // Find pivot and exchange if necessary.
@@ -1204,28 +1125,32 @@ Matrix qrDecomposition(Matrix t, bool rDecomp){
 	}
 }
 
-void rowSort(Matrix t)
+Matrix rowSort(Matrix t)
 {
     int r, c, i, j;
+    Matrix result = fill(t.cols, t.rows, (double)0.0);
     for ( r = 0; r < t.rows; r++ )
     {
         for ( c = 0; c < t.cols; c++ )
         {
-            M(t, c, r) = M(t, c, r);
+            M(result, c, r) = M(t, c, r);
         }
-      	
+      	//for ( r = 0; r < t.rows; ++r )
+      	//{
         for ( i = 0; i < t.cols; i++ )
         {
             for ( j = 0; j < t.cols; j++ )
             {
-                if (M(t, i, r) < M(t, j, r)){
-                    double a = M(t, i, r);
-                    M(t, i, r) = M(t, j, r);
-                    M(t, j, r) = a;
+                if (M(result, i, r) < M(result, j, r)){
+                    double a = M(result, i, r);
+                    M(result, i, r) = M(result, j, r);
+                    M(result, j, r) = a;
                 }
             }
+         	//}
       	}
     }
+    return result;
 }
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat)
@@ -1238,6 +1163,7 @@ Matrix QRd(Matrix mainMat, Matrix RHSMat)
 	double* work = (double*) malloc(lwork * sizeof(double));
     
     F77_CALL(dgels)(&TRANS, &(mainMat.rows), &(mainMat.cols), &(result.cols), mainMat.t, &(mainMat.rows), result.t, &(result.rows), work, &lwork, &l);
+    //result = subset(result, 0, 0, 1);
     return result;
 }
 
@@ -1248,7 +1174,7 @@ int InvertSymmetricPosDef(Matrix mat, const char uplo)
 	F77_CALL(dpotrf)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
 	if (info < 0) Rf_error("Arg %d is invalid", -info);
 	if (info > 0) return info;
-    
+
 	F77_CALL(dpotri)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
 	if (info < 0) Rf_error("Arg %d is invalid", -info);
 	return info;
@@ -1264,13 +1190,13 @@ int InvertSymmetricIndef(Matrix mat, const char uplo)
 	F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), &temp, &lwork, &info);
 	if (info < 0) Rf_error("Arg %d is invalid", -info);
 	if (info > 0) return info;
-    
+
 	if (lwork < mat.rows) lwork = mat.rows; // for dsytri
 	omxBuffer<double> work(lwork);
 	F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &lwork, &info);
 	if (info < 0) Rf_error("Arg %d is invalid", -info);
 	if (info > 0) return info;
-    
+
 	F77_CALL(dsytri)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &info);
 	if (info < 0) Rf_error("Arg %d is invalid", -info);
 	return info;
@@ -1280,7 +1206,7 @@ void MeanSymmetric(Matrix mat)
 {
 	if (mat.rows != mat.cols) Rf_error("Not conformable");
 	const int len = mat.rows;
-    
+
 	for (int v1=1; v1 < len; ++v1) {
 		for (int v2=0; v2 < v1; ++v2) {
 			int c1 = v1 * len + v2;
@@ -1293,7 +1219,7 @@ void MeanSymmetric(Matrix mat)
 }
 
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
-                       Matrix amat, Matrix bmat, Matrix cmat)
+		       Matrix amat, Matrix bmat, Matrix cmat)
 {
 	if (amat.rows != amat.cols) Rf_error("Not conformable");
 	if (bmat.rows != cmat.rows || bmat.cols != cmat.cols) Rf_error("Not conformable");
@@ -1308,8 +1234,8 @@ void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
 		Rf_error("Side of %c is invalid", side);
 	}
 	F77_CALL(dsymm)(&side, &uplo, &cmat.rows, &cmat.cols,
-                    &alpha, amat.t, &lda, bmat.t, &bmat.rows,
-                    &beta, cmat.t, &cmat.rows);
+			&alpha, amat.t, &lda, bmat.t, &bmat.rows,
+			&beta, cmat.t, &cmat.rows);
 }
 
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
@@ -1318,10 +1244,10 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
 	    mat2.rows != mat2.cols ||
 	    mat1.rows != mat2.rows) Rf_error("Not conformable");
 	const int dim = mat1.rows;
-    
+
 	omxBuffer<double> pad(dim * dim);
 	memcpy(pad.data(), mat1.t, sizeof(double) * dim * dim);
-    
+
 	if (identity) {
 		for (int rx=0; rx < dim; rx++) {
 			for (int cx=0; cx < dim; cx++) {
@@ -1329,7 +1255,7 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
 			}
 		}
 	}
-    
+  
 	std::vector<int> ipiv(dim);
 	int info;
 	F77_CALL(dgesv)(&dim, &dim, pad.data(), &dim, ipiv.data(), mat2.t, &dim, &info);
@@ -1346,18 +1272,18 @@ int MatrixInvert1(Matrix result)
 	F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv.data(), &info);
 	if (info < 0) Rf_error("dgetrf info %d", info);
 	if (info > 0) return info;
-    
+
 	int opt_lwork = -1;
 	double opt_work;
 	F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), &opt_work, &opt_lwork, &info);
 	if (info != 0) Rf_error("dgetri workspace query failed %d", info);
-    
+
 	opt_lwork = opt_work;
 	omxBuffer<double> work(opt_lwork);
 	F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), work.data(), &opt_lwork, &info);
 	if (info < 0) Rf_error("dgetri info %d", info);
 	if (info > 0) return info;   // probably would fail at dgetrf already
-    
+
 	return 0;
 }
 
@@ -1394,7 +1320,7 @@ Matrix condNumPurpose(Matrix inMat)
 	int info;
     
     F77_CALL(dsyevr)(&jobz, &range, &uplo, &(result.cols), result.t, &(result.cols),
-                     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w.data(), Z.data(), &ldz, isuppz.data(),
+		     &vunused, &vunused, &iunused, &iunused, &abstol, &m, w.data(), Z.data(), &ldz, isuppz.data(),
                      &optlWork, &lwork, &optliWork, &liwork, &info);
     lwork = optlWork;
 	std::vector<double> work(lwork);
@@ -1415,68 +1341,50 @@ Matrix condNumPurpose(Matrix inMat)
     return eigenVals;
 }
 
-void solveinv(Matrix inMat)
+Matrix solveinv(Matrix inMat)
 {
-    //Matrix result;
-    //result = duplicateIt(inMat);
-    MatrixSolve(inMat, inMat, true);
-    //return result;
+    Matrix result;
+    result = duplicateIt(inMat);
+    MatrixSolve(inMat, result, true);
+    return result;
 }
 
 /*int this_main(int argc,char *argv[]) {
- int i,j;
- int size=atoi(argv[1]);
- Matrix a,b,c;
- 
- a=new_matrix(size,size);
- b=new_matrix(size,size);
- for(i=0;i<size;i++){
- for(j=0;j<size;j++) {
- M(a,i,j)=rnd_double();
- M(b,i,j)=rnd_double();
- }
- }
- c=matrix_mult(a,b);
- print(c);
- }*/
-void QRdsolve_t(Matrix Final_result, Matrix mainMat, Matrix RHSMat)
-
-{
-    int lwork = 4 * mainMat.rows * mainMat.cols;
-    int l;
-    char TRANS = 'N';
-    int LDB = max(mainMat.cols, mainMat.rows);
-
-    Eigen::ArrayXd work(lwork);
-    F77_CALL(dgels)(&TRANS, &(mainMat.rows), &(mainMat.cols), &(RHSMat.cols), mainMat.t, &(mainMat.rows), RHSMat.t, &LDB, work.data(), &lwork, &l);
-
-    for (int i = 0; i < mainMat.cols; i++)
-    {
-        for(int j = 0; j < RHSMat.cols; j++)
-        {
-            M(Final_result, j, i) = M(RHSMat, j, i);
-        }
-    }
-}
-
+	int i,j;
+	int size=atoi(argv[1]);
+    Matrix a,b,c;
+    
+	a=new_matrix(size,size);
+	b=new_matrix(size,size);
+	for(i=0;i<size;i++){
+		for(j=0;j<size;j++) {
+			M(a,i,j)=rnd_double();
+			M(b,i,j)=rnd_double();
+		}
+	}
+	c=matrix_mult(a,b);
+	print(c);
+}*/
 
 
 Matrix QRdsolve(Matrix mainMat, Matrix RHSMat)
 
 {
     int lwork = 4 * mainMat.rows * mainMat.cols;
+    
     int l;
+    
     char TRANS = 'N';
-    int LDB = max(mainMat.cols, mainMat.rows);
+    
     Matrix result, input;
+    
+    result = duplicateIt(RHSMat);
     input = duplicateIt(mainMat);
-    result = fill(RHSMat.cols, LDB, (double)0.0);
-    for (int i = 0; i < RHSMat.rows; i++)
-        for (int j = 0; j < RHSMat.cols; j++)
-            M(result, j, i) = M(RHSMat, j, i);
     
     Eigen::ArrayXd work(lwork);
-    F77_CALL(dgels)(&TRANS, &(input.rows), &(input.cols), &(result.cols), input.t, &(input.rows), result.t, &LDB, work.data(), &lwork, &l);
+    
+    F77_CALL(dgels)(&TRANS, &(input.rows), &(input.cols), &(result.cols), input.t, &(input.rows), result.t, &(result.rows), work.data(), &lwork, &l);
+    
     Matrix Final_result = new_matrix(RHSMat.cols, mainMat.cols);
     for (int i = 0; i < mainMat.cols; i++)
     {
@@ -1489,19 +1397,21 @@ Matrix QRdsolve(Matrix mainMat, Matrix RHSMat)
     return Final_result;
 }
 
-void chol_lpk(Matrix mainMat)
+Matrix chol_lpk(Matrix mainMat)
 {
     int l;
     char UPLO = 'U';
+    Matrix result = duplicateIt(mainMat);
     
-    F77_CALL(dpotrf)(&UPLO, &(mainMat.cols), mainMat.t, &(mainMat.rows), &l);
+    F77_CALL(dpotrf)(&UPLO, &(result.cols), result.t, &(result.rows), &l);
     
-    for(int i = 0; i < mainMat.rows; i++) {
-        for(int j = i+1; j < mainMat.cols; j++) {
-            M(mainMat, i, j) = 0;
+    for(int i = 0; i < result.rows; i++) {
+        for(int j = i+1; j < result.cols; j++) {
+                M(result, i, j) = 0;
         }
     }
-
+    
+    return result;
 }
 
 double solvecond(Matrix inMat)
@@ -1530,9 +1440,9 @@ double solvecond(Matrix inMat)
     }
 }
 
-Matrix fillMatrix(int cols, int rows, double* array)
+Matrix fillMatrix(int cols, int rows, double* array, bool Delete)
 {
-    Matrix t = new_matrix(cols, rows);
+    Matrix t = new_matrix(cols, rows, Delete);
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
@@ -1581,26 +1491,3 @@ bool all(Matrix x)
     {    if (x.t[i] != 0) return false;}
     return true;
 }
-
-void fillMatrix_t(Matrix t, int cols, int rows, double* array)
-{
-	int i,j;
-	for(i=0;i<rows;i++){
-		for(j=0;j<cols;j++) {
-			M(t,j,i)=array[j];
-		}
-	}
-}
-
-void transpose_t(Matrix t_t, Matrix t){
-	int r,c;
-	for ( r = 0; r < t.cols; r++ )
-    {
-		for ( c = 0; c < t.rows; c++ )
-        {
-			M(t_t, c, r) = M(t, r, c);
-        }
-    }
-}
-
-
