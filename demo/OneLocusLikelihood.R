@@ -30,32 +30,36 @@
 # RevisionHistory:
 #      Hermine Maes -- 2010.02.22 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
 # Load Library
 # -----------------------------------------------------------------------------
     
-OneLocusModel <- mxModel("OneLocus",
-    mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
-    mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="Q"),
-    mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="R"),
-    # Matrices for allele frequencies, p, q and r
-    # -------------------------------------
-    mxConstraint(P+Q+R == 1, name = "EqualityConstraint"),
-    mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
-	# Matrix of observed data
-    # -------------------------------------
-    mxAlgebra( expression=rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), name="ExpectedFreqs"),
-	# Algebra for predicted proportions
-    # -------------------------------------
-    mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
-    # Algebra for -logLikelihood
-    # -------------------------------------
-    mxFitFunctionAlgebra("NegativeLogLikelihood") 
-    # User-defined objective
-     # -------------------------------------
-)
+# Matrices for allele frequencies, p, q and r
+matP         <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                          free=TRUE, values=c(.3333), name="P")
+matQ         <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                          free=TRUE, values=c(.3333), name="Q")
+matR         <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                          free=TRUE, values=c(.3333), name="R")
+# Matrix of observed data    
+const        <- mxConstraint(P+Q+R == 1, name="EqualityConstraint")
+obsFreq      <- mxMatrix( type="Full", nrow=4, ncol=1, 
+                          values=c(211,104,39,148), name="ObservedFreqs")
+# Algebra for predicted proportions
+expFreq      <- mxAlgebra( expression=rbind(P*(P+2*R), Q*(Q+2*R), 2*P*Q, R*R), 
+                          name="ExpectedFreqs")
+# Algebra for -2logLikelihood
+m2ll         <- mxAlgebra( expression=-(sum(log(ExpectedFreqs) 
+                          * ObservedFreqs)), name="NegativeLogLikelihood")
+# User-defined objective
+funAl        <- mxFitFunctionAlgebra("NegativeLogLikelihood") 
+
+OneLocusModel <- mxModel("OneLocus", 
+                          matP, matQ, matR, const, obsFreq, expFreq, m2ll, funAl)
+
 # Create an MxModel object
 # -----------------------------------------------------------------------------
 

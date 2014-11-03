@@ -35,6 +35,7 @@
 #	MikeHunter -- 2011.05.05 modified to use omxSelect* functions
 #	MikeHunter -- 2011.05.26 Adjusted spacing & comments for readability.
 #   MikeHunter -- 2011.06.30 Adjusted model structure to match docs file in User's Guide and corrected formula error.
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -59,74 +60,30 @@ cov(testData)
 
 bivCorModelSpec <- mxModel(
     name="FIML Saturated Bivariate",
-    mxData(
-        observed=testData, 
-        type="raw",
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=TRUE, 
-        values=c(0,0), 
-        name="expMean"
-    ), 
-    mxMatrix(
-        type="Symm",
-        nrow=2, 
-        ncol=2,
-        values=c(.21, .2, .2, .21),
-        free=TRUE,
-        name='expCov'
-    )
+    mxData( observed=testData, type="raw" ),
+    mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values=c(0,0), name="expMean" ), 
+    mxMatrix( type="Symm", nrow=2, ncol=2, name='expCov' )
 )
 
 bivCorFiltering <- mxModel(
     model=bivCorModelSpec,
-    mxAlgebra(
-        expression=omxSelectRowsAndCols(expCov, existenceVector),
-        name="filteredExpCov",
-    ),
-    mxAlgebra(
-        expression=omxSelectCols(expMean, existenceVector),
-        name="filteredExpMean",
-    ),
-    mxAlgebra(
-        expression=sum(existenceVector),
-        name="numVar_i")
+    mxAlgebra( expression=omxSelectRowsAndCols(expCov, existenceVector), name="filteredExpCov" ),
+    mxAlgebra( expression=omxSelectCols(expMean, existenceVector), name="filteredExpMean" ),
+    mxAlgebra( expression=sum(existenceVector), name="numVar_i")
 )
 
 bivCorCalc <- mxModel(
     model=bivCorFiltering,
-    mxAlgebra(
-        expression = log(2*pi),
-        name = "log2pi"
-    ),
-    mxAlgebra(
-        expression=log2pi %*% numVar_i + log(det(filteredExpCov)),
-        name ="firstHalfCalc",
-    ),
-    mxAlgebra(
-        expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov),
-        name = "secondHalfCalc",
-    )
+    mxAlgebra( expression=log(2*pi), name="log2pi" ),
+    mxAlgebra( expression=log2pi %*% numVar_i + log(det(filteredExpCov)), name="firstHalfCalc" ),
+    mxAlgebra( expression=(filteredDataRow - filteredExpMean) %&% solve(filteredExpCov), name="secondHalfCalc" )
 )
 
 bivCorRowObj <- mxModel(
     model=bivCorCalc,
-    mxAlgebra(
-        expression=(firstHalfCalc + secondHalfCalc),
-        name="rowAlgebra",
-    ),
-    mxAlgebra(
-        expression=sum(rowResults),
-        name = "reduceAlgebra",
-    ),
-    mxFitFunctionRow(
-        rowAlgebra='rowAlgebra',
-        reduceAlgebra='reduceAlgebra',
-        dimnames=c('X','Y'),
-    )
+    mxAlgebra( expression=(firstHalfCalc + secondHalfCalc), name="rowAlgebra" ),
+    mxAlgebra( expression=sum(rowResults), name="reduceAlgebra" ),
+    mxFitFunctionRow( rowAlgebra='rowAlgebra', reduceAlgebra='reduceAlgebra', dimnames=c('X','Y') )
 )
 
 bivCorTotal <- bivCorRowObj

@@ -29,6 +29,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 #This script is used to test the definition variable functionality in OpenMx
@@ -46,64 +47,32 @@ library(MASS)
 
 set.seed(200)
 N=500
-Sigma <- matrix(c(1,.5,.5,1),2,2)
-group1<-mvrnorm(N, c(1,2), Sigma) # use mvrnorm from MASS package
-group2<-mvrnorm(N, c(0,0), Sigma)
+Sigma          <- matrix(c(1,.5,.5,1),2,2)
+group1         <- mvrnorm(N, c(1,2), Sigma) # Use mvrnorm from MASS package
+group2         <- mvrnorm(N, c(0,0), Sigma)
 
-y<-rbind(group1,group2)           # Bind both groups together by rows
-dimnames(y)[2]<-list(c("x","y")); # Add names
-def    <-rep(c(1,0),each=N);      # Add a definition variable 2n in 
-								  # length for group status
-selVars<-c("x","y")               # Make a selection variables object
+xy             <- rbind(group1,group2)      # Bind groups together by rows
+dimnames(xy)[2]<- list(c("x","y"))          # Add names
+def            <- rep(c(1,0),each=N);       # Add def var [2n] for group status
+selVars        <- c("x","y")                # Make selection variables object
 # Simulate data
 # -----------------------------------------------------------------------------
 
+Sigma        <- mxMatrix( type="Symm", nrow=2, ncol=2, 
+    	                  free=TRUE, values=c(1, 0, 1), name="Sigma" )
+Mean         <- mxMatrix( type="Full", nrow=1, ncol=2, 
+                          free=TRUE, name="Mean" )
+beta         <- mxMatrix( type="Full", nrow=1, ncol=2, 
+	                      free=TRUE, values=c(0,0), name="beta" )
+dataDef      <- mxMatrix( type="Full", nrow=1, ncol=2, 
+    	                  free=FALSE, labels=c("data.def"), name="def" )
+Mu           <- mxAlgebra( expression=Mean + beta*def, name="Mu" )
+dataRaw      <- mxData( observed=data.frame(xy,def), type="raw" )
+exp          <- mxExpectationNormal( covariance="Sigma", means="Mu", 
+                                     dimnames=selVars )
+funML        <- mxFitFunctionML()
 defMeansModel <- mxModel("Definition  Means Matrix Specification", 
-    mxMatrix(
-    	type="Symm", 
-    	nrow=2, 
-    	ncol=2, 
-    	free=TRUE, 
-    	values=c(1, 0, 1), 
-    	name="Sigma"
-    ), 
-    mxMatrix(
-    	type="Full", 
-    	nrow=1, 
-    	ncol=2, 
-    	free=TRUE, 
-    	name = "M"
-    ),
-    mxMatrix(
-	    type="Full", 
-	    nrow=1, 
-	    ncol=2, 
-	    free=TRUE, 
-	    values=c(0, 0), 
-	    name = "beta"
-	), 
-    mxMatrix(
-    	type="Full", 
-    	nrow=1, 
-    	ncol=2, 
-    	free=FALSE, 
-    	labels=c("data.def"), 
-    	name = "def"
-    ),
-	mxAlgebra(
-		expression=M+beta*def, 
-		name = "Mu"
-	),
-    mxData(
-    	observed=data.frame(y,def), 
-    	type="raw"
-    ), 
-    mxFitFunctionML(),mxExpectationNormal(
-    	covariance="Sigma", 
-    	means="Mu", 
-    	dimnames=selVars
-    )
-)
+                         dataRaw, Sigma, Mean, beta, dataDef, Mu, exp, funML)
 # Define model
 # -----------------------------------------------------------------------------
 

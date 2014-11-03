@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -56,56 +57,27 @@ MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-multiRegModel<-mxModel("Multiple Regression Matrix Specification", 
-      mxData(
-      		observed=MultipleDataCov, 
-      		type="cov", 
-      		numObs=100, 
-      		mean=MultipleDataMeans
-      ),
-      mxMatrix("Full", nrow=3, ncol=3,
-            values=c(0,0,0,
-                     1,0,1,
-                     0,0,0),
-            free=c(F, F, F,
-                   T, F, T,
-                   F, F, F),
-            labels=c(NA,     NA, NA,
-                    "betax", NA,"betaz",
-                     NA,     NA, NA),
-            byrow=TRUE,
-            name="A"
-      ),
-      mxMatrix("Symm", nrow=3, ncol=3, 
-            values=c(1, 0, .5,
-                     0, 1, 0,
-                    .5, 0, 1),
-            free=c(T, F, T,
-                   F, T, F,
-                   T, F, T),
-            labels=c("varx", NA,         "covxz",
-                     NA,     "residual",   NA,
-                     "covxz",   NA,         "varz"),
-            byrow=TRUE,
-            name="S"
-      ),
-      mxMatrix(
-      		type="Iden", 
-      		nrow=3, 
-      		ncol=3,
-            name="F"
-      ),
-      mxMatrix(
-      		type="Full", 
-      		nrow=1, 
-      		ncol=3,
-            values=c(0,0,0),
-            free=c(T,T,T),
-            labels=c("meanx","beta0","meanz"),
-            name="M"
-      ),
-      mxFitFunctionML(),mxExpectationRAM("A","S","F","M",dimnames=c('x','y','z'))
-)
+dataCov     <- mxData( observed=MultipleDataCov, type="cov", numObs=100, 
+      					 mean=MultipleDataMeans )
+matrA       <- mxMatrix( type="Full", nrow=3, ncol=3,
+                         free=  c(F,F,F,  T,F,T,  F,F,F),
+                         values=c(0,0,0,  1,0,1,  0,0,0),
+                         labels=c(NA,NA,NA, "betax",NA,"betaz", NA,NA,NA),
+                         byrow=TRUE, name="A" )
+matrS       <- mxMatrix( type="Symm", nrow=3, ncol=3, 
+                         free=c(T,F,T,  F,T,F,  T,F,T),
+                         values=c(1,0,.5,  0,1,0,  .5,0,1),
+                         labels=c("varx",NA,"covxz", NA,"residual",NA, "covxz",NA,"varz"),
+                         byrow=TRUE, name="S" )
+matrF       <- mxMatrix( type="Iden", nrow=3, ncol=3, name="F" )
+matrM       <- mxMatrix( type="Full", nrow=1, ncol=3, 
+                         free=c(T,T,T), values=c(0,0,0),
+                         labels=c("meanx","beta0","meanz"), name="M" )
+exp         <- mxExpectationRAM("A","S","F","M", dimnames=c("x","y","z") )
+funML       <- mxFitFunctionML()
+multiRegModel <- mxModel("Multiple Regression Matrix Specification", 
+                         dataCov, matrA, matrS, matrF, matrM, exp, funML)
+
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

@@ -29,6 +29,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -39,64 +40,29 @@ data(myRegDataRaw)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
+# dataset
+dataRaw      <- mxData( observed=myRegDataRaw, type="raw" )
+# variance paths
+varPaths     <- mxPath( from=c("w","x","y","z"), arrows=2, 
+                        free=TRUE, values=1, 
+                        labels=c("residualw","varx","residualy","varz") )
+# covariance of x and z
+covPaths     <- mxPath( from="x", to="z", arrows=2, 
+                        free=TRUE, values=0.5, labels="covxz" ) 
+# regression weights for y
+regPathsY    <- mxPath( from=c("x","z"), to="y", arrows=1, 
+                        free=TRUE, values=1, labels=c("betayx","betayz") ) 
+# regression weights for w
+regPathsW    <- mxPath( from=c("x","z"), to="w", arrows=1, 
+                        free=TRUE, values=1, labels=c("betawx","betawz") ) 
+# means and intercepts
+means        <- mxPath( from="one", to=c("w","x","y","z"), arrows=1, 
+                        free=TRUE, values=c(1, 1), 
+                        labels=c("betaw","meanx","betay","meanz") )
 
 multivariateRegModel <- mxModel("MultiVariate Regression Path Specification", 
-    type="RAM",
-    mxData(
-        observed=myRegDataRaw, 
-        type="raw"
-    ),
-    manifestVars=c("w", "x", "y", "z"),
-    mxPath(
-        from=c("w", "x", "y", "z"), 
-        arrows=2,
-        free=TRUE, 
-        values = c(1, 1, 1),
-        labels=c("residualw", "varx", "residualy", "varz")
-    ),
-    # variance paths
-	# -------------------------------------
-    mxPath(
-        from="x",
-        to="z",
-        arrows=2,
-        free=TRUE,
-        values=0.5,
-        labels="covxz"
-    ), 
-    # covariance of x and z
-    # -------------------------------------
-    mxPath(
-        from=c("x","z"),
-        to="y",
-        arrows=1,
-        free=TRUE,
-        values=1,
-        labels=c("betayx","betayz")
-    ), 
-    # regression weights for y
-    # -------------------------------------
-    mxPath(
-        from=c("x","z"),
-        to="w",
-        arrows=1,
-        free=TRUE,
-        values=1,
-        labels=c("betawx","betawz")
-    ), 
-    # regression weights for w
-    # -------------------------------------
-    mxPath(
-        from="one",
-        to=c("w", "x", "y", "z"),
-        arrows=1,
-        free=TRUE,
-        values=c(1, 1),
-        labels=c("betaw", "meanx", "betay", "meanz")
-    )
-    # means and intercepts
-    # -------------------------------------
-) # close model
+                        type="RAM", dataRaw, manifestVars=c("w","x","y","z"),
+                        varPaths, covPaths, regPathsY, regPathsW, means )
 # Create an MxModel object
 # -----------------------------------------------------------------------------
   

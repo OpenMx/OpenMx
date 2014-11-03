@@ -30,6 +30,7 @@
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
 #      Mike Hunter -- 2013.09.16 nudged starting values of second model varainces away from zero
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -52,34 +53,11 @@ cov(testData)
 
 
 bivCorModel <- mxModel("bivCor",
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2, 
-        free=TRUE, 
-        values=c(0,0), 
-        name="expMean"
-    ), 
-    mxMatrix(
-        type="Lower", 
-        nrow=2, 
-        ncol=2, 
-        free=TRUE,
-        values=.5, 
-        name="Chol"
-    ), 
-    mxAlgebra(
-        expression=Chol %*% t(Chol), 
-        name="expCov", 
-    ), 
-    mxData(
-        observed=testData, 
-        type="raw"
-    ), 
-    mxExpectationNormal(
-        covariance="expCov", 
-        means="expMean",
-        dimnames=selVars),
+    mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values=c(0,0), name="expMean" ), 
+    mxMatrix( type="Lower", nrow=2, ncol=2, free=TRUE, values=.5, name="Chol" ), 
+    mxAlgebra( expression=Chol %*% t(Chol), name="expCov"), 
+    mxData( observed=testData, type="raw" ), 
+    mxExpectationNormal( covariance="expCov", means="expMean", dimnames=selVars),
     mxFitFunctionML()
     )
 # Fit Saturated Model with Raw Data and Matrix-style Input
@@ -95,14 +73,9 @@ LL <- mxEval(fitfunction, bivCorFit)
 
 
 bivCorModelSub <-mxModel(bivCorModel,
-    mxMatrix(
-        type="Diag", 
-        nrow=2, 
-        ncol=2, 
-        free=TRUE,
+    mxMatrix( type="Diag", nrow=2, ncol=2, free=TRUE,
         values=.2, # Note: to test optimizer for robustness to bad starting values, change to 0.
-        name="Chol"
-    )
+        name="Chol" )
 )
 # Specify SubModel testing Covariance=Zero
 # -----------------------------------------------------------------------------

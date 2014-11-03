@@ -29,6 +29,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -51,68 +52,32 @@ names(myRegDataMeans) <- c("w","x","y","z")
 # Prepare Data
 # -----------------------------------------------------------------------------
 
+dataCov     <- mxData( observed=myRegDataCov, type="cov", numObs=100,
+		                 mean=myRegDataMeans )
+matrA       <- mxMatrix( type="Full", nrow=4, ncol=4,
+                         free=  c(F,T,F,T,  F,F,F,F,  F,T,F,T,  F,F,F,F),
+                         values=c(0,1,0,1,  0,0,0,0,  0,1,0,1,  0,0,0,0),
+                         labels=c(NA,"betawx",NA,"betawz",
+                                  NA, NA,     NA, NA, 
+                                  NA,"betayx",NA,"betayz",
+                                  NA, NA,     NA, NA),
+                         byrow=TRUE, name="A" )
+matrS       <- mxMatrix( type="Symm", nrow=4, ncol=4, 
+                         free=c(T,F,F,F,  F,T,F,T,  F,F,T,F,  F,T,F,T),
+                         values=c(1, 0,0, 0,  0, 1,0,.5,  0, 0,1, 0,  0,.5,0, 1),
+                         labels=c("residualw", NA,     NA,         NA,
+                                   NA,        "varx",  NA,        "covxz",
+                                   NA,         NA,    "residualy", NA,
+                                   NA,        "covxz", NA,        "varz"),
+                         byrow=TRUE, name="S" )
+matrF       <- mxMatrix( type="Iden", nrow=4, ncol=4, name="F" )
+matrM       <- mxMatrix( type="Full", nrow=1, ncol=4, 
+                         free=c(T,T,T,T), values=c(0,0,0,0),
+                         labels=c("betaw","meanx","betay","meanz"), name="M" )
+exp         <- mxExpectationRAM("A","S","F","M", dimnames=c("w","x","y","z") )
+funML       <- mxFitFunctionML()
 multivariateRegModel <- mxModel("Multiple Regression Matrix Specification", 
-	mxData(
-		observed=myRegDataCov,
-		type="cov", 
-		numObs=100,
-		mean=myRegDataMeans
-	),
-    mxMatrix(
-    	type="Full", 
-    	nrow=4, 
-    	ncol=4,
-        values=c(0,1,0,1,
-                 0,0,0,0,
-                 0,1,0,1,
-                 0,0,0,0),
-        free=c(F, T, F, T,
-               F, F, F, F,
-               F, T, F, T,
-               F, F, F, F),
-        labels=c(NA, "betawx", NA, "betawz",
-                 NA,  NA,     NA,  NA, 
-                 NA, "betayx", NA, "betayz",
-                 NA,  NA,     NA,  NA),
-        byrow=TRUE,
-        name="A"
-    ),
-    mxMatrix(
-    	type="Symm", 
-    	nrow=4, 
-    	ncol=4, 
-        values=c(1,  0, 0,  0,
-                 0,  1, 0, .5,
-                 0,  0, 1,  0,
-                 0, .5, 0,  1),
-        free=c(T, F, F, F,
-               F, T, F, T,
-               F, F, T, F,
-               F, T, F, T),
-        labels=c("residualw",  NA,     NA,         NA,
-                  NA,         "varx",  NA,        "covxz",
-                  NA,          NA,    "residualy", NA,
-                  NA,         "covxz", NA,        "varz"),
-        byrow=TRUE,
-        name="S"
-    ),
-    mxMatrix(
-    	type="Iden", 
-    	nrow=4, 
-    	ncol=4,
-        name="F"
-    ),
-    mxMatrix(
-    	type="Full", 
-    	nrow=1, 
-    	ncol=4,
-        values=c(0,0,0,0),
-        free=c(T,T,T,T),
-        labels=c("betaw","meanx","betay","meanz"),
-        name="M"
-    ),
-    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",dimnames=c("w","x","y","z"))
-)
+                         dataCov, matrA, matrS, matrF, matrM, exp, funML)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

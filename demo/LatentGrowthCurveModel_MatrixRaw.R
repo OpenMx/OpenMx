@@ -29,6 +29,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata 
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------
 
 require(OpenMx)
@@ -39,79 +40,56 @@ data(myLongitudinalData)
 # Prepare Data
 # -----------------------------------------------------------------------
 
+dataRaw      <- mxData( observed=myLongitudinalData, type="raw" )
+matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
+                          free=F,
+                          values=c(0,0,0,0,0,1,0,
+                                   0,0,0,0,0,1,1,
+                                   0,0,0,0,0,1,2,
+                                   0,0,0,0,0,1,3,
+                                   0,0,0,0,0,1,4,
+                                   0,0,0,0,0,0,0,
+                                   0,0,0,0,0,0,0),
+                          byrow=TRUE, name="A" )
+matrS        <- mxMatrix( type="Symm", nrow=7, ncol=7,
+                          free=  c(T,F,F,F,F,F,F,
+                                   F,T,F,F,F,F,F,
+                                   F,F,T,F,F,F,F,
+                                   F,F,F,T,F,F,F,
+                                   F,F,F,F,T,F,F,
+                                   F,F,F,F,F,T,T,
+                                   F,F,F,F,F,T,T),
+                          values=c(0,0,0,0,0, 0, 0,
+                                   0,0,0,0,0, 0, 0,
+                                   0,0,0,0,0, 0, 0,
+                                   0,0,0,0,0, 0, 0,
+                                   0,0,0,0,0, 0, 0,
+                                   0,0,0,0,0, 1,.5,
+                                   0,0,0,0,0,.5, 1),
+                          labels=c("residual", NA, NA, NA, NA, NA, NA,
+                                   NA, "residual", NA, NA, NA, NA, NA,
+                                   NA, NA, "residual", NA, NA, NA, NA,
+                                   NA, NA, NA, "residual", NA, NA, NA,
+                                   NA, NA, NA, NA, "residual", NA, NA,
+                                   NA, NA, NA, NA, NA, "vari", "cov",
+                                   NA, NA, NA, NA, NA, "cov", "vars"),
+                          byrow= TRUE, name="S" )
+matrF        <- mxMatrix( type="Full", nrow=5, ncol=7,
+                          free=F,
+                          values=c(1,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,
+                                   0,0,0,1,0,0,0,
+                                   0,0,0,0,1,0,0),
+                          byrow=T, name="F" )
+matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
+                          free=c(F,F,F,F,F,T,T), values=c(0,0,0,0,0,1,1),
+                          labels=c(NA,NA,NA,NA,NA,"meani","means"), name="M" )
+exp          <- mxExpectationRAM("A","S","F","M", 
+                                  dimnames=c(names(myLongitudinalData),"intercept","slope")))
+funML        <- mxFitFunctionML()
 growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification", 
-    mxData(
-    	observed=myLongitudinalData, 
-        type="raw"
-    ),
-    mxMatrix(
-        type="Full",
-        nrow=7, 
-        ncol=7,
-        free=F,
-        values=c(0,0,0,0,0,1,0,
-                 0,0,0,0,0,1,1,
-                 0,0,0,0,0,1,2,
-                 0,0,0,0,0,1,3,
-                 0,0,0,0,0,1,4,
-                 0,0,0,0,0,0,0,
-                 0,0,0,0,0,0,0),
-        byrow=TRUE,
-        name="A"
-    ),
-    mxMatrix(
-        type="Symm",
-        nrow=7,
-        ncol=7,
-        free=c(T, F, F, F, F, F, F,
-               F, T, F, F, F, F, F,
-               F, F, T, F, F, F, F,
-               F, F, F, T, F, F, F,
-               F, F, F, F, T, F, F,
-               F, F, F, F, F, T, T,
-               F, F, F, F, F, T, T),
-        values=c(0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  0,  0,
-                 0,0,0,0,0,  1,0.5,
-                 0,0,0,0,0,0.5,  1),
-        labels=c("residual", NA, NA, NA, NA, NA, NA,
-                 NA, "residual", NA, NA, NA, NA, NA,
-                 NA, NA, "residual", NA, NA, NA, NA,
-                 NA, NA, NA, "residual", NA, NA, NA,
-                 NA, NA, NA, NA, "residual", NA, NA,
-                 NA, NA, NA, NA, NA, "vari", "cov",
-                 NA, NA, NA, NA, NA, "cov", "vars"),
-        byrow= TRUE,
-        name="S"
-    ),
-    mxMatrix(
-        type="Full",
-        nrow=5,
-        ncol=7,
-        free=F,
-        values=c(1,0,0,0,0,0,0,
-                 0,1,0,0,0,0,0,
-                 0,0,1,0,0,0,0,
-                 0,0,0,1,0,0,0,
-                 0,0,0,0,1,0,0),
-        byrow=T,
-        name="F"
-    ),
-    mxMatrix(
-    	type="Full",
-    	nrow=1, 
-    	ncol=7,
-        values=c(0,0,0,0,0,1,1),
-        free=c(F,F,F,F,F,T,T),
-        labels=c(NA,NA,NA,NA,NA,"meani","means"),
-        name="M"
-    ),
-    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",
-		dimnames = c(names(myLongitudinalData), "intercept", "slope"))
-)
+                            dataRaw, matrA, matrS, matrF, matrM, exp, funML)
 # Create an MxModel object
 # -----------------------------------------------------------------------
       

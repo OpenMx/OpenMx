@@ -29,130 +29,93 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
 # Load Library
 # -----------------------------------------------------------------------------
 
-data(twinData)
-summary(twinData)
-selVars <- c('bmi1','bmi2')
-mzData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-dzData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-colMeans(mzData,na.rm=TRUE)
-colMeans(dzData,na.rm=TRUE)
-cov(mzData,use="complete")
-cov(dzData,use="complete")
+    require(OpenMx)
+    require(psych)
+
+    # Load Data
+    data(twinData)
+    describe(twinData, skew=F)
+
+    # Select Variables for Analysis
+    Vars      <- 'bmi'
+    nv        <- 1       # number of variables
+    ntv       <- nv*2    # number of total variables
+    selVars   <- paste(Vars,c(rep(1,nv),rep(2,nv)),sep="")   #c('bmi1','bmi2')
+
+    # Select Data for Analysis
+    mzData    <- subset(twinData, zyg==1, selVars)
+    dzData    <- subset(twinData, zyg==3, selVars)
+
+    # Generate Descriptive Statistics
+    colMeans(mzData,na.rm=TRUE)
+    colMeans(dzData,na.rm=TRUE)
+    cov(mzData,use="complete")
+    cov(dzData,use="complete")
+
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-twinACEModel <- mxModel("twinACE",
+    require(OpenMx)
+    
+    # Set Starting Values
+    svMe      <- 20      # start value for means
+    svPa      <- .6      # start value for path coefficients (sqrt(variance/#ofpaths))
 
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=1, 
-		free=TRUE,  
-		values=.6,  
-		label="a", 
-		name="X"
-	), 
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=1, 
-		free=TRUE,  
-		values=.6,  
-		label="c", 
-		name="Y"
-	),
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=1, 
-		free=TRUE,  
-		values=.6,  
-		label="e", 
-		name="Z"
-	),
-	# Matrices X, Y, and Z to store 
-	# a, c, and e path coefficients
-	# ----------------------------------
-			
-	mxAlgebra(
-		expression=X %*% t(X), 
-		name="A"
-	), 
-	mxAlgebra(
-		expression=Y %*% t(Y), 
-		name="C"
-	), 
-	mxAlgebra(
-		expression=Z %*% t(Z), 
-		name="E"
-	),
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=2, 
-		free=TRUE, 
-		values= 20,
-		label="mean", 
-		name="expMean"
-	),
-	# Matrices A, C, and E compute 
-	# variance components 
-	# ----------------------------------
-		
-    mxAlgebra(
-		expression= rbind  (cbind(A+C+E , A+C),
-							cbind(A+C   , A+C+E)), 
-		name="expCovMZ"
-	),
-	# Algebra for expected 
-	# variance/covariance matrix in MZ
-	# ----------------------------------
-		
-    mxAlgebra(
-		expression= rbind  (cbind(A+C+E     , 0.5%x%A+C),
-							cbind(0.5%x%A+C , A+C+E)), 
-		name="expCovDZ"
-	),
-	mxModel("MZ",
-	    mxData(
-			observed=mzData, 
-			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="twinACE.expCovMZ", 
-			means="twinACE.expMean", 
-			dimnames=selVars
-		)
-	),
-	mxModel("DZ",
-	    mxData(
-			observed=dzData, 
-			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="twinACE.expCovDZ", 
-			means="twinACE.expMean", 
-			dimnames=selVars
-		)
-	),
-    mxAlgebra(
-		expression=MZ.objective + DZ.objective, 
-		name="twin"
-	), 
-	# Algebra for expected
-	# variance/covariance matrix in DZ
-	# note use of 0.5, converted 
-	# to 1*1 matrix
-	# ----------------------------------
-	
-	mxFitFunctionAlgebra("twin")
-)
+    # ACE Model
+    # Matrices declared to store a, d, and e Path Coefficients
+    pathA     <- mxMatrix( type="Full", nrow=nv, ncol=nv, 
+                           free=TRUE, values=svPa, label="a11", name="a" ) 
+    pathC     <- mxMatrix( type="Full", nrow=nv, ncol=nv, 
+                           free=TRUE, values=svPa, label="c11", name="c" )
+    pathE     <- mxMatrix( type="Full", nrow=nv, ncol=nv, 
+                           free=TRUE, values=svPa, label="e11", name="e" )
+
+    # Matrices generated to hold A, C, and E computed Variance Components
+    covA      <- mxAlgebra( expression=a %*% t(a), name="A" )
+    covC      <- mxAlgebra( expression=c %*% t(c), name="C" ) 
+    covE      <- mxAlgebra( expression=e %*% t(e), name="E" )
+
+    # Algebra to compute total variances
+    covP      <- mxAlgebra( expression=A+C+E, name="V" )
+
+    # Algebra for expected Mean and Variance/Covariance Matrices in MZ & DZ twins
+    meanG     <- mxMatrix( type="Full", nrow=1, ncol=ntv, 
+                           free=TRUE, values=svMe, label="mean", name="expMean" )
+    covMZ     <- mxAlgebra( expression=rbind( cbind(V, A+C), 
+                                              cbind(A+C, V)), name="expCovMZ" )
+    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ 0.25%x%C), 
+                                              cbind(0.5%x%A+ 0.25%x%C , V)), name="expCovDZ" )
+
+    # Data objects for Multiple Groups
+    dataMZ    <- mxData( observed=mzData, type="raw" )
+    dataDZ    <- mxData( observed=dzData, type="raw" )
+
+    # Objective objects for Multiple Groups
+    expMZ     <- mxExpectationNormal( covariance="expCovMZ", means="expMean", 
+                                      dimnames=selVars )
+    expDZ     <- mxExpectationNormal( covariance="expCovDZ", means="expMean", 
+                                      dimnames=selVars )
+    funML     <- mxFitFunctionML()
+
+    # Combine Groups
+    pars      <- list( pathA, pathC, pathE, covA, covC, covE, covP )
+    modelMZ   <- mxModel( pars, meanG, covMZ, dataMZ, expMZ, funML, name="MZ" )
+    modelDZ   <- mxModel( pars, meanG, covDZ, dataDZ, expDZ, funML, name="DZ" )
+    fitML     <- mxFitFunctionMultigroup(c("MZ.fitfunction","DZ.fitfunction") )
+    AceModel  <- mxModel( "ACE", pars, modelMZ, modelDZ, fitML )
+
+    # Run ADE model
+    AceFit    <- mxRun(AceModel, intervals=T)
+    AceSumm   <- summary(AceFit)
+    AceSumm
+
 # Fit ACE Model with RawData and Matrices Input
 # -----------------------------------------------------------------------------
 
@@ -160,19 +123,20 @@ twinACEFit <- mxRun(twinACEModel)
 # Run ACE model
 # -----------------------------------------------------------------------------
 
-MZc <- mxEval(expCovMZ, twinACEFit)  			# expected covariance matrix for MZ's
-DZc <- mxEval(expCovDZ, twinACEFit)  			# expected covariance matrix for DZ's
-M <- mxEval(expMean, twinACEFit)				# expected mean
-A <- mxEval(a*a, twinACEFit)					# additive genetic variance, a^2
-C <- mxEval(c*c, twinACEFit)					# shared environmental variance, c^2
-E <- mxEval(e*e, twinACEFit)					# unique environmental variance, e^2
-V <- (A+C+E)									# total variance
-a2 <- A/V										# standardized additive genetic variance
-c2 <- C/V										# standardized shared environmental variance
-e2 <- E/V										# standardized unique environmental variance
-ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2)) 	# table of estimates
-LL_ACE <- mxEval(objective, twinACEFit)			# likelihood of ACE model
-
+    # Generate ACE Model Output
+    estMean   <- mxEval(expMean, AceFit$MZ)       # expected mean
+    estCovMZ  <- mxEval(expCovMZ, AceFit$MZ)      # expected covariance matrix for MZ's
+    estCovDZ  <- mxEval(expCovDZ, AceFit$DZ)      # expected covariance matrix for DZ's
+    estVA     <- mxEval(a*a, AceFit)              # additive genetic variance, a^2
+    estVC     <- mxEval(c*c, AceFit)              # dominance variance, d^2
+    estVE     <- mxEval(e*e, AceFit)              # unique environmental variance, e^2
+    estVP     <- (estVA+estVC+estVE)              # total variance
+    estPropVA <- estVA/estVP                      # standardized additive genetic variance
+    estPropVC <- estVC/estVP                      # standardized dominance variance
+    estPropVE <- estVE/estVP                      # standardized unique environmental variance
+    estACE    <- rbind(cbind(estVA,estVC,estVE),  # table of estimates
+                       cbind(estPropVA,estPropVC,estPropVE))
+    LL_ACE    <- mxEval(objective, AceFit)        # likelihood of ADE model
 
 
 Mx.A <- 0.6173023
@@ -196,34 +160,23 @@ omxCheckCloseEnough(M,Mx.M,.001)
 # -----------------------------------------------------------------------------
 
 
-twinAEModel <- mxModel(twinACEModel, #twinAE model so we drop c at 0
-	mxMatrix(
-		type="Full", 
-		nrow=1, 
-		ncol=1, 
-		free=FALSE, 
-		values=0, 
-		label="c", 
-		name="Y"
-	)	
-)
+    # Run AE model
+    AeModel   <- mxModel( AceFit, name="AE" )
+    AeModel   <- omxSetParameters( AeModel, labels="c11", free=FALSE, values=0 )
+    AeFit     <- mxRun(AeModel)
 
-twinAEFit <- mxRun(twinAEModel)
 # Run AE model
 # -----------------------------------------------------------------------------
 
-MZc <- mxEval(expCovMZ, twinAEFit)
-DZc <- mxEval(expCovDZ, twinAEFit)
-M <- mxEval(expMean, twinAEFit)
-A <- mxEval(a*a, twinAEFit)
-C <- mxEval(c*c, twinAEFit)
-E <- mxEval(e*e, twinAEFit)
-V <- (A+C+E)
-a2 <- A/V
-c2 <- C/V
-e2 <- E/V
-AEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-LL_AE <- mxEval(objective, twinAEFit)
+    # Generate AE Model Output
+    estVA     <- mxEval(a*a, AeFit)               # additive genetic variance, a^2
+    estVE     <- mxEval(e*e, AeFit)               # unique environmental variance, e^2
+    estVP     <- (estVA+estVE)                    # total variance
+    estPropVA <- estVA/estVP                      # standardized additive genetic variance
+    estPropVE <- estVE/estVP                      # standardized unique environmental variance
+    estAE     <- rbind(cbind(estVA,estVE),        # table of estimates
+                       cbind(estPropVA,estPropVE))
+    LL_AE     <- mxEval(objective, AeFit)         # likelihood of AE model
 
 
 
@@ -243,7 +196,7 @@ omxCheckCloseEnough(C,Mx.C,.001)
 omxCheckCloseEnough(E,Mx.E,.001)
 omxCheckCloseEnough(M,Mx.M,.001)
 
-LRT_ACE_AE <- LL_AE - LL_ACE
+	LRT_ACE_AE <- LL_AE - LL_ACE
 # Compare OpenMx results to Mx results: 
 # (LL: likelihood; EC: expected covariance, EM: expected means)
 # -----------------------------------------------------------------------------

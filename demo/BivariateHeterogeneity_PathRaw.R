@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------
 
 require(OpenMx)
@@ -73,112 +74,62 @@ dimnames(xy2) <- list(NULL, selVars)
 # Simulate Data
 # -----------------------------------------------------------------------------
 
+dataRaw1     <- mxData( observed=xy1, type="raw")
+variances1   <- mxPath( from=selVars, arrows=2, 
+          	            free=T, values=1, lbound=.01, labels=c("vX1","vY1") )
+covariance1  <- mxPath( from="X", to="Y", arrows=2, 
+            	        free=T, values=.2, lbound=.01, labels="cXY1")
+means1       <- mxPath( from="one", to=selVars, arrows=1, 
+        		        free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+        		        labels=c("mX1","mY1") )
+model1       <- mxModel("group1", type="RAM", manifestVars= selVars,
+                         dataRaw1, variances1, covariance1, means1)
 
-bivHetModel <- mxModel("bivariate Heterogeneity Path Specification",
-    mxModel("group1",
-        manifestVars= selVars,
-        mxPath(
-            from=selVars, 
-            arrows=2, 
-            free=T, 
-            values=1, 
-            lbound=.01, 
-            labels=c("vX1","vY1")
-        ),
-        mxPath(
-            from="X", 
-            to="Y", 
-            arrows=2, 
-            free=T, 
-            values=.2, 
-            lbound=.01, 
-            labels="cXY1"
-        ),
-        mxPath(
-            from="one", 
-            to=selVars, 
-            arrows=1, 
-            free=T, 
-            values=c(0.1, -0.1),
-            ubound=c(NA, 0.0),
-            lbound=c(0.0, NA),
-            labels=c("mX1", "mY1")
-        ),
-        mxData(
-            observed=xy1, 
-            type="raw", 
-        ),
-        type="RAM"
-        ),
-    mxModel("group2",
-        manifestVars= selVars,
-        mxPath(
-            from=selVars, 
-            arrows=2, 
-            free=T, 
-            values=1, 
-            lbound=.01, 
-            labels=c("vX2","vY2")
-        ),
-        mxPath(
-            from="X", 
-            to="Y", 
-            arrows=2, 
-            free=T, 
-            values=.2, 
-            lbound=.01, 
-            labels="cXY2"
-        ),
-        mxPath(
-            from="one", 
-            to=selVars, 
-            arrows=1, 
-            free=T, 
-            values=c(0.1, -0.1),
-            ubound=c(NA, 0.0),
-            lbound=c(0.0, NA),
-            labels=c("mX2", "mY2")
-        ),
-        mxData(
-            observed=xy2, 
-            type="raw", 
-        ),
-        # fit="ML",
-        type="RAM"
-        ),
-    mxAlgebra(
-        group1.fitfunction + group2.fitfunction, 
-        name="h12"
-    ),
-    mxFitFunctionAlgebra("h12")
-)
+dataRaw2     <- mxData( observed=xy2, type="raw")
+variances2   <- mxPath( from=selVars, arrows=2, 
+          	            free=T, values=1, lbound=.01, labels=c("vX2","vY2") )
+covariance2  <- mxPath( from="X", to="Y", arrows=2, 
+            	        free=T, values=.2, lbound=.01, labels="cXY2")
+means2       <- mxPath( from="one", to=selVars, arrows=1, 
+        		        free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+        		        labels=c("mX2","mY2") )
+model2       <- mxModel("group2", type="RAM", manifestVars= selVars,
+                         dataRaw2, variances2, covariance2, means2)
 
-    bivHetFit <- mxRun(bivHetModel)
+#h12          <- mxAlgebra( group1.fitfunction + group2.fitfunction, name="h12" )
+#funML        <- mxFitFunctionAlgebra("h12")
+fun           <- mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
+bivHetModel   <- mxModel("bivariate Heterogeneity Path Specification",
+                        model1, model2, fun )
 
-omxCheckTrue(is.null(bivHetFit$group1.fitfunction$info$likelihoods))
+bivHetFit <- mxRun(bivHetModel)
+EM1Het <- bivHetFit$group1.fitfunction$info$expMean
+EM2Het <- bivHetFit$group2.fitfunction$info$expMean
+EC1Het <- bivHetFit$group1.fitfunction$info$expCov
+EC2Het <- bivHetFit$group2.fitfunction$info$expCov
+LLHet <- bivHetFit$output$fit
 
-    EM1Het <- bivHetFit$group1.fitfunction$info$expMean
-    EM2Het <- bivHetFit$group2.fitfunction$info$expMean
-    EC1Het <- bivHetFit$group1.fitfunction$info$expCov
-    EC2Het <- bivHetFit$group2.fitfunction$info$expCov
-    LLHet <- mxEval(fitfunction, bivHetFit)
+EM1Het; EM2Het; EC1Het; EC2Het; LLHet
+
 # Fit Heterogeneity Model
 # -----------------------------------------------------------------------------
 
 bivHomModel <- bivHetModel
-    bivHomModel[['group2.S']]$labels <- bivHomModel[['group1.S']]$labels
-    bivHomModel[['group2.M']]$labels <- bivHomModel[['group1.M']]$labels
+bivHomModel[['group2.S']]$labels <- bivHomModel[['group1.S']]$labels
+bivHomModel[['group2.M']]$labels <- bivHomModel[['group1.M']]$labels
 
-    bivHomFit <- mxRun(bivHomModel)
-    EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
-    EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
-    EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
-    EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
-    LLHom <- mxEval(fitfunction, bivHomFit)
+bivHomFit <- mxRun(bivHomModel)
+EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
+EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
+EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
+EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
+LLHom <- bivHomFit$output$fit
 
-    Chi= LLHom-LLHet
-    LRT= rbind(LLHet,LLHom,Chi)
-    LRT
+EM1Hom; EM2Hom; EC1Hom; EC2Hom; LLHom
+
+Chi= LLHom-LLHet
+LRT= rbind(LLHet,LLHom,Chi)
+LRT
 # Fit Homnogeneity Model
 # -----------------------------------------------------------------------------
 
@@ -214,7 +165,6 @@ Mx.like <- rbind(cbind(Mx.LLHet),cbind(Mx.LLHom))
 Mx.cov; Mx.mean; Mx.like
 # old Mx summary
 # -----------------------------------------------------------------------------
-
 
 
 omxCheckCloseEnough(LLHet,Mx.LLHet,.001)

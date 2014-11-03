@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -54,56 +55,23 @@ names(myRegDataMeans) <- c("w","x","y","z")
 SimpleDataMeans <- myRegDataMeans[c(2,3)]
 # Prepare Data
 # -----------------------------------------------------------------------------
-	
-uniRegModel <- mxModel("Simple Regression Matrix Specification", 
-    mxData(
-      observed=SimpleDataCov, 
-      type="cov", 
-      numObs=100,
-      means=SimpleDataMeans
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=2, 
-        ncol=2,
-        free=c(F, F,
-               T, F),
-        values=c(0, 0,
-                 1, 0),
-        labels=c(NA,     NA,
-                "beta1", NA),
-        byrow=TRUE,
-        name="A"
-    ),
-    mxMatrix(
-        type="Symm", 
-        nrow=2, 
-        ncol=2, 
-        values=c(1, 0,
-                 0, 1),
-        free=c(T, F,
-               F, T),
-        labels=c("varx", NA,
-                  NA,    "residual"),
-        byrow=TRUE,
-        name="S"
-    ),
-    mxMatrix(
-        type="Iden",  
-        nrow=2, 
-        ncol=2,
-        name="F"
-    ),
-    mxMatrix(
-        type="Full", 
-        nrow=1, 
-        ncol=2,
-        free=c(T, T),
-        values=c(0, 0),
-        labels=c("meanx", "beta0"),
-        name="M"),
-    mxFitFunctionML(),mxExpectationRAM("A", "S", "F", "M", dimnames = c("x", "y"))
-)
+
+dataCov      <- mxData( observed=SimpleDataCov, type="cov", numObs=100, 
+                          means=SimpleDataMeans )
+matrA        <- mxMatrix( type="Full", nrow=2, ncol=2, 
+                          free=c(F,F,T,F), values=c(0,0,1,0), 
+                          labels=c(NA,NA,"beta1",NA), byrow=TRUE, name="A" )
+matrS        <- mxMatrix( type="Symm", nrow=2, ncol=2, 
+                          free=c(T,F,F,T), values=c(1,0,0,1), 
+                          labels=c("varx",NA,NA,"residual"), byrow=TRUE, name="S" )
+matrF        <- mxMatrix( type="Iden", nrow=2, ncol=2, name="F" )
+matrM        <- mxMatrix( type="Full", nrow=1, ncol=2, 
+                          free=c(T,T), values=c(0,0), 
+                          labels=c("meanx","beta0"), name="M")
+expRAM       <- mxExpectationRAM("A","S","F","M", dimnames=c("x","y"))
+funML        <- mxFitFunctionML()
+uniRegModel  <- mxModel("Simple Regression Matrix Specification", 
+                        dataCov, matrA, matrS, matrF, matrM, expRAM, funML)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

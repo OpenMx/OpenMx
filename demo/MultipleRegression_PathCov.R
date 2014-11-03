@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data and Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -55,55 +56,25 @@ MultipleDataMeans <- myRegDataMeans[c(2,3,4)]
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-multiRegModel <- mxModel("Multiple Regression Path Specification", 
-      type="RAM",
-      mxData(
-          observed=MultipleDataCov, 
-          type="cov",
-          numObs=100,
-          means=MultipleDataMeans
-      ),
-      manifestVars=c("x", "y", "z"),
-      mxPath(
-          from=c("x", "y", "z"), 
-          arrows=2,
-          free=TRUE, 
-          values = c(1, 1, 1),
-          labels=c("varx", "residual", "varz")
-      ),
-      # variance paths
-      # -------------------------------------
-      mxPath(
-          from="x",
-          to="z",
-          arrows=2,
-          free=TRUE,
-          values=0.5,
-          labels="covxz"
-      ), 
-      # covariance of x and z
-      # -------------------------------------
-      mxPath(
-          from=c("x","z"),
-          to="y",
-          arrows=1,
-          free=TRUE,
-          values=1,
-          labels=c("betax","betaz")
-      ), 
-      # regression weights
-      # -------------------------------------
-      mxPath(
-          from="one",
-          to=c("x", "y", "z"),
-          arrows=1,
-          free=TRUE,
-          values=c(1, 1),
-          labels=c("meanx", "beta0", "meanz")
-      )
-      # means and intercepts
-      # -------------------------------------
-) # close model
+# dataset
+dataCov      <- mxData( observed=MultipleDataCov,  type="cov", numObs=100, 
+                        means=MultipleDataMeans )
+# variance paths      
+varPaths     <- mxPath( from=c("x","y","z"),  arrows=2, 
+                        free=TRUE, values = c(1,1,1), labels=c("varx","res","varz") )
+# covariance of x and z
+covPaths     <- mxPath( from="x", to="z", arrows=2, 
+                        free=TRUE, values=0.5, labels="covxz" )
+# regression weights
+regPaths     <- mxPath( from=c("x","z"), to="y", arrows=1, 
+                        free=TRUE, values=1, labels=c("betax","betaz") )
+# means and intercepts
+means        <- mxPath( from="one", to=c("x","y","z"), arrows=1, 
+                        free=TRUE, values=c(1,1), labels=c("meanx","beta0","meanz") )
+
+multiRegModel <- mxModel("Multiple Regression Path Specification", type="RAM",
+                        dataCov, manifestVars=c("x","y","z"), 
+                        varPaths, covPaths, regPaths, means)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       
@@ -116,7 +87,7 @@ multiRegFit$output
 omxCheckCloseEnough(multiRegFit$output$estimate[["beta0"]], 1.6312, 0.001)
 omxCheckCloseEnough(multiRegFit$output$estimate[["betax"]], 0.4243, 0.001)
 omxCheckCloseEnough(multiRegFit$output$estimate[["betaz"]], 0.2265, 0.001)
-omxCheckCloseEnough(multiRegFit$output$estimate[["residual"]], 0.6336, 0.001)
+omxCheckCloseEnough(multiRegFit$output$estimate[["res"]], 0.6336, 0.001)
 omxCheckCloseEnough(multiRegFit$output$estimate[["varx"]], 1.1160, 0.001)
 omxCheckCloseEnough(multiRegFit$output$estimate[["varz"]], 0.8360, 0.001)
 omxCheckCloseEnough(multiRegFit$output$estimate[["covxz"]], 0.2890, 0.001)

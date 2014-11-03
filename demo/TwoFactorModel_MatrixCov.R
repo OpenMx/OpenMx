@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -61,100 +62,81 @@ twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
 # Prepare Data
 # -----------------------------------------------------------------------------
 
+dataCov      <- mxData( observed=twoFactorCov, type="cov", numObs=500,
+                        mean=twoFactorMeans )
+dataRaw      <- mxData( observed=myFADataRaw, type="raw" )
+matrA        <- mxMatrix( type="Full", nrow=8, ncol=8,
+                          free=  c(F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,T,F,
+                                   F,F,F,F,F,F,T,F,
+                                   F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,F,F),
+                          values=c(0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,0,
+                                   0,0,0,0,0,0,0,0),
+                          labels=c(NA,NA,NA,NA,NA,NA,"l1",NA,
+                                   NA,NA,NA,NA,NA,NA,"l2",NA,
+                                   NA,NA,NA,NA,NA,NA,"l3",NA,
+                                   NA,NA,NA,NA,NA,NA,NA,"l4",
+                                   NA,NA,NA,NA,NA,NA,NA,"l5",
+                                   NA,NA,NA,NA,NA,NA,NA,"l6",
+                                   NA,NA,NA,NA,NA,NA,NA,NA,
+                                   NA,NA,NA,NA,NA,NA,NA,NA),
+                          byrow=TRUE, name="A" )
+matrS        <- mxMatrix( type="Symm", nrow=8, ncol=8, 
+                          free=  c(T,F,F,F,F,F,F,F,
+                                   F,T,F,F,F,F,F,F,
+                                   F,F,T,F,F,F,F,F,
+                                   F,F,F,T,F,F,F,F,
+                                   F,F,F,F,T,F,F,F,
+                                   F,F,F,F,F,T,F,F,
+                                   F,F,F,F,F,F,T,T,
+                                   F,F,F,F,F,F,T,T),
+                          values=c(1,0,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,0,
+                                   0,0,0,1,0,0,0,0,
+                                   0,0,0,0,1,0,0,0,
+                                   0,0,0,0,0,1,0,0,
+                                   0,0,0,0,0,0,1,.5,
+                                   0,0,0,0,0,0,.5,1),
+                          labels=c("e1",NA,  NA,  NA,  NA,  NA,  NA,  NA,
+                                   NA, "e2", NA,  NA,  NA,  NA,  NA,  NA,
+                                   NA,  NA, "e3", NA,  NA,  NA,  NA,  NA,
+                                   NA,  NA,  NA, "e4", NA,  NA,  NA,  NA,
+                                   NA,  NA,  NA,  NA, "e5", NA,  NA,  NA,
+                                   NA,  NA,  NA,  NA,  NA, "e6", NA,  NA,
+                                   NA,  NA,  NA,  NA,  NA,  NA,"varF1","cov",
+                                   NA,  NA,  NA,  NA,  NA,  NA,"cov","varF2"),
+                          byrow=TRUE, name="S" )
+matrF        <- mxMatrix( type="Full", nrow=6, ncol=8,
+                          free=FALSE,
+                          values=c(1,0,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,0,
+                                   0,0,0,1,0,0,0,0,
+                                   0,0,0,0,1,0,0,0,
+                                   0,0,0,0,0,1,0,0),
+                          byrow=TRUE, name="F" )
+matrM        <- mxMatrix( type="Full", nrow=1, ncol=8,
+                          free=c(T,T,T,T,T,T,F,F),
+                          values=c(1,1,1,1,1,1,0,0),
+                          labels=c("meanx1","meanx2","meanx3",
+                                   "meanx4","meanx5","meanx6",NA,NA),
+                          name="M" )
+exp          <- mxExpectationRAM("A","S","F","M", 
+                                  dimnames=c(manifestVars, latentVars))
+funML        <- mxFitFunctionML()
 twoFactorModel <- mxModel("Two Factor Model Matrix Specification", 
-    mxData(
-        observed=twoFactorCov, 
-        type="cov", 
-        numObs=500,
-        means=twoFactorMeans
-        ),
-    mxMatrix(
-    	type="Full", 
-    	nrow=8, 
-    	ncol=8,
-        values=c(0,0,0,0,0,0,1,0,
-                 0,0,0,0,0,0,1,0,
-                 0,0,0,0,0,0,1,0,
-                 0,0,0,0,0,0,0,1,
-                 0,0,0,0,0,0,0,1,
-                 0,0,0,0,0,0,0,1,
-                 0,0,0,0,0,0,0,0,
-                 0,0,0,0,0,0,0,0),
-        free=c(F, F, F, F, F, F, F, F,
-               F, F, F, F, F, F, T, F,
-               F, F, F, F, F, F, T, F,
-               F, F, F, F, F, F, F, F,
-               F, F, F, F, F, F, F, T,
-               F, F, F, F, F, F, F, T,
-               F, F, F, F, F, F, F, F,
-               F, F, F, F, F, F, F, F),
-        labels=c(NA,NA,NA,NA,NA,NA,"l1", NA,
-                 NA,NA,NA,NA,NA,NA,"l2", NA,
-                 NA,NA,NA,NA,NA,NA,"l3", NA,
-                 NA,NA,NA,NA,NA,NA, NA,"l4",
-                 NA,NA,NA,NA,NA,NA, NA,"l5",
-                 NA,NA,NA,NA,NA,NA, NA,"l6",
-                 NA,NA,NA,NA,NA,NA, NA, NA,
-                 NA,NA,NA,NA,NA,NA, NA, NA),
-        byrow=TRUE,
-        name="A"
-    ),
-    mxMatrix(
-    	type="Symm", 
-    	nrow=8, 
-    	ncol=8, 
-        values=c(1,0,0,0,0,0, 0, 0,
-                 0,1,0,0,0,0, 0, 0,
-                 0,0,1,0,0,0, 0, 0,
-                 0,0,0,1,0,0, 0, 0,
-                 0,0,0,0,1,0, 0, 0,
-                 0,0,0,0,0,1, 0, 0,
-                 0,0,0,0,0,0, 1,.5,
-                 0,0,0,0,0,0,.5, 1),
-        free=c(T, F, F, F, F, F, F, F,
-               F, T, F, F, F, F, F, F,
-               F, F, T, F, F, F, F, F,
-               F, F, F, T, F, F, F, F,
-               F, F, F, F, T, F, F, F,
-               F, F, F, F, F, T, F, F,
-               F, F, F, F, F, F, T, T,
-               F, F, F, F, F, F, T, T),
-        labels=c("e1", NA,   NA,   NA,   NA,   NA,    NA,    NA,
-                 NA, "e2",   NA,   NA,   NA,   NA,    NA,    NA,
-                 NA,   NA, "e3",   NA,   NA,   NA,    NA,    NA,
-                 NA,   NA,   NA, "e4",   NA,   NA,    NA,    NA,
-                 NA,   NA,   NA,   NA, "e5",   NA,    NA,    NA,
-                 NA,   NA,   NA,   NA,   NA, "e6",    NA,    NA,
-                 NA,   NA,   NA,   NA,   NA,   NA, "varF1", "cov",
-                 NA,   NA,   NA,   NA,   NA,   NA, "cov", "varF2"),
-        byrow=TRUE,
-        name="S"
-    ),
-    mxMatrix(
-    	type="Full",
-    	nrow=6, 
-    	ncol=8,
-        free=F,
-        values=c(1,0,0,0,0,0,0,0,
-                 0,1,0,0,0,0,0,0,
-                 0,0,1,0,0,0,0,0,
-                 0,0,0,1,0,0,0,0,
-                 0,0,0,0,1,0,0,0,
-                 0,0,0,0,0,1,0,0),
-        byrow=T,
-        name="F"
-    ),
-    mxMatrix(
-    	type="Full", 
-    	nrow=1, 
-    	ncol=8,
-        values=c(1,1,1,1,1,1,0,0),
-        free=c(T,T,T,T,T,T,F,F),
-        labels=c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA,NA),
-        name="M"
-    ),
-    mxFitFunctionML(),mxExpectationRAM("A","S","F","M",dimnames=c("x1","x2","x3","y1","y2","y3","F1","F2"))
-)
+                          dataCov, matrA, matrS, matrF, matrM, exp, funML)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

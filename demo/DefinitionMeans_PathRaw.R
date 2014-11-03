@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 #This script is used to test the definition variable functionality in OpenMx.
@@ -48,77 +49,39 @@ library(MASS)
 
 set.seed(200)
 N=500
-Sigma <- matrix(c(1,.5,.5,1),2,2)
-group1<-mvrnorm(N, c(1,2), Sigma) # use mvrnorm from MASS package
-group2<-mvrnorm(N, c(0,0), Sigma)
+Sigma          <- matrix(c(1,.5,.5,1),2,2)
+group1         <- mvrnorm(N, c(1,2), Sigma) # Use mvrnorm from MASS package
+group2         <- mvrnorm(N, c(0,0), Sigma)
 
-y<-rbind(group1,group2)           # Bind both groups together by rows
-dimnames(y)[2]<-list(c("x","y")); # Add names
-def    <-rep(c(1,0),each=N);      # Add a definition variable 2n 
-								  # in length for group status
-selVars<-c("x","y")               # Make a selection variables object
+xy             <- rbind(group1,group2)      # Bind groups together by rows
+dimnames(xy)[2]<- list(c("x","y"))          # Add names
+def            <- rep(c(1,0),each=N);       # Add def var [2n] for group status
+selVars        <- c("x","y")                # Make selection variables object
 # Simulate data
 # -----------------------------------------------------------------------------
 
-defMeansModel <- mxModel("Definition Means Path Specification", 
-	type="RAM",
-	manifestVars=selVars,
-	latentVars  ="DefDummy",
-    mxPath(
-    	from=c("x","y"), 
-    	arrows=2, 
-    	free= TRUE, 
-    	values=1,  
-    	labels=c("Varx","Vary")
-    ),
-	# variances
-	# -------------------------------------
-    mxPath(
-    	from="x", 
-    	to="y", 
-    	arrows=2, 
-    	free= TRUE, 
-    	values=.1, 
-    	labels=c("Covxy")
-    ),
-	# covariances
-	# -------------------------------------        
-    mxPath(
-    	from="one", 
-    	to=c("x","y"), 
-    	arrows=1, 
-    	free= TRUE, 
-    	values=1, 
-    	labels=c("meanx","meany")
-    ),
- 	# means 
-	# ------------------------------------- 
-    mxPath(
-    	from="one", 
-    	to="DefDummy", 
-    	arrows=1, 
-    	free= FALSE, 
-    	values=1, 
-    	labels="data.def"
-    ),
-    # definition value
-	# ------------------------------------- 
-    mxPath(
-    	from="DefDummy", 
-    	to=c("x","y"), 
-    	arrows=1, 
-    	free= TRUE, 
-    	values=1, 
-    	labels=c("beta_1","beta_2")
-    ), 
-	# beta weights
-	# -------------------------------------
-    mxData(
-    	observed=data.frame(y,def), 
-    	type="raw"
-    )
-)
-#Define model
+# variances
+variances    <- mxPath( from=c("x","y"), arrows=2, 
+                        free=TRUE, values=1, labels=c("Varx","Vary") )
+# covariances
+covariances  <- mxPath( from="x", to="y", arrows=2, 
+                        free=TRUE, values=.1, labels=c("Covxy") )
+# means
+means        <- mxPath( from="one", to=c("x","y"), arrows=1, 
+                        free=TRUE, values=1, labels=c("meanx","meany") )
+# definition value
+defValues    <- mxPath( from="one", to="DefDummy", arrows=1, 
+                        free=FALSE, values=1, labels="data.def" )
+# beta weights
+betaWeights  <- mxPath( from="DefDummy", to=c("x","y"), arrows=1, 
+                        free=TRUE, values=1, labels=c("beta_1","beta_2") )
+# dataset
+dataRaw      <- mxData( observed=data.frame(xy,def), type="raw" )
+defMeansModel <- mxModel("Definition Means Path Specification", type="RAM",
+                         manifestVars=selVars, latentVars="DefDummy",
+                         dataRaw, variances, covariances, means, 
+                         defValues, betaWeights)
+# Define model
 # -----------------------------------------------------------------------------
 
 defMeansFit<-mxRun(defMeansModel)

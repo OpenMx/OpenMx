@@ -31,6 +31,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -58,45 +59,21 @@ myRegDataMeans<-c(0.05416, 2.57393)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
- uniRegModel <- mxModel("Simple Regression Path Specification", 
-    type="RAM",
-    mxData(
-        observed=SimpleDataCov, 
-        type="cov", 
-        numObs=100,
-        means=SimpleDataMeans 
-    ),
-    manifestVars=c("x", "y"),
-    mxPath(
-        from=c("x", "y"), 
-        arrows=2,
-        free=TRUE, 
-        values = c(1, 1),
-        labels=c("varx", "residual")
-    ),
-    # variance paths
-    # -------------------------------------
-    mxPath(
-        from="x",
-        to="y",
-        arrows=1,
-        free=TRUE,
-        values=1,
-        labels="beta1"
-    ), 
-    # regression weights
-    # -------------------------------------
-    mxPath(
-        from="one",
-        to=c("x", "y"),
-        arrows=1,
-        free=TRUE,
-        values=c(1, 1),
-        labels=c("meanx", "beta0")
-    )
-    # means and intercepts
-    # -------------------------------------
-) # close model
+# dataset
+dataCov      <- mxData( observed=SimpleDataCov, type="cov", numObs=100, 
+    						means=SimpleDataMeans )
+# variance paths
+varPaths     <- mxPath( from=c("x", "y"), arrows=2, 
+                        free=TRUE, values = c(1, 1), labels=c("varx", "residual") )
+# regression weights
+regPaths     <- mxPath( from="x", to="y", arrows=1, 
+                        free=TRUE, values=1, labels="beta1" ) 
+# means and intercepts
+means        <- mxPath( from="one", to=c("x", "y"), arrows=1, 
+                        free=TRUE, values=c(1, 1), labels=c("meanx", "beta0") )
+    
+uniRegModel  <- mxModel(model="Simple Regression Path Specification", type="RAM", 
+                        dataCov, manifestVars=c("x", "y"), varPaths, regPaths, means)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

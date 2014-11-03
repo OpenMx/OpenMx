@@ -29,110 +29,83 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
 # Load Library
 # -----------------------------------------------------------------------------
 
-data(twinData)
-twinVars <- c('fam','age','zyg','part','wt1','wt2','ht1','ht2','htwt1','htwt2','bmi1','bmi2')
-#dimnames(twinData) <- list(NULL, twinVars)
-summary(twinData)
-selVars <- c('bmi1','bmi2')
-aceVars <- c("A1","C1","E1","A2","C2","E2")
-mzData <- as.matrix(subset(twinData, zyg==1, c(bmi1,bmi2)))
-dzData <- as.matrix(subset(twinData, zyg==3, c(bmi1,bmi2)))
-colMeans(mzData,na.rm=TRUE)
-colMeans(dzData,na.rm=TRUE)
-cov(mzData,use="complete")
-cov(dzData,use="complete")
+    # Load Data
+    data(twinData)
+
+    # Select Variables for Analysis
+    selVars   <- c('bmi1','bmi2')
+    aceVars   <- c("A1","C1","E1","A2","C2","E2")
+
+    # Select Data for Analysis
+    mzData    <- subset(twinData, zyg==1, selVars)
+    dzData    <- subset(twinData, zyg==3, selVars)
+
+    # Generate Descriptive Statistics
+    colMeans(mzData,na.rm=TRUE)
+    colMeans(dzData,na.rm=TRUE)
+    cov(mzData,use="complete")
+    cov(dzData,use="complete")
+
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-ACEModel <- mxModel("ACE", # Twin ACE Model -- Path Specification
-	type="RAM",
-    manifestVars=selVars,
-    latentVars=aceVars,
-    mxPath(
-    	from=aceVars, 
-    	arrows=2, 
-    	free=FALSE, 
-    	values=1
-    ),
-    mxPath(
-    	from="one", 
-    	to=aceVars, 
-    	arrows=1, 
-    	free=FALSE, 
-    	values=0
-    ),
-    mxPath(
-    	from="one", 
-    	to=selVars, 
-    	arrows=1, 
-    	free=TRUE, 
-    	values=20, 
-    	labels= "mean"
-    ),
-    mxPath(
-    	from=c("A1","C1","E1"), 
-    	to="bmi1", 
-    	arrows=1, 
-    	free=TRUE, 
-    	values=.6, 
-    	label=c("a","c","e")
-    ),
-    mxPath(
-    	from=c("A2","C2","E2"), 
-    	to="bmi2", 
-    	arrows=1, 
-    	free=TRUE, 
-    	values=.6, 
-    	label=c("a","c","e")
-    ),
-    mxPath(
-    	from="C1", 
-    	to="C2", 
-    	arrows=2, 
-    	free=FALSE, 
-    	values=1
-    )
-)    
-mzModel <- mxModel(ACEModel, name="MZ",
-	mxPath(
-		from="A1", 
-		to="A2", 
-		arrows=2, 
-		free=FALSE, 
-		values=1
-	),
-	mxData(
-		observed=mzData, 
-		type="raw"
-	)
-)
-dzModel <- mxModel(ACEModel, name="DZ", 
-    mxPath(
-    	from="A1", 
-    	to="A2", 
-    	arrows=2, 
-    	free=FALSE, 
-    	values=.5
-    ),
-    mxData(
-    	observed=dzData, 
-    	type="raw"
-    )
-)
+    require(OpenMx)    
+    
+    # Path objects for Multiple Groups
+    manifestVars=selVars
+    latentVars=aceVars
+    # variances of latent variables
+    latVariances <- mxPath( from=aceVars, arrows=2, 
+                            free=FALSE, values=1 )
+    # means of latent variables
+    latMeans     <- mxPath( from="one", to=aceVars, arrows=1, 
+                            free=FALSE, values=0 )
+    # means of observed variables
+    obsMeans     <- mxPath( from="one", to=selVars, arrows=1, 
+                            free=TRUE, values=20, labels="mean" )
+    # path coefficients for twin 1
+    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
+    # path coefficients for twin 2
+    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, 
+                            free=TRUE, values=.5,  label=c("a","c","e") )
+    # covariance between C1 & C2
+    covC1C2      <- mxPath( from="C1", to="C2", arrows=2, 
+                            free=FALSE, values=1 )
+    # covariance between A1 & A2 in MZ twins
+    covA1A2_MZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=1 )
+    # covariance between A1 & A2 in DZ twins
+    covA1A2_DZ   <- mxPath( from="A1", to="A2", arrows=2, 
+                            free=FALSE, values=.5 )
 
-twinACEModel <- mxModel("twinACE", mzModel, dzModel,
-    mxAlgebra(
-    	expression=MZ.objective + DZ.objective, 
-    	name="twin"
-    ), 
-    mxFitFunctionAlgebra("twin")
-)
+    # Data objects for Multiple Groups
+    dataMZ       <- mxData( observed=mzData, type="raw" )
+    dataDZ       <- mxData( observed=dzData, type="raw" )
+
+    # Combine Groups
+    paths        <- list( latVariances, latMeans, obsMeans, 
+                          pathAceT1, pathAceT2, covC1C2 )
+    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
+    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
+    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, 
+                               name="minus2loglikelihood" )
+    obj          <- mxFitFunctionAlgebra( "minus2loglikelihood" )
+    modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, minus2ll, obj )
+
+    # Run Model
+    fitACE       <- mxRun(modelACE)
+    sumACE       <- summary(fitACE)
+
 # Fit ACE Model with RawData and Path-Style Input
 # -----------------------------------------------------------------------------
 
@@ -140,19 +113,25 @@ twinACEFit <- mxRun(twinACEModel)
 # Run ACE model
 # -----------------------------------------------------------------------------
 
-MZc <- twinACEFit$MZ.fitfunction$info$expCov
-DZc <- twinACEFit$DZ.fitfunction$info$expCov
-M <- twinACEFit$MZ.fitfunction$info$expMean
-A <- mxEval(a*a, twinACEFit)
-C <- mxEval(c*c, twinACEFit)
-E <- mxEval(e*e, twinACEFit)
-V <- (A+C+E)
-a2 <- A/V
-c2 <- C/V
-e2 <- E/V
-ACEest <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
-LL_ACE <- mxEval(objective, twinACEFit)
-
+    # Generate & Print Output
+    # additive genetic variance, a^2
+    A  <- mxEval(a*a, fitACE)
+    # shared environmental variance, c^2
+    C  <- mxEval(c*c, fitACE)
+    # unique environmental variance, e^2
+    E  <- mxEval(e*e, fitACE)
+    # total variance
+    V  <- (A+C+E)
+    # standardized A
+    a2 <- A/V
+    # standardized C
+    c2 <- C/V
+    # standardized E
+    e2 <- E/V
+    # table of estimates
+    estACE <- rbind(cbind(A,C,E),cbind(a2,c2,e2))
+    # likelihood of ACE model
+    LL_ACE <- mxEval(fitfunction, fitACE)
 
 
 Mx.A <- 0.6173023
@@ -176,75 +155,45 @@ omxCheckCloseEnough(M,Mx.M,.001)
 # (LL: likelihood; EC: expected covariance, EM: expected means)
 
 
-AEModel <- mxModel(ACEModel, #name="twinAE",
-    mxPath(
-    	from=c("A1","C1","E1"), 
-    	to="bmi1", 
-    	arrows=1, 
-    	free=c(T,F,T),
-    	values=c(.6,0,.6), 
-    	label=c("a","c","e")
-    ),
-    mxPath(
-    	from=c("A2","C2","E2"), 
-    	to="bmi2", 
-    	arrows=1, 
-    	free=c(T,F,T),
-    	values=c(.6,0,.6), 
-    	label=c("a","c","e")
-    )
-)
-mzModel <- mxModel(AEModel, name="MZ",
-	mxPath(
-		from="A1", 
-		to="A2", 
-		arrows=2, 
-		free=FALSE, 
-		values=1
-	),
-	mxData(
-		observed=mzData, 
-		type="raw"
-	)
-)
-dzModel <- mxModel(AEModel, name="DZ", 
-    mxPath(
-    	from="A1", 
-    	to="A2", 
-    	arrows=2, 
-    	free=FALSE, 
-    	values=.5
-    ),
-    mxData(
-    	observed=dzData, 
-    	type="raw"
-    )
-)    
-twinAEModel <- mxModel("twinAE", mzModel, dzModel,
-    mxAlgebra(
-    	expression=MZ.objective + DZ.objective, 
-    	name="twin"
-    ), 
-    mxFitFunctionAlgebra("twin")
-)
+    #Run AE model
+    # path coefficients for twin 1
+    pathAceT1    <- mxPath( from=c("A1","C1","E1"), to="bmi1", arrows=1, 
+                            free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") )
+    # path coefficients for twin 2
+    pathAceT2    <- mxPath( from=c("A2","C2","E2"), to="bmi2", arrows=1, 
+                            free=c(T,F,T), values=c(.6,0,.6),  label=c("a","c","e") )
 
-twinAEFit <- mxRun(twinAEModel)
+    # Combine Groups
+    paths        <- list( latVariances, latMeans, obsMeans, 
+                            pathAceT1, pathAceT2, covC1C2 )
+    modelMZ      <- mxModel(model="MZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
+    modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
+                            latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
+    modelAE      <- mxModel(model="AE", modelMZ, modelDZ, minus2ll, obj )
+
+    # Run Model
+    fitAE        <- mxRun(modelAE)
+    sumAE        <- summary(fitAE)
+
+
 #Run AE model
 # -----------------------------------------------------------------------------
 
-MZc <- twinAEFit$MZ.fitfunction$info$expCov
-DZc <- twinAEFit$DZ.fitfunction$info$expCov
-M <- twinAEFit$MZ.fitfunction$info$expMean
-A <- mxEval(a*a, twinAEFit)
-C <- mxEval(c*c, twinAEFit)
-E <- mxEval(e*e, twinAEFit)
-V <- (A+C+E)
-a2 <- A/V
-c2 <- C/V
-e2 <- E/V
-AEest <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
-LL_AE <- mxEval(objective, twinAEFit)
-
+    # Generate & Print Output
+    A  <- mxEval(a*a, fitAE)
+    C  <- mxEval(c*c, fitAE)
+    E  <- mxEval(e*e, fitAE)
+    V  <- (A+C+E)
+    a2 <- A/V
+    c2 <- C/V
+    e2 <- E/V
+    estAE <- rbind(cbind(A, C, E),cbind(a2, c2, e2))
+    LL_AE <- mxEval(fitfunction, fitAE)
+    LRT_ACE_AE <- LL_AE - LL_ACE
+    estACE
+    estAE
+    LRT_ACE_AE
 
 
 Mx.A <- 0.6173023

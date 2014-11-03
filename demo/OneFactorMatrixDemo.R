@@ -52,10 +52,10 @@ factorModel <- mxModel(name ="One Factor",
 # Create an MxModel object
 # -----------------------------------------------------------------------------
 
-factorModelFit <- mxRun(factorModel)
+factorFit <- mxRun(factorModel)
 # Fit the model to the observed covariances with mxRun
 # -----------------------------------------------------------------------------
 
-summary(factorModelFit)
+summary(factorFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------

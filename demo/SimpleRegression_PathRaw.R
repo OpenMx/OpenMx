@@ -30,6 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06 added Model, Data & Field metadata
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -44,40 +45,20 @@ myRegDataRaw <- myRegDataRaw[,c("x","y")]
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-uniRegModel <- mxModel("Simple Regression Path Specification", 
-      type="RAM",
-      mxData(
-      		observed=myRegDataRaw, 
-      		type="raw"
-      ),
-      manifestVars=c("x","y"),
-      mxPath(from=c("x","y"), 
-            arrows=2,
-            free=TRUE, 
-            values = c(1,1),
-            labels=c("varx","residual")
-      ), 
-	  # variances
-      # -------------------------------------
-      mxPath(from="x",
-            to="y",
-            arrows=1,
-            free=TRUE,
-            values=1,
-            label="beta1"
-      ), 
-      # regression weight
-      # -------------------------------------
-      mxPath(from="one",
-            to=c("x","y"),
-            arrows=1,
-            free=TRUE,
-            values=c(1,1),
-            labels=c("meanx","beta0")
-      ) 
-      # means
-      # -------------------------------------
-) # close model
+# dataset
+dataRaw      <- mxData( observed=myRegDataRaw, type="raw" )
+# variance paths
+varPaths     <- mxPath( from=c("x", "y"), arrows=2, 
+                        free=TRUE, values = c(1, 1), labels=c("varx", "residual") )
+# regression weights
+regPaths     <- mxPath( from="x", to="y", arrows=1, 
+                        free=TRUE, values=1, labels="beta1" ) 
+# means and intercepts
+means        <- mxPath( from="one", to=c("x", "y"), arrows=1, 
+                        free=TRUE, values=c(1, 1), labels=c("meanx", "beta0") )
+    
+uniRegModel  <- mxModel(model="Simple Regression Path Specification", type="RAM", 
+                        dataRaw, manifestVars=c("x", "y"), varPaths, regPaths, means)                        
 # Create an MxModel object
 # -----------------------------------------------------------------------------
       

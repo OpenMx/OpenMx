@@ -30,34 +30,36 @@
 # RevisionHistory:
 #      Hermine Maes -- 2010.02.22 updated & reformatted
 #      Ross Gore -- 2011.06.15 added Model, Data & Field
+#      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
 
 require(OpenMx)
 # Load Library
 # -----------------------------------------------------------------------------
+	
+# Matrices for allele frequencies, p and s
+matP         <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                          free=TRUE, values=c(.3333), name="P")
+matS         <- mxMatrix( type="Full", nrow=1, ncol=1, 
+                          free=TRUE, values=c(.3333), name="S")
+# Matrix of observed data    
+obsFreq      <- mxMatrix( type="Full", nrow=4, ncol=1, 
+                          values=c(211,104,39,148), name="ObservedFreqs")
+matQ         <- mxAlgebra( expression=1-P, name="Q")
+matT         <- mxAlgebra( expression=1-S, name="T")
+# Algebra for predicted proportions
+expFreq      <- mxAlgebra( rbind ((P*P+2*P*Q)*T*T, (Q*Q)*(S*S+2*S*T), 
+                          (P*P+2*P*Q)*(S*S+2*S*T), (Q*Q)*(T*T)), name="ExpectedFreqs")
+# Algebra for -2logLikelihood
+m2ll         <- mxAlgebra( expression=-(sum(log(ExpectedFreqs) 
+                          * ObservedFreqs)), name="NegativeLogLikelihood")
+# User-defined objective
+funAl        <- mxFitFunctionAlgebra("NegativeLogLikelihood") 
 
 TwoLocusModel <- mxModel("TwoLocus",
-	
-    mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="P"),
-    mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=c(.3333), name="S"),
-	# Matrices for allele frequencies, p and s
-	# -------------------------------------
-    mxMatrix( type="Full", nrow=4, ncol=1, values=c(211,104,39,148), name="ObservedFreqs"),
-	# Matrix of observed data
-	# -------------------------------------
-    mxAlgebra( expression=1-P, name="Q"),
-    mxAlgebra( expression=1-S, name="T"),
-    mxAlgebra(rbind ((P*P+2*P*Q)*T*T, (Q*Q)*(S*S+2*S*T), (P*P+2*P*Q)*(S*S+2*S*T), (Q*Q)*(T*T)), name="ExpectedFreqs"),
-	# Algebra for predicted proportions
-	# -------------------------------------
-    mxAlgebra( expression=-(sum(log(ExpectedFreqs) * ObservedFreqs)), name="NegativeLogLikelihood"),
-	# Algebra for -logLikelihood
-	# -------------------------------------
-    mxFitFunctionAlgebra("NegativeLogLikelihood")
-	# User-defined objective
-	# -------------------------------------	
-)
+                          matP, matS, matQ, matT, obsFreq, expFreq, m2ll, funAl)
+
 # Create an MxModel object
 # -----------------------------------------------------------------------------
 
