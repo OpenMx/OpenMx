@@ -1,6 +1,5 @@
 import(parallel)
 import(methods)
-import(utils)
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -29,14 +28,13 @@ S3method(print, summary.mxmodel)
 S3method(logLik, MxModel)
 
 # Export S3 .DollarNames functions
-export("GetSlotDisplayNames")
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
-S3method(.DollarNames, MxMatrix, GetSlotDisplayNames)
-S3method(.DollarNames, MxAlgebra, GetSlotDisplayNames)
-S3method(.DollarNames, MxCompute, GetSlotDisplayNames)
-S3method(.DollarNames, MxData, GetSlotDisplayNames)
-S3method(.DollarNames, MxBaseExpectation, GetSlotDisplayNames)
-S3method(.DollarNames, MxBaseFitFunction, GetSlotDisplayNames)
-S3method(.DollarNames, MxInterval, GetSlotDisplayNames)
-S3method(.DollarNames, MxPath, GetSlotDisplayNames)
-S3method(.DollarNames, MxThreshold, GetSlotDisplayNames)
+S3method(.DollarNames, MxMatrix, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxAlgebra, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxCompute, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxData, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxBaseExpectation, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxBaseFitFunction, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxInterval, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxPath, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxThreshold, imxDefaultGetSlotDisplayNames)

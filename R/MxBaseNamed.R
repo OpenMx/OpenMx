@@ -62,7 +62,15 @@ imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(obje
 	grep(pattern, slotList, value=TRUE)
 }
 
-GetSlotDisplayNames <- function(x, pattern='.*') {
+##' imxDefaultGetSlotDisplayNames
+##' 
+##' Returns a list of display-friendly object slot names
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param x The object from which to get slot names
+##' @param pattern Initial pattern to match (default of '.*' matches any)
+imxDefaultGetSlotDisplayNames <- function(x, pattern='.*') {
 	imxGetSlotDisplayNames(x, pattern)
 }
 
