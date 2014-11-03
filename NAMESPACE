@@ -1,5 +1,6 @@
 import(parallel)
 import(methods)
+import(utils)
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -28,6 +29,7 @@ S3method(print, summary.mxmodel)
 S3method(logLik, MxModel)
 
 # Export S3 .DollarNames functions
+export("GetSlotDisplayNames")
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
 S3method(.DollarNames, MxMatrix, GetSlotDisplayNames)
 S3method(.DollarNames, MxAlgebra, GetSlotDisplayNames)
