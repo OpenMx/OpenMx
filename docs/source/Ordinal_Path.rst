@@ -7,15 +7,15 @@ This chapter deals with the specification of models that are either fit exclusiv
 
 The examples for this chapter can be found in the following file:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_PathRaw.R
+* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorJoint_PathRaw.R
 
-The continuous versions of these models for raw data can be found the previous demos here:
+The continuous version of this model for raw data can be found the previous demos here:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_MatrixRaw.R
 * http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_PathRaw.R
 
-Ordinal Data
-------------
+Ordinal Data Modeling
+---------------------
 
 OpenMx models ordinal data under a threshold model. A continuous normal distribution is assumed to underly every ordinal variable. These latent continuous distributions are only observed as being above or below a threshold, where there is one fewer threshold than observed categories in the data. For example, consider a variable with three ordered categories indicated by the values zero, one and two. Under this approach, this variable is assumed to follow a normal distribution that is partitioned or cut by two thresholds: individuals with underlying scores below the first threshold have an observed value of zero, individuals with latent scores between the thresholds are observed with values of one, and individuals with underlying scores give observed values of two.
 
@@ -26,8 +26,8 @@ Each threshold may be freely estimated or assigned as a fixed parameter, dependi
 
 OpenMx allows for the inclusion of continuous and ordinal variables in the same model, as well as models with only continuous or only ordinal variables. Any number of continuous variables may be included in an OpenMx model; however, maximum likelihood estimation for ordinal data must be limited to twenty ordinal variables regardless of the number of continuous variables. Further technical details on ordinal and joint continuous-ordinal optimization are contained at the end of this chapter.
 
-Specifying Data for Ordinal Models
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Data Specification
+^^^^^^^^^^^^^^^^^^
 
 To use ordinal variables in OpenMx, users must identify ordinal variables by specifying those variables as ordered factors in the included data. Ordinal models can only be fit to raw data; if data is described as a covariance or other moment matrix, then the categorical nature of the data was already modeled to generate that moment matrix. Ordinal variables must be defined as specific columns in an R data frame.
 
@@ -46,8 +46,8 @@ Factors are a type of variable included in an R data frame. Unlike numeric or co
     oneFactorOrd$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
     oneFactorOrd$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
 
-Specifying Thresholds Using mxThreshold
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Threshold Specification
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Just as covariances and means are included in models using ``mxPath`` when ``type='RAM'`` is enabled, thresholds may be included in models using the ``mxThreshold`` function. This function creates a list of thresholds to be added to your model, just as ``mxPath`` creates a list of paths. As an example, the data prep example above includes two binary variables (*z1* and *z2*) and one variable with three categories (*z3*). This means that models fit to this data should contain thresholds for three variables (for *z1*, *z2* and *z3*). This can be done with three separate calls to the ``mxThreshold`` function, as shown here.
 
@@ -86,10 +86,15 @@ Including Thresholds in Models
 
 If you use ``mxThreshold`` to specify thresholds, there is nothing left to do prior to running your model. However, if you manually create a threshold matrix, you must also specify the name of this matrix in your expectation function. This is described in more detail in the matrix version of this chapter.
 
-Common Factor Model for Ordinal Data
-------------------------------------
+Common Factor Model 
+-------------------
 
-All of the raw data examples through the documentation may be converted to ordinal examples by the inclusion of ordinal data, the specification of a threshold matrix and inclusion of that threshold matrix in the objective function. The following example is a version of the continuous data common factor model referenced at the beginning of this chapter. Aside from replacing the continuous variables ``x1-x6`` with the ordinal variables ``z1-z3``, the code below simply incorporates the steps referenced above into the existing example. Data preparation occurs first, with the added ``mxFactor`` statements to identify ordinal variables and their ordered levels.
+All of the raw data examples through the documentation may be converted to ordinal examples by the inclusion of ordinal data, the specification of a threshold matrix and inclusion of that threshold matrix in the objective function. 
+
+Ordinal Data
+^^^^^^^^^^^^
+
+The following example is a version of the continuous data common factor model referenced at the beginning of this chapter. Aside from replacing the continuous variables ``x1-x6`` with the ordinal variables ``z1-z3``, the code below simply incorporates the steps referenced above into the existing example. Data preparation occurs first, with the added ``mxFactor`` statements to identify ordinal variables and their ordered levels.
 
 .. cssclass:: input
 ..
@@ -142,8 +147,8 @@ This model may then be optimized using the ``mxRun`` command.
 
     oneFactorResults <- mxRun(oneFactorModel)
 
-Common Factor Model for Joint Ordinal-Continuous Data
------------------------------------------------------
+Joint Ordinal-Continuous Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Models with both continuous and ordinal variables may be specified just like any other ordinal data model. Threshold matrices in these models should contain columns only for the ordinal variables, and should contain column names to designate which variables are to be treated as ordinal. In the example below, the one factor model above is estimated with three continuous variables (``x1-x3``) and three ordinal variables (``z1-z3``).
 

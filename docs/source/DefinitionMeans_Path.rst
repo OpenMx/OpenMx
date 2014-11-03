@@ -109,7 +109,7 @@ The first argument in an ``mxModel`` function has a special function. If an obje
 
 .. code-block:: r
 
-    manifestVars=c("x","y")
+    manifestVars=selVars
     latentVars="DefDummy"
 
 Next, we declare where the data are, and their type, by creating an MxData object with the ``mxData`` function. This code first references the object where our data are, then uses the ``type`` argument to specify that this is raw data. Analyses using definition variables have to use raw data, so that the model can be specified on an individual data vector level.

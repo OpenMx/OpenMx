@@ -13,7 +13,6 @@ Examples, Matrix Specification
    MultipleGroups_Matrix
    GeneticEpi_Matrix
    DefinitionMeans_Matrix
-   Likelihood_Matrix
    Ordinal_Matrix
-   FactorAnalysisOrdinal_Matrix
    GrowthMixtureModel_Matrix
+   Likelihood_Matrix
