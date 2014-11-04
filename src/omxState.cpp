@@ -458,7 +458,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 			if (wrote == len) break;
 		}
 	}
-	if (got <= 0) Rf_error("mxLog failed with errno=%d", got);
+	if (got <= 0) Rf_error("mxLog(%s) failed with errno=%d", buf2, got);
 }
 
 void _omxRaiseError()
