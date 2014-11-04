@@ -56,8 +56,6 @@ require(OpenMx)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-    require(OpenMx)    
-    
     # Path objects for Multiple Groups
     manifestVars=selVars
     latentVars=aceVars
@@ -109,11 +107,9 @@ require(OpenMx)
 # Fit ACE Model with RawData and Path-Style Input
 # -----------------------------------------------------------------------------
 
-twinACEFit <- mxRun(twinACEModel)
-# Run ACE model
-# -----------------------------------------------------------------------------
-
     # Generate & Print Output
+    # Model-expected mean
+    M <- fitACE$MZ.fitfunction$info$expMean
     # additive genetic variance, a^2
     A  <- mxEval(a*a, fitACE)
     # shared environmental variance, c^2
@@ -216,11 +212,11 @@ omxCheckCloseEnough(M,Mx.M,.001)
 # -----------------------------------------------------------------------------
 
 
-LRT_ACE_AE <- LL_AE - LL_ACE
 
 
-ACEest
-AEest
+estACE
+estAE
 LRT_ACE_AE
 #Print relevant output
 # -----------------------------------------------------------------------------
+
