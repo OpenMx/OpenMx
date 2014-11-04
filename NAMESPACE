@@ -1,5 +1,6 @@
 import(parallel)
 import(methods)
+importFrom(utils, .DollarNames)
 
 useDynLib(OpenMx, .registration=TRUE)
 
