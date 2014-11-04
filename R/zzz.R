@@ -36,6 +36,15 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 	}
 }
 
+#' Test thread-safe output code
+#'
+#' This is the code that the backend uses to write diagnostic
+#' information to standard error. This function should not be called
+#' from R. We make it available only for testing.
+#' 
+#' @param str the character string to output
+imxLog <- function(str) .Call(mxLog_wrapper, str)
+
 #' OpenMx: An package for Structural Equation Modeling and Matrix Algebra Optimization
 #'
 #' OpenMx is a package for structural equation modeling, matrix algebra optimization and other statistical estimation problems. 
