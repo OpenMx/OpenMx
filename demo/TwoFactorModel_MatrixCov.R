@@ -133,7 +133,7 @@ matrM        <- mxMatrix( type="Full", nrow=1, ncol=8,
                                    "meanx4","meanx5","meanx6",NA,NA),
                           name="M" )
 exp          <- mxExpectationRAM("A","S","F","M", 
-                                  dimnames=c(manifestVars, latentVars))
+                                 dimnames=c("x1","x2","x3","y1","y2","y3","F1","F2"))
 funML        <- mxFitFunctionML()
 twoFactorModel <- mxModel("Two Factor Model Matrix Specification", 
                           dataCov, matrA, matrS, matrF, matrM, exp, funML)
@@ -166,3 +166,4 @@ omxCheckCloseEnough(twoFactorFit$output$estimate[["meanx5"]], 2.956, 0.01)
 omxCheckCloseEnough(twoFactorFit$output$estimate[["meanx6"]], 2.967, 0.01)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------
+
