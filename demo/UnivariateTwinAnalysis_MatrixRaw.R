@@ -32,7 +32,6 @@
 #      Hermine Maes -- 2014.11.02 piecewise specification
 # -----------------------------------------------------------------------------
 
-require(OpenMx)
 # Load Library
 # -----------------------------------------------------------------------------
 
@@ -62,7 +61,6 @@ require(OpenMx)
 # Prepare Data
 # -----------------------------------------------------------------------------
 
-    require(OpenMx)
     
     # Set Starting Values
     svMe      <- 20      # start value for means
@@ -90,8 +88,8 @@ require(OpenMx)
                            free=TRUE, values=svMe, label="mean", name="expMean" )
     covMZ     <- mxAlgebra( expression=rbind( cbind(V, A+C), 
                                               cbind(A+C, V)), name="expCovMZ" )
-    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ 0.25%x%C), 
-                                              cbind(0.5%x%A+ 0.25%x%C , V)), name="expCovDZ" )
+    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A + C), 
+                                              cbind(0.5%x%A + C , V)), name="expCovDZ" )
 
     # Data objects for Multiple Groups
     dataMZ    <- mxData( observed=mzData, type="raw" )
@@ -111,7 +109,7 @@ require(OpenMx)
     fitML     <- mxFitFunctionMultigroup(c("MZ.fitfunction","DZ.fitfunction") )
     AceModel  <- mxModel( "ACE", pars, modelMZ, modelDZ, fitML )
 
-    # Run ADE model
+    # Run ACE model
     AceFit    <- mxRun(AceModel, intervals=T)
     AceSumm   <- summary(AceFit)
     AceSumm
@@ -119,9 +117,6 @@ require(OpenMx)
 # Fit ACE Model with RawData and Matrices Input
 # -----------------------------------------------------------------------------
 
-twinACEFit <- mxRun(twinACEModel)
-# Run ACE model
-# -----------------------------------------------------------------------------
 
     # Generate ACE Model Output
     estMean   <- mxEval(expMean, AceFit$MZ)       # expected mean
@@ -137,7 +132,7 @@ twinACEFit <- mxRun(twinACEModel)
     estACE    <- rbind(cbind(estVA,estVC,estVE),  # table of estimates
                        cbind(estPropVA,estPropVC,estPropVE))
     LL_ACE    <- mxEval(objective, AceFit)        # likelihood of ADE model
-
+    ACEest <- rbind(cbind(estVA,estVC,estVE),cbind(estPropVA,estPropVC,estPropVE))   # table of estimates
 
 Mx.A <- 0.6173023
 Mx.C <- 5.595822e-14
@@ -151,10 +146,10 @@ Mx.LL_ACE <- 4067.663
 
 
 omxCheckCloseEnough(LL_ACE,Mx.LL_ACE,.001)
-omxCheckCloseEnough(A,Mx.A,.001)
-omxCheckCloseEnough(C,Mx.C,.001)
-omxCheckCloseEnough(E,Mx.E,.001)
-omxCheckCloseEnough(M,Mx.M,.001)
+omxCheckCloseEnough(estVA,Mx.A,.001)
+omxCheckCloseEnough(estVC,Mx.C,.001)
+omxCheckCloseEnough(estVE,Mx.E,.001)
+omxCheckCloseEnough(estMean,Mx.M,.001)
 # Compare OpenMx results to Mx results
 # (LL: likelihood; EC: expected covariance, EM: expected means)
 # -----------------------------------------------------------------------------
@@ -177,7 +172,7 @@ omxCheckCloseEnough(M,Mx.M,.001)
     estAE     <- rbind(cbind(estVA,estVE),        # table of estimates
                        cbind(estPropVA,estPropVE))
     LL_AE     <- mxEval(objective, AeFit)         # likelihood of AE model
-
+    AEest <- rbind(cbind(estVA,estVC,estVE),cbind(estPropVA,estPropVC,estPropVE))
 
 
 Mx.A <- 0.6173023
@@ -191,10 +186,10 @@ Mx.LL_AE <- 4067.663
 # -----------------------------------------------------------------------------
 
 omxCheckCloseEnough(LL_AE,Mx.LL_AE,.001)
-omxCheckCloseEnough(A,Mx.A,.001)
-omxCheckCloseEnough(C,Mx.C,.001)
-omxCheckCloseEnough(E,Mx.E,.001)
-omxCheckCloseEnough(M,Mx.M,.001)
+omxCheckCloseEnough(estVA,Mx.A,.001)
+omxCheckCloseEnough(estVC,Mx.C,.001)
+omxCheckCloseEnough(estVE,Mx.E,.001)
+omxCheckCloseEnough(estMean,Mx.M,.001)
 
 	LRT_ACE_AE <- LL_AE - LL_ACE
 # Compare OpenMx results to Mx results: 
