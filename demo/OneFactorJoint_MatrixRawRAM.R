@@ -39,9 +39,9 @@ data(myFADataRaw)
 
 oneFactorJoint <- myFADataRaw[,c("x1","x2","x3","z1","z2","z3")]
 	
-oneFactorJoint$z1 <- mxFactor(oneFactorOrd$z1, levels=c(0, 1))
-oneFactorJoint$z2 <- mxFactor(oneFactorOrd$z2, levels=c(0, 1))
-oneFactorJoint$z3 <- mxFactor(oneFactorOrd$z3, levels=c(0, 1, 2))
+oneFactorJoint$z1 <- mxFactor(oneFactorJoint$z1, levels=c(0, 1))
+oneFactorJoint$z2 <- mxFactor(oneFactorJoint$z2, levels=c(0, 1))
+oneFactorJoint$z3 <- mxFactor(oneFactorJoint$z3, levels=c(0, 1, 2))
 
 # Prepare Data
 # -----------------------------------------------------------------------------

@@ -59,7 +59,7 @@ continuousData   <- mvrnorm(n=nSubjects,mu,sigma)
 # Simulate multivariate normal data
 # -----------------------------------------------------------------------------
 
-qquants       <- quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
+quants       <- quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
 ordinalData      <- matrix(0,nrow=nSubjects,ncol=nVariables)
 for(i in 1:nVariables)
 {
@@ -105,7 +105,7 @@ stFacLoads   <- mxAlgebra( expression=solve(sqrt(Identity * expCovariances)) %*%
                            name="standFacLoadings" )
 dataRaw      <- mxData( observed=ordinalData, type='raw' )
 exp          <- mxExpectationNormal( covariance="expCovariances", means="expMeans", 
-                                     dimnames=bananaNames, thresholds="expThresholds" )
+                                     dimnames=fruitynames, thresholds="expThresholds" )
 funML        <- mxFitFunctionML()
 
 oneFactorThreshold01Model <- mxModel("oneFactorThreshold01Model", dataRaw,

@@ -70,6 +70,7 @@ matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
                                    0,0,0,0,0,0,1,
                                    0,0,0,0,0,0,1,
                                    0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
                                    0,0,0,0,0,0,0),
                           labels=c(NA,NA,NA,NA,NA,NA,"l1",
                                    NA,NA,NA,NA,NA,NA,"l2",
@@ -118,7 +119,7 @@ matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
                                    "meanx4","meanx5","meanx6",NA),
                           name="M" )
 exp          <- mxExpectationRAM("A","S","F","M", 
-                                  dimnames=c(manifestVars, latentVars))
+                                  dimnames=c("x1","x2","x3","x4","x5","x6","F1"))
 funML        <- mxFitFunctionML()
 oneFactorModel <- mxModel("Common Factor Model Matrix Specification", 
                           dataCov, matrA, matrS, matrF, matrM, exp, funML)
