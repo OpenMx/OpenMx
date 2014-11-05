@@ -30,7 +30,7 @@
 # RevisionHistory:
 #      Hermine Maes -- 2009.10.08 updated & reformatted
 #      Ross Gore -- 2011.06.06	added Model, Data & Field metadata
-#      Hermine Maes -- 2014.11.02 piecewise specification
+#      Hermine Maes -- 2014.11.04 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
@@ -166,4 +166,3 @@ omxCheckCloseEnough(twoFactorFit$output$estimate[["meanx5"]], 2.956, 0.01)
 omxCheckCloseEnough(twoFactorFit$output$estimate[["meanx6"]], 2.967, 0.01)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------
-

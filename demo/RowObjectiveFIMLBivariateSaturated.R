@@ -35,7 +35,7 @@
 #	MikeHunter -- 2011.05.05 modified to use omxSelect* functions
 #	MikeHunter -- 2011.05.26 Adjusted spacing & comments for readability.
 #   MikeHunter -- 2011.06.30 Adjusted model structure to match docs file in User's Guide and corrected formula error.
-#      Hermine Maes -- 2014.11.02 piecewise specification
+#      Hermine Maes -- 2014.11.04 piecewise specification
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
