@@ -33,13 +33,11 @@
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
-require(psych)
 # Load Library
 # -----------------------------------------------------------------------------
 
 # Load Data
 data(twinData)
-describe(twinData, skew=F)
 
 # Select Variables for Analysis
 Vars      <- 'bmi'
