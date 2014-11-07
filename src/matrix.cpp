@@ -760,30 +760,16 @@ Matrix matrixAbs(Matrix t)
 
 Matrix multiplyByScalar2D(Matrix t, double multiplier)
 {
-    int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-			M(result, c, r) = M(t, c, r)*multiplier;
-        }
-    }
-    return result;
+	Eigen::Map< Eigen::ArrayXXd > tt(t.t, t.rows, t.cols);
+	Matrix result = new_matrix(t.cols, t.rows);
+	Eigen::Map< Eigen::ArrayXXd > dest(result.t, result.rows, result.cols);
+	dest = tt * multiplier;
+	return result;
 }
 
 Matrix divideByScalar2D(Matrix t, double divisor)
 {
-    int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-			M(result, c, r) = M(t, c, r)/divisor;
-        }
-    }
-    return result;
+	return multiplyByScalar2D(t, 1.0/divisor);
 }
 
 Matrix checkControlList(Matrix t){
