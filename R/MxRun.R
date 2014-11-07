@@ -43,7 +43,7 @@ runHelper <- function(model, frontendStart,
 
 	model <- imxPreprocessModel(model)
 	model <- eliminateObjectiveFunctions(model)
-  model <- zapExtraneousMatrices(model)
+	model <- zapExtraneousMatrices(model)
 	imxCheckMatrices(model)
 	imxVerifyModel(model)
 	model <- processParentData(model, parentData)
@@ -86,6 +86,7 @@ runHelper <- function(model, frontendStart,
 	convertArguments <- imxCheckVariables(flatModel, namespace)
 	freeVarGroups <- buildFreeVarGroupList(flatModel)
 	flatModel <- constraintsToAlgebras(flatModel)
+	flatModel <- eliminateObjectiveFunctions(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
@@ -106,6 +107,7 @@ runHelper <- function(model, frontendStart,
 	if (model@.newobjects) {
 		convertArguments <- imxCheckVariables(flatModel, namespace)
 		flatModel <- constraintsToAlgebras(flatModel)
+		flatModel <- eliminateObjectiveFunctions(flatModel)
 		flatModel <- convertAlgebras(flatModel, convertArguments)
 	}
 
