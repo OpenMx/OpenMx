@@ -309,24 +309,24 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 	if(M(ind, 10, 0))
     {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {   pb = fill(2, nineq, (double)0.0, FALSE);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
+		setColumnInplace(pb, ineqLB, 0);
+		setColumnInplace(pb, ineqUB, 1);
             pb_cont = fill(2, np, (double)0.0);
-            pb_cont = setColumn(pb_cont, LB, 0);
-            pb_cont = setColumn(pb_cont, UB, 1);
+            setColumnInplace(pb_cont, LB, 0);
+            setColumnInplace(pb_cont, UB, 1);
             pb = duplicateIt(transpose(copy(transpose(pb), transpose(pb_cont))), FALSE);
         }
         else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {
             pb = fill(2, nineq, (double)0.0, FALSE);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
+            setColumnInplace(pb, ineqLB, 0);
+            setColumnInplace(pb, ineqUB, 1);
         }
         else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
         {
             pb = fill(2, np, (double)0.0, FALSE);
-            pb = setColumn(pb, LB, 0);
-            pb = setColumn(pb, UB, 1);
+            setColumnInplace(pb, LB, 0);
+            setColumnInplace(pb, UB, 1);
         }
     }
     
@@ -368,8 +368,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
             difference1 = subtract(subset(constraint, 0, neq, tc-1), ineqLB);
             difference2 = subtract(ineqUB, subset(constraint, 0, neq, tc-1));
             tmpv = fill(2, nineq, (double)0.0);
-            tmpv = setColumn(tmpv, difference1, 0);
-            tmpv = setColumn(tmpv, difference2, 1);
+            setColumnInplace(tmpv, difference1, 0);
+            setColumnInplace(tmpv, difference2, 1);
             testMin = rowWiseMin(tmpv);
             
 			if( allGreaterThan(testMin, 0) ) {
@@ -839,13 +839,14 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 	if(M(ind, 10, 0))
     {
         if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
-        {   pb = fill(2, nineq, (double)0.0);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
+        {
+		pb = fill(2, nineq, (double)0.0);
+		setColumnInplace(pb, ineqLB, 0);
+		setColumnInplace(pb, ineqUB, 1);
             
             pb_cont = fill(2, np, (double)0.0);
-            pb_cont = setColumn(pb_cont, LB, 0);
-            pb_cont = setColumn(pb_cont, UB, 1);
+            setColumnInplace(pb_cont, LB, 0);
+            setColumnInplace(pb_cont, UB, 1);
             
             pb = transpose(copy(transpose(pb), transpose(pb_cont)));
             
@@ -853,15 +854,15 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
         else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {
             pb = fill(2, nineq, (double)0.0);
-            pb = setColumn(pb, ineqLB, 0);
-            pb = setColumn(pb, ineqUB, 1);
+            setColumnInplace(pb, ineqLB, 0);
+            setColumnInplace(pb, ineqUB, 1);
             
         }
         else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
         {
             pb = fill(2, np, (double)0.0);
-            pb = setColumn(pb, LB, 0);
-            pb = setColumn(pb, UB, 1);
+            setColumnInplace(pb, LB, 0);
+            setColumnInplace(pb, UB, 1);
             
         }
     }
@@ -899,8 +900,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 		Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
 		//double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
 		Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
-		vscaleTwice = setColumn(vscaleTwice, vscaleSubset, 0);
-		vscaleTwice = setColumn(vscaleTwice, vscaleSubset, 1);
+		setColumnInplace(vscaleTwice, vscaleSubset, 0);
+		setColumnInplace(vscaleTwice, vscaleSubset, 1);
         
 		if (M(pb, 0, 0) != EMPTY){
 			pb = divide(pb, vscaleTwice);
@@ -1039,7 +1040,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			Matrix colValues = subtract(subset(ob, 0, 1, nc), constraint);
 
 			colValues = divideByScalar2D(colValues, delta);
-			a = setColumn(a, colValues, index);
+			setColumnInplace(a, colValues, index);
 			M(p0, index, 0) = M(p0, index, 0) - delta;
 		} // end for (int i=0; i<np, i++){
         
@@ -1105,8 +1106,8 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
             {
                 minit = minit + 1;
                 gap = fill(2, mm, (double)0.0);
-                gap = setColumn(gap, subtract(subset(p0, 0, 0, mm-1), getColumn(pb, 0)), 0);
-                gap = setColumn(gap, subtract(getColumn(pb, 1), subset(p0, 0, 0, mm-1)), 1);
+                setColumnInplace(gap, subtract(subset(p0, 0, 0, mm-1), getColumn(pb, 0)), 0);
+                setColumnInplace(gap, subtract(getColumn(pb, 1), subset(p0, 0, 0, mm-1)), 1);
                 gap = rowSort(gap);
                 dx = copyInto(transpose(dx), getColumn(gap,0), 0, 0, mm-1);
                 
@@ -1412,9 +1413,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
             
 			gap = fill(pb.cols, pb.rows, (double)0.0);
             
-			gap = setColumn(gap, subtract(subset(p, 0, 0, mm-1), getColumn(pb, 0)), 0);
+			setColumnInplace(gap, subtract(subset(p, 0, 0, mm-1), getColumn(pb, 0)), 0);
             
-			gap = setColumn(gap, subtract(getColumn(pb, 1), subset(p, 0, 0, mm-1)), 1);
+			setColumnInplace(gap, subtract(getColumn(pb, 1), subset(p, 0, 0, mm-1)), 1);
             
 			gap = rowSort(gap);
             
@@ -1725,7 +1726,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			M(alp, 1, 0) = (M(alp, 0, 0) + M(alp, 2, 0)) / 2.0;
             
 			Matrix colValues = add(multiplyByScalar2D(p, (1.0 - M(alp, 1, 0))), multiplyByScalar2D(p0, (M(alp, 1, 0))));
-			ptt = setColumn(ptt, colValues, 1);
+			setColumnInplace(ptt, colValues, 1);
             
 			Matrix pttColOne = getColumn(ptt, 1);
             
@@ -1832,7 +1833,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
                 
 				Matrix tempCol = getColumn(ptt, 1);
                 
-				ptt = setColumn(ptt, tempCol, 2);
+				setColumnInplace(ptt, tempCol, 2);
                 
 				if (verbose >= 3){
 					mxLog("sob is: \n");
@@ -1852,7 +1853,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 				ob3 = duplicateIt(ob2);
 				M(alp, 2, 0) = M(alp, 1, 0);
 				Matrix tempCol = getColumn(ptt, 1);
-                ptt = setColumn(ptt, tempCol, 2);
+				setColumnInplace(ptt, tempCol, 2);
                 
 				if (verbose >= 3){
 					mxLog("sob is: \n");
@@ -1870,7 +1871,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 				ob1 = duplicateIt(ob2);
 				M(alp, 0, 0) = M(alp, 1, 0);
 				Matrix tempCol = getColumn(ptt, 1);
-				ptt = setColumn(ptt, tempCol, 0);
+				setColumnInplace(ptt, tempCol, 0);
 				if (verbose >= 3){
 					mxLog("sob is: \n");
 					for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
