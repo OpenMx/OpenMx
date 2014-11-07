@@ -836,15 +836,20 @@ Matrix timess(Matrix a,  Matrix b){
         Rf_error("CSOLNP BUG: noncomformant matrices");
     }
     Matrix result = fill(b.cols, a.rows, (double)0.0);
-    Matrix Bcolj = fill(a.cols, 1, (double)0.0);
+
+    // The temporary copy Bcolj isn't needed, but I don't want to
+    // spend time figuring out the array indexing.
+    Eigen::ArrayXd Bcolj;
+    Bcolj.resize(a.cols);
+
 	for (j=0; j<b.cols; j++){
 		for (k=0; k<a.cols; k++){
-			M(Bcolj, k, 0) = M(b, j, k);
+			Bcolj[k] = M(b, j, k);
 		}
 		for (i=0; i<a.rows; i++){
 			double s = 0;
 			for (k=0; k<a.cols; k++){
-				s+= M(a, k, i) * M(Bcolj, k, 0);
+				s+= M(a, k, i) * Bcolj[k];
 			}
 			M(result, j, i) = s;
 		}
