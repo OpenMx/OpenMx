@@ -28,6 +28,9 @@
 #include "omxBuffer.h"
 
 static const char* anonMatrix = "anonymous matrix";
+static int majIter = 400;
+static int minIter = 800;
+static double funcPrecision = 1.0e-7;
 
 /* NPSOL-related functions */
 //************************* npsol ****************************//
@@ -36,6 +39,7 @@ static const char* anonMatrix = "anonymous matrix";
 static omxMatrix *GLOB_fitMatrix = NULL;
 static FitContext *GLOB_fc = NULL;
 static int CSOLNP_currentInterval = -1;
+
 
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose)
@@ -258,9 +262,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
-    M(myControl,1,0) = 400.0;
-    M(myControl,2,0) = 800.0;
-    M(myControl,3,0) = 1.0e-7;
+    M(myControl,1,0) = majIter;
+    M(myControl,2,0) = minIter;
+    M(myControl,3,0) = funcPrecision;
     M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-9;
     M(myControl,5,0) = 0.0;
     
@@ -436,9 +440,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     
     struct Matrix myControl = fill(6,1,(double)0.0, FALSE);
     M(myControl,0,0) = 1.0;
-    M(myControl,1,0) = 400.0;
-    M(myControl,2,0) = 800.0;
-    M(myControl,3,0) = 1.0e-7;
+    M(myControl,1,0) = majIter;
+    M(myControl,2,0) = minIter;
+    M(myControl,3,0) = funcPrecision;
     M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-16;
     M(myControl,5,0) = 0.0;
     
@@ -642,4 +646,19 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 	GLOB_fitMatrix = NULL;
 	CSOLNP_currentInterval = -1;
     freeMatrices_l();
+}
+
+void CSOLNPOpt_majIter(const char *optionValue)
+{
+    majIter = atoi(optionValue);
+}
+
+void CSOLNPOpt_minIter(const char *optionValue)
+{
+    minIter = atoi(optionValue);
+}
+
+void CSOLNPOpt_FuncPrecision(const char *optionValue)
+{
+    funcPrecision = atof(optionValue);
 }

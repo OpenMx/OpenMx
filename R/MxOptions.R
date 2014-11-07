@@ -132,6 +132,9 @@ npsolOptions <- list(
 	"Derivative level" = "0",
 	"Hessian" = "Yes",
 # below are not npsol options
+    "Major iteration_CSOLNP" = "400",
+    "Minor iteration_CSOLNP" = "800",
+    "Function precision_CSOLNP" = "1.0e-7",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"CI Max Iterations" = "5",

@@ -46,5 +46,10 @@ struct Matrix csolnpEqualityFunction(int verbose);
 struct Matrix csolnpIneqFun(int verbose);
 //struct Matrix csolnpIneqFun(Matrix myPars, int verbose);
 
+void CSOLNPOpt_majIter(const char *optionValue);
+
+void CSOLNPOpt_minIter(const char *optionValue);
+
+void CSOLNPOpt_FuncPrecision(const char *optionValue);
 
 #endif // #define _OMX_CSOLNP_SPECIFIC_H

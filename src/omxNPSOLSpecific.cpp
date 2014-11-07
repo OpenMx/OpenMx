@@ -27,6 +27,7 @@
 #include "Compute.h"
 #include "npsolswitch.h"
 #include "omxBuffer.h"
+#include "omxCsolnp.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -533,55 +534,66 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
  
 void omxSetNPSOLOpts(SEXP options)
 {
-	omxManageProtectInsanity mpi;
-
-	static const char *whitelist[] = {
-		"Central Difference Interval",
-		"Crash Tolerance",
-		"Derivative level",
-		"Difference interval",
-		"Feasibility tolerance",
-		"Function precision",
-		"Hessian",
-		"Infinite bound size",
-		"Infinite step size",
-		"Iteration limit",
-		"Iters",
-		"Line search tolerance",
-		"Major iteration limit",
-		"Major iterations",
-		"Print level",
-		"Print file",
-		"Minor iteration limit",
-		"Minor print level",
-		"Nolist",
-		"Optimality tolerance",
-		"Step limit",
-		"Summary file",
-		"Verify level",
-		0
-	};
-
-	const int opBufLen = 250;
-	char optionCharArray[opBufLen];
-	int numOptions = Rf_length(options);
-	SEXP optionNames;
-	Rf_protect(optionNames = Rf_getAttrib(options, R_NamesSymbol));
-		for(int i = 0; i < numOptions; i++) {
-			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
-			const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
-			bool ok=false;
-			for (int wx=0; whitelist[wx]; ++wx) {
-				if (matchCaseInsensitive(nextOptionName, whitelist[wx])) {
-					ok=true;
-					break;
-				}
-			}
-			if (!ok) continue;
-			snprintf(optionCharArray, opBufLen, "%s %s", nextOptionName, nextOptionValue);
-			F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
-			if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray); }
-		}
+    omxManageProtectInsanity mpi;
+    
+    static const char *whitelist[] = {
+        "Central Difference Interval",
+        "Crash Tolerance",
+        "Derivative level",
+        "Difference interval",
+        "Feasibility tolerance",
+        "Function precision",
+        "Hessian",
+        "Infinite bound size",
+        "Infinite step size",
+        "Iteration limit",
+        "Iters",
+        "Line search tolerance",
+        "Major iteration limit",
+        "Major iterations",
+        "Print level",
+        "Print file",
+        "Minor iteration limit",
+        "Minor print level",
+        "Nolist",
+        "Optimality tolerance",
+        "Step limit",
+        "Summary file",
+        "Verify level",
+        0
+    };
+    
+    const int opBufLen = 250;
+    char optionCharArray[opBufLen];
+    int numOptions = Rf_length(options);
+    SEXP optionNames;
+    Rf_protect(optionNames = Rf_getAttrib(options, R_NamesSymbol));
+    for(int i = 0; i < numOptions; i++) {
+        const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
+        const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
+        if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP"))
+        {
+            CSOLNPOpt_majIter(nextOptionValue);
+        }
+        else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP"))
+        {
+            CSOLNPOpt_minIter(nextOptionValue);
+        }
+        else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP"))
+        {
+            CSOLNPOpt_FuncPrecision(nextOptionValue);
+        }
+        bool ok=false;
+        for (int wx=0; whitelist[wx]; ++wx) {
+            if (matchCaseInsensitive(nextOptionName, whitelist[wx])) {
+                ok=true;
+                break;
+            }
+        }
+        if (!ok) continue;
+        snprintf(optionCharArray, opBufLen, "%s %s", nextOptionName, nextOptionValue);
+        F77_CALL(npoptn)(optionCharArray, strlen(optionCharArray));
+        if(OMX_DEBUG) { mxLog("Option %s ", optionCharArray);}
+    }
 }
-
 #endif
