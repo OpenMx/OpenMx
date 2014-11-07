@@ -878,7 +878,8 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
 	}
     
-	Matrix sob = fill(3, 1, (double)0.0);
+	Eigen::Array<double, 3, 1> sob;
+	sob.setZero();
 	Matrix ptt;
 	
 	//Matrix yyMatrix = duplicateIt(yy);
@@ -1610,13 +1611,13 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		Matrix ob1 = duplicateIt(ob);
 		Matrix ob2 = duplicateIt(ob1);
         
-		M(sob, 0, 0) = j;
-		M(sob, 1, 0) = j;
+		sob[0] = j;
+		sob[1] = j;
         
         
 		if (verbose >= 3){
 			mxLog("sob is is: \n");
-			for (i = 0; i < sob.cols; i++) mxLog("%f", sob.t[i]);
+			for (i = 0; i < sob.size(); i++) mxLog("%f", sob[i]);
 		}
 		ptt = copy(transpose(p), transpose(p));
         
@@ -1694,7 +1695,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 		}
         
-		M(sob, 2, 0) = M(ob3, 0, 0);
+		sob[2] = M(ob3, 0, 0);
         
 		if (M(ind, 3, 0) > 0.5){
 			// ob3[ (neq + 2):(nc + 1) ] = ob3[ (neq + 2):(nc + 1) ] - ptt[ 1:nineq, 3 ]
@@ -1719,7 +1720,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
             
             double dotProductTerm = dotProduct(getRow(yyTerm, 0), getRow(temp, 0));
             
-            M(sob, 2, 0) = M(ob3, 0, 0) - dotProductTerm + (rho * vnormTerm);
+            sob[2] = M(ob3, 0, 0) - dotProductTerm + (rho * vnormTerm);
 		}
         
 		go = 1;
@@ -1784,10 +1785,10 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 				for (i = 0; i < ob2.cols; i++) mxLog("%f",ob2.t[i]);
 			}
             
-			M(sob, 1, 0) = M(ob2, 0, 0);
+			sob[1] = M(ob2, 0, 0);
 			if (verbose >= 3){
 				mxLog("sob is: \n");
-				for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
+				for (i = 0; i < sob.size(); i++) mxLog("%f",sob[i]);
 			}
             //exit(0);
 			if (M(ind, 3, 0) > 0.5){
@@ -1806,29 +1807,29 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 				double vnormTerm = vnorm(temp) * vnorm(temp);
 				Matrix yyTerm = transpose(yy);
 				double dotProductTerm = dotProduct(getRow(yyTerm, 0), getRow(temp, 0));
-				M(sob, 1, 0) = M(ob2, 0, 0) - dotProductTerm + rho * vnormTerm;
+				sob[1] = M(ob2, 0, 0) - dotProductTerm + rho * vnormTerm;
 			}
 			if (verbose >= 3){
 				mxLog("sob is: \n");
-				for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
+				for (i = 0; i < sob.size(); i++) mxLog("%f",sob[i]);
 			}
-			M(obm, 0, 0) = findMax(sob);
+			M(obm, 0, 0) = sob.maxCoeff();
 			if (verbose >= 3){
 				mxLog("obm is: \n");
 				for (i = 0; i < obm.cols; i++) mxLog("%f",obm.t[i]);
 			}
 			if (M(obm, 0, 0) < j){
-				double obn = findMin(sob);
+				double obn = sob.minCoeff();
 				go = tol * (M(obm, 0, 0) - obn) / (j - M(obm, 0, 0));
 			}
             
             
-			condif1 = (M(sob, 1, 0) >= M(sob, 0, 0));
-			condif2 = (M(sob, 0, 0) <= M(sob, 2, 0)) && (M(sob, 1, 0) < M(sob, 0, 0));
-			condif3 = (M(sob, 1, 0) <  M(sob, 0, 0)) && (M(sob, 0, 0) > M(sob, 2, 0));
+			condif1 = sob[1] >= sob[0];
+			condif2 = (sob[0] <= sob[2]) && (sob[1] < sob[0]);
+			condif3 = (sob[1] <  sob[0]) && (sob[0] > sob[2]);
             
 			if (condif1){
-				M(sob, 2, 0) = M(sob, 1, 0);
+				sob[2] = sob[1];
                 
 				ob3 = duplicateIt(ob2);
                 
@@ -1840,7 +1841,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
                 
 				if (verbose >= 3){
 					mxLog("sob is: \n");
-					for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
+					for (i = 0; i < sob.size(); i++) mxLog("%f",sob[i]);
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
@@ -1852,7 +1853,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			}
             
 			if (condif2){
-				M(sob, 2, 0) = M(sob, 1, 0);
+				sob[2] = sob[1];
 				ob3 = duplicateIt(ob2);
 				alp[2] = alp[1];
 				Matrix tempCol = getColumn(ptt, 1);
@@ -1860,7 +1861,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
                 
 				if (verbose >= 3){
 					mxLog("sob is: \n");
-					for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
+					for (i = 0; i < sob.size(); i++) mxLog("%f",sob[i]);
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
@@ -1870,14 +1871,14 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			}
             
 			if (condif3){
-				M(sob, 0, 0) = M(sob, 1, 0);
+				sob[0] = sob[1];
 				ob1 = duplicateIt(ob2);
 				alp[0] = alp[1];
 				Matrix tempCol = getColumn(ptt, 1);
 				setColumnInplace(ptt, tempCol, 0);
 				if (verbose >= 3){
 					mxLog("sob is: \n");
-					for (i = 0; i < sob.cols; i++) mxLog("%f",sob.t[i]);
+					for (i = 0; i < sob.size(); i++) mxLog("%f",sob[i]);
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
@@ -1910,7 +1911,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		}
 		ch = 1;
         
-		double obn = findMin(sob);
+		double obn = sob.minCoeff();
 		if (verbose >= 3){
 			mxLog("obn is: \n");
 			mxLog("%.20f", obn);
@@ -1931,12 +1932,12 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			maxit = minit;
 		}
         
-		condif1 = (M(sob, 0, 0) <  M(sob, 1, 0));
-		condif2 = (M(sob, 2, 0) <  M(sob, 1, 0)) && (M(sob, 0, 0) >=  M(sob, 1, 0));
-		condif3 = (M(sob, 0, 0) >= M(sob, 1, 0)) && (M(sob, 2, 0) >= M(sob, 1, 0));
+		condif1 = (sob[0] <  sob[1]);
+		condif2 = (sob[2] <  sob[1]) && (sob[0] >=  sob[1]);
+		condif3 = (sob[0] >= sob[1]) && (sob[2] >= sob[1]);
         
 		if (condif1){
-			j = M(sob, 0, 0);
+			j = sob[0];
 			p = getColumn(ptt, 0);
 			ob = duplicateIt(ob1);
 			if (verbose >= 3){
@@ -1952,7 +1953,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
         
 		if (condif2){
             
-			j = M(sob, 2, 0);
+			j = sob[2];
 			p = getColumn(ptt, 2);
 			ob = duplicateIt(ob3);
 			if (verbose >= 3){
@@ -1968,7 +1969,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		}
         
 		if (condif3){
-			j = M(sob, 1, 0);
+			j = sob[1];
 			p = getColumn(ptt, 1);
 			ob = duplicateIt(ob2);
 			if (verbose >= 3){
