@@ -48,8 +48,9 @@ Matrix p_grad;
 struct Param_Obj pfunv;
 
 
-Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int),
-             Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose);
+template <typename T1>
+static Matrix subnp(Matrix pars,  double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int),
+		    Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Eigen::ArrayBase<T1> &ctrl, int verbose);
 
 Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
 {
@@ -435,12 +436,12 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 	while(solnp_iter < maxit){
 		solnp_iter = solnp_iter + 1;
 		outerIter = solnp_iter;
-		Matrix subnp_ctrl = fill(5, 1, (double)0.0);
-		M(subnp_ctrl, 0, 0) = rho;
-		M(subnp_ctrl, 1, 0) = minit;
-		M(subnp_ctrl, 2, 0) = delta;
-		M(subnp_ctrl, 3, 0) = tol;
-		M(subnp_ctrl, 4, 0) = trace;
+		Eigen::Array<double, 5, 1> subnp_ctrl;
+		subnp_ctrl[0] = rho;
+		subnp_ctrl[1] = minit;
+		subnp_ctrl[2] = delta;
+		subnp_ctrl[3] = tol;
+		subnp_ctrl[4] = trace;
         
 		if ( M(ind, 6, 0) > 0){
 			Matrix subsetMat = subset(ob, 0, 1, neq);
@@ -477,7 +478,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 			mxLog("vscale information: ");
             for (i = 0; i < vscale.cols; i++) mxLog("%f",vscale.t[i]);
 			mxLog("subnp_ctrl information: ");
-			for (i = 0; i < subnp_ctrl.cols; i++) mxLog("%f",subnp_ctrl.t[i]);
+			for (i = 0; i < subnp_ctrl.size(); i++) mxLog("%f",subnp_ctrl[i]);
 			mxLog("------------------------END CALLING SUBNP------------------------");
         }
         
@@ -787,8 +788,9 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
     
 }
 
-Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
-             Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Matrix ctrl, int verbose)
+template <typename T1>
+static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
+             Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Eigen::ArrayBase<T1> &ctrl, int verbose)
 {
 
     if (verbose >= 3)
@@ -800,10 +802,10 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 	//int yyCols = yy.cols;
     double j;
     
-	double rho   = M(ctrl, 0, 0);
-	int maxit = M(ctrl, 1, 0);
-	double delta = M(ctrl, 2, 0);
-	double tol =   M(ctrl, 3, 0);
+    double rho   = ctrl[0];
+    int maxit = ctrl[1];
+    double delta = ctrl[2];
+    double tol =   ctrl[3];
     
 	int neq =  (int)M(ind, 7, 0);
 	int nineq = (int)M(ind, 4, 0);
