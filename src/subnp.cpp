@@ -820,7 +820,8 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
         for (int i = 0; i < ind.cols; i++) mxLog("%f",ind.t[i]);
 	}
     
-	Matrix alp = fill(3, 1, (double)0.0);
+	Eigen::Array<double, 3, 1> alp;
+	alp.setZero();
     
 	int nc = neq + nineq;
 	int npic = np + nineq;
@@ -1074,8 +1075,8 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		b = subtract(transpose(timess_a_p0), constraint);
 
 		ch = -1;
-		M(alp, 0, 0) = tol - findMax(matrixAbs(constraint));
-		if ( M(alp, 0, 0) <= 0){
+		alp[0] = tol - findMax(matrixAbs(constraint));
+		if ( alp[0] <= 0){
             
 			ch = 1;
             
@@ -1085,13 +1086,13 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 
 				p0 = subtract(p0, matrixDotProduct(transpose(a), solution));
 
-				M(alp, 0, 0) = 1;
+				alp[0] = 1;
 			}
             
 		} // end if (alp[0][0] <= 0){
         
         
-		if (M(alp, 0, 0) <= 0){
+		if (alp[0] <= 0){
             
 			int npic_int = npic;
 			p0 = copy(p0, fill(1, 1, (double)1.0));
@@ -1605,7 +1606,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		} // end while(go <= 0){
         
         
-		M(alp, 0, 0) = 0;
+		alp[0] = 0;
 		Matrix ob1 = duplicateIt(ob);
 		Matrix ob2 = duplicateIt(ob1);
         
@@ -1619,7 +1620,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		}
 		ptt = copy(transpose(p), transpose(p));
         
-		M(alp, 2, 0) = 1.0;
+		alp[2] = 1.0;
 		if (verbose >= 3){
 			mxLog("ptt is: \n");
 			for (i = 0; i < ptt.cols; i++) mxLog("%f", ptt.t[i]);
@@ -1725,9 +1726,9 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
         
 		while(go > tol){
             
-			M(alp, 1, 0) = (M(alp, 0, 0) + M(alp, 2, 0)) / 2.0;
+			alp[1] = (alp[0] + alp[2]) / 2.0;
             
-			Matrix colValues = add(multiplyByScalar2D(p, (1.0 - M(alp, 1, 0))), multiplyByScalar2D(p0, (M(alp, 1, 0))));
+			Matrix colValues = add(multiplyByScalar2D(p, (1.0 - alp[1])), multiplyByScalar2D(p0, alp[1]));
 			setColumnInplace(ptt, colValues, 1);
             
 			Matrix pttColOne = getColumn(ptt, 1);
@@ -1831,7 +1832,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
                 
 				ob3 = duplicateIt(ob2);
                 
-				M(alp, 2, 0) = M(alp, 1, 0);
+				alp[2] = alp[1];
                 
 				Matrix tempCol = getColumn(ptt, 1);
                 
@@ -1843,7 +1844,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
-					for (i = 0; i < alp.cols; i++) mxLog("%f",alp.t[i]);
+					for (i = 0; i < alp.size(); i++) mxLog("%f",alp[i]);
 					mxLog("ptt is: \n");
 					for (i = 0; i < ptt.cols; i++) mxLog("%f",ptt.t[i]);
 				}
@@ -1853,7 +1854,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			if (condif2){
 				M(sob, 2, 0) = M(sob, 1, 0);
 				ob3 = duplicateIt(ob2);
-				M(alp, 2, 0) = M(alp, 1, 0);
+				alp[2] = alp[1];
 				Matrix tempCol = getColumn(ptt, 1);
 				setColumnInplace(ptt, tempCol, 2);
                 
@@ -1863,7 +1864,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
-					for (i = 0; i < alp.cols; i++) mxLog("%f",alp.t[i]);
+					for (i = 0; i < alp.size(); i++) mxLog("%f",alp[i]);
 					mxLog("ptt is: \n");
 					for (i = 0; i < ptt.cols; i++) mxLog("%f",ptt.t[i]);				}
 			}
@@ -1871,7 +1872,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			if (condif3){
 				M(sob, 0, 0) = M(sob, 1, 0);
 				ob1 = duplicateIt(ob2);
-				M(alp, 0, 0) = M(alp, 1, 0);
+				alp[0] = alp[1];
 				Matrix tempCol = getColumn(ptt, 1);
 				setColumnInplace(ptt, tempCol, 0);
 				if (verbose >= 3){
@@ -1880,13 +1881,13 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 					mxLog("ob3 is: \n");
 					for (i = 0; i < ob3.cols; i++) mxLog("%f",ob3.t[i]);
 					mxLog("alp is: \n");
-					for (i = 0; i < alp.cols; i++) mxLog("%f",alp.t[i]);
+					for (i = 0; i < alp.size(); i++) mxLog("%f",alp[i]);
 					mxLog("ptt is: \n");
 					for (i = 0; i < ptt.cols; i++) mxLog("%f",ptt.t[i]);				}
 			}
             
 			if (go >= tol){
-				go = M(alp, 2, 0) - M(alp, 0, 0);
+				go = alp[2] - alp[0];
 				if (verbose >= 3){
 					mxLog("go is: \n");
 					mxLog("%.20f", go);
