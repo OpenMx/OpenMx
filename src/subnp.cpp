@@ -614,8 +614,8 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 				Matrix diff1 = subtract(subsetOne, subsetTwo);
 				Matrix diff2 = subtract(subsetThree, subsetOne);
 				Matrix tempv = fill(nineq, 2, (double)0.0);
-				tempv = setRow(tempv, 0, diff1);
-				tempv = setRow(tempv, 1, diff2);
+				setRowInplace(tempv, 0, diff1);
+				setRowInplace(tempv, 1, diff2);
                 
 				if (findMin(tempv) > 0){
 					Matrix copyValues = subset(constraint, 0, neq, tc-1);
@@ -1177,10 +1177,9 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			int h;
 			Matrix aMatrix = fill(npic, nc, (double)0.0);
 
-			for (h = 0; h<a.rows; h++)
-            {
-                aMatrix = setRow(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
-            }
+			for (h = 0; h<a.rows; h++) {
+				setRowInplace(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
+			}
 			a = aMatrix;
             
 			b = timess(a, transpose(subset(p0, 0, 0, npic-1)));

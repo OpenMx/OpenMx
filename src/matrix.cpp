@@ -113,6 +113,13 @@ Matrix setRow( Matrix x, int row,  Matrix y){
 	return toReturn;
 }
 
+void setRowInplace( Matrix x, int cc,  Matrix y)
+{
+	Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
+	Eigen::Map< Eigen::MatrixXd > yy(y.t, y.rows, y.cols);
+	xx.row(cc) = yy.row(0);
+}
+
 Matrix getColumn( Matrix t, int colNum)
 {
     int r, c;

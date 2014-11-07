@@ -79,6 +79,8 @@ struct Matrix getRow(struct Matrix t, int row);
 
 struct Matrix setRow(struct Matrix x, int row, struct Matrix y);
 
+void setRowInplace( Matrix x, int cc,  Matrix y);
+
 struct Matrix getColumn(struct Matrix t, int colNum);
 
 struct Matrix setColumn(struct Matrix x, struct Matrix y, int colNum);
