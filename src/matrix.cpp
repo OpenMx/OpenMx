@@ -632,6 +632,14 @@ Matrix copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
     return result;
 }
 
+void copyIntoInplace(Matrix x,  Matrix y, int rowNum, int colStart, int colStop)
+{
+	Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
+	Eigen::Map< Eigen::MatrixXd > yy(y.t, y.rows, y.cols);
+	int len = 1 + colStop - colStart;
+	xx.block(rowNum, colStart, 1, len) = yy.block(rowNum, 0, 1, len);
+}
+
 Matrix rowWiseMin(Matrix t)
 {
     Matrix mins = fill(t.rows, 1, (double)0.0);

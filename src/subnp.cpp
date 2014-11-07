@@ -376,8 +376,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 				ineqx0 = subset(constraint, 0, neq, tc-1);
 			}
             
-			constraint = copyInto(constraint, subtract(subset(constraint, 0, neq, tc-1), ineqx0), 0, neq, tc-1);
-            
+			copyIntoInplace(constraint, subtract(subset(constraint, 0, neq, tc-1), ineqx0), 0, neq, tc-1);
 		}
         
 		M(tt, 0, 1) = vnorm(constraint);
@@ -620,12 +619,12 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
                 
 				if (findMin(tempv) > 0){
 					Matrix copyValues = subset(constraint, 0, neq, tc-1);
-					p = copyInto(p, copyValues, 0, 0, nineq-1);
+					copyIntoInplace(p, copyValues, 0, 0, nineq-1);
 				}
                 Matrix diff = subtract(subset(constraint, 0, neq, tc-1),
                                        subset(p, 0, 0, nineq-1));
                 
-                constraint = copyInto(constraint, diff, 0, neq, tc-1);
+                copyIntoInplace(constraint, diff, 0, neq, tc-1);
 			} // end if (ind[0][3] > 0.5){
             
 			M(tt, 0, 2) = vnorm(constraint);
@@ -1057,8 +1056,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
 			secondPart = subset(p0, 0, 0, (nineq-1));
 			Matrix values = subtract(firstPart, secondPart);
             
-			constraint = copyInto(constraint, values, 0, neq, (neq+nineq-1));
-            
+			copyIntoInplace(constraint, values, 0, neq, (neq+nineq-1));
 		}
         
         if (false && solvecond(a) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
@@ -1118,7 +1116,7 @@ Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFu
                 {
                     argum = multiplyByScalar2D(fill(1, npic-mm, (double)1.0) , max(findMax(subset(dx, 0, 0, mm-1)), 100));
                     
-                    dx = copyInto(dx, argum, 0, mm, npic-1);
+                    copyIntoInplace(dx, argum, 0, mm, npic-1);
                     
                 }
                 

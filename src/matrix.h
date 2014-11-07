@@ -123,6 +123,8 @@ struct Matrix divide(struct Matrix x, struct Matrix y);
 
 struct Matrix copyInto(struct Matrix x, struct Matrix y, int rowNum, int colStart, int colStop);
 
+void copyIntoInplace(Matrix x,  Matrix y, int rowNum, int colStart, int colStop);
+
 struct Matrix rowWiseMin(struct Matrix t);
 
 struct Matrix transposeDP(struct Matrix t);
