@@ -1258,13 +1258,13 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 	j = M(ob, 0, 0);
     
 	if (M(ind, 3, 0) > 0){
-		ob = copyInto(ob, subtract(subset(ob, 0, neq+1, nc), subset(p, 0, 0, nineq-1)), 0, neq+1, nc);
+		copyIntoInplace(ob, subtract(subset(ob, 0, neq+1, nc), subset(p, 0, 0, nineq-1)), 0, neq+1, nc);
         
 	}
     
 	if (nc > 0){
         
-		ob = copyInto(ob, add(subtract(subset(ob, 0, 1, nc), transpose(timess(a, transpose(p)))), b), 0, 1, nc);
+		copyIntoInplace(ob, add(subtract(subset(ob, 0, 1, nc), transpose(timess(a, transpose(p)))), b), 0, 1, nc);
         
 		Matrix temp = subset(ob, 0, 1, nc);
         
@@ -1342,13 +1342,13 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 				}
                 
 				if (M(ind, 3, 0) > 0.5){
-					obm = copyInto(obm, subtract(subset(obm, 0, neq+1, nc), subset(p, 0, 0, nineq-1)), 0, neq+1, nc);
+					copyIntoInplace(obm, subtract(subset(obm, 0, neq+1, nc), subset(p, 0, 0, nineq-1)), 0, neq+1, nc);
 				}
                 
 				if (nc > 0){
                     
 					Matrix first_part = subtract(subset(obm, 0, 1, nc),transpose(timess(a, transpose(p))));
-					obm = copyInto(obm, add(first_part, b), 0, 1, nc);
+					copyIntoInplace(obm, add(first_part, b), 0, 1, nc);
 					Matrix temp = subset(obm, 0, 1, nc);
 					double vnormTerm = vnorm(temp) * vnorm(temp);
 					Matrix yyTerm = transpose(yy);
@@ -1369,7 +1369,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			} // end for (i=0; i<np; i++){
             
 			if (M(ind, 3, 0) > 0.5){
-				g = copyInto(g, fill(nineq, 1, (double)0.0), 0, 0, (nineq-1));
+				copyIntoInplace(g, fill(nineq, 1, (double)0.0), 0, 0, (nineq-1));
 			}
             
 		} // end if (ch > 0){
@@ -1425,7 +1425,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
             
 			gap = add(getColumn(gap, 0), multiplyByScalar2D(fill(1, mm,(double)1.0),sqrt(DBL_EPSILON)));
             
-			dx = copyInto(dx, divide(fill(mm, 1, (double)1.0), gap), 0, 0, mm-1);
+			copyIntoInplace(dx, divide(fill(mm, 1, (double)1.0), gap), 0, 0, mm-1);
             
 			if (verbose >= 3){
 				mxLog("dx is: \n");
@@ -1435,7 +1435,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			if(M(ind, 9, 0) <= 0)
             {
                 argum = multiplyByScalar2D(fill(1, npic-mm, (double)1.0) , min(findMin(subset(dx, 0, 0, mm-1)), 0.01));
-                dx = copyInto(dx, argum, 0, mm, npic-1);
+                copyIntoInplace(dx, argum, 0, mm, npic-1);
                 
             }
             
@@ -1704,14 +1704,14 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 			Matrix tempPttCol = getColumn(ptt, 2);
 			Matrix partTwo = subset(tempPttCol, 0, 0, nineq-1);
 			diff = subtract(partOne, partTwo);
-			ob3 = copyInto(ob3, diff, 0, neq+1, nc);
+			copyIntoInplace(ob3, diff, 0, neq+1, nc);
 		}
         
 		if (nc > 0){
 			//sob[ 3 ] = ob3[ 1 ] - t(yy) %*% ob3[ 2:(nc + 1) ] + rho * .vnorm(ob3[ 2:(nc + 1) ]) ^ 2
             Matrix firstp = subtract(subset(ob3, 0, 1, nc), transpose(timess(a, transpose(getColumn(ptt, 2)))));
             
-            ob3 = copyInto(ob3, add(firstp, b), 0, 1, nc);
+            copyIntoInplace(ob3, add(firstp, b), 0, 1, nc);
             Matrix temp = subset(ob3, 0, 1, nc);
             
             double vnormTerm = vnorm(temp) * vnorm(temp);
@@ -1797,12 +1797,12 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 				Matrix tempPttCol = getColumn(ptt, 1);
 				Matrix partTwo = subset(tempPttCol, 0, 0, nineq-1);
 				diff = subtract(partOne, partTwo);
-				ob2 = copyInto(ob2, diff, 0, neq+1, nc);
+				copyIntoInplace(ob2, diff, 0, neq+1, nc);
                 
 			}
             
 			if (nc > 0){
-                ob2 = copyInto(ob2, add(subtract(subset(ob2, 0, 1, nc), transpose(timess(a, transpose(getColumn(ptt, 1))))), b), 0, 1, nc);
+				copyIntoInplace(ob2, add(subtract(subset(ob2, 0, 1, nc), transpose(timess(a, transpose(getColumn(ptt, 1))))), b), 0, 1, nc);
 				Matrix temp = subset(ob2, 0, 1, nc);
 				double vnormTerm = vnorm(temp) * vnorm(temp);
 				Matrix yyTerm = transpose(yy);
