@@ -135,8 +135,6 @@ struct Matrix transpose2D(struct Matrix t);
 
 struct Matrix transpose(struct Matrix t);
 
-struct Matrix negate(struct Matrix t);
-
 struct Matrix duplicateIt(struct Matrix t, bool Delete = TRUE);
 
 double matrixMaxAbs(Matrix t);

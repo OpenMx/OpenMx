@@ -716,20 +716,6 @@ Matrix transpose(Matrix t){ // Mahsa: simply transposes the matrix
 	return result;
 }
 
-Matrix negate(Matrix t)
-{
-    int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-			M(result, c, r) = (M(t, c, r) * -1.0);
-        }
-    }
-    return result;
-}
-
 Matrix duplicateIt(Matrix t, bool Delete)
 {
     int r, c;
