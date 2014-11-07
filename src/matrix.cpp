@@ -744,18 +744,10 @@ Matrix duplicateIt(Matrix t, bool Delete)
     return result;
 }
 
-Matrix matrixAbs(Matrix t)
+double matrixMaxAbs(Matrix t)
 {
-    int r, c;
-    Matrix result = fill(t.cols, t.rows, (double)0.0);
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-			M(result, c, r) = ourAbs(M(t, c, r));
-        }
-    }
-    return result;
+	Eigen::Map< Eigen::ArrayXXd > tt(t.t, t.rows, t.cols);
+	return tt.abs().maxCoeff();
 }
 
 Matrix multiplyByScalar2D(Matrix t, double multiplier)

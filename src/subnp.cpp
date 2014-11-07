@@ -445,7 +445,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
         
 		if ( M(ind, 6, 0) > 0){
 			Matrix subsetMat = subset(ob, 0, 1, neq);
-			double max = findMax(matrixAbs(subsetMat));
+			double max = matrixMaxAbs(subsetMat);
             
 			Matrix temp2 = fill(neq, 1, max);
 			Matrix temp1 = fill(1, 1, M(ob, 0, 0));
@@ -520,7 +520,7 @@ Param_Obj solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solE
 
             if ( M(ind, 6, 0) > 0){
                 Matrix subsetMat = subset(ob, 0, 1, neq);
-                double max = findMax(matrixAbs(subsetMat));
+                double max = matrixMaxAbs(subsetMat);
                 
                 Matrix temp2 = fill(neq, 1, max);
                 Matrix temp1 = fill(1, 1, M(ob, 0, 0));
@@ -1076,7 +1076,7 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
 		b = subtract(transpose(timess_a_p0), constraint);
 
 		ch = -1;
-		alp[0] = tol - findMax(matrixAbs(constraint));
+		alp[0] = tol - matrixMaxAbs(constraint);
 		if ( alp[0] <= 0){
             
 			ch = 1;

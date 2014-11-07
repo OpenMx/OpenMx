@@ -139,7 +139,7 @@ struct Matrix negate(struct Matrix t);
 
 struct Matrix duplicateIt(struct Matrix t, bool Delete = TRUE);
 
-struct Matrix matrixAbs(struct Matrix t);
+double matrixMaxAbs(Matrix t);
 
 struct Matrix multiplyByScalar2D(struct Matrix t, double multiplier);
 
