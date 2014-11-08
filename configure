@@ -132,7 +132,7 @@ fi
 echo "### Generated $(date)" > src/Makevars
 echo >> src/Makevars
 
-if [ ! -e inst/no-npsol ]; then
+if [ ! -e inst/no-npsol -a -n "${npsol_library+1}" ]; then
     npsol_file="${npsol_library}/libnpsol.a"
     if [ ! -f "$npsol_file" ]; then
 	echo "$npsol_file not found"
