@@ -1133,14 +1133,12 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
                 v = transpose(v);
                 
                 int indexx = npic;
-                int i;
-                
                 
                 if (M(v, indexx, 0) > 0)
                 {
                     double z = M(p0, indexx, 0)/M(v, indexx, 0);
                     
-                    for (i=0; i<mm; i++)
+                    for (int i=0; i<mm; i++)
                     {
                         if(M(v, i, 0) < 0)
                         {
