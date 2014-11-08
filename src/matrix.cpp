@@ -116,8 +116,8 @@ Matrix setRow( Matrix x, int row,  Matrix y){
 void setRowInplace( Matrix x, int cc,  Matrix y)
 {
 	Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
-	Eigen::Map< Eigen::MatrixXd > yy(y.t, y.rows, y.cols);
-	xx.row(cc) = yy.row(0);
+	Eigen::Map< Eigen::VectorXd > yy(y.t, y.rows * y.cols);
+	xx.row(cc) = yy;
 }
 
 Matrix getColumn( Matrix t, int colNum)
@@ -141,8 +141,8 @@ Matrix getColumn( Matrix t, int colNum)
 void setColumnInplace( Matrix x, Matrix y, int cc)
 {
 	Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
-	Eigen::Map< Eigen::MatrixXd > yy(y.t, y.rows, y.cols);
-	xx.col(cc) = yy.col(0);
+	Eigen::Map< Eigen::VectorXd > yy(y.t, y.rows * y.cols);
+	xx.col(cc) = yy;
 }
 
 void print(Matrix t) {
