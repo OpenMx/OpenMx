@@ -1154,15 +1154,14 @@ static Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*s
                         }
                     }
                     
-                    if(z >= (M(p0, indexx, 0)/M(v, indexx, 0)))
-                    {
-                        p0 = subtract(p0, multiplyByScalar2D(v, z));
-                        
-                    }
-                    else{
-                        p0 = subtract(p0, multiplyByScalar2D(v, 0.9 * z));
-                        
-                    }
+                    if(z < (M(p0, indexx, 0)/M(v, indexx, 0))) {
+			    z *= 0.9;
+		    }
+
+		    Eigen::Map< Eigen::VectorXd > Ep0(p0.t, p0.cols);
+		    Eigen::Map< Eigen::VectorXd > Ev(v.t, v.cols);
+		    Ep0 -= Ev * z;
+
                     go = M(p0, indexx, 0);
                     
                     if(minit >= 10){
