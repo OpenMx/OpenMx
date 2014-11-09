@@ -11,8 +11,6 @@
 #include "omxDefines.h"
 #include "Eigen/Core"
 
-double rnd_double();
-
 typedef struct Matrix Matrix;
 
 struct Matrix {
@@ -20,7 +18,7 @@ struct Matrix {
 	int cols;
 	double *t;
 
-	Matrix() {}
+	Matrix() : rows(0), cols(0), t(NULL) {};
 	Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
 	Matrix(omxMatrix *mat);
 	template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {

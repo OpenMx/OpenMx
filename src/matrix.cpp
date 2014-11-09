@@ -22,8 +22,6 @@ static std::list< double* > matrices;
 static std::list< double* > matrices_l;
 
 
-double rnd_double() { return (double)1.0; }
-
 void freeMatrices(){
     while (!matrices.empty()){
         /* printf("matrices.front is: \n");
@@ -62,16 +60,21 @@ Matrix::Matrix(omxMatrix *mat)
 
 Matrix new_matrix(int cols,int rows, bool Delete)
 {
+	if (rows < 0 || cols < 0) Rf_error("Cannot create matrix smaller than 0,0");
 	Matrix t;
 	t.rows=rows;
 	t.cols=cols;
-	t.t=(double *)malloc(sizeof(double)*cols*rows);
-	if (Delete) matrices.push_front(t.t);
-    else matrices_l.push_front(t.t);
+	if (rows == 0 || cols == 0) {
+		t.t = NULL;
+	} else {
+		t.t=(double *)malloc(sizeof(double)*cols*rows);
+		if (Delete) matrices.push_front(t.t);
+		else matrices_l.push_front(t.t);
+	}
 	int i,j;
 	for(i=0;i<rows;i++){
 		for(j=0;j<cols;j++) {
-			M(t,j,i)=rnd_double();
+			M(t,j,i)=nan("uninit");
 		}
 	}
 	return t;
