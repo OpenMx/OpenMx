@@ -288,7 +288,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 		    solEqB = fill(eqn, 1, EMPTY);
 	    }
         
-	    omxProcessConstraintsCsolnp(fc, &solIneqLB, &solIneqUB, &solEqB);
+	    omxProcessConstraintsCsolnp(fc, solIneqLB, solIneqUB, solEqB);
 
         if (verbose == 2) {
             mxLog("solIneqLB is: ");
@@ -462,7 +462,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 		    solEqB = fill(eqn, 1, EMPTY, FALSE);
 	    }
         
-	    omxProcessConstraintsCsolnp(opt, &solIneqLB, &solIneqUB, &solEqB);
+	    omxProcessConstraintsCsolnp(opt, solIneqLB, solIneqUB, solEqB);
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');

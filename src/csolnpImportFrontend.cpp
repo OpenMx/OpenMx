@@ -64,7 +64,7 @@ void setupEqB(struct Matrix *eqPointer, int size)
     }
     
     
-void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix *lb_ineq, struct Matrix *ub_ineq, struct Matrix *eqb)  {
+void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct Matrix ub_ineq, struct Matrix eqb)  {
 	omxState *globalState = fc->state;
     if (globalState->numConstraints == 0){
         return;
@@ -78,9 +78,9 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix *lb_ineq, struct 
     Matrix lb_ineqmore = fill(1, 1, EMPTY);
     Matrix ub_ineqmore = fill(1, 1, EMPTY);
     Matrix eqbound = fill(1, 1, EMPTY);
-    Matrix ineq_lb = fill(1, 1, EMPTY);
-    Matrix ineq_ub = fill(1, 1, EMPTY);
-    Matrix myeqb = fill(1, 1, EMPTY);
+    Matrix ineq_lb = fill(0, 1, EMPTY);
+    Matrix ineq_ub = fill(0, 1, EMPTY);
+    Matrix myeqb = fill(0, 1, EMPTY);
     
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
 
@@ -122,30 +122,21 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix *lb_ineq, struct 
         }
     }
 
-    if (ineq_lb.cols > 1)
-    {
-        ineq_lb = subset(ineq_lb, 0, 1, ineq_lb.cols - 1);
-        ineq_ub = subset(ineq_ub, 0, 1, ineq_ub.cols - 1);
+	// This should check for equality instead of less than TODO
+    if (lb_ineq.cols < ineq_lb.cols ||
+	ub_ineq.cols < ineq_ub.cols ||
+	eqb.cols < myeqb.cols) {
+	    Rf_error("Failed to unpack constraint bounds");
     }
-    
-    if (myeqb.cols > 1)
-    {
-        myeqb = subset(myeqb, 0, 1, myeqb.cols - 1);
-    }
-    
+
     for (i = 0; i < ineq_lb.cols; i++)
     {
-        lb_ineq->t[i] = M(ineq_lb, i, 0);
-        ub_ineq->t[i] = M(ineq_ub, i, 0);
+        lb_ineq.t[i] = M(ineq_lb, i, 0);
+        ub_ineq.t[i] = M(ineq_ub, i, 0);
     }
     
     for (i = 0; i < myeqb.cols; i++)
     {
-        eqb->t[i] = M(myeqb, i, 0);
+        eqb.t[i] = M(myeqb, i, 0);
     }
-    
-    lb_ineq->cols = ineq_lb.cols;
-    ub_ineq->cols = ineq_ub.cols;
-    eqb->cols = myeqb.cols;
-
 }
