@@ -238,7 +238,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Param_Obj p_obj;
     Matrix param_hess;
-    Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
@@ -348,23 +347,15 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 	    mxLog("final myPars value is: \n");
         for (i = 0; i < myPars.cols; i++) mxLog("%f", myPars.t[i]);
     }
-    myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2);
     
     Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
     
     inform = M(inform_m, 0, 0);
     
-    if (verbose >= 2){
-	    mxLog("myhess is: \n");
-        for (i = 0; i < myhess.cols; i++)
-	    mxLog("%f", myhess.t[i]);
-    }
-    
     mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
     
-    for (i = 0; i < myPars.cols * myPars.cols; i++){
-        hessOut[i] = myhess.t[i];
-    }
+    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
+    subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];

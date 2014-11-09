@@ -156,6 +156,16 @@ struct Matrix divideByScalar2D(struct Matrix t, double divisor);
 
 struct Matrix checkControlList(struct Matrix t);
 
+template <typename T1>
+void subset(Matrix t, int row, int colStart, int colStop, Eigen::MatrixBase<T1> &dest)
+{
+       Eigen::Map< Eigen::MatrixXd > tt(t.t, t.rows, t.cols);
+       int len = colStop - colStart + 1;
+       // We transpose here because Eigen prefers column vectors
+       // whereas CSOLNP prefers row vectors.
+       dest = tt.block(row, colStart, 1, len).transpose();
+}
+
 struct Matrix subset(struct Matrix t, int row, int colStart, int colStop);
 
 Matrix copy(Matrix x,  Matrix y, bool Delete = TRUE);
