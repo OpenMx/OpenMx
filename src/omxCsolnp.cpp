@@ -222,8 +222,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     double *x = fc->est;
     fc->grad.resize(fc->numParam);
-    double *g = fc->grad.data();
-    
     
     int k;
     int inform = 0;
@@ -238,7 +236,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Param_Obj p_obj;
     Matrix param_hess;
-    Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
     Matrix solEqB;
@@ -352,14 +349,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     inform = M(inform_m, 0, 0);
     
-    mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
+    subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2, fc->grad);
     
     Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
     subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
-        g[i] = mygrad.t[i];
     }
     
     GLOB_fc->copyParamToModel();
