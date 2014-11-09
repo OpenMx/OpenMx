@@ -9,6 +9,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
+#include "Eigen/Core"
 
 double rnd_double();
 
@@ -22,6 +23,16 @@ struct Matrix {
 	Matrix() {}
 	Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
 	Matrix(omxMatrix *mat);
+	template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
+		if (mb.rows() == 1 || mb.cols() == 1) {
+			// transpose column vectors (Eigen) to row vectors (CSOLNP)
+			cols = mb.rows();
+			rows = mb.cols();
+		} else {
+			rows = mb.rows();
+			cols = mb.cols();
+		}
+	};
 };
 
 typedef struct Param_Obj Param_Obj;

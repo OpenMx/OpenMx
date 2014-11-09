@@ -253,13 +253,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Matrix (*solIneqFun)(int verbose);
     solIneqFun = &csolnpIneqFun;
     
-    /* Set boundaries and widths. */
-    
-    std::vector<double> blBuf(n+ncnln);
-    std::vector<double> buBuf(n+ncnln);
-    double *bl = blBuf.data();
-    double *bu = buBuf.data();
-    
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
     M(myControl,1,0) = majIter;
@@ -311,10 +304,15 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         }
         
     }
-    omxSetupBoundsAndConstraints(fc, bl, bu);
-    
-    Matrix blvar = fillMatrix(n, 1, bl);
-    Matrix buvar = fillMatrix(n, 1, bu);
+
+    Eigen::VectorXd bl(n);
+    Eigen::VectorXd bu(n);
+    for(int index = 0; index < n; index++) {
+	    bl[index] = freeVarGroup->vars[index]->lbound;
+	    bu[index] = freeVarGroup->vars[index]->ubound;
+    }
+    Matrix blvar(bl);
+    Matrix buvar(bu);
         
     /* Initialize Starting Values */
     if(OMX_DEBUG) {
