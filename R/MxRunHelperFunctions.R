@@ -128,7 +128,7 @@ calculateTiming <- function(output, frontend,
 	return(output)
 }
 
-npsolMessages <- list('1' = paste('The final iterate satisfies',
+optimizerMessages <- list('1' = paste('The final iterate satisfies',
 		'the optimality conditions to the accuracy requested,',
 		'but the sequence of iterates has not yet converged.',
 		'Optimizer was terminated because no further improvement',
@@ -143,10 +143,11 @@ npsolMessages <- list('1' = paste('The final iterate satisfies',
 		'merit function could be found during the final linesearch (Mx status RED)'),
 		'7' = paste('The function derivates returned by funcon or funobj',
 		'appear to be incorrect.'),
-		'9' = 'An input parameter was invalid')
+		'9' = 'An input parameter was invalid',
+		      '10' = 'Starting values are not feasible. Consider mxTryHard()')
 
 npsolWarnings <- function(prefix, status) {
-	message <- npsolMessages[[as.character(status)]]
+	message <- optimizerMessages[[as.character(status)]]
 	if(!is.null(message)) {
 		warning(paste(prefix, 
 			"Optimizer returned a non-zero status code",

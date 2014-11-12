@@ -754,7 +754,7 @@ setMethod("summary", "MxModel",
 		}
 		retval$CIcodes <- model@output$confidenceIntervalCodes
 		if (!is.null(model@output$status$code)) {
-			message <- npsolMessages[[as.character(model@output$status$code)]]
+			message <- optimizerMessages[[as.character(model@output$status$code)]]
 			retval[['npsolMessage']] <- message
 		}
 		retval$timestamp <- model@output$timestamp

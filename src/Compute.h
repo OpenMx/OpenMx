@@ -24,7 +24,7 @@
 #include "Eigen/SparseCore"
 #include "glue.h"
 
-// See R/MxRunHelperFunctions.R npsolMessages
+// See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
 // These are ordered from good to bad so we can use max() on a set
 // of inform results to obtain a bound on convergence status.
@@ -53,6 +53,7 @@ typedef int ComputeInform;
 	// appear to be incorrect.
 #define INFORM_INVALID_PARAM 9
 	// An input parameter was invalid'
+#define INFORM_STARTING_VALUES_INFEASIBLE 10
 
 enum ComputeInfoMethod {
 	INFO_METHOD_DEFAULT,

@@ -67,7 +67,7 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 			}
 		}
 		// Is this the best way to test? TODO
-		vec2diag = strcmp(hessian->algebra->oate->rName, "vec2diag")==0;
+		vec2diag = hessian->algebra->oate && strcmp(hessian->algebra->oate->rName, "vec2diag")==0;
 	}
 	if (gradient && hessian) {
 		int size = gradient->rows * gradient->cols;

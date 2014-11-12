@@ -68,6 +68,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 	omxAlgebraAllocArgs(oa, 0);
 	oa->funWrapper = NULL;
 	oa->matrix = om;
+	oa->oate = NULL;
 	om->algebra = oa;
 }
 

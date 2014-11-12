@@ -158,6 +158,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	fc->createChildren();
     
+	int beforeEval = Global->computeCount;
+
 	switch (engine) {
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
@@ -196,6 +198,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
+	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {
+		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
+	}
+
 	// It seems we cannot avoid this. Both optimizers can terminate
 	// with fit not at the optimum.
 	ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);

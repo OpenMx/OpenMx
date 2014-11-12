@@ -164,7 +164,13 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	}
 
 	ComputeFit(fitMatrix, want, fc);
-	if (iter == 1) refFit = fc->fit;
+	if (iter == 1) {
+		refFit = fc->fit;
+		if (!std::isfinite(refFit)) {
+			fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
+			return;
+		}
+	}
 
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
