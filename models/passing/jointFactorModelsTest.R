@@ -1,6 +1,7 @@
 require(OpenMx)
 
 # get data
+jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
 jointData <- read.table("data/jointdata.txt", header=TRUE)
 
 # specify ordinal columns as ordered factors
