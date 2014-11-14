@@ -66,9 +66,12 @@ Number of Threads \tab \var{i}          \tab the number of processor cores to us
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
 Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
 CI Max Iterations \tab \var{i}          \tab the maximum number of retries when calculating confidence intervals. \cr
-Default optimizer \tab [NPSOL | CSOLNP] \tab the gradient descent optimizer to use. \cr
+Default optimizer \tab [NPSOL | CSOLNP] \tab the gradient descent optimizer to use \cr
 Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 uses \code{detectCores() - 1}. \cr
 }
+
+CSOLNP is our new, experimental optimizer. There are known bugs. See the
+release note for details.
 
 NPSOL-specific options
 
