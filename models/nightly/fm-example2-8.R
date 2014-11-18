@@ -16,11 +16,6 @@ ip.mat$free['alf2', 'Identify'] <- FALSE
 ip.mat$labels[c('alf2','alf3'), 'Match'] <- 'eq1'
 ip.mat$labels[c('gam1','gam2'), 'Match'] <- 'eq2'
 
-imat <- ip.mat
-imat$values['a',] <- 0
-imat$free['a',] <- FALSE
-imat$free[c('alf2', 'alf3'),] <- FALSE
-
 m1 <- mxModel(model="ex28", ip.mat,
               mxData(observed=ex2.8, type="raw", sort = FALSE, numObs = sum(ex2.8$freq)),
               mxExpectationBA81(spec, weightColumn="freq"),
@@ -44,7 +39,13 @@ omxCheckCloseEnough(fitstat$EMcycles, 11, 1)
 omxCheckCloseEnough(fitstat$totalMstep, 69, 5)
 
 refModels <- mxRefModels(m1, run=TRUE)
+omxCheckCloseEnough(refModels[[1]], c(2758.23, 0), .01)  #saturated
 nullm1 <- refModels$Independence
 omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2917.58, .01)
+
+m1Sum <- summary(m1, refModels=refModels)
+omxCheckCloseEnough(m1Sum$CFI, .979, .01)
+omxCheckCloseEnough(m1Sum$TLI, .965, .01)
+omxCheckCloseEnough(m1Sum$RMSEA, .026, .01)

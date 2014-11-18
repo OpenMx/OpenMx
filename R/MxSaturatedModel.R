@@ -208,10 +208,10 @@ generateIFAReferenceModels <- function(model) {
 	}
 	saturated <- NA
 	if (!any(is.na(data[1,]))) {  # Not sure how to handle missingness
-		saturated <- -2 * sum(log(weights / sum(weights)))
+		saturated <- -2 * sum(weights * log(weights / sum(weights)))
 	}
 
-	return(list(Saturated=list(saturated, 0),
+	return(list(Saturated=list(fit=saturated, df=0),
 		    Independence=ind))
 }
 
