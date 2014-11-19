@@ -369,7 +369,8 @@ LocateOptionalMatrix <- function(model, name, referant) {
 }
 
 zapExtraneousMatrices <- function(model){
-  keepers <- unlist(lapply(model@matrices,function(x){x@.persist}))
+  keepers <- unlist(lapply(model@matrices,function(x){ifelse(".persist" %in% slotNames(x),x@.persist,TRUE)}))
+  #^^^^^For the sake of backward compatibility, treat matrices with no .persist slot as having that slot be TRUE.
   if(is.logical(keepers)){model@matrices <- model@matrices[which(keepers)]}
   if(length(model@submodels)>0){model@submodels <- lapply(model@submodels,zapExtraneousMatrices)}
   return(model)
