@@ -17,13 +17,28 @@
 \alias{twinData}
 \title{Australian twin sample biometric data.}
 \description{
-Australian data on body mass index (BMI) assessed in both MZ and DZ twins, and saved in the text file twinData.txt. 
+Australian twin data with 3808 observations on the 12 variables including body mass index (BMI) assessed in both MZ and DZ twins.
 
 Questionnaires were mailed to 5967 pairs age 18 years and over. These data consist of completed questionnaires returned by both members of 3808 (64 percent) pairs. There are two cohort blocks in the data: a younger group (zyg 1:5), and an older group (zyg 6:10)
  
 It is a wide dataset, with two individuals per line. Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1} and \dQuote{htwt2}), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
 
 fam is a family identifier. Age is entered only once, as the both twins in each pair share a common age.
+
+  \describe{
+    \item{\code{fam}}{a numeric vector}
+    \item{\code{age}}{a numeric vector}
+    \item{\code{zyg}}{a numeric vector}
+    \item{\code{part}}{a numeric vector}
+    \item{\code{wt1}}{a numeric vector}
+    \item{\code{wt2}}{a numeric vector}
+    \item{\code{ht1}}{a numeric vector}
+    \item{\code{ht2}}{a numeric vector}
+    \item{\code{htwt1}}{a numeric vector}
+    \item{\code{htwt2}}{a numeric vector}
+    \item{\code{bmi1}}{a numeric vector}
+    \item{\code{bmi2}}{a numeric vector}
+  }
 
 }
 
