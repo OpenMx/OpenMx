@@ -20,7 +20,7 @@
 \title{Example 500-row dataset with 12 generated variables}
 
 \description{
-12 columns of generated data: x1 x2 x3 x4 x5 x6 y1 y2 y3 z1 z2 z3  each with 500 rows.
+Twelve columns of generated numeric data: x1 x2 x3 x4 x5 x6 y1 y2 y3 z1 z2 z3.
 }
 
 \usage{data(myFADataRaw)}
