@@ -99,15 +99,15 @@ Functions
 \item{\code{\link{vechs2full}}}{Inverse strict half-vectorization}
 \item{\code{\link{vec2diag}}}{Create matrix from a diagonal vector (similar to \link{diag}) }
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix (similar to \link{diag}) }
+\item{\code{\link{omxExponential}}}{Matrix Exponential}
 \item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
 \item{\code{\link{omxAllInt}}}{All cells Multivariate Normal Integration}
-\item{\code{\link{omxNot}}}{Perform unary negation on a matrix}
-\item{\code{\link{omxAnd}}}{Perform binary and on two matrices}
-\item{\code{\link{omxOr}}}{Perform binary or on two matrices}
-\item{\code{\link{omxGreaterThan}}}{Perform binary greater on two matrices}
-\item{\code{\link{omxLessThan}}}{Perform binary less than on two matrices}
-\item{\code{\link{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
-\item{\code{omxExponential}}{Matrix Exponential}
+\item{\code{\link[=omxLogical]{omxNot}}}{Perform unary negation on a matrix}
+\item{\code{\link[=omxLogical]{omxAnd}}}{Perform binary and on two matrices}
+\item{\code{\link[=omxLogical]{omxOr}}}{Perform binary or on two matrices}
+\item{\code{\link[=omxLogical]{omxGreaterThan}}}{Perform binary greater on two matrices}
+\item{\code{\link[=omxLogical]{omxLessThan}}}{Perform binary less than on two matrices}
+\item{\code{\link[=omxLogical]{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
 }}
 
 \value{
