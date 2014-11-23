@@ -57,8 +57,8 @@ omxCheckCloseEnough(
 data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
-mzfData <- as.matrix(subset(myTwinData, zyg==1, selVars))
-dzfData <- as.matrix(subset(myTwinData, zyg==3, selVars))
+mzfData <- as.matrix(subset(twinData, zyg==1, selVars))
+dzfData <- as.matrix(subset(twinData, zyg==3, selVars))
 cov(mzfData, use="pairwise.complete.obs")
 cov(dzfData, use="pairwise.complete.obs")
 
