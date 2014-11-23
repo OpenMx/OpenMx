@@ -26,13 +26,12 @@ require(OpenMx)
 data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
 aceVars <- c("A1","C1","E1","A2","C2","E2")
-mzfData <- as.matrix(subset(myTwinData, zyg==1, selVars))
-dzfData <- as.matrix(subset(myTwinData, zyg==3, selVars))
+mzfData <- subset(twinData, zyg==1, selVars)
+dzfData <- subset(twinData, zyg==3, selVars)
 cov(mzfData, use="pairwise.complete.obs")
 cov(dzfData, use="pairwise.complete.obs")
 
-#Fit ACE Model with RawData and Matrices Input
-require(OpenMx)
+# Fit ACE Model with RawData and Matrices Input
 selVars <- c('x','y')
 dataMZ <- matrix(c(1,.8,.8,1), nrow = 2, ncol=2, dimnames = list(selVars,selVars))
 dataDZ <- matrix(c(1,.5,.5,1), nrow = 2, ncol=2, dimnames = list(selVars,selVars))
