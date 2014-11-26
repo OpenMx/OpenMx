@@ -466,7 +466,6 @@ print.summary.mxmodel <- function(x,...) {
 		cat("chi-square:  ", "X2 ( df=", chidof, " ) = ", chival, ",  p = ", chipee, '\n', sep="")
 	}
 	#
-	# Relative fit indices
 	cat("Information Criteria: \n")
 	IC <- x$informationCriteria
 	colnames(IC) <- c(" |  df Penalty", " |  Parameters Penalty", " |  Sample-Size Adjusted")
@@ -474,7 +473,6 @@ print.summary.mxmodel <- function(x,...) {
 	# cat("\n")
 	# cat("adjusted BIC:", '\n')
 	#
-	# Absolute fit indices
 	if(x$verbose==TRUE || any(!is.na(c(x$CFI, x$TLI, x$RMSEA)))){
 		cat("CFI:", x$CFI, '\n')
 		cat("TLI:", x$TLI, '\n')
