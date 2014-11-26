@@ -144,6 +144,48 @@ computeFValue <- function(datalist, likelihood, chi) {
 	return(NA)
 }
 
+computeFitStatistics <- function(likelihood, DoF, numObs,
+				 independence, indDoF, saturated=0, satDoF=0) {
+	chi <- likelihood - saturated
+	chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
+	CFI <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
+	TLI <- 1
+	rmseaSquared <- 0
+	RMSEA <- 0
+	RMSEACI <- c(lower=NA, upper=NA)
+	if (!is.na(chiDoF) && chiDoF > 0) {
+		TLI <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
+					# Here we use N in the denominator as given in the original
+					# RMSEA paper. The difference between N and N-1 is negligible
+					# for sample sizes over 30. RMSEA should not be taken seriously
+					# such small samples anyway.
+		rmseaSquared <- (chi / (chiDoF) - 1) / numObs
+		RMSEACI <- c(lower=NA, upper=NA)
+		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
+		    is.nan(rmseaSquared)) { 
+					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
+			RMSEA <- NA
+		} else if (rmseaSquared < 0) {
+			RMSEA <- 0.0
+		} else {
+			RMSEA <- sqrt(rmseaSquared)
+			ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, numObs, .025, .975))
+			if (!inherits(ci, "try-error")) RMSEACI <- ci
+		}
+	}
+	list(CFI=CFI, TLI=TLI, RMSEA=RMSEA, RMSEASquared=rmseaSquared, RMSEACI=RMSEACI)
+}
+
+catFitStatistics <- function(x) {
+	cat("CFI:", x$CFI, '\n')
+	cat("TLI:", x$TLI, '\n')
+	if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
+		cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
+	} else {
+		cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
+	}
+}
+
 fitStatistics <- function(model, useSubmodels, retval) {
 	datalist <- model@runstate$datalist
 	likelihood <- retval[['Minus2LogLikelihood']]
@@ -164,12 +206,6 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	AIC.p <- Fvalue + 2 * nParam
 	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) 
 	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24))
-	retval[['CFI']] <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
-	if (!is.na(chiDoF) && chiDoF == 0) {
-		retval[['TLI']] <- 1
-	} else {
-		retval[['TLI']] <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
-	}
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
 	IC <- matrix(NA, nrow=2, ncol=3, dimnames=list(c("AIC:", "BIC:"), c('df', 'par', 'sample')))
@@ -178,31 +214,9 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC['BIC:','sample'] <- sBIC
 	retval[['informationCriteria']] <- IC
 
-	if (!is.na(chiDoF) && chiDoF == 0) {
-		retval[['RMSEASquared']] <- 0
-		retval[['RMSEA']] <- 0
-		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
-	} else {
-					# Here we use N in the denominator as given in the original
-					# RMSEA paper. The difference between N and N-1 is negligible
-					# for sample sizes over 30. RMSEA should not be taken seriously
-					# such small samples anyway.
-		rmseaSquared <- (chi / (chiDoF) - 1) / retval[['numObs']]
-
-		retval[['RMSEASquared']] <- rmseaSquared
-		retval[['RMSEACI']] <- c(rmsea.lower=NA, rmsea.upper=NA)
-		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
-		    is.nan(rmseaSquared)) { 
-					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
-			retval[['RMSEA']] <- NA
-		} else if (rmseaSquared < 0) {
-			retval[['RMSEA']] <- 0.0
-		} else {
-			retval[['RMSEA']] <- sqrt(rmseaSquared)
-			ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, retval[['numObs']], .025, .975))
-			if (!inherits(ci, "try-error")) retval[['RMSEACI']] <- ci
-		}
-	}
+	fi <- computeFitStatistics(likelihood, DoF, retval[['numObs']],
+				   independence, indDoF, saturated, satDoF)
+	for (k in names(fi)) retval[[k]] <- fi[[k]]
 	return(retval)
 }
 
@@ -233,7 +247,7 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 	}
 	lower.rmsea <- sqrt(lower.lam/(N*df))
 	upper.rmsea <- sqrt(upper.lam/(N*df))
-	return(c(lower.rmsea=lower.rmsea, upper.rmsea=upper.rmsea))
+	return(c(lower=lower.rmsea, upper=upper.rmsea))
 }
 
 pChiSqFun <- function(x, val, degf, goal){
@@ -474,15 +488,7 @@ print.summary.mxmodel <- function(x,...) {
 	# cat("adjusted BIC:", '\n')
 	#
 	if(x$verbose==TRUE || any(!is.na(c(x$CFI, x$TLI, x$RMSEA)))){
-		cat("CFI:", x$CFI, '\n')
-		cat("TLI:", x$TLI, '\n')
-		# cat("satDoF", x$satDoF, "\n")
-		# cat("indDoF", x$indDoF, "\n")
-		if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
-			cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
-		} else {
-			cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
-		}
+		catFitStatistics(x)
 	}
 	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){
 		cat("Some of your fit indices are missing.\n",
