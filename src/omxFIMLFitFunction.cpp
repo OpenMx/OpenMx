@@ -165,7 +165,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		for(int j=0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
 			if (!omxDataColumnIsFactor(data, var)) continue;
-			if(thresholdCols[j].numThresholds > 0) { // j is an ordinal column
+			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;
 				omxRecompute(nextMatrix, want, fc);
 				checkIncreasing(nextMatrix, thresholdCols[j].column);
@@ -174,11 +174,15 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
 					omxCopyMatrix(target, nextMatrix);
 				}
+			} else {
+				Rf_error("No threshold given for ordinal column '%s'",
+					 omxDataColumnName(data, j));
 			}
 		}
 
 		double *corList 	= ofiml->corList;
 		double *weights		= ofiml->weights;
+
 		if (corList) {
 			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
 		}
@@ -320,7 +324,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Accessing Threshold matrix.");
 	}
 	numOrdinal = off->expectation->numOrdinal;
-	numContinuous = newObj->dataColumns->cols - off->expectation->numOrdinal;
+	numContinuous = newObj->dataColumns->cols - numOrdinal;
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 	

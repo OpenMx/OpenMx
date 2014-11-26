@@ -57,7 +57,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 }
 
 void omxExpectationRecompute(omxExpectation *ox) {
-	for(int i = 0; i < ox->numOrdinal; i++) {
+	for(int i = 0; i < int(ox->thresholds.size()); i++) {
 		if (!ox->thresholds[i].matrix) continue;
 		omxRecompute(ox->thresholds[i].matrix, FF_COMPUTE_FIT, NULL);
 	}

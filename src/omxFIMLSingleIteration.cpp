@@ -228,7 +228,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
     		
 	    for(int j=0; j < dataColumns->cols; j++) {
 		    int var = omxVectorElement(dataColumns, j);
-		    if(!omxDataColumnIsFactor(data, var) || thresholdCols[j].numThresholds == 0) continue;
+		    if(!omxDataColumnIsFactor(data, var) || j >= int(thresholdCols.size()) ||
+		       thresholdCols[j].numThresholds == 0) continue;
 		    omxRecompute(thresholdCols[j].matrix, FF_COMPUTE_FIT, fc); // Only one of these--save time by only doing this once
 		    checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column);
 	    }

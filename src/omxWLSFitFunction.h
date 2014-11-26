@@ -32,7 +32,6 @@ typedef struct omxWLSFitFunction {
 	omxMatrix* P;
 	omxMatrix* B;
 	int n;
-	int nThresholds;
 
 } omxWLSFitFunction;
 
