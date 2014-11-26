@@ -187,19 +187,8 @@ substituteOperators <- function(algebra, name) {
 checkEvaluation <- function(model, flatModel) {
 	labelsData <- imxGenerateLabels(model)
 	cache <- new.env(parent = emptyenv())
-	cache <- checkMatrixEvaluation(model, flatModel, labelsData, cache)
 	checkConstraintEvaluation(model, flatModel, labelsData, cache)
 	return(flatModel)
-}
-
-checkMatrixEvaluation <- function(model, flatModel, labelsData, cache) {
-	if(length(flatModel@matrices) == 0) { return(cache) }
-	for(i in 1:length(flatModel@matrices)) {
-		matrix <- flatModel@matrices[[i]]
-		tuple <- evaluateMxObject(matrix@name, flatModel, labelsData, cache)
-		cache <- tuple[[2]]
-	}
-	return(cache)
 }
 
 checkConstraintEvaluation <- function(model, flatModel, labelsData, cache) {

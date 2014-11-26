@@ -342,7 +342,6 @@ setMethod("genericExpAddEntities", "MxExpectationRAM",
 
 setMethod("genericExpConvertEntities", "MxExpectationRAM",
 	function(.Object, flatModel, namespace, labelsData) {
-		cache <- new.env(parent = emptyenv())
 		if(is.na(.Object@data)) {
 			modelname <- getModelName(.Object)
 			msg <- paste("The RAM expectation function",
@@ -351,22 +350,6 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 			stop(msg, call.=FALSE)
 		}
 		
-		tuple <- evaluateMxObject(.Object@A, flatModel, labelsData, cache)
-		Amatrix <- tuple[[1]]
-		cache <- tuple[[2]]
-		tuple <- evaluateMxObject(.Object@S, flatModel, labelsData, cache)
-		Smatrix <- tuple[[1]]
-		cache <- tuple[[2]]
-		if (!identical(dim(Amatrix), dim(Smatrix))) {
-				modelname <- getModelName(.Object)
-				msg <- paste("The RAM expectation function",
-					"in model", omxQuotes(modelname), "has an A matrix",
-					"with dimensions", nrow(Amatrix), 'x', ncol(Amatrix),
-					"and a S matrix with dimensions", nrow(Smatrix), 'x',
-					ncol(Smatrix))
-				stop(msg, call.=FALSE)
-		}
-
 		flatModel <- updateRAMdimnames(.Object, flatModel)
 
 		if (flatModel@datasets[[.Object@data]]@type != 'raw') {

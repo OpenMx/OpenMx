@@ -58,8 +58,8 @@ omxCheckError(mxRun(model3), paste("The algebras/matrices",
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
 model <- mxModel('model', A, B)
-omxCheckError(mxRun(model), paste("The label 'model.A[0,0]' of matrix 'B'",
-	"in model 'model' does not evaluate to a (1 x 1) matrix."))
+omxCheckError(mxRun(model), 
+              "Requested improper value (0, 0) from (1, 1) matrix")
 kevin <- 'bacon'
 B <- mxAlgebra(A[kevin, ], name = 'B')
 dimnames(A) <- list('Tom', 'Cruise')
