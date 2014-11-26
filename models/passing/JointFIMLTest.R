@@ -303,8 +303,8 @@ quants <- quantile(ordinalData1[,1],  probs = c((1:nThresh)/(nThresh+1)))
 for(i in 1:nVars) {
    ordinalData1[,i] <- cut(as.vector(ordinalData1[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh))
 }
-ordinalData1[,nVars] <- as.numeric(NA)
 ordinalData1 <- mxFactor(ordinalData1, levels=c(0:nThresh))
+ordinalData1[,nVars] <- as.numeric(NA)
 names(ordinalData1) <- oNames1
 str(ordinalData1)
 
