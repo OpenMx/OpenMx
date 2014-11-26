@@ -23,9 +23,9 @@ library(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)
 
-directories <- c('demo', 'models/passing')
+directories <- c('models/passing')
 if (any(args == 'nightly')) {
-	directories <- c(directories, 'models/nightly')
+	directories <- c(directories, 'demo', 'models/nightly')
 }
 
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
