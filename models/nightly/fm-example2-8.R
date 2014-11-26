@@ -45,6 +45,13 @@ omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2917.58, .01)
 
+# These fit indices are approximate because we use the number of
+# statistics (30) for the df instead of the number of multinomial
+# cells (32). This doesn't really matter though because the these
+# statistics become inaccurate when the multinomial table is sparse
+# and there is no known correction (Bock, Giibons, & Muraki, 1998,
+# p. 265).
+
 m1Sum <- summary(m1, refModels=refModels)
 omxCheckCloseEnough(m1Sum$CFI, .979, .01)
 omxCheckCloseEnough(m1Sum$TLI, .965, .01)
