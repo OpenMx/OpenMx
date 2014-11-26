@@ -2,7 +2,11 @@ OPENMP = yes
 export OPENMP
 REXEC = R
 export REXEC
-BUILDARGS = --dsym  # need for MacOS debug symbols
+
+# --dsym is need for MacOS debug symbols
+# --force-biarch is for Windows 64/32 fat binary packages
+BUILDARGS = --force-biarch --dsym
+
 BUILDPRE = 2.0.0
 BUILDNO = $(shell ./inst/tools/findBuildNum.sh)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
@@ -42,11 +46,8 @@ help:
 	@echo "  build64       create an OpenMx binary for x86_64 systems"
 	@echo "  buildppc      create an OpenMx binary for ppc systems"
 	@echo "  srcbuild      create an OpenMx source release (alias for 'internal-build')"
-	@echo "  winbuild      create an OpenMx binary on windows systems (no cross-compilation)"
-	@echo "  winbuild-biarch  create an OpenMx binary for [32|64] bit windows systems"
 	@echo "  cran-check    build OpenMx without NPSOL and run CRAN check"
 	@echo "  cran-build    build OpenMx without NPSOL"
-	@echo "  cran-winbuild build OpenMx without NPSOL and build a binary package"
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
@@ -122,9 +123,6 @@ build/$(TARGET): npsol-prep build-prep
 cran-build: clean no-npsol-prep build-prep
 	cd build && $(REXEC) CMD build ..
 
-cran-winbuild: no-npsol-prep build-prep
-	cd build && $(REXEC) CMD INSTALL --build OpenMx_*.tar.gz
-
 cran-check: cran-build
 	$(REXEC) CMD check build/OpenMx_*.tar.gz
 
@@ -183,11 +181,6 @@ build64: common-build64 post-build
 buildppc: common-buildppc post-build
 
 srcbuild: clean internal-build
-
-winbuild: common-build
-
-winbuild-biarch: build-prep
-	cd build; $(REXEC) CMD INSTALL --force-biarch --build $(TARGET)
 
 install: npsol-prep
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
