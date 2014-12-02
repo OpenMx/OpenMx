@@ -107,9 +107,10 @@ LL2
 # Fit saturated model to covariance matrices using the matrix method
 expCovMat <- mxMatrix( type="Symm", nrow=1, ncol=1, free=TRUE, values=1, name="expCov" )
 expCovMat
-MLobjective <- mxMLObjective( covariance="expCov", dimnames=selVars )
+expectation <- mxExpectationNormal( covariance="expCov", dimnames=selVars )
+MLobjective <- mxFitFunctionML( )
 MLobjective
-univSatModel3 <- mxModel("univSat3", obsCovData, expCovMat, MLobjective)
+univSatModel3 <- mxModel("univSat3", obsCovData, expCovMat, expectation, MLobjective)
 univSatFit3  <- mxRun(univSatModel3)
 univSatSumm3 <- summary(univSatFit3)
 univSatSumm3
@@ -117,16 +118,18 @@ univSatSumm3
 # Fit saturated model to covariance matrices and means using the matrix method
 expMeanMat <- mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=0, name="expMean" )
 expMeanMat
-MLobjectiveM <- mxMLObjective( covariance="expCov", means="expMean", dimnames=selVars )
+expectationM <- mxExpectationNormal( covariance="expCov", means="expMean", dimnames=selVars )
+MLobjectiveM <- mxFitFunctionML( )
 MLobjectiveM
-univSatModel3M <- mxModel(univSatModel3, name="univSat3M", obsCovMeanData, expMeanMat, MLobjectiveM)
+univSatModel3M <- mxModel(univSatModel3, name="univSat3M", obsCovMeanData, expMeanMat, expectationM, MLobjectiveM)
 univSatFit3M  <- mxRun(univSatModel3M)
 univSatSumm3M <- summary(univSatFit3M)
 
 # Fit saturated model to raw data using the matrix method
-FIMLobjective <- mxFIMLObjective( covariance="expCov", means="expMean", dimnames=selVars)
+NORMexpectation <- mxExpectationNormal( covariance="expCov", means="expMean", dimnames=selVars)
+FIMLobjective <- mxFitFunctionML()
 FIMLobjective
-univSatModel4 <- mxModel("univSat4", obsRawData, expCovMat, expMeanMat, FIMLobjective)
+univSatModel4 <- mxModel("univSat4", obsRawData, expCovMat, expMeanMat, NORMexpectation, FIMLobjective)
 univSatFit4   <- mxRun(univSatModel4)
 summary(univSatFit4)
 
@@ -135,8 +138,9 @@ expCovMatBin <- mxMatrix( type="Stand", nrow=1, ncol=1, free=TRUE, values=.5, na
 expMeanMatBin <- mxMatrix( type="Zero", nrow=1, ncol=1, name="expMean" )
 expThreMatBin <- mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=0, name="expThre" )
 expThreMatBin
-FIMLobjectiveBin <- mxFIMLObjective( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
-univSatModel5 <- mxModel("univSat5", obsRawDataBin, expCovMatBin, expMeanMatBin, expThreMatBin, FIMLobjectiveBin )
+expectationBin <- mxExpectationNormal( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
+FIMLobjectiveBin <- mxFitFunctionML( )
+univSatModel5 <- mxModel("univSat5", obsRawDataBin, expCovMatBin, expMeanMatBin, expThreMatBin, expectationBin, FIMLobjectiveBin )
 univSatFit5   <- mxRun(univSatModel5)
 summary(univSatFit5)
     
@@ -147,8 +151,9 @@ expCovMatOrd  <- mxMatrix( type="Stand", nrow=nv, ncol=nv, free=TRUE, values=.5,
 expMeanMatOrd <- mxMatrix( type="Zero", nrow=1, ncol=nv, name="expMean" )
 expThreMatOrd <- mxMatrix( type="Full", nrow=nth, ncol=nv, free=TRUE, values=c(-1.5,-.5,.5,1.5), name="expThre" )
 expThreMatOrd
-FIMLobjectiveOrd <- mxFIMLObjective( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
-univSatModel6    <- mxModel("univSat6", obsRawDataOrd, expCovMatOrd, expMeanMatOrd, expThreMatOrd, FIMLobjectiveOrd )
+expectationOrd <- mxExpectationNormal( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
+FIMLobjectiveOrd <- mxFitFunctionML()
+univSatModel6    <- mxModel("univSat6", obsRawDataOrd, expCovMatOrd, expMeanMatOrd, expThreMatOrd, expectationOrd, FIMLobjectiveOrd )
 univSatFit6      <- mxRun(univSatModel6)
 summary(univSatFit6)
  
@@ -159,8 +164,9 @@ thLBound         <- matrix(rep(c(-3,(rep(0.001,nth-1))),nv),nrow=nth,ncol=nv)
 Inc              <- mxMatrix( type="Lower", nrow=nth, ncol=nth, free=FALSE, values=1, name="Inc" )
 Thre             <- mxMatrix( type="Full", nrow=nth, ncol=1, free=TRUE, values=thValues, lbound=thLBound, name="Thre" )
 expThreMatOrd    <- mxAlgebra( expression= Inc %*% Thre, name="expThre" )
-FIMLobjectiveOrd <- mxFIMLObjective( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
-univSatModel6I   <- mxModel("univSat6", obsRawDataOrd, expCovMatOrd, expMeanMatOrd, Inc, Thre, expThreMatOrd, FIMLobjectiveOrd )
+expectationOrd   <- mxExpectationNormal( covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
+FIMLobjectiveOrd <- mxFitFunctionML( )
+univSatModel6I   <- mxModel("univSat6", obsRawDataOrd, expCovMatOrd, expMeanMatOrd, Inc, Thre, expThreMatOrd, expectationOrd, FIMLobjectiveOrd )
 univSatFit6I     <- mxRun(univSatModel6I)
 summary(univSatFit6I)
 
@@ -183,8 +189,9 @@ expCovMA  <- mxAlgebra(expression=Chol %*% t(Chol), name="expCov" )
 expCovM
 expMeanM
 expCovMA
-FIMLobjective <- mxFIMLObjective( covariance="expCov", means="expMean", dimnames=selVars )
-bivSatModel2  <- mxModel("bivSat2", obsBivData, lowerTriM, expCovMA, expMeanM, FIMLobjective )
+expectationBiv <- mxExpectationNormal( covariance="expCov", means="expMean", dimnames=selVars )
+FIMLobjective <- mxFitFunctionML()
+bivSatModel2  <- mxModel("bivSat2", obsBivData, lowerTriM, expCovMA, expMeanM, expectationBiv, FIMLobjective )
 bivSatFit2    <- mxRun(bivSatModel2)
 summary(bivSatFit2)
     
@@ -193,7 +200,7 @@ bivSatModel3 <- mxModel("bivSat3", mxData( observed=bivData, type="raw" ) )
 bivSatModel3 <- mxModel(bivSatModel3, mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.5, name="Chol" ) )
 bivSatModel3 <- mxModel(bivSatModel3, mxAlgebra( expression=Chol %*% t(Chol), name="expCov" ) )
 bivSatModel3 <- mxModel(bivSatModel3, mxMatrix( type="Full", nrow=1, ncol=nv, free=TRUE, values=c(0,0), labels=c('M1','M2'), name="expMean" ) )
-bivSatModel3 <- mxModel(bivSatModel3, mxFIMLObjective( covariance="expCov", means="expMean", dimnames=selVars ) )
+bivSatModel3 <- mxModel(bivSatModel3, mxExpectationNormal( covariance="expCov", means="expMean", dimnames=selVars ), mxFitFunctionML() )
 bivSatFit3   <- mxRun(bivSatModel3)
 summary(bivSatFit3)
  
@@ -203,7 +210,8 @@ bivSatModel4 <- mxModel("bivSat4",
 	 mxMatrix(type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.5, name="Chol"),
 	 mxAlgebra(expression=Chol %*% t(Chol), name="expCov"),
 	 mxMatrix(type="Full", nrow=1, ncol=nv, free=TRUE, values=c(0,0), name="expMean"),
-	 mxFIMLObjective(covariance="expCov", means="expMean", dimnames=selVars)
+	 mxExpectationNormal(covariance="expCov", means="expMean", dimnames=selVars),
+	 mxFitFunctionML()
 )
 bivSatFit4  <- mxRun(bivSatModel4)
 summary(bivSatFit4)
@@ -212,8 +220,9 @@ summary(bivSatFit4)
 expCovMatBin <- mxMatrix(type="Stand", nrow=nv, ncol=nv, free=TRUE, values=.5, name="expCov" )
 expMeanMatBin    <- mxMatrix(type="Zero", nrow=1, ncol=nv, name="expMean" )
 expThreMatBin    <- mxMatrix(type="Full", nrow=1, ncol=nv, free=TRUE, values=0, name="expThre" )
-FIMLobjectiveBin <- mxFIMLObjective(covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
-bivSatModel5     <- mxModel("bivSat5", obsBivDataBin, expCovMatBin, expMeanMatBin, expThreMatBin, FIMLobjectiveBin )
+expectationBin   <- mxExpectationNormal(covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
+FIMLobjectiveBin <- mxFitFunctionML()
+bivSatModel5     <- mxModel("bivSat5", obsBivDataBin, expCovMatBin, expMeanMatBin, expThreMatBin, expectationBin, FIMLobjectiveBin )
 bivSatFit5       <- mxRun(bivSatModel5)
 summary(bivSatFit5)
   
@@ -221,8 +230,9 @@ summary(bivSatFit5)
 expCovMatOrd     <- mxMatrix(type="Stand", nrow=nv, ncol=nv, free=TRUE, values=.5, name="expCov" )
 expMeanMatOrd    <- mxMatrix(type="Zero", nrow=1, ncol=nv, name="expMean" )
 expThreMatOrd    <- mxMatrix(type="Full", nrow=nth, ncol=nv, free=TRUE, values=c(-1.5,-.5,.5,1.5), name="expThre" )
-FIMLobjectiveOrd <- mxFIMLObjective(covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
-bivSatModel6     <- mxModel("bivSat6", obsBivDataOrd, expCovMatOrd, expMeanMatOrd, expThreMatOrd, FIMLobjectiveOrd )
+expectationOrd   <- mxExpectationNormal(covariance="expCov", means="expMean", threshold="expThre", dimnames=selVars )
+FIMLobjectiveOrd <- mxFitFunctionML()
+bivSatModel6     <- mxModel("bivSat6", obsBivDataOrd, expCovMatOrd, expMeanMatOrd, expThreMatOrd, expectationOrd, FIMLobjectiveOrd )
 bivSatFit6       <- mxRun(bivSatModel6)
 summary(bivSatFit6) 
  
