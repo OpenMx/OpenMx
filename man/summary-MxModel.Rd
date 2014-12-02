@@ -44,9 +44,9 @@ mxSummary allows the user to set or override the following parameters of the mod
 \item{numStats}{Numeric. Specify the total number of observed statistics for the model.}
 \item{refModels}{List of MxModel objects. Specify a saturated and independence likelihoods in single argument for testing.}
 \item{SaturatedLikelihood}{Numeric or MxModel object. Specify a saturated likelihood for testing.}
-\item{SaturatedDoF}{Numeric. When SaturatedLikelihood is numeric, specify the degrees of freedom of the saturated likelihood for testing.}
+\item{SaturatedDoF}{Numeric. Specify the degrees of freedom of the saturated likelihood for testing.}
 \item{IndependenceLikelihood}{Numeric or MxModel object. Specify an independence likelihood for testing.}
-\item{IndependenceDoF}{Numeric. When IndependenceLikelihood is numeric, specify the degrees of freedom of the independence likelihood for testing.}
+\item{IndependenceDoF}{Numeric. Specify the degrees of freedom of the independence likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 }
 
@@ -54,9 +54,9 @@ The \code{verbose} argument changes the printing style for the \code{summary} of
 
 The \code{Information Criteria} (AIC, BIC) are reported in a table.  The table shows different versions of the information criteria.  Each entry in the table is an AIC or BIC obtained using different penalties.  In particular, the entries of the table do not show different penalties, but rather different versions of AIC and BIC.  For example the AIC is reported with both a Parameters Penalty and a Degrees of Freedom Penalty.  AIC generally takes the form \eqn{-2LL + 2*k}.  With the Parameters Penalty \eqn{k} is the number of free parameters.  With the Degrees of Freedom Penalty, \eqn{k} is the model degrees of freedom.  BIC is defined similarly: \eqn{-2LL + k*log(N)} where \eqn{k} is either the number of free parameters or the degrees of freedom.  The Sample-Size Adjusted BIC is only defined for the parameters penalty: \eqn{-2LL + k*log((N+2)/24)}.
 
-The \code{refModels}, \code{SaturatedLikelihood}, \code{SaturatedDoF}, \code{IndependenceLikelihood}, and \code{IndependenceDoF} arguments can be used to obtain further fit statistics (RMSEA, CFI, TLI, Chi-Squared).  For covariance data, saturated and independence models are fitted automatically so all fit indices are reported.  For raw data, these reference models are not estimated to save computational time.  For an easy way to make reference models for most cases is provided by the \link{mxRefModels} function.
+The \code{refModels}, \code{SaturatedLikelihood}, \code{SaturatedDoF}, \code{IndependenceLikelihood}, and \code{IndependenceDoF} arguments can be used to obtain further fit statistics (RMSEA, CFI, TLI, Chi-Squared).  For covariance data, saturated and independence models are fitted automatically so all fit indices are reported.  For raw data, these reference models are not estimated to save computational time.  For an easy way to make reference models for most cases is provided by the \link{mxRefModels} function.  When the \code{SaturatedLikelihood} or \code{IndependenceLikelihood} arguments are used, the appropriate degrees of freedom are attempted to be calculated by OpenMx.  However, depending on the model, it may sometimes behoove the user to also explicity provide the corresponding \code{SaturatedDoF} and/or \code{IndependenceDoF}.  Again, for the vast majority of cases, the \link{mxRefModels} function handles these situations effectively and convenietly.
    
-This function can report Error codes as follows:
+The summary function can report Error codes as follows:
    
    \itemize{
    \item 1: The final iterate satisfies the optimality conditions to the accuracy requested, but the sequence of iterates has not yet converged. NPSOL was terminated because no further improvement could be made in the merit function (Mx status GREEN)

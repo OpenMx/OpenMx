@@ -334,7 +334,13 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 			}
 		}
 		# number of variables
-		nvar <- dim(model@runstate$datalist[[1]]@observed)[2]
+		if(model@runstate$datalist[[1]]@type != 'raw'){
+			nvar <- dim(model@runstate$datalist[[1]]@observed)[2]
+		} else if( length(model@runstate$expectations) == 1 ) {
+			nvar <- length(model@runstate$expectations[[1]]@dims)
+		} else {
+			nvar <- 0
+		}
 	# if there are multiple or zero datalists, then do nothing
 	} else {
 		useMeans <- NA	
