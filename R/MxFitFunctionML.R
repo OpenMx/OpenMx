@@ -123,7 +123,9 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 			if (is.null(model@expectation@.runDims)) stop("Not clear which data were used to fit model")
 			selVars <- model@expectation@.runDims
 			if(nrow(obsdata) == ncol(obsdata)){
-				obsdata <- obsdata[selVars, selVars]
+				if(!single.na(model@expectation@.runDims)) { obsdata <- obsdata[selVars, selVars] }
+				#variable subsets are not run for covariance data
+				#consequently, selVars are only used when runDims are provided.
 			} else { obsdata <- obsdata[,selVars] }
 		} else {
 			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
