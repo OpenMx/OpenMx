@@ -245,6 +245,10 @@ static void omxExpectationProcessDefinitionVars(omxExpectation* ox, SEXP rObj)
 
 void omxExpectation::loadFakeData(double fake)
 {
+	// This is really just a quick hack that I wrote before I
+	// understood the problem.  What we should really do is call
+	// handleDefinitionVarList to load the first row of data.
+
 	for (int dx=0; dx < numDefs; ++dx) {
 		defVars[dx].loadFakeData(currentState, fake);
 	}
@@ -257,8 +261,9 @@ void omxDefinitionVar::loadFakeData(omxState *state, double fake)
 		int matrow = rows[l];
 		int matcol = cols[l];
 		omxMatrix *matrix = state->matrixList[matrixNumber];
-		if(OMX_DEBUG_ROWS(0)) {
-			mxLog("Populating fake data (value %3.2f) into matrix '%s'", fake, matrix->name);
+		if(OMX_DEBUG) {
+			mxLog("Populating fake data (value %3.2f) into matrix '%s' at [%d,%d]",
+			      fake, matrix->name, 1+matrow, 1+matcol);
 		}
 		omxSetMatrixElement(matrix, matrow, matcol, fake);
 	}

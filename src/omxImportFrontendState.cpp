@@ -181,7 +181,7 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	// Need something finite for definition variables to avoid exceptions
 
 	for (int ex = 0; ex < (int) state->expectationList.size(); ++ex) {
-		state->expectationList[ex]->loadFakeData(0);
+		state->expectationList[ex]->loadFakeData(1);
 	}
 
 	// This is required because FF_COMPUTE_DIMS cannot compute
