@@ -211,7 +211,6 @@ Matrix csolnpIneqFun(int verbose)
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
-
 {
     freeMatrices(); // maybe left overs from an aborted optimization attempt
     
@@ -331,7 +330,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     
     
-    p_obj = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+    CSOLNP solnpContext;
+    p_obj = solnpContext.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
     
     fc->fit = p_obj.objValue;
@@ -525,7 +525,8 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform!= 0 && cycles > 0) {
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
-                p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+		CSOLNP solnpContext1;
+                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -591,7 +592,8 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform != 0 && cycles >= 0) {
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
-                p_obj_conf = solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+		CSOLNP solnpContext1;
+                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
