@@ -24,7 +24,8 @@ require(OpenMx)
 # ----------------------------------
 # Read the data and print descriptive statistics.
 
-multiData1 <- read.csv("data/multiData.csv")
+multiData1 <- suppressWarnings(try(read.csv("models/passing/data/multiData.csv"), silent=TRUE))
+if (is(multiData1, "try-error")) multiData1 <- read.csv("data/multiData.csv")
 
 
 # ----------------------------------

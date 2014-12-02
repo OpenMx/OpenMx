@@ -31,7 +31,8 @@
 
 require(OpenMx)
 
-DataMZ <- read.table("data/sim1.mz", header = F)
+DataMZ <- suppressWarnings(try(read.table("models/passing/data/sim1.mz", header=FALSE), silent=TRUE))
+if (is(DataMZ, "try-error")) DataMZ <- read.table("data/sim1.mz", header = F)
 selVars <- c("T1", "T2", "pMZ")
 names(DataMZ) <- selVars
 frameMZ <- data.frame(pMZ = DataMZ$pMZ)
