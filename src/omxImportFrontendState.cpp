@@ -178,6 +178,12 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 
 	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 
+	// Need something finite for definition variables to avoid exceptions
+
+	for (int ex = 0; ex < (int) state->expectationList.size(); ++ex) {
+		state->expectationList[ex]->loadFakeData(0);
+	}
+
 	// This is required because FF_COMPUTE_DIMS cannot compute
 	// dims for all algebra ops.
 

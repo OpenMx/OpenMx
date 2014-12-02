@@ -54,6 +54,7 @@ struct omxDefinitionVar {		 	// Definition Var
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
 
+	void loadFakeData(omxState *state, double fake);
 };
 
 /* Expectation structure itself */
@@ -83,6 +84,7 @@ struct omxExpectation {					// An Expectation
 	int numOrdinal;  // number of thresholds with matrix != 0
 	omxDefinitionVar* defVars;
 	int numDefs;
+	void loadFakeData(double fake);
 	
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
@@ -90,8 +92,7 @@ struct omxExpectation {					// An Expectation
 	int expNum;
 
 	omxExpectation *container;
-	int numSubmodels;
-	omxExpectation **submodels;
+	std::vector<omxExpectation *> submodels;
 
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove

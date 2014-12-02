@@ -611,6 +611,13 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 
 		omxRecompute(sourceMatrix, fc);
 
+		if (want & FF_COMPUTE_INITIAL_FIT) {
+			if (pl.srcRow >= sourceMatrix->rows || pl.srcCol >= sourceMatrix->cols) {
+				// may not be properly dimensioned yet
+				continue;
+			}
+		}
+
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
 			double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
 			omxSetMatrixElement(this, pl.destRow, pl.destCol, value);

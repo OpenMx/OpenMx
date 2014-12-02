@@ -52,7 +52,6 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
     
 	if (ox->destructFun) ox->destructFun(ox);
 	omxFreeMatrix(ox->dataColumns);
-	Free(ox->submodels);
 	Free(ox);
 }
 
@@ -99,37 +98,16 @@ omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* new
 	return omxNewIncompleteExpectation(src->rObj, src->expNum, newState);
 }
 
-omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
-
-	SEXP ExpectationClass;
-	const char *expType;
-	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
-		expType = CHAR(ExpectationClass);
-	}
-
-	omxExpectation* expect = omxNewInternalExpectation(expType, os);
-
-	expect->rObj = rObj;
-	expect->expNum = expNum;
-	
-	SEXP nextMatrix;
-	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
-	expect->data = omxDataLookupFromState(nextMatrix, os);
-	}
-
-	return expect;
-}
-
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 {
 	omxExpectation* ox = os->expectationList.at(expIndex);
 	return ox;
 }
 
-void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
-
-	int index, numDefs, nextDef, numCols, numOrdinal=0;
-	SEXP nextMatrix, itemList, nextItem, threshMatrix; 
+static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
+{
+	int index, numCols, numOrdinal=0;
+	SEXP nextMatrix, itemList, threshMatrix; 
 	
 	if(rObj == NULL) return;
 
@@ -203,90 +181,146 @@ void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj){
 			}
 		}
 	}
+}
 
+static void omxExpectationProcessDefinitionVars(omxExpectation* ox, SEXP rObj)
+{
 	if(!R_has_slot(rObj, Rf_install("definitionVars"))) {
 		ox->numDefs = 0;
 		ox->defVars = NULL;
-	} else {	
-		if(OMX_DEBUG) {
-			mxLog("Accessing definition variables structure.");
-		}
-		Rf_protect(nextMatrix = R_do_slot(rObj, Rf_install("definitionVars")));
-		numDefs = Rf_length(nextMatrix);
-		ox->numDefs = numDefs;
-		if(OMX_DEBUG) {
-			mxLog("Number of definition variables is %d.", numDefs);
-		}
-		ox->defVars = (omxDefinitionVar *) R_alloc(numDefs, sizeof(omxDefinitionVar));
-		for(nextDef = 0; nextDef < numDefs; nextDef++) {
-			SEXP dataSource, columnSource, depsSource; 
-			int nextDataSource, numDeps;
+		return;
+	}
 
-			Rf_protect(itemList = VECTOR_ELT(nextMatrix, nextDef));
-			Rf_protect(dataSource = VECTOR_ELT(itemList, 0));
-			nextDataSource = INTEGER(dataSource)[0];
-			if(OMX_DEBUG) {
-				mxLog("Data source number is %d.", nextDataSource);
-			}
-			ox->defVars[nextDef].data = nextDataSource;
-			ox->defVars[nextDef].source = ox->currentState->dataList[nextDataSource];
-			Rf_protect(columnSource = VECTOR_ELT(itemList, 1));
-			if(OMX_DEBUG) {
-				mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
-			}
-			ox->defVars[nextDef].column = INTEGER(columnSource)[0];
-			Rf_protect(depsSource = VECTOR_ELT(itemList, 2));
-			numDeps = LENGTH(depsSource);
-			ox->defVars[nextDef].numDeps = numDeps;
-			ox->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
-			for(int i = 0; i < numDeps; i++) {
-				ox->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
-			}
+	if(OMX_DEBUG) {
+		mxLog("Accessing definition variables structure.");
+	}
 
-			ox->defVars[nextDef].numLocations = Rf_length(itemList) - 3;
-			ox->defVars[nextDef].matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-			ox->defVars[nextDef].rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-			ox->defVars[nextDef].cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-			for(index = 3; index < Rf_length(itemList); index++) {
-				ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
-				ox->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
-				ox->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
-				ox->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
-			}
+	SEXP nextMatrix;
+	ScopedProtect dv(nextMatrix, R_do_slot(rObj, Rf_install("definitionVars")));
+	int numDefs = Rf_length(nextMatrix);
+	ox->numDefs = numDefs;
+	if(OMX_DEBUG) {
+		mxLog("Number of definition variables is %d.", numDefs);
+	}
+	ox->defVars = (omxDefinitionVar *) R_alloc(numDefs, sizeof(omxDefinitionVar));
+	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
+		SEXP dataSource, columnSource, depsSource; 
+		int nextDataSource, numDeps;
+
+		SEXP itemList;
+		ScopedProtect p1(itemList, VECTOR_ELT(nextMatrix, nextDef));
+		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0));
+		nextDataSource = INTEGER(dataSource)[0];
+		if(OMX_DEBUG) {
+			mxLog("Data source number is %d.", nextDataSource);
+		}
+		ox->defVars[nextDef].data = nextDataSource;
+		ox->defVars[nextDef].source = ox->currentState->dataList[nextDataSource];
+		ScopedProtect p3(columnSource, VECTOR_ELT(itemList, 1));
+		if(OMX_DEBUG) {
+			mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
+		}
+		ox->defVars[nextDef].column = INTEGER(columnSource)[0];
+		ScopedProtect p4(depsSource, VECTOR_ELT(itemList, 2));
+		numDeps = LENGTH(depsSource);
+		ox->defVars[nextDef].numDeps = numDeps;
+		ox->defVars[nextDef].deps = (int*) R_alloc(numDeps, sizeof(int));
+		for(int i = 0; i < numDeps; i++) {
+			ox->defVars[nextDef].deps[i] = INTEGER(depsSource)[i];
+		}
+
+		ox->defVars[nextDef].numLocations = Rf_length(itemList) - 3;
+		ox->defVars[nextDef].matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		ox->defVars[nextDef].rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		ox->defVars[nextDef].cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		for(int index = 3; index < Rf_length(itemList); index++) {
+			SEXP nextItem;
+			ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
+			ox->defVars[nextDef].matrices[index-3] = INTEGER(nextItem)[0];
+			ox->defVars[nextDef].rows[index-3] = INTEGER(nextItem)[1];
+			ox->defVars[nextDef].cols[index-3] = INTEGER(nextItem)[2];
 		}
 	}
+}
+
+void omxExpectation::loadFakeData(double fake)
+{
+	for (int dx=0; dx < numDefs; ++dx) {
+		defVars[dx].loadFakeData(currentState, fake);
+	}
+}
+
+void omxDefinitionVar::loadFakeData(omxState *state, double fake)
+{
+	for(int l = 0; l < numLocations; l++) {
+		int matrixNumber = matrices[l];
+		int matrow = rows[l];
+		int matcol = cols[l];
+		omxMatrix *matrix = state->matrixList[matrixNumber];
+		if(OMX_DEBUG_ROWS(0)) {
+			mxLog("Populating fake data (value %3.2f) into matrix '%s'", fake, matrix->name);
+		}
+		omxSetMatrixElement(matrix, matrow, matcol, fake);
+	}
+}
+
+omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
+
+	SEXP ExpectationClass;
+	const char *expType;
+	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
+		expType = CHAR(ExpectationClass);
+	}
+
+	omxExpectation* expect = omxNewInternalExpectation(expType, os);
+
+	expect->rObj = rObj;
+	expect->expNum = expNum;
 	
+	SEXP nextMatrix;
+	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
+	expect->data = omxDataLookupFromState(nextMatrix, os);
+	}
+
+	if (rObj) {
+		omxExpectationProcessDefinitionVars(expect, rObj);
+	}
+
+	return expect;
 }
 
 void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
 
-	omxState* os = ox->currentState;
-
 	if (ox->rObj) {
+		omxState *os = ox->currentState;
+		SEXP rObj = ox->rObj;
 		SEXP slot;
-		{ScopedProtect(slot, R_do_slot(ox->rObj, Rf_install("container")));
+		{ScopedProtect(slot, R_do_slot(rObj, Rf_install("container")));
 		if (Rf_length(slot) == 1) {
 			int ex = INTEGER(slot)[0];
 			ox->container = os->expectationList.at(ex);
 		}
 		}
 
-		{ScopedProtect(slot, R_do_slot(ox->rObj, Rf_install("submodels")));
+		{ScopedProtect(slot, R_do_slot(rObj, Rf_install("submodels")));
 		if (Rf_length(slot)) {
-			ox->numSubmodels = Rf_length(slot);
-			ox->submodels = Realloc(NULL, Rf_length(slot), omxExpectation*);
+			int numSubmodels = Rf_length(slot);
 			int *submodel = INTEGER(slot);
-			for (int ex=0; ex < ox->numSubmodels; ex++) {
+			for (int ex=0; ex < numSubmodels; ex++) {
 				int sx = submodel[ex];
-				ox->submodels[ex] = omxExpectationFromIndex(sx, os);
-				omxCompleteExpectation(ox->submodels[ex]);
+				ox->submodels.push_back(omxExpectationFromIndex(sx, os));
 			}
 		}
 		}
+	}
 
-		omxExpectationProcessDataStructures(ox, ox->rObj);
+	omxExpectationProcessDataStructures(ox, ox->rObj);
+
+	int numSubmodels = (int) ox->submodels.size();
+	for (int ex=0; ex < numSubmodels; ex++) {
+		omxCompleteExpectation(ox->submodels[ex]);
 	}
 
 	ox->initFun(ox);
@@ -300,7 +334,6 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	}
 
 	ox->isComplete = TRUE;
-
 }
 
 static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
