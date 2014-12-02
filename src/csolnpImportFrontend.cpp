@@ -64,48 +64,48 @@ void setupEqB(struct Matrix *eqPointer, int size)
     }
     
     
-void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct Matrix ub_ineq, struct Matrix eqb)  {
-	omxState *globalState = fc->state;
+void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix *lb_ineq, struct Matrix *ub_ineq, struct Matrix *eqb)  {
+    omxState *globalState = fc->state;
     if (globalState->numConstraints == 0){
         return;
     }
     
     int i;
     int size;
-	double EMPTY = -999999.0;
+    double EMPTY = -999999.0;
     Matrix lb_ineqless = fill(1, 1, EMPTY);
     Matrix ub_ineqless = fill(1, 1, EMPTY);
     Matrix lb_ineqmore = fill(1, 1, EMPTY);
     Matrix ub_ineqmore = fill(1, 1, EMPTY);
     Matrix eqbound = fill(1, 1, EMPTY);
-    Matrix ineq_lb = fill(0, 1, EMPTY);
-    Matrix ineq_ub = fill(0, 1, EMPTY);
-    Matrix myeqb = fill(0, 1, EMPTY);
+    Matrix ineq_lb = fill(1, 1, EMPTY);
+    Matrix ineq_ub = fill(1, 1, EMPTY);
+    Matrix myeqb = fill(1, 1, EMPTY);
     
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
-
-		size = globalState->conList[constraintIndex].size;
+    for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
         
-            if (globalState->conList[constraintIndex].opCode == 0)
-            {
-                Matrix lb_ineqless = fill(size, 1, EMPTY);
-                Matrix ub_ineqless = fill(size, 1, EMPTY);
-                setupIneqLess(&lb_ineqless, &ub_ineqless, size);
-            }
-            
-            if (globalState->conList[constraintIndex].opCode == 1)
-            {
-                eqbound = fill(size, 1, EMPTY);
-                setupEqB(&eqbound, size);
-            }
-            
-            if (globalState->conList[constraintIndex].opCode == 2)
-            {
-                lb_ineqmore = fill(size, 1, EMPTY);
-                ub_ineqmore = fill(size, 1, EMPTY);
-                setupIneqGreater(&lb_ineqmore, &ub_ineqmore, size);
-            }
-                    
+        size = globalState->conList[constraintIndex].size;
+        
+        if (globalState->conList[constraintIndex].opCode == 0)
+        {
+            Matrix lb_ineqless = fill(size, 1, EMPTY);
+            Matrix ub_ineqless = fill(size, 1, EMPTY);
+            setupIneqLess(&lb_ineqless, &ub_ineqless, size);
+        }
+        
+        if (globalState->conList[constraintIndex].opCode == 1)
+        {
+            eqbound = fill(size, 1, EMPTY);
+            setupEqB(&eqbound, size);
+        }
+        
+        if (globalState->conList[constraintIndex].opCode == 2)
+        {
+            lb_ineqmore = fill(size, 1, EMPTY);
+            ub_ineqmore = fill(size, 1, EMPTY);
+            setupIneqGreater(&lb_ineqmore, &ub_ineqmore, size);
+        }
+        
         if (M(lb_ineqless, 0, 0) != EMPTY)
         {
             ineq_lb = copy(ineq_lb, lb_ineqless);
@@ -121,22 +121,31 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
             myeqb = copy(myeqb, eqbound);
         }
     }
-
-	// This should check for equality instead of less than TODO
-    if (lb_ineq.cols < ineq_lb.cols ||
-	ub_ineq.cols < ineq_ub.cols ||
-	eqb.cols < myeqb.cols) {
-	    Rf_error("Failed to unpack constraint bounds");
+    
+    if (ineq_lb.cols > 1)
+    {
+        ineq_lb = subset(ineq_lb, 0, 1, ineq_lb.cols - 1);
+        ineq_ub = subset(ineq_ub, 0, 1, ineq_ub.cols - 1);
     }
-
+    
+    if (myeqb.cols > 1)
+    {
+        myeqb = subset(myeqb, 0, 1, myeqb.cols - 1);
+    }
+    
     for (i = 0; i < ineq_lb.cols; i++)
     {
-        lb_ineq.t[i] = M(ineq_lb, i, 0);
-        ub_ineq.t[i] = M(ineq_ub, i, 0);
+        lb_ineq->t[i] = M(ineq_lb, i, 0);
+        ub_ineq->t[i] = M(ineq_ub, i, 0);
     }
     
     for (i = 0; i < myeqb.cols; i++)
     {
-        eqb.t[i] = M(myeqb, i, 0);
+        eqb->t[i] = M(myeqb, i, 0);
     }
+    
+    lb_ineq->cols = ineq_lb.cols;
+    ub_ineq->cols = ineq_ub.cols;
+    eqb->cols = myeqb.cols;
+    
 }

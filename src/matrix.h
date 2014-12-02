@@ -9,28 +9,19 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
-#include "Eigen/Core"
+
+double rnd_double();
 
 typedef struct Matrix Matrix;
 
 struct Matrix {
-	int rows;
-	int cols;
-	double *t;
-
-	Matrix() : rows(0), cols(0), t(NULL) {};
-	Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
-	Matrix(omxMatrix *mat);
-	template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
-		if (mb.rows() == 1 || mb.cols() == 1) {
-			// transpose column vectors (Eigen) to row vectors (CSOLNP)
-			cols = mb.rows();
-			rows = mb.cols();
-		} else {
-			rows = mb.rows();
-			cols = mb.cols();
-		}
-	};
+    int rows;
+    int cols;
+    double *t;
+    
+    Matrix(): t(NULL) {}
+    Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
+    Matrix(omxMatrix *mat);
 };
 
 typedef struct Param_Obj Param_Obj;
@@ -40,29 +31,32 @@ struct Param_Obj {
     double objValue;
 };
 
-bool all(Matrix x);
 
 #define M(m,x,y) m.t[y+x*m.rows]
 
+bool all(Matrix x);
+
 Matrix MatrixToVector(Matrix mat);
 
-Matrix fillMatrix(int cols, int rows, double* array, bool Delete = TRUE);
+Matrix fillMatrix(int cols, int rows, double* array);
+
+void fillMatrix_t(Matrix t, int cols, int rows, double* array);
 
 double solvecond(Matrix inMat);
 
 Matrix diag2(Matrix A);
 
-Matrix chol_lpk(Matrix mainMat);
+void chol_lpk(Matrix mainMat);
 
 Matrix QRdsolve(Matrix mainMat, Matrix RHSMat);
 
-Matrix solveinv(Matrix inMat);
+void QRdsolve_t(Matrix Final_result, Matrix mainMat, Matrix RHSMat);
+
+void solveinv(Matrix inMat);
 
 void printMatrices();
 
 void freeMatrices();
-
-void freeMatrices_l();
 
 Matrix QRd(Matrix mainMat, Matrix RHSMat);
 
@@ -72,27 +66,31 @@ int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
-		       Matrix amat, Matrix bmat, Matrix cmat);
+                       Matrix amat, Matrix bmat, Matrix cmat);
 void MeanSymmetric(Matrix mat);
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity);
 
 Matrix condNumPurpose(Matrix inMat);
 
-struct Matrix new_matrix(int cols,int rows, bool Delete = TRUE);
+struct Matrix new_matrix(int cols,int rows);
 
 struct Matrix transposeDotProduct(Matrix t);
 
-struct Matrix fill(int cols, int rows, double value, bool Delete = TRUE);
+struct Matrix fill(int cols, int rows, double value);
+
+void fill_t(Matrix t, int cols, int rows, double value);
 
 struct Matrix getRow(struct Matrix t, int row);
 
-struct Matrix setRow(struct Matrix x, int row, struct Matrix y);
+void getRow_t (Matrix toReturn, Matrix t, int row);
 
-void setRowInplace( Matrix x, int cc,  Matrix y);
+void setRow(struct Matrix x, int row, struct Matrix y);
 
 struct Matrix getColumn(struct Matrix t, int colNum);
 
-void setColumnInplace( Matrix x, Matrix y, int cc);
+void getColumn_t (Matrix toReturn, Matrix t, int colNum);
+
+void setColumn(struct Matrix x, struct Matrix y, int colNum);
 
 void print(struct Matrix t);
 
@@ -103,6 +101,8 @@ struct Matrix solve(struct Matrix A, struct Matrix b);
 struct Matrix cholesky(struct Matrix A);
 
 struct Matrix diag(struct Matrix A);
+
+void diag_t(Matrix result, Matrix A);
 
 bool allGreaterThan(struct Matrix t, double value);
 
@@ -120,53 +120,53 @@ double max(double a, double b);
 
 double dotProduct(struct Matrix a, struct Matrix b);
 
-struct Matrix matrixDotProduct(struct Matrix a, struct Matrix b);
+Matrix matrixDotProduct(struct Matrix a, struct Matrix b);
 
-struct Matrix minMaxAbs(struct Matrix t, double tol);
+void minMaxAbs(struct Matrix t, double tol);
 
-struct Matrix add(struct Matrix x, struct Matrix y);
+void add(struct Matrix x, struct Matrix y);
 
-struct Matrix subtract(struct Matrix x, struct Matrix y);
+void subtract(struct Matrix x, struct Matrix y);
 
-struct Matrix multiply(struct Matrix x, struct Matrix y);
+void multiply(struct Matrix x, struct Matrix y);
 
-struct Matrix divide(struct Matrix x, struct Matrix y);
+void divide(struct Matrix x, struct Matrix y);
 
-struct Matrix copyInto(struct Matrix x, struct Matrix y, int rowNum, int colStart, int colStop);
-
-void copyIntoInplace(Matrix x,  Matrix y, int rowNum, int colStart, int colStop);
+void copyInto(struct Matrix x, struct Matrix y, int rowNum, int colStart, int colStop);
 
 struct Matrix rowWiseMin(struct Matrix t);
 
 struct Matrix transposeDP(struct Matrix t);
 
+void transposeDP_t(Matrix toReturn, Matrix t);
+
 struct Matrix transpose2D(struct Matrix t);
 
 struct Matrix transpose(struct Matrix t);
 
-struct Matrix duplicateIt(struct Matrix t, bool Delete = TRUE);
+void transpose_t(Matrix t_t, Matrix t);
 
-double matrixMaxAbs(Matrix t);
+void negate(struct Matrix t);
 
-struct Matrix multiplyByScalar2D(struct Matrix t, double multiplier);
+struct Matrix duplicateIt(struct Matrix t);
 
-struct Matrix divideByScalar2D(struct Matrix t, double divisor);
+void duplicateIt_t(Matrix result, Matrix t);
+
+void matrixAbs(struct Matrix t);
+
+void multiplyByScalar2D(struct Matrix t, double multiplier);
+
+void divideByScalar2D(struct Matrix t, double divisor);
 
 struct Matrix checkControlList(struct Matrix t);
 
-template <typename T1>
-void subset(Matrix t, int row, int colStart, int colStop, Eigen::MatrixBase<T1> &dest)
-{
-       Eigen::Map< Eigen::MatrixXd > tt(t.t, t.rows, t.cols);
-       int len = colStop - colStart + 1;
-       // We transpose here because Eigen prefers column vectors
-       // whereas CSOLNP prefers row vectors.
-       dest = tt.block(row, colStart, 1, len).transpose();
-}
-
 struct Matrix subset(struct Matrix t, int row, int colStart, int colStop);
 
-Matrix copy(Matrix x,  Matrix y, bool Delete = TRUE);
+void subset_t(Matrix result, Matrix t, int row, int colStart, int colStop);
+
+Matrix copy(Matrix x,  Matrix y);
+
+void copy_t(Matrix result, Matrix x,  Matrix y);
 
 struct Matrix rbind(struct Matrix x, struct Matrix y);
 
@@ -176,13 +176,15 @@ struct Matrix rbind(struct Matrix x, struct Matrix y);
 
 struct Matrix timess(struct Matrix a, struct Matrix b);
 
+void timess_t(Matrix result, Matrix a,  Matrix b);
+
 struct Matrix luSolve(struct Matrix a, struct Matrix b);
 
 struct Matrix qrSolve(struct Matrix a, struct Matrix b);
 
 struct Matrix qrDecomposition(struct Matrix t, bool rDecomp);
 
-struct Matrix rowSort(struct Matrix t);
+void rowSort(struct Matrix t);
 
 void logm_eigen(int n, double *rz, double *out);
 void expm_eigen(int n, double *rz, double *out);
