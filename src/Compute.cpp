@@ -2476,10 +2476,9 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 		int objNum = INTEGER(slotValue)[wx];
 		if (objNum >= 0) {
 			omxMatrix *algebra = globalState->algebraList[objNum];
-			if (algebra->fitFunction) {
-				setFreeVarGroup(algebra->fitFunction, varGroup);
-				omxCompleteFitFunction(algebra);
-			}
+			if (!algebra->fitFunction) Rf_error("ComputeOnce can only handle fit functions");
+			setFreeVarGroup(algebra->fitFunction, varGroup);
+			omxCompleteFitFunction(algebra);
 			algebras.push_back(algebra);
 		} else {
 			omxExpectation *expectation = globalState->expectationList[~objNum];
@@ -2557,9 +2556,7 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 	for (int ax=0; ax < (int) algebras.size(); ++ax) {
 		omxFitFunction *ff = algebras[ax]->fitFunction;
 		if (!ff) {
-			if (mac || starting || gradient || hessian || infoMat || ihessian) {
-				Rf_error("Only fit is available from MxAlgebra");
-			}
+			Rf_error("ComputeOnce can only handle fit functions");
 			continue;
 		}
 
@@ -2613,14 +2610,10 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
-			if (algebra->fitFunction) {
-				omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-				ComputeFit(algebra, want, fc);
-				if (infoMat) {
-					fc->postInfo();
-				}
-			} else {
-				omxRecompute(algebra, want, fc);
+			omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+			ComputeFit(algebra, want, fc);
+			if (infoMat) {
+				fc->postInfo();
 			}
 		}
 	} else if (expectations.size()) {

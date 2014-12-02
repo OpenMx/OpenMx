@@ -150,7 +150,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 			algNum <- match(.Object@from, append(names(flatModel@algebras),
 							     names(flatModel@fitfunctions)))
 			if (any(is.na(expNum)) && any(is.na(algNum))) {
-				stop(paste("Can only apply MxComputeOnce to MxAlgebra or MxExpectation not",
+				stop(paste("Can only apply MxComputeOnce to MxFitFunction or MxExpectation not",
 					   deparse(.Object@from)))
 			}
 			if (!any(is.na(expNum))) {
@@ -189,7 +189,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' Use the \code{how} parameter to specify which approximation to use
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
 ##'
-##' @param from the object to perform the computation (a vector of expectation or algebra names)
+##' @param from the object to perform the computation (a vector of expectation or fit function names)
 ##' @param what what to compute (default is "nothing")
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
