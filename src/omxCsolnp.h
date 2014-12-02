@@ -20,11 +20,26 @@
 #include "omxMatrix.h"
 #include "matrix.h"
 
-//typedef double (*solFun_t)(struct Matrix myPars, int verbose);
-//typedef Matrix (*solEqBFun_t)(struct Matrix myPars, int verbose);
-//typedef Matrix (*solIneqFun_t)(struct Matrix myPars, int verbose);
+typedef struct CSOLNP CSOLNP;
 
-//struct Matrix fillMatrix(int cols, int rows, double* array);
+struct CSOLNP {
+    
+    int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
+    Matrix LB;
+    Matrix UB;
+    Matrix ineqLB;
+    Matrix ineqUB;
+    Matrix ind;
+    Matrix resP;
+    double resLambda;
+    Matrix resHessv;
+    Matrix resY;
+    Matrix sx_Matrix;
+    int mode_val;
+    int* mode;
+    //    CSOLNP() {}
+    //    CSOLNP(double _EMPTY, int _flag, int _flag_L, int _flag_U, int _index_flag_L, int _index_flag_U, int _flag_NormgZ, int _flag_step, int _minr_rec, )
+};
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
                      FreeVarGroup *freeVarGroup, int verbose, double *hessOut,
