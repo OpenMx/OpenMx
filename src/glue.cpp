@@ -282,7 +282,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
-	omxRecompute(algebra, FF_COMPUTE_FIT, NULL);
+	omxRecompute(algebra, NULL);
 
 	Rf_protect(ans = Rf_allocMatrix(REALSXP, algebra->rows, algebra->cols));
 	for(l = 0; l < algebra->rows; l++)
@@ -392,6 +392,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
 	}
+
+	globalState->setWantStage(FF_COMPUTE_FIT);
 
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];

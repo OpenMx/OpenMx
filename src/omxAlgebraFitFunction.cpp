@@ -134,7 +134,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 
 	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT)) {
 		if (algebra) {
-			omxRecompute(algebra, want, fc);
+			omxRecompute(algebra, fc);
 			ff->matrix->data[0] = algebra->data[0];
 		} else {
 			ff->matrix->data[0] = 0;
@@ -143,7 +143,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 
 	if (gradMap.size() == 0) return;
 	if (gradient) {
-		omxRecompute(gradient, FF_COMPUTE_FIT, fc);
+		omxRecompute(gradient, fc);
 		if (want & FF_COMPUTE_GRADIENT) {
 			for (size_t v1=0; v1 < gradMap.size(); ++v1) {
 				int to = gradMap[v1];
@@ -163,7 +163,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 	}
 	if (hessian && ((want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) ||
 			(want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_HESSIAN))) {
-		omxRecompute(hessian, FF_COMPUTE_FIT, fc);
+		omxRecompute(hessian, fc);
 
 		if (!vec2diag) {
 			HessianBlock *hb = new HessianBlock;

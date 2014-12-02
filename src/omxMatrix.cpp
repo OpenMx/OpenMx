@@ -609,7 +609,7 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 			sourceMatrix = currentState->algebraList[index];
 		}
 
-		omxRecompute(sourceMatrix, want, fc);
+		omxRecompute(sourceMatrix, fc);
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
 			double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
@@ -646,12 +646,13 @@ static bool omxNeedsUpdate(omxMatrix *matrix)
 	return yes;
 }
 
-void omxRecompute(omxMatrix *matrix, int want, FitContext *fc)
+void omxRecompute(omxMatrix *matrix, FitContext *fc)
 {
+	int want = matrix->currentState->getWantStage();
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
 	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, want, fc);
+	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, fc);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}

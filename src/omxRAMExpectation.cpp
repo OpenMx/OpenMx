@@ -144,11 +144,11 @@ static void omxCallRAMExpectation(omxExpectation* oo, const char *, const char *
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
-	omxRecompute(oro->A, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->S, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->F, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->A, NULL);
+	omxRecompute(oro->S, NULL);
+	omxRecompute(oro->F, NULL);
 	if(oro->M != NULL)
-	    omxRecompute(oro->M, FF_COMPUTE_FIT, NULL);
+	    omxRecompute(oro->M, NULL);
 	    
 	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
@@ -218,8 +218,8 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
     int numIters = oro->numIters;
     double oned = 1.0, zerod = 0.0;
     
-    omxRecompute(A, FF_COMPUTE_FIT, NULL);
-    omxRecompute(S, FF_COMPUTE_FIT, NULL);
+    omxRecompute(A, NULL);
+    omxRecompute(S, NULL);
 	
     omxShallowInverse(NULL, numIters, A, Z, Ax, I ); // Z = (I-A)^-1
 	

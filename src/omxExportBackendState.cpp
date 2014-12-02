@@ -46,6 +46,8 @@ void omxState::omxExportResults(MxRList *out)
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
+	setWantStage(FF_COMPUTE_INITIAL_FIT);
+
 	for(size_t index = 0; index < algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
 		omxMatrix* nextAlgebra = algebraList[index];
@@ -53,7 +55,7 @@ void omxState::omxExportResults(MxRList *out)
 		// but the fitfunction does not depend on those algebra
 		// then they need to be recomputed based on the final
 		// estimates.
-		omxRecompute(nextAlgebra, FF_COMPUTE_INITIAL_FIT, NULL);
+		omxRecompute(nextAlgebra, NULL);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;

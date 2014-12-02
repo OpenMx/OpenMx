@@ -96,9 +96,9 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
-void omxAlgebraRecompute(omxAlgebra *oa, int want, FitContext *fc)
+void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc)
 {
-	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], want, fc);
+	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], fc);
 
 	if(oa->funWrapper == NULL) {
 		if(oa->numArgs != 1) Rf_error("Internal Error: Empty algebra evaluated");
@@ -114,7 +114,7 @@ void omxAlgebraRecompute(omxAlgebra *oa, int want, FitContext *fc)
 			}
 			mxLog("Algebra '%s' %s(%s)", oa->matrix->name, oa->oate->rName, buf.c_str());
 		}
-		(*(algebra_op_t)oa->funWrapper)(fc, want, oa->algArgs, (oa->numArgs), oa->matrix);
+		(*(algebra_op_t)oa->funWrapper)(fc, oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {

@@ -1053,6 +1053,7 @@ void FitContext::createChildren()
 		//omxManageProtectInsanity mpi;
 		FitContext *kid = new FitContext(this, varGroup);
 		kid->state = new omxState(state);
+		kid->state->setWantStage(FF_COMPUTE_FIT);
 		childList.push_back(kid);
 		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
 	}

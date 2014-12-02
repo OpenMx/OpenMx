@@ -114,7 +114,7 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 	if (!_latentMeanOut) {
 		mean.setZero();
 	} else {
-		omxRecompute(_latentMeanOut, FF_COMPUTE_FIT, fc);
+		omxRecompute(_latentMeanOut, fc);
 		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * grp.maxAbilities);
 	}
 	
@@ -122,7 +122,7 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 	if (!_latentCovOut) {
 		cov.setIdentity();
 	} else {
-		omxRecompute(_latentCovOut, FF_COMPUTE_FIT, fc);
+		omxRecompute(_latentCovOut, fc);
 		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * grp.maxAbilities * grp.maxAbilities);
 	}
 }

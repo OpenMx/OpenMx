@@ -128,7 +128,7 @@ void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 /* Function wrappers that switch based on inclusion of algebras */
 	void omxPrint(omxMatrix *source, const char* d);
 
-void omxRecompute(omxMatrix *matrix, int want, FitContext *fc);
+void omxRecompute(omxMatrix *matrix, FitContext *fc);
 
 
 void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);

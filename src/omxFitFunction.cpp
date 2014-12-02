@@ -113,7 +113,7 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 		omxFitFunctionCompute(ff, want, fc);
 	} else {
 		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
-		omxRecompute(fitMat, want, fc);
+		omxRecompute(fitMat, fc);
 	}
 	if (doFit) {
 		if (fitMat->rows != 1) {

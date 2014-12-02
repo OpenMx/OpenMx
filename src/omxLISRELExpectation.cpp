@@ -26,22 +26,22 @@ void omxCallLISRELExpectation(omxExpectation* oo, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
 	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	
-	omxRecompute(oro->LX, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->LY, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->BE, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->GA, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->PH, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->PS, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->TD, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->TE, FF_COMPUTE_FIT, NULL);
-	omxRecompute(oro->TH, FF_COMPUTE_FIT, NULL);
+	omxRecompute(oro->LX, NULL);
+	omxRecompute(oro->LY, NULL);
+	omxRecompute(oro->BE, NULL);
+	omxRecompute(oro->GA, NULL);
+	omxRecompute(oro->PH, NULL);
+	omxRecompute(oro->PS, NULL);
+	omxRecompute(oro->TD, NULL);
+	omxRecompute(oro->TE, NULL);
+	omxRecompute(oro->TH, NULL);
 	if(oro->TX != NULL) {     // Update means?
-		omxRecompute(oro->TX, FF_COMPUTE_FIT, NULL);
-		omxRecompute(oro->KA, FF_COMPUTE_FIT, NULL);
+		omxRecompute(oro->TX, NULL);
+		omxRecompute(oro->KA, NULL);
 	}
 	if(oro->TY != NULL) {
-		omxRecompute(oro->TY, FF_COMPUTE_FIT, NULL);
-		omxRecompute(oro->AL, FF_COMPUTE_FIT, NULL);
+		omxRecompute(oro->TY, NULL);
+		omxRecompute(oro->AL, NULL);
 	}
 	
 	omxCalculateLISRELCovarianceAndMeans(oro);

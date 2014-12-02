@@ -50,7 +50,8 @@ A <- mxMatrix('Full', 2, 2, name = 'A')
 B <- mxMatrix('Full', 2, 2, name = 'B')
 C <- mxAlgebra(A + B, name = 'C')
 D <- mxMatrix('Full', 1, 1, labels = 'C[2,3]', name = 'D')
-model <- mxModel('model', A, B, C, D)
+model <- mxModel('model', A, B, C, D,
+                 mxFitFunctionAlgebra("D"))
 omxCheckError(mxRun(model), 
 	"Requested improper value (2, 3) from (2, 2) matrix")
 # Error check for values parameter

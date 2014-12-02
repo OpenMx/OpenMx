@@ -137,7 +137,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 		omxCopyMatrix(filteredDataRow, dataRow);
 		omxRemoveRowsAndColumns(filteredDataRow, 0, numRemoves, zeros, toRemove);
 
-		omxRecompute(rowAlgebra, FF_COMPUTE_FIT, fc);
+		omxRecompute(rowAlgebra, fc);
 
 		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
 	}
@@ -204,7 +204,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows, fc);
 	}
 
-	omxRecompute(reduceAlgebra, want, fc);
+	omxRecompute(reduceAlgebra, fc);
 
 	omxCopyMatrix(oo->matrix, reduceAlgebra);
 

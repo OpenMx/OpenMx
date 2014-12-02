@@ -50,7 +50,7 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 				mac = std::max(fc->mac, mac);
 			}
 		} else {
-			omxRecompute(f1, want, fc);
+			omxRecompute(f1, fc);
 		}
 		if (want & FF_COMPUTE_FIT) {
 			if(f1->rows != 1 || f1->cols != 1) {

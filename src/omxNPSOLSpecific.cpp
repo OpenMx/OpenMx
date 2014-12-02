@@ -105,7 +105,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 
 		omxConfidenceInterval *oCI = Global->intervalList[NPSOL_currentInterval];
 		
-		omxRecompute(oCI->matrix, FF_COMPUTE_FIT, NPSOL_fc);
+		omxRecompute(oCI->matrix, NPSOL_fc);
 		
 		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 
@@ -160,7 +160,7 @@ void F77_SUB(npsolConstraintFunction)
 
 	omxState *globalState = NPSOL_fc->state;
 	for(j = 0; j < globalState->numConstraints; j++) {
-		omxRecompute(globalState->conList[j].result, FF_COMPUTE_FIT, NPSOL_fc);
+		omxRecompute(globalState->conList[j].result, NPSOL_fc);
 		if(OMX_DEBUG) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
 		for(k = 0; k < globalState->conList[j].size; k++){
 			c[l++] = globalState->conList[j].result->data[k];

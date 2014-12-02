@@ -196,6 +196,12 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
+void omxState::setWantStage(int stage)
+{
+	wantStage = stage;
+	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
+}
+
 struct ciCmp {
 	bool operator() (const omxConfidenceInterval* x, const omxConfidenceInterval* y) const
 	{
@@ -264,6 +270,7 @@ void omxGlobal::deduplicateVarGroups()
 
 void omxState::init()
 {
+	wantStage = 0;
 	numConstraints = 0;
 	conList = NULL;
 	currentRow = -1;

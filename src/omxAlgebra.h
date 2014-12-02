@@ -66,7 +66,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name, SEX
 																		// NOTE: Duplicates.
 	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name);
 
-void omxAlgebraRecompute(omxAlgebra *oa, int want, FitContext *fc);
+void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc);
 
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 

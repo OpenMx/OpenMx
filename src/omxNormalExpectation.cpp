@@ -23,10 +23,10 @@
 void omxComputeNormalExpectation(omxExpectation* ox, const char *, const char *) {
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
 
-	omxRecompute(one->cov, FF_COMPUTE_FIT, NULL);
+	omxRecompute(one->cov, NULL);
 	if(one->means != NULL)
-	    omxRecompute(one->means, FF_COMPUTE_FIT, NULL);
-	if (one->thresholds) omxRecompute(one->thresholds, FF_COMPUTE_FIT, NULL);
+	    omxRecompute(one->means, NULL);
+	if (one->thresholds) omxRecompute(one->thresholds, NULL);
 }
 
 void omxDestroyNormalExpectation(omxExpectation* ox) {
@@ -43,8 +43,8 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 	omxMatrix *cov = one->cov;
 	omxMatrix *means = one->means;
 
-	omxRecompute(cov, FF_COMPUTE_FIT, NULL);
-	if(means != NULL) omxRecompute(means, FF_COMPUTE_FIT, NULL);
+	omxRecompute(cov, NULL);
+	if(means != NULL) omxRecompute(means, NULL);
 
 	{
 		SEXP expCovExt;
@@ -114,7 +114,7 @@ omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* 
 	} else if(strEQ("pvec", component)) {
 		// Once implemented, change compute function and return pvec
 	}
-	if (retval) omxRecompute(retval, FF_COMPUTE_FIT, NULL);
+	if (retval) omxRecompute(retval, NULL);
 	
 	return retval;
 }

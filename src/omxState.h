@@ -222,7 +222,11 @@ extern struct omxGlobal *Global;
 class omxState {
  private:
 	void init();
+	int wantStage;
  public:
+	int getWantStage() const { return wantStage; }
+	void setWantStage(int stage);
+
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;

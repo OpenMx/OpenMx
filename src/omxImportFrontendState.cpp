@@ -167,18 +167,22 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	size_t numMats = state->matrixList.size();
 	int numAlgs = state->algebraList.size();
 
+	state->setWantStage(FF_COMPUTE_DIMS);
+
 	for (int ax=0; ax < numAlgs; ++ax) {
 		omxMatrix *matrix = state->algebraList[ax];
-		omxRecompute(matrix, FF_COMPUTE_DIMS, fc);
+		omxRecompute(matrix, fc);
 	}
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
+
+	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 
 	// This is required because FF_COMPUTE_DIMS cannot compute
 	// dims for all algebra ops.
 
 	for(size_t index = 0; index < numMats; index++) {
-		omxRecompute(state->matrixList[index], FF_COMPUTE_INITIAL_FIT, fc);
+		omxRecompute(state->matrixList[index], fc);
 	}
 
 	// This is required because we have chosen to compute algebras
@@ -187,7 +191,7 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 
 	for(int index = 0; index < numAlgs; index++) {
 		omxMatrix *matrix = state->algebraList[index];
-		omxRecompute(matrix, FF_COMPUTE_INITIAL_FIT, fc);
+		omxRecompute(matrix, fc);
 	}
 }
 
@@ -383,8 +387,10 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		constr.opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
 		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
-		omxRecompute(constr.result, FF_COMPUTE_DIMS, fc);
-		omxRecompute(constr.result, FF_COMPUTE_INITIAL_FIT, fc);
+		setWantStage(FF_COMPUTE_DIMS);
+		omxRecompute(constr.result, fc);
+		setWantStage(FF_COMPUTE_INITIAL_FIT);
+		omxRecompute(constr.result, fc);
 		int nrows = constr.result->rows;
 		int ncols = constr.result->cols;
 		constr.size = nrows * ncols;
