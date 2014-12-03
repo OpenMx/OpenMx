@@ -660,6 +660,11 @@ parseLikelihoodArg <- function(input, arg) {
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		return(input@fitfunction@result[1,1])
+	} else if(is.list(input) && length(input)==2) {
+		stop(paste("List of length two (illegal argument) passed to", omxQuotes(arg),
+			"argument of summary function in",
+			deparse(width.cutoff = 400L, sys.call(-1)), 
+			".  You probably meant to use the refModels argument instead."), call. = FALSE)
 	} else {
 		stop(paste("Illegal argument passed to", omxQuotes(arg),
 			"argument of summary function in",
