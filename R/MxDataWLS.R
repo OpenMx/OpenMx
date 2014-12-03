@@ -157,9 +157,10 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	#wideData$max <- pcThresh[as.numeric(wideData[,isOrd])+1]
 	
 	
-	llC <- log(dnorm(rawData[,!isOrd], means, sqrt(vars)))
-	oMean <- rawData[,!isOrd] * k / vars
-	cumProb <- sapply(thresh, pnorm, oMean)
+	llC <- log(dnorm(rawData[,!isOrd], means[!isOrd], sqrt(vars[!isOrd])))
+	oMean <- (rawData[,!isOrd] - means[!isOrd]) * k / vars[!isOrd]
+	oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
+	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
 	cumProb <- cbind(cumProb, 1)
 	levProb <- cbind(cumProb[,1], cumProb[,-1] - cumProb[,-(length(thresh)+1)])
 	sel <- as.numeric(rawData[,isOrd])
@@ -168,8 +169,13 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	for (i in 1:(length(thresh)+1)){
 		llO[sel==i] <- levProb[sel==i, i]
 	}
+	llO <- log(llO)
 	
-	if(return=="model")return((- 1 - useMinusTwo) * sum(llC+llO))
+	if(return=="model"){
+		return((- 1 - useMinusTwo) * sum(llC+llO))
+	} else if(return=="individual"){
+		return((- 1 - useMinusTwo) * (llC+llO))
+	}
 	}
 
 normLogLik <- function(pars, rawData, return="model", useMinusTwo=TRUE){
@@ -229,6 +235,13 @@ normLogLikHess <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 # c^2       
 # -2*b*c    2*(b^2 + a*c)
 # b^2       -2*a*b           a^2
+#
+# D <- matrix(c(1,0,0,0,0,1,1,0,0,0,0,1), 4, 3) #duplication matrix of order 2
+# Sinv <- solve(S)
+# d2L/dS2 = -0.5 * t(D) %*% ( kronecker(Sinv, Sinv) ) %*% D
+# d2L/dSdm = d2L/dmdS = 0
+# This is from Abadir and Magnus (2005, p. 390).
+#
 
 
 rc3LogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
@@ -245,6 +258,22 @@ rc3LogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mo
 	if (return=="individual") { return(lik) }
 }
 
+rc3Hess <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
+	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
+	if (length(k)!=3)stop("Please provide a variance, a covariance, and another variance to be tested.")
+	
+	if(is.null(means)){ means <- apply(rawData, 2, mean, na.rm=TRUE)}
+	
+	S <- matrix(c(k[1], k[2], k[2], k[3]), 2, 2)
+	D <- matrix(c(1,0,0,0,0,1,1,0,0,0,0,1), 4, 3) #duplication matrix of order 2
+	Sinv <- solve2x2(S) #matrix(c(S[2,2], -S[1,2], -S[2,1], S[1,1]), 2, 2)/(S[1,1]*S[2,2] - S[1,2]*S[2,1])
+	#Sinv <- solve(S)
+	AnalyticCovHessian <- nrow(rawData) * (-1-useMinusTwo) * -0.5 * t(D) %*% ( kronecker(Sinv, Sinv) ) %*% D
+	return(AnalyticCovHessian)
+}
+# Note: 3000x faster (3350x in simulation) than numerical Hessian from numDeriv::hessian of rc3LogLik
+# 2000x faster when solve(S) is used instead of solve2x2
+
 indexCov4to2 <- function(i, j, k, l, nvar){
 	a <- indexCov2to1(i, j, nvar)
 	b <- indexCov2to1(k, l, nvar)
@@ -257,6 +286,11 @@ indexCov2to1 <- function(i, j, nvar){
 	a <- j
 	b <- i
 	return( a + nvar*(b-1) - sum((b-1):0) )
+}
+
+solve2x2 <- function(x){
+	Xinv <- matrix(c(x[2,2], -x[1,2], -x[2,1], x[1,1]), 2, 2)/(x[1,1]*x[2,2] - x[1,2]*x[2,1])
+	return(Xinv)
 }
 
 univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMinusTwo){
@@ -304,7 +338,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	return(list(thresh, threshHess, threshJac))
 }
 
-univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data){
+univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
 	### put the means in!
 	# means are missing for ordinal data, so 
 	meanHess <- NULL
@@ -399,7 +433,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	threshJac <- utsList[[3]]
 	
 	# means and variances with their hessians & their jacobians
-	umvsList <- univariateMeanVarianceStatisticsHelper(ntvar, n, ords, data)
+	umvsList <- univariateMeanVarianceStatisticsHelper(ntvar, n, ords, data, useMinusTwo)
 	meanEst <- umvsList[[1]]
 	varEst <- umvsList[[2]]
 	meanHess <- umvsList[[3]]
@@ -430,11 +464,13 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				pcThresh <- NULL
 			} else if( ordPair == 1 ) { # Joint variables
 				logLikFUN <- psLogLik
-				#pcThresh <- ?
+				pcThresh <- matrix(thresh[,ifelse(ords[i], i, j)], ncol=1)
+				pcThresh <- pcThresh[!is.na(pcThresh),]
 			} else if( ordPair == 2 ) { # Ordinal variables
 				logLikFUN <- pcLogLik
 				pcThresh <- matrix(thresh[,c(i,j)], ncol=2)
 			} else stop(paste("Cannot determine variable type for columns", i, "and" , j))
+			pcMeans <- c(meanEst[i], meanEst[j])
 			pcVars <- c(varEst[i], varEst[j])
 			pcBounds <- c(-1, 1) * (sqrt(prod(pcVars)) - 1e-6)
 			if ( (i==j) ){
@@ -449,21 +485,21 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				parName <- c(parName, paste("poly", names(pcData)[1], names(pcData)[2], sep="_"))
 				# get polychoric
 				pc <- optimize(logLikFUN, lower=pcBounds[1], upper=pcBounds[2],
-					vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+					means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
 				# assign polychoric
 				pcMatrix[j, i] <- pc$minimum
 				pcMatrix[i, j] <- pc$minimum
 				# get and assign hessian
 				hessHold[indexCov2to1(i, j, ntvar)] <- hessian(logLikFUN, x=pc$minimum, 
-						vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
-				if(ordPair==0){ #Continuous variables
-					r3hess[,,indexCov2to1(i, j, ntvar)] <- hessian(rc3LogLik, x=c(pcVars[1], pc$minimum, pcVars[2]),
-						means=meanEst[c(i, j)], thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
-					r3hess[,,indexCov2to1(i, j, ntvar)] <- cov2cor(r3hess[,,indexCov2to1(i, j, ntvar)])
-					covHess[matrix(indexCov4to2(i, i, i, j, ntvar), ncol=2)] <- r3hess[1,2,indexCov2to1(i, j, ntvar)]*sqrt(varHess[i]*hessHold[indexCov2to1(i, j, ntvar)])
-					#covHess[matrix(indexCov4to2(i, i, j, j, ntvar), ncol=2)] <- r3hess[1,3,indexCov2to1(i, j, ntvar)]*sqrt(varHess[i]*varHess[j])
-					covHess[matrix(indexCov4to2(i, j, j, j, ntvar), ncol=2)] <- r3hess[2,3,indexCov2to1(i, j, ntvar)]*sqrt(hessHold[indexCov2to1(i, j, ntvar)]*varHess[j])
-				}
+						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+#				if(ordPair==0){ #Continuous variables
+#					r3hess[,,indexCov2to1(i, j, ntvar)] <- hessian(rc3LogLik, x=c(pcVars[1], pc$minimum, pcVars[2]),
+#						means=meanEst[c(i, j)], thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+#					r3hess[,,indexCov2to1(i, j, ntvar)] <- cov2cor(r3hess[,,indexCov2to1(i, j, ntvar)])
+#					covHess[matrix(indexCov4to2(i, i, i, j, ntvar), ncol=2)] <- r3hess[1,2,indexCov2to1(i, j, ntvar)]*sqrt(varHess[i]*hessHold[indexCov2to1(i, j, ntvar)])
+#					#covHess[matrix(indexCov4to2(i, i, j, j, ntvar), ncol=2)] <- r3hess[1,3,indexCov2to1(i, j, ntvar)]*sqrt(varHess[i]*varHess[j])
+#					covHess[matrix(indexCov4to2(i, j, j, j, ntvar), ncol=2)] <- r3hess[2,3,indexCov2to1(i, j, ntvar)]*sqrt(hessHold[indexCov2to1(i, j, ntvar)]*varHess[j])
+#				}
 				#pcHess[i, j]   <- pcHess[j, i]
 				# get jacobian
 				if( ordPair == 0 ) { # Continuous variables
@@ -473,7 +509,12 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 						ncol=1)
 				}
 				else if( ordPair == 1 ) { #Joint variables
-					stop("Jacobian for joint ordinal and continuous variables is not yet implemented.")
+					#browser()
+					assignJac <- matrix(jacobian(func=logLikFUN, x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
+						rawData=pcData, return="individual"), 
+						nrow=n, 
+						ncol=1)
+					#stop("Jacobian for joint ordinal and continuous variables is not yet implemented.")
 				} else { # Ordinal variables
 					localJac <- matrix(jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh, 
 						rawData=pcData, return="individual"), 
