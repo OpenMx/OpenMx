@@ -104,6 +104,42 @@ omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactorLess`))[1], 4)
 
 
 #------------------------------------------------------------------------------
+# Specify a multiple group cov model
+
+data(demoOneFactor)
+latents  = c("G")
+manifests = names(demoOneFactor)
+
+m1 <- mxModel("model1", type = "RAM",
+    manifestVars = manifests, latentVars = latents,
+    mxPath(from = latents, to = manifests),
+    mxPath(from = manifests, arrows = 2),
+    mxPath(from = latents, arrows = 2, free = F, values = 1.0),
+    mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+)
+m2 <- mxModel("model2", type = "RAM",
+    manifestVars = manifests, latentVars = latents,
+    mxPath(from = latents, to = manifests),
+    mxPath(from = manifests, arrows = 2),
+    mxPath(from = latents, arrows = 2, free = F, values = 1.0),
+    mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+)
+
+m3 = mxModel("bob", m1, m2,
+    mxFitFunctionMultigroup(c("model1.fitfunction","model2.fitfunction"))
+)
+
+
+m3r = mxRun(m3)
+ref <- mxRefModels(m3r, run=TRUE)
+
+omxCheckError(summary(m3r, SaturatedLikelihood=ref), "List of length two (illegal argument) passed to 'SaturatedLikelihood' argument of summary function in .local(object, ...) .  You probably meant to use the refModels argument instead.")
+
+
+#TODO add checking of fit stats for this model
+
+
+#------------------------------------------------------------------------------
 # Specify cov data models
 cov <- mxModel("Covariance Test Model to Check MxSummary",
 	type="RAM", manifestVars=varnames, latentVars=latnames,
@@ -112,6 +148,7 @@ cov <- mxModel("Covariance Test Model to Check MxSummary",
 )
 
 cov.fit <- mxRun(cov)
+cov.sat <- mxRefModels(cov.fit, run=TRUE)
 
 covm <- mxModel("Covariance and Means Test Model to Check MxSummary",
 	type="RAM", manifestVars=varnames, latentVars=latnames,
