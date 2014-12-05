@@ -568,6 +568,25 @@ void subtract(Matrix x,  Matrix y)
     }
 }
 
+void multiplyEigen(Matrix x,  Matrix y)
+{
+    
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    if (x.cols == y.cols && x.rows == y.rows){
+        Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
+        firstM = firstM.cwiseProduct(secondM);
+    }
+    else if (y.cols > 1 && y.rows > 1)
+        Rf_error("Only a vector is acceptable");
+    else if ((x.cols * x.rows) % (y.cols * y.rows) != 0)
+        Rf_error("longer object length is not a multiple of shorter object length");
+    else{
+        Eigen::Map< Eigen::VectorXd > secondM(y.t, y.cols);
+        firstM = secondM.asDiagonal() * firstM;
+    }
+    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
+}
+
 void multiply(Matrix x,  Matrix y)
 {
     if (x.cols == y.cols && x.rows == y.rows)
@@ -612,6 +631,17 @@ void multiply(Matrix x,  Matrix y)
             return;
         }
     }
+}
+
+void divideEigen(Matrix x,  Matrix y)
+{
+    if (x.cols != y.cols) {
+        if (x.cols > y.cols) y = copy(y, fill(x.cols - y.cols, 1, (double)1.0));
+    }
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::VectorXd > secondM(y.t, y.cols);
+    firstM = firstM * secondM.asDiagonal().inverse();
+    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
 void divide(Matrix x,  Matrix y)
@@ -893,6 +923,12 @@ void subset_t(Matrix result, Matrix t, int row, int colStart, int colStop)
     }
 }
 
+void subsetEigen(Matrix result, Matrix x, int rowNum, int colStart, int colStop){
+    Eigen::Map < Eigen::MatrixXd> src(x.t, x.rows, x.cols);
+    Eigen::Map < Eigen::MatrixXd> dest(result.t, result.rows, result.cols);
+    dest.row(rowNum) = src.block(rowNum, colStart, 1, colStop - colStart + 1);
+}
+
 void copy_t(Matrix result, Matrix x,  Matrix y){
     
     int totalRows = x.rows;
@@ -913,6 +949,14 @@ void copy_t(Matrix result, Matrix x,  Matrix y){
     }
 }
 
+void copyEigen(Matrix result, Matrix x,  Matrix y)
+{
+    Eigen::Map< Eigen::MatrixXd > resultEigen(result.t, result.rows, result.cols);
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
+    resultEigen(firstM.rows(), firstM.cols()+ secondM.cols());
+    resultEigen << firstM, secondM;
+}
 
 Matrix copy(Matrix x,  Matrix y){
     

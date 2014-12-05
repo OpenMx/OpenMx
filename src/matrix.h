@@ -141,9 +141,13 @@ void add(struct Matrix x, struct Matrix y);
 
 void subtract(struct Matrix x, struct Matrix y);
 
+void multiplyEigen(Matrix x,  Matrix y);
+
 void multiply(struct Matrix x, struct Matrix y);
 
 void divide(struct Matrix x, struct Matrix y);
+
+void divideEigen(Matrix x,  Matrix y);
 
 void copyInto(struct Matrix x, struct Matrix y, int rowNum, int colStart, int colStop);
 
@@ -193,9 +197,13 @@ struct Matrix subset(struct Matrix t, int row, int colStart, int colStop);
 
 void subset_t(Matrix result, Matrix t, int row, int colStart, int colStop);
 
+void subsetEigen(Matrix result, Matrix x, int rowNum, int colStart, int colStop);
+
 Matrix copy(Matrix x,  Matrix y);
 
 void copy_t(Matrix result, Matrix x,  Matrix y);
+
+void copyEigen(Matrix result, Matrix x,  Matrix y);
 
 struct Matrix rbind(struct Matrix x, struct Matrix y);
 
