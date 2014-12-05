@@ -548,27 +548,6 @@ void addEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
-void add(Matrix x,  Matrix y)
-{
-    if (x.cols != y.cols || x.rows != y.rows)
-    {
-        if (x.cols == y.rows)
-        {
-            y = duplicateIt(transpose(y));
-        }
-        else Rf_error("CSOLNP BUG: noncomformant matrices are added");
-    }
-    
-    int r,c;
-    for ( r = 0; r < x.rows; r++ )
-    {
-        for ( c = 0; c < x.cols; c++ )
-        {
-            M(x, c, r) = M(x, c, r) + M(y, c, r);
-        }
-    }
-}
-
 void subtractEigen(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols || x.rows != y.rows)
@@ -580,23 +559,6 @@ void subtractEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
     firstM -= secondM;
     Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
-}
-
-void subtract(Matrix x,  Matrix y)
-{
-    if (x.cols != y.cols || x.rows != y.rows)
-    {
-        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
-    }
-    
-    int r,c;
-    for ( r = 0; r < x.rows; r++ )
-    {
-        for ( c = 0; c < x.cols; c++ )
-        {
-            M(x, c, r) = M(x, c, r) - M(y, c, r);
-        }
-    }
 }
 
 void multiplyEigen(Matrix x,  Matrix y)
@@ -618,52 +580,6 @@ void multiplyEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
-void multiply(Matrix x,  Matrix y)
-{
-    if (x.cols == y.cols && x.rows == y.rows)
-    {
-        int r,c;
-        for ( r = 0; r < x.rows; r++ )
-        {
-            for ( c = 0; c < x.cols; c++ )
-            {
-                M(x, c, r) = M(x, c, r) * M(y, c, r);
-            }
-        }
-        return;
-    }
-    else if (y.cols > 1 && y.rows > 1)
-        Rf_error("Only a vector is acceptable");
-    else if ((x.cols * x.rows) % (y.cols * y.rows) != 0)
-        Rf_error("longer object length is not a multiple of shorter object length");
-    else{
-        if (y.rows > 1){
-            int r = 0, i = 0;
-            while (i < x.cols * x.rows){
-                for (int l = 0; l < y.rows; l++)
-                {
-                    x.t[r] = x.t[r] * M(y, 0, l);
-                    r++;
-                    i++;
-                }
-            }
-            return;
-        }
-        else {
-            int c = 0, i = 0;
-            while (i < x.cols * x.rows){
-                for (int l = 0; l < y.cols; l++)
-                {
-                    x.t[c] = x.t[c] * M(y, l, 0);
-                    c++;
-                    i++;
-                }
-            }
-            return;
-        }
-    }
-}
-
 void divideEigen(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols) {
@@ -673,21 +589,6 @@ void divideEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::VectorXd > secondM(y.t, y.cols);
     firstM = firstM * secondM.asDiagonal().inverse();
     Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
-}
-
-void divide(Matrix x,  Matrix y)
-{
-    int r,c;
-    if (x.cols != y.cols) {
-        if (x.cols > y.cols) y = copy(y, fill(x.cols - y.cols, 1, (double)1.0));
-    }
-    for ( r = 0; r < x.rows; r++ )
-    {
-        for ( c = 0; c < x.cols; c++ )
-        {
-            M(x, c, r) = M(x, c, r) / M(y, c, r);
-        }
-    }
 }
 
 void copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
