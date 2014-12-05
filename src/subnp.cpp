@@ -47,7 +47,6 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     
     //time_t sec;
     //sec = time (NULL);
-    ind = fill(11, 1, (double) 0.0);
     
     double EMPTY = -999999.0;
     int maxit_trace = 0;
@@ -159,32 +158,22 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     hessi = new_matrix(np*np, 1);
     p_hess = new_matrix(np+(np*np), 1);
     p_grad = new_matrix(np+(np*np)+np, 1);
-    // [0] Rf_length of pars
-    // [1] has function gradient?
-    // [2] has hessian?
-    // [3] has ineq?
-    // [4] ineq Rf_length
-    // [5] has jacobian (inequality)
-    // [6] has eq?
-    // [7] eq Rf_length
-    // [8] has jacobian (equality)
-    // [9] has upper / lower bounds
-    // [10] has either lower/upper bounds or ineq
     
-    M(ind, 0, 0) = pars.cols;
+    ind.setZero();
+    ind[indNumParam] = pars.cols;
     
     if (M(LB, 0, 0) != EMPTY || M(UB, 0, 0) != EMPTY){
-        M(ind, 9, 0) = 1;
+        ind[indHasBounds] = 1;
     }
     
     // does not have a function gradient (currently not supported in Rsolnp)
-    M(ind, 1, 0) = 0;
+    ind[indHasGradient] = 0;
     //# do function checks and return starting value
     
     funv = solFun(pars, mode, verbose);
     
     // does not have a hessian (currently not supported in Rsolnp)
-    M(ind, 2, 0) = 0;
+    ind[indHasHessian] = 0;
     
     // do inequality checks and return starting values
     int nineq;
@@ -194,10 +183,10 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     
     if ( M(ineqv, 0, 0) != EMPTY){
         
-        M(ind, 3, 0) = 1;
+        ind[indHasIneq] = 1;
         nineq = ineqLB.cols;
         
-        M(ind, 4, 0) = nineq;
+        ind[indIneqLength] = nineq;
         
         // check for infitnites/nans
         
@@ -222,16 +211,16 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         }
         
         // no jacobian
-        M(ind, 5, 0) = 0;
+        ind[indHasJacobianIneq] = 0;
         
     }
     else{
         
         M(ineqv, 0, 0) = EMPTY;
-        M(ind, 3, 0) = 0;
+        ind[indHasIneq] = 0;
         nineq = 0;
-        M(ind, 4, 0) = 0;
-        M(ind, 5, 0) = 0;
+        ind[indIneqLength] = 0;
+        ind[indHasJacobianIneq] = 0;
         M(ineqx0, 0, 0) = EMPTY;
     }
     
@@ -239,31 +228,31 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     Matrix eqv = solEqBFun(verbose);
     
     if( M(eqv, 0, 0) != EMPTY){
-        M(ind, 6, 0) = 1;
+        ind[indHasEq] = 1;
         neq = solEqB.cols;
-        M(ind, 7, 0) = neq;
-        M(ind, 8, 0) = 0;
+        ind[indEqLength] = neq;
+        ind[indHasJacobianEq] = 0;
     } else{
         M(eqv, 0, 0) = EMPTY;
-        M(ind, 6, 0) = 0;
+        ind[indHasEq] = 0;
         neq = 0;
-        M(ind, 7, 0) = 0;
-        M(ind, 8, 0) = 0;
+        ind[indEqLength] = 0;
+        ind[indHasJacobianEq] = 0;
     }
-    if ( (M(ind, 9, 0) > 0) || (M(ind, 3, 0) > 0) ){
-        M(ind, 10, 0) = 1;
+    if ( (ind[indHasBounds] > 0) || (ind[indHasIneq] > 0) ){
+        ind[indHasBoundsOrIneq] = 1;
     }
     
     if (verbose >= 2){
         mxLog("ind is: \n");
-        for (i = 0; i < ind.cols; i++) mxLog("%f",ind.t[i]);
+        for (i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
     }
     
     
     Matrix pb;
     
     
-    if(M(ind, 10, 0))
+    if(ind[indHasBoundsOrIneq])
     {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
     {   pb = fill(2, nineq, (double)0.0);
         setColumnInplace(pb, ineqLB, 0);
@@ -319,7 +308,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         }
         else    constraint = duplicateIt(eqv);
         
-        if( M(ind, 3, 0) > 0 ) {
+        if( ind[indHasIneq] > 0 ) {
             
             // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .ineqLB, .ineqUB - constraint[ (neq + 1):tc ] )
             Matrix difference1 = subset(constraint, 0, neq, tc-1);
@@ -403,7 +392,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         subnp_ctrl[3] = tol;
         subnp_ctrl[4] = trace;
         
-        if ( M(ind, 6, 0) > 0){
+        if ( ind[indHasEq] > 0){
             Matrix subsetMat = subset(ob, 0, 1, neq);
             double max = matrixMaxAbs(subsetMat);
             
@@ -414,7 +403,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         else{
             vscale = fill(1, 1, (double)1.0);
         }
-        if ( M(ind, 10, 0) <= 0){
+        if ( ind[indHasBoundsOrIneq] <= 0){
             vscale = copy(vscale, p);
         }
         else{
@@ -479,7 +468,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             }
             else ob = duplicateIt(funvMatrix);
             
-            if ( M(ind, 6, 0) > 0){
+            if ( ind[indHasEq] > 0){
                 Matrix subsetMat = subset(ob, 0, 1, neq);
                 double max = matrixMaxAbs(subsetMat);
                 
@@ -491,7 +480,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             else{
                 vscale = fill(1, 1, (double)1.0);
             }
-            if ( M(ind, 10, 0) <= 0){
+            if ( ind[indHasBoundsOrIneq] <= 0){
                 vscale = copy(vscale, p);
             }
             else{
@@ -568,7 +557,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             // constraint = ob[ 2:(tc + 1) ]
             constraint = subset(ob, 0, 1, tc);
             
-            if ( M(ind, 3, 0) > 0.5){
+            if ( ind[indHasIneq] > 0.5){
                 //tempv = rbind( constraint[ (neq + 1):tc ] - pb[ 1:nineq, 1 ], pb[ 1:nineq, 2 ] - constraint[ (neq + 1):tc ] )
                 Matrix subsetOne = subset(constraint, 0, neq, tc-1);
                 Matrix subsetTwo = subset(getColumn(pb, 0), 0, 0, nineq-1);
@@ -647,7 +636,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     } // end while(solnp_iter < maxit){
     
     
-    if ( M(ind, 3, 0) > 0.5){
+    if ( ind[indHasIneq] > 0.5){
         ineqx0 = subset(p, 0, 0, nineq-1);
     }
     p = subset(p, 0, nineq, (nineq + np -1));
@@ -767,15 +756,15 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     double delta = ctrl[2];
     double tol =   ctrl[3];
     
-    int neq =  (int)M(ind, 7, 0);
-    int nineq = (int)M(ind, 4, 0);
-    int np = (int)M(ind, 0, 0);
+    int neq =  (int)ind[indEqLength];
+    int nineq = (int)ind[indIneqLength];
+    int np = (int)ind[indNumParam];
     
     double ch = 1;
     
     if (verbose >= 2){
         mxLog("ind inside subnp is: \n");
-        for (int i = 0; i < ind.cols; i++) mxLog("%f",ind.t[i]);
+        for (int i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
     }
     
     Eigen::Array<double, 3, 1> alp;
@@ -798,7 +787,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     Matrix col1_pb;
     Matrix pb_cont;
     
-    if(M(ind, 10, 0))
+    if(ind[indHasBoundsOrIneq])
     {
         if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {   pb = fill(2, nineq, (double)0.0);
@@ -850,9 +839,9 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
     }
     
-    int mm = -1;
-    if (M(ind, 10, 0) > 0){
-        if (M(ind, 9, 0) <= 0){
+    int mm = 0;
+    if (ind[indHasBoundsOrIneq] > 0){
+        if (ind[indHasBounds] <= 0){
             mm = nineq;
         }
         else{
@@ -900,8 +889,8 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     }
     Matrix a;
     
-    if( M(ind, 3, 0) > 0){
-        if ( M(ind, 6, 0) <= 0)
+    if( ind[indHasIneq] > 0){
+        if ( ind[indHasEq] <= 0)
         {
             // arrays, rows, cols
             Matrix onesMatrix = fill(nineq, 1, (double)-1.0);
@@ -924,10 +913,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         }
     }	// end 	if(ind[0][3] > 0){
     
-    if ( (M(ind, 6, 0) > 0) && M(ind, 3, 0) <= 0 ){
+    if ( (ind[indHasEq] > 0) && ind[indHasIneq] <= 0 ){
         a = fill(np, neq, (double)0.0);
     }
-    if (M(ind, 6, 0)<= 0 && (M(ind, 3, 0) <= 0)){
+    if (ind[indHasEq]<= 0 && (ind[indHasIneq] <= 0)){
         a = fill(np, 1, (double)0.0);
     }
     Matrix g = fill(npic, 1, (double)0.0);
@@ -1010,7 +999,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             *mode = 0;
         }
         
-        if(M(ind, 3, 0) > 0){
+        if(ind[indHasIneq] > 0){
             //constraint[ (neq + 1):(neq + nineq) ] = constraint[ (neq + 1):(neq + nineq) ] - p0[ 1:nineq ]
             Matrix firstPart, secondPart;
             firstPart  = subset(constraint, 0, neq, (neq+nineq-1));
@@ -1037,7 +1026,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             
             ch = 1;
             
-            if ( M(ind, 10, 0) < 0.5){
+            if ( ind[indHasBoundsOrIneq] < 0.5){
                 //Matrix dotProd = transposeDotProduct(a); //Mahsa: this is equal to "a %*% t(a)"
                 //Matrix solution = solve(dotProd, constraint);
                 
@@ -1078,7 +1067,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 
                 M(dx, npic_int, 0) = M(p0, npic_int, 0);
                 
-                if(M(ind, 9, 0) <= 0)
+                if(ind[indHasBounds] <= 0)
                 {
                     Matrix argum = fill(1, npic-mm, (double)1.0);
                     multiplyByScalar2D(argum, max(findMax(subset(dx, 0, 0, mm-1)), 100));
@@ -1227,7 +1216,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     
     j = M(ob, 0, 0);
     
-    if (M(ind, 3, 0) > 0){
+    if (ind[indHasIneq] > 0){
         Matrix result = subset(ob, 0, neq+1, nc);
         subtractEigen(result, subset(p, 0, 0, nineq-1));
         copyIntoInplace(ob, result, 0, neq+1, nc);
@@ -1370,7 +1359,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     mxLog("%.20f", j);
                 }
                 
-                if (M(ind, 3, 0) > 0.5){
+                if (ind[indHasIneq] > 0.5){
                     if (result.t == NULL) result = new_matrix(nc - neq, 1);
                     subsetEigen(result, obm_t, 0, neq+1, nc);
                     if (result1.t == NULL) result1 = new_matrix(nineq, 1);
@@ -1424,7 +1413,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 }
             } // end for (i=0; i<np; i++){
             
-            if (M(ind, 3, 0) > 0.5){
+            if (ind[indHasIneq] > 0.5){
                 if (t2.t == NULL) t2 = new_matrix(nineq, 1);
                 fill_t(t2, nineq, 1, (double)0.0);
                 copyIntoInplace(g, t2, 0, 0, (nineq-1));
@@ -1488,7 +1477,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         
         dx = fill(npic, 1, 0.01);
         
-        if (M(ind, 10, 0) > 0.5){
+        if (ind[indHasBoundsOrIneq] > 0.5){
             if (gap1.t == NULL) gap1 = new_matrix(pb.cols, pb.rows);
             fill_t(gap1, pb.cols, pb.rows, (double)0.0);
             if (res.t == NULL) res = new_matrix(mm, 1);
@@ -1523,7 +1512,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 for (int ilog = 0; ilog < dx.cols; ilog++) mxLog("%f",dx.t[ilog]);
             }
             
-            if(M(ind, 9, 0) <= 0)
+            if(ind[indHasBounds] <= 0)
             {
                 if (t11.t == NULL) t11 = new_matrix(1, npic-mm);
                 fill_t(t11, 1, npic-mm, (double)1.0);
@@ -1760,7 +1749,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 for (int ilog = 0; ilog < p0_1.cols; ilog++) mxLog("%f",p0_1.t[ilog]);
             }
             
-            if (M(ind, 10, 0) <= 0.5){
+            if (ind[indHasBoundsOrIneq] <= 0.5){
                 go = 1;
             } else{
                 if (listPartOne.t == NULL) listPartOne = new_matrix(mm, 1);
@@ -1923,7 +1912,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         
         sob[2] = M(ob3, 0, 0);
         
-        if (M(ind, 3, 0) > 0.5){
+        if (ind[indHasIneq] > 0.5){
             // ob3[ (neq + 2):(nc + 1) ] = ob3[ (neq + 2):(nc + 1) ] - ptt[ 1:nineq, 3 ]
             if (partOne.t == NULL) partOne = new_matrix(nc-neq, 1);
             subsetEigen(partOne, ob3, 0, neq+1, nc);
@@ -2055,7 +2044,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 mxLog("sob is: \n");
                 for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
             }
-            if (M(ind, 3, 0) > 0.5){
+            if (ind[indHasIneq] > 0.5){
                 if (partOne.t == NULL) partOne = new_matrix(nc-neq, 1);
                 subsetEigen(partOne, ob2, 0, neq+1, nc);
                 if (tempPttCol.t == NULL) tempPttCol = new_matrix(ptt2.rows, 1);

@@ -28,7 +28,6 @@ struct CSOLNP {
     Matrix UB;
     Matrix ineqLB;
     Matrix ineqUB;
-    Matrix ind;
     Matrix resP;
     double resLambda;
     Matrix resHessv;
@@ -46,6 +45,23 @@ struct CSOLNP {
     Param_Obj solnp(Matrix solPars, solFun_t solFun, Matrix solEqB, solEqBFun_t solEqBFun, myineqFun_t myineqFun, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
     template <typename T1>
     Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale, Eigen::ArrayBase<T1> &ctrl, int verbose);
+
+	enum indParam {
+		indNumParam=0,
+		indHasGradient,
+		indHasHessian,
+		indHasIneq,
+		indIneqLength,
+		indHasJacobianIneq,
+		indHasEq,
+		indEqLength,
+		indHasJacobianEq,
+		indHasBounds,
+		indHasBoundsOrIneq,
+		indVectorLength  // must be last
+	};
+
+	Eigen::Array<double, int(indVectorLength), 1> ind;
 };
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
