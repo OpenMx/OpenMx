@@ -1825,8 +1825,6 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             for (int ilog = 0; ilog < ptt2.cols*ptt2.rows; ilog++) mxLog("%f",ptt2.t[ilog]);
         }
         
-        bool condif1, condif2, condif3;
-        
         if (pttCol.t == NULL) pttCol = new_matrix(ptt2.rows, 1);
         getColumn_t(pttCol, ptt2, 2);
         if (verbose >= 3){
@@ -2113,9 +2111,9 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 go = tol * (M(obm, 0, 0) - obn) / (j - M(obm, 0, 0));
             }
             
-            condif1 = (sob[1] >= sob[0]);
-            condif2 = (sob[0] <= sob[2]) && (sob[1] < sob[0]);
-            condif3 = (sob[1] <  sob[0]) && (sob[0] > sob[2]);
+            const bool condif1 = (sob[1] >= sob[0]);
+            const bool condif2 = (sob[0] <= sob[2]) && (sob[1] < sob[0]);
+            const bool condif3 = (sob[1] <  sob[0]) && (sob[0] > sob[2]);
             
             if (condif1){
                 sob[2] = sob[1];
@@ -2232,9 +2230,9 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             maxit = minit;
         }
         
-        condif1 = (sob[0] <  sob[1]);
-        condif2 = (sob[2] <  sob[1]) && (sob[0] >=  sob[1]);
-        condif3 = (sob[0] >= sob[1]) && (sob[2] >= sob[1]);
+        const bool condif1 = (sob[0] <  sob[1]);
+        const bool condif2 = (sob[2] <  sob[1]) && (sob[0] >=  sob[1]);
+        const bool condif3 = (sob[0] >= sob[1]) && (sob[2] >= sob[1]);
         
         if (condif1){
             j = sob[0];
