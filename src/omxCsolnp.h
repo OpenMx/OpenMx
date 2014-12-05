@@ -19,6 +19,7 @@
 
 #include "omxMatrix.h"
 #include "matrix.h"
+#include <Eigen/Core>
 
 struct CSOLNP {
     
@@ -37,14 +38,14 @@ struct CSOLNP {
     int* mode;
     //    CSOLNP() {}
     //    CSOLNP(double _EMPTY, int _flag, int _flag_L, int _flag_U, int _index_flag_L, int _index_flag_U, int _flag_NormgZ, int _flag_step, int _minr_rec, )
-
-	typedef double (*solFun_t)(Matrix, int*, int);
-	typedef Matrix (*solEqBFun_t)(int);
-	typedef Matrix (*myineqFun_t)(int);
-
-	Param_Obj solnp(Matrix solPars, solFun_t solFun, Matrix solEqB, solEqBFun_t solEqBFun, myineqFun_t myineqFun, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
-	Matrix subnp(Matrix pars, solFun_t solFun, solEqBFun_t solEqBFun, myineqFun_t myineqFun,
-		     Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale, Matrix ctrl, int verbose);
+    
+    typedef double (*solFun_t)(Matrix, int*, int);
+    typedef Matrix (*solEqBFun_t)(int);
+    typedef Matrix (*myineqFun_t)(int);
+    
+    Param_Obj solnp(Matrix solPars, solFun_t solFun, Matrix solEqB, solEqBFun_t solEqBFun, myineqFun_t myineqFun, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
+    template <typename T1>
+    Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale, Eigen::ArrayBase<T1> &ctrl, int verbose);
 };
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,

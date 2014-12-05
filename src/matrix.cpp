@@ -20,8 +20,6 @@ template <typename T> void printList( const std::list< T > &listRef);
 
 static std::list< double* > matrices;
 
-double rnd_double() { return (double)1.0; }
-
 void freeMatrices(){
     while (!matrices.empty()){
         free(matrices.front());
@@ -34,15 +32,20 @@ Matrix::Matrix(omxMatrix *mat)
 
 Matrix new_matrix(int cols,int rows)
 {
+    if (rows < 0 || cols < 0) Rf_error("Cannot create matrix smaller than 0,0");
     Matrix t;
     t.rows=rows;
     t.cols=cols;
-    t.t=(double *)malloc(sizeof(double)*cols*rows);
-    matrices.push_front(t.t);
+    if (rows == 0 || cols == 0) {
+        t.t = NULL;
+    } else {
+        t.t=(double *)malloc(sizeof(double)*cols*rows);
+        matrices.push_front(t.t);
+    }
     int i,j;
     for(i=0;i<rows;i++){
         for(j=0;j<cols;j++) {
-            M(t,j,i)=rnd_double();
+            M(t,j,i)=nan("uninit");
         }
     }
     return t;
@@ -90,6 +93,13 @@ void setRow (Matrix x, int row,  Matrix y){
     for (i=0;i < x.cols; i++){
         M(x,i,row) = M(y,i,0);
     }
+}
+
+void setRowInplace( Matrix x, int cc,  Matrix y)
+{
+    Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::VectorXd > yy(y.t, y.rows * y.cols);
+    xx.row(cc) = yy;
 }
 
 Matrix getColumn (Matrix t, int colNum)
@@ -143,6 +153,13 @@ void setColumn( Matrix x,  Matrix y, int colNum)
             }
         }
     }
+}
+
+void setColumnInplace( Matrix x, Matrix y, int cc)
+{
+    Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::VectorXd > yy(y.t, y.rows * y.cols);
+    xx.col(cc) = yy;
 }
 
 void print(Matrix t) {
@@ -630,6 +647,14 @@ void copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
     }
 }
 
+void copyIntoInplace(Matrix x,  Matrix y, int rowNum, int colStart, int colStop)
+{
+    Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::MatrixXd > yy(y.t, y.rows, y.cols);
+    int len = 1 + colStop - colStart;
+    xx.block(rowNum, colStart, 1, len) = yy.block(rowNum, 0, 1, len);
+}
+
 Matrix rowWiseMin(Matrix t)
 {
     Matrix mins = fill(t.rows, 1, (double)0.0);
@@ -762,16 +787,10 @@ void duplicateIt_t(Matrix result, Matrix t)
     }
 }
 
-void matrixAbs(Matrix t)
+double matrixMaxAbs(Matrix t)
 {
-    int r, c;
-    for ( r = 0; r < t.rows; r++ )
-    {
-        for ( c = 0; c < t.cols; c++ )
-        {
-            M(t, c, r) = ourAbs(M(t, c, r));
-        }
-    }
+    Eigen::Map< Eigen::ArrayXXd > tt(t.t, t.rows, t.cols);
+    return tt.abs().maxCoeff();
 }
 
 void multiplyByScalar2D(Matrix t, double multiplier)
@@ -797,6 +816,21 @@ void divideByScalar2D(Matrix t, double divisor)
         }
     }
 }
+
+Matrix multiplyByScalar2D_Eigen(Matrix t, double multiplier)
+{
+    Eigen::Map< Eigen::ArrayXXd > tt(t.t, t.rows, t.cols);
+    Matrix result = new_matrix(t.cols, t.rows);
+    Eigen::Map< Eigen::ArrayXXd > dest(result.t, result.rows, result.cols);
+    dest = tt * multiplier;
+    return result;
+}
+
+Matrix divideByScalar2D_Eigen(Matrix t, double divisor)
+{
+    return multiplyByScalar2D_Eigen(t, 1.0/divisor);
+}
+
 
 Matrix checkControlList(Matrix t){
     Matrix result = fill(t.cols, t.rows, (double)0.0);
@@ -924,16 +958,19 @@ Matrix timess(Matrix a,  Matrix b){
         Rf_error("CSOLNP BUG: noncomformant matrices");
     }
     Matrix result = fill(b.cols, a.rows, (double)0.0);
-    Matrix Bcolj = fill(a.cols, 1, (double)0.0);
+    
+    Eigen::ArrayXd Bcolj;
+    Bcolj.resize(a.cols);
+    
     for (j=0; j<b.cols; j++){
         for (k=0; k<a.cols; k++){
-            M(Bcolj, k, 0) = M(b, j, k);
+            Bcolj[k] = M(b, j, k);
         }
         for (i=0; i<a.rows; i++){
             double s = 0;
             for (k=0; k<a.cols; k++){
                 
-                s+= M(a, k, i) * M(Bcolj, k, 0);
+                s+= M(a, k, i) * Bcolj[k];
             }
             M(result, j, i) = s;
         }

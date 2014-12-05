@@ -196,7 +196,7 @@ Matrix csolnpIneqFun(int verbose)
         for(j = 0; j < globalState->numConstraints; j++) {
             if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
                 omxRecompute(globalState->conList[j].result, GLOB_fc);
-	    }
+            }
             for(k = 0; k < globalState->conList[j].size; k++){
                 M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
                 l = l + 1;
@@ -219,8 +219,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     double *x = fc->est;
     fc->grad.resize(fc->numParam);
-    double *g = fc->grad.data();
-    
     
     int k;
     int inform = 0;
@@ -235,8 +233,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Param_Obj p_obj;
     Matrix param_hess;
-    Matrix myhess = fill(n*n, 1, (double)0.0);
-    Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
     Matrix solEqB;
@@ -249,13 +245,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     solEqBFun = &csolnpEqualityFunction;
     Matrix (*solIneqFun)(int verbose);
     solIneqFun = &csolnpIneqFun;
-    
-    /* Set boundaries and widths. */
-    
-    std::vector<double> blBuf(n+ncnln);
-    std::vector<double> buBuf(n+ncnln);
-    double *bl = blBuf.data();
-    double *bu = buBuf.data();
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
@@ -296,7 +285,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
             solEqB = fill(eqn, 1, EMPTY);
         }
         
-        omxProcessConstraintsCsolnp(fc, &solIneqLB, &solIneqUB, &solEqB);
+        omxProcessConstraintsCsolnp(fc, solIneqLB, solIneqUB, solEqB);
         
         if (verbose == 2) {
             mxLog("solIneqLB is: ");
@@ -308,10 +297,15 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         }
         
     }
-    omxSetupBoundsAndConstraints(fc, bl, bu);
     
-    Matrix blvar = fillMatrix(n, 1, bl);
-    Matrix buvar = fillMatrix(n, 1, bu);
+    Eigen::VectorXd bl(n);
+    Eigen::VectorXd bu(n);
+    for(int index = 0; index < n; index++) {
+        bl[index] = freeVarGroup->vars[index]->lbound;
+        bu[index] = freeVarGroup->vars[index]->ubound;
+    }
+    Matrix blvar(bl);
+    Matrix buvar(bu);
     
     /* Initialize Starting Values */
     if(OMX_DEBUG) {
@@ -348,27 +342,18 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         mxLog("final myPars value is: \n");
         for (i = 0; i < myPars.cols; i++) mxLog("%f", myPars.t[i]);
     }
-    myhess = subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2);
     
     Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
     
     inform = M(inform_m, 0, 0);
     
-    if (verbose >= 2){
-        mxLog("myhess is: \n");
-        for (i = 0; i < myhess.cols; i++)
-            mxLog("%f", myhess.t[i]);
-    }
+    subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2, fc->grad);
     
-    mygrad = subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2);
-    
-    for (i = 0; i < myPars.cols * myPars.cols; i++){
-        hessOut[i] = myhess.t[i];
-    }
+    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
+    subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
-        g[i] = mygrad.t[i];
     }
     
     GLOB_fc->copyParamToModel();
@@ -475,7 +460,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             solEqB = fill(eqn, 1, EMPTY);
         }
         
-        omxProcessConstraintsCsolnp(opt, &solIneqLB, &solIneqUB, &solEqB);
+        omxProcessConstraintsCsolnp(opt, solIneqLB, solIneqUB, solEqB);
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
@@ -525,7 +510,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform!= 0 && cycles > 0) {
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
-		CSOLNP solnpContext1;
+                CSOLNP solnpContext1;
                 p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
@@ -592,7 +577,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform != 0 && cycles >= 0) {
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
-		CSOLNP solnpContext1;
+                CSOLNP solnpContext1;
                 p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;

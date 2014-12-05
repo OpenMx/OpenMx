@@ -9,8 +9,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
-
-double rnd_double();
+#include "Eigen/Core"
 
 typedef struct Matrix Matrix;
 
@@ -19,9 +18,19 @@ struct Matrix {
     int cols;
     double *t;
     
-    Matrix(): t(NULL) {}
+    Matrix() : rows(0), cols(0), t(NULL) {};
     Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
     Matrix(omxMatrix *mat);
+    template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
+        if (mb.rows() == 1 || mb.cols() == 1) {
+            // transpose column vectors (Eigen) to row vectors (CSOLNP)
+            cols = mb.rows();
+            rows = mb.cols();
+        } else {
+            rows = mb.rows();
+            cols = mb.cols();
+        }
+    };
 };
 
 typedef struct Param_Obj Param_Obj;
@@ -86,11 +95,15 @@ void getRow_t (Matrix toReturn, Matrix t, int row);
 
 void setRow(struct Matrix x, int row, struct Matrix y);
 
+void setRowInplace( Matrix x, int cc,  Matrix y);
+
 struct Matrix getColumn(struct Matrix t, int colNum);
 
 void getColumn_t (Matrix toReturn, Matrix t, int colNum);
 
 void setColumn(struct Matrix x, struct Matrix y, int colNum);
+
+void setColumnInplace( Matrix x, Matrix y, int cc);
 
 void print(struct Matrix t);
 
@@ -134,6 +147,8 @@ void divide(struct Matrix x, struct Matrix y);
 
 void copyInto(struct Matrix x, struct Matrix y, int rowNum, int colStart, int colStop);
 
+void copyIntoInplace(Matrix x,  Matrix y, int rowNum, int colStart, int colStop);
+
 struct Matrix rowWiseMin(struct Matrix t);
 
 struct Matrix transposeDP(struct Matrix t);
@@ -152,13 +167,27 @@ struct Matrix duplicateIt(struct Matrix t);
 
 void duplicateIt_t(Matrix result, Matrix t);
 
-void matrixAbs(struct Matrix t);
+double matrixMaxAbs(Matrix t);
 
 void multiplyByScalar2D(struct Matrix t, double multiplier);
 
+Matrix multiplyByScalar2D_Eigen(Matrix t, double multiplier);
+
 void divideByScalar2D(struct Matrix t, double divisor);
 
+Matrix divideByScalar2D_Eigen(Matrix t, double divisor);
+
 struct Matrix checkControlList(struct Matrix t);
+
+template <typename T1>
+void subset(Matrix t, int row, int colStart, int colStop, Eigen::MatrixBase<T1> &dest)
+{
+    Eigen::Map< Eigen::MatrixXd > tt(t.t, t.rows, t.cols);
+    int len = colStop - colStart + 1;
+    // We transpose here because Eigen prefers column vectors
+    // whereas CSOLNP prefers row vectors.
+    dest = tt.block(row, colStart, 1, len).transpose();
+}
 
 struct Matrix subset(struct Matrix t, int row, int colStart, int colStop);
 

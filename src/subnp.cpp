@@ -7,8 +7,7 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 
-Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose)
-{
+Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose){
     mode_val = 0;
     mode = &mode_val;
     Matrix inform;
@@ -267,24 +266,24 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     if(M(ind, 10, 0))
     {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
     {   pb = fill(2, nineq, (double)0.0);
-        setColumn(pb, ineqLB, 0);
-        setColumn(pb, ineqUB, 1);
+        setColumnInplace(pb, ineqLB, 0);
+        setColumnInplace(pb, ineqUB, 1);
         pb_cont = fill(2, np, (double)0.0);
-        setColumn(pb_cont, LB, 0);
-        setColumn(pb_cont, UB, 1);
+        setColumnInplace(pb_cont, LB, 0);
+        setColumnInplace(pb_cont, UB, 1);
         pb = transpose(copy(transpose(pb), transpose(pb_cont)));
     }
     else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
     {
         pb = fill(2, nineq, (double)0.0);
-        setColumn(pb, ineqLB, 0);
-        setColumn(pb, ineqUB, 1);
+        setColumnInplace(pb, ineqLB, 0);
+        setColumnInplace(pb, ineqUB, 1);
     }
     else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
     {
         pb = fill(2, np, (double)0.0);
-        setColumn(pb, LB, 0);
-        setColumn(pb, UB, 1);
+        setColumnInplace(pb, LB, 0);
+        setColumnInplace(pb, UB, 1);
     }
     }
     
@@ -329,8 +328,8 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             negate(difference2);
             add(difference2, ineqUB);
             tmpv = fill(2, nineq, (double)0.0);
-            setColumn(tmpv, difference1, 0);
-            setColumn(tmpv, difference2, 1);
+            setColumnInplace(tmpv, difference1, 0);
+            setColumnInplace(tmpv, difference2, 1);
             testMin = rowWiseMin(tmpv);
             
             if (allGreaterThan(testMin, 0)) {
@@ -339,7 +338,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             
             Matrix diff = subset(constraint, 0, neq, tc-1);
             subtract(diff, ineqx0);
-            copyInto(constraint, diff, 0, neq, tc-1);
+            copyIntoInplace(constraint, diff, 0, neq, tc-1);
         }
         
         M(tt, 0, 1) = vnorm(constraint);
@@ -397,17 +396,16 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     
     while(solnp_iter < maxit){
         solnp_iter = solnp_iter + 1;
-        Matrix subnp_ctrl = fill(5, 1, (double)0.0);
-        M(subnp_ctrl, 0, 0) = rho;
-        M(subnp_ctrl, 1, 0) = minit;
-        M(subnp_ctrl, 2, 0) = delta;
-        M(subnp_ctrl, 3, 0) = tol;
-        M(subnp_ctrl, 4, 0) = trace;
+        Eigen::Array<double, 5, 1> subnp_ctrl;
+        subnp_ctrl[0] = rho;
+        subnp_ctrl[1] = minit;
+        subnp_ctrl[2] = delta;
+        subnp_ctrl[3] = tol;
+        subnp_ctrl[4] = trace;
         
         if ( M(ind, 6, 0) > 0){
             Matrix subsetMat = subset(ob, 0, 1, neq);
-            matrixAbs(subsetMat);
-            double max = findMax(subsetMat);
+            double max = matrixMaxAbs(subsetMat);
             
             Matrix temp2 = fill(neq, 1, max);
             Matrix temp1 = fill(1, 1, M(ob, 0, 0));
@@ -439,7 +437,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             mxLog("vscale information: ");
             for (i = 0; i < vscale.cols; i++) mxLog("%f",vscale.t[i]);
             mxLog("subnp_ctrl information: ");
-            for (i = 0; i < subnp_ctrl.cols; i++) mxLog("%f",subnp_ctrl.t[i]);
+            for (i = 0; i < subnp_ctrl.size(); i++) mxLog("%f",subnp_ctrl[i]);
             mxLog("------------------------END CALLING SUBNP------------------------");
         }
         
@@ -483,8 +481,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             
             if ( M(ind, 6, 0) > 0){
                 Matrix subsetMat = subset(ob, 0, 1, neq);
-                matrixAbs(subsetMat);
-                double max = findMax(subsetMat);
+                double max = matrixMaxAbs(subsetMat);
                 
                 Matrix temp2 = fill(neq, 1, max);
                 Matrix temp1 = fill(1, 1, M(ob, 0, 0));
@@ -579,17 +576,17 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
                 subtract(subsetOne, subsetTwo);
                 subtract(subsetThree, subsetOne);
                 Matrix tempv = fill(nineq, 2, (double)0.0);
-                setRow(tempv, 0, subsetOne);
-                setRow(tempv, 1, subsetThree);
+                setRowInplace(tempv, 0, subsetOne);
+                setRowInplace(tempv, 1, subsetThree);
                 
                 if (findMin(tempv) > 0){
                     Matrix copyValues = subset(constraint, 0, neq, tc-1);
-                    copyInto(p, copyValues, 0, 0, nineq-1);
+                    copyIntoInplace(p, copyValues, 0, 0, nineq-1);
                 }
                 Matrix diff = subset(constraint, 0, neq, tc-1);
                 subtract(diff, subset(p, 0, 0, nineq-1));
                 
-                copyInto(constraint, diff, 0, neq, tc-1);
+                copyIntoInplace(constraint, diff, 0, neq, tc-1);
             } // end if (ind[0][3] > 0.5){
             
             M(tt, 0, 2) = vnorm(constraint);
@@ -750,8 +747,8 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     
 }
 
-Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int),
-             Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale, Matrix ctrl, int verbose)
+template <typename T1>
+Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int) ,  Matrix(*myineqFun)(int), Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,  Eigen::ArrayBase<T1> &ctrl, int verbose)
 {
     double EMPTY = -999999.0;
     if (verbose >= 3)
@@ -765,10 +762,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     
     //mxLog("ctrl is: ");
     //for (int ilog = 0; ilog < ctrl.cols; ilog++) mxLog("%f",ctrl.t[ilog]);
-    double rho   = M(ctrl, 0, 0);
-    int maxit = M(ctrl, 1, 0);
-    double delta = M(ctrl, 2, 0);
-    double tol =   M(ctrl, 3, 0);
+    double rho   = ctrl[0];
+    int maxit = ctrl[1];
+    double delta = ctrl[2];
+    double tol =   ctrl[3];
     
     int neq =  (int)M(ind, 7, 0);
     int nineq = (int)M(ind, 4, 0);
@@ -781,7 +778,8 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         for (int i = 0; i < ind.cols; i++) mxLog("%f",ind.t[i]);
     }
     
-    Matrix alp = fill(3, 1, (double)0.0);
+    Eigen::Array<double, 3, 1> alp;
+    alp.setZero();
     Matrix t_sol;
     
     int nc = neq + nineq;
@@ -804,12 +802,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     {
         if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {   pb = fill(2, nineq, (double)0.0);
-            setColumn(pb, ineqLB, 0);
-            setColumn(pb, ineqUB, 1);
+            setColumnInplace(pb, ineqLB, 0);
+            setColumnInplace(pb, ineqUB, 1);
             
             pb_cont = fill(2, np, (double)0.0);
-            setColumn(pb_cont, LB, 0);
-            setColumn(pb_cont, UB, 1);
+            setColumnInplace(pb_cont, LB, 0);
+            setColumnInplace(pb_cont, UB, 1);
             
             pb = transpose(copy(transpose(pb), transpose(pb_cont)));//MAHSA
             
@@ -817,15 +815,15 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
         {
             pb = fill(2, nineq, (double)0.0);
-            setColumn(pb, ineqLB, 0);
-            setColumn(pb, ineqUB, 1);
+            setColumnInplace(pb, ineqLB, 0);
+            setColumnInplace(pb, ineqUB, 1);
             
         }
         else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
         {
             pb = fill(2, np, (double)0.0);
-            setColumn(pb, LB, 0);
-            setColumn(pb, UB, 1);
+            setColumnInplace(pb, LB, 0);
+            setColumnInplace(pb, UB, 1);
             
         }
     }
@@ -838,7 +836,8 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
     }
     
-    Matrix sob = fill(3, 1, (double)0.0);
+    Eigen::Array<double, 3, 1> sob;
+    sob.setZero();
     
     //Matrix yyMatrix = duplicateIt(yy);
     
@@ -862,8 +861,8 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
         //double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
         Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
-        setColumn(vscaleTwice, vscaleSubset, 0);
-        setColumn(vscaleTwice, vscaleSubset, 1);
+        setColumnInplace(vscaleTwice, vscaleSubset, 0);
+        setColumnInplace(vscaleTwice, vscaleSubset, 1);
         
         if (M(pb, 0, 0) != EMPTY){
             divide(pb, vscaleTwice);
@@ -1001,7 +1000,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             Matrix colValues = subset(ob, 0, 1, nc);
             subtract(colValues, constraint);
             divideByScalar2D(colValues, delta);
-            setColumn(a, colValues, index);
+            setColumnInplace(a, colValues, index);
             M(p0, index, 0) = M(p0, index, 0) - delta;
         } // end for (int i=0; i<np, i++){
         
@@ -1017,7 +1016,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             firstPart  = subset(constraint, 0, neq, (neq+nineq-1));
             secondPart = subset(p0, 0, 0, (nineq-1));
             subtract(firstPart, secondPart);
-            copyInto(constraint, firstPart, 0, neq, (neq+nineq-1));
+            copyIntoInplace(constraint, firstPart, 0, neq, (neq+nineq-1));
             
         }
         
@@ -1033,10 +1032,8 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         subtract(b, constraint);
         
         ch = -1;
-        Matrix result = duplicateIt(constraint);//MAHSA
-        matrixAbs(result);
-        M(alp, 0, 0) = tol - findMax(result);
-        if ( M(alp, 0, 0) <= 0){
+        alp[0] = tol - matrixMaxAbs(constraint);
+        if (alp[0] <= 0){
             
             ch = 1;
             
@@ -1046,12 +1043,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 
                 //p0 = subtract(p0, matrixDotProduct(transpose(a), solution));
                 
-                M(alp, 0, 0) = 1;
+                alp[0] = 1;
             }
             
         } // end if (alp[0][0] <= 0){
         
-        if (M(alp, 0, 0) <= 0){
+        if (alp[0] <= 0){
             int npic_int = npic;
             p0 = copy(p0, fill(1, 1, (double)1.0));
             
@@ -1070,10 +1067,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 gap = fill(2, mm, (double)0.0);
                 Matrix result = subset(p0, 0, 0, mm-1);
                 subtract(result, getColumn(pb, 0));
-                setColumn(gap, result, 0);
+                setColumnInplace(gap, result, 0);
                 Matrix result1 = getColumn(pb, 1);
                 subtract(result1, subset(p0, 0, 0, mm-1));
-                setColumn(gap, result1, 1);
+                setColumnInplace(gap, result1, 1);
                 rowSort(gap);
                 Matrix dx_t = transpose(dx);
                 copyInto(dx_t, getColumn(gap,0), 0, 0, mm-1);
@@ -1086,7 +1083,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     Matrix argum = fill(1, npic-mm, (double)1.0);
                     multiplyByScalar2D(argum, max(findMax(subset(dx, 0, 0, mm-1)), 100));
                     
-                    copyInto(dx, argum, 0, mm, npic-1);
+                    copyIntoInplace(dx, argum, 0, mm, npic-1);
                     
                 }
                 
@@ -1108,14 +1105,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 Matrix v = transpose(dx);//MAHSA
                 
                 int indexx = npic;
-                int i;
-                
                 
                 if (M(v, indexx, 0) > 0)
                 {
                     double z = M(p0, indexx, 0)/M(v, indexx, 0);
                     
-                    for (i=0; i<mm; i++)
+                    for (int i=0; i<mm; i++)
                     {
                         if(M(v, i, 0) < 0)
                         {
@@ -1129,15 +1124,14 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                         }
                     }
                     
-                    if(z >= (M(p0, indexx, 0)/M(v, indexx, 0)))
-                    {
-                        multiplyByScalar2D(v, z);
-                        subtract(p0, v);
+                    if(z < (M(p0, indexx, 0)/M(v, indexx, 0))) {
+                        z *= 0.9;
                     }
-                    else{
-                        multiplyByScalar2D(v, 0.9 * z);
-                        subtract(p0, v);
-                    }
+                    
+                    Eigen::Map< Eigen::VectorXd > Ep0(p0.t, p0.cols);
+                    Eigen::Map< Eigen::VectorXd > Ev(v.t, v.cols);
+                    Ep0 -= Ev * z;
+                    
                     go = M(p0, indexx, 0);
                     
                     if(minit >= 10){
@@ -1158,7 +1152,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             
             for (h = 0; h<a.rows; h++)
             {
-                setRow(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
+                setRowInplace(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
             }
             a = duplicateIt(aMatrix);
             
@@ -1236,14 +1230,14 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     if (M(ind, 3, 0) > 0){
         Matrix result = subset(ob, 0, neq+1, nc);
         subtract(result, subset(p, 0, 0, nineq-1));
-        copyInto(ob, result, 0, neq+1, nc);
+        copyIntoInplace(ob, result, 0, neq+1, nc);
     }
     
     if (nc > 0){
         Matrix result = subset(ob, 0, 1, nc);
         subtract(result, transpose(timess(a, transpose(p))));
         add(result, b);
-        copyInto(ob, result, 0, 1, nc);
+        copyIntoInplace(ob, result, 0, 1, nc);
         
         Matrix temp = subset(ob, 0, 1, nc);
         
@@ -1382,7 +1376,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     if (result1.t == NULL) result1 = new_matrix(nineq, 1);
                     subset_t(result1, p, 0, 0, nineq-1);
                     subtract(result, result1);
-                    copyInto(obm_t, result, 0, neq+1, nc);
+                    copyIntoInplace(obm_t, result, 0, neq+1, nc);
                 }
                 
                 if (nc > 0){
@@ -1402,7 +1396,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     
                     add(first_part, b);
                     
-                    copyInto(obm_t, first_part, 0, 1, nc);
+                    copyIntoInplace(obm_t, first_part, 0, 1, nc);
                     if (temp_t.t == NULL) temp_t = new_matrix(nc, 1);
                     subset_t(temp_t, obm_t, 0, 1, nc);
                     double vnormTerm = vnorm(temp_t) * vnorm(temp_t);
@@ -1433,7 +1427,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (M(ind, 3, 0) > 0.5){
                 if (t2.t == NULL) t2 = new_matrix(nineq, 1);
                 fill_t(t2, nineq, 1, (double)0.0);
-                copyInto(g, t2, 0, 0, (nineq-1));
+                copyIntoInplace(g, t2, 0, 0, (nineq-1));
             }
         } // end if (ch > 0){
         
@@ -1502,13 +1496,13 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (col_pb.t == NULL) col_pb = new_matrix(pb.rows, 1);
             getColumn_t(col_pb, pb, 0);
             subtract(res, col_pb);
-            setColumn(gap1, res, 0);
+            setColumnInplace(gap1, res, 0);
             if (col_pb2.t == NULL) col_pb2 = new_matrix(pb.rows, 1);
             getColumn_t(col_pb2, pb, 1);
             if (t7.t == NULL) t7 = new_matrix(mm, 1);
             subset_t(t7, p, 0, 0, mm-1);
             subtract(col_pb2, t7);
-            setColumn(gap1, col_pb2, 1);
+            setColumnInplace(gap1, col_pb2, 1);
             rowSort(gap1);
             if (t8.t == NULL) t8 = new_matrix(1, mm);
             fill_t(t8, 1, mm, (double)1.0);
@@ -1522,7 +1516,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (t9.t == NULL) t9 = new_matrix(mm, 1);
             fill_t(t9, mm, 1, (double)1.0);
             divide(t9, gap2);
-            copyInto(dx, t9, 0, 0, mm-1);
+            copyIntoInplace(dx, t9, 0, 0, mm-1);
             
             if (verbose >= 3){
                 mxLog("dx is: \n");
@@ -1536,7 +1530,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 if (t10.t == NULL) t10 = new_matrix(mm, 1);
                 subset_t(t10, dx, 0, 0, mm-1);
                 multiplyByScalar2D(t11, min(findMin(t10), 0.01));
-                copyInto(dx, t11, 0, mm, npic-1);
+                copyIntoInplace(dx, t11, 0, mm, npic-1);
             }
         }
         
@@ -1795,19 +1789,19 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         } // end while(go <= 0){
         
         
-        M(alp, 0, 0) = 0;
+        alp[0] = 0;
         if (ob1.t == NULL) ob1 = new_matrix(ob.cols, ob.rows);
         duplicateIt_t(ob1, ob);
         if (ob2.t == NULL) ob2 = new_matrix(ob1.cols, ob1.rows);
         duplicateIt_t(ob2, ob1);
         
-        M(sob, 0, 0) = j;
-        M(sob, 1, 0) = j;
+        sob[0] = j;
+        sob[1] = j;
         
         
         if (verbose >= 3){
             mxLog("sob is is: \n");
-            for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f", sob.t[ilog]);
+            for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f", sob[ilog]);
         }
         
         if (t18.t == NULL) t18 = new_matrix(p.rows, p.cols);
@@ -1815,7 +1809,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         if (ptt.t == NULL) ptt = new_matrix(t18.cols + t18.cols, t18.rows);
         copy_t(ptt, t18, t18);
         
-        M(alp, 2, 0) = 1.0;
+        alp[2] = 1.0;
         if (verbose >= 3){
             mxLog("ptt is: \n");
             for (int ilog = 0; ilog < ptt.cols*ptt.rows; ilog++) mxLog("%f", ptt.t[ilog]);
@@ -1929,7 +1923,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
         }
         
-        M(sob, 2, 0) = M(ob3, 0, 0);
+        sob[2] = M(ob3, 0, 0);
         
         if (M(ind, 3, 0) > 0.5){
             // ob3[ (neq + 2):(nc + 1) ] = ob3[ (neq + 2):(nc + 1) ] - ptt[ 1:nineq, 3 ]
@@ -1940,7 +1934,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (partTwo.t == NULL) partTwo = new_matrix(nineq, 1);
             subset_t(partTwo, tempPttCol, 0, 0, nineq-1);
             subtract(partOne, partTwo);
-            copyInto(ob3, partOne, 0, neq+1, nc);
+            copyIntoInplace(ob3, partOne, 0, neq+1, nc);
         }
         
         if (nc > 0){
@@ -1957,7 +1951,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             transpose_t(t24, t23);
             subtract(firstp, t24);
             add(firstp, b);
-            copyInto(ob3, firstp, 0, 1, nc);
+            copyIntoInplace(ob3, firstp, 0, 1, nc);
             if (t25.t == NULL) t25 = new_matrix(nc, 1);
             subset_t(t25, ob3, 0, 1, nc);
             
@@ -1970,21 +1964,21 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             getRow_t(t27, t25, 0);
             double dotProductTerm = dotProduct(t26, t27);
             
-            M(sob, 2, 0) = M(ob3, 0, 0) - dotProductTerm + (rho * vnormTerm);
+            sob[2] = M(ob3, 0, 0) - dotProductTerm + (rho * vnormTerm);
         }
         
         go = 1;
         
         while(go > tol){
-            M(alp, 1, 0) = (M(alp, 0, 0) + M(alp, 2, 0)) / 2.0;
+            alp[1] = (alp[0] + alp[2]) / 2.0;
             if (p_copy.t == NULL) p_copy = new_matrix(p.cols, p.rows);
             duplicateIt_t(p_copy, p);
-            multiplyByScalar2D(p_copy, (1.0 - M(alp, 1, 0)));
+            multiplyByScalar2D(p_copy, (1.0 - alp[1]));
             if (p0_copy.t == NULL) p0_copy = new_matrix(p0_1.cols, p0_1.rows);
             duplicateIt_t(p0_copy, p0_1);
-            multiplyByScalar2D(p0_copy, (M(alp, 1, 0)));
+            multiplyByScalar2D(p0_copy, alp[1]);
             add(p_copy, p0_copy);
-            setColumn(ptt2, p_copy, 1);
+            setColumnInplace(ptt2, p_copy, 1);
             if (pttColOne.t == NULL) pttColOne = new_matrix(ptt2.rows, 1);
             getColumn_t(pttColOne, ptt2, 1);
             if (tmpv.t == NULL) tmpv = new_matrix(npic-nineq, 1);
@@ -2058,10 +2052,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 for (int ilog = 0; ilog < ob2.cols; ilog++) mxLog("%f",ob2.t[ilog]);
             }
             
-            M(sob, 1, 0) = M(ob2, 0, 0);
+            sob[1] = M(ob2, 0, 0);
             if (verbose >= 3){
                 mxLog("sob is: \n");
-                for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f",sob.t[ilog]);
+                for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
             }
             if (M(ind, 3, 0) > 0.5){
                 if (partOne.t == NULL) partOne = new_matrix(nc-neq, 1);
@@ -2071,7 +2065,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 if (partTwo.t == NULL) partTwo = new_matrix(nineq, 1);
                 subset_t(partTwo, tempPttCol, 0, 0, nineq-1);
                 subtract(partOne, partTwo);
-                copyInto(ob2, partOne, 0, neq+1, nc);
+                copyIntoInplace(ob2, partOne, 0, neq+1, nc);
             }
             
             if (nc > 0){
@@ -2087,7 +2081,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 transpose_t(t34, t33);
                 subtract(t30, t34);
                 add(t30, b);
-                copyInto(ob2, t30, 0, 1, nc);
+                copyIntoInplace(ob2, t30, 0, 1, nc);
                 if (temp.t == NULL) temp = new_matrix(nc, 1);
                 subset_t(temp, ob2, 0, 1, nc);
                 double vnormTerm = vnorm(temp) * vnorm(temp);
@@ -2098,93 +2092,93 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 if (t27.t == NULL) t27 = new_matrix(t25.cols, 1);
                 getRow_t(t27, temp, 0);
                 double dotProductTerm = dotProduct(t26, t27);
-                M(sob, 1, 0) = M(ob2, 0, 0) - dotProductTerm + rho * vnormTerm;
+                sob[1] = M(ob2, 0, 0) - dotProductTerm + rho * vnormTerm;
             }
             if (verbose >= 3){
                 mxLog("sob is: \n");
-                for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f",sob.t[ilog]);
+                for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
             }
             if (verbose >= 3){
                 mxLog("obm is: \n");
                 for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
             }
             if (obm.t == NULL) obm = new_matrix(1, 1);
-            M(obm, 0, 0) = findMax(sob);
+            M(obm, 0, 0) = sob.maxCoeff();
             if (verbose >= 3){
                 mxLog("obm is: \n");
                 for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
             }
             if (M(obm, 0, 0) < j){
-                double obn = findMin(sob);
+                double obn = sob.minCoeff();
                 go = tol * (M(obm, 0, 0) - obn) / (j - M(obm, 0, 0));
             }
             
-            condif1 = (M(sob, 1, 0) >= M(sob, 0, 0));
-            condif2 = (M(sob, 0, 0) <= M(sob, 2, 0)) && (M(sob, 1, 0) < M(sob, 0, 0));
-            condif3 = (M(sob, 1, 0) <  M(sob, 0, 0)) && (M(sob, 0, 0) > M(sob, 2, 0));
+            condif1 = (sob[1] >= sob[0]);
+            condif2 = (sob[0] <= sob[2]) && (sob[1] < sob[0]);
+            condif3 = (sob[1] <  sob[0]) && (sob[0] > sob[2]);
             
             if (condif1){
-                M(sob, 2, 0) = M(sob, 1, 0);
+                sob[2] = sob[1];
                 if (ob3.t == NULL) ob3 = new_matrix(ob2.cols, ob2.rows);
                 duplicateIt_t(ob3, ob2);
-                M(alp, 2, 0) = M(alp, 1, 0);
+                alp[2] = alp[1];
                 if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
                 getColumn_t(tempCol, ptt2, 1);
-                setColumn(ptt2, tempCol, 2);
+                setColumnInplace(ptt2, tempCol, 2);
                 
                 if (verbose >= 3){
                     mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f",sob.t[ilog]);
+                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
                     mxLog("ob3 is: \n");
                     for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
                     mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.cols; ilog++) mxLog("%f",alp.t[ilog]);
+                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
                     mxLog("ptt2 is: \n");
                     for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);
                 }
             }
             
             if (condif2){
-                M(sob, 2, 0) = M(sob, 1, 0);
+                sob[2] = sob[1];
                 if (ob3.t == NULL) ob3 = new_matrix(ob2.cols, ob2.rows);
                 duplicateIt_t(ob3, ob2);
-                M(alp, 2, 0) = M(alp, 1, 0);
+                alp[2] = alp[1];
                 if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
                 getColumn_t(tempCol, ptt2, 1);
-                setColumn(ptt2, tempCol, 2);
+                setColumnInplace(ptt2, tempCol, 2);
                 
                 if (verbose >= 3){
                     mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f",sob.t[ilog]);
+                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
                     mxLog("ob3 is: \n");
                     for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
                     mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.cols; ilog++) mxLog("%f",alp.t[ilog]);
+                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
                     mxLog("ptt2 is: \n");
                     for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);				}
             }
             
             if (condif3){
-                M(sob, 0, 0) = M(sob, 1, 0);
+                sob[0] = sob[1];
                 if (ob1.t == NULL) ob1 = new_matrix(ob2.cols, ob2.rows);
                 duplicateIt_t(ob1, ob2);
-                M(alp, 0, 0) = M(alp, 1, 0);
+                alp[0] = alp[1];
                 if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
                 getColumn_t(tempCol, ptt2, 1);
-                setColumn(ptt2, tempCol, 0);
+                setColumnInplace(ptt2, tempCol, 0);
                 if (verbose >= 3){
                     mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.cols; ilog++) mxLog("%f",sob.t[ilog]);
+                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
                     mxLog("ob3 is: \n");
                     for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
                     mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.cols; ilog++) mxLog("%f",alp.t[ilog]);
+                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
                     mxLog("ptt2 is: \n");
                     for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);				}
             }
             
             if (go >= tol){
-                go = M(alp, 2, 0) - M(alp, 0, 0);
+                go = alp[2] - alp[0];
                 if (verbose >= 3){
                     mxLog("go is: \n");
                     mxLog("%.20f", go);
@@ -2217,7 +2211,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         }
         ch = 1;
         
-        double obn = findMin(sob);
+        double obn = sob.minCoeff();
         if (verbose >= 3){
             mxLog("obn is: \n");
             mxLog("%.20f", obn);
@@ -2238,12 +2232,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             maxit = minit;
         }
         
-        condif1 = (M(sob, 0, 0) <  M(sob, 1, 0));
-        condif2 = (M(sob, 2, 0) <  M(sob, 1, 0)) && (M(sob, 0, 0) >=  M(sob, 1, 0));
-        condif3 = (M(sob, 0, 0) >= M(sob, 1, 0)) && (M(sob, 2, 0) >= M(sob, 1, 0));
+        condif1 = (sob[0] <  sob[1]);
+        condif2 = (sob[2] <  sob[1]) && (sob[0] >=  sob[1]);
+        condif3 = (sob[0] >= sob[1]) && (sob[2] >= sob[1]);
         
         if (condif1){
-            j = M(sob, 0, 0);
+            j = sob[0];
             if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
             getColumn_t(p, ptt2, 0);
             if (ob.t == NULL) ob = new_matrix(ob1.cols, ob1.rows);
@@ -2261,7 +2255,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         
         if (condif2){
             
-            j = M(sob, 2, 0);
+            j = sob[2];
             if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
             getColumn_t(p, ptt2, 2);
             if (ob.t == NULL) ob = new_matrix(ob3.cols, ob3.rows);
@@ -2279,7 +2273,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         }
         
         if (condif3){
-            j = M(sob, 1, 0);
+            j = sob[1];
             if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
             getColumn_t(p, ptt2, 1);
             if (ob.t == NULL) ob = new_matrix(ob2.cols, ob2.rows);
