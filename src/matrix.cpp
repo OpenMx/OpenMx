@@ -530,6 +530,24 @@ void minMaxAbs(Matrix t, double tol)
     }
 }
 
+void addEigen(Matrix x,  Matrix y)
+{
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
+    
+    if (x.cols != y.cols || x.rows != y.rows)
+    {
+        if (x.cols == y.rows)
+        {
+            secondM.transpose();
+        }
+        else Rf_error("CSOLNP BUG: noncomformant matrices are added");
+    }
+    
+    firstM += secondM;
+    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
+}
+
 void add(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols || x.rows != y.rows)

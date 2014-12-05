@@ -137,6 +137,8 @@ Matrix matrixDotProduct(struct Matrix a, struct Matrix b);
 
 void minMaxAbs(struct Matrix t, double tol);
 
+void addEigen(Matrix x,  Matrix y);
+
 void add(struct Matrix x, struct Matrix y);
 
 void subtractEigen(Matrix x,  Matrix y);
