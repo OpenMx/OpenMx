@@ -454,7 +454,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 
 	int maxRetries = 20;
 	ssize_t wrote = 0;
-	ssize_t got;
+	ssize_t got = 0;
 #pragma omp critical(stderp)
 	{
 		while (--maxRetries > 0) {
