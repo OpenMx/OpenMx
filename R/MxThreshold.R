@@ -100,7 +100,7 @@ thresholdCheckSingleLength <- function(nElements, startingPoint, len, lenName, v
 as.MxMatrix.MxThreshold <- function(threshold) {
   mxMatrix("Full", nrow=threshold@nThresh, ncol=1, free=threshold@free, values=threshold@values,
            labels=threshold@labels, lbound=threshold@lbound, ubound=threshold@ubound, 
-           dimnames=list(NULL, threshold@variable))
+           dimnames=list(NULL, threshold@variable),condenseSlots=FALSE)
 }
 
 thresholdSubset <- function(var, a) {

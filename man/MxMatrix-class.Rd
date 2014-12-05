@@ -14,58 +14,79 @@
 %   limitations under the License.
 
 \name{MxMatrix-class}
-\alias{MxMatrix}
+\Rdversion{1.1}
+\docType{class}
+\alias{MxMatrix-class}
+\alias{$,MxMatrix-method}
+\alias{$<-,MxMatrix-method}
 \alias{[,MxMatrix-method}
 \alias{[<-,MxMatrix-method}
-\alias{print,MxMatrix-method}
-\alias{show,MxMatrix-method}
 \alias{dim,MxMatrix-method}
-\alias{ncol,MxMatrix-method}
-\alias{nrow,MxMatrix-method}
-\alias{length,MxMatrix-method}
 \alias{dimnames,MxMatrix-method}
 \alias{dimnames<-,MxMatrix-method}
-\alias{DiagMatrix-class}
-\alias{FullMatrix-class}
-\alias{IdenMatrix-class}
-\alias{LowerMatrix-class}
-\alias{SdiagMatrix-class}
-\alias{StandMatrix-class}
-\alias{SymmMatrix-class}
-\alias{UnitMatrix-class}
-\alias{ZeroMatrix-class}
-    
+\alias{imxCreateMatrix,MxMatrix-method}
+\alias{imxDeparse,MxMatrix-method}
+\alias{imxSquareMatrix,MxMatrix-method}
+\alias{imxSymmetricMatrix,MxMatrix-method}
+\alias{imxVerifyMatrix,MxMatrix-method}
+\alias{length,MxMatrix-method}
+\alias{names,MxMatrix-method}
+\alias{ncol,MxMatrix-method}
+\alias{nrow,MxMatrix-method}
+\alias{print,MxMatrix-method}
+\alias{show,MxMatrix-method}
+
 \title{MxMatrix Class}
-
 \description{
-   MxMatrix is an S4 class. An MxMatrix object is a \link[=Named-entity]{named entity}.
-   New instances of this class can be created using the function \link{mxMatrix}.
-   MxMatrix objects may be used as arguments in other functions from the OpenMx library, including \link{mxAlgebra}, \link{mxConstraint}, and \link{mxModel}.
+MxMatrix is a virtual S4 class that comprises the nine types of matrix objects used by OpenMx (see \code{\link{mxMatrix}()} for details).  An MxMatrix object is a \link[=Named-entity]{named entity}.  New instances of this class can be created using the function \code{\link{mxMatrix}()}.  MxMatrix objects may be used as arguments in other functions from the OpenMx package, including \code{\link{mxAlgebra}()}, \code{\link{mxConstraint}()}, and \code{\link{mxModel}()}.
 }
-    
-    \details{
-The MxMatrix class has the following slots:
-      \tabular{rcl}{
-            name \tab - \tab the name of the object \cr
-            free \tab - \tab  the free matrix \cr
-            values \tab - \tab the values matrix \cr
-            labels \tab - \tab  the labels matrix \cr
-      }
-      
-The 'name' slot is the name of the MxMatrix object. Use of MxMatrix objects in an \link{mxAlgebra} or \link{mxConstraint} function requires reference by name.
-
-The 'free' slot takes a matrix which describes the location of free and fixed parameters. A variable is a free parameter if-and-only-if the corresponding value in the 'free' matrix is 'TRUE'. Free parameters are elements of an MxMatrix object whose values may be changed by an objective function when that MxMatrix object is included in an \link{MxModel} object and evaluated using the \link{mxRun} function.
-
-The 'values' slot takes a matrix of numeric values. If an element is specified as a fixed parameter in the 'free' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \link{mxRun} function. If an element is specified as a free parameter in the 'free' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \link{mxRun} function. 
-
-The 'labels' slot takes a matrix which describes the labels of free and fixed parameters. Fixed parameters with identical labels must have identical values.  Free parameters with identical labels impose an equality constraint. The same label cannot be applied to a free parameter and a fixed parameter. A free parameter with the label 'NA' implies a unique free parameter, that cannot be constrained to equal any other free parameter.
-
+\section{Objects from the Class}{All nine types of object that the class comprises can be created via \code{\link{mxMatrix}()}.}
+\section{Slots}{
+  \describe{
+    \item{\code{name}:}{Character string; the name of the MxMatrix object.  Note that this is the object's "Mx name" (so to speak), which identifies it in OpenMx's internal namespace, rather than the symbol identifying it in \R's worskpace.  Use of MxMatrix objects in an \link{mxAlgebra} or \link{mxConstraint} function requires reference by name.}
+    \item{\code{values}:}{Numeric matrix of values.  If an element is specified as a fixed parameter in the 'free' matrix, then the element in the 'values' matrix is treated as a constant value and cannot be altered or updated by an objective function when included in an \code{\link{mxRun}()} function. If an element is specified as a free parameter in the 'free' matrix, the element in the 'value' matrix is considered a starting value and can be changed by an objective function when included in an \code{\link{mxRun}()} function.}
+    \item{\code{labels}:}{Matrix of character strings which provides the labels of free and fixed parameters. Fixed parameters with identical labels must have identical values.  Free parameters with identical labels impose an equality constraint. The same label cannot be applied to a free parameter and a fixed parameter. A free parameter with the label 'NA' implies a unique free parameter, that cannot be constrained to equal any other free parameter.}
+    \item{\code{free}:}{Logical matrix specifying whether each element is free versus fixed. An element is a free parameter if-and-only-if the corresponding value in the 'free' matrix is 'TRUE'. Free parameters are elements of an MxMatrix object whose values may be changed by a fitfunction when that MxMatrix object is included in an \link{MxModel} object and evaluated using the \code{\link{mxRun}()} function.}
+    \item{\code{lbound}:}{Numeric matrix of lower bounds on free parameters.}
+    \item{\code{ubound}:}{Numeric matrix of upper bounds on free parameters.}
+    \item{\code{.squareBrackets}:}{Logical matrix; used internally by OpenMx.  Identifies which elements have labels with square brackets in them.}
+    \item{\code{.persist}:}{Logical; used internally by OpenMx.  Governs how \code{\link{mxRun}()} handles the MxMatrix object when it is inside the \link{MxModel} being run.}
+    \item{\code{.condenseSlots}:}{Logical; used internally by OpenMx.  If \code{FALSE}, then the matrices in the 'values', 'labels', 'free', 'lbound', and 'ubound' slots are all of equal dimensions.  If \code{TRUE}, then the last four of those slots will "condense" a matrix consisting entirely of \code{FALSE} or \code{NA} down to 1x1.}
+    \item{\code{display}:}{Character string; used internally by OpenMx when parsing \link{MxAlgebra}s.}
+    \item{\code{dependencies}:}{Integer; used internally by OpenMx when parsing \link{MxAlgebra}s.}
+  }
 }
 
+%Is this section required for CRAN compliance?:
+\section{Methods}{
+  \describe{
+    \item{$}{\code{signature(x = "MxMatrix")}: ... }
+    \item{$<-}{\code{signature(x = "MxMatrix")}: ... }
+    \item{[}{\code{signature(x = "MxMatrix")}: ... }
+    \item{[<-}{\code{signature(x = "MxMatrix")}: ... }
+    \item{dim}{\code{signature(x = "MxMatrix")}: ... }
+    \item{dimnames}{\code{signature(x = "MxMatrix")}: ... }
+    \item{dimnames<-}{\code{signature(x = "MxMatrix")}: ... }
+    \item{imxCreateMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    \item{imxDeparse}{\code{signature(object = "MxMatrix")}: ... }
+    \item{imxSquareMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    \item{imxSymmetricMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    \item{imxVerifyMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    \item{length}{\code{signature(x = "MxMatrix")}: ... }
+    \item{names}{\code{signature(x = "MxMatrix")}: ... }
+    \item{ncol}{\code{signature(x = "MxMatrix")}: ... }
+    \item{nrow}{\code{signature(x = "MxMatrix")}: ... }
+    \item{print}{\code{signature(x = "MxMatrix")}: ... }
+    \item{show}{\code{signature(object = "MxMatrix")}: ... }
+   }
+}
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at \url{http://openmx.psyc.virginia.edu/documentation}.
 }
-
 \seealso{
-\link{mxMatrix} for creating MxMatrix objects. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\code{\link{mxMatrix}()} for creating MxMatrix objects. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
+\examples{
+showClass("MxMatrix")
+}
+\keyword{classes}

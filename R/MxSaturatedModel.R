@@ -172,7 +172,7 @@ generateIFAReferenceModels <- function(model) {
 	data <- model$data$observed
 	itemName <- expectation$item
 	item <- model[[itemName]]
-	nullitem <- mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)))
+	nullitem <- mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)), condenseSlots=FALSE)
 
 	if (is.null(item)) {
 		stop(paste("Cannot find matrix", omxQuotes(itemName),"in model",

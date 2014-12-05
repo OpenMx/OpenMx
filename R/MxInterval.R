@@ -161,6 +161,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			retval[[newName]] <- makeIntervalReference(entityNumber, 0L, 0L, 
 								   interval@lowerdelta, interval@upperdelta)
 		} else {
+		  if(!any(entity@free)){return(retval)}
 			rows <- nrow(entity)
 			cols <- ncol(entity)
 			free <- entity@free

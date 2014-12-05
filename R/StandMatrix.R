@@ -54,7 +54,7 @@ populateStandTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 setMethod("imxCreateMatrix", "StandMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (nrow != ncol) {
 			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -66,20 +66,26 @@ setMethod("imxCreateMatrix", "StandMatrix",
 		if (is.vector(values)) {
 			values <- populateStandTriangle(values, nrow, 1, byrow, 'values') 
 		}
-		if (is.vector(labels)) {
-			labels <- populateStandTriangle(labels, nrow, as.character(NA), byrow, 'labels')
+		if(condenseSlots && all.false(free) && all.na(labels)){
+		  labels <- as.character(NA)
+		  free <- FALSE
 		}
-		if (is.vector(free)) {
-			free <- populateStandTriangle(free, nrow, FALSE, byrow, 'free')
-		}
-		if (is.vector(lbound)) {
+    else{
+  		if (is.vector(labels)) {
+  			labels <- populateStandTriangle(labels, nrow, as.character(NA), byrow, 'labels')
+  		}
+  		if (is.vector(free)) {
+  			free <- populateStandTriangle(free, nrow, FALSE, byrow, 'free')
+  	}}
+    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+		else{if (is.vector(lbound)) {
 			lbound <- populateStandTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
-		}
-		if (is.vector(ubound)) {
+		}}
+		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+    else{if (is.vector(ubound)) {
 			ubound <- populateStandTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
-		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
-		return(retval)
+		}}
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
 	}
 )
 

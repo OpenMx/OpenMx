@@ -19,27 +19,30 @@ setClass(Class = "FullMatrix",
 	contains = "MxMatrix")
 
 setMethod("imxCreateMatrix", "FullMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (single.na(values)) {
 			values <- 0
 		}
 		if (is.vector(values)) {
 			values <- matrix(values, nrow, ncol, byrow = byrow)
 		}
-		if (is.vector(labels)) {
-			labels <- matrix(labels, nrow, ncol, byrow = byrow)
-		}
-		if (is.vector(free)) {
-			free <- matrix(free, nrow, ncol, byrow = byrow)
-		}
-		if (is.vector(lbound)) {
+    if(condenseSlots && all.false(free) && all.na(labels)){
+      labels <- as.character(NA)
+      free <- FALSE
+    }
+    else{
+  		if (is.vector(labels)) {labels <- matrix(labels, nrow, ncol, byrow = byrow)}
+  		if (is.vector(free)) {free <- matrix(free, nrow, ncol, byrow = byrow)}
+    }
+    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+		else{if (is.vector(lbound)) {
 			lbound <- matrix(lbound, nrow, ncol, byrow = byrow)
-		}
-		if (is.vector(ubound)) {
+		}}
+		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		else{if (is.vector(ubound)) {
 			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
-		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) 
-		return(retval)
+		}}
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) )
 	}
 )
 

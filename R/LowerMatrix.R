@@ -50,7 +50,7 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 setMethod("imxCreateMatrix", "LowerMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (nrow != ncol) {
 			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -62,26 +62,33 @@ setMethod("imxCreateMatrix", "LowerMatrix",
 		if (is.vector(values)) {
 			values <- populateLowerTriangle(values, nrow, 0, byrow, 'values')
 		}
-		if (is.vector(labels)) {
-			labels <- populateLowerTriangle(labels, nrow, as.character(NA), byrow, 'labels')
+		if(condenseSlots && all.false(free) && all.na(labels)){
+		  labels <- as.character(NA)
+		  free <- FALSE
 		}
-		if (is.vector(free)) {
-			free <- populateLowerTriangle(free, nrow, FALSE, byrow, 'free')
-		}
-		if (is.vector(lbound)) {
+    else{
+  		if (is.vector(labels)) {
+  			labels <- populateLowerTriangle(labels, nrow, as.character(NA), byrow, 'labels')
+  		}
+  		if (is.vector(free)) {
+  			free <- populateLowerTriangle(free, nrow, FALSE, byrow, 'free')
+  	}}
+    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+		else{if (is.vector(lbound)) {
 			lbound <- populateLowerTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
-		}
-		if (is.vector(ubound)) {
+		}}
+		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		else{if (is.vector(ubound)) {
 			ubound <- populateLowerTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
-		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
-		return(retval)
+		}}
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
 	}
 )
 
 setMethod("imxVerifyMatrix", "LowerMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
+    #Do all of these slots really need to be copied?:
 		values <- .Object@values
 		free <- .Object@free
 		labels <- .Object@labels
@@ -93,25 +100,25 @@ setMethod("imxVerifyMatrix", "LowerMatrix",
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all(free[upper.tri(free)] == FALSE)) {
+		if (any(free) && !all(free[upper.tri(free)] == FALSE)) {
 			stop(paste("Upper triangle of free matrix in lower matrix", omxQuotes(.Object@name), 
 				"is not all fixed!", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all(is.na(labels[upper.tri(labels)]))) {
+		if (!all.na(labels) && !all(is.na(labels[upper.tri(labels)]))) {
 			stop(paste("Upper triangle of labels matrix in lower matrix", omxQuotes(.Object@name), 
 				"is not all NAs!", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all(is.na(lbound[upper.tri(labels)]))) {
+		if (!all.na(lbound) && !all(is.na(lbound[upper.tri(labels)]))) {
 			stop(paste("Upper triangle of lbound matrix in lower matrix", omxQuotes(.Object@name), 
 				"is not all NAs!", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all(is.na(ubound[upper.tri(labels)]))) {
+		if (!all.na(ubound) && !all(is.na(ubound[upper.tri(labels)]))) {
 			stop(paste("Upper triangle of ubound matrix in lower matrix", omxQuotes(.Object@name), 
 				"is not all NAs!", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),

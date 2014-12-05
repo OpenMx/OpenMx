@@ -19,6 +19,7 @@ mxSetDefaultOptions <- function() {
 	'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions,
 	    list("Default optimizer" = determineDefaultOptimizer())),
 	'mxByrow' = FALSE,
+	'mxCondenseMatrixSlots' = TRUE,
 	'mxShowDimnames' = TRUE,
 	'mxPrintUnitTests' = TRUE,
 	'swift.initialexpr' = "library(OpenMx)")

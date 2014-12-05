@@ -90,10 +90,10 @@ modelAddBoundsHelper <- function(model, bounds) {
 		for(i in 1:length(bounds)) {
 			for(j in 1:length(model@matrices)) {
 				matrix <- model@matrices[[j]]
-				matches <- matrix@labels %in% bounds[[i]]@parameters
+				matches <- matrix$labels %in% bounds[[i]]@parameters
 				if (any(matches)) {					
-					matrix@lbound[matches] <- bounds[[i]]@min
-					matrix@ubound[matches] <- bounds[[i]]@max
+					matrix$lbound[matches] <- bounds[[i]]@min
+					matrix$ubound[matches] <- bounds[[i]]@max
 					model@matrices[[j]] <- matrix
 				}
 			}

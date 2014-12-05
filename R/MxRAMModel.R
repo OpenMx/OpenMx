@@ -354,7 +354,7 @@ expectationIsMissingMeans <- function(model) {
 insertAllThresholdsRAM <- function(model, thresholds) {
 	Thresh <- model[[model@expectation@thresholds]]
 	if (is.null(Thresh)) { 
-		Thresh <- mxMatrix("Full", 0, 0, name="Thresholds")
+		Thresh <- mxMatrix("Full", 0, 0, name="Thresholds", condenseSlots=FALSE)
 		if(expectationIsMissingThresholds(model)) {
 			model@expectation@thresholds <- "Thresholds"
 		} else {
@@ -388,7 +388,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 		newCols <- length(newVars)
 		newRows <- max(nrow(Thresh), maxNThresh)
 		newThresh <- mxMatrix("Full", newRows, newCols, dimnames=list(NULL,
-			newVars), name=Thresh@name)  # Maintains the old ordering
+			newVars), name=Thresh@name, condenseSlots=FALSE)  # Maintains the old ordering
 		if(oldRows > 0 && oldCols > 0) {
 			newThresh[1:oldRows, 1:oldCols] <- Thresh
 		}
@@ -689,7 +689,7 @@ createMatrixM <- function(model) {
 	labels <- matrix(as.character(NA), 1, len)
 	free <- matrix(c(rep.int(FALSE, length(model@manifestVars)),
 		rep.int(FALSE, length(model@latentVars))), 1, len)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "M")
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "M", condenseSlots=FALSE)
 	dimnames(retval) <- names
 	return(retval)
 }
@@ -701,7 +701,7 @@ createMatrixA <- function(model) {
 	values <- matrix(0, len, len)
 	free <- matrix(FALSE, len, len)
 	labels <- matrix(as.character(NA), len, len)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "A")
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "A", condenseSlots=FALSE)
 	dimnames(retval) <- names
 	return(retval)
 }
@@ -713,7 +713,7 @@ createMatrixS <- function(model) {
 	values <- matrix(0, len, len)
 	free <- matrix(FALSE, len, len)
 	labels <- matrix(as.character(NA), len, len)
-	retval <- mxMatrix("Symm", values = values, free = free, labels = labels, name = "S")
+	retval <- mxMatrix("Symm", values = values, free = free, labels = labels, name = "S", condenseSlots=FALSE)
 	dimnames(retval) <- names
 	return(retval)
 }
@@ -745,7 +745,7 @@ createMatrixF <- function(model) {
 	}
 	free <- matrix(FALSE, length(model@manifestVars), len)
 	labels <- matrix(as.character(NA), length(model@manifestVars), len)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "F")
+	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "F", condenseSlots=TRUE)
 	dimnames(retval) <- names
 	return(retval)
 }

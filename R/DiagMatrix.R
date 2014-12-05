@@ -22,7 +22,7 @@ setMethod("imxSquareMatrix", "DiagMatrix",
 )
 
 setMethod("imxCreateMatrix", "DiagMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (nrow != ncol) {
 			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -36,28 +36,35 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 			diag(tmp) <- values
 			values <- tmp
 		}
-		if (is.vector(labels)) {
-			tmp <- matrix(as.character(NA), nrow, ncol)
-			diag(tmp) <- labels
-			labels <- tmp
+		if(condenseSlots && all.na(labels) && all.false(free)){
+      labels <- as.character(NA)
+		  free <- FALSE
 		}
-		if (is.vector(free)) {
-			tmp <- matrix(FALSE, nrow, ncol)
-			diag(tmp) <- free
-			free <- tmp
-		}
-		if (is.vector(lbound)) {
-			tmp <- matrix(as.numeric(NA), nrow, ncol)
-			diag(tmp) <- lbound
-			lbound <- tmp
-		}
-		if (is.vector(ubound)) {
-			tmp <- matrix(as.numeric(NA), nrow, ncol)
-			diag(tmp) <- ubound
-			ubound <- tmp
-		}
-		retval <- callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...)
-		return(retval)
+    else{
+      if(is.vector(labels)) {
+		    tmp <- matrix(as.character(NA), nrow, ncol)
+		    diag(tmp) <- labels
+		    labels <- tmp
+      }
+	  if(is.vector(free)) {
+		  tmp <- matrix(FALSE, nrow, ncol)
+		  diag(tmp) <- free
+		  free <- tmp
+		}}
+    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+		else{if(is.vector(lbound)) {
+		  tmp <- matrix(as.numeric(NA), nrow, ncol)
+		  diag(tmp) <- lbound
+		  lbound <- tmp
+		}}
+    if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		else{if(is.vector(ubound)) {
+		  tmp <- matrix(as.numeric(NA), nrow, ncol)
+		  diag(tmp) <- ubound
+		  ubound <- tmp
+		}}
+    if(exists("tmp")){rm(tmp)}
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
 	}
 )
 
@@ -65,12 +72,13 @@ setMethod("imxVerifyMatrix", "DiagMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		values <- .Object@values
-		free <- .Object@free
 		if(nnzero(values[row(values) != col(values)]) > 0)
 			{ stop(paste("Values matrix of", .Object@name, "is not a diagonal matrix.",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 			call. = FALSE) }
-		if(any(free[row(free) != col(free)])) {
+    rm(values)
+		free <- .Object@free
+		if(any(free) && any(free[row(free) != col(free)])) {
 			{ stop(paste("Free matrix of", .Object@name, "has TRUE on non-diagonal.",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 			call. = FALSE) }

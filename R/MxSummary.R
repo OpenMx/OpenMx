@@ -887,7 +887,9 @@ logLik.MxModel <- function(object, ...) {
     for(i in 1:nrow(A_need_pos)){
       Apos[A_need_pos[i,1],A_need_pos[i,2]] <- out$name[j] <- paste(
         model@name,".A[",A_need_pos[i,1],",",A_need_pos[i,2],"]",sep="")
-      if(!is.null(model_A$labels)){out$label[j] <- model_A$labels[A_need_pos[i,1],A_need_pos[i,2]]}
+      if(!all.na(model_A$labels)){
+        out$label[j] <- model_A$labels[A_need_pos[i,1],A_need_pos[i,2]]
+      }
       out$matrix[j] <- "A"
       out$Raw.Value[j] <- A[A_need_pos[i,1],A_need_pos[i,2]]
       out$row[j] <- ifelse(length(rownames(A))>0,rownames(A)[A_need_pos[i,1]],A_need_pos[i,1])
@@ -899,7 +901,9 @@ logLik.MxModel <- function(object, ...) {
     for(i in 1:nrow(S_need_pos)){
       Spos[S_need_pos[i,1],S_need_pos[i,2]] <- out$name[j] <- paste(
         model@name,".S[",S_need_pos[i,1],",",S_need_pos[i,2],"]",sep="")
-      if(!is.null(model_S$labels)){out$label[j] <- model_S$labels[S_need_pos[i,1],S_need_pos[i,2]]}
+      if(!all.na(model_S$labels)){
+        out$label[j] <- model_S$labels[S_need_pos[i,1],S_need_pos[i,2]]
+      }
       out$matrix[j] <- "S"
       out$Raw.Value[j] <- S[S_need_pos[i,1],S_need_pos[i,2]]
       out$row[j] <- ifelse(length(rownames(S))>0,rownames(S)[S_need_pos[i,1]],S_need_pos[i,1])
@@ -911,7 +915,7 @@ logLik.MxModel <- function(object, ...) {
   freeparams <- omxGetParameters(model)
   paramnames <- names(freeparams)
   zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos)
-  #Compute SEs, or assign them NA values, as the case may be:
+  #Compute SEs, or assign them 'not requested' values, as the case may be:
   if(SE){ 
     #From Mike Hunter's delta method example:
     covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s

@@ -19,7 +19,7 @@ setClass(Class = "ZeroMatrix",
 	contains = "MxMatrix")
 
 setMethod("imxCreateMatrix", "ZeroMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (!single.na(values)) {
 			warning("Ignoring values matrix for zero matrix constructor ",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
@@ -45,12 +45,12 @@ setMethod("imxCreateMatrix", "ZeroMatrix",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
                                  call. = FALSE)
 		}
-		labels <- matrix(as.character(NA), nrow, ncol)
+		labels <- matrix(as.character(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		values <- matrix(0, nrow, ncol)
-		free <- matrix(FALSE, nrow, ncol)
-		lbound <- matrix(as.numeric(NA), nrow, ncol)
-		ubound <- matrix(as.numeric(NA), nrow, ncol)
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...))
+		free <- matrix(FALSE, ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
+		lbound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
+		ubound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
 	}
 )
 
