@@ -38,8 +38,8 @@ setMethod("imxTypeName", "MxLISRELModel",
 
 setMethod("imxInitModel", "MxLISRELModel", 
 	function(model) {
-		# Returns an ML fitfunction and an expectation with all NA matrices
-		# Then later add matrices when I know what dims they have.
+		# Returns an ML fitfunction and an expectation with al NA matrices
+		# add needed matrices later
 		if (is.null(model[['expectation']])) {
 			model[['expectation']] <- mxExpectationLISREL()
 		}
@@ -50,73 +50,77 @@ setMethod("imxInitModel", "MxLISRELModel",
 	}
 )
 
+addExogenousMatrices <- function(model, manifest, latent){
+	if (is.null(model[['LX']])) {
+		model[['LX']] <- createMatrixLISREL(model, manifest, latent, 'LX')
+	}
+	if (is.null(model[['PH']])) {
+		model[['PH']] <- createMatrixLISREL(model, latent, latent, 'PH')
+	}
+	if (is.null(model[['TD']])) {
+		model[['TD']] <- createMatrixLISREL(model, manifest, manifest, 'TD')
+	}
+	# Do we add means???
+	if (is.null(model[['TX']])) {
+		model[['TX']] <- createMatrixLISREL(model, latent, NA, 'TX')
+	}
+	if (is.null(model[['KA']])) {
+		model[['KA']] <- createMatrixLISREL(model, manifest, NA, 'KA')
+	}
+	return(model)
+}
 
-createMatrixLX <- function(model){
-	lvariables <- c(model@latentVars$exogenous)
-	mvariables <- c(model@maifestVars$exogenous)
-	llen <- length(lvariables)
-	mlen <- length(mvariables)
-	names <- list(mvariables, lvariables)
-	values <- matrix(0, mlen, llen)
-	free <- matrix(FALSE, mlen, llen)
-	labels <- matrix(as.character(NA), mlen, llen)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "LX")
+addEndogenousMatrices <- function(model, manifest, latent){
+	if (is.null(model[['LY']])) {
+		model[['LY']] <- createMatrixLISREL(model, manifest, latent, 'LY')
+	}
+	if (is.null(model[['BE']])) {
+		model[['BE']] <- createMatrixLISREL(model, latent, latent, 'BE')
+	}
+	if (is.null(model[['PS']])) {
+		model[['PS']] <- createMatrixLISREL(model, latent, latent, 'PS')
+	}
+	if (is.null(model[['TE']])) {
+		model[['TE']] <- createMatrixLISREL(model, manifest, manifest, 'TE')
+	}
+	# Do we add means???
+	if (is.null(model[['TY']])) {
+		model[['TY']] <- createMatrixLISREL(model, latent, NA, 'TY')
+	}
+	if (is.null(model[['AL']])) {
+		model[['AL']] <- createMatrixLISREL(model, manifest, NA, 'AL')
+	}
+	return(model)
+}
+
+addExoEndoMatrices <- function(model, manifestExo, manifestEndo, latentExo, latentEndo){
+	model <- addExogenousMatrices(model, manifestExo, latentExo)
+	model <- addEndogenousMatrices(model, manifestEndo, latentEndo)
+	if (is.null(model[['GA']])) {
+		model[['GA']] <- createMatrixLISREL(model, latentEndo, latentExo, 'GA')
+	}
+	if (is.null(model[['TH']])) {
+		model[['TH']] <- createMatrixLISREL(model, manifestEndo, manifestExo, 'TH')
+	}
+	return(model)
+}
+
+createMatrixLISREL <- function(model, rowvariables, colvariables, matrixname){
+	clen <- length(colvariables)
+	rlen <- length(rowvariables)
+	names <- list(rowvariables, colvariables)
+	values <- matrix(0, rlen, clen)
+	free <- matrix(FALSE, rlen, clen)
+	labels <- matrix(as.character(NA), rlen, clen)
+	if(matrixname %in% c('LX', 'LY', 'BE', 'GA', 'TX', 'TY', 'KA', 'AL')){
+		matrixtype <- 'Full'
+	} else if(matrixname %in% c('PH', 'PS', 'TD', 'TE', 'TH')){	
+		matrixtype <- 'Symm'
+	}
+	retval <- mxMatrix(matrixtype, values = values, free = free, labels = labels, name = matrixname)
 	dimnames(retval) <- names
 	return(retval)
 }
-
-createMatrixLY <- function(model){
-	lvariables <- c(model@latentVars$endogenous)
-	mvariables <- c(model@maifestVars$endogenous)
-	llen <- length(lvariables)
-	mlen <- length(mvariables)
-	names <- list(mvariables, lvariables)
-	values <- matrix(0, mlen, llen)
-	free <- matrix(FALSE, mlen, llen)
-	labels <- matrix(as.character(NA), mlen, llen)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "LY")
-	dimnames(retval) <- names
-	return(retval)
-}
-
-createMatrixBE <- function(model){
-	variables <- c(model@latentVars$endogenous)
-	len <- length(variables)
-	names <- list(variables, variables)
-	values <- matrix(0, len, len)
-	free <- matrix(FALSE, len, len)
-	labels <- matrix(as.character(NA), len, len)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "BE")
-	dimnames(retval) <- names
-	return(retval)
-}
-
-createMatrixGA <- function(model){
-	xvariables <- c(model@latentVars$exogenous)
-	yvariables <- c(model@latentVars$endogenous)
-	xlen <- length(xvariables)
-	ylen <- length(yvariables)
-	names <- list(yvariables, xvariables)
-	values <- matrix(0, ylen, xlen)
-	free <- matrix(FALSE, ylen, xlen)
-	labels <- matrix(as.character(NA), ylen, xlen)
-	retval <- mxMatrix("Full", values = values, free = free, labels = labels, name = "GA")
-	dimnames(retval) <- names
-	return(retval)
-}
-
-# TODO Fill in the rest of the createMatrix* functions
-
-createMatrixPH <- function(model){} #Latent cov of xi
-createMatrixPS <- function(model){} #Latent cov of eta
-createMatrixTD <- function(model){} #residu cov of x
-createMatrixTE <- function(model){} #residu cov of y
-createMatrixTH <- function(model){} #residu cov of xy
-createMatrixTX <- function(model){} #interc of x
-createMatrixTY <- function(model){} #interc of y
-createMatrixKA <- function(model){} #mean of xi
-createMatrixAL <- function(model){} #mean of eta
-
 
 
 
@@ -127,7 +131,7 @@ setMethod("imxModelBuilder", "MxLISRELModel",
 #		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
-		stop("Not implemented")
+		#stop("Not implemented")
 	}
 )
 
@@ -192,6 +196,28 @@ removeVariablesLISREL <- function(model, latent, manifest){
 }
 
 addVariablesLISREL <- function(model, latent, manifest){
+	# works for initialization
+	# TODO add processing for adding/removing variables and variables switching from exo to endo.
+	model <- addVariablesHelper(model, "latentVars", latent)
+	model <- addVariablesHelper(model, "manifestVars", manifest)
+	mexog <- model@manifestVars$exogenous
+	mendo <- model@manifestVars$endogenous
+	lexog <- model@latentVars$exogenous
+	lendo <- model@latentVars$endogenous
+	# if has only exogenous variables
+	if(length(mexog) > 0 & length(mendo) == 0){
+		model <- addExogenousMatrices(model, mexog, lexog)
+		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX='TX', KA='KA') #do we add means?
+	# if has only endogenous variables
+	} else if(length(mexog) == 0 & length(mendo) > 0){
+		model <- addEndogenousMatrices(model, mendo, lendo)
+		theExpectation <- mxExpectationLISREL(LY='LY', BE='BE', PS='PS', TE='TE', TY='TY', AL='AL') #do we add means?
+	# if has both exogenous and endogenous variables
+	} else {
+		model <- addExoEndoMatrices(model, mexog, mendo, lexog, lendo)
+		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX='TX', KA='KA', LY='LY', BE='BE', PS='PS', TE='TE', TY='TY', AL='AL', GA='GA', TH='TH')
+	}
+	model[['expectation']] <- theExpectation
 	return(model)
 }
 
@@ -222,3 +248,122 @@ replaceMethodLISREL <- function(model, index, value){
 	}
 	return(model)
 }
+
+listArgumentLISREL <- function(model, lst, remove){
+	if(remove == TRUE) {
+		model <- removeEntriesLISREL(model, lst)
+	} else {
+		model <- addEntriesLISREL(model, lst)
+	}
+	return(model)
+}
+
+removeEntriesLISREL <- function(model, entries){
+	stop("Removing paths not yet implemented for LISREL")
+}
+
+addEntriesLISREL <- function(model, entries){
+	stop("Adding paths not yet implemented for LISREL")
+}
+
+# Schematic of where each entry goes depending on its 'from' and 'to' and 'arrows' arguments
+#from -> to
+# We could first try to assign the path to one of the 13 valid combinations
+# and then throw an error with the particulars of the invalid combination.
+# stop(paste('Tried to add a', oneOrtwo, '-headed path from an', exoORendoFrom, latentORmanifestFrom, 'variable to an',
+#	exoORendoTo, latentORmanifestTo, 'variable, but that is not possible in LISREL.'))
+#latentExo -> latentExo
+#	if arrows==1
+#		stop('nonsense')
+#	if arrows==2
+#		add to PH
+#latentExo -> latentEndo
+#	if arrows==1
+#		add to GA
+#	if arrows=2
+#		stop('nonsense')
+#latentExo -> manifestExo
+#	if arrows=1
+#		add to LX
+#	if arrows=2
+#		stop('nonsense')
+#latentExo -> manifestEndo
+#	stop('nonsense')
+#latentExo -> 'one'
+#	stop('nonsense')
+
+#latentEndo -> latentExo
+#	stop('nonsense')
+#latentEndo -> latentEndo
+#	if arrows==1
+#		add to BE
+#	if arrows==2
+#		add to PS
+#latentEndo -> manifestExo
+#	stop('nonsense')
+#latentEndo -> manifestEndo
+#	if arrows==1
+#		add to LY
+#	if arrows==2
+#		stop('nonsense')
+#latentEndo -> 'one'
+#	stop('nonsense')
+
+#manifestExo -> latentExo
+#	stop('nonsense')
+#manifestExo -> latentEndo
+#	stop('nonsense')
+#manifestExo -> manifestExo
+#	if arrows==1
+#		stop('nonsense')
+#	if arrows==2
+#		add to TD
+#manifestExo -> manifestEndo
+#	if arrows==1
+#		stop('nonsense')
+#	if arrows==2
+#		add to TH
+#manifestExo -> 'one'
+#	stop('nonsense')
+
+#manifestEndo -> latentExo
+#	stop('nonsense')
+#manifestEndo -> latentEndo
+#	stop('nonsense')
+#manifestEndo -> manifestExo
+#	if arrows==1
+#		stop('nonsense')
+#	if arrows==2
+#		add to TH
+#manifestEndo -> manifestEndo
+#	if arrows==1
+#		stop('nonsense')
+#	if arrows==2
+#		add to TE
+#manifestEndo -> 'one'
+#	stop('nonsense')
+
+#'one' -> latentExo
+#	if arrows==1
+#		add to KA
+#	if arrows==2
+#		stop('nonsense')
+#'one' -> latentEndo
+#	if arrows==1
+#		add to AL
+#	if arrows==2
+#		stop('nonsense')
+#'one' -> manifestExo
+#	if arrows==1
+#		add to TX
+#	if arrows==2
+#		stop('nonsense')
+#'one' -> manifestEndo
+#	if arrows==1
+#		add to TY
+#	if arrows==2
+#		stop('nonsense')
+#'one' -> 'one'
+#	stop('nonsense')
+
+
