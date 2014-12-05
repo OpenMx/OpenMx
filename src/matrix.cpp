@@ -545,7 +545,6 @@ void addEigen(Matrix x,  Matrix y)
     }
     
     firstM += secondM;
-    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
 void subtractEigen(Matrix x,  Matrix y)
@@ -558,7 +557,6 @@ void subtractEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
     Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
     firstM -= secondM;
-    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
 void multiplyEigen(Matrix x,  Matrix y)
@@ -577,7 +575,6 @@ void multiplyEigen(Matrix x,  Matrix y)
         Eigen::Map< Eigen::VectorXd > secondM(y.t, y.cols);
         firstM = secondM.asDiagonal() * firstM;
     }
-    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
 void divideEigen(Matrix x,  Matrix y)
@@ -588,7 +585,6 @@ void divideEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
     Eigen::Map< Eigen::VectorXd > secondM(y.t, y.cols);
     firstM = firstM * secondM.asDiagonal().inverse();
-    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
 }
 
 void copyInto(Matrix x,  Matrix y, int rowNum, int colStart, int colStop){
