@@ -551,6 +551,19 @@ void add(Matrix x,  Matrix y)
     }
 }
 
+void subtractEigen(Matrix x,  Matrix y)
+{
+    if (x.cols != y.cols || x.rows != y.rows)
+    {
+        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
+    }
+    
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
+    firstM -= secondM;
+    Eigen::Map< Eigen::MatrixXd >(x.t, firstM.rows(), firstM.cols()) = firstM;
+}
+
 void subtract(Matrix x,  Matrix y)
 {
     if (x.cols != y.cols || x.rows != y.rows)
@@ -1044,6 +1057,13 @@ void timess_t(Matrix result, Matrix a,  Matrix b){
     }
 }
 
+void timessEigen(Matrix result, Matrix a,  Matrix b){
+    Eigen::Map< Eigen::MatrixXd > firstM(a.t, a.rows, a.cols);
+    Eigen::Map< Eigen::MatrixXd > secondM(b.t, b.rows, b.cols);
+    Eigen::Map< Eigen::MatrixXd > resultM(result.t, result.rows, result.cols);
+    resultM = firstM * secondM;
+    Eigen::Map< Eigen::MatrixXd >(result.t, resultM.rows(), resultM.cols()) = resultM;
+}
 
 Matrix luSolve(Matrix a,  Matrix b){
     int m, n, pivsign;

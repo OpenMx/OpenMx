@@ -139,6 +139,8 @@ void minMaxAbs(struct Matrix t, double tol);
 
 void add(struct Matrix x, struct Matrix y);
 
+void subtractEigen(Matrix x,  Matrix y);
+
 void subtract(struct Matrix x, struct Matrix y);
 
 void multiplyEigen(Matrix x,  Matrix y);
@@ -214,6 +216,8 @@ struct Matrix rbind(struct Matrix x, struct Matrix y);
 struct Matrix timess(struct Matrix a, struct Matrix b);
 
 void timess_t(Matrix result, Matrix a,  Matrix b);
+
+void timessEigen(Matrix result, Matrix a,  Matrix b);
 
 struct Matrix luSolve(struct Matrix a, struct Matrix b);
 

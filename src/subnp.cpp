@@ -323,7 +323,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             
             // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .ineqLB, .ineqUB - constraint[ (neq + 1):tc ] )
             Matrix difference1 = subset(constraint, 0, neq, tc-1);
-            subtract(difference1, ineqLB);
+            subtractEigen(difference1, ineqLB);
             Matrix difference2 = subset(constraint, 0, neq, tc-1);
             negate(difference2);
             add(difference2, ineqUB);
@@ -337,7 +337,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             }
             
             Matrix diff = subset(constraint, 0, neq, tc-1);
-            subtract(diff, ineqx0);
+            subtractEigen(diff, ineqx0);
             copyIntoInplace(constraint, diff, 0, neq, tc-1);
         }
         
@@ -573,8 +573,8 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
                 Matrix subsetOne = subset(constraint, 0, neq, tc-1);
                 Matrix subsetTwo = subset(getColumn(pb, 0), 0, 0, nineq-1);
                 Matrix subsetThree = subset(getColumn(pb, 1), 0, 0, nineq-1);
-                subtract(subsetOne, subsetTwo);
-                subtract(subsetThree, subsetOne);
+                subtractEigen(subsetOne, subsetTwo);
+                subtractEigen(subsetThree, subsetOne);
                 Matrix tempv = fill(nineq, 2, (double)0.0);
                 setRowInplace(tempv, 0, subsetOne);
                 setRowInplace(tempv, 1, subsetThree);
@@ -584,7 +584,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
                     copyIntoInplace(p, copyValues, 0, 0, nineq-1);
                 }
                 Matrix diff = subset(constraint, 0, neq, tc-1);
-                subtract(diff, subset(p, 0, 0, nineq-1));
+                subtractEigen(diff, subset(p, 0, 0, nineq-1));
                 
                 copyIntoInplace(constraint, diff, 0, neq, tc-1);
             } // end if (ind[0][3] > 0.5){
@@ -998,7 +998,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 
             }
             Matrix colValues = subset(ob, 0, 1, nc);
-            subtract(colValues, constraint);
+            subtractEigen(colValues, constraint);
             divideByScalar2D(colValues, delta);
             setColumnInplace(a, colValues, index);
             M(p0, index, 0) = M(p0, index, 0) - delta;
@@ -1015,7 +1015,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             Matrix firstPart, secondPart;
             firstPart  = subset(constraint, 0, neq, (neq+nineq-1));
             secondPart = subset(p0, 0, 0, (nineq-1));
-            subtract(firstPart, secondPart);
+            subtractEigen(firstPart, secondPart);
             copyIntoInplace(constraint, firstPart, 0, neq, (neq+nineq-1));
             
         }
@@ -1029,7 +1029,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         
         b = transpose(timess(a, transpose(p0)));
         //  b [nc,1]
-        subtract(b, constraint);
+        subtractEigen(b, constraint);
         
         ch = -1;
         alp[0] = tol - matrixMaxAbs(constraint);
@@ -1066,10 +1066,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 minit = minit + 1;
                 gap = fill(2, mm, (double)0.0);
                 Matrix result = subset(p0, 0, 0, mm-1);
-                subtract(result, getColumn(pb, 0));
+                subtractEigen(result, getColumn(pb, 0));
                 setColumnInplace(gap, result, 0);
                 Matrix result1 = getColumn(pb, 1);
-                subtract(result1, subset(p0, 0, 0, mm-1));
+                subtractEigen(result1, subset(p0, 0, 0, mm-1));
                 setColumnInplace(gap, result1, 1);
                 rowSort(gap);
                 Matrix dx_t = transpose(dx);
@@ -1098,7 +1098,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 Matrix y = QRdsolve(argum1, argum2);
                 
                 Matrix t_cx = transpose(cx);
-                subtract(t_cx, timess(transpose(a),y));
+                subtractEigen(t_cx, timess(transpose(a),y));
                 Matrix dx_copy = duplicateIt(dx);//MAHSA
                 multiplyEigen(dx_copy, t_cx);
                 multiplyEigen(dx, dx_copy);
@@ -1229,13 +1229,13 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     
     if (M(ind, 3, 0) > 0){
         Matrix result = subset(ob, 0, neq+1, nc);
-        subtract(result, subset(p, 0, 0, nineq-1));
+        subtractEigen(result, subset(p, 0, 0, nineq-1));
         copyIntoInplace(ob, result, 0, neq+1, nc);
     }
     
     if (nc > 0){
         Matrix result = subset(ob, 0, 1, nc);
-        subtract(result, transpose(timess(a, transpose(p))));
+        subtractEigen(result, transpose(timess(a, transpose(p))));
         add(result, b);
         copyIntoInplace(ob, result, 0, 1, nc);
         
@@ -1375,7 +1375,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     subsetEigen(result, obm_t, 0, neq+1, nc);
                     if (result1.t == NULL) result1 = new_matrix(nineq, 1);
                     subsetEigen(result1, p, 0, 0, nineq-1);
-                    subtract(result, result1);
+                    subtractEigen(result, result1);
                     copyIntoInplace(obm_t, result, 0, neq+1, nc);
                 }
                 
@@ -1387,12 +1387,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     transpose_t(p_t, p);
                     
                     if (atime.t == NULL) atime = new_matrix(p_t.cols, a.rows);
-                    timess_t(atime, a, p_t);
+                    timessEigen(atime, a, p_t);
                     
                     if (t_atime.t == NULL) t_atime = new_matrix(atime.rows, atime.cols);
                     transpose_t(t_atime, atime);
                     
-                    subtract(first_part, t_atime);
+                    subtractEigen(first_part, t_atime);
                     
                     add(first_part, b);
                     
@@ -1447,31 +1447,31 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (t3.t == NULL) t3 = new_matrix(sx.rows, sx.cols);
             transpose_t(t3, sx);
             if (t4.t == NULL) t4 = new_matrix(hessv.cols, sx.rows);
-            timess_t(t4, sx, hessv);
+            timessEigen(t4, sx, hessv);
             if (m_sc.t == NULL) m_sc = new_matrix(t3.cols, t4.rows);
-            timess_t(m_sc, t4, t3);
+            timessEigen(m_sc, t4, t3);
             M(sc, 0, 0) = M(m_sc, 0, 0);
             if (t5.t == NULL) t5 = new_matrix(yg.rows, yg.cols);
             transpose_t(t5, yg);
             if (m_sc2.t == NULL) m_sc2 = new_matrix(t5.cols, sx.rows);
-            timess_t(m_sc2, sx, t5);
+            timessEigen(m_sc2, sx, t5);
             M(sc, 1, 0) = M(m_sc2, 0, 0);
             
             if ((M(sc, 0, 0) * M(sc, 1, 0)) > 0){
                 //hessv  = hessv - ( sx %*% t(sx) ) / sc[ 1 ] + ( yg %*% t(yg) ) / sc[ 2 ]
                 if (sx2.t == NULL) sx2 = new_matrix(t3.cols, hessv.rows);
-                timess_t(sx2, hessv, t3);
+                timessEigen(sx2, hessv, t3);
                 if (t6.t == NULL) t6 = new_matrix(sx2.rows, sx2.cols);
                 transpose_t(t6, sx2);
                 if(sxMatrix.t == NULL) sxMatrix = new_matrix(t6.cols, sx2.rows);
-                timess_t(sxMatrix, sx2, t6);
+                timessEigen(sxMatrix, sx2, t6);
                 divideByScalar2D(sxMatrix, M(sc, 0, 0));
                 if (t_yg.t == NULL) t_yg = new_matrix(yg.rows, yg.cols);
                 transpose_t(t_yg, yg);
                 if (ygMatrix.t == NULL) ygMatrix = new_matrix(yg.cols, t_yg.rows);
-                timess_t(ygMatrix, t_yg, yg);
+                timessEigen(ygMatrix, t_yg, yg);
                 divideByScalar2D(ygMatrix, M(sc, 1, 0));
-                subtract(hessv, sxMatrix);
+                subtractEigen(hessv, sxMatrix);
                 add(hessv, ygMatrix);
             }
         }
@@ -1495,13 +1495,13 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             subsetEigen(res, p, 0, 0, mm-1);
             if (col_pb.t == NULL) col_pb = new_matrix(pb.rows, 1);
             getColumn_t(col_pb, pb, 0);
-            subtract(res, col_pb);
+            subtractEigen(res, col_pb);
             setColumnInplace(gap1, res, 0);
             if (col_pb2.t == NULL) col_pb2 = new_matrix(pb.rows, 1);
             getColumn_t(col_pb2, pb, 1);
             if (t7.t == NULL) t7 = new_matrix(mm, 1);
             subsetEigen(t7, p, 0, 0, mm-1);
-            subtract(col_pb2, t7);
+            subtractEigen(col_pb2, t7);
             setColumnInplace(gap1, col_pb2, 1);
             rowSort(gap1);
             if (t8.t == NULL) t8 = new_matrix(1, mm);
@@ -1656,7 +1656,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 for (int ilog = 0; ilog < yg.cols * yg.rows; ilog++) mxLog("%f",yg.t[ilog]);
             }
             if (yg2.t == NULL) yg2 = new_matrix(t14.cols, t15.rows);
-            timess_t(yg2, t15, t14);
+            timessEigen(yg2, t15, t14);
             
             if (minit == 1) M(yg_rec, 0, 0) = vnorm(yg2);
             
@@ -1667,7 +1667,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (nc <= 0){
                 divideByScalar2D(cz, -1.0);
                 if (u.t == NULL) u = new_matrix(yg2.cols, cz.rows);
-                timess_t(u, cz, yg2);
+                timessEigen(u, cz, yg2);
                 divideByScalar2D(cz, -1.0);
                 if (t_u.t == NULL) t_u = new_matrix(u.rows, u.cols);
                 transpose_t(t_u, u);
@@ -1687,7 +1687,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 if (t_cz.t == NULL) t_cz = new_matrix(cz.rows, cz.cols);
                 transpose_t(t_cz, cz);
                 if (firstMatrix.t == NULL) firstMatrix = new_matrix(aTranspose.cols, t_cz.rows);
-                timess_t(firstMatrix, t_cz, aTranspose);
+                timessEigen(firstMatrix, t_cz, aTranspose);
                 if (verbose >= 3){
                     mxLog("firstMatrix is: \n");
                     for (int ilog = 0; ilog < firstMatrix.cols; ilog++) mxLog("%f",firstMatrix.t[ilog]);
@@ -1729,7 +1729,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     for (int ilog = 0; ilog < firstMatrix.cols; ilog++) mxLog("%f",firstMatrix.t[ilog]);
                 }
                 
-                timess_t(toSubtract, firstMatrix, solution);
+                timessEigen(toSubtract, firstMatrix, solution);
                 if (verbose >= 3){
                     mxLog("toSubtract.rows: %d", toSubtract.rows);
                     mxLog("toSubtract.cols: %d", toSubtract.cols);
@@ -1737,7 +1737,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     mxLog("toSubtract is: \n");
                     for (int ilog = 0; ilog < toSubtract.cols * toSubtract.rows; ilog++) mxLog("%f",toSubtract.t[ilog]);
                 }
-                subtract(yg2, toSubtract);
+                subtractEigen(yg2, toSubtract);
                 if (verbose >= 3){
                     mxLog("yg2.rows: %d", yg2.rows);
                     mxLog("yg2.cols: %d", yg2.cols);
@@ -1745,7 +1745,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     for (int ilog = 0; ilog < yg2.cols * yg2.rows; ilog++) mxLog("%f",yg2.t[ilog]);
                 }
                 if (uu.t == NULL) uu = new_matrix(yg2.cols, cz.rows);
-                timess_t(uu, cz, yg2);
+                timessEigen(uu, cz, yg2);
                 
                 if (t_u.t == NULL) t_u = new_matrix(uu.rows, uu.cols);
                 transpose_t(t_u, uu);
@@ -1767,12 +1767,12 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 subsetEigen(listPartOne, p0_1, 0, 0, mm-1);
                 if (t16.t == NULL) t16 = new_matrix(pb.rows, 1);
                 getColumn_t(t16, pb, 0);
-                subtract(listPartOne, t16);
+                subtractEigen(listPartOne, t16);
                 if (listPartTwo.t == NULL) listPartTwo = new_matrix(pb.rows, 1);
                 getColumn_t(listPartTwo, pb, 1);
                 if (t17.t == NULL) t17 = new_matrix(mm, 1);
                 subsetEigen(t17, p0_1, 0, 0, mm-1);
-                subtract(listPartTwo, t17);
+                subtractEigen(listPartTwo, t17);
                 if (llist.t == NULL) llist = new_matrix(listPartOne.cols + listPartTwo.cols, listPartOne.rows);
                 copyEigen(llist, listPartOne, listPartTwo);
                 
@@ -1933,7 +1933,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             getColumn_t(tempPttCol, ptt2, 2);
             if (partTwo.t == NULL) partTwo = new_matrix(nineq, 1);
             subsetEigen(partTwo, tempPttCol, 0, 0, nineq-1);
-            subtract(partOne, partTwo);
+            subtractEigen(partOne, partTwo);
             copyIntoInplace(ob3, partOne, 0, neq+1, nc);
         }
         
@@ -1946,10 +1946,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             if (t22.t == NULL) t22 = new_matrix(t21.rows, t21.cols);
             transpose_t(t22, t21);
             if (t23.t == NULL) t23 = new_matrix(t22.cols, a.rows);
-            timess_t(t23, a, t22);
+            timessEigen(t23, a, t22);
             if (t24.t == NULL) t24 = new_matrix(t23.rows, t23.cols);
             transpose_t(t24, t23);
-            subtract(firstp, t24);
+            subtractEigen(firstp, t24);
             add(firstp, b);
             copyIntoInplace(ob3, firstp, 0, 1, nc);
             if (t25.t == NULL) t25 = new_matrix(nc, 1);
@@ -2064,7 +2064,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 getColumn_t(tempPttCol, ptt2, 1);
                 if (partTwo.t == NULL) partTwo = new_matrix(nineq, 1);
                 subsetEigen(partTwo, tempPttCol, 0, 0, nineq-1);
-                subtract(partOne, partTwo);
+                subtractEigen(partOne, partTwo);
                 copyIntoInplace(ob2, partOne, 0, neq+1, nc);
             }
             
@@ -2076,10 +2076,10 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 if (t32.t == NULL) t32 = new_matrix(t31.rows, t31.cols);
                 transpose_t(t32, t31);
                 if (t33.t == NULL) t33 = new_matrix(t32.cols, a.rows);
-                timess_t(t33, a, t32);
+                timessEigen(t33, a, t32);
                 if (t34.t == NULL) t34 = new_matrix(t33.rows, t33.cols);
                 transpose_t(t34, t33);
-                subtract(t30, t34);
+                subtractEigen(t30, t34);
                 add(t30, b);
                 copyIntoInplace(ob2, t30, 0, 1, nc);
                 if (temp.t == NULL) temp = new_matrix(nc, 1);
@@ -2300,9 +2300,9 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
     
     minr_rec = minit;
     Matrix result2 = getColumn(ptt2, 1);
-    subtract(result2, getColumn(ptt2, 0));
+    subtractEigen(result2, getColumn(ptt2, 0));
     Matrix result3 = getColumn(ptt2, 1);
-    subtract(result3, getColumn(ptt2, 2));
+    subtractEigen(result3, getColumn(ptt2, 2));
     if (all(result2) || all(result3)) flag_step = 1;
     //p = p * vscale[ (neq + 2):(nc + np + 1) ]  # unscale the parameter vector
     Matrix vscalePart = subset(vscale, 0, (neq+1), (nc+np));
