@@ -549,11 +549,6 @@ void addEigen(Matrix x,  Matrix y)
 
 void subtractEigen(Matrix x,  Matrix y)
 {
-    if (x.cols != y.cols || x.rows != y.rows)
-    {
-        Rf_error("CSOLNP BUG: noncomformant matrices are subtracted");
-    }
-    
     Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
     Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
     firstM -= secondM;
