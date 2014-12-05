@@ -136,25 +136,6 @@ void getColumn_t (Matrix toReturn, Matrix t, int colNum)
     }
 }
 
-void setColumn( Matrix x,  Matrix y, int colNum)
-{
-    int r, c;
-    int index = 0;
-    for ( r = 0; r < x.rows; r++ )
-    {
-        for ( c = 0; c < x.cols; c++ )
-        {
-            if (c==colNum){
-                M(x, c, r) = M(y, index, 0);
-                index++;
-            }
-            else{
-                M(x, c, r) = M(x, c, r);
-            }
-        }
-    }
-}
-
 void setColumnInplace( Matrix x, Matrix y, int cc)
 {
     Eigen::Map< Eigen::MatrixXd > xx(x.t, x.rows, x.cols);

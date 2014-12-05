@@ -101,8 +101,6 @@ struct Matrix getColumn(struct Matrix t, int colNum);
 
 void getColumn_t (Matrix toReturn, Matrix t, int colNum);
 
-void setColumn(struct Matrix x, struct Matrix y, int colNum);
-
 void setColumnInplace( Matrix x, Matrix y, int cc);
 
 void print(struct Matrix t);
