@@ -199,6 +199,41 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		return(.Object)
 })
 
+setMethod("genericGetCovariance", signature("MxExpectationRAM"),
+	function(.Object, model) {
+		Aname <- .Object@A
+		Sname <- .Object@S
+		Fname <- .Object@F
+		A <- mxEvalByName(Aname, model, compute=TRUE)
+		S <- mxEvalByName(Sname, model, compute=TRUE)
+		F <- mxEvalByName(Fname, model, compute=TRUE)
+		I <- diag(1, nrow=nrow(A))
+		ImA <- solve(I-A)
+		cov <- F %*% ImA %*% S %*% t(ImA) %*% t(F)
+		return(cov)
+})
+
+setMethod("genericGetMeans", signature("MxExpectationRAM"),
+	function(.Object, model) {
+		Mname <- .Object@M
+		Aname <- .Object@A
+		Fname <- .Object@F
+		M <- mxEvalByName(Mname, model, compute=TRUE)
+		A <- mxEvalByName(Aname, model, compute=TRUE)
+		F <- mxEvalByName(Fname, model, compute=TRUE)
+		I <- diag(1, nrow=nrow(A))
+		mean <- M %*% t(solve(I-A)) %*% t(F)
+		return(mean)
+})
+
+setMethod("genericGetThresholds", signature("MxExpectationRAM"),
+	function(.Object, model) {
+		thrname <- .Object@thresholds
+		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		return(thr)
+})
+
+
 generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	mxObject <- flatModel[[aMatrixName]]
 	if (!is(mxObject, "MxMatrix")) {
