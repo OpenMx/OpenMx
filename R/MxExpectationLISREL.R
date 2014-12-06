@@ -638,6 +638,117 @@ setMethod("show", "MxExpectationLISREL", function(object) {
 })
 
 
+#------------------------------------------------------------------------------
+setMethod("genericGetCovariance", signature("MxExpectationLISREL"),
+	function(.Object, model) {
+		LXname <- .Object@LX
+		LYname <- .Object@LY
+		BEname <- .Object@BE
+		GAname <- .Object@GA
+		PHname <- .Object@PH
+		PSname <- .Object@PS
+		TDname <- .Object@TD
+		TEname <- .Object@TE
+		THname <- .Object@TH
+		hasX <- !single.na(LXname)
+		hasY <- !single.na(LYname)
+		if(hasX){
+			LX <- mxEvalByName(LXname, model, compute=TRUE)
+			PH <- mxEvalByName(PHname, model, compute=TRUE)
+			TD <- mxEvalByName(TDname, model, compute=TRUE)
+		} else {
+			LX <- matrix( , 0, 0)
+			PH <- matrix( , 0, 0)
+			TD <- matrix( , 0, 0)
+		}
+		if(hasY){
+			LY <- mxEvalByName(LYname, model, compute=TRUE)
+			BE <- mxEvalByName(BEname, model, compute=TRUE)
+			PS <- mxEvalByName(PSname, model, compute=TRUE)
+			TE <- mxEvalByName(TEname, model, compute=TRUE)
+			I <- diag(1, nrow=nrow(BE))
+			A <- LY %*% solve(I-BE)
+		} else {
+			LY <- matrix( , 0, 0)
+			BE <- matrix( , 0, 0)
+			PS <- matrix( , 0, 0)
+			TE <- matrix( , 0, 0)
+			A <- matrix( , 0, 0)
+		}
+		if(hasX & hasY){
+			GA <- mxEvalByName(GAname, model, compute=TRUE)
+			TH <- mxEvalByName(THname, model, compute=TRUE)
+		} else {
+			GA <- matrix( , nrow=ncol(LY), ncol=ncol(LX))
+			TH <- matrix( , nrow=nrow(LX), ncol=nrow(LY))
+		}
+		endoBlock <- A %*% (GA %*% PH %*% t(GA) + PS) %*% t(A) + TE
+		exoBlock <- LX %*% PH %*% t(LX) + TD
+		exenBlock <- LX %*% PH %*% t(GA) %*% t(A) + TH
+		cov <- rbind(cbind(endoBlock, t(exenBlock)),
+					cbind(exenBlock, exoBlock))
+		return(cov)
+})
+
+
+setMethod("genericGetMeans", signature("MxExpectationLISREL"),
+	function(.Object, model) {
+		LXname <- .Object@LX
+		LYname <- .Object@LY
+		BEname <- .Object@BE
+		GAname <- .Object@GA
+		TXname <- .Object@TX
+		TYname <- .Object@TY
+		KAname <- .Object@KA
+		ALname <- .Object@AL
+		hasX <- !single.na(LXname)
+		hasY <- !single.na(LYname)
+		if(hasX & single.na(TXname)){
+			stop("Model has exogenous variables but not exogenous means.")
+		}
+		if(hasY & single.na(TYname)){
+			stop("Model has endogenous variables but not endogenous means.")
+		}
+		if(hasX){
+			LX <- mxEvalByName(LXname, model, compute=TRUE)
+			TX <- mxEvalByName(TXname, model, compute=TRUE)
+			KA <- mxEvalByName(KAname, model, compute=TRUE)
+		} else {
+			LX <- matrix( , 0, 0)
+			TX <- matrix( , 0, 1)
+			KA <- matrix( , 0, 1)
+		}
+		if(hasY){
+			LY <- mxEvalByName(LYname, model, compute=TRUE)
+			BE <- mxEvalByName(BEname, model, compute=TRUE)
+			TY <- mxEvalByName(TYname, model, compute=TRUE)
+			AL <- mxEvalByName(ALname, model, compute=TRUE)
+			I <- diag(1, nrow=nrow(BE))
+			A <- LY %*% solve(I-BE)
+		} else {
+			LY <- matrix( , 0, 0)
+			BE <- matrix( , 0, 0)
+			TY <- matrix( , 0, 1)
+			AL <- matrix( , 0, 1)
+			A <- matrix( , 0, 0)
+		}
+		if(hasX & hasY){
+			GA <- mxEvalByName(GAname, model, compute=TRUE)
+		} else {
+			GA <- matrix( , nrow=ncol(LY), ncol=ncol(LX))
+		}
+		endoMean <- TY + A %*% (AL + GA %*% KA)
+		exoMean <- TX + LX %*% KA
+		mean <- rbind(endoMean, exoMean)
+		return(mean)
+})
+
+setMethod("genericGetThresholds", signature("MxExpectationLISREL"),
+	function(.Object, model) {
+		thrname <- .Object@thresholds
+		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		return(thr)
+})
 
 
 
