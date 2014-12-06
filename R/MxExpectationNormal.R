@@ -97,6 +97,55 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 		return(.Object)
 })
 
+setGeneric("genericGetCovariance",
+	function(.Object, model) {
+	return(standardGeneric("genericGetCovariance"))
+})
+
+setGeneric("genericGetMeans",
+	function(.Object, model) {
+	return(standardGeneric("genericGetMeans"))
+})
+
+setGeneric("genericGetThresholds",
+	function(.Object, model) {
+	return(standardGeneric("genericGetThresholds"))
+})
+
+setMethod("genericGetCovariance", signature("MxExpectationNormal"),
+	function(.Object, model) {
+		covname <- .Object@covariance
+		cov <- mxEvalByName(covname, model, compute=TRUE)
+		return(cov)
+})
+
+setMethod("genericGetMeans", signature("MxExpectationNormal"),
+	function(.Object, model) {
+		meanname <- .Object@means
+		mean <- mxEvalByName(meanname, model, compute=TRUE)
+		return(mean)
+})
+
+setMethod("genericGetThresholds", signature("MxExpectationNormal"),
+	function(.Object, model) {
+		thrname <- .Object@thresholds
+		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		return(thr)
+})
+
+imxGetExpectationComponent <- function(model, component){
+	expectation <- model$expectation
+	if(component=='covariance'){
+		genericGetCovariance(expectation, model)
+	} else if(component=='means'){
+		genericGetMeans(expectation, model)
+	} else if(component=='thresholds'){
+		genericGetThresholds(expectation, model)
+	} else {
+		stop('component not recognized')
+	}
+}
+
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
 	covariance <- flatModel[[covName]]
 	if (is(covariance, "MxMatrix") && !identical(dim(covariance), dim(data))) {
