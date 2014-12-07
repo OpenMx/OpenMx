@@ -701,6 +701,9 @@ setMethod("genericGetMeans", signature("MxExpectationLISREL"),
 		TYname <- .Object@TY
 		KAname <- .Object@KA
 		ALname <- .Object@AL
+		if(single.na(TXname) & single.na(TYname)){
+			return(matrix( , 0, 0))
+		}
 		hasX <- !single.na(LXname)
 		hasY <- !single.na(LYname)
 		if(hasX & single.na(TXname)){
@@ -746,7 +749,9 @@ setMethod("genericGetMeans", signature("MxExpectationLISREL"),
 setMethod("genericGetThresholds", signature("MxExpectationLISREL"),
 	function(.Object, model) {
 		thrname <- .Object@thresholds
-		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		if(!single.na(thrname)){
+			thr <- mxEvalByName(thrname, model, compute=TRUE)
+		} else {thr <- matrix( , 0, 0)}
 		return(thr)
 })
 

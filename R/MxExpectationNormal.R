@@ -122,14 +122,18 @@ setMethod("genericGetCovariance", signature("MxExpectationNormal"),
 setMethod("genericGetMeans", signature("MxExpectationNormal"),
 	function(.Object, model) {
 		meanname <- .Object@means
-		mean <- mxEvalByName(meanname, model, compute=TRUE)
+		if(!single.na(meanname)){
+			mean <- mxEvalByName(meanname, model, compute=TRUE)
+		} else {mean <- matrix( , 0, 0)}
 		return(mean)
 })
 
 setMethod("genericGetThresholds", signature("MxExpectationNormal"),
 	function(.Object, model) {
 		thrname <- .Object@thresholds
-		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		if(!single.na(thrname)){
+			thr <- mxEvalByName(thrname, model, compute=TRUE)
+		} else {thr <- matrix( , 0 , 0)}
 		return(thr)
 })
 
@@ -144,6 +148,32 @@ imxGetExpectationComponent <- function(model, component){
 	} else {
 		stop('component not recognized')
 	}
+}
+
+mxCheckIdentification <- function(model){
+	require(numDeriv)
+	theParams <- omxGetParameters(model)
+	jac <- jacobian(func=.mat2param, x=theParams, model=model)
+	# Check that rank of jac == length(theParams)
+	rank <- qr(jac)$rank
+	if(rank == length(theParams)){
+		message("Model is locally identified")
+		return(list(status=TRUE, jacobian=jac))
+	} else {
+		message("Model is not locally identified")
+		return(list(status=FALSE, jacobian=jac))
+	}
+}
+
+.mat2param <- function(x, model){
+  param <- omxGetParameters(model)
+  paramNames <- names(param)
+  model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
+  cov <- imxGetExpectationComponent(model, 'covariance')
+  mns <- imxGetExpectationComponent(model, 'means')
+  thr <- imxGetExpectationComponent(model, 'thresholds')
+  sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+  return(sparam)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {

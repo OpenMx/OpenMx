@@ -218,6 +218,9 @@ setMethod("genericGetMeans", signature("MxExpectationRAM"),
 		Mname <- .Object@M
 		Aname <- .Object@A
 		Fname <- .Object@F
+		if(single.na(Mname)){
+			return(matrix( , 0, 0))
+		}
 		M <- mxEvalByName(Mname, model, compute=TRUE)
 		A <- mxEvalByName(Aname, model, compute=TRUE)
 		F <- mxEvalByName(Fname, model, compute=TRUE)
@@ -229,7 +232,9 @@ setMethod("genericGetMeans", signature("MxExpectationRAM"),
 setMethod("genericGetThresholds", signature("MxExpectationRAM"),
 	function(.Object, model) {
 		thrname <- .Object@thresholds
-		thr <- mxEvalByName(thrname, model, compute=TRUE)
+		if(!single.na(thrname)){
+			thr <- mxEvalByName(thrname, model, compute=TRUE)
+		} else {thr <- matrix( , 0, 0)}
 		return(thr)
 })
 
