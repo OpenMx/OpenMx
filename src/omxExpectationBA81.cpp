@@ -706,20 +706,24 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			omxRaiseErrorf("%s: column %d is not a factor", oo->name, int(1 + colMap[cx]));
 			return;
 		}
+	}
 
-		const int *col = state->grp.dataColumns[cx];
-
-		// TODO this summary stat should be available from omxData
-		int dataMax=0;
-		for (int rx=0; rx < data->rows; rx++) {
+	// TODO the max outcome should be available from omxData
+	for (int rx=0; rx < data->rows; rx++) {
+		int cols = 0;
+		for (int cx = 0; cx < numItems; cx++) {
+			const int *col = state->grp.dataColumns[cx];
 			int pick = col[rx];
-			if (dataMax < pick)
-				dataMax = pick;
+			if (pick == NA_INTEGER) continue;
+			++cols;
+			const int no = state->grp.itemOutcomes[cx];
+			if (pick > no) {
+				omxRaiseErrorf("Data for item '%s' has at least %d outcomes, not %d",
+					       state->itemParam->colnames[cx], pick, no);
+			}
 		}
-		int no = state->grp.itemOutcomes[cx];
-		if (dataMax > no) {
-			omxRaiseErrorf("Data for item '%s' has %d outcomes, not %d",
-				       state->itemParam->colnames[cx], dataMax, no);
+		if (cols == 0) {
+			omxRaiseErrorf("Row %d has all NAs", 1+rx);
 		}
 	}
 
