@@ -102,7 +102,7 @@ setMethod("imxVerifyMatrix", "SymmMatrix",
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
-		if (any(values[upper.tri(values)][mask]  != t(values)[upper.tri(values)][mask])) {
+		if (any(values[upper.tri(values)][!mask]  != t(values)[upper.tri(values)][!mask])) {
 			stop(paste("Values matrix of symmetric matrix", omxQuotes(.Object@name), 
 				"is not symmetric!"), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),

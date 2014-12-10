@@ -338,8 +338,8 @@ setMethod("[", "MxMatrix",
     if(is.condenseSlots(x) && all.na(x@ubound)){ubound <- matrix(NA,1,1)}
     else{ubound <- as.matrix(x@ubound[i, j, drop = drop])}
 		type <- substr(class(x)[[1]],1,nchar(class(x)[[1]])-6)
-		nrow <- nrow(labels)
-		ncol <- ncol(labels)
+		nrow <- nrow(values)
+		ncol <- ncol(values)
 		dnames <- dimnames(values)
 		newMatrix <- tryCatch(suppressWarnings(
 			mxMatrix(type, nrow, ncol, free, values, labels, 
