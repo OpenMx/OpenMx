@@ -718,12 +718,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			++cols;
 			const int no = state->grp.itemOutcomes[cx];
 			if (pick > no) {
-				omxRaiseErrorf("Data for item '%s' has at least %d outcomes, not %d",
-					       state->itemParam->colnames[cx], pick, no);
+				Rf_error("Data for item '%s' has at least %d outcomes, not %d",
+					 state->itemParam->colnames[cx], pick, no);
 			}
 		}
 		if (cols == 0) {
-			omxRaiseErrorf("Row %d has all NAs", 1+rx);
+			Rf_error("Row %d has all NAs", 1+rx);
 		}
 	}
 
