@@ -21,27 +21,27 @@ setClass(Class = "ZeroMatrix",
 setMethod("imxCreateMatrix", "ZeroMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for zero matrix constructor ",
+			warning("ignoring 'values' matrix for Zero MxMatrix construction in ",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                  call. = FALSE)
 		}
 		if (!single.na(labels)) {
-			warning("Ignoring labels matrix for zero matrix constructor ",
+			warning("ignoring 'labels' matrix for Zero MxMatrix construction in ",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                  call. = FALSE)
 		}
 		if (!(length(free) == 1 && free == FALSE)) {
-			warning("Ignoring free matrix for zero matrix constructor ",
+			warning("ignoring 'free' matrix for Zero MxMatrix construction in ",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                  call. = FALSE)
 		}
 		if (!single.na(lbound)) {
-			warning("Ignoring lbound matrix for zero matrix constructor ",
+			warning("ignoring 'lbound' matrix for Zero MxMatrix construction in ",
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                  call. = FALSE)
 		}
 		if (!single.na(ubound)) {
-			warning("Ignoring ubound matrix for zero matrix constructor ", 
+			warning("ignoring 'ubound' matrix for Zero MxMatrix construction in ", 
 			         deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
                                  call. = FALSE)
 		}
@@ -58,14 +58,14 @@ setMethod("imxVerifyMatrix", "ZeroMatrix",
 	function(.Object) {
 		callNextMethod(.Object)	
 		if(!all(.Object@free == FALSE)) { 
-			stop(paste("Free matrix of zero matrix", 
-				omxQuotes(.Object@name), "has a free parameter"), 
+			stop(paste("'free' matrix of Zero MxMatrix", 
+				omxQuotes(.Object@name), "has a free parameter in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call.=FALSE)
 		} 
 		if(nnzero(.Object@values) > 0) { 
-			stop(paste("Values matrix of zero matrix",
-				omxQuotes(.Object@name), "has non zero entries"), 
+			stop(paste("'values' matrix of Zero MxMatrix",
+				omxQuotes(.Object@name), "has non-zero entries in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call.=FALSE)
 		} 

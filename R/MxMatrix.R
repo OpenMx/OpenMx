@@ -48,15 +48,15 @@ is.condenseSlots <- function(matrix){
 
 verifySquare <- function(.Object) {
 	if (nrow(.Object@labels) != ncol(.Object@labels)) { 
-		stop(paste("Labels matrix of MxMatrix", 
+		stop(paste("'labels' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
 	if (nrow(.Object@values) != ncol(.Object@values)) {
-		stop(paste("Values matrix of MxMatrix", 
+		stop(paste("'values' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
 	if (nrow(.Object@free) != ncol(.Object@free)) { 
-		stop(paste("Free matrix of MxMatrix", 
+		stop(paste("'free' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
 }
@@ -249,27 +249,27 @@ imxConDecMatrixSlots <- function(object){ #<--This function assumes that the 4 c
 setMethod("imxVerifyMatrix", "MxMatrix",
 	function(.Object) {
 	  if( (!is.condenseSlots(.Object) | !all.na(.Object@labels)) && !all(dim(.Object@labels) == dim(.Object@values)) ){
-	    stop(paste("labels and values matrices of", 
+	    stop(paste("'labels' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
 	  if( (!is.condenseSlots(.Object) | !all.false(.Object@free)) && !all(dim(.Object@free) == dim(.Object@values))){
-	    stop(paste("values and free matrices of", 
+	    stop(paste("'values' and 'free' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
 	  if( (!is.condenseSlots(.Object) | !all.na(.Object@lbound)) && !all(dim(.Object@lbound) == dim(.Object@values)) ){
-	    stop(paste("lbound and values matrices of", 
+	    stop(paste("'lbound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
 	  if( (!is.condenseSlots(.Object) | !all.na(.Object@ubound)) && !all(dim(.Object@ubound) == dim(.Object@values)) ){
-	    stop(paste("ubound and values matrices of", 
+	    stop(paste("'ubound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
 	  if (!all(dim(.Object@labels) == dim(.Object@free))) { #<--Dims of labels and free should always match
-	    stop(paste("labels and free matrices of", 
+	    stop(paste("'labels' and 'free' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
@@ -392,13 +392,13 @@ setReplaceMethod("dimnames", "MxMatrix",
 	function(x, value) {
 		if (!is.null(value)) {
 			if (length(value) != 2) {
-				msg <- paste("The 'dimnames' argument to MxMatrix",
+				msg <- paste("the 'dimnames' argument to MxMatrix",
 					omxQuotes(x@name), "must have a length of 2")
 				stop(msg, call. = FALSE)
 			}
 			if (!is.null(value[[1]]) && length(value[[1]]) != nrow(x) || 
 				!is.null(value[[2]]) && length(value[[2]]) != ncol(x)) {
-				msg <- paste("The MxMatrix object", omxQuotes(x@name), 
+				msg <- paste("the MxMatrix object", omxQuotes(x@name), 
 					"has specified dimnames with dimensions",
 					length(value[[1]]), "x", length(value[[2]]), "but the matrix",
 					"is of dimensions", nrow(x), "x", ncol(x))
@@ -463,7 +463,7 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 	}
 	if (is.na(nrow) && is.na(ncol)) {
 		if(length(theMatrices) == 0) {
-			stop(paste("You must specify 'nrow' and 'ncol' arguments in",
+			stop(paste("you must specify 'nrow' and 'ncol' arguments in",
 					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 		}
 		nrow <- dim(theMatrices[[1]])[[1]]
@@ -492,22 +492,22 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}
-	imxVerifyName(name, 0)
 	if (!is.character(name)) {
-		stop(paste("'name' argument must",
-			"be a character vector in", 
-			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
+	  stop(paste("'name' argument must",
+	             "be a character vector in", 
+	             deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
+  imxVerifyName(name, 0)
 	condenseSlots <- as.logical(condenseSlots[1])
 	matrixCheckErrors(type, values, free, labels, lbound, ubound, nrow, ncol, name, condenseSlots)
 	checkDims <- matrixCheckDims(type, values, free, labels, lbound, ubound, nrow, ncol)
 	nrow <- checkDims[[1]]
 	ncol <- checkDims[[2]]
-	if (type %in% squareMatrices) {
+	if (type %in% squareMatrices) { 
 		if (is.na(nrow) && is.na(ncol)) {
-			stop(paste("Either 'nrow' or 'ncol'",
+			stop(paste("either 'nrow' or 'ncol'",
 				"must be specified on a",
-				"square matrix in", 
+				"square MxMatrix in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 		} else if (is.na(nrow)) {
 			nrow <- ncol
@@ -515,9 +515,9 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 			ncol <- nrow
 		}
 	} else if (is.na(nrow) || is.na(ncol)) {
-		stop(paste("Both 'nrow' and 'ncol'",
+		stop(paste("both 'nrow' and 'ncol'",
 					"must be specified on a",
-					"non-square matrix in",
+					"non-square MxMatrix in",
 					deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	values <- as.numeric.preserve(values)
@@ -554,7 +554,7 @@ matrixCheckArgument <- function(arg, name) {
 
 matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, ncol, name, condenseSlots) {
 	if (is.na(match(type, matrixTypes))) {
-		stop(paste("Type must be one of:", 
+		stop(paste("'type' must be one of:", 
 			paste(matrixTypes, collapse=" "),
 			"in", deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}

@@ -42,8 +42,8 @@ populateSymmTriangle <- function(input, n, default, byrow, strname) {
 		}				
 	} else {
 		stop(paste(
-			"Illegal number of elements (", len,
-			") for ", strname, " matrix in symmetric matrix constructor", sep=""),
+			"illegal number of elements (", len,
+			") for '", strname, "' matrix in Symmetric MxMatrix construction", sep=""),
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 			call. = FALSE)
 	}
@@ -54,7 +54,7 @@ populateSymmTriangle <- function(input, n, default, byrow, strname) {
 setMethod("imxCreateMatrix", "SymmMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (nrow != ncol) {
-			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
+			stop(paste("non-square MxMatrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
                              call. = FALSE)
 		}
@@ -97,38 +97,37 @@ setMethod("imxVerifyMatrix", "SymmMatrix",
 		ubound <- .Object@ubound
 		mask   <- is.na(values[upper.tri(values)])
 		if (any(is.na(t(values)[upper.tri(values)]) != mask)) {
-			stop(paste("NAs in values matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"are not symmetric!"), 
+			stop(paste("NAs in 'values' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"are not symmetric in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
 		if (any(values[upper.tri(values)][!mask]  != t(values)[upper.tri(values)][!mask])) {
-			stop(paste("Values matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), 
-				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
+			stop(paste("'values' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"is not symmetric in "), 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
 		if (!all(free == t(free))) {
-			stop(paste("Free matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), 
+			stop(paste("'free' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"is not symmetric in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
 		if (!all(labels == t(labels), na.rm = TRUE) && all(is.na(labels) == is.na(t(labels)))) {
-			stop(paste("Labels matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), 
+			stop(paste("'labels' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"is not symmetric in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
 		if (!all(lbound == t(lbound), na.rm = TRUE) && all(is.na(lbound) == is.na(t(lbound)))) {
-			stop(paste("Lbound matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), 
+			stop(paste("'lbound' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"is not symmetric in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}
 		if (!all(ubound == t(ubound), na.rm = TRUE) && all(is.na(ubound) == is.na(t(ubound)))) {
-			stop(paste("Ubound matrix of symmetric matrix", omxQuotes(.Object@name), 
-				"is not symmetric!"), 
+			stop(paste("'ubound' matrix of Symmetric MxMatrix", omxQuotes(.Object@name), 
+				"is not symmetric in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call. = FALSE)
 		}

@@ -33,9 +33,10 @@ imxLocateFunction <- function(function_name) {
     query <- sapply(callstack, matchStack, as.symbol(function_name))
     matches <- which(query)
     if (length(matches) == 0) {
-        msg <- paste("(oops) could not find function",
-            function_name)
-        return(msg)
+      #If the function being sought is not actually in the call stack...
+      msg <- paste("(oops) could not find function",
+                   function_name)
+      return(msg)
     } else {
         firstmatch <- matches[[1]]
         return(callstack[[firstmatch]])

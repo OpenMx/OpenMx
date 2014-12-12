@@ -21,27 +21,27 @@ setClass(Class = "UnitMatrix",
 setMethod("imxCreateMatrix", "UnitMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for unit matrix constructor ",
+			warning("ignoring 'values' matrix for Unit MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!single.na(labels)) {
-			warning("Ignoring labels matrix for unit matrix constructor ",
+			warning("ignoring 'labels' matrix for Unit MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!(length(free) == 1 && free == FALSE)) {
-			warning("Ignoring free matrix for unit matrix constructor ",
+			warning("ignoring 'free' matrix for Unit MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!single.na(lbound)) {
-			warning("Ignoring lbound matrix for unit matrix constructor ",
+			warning("ignoring 'lbound' matrix for Unit MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                  call. = FALSE)
 		}
 		if (!single.na(ubound)) {
-			warning("Ignoring ubound matrix for unit matrix constructor ", 
+			warning("ignoring 'ubound' matrix for Unit MxMatrix construction in ", 
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
                                 call. = FALSE)
 		}
@@ -58,14 +58,14 @@ setMethod("imxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
 		if(!all(.Object@free == FALSE)) { 
-			stop(paste("Free matrix of unit matrix", 
-				omxQuotes(.Object@name), "has a free parameter"), 
+			stop(paste("'free' matrix of Unit MxMatrix", 
+				omxQuotes(.Object@name), "has a free parameter in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call.=FALSE)
 		} 
 		if(nnzero(.Object@values - 1) > 0) { 
-			stop(paste("Values matrix of unit matrix",
-				omxQuotes(.Object@name), "has non unit entries"), 
+			stop(paste("'values' matrix of Unit MxMatrix",
+				omxQuotes(.Object@name), "has non unit entries in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
 				call.=FALSE)
 		} 

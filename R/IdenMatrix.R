@@ -25,32 +25,32 @@ setMethod("imxSquareMatrix", "IdenMatrix",
 setMethod("imxCreateMatrix", "IdenMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (!single.na(values)) {
-			warning("Ignoring values matrix for identity matrix construction ",
+			warning("ignoring 'values' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!single.na(labels)) {
-			warning("Ignoring labels matrix for identity matrix construction ",
+			warning("ignoring 'labels' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!(length(free) == 1 && free == FALSE)) {
-			warning("Ignoring free matrix for identity matrix construction ",
+			warning("ignoring 'free' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
                                  call. = FALSE)
 		}
 		if (!single.na(lbound)) {
-			warning("Ignoring lbound matrix for identity matrix construction ",
+			warning("ignoring 'lbound' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (!single.na(ubound)) {
-			warning("Ignoring ubound matrix for identity matrix construction ",
+			warning("ignoring 'ubound' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                                 call. = FALSE)
 		}
 		if (nrow != ncol) {
-			stop("Non-square matrix attempted for identity matrix constructor ",
+			stop("non-square MxMatrix attempted for Identity MxMatrix construction in ",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
                              call. = FALSE)
 		}
@@ -59,7 +59,7 @@ setMethod("imxCreateMatrix", "IdenMatrix",
 		free <- matrix(FALSE, ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		lbound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		ubound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, ...))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
 	}
 )
 
@@ -67,14 +67,14 @@ setMethod("imxVerifyMatrix", "IdenMatrix",
 	function(.Object) {
 		callNextMethod(.Object)
 		if(!all(.Object@free == FALSE)) {
-			stop(paste("Free matrix of identity matrix", 
-				omxQuotes(.Object@name), "has a free parameter", 
+			stop(paste("'free' matrix of Identity MxMatrix", 
+				omxQuotes(.Object@name), "has a free parameter in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call.=FALSE)
 		}
 		if(!suppressWarnings(all(.Object@values == diag(nrow(.Object@values))))) {
-			stop(paste("Values matrix of identity matrix",
-				omxQuotes(.Object@name), "is not the identity matrix", 
+			stop(paste("'values' matrix of Identity MxMatrix",
+				omxQuotes(.Object@name), "is not the identity matrix in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call.=FALSE)
 		}

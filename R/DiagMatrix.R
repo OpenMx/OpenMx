@@ -24,7 +24,7 @@ setMethod("imxSquareMatrix", "DiagMatrix",
 setMethod("imxCreateMatrix", "DiagMatrix",
 	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
 		if (nrow != ncol) {
-			stop(paste("Non-square matrix attempted in 'nrow' and 'ncol' arguments to",
+			stop(paste("non-square MxMatrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
                              call. = FALSE)
 		}
@@ -73,13 +73,13 @@ setMethod("imxVerifyMatrix", "DiagMatrix",
 		callNextMethod(.Object)
 		values <- .Object@values
 		if(nnzero(values[row(values) != col(values)]) > 0)
-			{ stop(paste("Values matrix of", .Object@name, "is not a diagonal matrix.",
+			{ stop(paste("'values' matrix of", .Object@name, "is not a diagonal matrix in",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 			call. = FALSE) }
     rm(values)
 		free <- .Object@free
 		if(any(free) && any(free[row(free) != col(free)])) {
-			{ stop(paste("Free matrix of", .Object@name, "has TRUE on non-diagonal.",
+			{ stop(paste("'free' matrix of", .Object@name, "has TRUE on non-diagonal in",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 			call. = FALSE) }
 		}		
