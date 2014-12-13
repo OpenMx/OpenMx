@@ -123,8 +123,8 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 		names(subparams) <- NULL
 		subparams <- unlist(subparams)
 		parameters <- c(parameters, subparams)
-		parameters <- parameters[!duplicated(names(parameters), incomparables = NA)]
 	}
+	parameters <- parameters[!duplicated(names(parameters), incomparables = NA)]
 	return(parameters)
 }
 
