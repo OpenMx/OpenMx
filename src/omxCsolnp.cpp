@@ -76,33 +76,31 @@ static void setupIneqConstraintBounds(FitContext *fc, Eigen::MatrixBase<T1> &sol
 }
 
 struct RegularFit : CSOLNPFit {
-	FitContext *GLOB_fc;
-	omxMatrix *GLOB_fitMatrix;
+	FitContext *fc;
+	omxMatrix *fitMatrix;
 
-	RegularFit(FitContext *fc, omxMatrix *fmat) : GLOB_fc(fc), GLOB_fitMatrix(fmat) {};
+	RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {};
 
 	virtual double solFun(Matrix myPars, int* mode, int verbose) {
-		omxMatrix* fitMatrix = GLOB_fitMatrix;
+		fc->iterations += 1;   // ought to be major iterations only
     
-		GLOB_fc->iterations += 1;   // ought to be major iterations only
+		memcpy(fc->est, myPars.t, sizeof(double) * myPars.cols);
+		fc->copyParamToModel();
     
-		memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
-		GLOB_fc->copyParamToModel();
+		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
     
-		ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
-    
-		if (!std::isfinite(GLOB_fc->fit) || isErrorRaised()) {
+		if (!std::isfinite(fc->fit) || isErrorRaised()) {
 			*mode = -1;
 		}
     
-		return GLOB_fc->fit;
+		return fc->fit;
 	};
 	virtual Matrix solEqBFun(int verbose) {
 		int i, j, k, eq_n = 0;
 		int l = 0;
 		double EMPTY = -999999.0;
 		Matrix myEqBFun;
-		omxState *globalState = GLOB_fc->state;
+		omxState *globalState = fc->state;
     
 		if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
     
@@ -125,7 +123,7 @@ struct RegularFit : CSOLNPFit {
 					if (verbose >= 3) {
 						mxLog("result is: %2f", globalState->conList[j].result->data[0]);
 					}
-					omxRecompute(globalState->conList[j].result, GLOB_fc);
+					omxRecompute(globalState->conList[j].result, fc);
 					if (verbose >= 3) {
 						mxLog("%.16f", globalState->conList[j].result->data[0]);
 						mxLog("size is: %d", globalState->conList[j].size);
@@ -149,7 +147,7 @@ struct RegularFit : CSOLNPFit {
 		int l = 0;
 		double EMPTY = -999999.0;
 		Matrix myIneqFun;
-		omxState *globalState = GLOB_fc->state;
+		omxState *globalState = fc->state;
     
 		if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
     
@@ -175,7 +173,7 @@ struct RegularFit : CSOLNPFit {
         
 				for(j = 0; j < globalState->numConstraints; j++) {
 					if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
-						omxRecompute(globalState->conList[j].result, GLOB_fc);
+						omxRecompute(globalState->conList[j].result, fc);
 					}
 					for(k = 0; k < globalState->conList[j].size; k++){
 						M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
@@ -304,40 +302,40 @@ struct ConfidenceIntervalFit : RegularFit {
 				mxLog("%f", myPars.t[i]);
 		}
     
-		GLOB_fc->fit = super::solFun(myPars, mode, verbose);
+		fc->fit = super::solFun(myPars, mode, verbose);
     
 		omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
     
-		omxRecompute(oCI->matrix, GLOB_fc);
+		omxRecompute(oCI->matrix, fc);
     
 		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
     
 		if(verbose >= 2) {
 			mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
-			      oCI->lbound, oCI->ubound, GLOB_fc->fit, CIElement);
+			      oCI->lbound, oCI->ubound, fc->fit, CIElement);
 		}
     
 		/* Catch boundary-passing condition */
 		if(std::isnan(CIElement) || std::isinf(CIElement)) {
-			GLOB_fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			return GLOB_fc->fit;
+			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			return fc->fit;
 		}
     
 		if(oCI->calcLower) {
-			double diff = oCI->lbound - GLOB_fc->fit;		// Offset - likelihood
-			GLOB_fc->fit = diff * diff + CIElement;
+			double diff = oCI->lbound - fc->fit;		// Offset - likelihood
+			fc->fit = diff * diff + CIElement;
 			// Minimize element for lower bound.
 		} else {
-			double diff = oCI->ubound - GLOB_fc->fit;			// Offset - likelihood
-			GLOB_fc->fit = diff * diff - CIElement;
+			double diff = oCI->ubound - fc->fit;			// Offset - likelihood
+			fc->fit = diff * diff - CIElement;
 			// Maximize element for upper bound.
 		}
     
 		if(verbose >= 2) {
-			mxLog("Interval fit function in previous iteration was calculated to be %f.", GLOB_fc->fit);
+			mxLog("Interval fit function in previous iteration was calculated to be %f.", fc->fit);
 		}
     
-		return GLOB_fc->fit;
+		return fc->fit;
 	};
 };
 
