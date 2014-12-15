@@ -257,31 +257,21 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     bool myDEBUG = false;
     /* Set up actual run */
     
-    /* needs treatment*/
-    if (ncnln == 0)
     {
-        solIneqLB = fill(1, 1, EMPTY);
-        solIneqUB = fill(1, 1, EMPTY);
-        solEqB = fill(1, 1, EMPTY);
-    }
-    else{
-        int j;
         int nineqn;
         int eqn = 0;
-        for(j = 0; j < globalState->numConstraints; j++) {
+        for(int j = 0; j < globalState->numConstraints; j++) {
             if (globalState->conList[j].opCode == 1)
             {
                 eqn += globalState->conList[j].size;
             }
         }
-        if (eqn == ncnln) nineqn = 1;
-        else nineqn = ncnln - eqn;
-        
-        solIneqLB = fill(nineqn, 1, EMPTY);
-        solIneqUB = fill(nineqn, 1, EMPTY);
-        if (eqn == 0) {
-            solEqB = fill(1, 1, EMPTY);
-        } else {
+	nineqn = ncnln - eqn;
+	if (nineqn) {
+		solIneqLB = fill(nineqn, 1, EMPTY);
+		solIneqUB = fill(nineqn, 1, EMPTY);
+	}
+        if (eqn) {
             solEqB = fill(eqn, 1, EMPTY);
         }
         
@@ -295,7 +285,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
             mxLog("solEqB is: ");
             for (int i = 0; i < solEqB.cols; i++){mxLog("%f", solEqB.t[i]);}
         }
-        
     }
     
     Eigen::VectorXd bl(n);

@@ -1,7 +1,6 @@
 #ifndef _OMX_IMPORT_FRONTEND_STATE_H
 #define _OMX_IMPORT_FRONTEND_STATE_H
 
-extern Matrix result_csolnpEqBStartFun, result_csolnpEqB, result_ineqLB, result_ineqUB,  result_ineqVal;
 int matchCaseInsensitive(const char *source, const char *target);
 void omxProcessMxDataEntities(SEXP data);
 void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc);

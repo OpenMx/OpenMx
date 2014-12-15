@@ -27,13 +27,6 @@
 #include "omxImportFrontendState.h"
 #include "matrix.h"
 
-Matrix result_csolnpEqBStartFun;
-Matrix result_csolnpEqB;
-Matrix result_ineqLB;
-Matrix result_ineqUB;
-Matrix result_ineqVal;
-//double EMPTY = -999999.0;
-
 void setupIneqLess(struct Matrix *bl_ineqless, struct Matrix *bu_ineqless, int size)
 {
     int index = 0;
@@ -85,6 +78,7 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
     for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
         
         size = globalState->conList[constraintIndex].size;
+	if (size == 0) continue;
         
         if (globalState->conList[constraintIndex].opCode == 0)
         {
