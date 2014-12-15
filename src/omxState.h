@@ -108,8 +108,6 @@ struct omxConstraint {		// Free Variable Constraints
 	const char *name;
 	int size;
 	int opCode;
-	double* lbound;
-	double* ubound;
 	omxMatrix* result;
 };
 

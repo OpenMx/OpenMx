@@ -292,8 +292,6 @@ omxState::omxState(omxState *src)
 	for(int j = 0; j < numConstraints; j++) {
 		conList[j].size   = src->conList[j].size;
 		conList[j].opCode = src->conList[j].opCode;
-		conList[j].lbound = src->conList[j].lbound;
-		conList[j].ubound = src->conList[j].ubound;
 		conList[j].result = omxDuplicateMatrix(src->conList[j].result, this);
 	}
 
