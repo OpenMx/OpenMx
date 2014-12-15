@@ -226,7 +226,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     //double *cJac = NULL;    // Hessian (Approx) and Jacobian
     
     omxState *globalState = fc->state;
-    int ncnln = globalState->ncnln;
+    const int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
     
     double EMPTY = -999999.0;
@@ -347,10 +347,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     inform = M(inform_m, 0, 0);
     
-    subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2, fc->grad);
+    // Mahsa, remove this conditional
+    if (ncnln == 0) {
+	    subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2, fc->grad);
     
-    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
-    subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
+	    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
+	    subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
+    }
     
     for (i = 0; i < myPars.cols; i++){
         x[i] = myPars.t[i];
