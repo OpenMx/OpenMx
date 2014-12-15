@@ -18,7 +18,9 @@ require(OpenMx)
 
 stageVars <- c('famno','zyg','zyg2','sex1','sex2','age1','age2','agesex1','agesex2',
 'init1','inis1','inits1','init2','inis2','inits2')
-sttob <- read.table("data/nicsGarbage.ord",header=F, na.strings=".",col.names=stageVars)
+sttob <- suppressWarnings(try(read.table("models/passing/data/nicsGarbage.ord",header=F, na.strings=".",col.names=stageVars),
+			      silent=TRUE))
+if (is(sttob,"try-error")) sttob <- read.table("data/nicsGarbage.ord",header=F, na.strings=".",col.names=stageVars)
 
 Vars <- c('init')
 nv <- 1
