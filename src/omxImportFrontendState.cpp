@@ -390,7 +390,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		arg1 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		arg2 = omxMatrixLookupFromState1(nextLoc, this);
-		constr.opCode = Rf_asInteger(VECTOR_ELT(nextVar, 2));
+		constr.opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
 		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
 		setWantStage(FF_COMPUTE_DIMS);
@@ -448,8 +448,9 @@ void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
 	int index = n;
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
 		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
-		switch(globalState->conList[constraintIndex].opCode) {
-		case 0:									// Less than: Must be strictly less than 0.
+		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
+		switch(type) {
+		case omxConstraint::LESS_THAN:
 			if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = NEG_INF;
@@ -457,7 +458,7 @@ void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
 				index++;
 			}
 			break;
-		case 1:									// Equal: Must be roughly equal to 0.
+		case omxConstraint::EQUALITY:
 			if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				bl[index] = -0.0;
@@ -465,7 +466,7 @@ void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
 				index++;
 			}
 			break;
-		case 2:									// Greater than: Must be strictly greater than 0.
+		case omxConstraint::GREATER_THAN:
 			if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
@@ -475,13 +476,7 @@ void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
 			}
 			break;
 		default:
-			if(OMX_DEBUG) { mxLog("Bounded at (-INF, INF).");}
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				bl[index] = NEG_INF;
-				bu[index] = INF;
-				index++;
-			}
-			break;
+			Rf_error("Unknown constraint type %d", type);
 		}
 	}
 }

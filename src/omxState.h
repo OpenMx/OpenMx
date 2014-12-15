@@ -105,9 +105,15 @@ struct FreeVarGroup {
 #define INF 2e20
 
 struct omxConstraint {		// Free Variable Constraints
+	enum Type {
+		LESS_THAN=0,
+		EQUALITY,
+		GREATER_THAN
+	};
+
 	const char *name;
 	int size;
-	int opCode;
+	enum Type opCode;
 	omxMatrix* result;
 };
 
