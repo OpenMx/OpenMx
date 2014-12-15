@@ -32,10 +32,6 @@ static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
 
-/* NPSOL-related functions */
-//************************* npsol ****************************//
-//int solnp(Matrix solPars, double (*solFun)(Matrix),  Matrix solEqB,  Matrix (*solEqBFun)( Matrix),  Matrix (*solEqBStartFun)(Matrix),  Matrix solLB,  Matrix solUB,  Matrix solIneqUB,  Matrix solIneqLB,  Matrix solctrl, bool debugToggle);
-
 template <typename T1>
 static void setupIneqConstraintBounds(FitContext *fc, Eigen::MatrixBase<T1> &solIneqLB, Eigen::MatrixBase<T1> &solIneqUB)
 {
@@ -81,10 +77,11 @@ struct RegularFit : CSOLNPFit {
 
 	RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {};
 
-	virtual double solFun(Matrix myPars, int* mode, int verbose) {
+	virtual double solFun(double *myPars, int* mode, int verbose)
+	{
 		fc->iterations += 1;   // ought to be major iterations only
     
-		memcpy(fc->est, myPars.t, sizeof(double) * myPars.cols);
+		memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 		fc->copyParamToModel();
     
 		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
@@ -294,12 +291,13 @@ struct ConfidenceIntervalFit : RegularFit {
 	ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt) :
 		super(fc, fmat), currentInterval(curInt) {};
 
-	virtual double solFun(Matrix myPars, int* mode, int verbose) {
+	virtual double solFun(double *myPars, int* mode, int verbose)
+	{
 		//double* f = NULL;
 		if (verbose >= 3) {
 			mxLog("myPars inside obj is: ");
-			for (int i = 0; i < myPars.cols; i++)
-				mxLog("%f", myPars.t[i]);
+			for (int i = 0; i < int(fc->numParam); i++)
+				mxLog("%f", myPars[i]);
 		}
     
 		fc->fit = super::solFun(myPars, mode, verbose);
