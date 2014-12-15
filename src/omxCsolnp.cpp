@@ -40,6 +40,45 @@ static omxMatrix *GLOB_fitMatrix = NULL;
 static FitContext *GLOB_fc = NULL;
 static int CSOLNP_currentInterval = -1;
 
+template <typename T1>
+static void setupIneqConstraintBounds(FitContext *fc, Eigen::MatrixBase<T1> &solIneqLB, Eigen::MatrixBase<T1> &solIneqUB)
+{
+	omxState *globalState = fc->state;
+        int eqn = 0;
+        for(int j = 0; j < globalState->numConstraints; j++) {
+		if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
+			eqn += globalState->conList[j].size;
+		}
+        }
+        int nineqn = globalState->ncnln - eqn;
+	if (nineqn == 0) return;
+
+	solIneqLB.derived().resize(nineqn);
+	solIneqUB.derived().resize(nineqn);
+        
+	int cur=0;
+        for(int j = 0; j < globalState->numConstraints; j++) {
+		omxConstraint &con = globalState->conList[j];
+		if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
+
+		double lb, ub;
+		if (con.opCode == omxConstraint::LESS_THAN) {
+			lb = NEG_INF;
+			ub = -0.0;
+		} else {
+			lb = 0.0;
+			ub = INF;
+		}
+
+		for (int en=0; en < con.size; ++en) {
+			solIneqLB[cur+en] = lb;
+			solIneqUB[cur+en] = ub;
+		}
+
+		cur += con.size;
+	}
+}
+
 //****** Objective Function *********//
 double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose)
 {
@@ -225,12 +264,8 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     const int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
     
-    double EMPTY = -999999.0;
-    
     Param_Obj p_obj;
     Matrix param_hess;
-    Matrix solIneqLB;
-    Matrix solIneqUB;
     
     Matrix myPars = fillMatrix(n, 1, fc->est);
     
@@ -252,31 +287,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     bool myDEBUG = false;
     /* Set up actual run */
     
-    {
-        int nineqn;
-        int eqn = 0;
-        for(int j = 0; j < globalState->numConstraints; j++) {
-            if (globalState->conList[j].opCode == 1)
-            {
-                eqn += globalState->conList[j].size;
-            }
-        }
-	nineqn = ncnln - eqn;
-	if (nineqn) {
-		solIneqLB = fill(nineqn, 1, EMPTY);
-		solIneqUB = fill(nineqn, 1, EMPTY);
-	}
-        
-        omxProcessConstraintsCsolnp(fc, solIneqLB, solIneqUB);
-        
-        if (verbose == 2) {
-            mxLog("solIneqLB is: ");
-            for (int i = 0; i < solIneqLB.cols; i++){mxLog("%f", solIneqLB.t[i]);}
-            mxLog("solIneqUB is: ");
-            for (int i = 0; i < solIneqUB.cols; i++){mxLog("%f", solIneqUB.t[i]);}
-        }
-    }
-    
+    Eigen::VectorXd EsolIneqLB;
+    Eigen::VectorXd EsolIneqUB;
+    setupIneqConstraintBounds(fc, EsolIneqLB, EsolIneqUB);
+    Matrix solIneqLB(EsolIneqLB);
+    Matrix solIneqUB(EsolIneqUB);
+
     Eigen::VectorXd bl(n);
     Eigen::VectorXd bu(n);
     for(int index = 0; index < n; index++) {
@@ -368,22 +384,14 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     int inform;
     
     int n = int(freeVarGroup->vars.size());
-    omxState *globalState = opt->state;
-    int ncnln = globalState->ncnln;
-    
     double f = opt->fit;
     omxBuffer< double > gradient(n);
     omxBuffer< double > hessian(n * n);
-    
-    /* CSOLNP Arguments */
-    double EMPTY = -999999.0;
     
     Param_Obj p_obj_conf;
     Matrix param_hess;
     Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
-    Matrix solIneqLB;
-    Matrix solIneqUB;
     
     Matrix myPars = fillMatrix(n, 1, opt->est);
     double (*solFun)(struct Matrix myPars, int* mode, int verbose);
@@ -392,15 +400,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     solEqBFun = &csolnpEqualityFunction;
     Matrix (*solIneqFun)(int verbose);
     solIneqFun = &csolnpIneqFun;
-    
-    
-    /* Set boundaries and widths. */
-    /* Allocate arrays */
-    std::vector<double> blBuf(n+ncnln);
-    std::vector<double> buBuf(n+ncnln);
-    double *bl = blBuf.data();
-    double *bu = buBuf.data();
-    
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
@@ -413,40 +412,20 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     bool myDEBUG = false;
     /* Set up actual run */
     
-    /* needs treatment*/
-    if (ncnln == 0)
-    {
-        solIneqLB = fill(1, 1, EMPTY);
-        solIneqUB = fill(1, 1, EMPTY);
-    }
-    else{
-        int j;
-        int nineqn;
-        int eqn = 0;
-        for(j = 0; j < globalState->numConstraints; j++) {
-            if (globalState->conList[j].opCode == 1)
-            {
-                eqn += globalState->conList[j].size;
-            }
-        }
-        if (eqn == ncnln) nineqn = 1;
-        else nineqn = ncnln - eqn;
-        
-        solIneqLB = fill(nineqn, 1, EMPTY);
-        solIneqUB = fill(nineqn, 1, EMPTY);
-        
-        omxProcessConstraintsCsolnp(opt, solIneqLB, solIneqUB);
-        if (verbose == 2) {
-            printf("solIneqLB is: ");
-            print(solIneqLB); putchar('\n');
-            printf("solIneqUB is: ");
-            print(solIneqUB); putchar('\n');
-        }
-    }
+    Eigen::VectorXd EsolIneqLB;
+    Eigen::VectorXd EsolIneqUB;
+    setupIneqConstraintBounds(&fc, EsolIneqLB, EsolIneqUB);
+    Matrix solIneqLB(EsolIneqLB);
+    Matrix solIneqUB(EsolIneqUB);
     
-    omxSetupBoundsAndConstraints(opt, bl, bu);
-    Matrix blvar = fillMatrix(n, 1, bl);
-    Matrix buvar = fillMatrix(n, 1, bu);
+    Eigen::VectorXd bl(n);
+    Eigen::VectorXd bu(n);
+    for(int index = 0; index < n; index++) {
+        bl[index] = freeVarGroup->vars[index]->lbound;
+        bu[index] = freeVarGroup->vars[index]->ubound;
+    }
+    Matrix blvar(bl);
+    Matrix buvar(bu);
     
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     

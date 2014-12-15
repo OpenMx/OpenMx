@@ -58,6 +58,56 @@ extern void F77_SUB(npoptn)(char* string, int Rf_length);
 
 #if HAS_NPSOL
 
+// NOTE: All non-linear constraints are applied regardless of free TODO
+// variable group.  This is probably wrong. TODO
+static void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * bu)
+{
+	FreeVarGroup *freeVarGroup = fc->varGroup;
+	omxState *globalState = fc->state;
+	size_t n = freeVarGroup->vars.size();
+
+	/* Set min and max limits */
+	for(size_t index = 0; index < n; index++) {
+		bl[index] = freeVarGroup->vars[index]->lbound;
+		bu[index] = freeVarGroup->vars[index]->ubound;
+	}
+
+	int index = n;
+	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {		// Nonlinear constraints:
+		if(OMX_DEBUG) { mxLog("Constraint %d: ", constraintIndex);}
+		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
+		switch(type) {
+		case omxConstraint::LESS_THAN:
+			if(OMX_DEBUG) { mxLog("Bounded at (-INF, 0).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				bl[index] = NEG_INF;
+				bu[index] = -0.0;
+				index++;
+			}
+			break;
+		case omxConstraint::EQUALITY:
+			if(OMX_DEBUG) { mxLog("Bounded at (-0, 0).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				bl[index] = -0.0;
+				bu[index] = 0.0;
+				index++;
+			}
+			break;
+		case omxConstraint::GREATER_THAN:
+			if(OMX_DEBUG) { mxLog("Bounded at (0, INF).");}
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
+				bl[index] = 0.0;
+				bu[index] = INF;
+				index++;
+			}
+			break;
+		default:
+			Rf_error("Unknown constraint type %d", type);
+		}
+	}
+}
+
 /****** Objective Function *********/
 static void
 npsolObjectiveFunction1(int* mode, int* n, double* x,

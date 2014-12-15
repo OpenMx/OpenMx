@@ -7,7 +7,8 @@ ComputeGD.o: Makevars.in ComputeGD.cpp omxDefines.h omxState.h omxMatrix.h omxBL
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h \
  glue.h omxOpenmpWrap.h omxNPSOLSpecific.h omxExportBackendState.h \
- omxCsolnp.h matrix.h nloptcpp.h npsolswitch.h
+ omxCsolnp.h matrix.h \
+ nloptcpp.h npsolswitch.h
 ComputeNR.o: Makevars.in ComputeNR.cpp omxState.h omxDefines.h omxMatrix.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h \
@@ -18,11 +19,6 @@ ba81quad.o: Makevars.in ba81quad.cpp ba81quad.h glue.h omxState.h omxDefines.h \
  omxFitFunction.h omxData.h omxExpectation.h Compute.h \
  omxOpenmpWrap.h \
  libifa-rpf.h dmvnorm.h
-csolnpImportFrontend.o: Makevars.in csolnpImportFrontend.cpp omxDefines.h omxState.h \
- omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
- omxFitFunction.h omxData.h omxExpectation.h Compute.h \
- glue.h omxOpenmpWrap.h omxNPSOLSpecific.h omxImportFrontendState.h \
- matrix.h
 dmvnorm.o: Makevars.in dmvnorm.cpp omxDefines.h \
  omxBuffer.h matrix.h glue.h omxState.h omxMatrix.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
@@ -36,12 +32,13 @@ glue.o: Makevars.in glue.cpp omxDefines.h glue.h omxState.h omxMatrix.h omxBLAS.
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h \
  omxOpenmpWrap.h omxNPSOLSpecific.h omxImportFrontendState.h \
- omxExportBackendState.h dmvnorm.h npsolswitch.h matrix.h
+ omxExportBackendState.h dmvnorm.h npsolswitch.h matrix.h \
+  
 libifa-rpf.o: Makevars.in libifa-rpf.cpp libifa-rpf.h \
   
-matrix.o: Makevars.in matrix.cpp omxDefines.h omxBuffer.h matrix.h omxMatrix.h \
- omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxExpectation.h omxData.h omxFitFunction.h Compute.h \
+matrix.o: Makevars.in matrix.cpp omxDefines.h omxBuffer.h matrix.h \
+ omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
+ omxState.h omxExpectation.h omxData.h omxFitFunction.h Compute.h \
  glue.h omxOpenmpWrap.h \
   
 merge.o: Makevars.in merge.cpp merge.h
@@ -53,12 +50,14 @@ omxAlgebra.o: Makevars.in omxAlgebra.cpp omxMatrix.h omxDefines.h omxBLAS.h \
 omxAlgebraFitFunction.o: Makevars.in omxAlgebraFitFunction.cpp omxFitFunction.h \
  omxDefines.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
  algebraOp.h omxState.h omxExpectation.h omxData.h Compute.h \
- glue.h omxOpenmpWrap.h matrix.h omxBuffer.h
+ glue.h omxOpenmpWrap.h matrix.h \
+ omxBuffer.h
 omxCsolnp.o: Makevars.in omxCsolnp.cpp omxState.h omxDefines.h omxMatrix.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h omxData.h \
  omxExpectation.h Compute.h \
  glue.h omxOpenmpWrap.h omxNPSOLSpecific.h omxImportFrontendState.h \
- matrix.h omxCsolnp.h omxBuffer.h
+ matrix.h \
+ omxCsolnp.h omxBuffer.h
 omxData.o: Makevars.in omxData.cpp omxData.h omxDefines.h omxAlgebra.h \
  omxSymbolTable.h omxMatrix.h omxBLAS.h omxFitFunction.h omxState.h \
  omxExpectation.h Compute.h \
@@ -119,12 +118,14 @@ omxMLFitFunction.o: Makevars.in omxMLFitFunction.cpp omxExpectation.h omxDefines
 omxMatrix.o: Makevars.in omxMatrix.cpp omxMatrix.h omxDefines.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
- glue.h omxOpenmpWrap.h matrix.h
+ glue.h omxOpenmpWrap.h matrix.h \
+  
 omxNPSOLSpecific.o: Makevars.in omxNPSOLSpecific.cpp omxState.h omxDefines.h \
  omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
  omxFitFunction.h omxData.h omxExpectation.h Compute.h \
  glue.h omxOpenmpWrap.h omxNPSOLSpecific.h omxImportFrontendState.h \
- npsolswitch.h omxBuffer.h
+ npsolswitch.h omxBuffer.h omxCsolnp.h matrix.h \
+  
 omxNormalExpectation.o: Makevars.in omxNormalExpectation.cpp omxExpectation.h \
  omxDefines.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
  algebraOp.h omxState.h omxFitFunction.h omxData.h Compute.h \
@@ -159,12 +160,14 @@ omxSymbolTable.o: Makevars.in omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
  omxDefines.h omxBLAS.h omxAlgebra.h omxState.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
  glue.h omxOpenmpWrap.h algebraOp.h AlgebraFunctions.h merge.h \
- omxSadmvnWrapper.h matrix.h
+ omxSadmvnWrapper.h matrix.h \
+  
 omxWLSFitFunction.o: Makevars.in omxWLSFitFunction.cpp omxWLSFitFunction.h omxData.h \
  omxDefines.h omxAlgebra.h omxSymbolTable.h omxMatrix.h omxBLAS.h \
  omxFitFunction.h omxState.h omxExpectation.h Compute.h \
  glue.h omxOpenmpWrap.h algebraOp.h
-subnp.o: Makevars.in subnp.cpp matrix.h omxDefines.h omxCsolnp.h omxMatrix.h \
- omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxExpectation.h omxData.h omxFitFunction.h Compute.h \
+subnp.o: Makevars.in subnp.cpp matrix.h omxDefines.h \
+ omxCsolnp.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
+ algebraOp.h omxState.h omxExpectation.h omxData.h omxFitFunction.h \
+ Compute.h \
  glue.h omxOpenmpWrap.h
