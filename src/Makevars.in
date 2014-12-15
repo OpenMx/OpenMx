@@ -6,17 +6,28 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
-# Uncomment one of the following lines to turn on all debugging output in the backend
-# DEBUG_CXXFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
-# DEBUG_CXXFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
-# DEBUG_CXXFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX # turn on algebra and matrix debugging
-# DEBUG_CXXFLAGS=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
-# DEBUG_CXXFLAGS=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -O0   # basic debugging without extra logging
-# DEBUG_CXXFLAGS=-fno-omit-frame-pointer -fno-inline  # oprofile
+# Uncomment the following lines to turn on debugging output in the backend
+# DEBUG_CXXFLAGS+=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
+# DEBUG_CXXFLAGS+=-DDEBUGMX_ALGEBRA             # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
+# DEBUG_CXXFLAGS+=-DDEBUGMX_MATRIX              # turn on matrix debugging
+# DEBUG_CXXFLAGS+=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
+# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -O0   # basic debugging without extra logging
+# DEBUG_CXXFLAGS+=-fno-omit-frame-pointer -fno-inline  # oprofile
 
 # To collect gcov statistics (gcc only)
-# DEBUG_CXXFLAGS=--coverage
-# DEBUG_LDFLAGS=--coverage
+ifeq ($(IMX_GCOV),1)
+     DEBUG_CXXFLAGS+=--coverage
+     DEBUG_LDFLAGS+=--coverage
+endif
+
+ifeq ($(IMX_SAFE),1)
+        DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG
+        DEBUG_LDFLAGS+=$(xcheck_LDFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG
+endif
+
+ifneq ($(DEBUG_CXXFLAGS),)
+      DEBUG_CXXFLAGS+=-UNDEBUG
+endif
 
 PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS)
 PKG_LIBS=$(OPENMP_LDFLAGS) $(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
