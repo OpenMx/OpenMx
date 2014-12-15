@@ -166,8 +166,3 @@ omxWLSFitFunction.o: Makevars.in omxWLSFitFunction.cpp omxWLSFitFunction.h omxDa
  omxDefines.h omxAlgebra.h omxSymbolTable.h omxMatrix.h omxBLAS.h \
  omxFitFunction.h omxState.h omxExpectation.h Compute.h \
  glue.h omxOpenmpWrap.h algebraOp.h
-subnp.o: Makevars.in subnp.cpp matrix.h omxDefines.h \
- omxCsolnp.h omxMatrix.h omxBLAS.h omxAlgebra.h omxSymbolTable.h \
- algebraOp.h omxState.h omxExpectation.h omxData.h omxFitFunction.h \
- Compute.h \
- glue.h omxOpenmpWrap.h

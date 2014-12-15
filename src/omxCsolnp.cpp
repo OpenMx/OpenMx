@@ -252,7 +252,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     GLOB_fitMatrix = fitMatrix;
     GLOB_fc = fc;
     
-    double *x = fc->est;
     fc->grad.resize(fc->numParam);
     
     int k;
@@ -267,7 +266,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Param_Obj p_obj;
     Matrix param_hess;
     
-    Matrix myPars = fillMatrix(n, 1, fc->est);
+    Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
     
     double (*solFun)(struct Matrix myPars, int* mode, int verbose);
     solFun = &csolnpObjectiveFunction;
@@ -308,10 +307,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         mxLog("Starting Values (%d) are:", n);
     }
     for(k = 0; k < n; k++) {
-        if((M(myPars, k, 0) == 0.0)) {
-            M(myPars, k, 0) += 0.1;
+        if((myPars[k] == 0.0)) {
+            myPars[k] += 0.1;
         }
-        if(OMX_DEBUG) { mxLog("%d: %.8f", k, M(myPars, k, 0)); }
+        if(OMX_DEBUG) { mxLog("%d: %.8f", k, myPars[k]); }
     }
     
     if(OMX_DEBUG) {
@@ -330,12 +329,11 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     param_hess = p_obj.parameter;
     
-    int i;
-    myPars = subset(param_hess, 0, 0, n-1);
+    subset(param_hess, 0, 0, n-1, myPars);
     
     if (verbose>= 1){
         mxLog("final myPars value is: \n");
-        for (i = 0; i < myPars.cols; i++) mxLog("%f", myPars.t[i]);
+        for (int i = 0; i < myPars.size(); i++) mxLog("%f", myPars[i]);
     }
     
     Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
@@ -344,14 +342,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     // Mahsa, remove this conditional
     if (ncnln == 0) {
-	    subset(param_hess, 0, myPars.cols + (myPars.cols*myPars.cols), param_hess.cols-2, fc->grad);
+	    subset(param_hess, 0, myPars.size() + (myPars.size()*myPars.size()), param_hess.cols-2, fc->grad);
     
-	    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.cols * myPars.cols);
-	    subset(param_hess, 0, n, param_hess.cols - myPars.cols - 2, hessVec);
-    }
-    
-    for (i = 0; i < myPars.cols; i++){
-        x[i] = myPars.t[i];
+	    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.size() * myPars.size());
+	    subset(param_hess, 0, n, param_hess.cols - myPars.size() - 2, hessVec);
     }
     
     GLOB_fc->copyParamToModel();
@@ -393,7 +387,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
     
-    Matrix myPars = fillMatrix(n, 1, opt->est);
     double (*solFun)(struct Matrix myPars, int* mode, int verbose);
     solFun = &csolnpLimitObjectiveFunction;
     Matrix (*solEqBFun)(int verbose);
@@ -443,7 +436,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                                   matName, currentCI->row + 1, currentCI->col + 1);
         
         memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-        myPars = fillMatrix(n, 1, opt->est);
+	Eigen::Map< Eigen::VectorXd > myPars(fc.est, n);
         CSOLNP_currentInterval = i;
         
         
@@ -467,10 +460,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 
                 f = p_obj_conf.objValue;
                 
-                myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
-                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.cols - 2);
+                subset(p_obj_conf.parameter, 0, 0, n-1, myPars);
+                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.size() - 2);
                 
-                mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
+                mygrad = subset(p_obj_conf.parameter, 0, myPars.size() + (myPars.size()*myPars.size()), p_obj_conf.parameter.cols-2);
                 
                 
                 Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
@@ -485,7 +478,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                     currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     
                     value = f;
-                    memcpy(fc.est, myPars.t, sizeof(double) * myPars.cols);
                 }
                 
                 if(inform != 0 && OMX_DEBUG) {
@@ -518,8 +510,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             
             
             memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-            myPars = fillMatrix(n, 1, opt->est);
-            
             
             /* Reset for the upper bound */
             double value = INF;
@@ -534,10 +524,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 
                 f = p_obj_conf.objValue;
                 
-                myPars = subset(p_obj_conf.parameter, 0, 0, n-1);
-                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.cols - 2);
+		subset(p_obj_conf.parameter, 0, 0, n-1, myPars);
+                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.size() - 2);
                 
-                mygrad = subset(p_obj_conf.parameter, 0, myPars.cols + (myPars.cols*myPars.cols), p_obj_conf.parameter.cols-2);
+                mygrad = subset(p_obj_conf.parameter, 0, myPars.size() + (myPars.size()*myPars.size()), p_obj_conf.parameter.cols-2);
                 
                 Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
                 
@@ -550,7 +540,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
                     
                     value = f;
-                    memcpy(fc.est, myPars.t, sizeof(double) * myPars.cols);
                 }
                 
                 if(inform != 0 && OMX_DEBUG) {
