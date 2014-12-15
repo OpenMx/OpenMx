@@ -79,169 +79,114 @@ static void setupIneqConstraintBounds(FitContext *fc, Eigen::MatrixBase<T1> &sol
 	}
 }
 
-//****** Objective Function *********//
-double csolnpObjectiveFunction(Matrix myPars, int* mode, int verbose)
-{
-    omxMatrix* fitMatrix = GLOB_fitMatrix;
+struct RegularFit : CSOLNPFit {
+	virtual double solFun(Matrix myPars, int* mode, int verbose) {
+		omxMatrix* fitMatrix = GLOB_fitMatrix;
     
-    GLOB_fc->iterations += 1;   // ought to be major iterations only
+		GLOB_fc->iterations += 1;   // ought to be major iterations only
     
-    memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
-    GLOB_fc->copyParamToModel();
+		memcpy(GLOB_fc->est, myPars.t, sizeof(double) * myPars.cols);
+		GLOB_fc->copyParamToModel();
     
-    ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
+		ComputeFit(fitMatrix, FF_COMPUTE_FIT, GLOB_fc);
     
-    if (!std::isfinite(GLOB_fc->fit) || isErrorRaised()) {
-        *mode = -1;
-    }
+		if (!std::isfinite(GLOB_fc->fit) || isErrorRaised()) {
+			*mode = -1;
+		}
     
-    return GLOB_fc->fit;
-}
-
-
-/* Objective function for confidence interval limit finding.
- * Replaces the standard objective function when finding confidence intervals. */
-double csolnpLimitObjectiveFunction(Matrix myPars, int* mode, int verbose)
-{
-    //double* f = NULL;
-    if (verbose >= 3) {
-        mxLog("myPars inside obj is: ");
-        for (int i = 0; i < myPars.cols; i++)
-            mxLog("%f", myPars.t[i]);
-    }
+		return GLOB_fc->fit;
+	};
+	virtual Matrix solEqBFun(int verbose) {
+		int i, j, k, eq_n = 0;
+		int l = 0;
+		double EMPTY = -999999.0;
+		Matrix myEqBFun;
+		omxState *globalState = GLOB_fc->state;
     
-    GLOB_fc->fit = csolnpObjectiveFunction(myPars, mode, verbose);
+		if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
     
-    omxConfidenceInterval *oCI = Global->intervalList[CSOLNP_currentInterval];
+		for(j = 0; j < globalState->numConstraints; j++) {
+			if (globalState->conList[j].opCode == 1) {
+				eq_n += globalState->conList[j].size;
+			}
+		}
     
-    omxRecompute(oCI->matrix, GLOB_fc);
+		if (verbose >= 3) {
+			mxLog("no.of constraints is: %d.", globalState->numConstraints);
+			mxLog("neq is: %d.", eq_n);
+		}
     
-    double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-    
-    if(verbose >= 2) {
-        mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
-              oCI->lbound, oCI->ubound, GLOB_fc->fit, CIElement);
-    }
-    
-    /* Catch boundary-passing condition */
-    if(std::isnan(CIElement) || std::isinf(CIElement)) {
-        GLOB_fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-        return GLOB_fc->fit;
-    }
-    
-    if(oCI->calcLower) {
-        double diff = oCI->lbound - GLOB_fc->fit;		// Offset - likelihood
-        GLOB_fc->fit = diff * diff + CIElement;
-        // Minimize element for lower bound.
-    } else {
-        double diff = oCI->ubound - GLOB_fc->fit;			// Offset - likelihood
-        GLOB_fc->fit = diff * diff - CIElement;
-        // Maximize element for upper bound.
-    }
-    
-    if(verbose >= 2) {
-        mxLog("Interval fit function in previous iteration was calculated to be %f.", GLOB_fc->fit);
-    }
-    
-    return GLOB_fc->fit;
-}
-
-
-/* (Non)Linear Constraint Functions */
-Matrix csolnpEqualityFunction(int verbose)
-{
-    int i, j, k, eq_n = 0;
-    int l = 0;
-    double EMPTY = -999999.0;
-    Matrix myEqBFun;
-    omxState *globalState = GLOB_fc->state;
-    
-    if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
-    
-    for(j = 0; j < globalState->numConstraints; j++) {
-        if (globalState->conList[j].opCode == 1) {
-            eq_n += globalState->conList[j].size;
-        }
-    }
-    
-    if (verbose >= 3) {
-        mxLog("no.of constraints is: %d.", globalState->numConstraints);
-        mxLog("neq is: %d.", eq_n);
-    }
-    
-    if (eq_n) {
-        myEqBFun = fill(eq_n, 1, EMPTY);
+		if (eq_n) {
+			myEqBFun = fill(eq_n, 1, EMPTY);
         
-        for(j = 0; j < globalState->numConstraints; j++) {
-            if (globalState->conList[j].opCode == 1) {
-                if (verbose >= 3) {
-                    mxLog("result is: %2f", globalState->conList[j].result->data[0]);
-                }
-                omxRecompute(globalState->conList[j].result, GLOB_fc);
-                if (verbose >= 3) {
-                    mxLog("%.16f", globalState->conList[j].result->data[0]);
-                    mxLog("size is: %d", globalState->conList[j].size);
-                }
-            }
-            for(k = 0; k < globalState->conList[j].size; k++){
-                M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
-                l = l + 1;
-            }
-        }
-    }
-    if (verbose >= 3) {
-        mxLog("myEqBFun is: ");
-        for(i = 0; i < myEqBFun.cols; i++)
-        {   mxLog("%f", myEqBFun.t[i]);}
-    }
-    return myEqBFun;
-}
-
-
-Matrix csolnpIneqFun(int verbose)
-{
-   	int j, k, ineq_n = 0;
-    int l = 0;
-    double EMPTY = -999999.0;
-    Matrix myIneqFun;
-    omxState *globalState = GLOB_fc->state;
+			for(j = 0; j < globalState->numConstraints; j++) {
+				if (globalState->conList[j].opCode == 1) {
+					if (verbose >= 3) {
+						mxLog("result is: %2f", globalState->conList[j].result->data[0]);
+					}
+					omxRecompute(globalState->conList[j].result, GLOB_fc);
+					if (verbose >= 3) {
+						mxLog("%.16f", globalState->conList[j].result->data[0]);
+						mxLog("size is: %d", globalState->conList[j].size);
+					}
+				}
+				for(k = 0; k < globalState->conList[j].size; k++){
+					M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
+					l = l + 1;
+				}
+			}
+		}
+		if (verbose >= 3) {
+			mxLog("myEqBFun is: ");
+			for(i = 0; i < myEqBFun.cols; i++)
+				{   mxLog("%f", myEqBFun.t[i]);}
+		}
+		return myEqBFun;
+	};
+	virtual Matrix myineqFun(int verbose) {
+		int j, k, ineq_n = 0;
+		int l = 0;
+		double EMPTY = -999999.0;
+		Matrix myIneqFun;
+		omxState *globalState = GLOB_fc->state;
     
-    if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
+		if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
     
-    for(j = 0; j < globalState->numConstraints; j++) {
-        if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
-        {
-            ineq_n += globalState->conList[j].size;
-        }
-    }
+		for(j = 0; j < globalState->numConstraints; j++) {
+			if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
+				{
+					ineq_n += globalState->conList[j].size;
+				}
+		}
     
-    if (verbose >= 3) {
-        mxLog("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
-        mxLog("ineq_n is: %d.", ineq_n); putchar('\n');
-    }
+		if (verbose >= 3) {
+			mxLog("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
+			mxLog("ineq_n is: %d.", ineq_n); putchar('\n');
+		}
     
-    if (ineq_n == 0)
-    {
-        myIneqFun = fill(1, 1, EMPTY);
-    }
-    else
-    {
-        myIneqFun = fill(ineq_n, 1, EMPTY);
+		if (ineq_n == 0)
+			{
+				myIneqFun = fill(1, 1, EMPTY);
+			}
+		else
+			{
+				myIneqFun = fill(ineq_n, 1, EMPTY);
         
-        for(j = 0; j < globalState->numConstraints; j++) {
-            if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
-                omxRecompute(globalState->conList[j].result, GLOB_fc);
-            }
-            for(k = 0; k < globalState->conList[j].size; k++){
-                M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
-                l = l + 1;
+				for(j = 0; j < globalState->numConstraints; j++) {
+					if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
+						omxRecompute(globalState->conList[j].result, GLOB_fc);
+					}
+					for(k = 0; k < globalState->conList[j].size; k++){
+						M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
+						l = l + 1;
                 
-            }
-        }
-    }
+					}
+				}
+			}
     
-    return myIneqFun;
-}
+		return myIneqFun;
+	};
+};
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
@@ -267,13 +212,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Matrix param_hess;
     
     Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
-    
-    double (*solFun)(struct Matrix myPars, int* mode, int verbose);
-    solFun = &csolnpObjectiveFunction;
-    Matrix (*solEqBFun)(int verbose);
-    solEqBFun = &csolnpEqualityFunction;
-    Matrix (*solIneqFun)(int verbose);
-    solIneqFun = &csolnpIneqFun;
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
@@ -318,8 +256,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     
     
-    CSOLNP solnpContext;
-    p_obj = solnpContext.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+    RegularFit rf;
+    CSOLNP solnpContext(rf);
+    p_obj = solnpContext.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
     
     fc->fit = p_obj.objValue;
@@ -357,7 +296,52 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     freeMatrices();
 }
 
-
+struct ConfidenceIntervalFit : RegularFit {
+	typedef RegularFit super;
+	virtual double solFun(Matrix myPars, int* mode, int verbose) {
+		//double* f = NULL;
+		if (verbose >= 3) {
+			mxLog("myPars inside obj is: ");
+			for (int i = 0; i < myPars.cols; i++)
+				mxLog("%f", myPars.t[i]);
+		}
+    
+		GLOB_fc->fit = super::solFun(myPars, mode, verbose);
+    
+		omxConfidenceInterval *oCI = Global->intervalList[CSOLNP_currentInterval];
+    
+		omxRecompute(oCI->matrix, GLOB_fc);
+    
+		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+    
+		if(verbose >= 2) {
+			mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
+			      oCI->lbound, oCI->ubound, GLOB_fc->fit, CIElement);
+		}
+    
+		/* Catch boundary-passing condition */
+		if(std::isnan(CIElement) || std::isinf(CIElement)) {
+			GLOB_fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			return GLOB_fc->fit;
+		}
+    
+		if(oCI->calcLower) {
+			double diff = oCI->lbound - GLOB_fc->fit;		// Offset - likelihood
+			GLOB_fc->fit = diff * diff + CIElement;
+			// Minimize element for lower bound.
+		} else {
+			double diff = oCI->ubound - GLOB_fc->fit;			// Offset - likelihood
+			GLOB_fc->fit = diff * diff - CIElement;
+			// Maximize element for upper bound.
+		}
+    
+		if(verbose >= 2) {
+			mxLog("Interval fit function in previous iteration was calculated to be %f.", GLOB_fc->fit);
+		}
+    
+		return GLOB_fc->fit;
+	};
+};
 
 // Mostly duplicated code in omxNPSOLConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
@@ -386,13 +370,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     Matrix param_hess;
     Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
-    
-    double (*solFun)(struct Matrix myPars, int* mode, int verbose);
-    solFun = &csolnpLimitObjectiveFunction;
-    Matrix (*solEqBFun)(int verbose);
-    solEqBFun = &csolnpEqualityFunction;
-    Matrix (*solIneqFun)(int verbose);
-    solIneqFun = &csolnpIneqFun;
     
     struct Matrix myControl = fill(6,1,(double)0.0);
     M(myControl,0,0) = 1.0;
@@ -455,8 +432,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform!= 0 && cycles > 0) {
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
-                CSOLNP solnpContext1;
-                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+		ConfidenceIntervalFit cif;
+                CSOLNP solnpContext1(cif);
+                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -519,8 +497,9 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             while(inform != 0 && cycles >= 0) {
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
-                CSOLNP solnpContext1;
-                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+		ConfidenceIntervalFit cif;
+                CSOLNP solnpContext1(cif);
+                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
