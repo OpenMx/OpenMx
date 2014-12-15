@@ -42,7 +42,7 @@ struct CSOLNP {
     typedef Matrix (*solEqBFun_t)(int);
     typedef Matrix (*myineqFun_t)(int);
     
-    Param_Obj solnp(Matrix solPars, solFun_t solFun, Matrix solEqB, solEqBFun_t solEqBFun, myineqFun_t myineqFun, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
+    Param_Obj solnp(Matrix solPars, solFun_t solFun, solEqBFun_t solEqBFun, myineqFun_t myineqFun, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
     template <typename T1>
     Matrix subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale, Eigen::ArrayBase<T1> &ctrl, int verbose);
 

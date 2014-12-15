@@ -7,7 +7,7 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 
-Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix solEqB, Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose){
+Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Matrix (*solEqBFun)(int), Matrix (*myineqFun)(int), Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose){
     mode_val = 0;
     mode = &mode_val;
     Matrix inform;

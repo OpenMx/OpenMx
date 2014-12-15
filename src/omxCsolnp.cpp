@@ -231,7 +231,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     Matrix param_hess;
     Matrix solIneqLB;
     Matrix solIneqUB;
-    Matrix solEqB;
     
     Matrix myPars = fillMatrix(n, 1, fc->est);
     
@@ -267,19 +266,14 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 		solIneqLB = fill(nineqn, 1, EMPTY);
 		solIneqUB = fill(nineqn, 1, EMPTY);
 	}
-        if (eqn) {
-            solEqB = fill(eqn, 1, EMPTY);
-        }
         
-        omxProcessConstraintsCsolnp(fc, solIneqLB, solIneqUB, solEqB);
+        omxProcessConstraintsCsolnp(fc, solIneqLB, solIneqUB);
         
         if (verbose == 2) {
             mxLog("solIneqLB is: ");
             for (int i = 0; i < solIneqLB.cols; i++){mxLog("%f", solIneqLB.t[i]);}
             mxLog("solIneqUB is: ");
             for (int i = 0; i < solIneqUB.cols; i++){mxLog("%f", solIneqUB.t[i]);}
-            mxLog("solEqB is: ");
-            for (int i = 0; i < solEqB.cols; i++){mxLog("%f", solEqB.t[i]);}
         }
     }
     
@@ -310,7 +304,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     
     CSOLNP solnpContext;
-    p_obj = solnpContext.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+    p_obj = solnpContext.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
     
     
     fc->fit = p_obj.objValue;
@@ -390,7 +384,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     Matrix mygrad;
     Matrix solIneqLB;
     Matrix solIneqUB;
-    Matrix solEqB;
     
     Matrix myPars = fillMatrix(n, 1, opt->est);
     double (*solFun)(struct Matrix myPars, int* mode, int verbose);
@@ -425,7 +418,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     {
         solIneqLB = fill(1, 1, EMPTY);
         solIneqUB = fill(1, 1, EMPTY);
-        solEqB = fill(1, 1, EMPTY);
     }
     else{
         int j;
@@ -442,20 +434,13 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
         
         solIneqLB = fill(nineqn, 1, EMPTY);
         solIneqUB = fill(nineqn, 1, EMPTY);
-        if (eqn == 0) {
-            solEqB = fill(1, 1, EMPTY);
-        } else {
-            solEqB = fill(eqn, 1, EMPTY);
-        }
         
-        omxProcessConstraintsCsolnp(opt, solIneqLB, solIneqUB, solEqB);
+        omxProcessConstraintsCsolnp(opt, solIneqLB, solIneqUB);
         if (verbose == 2) {
             printf("solIneqLB is: ");
             print(solIneqLB); putchar('\n');
             printf("solIneqUB is: ");
             print(solIneqUB); putchar('\n');
-            printf("solEqB is: ");
-            print(solEqB); putchar('\n');
         }
     }
     
@@ -499,7 +484,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
                 CSOLNP solnpContext1;
-                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -566,7 +551,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
                 CSOLNP solnpContext1;
-                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqB, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, solFun, solEqBFun, solIneqFun, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 

@@ -47,17 +47,8 @@ void setupIneqGreater(struct Matrix *lb, struct Matrix *ub, int size)
     }
 }
 
-void setupEqB(struct Matrix *eqPointer, int size)
+void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct Matrix ub_ineq)
 {
-    int index = 0;
-    for(int offset = 0; offset < size; offset++) {
-        eqPointer->t[index] = 0.0;
-        index++;
-    }
-}
-
-
-void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct Matrix ub_ineq, struct Matrix eqb)  {
     omxState *globalState = fc->state;
     if (globalState->numConstraints == 0){
         return;
@@ -70,10 +61,8 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
     Matrix ub_ineqless = fill(1, 1, EMPTY);
     Matrix lb_ineqmore = fill(1, 1, EMPTY);
     Matrix ub_ineqmore = fill(1, 1, EMPTY);
-    Matrix eqbound = fill(1, 1, EMPTY);
     Matrix ineq_lb = fill(0, 1, EMPTY);
     Matrix ineq_ub = fill(0, 1, EMPTY);
-    Matrix myeqb = fill(0, 1, EMPTY);
     
     for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
         
@@ -85,12 +74,6 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
             Matrix lb_ineqless = fill(size, 1, EMPTY);
             Matrix ub_ineqless = fill(size, 1, EMPTY);
             setupIneqLess(&lb_ineqless, &ub_ineqless, size);
-        }
-        
-        if (globalState->conList[constraintIndex].opCode == 1)
-        {
-            eqbound = fill(size, 1, EMPTY);
-            setupEqB(&eqbound, size);
         }
         
         if (globalState->conList[constraintIndex].opCode == 2)
@@ -110,15 +93,10 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
             ineq_lb = copy(ineq_lb, lb_ineqmore);
             ineq_ub = copy(ineq_ub, ub_ineqmore);
         }
-        else if (M(eqbound, 0, 0) != EMPTY)
-        {
-            myeqb = copy(myeqb, eqbound);
-        }
     }
     
     if (lb_ineq.cols < ineq_lb.cols ||
-        ub_ineq.cols < ineq_ub.cols ||
-        eqb.cols < myeqb.cols) {
+        ub_ineq.cols < ineq_ub.cols) {
         Rf_error("Failed to unpack constraint bounds");
     }
     
@@ -127,10 +105,4 @@ void omxProcessConstraintsCsolnp(FitContext *fc, struct Matrix lb_ineq, struct M
         lb_ineq.t[i] = M(ineq_lb, i, 0);
         ub_ineq.t[i] = M(ineq_ub, i, 0);
     }
-    
-    for (i = 0; i < myeqb.cols; i++)
-    {
-        eqb.t[i] = M(myeqb, i, 0);
-    }
-    
 }
