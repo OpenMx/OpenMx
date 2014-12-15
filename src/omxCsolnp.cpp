@@ -32,50 +32,51 @@ static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
 
-template <typename T1>
-static void setupIneqConstraintBounds(FitContext *fc, Eigen::MatrixBase<T1> &solIneqLB, Eigen::MatrixBase<T1> &solIneqUB)
-{
-	omxState *globalState = fc->state;
-        int eqn = 0;
-        for(int j = 0; j < globalState->numConstraints; j++) {
-		if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
-			eqn += globalState->conList[j].size;
-		}
-        }
-        int nineqn = globalState->ncnln - eqn;
-	if (nineqn == 0) return;
-
-	solIneqLB.derived().resize(nineqn);
-	solIneqUB.derived().resize(nineqn);
-        
-	int cur=0;
-        for(int j = 0; j < globalState->numConstraints; j++) {
-		omxConstraint &con = globalState->conList[j];
-		if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
-
-		double lb, ub;
-		if (con.opCode == omxConstraint::LESS_THAN) {
-			lb = NEG_INF;
-			ub = -0.0;
-		} else {
-			lb = 0.0;
-			ub = INF;
-		}
-
-		for (int en=0; en < con.size; ++en) {
-			solIneqLB[cur+en] = lb;
-			solIneqUB[cur+en] = ub;
-		}
-
-		cur += con.size;
-	}
-}
-
 struct RegularFit : CSOLNPFit {
 	FitContext *fc;
 	omxMatrix *fitMatrix;
 
-	RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {};
+	RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {
+		setupIneqConstraintBounds();
+	};
+
+	void setupIneqConstraintBounds()
+	{
+		omxState *globalState = fc->state;
+		int eqn = 0;
+		for(int j = 0; j < globalState->numConstraints; j++) {
+			if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
+				eqn += globalState->conList[j].size;
+			}
+		}
+		int nineqn = globalState->ncnln - eqn;
+		if (nineqn == 0) return;
+
+		solIneqLB.derived().resize(nineqn);
+		solIneqUB.derived().resize(nineqn);
+        
+		int cur=0;
+		for(int j = 0; j < globalState->numConstraints; j++) {
+			omxConstraint &con = globalState->conList[j];
+			if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
+
+			double lb, ub;
+			if (con.opCode == omxConstraint::LESS_THAN) {
+				lb = NEG_INF;
+				ub = -0.0;
+			} else {
+				lb = 0.0;
+				ub = INF;
+			}
+
+			for (int en=0; en < con.size; ++en) {
+				solIneqLB[cur+en] = lb;
+				solIneqUB[cur+en] = ub;
+			}
+
+			cur += con.size;
+		}
+	};
 
 	virtual double solFun(double *myPars, int* mode, int verbose)
 	{
@@ -217,12 +218,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     bool myDEBUG = false;
     /* Set up actual run */
     
-    Eigen::VectorXd EsolIneqLB;
-    Eigen::VectorXd EsolIneqUB;
-    setupIneqConstraintBounds(fc, EsolIneqLB, EsolIneqUB);
-    Matrix solIneqLB(EsolIneqLB);
-    Matrix solIneqUB(EsolIneqUB);
-
     Eigen::VectorXd bl(n);
     Eigen::VectorXd bu(n);
     for(int index = 0; index < n; index++) {
@@ -250,7 +245,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     RegularFit rf(fc, fitMatrix);
     CSOLNP solnpContext(rf);
-    p_obj = solnpContext.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+    p_obj = solnpContext.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
     
     fc->fit = p_obj.objValue;
     if (verbose >= 1) {
@@ -372,12 +367,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     bool myDEBUG = false;
     /* Set up actual run */
     
-    Eigen::VectorXd EsolIneqLB;
-    Eigen::VectorXd EsolIneqUB;
-    setupIneqConstraintBounds(&fc, EsolIneqLB, EsolIneqUB);
-    Matrix solIneqLB(EsolIneqLB);
-    Matrix solIneqUB(EsolIneqUB);
-    
     Eigen::VectorXd bl(n);
     Eigen::VectorXd bu(n);
     for(int index = 0; index < n; index++) {
@@ -422,7 +411,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = TRUE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -487,7 +476,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = FALSE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, solIneqUB, solIneqLB, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 

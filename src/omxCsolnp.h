@@ -22,6 +22,9 @@
 #include <Eigen/Core>
 
 struct CSOLNPFit {
+	Eigen::VectorXd solIneqLB;
+	Eigen::VectorXd solIneqUB;
+
 	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
 	virtual Matrix solEqBFun(int verbose) = 0;
 	virtual Matrix myineqFun(int verbose) = 0;
@@ -32,8 +35,6 @@ struct CSOLNP {
     int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
     Matrix LB;
     Matrix UB;
-    Matrix ineqLB;
-    Matrix ineqUB;
     Matrix resP;
     double resLambda;
     Matrix resHessv;
@@ -46,7 +47,7 @@ struct CSOLNP {
 	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
     
 	template <typename ParType>
-	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars, Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB, Matrix solctrl, bool debugToggle, int verbose);
+	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars, Matrix solLB, Matrix solUB, Matrix solctrl, bool debugToggle, int verbose);
 
     Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
 		 const Eigen::Array<double, 5, 1> &ctrl, int verbose);
@@ -84,7 +85,7 @@ void CSOLNPOpt_FuncPrecision(const char *optionValue);
 
 template <typename ParType>
 Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
-			Matrix solLB, Matrix solUB, Matrix solIneqUB, Matrix solIneqLB,
+			Matrix solLB, Matrix solUB,
 			Matrix solctrl, bool debugToggle, int verbose)
 {
     mode_val = 0;
@@ -104,15 +105,11 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         mxLog("solEqBFun is: \n");
         for (i = 0; i < eqv.cols; i++) mxLog("%f",eqv.t[i]);
         mxLog("myineqFun is: \n");
-        for (i = 0; i < solIneqLB.cols; i++) mxLog("%f", fit.myineqFun(0).t[i]);
+        for (i = 0; i < fit.solIneqLB.size(); i++) mxLog("%f", fit.myineqFun(0).t[i]);
         mxLog("solLB is: \n");
         for (i = 0; i < solLB.cols; i++) mxLog("%f", solLB.t[i]);
         mxLog("solUB is: \n");
         for (i = 0; i < solUB.cols; i++) mxLog("%f", solUB.t[i]);
-        mxLog("solIneqUB is: \n");
-        for (i = 0; i < solIneqUB.cols; i++) mxLog("%f", solIneqUB.t[i]);
-        mxLog("solIneqLB is: \n");
-        for (i = 0; i < solIneqLB.cols; i++) mxLog("%f", solIneqLB.t[i]);
     }
     
     flag = 0; flag_L = 0; flag_U = 0;
@@ -130,12 +127,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     Matrix grad = fill(solPars.size(), 1, (double)0.0);
     //free(matrices.front().t);
-    ineqLB.cols = solIneqLB.cols;
-    ineqUB.cols = solIneqUB.cols;
     LB.cols = solLB.cols;
     UB.cols = solUB.cols;
-    Matrix ineqLBx;
-    Matrix ineqUBx;
     Matrix pb_cont;
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
@@ -144,32 +137,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     if(verbose >= 2){
         mxLog("control is: \n");
         for (i = 0; i < solctrl.cols; i++) mxLog("%f",solctrl.t[i]);
-    }
-    
-    
-    if (ineqLB.cols > 1){
-        ineqLB = duplicateIt(solIneqLB);
-        if (ineqUB.cols < 1){
-            ineqUB = fill(ineqLB.cols, 1, (double) DBL_MAX/2);
-            
-        }
-    }
-    else
-    {
-        ineqLB = fill(1, 1, (double) 0.0);
-        M(ineqLB, 0, 0) = EMPTY;
-    }
-    
-    if (ineqUB.cols > 1){
-        ineqUB = duplicateIt(solIneqUB);
-        if (ineqLB.cols < 1){
-            ineqLB = fill(ineqUB.cols, 1, (double) -DBL_MAX/2);
-        }
-    }
-    else
-    {
-        ineqUB = fill(1, 1, (double) 0.0);
-        M(ineqUB, 0, 0) = EMPTY;
     }
     
     
@@ -251,55 +218,17 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     // does not have a hessian (currently not supported in Rsolnp)
     ind[indHasHessian] = 0;
+    // no jacobian (not implemented)
+    ind[indHasJacobianIneq] = 0;
     
     // do inequality checks and return starting values
-    int nineq;
-    Matrix ineqx0 = fill(ineqLB.cols, 1, (double)0.0);
-    
-    Matrix ineqv = fit.myineqFun(verbose);
-    
-    if ( M(ineqv, 0, 0) != EMPTY){
-        
-        ind[indHasIneq] = 1;
-        nineq = ineqLB.cols;
-        
-        ind[indIneqLength] = nineq;
-        
-        // check for infitnites/nans
-        
-        ineqLBx = ineqLB;
-        ineqUBx = ineqUB;
-        
-        int i;
-        for (i = 0; i<ineqLBx.cols; i++)
-        {
-            if (M(ineqLBx,i,0) <= -99999999.0){
-                M(ineqLBx,i,0) = -1.0 * (1e10);
-            }
-            if (M(ineqUBx,i,0) >= DBL_MAX){
-                M(ineqUBx,i,0) = 1e10;
-            }
-        }
-        
-        
-        for (i = 0; i < ineqLBx.cols; i++)
-        {
-            M(ineqx0, i, 0) = (M(ineqLBx, i, 0) + M(ineqUBx, i, 0)) / 2.0;
-        }
-        
-        // no jacobian
-        ind[indHasJacobianIneq] = 0;
-        
-    }
-    else{
-        
-        M(ineqv, 0, 0) = EMPTY;
-        ind[indHasIneq] = 0;
-        nineq = 0;
-        ind[indIneqLength] = 0;
-        ind[indHasJacobianIneq] = 0;
-        M(ineqx0, 0, 0) = EMPTY;
-    }
+    const int nineq = fit.solIneqLB.size();
+    ind[indIneqLength] = nineq;
+    ind[indHasIneq] = nineq > 0;    
+
+    Eigen::VectorXd Eineqx0(nineq);
+    Eineqx0.setZero();
+    Matrix ineqx0(Eineqx0);
     
     int neq;
     Matrix eqv = fit.solEqBFun(verbose);
@@ -329,22 +258,22 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     
     if(ind[indHasBoundsOrIneq])
-    {   if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
+    {   if((M(LB, 0, 0) != EMPTY) && nineq)
     {   pb = fill(2, nineq, (double)0.0);
-        setColumnInplace(pb, ineqLB, 0);
-        setColumnInplace(pb, ineqUB, 1);
+        setColumnInplace(pb, fit.solIneqLB, 0);
+        setColumnInplace(pb, fit.solIneqUB, 1);
         pb_cont = fill(2, np, (double)0.0);
         setColumnInplace(pb_cont, LB, 0);
         setColumnInplace(pb_cont, UB, 1);
         pb = transpose(copy(transpose(pb), transpose(pb_cont)));
     }
-    else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
+    else if((M(LB, 0, 0) == EMPTY) && nineq)
     {
         pb = fill(2, nineq, (double)0.0);
-        setColumnInplace(pb, ineqLB, 0);
-        setColumnInplace(pb, ineqUB, 1);
+        setColumnInplace(pb, fit.solIneqLB, 0);
+        setColumnInplace(pb, fit.solIneqUB, 1);
     }
-    else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
+    else if((M(LB, 0, 0) != EMPTY) && nineq==0)
     {
         pb = fill(2, np, (double)0.0);
         setColumnInplace(pb, LB, 0);
@@ -371,9 +300,10 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix constraint;
     
     if (tc > 0){
+	    Matrix ineqv = fit.myineqFun(verbose);
         lambda = fill(1, tc, (double)0.0);
         
-        if (M(ineqv, 0, 0) != EMPTY){
+        if (nineq){
             if(eqv.cols)
             {
                 constraint = copy(eqv, ineqv);
@@ -386,12 +316,12 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         
         if( ind[indHasIneq] > 0 ) {
             
-            // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .ineqLB, .ineqUB - constraint[ (neq + 1):tc ] )
+            // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .fit.solIneqLB, .fit.solIneqUB - constraint[ (neq + 1):tc ] )
             Matrix difference1 = subset(constraint, 0, neq, tc-1);
-            subtractEigen(difference1, ineqLB);
+            subtractEigen(difference1, fit.solIneqLB);
             Matrix difference2 = subset(constraint, 0, neq, tc-1);
             negate(difference2);
-            addEigen(difference2, ineqUB);
+            addEigen(difference2, fit.solIneqUB);
             tmpv = fill(2, nineq, (double)0.0);
             setColumnInplace(tmpv, difference1, 0);
             setColumnInplace(tmpv, difference2, 1);
@@ -436,7 +366,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix ob;
     Matrix funvMatrix = fill(1, 1, funv);
     
-    if ( M(ineqv, 0, 0) != EMPTY){
+    if ( nineq){
+	    Matrix ineqv = fit.myineqFun(verbose);
         if(eqv.cols){
             Matrix firstCopied = copy(funvMatrix, eqv);
             ob = copy(firstCopied, ineqv);
@@ -527,9 +458,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
             funv = fit.solFun(p.t, mode, verbose);
             funvMatrix = fill(1, 1, funv);
             eqv = fit.solEqBFun(verbose);
-            ineqv = fit.myineqFun(verbose);
-            if ( M(ineqv, 0, 0) != EMPTY)
-            {
+            if ( nineq) {
+		    Matrix ineqv = fit.myineqFun(verbose);
                 if(eqv.cols)
                 {
                     Matrix firstCopied = copy(funvMatrix, eqv);
@@ -596,10 +526,9 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         //Matrix tempdf = copy(temp, funv_mat);
         eqv = fit.solEqBFun(verbose);
         
-        ineqv = fit.myineqFun(verbose);
-        
         Matrix firstPart, copied;
-        if (M(ineqv, 0, 0) != EMPTY){
+        if (nineq){
+		Matrix ineqv = fit.myineqFun(verbose);
             if(eqv.cols){
                 copied = copy(fill(1, 1, funv), eqv);
                 ob = copy(copied, ineqv);

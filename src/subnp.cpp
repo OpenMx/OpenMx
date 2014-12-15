@@ -61,10 +61,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     if(ind[indHasBoundsOrIneq])
     {
-        if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
+        if((M(LB, 0, 0) != EMPTY) && nineq)
         {   pb = fill(2, nineq, (double)0.0);
-            setColumnInplace(pb, ineqLB, 0);
-            setColumnInplace(pb, ineqUB, 1);
+            setColumnInplace(pb, fit.solIneqLB, 0);
+            setColumnInplace(pb, fit.solIneqUB, 1);
             
             pb_cont = fill(2, np, (double)0.0);
             setColumnInplace(pb_cont, LB, 0);
@@ -73,14 +73,14 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             pb = transpose(copy(transpose(pb), transpose(pb_cont)));//MAHSA
             
         }
-        else if((M(LB, 0, 0) == EMPTY) && (M(ineqLB, 0, 0) != EMPTY))
+        else if((M(LB, 0, 0) == EMPTY) && nineq)
         {
             pb = fill(2, nineq, (double)0.0);
-            setColumnInplace(pb, ineqLB, 0);
-            setColumnInplace(pb, ineqUB, 1);
+            setColumnInplace(pb, fit.solIneqLB, 0);
+            setColumnInplace(pb, fit.solIneqUB, 1);
             
         }
-        else if((M(LB, 0, 0) != EMPTY) && (M(ineqLB, 0, 0) == EMPTY))
+        else if((M(LB, 0, 0) != EMPTY) && !nineq)
         {
             pb = fill(2, np, (double)0.0);
             setColumnInplace(pb, LB, 0);
