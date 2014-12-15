@@ -516,16 +516,14 @@ void addEigen(Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
     Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
     
-    if (x.cols != y.cols || x.rows != y.rows)
-    {
-        if (x.cols == y.rows)
-        {
-            secondM.transpose();
+    if (x.cols != y.cols || x.rows != y.rows) {
+        if (x.cols == y.rows) {
+            firstM += secondM.transpose();
         }
         else Rf_error("CSOLNP BUG: noncomformant matrices are added");
+    } else {
+	    firstM += secondM;
     }
-    
-    firstM += secondM;
 }
 
 void subtractEigen(Matrix x,  Matrix y)
@@ -858,7 +856,6 @@ void copyEigen(Matrix result, Matrix x,  Matrix y)
     Eigen::Map< Eigen::MatrixXd > resultEigen(result.t, result.rows, result.cols);
     Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
     Eigen::Map< Eigen::MatrixXd > secondM(y.t, y.rows, y.cols);
-    resultEigen(firstM.rows(), firstM.cols()+ secondM.cols());
     resultEigen << firstM, secondM;
 }
 
