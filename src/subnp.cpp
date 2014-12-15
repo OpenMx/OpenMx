@@ -21,10 +21,9 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         for (i = 0; i < solPars.cols; i++) mxLog("%f", solPars.t[i]);
         mxLog("4th call is: \n");
         mxLog("%2f", solFun(solPars, mode, 0));
-        mxLog("solEqB is: \n");
-        for (i = 0; i < solEqB.cols; i++) mxLog("%f", solEqB.t[i]);
+	Matrix eqv = solEqBFun(0);
         mxLog("solEqBFun is: \n");
-        for (i = 0; i < solEqB.cols; i++) mxLog("%f",solEqBFun(0).t[i]);
+        for (i = 0; i < eqv.cols; i++) mxLog("%f",eqv.t[i]);
         mxLog("myineqFun is: \n");
         for (i = 0; i < solIneqLB.cols; i++) mxLog("%f", myineqFun(0).t[i]);
         mxLog("solLB is: \n");
@@ -227,13 +226,12 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     int neq;
     Matrix eqv = solEqBFun(verbose);
     
-    if( M(eqv, 0, 0) != EMPTY){
+    if(eqv.cols){
         ind[indHasEq] = 1;
-        neq = solEqB.cols;
+        neq = eqv.cols;
         ind[indEqLength] = neq;
         ind[indHasJacobianEq] = 0;
     } else{
-        M(eqv, 0, 0) = EMPTY;
         ind[indHasEq] = 0;
         neq = 0;
         ind[indEqLength] = 0;
@@ -298,7 +296,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         lambda = fill(1, tc, (double)0.0);
         
         if (M(ineqv, 0, 0) != EMPTY){
-            if(M(eqv,0,0) != EMPTY)
+            if(eqv.cols)
             {
                 constraint = copy(eqv, ineqv);
             }
@@ -361,7 +359,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
     Matrix funvMatrix = fill(1, 1, funv);
     
     if ( M(ineqv, 0, 0) != EMPTY){
-        if(M(eqv,0,0) != EMPTY){
+        if(eqv.cols){
             Matrix firstCopied = copy(funvMatrix, eqv);
             ob = copy(firstCopied, ineqv);
         }
@@ -370,7 +368,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         }
         
     }
-    else if (M(eqv,0,0) != EMPTY){
+    else if (eqv.cols) {
         ob = copy(funvMatrix, eqv);
     }
     else ob = duplicateIt(funvMatrix);
@@ -454,7 +452,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
             ineqv = myineqFun(verbose);
             if ( M(ineqv, 0, 0) != EMPTY)
             {
-                if(M(eqv,0,0) != EMPTY)
+                if(eqv.cols)
                 {
                     Matrix firstCopied = copy(funvMatrix, eqv);
                     ob = copy(firstCopied, ineqv);
@@ -463,7 +461,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
                     ob = copy(funvMatrix, ineqv);
                 }
             }
-            else if (M(eqv,0,0) != EMPTY){
+            else if (eqv.cols){
                 ob = copy(funvMatrix, eqv);
             }
             else ob = duplicateIt(funvMatrix);
@@ -524,7 +522,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
         
         Matrix firstPart, copied;
         if (M(ineqv, 0, 0) != EMPTY){
-            if(M(eqv,0,0) != EMPTY){
+            if(eqv.cols){
                 copied = copy(fill(1, 1, funv), eqv);
                 ob = copy(copied, ineqv);
                 
@@ -533,7 +531,7 @@ Param_Obj CSOLNP::solnp(Matrix solPars, double (*solFun)(Matrix, int*, int), Mat
                 ob = copy(fill(1, 1, funv), ineqv);
             }
         }
-        else if (M(eqv,0,0) != EMPTY){
+        else if (eqv.cols){
             ob = copy(fill(1, 1, funv), eqv);
         }
         else ob = fill(1, 1, funv);
@@ -960,7 +958,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             Matrix secondPart;
             
             if (M(ineqv,0,0) != EMPTY){
-                if(M(eqv,0,0) != EMPTY)
+                if(eqv.cols)
                 {
                     firstPartt = copy(fill(1, 1, funv), eqv);
                     firstPart = copy(firstPartt, ineqv);
@@ -969,7 +967,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     firstPart = copy(fill(1, 1, funv), ineqv);
                 }
             }
-            else if (M(eqv,0,0) != EMPTY){
+            else if (eqv.cols){
                 firstPart = copy(fill(1, 1, funv), eqv);
             }
             else firstPart = fill(1, 1, funv);
@@ -1191,7 +1189,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         solnp_nfn = solnp_nfn + 1;
         Matrix firstPart, secondPart, firstPartt;
         if ( M(ineqv,0,0) != EMPTY){
-            if (M(eqv,0,0) != EMPTY){
+            if (eqv.cols){
                 firstPartt = copy(fill(1, 1, funv), eqv);
                 firstPart = copy(firstPartt, ineqv);
             }
@@ -1199,7 +1197,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 firstPart = copy(fill(1, 1, funv), ineqv);
             }
         }
-        else if (M(eqv,0,0) != EMPTY){
+        else if (eqv.cols){
             firstPart = copy(fill(1, 1, funv), eqv);
         }
         else firstPart = fill(1, 1, funv);
@@ -1310,7 +1308,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 solnp_nfn = solnp_nfn + 1;
                 
                 if (M(ineqv, 0, 0) != EMPTY){
-                    if(M(eqv,0,0) != EMPTY)
+                    if(eqv.cols)
                     {
                         if(t1.t == NULL) t1 = new_matrix(1, 1);
                         fill_t(t1, 1, 1, funv);
@@ -1329,7 +1327,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                         
                     }
                 }
-                else if (M(eqv,0,0) != EMPTY){
+                else if (eqv.cols){
                     if(t1.t == NULL) t1 = new_matrix(1, 1);
                     fill_t(t1, 1, 1, funv);
                     if (firstPart.t == NULL) firstPart = new_matrix(t1.cols + eqv.cols, t1.rows);
@@ -1863,7 +1861,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
         solnp_nfn = solnp_nfn + 1;
         
         if (M(ineqv, 0, 0) != EMPTY){
-            if(M(eqv,0,0) != EMPTY)
+            if(eqv.cols)
             {
                 if (t20.t == NULL) t20 = new_matrix(1, 1);
                 fill_t(t20, 1, 1, funv);
@@ -1880,7 +1878,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                 copyEigen(firstPart, t20, ineqv);
             }
         }
-        else if (M(eqv, 0, 0) != EMPTY){
+        else if (eqv.cols){
             if (t20.t == NULL) t20 = new_matrix(1, 1);
             fill_t(t20, 1, 1, funv);
             if (firstPart.t == NULL) firstPart = new_matrix(t20.cols + eqv.cols, t20.rows);
@@ -2001,7 +1999,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
             Matrix firstPart, secondPart, firstPartt;
             
             if (M(ineqv, 0, 0) != EMPTY){
-                if(M(eqv,0,0) != EMPTY)
+                if(eqv.cols)
                 {
                     if (t20.t == NULL) t20 = new_matrix(1, 1);
                     fill_t(t20, 1, 1, funv);
@@ -2018,7 +2016,7 @@ Matrix CSOLNP::subnp(Matrix pars, double (*solFun)(Matrix, int*, int), Matrix (*
                     copyEigen(firstPart, t20, ineqv);
                 }
             }
-            else if (M(eqv, 0, 0) != EMPTY){
+            else if (eqv.cols){
                 if (t20.t == NULL) t20 = new_matrix(1, 1);
                 fill_t(t20, 1, 1, funv);
                 if (firstPart.t == NULL) firstPart = new_matrix(t20.cols + eqv.cols, t20.rows);

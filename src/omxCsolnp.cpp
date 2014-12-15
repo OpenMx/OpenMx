@@ -130,11 +130,7 @@ Matrix csolnpEqualityFunction(int verbose)
         mxLog("neq is: %d.", eq_n);
     }
     
-    if (eq_n == 0)
-    {
-        myEqBFun = fill(1, 1, EMPTY);
-    }
-    else {
+    if (eq_n) {
         myEqBFun = fill(eq_n, 1, EMPTY);
         
         for(j = 0; j < globalState->numConstraints; j++) {
