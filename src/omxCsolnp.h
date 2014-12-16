@@ -18,7 +18,6 @@
 #define _OMX_CSOLNP_SPECIFIC_H
 
 #include "omxMatrix.h"
-#include "matrix.h"
 #include <Eigen/Core>
 
 struct CSOLNPFit {
@@ -31,54 +30,18 @@ struct CSOLNPFit {
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
 
+	// output
+	int informOut;
+	double fitOut;
+	Eigen::VectorXd gradOut;
+	Eigen::MatrixXd hessOut;
+
 	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
 	virtual void solEqBFun(int verbose) = 0;
 	virtual void myineqFun(int verbose) = 0;
 };
 
-struct CSOLNP {
-
-    int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
-    Matrix LB;
-    Matrix UB;
-    Matrix resP;
-    double resLambda;
-    Matrix resHessv;
-    Matrix resY;
-    Matrix sx_Matrix;
-    int mode_val;
-    int* mode;
-	CSOLNPFit &fit;
-
-	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
-    
-	enum Control {
-		ControlRho=0,
-		ControlMajorLimit,
-		ControlMinorLimit,
-		ControlFuncPrecision,
-		ControlTolerance,
-		NumControl
-	};
-
-	Param_Obj solnp(double *pars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose);
-
-    Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
-		 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
-
-	enum indParam {
-		indNumParam=0,
-		indHasGradient,
-		indHasHessian,
-		indHasIneq,
-		indHasJacobianIneq,
-		indHasEq,
-		indHasJacobianEq,
-		indVectorLength  // must be last
-	};
-
-	Eigen::Array<double, int(indVectorLength), 1> ind;
-};
+void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &solctrl, int verbose);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
                      FreeVarGroup *freeVarGroup, int verbose, double *hessOut,

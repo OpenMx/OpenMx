@@ -36,7 +36,6 @@
 #include "omxOpenmpWrap.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
-#include "matrix.h"
 #include "omxBuffer.h"
 
 class omxComputeNumericDeriv : public omxCompute {

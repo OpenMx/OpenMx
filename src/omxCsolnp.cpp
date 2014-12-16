@@ -23,7 +23,6 @@
 #include "omxMatrix.h"
 #include "glue.h"
 #include "omxImportFrontendState.h"
-#include "matrix.h"
 #include "omxCsolnp.h"
 #include "omxBuffer.h"
 
@@ -155,25 +154,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
 {
-    freeMatrices(); // maybe left overs from an aborted optimization attempt
-    
     fc->grad.resize(fc->numParam);
     
-    int k;
-    int inform = 0;
-    
-    //double *cJac = NULL;    // Hessian (Approx) and Jacobian
-    
-    omxState *globalState = fc->state;
-    const int ncnln = globalState->ncnln;
     int n = int(freeVarGroup->vars.size());
-    
-    Param_Obj p_obj;
-    Matrix param_hess;
     
     Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
     
-    Eigen::Array<double, CSOLNP::NumControl, 1> myControl;
+    Eigen::Array<double, 5, 1> myControl;
     myControl[0] = 1.0;
     myControl[1] = majIter;
     myControl[2] = minIter;
@@ -184,7 +171,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
         mxLog("--------------------------");
         mxLog("Starting Values (%d) are:", n);
     }
-    for(k = 0; k < n; k++) {
+    for(int k = 0; k < n; k++) {
         if((myPars[k] == 0.0)) {
             myPars[k] += 0.1;
         }
@@ -196,39 +183,28 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     }
     
     RegularFit rf(fc, fitMatrix);
-    CSOLNP solnpContext(rf);
-    p_obj = solnpContext.solnp(myPars.data(), myControl, verbose);
+    solnp(myPars.data(), rf, myControl, verbose);
     
-    fc->fit = p_obj.objValue;
+    fc->fit = rf.fitOut;
     if (verbose >= 1) {
         mxLog("final objective value is: \n");
         mxLog("%2f", fc->fit);
     }
-    param_hess = p_obj.parameter;
-    
-    subset(param_hess, 0, 0, n-1, myPars);
     
     if (verbose>= 1){
         mxLog("final myPars value is: \n");
         for (int i = 0; i < myPars.size(); i++) mxLog("%f", myPars[i]);
     }
     
-    Matrix inform_m = subset(param_hess, 0, param_hess.cols-1, param_hess.cols-1);
+    *inform_out = rf.informOut;
     
-    inform = M(inform_m, 0, 0);
-    
-    // Mahsa, remove this conditional
-    if (ncnln == 0) {
-	    subset(param_hess, 0, myPars.size() + (myPars.size()*myPars.size()), param_hess.cols-2, fc->grad);
-    
-	    Eigen::Map< Eigen::VectorXd > hessVec(hessOut, myPars.size() * myPars.size());
-	    subset(param_hess, 0, n, param_hess.cols - myPars.size() - 2, hessVec);
+    if (rf.gradOut.size()) {
+	    fc->grad = rf.gradOut.head(n);
+	    Eigen::Map< Eigen::MatrixXd > hess(hessOut, n, n);
+	    hess = rf.hessOut.topLeftCorner(n, n);
     }
     
     fc->copyParamToModel();
-    
-    *inform_out = inform;
-    freeMatrices();
 }
 
 struct ConfidenceIntervalFit : RegularFit {
@@ -296,19 +272,12 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     FitContext fc(opt, opt->varGroup);
     FreeVarGroup *freeVarGroup = fc.varGroup;
     
-    int inform;
-    
     int n = int(freeVarGroup->vars.size());
     double f = opt->fit;
     omxBuffer< double > gradient(n);
     omxBuffer< double > hessian(n * n);
     
-    Param_Obj p_obj_conf;
-    Matrix param_hess;
-    Matrix myhess = fill(n*n, 1, (double)0.0);
-    Matrix mygrad;
-    
-    Eigen::Array<double, CSOLNP::NumControl, 1> myControl;
+    Eigen::Array<double, 5, 1> myControl;
     myControl[0] = 1.0;
     myControl[1] = majIter;
     myControl[2] = minIter;
@@ -340,8 +309,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
         
         if (std::isfinite(currentCI->lbound))
         {
-            /* Set up for the lower bound */
-            inform = -1;
+		int inform = -1;
             // Number of times to keep trying.
             int cycles = ciMaxIterations;
             
@@ -351,20 +319,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 /* Find lower limit */
                 currentCI->calcLower = TRUE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
-                CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(fc.est, myControl, verbose);
+                solnp(fc.est, cif, myControl, verbose);
                 
-                f = p_obj_conf.objValue;
-                
-                subset(p_obj_conf.parameter, 0, 0, n-1, myPars);
-                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.size() - 2);
-                
-                mygrad = subset(p_obj_conf.parameter, 0, myPars.size() + (myPars.size()*myPars.size()), p_obj_conf.parameter.cols-2);
-                
-                
-                Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
-                
-                inform = M(inform_m, 0, 0);
+                f = cif.fitOut;
+                inform = cif.informOut;
                 
                 if(verbose>=1) { mxLog("inform_lower is: %d", inform);}
                 
@@ -409,33 +367,23 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             
             /* Reset for the upper bound */
             double value = INF;
-            inform = -1;
+            int inform = -1;
             int cycles = ciMaxIterations;
             
             while(inform != 0 && cycles >= 0) {
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
-                CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars.data(), myControl, verbose);
+                solnp(myPars.data(), cif, myControl, verbose);
                 
-                f = p_obj_conf.objValue;
-                
-		subset(p_obj_conf.parameter, 0, 0, n-1, myPars);
-                myhess = subset(p_obj_conf.parameter, 0, n, p_obj_conf.parameter.cols - myPars.size() - 2);
-                
-                mygrad = subset(p_obj_conf.parameter, 0, myPars.size() + (myPars.size()*myPars.size()), p_obj_conf.parameter.cols-2);
-                
-                Matrix inform_m = subset(p_obj_conf.parameter, 0, p_obj_conf.parameter.cols-1, p_obj_conf.parameter.cols-1);
-                
-                
-                inform = M(inform_m, 0, 0);
+                f = cif.fitOut;
+                inform = cif.informOut;
+
                 if(verbose >= 1) { mxLog("inform_upper is: %d", inform);}
                 currentCI->uCode = inform;
                 
                 if(f < value) {
                     currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                    
                     value = f;
                 }
                 
@@ -464,8 +412,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
             
         }
     }
-    
-    freeMatrices();
 }
 
 void CSOLNPOpt_majIter(const char *optionValue)

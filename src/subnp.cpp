@@ -7,9 +7,60 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 
-Param_Obj CSOLNP::solnp(double *solPars,
-			const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
+struct CSOLNP {
+
+    int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
+    Matrix LB;
+    Matrix UB;
+    Matrix resP;
+    double resLambda;
+    Matrix resHessv;
+    Matrix resY;
+    Matrix sx_Matrix;
+    int mode_val;
+    int* mode;
+	CSOLNPFit &fit;
+
+	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
+	~CSOLNP() { freeMatrices(); };
+    
+	enum Control {
+		ControlRho=0,
+		ControlMajorLimit,
+		ControlMinorLimit,
+		ControlFuncPrecision,
+		ControlTolerance,
+		NumControl
+	};
+
+	void solnp(double *pars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose);
+
+    Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
+		 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
+
+	enum indParam {
+		indNumParam=0,
+		indHasGradient,
+		indHasHessian,
+		indHasIneq,
+		indHasJacobianIneq,
+		indHasEq,
+		indHasJacobianEq,
+		indVectorLength  // must be last
+	};
+
+	Eigen::Array<double, int(indVectorLength), 1> ind;
+};
+
+void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &solctrl, int verbose)
 {
+	CSOLNP context(fit);
+	context.solnp(solPars, solctrl, verbose);
+}
+
+void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
+{
+	fit.informOut = -1;
     mode_val = 0;
     mode = &mode_val;
     Matrix inform;
@@ -18,7 +69,7 @@ Param_Obj CSOLNP::solnp(double *solPars,
     Matrix p_grad;
     LB = fit.solLB;
     UB = fit.solUB;
-    struct Param_Obj pfunv;
+
     int i;
     if(verbose >= 3){
         mxLog("solPars is: \n");
@@ -297,13 +348,10 @@ Param_Obj CSOLNP::solnp(double *solPars,
         
         if (*mode == -1)
         {
-            M(inform, 0, 0) = 0;
-            hessi = MatrixToVector(fill(np, np, (double)0.0));
-            p_hess = copy(p, hessi);
-            p_grad = copy(p_hess, grad);
-            pfunv.parameter = copy(p_grad, inform);
-            pfunv.objValue = funv;
-            return pfunv;
+		fit.informOut = 0;
+		fit.fitOut = funv;
+		memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+		return;
         }
         
         if (sx_Matrix.t == NULL) sx_Matrix = fill(p.cols, p.rows, (double)0.0);
@@ -365,13 +413,10 @@ Param_Obj CSOLNP::solnp(double *solPars,
         funv = fit.solFun(temp.t, mode, verbose);
         if (*mode == -1)
         {
-            M(inform, 0, 0) = 0;
-            hessi = MatrixToVector(hessv);
-            p_hess = copy(p, hessi);
-            p_grad = copy(p_hess, grad);
-            pfunv.parameter = copy(p_grad, inform);
-            pfunv.objValue = funv;
-            return pfunv;
+		fit.informOut = 0;
+		fit.fitOut = funv;
+		memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+		return;
         }
         
         solnp_nfn = solnp_nfn + 1;
@@ -501,10 +546,7 @@ Param_Obj CSOLNP::solnp(double *solPars,
     }
     p = subset(p, 0, nineq, (nineq + np -1));
     
-    if (false){
-        /* TODO: LIST ERROR MESSAGES HERE */
-    }
-    else{
+    {
         double vnormValue;
         Matrix searchD;
         double iterateConverge;
@@ -567,33 +609,18 @@ Param_Obj CSOLNP::solnp(double *solPars,
         }
     }
     
-    hessi = fill(hessv.cols*hessv.cols,1 , (double)0.0);
-    
-    int ii;
-    int ind_hess = 0;
-    for (i = 0; i < hessv.cols; i++)
-    {
-        for (ii = 0; ii < hessv.rows; ii++)
-        {
-            M(hessi, ind_hess, 0) = M(hessv, i, ii);
-            ind_hess = ind_hess + 1;
-        }
-    }
-    
     if (verbose >= 1){
         mxLog("inform in subnp is: \n");
         for (i = 0; i < inform.cols; i++) mxLog("%f",inform.t[i]);
     }
     
-    //hessi = MatrixToVector(hessv);
-    p_hess = copy(p, hessi);
-    p_grad = copy(p_hess, grad);
-    pfunv.parameter = copy(p_grad, inform);
-    pfunv.objValue = funv;
-    
-    //exit(0);
-    return pfunv;
-    
+    fit.informOut = M(inform, 0, 0);
+    fit.fitOut = funv;
+    memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+    fit.gradOut.resize(grad.cols);
+    memcpy(fit.gradOut.data(), grad.t, fit.gradOut.size() * sizeof(double));
+    fit.hessOut.resize(hessv.rows, hessv.cols);
+    memcpy(fit.hessOut.data(), hessv.t, fit.hessOut.size() * sizeof(double));
 }
 
 Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,

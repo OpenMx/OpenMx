@@ -28,12 +28,30 @@
 #include "omxMatrix.h"
 #include "omxOpenmpWrap.h"
 #include "matrix.h"
+#include "unsupported/Eigen/MatrixFunctions"
 
 // forward declarations
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber);
 
 const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
+
+// For background, see
+// http://epubs.siam.org/doi/abs/10.1137/090768539
+
+void logm_eigen(int n, double *rz, double *out)
+{
+    Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
+    Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
+    outMat = inMat.log();
+}
+
+void expm_eigen(int n, double *rz, double *out)
+{
+    Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
+    Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
+    outMat = inMat.exp();
+}
 
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {

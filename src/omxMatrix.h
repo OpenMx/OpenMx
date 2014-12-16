@@ -349,4 +349,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
 
+void expm_eigen(int n, double *rz, double *out);
+void logm_eigen(int n, double *rz, double *out);
+
 #endif /* _OMXMATRIX_H_ */

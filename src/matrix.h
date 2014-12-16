@@ -41,19 +41,9 @@ struct Matrix {
 	};
 };
 
-typedef struct Param_Obj Param_Obj;
-
-struct Param_Obj {
-    Matrix parameter;
-    double objValue;
-};
-
-
 #define M(m,x,y) m.t[y+x*m.rows]
 
 bool all(Matrix x);
-
-Matrix MatrixToVector(Matrix mat);
 
 Matrix fillMatrix(int cols, int rows, double* array);
 
@@ -209,7 +199,7 @@ void subset_t(Matrix result, Matrix t, int row, int colStart, int colStop);
 
 void subsetEigen(Matrix result, Matrix x, int rowNum, int colStart, int colStop);
 
-Matrix copy(Matrix x,  Matrix y);
+Matrix copy(Matrix x,  Matrix y); // like cbind(y,x)
 
 void copy_t(Matrix result, Matrix x,  Matrix y);
 
@@ -234,8 +224,5 @@ struct Matrix qrSolve(struct Matrix a, struct Matrix b);
 struct Matrix qrDecomposition(struct Matrix t, bool rDecomp);
 
 void rowSort(struct Matrix t);
-
-void logm_eigen(int n, double *rz, double *out);
-void expm_eigen(int n, double *rz, double *out);
 
 #endif

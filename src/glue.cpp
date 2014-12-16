@@ -39,7 +39,6 @@
 #include "Compute.h"
 #include "dmvnorm.h"
 #include "npsolswitch.h"
-#include "matrix.h"
 
 static SEXP do_logm_eigen(SEXP x)
 {

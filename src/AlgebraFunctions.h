@@ -27,14 +27,14 @@
 *
 **********************************************************/
 
+#include <R.h>
+#include <Rmath.h>
 #include "omxMatrix.h"
 #include "merge.h"
 #include "omxBLAS.h"
 #include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
-#include <R.h>
-#include <Rmath.h>
 
 // TODO: Implement wrappers for BLAS functions used here.
 
