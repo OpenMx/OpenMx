@@ -197,7 +197,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     RegularFit rf(fc, fitMatrix);
     CSOLNP solnpContext(rf);
-    p_obj = solnpContext.solnp(myPars, myControl, verbose);
+    p_obj = solnpContext.solnp(myPars.data(), myControl, verbose);
     
     fc->fit = p_obj.objValue;
     if (verbose >= 1) {
@@ -352,7 +352,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = TRUE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, myControl, verbose);
+                p_obj_conf = solnpContext1.solnp(fc.est, myControl, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -417,7 +417,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = FALSE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, myControl, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars.data(), myControl, verbose);
                 
                 f = p_obj_conf.objValue;
                 
