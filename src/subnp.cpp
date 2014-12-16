@@ -59,10 +59,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     Matrix col1_pb;
     Matrix pb_cont;
     
-    if(ind[indHasBoundsOrIneq])
-    {
-        if((M(LB, 0, 0) != EMPTY) && nineq)
-        {   pb = fill(2, nineq, (double)0.0);
+    if(nineq) {
+	    pb = fill(2, nineq, (double)0.0);
             setColumnInplace(pb, fit.solIneqLB, 0);
             setColumnInplace(pb, fit.solIneqUB, 1);
             
@@ -71,25 +69,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             setColumnInplace(pb_cont, UB, 1);
             
             pb = transpose(copy(transpose(pb), transpose(pb_cont)));//MAHSA
-            
-        }
-        else if((M(LB, 0, 0) == EMPTY) && nineq)
-        {
-            pb = fill(2, nineq, (double)0.0);
-            setColumnInplace(pb, fit.solIneqLB, 0);
-            setColumnInplace(pb, fit.solIneqUB, 1);
-            
-        }
-        else if((M(LB, 0, 0) != EMPTY) && !nineq)
-        {
+    } else {
             pb = fill(2, np, (double)0.0);
             setColumnInplace(pb, LB, 0);
             setColumnInplace(pb, UB, 1);
             
-        }
-    }
-    else{
-        pb = fill(1, 1, EMPTY);
     }
     
     if (verbose >= 3){
@@ -112,13 +96,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     }
     
     int mm = 0;
-    if (ind[indHasBoundsOrIneq] > 0){
-        if (ind[indHasBounds] <= 0){
-            mm = nineq;
-        }
-        else{
+    {
             mm=npic;
-        }
         Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
         //double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
         Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
@@ -128,7 +107,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         if (M(pb, 0, 0) != EMPTY){
             divideEigen(pb, vscaleTwice);
         }
-    } // end if (ind [0][10] > 0)
+    }
     
     if (verbose >= 3){
         mxLog("pb is: \n");
@@ -298,15 +277,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
             ch = 1;
             
-            if ( ind[indHasBoundsOrIneq] < 0.5){
-                //Matrix dotProd = transposeDotProduct(a); //Mahsa: this is equal to "a %*% t(a)"
-                //Matrix solution = solve(dotProd, constraint);
-                
-                //p0 = subtract(p0, matrixDotProduct(transpose(a), solution));
-                
-                alp[0] = 1;
-            }
-            
         } // end if (alp[0][0] <= 0){
         
         if (alp[0] <= 0){
@@ -338,15 +308,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 dx = duplicateIt(dx_t);
                 
                 M(dx, npic_int, 0) = M(p0, npic_int, 0);
-                
-                if(ind[indHasBounds] <= 0)
-                {
-                    Matrix argum = fill(1, npic-mm, (double)1.0);
-                    multiplyByScalar2D(argum, max(findMax(subset(dx, 0, 0, mm-1)), 100));
-                    
-                    copyIntoInplace(dx, argum, 0, mm, npic-1);
-                    
-                }
                 
                 dx = transpose(dx);
                 
@@ -749,7 +710,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         
         dx = fill(npic, 1, 0.01);
         
-        if (ind[indHasBoundsOrIneq] > 0.5){
+        {
             if (gap1.t == NULL) gap1 = new_matrix(pb.cols, pb.rows);
             fill_t(gap1, pb.cols, pb.rows, (double)0.0);
             if (res.t == NULL) res = new_matrix(mm, 1);
@@ -782,16 +743,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             if (verbose >= 3){
                 mxLog("dx is: \n");
                 for (int ilog = 0; ilog < dx.cols; ilog++) mxLog("%f",dx.t[ilog]);
-            }
-            
-            if(ind[indHasBounds] <= 0)
-            {
-                if (t11.t == NULL) t11 = new_matrix(1, npic-mm);
-                fill_t(t11, 1, npic-mm, (double)1.0);
-                if (t10.t == NULL) t10 = new_matrix(mm, 1);
-                subsetEigen(t10, dx, 0, 0, mm-1);
-                multiplyByScalar2D(t11, min(findMin(t10), 0.01));
-                copyIntoInplace(dx, t11, 0, mm, npic-1);
             }
         }
         
@@ -1021,9 +972,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 for (int ilog = 0; ilog < p0_1.cols; ilog++) mxLog("%f",p0_1.t[ilog]);
             }
             
-            if (ind[indHasBoundsOrIneq] <= 0.5){
-                go = 1;
-            } else{
+	    {
                 if (listPartOne.t == NULL) listPartOne = new_matrix(mm, 1);
                 subsetEigen(listPartOne, p0_1, 0, 0, mm-1);
                 if (t16.t == NULL) t16 = new_matrix(pb.rows, 1);

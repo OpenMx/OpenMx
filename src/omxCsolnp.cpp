@@ -37,6 +37,14 @@ struct RegularFit : CSOLNPFit {
 	omxMatrix *fitMatrix;
 
 	RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {
+		FreeVarGroup *varGroup = fc->varGroup;
+		solLB.resize(fc->numParam);
+		solUB.resize(fc->numParam);
+		for(int index = 0; index < int(fc->numParam); index++) {
+			solLB[index] = varGroup->vars[index]->lbound;
+			solUB[index] = varGroup->vars[index]->ubound;
+		}
+
 		setupIneqConstraintBounds();
 	};
 
@@ -218,15 +226,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     bool myDEBUG = false;
     /* Set up actual run */
     
-    Eigen::VectorXd bl(n);
-    Eigen::VectorXd bu(n);
-    for(int index = 0; index < n; index++) {
-        bl[index] = freeVarGroup->vars[index]->lbound;
-        bu[index] = freeVarGroup->vars[index]->ubound;
-    }
-    Matrix blvar(bl);
-    Matrix buvar(bu);
-    
     /* Initialize Starting Values */
     if(OMX_DEBUG) {
         mxLog("--------------------------");
@@ -245,7 +244,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     RegularFit rf(fc, fitMatrix);
     CSOLNP solnpContext(rf);
-    p_obj = solnpContext.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
+    p_obj = solnpContext.solnp(myPars, myControl, myDEBUG, verbose);
     
     fc->fit = p_obj.objValue;
     if (verbose >= 1) {
@@ -367,15 +366,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     bool myDEBUG = false;
     /* Set up actual run */
     
-    Eigen::VectorXd bl(n);
-    Eigen::VectorXd bu(n);
-    for(int index = 0; index < n; index++) {
-        bl[index] = freeVarGroup->vars[index]->lbound;
-        bu[index] = freeVarGroup->vars[index]->ubound;
-    }
-    Matrix blvar(bl);
-    Matrix buvar(bu);
-    
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
     const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
@@ -411,7 +401,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = TRUE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -476,7 +466,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = FALSE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, blvar, buvar, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, myControl, myDEBUG, verbose);
                 
                 f = p_obj_conf.objValue;
                 

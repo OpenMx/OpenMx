@@ -22,6 +22,8 @@
 #include <Eigen/Core>
 
 struct CSOLNPFit {
+	Eigen::VectorXd solLB;
+	Eigen::VectorXd solUB;
 	Eigen::VectorXd solIneqLB;
 	Eigen::VectorXd solIneqUB;
 
@@ -47,7 +49,7 @@ struct CSOLNP {
 	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
     
 	template <typename ParType>
-	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars, Matrix solLB, Matrix solUB, Matrix solctrl, bool debugToggle, int verbose);
+	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars, Matrix solctrl, bool debugToggle, int verbose);
 
     Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
 		 const Eigen::Array<double, 5, 1> &ctrl, int verbose);
@@ -62,8 +64,6 @@ struct CSOLNP {
 		indHasEq,
 		indEqLength,
 		indHasJacobianEq,
-		indHasBounds,
-		indHasBoundsOrIneq,
 		indVectorLength  // must be last
 	};
 
@@ -85,7 +85,6 @@ void CSOLNPOpt_FuncPrecision(const char *optionValue);
 
 template <typename ParType>
 Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
-			Matrix solLB, Matrix solUB,
 			Matrix solctrl, bool debugToggle, int verbose)
 {
     mode_val = 0;
@@ -94,6 +93,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix hessi;
     Matrix p_hess;
     Matrix p_grad;
+    LB = fit.solLB;
+    UB = fit.solUB;
     struct Param_Obj pfunv;
     int i;
     if(verbose >= 3){
@@ -107,9 +108,9 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         mxLog("myineqFun is: \n");
         for (i = 0; i < fit.solIneqLB.size(); i++) mxLog("%f", fit.myineqFun(0).t[i]);
         mxLog("solLB is: \n");
-        for (i = 0; i < solLB.cols; i++) mxLog("%f", solLB.t[i]);
+        for (i = 0; i < LB.cols; i++) mxLog("%f", LB.t[i]);
         mxLog("solUB is: \n");
-        for (i = 0; i < solUB.cols; i++) mxLog("%f", solUB.t[i]);
+        for (i = 0; i < UB.cols; i++) mxLog("%f", UB.t[i]);
     }
     
     flag = 0; flag_L = 0; flag_U = 0;
@@ -127,8 +128,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     Matrix grad = fill(solPars.size(), 1, (double)0.0);
     //free(matrices.front().t);
-    LB.cols = solLB.cols;
-    UB.cols = solUB.cols;
     Matrix pb_cont;
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
@@ -139,34 +138,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         for (i = 0; i < solctrl.cols; i++) mxLog("%f",solctrl.t[i]);
     }
     
-    
-    if (LB.cols > 1){
-        LB = duplicateIt(solLB);
-        if (UB.cols < 1){
-            UB = fill(LB.cols, 1, (double) DBL_MAX/2);
-        }
-    }
-    else
-    {
-        LB = fill(1, 1, (double) 0.0);
-        M(LB, 0, 0) = EMPTY;
-    }
-    
-    if (UB.cols > 1){
-        UB = duplicateIt(solUB);
-        if (LB.cols < 1){
-            LB = fill(UB.cols, 1, (double) -DBL_MAX/2);
-        }
-        
-    }
-    else{
-        UB = fill(1, 1, (double) 0.0);
-        M(UB, 0, 0) = EMPTY;
-    }
-    
-    
-    if(LB.cols > 1)
-    {
         for (int i = 0; i < LB.cols; i++)
         {
             if (M(LB, i, 0) < M(pars, i, 0) && M(UB, i, 0) > M(pars, i, 0))
@@ -184,7 +155,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
                 M(pars, i, 0) = M(UB, i, 0) - M(solctrl, 4, 0);
             }
         }
-    }
     
     if (verbose >= 2){
         mxLog("LB is: \n");
@@ -205,10 +175,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     ind.setZero();
     ind[indNumParam] = pars.cols;
-    
-    if (M(LB, 0, 0) != EMPTY || M(UB, 0, 0) != EMPTY){
-        ind[indHasBounds] = 1;
-    }
     
     // does not have a function gradient (currently not supported in Rsolnp)
     ind[indHasGradient] = 0;
@@ -244,9 +210,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         ind[indEqLength] = 0;
         ind[indHasJacobianEq] = 0;
     }
-    if ( (ind[indHasBounds] > 0) || (ind[indHasIneq] > 0) ){
-        ind[indHasBoundsOrIneq] = 1;
-    }
     
     if (verbose >= 2){
         mxLog("ind is: \n");
@@ -256,32 +219,19 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     Matrix pb;
     
-    
-    if(ind[indHasBoundsOrIneq])
-    {   if((M(LB, 0, 0) != EMPTY) && nineq)
-    {   pb = fill(2, nineq, (double)0.0);
-        setColumnInplace(pb, fit.solIneqLB, 0);
-        setColumnInplace(pb, fit.solIneqUB, 1);
-        pb_cont = fill(2, np, (double)0.0);
-        setColumnInplace(pb_cont, LB, 0);
-        setColumnInplace(pb_cont, UB, 1);
-        pb = transpose(copy(transpose(pb), transpose(pb_cont)));
+    if(nineq) {
+	    pb = fill(2, nineq, (double)0.0);
+	    setColumnInplace(pb, fit.solIneqLB, 0);
+	    setColumnInplace(pb, fit.solIneqUB, 1);
+	    pb_cont = fill(2, np, (double)0.0);
+	    setColumnInplace(pb_cont, LB, 0);
+	    setColumnInplace(pb_cont, UB, 1);
+	    pb = transpose(copy(transpose(pb), transpose(pb_cont)));
+    } else {
+	    pb = fill(2, np, (double)0.0);
+	    setColumnInplace(pb, LB, 0);
+	    setColumnInplace(pb, UB, 1);
     }
-    else if((M(LB, 0, 0) == EMPTY) && nineq)
-    {
-        pb = fill(2, nineq, (double)0.0);
-        setColumnInplace(pb, fit.solIneqLB, 0);
-        setColumnInplace(pb, fit.solIneqUB, 1);
-    }
-    else if((M(LB, 0, 0) != EMPTY) && nineq==0)
-    {
-        pb = fill(2, np, (double)0.0);
-        setColumnInplace(pb, LB, 0);
-        setColumnInplace(pb, UB, 1);
-    }
-    }
-    
-    else    {pb = fill(1, 1, EMPTY);}
     
     double rho   = M(solctrl, 0, 0);
     int maxit = M(solctrl, 1, 0);
@@ -410,12 +360,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         else{
             vscale = fill(1, 1, (double)1.0);
         }
-        if ( ind[indHasBoundsOrIneq] <= 0){
-            vscale = copy(vscale, p);
-        }
-        else{
-            vscale = copy(vscale, fill(p.cols, 1, (double)1.0));
-        }
+	vscale = copy(vscale, fill(p.cols, 1, (double)1.0));
+
         minMaxAbs(vscale, tol);
         
         if (verbose >= 1){
@@ -486,12 +432,7 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
             else{
                 vscale = fill(1, 1, (double)1.0);
             }
-            if ( ind[indHasBoundsOrIneq] <= 0){
-                vscale = copy(vscale, p);
-            }
-            else{
-                vscale = copy(vscale, fill(p.cols, 1, (double)1.0));
-            }
+	    vscale = copy(vscale, fill(p.cols, 1, (double)1.0));
             minMaxAbs(vscale, tol);
             lambda = duplicateIt(resY);
             hessv = duplicateIt(resHessv);
