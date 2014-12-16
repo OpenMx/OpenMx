@@ -57,14 +57,13 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     Matrix pb;
     Matrix col1_pb;
-    Matrix pb_cont;
     
     if(nineq) {
 	    pb = fill(2, nineq, (double)0.0);
             setColumnInplace(pb, fit.solIneqLB, 0);
             setColumnInplace(pb, fit.solIneqUB, 1);
-            
-            pb_cont = fill(2, np, (double)0.0);
+	    
+            Matrix pb_cont = fill(2, np, (double)0.0);
             setColumnInplace(pb_cont, LB, 0);
             setColumnInplace(pb_cont, UB, 1);
             
