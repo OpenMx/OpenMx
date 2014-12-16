@@ -27,6 +27,9 @@ directories <- c('models/passing')
 if (any(args == 'nightly')) {
 	directories <- c(directories, 'demo', 'models/nightly')
 }
+if (any(args == 'failing')) {
+	directories <- c('models/failing')
+}
 
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
 	error = function(e) { file('nul', 'w') } )

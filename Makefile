@@ -63,6 +63,7 @@ help:
 	@echo "TESTING"
 	@echo ""	
 	@echo "  test          run the test suite"
+	@echo "  test-failing  run the failing test collection"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
 	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
@@ -200,6 +201,9 @@ testdocs:
 
 test:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE)
+
+test-failing:
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args failing
 
 test-lisrel:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args lisrel
