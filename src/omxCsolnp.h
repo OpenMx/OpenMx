@@ -48,11 +48,21 @@ struct CSOLNP {
 
 	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
     
+	enum Control {
+		ControlRho=0,
+		ControlMajorLimit,
+		ControlMinorLimit,
+		ControlFuncPrecision,
+		ControlTolerance,
+		NumControl
+	};
+
 	template <typename ParType>
-	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars, Matrix solctrl, bool debugToggle, int verbose);
+	Param_Obj solnp(Eigen::MatrixBase<ParType> &solPars,
+			const Eigen::Array<double, NumControl, 1> &solctrl, int verbose);
 
     Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
-		 const Eigen::Array<double, 5, 1> &ctrl, int verbose);
+		 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
 
 	enum indParam {
 		indNumParam=0,
@@ -85,7 +95,7 @@ void CSOLNPOpt_FuncPrecision(const char *optionValue);
 
 template <typename ParType>
 Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
-			Matrix solctrl, bool debugToggle, int verbose)
+			const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
 {
     mode_val = 0;
     mode = &mode_val;
@@ -135,7 +145,7 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     if(verbose >= 2){
         mxLog("control is: \n");
-        for (i = 0; i < solctrl.cols; i++) mxLog("%f",solctrl.t[i]);
+        for (i = 0; i < solctrl.size(); i++) mxLog("%f",solctrl[i]);
     }
     
         for (int i = 0; i < LB.cols; i++)
@@ -146,13 +156,13 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
             {   inform = fill(1, 1, 9);
                 flag_L = 1;
                 index_flag_L = i;
-                M(pars, i, 0) = M(LB, i, 0) + M(solctrl, 4, 0);
+                M(pars, i, 0) = M(LB, i, 0) + solctrl[ControlTolerance];
             }
             else if (M(pars, i, 0) >= M(UB, i, 0))
             {   inform = fill(1, 1, 9);
                 flag_U = 1;
                 index_flag_U = i;
-                M(pars, i, 0) = M(UB, i, 0) - M(solctrl, 4, 0);
+                M(pars, i, 0) = M(UB, i, 0) - solctrl[ControlTolerance];
             }
         }
     
@@ -233,12 +243,11 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
 	    setColumnInplace(pb, UB, 1);
     }
     
-    double rho   = M(solctrl, 0, 0);
-    int maxit = M(solctrl, 1, 0);
-    int minit = M(solctrl, 2, 0);
-    double delta = M(solctrl, 3, 0);
-    double tol   = M(solctrl, 4, 0);
-    double trace = M(solctrl, 5, 0);
+    double rho   = solctrl[ControlRho];
+    int maxit = solctrl[ControlMajorLimit];
+    int minit = solctrl[ControlMinorLimit];
+    double delta = solctrl[ControlFuncPrecision];
+    double tol   = solctrl[ControlTolerance];
     
     int tc = nineq + neq;
     
@@ -342,12 +351,11 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     while(solnp_iter < maxit){
         solnp_iter = solnp_iter + 1;
-        Eigen::Array<double, 5, 1> subnp_ctrl;
+        Eigen::Array<double, 4, 1> subnp_ctrl;
         subnp_ctrl[0] = rho;
         subnp_ctrl[1] = minit;
         subnp_ctrl[2] = delta;
         subnp_ctrl[3] = tol;
-        subnp_ctrl[4] = trace;
         
         if ( ind[indHasEq] > 0){
             Matrix subsetMat = subset(ob, 0, 1, neq);

@@ -215,18 +215,13 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
     
-    struct Matrix myControl = fill(6,1,(double)0.0);
-    M(myControl,0,0) = 1.0;
-    M(myControl,1,0) = majIter;
-    M(myControl,2,0) = minIter;
-    M(myControl,3,0) = funcPrecision;
-    M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-9;
-    M(myControl,5,0) = 0.0;
+    Eigen::Array<double, CSOLNP::NumControl, 1> myControl;
+    myControl[0] = 1.0;
+    myControl[1] = majIter;
+    myControl[2] = minIter;
+    myControl[3] = funcPrecision;
+    myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-9;
     
-    bool myDEBUG = false;
-    /* Set up actual run */
-    
-    /* Initialize Starting Values */
     if(OMX_DEBUG) {
         mxLog("--------------------------");
         mxLog("Starting Values (%d) are:", n);
@@ -244,7 +239,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     
     RegularFit rf(fc, fitMatrix);
     CSOLNP solnpContext(rf);
-    p_obj = solnpContext.solnp(myPars, myControl, myDEBUG, verbose);
+    p_obj = solnpContext.solnp(myPars, myControl, verbose);
     
     fc->fit = p_obj.objValue;
     if (verbose >= 1) {
@@ -355,15 +350,13 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     Matrix myhess = fill(n*n, 1, (double)0.0);
     Matrix mygrad;
     
-    struct Matrix myControl = fill(6,1,(double)0.0);
-    M(myControl,0,0) = 1.0;
-    M(myControl,1,0) = majIter;
-    M(myControl,2,0) = minIter;
-    M(myControl,3,0) = funcPrecision;
-    M(myControl,4,0) = std::isfinite(tolerance)? tolerance : 1.0e-16;
-    M(myControl,5,0) = 0.0;
-    
-    bool myDEBUG = false;
+    Eigen::Array<double, CSOLNP::NumControl, 1> myControl;
+    myControl[0] = 1.0;
+    myControl[1] = majIter;
+    myControl[2] = minIter;
+    myControl[3] = funcPrecision;
+    myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-16;
+
     /* Set up actual run */
     
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
@@ -401,7 +394,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = TRUE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, myControl, verbose);
                 
                 f = p_obj_conf.objValue;
                 
@@ -466,7 +459,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
                 currentCI->calcLower = FALSE;
 		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
                 CSOLNP solnpContext1(cif);
-                p_obj_conf = solnpContext1.solnp(myPars, myControl, myDEBUG, verbose);
+                p_obj_conf = solnpContext1.solnp(myPars, myControl, verbose);
                 
                 f = p_obj_conf.objValue;
                 

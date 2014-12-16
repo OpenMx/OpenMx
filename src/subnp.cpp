@@ -9,7 +9,7 @@
 
 
 Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
-		     double lambda,  Matrix vscale, const Eigen::Array<double, 5, 1> &ctrl, int verbose)
+		     double lambda,  Matrix vscale, const Eigen::Array<double, 4, 1> &ctrl, int verbose)
 {
     double EMPTY = -999999.0;
     if (verbose >= 3)
