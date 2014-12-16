@@ -90,7 +90,7 @@ struct RegularFit : CSOLNPFit {
 	{
 		fc->iterations += 1;   // ought to be major iterations only
     
-		memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
+		if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 		fc->copyParamToModel();
     
 		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);

@@ -133,7 +133,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     //time_t sec;
     //sec = time (NULL);
     
-    double EMPTY = -999999.0;
     int maxit_trace = 0;
     
     Matrix grad = fill(solPars.size(), 1, (double)0.0);
@@ -202,10 +201,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     ind[indIneqLength] = nineq;
     ind[indHasIneq] = nineq > 0;    
 
-    Eigen::VectorXd Eineqx0(nineq);
-    Eineqx0.setZero();
-    Matrix ineqx0(Eineqx0);
-    
     int neq;
     Matrix eqv = fit.solEqBFun(verbose);
     
@@ -225,7 +220,6 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         mxLog("ind is: \n");
         for (i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
     }
-    
     
     Matrix pb;
     
@@ -257,6 +251,7 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     
     Matrix lambda;
     Matrix constraint;
+    Matrix ineqx0;
     
     if (tc > 0){
 	    Matrix ineqv = fit.myineqFun(verbose);
@@ -309,7 +304,7 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix tempv;
     Matrix p;
     
-    if ( M(ineqx0, 0, 0) != EMPTY){
+    if (nineq){
         p = copy(ineqx0, pars);
     }
     else{
