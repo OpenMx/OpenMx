@@ -24,12 +24,16 @@
 struct CSOLNPFit {
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
+
 	Eigen::VectorXd solIneqLB;
 	Eigen::VectorXd solIneqUB;
 
+	Eigen::VectorXd equality;
+	Eigen::VectorXd inequality;
+
 	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
-	virtual Matrix solEqBFun(int verbose) = 0;
-	virtual Matrix myineqFun(int verbose) = 0;
+	virtual void solEqBFun(int verbose) = 0;
+	virtual void myineqFun(int verbose) = 0;
 };
 
 struct CSOLNP {
@@ -111,12 +115,14 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         mxLog("solPars is: \n");
         for (i = 0; i < solPars.size(); i++) mxLog("%f", solPars[i]);
         mxLog("4th call is: \n");
-        mxLog("%2f", fit.solFun(solPars.derived().data(), mode, 0));
-	Matrix eqv = fit.solEqBFun(0);
+	int mode;
+        mxLog("%2f", fit.solFun(solPars.derived().data(), &mode, 0));
+	fit.solEqBFun(0);
         mxLog("solEqBFun is: \n");
-        for (i = 0; i < eqv.cols; i++) mxLog("%f",eqv.t[i]);
+        for (i = 0; i < fit.equality.size(); i++) mxLog("%f", fit.equality[i]);
+	fit.myineqFun(0);
         mxLog("myineqFun is: \n");
-        for (i = 0; i < fit.solIneqLB.size(); i++) mxLog("%f", fit.myineqFun(0).t[i]);
+        for (i = 0; i < fit.inequality.size(); i++) mxLog("%f", fit.inequality[i]);
         mxLog("solLB is: \n");
         for (i = 0; i < LB.cols; i++) mxLog("%f", LB.t[i]);
         mxLog("solUB is: \n");
@@ -201,20 +207,11 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     ind[indIneqLength] = nineq;
     ind[indHasIneq] = nineq > 0;    
 
-    int neq;
-    Matrix eqv = fit.solEqBFun(verbose);
+    const int neq = fit.equality.size();
     
-    if(eqv.cols){
-        ind[indHasEq] = 1;
-        neq = eqv.cols;
-        ind[indEqLength] = neq;
-        ind[indHasJacobianEq] = 0;
-    } else{
-        ind[indHasEq] = 0;
-        neq = 0;
-        ind[indEqLength] = 0;
-        ind[indHasJacobianEq] = 0;
-    }
+    ind[indHasEq] = neq > 0;
+    ind[indEqLength] = neq;
+    ind[indHasJacobianEq] = 0;
     
     if (verbose >= 2){
         mxLog("ind is: \n");
@@ -253,8 +250,12 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix constraint;
     Matrix ineqx0;
     
+    fit.solEqBFun(verbose);
+    Matrix eqv(fit.equality);
+
     if (tc > 0){
-	    Matrix ineqv = fit.myineqFun(verbose);
+	    fit.myineqFun(verbose);
+	    Matrix ineqv(fit.inequality);
         lambda = fill(1, tc, (double)0.0);
         
         if (nineq){
@@ -321,7 +322,8 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
     Matrix funvMatrix = fill(1, 1, funv);
     
     if ( nineq){
-	    Matrix ineqv = fit.myineqFun(verbose);
+	    fit.myineqFun(verbose);
+	    Matrix ineqv(fit.inequality);
         if(eqv.cols){
             Matrix firstCopied = copy(funvMatrix, eqv);
             ob = copy(firstCopied, ineqv);
@@ -406,9 +408,10 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
             p = duplicateIt(resP);
             funv = fit.solFun(p.t, mode, verbose);
             funvMatrix = fill(1, 1, funv);
-            eqv = fit.solEqBFun(verbose);
+            fit.solEqBFun(verbose);
             if ( nineq) {
-		    Matrix ineqv = fit.myineqFun(verbose);
+		    fit.myineqFun(verbose);
+		    Matrix ineqv(fit.inequality);
                 if(eqv.cols)
                 {
                     Matrix firstCopied = copy(funvMatrix, eqv);
@@ -468,11 +471,12 @@ Param_Obj CSOLNP::solnp(Eigen::MatrixBase<ParType> &solPars,
         
         //Matrix funv_mat = fill(1, 1, funv);
         //Matrix tempdf = copy(temp, funv_mat);
-        eqv = fit.solEqBFun(verbose);
+        fit.solEqBFun(verbose);
         
         Matrix firstPart, copied;
         if (nineq){
-		Matrix ineqv = fit.myineqFun(verbose);
+		fit.myineqFun(verbose);
+		Matrix ineqv(fit.inequality);
             if(eqv.cols){
                 copied = copy(fill(1, 1, funv), eqv);
                 ob = copy(copied, ineqv);

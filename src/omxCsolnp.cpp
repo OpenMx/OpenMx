@@ -58,6 +58,8 @@ struct RegularFit : CSOLNPFit {
 			}
 		}
 		int nineqn = globalState->ncnln - eqn;
+		equality.resize(eqn);
+		inequality.resize(nineqn);
 		if (nineqn == 0) return;
 
 		solIneqLB.derived().resize(nineqn);
@@ -101,95 +103,51 @@ struct RegularFit : CSOLNPFit {
     
 		return fc->fit;
 	};
-	virtual Matrix solEqBFun(int verbose) {
-		int i, j, k, eq_n = 0;
-		int l = 0;
-		double EMPTY = -999999.0;
-		Matrix myEqBFun;
+	virtual void solEqBFun(int verbose) {
+		const int eq_n = (int) equality.size();
 		omxState *globalState = fc->state;
     
-		if (verbose >= 3) mxLog("Starting csolnpEqualityFunction.");
+		if (verbose >= 3) {
+			mxLog("Starting csolnpEqualityFunction %d/%d.",
+			      eq_n, globalState->numConstraints);
+		}
     
-		for(j = 0; j < globalState->numConstraints; j++) {
-			if (globalState->conList[j].opCode == 1) {
-				eq_n += globalState->conList[j].size;
+		if (!eq_n) return;
+
+		int cur = 0;
+		for(int j = 0; j < globalState->numConstraints; j++) {
+			omxConstraint &con = globalState->conList[j];
+			if (con.opCode != omxConstraint::EQUALITY) continue;
+
+			omxRecompute(con.result, fc);
+			for(int k = 0; k < globalState->conList[j].size; k++) {
+				equality[cur] = con.result->data[k];
+				++cur;
 			}
 		}
-    
-		if (verbose >= 3) {
-			mxLog("no.of constraints is: %d.", globalState->numConstraints);
-			mxLog("neq is: %d.", eq_n);
-		}
-    
-		if (eq_n) {
-			myEqBFun = fill(eq_n, 1, EMPTY);
-        
-			for(j = 0; j < globalState->numConstraints; j++) {
-				if (globalState->conList[j].opCode == 1) {
-					if (verbose >= 3) {
-						mxLog("result is: %2f", globalState->conList[j].result->data[0]);
-					}
-					omxRecompute(globalState->conList[j].result, fc);
-					if (verbose >= 3) {
-						mxLog("%.16f", globalState->conList[j].result->data[0]);
-						mxLog("size is: %d", globalState->conList[j].size);
-					}
-				}
-				for(k = 0; k < globalState->conList[j].size; k++){
-					M(myEqBFun,l,0) = globalState->conList[j].result->data[k];
-					l = l + 1;
-				}
-			}
-		}
-		if (verbose >= 3) {
-			mxLog("myEqBFun is: ");
-			for(i = 0; i < myEqBFun.cols; i++)
-				{   mxLog("%f", myEqBFun.t[i]);}
-		}
-		return myEqBFun;
 	};
-	virtual Matrix myineqFun(int verbose) {
-		int j, k, ineq_n = 0;
-		int l = 0;
-		double EMPTY = -999999.0;
-		Matrix myIneqFun;
+	virtual void myineqFun(int verbose) {
+		const int ineq_n = (int) inequality.size();
 		omxState *globalState = fc->state;
     
-		if (verbose >= 3) mxLog("Starting csolnpIneqFun.");
-    
-		for(j = 0; j < globalState->numConstraints; j++) {
-			if ((globalState->conList[j].opCode == 0) || (globalState->conList[j].opCode == 2))
-				{
-					ineq_n += globalState->conList[j].size;
-				}
-		}
-    
 		if (verbose >= 3) {
-			mxLog("no.of constraints is: %d.", globalState->numConstraints); putchar('\n');
-			mxLog("ineq_n is: %d.", ineq_n); putchar('\n');
+			mxLog("Starting csolnpInequalityFunction %d/%d.",
+			      ineq_n, globalState->numConstraints);
 		}
     
-		if (ineq_n == 0)
-			{
-				myIneqFun = fill(1, 1, EMPTY);
+		if (!ineq_n) return;
+
+		int cur = 0;
+		for (int j = 0; j < globalState->numConstraints; j++) {
+			omxConstraint &con = globalState->conList[j];
+			if (con.opCode == omxConstraint::EQUALITY) continue;
+
+			omxRecompute(con.result, fc);
+			for(int k = 0; k < globalState->conList[j].size; k++){
+				inequality[cur] = con.result->data[k];
+				++cur;
 			}
-		else
-			{
-				myIneqFun = fill(ineq_n, 1, EMPTY);
-        
-				for(j = 0; j < globalState->numConstraints; j++) {
-					if ((globalState->conList[j].opCode == 0) || globalState->conList[j].opCode == 2) {
-						omxRecompute(globalState->conList[j].result, fc);
-					}
-					for(k = 0; k < globalState->conList[j].size; k++){
-						M(myIneqFun,l,0) = globalState->conList[j].result->data[k];
-						l = l + 1;
-                
-					}
-				}
-			}
-    
-		return myIneqFun;
+		}
 	};
 };
 

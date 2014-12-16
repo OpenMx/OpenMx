@@ -11,7 +11,6 @@
 Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
 		     double lambda,  Matrix vscale, const Eigen::Array<double, 4, 1> &ctrl, int verbose)
 {
-    double EMPTY = -999999.0;
     if (verbose >= 3)
     {
         mxLog("pars in subnp is: \n");
@@ -103,9 +102,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         setColumnInplace(vscaleTwice, vscaleSubset, 0);
         setColumnInplace(vscaleTwice, vscaleSubset, 1);
         
-        if (M(pb, 0, 0) != EMPTY){
-            divideEigen(pb, vscaleTwice);
-        }
+	divideEigen(pb, vscaleTwice);
     }
     
     if (verbose >= 3){
@@ -175,8 +172,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     Matrix dx;
     Matrix b;
     double funv;
-    Matrix eqv;
-    Matrix ineqv;
+    Matrix eqv(fit.equality);
+    Matrix ineqv(fit.inequality);
     Matrix tmpv;
     Matrix constraint;
     Matrix gap;
@@ -200,16 +197,15 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             }
             funv = fit.solFun(tmpv.t, mode, verbose);
             
-            eqv = fit.solEqBFun(verbose);
-            
-            ineqv = fit.myineqFun(verbose);
+            fit.solEqBFun(verbose);
+            fit.myineqFun(verbose);
             
             solnp_nfn = solnp_nfn + 1;
             Matrix firstPart;
             Matrix firstPartt;
             Matrix secondPart;
             
-            if (M(ineqv,0,0) != EMPTY){
+            if (nineq){
                 if(eqv.cols)
                 {
                     firstPartt = copy(fill(1, 1, funv), eqv);
@@ -410,19 +406,19 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             *mode = 0;
         }
         
-        eqv = fit.solEqBFun(verbose);
+        fit.solEqBFun(verbose);
         if (verbose >= 3){
             mxLog("eqv is: \n");
             for (int i = 0; i < eqv.cols; i++) mxLog("%f",eqv.t[i]);
         }
-        ineqv = fit.myineqFun(verbose);
+        fit.myineqFun(verbose);
         if (verbose >= 3){
             mxLog("ineqv is: \n");
             for (int i = 0; i < ineqv.cols; i++) mxLog("%f",ineqv.t[i]);
         }
         solnp_nfn = solnp_nfn + 1;
         Matrix firstPart, secondPart, firstPartt;
-        if ( M(ineqv,0,0) != EMPTY){
+        if (nineq){
             if (eqv.cols){
                 firstPartt = copy(fill(1, 1, funv), eqv);
                 firstPart = copy(firstPartt, ineqv);
@@ -535,13 +531,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     funv = 1e24;
                     *mode = 0;
                 }
-                eqv = fit.solEqBFun(verbose);
-                
-                ineqv = fit.myineqFun(verbose);
+                fit.solEqBFun(verbose);
+		fit.myineqFun(verbose);
                 
                 solnp_nfn = solnp_nfn + 1;
                 
-                if (M(ineqv, 0, 0) != EMPTY){
+                if (nineq){
                     if(eqv.cols)
                     {
                         if(t1.t == NULL) t1 = new_matrix(1, 1);
@@ -1076,13 +1071,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             *mode = 0;
         }
         
-        eqv = fit.solEqBFun(verbose);
-        
-        ineqv = fit.myineqFun(verbose);
+        fit.solEqBFun(verbose);
+        fit.myineqFun(verbose);
         
         solnp_nfn = solnp_nfn + 1;
         
-        if (M(ineqv, 0, 0) != EMPTY){
+        if (nineq){
             if(eqv.cols)
             {
                 if (t20.t == NULL) t20 = new_matrix(1, 1);
@@ -1214,13 +1208,13 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 *mode = 0;
             }
             
-            eqv = fit.solEqBFun(verbose);
-            
-            ineqv = fit.myineqFun(verbose);
+            fit.solEqBFun(verbose);
+	    fit.myineqFun(verbose);
+
             solnp_nfn = solnp_nfn + 1;
             Matrix firstPart, secondPart, firstPartt;
             
-            if (M(ineqv, 0, 0) != EMPTY){
+            if (nineq){
                 if(eqv.cols)
                 {
                     if (t20.t == NULL) t20 = new_matrix(1, 1);
