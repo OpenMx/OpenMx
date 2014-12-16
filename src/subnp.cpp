@@ -113,13 +113,11 @@ Param_Obj CSOLNP::solnp(double *solPars,
     
     // do inequality checks and return starting values
     const int nineq = fit.solIneqLB.size();
-    ind[indIneqLength] = nineq;
     ind[indHasIneq] = nineq > 0;    
 
     const int neq = fit.equality.size();
     
     ind[indHasEq] = neq > 0;
-    ind[indEqLength] = neq;
     ind[indHasJacobianEq] = 0;
     
     if (verbose >= 2){
@@ -617,8 +615,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     double delta = ctrl[2];
     double tol =   ctrl[3];
     
-    int neq =  (int)ind[indEqLength];
-    int nineq = (int)ind[indIneqLength];
+    int neq =  fit.equality.size();
+    int nineq = fit.inequality.size();
     int np = (int)ind[indNumParam];
     
     double ch = 1;

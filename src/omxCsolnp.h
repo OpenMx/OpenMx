@@ -71,10 +71,8 @@ struct CSOLNP {
 		indHasGradient,
 		indHasHessian,
 		indHasIneq,
-		indIneqLength,
 		indHasJacobianIneq,
 		indHasEq,
-		indEqLength,
 		indHasJacobianEq,
 		indVectorLength  // must be last
 	};
