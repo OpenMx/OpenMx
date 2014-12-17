@@ -1028,7 +1028,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     } // end if (nc > 0)
     
     minit = 0;
-    Matrix obm;
     Matrix yg = fill(npic, 1, (double)0.0);
     Matrix yg_rec = fill(2, 1, (double)0.0);
     Matrix sx;
@@ -1134,13 +1133,9 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 divideEigen(firstPart, secondPart);
                 if (obm_t.t == NULL) obm_t = new_matrix(firstPart.cols, firstPart.rows);
                 
-                if (obm.t == NULL) obm = new_matrix(obm_t.cols, obm_t.rows);
                 duplicateIt_t(obm_t, firstPart);
-                M(obm, 0, 0) = M(obm_t, 0, 0);
                 
                 if (verbose >= 3){
-                    mxLog("obm is: \n");
-                    for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
                     mxLog("obm_t is: \n");
                     for (int ilog = 0; ilog < obm_t.cols; ilog++) mxLog("%f",obm_t.t[ilog]);
                     mxLog("j is: \n");
@@ -1156,6 +1151,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     copyIntoInplace(obm_t, result, 0, neq+1, nc);
                 }
                 
+                double obm = M(obm_t, 0, 0);
                 if (nc > 0){
                     if (first_part.t == NULL) first_part = new_matrix(nc, 1);
                     subsetEigen(first_part, obm_t, 0, 1, nc);
@@ -1184,13 +1180,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     if (row_temp_t.t == NULL) row_temp_t = new_matrix(temp_t.cols, 1);
                     getRow_t(row_temp_t, temp_t, 0);
                     double dotProductTerm = dotProduct(row_tt_y, row_temp_t);
-                    double newOBMValue = M(obm_t, 0, 0) - dotProductTerm + rho * vnormTerm;
-                    if (obm.t == NULL) obm = new_matrix(1, 1);
-                    M(obm, 0, 0) = newOBMValue;
+                    obm = M(obm_t, 0, 0) - dotProductTerm + rho * vnormTerm;
                 }
-                //exit(0);
+		if (verbose >= 3) mxLog("obm is: %f", obm);
                 
-                M(g, index, 0) = (M(obm, 0, 0) - j)/delta;
+                M(g, index, 0) = (obm - j)/delta;
                 M(p, index, 0) = M(p, index, 0) - delta;
                 
                 if (verbose >= 3){
@@ -1608,9 +1602,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mxLog("tmpv is: \n");
             for (int ilog = 0; ilog < tmpv.cols; ilog++) mxLog("%f",tmpv.t[ilog]);
         }
-        if (verbose >= 2){
-            //printf("10th call is \n");
-        }
 	mode = 1;
         funv = fit.solFun(tmpv.t, &mode, verbose);
         if (verbose >= 3){
@@ -1859,19 +1850,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 mxLog("sob is: \n");
                 for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
             }
+            const double sobMax = sob.maxCoeff();
             if (verbose >= 3){
-                mxLog("obm is: \n");
-                for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
+		    mxLog("sobMax is: %f", sobMax);
             }
-            if (obm.t == NULL) obm = new_matrix(1, 1);
-            M(obm, 0, 0) = sob.maxCoeff();
-            if (verbose >= 3){
-                mxLog("obm is: \n");
-                for (int ilog = 0; ilog < obm.cols; ilog++) mxLog("%f",obm.t[ilog]);
-            }
-            if (M(obm, 0, 0) < j){
-                double obn = sob.minCoeff();
-                go = tol * (M(obm, 0, 0) - obn) / (j - M(obm, 0, 0));
+            if (sobMax < j){
+                go = tol * (sobMax - sob.minCoeff()) / (j - sobMax);
             }
             
             const bool condif1 = (sob[1] >= sob[0]);
