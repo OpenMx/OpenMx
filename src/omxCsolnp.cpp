@@ -15,6 +15,7 @@
  */
 
 #include <ctype.h>
+#include <limits>
 #define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
@@ -26,7 +27,6 @@
 #include "omxCsolnp.h"
 #include "omxBuffer.h"
 
-static const char* anonMatrix = "anonymous matrix";
 static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
@@ -210,9 +210,10 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
 struct ConfidenceIntervalFit : RegularFit {
 	typedef RegularFit super;
 	int currentInterval;
+	bool calcLower;
 
-	ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt) :
-		super(fc, fmat), currentInterval(curInt) {};
+	ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
+		super(fc, fmat), currentInterval(curInt), calcLower(lower) {};
 
 	virtual double solFun(double *myPars, int* mode, int verbose)
 	{
@@ -242,7 +243,7 @@ struct ConfidenceIntervalFit : RegularFit {
 			return fc->fit;
 		}
     
-		if(oCI->calcLower) {
+		if(calcLower) {
 			double diff = oCI->lbound - fc->fit;		// Offset - likelihood
 			fc->fit = diff * diff + CIElement;
 			// Minimize element for lower bound.
@@ -265,17 +266,11 @@ struct ConfidenceIntervalFit : RegularFit {
 // code that can use whatever optimizer is provided.
 void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int verbose, double tolerance)
 {
-    int ciMaxIterations = Global->ciMaxIterations;
-    // Will fail if we re-enter after an exception
-    //if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
-    
+    const int ciMaxIterations = Global->ciMaxIterations;
     FitContext fc(opt, opt->varGroup);
     FreeVarGroup *freeVarGroup = fc.varGroup;
     
-    int n = int(freeVarGroup->vars.size());
-    double f = opt->fit;
-    omxBuffer< double > gradient(n);
-    omxBuffer< double > hessian(n * n);
+    const int n = int(freeVarGroup->vars.size());
     
     Eigen::Array<double, 5, 1> myControl;
     myControl[0] = 1.0;
@@ -284,8 +279,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     myControl[3] = funcPrecision;
     myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-16;
 
-    /* Set up actual run */
-    
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
     const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
@@ -293,123 +286,59 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     for(int i = 0; i < (int) Global->intervalList.size(); i++) {
         omxConfidenceInterval *currentCI = Global->intervalList[i];
         
-        const char *matName = anonMatrix;
+        const char *matName = "anonymous matrix";
         if (currentCI->matrix->name) {
             matName = currentCI->matrix->name;
         }
         
-        Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin lower interval",
-                                  matName, currentCI->row + 1, currentCI->col + 1);
-        
-        memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-	Eigen::Map< Eigen::VectorXd > myPars(fc.est, n);
-        
         currentCI->lbound += opt->fit;          // Convert from offsets to targets
         currentCI->ubound += opt->fit;          // Convert from offsets to targets
         
-        if (std::isfinite(currentCI->lbound))
-        {
-		int inform = -1;
-            // Number of times to keep trying.
-            int cycles = ciMaxIterations;
-            
-            double value = INF;
-            
-            while(inform!= 0 && cycles > 0) {
-                /* Find lower limit */
-                currentCI->calcLower = TRUE;
-		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
-                solnp(fc.est, cif, myControl, verbose);
-                
-                f = cif.fitOut;
-                inform = cif.informOut;
-                
-                if(verbose>=1) { mxLog("inform_lower is: %d", inform);}
-                
-                currentCI->lCode = inform;
-                
-                if(f < value) {
-                    currentCI->min = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                    
-                    value = f;
-                }
-                
-                if(inform != 0 && OMX_DEBUG) {
-                    mxLog("Calculation of lower interval %d failed: Bad inform value of %d",
-                          i, inform);
-                }
-                cycles--;
-                if(inform != 0) {
-                    unsigned int jitter = TRUE;
-                    for(int j = 0; j < n; j++) {
-                        if(fabs(fc.est[j] - opt->est[j]) > objDiff) {
-                            jitter = FALSE;
-                            if(OMX_DEBUG) {mxLog("are u here?????");}
-                            break;
-                        }
-                    }
-                    if(jitter) {
-                        for(int j = 0; j < n; j++) {
-                            fc.est[j] = opt->est[j] + objDiff;
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (std::isfinite(currentCI->ubound)) {
-            currentCI->calcLower = FALSE;
-            Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin upper interval",
-                                      matName, currentCI->row + 1, currentCI->col + 1);
-            
-            
-            memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
-            
-            /* Reset for the upper bound */
-            double value = INF;
-            int inform = -1;
-            int cycles = ciMaxIterations;
-            
-            while(inform != 0 && cycles >= 0) {
-                /* Find upper limit */
-                currentCI->calcLower = FALSE;
-		ConfidenceIntervalFit cif(&fc, fitMatrix, i);
-                solnp(myPars.data(), cif, myControl, verbose);
-                
-                f = cif.fitOut;
-                inform = cif.informOut;
+	for (int lower=0; lower <= 1; ++lower) {
+		if (lower  && !std::isfinite(currentCI->lbound)) continue;
+		if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
-                if(verbose >= 1) { mxLog("inform_upper is: %d", inform);}
-                currentCI->uCode = inform;
-                
-                if(f < value) {
-                    currentCI->max = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-                    value = f;
-                }
-                
-                if(inform != 0 && OMX_DEBUG) {
-                    mxLog("Calculation of upper interval %d failed: Bad inform value of %d",
-                          i, inform);
-                }
-                cycles--;
-                if(inform != 0) {
-                    unsigned int jitter = TRUE;
-                    for(int j = 0; j < n; j++) {
-                        if(fabs(fc.est[j] - opt->est[j]) > objDiff){
-                            jitter = FALSE;
-                            break;
-                        }
-                    }
-                    if(jitter) {
-                        for(int j = 0; j < n; j++) {
-                            fc.est[j] = opt->est[j] + objDiff;
-                        }
-                    }
-                }
-            }
+		Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin %s interval",
+					  matName, currentCI->row + 1, currentCI->col + 1,
+					  lower? "lower" : "upper");
+
+		memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
+        
+		int tries = 0;
+		int inform = -1;
+		double bestFit = std::numeric_limits<double>::max();
             
-            if(OMX_DEBUG) {mxLog("Found Upper bound %d.", i);}
-            
+		while (inform!= 0 && ++tries <= ciMaxIterations) {
+			ConfidenceIntervalFit cif(&fc, fitMatrix, i, lower);
+			solnp(fc.est, cif, myControl, verbose);
+                
+			if(cif.fitOut < bestFit) {
+				double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+				if (lower) currentCI->min = val;
+				else       currentCI->max = val;
+				bestFit = cif.fitOut;
+			}
+
+			inform = cif.informOut;
+			if (lower) currentCI->lCode = inform;
+			else       currentCI->uCode = inform;
+			if(verbose>=1) { mxLog("inform(%d,%d) is: %d", i, lower, inform);}
+			if(inform == 0) break;
+
+			bool jitter = TRUE;
+			for(int j = 0; j < n; j++) {
+				if(fabs(fc.est[j] - opt->est[j]) > objDiff) {
+					jitter = FALSE;
+					break;
+				}
+			}
+			if(jitter) {
+				for(int j = 0; j < n; j++) {
+					double sign = 2 * (tries % 2) - 1;
+					fc.est[j] = opt->est[j] + sign * objDiff * tries;
+				}
+			}
+		}
         }
     }
 }
