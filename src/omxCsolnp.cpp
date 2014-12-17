@@ -89,7 +89,7 @@ struct RegularFit : CSOLNPFit {
 
 	virtual double solFun(double *myPars, int* mode, int verbose)
 	{
-		fc->iterations += 1;   // ought to be major iterations only
+		if (*mode == 1) fc->iterations += 1;
     
 		if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 		fc->copyParamToModel();

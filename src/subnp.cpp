@@ -17,8 +17,7 @@ struct CSOLNP {
     Matrix resHessv;
     Matrix resY;
     Matrix sx_Matrix;
-    int mode_val;
-    int* mode;
+    int mode;
 	CSOLNPFit &fit;
 
 	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
@@ -61,8 +60,6 @@ void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &so
 void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
 {
 	fit.informOut = -1;
-    mode_val = 0;
-    mode = &mode_val;
     Matrix inform;
     Matrix hessi;
     Matrix p_hess;
@@ -75,7 +72,7 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         mxLog("solPars is: \n");
         for (i = 0; i < LB.cols; i++) mxLog("%f", solPars[i]);
         mxLog("4th call is: \n");
-	int mode;
+	int mode=0;
         mxLog("%2f", fit.solFun(solPars, &mode, 0));
 	fit.solEqBFun(0);
         mxLog("solEqBFun is: \n");
@@ -155,7 +152,8 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
     ind[indHasGradient] = 0;
     //# do function checks and return starting value
     
-    funv = fit.solFun(pars.data(), mode, verbose);
+    mode = 1;
+    funv = fit.solFun(pars.data(), &mode, verbose);
     
     // does not have a hessian (currently not supported in Rsolnp)
     ind[indHasHessian] = 0;
@@ -346,7 +344,7 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
             mxLog("------------------------END CALLING SUBNP------------------------");
         }
         
-        if (*mode == -1)
+        if (mode == -1)
         {
 		fit.informOut = 0;
 		fit.fitOut = funv;
@@ -358,10 +356,11 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         
         grad = subnp(p, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         
+	p = duplicateIt(resP);
         if (flag == 1)
         {
-            p = duplicateIt(resP);
-            funv = fit.solFun(p.t, mode, verbose);
+	    mode = 0;
+            funv = fit.solFun(p.t, &mode, verbose);
             funvMatrix = fill(1, 1, funv);
             fit.solEqBFun(verbose);
             if ( nineq) {
@@ -400,7 +399,6 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
             mu = resLambda;
             grad = subnp(p, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         }
-        p = duplicateIt(resP);
         
         lambda = duplicateIt(resY);
         
@@ -410,8 +408,9 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         
         
         Matrix temp = subset(p, 0, nineq, (nineq+np-1));
-        funv = fit.solFun(temp.t, mode, verbose);
-        if (*mode == -1)
+	mode = 1;
+        funv = fit.solFun(temp.t, &mode, verbose);
+        if (mode == -1)
         {
 		fit.informOut = 0;
 		fit.fitOut = funv;
@@ -810,7 +809,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             if (verbose >= 2){
                 mxLog("7th call is \n");
             }
-            funv = fit.solFun(tmpv.t, mode, verbose);
+	    mode = 0;
+            funv = fit.solFun(tmpv.t, &mode, verbose);
             
             fit.solEqBFun(verbose);
             fit.myineqFun(verbose);
@@ -854,10 +854,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             M(p0, index, 0) = M(p0, index, 0) - delta;
         } // end for (int i=0; i<np, i++){
         
-        if (*mode == -1)
+        if (mode == -1)
         {
             funv = 1e24;
-            *mode = 0;
+            mode = 0;
         }
         
         if(ind[indHasIneq] > 0){
@@ -1009,16 +1009,17 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             for (int i = 0; i < tmpv.cols; i++) mxLog("%f",tmpv.t[i]);
             mxLog("8th call is \n");
         }
-        funv = fit.solFun(tmpv.t, mode, verbose);
+	mode = 0;
+        funv = fit.solFun(tmpv.t, &mode, verbose);
         if (verbose >= 3){
             mxLog("funv is: \n");
             mxLog("%2f", funv);
         }
         
-        if (*mode == -1)
+        if (mode == -1)
         {
             funv = 1e24;
-            *mode = 0;
+            mode = 0;
         }
         
         fit.solEqBFun(verbose);
@@ -1135,16 +1136,17 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     mxLog("9th call is \n");
                     
                 }
-                funv = fit.solFun(tmpv.t, mode, verbose);
+		mode = 0;
+                funv = fit.solFun(tmpv.t, &mode, verbose);
                 if (verbose >= 3){
                     mxLog("funv is: \n");
                     mxLog("%2f", funv);
                 }
                 
-                if (*mode == -1)
+                if (mode == -1)
                 {
                     funv = 1e24;
-                    *mode = 0;
+                    mode = 0;
                 }
                 fit.solEqBFun(verbose);
 		fit.myineqFun(verbose);
@@ -1668,7 +1670,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         if (verbose >= 2){
             //printf("10th call is \n");
         }
-        funv = fit.solFun(tmpv.t, mode, verbose);
+	mode = 1;
+        funv = fit.solFun(tmpv.t, &mode, verbose);
         if (verbose >= 3){
             mxLog("hessv is: \n");
             for (int ilog = 0; ilog < hessv.cols; ilog++) mxLog("%f",hessv.t[ilog]);
@@ -1680,10 +1683,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mxLog("%.20f", funv);
         }
         
-        if (*mode == -1)
+        if (mode == -1)
         {
             funv = 1e24;
-            *mode = 0;
+            mode = 0;
         }
         
         fit.solEqBFun(verbose);
@@ -1811,16 +1814,17 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 mxLog("11th call is \n");
             }
             
-            funv = fit.solFun(tmpv.t, mode, verbose);
+	    mode = 0;
+            funv = fit.solFun(tmpv.t, &mode, verbose);
             if (verbose >= 3){
                 mxLog("funv is: \n");
                 mxLog("%2f", funv);
             }
             
-            if (*mode == -1)
+            if (mode == -1)
             {
                 funv = 1e24;
-                *mode = 0;
+                mode = 0;
             }
             
             fit.solEqBFun(verbose);
