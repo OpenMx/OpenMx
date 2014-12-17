@@ -150,19 +150,33 @@ imxGetExpectationComponent <- function(model, component){
 	}
 }
 
-mxCheckIdentification <- function(model){
+sse <- function(x){sum(x^2)}
+
+mxCheckIdentification <- function(model, details=TRUE){
 	require(numDeriv)
+	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- jacobian(func=.mat2param, x=theParams, model=model)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
 		message("Model is locally identified")
-		return(list(status=TRUE, jacobian=jac))
+		stat <- TRUE
 	} else {
 		message("Model is not locally identified")
-		return(list(status=FALSE, jacobian=jac))
+		stat <- FALSE
 	}
+	if(details == TRUE){
+		require(MASS)
+		jacOC <- Null(t(jac)) # Orthogonal complement of t(jac), i.e. the basis for the null space of the column space of jac
+		nipd <- names(theParams)[apply(jacOC, 1, sse) > eps] # non-identified free params have non-zero rows
+		if(length(nipd) == 0) {
+			nipd <- "None"
+		}
+	} else {
+		nipd <- "Not Requested"
+	}
+	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
 .mat2param <- function(x, model){
