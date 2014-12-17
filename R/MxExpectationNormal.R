@@ -169,12 +169,12 @@ mxCheckIdentification <- function(model, details=TRUE){
 	if(details == TRUE){
 		require(MASS)
 		jacOC <- Null(t(jac)) # Orthogonal complement of t(jac), i.e. the basis for the null space of the column space of jac
-		nipd <- names(theParams)[apply(jacOC, 1, sse) > eps] # non-identified free params have non-zero rows
+		nidp <- names(theParams)[apply(jacOC, 1, sse) > eps] # non-identified free params have non-zero rows
 		if(length(nipd) == 0) {
-			nipd <- "None"
+			nidp <- "None"
 		}
 	} else {
-		nipd <- "Not Requested"
+		nidp <- "Not Requested"
 	}
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
