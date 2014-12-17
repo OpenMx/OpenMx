@@ -154,6 +154,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		return;
 	}
     
+	for (int px = 0; px < int(numParam); ++px) {
+		omxFreeVar *fv = varGroup->vars[px];
+            if (fv->lbound < fc->est[px] && fc->est[px] < fv->ubound) continue;
+	    fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
+	    return;
+        }
+    
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
 	fc->createChildren();

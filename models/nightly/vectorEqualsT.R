@@ -21,6 +21,7 @@ m1 <- mxModel("vector_is_FALSE",
 	mxExpectationNormal(covariance = "expCov", means = "expMean", dimnames = selVars),
 	mxFitFunctionML(vector = FALSE),
 	mxData(observed = testData, type = "raw")
+#  ,mxComputeGradientDescent(verbose=1L)
 )
 m1 <- mxRun(m1)
 

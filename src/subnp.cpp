@@ -9,14 +9,14 @@
 
 struct CSOLNP {
 
-    int flag, flag_L, flag_U, index_flag_L, index_flag_U, flag_NormgZ, flag_step, minr_rec;
+    int flag, flag_NormgZ, flag_step, minr_rec;
     Matrix LB;
     Matrix UB;
     Matrix resP;
     double resLambda;
     Matrix resHessv;
     Matrix resY;
-    Matrix sx_Matrix;
+	Matrix sx_Matrix; // search direction
     int mode;
 	CSOLNPFit &fit;
 
@@ -60,10 +60,6 @@ void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &so
 void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
 {
 	fit.informOut = -1;
-    Matrix inform;
-    Matrix hessi;
-    Matrix p_hess;
-    Matrix p_grad;
     LB = fit.solLB;
     UB = fit.solUB;
 
@@ -86,7 +82,7 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         for (i = 0; i < UB.cols; i++) mxLog("%f", UB.t[i]);
     }
     
-    flag = 0; flag_L = 0; flag_U = 0;
+    flag = 0;
     flag_NormgZ = 0; flag_step = 0; minr_rec = 0;
     
     double funv;
@@ -110,24 +106,6 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         for (i = 0; i < solctrl.size(); i++) mxLog("%f",solctrl[i]);
     }
     
-       for (int i = 0; i < LB.cols; i++)
-        {
-            if (M(LB, i, 0) < pars[i] && M(UB, i, 0) > pars[i])
-            { continue;  }
-            else if (pars[i] <= M(LB, i, 0))
-            {   inform = fill(1, 1, 9);
-                flag_L = 1;
-                index_flag_L = i;
-                pars[i] = M(LB, i, 0) + solctrl[ControlTolerance];
-            }
-            else if (pars[i] >= M(UB, i, 0))
-            {   inform = fill(1, 1, 9);
-                flag_U = 1;
-                index_flag_U = i;
-                pars[i] = M(UB, i, 0) - solctrl[ControlTolerance];
-            }
-        }
-    
     if (verbose >= 2){
         mxLog("LB is: \n");
         for (i = 0; i < LB.cols; i++) mxLog("%f",LB.t[i]);
@@ -140,10 +118,6 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
     }
     
     const int np = pars.size();
-    inform = new_matrix(1, 1);
-    hessi = new_matrix(np*np, 1);
-    p_hess = new_matrix(np+(np*np), 1);
-    p_grad = new_matrix(np+(np*np)+np, 1);
     
     ind.setZero();
     ind[indNumParam] = np;
@@ -539,81 +513,51 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
         
     } // end while(solnp_iter < maxit){
     
-    
-    if ( ind[indHasIneq] > 0.5){
-        ineqx0 = subset(p, 0, 0, nineq-1);
-    }
     p = subset(p, 0, nineq, (nineq + np -1));
-    
+
     {
-        double vnormValue;
-        Matrix searchD;
-        double iterateConverge;
-        double iterateConvergeCond;
         Matrix tempTTVals = fill(2, 1, (double) 0.0);
         M(tempTTVals, 0, 0) = M(tt, 0, 0);
         M(tempTTVals, 1, 0) = M(tt, 0, 1);
-        vnormValue = vnorm(tempTTVals);
-        if (verbose >= 1)
-        {
-            mxLog("vnormValue \n");
-            mxLog("%.20f", vnormValue);
-        }
-        searchD = duplicateIt(sx_Matrix);
+        double vnormValue = vnorm(tempTTVals);
         if (verbose >= 3){
-            mxLog("searchD is: \n");
-            for (i = 0; i < searchD.cols; i++) mxLog("%f",searchD.t[i]);
-        }
-        iterateConverge = delta * pow(vnorm(searchD),(double)2.0);
-        if (verbose >= 1)
-        {
-            mxLog("vnorm(searchD) is: \n");
-            mxLog("%.20f", vnorm(searchD));
-            mxLog("iterateConverge is: \n");
-            mxLog("%.20f", iterateConverge);
-        }
-        iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
-        if (verbose >= 1)
-        {   mxLog("iterateConvergeCond is: \n");
-            mxLog("%.20f", iterateConvergeCond);
+            mxLog("sx_Matrix (search direction) is: \n");
+            for (i = 0; i < sx_Matrix.cols; i++) mxLog("%f",sx_Matrix.t[i]);
         }
         
+        if (verbose >= 1) {
+		mxLog("vnormValue %.20f, flag_NormgZ=%d, minr_rec=%d, flag_step=%d",
+		      vnormValue, flag_NormgZ, minr_rec, flag_step);
+	}
         if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1 && flag_step == 1){
+		double iterateConverge = delta * pow(vnorm(sx_Matrix),(double)2.0);
+		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
+		if (verbose >= 1) {
+			mxLog("vnorm(sx_Matrix) is %.20f, iterateConverge is %.20f, iterateConvergeCond is: %.20f",
+			      vnorm(sx_Matrix), iterateConverge, iterateConvergeCond);
+		}
+
             if (iterateConverge <= iterateConvergeCond){
-                if (verbose >= 1){
-                    mxLog("The solution converged in %d iterations. It is:", solnp_iter);}
-                inform = fill(1, 1, 0);
-            }
-            else {
+		    if (verbose >= 1) { mxLog("The solution converged in %d iterations", solnp_iter); }
+		    fit.informOut = INFORM_CONVERGED_OPTIMUM;
+            } else {
                 if (verbose >= 1){
                     mxLog("The final iterate x satisfies the optimality conditions to the accuracy requested, but the sequence of iterates has not yet converged. CSOLNP was terminated because no further improvement could be made in the merit function.");}
-                inform = fill(1, 1, 1);
-                
+                fit.informOut = INFORM_UNCONVERGED_OPTIMUM;
             }
         }
         else{
-            if (solnp_iter == maxit_trace)
-            {
+            if (solnp_iter == maxit_trace) {
                 if (verbose >= 1){
                     mxLog("Exiting after maximum number of iterations. Tolerance not achieved\n");}
-                inform = fill(1, 1, 4);
-            }
-            else
-            {
-                if (verbose >= 1){
-                    mxLog("Solution failed to converge.");
-                }
-                inform = fill(1, 1, 6);
+                fit.informOut = INFORM_ITERATION_LIMIT;
+            } else {
+                if (verbose >= 1) { mxLog("Solution failed to converge."); }
+                fit.informOut = INFORM_NOT_AT_OPTIMUM;
             }
         }
     }
     
-    if (verbose >= 1){
-        mxLog("inform in subnp is: \n");
-        for (i = 0; i < inform.cols; i++) mxLog("%f",inform.t[i]);
-    }
-    
-    fit.informOut = M(inform, 0, 0);
     fit.fitOut = funv;
     memcpy(pars.data(), p.t, pars.size() * sizeof(double));
     fit.gradOut.resize(grad.cols);
@@ -1419,13 +1363,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             if (!R_FINITE(findMax(cz)))
             {
                 mxLog("here in findMax");
-                double nudge = 1.490116e-08;
                 flag = 1;
                 if (t12.t == NULL) t12 = new_matrix(nc + np - neq, 1);
                 subsetEigen(t12, vscale, 0, (neq+1), (nc + np));
                 multiplyEigen(p, t12);
-                if (flag_L) {M(p, index_flag_L, 0) = M(p, index_flag_L, 0) + nudge;}
-                if (flag_U) {M(p, index_flag_U, 0) = M(p, index_flag_U, 0)- nudge;}
                 if (nc > 0)
                 {
                     if (y.t == NULL) y = new_matrix(1, 1);

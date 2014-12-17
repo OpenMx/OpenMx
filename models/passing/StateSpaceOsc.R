@@ -115,7 +115,7 @@ rownames(tx) <- paste('x', 1:xdim, sep='')
 # Fit state space model to data via OpenMx package
 
 Astart <- tA
-Astart[1,1] <- .66 #put starting value within bounds!
+Astart[1,1] <- -.66 #put starting value within bounds!
 
 smod <- mxModel(
 	name='State Space Example',
