@@ -2,7 +2,7 @@
 
 library(OpenMx)
 
-mxOption(NULL, "Default optimizer", "CSOLNP") #works fine on NPSOL
+#mxOption(NULL, "Default optimizer", "CSOLNP") #works fine on NPSOL
 
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
