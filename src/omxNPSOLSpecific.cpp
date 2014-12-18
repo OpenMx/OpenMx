@@ -379,6 +379,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
 	}
 
     FitContext fc(opt, opt->varGroup);
+    fc.createChildren();
 
 	int ciMaxIterations = Global->ciMaxIterations;
 	// Will fail if we re-enter after an exception

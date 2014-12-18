@@ -268,6 +268,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 {
     const int ciMaxIterations = Global->ciMaxIterations;
     FitContext fc(opt, opt->varGroup);
+    fc.createChildren();
     FreeVarGroup *freeVarGroup = fc.varGroup;
     
     const int n = int(freeVarGroup->vars.size());
