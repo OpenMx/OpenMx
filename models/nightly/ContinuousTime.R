@@ -10,6 +10,8 @@
 library(OpenMx)
 library(mvtnorm)
 
+#mxOption(NULL, "Default optimizer", "NPSOL")
+
 if (0) {
   set.seed(1)
   
@@ -108,6 +110,7 @@ larModel <-mxModel("lar",
   mxMatrix("Full", values=(matrix(1,2,2)-diag(2)), name = "tempa"),
   
   mxMatrix(type="Full", labels=c("F11","F12","F21","F22"), values=c(-.1,.01,.01,-.2), free=T,nrow=2,ncol=2, name="DRIFT"),
+  mxCI("DRIFT"),
   
   mxMatrix(type="Full", labels=c("Q11","Q21","Q21","Q22"), values=c(.5,.1,.1,.5), free=T, name="Q",nrow=2,ncol=2),    
   mxAlgebra(DRIFT%x%II + II%x%DRIFT, name = "DRIFTHATCH"),
@@ -194,7 +197,7 @@ larFit <- mxModel(larModel, mxComputeOnce('fitfunction', 'fit'))
 got <- mxRun(larFit, silent=TRUE)
 omxCheckCloseEnough(got$output$fit, 43550.90, .01)
 
-testfit<-mxRun(larModel)
+testfit<-mxRun(larModel, intervals = TRUE)
 
 omxCheckCloseEnough(testfit$output$fit, 8383.78, .1)
 #cat(deparse(round(testfit$output$estimate,3)))
@@ -204,6 +207,13 @@ if (0) {
   max(abs(testfit$output$estimate - est))
 }
 omxCheckCloseEnough(testfit$output$estimate, est, .01)
+
+ci <- testfit$output$confidenceIntervals
+#cat(deparse(c(round(ci['F22',],3))))
+omxCheckCloseEnough(ci['F11',], c(-0.518, -0.464, -0.413), .01)
+omxCheckCloseEnough(ci['F21',], c(0.2, 0.246, 0.295), .01)
+omxCheckCloseEnough(ci['F12',], c(0.028, 0.056, 0.084), .01)
+omxCheckCloseEnough(ci['F22',], c(-0.157, -0.131, -0.106), .01)
 
 if (0) {
   omxCheckCloseEnough(testfit$output$iterations, 9, 1)
