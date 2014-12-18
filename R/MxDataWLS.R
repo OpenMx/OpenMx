@@ -384,7 +384,7 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 	return(list(meanEst, varEst, meanHess, varHess, meanJac, varJac))
 }
 
-mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE){
+mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE, fullWeight=TRUE){
 	message("Calculating asymptotic summary statistics ...")
 	# version 0.2
 	#
@@ -583,9 +583,12 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# try the weird non-hao version
 	xls <- t(fullJac) %*% fullJac
 	
+	if(fullWeight==TRUE){
+		fw <- wls
+	} else {fw <- NA}
 	retVal <- mxData(pcMatrix, type="acov", numObs=n, 
-		acov=diag(1), thresholds=thresh)
-		
+		acov=diag(1), fullWeight=NA, thresholds=thresh)
+	retVal@fullWeight <- fw
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}

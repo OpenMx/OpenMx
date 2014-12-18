@@ -26,6 +26,7 @@ setClass(Class = "MxDataStatic",
 		type   = "character",
 		numObs = "numeric",
 		acov   = "matrix",
+		fullWeight = "matrix",
 		thresholds = "matrix",
 		thresholdColumns = "integer",
 		thresholdLevels = "integer",
@@ -49,12 +50,13 @@ setClass(Class = "MxDataDynamic",
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
-	function(.Object, observed, means, type, numObs, acov, thresholds, sort, name = "data") {
+	function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds, sort, name = "data") {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
 		.Object@acov <- acov
+		.Object@fullWeight <- fullWeight
 		.Object@thresholds <- thresholds
 		.Object@name <- name
 		.Object@.needSort <- sort
@@ -104,7 +106,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	return(new("MxDataDynamic", type, expectation, verbose))
 }
 
-mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=NA, ...,
+mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
 		   sort=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -112,6 +114,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	}
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))
+	if (length(fullWeight) == 1 && is.na(fullWeight)) fullWeight <- matrix(as.numeric(NA))
 	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
@@ -144,6 +147,9 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	if (type == "acov") {
 		verifyCovarianceMatrix(observed)
 		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
+		if(!single.na(fullWeight)){
+			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic")
+		}
 		if ( !single.na(thresholds) ) {
 			verifyThresholdNames(thresholds, observed)
 		}
@@ -155,6 +161,9 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 		if (any(!is.na(thresholds))) {
 			stop("The thresholds argument to mxData is only allowed for data with type='acov'")
 		}
+		if (any(!is.na(fullWeight))) {
+			stop("The fullWeight argument to mxData is only allowed for data with type='acov'")
+		}
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
@@ -162,7 +171,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, thresholds=
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxDataStatic", observed, means, type, numObs, acov, thresholds, sort))
+	return(new("MxDataStatic", observed, means, type, numObs, acov, fullWeight, thresholds, sort))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

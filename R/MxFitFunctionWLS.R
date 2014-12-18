@@ -210,3 +210,43 @@ setMethod("show", "MxFitFunctionWLS", function(object) {
 	displayMxFitFunctionWLS(object) 
 })
 
+
+imxWlsStandardErrors <- function(model){
+	#TODO add safety check
+	# Is it a WLS fit function
+	# Does it have data of type=='acov'
+	# Does the data have @fullWeight
+	require(numDeriv)
+	require(MASS)
+	theParams <- omxGetParameters(model)
+	d <- jacobian(func=.mat2param, x=theParams, model=model)
+	V <- model$data$acov #used weight matrix
+	W <- ginv(model$data$fullWeight)
+	dvd <- solve( t(d) %*% V %*% d )
+	nacov <- dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd
+	wls.se <- sqrt(diag(nacov))
+	#SE is the standard errors
+	#Cov is the analog of the Hessian for WLS
+	return(list(SE=wls.se, Cov=nacov))
+}
+
+imxWlsChiSquare <- function(model){
+	require(numDeriv)
+	require(MASS)
+	theParams <- omxGetParameters(model)
+	samp.param <- .mat2param(theParams, model)
+	cov <- model$data$observed
+	mns <- model$data$means
+	thr <- model$data$thresholds
+	expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+	
+	e <- samp.param - expd.param
+	
+	W <- ginv(model$data$fullWeight)
+	jac <- jacobian(func=.mat2param, x=theParams, model=model)
+	jacOC <- Null(jac)
+	x2 <- t(e) %*% jacOC %*% ginv( t(jacOC) %*% W %*% jacOC ) %*% t(jacOC) %*% e
+	return(x2)
+}
+
+
