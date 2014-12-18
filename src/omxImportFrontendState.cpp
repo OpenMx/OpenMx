@@ -27,9 +27,6 @@
 #include "omxNPSOLSpecific.h"
 #include "Compute.h"
 
-/* Outside R Functions */
-static int isDir(const char *path);
-
 int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
 }
@@ -392,25 +389,3 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 	if(OMX_DEBUG) { mxLog("%d effective constraints.", ncnln); }
 	this->ncnln = ncnln;
 }
-
-/*
-*  Acknowledgement:
-*  This function is duplicated from the function of the same name in the R source code.
-*  The function appears in src/main/sysutils.c
-*  Thanks to Michael Spiegel for finding it.
-*  This code is licensed under the terms of the GNU General Public License.
-*/
-static int isDir(const char *path)
-{
-    struct stat sb;
-    int isdir = 0;
-    if(!path) return 0;
-    if(stat(path, &sb) == 0) {
-        isdir = (sb.st_mode & S_IFDIR) > 0; /* is a directory */
-        /* We want to know if the directory is writable by this user,
-           which mode does not tell us */
-        isdir &= (access(path, W_OK) == 0);
-    }
-    return isdir;
-}
-
