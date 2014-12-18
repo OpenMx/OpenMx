@@ -248,7 +248,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 
     double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
  
-    int k, ldA, ldJ, ldR, leniw, lenw; 
+    int ldA, ldJ, ldR, leniw, lenw; 
  
     double *cJac = NULL;    // Hessian (Approx) and Jacobian
  
