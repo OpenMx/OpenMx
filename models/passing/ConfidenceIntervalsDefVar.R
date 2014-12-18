@@ -1,6 +1,8 @@
 require(OpenMx)
 
-datawide <- read.csv('data/datawide.csv')
+datawide <- suppressWarnings(try(read.csv("models/passing/data/datawide.csv"),
+                              silent=TRUE))
+if (is(datawide,"try-error")) datawide <- read.csv("data/datawide.csv")
 
 ylab <- paste("y", 1:5, sep="")
 zlab <- paste("z", 1:5, sep="")
@@ -58,5 +60,9 @@ mxMatrix(type="Full", nrow=8, ncol=1, values=c(rep(0, 5), 1, 0, 0), free=FALSE, 
 
 onecov <- mxModel(onecov, mxAlgebra(expression = A[7, 6], name = "alpha"), mxCI(c("alpha")))
 
-mxRun(onecov, intervals=TRUE)
+onecov <- mxRun(onecov, intervals=TRUE)
+omxCheckCloseEnough(onecov$output$fit, 775.0977, .01)
 
+#cat(deparse(round(c(onecov$output$confidenceIntervals), 3)))
+omxCheckCloseEnough(c(onecov$output$confidenceIntervals),
+                    c(-0.253, 0.102, 0.456), .01)
