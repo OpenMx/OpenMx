@@ -247,6 +247,7 @@ setClass(Class = "MxComputeGradientDescent",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
 	     tolerance = "numeric",
+	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
 	     warmStart = "MxOptionalMatrix"))
 
@@ -269,7 +270,8 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart) {
+	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
+		   nudgeZeroStarts) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
@@ -278,6 +280,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@verbose <- verbose
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
+		  .Object@nudgeZeroStarts <- nudgeZeroStarts
 		  .Object
 	  })
 
@@ -303,6 +306,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value
+##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -329,7 +333,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
-				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL) {
+				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL, nudgeZeroStarts=TRUE) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -345,7 +349,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	verbose <- as.integer(verbose)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart)
+	    tolerance, warmStart, nudgeZeroStarts)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),

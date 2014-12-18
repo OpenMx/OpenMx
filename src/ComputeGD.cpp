@@ -46,6 +46,7 @@ class omxComputeGD : public ComputeGDBase {
 	typedef ComputeGDBase super;
 	bool useGradient;
 	SEXP hessChol;
+	bool nudge;
 
 	int warmStartSize;
 	double *warmStart;
@@ -132,6 +133,9 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		useGradient = Global->analyticGradients;
 	}
 
+	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
+	nudge = Rf_asLogical(slotValue);
+    
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {
 		SEXP matrixDims;
@@ -156,9 +160,15 @@ void omxComputeGD::computeImpl(FitContext *fc)
     
 	for (int px = 0; px < int(numParam); ++px) {
 		omxFreeVar *fv = varGroup->vars[px];
-            if (fv->lbound < fc->est[px] && fc->est[px] < fv->ubound) continue;
-	    fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
-	    return;
+		if (nudge && fc->est[px] == 0.0) {
+			fc->est[px] += 0.1;
+		}
+		if (fv->lbound > fc->est[px]) {
+			fc->est[px] = fv->lbound + 1.0e-6;
+		}
+		if (fv->ubound < fc->est[px]) {
+			fc->est[px] = fv->ubound - 1.0e-6;
+		}
         }
     
 	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);

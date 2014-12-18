@@ -313,21 +313,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
  
         omxSetupBoundsAndConstraints(fc, bl, bu);
  
-        /* Initialize Starting Values */
-        if(OMX_DEBUG) {
-            mxLog("--------------------------");
-            mxLog("Starting Values (%d) are:", n);
-        }
-        for(k = 0; k < n; k++) {
-            if((x[k] == 0.0)) {
-                x[k] += 0.1;
-            }
-            if(OMX_DEBUG) { mxLog("%d: %f", k, x[k]); }
-        }
-        if(OMX_DEBUG) {
-            mxLog("--------------------------");
-        }
- 
     /*  F77_CALL(npsol)
         (   int *n,                 -- Number of variables
             int *nclin,             -- Number of linear constraints

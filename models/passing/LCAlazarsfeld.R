@@ -68,7 +68,7 @@ class2 <- mxModel("Class2",
 lcamodel <- mxModel("lcamodel", class1, class2, mxData(vars, type="raw"), 
             
 # Create class membership probabilities, constrain them to be in the range 0-1, and make their sum equal 1.0
-            mxMatrix("Full", name = "ClassMembershipProbabilities", nrow = nclass, ncol = 1, values=.1, free=TRUE, 
+            mxMatrix("Full", name = "ClassMembershipProbabilities", nrow = nclass, ncol = 1, free=TRUE, 
 			        labels = c(paste("pclass", 1:nclass, sep=""))),
             mxBounds(c(paste("pclass", 1:nclass, sep="")),0,1),
 		    mxMatrix("Iden", nrow = 1, name = "constraintLHS"),
