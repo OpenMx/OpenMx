@@ -28,9 +28,9 @@ factorModel <- mxModel("Checkpoint",
                        mxMatrix("Diag", 5, 5, values=1,
                                 free=TRUE, name="U"),
                        mxAlgebra(A %*% L %*% t(A) + U, name="R"),
-                       #mxExpectationNormal(covariance="R",dimnames=names(demoOneFactor)),
-                       #mxFitFunctionML(),
-                       mxMLObjective("R", dimnames = names(demoOneFactor)),
+                       mxExpectationNormal(covariance="R",dimnames=names(demoOneFactor)),
+                       mxFitFunctionML(),
+                       #mxMLObjective("R", dimnames = names(demoOneFactor)),
                        mxData(cov(demoOneFactor), type="cov", numObs=500))
 factorModel <- mxOption(factorModel,"Checkpoint Units",'evaluations')
 factorModel <- mxOption(factorModel,"Checkpoint Count",1)
@@ -40,7 +40,7 @@ omxCheckTrue(!is.null(checkpointdat))
 omxCheckTrue(nrow(checkpointdat)>1)
 omxCheckTrue(all(checkpointdat$OpenMxNumFree == 10))
 
-mask <- checkpointdat$objective < 1000 & checkpointdat$OpenMxContext == "opt"
+mask <- checkpointdat$objective < 1000 & checkpointdat$OpenMxContext == mxOption(NULL, "Default optimizer")
 traj <- checkpointdat$objective[mask]
 omxCheckTrue(length(traj) > 40)
 trajDf <- data.frame(y=traj, x=1:length(traj))

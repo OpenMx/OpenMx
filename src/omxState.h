@@ -142,7 +142,7 @@ class omxCheckpoint {
 
 	omxCheckpoint();
 	void message(FitContext *fc, double *est, const char *msg);
-	void prefit(FitContext *fc, double *est, bool force);
+	void prefit(const char *callerName, FitContext *fc, double *est, bool force);
 	void postfit(FitContext *fc);
 	~omxCheckpoint();
 };
@@ -207,7 +207,7 @@ class omxGlobal {
 	void deduplicateVarGroups();
 	const char *getBads();
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
-	void checkpointPrefit(FitContext *fc, double *est, bool force);
+	void checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force);
 	void checkpointPostfit(FitContext *fc);
 
 	void cacheDependencies(omxState *os) {

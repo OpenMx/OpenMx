@@ -221,7 +221,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	// It seems we cannot avoid this. Both optimizers can terminate
 	// with fit not at the optimum.
-	ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
 
 	if (fitMatrix->rows == 1) {
 		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO

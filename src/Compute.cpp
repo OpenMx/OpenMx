@@ -2000,7 +2000,7 @@ void ComputeEM::observedFit(FitContext *fc)
 {
 	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 	fc->copyParamToModel();
-	ComputeFit(fit3, FF_COMPUTE_FIT, fc);
+	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
 
 	if (!(fc->wanted & FF_COMPUTE_FIT)) {
 		omxRaiseErrorf("ComputeEM: fit not available");
@@ -2612,7 +2612,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-			ComputeFit(algebra, want, fc);
+			ComputeFit("Once", algebra, want, fc);
 			if (infoMat) {
 				fc->postInfo();
 			}

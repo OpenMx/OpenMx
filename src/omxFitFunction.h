@@ -111,6 +111,6 @@ void omxInitRFitFunction(omxFitFunction *off);
 void omxInitFitFunctionBA81(omxFitFunction* oo);
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 
-void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc);
+void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 
 #endif /* _OMXFITFUNCTION_H_ */

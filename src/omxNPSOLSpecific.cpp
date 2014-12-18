@@ -128,7 +128,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
 		want |= FF_COMPUTE_GRADIENT;
 	}
 
-	ComputeFit(fitMatrix, want, NPSOL_fc);
+	ComputeFit("NPSOL", fitMatrix, want, NPSOL_fc);
 
 	*f = NPSOL_fc->fit;
 

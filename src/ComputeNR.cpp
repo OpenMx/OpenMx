@@ -24,6 +24,8 @@
 
 #include "Eigen/Eigenvalues"
 
+static const char engineName[] = "NnRn";
+
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
@@ -163,7 +165,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		want |= FF_COMPUTE_FIT;
 	}
 
-	ComputeFit(fitMatrix, want, fc);
+	ComputeFit(engineName, fitMatrix, want, fc);
 	if (iter == 1) {
 		refFit = fc->fit;
 		if (!std::isfinite(refFit)) {
@@ -222,7 +224,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		trial = prevEst - speed * searchDir;
 		++minorIter;
 		fc->copyParamToModel();
-		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+		ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
 		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, fc->fit, refFit);
 		if (!std::isfinite(fc->fit)) {
@@ -266,7 +268,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			trial = prevEst - speed * searchDir;
 			++minorIter;
 			fc->copyParamToModel();
-			ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+			ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
 			if (!std::isfinite(fc->fit)) break;
 			const double improved = refFit - fc->fit;
 			if (bestImproved >= improved) break;

@@ -91,7 +91,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	if (fc) fc->wanted |= want;
 }
 
-void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
+void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;
 	R_CheckUserInterrupt();
@@ -106,7 +106,7 @@ void ComputeFit(omxMatrix *fitMat, int want, FitContext *fc)
 		if (OMX_DEBUG) {
 			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
 		}
-		Global->checkpointPrefit(fc, fc->est, false);
+		Global->checkpointPrefit(callerName, fc, fc->est, false);
 	}
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {

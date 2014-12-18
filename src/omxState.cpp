@@ -536,10 +536,10 @@ void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, 
 	}
 }
 
-void omxGlobal::checkpointPrefit(FitContext *fc, double *est, bool force)
+void omxGlobal::checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force)
 {
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->prefit(fc, est, force);
+		checkpointList[i]->prefit(callerName, fc, est, force);
 	}
 }
 
@@ -624,9 +624,9 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 	lastEvaluation = Global->computeCount;
 }
 
-void omxCheckpoint::prefit(FitContext *fc, double *est, bool force)
+void omxCheckpoint::prefit(const char *callerName, FitContext *fc, double *est, bool force)
 {
-	_prefit(fc, est, force, "opt");
+	_prefit(fc, est, force, callerName);
 }
 
 void omxCheckpoint::postfit(FitContext *fc)

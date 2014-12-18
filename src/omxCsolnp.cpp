@@ -94,7 +94,7 @@ struct RegularFit : CSOLNPFit {
 		if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 		fc->copyParamToModel();
     
-		ComputeFit(fitMatrix, FF_COMPUTE_FIT, fc);
+		ComputeFit("CSOLNP", fitMatrix, FF_COMPUTE_FIT, fc);
     
 		if (!std::isfinite(fc->fit) || isErrorRaised()) {
 			*mode = -1;
