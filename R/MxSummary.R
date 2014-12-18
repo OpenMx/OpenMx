@@ -760,7 +760,9 @@ setMethod("summary", "MxModel",
 		retval$CI <- as.data.frame(model@output$confidenceIntervals)
 		if (length(retval$CI) && nrow(retval$CI)) {
 			retval$CI <- cbind(retval$CI, note=apply(retval$CI, 1, function(ci) {
-				if (any(is.na(ci)) || ci[1] == ci[3] || ci[1] > ci[2] || ci[2] > ci[3]) {
+				# This should probably take into account whether both bounds
+				# were requested and consider the optimizer codes also. TODO
+				if (any(is.na(ci)) || ci[1] == ci[3] || ci[1] >= ci[2] || ci[2] >= ci[3]) {
 					"!!!"
 				} else {
 					""

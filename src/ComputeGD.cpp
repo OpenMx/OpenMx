@@ -302,13 +302,14 @@ void ComputeCI::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
+	interval.fill(NA_REAL);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
 		omxConfidenceInterval *oCI = Global->intervalList[j];
-		interval(j, 0) = oCI->min;
 		omxRecompute(oCI->matrix, fc);
 		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-		interval(j, 2) = oCI->max;
+		interval(j, 0) = std::min(oCI->min, interval(j, 1));
+		interval(j, 2) = std::max(oCI->max, interval(j, 1));
 		intervalCode[j] = oCI->lCode;
 		intervalCode[j + numInts] = oCI->uCode;
 	}
