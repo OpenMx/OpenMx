@@ -18,11 +18,10 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		stop("argument 'key' must be a character string")
 	}
 	if (missing(value)) {
-		if (length(model) == 0 && is.null(model)) {
-			return(processDefaultOptionList(key, value))
-		} else {
+		if (length(model) && !is.null(model@options[[key]])) {
 			return(model@options[[key]])
 		}
+		return(processDefaultOptionList(key, value))
 	}
 	if (length(value) > 1 && key!="No Sort Data") {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
