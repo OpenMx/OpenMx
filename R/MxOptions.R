@@ -146,6 +146,7 @@ checkpointOptions <- list(
 	"Checkpoint Prefix" = "",
 	"Checkpoint Units" = "minutes", 
 	"Checkpoint Count" = c("minutes" = 10, "iterations" = 100),
+        "Checkpoint Fullpath" = "",
 	"Socket Server" = "", 
 	"Socket Port" = 8080,
 	"Socket Units" = "minutes", 

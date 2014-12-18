@@ -220,26 +220,18 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 	for(int index = 0; index < Rf_length(checkpointList); ++index) {
 		omxCheckpoint *oC = new omxCheckpoint;
 
-		const char *pathName, *fileName;
-
 		Rf_protect(nextLoc = VECTOR_ELT(checkpointList, index));
 		int next = 0;
 		oC->type = (omxCheckpointType) INTEGER(VECTOR_ELT(nextLoc, next++))[0];
 		switch(oC->type) {
 		case OMX_FILE_CHECKPOINT:{
-			pathName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
-			fileName = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
+			const char *fullname = CHAR(STRING_ELT(VECTOR_ELT(nextLoc, next++), 0));
 
-			if(!isDir(pathName)) {
-				Rf_error("Unable to open directory %s for checkpoint storage.\n", pathName);
-			}
-
-			std::string fullname = string_snprintf("%s/%s", pathName, fileName);
-			if(OMX_DEBUG) { mxLog("Opening File: %s", fullname.c_str()); }
-			oC->file = fopen(fullname.c_str(), "w");
+			if(OMX_DEBUG) { mxLog("Opening File: %s", fullname); }
+			oC->file = fopen(fullname, "w");
 			if(!oC->file) {
-				Rf_error("Unable to open file %s for checkpoint storage: %s.\n",
-					 fullname.c_str(), strerror(errno));
+				Rf_error("Unable to open file %s for checkpoint storage: %s",
+					 fullname, strerror(errno));
 			}
 			break;}
 

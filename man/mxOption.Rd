@@ -97,6 +97,7 @@ Checkpointing options
 Always Checkpoint    \tab [Yes | No]    \tab whether to checkpoint all models during optimization.\cr
 Checkpoint Directory \tab    path       \tab the directory into which checkpoint files are written. \cr
 Checkpoint Prefix    \tab    string     \tab the string prefix to add to all checkpoint filenames. \cr
+Checkpoint Fullpath  \tab    path       \tab overrides the directory and prefix (useful to output to /dev/fd/2) \cr
 Checkpoint Units     \tab    see list   \tab the type of units for checkpointing: 'minutes', 'iterations', or 'evaluations'. \cr
 Checkpoint Count     \tab    \var{i}    \tab the number of units between checkpoint intervals. \cr
 }

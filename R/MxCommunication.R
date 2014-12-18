@@ -13,29 +13,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-generateCommunicationList <- function(modelname, checkpoint, useSocket, options) {
-	defaults <- getOption('mxOptions')
-	if (defaults[['Always Checkpoint']] == "Yes") {
+generateCommunicationList <- function(model, checkpoint, useSocket, options) {
+	if (mxOption(model,'Always Checkpoint') == "Yes") {
 		checkpoint <- TRUE
 	}
 	if (!checkpoint && !useSocket) return(list())
 	retval <- list()
 	if (checkpoint) {		
-		chkpt.directory <- options[['Checkpoint Directory']]
-		chkpt.prefix <- options[['Checkpoint Prefix']]
-		chkpt.units <- options[['Checkpoint Units']]
-		chkpt.count <- options[['Checkpoint Count']]
-		if (is.null(chkpt.directory)) chkpt.directory <- defaults[['Checkpoint Directory']]
-		if (is.null(chkpt.prefix)) chkpt.prefix <- defaults[['Checkpoint Prefix']]
-		if (is.null(chkpt.units)) chkpt.units <- defaults[['Checkpoint Units']]
-		if (is.null(chkpt.count)) {
-			chkpt.count <- defaults[['Checkpoint Count']]
-			if (length(chkpt.count) == 2) {
-				chkpt.count <- chkpt.count[[chkpt.units]]
-			}
+		chkpt.directory <- mxOption(model, 'Checkpoint Directory')
+		chkpt.directory <- removeTrailingSeparator(chkpt.directory)
+		chkpt.prefix <- mxOption(model, 'Checkpoint Prefix')
+		chkpt.units <- mxOption(model, 'Checkpoint Units')
+		chkpt.count <- mxOption(model, 'Checkpoint Count')
+		chkpt.count <- mxOption(model, 'Checkpoint Count')
+		if (length(chkpt.count) == 2) {
+			chkpt.count <- chkpt.count[[chkpt.units]]
 		}
 		if (is.null(chkpt.count)) chkpt.count <- .Machine$integer.max
-		chkpt.directory <- removeTrailingSeparator(chkpt.directory)
 
 		if (!is.numeric(chkpt.count) || chkpt.count < 0) {
 			stop(paste("'Checkpoint Count' model option",
@@ -57,8 +51,13 @@ generateCommunicationList <- function(modelname, checkpoint, useSocket, options)
 				"must be a string in", 
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
-		filename <- paste(chkpt.prefix, paste(modelname, 'omx', sep = '.'), sep = '')
-		description <- list(0L, chkpt.directory, filename, chkpt.units, chkpt.count)
+		filename <- paste(chkpt.prefix, paste(model$name, 'omx', sep = '.'), sep = '')
+		fullpath <- paste(chkpt.directory, filename, sep="/")
+		override <- mxOption(model, "Checkpoint Fullpath")
+		if (nchar(override)) {
+			fullpath <- override
+		}
+		description <- list(0L, fullpath, chkpt.units, chkpt.count)
 		retval[[length(retval) + 1]] <- description
 	}
 	if (useSocket) {

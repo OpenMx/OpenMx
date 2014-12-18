@@ -131,7 +131,7 @@ runHelper <- function(model, frontendStart,
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
 	intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
-	communication <- generateCommunicationList(model@name, checkpoint, useSocket, model@options)
+	communication <- generateCommunicationList(model, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
 	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
