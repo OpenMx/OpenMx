@@ -298,10 +298,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 		if (lower  && !std::isfinite(currentCI->lbound)) continue;
 		if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
-		Global->checkpointMessage(opt, opt->est, "%s[%d, %d] begin %s interval",
-					  matName, currentCI->row + 1, currentCI->col + 1,
-					  lower? "lower" : "upper");
-
 		memcpy(fc.est, opt->est, n * sizeof(double)); // Reset to previous optimum
         
 		int tries = 0;
@@ -309,6 +305,10 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 		double bestFit = std::numeric_limits<double>::max();
             
 		while (inform!= 0 && ++tries <= ciMaxIterations) {
+			Global->checkpointMessage(opt, opt->est, "%s[%d, %d] %s CI (try %d)",
+						  matName, currentCI->row + 1, currentCI->col + 1,
+						  lower? "lower" : "upper", tries);
+
 			ConfidenceIntervalFit cif(&fc, fitMatrix, i, lower);
 			solnp(fc.est, cif, myControl, verbose);
                 
