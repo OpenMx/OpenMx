@@ -199,9 +199,9 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     *inform_out = rf.informOut;
     
     if (rf.gradOut.size()) {
-	    fc->grad = rf.gradOut.head(n);
+	    fc->grad = rf.gradOut.tail(n);
 	    Eigen::Map< Eigen::MatrixXd > hess(hessOut, n, n);
-	    hess = rf.hessOut.topLeftCorner(n, n);
+	    hess = rf.hessOut.bottomRightCorner(n, n);
     }
     
     fc->copyParamToModel();

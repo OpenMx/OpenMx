@@ -2,8 +2,6 @@
 
 library(OpenMx)
 
-#mxOption(NULL, "Default optimizer", "CSOLNP") #works fine on NPSOL
-
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
@@ -19,8 +17,20 @@ factorModelPath <- mxModel("OneFactorPath",
                            mxData(cov(demoOneFactor), type="cov",
                                   numObs=500),
                            mxAlgebra(S[6,6],name="GV"),
-                           mxConstraint(GV-1==0,name="pointless"))
+                           mxConstraint(GV-1==0,name="pointless"),
+                           mxConstraint(GV>0,name="morePointless"),
+			   mxComputeSequence(list(
+			       mxComputeGradientDescent(),
+             mxComputeReportDeriv())))
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Directory","C:/Work/OpenMx_dev/")
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Units","evaluations")
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Count",1)
 factorFit <- mxRun(factorModelPath)
+
+# If we get derivs that include the inequality constraint
+# then there will be zeros.
+omxCheckTrue(all(factorFit$output$hessian != 0))
+omxCheckTrue(all(factorFit$output$gradient != 0))
+
+omxCheckCloseEnough(sqrt(sum(factorFit$output$gradient^2)), 0, .01)
+omxCheckCloseEnough(log(det(factorFit$output$hessian)), 110, 2)
