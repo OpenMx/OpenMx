@@ -485,6 +485,12 @@ void omxMatrix::setNotConstant()
 	owner = NULL;
 }
 
+void omxEnsureColumnMajor(omxMatrix *mat)
+{
+	if (mat->colMajor) return;
+	omxToggleRowColumnMajor(mat);
+}
+
 void omxToggleRowColumnMajor(omxMatrix *mat) {
 
 	int i, j;

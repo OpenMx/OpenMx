@@ -123,6 +123,7 @@ void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
+void omxEnsureColumnMajor(omxMatrix *mat);
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */

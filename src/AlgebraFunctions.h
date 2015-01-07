@@ -2522,9 +2522,7 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 	omxMatrix* inMat = matList[0];
 	if (inMat->rows != inMat->cols) Rf_error("omxExponential requires a symmetric matrix");
-	if (!inMat->colMajor) {
-		omxToggleRowColumnMajor(inMat);
-	}
+	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
 
@@ -2540,9 +2538,7 @@ static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 	omxMatrix* inMat = matList[0];
 	if (inMat->rows != inMat->cols) Rf_error("logm requires a symmetric matrix");
-	if (!inMat->colMajor) {
-		omxToggleRowColumnMajor(inMat);
-	}
+	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
 
