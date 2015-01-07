@@ -47,6 +47,7 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 
 #define EIGEN_NO_DEBUG 1
 #define EIGEN_DONT_PARALLELIZE
+#define EIGEN_DEFAULT_DENSE_INDEX_TYPE int   // default is 8 but 4 bytes is plenty for us
 
 #ifdef DEBUGMX
 #ifdef NDEBUG
