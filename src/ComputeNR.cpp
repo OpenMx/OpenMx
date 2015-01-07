@@ -22,8 +22,6 @@
 #include "Compute.h"
 #include "matrix.h"
 
-#include "Eigen/Eigenvalues"
-
 static const char engineName[] = "NnRn";
 
 class ComputeNR : public omxCompute {
