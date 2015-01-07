@@ -469,6 +469,8 @@ bool FitContext::refreshSparseIHess()
 		const int UseId = 1;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			HessianBlock *hb = blockByVar[vx];
+			if (!hb) Rf_error("Attempting to invert Hessian, "
+					  "but no Hessian information for '%s'", varGroup->vars[vx]->name);
 			if (hb->useId == UseId) continue;
 			hb->useId = UseId;
 
