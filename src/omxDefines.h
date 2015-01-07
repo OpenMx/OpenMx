@@ -30,7 +30,6 @@
 #include <string.h>
 
 #define MIN_ROWS_PER_THREAD 8
-#define EPSILON 1e-16
 #define TRUE 1
 #define FALSE 0
 

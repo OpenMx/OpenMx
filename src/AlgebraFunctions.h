@@ -27,6 +27,7 @@
 *
 **********************************************************/
 
+#include <limits>
 #include <R.h>
 #include <Rmath.h>
 #include "omxMatrix.h"
@@ -1827,9 +1828,9 @@ AllIntCleanup:
 
 static int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {
 	double diff = (*(*(double**) two)) - (*(*(double**) one));
-	if(diff > EPSILON) {
+	if(diff > std::numeric_limits<double>::epsilon()) {
 		return 1;
-	} else if(diff < -EPSILON) {
+	} else if(diff < -std::numeric_limits<double>::epsilon()) {
 		return -1;
 	} else return 0;
 }
@@ -2001,7 +2002,7 @@ static void omxRealEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs
 
 	// Filter real and imaginary eigenvectors.  Real ones have no WI.
 	for(int i = 0; i < A->cols; i++) {
-		if(fabs(WI[i]) > EPSILON) {									// If this is part of a conjugate pair
+		if(fabs(WI[i]) > std::numeric_limits<double>::epsilon()) {									// If this is part of a conjugate pair
 			memcpy(omxLocationOfMatrixElement(A, 0, i+1), omxLocationOfMatrixElement(A, 0, i), A->rows * sizeof(double));
 				// ^^ This is column-major, so we can clobber columns over one another.
 			WR[i] = sqrt(WR[i] *WR[i] + WI[i]*WI[i]);				// Sort by eigenvalue modulus
@@ -2077,7 +2078,7 @@ static void omxImaginaryEigenvalues(FitContext *fc, omxMatrix** matList, int num
 	for(int i = 0; i < result->rows; i++) {
 		double value = omxMatrixElement(A, i, 0);					// A[i] is the ith imaginary eigenvalue
 		value *= value;												// Squared imaginary part
-		if(value > EPSILON) {
+		if(value > std::numeric_limits<double>::epsilon()) {
 			value = sqrt(WR[i] *WR[i] + value);				// Sort by eigenvalue modulus
 			WR[i] = value;
 			WR[++i] = value;										// Conjugate pair.
