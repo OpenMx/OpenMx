@@ -1304,7 +1304,7 @@ void Varadhan2008::recalibrate(bool *restart)
 	if (maxAlpha && !retried && alpha > 0) maxAlpha = alpha*2;
 	double newAlpha = rr.norm() / vv.norm();
 	alpha = newAlpha - 0.5;     // slightly more conservative seems to help
-	if (alpha < 1) alpha = 1;
+	if (!std::isfinite(alpha) || alpha < 1) alpha = 1;
 	if (maxAlpha && alpha > maxAlpha) alpha = maxAlpha;
 
 	moveEst();
