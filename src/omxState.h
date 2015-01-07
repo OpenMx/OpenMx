@@ -78,7 +78,11 @@ struct omxFreeVar {
 	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
 	
-	omxFreeVarLocation *getLocation(int matrix);
+	// Be aware that a free variable might be assigned to more
+	// than 1 location in the same matrix. This API just returns
+	// the first matching location.
+	const omxFreeVarLocation *getLocation(int matrix) const;
+	const omxFreeVarLocation *getLocation(omxMatrix *mat) const;
 };
 
 #define FREEVARGROUP_ALL      0

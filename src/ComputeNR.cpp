@@ -335,8 +335,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 	const char *maxAdjFlavor = "?";
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (tolerance %.3g, max iter %d)",
-		      tolerance, maxIter);
+		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
+		      (int)numParam, tolerance, maxIter);
 	}
 	while (1) {
 		fc->iterations += 1;

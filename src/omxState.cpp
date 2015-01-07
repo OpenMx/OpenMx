@@ -640,11 +640,14 @@ void omxCheckpoint::postfit(FitContext *fc)
 	fitPending = false;
 }
 
-omxFreeVarLocation *omxFreeVar::getLocation(int matrix)
+const omxFreeVarLocation *omxFreeVar::getLocation(int matrix) const
 {
 	for (size_t lx=0; lx < locations.size(); lx++) {
-		omxFreeVarLocation *loc = &locations[lx];
-		if (~loc->matrix == matrix) return loc;
+		const omxFreeVarLocation &loc = locations[lx];
+		if (loc.matrix == matrix) return &loc;
 	}
 	return NULL;
 }
+
+const omxFreeVarLocation *omxFreeVar::getLocation(omxMatrix *mat) const
+{ return getLocation(~mat->matrixNumber); }

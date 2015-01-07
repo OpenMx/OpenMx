@@ -365,4 +365,9 @@ struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
 	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
 };
 
+struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
+	EigenVectorAdaptor(omxMatrix *mat) :
+	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
+};
+
 #endif /* _OMXMATRIX_H_ */

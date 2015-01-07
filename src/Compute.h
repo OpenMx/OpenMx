@@ -65,17 +65,20 @@ enum ComputeInfoMethod {
 };
 
 struct HessianBlock {
-	std::vector<int> vars;  // global freeVar ID in order
-	Eigen::MatrixXd mat;    // vars * vars, only upper triangle referenced
+	//private:
 	Eigen::MatrixXd mmat;   // including subblocks
-	Eigen::MatrixXd imat;
 	std::vector< HessianBlock* > subBlocks;
 	bool merge;
 	int useId;
+	void addSubBlocks();
+
+	//public:
+	std::vector<int> vars;  // global freeVar ID in order
+	Eigen::MatrixXd mat;    // vars * vars, only upper triangle referenced
+	Eigen::MatrixXd imat;
 
 	HessianBlock() : merge(false), useId(0) {}
 	HessianBlock *clone();
-	void addSubBlocks();
 	int estNonZero() const;
 };
 

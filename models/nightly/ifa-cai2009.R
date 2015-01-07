@@ -134,7 +134,8 @@ omxIFAComputePlan <- function(groups) {
                                      freeSet=latentFG)
   } else {
 	  # default tolerance isn't good enough for stable S-EM results
-    latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction")
+#    latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction")
+    latent.plan <- mxComputeNewtonRaphson(latentFG, fitfunction="latent.fitfunction")
   }
 
   mxComputeSequence(steps=list(

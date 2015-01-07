@@ -104,7 +104,8 @@ if (0) {
 } else {
   # Obtain latent distribution parameters via mxExpectationNormal.
   # This permits equality constraints (and potentially more complex latent structure).
-  latent.plan <- mxComputeGradientDescent(latent.vargroup, fitfunction="latent.fitfunction")
+#  latent.plan <- mxComputeGradientDescent(latent.vargroup, fitfunction="latent.fitfunction")
+  latent.plan <- mxComputeNewtonRaphson(latent.vargroup, fitfunction="latent.fitfunction")
 }
 
 grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent,
