@@ -702,10 +702,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     // hessv [ (np+nineq) x (np+nineq) ]
     // hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
-    Matrix vscaleSubset = subset(vscale, 0, (neq+1), (nc + np));
-    transposeDP(vscaleSubset);
-    multiplyEigen(hessv, vscaleSubset);
-    divideByScalar2D(hessv, M(vscale, 0, 0));
+    Eigen::Map < Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
+    Eigen::RowVectorXd result_e;
+    result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
+    hessv_e = result_e.asDiagonal() * hessv_e;
+    hessv_e = hessv_e / vscale_e[0];
     
     j = M(ob, 0, 0);
     if (verbose >= 3){
