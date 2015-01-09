@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include "matrix.h"
 #include "omxCsolnp.h"
+#include <iostream>
+using std::cout;
+using std::endl;
 
 struct CSOLNP {
 
@@ -611,20 +614,34 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
     }
     
-    
     Matrix pb;
-    Matrix col1_pb;
+    Eigen::MatrixXd pb_e;
+    Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.rows, LB.cols);
+    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.rows, UB.cols);
     
     if(nineq) {
-	    pb = fill(2, nineq, (double)0.0);
-            setColumnInplace(pb, fit.solIneqLB, 0);
-            setColumnInplace(pb, fit.solIneqUB, 1);
-	    
-            Matrix pb_cont = fill(2, np, (double)0.0);
-            setColumnInplace(pb_cont, LB, 0);
-            setColumnInplace(pb_cont, UB, 1);
-            
-            pb = transpose(copy(transpose(pb), transpose(pb_cont)));//MAHSA
+        pb = new_matrix(2, nineq + np);
+        pb_e.setZero(nineq, 2);
+        pb_e.col(0) = fit.solIneqLB;
+        pb_e.col(1) = fit.solIneqUB;
+        Eigen::MatrixXd pb_cont_e;
+        pb_cont_e.setZero(np, 2);
+        pb_cont_e.col(0) = LB_e;
+        pb_cont_e.col(1) = UB_e;
+        pb_e.transposeInPlace();
+        pb_cont_e.transposeInPlace();
+        if (verbose == 3){
+            cout << "pb_e:\n" << pb_e << endl;
+            cout << "pb_cont_e:\n" << pb_cont_e << endl;
+        }
+        Eigen::MatrixXd pbJoined(2, nineq + np);
+        pbJoined << pb_e, pb_cont_e;
+        pbJoined.transposeInPlace();
+        if (verbose == 3){
+            cout << "pbJoined:\n" << pbJoined << endl;
+        }
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
+
     } else {
             pb = fill(2, np, (double)0.0);
             setColumnInplace(pb, LB, 0);
