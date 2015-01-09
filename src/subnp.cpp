@@ -691,10 +691,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         // yy [total constraints = nineq + neq]
         // scale here is [tc] and dot multiplied by yy
         //yy = vscale[ 2:(nc + 1) ] * yy / vscale[ 1 ]
-        Matrix result = transpose(subset(vscale, 0, 1, nc));
-        multiplyEigen(result, yy);
-        yy = duplicateIt(result);
-        divideByScalar2D(yy, M(vscale, 0, 0));
+        Eigen::Map < Eigen::MatrixXd > yy_e(yy.t, yy.rows, yy.cols);
+        yy_e = vscale_e.block(0, 1, 1, nc).transpose().asDiagonal() * yy_e;
+        yy_e = yy_e / vscale_e[0];
+        if (verbose >= 3){
+            cout << "yy_e:\n" << yy_e << endl;
+        }
     }
     
     // hessv [ (np+nineq) x (np+nineq) ]
