@@ -643,10 +643,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
 
     } else {
-            pb = fill(2, np, (double)0.0);
-            setColumnInplace(pb, LB, 0);
-            setColumnInplace(pb, UB, 1);
-            
+        pb = fill(2, np, (double)0.0);
+        pb_e.setZero(np, 2);
+        pb_e.col(0) = LB_e;
+        pb_e.col(1) = UB_e;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pb_e.rows(), pb_e.cols()) = pb_e;
     }
     
     if (verbose >= 3){
