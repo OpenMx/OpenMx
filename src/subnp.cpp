@@ -673,14 +673,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     int mm = 0;
     {
-            mm=npic;
-        Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
-        //double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
-        Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
-        setColumnInplace(vscaleTwice, vscaleSubset, 0);
-        setColumnInplace(vscaleTwice, vscaleSubset, 1);
-        
-	divideEigen(pb, vscaleTwice);
+        mm=npic;
+        Eigen::MatrixXd pbCopied;
+        pbCopied.setZero(pb.rows, pb.cols);
+        pbCopied.col(0) = vscale_e.block(0, neq + 1, 1, neq + mm - neq);
+        pbCopied.col(1) = vscale_e.block(0, neq + 1, 1, neq + mm - neq);
+        pb_e = pb_e * pbCopied.asDiagonal().inverse();
     }
     
     if (verbose >= 3){
