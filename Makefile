@@ -7,7 +7,7 @@ export REXEC
 # --force-biarch is for Windows 64/32 fat binary packages
 BUILDARGS = --force-biarch --dsym
 
-BUILDPRE = 2.0.0
+BUILDPRE = 2.0.1
 BUILDNO = $(shell ./inst/tools/findBuildNum.sh)
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = build/OpenMx.pdf
