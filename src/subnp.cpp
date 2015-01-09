@@ -660,9 +660,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     //Matrix yyMatrix = duplicateIt(yy);
     
-    divideEigen(ob, subset(vscale, 0, 0, nc));
-    
-    divideEigen(p0, subset(vscale, 0, (neq+1), (nc + np)));
+    Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
+    Eigen::Map< Eigen::RowVectorXd > vscale_e(vscale.t, vscale.cols);
+    ob_e = ob_e * vscale_e.block(0, 0, 1, nc + 1).asDiagonal().inverse();
+    Eigen::Map< Eigen::RowVectorXd > p0_e(p0.t, np);
+    p0_e = p0_e * vscale_e.block(0, neq + 1, 1, nc + np - neq).asDiagonal().inverse();
     
     if (verbose >= 3){
         mxLog("p0_1 is: \n");
