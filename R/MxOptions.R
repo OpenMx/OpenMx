@@ -107,8 +107,8 @@ determineDefaultOptimizer <- function() {
 		if (imxHasNPSOL()) {
 			engine <- "CSOLNP"
 		} else {
-			engine <- "CSOLNP"
-            #engine <- "NLOPT"
+			#engine <- "CSOLNP"
+			engine <- "NLOPT"
 		}
 	}
 	engine
