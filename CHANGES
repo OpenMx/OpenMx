@@ -1,5 +1,130 @@
 trunk
 =====
+
+* Prevent Varadhan2008 from failing near convergence
+* Throw error on attempt to invert incomplete Hessian
+* CSOLNP: Correct exclusion of inequality constraints from gradient/Hessian
+* When checkpointing fit, record who requested it
+* Restore parallel processing for CIs
+* Add "Checkpoint Fullpath" to override output destination
+* Make mxOption(model, val) return the global setting or the model's override
+* Add WLS standard error and chi-square functions
+* Consolidate starting value nudging logic in ComputeGD
+* Try harder to keep CIs ordered properly vs estimate
+* Add partial identification information to ID check.  Tells which
+  parameters are not identified.
+* CSOLNP: Avoid reuse of obm for more than 1 purpose
+* CSOLNP: Simplify CI calculation
+* CSOLNP: Tidy optimizer reporting
+* CSOLNP: Count the number of major iterations
+* Add Makefile rule to run the failing tests
+* CSOLNP: Return stuff via CSOLNPFit; isolate Matrix inside of subnp
+* CSOLNP: Remove some redundent information
+* Remove template argument from CSOLNP::solnp
+* Store equality & inequality results in CSOLNPFit
+* Reduce variable lifetime
+* Tidy some minor valgrind issues
+* Remove q() from test
+* CSOLNP: Convert control param to Eigen vector
+* CSOLNP: Move bounds to CSOLNPFit; remove lots of deadcode
+* CSOLNP: Move inequality bounds to CSOLNPFit
+* CSOLNP: Remove Matrix arg from CSOLNPFit::solFun
+* CSOLNP: Remove GLOB_ prefix since variables are no longer global
+* CSOLNP: Eliminate more globals
+* CSOLNP: Continue refactoring API
+* CSOLNP: Pass parameter vector using Eigen
+* CSOLNP: Rewrite omxProcessConstraintsCsolnp in Eigen
+* CSOLNP: Don't bother creating the unused solEqB matrix
+* CSOLNP: Eliminate reliance on all-zero solEqB
+* Simplify setup of constraints
+* CSOLNP: Put in temporary fix for conformability of derivs with constraints
+* CSOLNP: Fix some problems revealed by Eigen conformability checking
+* Rework calculation of compiler args; add IMX_SAFE switch
+* Add test for omxGetParameters
+* omxGetParameters: Omit duplicated parameters even when there are no submodels
+* Tidy up MxMatrix-related error and warning messages; re-write MatrixErrorDetection.R
+* BA81: Prohibit all NA rows
+* Small but important MxMatrix-related adjustments.
+* Add Jacobian-based model identification check.
+* Added method for getting cov, means, and thresh from LISREL expectation.
+* Added method for getting cov, means, and thresh from RAM expectation.
+* Added generic for getting expected covariance, means, and thresholds.
+* Small test for LISREL type, to be expanded
+* LISREL model initialization.
+* Better MxMatrix verification
+* Conditionally "condense" the 'labels', 'free', 'lbound', and 'ubound' slots of MxMatrix objects.
+* CSOLNP: Convert ind to Eigen; make easier to understand
+* Enable ubsan for gcc 4.9+
+* Make gcc happier
+* CSOLNP: Remove more deadcode
+* Avoid reuse of condif[123]
+* test if OpenMx disorders thresholds
+* CSOLNP: Remove bounds check; all Eigen ops are already bounds checked
+* CSOLNP: Remove superfluous assignment
+* CSOLNP: Remove deadcode
+* CSOLNP: Converting function add to Eigen
+* CSOLNP: Converting functions subtract and timess to Eigen
+* CSOLNP: Converting functions subset, copy, multiply, and divide to Eigen
+* CSOLNP: reapplying revisions 3976-3996
+* Add gcc 4.9 support (same binary as gcc 4.8)
+* WLS maybe working for joint.
+* Helpful error when SaturatedLikelihood is given a list of two.
+* Change the fake definition variable value for easier indexing
+* CSOLNP: global variables moved to a struct
+* Fix saturated DoF for raw data when only some of the variables are used.
+* Bug fix for refs models with cov data
+* CSOLNP: reverted version checked in
+* Refrain from evaluating MxMatrix in the front-end
+* Refactor computation of CFI, TLI, & RMSEA
+* Move demos to nightly
+* Prevent SEGV on ordinal columns with no thresholds
+* Ensure continuous all-NA column is not run through mxFactor
+* Add comment about multinomial degrees of freedom
+* Enable --force-biarch for Windows fat binaries & remove obsolete rules
+* various doc cleanup
+
+Release 2.0.0-4004 (Oct 24, 2014)
+=======================================
+
+* Fix calculation of the saturated -2LL for IFA models
+* Add some warning about CSOLNP
+* Add hint about infeasible starting values (per Mike Neale)
+* Rework capture of errors & warnings
+* Permit running test from top dir
+* CSOLNP: Unravel some confused Matrix resizing
+* CSOLNP: Allow 0 coeff matrices; init to NaN instead of 1.0
+* CSOLNP: Avoid allocation to report gradient
+* CSOLNP: Add a varient of subset that copies out to Eigen::MatrixBase
+* CSOLNP: Eliminate 2 instances of fillMatrix
+* CSOLNP: Shorten lifetime of index variable
+* CSOLNP: Convert a little bit of subnp to Eigen
+* CSOLNP: For set{Row|Column}InPlace, treat 2nd arg as a vector
+* Don't abort build if NPSOL is not found for a particular compiler
+* CSOLNP: Switch Bcolj to stack allocation
+* CSOLNP: Remove negate deadcode
+* CSOLNP: Re-express findMax(matrixAbs()) as matrixMaxAbs()
+* CSOLNP: Simplify divideByScalar2D & multiplyByScalar2D
+* CSOLNP: Covert a few more copyInto -> copyIntoInplace
+* CSOLNP: Move sob to stack allocated storage
+* CSOLNP: Move alp to stack allocated storage
+* CSOLNP: Move subnp_ctrl from Matrix to stack allocated Eigen::Array
+* CSOLNP: Change setColumn to setColumnInplace
+* CSOLNP: Change some setRow to setRowInplace
+* Once constraints are turned into algebras, eliminate objectives from
+  those new algebras and replace them with fitfunctions.
+* CSOLNP: Convert some copyInto into copyIntoInplace
+* CSOLNP: options added
+* Update citation
+* Drop psych dependency
+* Document that mxLog will fail in Rgui on Windows
+* Stop with error message if mxLog fails
+* Updates to documentation
+* Report CIs with NA as NA instead of throwing an error
+* CSOLNP: void functions and memory allocation checks added to minor iteration loop
+* Correctly collapse levels regardless of order (mxFactor)
+* Repair derivatives of the beta density
+* Avoid exception when only 1 optimizer has errors in the test suite
+* Add mxFactor(..., collapse=TRUE)
 * Fix bug that failed to print optimizer messages again in summary.  Add test.
 * Fix mxEval(..., defvar.row) for when data is sorted
 * Check for duplicated level names in factors in MxData
