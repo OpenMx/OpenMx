@@ -133,5 +133,6 @@ void omxInitLISRELExpectation(omxExpectation *ox);
 void omxInitStateSpaceExpectation(omxExpectation *ox);
 void omxInitRAMExpectation(omxExpectation *ox);
 void omxInitExpectationBA81(omxExpectation* oo);
+void omxInitGREMLExpectation(omxExpectation* ox);
 
 #endif /* _OMXEXPECTATION_H_ */

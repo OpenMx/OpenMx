@@ -110,6 +110,7 @@ void omxInitMLFitFunction(omxFitFunction *off);
 void omxInitRFitFunction(omxFitFunction *off);
 void omxInitFitFunctionBA81(omxFitFunction* oo);
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
+void omxInitGREMLFitFunction(omxFitFunction *oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 

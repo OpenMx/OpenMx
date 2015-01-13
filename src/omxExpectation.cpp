@@ -44,7 +44,8 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationStateSpace",			&omxInitStateSpaceExpectation},
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
 	{"MxExpectationRAM",			&omxInitRAMExpectation},
-	{"MxExpectationBA81", &omxInitExpectationBA81}
+	{"MxExpectationBA81", &omxInitExpectationBA81},
+  {"MxExpectationGREML", &omxInitGREMLExpectation}
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {

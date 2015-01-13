@@ -136,5 +136,7 @@ Collate:
     'MxRObjective.R'
     'MxExpectationStateSpace.R'
     'MxExpectationBA81.R'
+    'MxFitFunctionGREML.R'
+    'MxExpectationGREML.R'
     'zzz.R'
 Version: VERSION-SVN
