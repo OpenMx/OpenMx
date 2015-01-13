@@ -31,6 +31,7 @@
 #define _OMXMATRIX_H_
 
 #include "omxDefines.h"
+#include "Eigen/Core"
 #include "omxBLAS.h"
 
 #include "omxAlgebra.h"
