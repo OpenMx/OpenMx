@@ -353,4 +353,15 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
 void expm_eigen(int n, double *rz, double *out);
 void logm_eigen(int n, double *rz, double *out);
 
+inline double *omxMatrixDataColumnMajor(omxMatrix *mat)
+{
+	omxEnsureColumnMajor(mat);
+	return mat->data;
+}
+
+struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
+	EigenMatrixAdaptor(omxMatrix *mat) :
+	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
+};
+
 #endif /* _OMXMATRIX_H_ */
