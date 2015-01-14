@@ -11,7 +11,7 @@
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ALGEBRA             # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # DEBUG_CXXFLAGS+=-DDEBUGMX_MATRIX              # turn on matrix debugging
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
-# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -O0   # basic debugging without extra logging
+# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -Og   # basic debugging without extra logging
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer -fno-inline  # oprofile
 
 # To collect gcov statistics (gcc only)
