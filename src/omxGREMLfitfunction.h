@@ -14,16 +14,6 @@
  *  limitations under the License.
  */
 
-//#ifdef DO_GREML
-/*typedef struct omxGREMLfitfunction {
-
-  omxMatrix* y;
-  omxMatrix* V;
-  omxMatrix* X;
-  
-
-} omxGREMLfitfunction; */ 
-
 void omxDestroyGREMLFitFunction(omxFitFunction *oo);
 
 void omxInitGREMLFitFunction(omxFitFunction *oo);
@@ -31,4 +21,3 @@ void omxInitGREMLFitFunction(omxFitFunction *oo);
 void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc);
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra);
-//#endif

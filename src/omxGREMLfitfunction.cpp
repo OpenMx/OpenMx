@@ -17,8 +17,6 @@
 #include "omxFitFunction.h"
 #include "omxGREMLfitfunction.h"
 #include "Eigen/Core"
-//#include "Eigen/LU"
-//#include "Eigen/Eigenvalues"
 #include "Eigen/Cholesky"
 #include "Eigen/Dense"
 
@@ -44,9 +42,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   int i;
   double logdetV=0, logdetquadX=0, nll=0;
   Eigen::MatrixXd Vinv, XtVinv, quadX, quadXinv, P, ytP;
-  Eigen::Map< Eigen::MatrixXd > Eigy(gff->y->data, gff->y->rows, 1);
-  Eigen::Map< Eigen::MatrixXd > EigX(gff->X->data, gff->X->rows, gff->X->cols);
-  Eigen::Map< Eigen::MatrixXd > EigV(gff->V->data, gff->V->rows, gff->V->cols);
+  EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
+  EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
+  EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
   Eigen::LDLT< Eigen::MatrixXd > rbstcholV(gff->y->rows);
   Eigen::LDLT< Eigen::MatrixXd > rbstcholquadX(gff->X->cols);
   
@@ -84,37 +82,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     logdetquadX += log(rbstcholquadX.vectorD()[i]);
   }
   quadXinv = rbstcholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
-  /*
-  Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > esV(gff->y->rows);
-  Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > esquadX(gff->X->cols);
   
-  esV.compute(EigV);
-  for(i=0; i < gff->y->rows; i++){
-    if(esV.eigenvalues()[i] <= 0){
-      oo->matrix->data[0] = NA_REAL;
-      return;
-    }
-    logdetV += log(esV.eigenvalues()[i]);
-  }
-  
-  Vinv = esV.eigenvectors() * esV.eigenvalues().asDiagonal().inverse() * esV.eigenvectors().inverse();
-  //delete *esV;
-  
-  XtVinv = EigX.transpose() * Vinv;
-  quadX = XtVinv * EigX;
-  
-  esquadX.compute(quadX);
-  for(i=0; i < gff->X->cols; i++){
-    if(esquadX.eigenvalues()[i] <= 0){
-      oo->matrix->data[0] = NA_REAL;
-      return;
-    }
-    logdetquadX += log(esquadX.eigenvalues()[i]);
-  }
-  
-  quadXinv = esquadX.eigenvectors() * esquadX.eigenvalues().asDiagonal().inverse() * esquadX.eigenvectors().inverse();
-  //delete *esquadX;
-  */
   P = Vinv - (XtVinv.transpose() * quadXinv * XtVinv);
   ytP = Eigy.transpose() * P;
   nll = 0.5*(logdetV + logdetquadX + (ytP * Eigy)(0,0));
@@ -149,6 +117,4 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
-  //omxRaiseErrorf("GREML populateAttrFun not fully implemented.");
-  //omxGREMLFitFunction *argStruct = ((omxGREMLFitFunction*)oo->argStruct);
 }

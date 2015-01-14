@@ -25,7 +25,6 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   omxState* currentState = ox->currentState;
   
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
-  //omxRaiseErrorf("GREML expectation not fully implemented.");
   
   omxGREMLExpectation *oge = (omxGREMLExpectation*) R_alloc(1, sizeof(omxGREMLExpectation));
   
