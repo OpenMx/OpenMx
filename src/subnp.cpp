@@ -616,8 +616,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     Matrix pb;
     Eigen::MatrixXd pb_e;
-    Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.rows, LB.cols);
-    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.rows, UB.cols);
+    Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
+    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);
     
     if(nineq) {
         pb = new_matrix(2, nineq + np);
