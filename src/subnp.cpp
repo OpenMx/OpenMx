@@ -640,6 +640,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         if (verbose == 3){
             cout << "pbJoined:\n" << pbJoined << endl;
         }
+        pb_e.resize(pbJoined.rows(), pbJoined.cols());
+        pb_e = pbJoined;
         Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
 
     } else {
@@ -652,7 +654,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     if (verbose >= 3){
         mxLog("pb is: \n");
-        for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
+        for (int i = 0; i < pb.cols * pb.rows; i++) mxLog("%f",pb.t[i]);
     }
     
     Eigen::Array<double, 3, 1> sob;
@@ -662,13 +664,13 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
     Eigen::Map< Eigen::RowVectorXd > vscale_e(vscale.t, vscale.cols);
-    ob_e = ob_e * vscale_e.block(0, 0, 1, nc + 1).asDiagonal().inverse();
-    Eigen::Map< Eigen::RowVectorXd > p0_e(p0.t, np);
-    p0_e = p0_e * vscale_e.block(0, neq + 1, 1, nc + np - neq).asDiagonal().inverse();
+    ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
+    Eigen::Map< Eigen::RowVectorXd > p0_e(p0.t, p0.cols);
+    p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
     
     if (verbose >= 3){
-        mxLog("p0_1 is: \n");
-        for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
+       cout<< "p0_e: \n"<< p0_e<< endl;
+       cout<< "vscale_e: \n"<< vscale_e<< endl;
     }
     
     int mm = 0;
@@ -678,7 +680,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         pbCopied.setZero(pb.rows, pb.cols);
         pbCopied.col(0) = vscale_e.block(0, neq + 1, 1, mm).transpose();
         pbCopied.col(1) = vscale_e.block(0, neq + 1, 1, mm).transpose();
-        pb_e = pb_e * pbCopied.asDiagonal().inverse();
+        pb_e = pb_e.cwiseQuotient(pbCopied);
     }
     
     if (verbose >= 3){
@@ -692,7 +694,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         // scale here is [tc] and dot multiplied by yy
         //yy = vscale[ 2:(nc + 1) ] * yy / vscale[ 1 ]
         Eigen::Map < Eigen::MatrixXd > yy_e(yy.t, yy.rows, yy.cols);
-        yy_e = vscale_e.block(0, 1, 1, nc).transpose().asDiagonal() * yy_e;
+        yy_e = vscale_e.block(0, 1, 1, nc).transpose().array() * yy_e.array();
         yy_e = yy_e / vscale_e[0];
         if (verbose >= 3){
             cout << "yy_e:\n" << yy_e << endl;
@@ -703,9 +705,9 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     // hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
     Eigen::Map < Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
-    Eigen::RowVectorXd result_e;
+    Eigen::MatrixXd result_e;
     result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
-    hessv_e = result_e.asDiagonal() * hessv_e;
+    hessv_e = hessv_e.cwiseProduct(result_e);
     hessv_e = hessv_e / vscale_e[0];
     
     j = M(ob, 0, 0);
