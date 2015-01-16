@@ -17,7 +17,7 @@
 mxSetDefaultOptions <- function() {
    options('mxDefaultType' = 'default', 
 	'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions,
-	    list("Default optimizer" = determineDefaultOptimizer())),
+	    list("Default optimizer" = imxDetermineDefaultOptimizer())),
 	'mxByrow' = FALSE,
 	'mxCondenseMatrixSlots' = FALSE,
 	'mxShowDimnames' = TRUE,

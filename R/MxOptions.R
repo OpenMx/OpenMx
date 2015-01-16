@@ -101,7 +101,7 @@ processDefaultOptionList <- function(key, value) {
 	return(invisible(defaultOptions))
 }
 
-determineDefaultOptimizer <- function() {
+imxDetermineDefaultOptimizer <- function() {
 	engine <- Sys.getenv("IMX_OPT_ENGINE")
 	if (!nchar(engine)) {
 		if (imxHasNPSOL()) {
