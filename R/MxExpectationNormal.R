@@ -167,7 +167,6 @@ mxCheckIdentification <- function(model, details=TRUE){
 		stat <- FALSE
 	}
 	if(details == TRUE){
-		require(MASS)
 		jacOC <- Null(t(jac)) # Orthogonal complement of t(jac), i.e. the basis for the null space of the column space of jac
 		nidp <- names(theParams)[apply(jacOC, 1, sse) > eps] # non-identified free params have non-zero rows
 		if(length(nidp) == 0) {
