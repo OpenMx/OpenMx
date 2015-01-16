@@ -642,14 +642,14 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         }
         pb_e.resize(pbJoined.rows(), pbJoined.cols());
         pb_e = pbJoined;
-        Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pb.rows, pb.cols) = pbJoined;
 
     } else {
         pb = fill(2, np, (double)0.0);
         pb_e.setZero(np, 2);
         pb_e.col(0) = LB_e;
         pb_e.col(1) = UB_e;
-        Eigen::Map< Eigen::MatrixXd >(pb.t, pb_e.rows(), pb_e.cols()) = pb_e;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pb.rows, pb.cols) = pb_e;
     }
     
     if (verbose >= 3){
