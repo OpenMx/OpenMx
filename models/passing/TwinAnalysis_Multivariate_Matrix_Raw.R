@@ -67,7 +67,8 @@ mzGroup <- mxModel("mz",
                    cbind(A+C    , A+C+E)), dimnames = list(selVars, selVars), name="expCov"),
 	# Import raw data setting and set objective
 	mxData(mzfData, type="raw"), 
-	mxFIMLObjective("expCov", "expMeanMZ")
+	mxExpectationNormal("expCov", "expMeanMZ"),
+	mxFitFunctionML()
 )
 
 # make the dz group: much simpler - just has its data and means, and refers to the ACE matrices 
@@ -78,7 +79,8 @@ dzGroup <- mxModel("dz",
 	 mxAlgebra(rbind (cbind(mz.A+ mz.C+ mz.E  , h %x% mz.A + mz.C),
 	                  cbind(h %x% mz.A + mz.C, mz.A + mz.C + mz.E)), dimnames = list(selVars, selVars), name="expCov"),
 	mxData(dzfData, type="raw"), 
-	mxFIMLObjective("expCov", "expMeanDZ")
+	mxExpectationNormal("expCov", "expMeanDZ"),
+	mxFitFunctionML()
 )
 
 # Combine the mz and dz groups in a supermodel which can have as its objective maximising the likelihood ofboth groups simultaneously.

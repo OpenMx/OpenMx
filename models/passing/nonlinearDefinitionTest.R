@@ -28,7 +28,8 @@ model <- mxModel("Non Linear Definition",
   mxAlgebra(B ^ D, name="bexp"),
   mxAlgebra(M %*% t(IA), name="mu"),
   mxAlgebra(IA %*% S %*% t(IA), name="sigma"),
-  mxFIMLObjective("sigma", "mu", dimnames=c("x", "y"))
+  mxExpectationNormal("sigma", "mu", dimnames=c("x", "y")),
+  mxFitFunctionML()
 )
 
 results <- mxRun(model)

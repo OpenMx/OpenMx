@@ -11,7 +11,7 @@ model <- mxModel(model="con_test",
                  mxMatrix(type="Full", nrow=2, ncol=2, free=FALSE, name="limit", values=1:4),
                  mxConstraint(K == limit, name = "Klimit_equality"),
                  mxAlgebra(min(K), name="minK"),
-                 mxAlgebraObjective("minK")
+                 mxFitFunctionAlgebra("minK")
 )
 
 fit <- mxRun(model)
