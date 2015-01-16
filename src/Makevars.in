@@ -22,7 +22,7 @@ endif
 
 ifeq ($(IMX_SAFE),1)
         DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG
-        DEBUG_LDFLAGS+=$(xcheck_LDFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG
+        DEBUG_LDFLAGS+=$(xcheck_LDFLAGS)
 endif
 
 ifneq ($(DEBUG_CXXFLAGS),)
