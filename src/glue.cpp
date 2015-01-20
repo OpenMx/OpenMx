@@ -211,6 +211,8 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
 				Global->llScale = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "debug protect stack")) {
+				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->debugProtectStack);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 #ifdef _OPENMP
 				*numThreads = atoi(nextOptionValue);
@@ -338,22 +340,22 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxSetNPSOLOpts(options);
 #endif
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxDataEntities(data);
     
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxExpectationEntities(expectList);
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxMatrixEntities(matList);
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	std::vector<double> startingValues;
 	omxProcessFreeVarList(varList, &startingValues);
 	FitContext *fc = new FitContext(globalState, startingValues);
 	Global->fc = fc;
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxAlgebraEntities(algList);
 
 	/* Process Matrix and Algebra Population Function */
@@ -362,30 +364,30 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	  populated into it at each iteration.  The first element is already processed, above.
 	  The rest of the list will be processed here.
 	*/
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	for(int j = 0; j < Rf_length(matList); j++) {
 		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
 		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
 	}
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	omxInitialMatrixAlgebraCompute(globalState, NULL);
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxCompleteMxExpectationEntities();
 
 	for (int dx=0; dx < (int) globalState->dataList.size(); ++dx) {
 		globalState->dataList[dx]->connectDynamicData();
 	}
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxCompleteMxFitFunction(algList);
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessMxComputeEntities(computeList, globalState);
 
 	// Nothing depend on constraints so we can process them last.
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessConstraints(constraints, fc);
 
 	if (isErrorRaised()) {
@@ -397,14 +399,14 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessConfidenceIntervals(intervalList, globalState);
 
 	omxProcessCheckpointOptions(checkpointList);
 
 	Global->cacheDependencies(globalState);
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	if (protectManager.getDepth() > Global->maxStackDepth) {
 		Rf_error("Protection stack too large; report this problem to the OpenMx forum");
 	}
@@ -420,7 +422,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	MxRList result;
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxExportResults(&result);
 
 	if (topCompute && !isErrorRaised()) {
@@ -469,7 +471,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		}
 	}
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
 	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->inform));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
@@ -495,7 +497,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	delete Global;
 
-	if(OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	return result.asR();
 }
 

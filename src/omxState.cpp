@@ -181,6 +181,7 @@ omxGlobal::omxGlobal()
 	numThreads = 1;
 	analyticGradients = 0;
 	llScale = -2.0;
+	debugProtectStack = OMX_DEBUG;
 	computeCount = 0;
 	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;

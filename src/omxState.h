@@ -171,6 +171,7 @@ class omxGlobal {
 	int numThreads;
 	int analyticGradients;
 	double llScale;
+	int debugProtectStack;
 	int anonAlgebra;
 	bool rowLikelihoodsWarning;
 
