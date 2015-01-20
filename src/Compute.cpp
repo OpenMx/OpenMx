@@ -1445,7 +1445,6 @@ class omxComputeOnce : public omxCompute {
 	bool infoMat;
 	enum ComputeInfoMethod infoMethod;
 	bool hgprod;
-	bool fixedeffects;
 	bool isBestFit; // for backward compatibility
 
  public:
@@ -2513,7 +2512,6 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 			else if (strcmp(what, "hessian")     ==0) hessian = true;
 			else if (strcmp(what, "information") ==0) infoMat = true;
 			else if (strcmp(what, "ihessian")    ==0) ihessian = true;
-			else if (strcmp(what, "fixedeffects")    ==0) fixedeffects = true;
 			else omxRaiseErrorf("mxComputeOnce: don't know how to compute %s", what);
 		}
 
@@ -2611,7 +2609,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 			want |= FF_COMPUTE_IHESSIAN;
 			fc->clearHessian();
 		}
-		if(fixedeffects){want |= FF_COMPUTE_FIXEDEFFECTS;}
 		if (!want) return;
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {

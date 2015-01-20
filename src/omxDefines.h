@@ -106,8 +106,7 @@ enum omxFFCompute {
 	FF_COMPUTE_BESTFIT      = 1<<9,
 	FF_COMPUTE_STARTING     = 1<<10,   // for special hacks, not for routine use
 	FF_COMPUTE_INITIAL_FIT  = 1<<11,   // omxInitialMatrixAlgebraCompute
-	FF_COMPUTE_DIMS         = 1<<12,
-	FF_COMPUTE_FIXEDEFFECTS = 1<<13
+	FF_COMPUTE_DIMS         = 1<<12
 };
 
 typedef struct omxMatrix omxMatrix;

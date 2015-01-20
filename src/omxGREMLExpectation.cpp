@@ -22,6 +22,7 @@
 void omxInitGREMLExpectation(omxExpectation* ox){
   
   SEXP rObj = ox->rObj;
+  SEXP do_fixeff;
   omxState* currentState = ox->currentState;
   
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
@@ -43,7 +44,8 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 	oge->X = omxNewMatrixFromSlot(rObj, currentState, "X");
 
 	oge->y = omxNewMatrixFromSlot(rObj, currentState, "y");
-  
+  ScopedProtect pfx(do_fixeff, R_do_slot(rObj, Rf_install("fixedEffects")));
+  oge->do_fixeff = INTEGER(do_fixeff);
 }
 
 

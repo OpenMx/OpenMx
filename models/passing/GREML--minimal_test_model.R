@@ -6,12 +6,6 @@ colnames(dat) <- c("y","x")
 
 ge <- mxExpectationGREML(V="V",X="X", y="y")
 gff <- mxFitFunctionGREML()
-plan <- mxComputeSequence(c(mxComputeOnce(from='GREMLtest.fitfunction', 'fit', .is.bestfit=TRUE),
-                            mxComputeGradientDescent(fitfunction='GREMLtest.fitfunction'),
-                            mxComputeOnce(from = 'GREMLtest.fitfunction', what = 'fixedeffects'),
-                            mxComputeNumericDeriv(fitfunction='GREMLtest.fitfunction'),
-                            mxComputeStandardError(), mxComputeHessianQuality(),
-                            mxComputeReportDeriv()))
 
 testmod <- mxModel(
   "GREMLtest",
@@ -22,8 +16,7 @@ testmod <- mxModel(
   mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,1], name="y"),
   mxAlgebra(I %x% Ve,name="V"),
   ge,
-  gff,
-  plan
+  gff
 )
 
 testrun <- mxRun(testmod)

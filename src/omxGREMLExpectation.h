@@ -18,6 +18,7 @@
   omxMatrix* y;
   omxMatrix* V;
   omxMatrix* X;
+  int* do_fixeff;
 } omxGREMLExpectation;
 
 void omxInitGREMLExpectation(omxExpectation* ox);

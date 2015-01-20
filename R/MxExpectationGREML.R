@@ -18,6 +18,7 @@ setClass(Class = "MxExpectationGREML",
            V = "MxCharOrNumber",
            X = "MxCharOrNumber",
            y = "MxCharOrNumber",
+           fixedEffects = "logical",
            dims = "character",
            definitionVars = "list",
            numStats = "numeric",
@@ -26,12 +27,13 @@ setClass(Class = "MxExpectationGREML",
 
 
 setMethod("initialize", "MxExpectationGREML",
-          function(.Object, V, X, y,
+          function(.Object, V, X, y, fixedEffects,
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
             .Object@X <- X
             .Object@y <- y
+            .Object@fixedEffects <- fixedEffects
             .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@dims <- "foo"
@@ -77,7 +79,8 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             return(.Object)
           })
 
-mxExpectationGREML <- function(V, X, y) {
+mxExpectationGREML <- function(V, X, y, fixedEffects=TRUE) {
+  fixedEffects <- as.logical(fixedEffects)
   if (missing(V) || typeof(V) != "character") {
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
   }
@@ -87,7 +90,7 @@ mxExpectationGREML <- function(V, X, y) {
   if ( missing(y) || typeof(y) != "character" ) {
     stop("argument 'y' is not of type 'character'")
   }
-  return(new("MxExpectationGREML", V, X, y))
+  return(new("MxExpectationGREML", V, X, y, fixedEffects))
 }
 
 

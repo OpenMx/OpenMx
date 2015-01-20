@@ -16,6 +16,7 @@
 
 #include "omxFitFunction.h"
 #include "omxGREMLfitfunction.h"
+#include "omxGREMLExpectation.h"
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
 #include "Eigen/Dense"
@@ -24,11 +25,11 @@ struct omxGREMLFitState {
   omxMatrix* y;
   omxMatrix* X;
   omxMatrix* V;
-  bool do_fixeff;
+  int* do_fixeff;
+  Eigen::MatrixXd XtVinv;
   Eigen::MatrixXd quadXinv;
   Eigen::MatrixXd P;
   Eigen::MatrixXd ytP;
-  Eigen::MatrixXd GREML_b;
 }; 
 
 void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
@@ -44,7 +45,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Declare local variables:
     int i;
     double logdetV=0, logdetquadX=0, nll=0;
-    Eigen::MatrixXd Vinv, XtVinv, quadX;
+    Eigen::MatrixXd Vinv, quadX;
     EigenMatrixAdaptor Eigy(gff->y);
     EigenMatrixAdaptor EigX(gff->X);
     EigenMatrixAdaptor EigV(gff->V);
@@ -69,8 +70,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     Vinv = rbstcholV.solve(Eigen::MatrixXd::Identity(gff->V->rows, gff->V->cols)); //<-- V inverse
     
-    XtVinv = EigX.transpose() * Vinv;
-    quadX = XtVinv * EigX;
+    gff->XtVinv = EigX.transpose() * Vinv;
+    quadX = gff->XtVinv * EigX;
     
     //Do for XtVinvX as was done for V:
     rbstcholquadX.compute(quadX);
@@ -89,15 +90,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     gff->quadXinv = rbstcholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
     
-    //Do fixed effects if wanted (should be done after MLE of V is obtained):
-    if(want & (FF_COMPUTE_FIXEDEFFECTS)){
-      gff->do_fixeff = true;
-      gff->GREML_b = gff->quadXinv * XtVinv * Eigy;
-      return;
-    }
-    
-    //Finish computing fit:
-    gff->P = Vinv - (XtVinv.transpose() * gff->quadXinv * XtVinv);
+        //Finish computing fit:
+    gff->P = Vinv - (gff->XtVinv.transpose() * gff->quadXinv * gff->XtVinv);
     gff->ytP = Eigy.transpose() * gff->P;
     nll = 0.5*(logdetV + logdetquadX + (gff->ytP * Eigy)(0,0));
     oo->matrix->data[0] = nll;
@@ -144,7 +138,8 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->y = omxGetExpectationComponent(expectation, oo, "y");
   newObj->V = omxGetExpectationComponent(expectation, oo, "V");
   newObj->X = omxGetExpectationComponent(expectation, oo, "X");
-  newObj->do_fixeff = false;
+  omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+  newObj->do_fixeff = oge->do_fixeff;
 }
 
 
@@ -160,10 +155,12 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
   omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
   if(gff->do_fixeff){
+    EigenMatrixAdaptor Eigy(gff->y);
+	Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
     SEXP b_ext, bcov_ext;
-    Rf_protect(b_ext = Rf_allocMatrix(REALSXP, gff->GREML_b.rows(), 1));
-    for(int row = 0; row < gff->GREML_b.rows(); row++){
-  			REAL(b_ext)[0 * gff->GREML_b.rows() + row] = gff->GREML_b(row,0);
+    Rf_protect(b_ext = Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
+    for(int row = 0; row < GREML_b.rows(); row++){
+  			REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
     }
   
   	Rf_protect(bcov_ext = Rf_allocMatrix(REALSXP, gff->quadXinv.rows(), gff->quadXinv.cols()));
