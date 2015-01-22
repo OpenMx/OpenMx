@@ -990,8 +990,16 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
       warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
       SE <- FALSE
     }
-  if(SE){covParam <- 2*solve(model@output$hessian)}
-  }
+    if(SE){
+      if(model@output$infoDefinite){
+        #solve() will fail if Hessian is computationally singular;
+        #chol2inv() will still fail if Hessian is exactly singular.
+        covParam <- 2*chol2inv(chol(model@output$hessian))
+        dimnames(covParam) <- dimnames(model@output$hessian)
+      }
+      #An indefinite Hessian usually means some SEs will be NaN:
+      else{covParam <- 2*solve(model@output$hessian)}
+  }}
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
     if(class(model$expectation)!="MxExpectationRAM"){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
