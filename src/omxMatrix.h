@@ -341,7 +341,7 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 
-void checkIncreasing(omxMatrix* om, int column);
+void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc);
 
 void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights);
 

@@ -788,22 +788,32 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 	return mad;
 }
 
-void checkIncreasing(omxMatrix* om, int column)
+void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
 {
 	double previous = - INFINITY;
 	double current;
-	for(int j = 0; j < om->rows; j++ ) {
+	int threshCrossCount = 0;
+	if(count > om->rows) {
+		count = om->rows;
+	}
+	for(int j = 0; j < count; j++ ) {
 		current = omxMatrixElement(om, j, column);
 		if(std::isnan(current) || current == NA_INTEGER) {
 			continue;
 		}
-		if(current <= previous) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Thresholds are not strictly increasing.");
-			//TODO: Count 'em all, then throw an Rf_error that lists which ones.
-			omxRaiseError(errstr);
-			free(errstr);
+		if(j == 0) {
+			continue;
 		}
+		previous = omxMatrixElement(om, j-1, column);
+		if(std::isnan(previous) || previous == NA_INTEGER) {
+			continue;
+		}
+		if(current <= previous) {
+			threshCrossCount++;
+		}
+	}
+	if(threshCrossCount > 0) {
+		fc->recordIterationError("Found %d thresholds out of order in column %d.", threshCrossCount, column+1);
 	}
 }
 

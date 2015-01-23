@@ -168,7 +168,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
 				omxMatrix* nextMatrix = thresholdCols[j].matrix;
 				omxRecompute(nextMatrix, fc);
-				checkIncreasing(nextMatrix, thresholdCols[j].column);
+				checkIncreasing(nextMatrix, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
 				for(int index = 0; index < numChildren; index++) {
 					FitContext *kid = fc->childList[index];
 					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
