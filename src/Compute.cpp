@@ -735,7 +735,6 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	wanted = parent->wanted;
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
-	IterationError = parent->IterationError;
 	iterations = parent->iterations;
 }
 
@@ -747,7 +746,6 @@ void FitContext::updateParent()
 
 	parent->wanted |= wanted;
 	parent->fit = fit;
-	parent->IterationError = IterationError;
 	parent->mac = mac;
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
@@ -838,6 +836,16 @@ void FitContext::log(int what)
 	mxLogBig(buf);
 }
 
+static std::string *IterationError = NULL;
+
+void FitContext::resetIterationError()
+{
+	if (!IterationError) return;
+
+	delete IterationError;
+	IterationError = NULL;
+}
+
 void FitContext::recordIterationError(const char* msg, ...)
 {
 	// could record the parameter vector here for a better error message TODO
@@ -847,12 +855,13 @@ void FitContext::recordIterationError(const char* msg, ...)
 	va_end(ap);
 
 #pragma omp critical(IterationError)
-	IterationError = str;
+	IterationError = new std::string(str);
 }
 
 std::string FitContext::getIterationError()
 {
-	return IterationError;
+	if (!IterationError) return "";
+	return *IterationError;
 }
 
 static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool force)

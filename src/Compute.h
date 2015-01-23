@@ -103,8 +103,6 @@ class FitContext {
 	bool haveDenseIHess;
 	Eigen::MatrixXd ihess;
 
-	std::string IterationError;
-
 	void init();
 	void analyzeHessian();
 	void analyzeHessianBlock(HessianBlock *hb);
@@ -163,7 +161,7 @@ class FitContext {
 	Eigen::VectorXd ihessDiag();
 	void preInfo();
 	void postInfo();
-	void resetIterationError() { IterationError.clear(); }
+	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
 	std::string getIterationError();
