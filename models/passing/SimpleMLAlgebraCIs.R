@@ -29,7 +29,7 @@ ci <- factorFitCI$output$confidenceIntervals
 omxCheckCloseEnough(ci["One Factor ML.P[1,1]",], c(.419, .446, .474), .005)
 omxCheckCloseEnough(ci["One Factor ML.P[2,1]",], c(.508, .541, .575), .005)
 omxCheckCloseEnough(ci["One Factor ML.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(ci["One Factor ML.P[4,1]",], c(.687, .732, .778), .005)
+omxCheckCloseEnough(ci["One Factor ML.P[4,1]",], c(.687, .732, .778), .015)
 omxCheckCloseEnough(ci["One Factor ML.P[5,1]",], c(.770, .820, .872), .005)
 
 ci <- factorFitRawCI$output$confidenceIntervals

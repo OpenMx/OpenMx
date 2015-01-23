@@ -402,8 +402,8 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
  
     int n = int(freeVarGroup->vars.size());
     double f = opt->fit;
-    omxBuffer< double > gradient(n);
-    omxBuffer< double > hessian(n * n);
+    Eigen::VectorXd gradient(n);
+    Eigen::MatrixXd hessian(n, n);
 
     /* NPSOL Arguments */
     void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
@@ -526,7 +526,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
             inform = -1;
             double cycles = ciMaxIterations;
  
-            while(inform != 0 && cycles >= 0) {
+            while(inform != 0 && cycles > 0) {
                 /* Find upper limit */
                 currentCI->calcLower = FALSE;
                 F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
