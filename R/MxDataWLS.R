@@ -158,8 +158,11 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	
 	
 	llC <- log(dnorm(rawData[,!isOrd], means[!isOrd], sqrt(vars[!isOrd])))
-	oMean <- (rawData[,!isOrd] - means[!isOrd]) * k / vars[!isOrd]
-	oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
+	#oMean <- (rawData[,!isOrd] - means[!isOrd]) * k / vars[!isOrd]
+	#oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
+	z <- ( rawData[,!isOrd] - means[!isOrd] ) / sqrt(vars[!isOrd])
+	oMean <- k*z
+	oVar <- vars[isOrd] - k*k
 	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
 	cumProb <- cbind(cumProb, 1)
 	levProb <- cbind(cumProb[,1], cumProb[,-1] - cumProb[,-(length(thresh)+1)])
@@ -504,20 +507,19 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				# get jacobian
 				if( ordPair == 0 ) { # Continuous variables
 					assignJac <- matrix(jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual"), 
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
 						nrow=n, 
 						ncol=1)
 				}
 				else if( ordPair == 1 ) { #Joint variables
-					#browser()
-					assignJac <- matrix(jacobian(func=logLikFUN, x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual"), 
+					assignJac <- matrix(jacobian(func=logLikFUN, method.args=list(eps=1e-4, d=0.1, zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2, show.details=FALSE), x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
 						nrow=n, 
 						ncol=1)
 					#stop("Jacobian for joint ordinal and continuous variables is not yet implemented.")
 				} else { # Ordinal variables
 					localJac <- matrix(jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual"), 
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
 						nrow=nlevels(pcData[,1]), 
 						ncol=nlevels(pcData[,2]))
 					# For all ordinal data this is the n1 x n2 table of the 1x1 gradients in each combination
