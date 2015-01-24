@@ -836,14 +836,9 @@ void FitContext::log(int what)
 	mxLogBig(buf);
 }
 
-static std::string *IterationError = NULL;
-
 void FitContext::resetIterationError()
 {
-	if (!IterationError) return;
-
-	delete IterationError;
-	IterationError = NULL;
+	IterationError.clear();
 }
 
 void FitContext::recordIterationError(const char* msg, ...)
@@ -851,17 +846,28 @@ void FitContext::recordIterationError(const char* msg, ...)
 	// could record the parameter vector here for a better error message TODO
 	va_list ap;
 	va_start(ap, msg);
-	std::string str = string_vsnprintf(msg, ap);
+	IterationError = string_vsnprintf(msg, ap);
 	va_end(ap);
-
-#pragma omp critical(IterationError)
-	IterationError = new std::string(str);
 }
 
 std::string FitContext::getIterationError()
 {
-	if (!IterationError) return "";
-	return *IterationError;
+	if (childList.size()) {
+		size_t tlen = 0;
+		for (size_t cx=0; cx < childList.size(); ++cx) {
+			tlen += childList[cx]->IterationError.size();
+		}
+		// Fit function may not have used parallel processing
+		if (tlen == 0) return IterationError;
+
+		std::string result;
+		for (size_t cx=0; cx < childList.size(); ++cx) {
+			result += string_snprintf("%d: %s\n", int(cx), childList[cx]->IterationError.c_str());
+		}
+		return result;
+	} else {
+		return IterationError;
+	}
 }
 
 static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool force)

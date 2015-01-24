@@ -108,6 +108,8 @@ class FitContext {
 	void analyzeHessianBlock(HessianBlock *hb);
 	void testMerge();
 
+	std::string IterationError;
+
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
