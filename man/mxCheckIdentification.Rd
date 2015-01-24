@@ -29,7 +29,7 @@ mxCheckIdentification(model, details=TRUE)
 
 \arguments{
    \item{model}{A MxModel object or list of MxModel objects.}
-   \item{details}{A MxModel object or list of MxModel objects.}
+   \item{details}{logical.}
 }
 
 \details{
@@ -38,6 +38,10 @@ The mxCheckIdentification function is used to check that a model is identified. 
 The method uses the Jacobian of the model expected means and the unique elements of the expected covariance matrix with respect to the free parameters.  It is the first derivative of the mapping between the free parameters and the sufficient statistics for the Normal distribution.  The method does not depend on data, but does depend on the current values of the free parameters.  Thus, it only provides local identification, not global identification.  Because the method does not depend on data, the model still could be empirically unidentified due to missing data.
 
 The Jacobian is evaluated numerically and generally takes a few seconds, but much less than a minute.
+
+The identification may not be accurate for model where definition variables are used.  Currently, only the first row of the definition variable is evaluated.
+
+When TRUE, the 'details' argument provides the names of the non-identified parameters.  Otherwise, only the status and Jacobian are returned.
 }
 
 \value{
