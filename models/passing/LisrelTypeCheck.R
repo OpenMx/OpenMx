@@ -60,5 +60,34 @@ mod4 <- mxModel(name="endogenous LISREL model",
 	type="LISREL"
 )
 
+
+#------------------------------------------------------------------------------
+# Now try adding entries
+
+
+data(demoTwoFactor)
+
+mod1a <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw')
+)
+
+
+mod1b <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from="one", to='x1', values=1, free=TRUE),
+	mxPath(from="one", to='y3', values=3, free=TRUE),
+	mxPath(from="one", to=c('x2', 'y2'), values=2, free=TRUE, labels='TwoValue'),
+	mxPath(from="one", to=c("ksi1", "eta1"), values=7, free=FALSE)
+)
+
+
+
+
 #------------------------------------------------------------------------------
 

@@ -61,12 +61,12 @@ addExogenousMatrices <- function(model, manifest, latent){
 		model[['TD']] <- createMatrixLISREL(model, manifest, manifest, 'TD')
 	}
 	# Do we add means???
-	if (is.null(model[['TX']])) {
-		model[['TX']] <- createMatrixLISREL(model, latent, NA, 'TX')
-	}
-	if (is.null(model[['KA']])) {
-		model[['KA']] <- createMatrixLISREL(model, manifest, NA, 'KA')
-	}
+#	if (is.null(model[['TX']])) {
+#		model[['TX']] <- createMatrixLISREL(model, latent, NA, 'TX')
+#	}
+#	if (is.null(model[['KA']])) {
+#		model[['KA']] <- createMatrixLISREL(model, manifest, NA, 'KA')
+#	}
 	return(model)
 }
 
@@ -84,12 +84,12 @@ addEndogenousMatrices <- function(model, manifest, latent){
 		model[['TE']] <- createMatrixLISREL(model, manifest, manifest, 'TE')
 	}
 	# Do we add means???
-	if (is.null(model[['TY']])) {
-		model[['TY']] <- createMatrixLISREL(model, latent, NA, 'TY')
-	}
-	if (is.null(model[['AL']])) {
-		model[['AL']] <- createMatrixLISREL(model, manifest, NA, 'AL')
-	}
+#	if (is.null(model[['TY']])) {
+#		model[['TY']] <- createMatrixLISREL(model, latent, NA, 'TY')
+#	}
+#	if (is.null(model[['AL']])) {
+#		model[['AL']] <- createMatrixLISREL(model, manifest, NA, 'AL')
+#	}
 	return(model)
 }
 
@@ -128,7 +128,7 @@ setMethod("imxModelBuilder", "MxLISRELModel",
 	function(model, lst, name, manifestVars, latentVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
 		model <- variablesArgumentLISREL(model, manifestVars, latentVars, submodels, remove)
-#		model <- listArgumentLISREL(model, lst, remove)
+		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
 		#stop("Not implemented")
@@ -207,15 +207,15 @@ addVariablesLISREL <- function(model, latent, manifest){
 	# if has only exogenous variables
 	if(length(mexog) > 0 & length(mendo) == 0){
 		model <- addExogenousMatrices(model, mexog, lexog)
-		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX='TX', KA='KA') #do we add means?
+		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX=NA, KA=NA) #do we add means?
 	# if has only endogenous variables
 	} else if(length(mexog) == 0 & length(mendo) > 0){
 		model <- addEndogenousMatrices(model, mendo, lendo)
-		theExpectation <- mxExpectationLISREL(LY='LY', BE='BE', PS='PS', TE='TE', TY='TY', AL='AL') #do we add means?
+		theExpectation <- mxExpectationLISREL(LY='LY', BE='BE', PS='PS', TE='TE', TY=NA, AL=NA) #do we add means?
 	# if has both exogenous and endogenous variables
 	} else {
 		model <- addExoEndoMatrices(model, mexog, mendo, lexog, lendo)
-		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX='TX', KA='KA', LY='LY', BE='BE', PS='PS', TE='TE', TY='TY', AL='AL', GA='GA', TH='TH')
+		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX=NA, KA=NA, LY='LY', BE='BE', PS='PS', TE='TE', TY=NA, AL=NA, GA='GA', TH='TH')
 	}
 	model[['expectation']] <- theExpectation
 	return(model)
@@ -235,17 +235,39 @@ replaceMethodLISREL <- function(model, index, value){
 		model@data <- value
 		if (requireMeansVector(value)) {
 			if(hasExogenousVars){
-				model@expectation@TX <- "TX"
-				model@expectation@KA <- "KA"
+				model <- addExogenousMeansLISREL(model)
 			}
-			if(hasExogenousVars){
-				model@expectation@TY <- "TY"
-				model@expectation@AL <- "AL"
+			if(hasEndogenousVars){
+				model <- addEndogenousMeansLISREL(model)
 			}
 		}
 	} else {
 		model <- imxReplaceMethod(model, index, value)
 	}
+	return(model)
+}
+
+addExogenoudMeansLISREL <- function(model){
+	if (is.null(model[['TX']])) {
+		model[['TX']] <- createMatrixLISREL(model, model@manifestVars$exogenous, "one", 'TX')
+	}
+	if (is.null(model[['KA']])) {
+		model[['KA']] <- createMatrixLISREL(model, model@latentVars$exogenous, "one", 'KA')
+	}
+	model@expectation@TX <- "TX"
+	model@expectation@KA <- "KA"
+	return(model)
+}
+
+addEndogenousMeansLISREL <- function(model){
+	if (is.null(model[['TY']])) {
+		model[['TY']] <- createMatrixLISREL(model, model@manifestVars$endogenous, "one", 'TY')
+	}
+	if (is.null(model[['AL']])) {
+		model[['AL']] <- createMatrixLISREL(model, model@latentVars$endogenous, "one", 'AL')
+	}
+	model@expectation@TY <- "TY"
+	model@expectation@AL <- "AL"
 	return(model)
 }
 
@@ -263,7 +285,104 @@ removeEntriesLISREL <- function(model, entries){
 }
 
 addEntriesLISREL <- function(model, entries){
-	stop("Adding paths not yet implemented for LISREL")
+	if (length(entries) == 0) {
+		return(model)
+	}
+	
+	filter <- sapply(entries, is, "MxPath")
+	paths <- entries[filter]
+	if (length(paths) > 0) {
+		model <- insertAllPathsLISREL(model, paths) #TODO
+	}
+	filter <- sapply(entries, is, "MxThreshold")
+	thresholds <- entries[filter]
+	if(length(thresholds) > 0) {
+		model <- insertAllThresholdsRAM(model, thresholds) # sic.  Re-use RAM threholds
+	}
+	filter <- sapply(entries, is, "MxData")
+	data <- entries[filter]
+	if (length(data) > 0) {
+		if (length(data) > 1) {
+			warning("Multiple data sources specified.  Only one will be chosen.")
+		}
+		data <- data[[1]]
+		model@data <- data
+		#model[['F']] <- createMatrixF(model) #TODO something here about re-structuring LX and LY if needed
+	}
+	return(model)
+}
+
+insertAllPathsLISREL <-  function(model, paths){
+	manivars <- model@manifestVars
+	latevars <- model@latentVars
+	exvars <- c(manivars$exogenous, latevars$exogenous)
+	envars <- c(manivars$endogenous, latevars$endogenous)
+#	A <- model[['A']]
+#	S <- model[['S']]
+#	M <- model[['M']]
+	TX <- model[['TX']]
+	TY <- model[['TY']]
+	KA <- model[['KA']]
+	AL <- model[['AL']]
+#	if (is.null(A)) { A <- createMatrixA(model) }
+#	if (is.null(S)) { S <- createMatrixS(model) }
+	
+	legalVars <- c(unlist(latevars), unlist(manivars), "one")
+	
+	for(i in 1:length(paths)) {
+		path <- paths[[i]]
+	
+		missingvalues <- is.na(path@values)
+		path@values[missingvalues] <- 0
+		
+		if (single.na(path@to)) {
+			path@to <- path@from
+			paths[[i]] <- path
+		}
+		
+		allFromTo <- unique(c(path@from, path@to))
+		varExist <- allFromTo %in% legalVars 
+		if(!all(varExist)) {
+			missingVars <- allFromTo[!varExist]
+			stop(paste("Nice try, you need to add", 
+				omxQuotes(missingVars), 
+				"to either manifestVars or latentVars before you",
+				"can use them in a path."), call. = FALSE)
+		}
+		
+		if (length(path@from) == 1 && (path@from == "one")) {
+			if ( (is.null(TX) || is.null(KA)) && any(path@to %in% exvars) ) {
+				model <- addExogenoudMeansLISREL(model)
+				TX <- model[['TX']]
+				KA <- model[['KA']]
+			}
+			if ( (is.null(TY) || is.null(AL)) && any(path@to %in% envars) ) {
+				model <- addEndogenousMeansLISREL(model)
+				TY <- model[['TY']]
+				AL <- model[['AL']]
+			}
+			LISRELMeans <- insertMeansPathLISREL(path, TX, TY, KA, AL, manifest=manivars, latent=latevars)
+			TX <- LISRELMeans[[1]]; TY <- LISRELMeans[[2]]; KA <- LISRELMeans[[3]]; AL <- LISRELMeans[[4]]
+		} else {
+			expanded <- expandPathConnect(path@from, path@to, path@connect)
+			path@from <- expanded$from
+			path@to   <- expanded$to
+			retval <- insertPathRAM(path, A, S)
+			A <- retval[[1]]
+			S <- retval[[2]]	
+		}
+	}
+	checkPaths(model, paths)
+	#model[['A']] <- A
+	#model[['S']] <- S
+
+	model <- updateLISRELMeans(model, LISRELMeans)
+	
+	return(model)
+}
+
+insertPathLISREL <- function(path, matrices){
+
 }
 
 # Schematic of where each entry goes depending on its 'from' and 'to' and 'arrows' arguments
@@ -292,6 +411,8 @@ addEntriesLISREL <- function(model, entries){
 #latentExo -> 'one'
 #	stop('nonsense')
 
+insertLatentExoPathsLISREL <- function(){}
+
 #latentEndo -> latentExo
 #	stop('nonsense')
 #latentEndo -> latentEndo
@@ -308,6 +429,8 @@ addEntriesLISREL <- function(model, entries){
 #		stop('nonsense')
 #latentEndo -> 'one'
 #	stop('nonsense')
+
+insertLatentEndoPathsLISREL <- function(){}
 
 #manifestExo -> latentExo
 #	stop('nonsense')
@@ -326,6 +449,8 @@ addEntriesLISREL <- function(model, entries){
 #manifestExo -> 'one'
 #	stop('nonsense')
 
+insertManifestExoPathsLISREL <- function(){}
+
 #manifestEndo -> latentExo
 #	stop('nonsense')
 #manifestEndo -> latentEndo
@@ -342,6 +467,8 @@ addEntriesLISREL <- function(model, entries){
 #		add to TE
 #manifestEndo -> 'one'
 #	stop('nonsense')
+
+insertManifestEndoPathsLISREL <- function(){}
 
 #'one' -> latentExo
 #	if arrows==1
@@ -366,4 +493,72 @@ addEntriesLISREL <- function(model, entries){
 #'one' -> 'one'
 #	stop('nonsense')
 
+insertMeansPathLISREL <- function(path, TX, TY, KA, AL, manifest, latent){
+	mexog <- manifest$exogenous
+	mendo <- manifest$endogenous
+	lexog <- latent$exogenous
+	lendo <- latent$endogenous
+	allto     <- path@to
+	allarrows <- path@arrows
+	allfree   <- path@free
+	allvalues <- path@values
+	alllabels <- path@labels
+	alllbound <- path@lbound
+	allubound <- path@ubound	
+	if (any(allarrows != 1)) {
+		stop(paste('The means path must be a single-headed arrow\n',
+		'path from "one" to variable(s)', omxQuotes(allto)), call. = FALSE)
+	}
+	for(i in 0:(length(allto) - 1)) {
+		to <- allto[[i %% length(allto) + 1]]
+		nextvalue  <- allvalues[[i %% length(allvalues) + 1]]
+		nextfree   <- allfree[[i %% length(allfree) + 1]]
+		nextlabel  <- alllabels[[i %% length(alllabels) + 1]]
+		nextubound <- allubound[[i %% length(allubound) + 1]]
+		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
+		if(to %in% mexog){ #Update TX
+			TX@free[to, 1] <- nextfree
+			TX@values[to, 1] <- nextvalue
+			TX@labels[to, 1] <- nextlabel
+			TX@ubound[to, 1] <- nextubound
+			TX@lbound[to, 1] <- nextlbound
+		} else if (to %in% mendo){ #Update TY
+			TY@free[to, 1] <- nextfree
+			TY@values[to, 1] <- nextvalue
+			TY@labels[to, 1] <- nextlabel
+			TY@ubound[to, 1] <- nextubound
+			TY@lbound[to, 1] <- nextlbound
+		} else if (to %in% lexog){ #Update KA
+			KA@free[to, 1] <- nextfree
+			KA@values[to, 1] <- nextvalue
+			KA@labels[to, 1] <- nextlabel
+			KA@ubound[to, 1] <- nextubound
+			KA@lbound[to, 1] <- nextlbound
+		} else if (to %in% lendo){ #Update AL
+			AL@free[to, 1] <- nextfree
+			AL@values[to, 1] <- nextvalue
+			AL@labels[to, 1] <- nextlabel
+			AL@ubound[to, 1] <- nextubound
+			AL@lbound[to, 1] <- nextlbound
+		} else {
+			stop("I can't figure out where to put the means paths.")
+		}
+	}
+	return(list(TX, TY, KA, AL))
+}
 
+updateLISRELMeans <- function(model, means){
+	if(!single.na(means[[1]])){
+		model[['TX']] <- means[[1]]
+	}
+	if(!single.na(means[[1]])){
+		model[['TY']] <- means[[2]]
+	}
+	if(!single.na(means[[1]])){
+		model[['KA']] <- means[[3]]
+	}
+	if(!single.na(means[[1]])){
+		model[['AL']] <- means[[4]]
+	}
+	return(model)
+}

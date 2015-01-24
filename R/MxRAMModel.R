@@ -315,7 +315,7 @@ getNotPathsOrData <- function(lst) {
 }
 
 checkPaths <- function(model, paths) {
-	variables <- c(model@manifestVars, model@latentVars)
+	variables <- c(unlist(model@manifestVars), unlist(model@latentVars))
 	fromNames <- unlist(sapply(paths, slot, 'from'))
 	toNames <- unlist(sapply(paths, slot, 'to'))
 	if(is.null(fromNames)) { fromNames <- character() }
