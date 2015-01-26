@@ -2782,3 +2782,171 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 		fc->copyDenseIHess(REAL(Rihessian));
 	}
 }
+
+// ------------------------------------------------------------
+
+void RegularFit::setupIneqConstraintBounds()
+{
+	omxState *globalState = fc->state;
+	int eqn = 0;
+	for(int j = 0; j < globalState->numConstraints; j++) {
+		if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
+			eqn += globalState->conList[j].size;
+		}
+	}
+	int nineqn = globalState->ncnln - eqn;
+	equality.resize(eqn);
+	inequality.resize(nineqn);
+	if (nineqn == 0) return;
+
+	solIneqLB.derived().resize(nineqn);
+	solIneqUB.derived().resize(nineqn);
+
+	int cur=0;
+	for(int j = 0; j < globalState->numConstraints; j++) {
+		omxConstraint &con = globalState->conList[j];
+		if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
+
+		double lb, ub;
+		if (con.opCode == omxConstraint::LESS_THAN) {
+			lb = NEG_INF;
+			ub = -0.0;
+		} else {
+			lb = 0.0;
+			ub = INF;
+		}
+
+		for (int en=0; en < con.size; ++en) {
+			solIneqLB[cur+en] = lb;
+			solIneqUB[cur+en] = ub;
+		}
+
+		cur += con.size;
+	}
+};
+
+RegularFit::RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {
+	FreeVarGroup *varGroup = fc->varGroup;
+	solLB.resize(fc->numParam);
+	solUB.resize(fc->numParam);
+	for(int index = 0; index < int(fc->numParam); index++) {
+		solLB[index] = varGroup->vars[index]->lbound;
+		solUB[index] = varGroup->vars[index]->ubound;
+	}
+
+	setupIneqConstraintBounds();
+};
+
+double RegularFit::solFun(double *myPars, int* mode, int verbose)
+{
+	if (*mode == 1) fc->iterations += 1;
+
+	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
+	fc->copyParamToModel();
+
+	ComputeFit("CSOLNP", fitMatrix, FF_COMPUTE_FIT, fc);
+
+	if (!std::isfinite(fc->fit) || isErrorRaised()) {
+		*mode = -1;
+	}
+
+	return fc->fit;
+};
+
+void RegularFit::solEqBFun(int verbose)
+{
+	const int eq_n = (int) equality.size();
+	omxState *globalState = fc->state;
+
+	if (verbose >= 3) {
+		mxLog("Starting csolnpEqualityFunction %d/%d.",
+		      eq_n, globalState->numConstraints);
+	}
+
+	if (!eq_n) return;
+
+	int cur = 0;
+	for(int j = 0; j < globalState->numConstraints; j++) {
+		omxConstraint &con = globalState->conList[j];
+		if (con.opCode != omxConstraint::EQUALITY) continue;
+
+		omxRecompute(con.result, fc);
+		for(int k = 0; k < globalState->conList[j].size; k++) {
+			equality[cur] = con.result->data[k];
+			++cur;
+		}
+	}
+};
+
+void RegularFit::myineqFun(int verbose)
+{
+	const int ineq_n = (int) inequality.size();
+	omxState *globalState = fc->state;
+
+	if (verbose >= 3) {
+		mxLog("Starting csolnpInequalityFunction %d/%d.",
+		      ineq_n, globalState->numConstraints);
+	}
+
+	if (!ineq_n) return;
+
+	int cur = 0;
+	for (int j = 0; j < globalState->numConstraints; j++) {
+		omxConstraint &con = globalState->conList[j];
+		if (con.opCode == omxConstraint::EQUALITY) continue;
+
+		omxRecompute(con.result, fc);
+		for(int k = 0; k < globalState->conList[j].size; k++){
+			inequality[cur] = con.result->data[k];
+			++cur;
+		}
+	}
+};
+
+ConfidenceIntervalFit::ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
+	super(fc, fmat), currentInterval(curInt), calcLower(lower) {};
+
+double ConfidenceIntervalFit::solFun(double *myPars, int* mode, int verbose)
+{
+	//double* f = NULL;
+	if (verbose >= 3) {
+		mxLog("myPars inside obj is: ");
+		for (int i = 0; i < int(fc->numParam); i++)
+			mxLog("%f", myPars[i]);
+	}
+
+	fc->fit = super::solFun(myPars, mode, verbose);
+
+	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
+
+	omxRecompute(oCI->matrix, fc);
+
+	double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+
+	if(verbose >= 2) {
+		mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
+		      oCI->lbound, oCI->ubound, fc->fit, CIElement);
+	}
+
+	/* Catch boundary-passing condition */
+	if(std::isnan(CIElement) || std::isinf(CIElement)) {
+		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+		return fc->fit;
+	}
+
+	if(calcLower) {
+		double diff = oCI->lbound - fc->fit;		// Offset - likelihood
+		fc->fit = diff * diff + CIElement;
+		// Minimize element for lower bound.
+	} else {
+		double diff = oCI->ubound - fc->fit;			// Offset - likelihood
+		fc->fit = diff * diff - CIElement;
+		// Maximize element for upper bound.
+	}
+
+	if(verbose >= 2) {
+		mxLog("Interval fit function in previous iteration was calculated to be %f.", fc->fit);
+	}
+
+	return fc->fit;
+};

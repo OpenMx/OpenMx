@@ -18,28 +18,8 @@
 #define _OMX_CSOLNP_SPECIFIC_H
 
 #include "omxMatrix.h"
+#include "Compute.h"
 #include <Eigen/Core>
-
-struct CSOLNPFit {
-	Eigen::VectorXd solLB;
-	Eigen::VectorXd solUB;
-
-	Eigen::VectorXd solIneqLB;
-	Eigen::VectorXd solIneqUB;
-
-	Eigen::VectorXd equality;
-	Eigen::VectorXd inequality;
-
-	// output
-	int informOut;
-	double fitOut;
-	Eigen::VectorXd gradOut;
-	Eigen::MatrixXd hessOut;
-
-	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
-	virtual void solEqBFun(int verbose) = 0;
-	virtual void myineqFun(int verbose) = 0;
-};
 
 void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &solctrl, int verbose);
 
