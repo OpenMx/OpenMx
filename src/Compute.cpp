@@ -2825,6 +2825,16 @@ void RegularFit::setupIneqConstraintBounds()
 	}
 };
 
+CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc)
+	: optName(optName), fc(fc)
+{
+	ControlMajorLimit = 0;
+	ControlMinorLimit = 0;
+	ControlRho = 1.0;
+	ControlFuncPrecision = nan("uninit");
+	ControlTolerance = nan("uninit");
+}
+
 RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat)
 	: super(optName, fc), fitMatrix(fmat) {
 	FreeVarGroup *varGroup = fc->varGroup;

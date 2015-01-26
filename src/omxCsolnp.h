@@ -21,7 +21,7 @@
 #include "Compute.h"
 #include <Eigen/Core>
 
-void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &solctrl, int verbose);
+void solnp(double *solPars, CSOLNPFit &fit, int verbose);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
                      FreeVarGroup *freeVarGroup, int verbose, double *hessOut,

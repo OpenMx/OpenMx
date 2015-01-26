@@ -27,6 +27,7 @@
 #include "omxCsolnp.h"
 #include "omxBuffer.h"
 
+// move to Global? TODO
 static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
@@ -35,21 +36,16 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
 {
-    fc->grad.resize(fc->numParam);
-    
     int n = int(freeVarGroup->vars.size());
     
     Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
     
-    Eigen::Array<double, 5, 1> myControl;
-    myControl[0] = 1.0;
-    myControl[1] = majIter;
-    myControl[2] = minIter;
-    myControl[3] = funcPrecision;
-    myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-9;
-    
     RegularFit rf("CSOLNP", fc, fitMatrix);
-    solnp(myPars.data(), rf, myControl, verbose);
+    rf.ControlMajorLimit = majIter;
+    rf.ControlMinorLimit = minIter;
+    rf.ControlFuncPrecision = funcPrecision;
+    rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
+    solnp(myPars.data(), rf, verbose);
     
     fc->fit = rf.fitOut;
     if (verbose >= 1) {
@@ -85,13 +81,6 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
     
     const int n = int(freeVarGroup->vars.size());
     
-    Eigen::Array<double, 5, 1> myControl;
-    myControl[0] = 1.0;
-    myControl[1] = majIter;
-    myControl[2] = minIter;
-    myControl[3] = funcPrecision;
-    myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-16;
-
     if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
     
     const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
@@ -123,7 +112,11 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 						  lower? "lower" : "upper", tries);
 
 			ConfidenceIntervalFit cif("CSOLNP", &fc, fitMatrix, i, lower);
-			solnp(fc.est, cif, myControl, verbose);
+			cif.ControlMajorLimit = majIter;
+			cif.ControlMinorLimit = minIter;
+			cif.ControlFuncPrecision = funcPrecision;
+			cif.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-16;
+			solnp(fc.est, cif, verbose);
                 
 			if(cif.fitOut < bestFit) {
 				double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);

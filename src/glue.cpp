@@ -39,6 +39,7 @@
 #include "Compute.h"
 #include "dmvnorm.h"
 #include "npsolswitch.h"
+#include "omxCsolnp.h"
 
 static SEXP do_logm_eigen(SEXP x)
 {
@@ -233,6 +234,12 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				Global->relEps = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
 				Global->maxStackDepth = atoi(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP")) {
+				CSOLNPOpt_majIter(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP")) {
+				CSOLNPOpt_minIter(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
+				CSOLNPOpt_FuncPrecision(nextOptionValue);
 			} else {
 				// ignore
 			}

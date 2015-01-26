@@ -27,7 +27,6 @@
 #include "Compute.h"
 #include "npsolswitch.h"
 #include "omxBuffer.h"
-#include "omxCsolnp.h"
 
 /* NPSOL-specific globals */
 const double NPSOL_BIGBND = 1e20;
@@ -607,18 +606,6 @@ void omxSetNPSOLOpts(SEXP options)
     for(int i = 0; i < numOptions; i++) {
         const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
         const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
-        if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP"))
-        {
-            CSOLNPOpt_majIter(nextOptionValue);
-        }
-        else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP"))
-        {
-            CSOLNPOpt_minIter(nextOptionValue);
-        }
-        else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP"))
-        {
-            CSOLNPOpt_FuncPrecision(nextOptionValue);
-        }
         bool ok=false;
         for (int wx=0; whitelist[wx]; ++wx) {
             if (matchCaseInsensitive(nextOptionName, whitelist[wx])) {

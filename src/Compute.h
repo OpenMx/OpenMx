@@ -203,9 +203,15 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-struct CSOLNPFit {
+struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	const char *optName;
 	FitContext *fc;
+
+	int ControlMajorLimit;
+	int ControlMinorLimit;
+	double ControlRho;
+	double ControlFuncPrecision;
+	double ControlTolerance;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
@@ -222,13 +228,13 @@ struct CSOLNPFit {
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;
 
-	CSOLNPFit(const char *optName, FitContext *fc) : optName(optName), fc(fc) {}
+	CSOLNPFit(const char *optName, FitContext *fc);
 	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
 	virtual void solEqBFun(int verbose) = 0;
 	virtual void myineqFun(int verbose) = 0;
 };
 
-struct RegularFit : CSOLNPFit {
+struct RegularFit : CSOLNPFit { // merge into CSOLNPFit TODO
 	typedef CSOLNPFit super;
 	omxMatrix *fitMatrix;
 	void setupIneqConstraintBounds();

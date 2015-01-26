@@ -23,16 +23,7 @@ struct CSOLNP {
 	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
 	~CSOLNP() { freeMatrices(); };
     
-	enum Control {
-		ControlRho=0,
-		ControlMajorLimit,
-		ControlMinorLimit,
-		ControlFuncPrecision,
-		ControlTolerance,
-		NumControl
-	};
-
-	void solnp(double *pars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose);
+	void solnp(double *pars, int verbose);
 
     Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
 		 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
@@ -51,13 +42,13 @@ struct CSOLNP {
 	Eigen::Array<double, int(indVectorLength), 1> ind;
 };
 
-void solnp(double *solPars, CSOLNPFit &fit, const Eigen::Array<double, 5, 1> &solctrl, int verbose)
+void solnp(double *solPars, CSOLNPFit &fit, int verbose)
 {
 	CSOLNP context(fit);
-	context.solnp(solPars, solctrl, verbose);
+	context.solnp(solPars, verbose);
 }
 
-void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &solctrl, int verbose)
+void CSOLNP::solnp(double *solPars, int verbose)
 {
 	fit.informOut = -1;
     LB = fit.solLB;
@@ -100,11 +91,6 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
     Eigen::Map< Eigen::VectorXd > pars(solPars, LB.cols);
-    
-    if(verbose >= 2){
-        mxLog("control is: \n");
-        for (i = 0; i < solctrl.size(); i++) mxLog("%f",solctrl[i]);
-    }
     
     if (verbose >= 2){
         mxLog("LB is: \n");
@@ -164,11 +150,11 @@ void CSOLNP::solnp(double *solPars, const Eigen::Array<double, NumControl, 1> &s
 	    setColumnInplace(pb, UB, 1);
     }
     
-    double rho   = solctrl[ControlRho];
-    int maxit = solctrl[ControlMajorLimit];
-    int minit = solctrl[ControlMinorLimit];
-    double delta = solctrl[ControlFuncPrecision];
-    double tol   = solctrl[ControlTolerance];
+    double rho   = fit.ControlRho;
+    int maxit = fit.ControlMajorLimit;
+    int minit = fit.ControlMinorLimit;
+    double delta = fit.ControlFuncPrecision;
+    double tol   = fit.ControlTolerance;
     
     int tc = nineq + neq;
     
