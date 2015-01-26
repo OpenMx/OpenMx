@@ -23,7 +23,7 @@ omxCheckError(mxRun(model), paste("The definition variable",
 	"refers to a data set that does not exist"))
 foo <- mxMatrix('Full', 1, 1, labels = 'data.baz', name = 'foo')
 model <- mxModel(model, foo)
-omxCheckError(mxRun(model), paste("A definition variable",
+omxCheckError(mxRun(model), paste("A definition variable 'data.baz'",
 	"has been declared in model 'model'",
 	"that does not contain a data set"))
 data <- mxData(matrix(1,1,1), type = 'raw')

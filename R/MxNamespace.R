@@ -734,8 +734,8 @@ imxConvertLabel <- function(label, modelname, dataname, namespace) {
 		if (length(components) == 3) {
 			return(label)
 		} else if (is.null(dataname)) {
-			stop(paste("A definition variable has",
-				"been declared in model", omxQuotes(modelname),
+			stop(paste("A definition variable", omxQuotes(label),
+				"has been declared in model", omxQuotes(modelname),
 				"that does not contain a data set"), call. = FALSE)
 		} else {
 			datasource <- unlist(strsplit(dataname, imxSeparatorChar, fixed = TRUE))[[1]]
