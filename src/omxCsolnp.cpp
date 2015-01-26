@@ -167,21 +167,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     myControl[3] = funcPrecision;
     myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-9;
     
-    if(OMX_DEBUG) {
-        mxLog("--------------------------");
-        mxLog("Starting Values (%d) are:", n);
-    }
-    for(int k = 0; k < n; k++) {
-        if((myPars[k] == 0.0)) {
-            myPars[k] += 0.1;
-        }
-        if(OMX_DEBUG) { mxLog("%d: %.8f", k, myPars[k]); }
-    }
-    
-    if(OMX_DEBUG) {
-        mxLog("--------------------------");
-    }
-    
     RegularFit rf(fc, fitMatrix);
     solnp(myPars.data(), rf, myControl, verbose);
     
