@@ -219,8 +219,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
 	}
 
-	// It seems we cannot avoid this. Both optimizers can terminate
-	// with fit not at the optimum.
+	// Optimizers can terminate with param/fit not at the optimum.
+	fc->copyParamToModel();
 	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
 
 	if (verbose >= 1) {

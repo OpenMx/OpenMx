@@ -28,9 +28,6 @@
 #include "npsolswitch.h"
 #include "omxBuffer.h"
 
-/* NPSOL-specific globals */
-const double NPSOL_BIGBND = 1e20;
-
 #if HAS_NPSOL
 static const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
@@ -355,9 +352,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out, istate, c, cJac,
 			clambda, &fit, g, hessOut, x, iw, &leniw, w, &lenw);
 
-	NPSOL_fc->fit = fit;
-	NPSOL_fc->copyParamToModel();
- 
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;
 }

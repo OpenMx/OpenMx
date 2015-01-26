@@ -224,7 +224,6 @@ struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 
 	// output
 	int informOut;
-	double fitOut;
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;
 

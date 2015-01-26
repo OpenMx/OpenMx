@@ -307,7 +307,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (mode == -1)
         {
 		fit.informOut = 0;
-		fit.fitOut = funv;
 		memcpy(pars.data(), p.t, pars.size() * sizeof(double));
 		return;
         }
@@ -373,7 +372,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (mode == -1)
         {
 		fit.informOut = 0;
-		fit.fitOut = funv;
 		memcpy(pars.data(), p.t, pars.size() * sizeof(double));
 		return;
         }
@@ -544,7 +542,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         }
     }
     
-    fit.fitOut = funv;
     memcpy(pars.data(), p.t, pars.size() * sizeof(double));
     fit.gradOut.resize(grad.cols);
     memcpy(fit.gradOut.data(), grad.t, fit.gradOut.size() * sizeof(double));

@@ -36,28 +36,21 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
 {
-    int n = int(freeVarGroup->vars.size());
-    
-    Eigen::Map< Eigen::VectorXd > myPars(fc->est, n);
-    
     RegularFit rf("CSOLNP", fc, fitMatrix);
     rf.ControlMajorLimit = majIter;
     rf.ControlMinorLimit = minIter;
     rf.ControlFuncPrecision = funcPrecision;
     rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
-    solnp(myPars.data(), rf, verbose);
-    
-    fc->fit = rf.fitOut;
+    solnp(fc->est, rf, verbose);
     
     *inform_out = rf.informOut;
     
     if (rf.gradOut.size()) {
+	    int n = int(freeVarGroup->vars.size());
 	    fc->grad = rf.gradOut.tail(n);
 	    Eigen::Map< Eigen::MatrixXd > hess(hessOut, n, n);
 	    hess = rf.hessOut.bottomRightCorner(n, n);
     }
-    
-    fc->copyParamToModel();
 }
 
 // Mostly duplicated code in omxNPSOLConfidenceIntervals
@@ -109,11 +102,15 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 			cif.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-16;
 			solnp(fc.est, cif, verbose);
                 
-			if(cif.fitOut < bestFit) {
+			fc.copyParamToModel();
+			ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, &fc);
+			const double fitOut = fc.fit;
+
+			if (fitOut < bestFit) {
 				double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 				if (lower) currentCI->min = val;
 				else       currentCI->max = val;
-				bestFit = cif.fitOut;
+				bestFit = fitOut;
 			}
 
 			inform = cif.informOut;
