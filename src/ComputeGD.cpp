@@ -223,6 +223,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	// with fit not at the optimum.
 	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
 
+	if (verbose >= 1) {
+		mxLog("%s: final fit is %2f", name, fc->fit);
+		fc->log(FF_COMPUTE_ESTIMATE);
+	}
+
 	if (fitMatrix->rows == 1) {
 		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
 			std::string diag = fc->getIterationError();

@@ -48,15 +48,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     solnp(myPars.data(), rf, verbose);
     
     fc->fit = rf.fitOut;
-    if (verbose >= 1) {
-        mxLog("final objective value is: \n");
-        mxLog("%2f", fc->fit);
-    }
-    
-    if (verbose>= 1){
-        mxLog("final myPars value is: \n");
-        for (int i = 0; i < myPars.size(); i++) mxLog("%f", myPars[i]);
-    }
     
     *inform_out = rf.informOut;
     
