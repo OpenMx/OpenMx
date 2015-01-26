@@ -2825,7 +2825,8 @@ void RegularFit::setupIneqConstraintBounds()
 	}
 };
 
-RegularFit::RegularFit(FitContext *fc, omxMatrix *fmat) : fc(fc), fitMatrix(fmat) {
+RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat)
+	: super(optName, fc), fitMatrix(fmat) {
 	FreeVarGroup *varGroup = fc->varGroup;
 	solLB.resize(fc->numParam);
 	solUB.resize(fc->numParam);
@@ -2844,7 +2845,7 @@ double RegularFit::solFun(double *myPars, int* mode, int verbose)
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 	fc->copyParamToModel();
 
-	ComputeFit("CSOLNP", fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
 
 	if (!std::isfinite(fc->fit) || isErrorRaised()) {
 		*mode = -1;
@@ -2859,7 +2860,7 @@ void RegularFit::solEqBFun(int verbose)
 	omxState *globalState = fc->state;
 
 	if (verbose >= 3) {
-		mxLog("Starting csolnpEqualityFunction %d/%d.",
+		mxLog("Starting EqualityFunction %d/%d.",
 		      eq_n, globalState->numConstraints);
 	}
 
@@ -2884,7 +2885,7 @@ void RegularFit::myineqFun(int verbose)
 	omxState *globalState = fc->state;
 
 	if (verbose >= 3) {
-		mxLog("Starting csolnpInequalityFunction %d/%d.",
+		mxLog("Starting InequalityFunction %d/%d.",
 		      ineq_n, globalState->numConstraints);
 	}
 
@@ -2903,8 +2904,8 @@ void RegularFit::myineqFun(int verbose)
 	}
 };
 
-ConfidenceIntervalFit::ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
-	super(fc, fmat), currentInterval(curInt), calcLower(lower) {};
+ConfidenceIntervalFit::ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
+	super(optName, fc, fmat), currentInterval(curInt), calcLower(lower) {};
 
 double ConfidenceIntervalFit::solFun(double *myPars, int* mode, int verbose)
 {

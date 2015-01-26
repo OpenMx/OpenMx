@@ -204,6 +204,9 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 SEXP sparseInvert_wrapper(SEXP mat);
 
 struct CSOLNPFit {
+	const char *optName;
+	FitContext *fc;
+
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
@@ -219,17 +222,18 @@ struct CSOLNPFit {
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;
 
+	CSOLNPFit(const char *optName, FitContext *fc) : optName(optName), fc(fc) {}
 	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
 	virtual void solEqBFun(int verbose) = 0;
 	virtual void myineqFun(int verbose) = 0;
 };
 
 struct RegularFit : CSOLNPFit {
-	FitContext *fc;
+	typedef CSOLNPFit super;
 	omxMatrix *fitMatrix;
 	void setupIneqConstraintBounds();
 
-	RegularFit(FitContext *fc, omxMatrix *fmat);
+	RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat);
 	virtual double solFun(double *myPars, int* mode, int verbose);
 	virtual void solEqBFun(int verbose);
 	virtual void myineqFun(int verbose);
@@ -240,7 +244,7 @@ struct ConfidenceIntervalFit : RegularFit {
 	int currentInterval;
 	bool calcLower;
 
-	ConfidenceIntervalFit(FitContext *fc, omxMatrix *fmat, int curInt, bool lower);
+	ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower);
 	virtual double solFun(double *myPars, int* mode, int verbose);
 };
 

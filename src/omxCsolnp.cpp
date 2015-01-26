@@ -48,7 +48,7 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
     myControl[3] = funcPrecision;
     myControl[4] = std::isfinite(tolerance)? tolerance : 1.0e-9;
     
-    RegularFit rf(fc, fitMatrix);
+    RegularFit rf("CSOLNP", fc, fitMatrix);
     solnp(myPars.data(), rf, myControl, verbose);
     
     fc->fit = rf.fitOut;
@@ -122,7 +122,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 						  matName, currentCI->row + 1, currentCI->col + 1,
 						  lower? "lower" : "upper", tries);
 
-			ConfidenceIntervalFit cif(&fc, fitMatrix, i, lower);
+			ConfidenceIntervalFit cif("CSOLNP", &fc, fitMatrix, i, lower);
 			solnp(fc.est, cif, myControl, verbose);
                 
 			if(cif.fitOut < bestFit) {
