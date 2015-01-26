@@ -36,12 +36,12 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
 {
-    RegularFit rf("CSOLNP", fc, fitMatrix);
-    rf.ControlMajorLimit = majIter;
-    rf.ControlMinorLimit = minIter;
-    rf.ControlFuncPrecision = funcPrecision;
-    rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
-    solnp(fc->est, rf, verbose);
+	RegularFit rf("CSOLNP", fc, fitMatrix, verbose);
+	rf.ControlMajorLimit = majIter;
+	rf.ControlMinorLimit = minIter;
+	rf.ControlFuncPrecision = funcPrecision;
+	rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
+	solnp(fc->est, rf);
     
     *inform_out = rf.informOut;
     
@@ -100,7 +100,7 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 			cif.ControlMinorLimit = minIter;
 			cif.ControlFuncPrecision = funcPrecision;
 			cif.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-16;
-			solnp(fc.est, cif, verbose);
+			solnp(fc.est, cif);
                 
 			fc.copyParamToModel();
 			ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, &fc);

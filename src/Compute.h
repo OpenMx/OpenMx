@@ -206,6 +206,7 @@ SEXP sparseInvert_wrapper(SEXP mat);
 struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	const char *optName;
 	FitContext *fc;
+	int verbose;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;
@@ -227,10 +228,10 @@ struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;
 
-	CSOLNPFit(const char *optName, FitContext *fc);
-	virtual double solFun(double *myPars, int* mode, int verbose) = 0;
-	virtual void solEqBFun(int verbose) = 0;
-	virtual void myineqFun(int verbose) = 0;
+	CSOLNPFit(const char *optName, FitContext *fc, int verbose);
+	virtual double solFun(double *myPars, int* mode) = 0;
+	virtual void solEqBFun() = 0;
+	virtual void myineqFun() = 0;
 };
 
 struct RegularFit : CSOLNPFit { // merge into CSOLNPFit TODO
@@ -238,10 +239,10 @@ struct RegularFit : CSOLNPFit { // merge into CSOLNPFit TODO
 	omxMatrix *fitMatrix;
 	void setupIneqConstraintBounds();
 
-	RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat);
-	virtual double solFun(double *myPars, int* mode, int verbose);
-	virtual void solEqBFun(int verbose);
-	virtual void myineqFun(int verbose);
+	RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose);
+	virtual double solFun(double *myPars, int* mode);
+	virtual void solEqBFun();
+	virtual void myineqFun();
 };
 
 struct ConfidenceIntervalFit : RegularFit {
@@ -250,7 +251,7 @@ struct ConfidenceIntervalFit : RegularFit {
 	bool calcLower;
 
 	ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower);
-	virtual double solFun(double *myPars, int* mode, int verbose);
+	virtual double solFun(double *myPars, int* mode);
 };
 
 #endif

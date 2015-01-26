@@ -2825,8 +2825,8 @@ void RegularFit::setupIneqConstraintBounds()
 	}
 };
 
-CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc)
-	: optName(optName), fc(fc)
+CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
+	: optName(optName), fc(fc), verbose(verbose)
 {
 	ControlMajorLimit = 0;
 	ControlMinorLimit = 0;
@@ -2835,8 +2835,8 @@ CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc)
 	ControlTolerance = nan("uninit");
 }
 
-RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat)
-	: super(optName, fc), fitMatrix(fmat) {
+RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose)
+	: super(optName, fc, verbose), fitMatrix(fmat) {
 	FreeVarGroup *varGroup = fc->varGroup;
 	solLB.resize(fc->numParam);
 	solUB.resize(fc->numParam);
@@ -2848,7 +2848,7 @@ RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat)
 	setupIneqConstraintBounds();
 };
 
-double RegularFit::solFun(double *myPars, int* mode, int verbose)
+double RegularFit::solFun(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;
 
@@ -2864,7 +2864,7 @@ double RegularFit::solFun(double *myPars, int* mode, int verbose)
 	return fc->fit;
 };
 
-void RegularFit::solEqBFun(int verbose)
+void RegularFit::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
 	omxState *globalState = fc->state;
@@ -2889,7 +2889,7 @@ void RegularFit::solEqBFun(int verbose)
 	}
 };
 
-void RegularFit::myineqFun(int verbose)
+void RegularFit::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
 	omxState *globalState = fc->state;
@@ -2915,9 +2915,9 @@ void RegularFit::myineqFun(int verbose)
 };
 
 ConfidenceIntervalFit::ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
-	super(optName, fc, fmat), currentInterval(curInt), calcLower(lower) {};
+	super(optName, fc, fmat, 0), currentInterval(curInt), calcLower(lower) {};
 
-double ConfidenceIntervalFit::solFun(double *myPars, int* mode, int verbose)
+double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 {
 	//double* f = NULL;
 	if (verbose >= 3) {
@@ -2926,7 +2926,7 @@ double ConfidenceIntervalFit::solFun(double *myPars, int* mode, int verbose)
 			mxLog("%f", myPars[i]);
 	}
 
-	fc->fit = super::solFun(myPars, mode, verbose);
+	fc->fit = super::solFun(myPars, mode);
 
 	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
 

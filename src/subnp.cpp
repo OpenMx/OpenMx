@@ -42,10 +42,10 @@ struct CSOLNP {
 	Eigen::Array<double, int(indVectorLength), 1> ind;
 };
 
-void solnp(double *solPars, CSOLNPFit &fit, int verbose)
+void solnp(double *solPars, CSOLNPFit &fit)
 {
 	CSOLNP context(fit);
-	context.solnp(solPars, verbose);
+	context.solnp(solPars, fit.verbose);
 }
 
 void CSOLNP::solnp(double *solPars, int verbose)
@@ -60,11 +60,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
         for (i = 0; i < LB.cols; i++) mxLog("%f", solPars[i]);
         mxLog("4th call is: \n");
 	int mode=0;
-        mxLog("%2f", fit.solFun(solPars, &mode, 0));
-	fit.solEqBFun(0);
+        mxLog("%2f", fit.solFun(solPars, &mode));
+	fit.solEqBFun();
         mxLog("solEqBFun is: \n");
         for (i = 0; i < fit.equality.size(); i++) mxLog("%f", fit.equality[i]);
-	fit.myineqFun(0);
+	fit.myineqFun();
         mxLog("myineqFun is: \n");
         for (i = 0; i < fit.inequality.size(); i++) mxLog("%f", fit.inequality[i]);
         mxLog("solLB is: \n");
@@ -113,7 +113,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     //# do function checks and return starting value
     
     mode = 1;
-    funv = fit.solFun(pars.data(), &mode, verbose);
+    funv = fit.solFun(pars.data(), &mode);
     
     // does not have a hessian (currently not supported in Rsolnp)
     ind[indHasHessian] = 0;
@@ -166,11 +166,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Matrix constraint;
     Matrix ineqx0;
     
-    fit.solEqBFun(verbose);
+    fit.solEqBFun();
     Matrix eqv(fit.equality);
 
     if (tc > 0){
-	    fit.myineqFun(verbose);
+	    fit.myineqFun();
 	    Matrix ineqv(fit.inequality);
         lambda = fill(1, tc, (double)0.0);
         
@@ -238,7 +238,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Matrix funvMatrix = fill(1, 1, funv);
     
     if ( nineq){
-	    fit.myineqFun(verbose);
+	    fit.myineqFun();
 	    Matrix ineqv(fit.inequality);
         if(eqv.cols){
             Matrix firstCopied = copy(funvMatrix, eqv);
@@ -319,11 +319,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (flag == 1)
         {
 	    mode = 0;
-            funv = fit.solFun(p.t, &mode, verbose);
+            funv = fit.solFun(p.t, &mode);
             funvMatrix = fill(1, 1, funv);
-            fit.solEqBFun(verbose);
+            fit.solEqBFun();
             if ( nineq) {
-		    fit.myineqFun(verbose);
+		    fit.myineqFun();
 		    Matrix ineqv(fit.inequality);
                 if(eqv.cols)
                 {
@@ -368,7 +368,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         Matrix temp = subset(p, 0, nineq, (nineq+np-1));
 	mode = 1;
-        funv = fit.solFun(temp.t, &mode, verbose);
+        funv = fit.solFun(temp.t, &mode);
         if (mode == -1)
         {
 		fit.informOut = 0;
@@ -380,11 +380,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         //Matrix funv_mat = fill(1, 1, funv);
         //Matrix tempdf = copy(temp, funv_mat);
-        fit.solEqBFun(verbose);
+        fit.solEqBFun();
         
         Matrix firstPart, copied;
         if (nineq){
-		fit.myineqFun(verbose);
+		fit.myineqFun();
 		Matrix ineqv(fit.inequality);
             if(eqv.cols){
                 copied = copy(fill(1, 1, funv), eqv);
@@ -737,10 +737,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 mxLog("7th call is \n");
             }
 	    mode = 0;
-            funv = fit.solFun(tmpv.t, &mode, verbose);
+            funv = fit.solFun(tmpv.t, &mode);
             
-            fit.solEqBFun(verbose);
-            fit.myineqFun(verbose);
+            fit.solEqBFun();
+            fit.myineqFun();
             
             solnp_nfn = solnp_nfn + 1;
             Matrix firstPart;
@@ -937,7 +937,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mxLog("8th call is \n");
         }
 	mode = 0;
-        funv = fit.solFun(tmpv.t, &mode, verbose);
+        funv = fit.solFun(tmpv.t, &mode);
         if (verbose >= 3){
             mxLog("funv is: \n");
             mxLog("%2f", funv);
@@ -949,12 +949,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mode = 0;
         }
         
-        fit.solEqBFun(verbose);
+        fit.solEqBFun();
         if (verbose >= 3){
             mxLog("eqv is: \n");
             for (int i = 0; i < eqv.cols; i++) mxLog("%f",eqv.t[i]);
         }
-        fit.myineqFun(verbose);
+        fit.myineqFun();
         if (verbose >= 3){
             mxLog("ineqv is: \n");
             for (int i = 0; i < ineqv.cols; i++) mxLog("%f",ineqv.t[i]);
@@ -1063,7 +1063,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     
                 }
 		mode = 0;
-                funv = fit.solFun(tmpv.t, &mode, verbose);
+                funv = fit.solFun(tmpv.t, &mode);
                 if (verbose >= 3){
                     mxLog("funv is: \n");
                     mxLog("%2f", funv);
@@ -1074,8 +1074,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     funv = 1e24;
                     mode = 0;
                 }
-                fit.solEqBFun(verbose);
-		fit.myineqFun(verbose);
+                fit.solEqBFun();
+		fit.myineqFun();
                 
                 solnp_nfn = solnp_nfn + 1;
                 
@@ -1586,7 +1586,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             for (int ilog = 0; ilog < tmpv.cols; ilog++) mxLog("%f",tmpv.t[ilog]);
         }
 	mode = 1;
-        funv = fit.solFun(tmpv.t, &mode, verbose);
+        funv = fit.solFun(tmpv.t, &mode);
         if (verbose >= 3){
             mxLog("hessv is: \n");
             for (int ilog = 0; ilog < hessv.cols; ilog++) mxLog("%f",hessv.t[ilog]);
@@ -1604,8 +1604,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mode = 0;
         }
         
-        fit.solEqBFun(verbose);
-        fit.myineqFun(verbose);
+        fit.solEqBFun();
+        fit.myineqFun();
         
         solnp_nfn = solnp_nfn + 1;
         
@@ -1730,7 +1730,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             }
             
 	    mode = 0;
-            funv = fit.solFun(tmpv.t, &mode, verbose);
+            funv = fit.solFun(tmpv.t, &mode);
             if (verbose >= 3){
                 mxLog("funv is: \n");
                 mxLog("%2f", funv);
@@ -1742,8 +1742,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 mode = 0;
             }
             
-            fit.solEqBFun(verbose);
-	    fit.myineqFun(verbose);
+            fit.solEqBFun();
+	    fit.myineqFun();
 
             solnp_nfn = solnp_nfn + 1;
             Matrix firstPart, secondPart, firstPartt;
