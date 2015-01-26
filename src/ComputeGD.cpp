@@ -238,22 +238,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	fc->wanted |= FF_COMPUTE_BESTFIT;
-    /*printf("fc->hess in computeGD\n");
-    printf("%2f", fc->hess[0]); putchar('\n');
-    printf("%2f", fc->hess[1]); putchar('\n');
-    printf("%2f", fc->hess[2]); putchar('\n');
-    */
 }
 
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
     
-    /*printf("fc->hess in computeGD:report results\n");
-    printf("%2f", fc->hess[0]); putchar('\n');
-    printf("%2f", fc->hess[1]); putchar('\n');
-    printf("%2f", fc->hess[2]); putchar('\n');
-*/
 	if (engine == OptEngine_NPSOL) {
 		out->add("hessianCholesky", hessChol);
 	}
