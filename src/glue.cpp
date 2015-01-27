@@ -502,9 +502,9 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		omxFreeData(globalState->dataList[dx]);
 	}
 
+	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	delete Global;
 
-	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	return result.asR();
 }
 
