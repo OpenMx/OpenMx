@@ -228,6 +228,7 @@ autodep:
 	cd src && gcc -MM *.cpp | perl -pe 's,[^\s]+/RcppEigen/[^\s]+, ,g' | perl -pe 's,^\s*\\\n,,' | perl -pe 's,:,: Makevars.in,' > autodep
 
 clean:
+	mkdir -p build
 	-rm build/OpenMx_*.tar.gz
 	-rm src/*.o
 	-rm src/*.so
