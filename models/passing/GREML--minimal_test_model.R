@@ -4,8 +4,14 @@ set.seed(1234)
 dat <- cbind(rnorm(100),rep(1,100))
 colnames(dat) <- c("y","x")
 
-ge <- mxExpectationGREML(V="V",X="X", y="y")
+ge <- mxExpectationGREML(V="V",X="X",y="y",dV=c(ve="I"))
 gff <- mxFitFunctionGREML()
+plan <- mxComputeSequence(steps=list(
+  mxComputeNewtonRaphson(freeSet=c("Ve"),fitfunction="fitfunction"),
+  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
+  mxComputeStandardError(freeSet=c("Ve")),
+  mxComputeReportDeriv(freeSet=c("Ve"))
+))
 
 testmod <- mxModel(
   "GREMLtest",
@@ -16,7 +22,8 @@ testmod <- mxModel(
   mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,1], name="y"),
   mxAlgebra(I %x% Ve,name="V"),
   ge,
-  gff
+  gff,
+  plan
 )
 
 testrun <- mxRun(testmod)
@@ -24,3 +31,4 @@ testrun <- mxRun(testmod)
 omxCheckCloseEnough(testrun$output$estimate[1],var(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun$fitfunction$info$b,mean(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun$fitfunction$info$bcov,var(dat[,1])/100,epsilon=10^-5)
+omxCheckCloseEnough(testrun$output$standardErrors[1],sqrt((2*testrun$output$estimate^2)/100),epsilon=10^-3)

@@ -22,12 +22,14 @@
 void omxInitGREMLExpectation(omxExpectation* ox){
   
   SEXP rObj = ox->rObj;
-  SEXP do_fixeff;
+  SEXP do_fixeff, dV, dVnames;
+  int i=0;
   omxState* currentState = ox->currentState;
   
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
   
-  omxGREMLExpectation *oge = (omxGREMLExpectation*) R_alloc(1, sizeof(omxGREMLExpectation));
+  //omxGREMLExpectation *oge = (omxGREMLExpectation*) R_alloc(1, sizeof(omxGREMLExpectation));
+  omxGREMLExpectation *oge = new omxGREMLExpectation;
   
   /* Set Expectation Calls and Structures */
   ox->computeFun = omxComputeGREMLExpectation;
@@ -44,7 +46,23 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 	oge->X = omxNewMatrixFromSlot(rObj, currentState, "X");
 
 	oge->y = omxNewMatrixFromSlot(rObj, currentState, "y");
-  ScopedProtect pfx(do_fixeff, R_do_slot(rObj, Rf_install("fixedEffects")));
+  
+  Rf_protect(dV = R_do_slot(rObj, Rf_install("dV")));
+  Rf_protect(dVnames = R_do_slot(rObj, Rf_install("dVnames")));
+	oge->dVlength = Rf_length(dV);
+  oge->dV.resize(oge->dVlength);
+  oge->dVnames.resize(oge->dVlength);
+	if(oge->dVlength){
+    if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
+		int* dVint = INTEGER(dV);
+    for(i=0; i < oge->dVlength; i++){
+      oge->dV[i] = omxMatrixLookupFromState1(dVint[i], currentState);
+      SEXP elem;
+  		Rf_protect(elem = STRING_ELT(dVnames, i));
+			oge->dVnames[i] = CHAR(elem);
+	}}
+  
+  Rf_protect(do_fixeff = R_do_slot(rObj, Rf_install("fixedEffects")));
   oge->do_fixeff = INTEGER(do_fixeff);
 }
 
@@ -87,4 +105,17 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* o
 	if (retval) omxRecompute(retval, NULL);
 	
 	return retval;
+}
+
+
+omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os) {
+	omxMatrix* output = NULL;
+	if(matrix == NA_INTEGER){return NULL;}
+	if (matrix >= 0) {
+		output = os->algebraList[matrix];
+	} 
+  else {
+		output = os->matrixList[~matrix];
+	}
+	return output;
 }

@@ -18,6 +18,8 @@ setClass(Class = "MxExpectationGREML",
            V = "MxCharOrNumber",
            X = "MxCharOrNumber",
            y = "MxCharOrNumber",
+           dV = "MxCharOrNumber",
+           dVnames = "character",
            fixedEffects = "logical",
            dims = "character",
            definitionVars = "list",
@@ -27,12 +29,13 @@ setClass(Class = "MxExpectationGREML",
 
 
 setMethod("initialize", "MxExpectationGREML",
-          function(.Object, V, X, y, fixedEffects,
+          function(.Object, V, X, y, dV, fixedEffects, dVnames=character(0),
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
             .Object@X <- X
             .Object@y <- y
+            .Object@dV <- dV
             .Object@fixedEffects <- fixedEffects
             .Object@definitionVars <- definitionVars
             .Object@data <- data
@@ -48,6 +51,8 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
             .Object@V <- imxConvertIdentifier(.Object@V, modelname, namespace)
             .Object@X <- imxConvertIdentifier(.Object@X, modelname, namespace)
             .Object@y <- sapply(.Object@y, imxConvertIdentifier, modelname, namespace)
+            .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
+            .Object@dVnames <- names(.Object@dV)
             .Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
             return(.Object)
           })
@@ -79,7 +84,7 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             return(.Object)
           })
 
-mxExpectationGREML <- function(V, X, y, fixedEffects=TRUE) {
+mxExpectationGREML <- function(V, X, y, dV=character(0), fixedEffects=TRUE) {
   fixedEffects <- as.logical(fixedEffects)
   if (missing(V) || typeof(V) != "character") {
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
@@ -90,7 +95,7 @@ mxExpectationGREML <- function(V, X, y, fixedEffects=TRUE) {
   if ( missing(y) || typeof(y) != "character" ) {
     stop("argument 'y' is not of type 'character'")
   }
-  return(new("MxExpectationGREML", V, X, y, fixedEffects))
+  return(new("MxExpectationGREML", V, X, y, dV, fixedEffects))
 }
 
 
@@ -110,6 +115,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             #fixefName <- .Object@X
             .Object@X <- imxLocateIndex(flatModel, .Object@X, name)
             .Object@y <- imxLocateIndex(flatModel, .Object@y, name)
+            .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
             #mxDataObject <- flatModel@datasets[[.Object@data]]
             #if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
             if (mxDataObject@type != "raw") {

@@ -18,6 +18,9 @@
   omxMatrix* y;
   omxMatrix* V;
   omxMatrix* X;
+  std::vector< omxMatrix* > dV;
+  std::vector< const char* > dVnames;
+  int dVlength;
   int* do_fixeff;
 } omxGREMLExpectation;
 
@@ -26,3 +29,4 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *);
 void omxDestroyGREMLExpectation(omxExpectation* ox);
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra);
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
+omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os);

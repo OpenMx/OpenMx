@@ -21,15 +21,26 @@
 #include "Eigen/Cholesky"
 #include "Eigen/Dense"
 
-struct omxGREMLFitState {
+struct omxGREMLFitState { 
+  //TODO: Some of these members might be redundant with what's stored in the FitContext, 
+  //and could therefore be cut
   omxMatrix* y;
   omxMatrix* X;
   omxMatrix* V;
+  std::vector< omxMatrix* > dV;
+  std::vector< const char* > dVnames;
+  int dVlength;
   int* do_fixeff;
+  double nll;
   Eigen::MatrixXd XtVinv;
   Eigen::MatrixXd quadXinv;
   Eigen::MatrixXd P;
-  Eigen::MatrixXd ytP;
+  Eigen::MatrixXd Py;
+  Eigen::VectorXd gradient;
+  Eigen::MatrixXd avgInfo; //the Average Information matrix
+  FreeVarGroup *varGroup;
+	std::vector<int> gradMap;
+  void buildParamMap(FreeVarGroup *newVarGroup);
 }; 
 
 void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
@@ -38,15 +49,25 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   //Recompute Expectation:
   omxExpectation* expectation = oo->expectation;
   omxExpectationCompute(expectation, NULL);
-  
+    
   omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
   
-  //if(want & (FF_COMPUTE_FIT)){
-    //Declare local variables:
-    int i;
-    double logdetV=0, logdetquadX=0, nll=0;
+  //Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup (is this necessary?):
+  if(fc && gff->varGroup != fc->varGroup){
+  	gff->buildParamMap(fc->varGroup);
+	}
+  
+  const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
+  
+  //Declare local variables used in more than one scope in this function:
+  int i;
+  EigenMatrixAdaptor Eigy(gff->y);
+  
+  if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+    
+    //Declare local variables for this scope:
+    double logdetV=0, logdetquadX=0;
     Eigen::MatrixXd Vinv, quadX;
-    EigenMatrixAdaptor Eigy(gff->y);
     EigenMatrixAdaptor EigX(gff->X);
     EigenMatrixAdaptor EigV(gff->V);
     Eigen::LDLT< Eigen::MatrixXd > rbstcholV(gff->y->rows);
@@ -71,7 +92,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     Vinv = rbstcholV.solve(Eigen::MatrixXd::Identity(gff->V->rows, gff->V->cols)); //<-- V inverse
     
     gff->XtVinv = EigX.transpose() * Vinv;
-    quadX = gff->XtVinv * EigX;
+    quadX = gff->XtVinv * EigX; //<--Quadratic form in X
     
     //Do for XtVinvX as was done for V:
     rbstcholquadX.compute(quadX);
@@ -90,37 +111,85 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     gff->quadXinv = rbstcholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
     
-        //Finish computing fit:
+    //Finish computing fit (negative loglikelihood):
     gff->P = Vinv - (gff->XtVinv.transpose() * gff->quadXinv * gff->XtVinv);
-    gff->ytP = Eigy.transpose() * gff->P;
-    nll = 0.5*(logdetV + logdetquadX + (gff->ytP * Eigy)(0,0));
-    oo->matrix->data[0] = nll;
-    return;
-//Alternate way to do fixed effects using QR solve:
-/*  }
-  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
-    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
-    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
-    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
-    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
-    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
-    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
-    
-    cholV.compute(EigV);
-    if(cholV.info() != Eigen::Success){
-      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
-      return;
+    gff->Py = gff->P * Eigy;
+    oo->matrix->data[0] = Scale*0.5*(logdetV + logdetquadX + (Eigy.transpose() * gff->Py)(0,0));
+    gff->nll = oo->matrix->data[0]; 
+  }
+  //TODO: rewrite the loop below to be more streamlined (and more readable to human eyes)
+  if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+    //Declare local variables for this scope:
+    int j=0, t1=0, t2=0;
+    size_t v1=0;
+    Eigen::MatrixXd PdV_dtheta1;//, PdV_dtheta2; 
+    //Begin looping thru free parameters:
+    for(i=0; i < gff->dVlength; i++){
+      //t1 is the "parameter number" for the free parameter corresponding to the ith derivative of V:
+      t1 = gff->gradMap[i]; 
+      EigenMatrixAdaptor dV_dtheta1(gff->dV[i]); //<--Derivative of V w/r/t parameter i.
+      PdV_dtheta1 = gff->P * dV_dtheta1;
+      //double tmp1 = PdV_dtheta1.trace();
+      //double tmp2 = (Eigy * PdV_dtheta1 * gff->Py)(0,0);
+      //gff->gradient(t1,0) = 0.5*(tmp1 - tmp2);
+      gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * gff->Py)(0,0));
+      if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+        for(j=i; j < gff->dVlength; j++){
+          t2 = gff->gradMap[j]; //<--t2 is parameter number for jth parameter.
+          if(i==j){
+            gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * gff->Py)(0,0);
+          }
+          else{
+            EigenMatrixAdaptor dV_dtheta2(gff->dV[j]); //<--Derivative of V w/r/t parameter j.
+            //PdV_dtheta2 = gff->P * dV_dtheta2;
+            gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * gff->P * dV_dtheta2 * gff->Py)(0,0);
+            gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+      }}}
     }
-    S = cholV.matrixL();
-    Sinv = S.inverse();
-    SinvX = Sinv * EigX;
-    Sinvy = Sinv * Eigy;
-    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
-    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
-    cholquadX.compute(quadX);
-    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
-    return;    
-  } */
+    fc->grad.resize(gff->dVlength);
+    for (v1=0; v1 < gff->dV.size(); ++v1) {
+  			t1 = gff->gradMap[v1];
+				if (t1 < 0) continue;
+				fc->grad(t1) += gff->gradient(v1);
+			}
+    //fc->grad = gff->gradient;
+    if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+      HessianBlock *hb = new HessianBlock;
+  		hb->vars.resize(gff->dVlength);
+      int vx=0;
+			for (size_t h1=0; h1 < gff->dV.size(); ++h1) {
+				if (gff->gradMap[h1] < 0) continue;
+				hb->vars[vx] = gff->gradMap[h1];
+				++vx;
+			}
+			hb->mat.resize(gff->dVlength, gff->dVlength);
+			for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
+				if (gff->gradMap[h1] < 0) continue;
+				for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
+					if (gff->gradMap[h2] < 0) continue;
+					hb->mat(d2,d1) = gff->avgInfo(h2,h1);
+				  ++d2;
+        }
+			  ++d1;	
+			}
+			fc->queue(hb);
+      //fc->refreshDenseHess();
+      //fc->refreshDenseIHess();
+    }
+      /*HessianBlock *hb = new HessianBlock;
+      hb->vars.resize(gff->dV.size());
+      hb->vars = gff->gradMap;
+      hb->mat.resize(gff->dV.size(),gff->dV.size());
+      for(i=0; i < (int)gff->dV.size(); i++){
+        for(j=i; j < (int)gff->dV.size(); j++){
+          hb->mat(i,j) = gff->avgInfo(i,j);
+      }}
+      //hb->mat = gff->avgInfo;
+      fc->queue(hb);
+      fc->refreshSparseHess();*/
+      
+  }
+  return;
 }
 
 
@@ -138,8 +207,21 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->y = omxGetExpectationComponent(expectation, oo, "y");
   newObj->V = omxGetExpectationComponent(expectation, oo, "V");
   newObj->X = omxGetExpectationComponent(expectation, oo, "X");
+  newObj->nll = 0;
+  newObj->varGroup = NULL;
+  
   omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
   newObj->do_fixeff = oge->do_fixeff;
+  newObj->dV = oge->dV;
+  newObj->dVnames = oge->dVnames;
+  newObj->dVlength = oge->dVlength;
+  if(newObj->dVlength){
+    oo->gradientAvailable = true;
+    newObj->gradient.setZero(newObj->dVlength,1);
+    oo->hessianAvailable = true;
+    newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
+  }
+  //omxRaiseErrorf("Best to stop here for now");
 }
 
 
@@ -172,4 +254,41 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   	Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   	Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
   }
+}
+
+//Alternate way to do fixed effects using QR solve:
+/*  }
+  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
+    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
+    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
+    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
+    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
+    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
+    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
+    
+    cholV.compute(EigV);
+    if(cholV.info() != Eigen::Success){
+      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
+      return;
+    }
+    S = cholV.matrixL();
+    Sinv = S.inverse();
+    SinvX = Sinv * EigX;
+    Sinvy = Sinv * Eigy;
+    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
+    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
+    cholquadX.compute(quadX);
+    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
+    return;    
+  } */
+
+
+void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
+{
+  varGroup = newVarGroup;
+	gradMap.resize(dV.size());
+	for (size_t nx=0; nx < dV.size(); ++nx) {
+		int to = varGroup->lookupVar(dVnames[nx]);
+		gradMap[nx] = to;
+	}
 }
