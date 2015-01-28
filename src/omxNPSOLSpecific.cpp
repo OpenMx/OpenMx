@@ -168,8 +168,6 @@ void F77_SUB(npsolObjectiveFunctionOld)
 void F77_SUB(npsolLimitObjectiveFunction)
 	(	int* mode, int* n, double* x, double* f, double* g, int* nstate ) {
 		
-		if(OMX_DEBUG) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval]->calcLower?"lower":"upper"));
-
 		F77_CALL(npsolObjectiveFunctionOld)(mode, n, x, f, g, nstate);	// Standard objective function call
 
 		omxConfidenceInterval *oCI = Global->intervalList[NPSOL_currentInterval];
@@ -177,11 +175,6 @@ void F77_SUB(npsolLimitObjectiveFunction)
 		omxRecompute(oCI->matrix, NPSOL_fc);
 		
 		double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-
-		if(OMX_DEBUG) {
-			mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
-				oCI->lbound, oCI->ubound, *f, CIElement);
-		}
 
 		/* Catch boundary-passing condition */
 		if(std::isnan(CIElement) || std::isinf(CIElement)) {
@@ -198,10 +191,6 @@ void F77_SUB(npsolLimitObjectiveFunction)
 			double diff = oCI->ubound - *f;			// Offset - likelihood
 			*f = diff * diff - CIElement;
 				// Maximize element for upper bound.
-		}
-
-		if(OMX_DEBUG) {
-			mxLog("Interval fit function in previous iteration was calculated to be %f.", *f);
 		}
 }
 
