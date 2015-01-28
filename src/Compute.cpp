@@ -2901,13 +2901,12 @@ RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int
 double RegularFit::solFun(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;
-
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 	fc->copyParamToModel();
 
 	int want = FF_COMPUTE_FIT;
 	if (*mode > 0 && useGradient && fitMatrix->fitFunction->gradientAvailable) {
-		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
 	ComputeFit(optName, fitMatrix, want, fc);

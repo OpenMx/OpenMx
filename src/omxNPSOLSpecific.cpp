@@ -119,14 +119,13 @@ static void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * b
 	}
 }
 
-/*
 void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
 {
+	if (x != NPSOL_GOpt->fc->est) return;  // this is strange but necessary
 	double fit = NPSOL_GOpt->solFun(x, mode);
 	*f = fit;
 }
-*/
 
 /****** Objective Function *********/
 static void
@@ -157,7 +156,7 @@ npsolObjectiveFunction1(int* mode, int* n, double* x,
         }
 }
 
-void F77_SUB(npsolObjectiveFunction)
+void F77_SUB(npsolObjectiveFunctionOld)
         (       int* mode, int* n, double* x,
                 double* f, double* g, int* nstate )
 {
@@ -171,7 +170,7 @@ void F77_SUB(npsolLimitObjectiveFunction)
 		
 		if(OMX_DEBUG) mxLog("Calculating interval %d, %s boundary:", NPSOL_currentInterval, (Global->intervalList[NPSOL_currentInterval]->calcLower?"lower":"upper"));
 
-		F77_CALL(npsolObjectiveFunction)(mode, n, x, f, g, nstate);	// Standard objective function call
+		F77_CALL(npsolObjectiveFunctionOld)(mode, n, x, f, g, nstate);	// Standard objective function call
 
 		omxConfidenceInterval *oCI = Global->intervalList[NPSOL_currentInterval];
 		
