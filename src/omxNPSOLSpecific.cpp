@@ -28,6 +28,20 @@
 #include "npsolswitch.h"
 #include "omxBuffer.h"
 
+template <typename T1>
+void CSOLNPFit::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
+{
+	omxState *globalState = fc->state;
+	int ncnln = globalState->ncnln;
+	int l=0;
+	for(int j = 0; j < globalState->numConstraints; j++) {
+		omxRecompute(globalState->conList[j].result, fc);
+		for(int k = 0; k < globalState->conList[j].size; k++){
+			constraintOut[l++] = globalState->conList[j].result->data[k];
+		}
+	}
+}
+
 #if HAS_NPSOL
 static const char* anonMatrix = "anonymous matrix";
 static omxMatrix *NPSOL_fitMatrix = NULL;
@@ -35,6 +49,7 @@ static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
 static bool NPSOL_useGradient;
 static int NPSOL_verbose;
+static struct CSOLNPFit *NPSOL_GOpt;
 #endif
 
 #ifdef  __cplusplus
@@ -215,15 +230,13 @@ void F77_SUB(npsolConstraintFunction)
 	if(OMX_DEBUG) { mxLog("-=======================================================-"); }
 }
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-		    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
-		    int verbose, double *hessOut, double tolerance, bool warmStart)
+void omxNPSOL(double *est, RegularFit &rf)
 {
-	if (std::isfinite(tolerance)) {
-		std::string opt = string_snprintf("Optimality tolerance %.8g", tolerance);
+	if (std::isfinite(rf.ControlTolerance)) {
+		std::string opt = string_snprintf("Optimality tolerance %.8g", rf.ControlTolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
-	if (warmStart) {
+	if (rf.warmStart) {
 		std::string opt = string_snprintf("Warm start");
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	} else {
@@ -233,11 +246,12 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
-	NPSOL_fitMatrix = fitMatrix;
-	NPSOL_verbose = verbose;
+	NPSOL_fitMatrix = rf.fitMatrix;
+	NPSOL_verbose = rf.verbose;
 
-	NPSOL_useGradient = useGradient;
-	NPSOL_fc = fc;
+	NPSOL_useGradient = rf.useGradient;
+	NPSOL_fc = rf.fc;
+	FitContext *fc = rf.fc;
 	double *x = fc->est;
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
 	double *g = fc->grad.data();
@@ -268,7 +282,7 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 	Eigen::VectorXi istate(nctotl);
 	Eigen::VectorXi iw(leniw);
  
-	if (warmStart) {
+	if (rf.warmStart) {
 		istate.setZero();
 		clambda.setZero();
 	}
@@ -309,19 +323,18 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
         All arrays must be in column-major order.
         */
  
-	RegularFit rf("NPSOL", fc, fitMatrix, verbose);
-	rf.setupAllBounds();
-
+	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A.data(),
 			rf.solLB.data(), rf.solUB.data(), (void*)F77_SUB(npsolConstraintFunction),
-			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out,
+			(void*) F77_SUB(npsolObjectiveFunction), &rf.informOut, &iter_out,
 			istate.data(), c.data(), cJac.data(),
-			clambda.data(), &fit, g, hessOut, x, iw.data(), &leniw, w.data(), &lenw);
+			clambda.data(), &fit, g, rf.hessOut.data(), x, iw.data(), &leniw, w.data(), &lenw);
 
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;
+    NPSOL_GOpt = NULL;
 }
  
  
@@ -529,6 +542,28 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
 	NPSOL_currentInterval = -1;
 }
  
+void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
+                   int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
+                   int verbose, double *hessOut, double tolerance, bool warmStart)
+{
+       RegularFit rf("NPSOL", fc, fitMatrix, verbose);
+       //rf.ControlMajorLimit = majIter;
+       //rf.ControlMinorLimit = minIter;
+       //rf.ControlFuncPrecision = funcPrecision;
+       rf.ControlTolerance = tolerance;
+       rf.warmStart = warmStart;
+       Eigen::Map< Eigen::MatrixXd > hessWrap(hessOut, fc->numParam, fc->numParam);
+       if (rf.warmStart) {
+               rf.hessOut = hessWrap;
+       }
+       rf.useGradient = useGradient;
+       rf.verbose = verbose;
+       rf.setupAllBounds();
+       omxNPSOL(fc->est, rf);
+       *inform_out = rf.informOut;
+       hessWrap = rf.hessOut;
+}
+
 void omxSetNPSOLOpts(SEXP options)
 {
     omxManageProtectInsanity mpi;
