@@ -227,6 +227,11 @@ struct GradientOptimizerContext {
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
 
+	// NPSOL has bugs and can return the wrong fit & estimates
+	// even when optimization proceeds correctly.
+	double bestFit;
+	Eigen::VectorXd bestEst;
+
 	// output
 	int informOut;
 	Eigen::VectorXd gradOut;
@@ -238,7 +243,7 @@ struct GradientOptimizerContext {
 	void setupAllBounds();             // NPSOL style
 
 	virtual double solFun(double *myPars, int* mode);
-
+	double safeFit(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);

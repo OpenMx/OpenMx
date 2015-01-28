@@ -122,7 +122,7 @@ void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
 {
 	if (x != NPSOL_GOpt->fc->est) return;  // this is strange but necessary
-	double fit = NPSOL_GOpt->solFun(x, mode);
+	double fit = NPSOL_GOpt->safeFit(x, mode);
 	*f = fit;
 }
 
@@ -201,7 +201,11 @@ void F77_SUB(npsolConstraintFunction)
 {
 	if(*mode==1) return;
 
-	NPSOL_GOpt->fc->copyParamToModel(); // unnecessary? TODO
+	// "Note that if there are any nonlinear constraints then the
+	// first call to CONFUN will precede the first call to
+	// OBJFUN." Hence, we must copyParamToModel here.
+
+	NPSOL_GOpt->fc->copyParamToModel();
 
 	Eigen::Map< Eigen::VectorXd > cE(c, *ncnln);
 	NPSOL_GOpt->allConstraintsFun(cE);
@@ -296,6 +300,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
         All arrays must be in column-major order.
         */
  
+	fc->grad.resize(n);
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored

@@ -2895,6 +2895,17 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	warmStart = false;
 }
 
+double GradientOptimizerContext::safeFit(double *myPars, int* mode)
+{
+	double fit = solFun(myPars, mode);
+	if (std::isfinite(fit) && fit < bestFit) {
+		bestFit = fit;
+		Eigen::Map< Eigen::VectorXd > pvec(myPars, fc->numParam);
+		bestEst = pvec;
+	}
+	return fit;
+}
+
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;

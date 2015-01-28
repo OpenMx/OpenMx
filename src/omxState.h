@@ -101,6 +101,9 @@ struct FreeVarGroup {
 	bool isDisjoint(FreeVarGroup *other);
 };
 
+// These were set in view of NPSOL option Infinite Bound Size. It
+// probably makes sense to use std::numeric_limits<double>::max() and
+// min().
 #define NEG_INF -2e20
 #define INF 2e20
 

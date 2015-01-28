@@ -220,6 +220,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	// Optimizers can terminate with param/fit not at the optimum.
+	// Use bestFit, bestEst here TODO
 	fc->copyParamToModel();
 	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
 
