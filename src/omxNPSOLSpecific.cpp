@@ -250,9 +250,7 @@ void omxNPSOL(double *est, RegularFit &rf)
 	NPSOL_fc = rf.fc;
 	NPSOL_GOpt = &rf;
 	FitContext *fc = rf.fc;
-	double *x = fc->est;
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
-	double *g = fc->grad.data();
 
     omxState *globalState = fc->state;
     int nclin = 0;
@@ -328,7 +326,7 @@ void omxNPSOL(double *est, RegularFit &rf)
 			rf.solLB.data(), rf.solUB.data(), (void*)F77_SUB(npsolConstraintFunction),
 			(void*) F77_SUB(npsolObjectiveFunction), &rf.informOut, &iter_out,
 			istate.data(), c.data(), cJac.data(),
-			clambda.data(), &fit, g, rf.hessOut.data(), x, iw.data(), &leniw, w.data(), &lenw);
+			clambda.data(), &fit, fc->grad.data(), rf.hessOut.data(), fc->est, iw.data(), &leniw, w.data(), &lenw);
 
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;
