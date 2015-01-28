@@ -54,12 +54,11 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   
   //Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup (is this necessary?):
   if(fc && gff->varGroup != fc->varGroup){
-  	gff->buildParamMap(fc->varGroup);
+    gff->buildParamMap(fc->varGroup);
 	}
   
-  const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
-  
   //Declare local variables used in more than one scope in this function:
+  const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
   int i;
   EigenMatrixAdaptor Eigy(gff->y);
   
@@ -117,78 +116,54 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     oo->matrix->data[0] = Scale*0.5*(logdetV + logdetquadX + (Eigy.transpose() * gff->Py)(0,0));
     gff->nll = oo->matrix->data[0]; 
   }
-  //TODO: rewrite the loop below to be more streamlined (and more readable to human eyes)
+  
   if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     //Declare local variables for this scope:
     int j=0, t1=0, t2=0;
-    size_t v1=0;
-    Eigen::MatrixXd PdV_dtheta1;//, PdV_dtheta2; 
+    Eigen::MatrixXd PdV_dtheta1, PdV_dtheta2;
+    
+    fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
+    
+    //Set up new HessianBlock:
+    HessianBlock *hb = new HessianBlock;
+    if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+      hb->vars.resize(gff->dVlength);
+      hb->mat.resize(gff->dVlength, gff->dVlength);
+    }
+    
     //Begin looping thru free parameters:
-    for(i=0; i < gff->dVlength; i++){
-      //t1 is the "parameter number" for the free parameter corresponding to the ith derivative of V:
-      t1 = gff->gradMap[i]; 
+    for(i=0; i < gff->dVlength ; i++){
+      t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
+      if(t1 < 0){continue;}
+      if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
       EigenMatrixAdaptor dV_dtheta1(gff->dV[i]); //<--Derivative of V w/r/t parameter i.
       PdV_dtheta1 = gff->P * dV_dtheta1;
-      //double tmp1 = PdV_dtheta1.trace();
-      //double tmp2 = (Eigy * PdV_dtheta1 * gff->Py)(0,0);
-      //gff->gradient(t1,0) = 0.5*(tmp1 - tmp2);
-      gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * gff->Py)(0,0));
-      if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-        for(j=i; j < gff->dVlength; j++){
-          t2 = gff->gradMap[j]; //<--t2 is parameter number for jth parameter.
-          if(i==j){
-            gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * gff->Py)(0,0);
+      for(j=i; j < gff->dVlength; j++){
+        if(j==i){
+          gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * gff->Py)(0,0));
+          fc->grad(t1) += gff->gradient(t1);
+          if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+            gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * gff->Py)(0,0);
           }
-          else{
-            EigenMatrixAdaptor dV_dtheta2(gff->dV[j]); //<--Derivative of V w/r/t parameter j.
-            //PdV_dtheta2 = gff->P * dV_dtheta2;
-            gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * gff->P * dV_dtheta2 * gff->Py)(0,0);
-            gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
-      }}}
-    }
-    fc->grad.resize(gff->dVlength);
-    for (v1=0; v1 < gff->dV.size(); ++v1) {
-  			t1 = gff->gradMap[v1];
-				if (t1 < 0) continue;
-				fc->grad(t1) += gff->gradient(v1);
-			}
-    //fc->grad = gff->gradient;
+        }
+        else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+          t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
+          if(t2 < 0){continue;}
+          EigenMatrixAdaptor dV_dtheta2(gff->dV[j]); //<--Derivative of V w/r/t parameter j.
+          gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * gff->P * dV_dtheta2 * gff->Py)(0,0);
+          gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+    }}}}
+    //Assign upper triangle elements of avgInfo to the HessianBlock:
     if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-      HessianBlock *hb = new HessianBlock;
-  		hb->vars.resize(gff->dVlength);
-      int vx=0;
-			for (size_t h1=0; h1 < gff->dV.size(); ++h1) {
-				if (gff->gradMap[h1] < 0) continue;
-				hb->vars[vx] = gff->gradMap[h1];
-				++vx;
-			}
-			hb->mat.resize(gff->dVlength, gff->dVlength);
-			for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
-				if (gff->gradMap[h1] < 0) continue;
-				for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
-					if (gff->gradMap[h2] < 0) continue;
-					hb->mat(d2,d1) = gff->avgInfo(h2,h1);
-				  ++d2;
+      for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
+		    for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
+				  	hb->mat(d2,d1) = gff->avgInfo(h2,h1);
+				    ++d2;
         }
 			  ++d1;	
-			}
-			fc->queue(hb);
-      //fc->refreshDenseHess();
-      //fc->refreshDenseIHess();
-    }
-      /*HessianBlock *hb = new HessianBlock;
-      hb->vars.resize(gff->dV.size());
-      hb->vars = gff->gradMap;
-      hb->mat.resize(gff->dV.size(),gff->dV.size());
-      for(i=0; i < (int)gff->dV.size(); i++){
-        for(j=i; j < (int)gff->dV.size(); j++){
-          hb->mat(i,j) = gff->avgInfo(i,j);
-      }}
-      //hb->mat = gff->avgInfo;
-      fc->queue(hb);
-      fc->refreshSparseHess();*/
-      
-  }
+		  }
+		  fc->queue(hb);
+  }}
   return;
 }
 
