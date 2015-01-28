@@ -64,7 +64,7 @@ void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
 {
 	if (x != NPSOL_GOpt->fc->est) return;  // this is strange but necessary
-	double fit = NPSOL_GOpt->solFun(x, mode);
+	double fit = NPSOL_GOpt->recordFit(x, mode);
 	*f = fit;
 }
 
@@ -184,6 +184,13 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 			(void*) F77_SUB(npsolObjectiveFunction), &rf.informOut, &iter_out,
 			istate.data(), c.data(), cJac.data(),
 			clambda.data(), &fit, fc->grad.data(), rf.hessOut.data(), fc->est, iw.data(), &leniw, w.data(), &lenw);
+
+	// NPSOL can return the wrong fit and estimates, but hard to
+	// know what to do if there are constraints.
+	if (rf.bestEst.size() && ncnln == 0) {
+		fc->fit = rf.bestFit;
+		memcpy(fc->est, rf.bestEst.data(), sizeof(double) * fc->numParam);
+	}
 
     NPSOL_GOpt = NULL;
 }

@@ -219,8 +219,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
 	}
 
-	// Optimizers can terminate with param/fit not at the optimum.
-	// Use bestFit, bestEst here TODO
+	// Optimizers can terminate with inconsistent fit and parameters
 	fc->copyParamToModel();
 	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
 
@@ -353,9 +352,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 					cif.calcLower = lower;
 					go(fc.est, cif);
 
-					memcpy(fc.est, cif.bestEst.data(), sizeof(double) * fc.numParam);
 					fc.copyParamToModel();
-					const double fitOut = cif.bestFit;
+					const double fitOut = fc.fit;
 
 					if (fitOut < bestFit) {
 						omxRecompute(currentCI->matrix, &fc);

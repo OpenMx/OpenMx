@@ -2896,9 +2896,9 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	bestFit = std::numeric_limits<double>::max();
 }
 
-double GradientOptimizerContext::solFun(double *myPars, int* mode)
+double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 {
-	double fit = unsafeFit(myPars, mode);
+	double fit = solFun(myPars, mode);
 	if (std::isfinite(fit) && fit < bestFit) {
 		bestFit = fit;
 		Eigen::Map< Eigen::VectorXd > pvec(myPars, fc->numParam);
@@ -2907,7 +2907,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	return fit;
 }
 
-double GradientOptimizerContext::unsafeFit(double *myPars, int* mode)
+double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
@@ -2981,9 +2981,9 @@ void GradientOptimizerContext::myineqFun()
 	}
 };
 
-double ConfidenceIntervalFit::unsafeFit(double *myPars, int* mode)
+double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 {
-	fc->fit = super::unsafeFit(myPars, mode);
+	fc->fit = super::solFun(myPars, mode);
 
 	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
 
