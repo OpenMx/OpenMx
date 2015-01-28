@@ -195,28 +195,6 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
     NPSOL_GOpt = NULL;
 }
 
-void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
-                   int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
-                   int verbose, double *hessOut, double tolerance, bool warmStart)
-{
-	GradientOptimizerContext rf(verbose);
-	rf.fc = fc;
-	rf.fitMatrix = fitMatrix;
-       //rf.ControlMajorLimit = majIter;
-       //rf.ControlMinorLimit = minIter;
-       //rf.ControlFuncPrecision = funcPrecision;
-       rf.ControlTolerance = tolerance;
-       rf.warmStart = warmStart;
-       Eigen::Map< Eigen::MatrixXd > hessWrap(hessOut, fc->numParam, fc->numParam);
-       if (rf.warmStart) {
-               rf.hessOut = hessWrap;
-       }
-       rf.useGradient = useGradient;
-       omxNPSOL(fc->est, rf);
-       *inform_out = rf.informOut;
-       hessWrap = rf.hessOut;
-}
-
 void omxSetNPSOLOpts(SEXP options)
 {
     omxManageProtectInsanity mpi;

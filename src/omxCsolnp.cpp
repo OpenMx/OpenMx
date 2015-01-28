@@ -38,27 +38,9 @@ void omxCSOLNP(double *est, GradientOptimizerContext &go)
 	go.ControlMajorLimit = majIter;
 	go.ControlMinorLimit = minIter;
 	go.ControlFuncPrecision = funcPrecision;
+	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
+	go.useGradient = false;  // not implemented yet
 	solnp(est, go);
-}
-
-void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
-                     int *inform_out, FreeVarGroup *freeVarGroup,
-                     int verbose, double *hessOut, double tolerance)
-{
-	GradientOptimizerContext rf(verbose);
-	rf.fc = fc;
-	rf.fitMatrix = fitMatrix;
-	rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
-	omxCSOLNP(fc->est, rf);
-    
-    *inform_out = rf.informOut;
-    
-    if (rf.gradOut.size()) {
-	    int n = int(freeVarGroup->vars.size());
-	    fc->grad = rf.gradOut.tail(n);
-	    Eigen::Map< Eigen::MatrixXd > hess(hessOut, n, n);
-	    hess = rf.hessOut.bottomRightCorner(n, n);
-    }
 }
 
 void CSOLNPOpt_majIter(const char *optionValue)

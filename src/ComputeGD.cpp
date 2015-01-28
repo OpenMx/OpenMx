@@ -177,44 +177,55 @@ void omxComputeGD::computeImpl(FitContext *fc)
     
 	int beforeEval = Global->computeCount;
 
+	GradientOptimizerContext rf(verbose);
+	rf.fc = fc;
+	rf.fitMatrix = fitMatrix;
+	rf.ControlTolerance = optimalityTolerance;
+	rf.useGradient = useGradient;
+	if (warmStart) {
+		if (warmStartSize != int(numParam)) {
+			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
+				   warmStartSize, numParam);
+		} else {
+			// Not sure if this code path works, need test TODO
+			Eigen::Map< Eigen::MatrixXd > hessWrap(warmStart, numParam, numParam);
+			rf.hessOut = hessWrap;
+			rf.warmStart = true;
+		}
+	}
+
 	switch (engine) {
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
+		omxNPSOL(fc->est, rf);
 		if (!hessChol) {
 			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		}
-		bool doWarm = false;
-		if (warmStart) {
-			if (warmStartSize != int(numParam)) {
-				Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
-					   warmStartSize, numParam);
-			} else {
-				memcpy(REAL(hessChol), warmStart, sizeof(double) * numParam * numParam);
-				doWarm = true;
-			}
-		}
-		omxInvokeNPSOL(fitMatrix, fc, &fc->inform, useGradient, varGroup, verbose,
-			       REAL(hessChol), optimalityTolerance, doWarm);
 		Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
-		Eigen::MatrixXd hcT = hc.transpose();
+		hc = rf.hessOut;
 		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
-		dest.noalias() = hcT * hc;
+		dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
 #endif
 		break;}
         case OptEngine_CSOLNP:
-            omxInvokeCSOLNP(fitMatrix, fc, &fc->inform, varGroup, verbose,
-			    fc->getDenseHessUninitialized(), optimalityTolerance);
-	    break;
+		omxCSOLNP(fc->est, rf);
+		if (rf.gradOut.size()) {
+			fc->grad = rf.gradOut.tail(numParam);
+			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
+			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
+		}
+		break;
 #ifdef HAS_NLOPT
         case OptEngine_NLOPT:
-            omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
-                fc->getDenseHessUninitialized(), optimalityTolerance);
-        break;
+		//omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
+                // fc->getDenseHessUninitialized(), optimalityTolerance);
+		break;
 #endif
         default: Rf_error("Optimizer %d is not available", engine);
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
     
+	fc->inform = rf.informOut;
 	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
 	}
