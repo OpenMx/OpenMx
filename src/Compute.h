@@ -232,12 +232,14 @@ struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	virtual double solFun(double *myPars, int* mode) = 0;
 	virtual void solEqBFun() = 0;
 	virtual void myineqFun() = 0;
+	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
 };
 
 struct RegularFit : CSOLNPFit { // merge into CSOLNPFit TODO
 	typedef CSOLNPFit super;
 	omxMatrix *fitMatrix;
-	void setupIneqConstraintBounds();
+	void setupIneqConstraintBounds();  // CSOLNP style
+	void setupAllBounds();             // NPSOL style
 
 	RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose);
 	virtual double solFun(double *myPars, int* mode);

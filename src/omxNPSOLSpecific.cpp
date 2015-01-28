@@ -242,73 +242,37 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
 	double *g = fc->grad.data();
 
-    double *A=NULL, *bl=NULL, *bu=NULL, *c=NULL, *clambda=NULL, *w=NULL; //  *g, *R, *cJac,
- 
-    int ldA, ldJ, ldR, leniw, lenw; 
- 
-    double *cJac = NULL;    // Hessian (Approx) and Jacobian
- 
-    int *iw = NULL;
- 
-    int *istate = NULL;                 // Current state of constraints (0 = no, 1 = lower, 2 = upper, 3 = both (equality))
- 
-    int nctotl, nlinwid, nlnwid;    // Helpful side variables.
- 
+    omxState *globalState = fc->state;
     int nclin = 0;
-    omxState *globalState = NPSOL_fc->state;
+    int nlinwid = std::max(1, nclin);
     int ncnln = globalState->ncnln;
+    int nlnwid = std::max(1, ncnln);
  
-    /* NPSOL Arguments */
-    void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
+	int n = int(fc->numParam);
  
-    funcon = F77_SUB(npsolConstraintFunction);
+        int nctotl = n + nlinwid + nlnwid;
  
-        /* Set boundaries and widths. */
-        if(nclin <= 0) {
-            nclin = 0;                  // This should never matter--nclin should always be non-negative.
-            nlinwid = 1;                // For memory allocation purposes, nlinwid > 0
-        } else {                        // nlinwid is  used to calculate ldA, and eventually the size of A.
-            nlinwid = nclin;
-        }
+        int leniw = 3 * n + nclin + 2 * ncnln;
+        int lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
  
-        if(ncnln <= 0) {
-            ncnln = 0;                  // This should never matter--ncnln should always be non-negative.
-            nlnwid = 1;                 // For memory allocation purposes nlnwid > 0
-        } else {                        // nlnwid is used to calculate ldJ, and eventually the size of J.
-            nlnwid = ncnln;
-        }
- 
-	int n = int(freeVarGroup->vars.size());
- 
-        nctotl = n + nlinwid + nlnwid;
- 
-        leniw = 3 * n + nclin + 2 * ncnln;
-        lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
- 
-        ldA = nlinwid;          // NPSOL specifies this should be either 1 or nclin, whichever is greater
-        ldJ = nlnwid;           // NPSOL specifies this should be either 1 or nclin, whichever is greater
-        ldR = n;                // TODO: Test alternative versions of the size of R to see what's best.
+        int ldA = nlinwid;          // NPSOL specifies this should be either 1 or nclin, whichever is greater
+        int ldJ = nlnwid;           // NPSOL specifies this should be either 1 or nclin, whichever is greater
+        int ldR = n;                // TODO: Test alternative versions of the size of R to see what's best.
  
     /* Allocate arrays */
-        A       = (double*) R_alloc (ldA * n, sizeof ( double )  );
-        bl      = (double*) R_alloc ( nctotl, sizeof ( double ) );
-        bu      = (double*) R_alloc (nctotl, sizeof ( double ) );
-        c       = (double*) R_alloc (nlnwid, sizeof ( double ));
-        cJac    = (double*) R_alloc (ldJ * n, sizeof ( double ) );
-        clambda = (double*) R_alloc (nctotl, sizeof ( double )  );
-        w       = (double*) R_alloc (lenw, sizeof ( double ));
-        istate  = (int*) R_alloc (nctotl, sizeof ( int ) );
-        iw      = (int*) R_alloc (leniw, sizeof ( int ));
+	Eigen::ArrayXXd A(ldA, n);  // maybe transposed?
+	Eigen::VectorXd c(nlnwid);
+	Eigen::MatrixXd cJac(ldJ, n); // maybe transposed?
+	Eigen::VectorXd clambda(nctotl);
+	Eigen::VectorXd w(lenw);
+	Eigen::VectorXi istate(nctotl);
+	Eigen::VectorXi iw(leniw);
  
 	if (warmStart) {
-		OMXZERO(istate, nctotl);
-		OMXZERO(clambda, nctotl);
+		istate.setZero();
+		clambda.setZero();
 	}
 
-        /* Set up actual run */
- 
-        omxSetupBoundsAndConstraints(fc, bl, bu);
- 
     /*  F77_CALL(npsol)
         (   int *n,                 -- Number of variables
             int *nclin,             -- Number of linear constraints
@@ -324,33 +288,37 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
             int *inform,            -- Used to report state.  Need not be initialized.
             int *iter,              -- Used to report number of major iterations performed.  Need not be initialized.
             int *istate,            -- Initial State.  Need not be initialized unless using Warm Start.
-            double *c,              -- Array of Rf_length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
-            double *cJac,           -- Array of Row-Rf_length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
-            double *clambda,        -- Array of Rf_length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
+            double *c,              -- Array of length ncnln.  Need not be initialized.  Reports nonlinear constraints at final iteration.
+            double *cJac,           -- Array of Row-length ldJ.  Unused if ncnln = 0. Generally need not be initialized.
+            double *clambda,        -- Array of length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
             double *f,              -- Used to report final objective value.  Need not be initialized.
-            double *g,              -- Array of Rf_length n. Used to report final objective gradient.  Need not be initialized.
-            double *R,              -- Array of Rf_length ldR.  Need not be intialized unless using Warm Start.
-            double *x,              -- Array of Rf_length n.  Contains initial solution estimate.
-            int *iw,                -- Array of Rf_length leniw. Need not be initialized.  Provides workspace.
+            double *g,              -- Array of length n. Used to report final objective gradient.  Need not be initialized.
+            double *R,              -- Array of length ldR.  Need not be intialized unless using Warm Start.
+            double *x,              -- Array of length n.  Contains initial solution estimate.
+            int *iw,                -- Array of length leniw. Need not be initialized.  Provides workspace.
             int *leniw,             -- Length of iw.  Must be at least 3n + nclin + ncnln.
-            double *w,              -- Array of Rf_length lenw. Need not be initialized.  Provides workspace.
+            double *w,              -- Array of length lenw. Need not be initialized.  Provides workspace.
             int *lenw               -- Length of w.  Must be at least 2n^2 + n*nclin + 2*n*ncnln + 20*n + 11*nclin +21*ncnln
         )
  
-        bl, bu, istate, and clambda are all Rf_length n+nclin+ncnln.
+        bl, bu, istate, and clambda are all length n+nclin+ncnln.
             First n elements refer to the vars, in order.
             Next nclin elements refer to bounds on Ax
             Last ncnln elements refer to bounds on c(x)
  
         All arrays must be in column-major order.
- 
         */
  
+	RegularFit rf("NPSOL", fc, fitMatrix, verbose);
+	rf.setupAllBounds();
+
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
-	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A, bl, bu, (void*)funcon,
-			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out, istate, c, cJac,
-			clambda, &fit, g, hessOut, x, iw, &leniw, w, &lenw);
+	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A.data(),
+			rf.solLB.data(), rf.solUB.data(), (void*)F77_SUB(npsolConstraintFunction),
+			(void*) F77_SUB(npsolObjectiveFunction), inform_out, &iter_out,
+			istate.data(), c.data(), cJac.data(),
+			clambda.data(), &fit, g, hessOut, x, iw.data(), &leniw, w.data(), &lenw);
 
     NPSOL_fitMatrix = NULL;
     NPSOL_fc = NULL;

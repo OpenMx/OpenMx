@@ -2787,6 +2787,14 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 
 void RegularFit::setupIneqConstraintBounds()
 {
+	solLB.resize(fc->numParam);
+	solUB.resize(fc->numParam);
+	FreeVarGroup *varGroup = fc->varGroup;
+	for(int index = 0; index < int(fc->numParam); index++) {
+		solLB[index] = varGroup->vars[index]->lbound;
+		solUB[index] = varGroup->vars[index]->ubound;
+	}
+
 	omxState *globalState = fc->state;
 	int eqn = 0;
 	for(int j = 0; j < globalState->numConstraints; j++) {
@@ -2825,6 +2833,53 @@ void RegularFit::setupIneqConstraintBounds()
 	}
 };
 
+void RegularFit::setupAllBounds()
+{
+	FreeVarGroup *freeVarGroup = fc->varGroup;
+	omxState *globalState = fc->state;
+	int n = (int) freeVarGroup->vars.size();
+
+	// treat all constraints as non-linear
+	solLB.resize(n + globalState->ncnln);
+	solUB.resize(n + globalState->ncnln);
+
+	for(int index = 0; index < n; index++) {
+		solLB[index] = freeVarGroup->vars[index]->lbound;
+		solUB[index] = freeVarGroup->vars[index]->ubound;
+	}
+
+	int index = n;
+	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
+		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
+		switch(type) {
+		case omxConstraint::LESS_THAN:
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				solLB[index] = NEG_INF;
+				solUB[index] = -0.0;
+				index++;
+			}
+			break;
+		case omxConstraint::EQUALITY:
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				solLB[index] = -0.0;
+				solUB[index] = 0.0;
+				index++;
+			}
+			break;
+		case omxConstraint::GREATER_THAN:
+			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
+				solLB[index] = 0.0;
+				solUB[index] = INF;
+				index++;
+			}
+			break;
+		default:
+			Rf_error("Unknown constraint type %d", type);
+		}
+	}
+}
+
 CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
 	: optName(optName), fc(fc), verbose(verbose)
 {
@@ -2837,13 +2892,6 @@ CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
 
 RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose)
 	: super(optName, fc, verbose), fitMatrix(fmat) {
-	FreeVarGroup *varGroup = fc->varGroup;
-	solLB.resize(fc->numParam);
-	solUB.resize(fc->numParam);
-	for(int index = 0; index < int(fc->numParam); index++) {
-		solLB[index] = varGroup->vars[index]->lbound;
-		solUB[index] = varGroup->vars[index]->ubound;
-	}
 
 	setupIneqConstraintBounds();
 };
