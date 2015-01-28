@@ -2888,6 +2888,8 @@ CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
 	ControlRho = 1.0;
 	ControlFuncPrecision = nan("uninit");
 	ControlTolerance = nan("uninit");
+	useGradient = false;
+	warmStart = false;
 }
 
 RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose)
@@ -2903,7 +2905,12 @@ double RegularFit::solFun(double *myPars, int* mode)
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 	fc->copyParamToModel();
 
-	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
+	int want = FF_COMPUTE_FIT;
+	if (*mode > 0 && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+		want |= FF_COMPUTE_GRADIENT;
+	}
+	ComputeFit(optName, fitMatrix, want, fc);
 
 	if (!std::isfinite(fc->fit) || isErrorRaised()) {
 		*mode = -1;

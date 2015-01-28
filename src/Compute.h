@@ -23,6 +23,7 @@
 #include "omxDefines.h"
 #include "Eigen/SparseCore"
 #include "glue.h"
+#include "omxState.h"
 
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
@@ -213,6 +214,8 @@ struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	double ControlRho;
 	double ControlFuncPrecision;
 	double ControlTolerance;
+	bool warmStart;
+	bool useGradient;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
