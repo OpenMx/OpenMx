@@ -532,6 +532,8 @@ void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, 
 	std::string str = string_vsnprintf(fmt, ap);
         va_end(ap);
 
+	if (OMX_DEBUG) mxLog("checkpointMessage: %s", str.c_str());
+
 	for(size_t i = 0; i < checkpointList.size(); i++) {
 		checkpointList[i]->message(fc, est, str.c_str());
 	}
