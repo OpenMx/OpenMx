@@ -2893,11 +2893,12 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	ControlTolerance = nan("uninit");
 	useGradient = false;
 	warmStart = false;
+	bestFit = std::numeric_limits<double>::max();
 }
 
-double GradientOptimizerContext::safeFit(double *myPars, int* mode)
+double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
-	double fit = solFun(myPars, mode);
+	double fit = unsafeFit(myPars, mode);
 	if (std::isfinite(fit) && fit < bestFit) {
 		bestFit = fit;
 		Eigen::Map< Eigen::VectorXd > pvec(myPars, fc->numParam);
@@ -2906,7 +2907,7 @@ double GradientOptimizerContext::safeFit(double *myPars, int* mode)
 	return fit;
 }
 
-double GradientOptimizerContext::solFun(double *myPars, int* mode)
+double GradientOptimizerContext::unsafeFit(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
@@ -2980,16 +2981,9 @@ void GradientOptimizerContext::myineqFun()
 	}
 };
 
-double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
+double ConfidenceIntervalFit::unsafeFit(double *myPars, int* mode)
 {
-	//double* f = NULL;
-	if (verbose >= 3) {
-		mxLog("myPars inside obj is: ");
-		for (int i = 0; i < int(fc->numParam); i++)
-			mxLog("%f", myPars[i]);
-	}
-
-	fc->fit = super::solFun(myPars, mode);
+	fc->fit = super::unsafeFit(myPars, mode);
 
 	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
 
@@ -3005,6 +2999,7 @@ double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 	/* Catch boundary-passing condition */
 	if(std::isnan(CIElement) || std::isinf(CIElement)) {
 		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+		// should return NaN? TODO
 		return fc->fit;
 	}
 

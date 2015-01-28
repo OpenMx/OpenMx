@@ -204,7 +204,10 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-struct GradientOptimizerContext {
+class GradientOptimizerContext {
+ protected:
+	virtual double unsafeFit(double *myPars, int* mode);
+ public:
 	const int verbose;
 	const char *optName;  // filled in by the optimizer
 	FitContext *fc;
@@ -242,20 +245,21 @@ struct GradientOptimizerContext {
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
 
-	virtual double solFun(double *myPars, int* mode);
-	double safeFit(double *myPars, int* mode);
+	double solFun(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
 };
 
-struct ConfidenceIntervalFit : GradientOptimizerContext {
+class ConfidenceIntervalFit : public GradientOptimizerContext {
+ protected:
+	virtual double unsafeFit(double *myPars, int* mode);
+ public:
 	typedef GradientOptimizerContext super;
 	int currentInterval;
 	bool calcLower;
 
  	ConfidenceIntervalFit(int verbose) : super(verbose) {};
-	virtual double solFun(double *myPars, int* mode);
 };
 
 typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);

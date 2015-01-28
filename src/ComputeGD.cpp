@@ -261,6 +261,8 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	super::initFromFrontend(globalState, rObj);
 }
 
+extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
+
 void ComputeCI::computeImpl(FitContext *mle)
 {
 	Global->unpackConfidenceIntervals();
@@ -279,25 +281,113 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
+	// Could be smarter about setting upper & lower once instead of every attempt TODO
+	ConfidenceIntervalFit cif(0);
+	cif.fitMatrix = fitMatrix;
+	cif.ControlTolerance = std::isfinite(optimalityTolerance)? optimalityTolerance : 1.0e-16;
+
+	GradientOptimizerType go = NULL;
 	switch (engine) {
-	case OptEngine_NPSOL:
 #if HAS_NPSOL
-		omxNPSOLConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
+	case OptEngine_NPSOL:{
+		std::string option = string_snprintf("Cold start");
+		F77_CALL(npoptn)((char*) option.c_str(), option.size());
+		//omxNPSOLConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
+		go = omxNPSOL;
+		break;}
 #endif
-		break;
 	case OptEngine_CSOLNP:
-		omxCSOLNPConfidenceIntervals(fitMatrix, mle, verbose, optimalityTolerance);
+		//omxCSOLNPConfidenceIntervals(fitMatrix, mle, verbose, optimalityTolerance);
+		go = omxCSOLNP;
 		break;
 #ifdef HAS_NLOPT
     case OptEngine_NLOPT:
-        omxNLOPTorSANNConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
+	    //omxNLOPTorSANNConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
         break;
 #endif
 	default:
 		Rf_error("huh?");
 	}
 
-	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
+	{
+		const int ciMaxIterations = Global->ciMaxIterations;
+		FitContext fc(mle, mle->varGroup);
+		fc.createChildren();
+		cif.fc = &fc;
+		FreeVarGroup *freeVarGroup = fc.varGroup;
+    
+		const int n = int(freeVarGroup->vars.size());
+    
+		if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
+    
+		const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
+    
+		for(int i = 0; i < (int) Global->intervalList.size(); i++) {
+			omxConfidenceInterval *currentCI = Global->intervalList[i];
+        
+			const char *matName = "anonymous matrix";
+			if (currentCI->matrix->name) {
+				matName = currentCI->matrix->name;
+			}
+        
+			currentCI->lbound += mle->fit;          // Convert from offsets to targets
+			currentCI->ubound += mle->fit;          // Convert from offsets to targets
+        
+			for (int lower=0; lower <= 1; ++lower) {
+				if (lower  && !std::isfinite(currentCI->lbound)) continue;
+				if (!lower && !std::isfinite(currentCI->ubound)) continue;
+
+				memcpy(fc.est, mle->est, n * sizeof(double)); // Reset to previous optimum
+        
+				int tries = 0;
+				int inform = -1;
+				double bestFit = std::numeric_limits<double>::max();
+            
+				while (inform!= 0 && ++tries <= ciMaxIterations) {
+					Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
+								  matName, currentCI->row + 1, currentCI->col + 1,
+								  lower? "lower" : "upper", tries);
+
+					cif.bestFit = std::numeric_limits<double>::max();
+					cif.currentInterval = i;
+					cif.calcLower = lower;
+					go(fc.est, cif);
+
+					memcpy(fc.est, cif.bestEst.data(), sizeof(double) * fc.numParam);
+					fc.copyParamToModel();
+					const double fitOut = cif.bestFit;
+
+					if (fitOut < bestFit) {
+						omxRecompute(currentCI->matrix, &fc);
+						double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+						if (lower) currentCI->min = val;
+						else       currentCI->max = val;
+						bestFit = fitOut;
+					}
+
+					inform = cif.informOut;
+					if (lower) currentCI->lCode = inform;
+					else       currentCI->uCode = inform;
+					if(verbose>=1) { mxLog("inform(%d,%d) is: %d", i, lower, inform);}
+					if(inform == 0) break;
+
+					bool jitter = TRUE;
+					for(int j = 0; j < n; j++) {
+						if(fabs(fc.est[j] - mle->est[j]) > objDiff) {
+							jitter = FALSE;
+							break;
+						}
+					}
+					if(jitter) {
+						for(int j = 0; j < n; j++) {
+							double sign = 2 * (tries % 2) - 1;
+							fc.est[j] = mle->est[j] + sign * objDiff * tries;
+						}
+					}
+				}
+			}
+		}
+	}
 
 	mle->copyParamToModel();
 
