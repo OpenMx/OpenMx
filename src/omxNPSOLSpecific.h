@@ -20,6 +20,8 @@
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND;
 
+void omxNPSOL(double *est, GradientOptimizerContext &rf);
+
 void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
 		    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
 		    int verbose, double *hessOut, double tolerance, bool warmStart);

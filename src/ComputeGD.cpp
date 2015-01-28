@@ -260,7 +260,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	super::initFromFrontend(globalState, rObj);
 }
 
-void ComputeCI::computeImpl(FitContext *fc)
+void ComputeCI::computeImpl(FitContext *mle)
 {
 	Global->unpackConfidenceIntervals();
 
@@ -269,14 +269,11 @@ void ComputeCI::computeImpl(FitContext *fc)
 	if (!numInts) return;
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
-	if (fc->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && fc->inform != INFORM_NOT_AT_OPTIMUM) {
+	if (mle->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->inform != INFORM_NOT_AT_OPTIMUM) {
 		// TODO: allow forcing
-		Rf_warning("Not calculating confidence intervals because of optimizer status %d", fc->inform);
+		Rf_warning("Not calculating confidence intervals because of optimizer status %d", mle->inform);
 		return;
 	}
-
-	Eigen::ArrayXd mle(fc->numParam);
-	memcpy(mle.data(), fc->est, sizeof(double) * fc->numParam);
 
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
@@ -284,15 +281,15 @@ void ComputeCI::computeImpl(FitContext *fc)
 	switch (engine) {
 	case OptEngine_NPSOL:
 #if HAS_NPSOL
-		omxNPSOLConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
+		omxNPSOLConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
 #endif
 		break;
 	case OptEngine_CSOLNP:
-		omxCSOLNPConfidenceIntervals(fitMatrix, fc, verbose, optimalityTolerance);
+		omxCSOLNPConfidenceIntervals(fitMatrix, mle, verbose, optimalityTolerance);
 		break;
 #ifdef HAS_NLOPT
     case OptEngine_NLOPT:
-        omxNLOPTorSANNConfidenceIntervals(fitMatrix, fc, optimalityTolerance);
+        omxNLOPTorSANNConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
         break;
 #endif
 	default:
@@ -301,15 +298,14 @@ void ComputeCI::computeImpl(FitContext *fc)
 
 	if(OMX_DEBUG) { mxLog("Populating CIs for %d fit functions.", numInts); }
 
-	memcpy(fc->est, mle.data(), sizeof(double) * fc->numParam);
-	fc->copyParamToModel();
+	mle->copyParamToModel();
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 	interval.fill(NA_REAL);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
 		omxConfidenceInterval *oCI = Global->intervalList[j];
-		omxRecompute(oCI->matrix, fc);
+		omxRecompute(oCI->matrix, mle);
 		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
 		interval(j, 0) = std::min(oCI->min, interval(j, 1));
 		interval(j, 2) = std::max(oCI->max, interval(j, 1));

@@ -29,10 +29,9 @@
 #include "omxBuffer.h"
 
 template <typename T1>
-void CSOLNPFit::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
+void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
 {
 	omxState *globalState = fc->state;
-	int ncnln = globalState->ncnln;
 	int l=0;
 	for(int j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result, fc);
@@ -49,7 +48,7 @@ static int NPSOL_currentInterval = -1;
 static FitContext *NPSOL_fc = NULL;
 static bool NPSOL_useGradient;
 static int NPSOL_verbose;
-static struct CSOLNPFit *NPSOL_GOpt;
+static struct GradientOptimizerContext *NPSOL_GOpt;
 #endif
 
 #ifdef  __cplusplus
@@ -200,35 +199,18 @@ void F77_SUB(npsolConstraintFunction)
 		int *ldJ, int *needc, double *x,
 		double *c, double *cJac, int *nstate)
 {
+	if(*mode==1) return;
 
-	if(OMX_DEBUG) { mxLog("Constraint function called.");}
+	NPSOL_GOpt->fc->copyParamToModel(); // unnecessary? TODO
 
-	if(*mode==1) {
-		if(OMX_DEBUG) {
-			mxLog("But only gradients requested.  Returning.");
-			mxLog("-=====================================================-");
-		}
-
-		return;
-	}
-
-	int j, k, l = 0;
-
-	NPSOL_fc->copyParamToModel();
-
-	omxState *globalState = NPSOL_fc->state;
-	for(j = 0; j < globalState->numConstraints; j++) {
-		omxRecompute(globalState->conList[j].result, NPSOL_fc);
-		if(OMX_DEBUG) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
-		for(k = 0; k < globalState->conList[j].size; k++){
-			c[l++] = globalState->conList[j].result->data[k];
-		}
-	}
-	if(OMX_DEBUG) { mxLog("-=======================================================-"); }
+	Eigen::Map< Eigen::VectorXd > cE(c, *ncnln);
+	NPSOL_GOpt->allConstraintsFun(cE);
 }
 
-void omxNPSOL(double *est, RegularFit &rf)
+void omxNPSOL(double *est, GradientOptimizerContext &rf)
 {
+	rf.optName = "NPSOL";
+	rf.setupAllBounds();
 	if (std::isfinite(rf.ControlTolerance)) {
 		std::string opt = string_snprintf("Optimality tolerance %.8g", rf.ControlTolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
@@ -243,11 +225,6 @@ void omxNPSOL(double *est, RegularFit &rf)
 
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
-	NPSOL_fitMatrix = rf.fitMatrix;
-	NPSOL_verbose = rf.verbose;
-
-	NPSOL_useGradient = rf.useGradient;
-	NPSOL_fc = rf.fc;
 	NPSOL_GOpt = &rf;
 	FitContext *fc = rf.fc;
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
@@ -328,12 +305,42 @@ void omxNPSOL(double *est, RegularFit &rf)
 			istate.data(), c.data(), cJac.data(),
 			clambda.data(), &fit, fc->grad.data(), rf.hessOut.data(), fc->est, iw.data(), &leniw, w.data(), &lenw);
 
-    NPSOL_fitMatrix = NULL;
-    NPSOL_fc = NULL;
     NPSOL_GOpt = NULL;
 }
  
  
+void F77_SUB(npsolConstraintFunctionOld)
+        (       int *mode, int *ncnln, int *n,
+                int *ldJ, int *needc, double *x,
+                double *c, double *cJac, int *nstate)
+{
+
+        if(OMX_DEBUG) { mxLog("Constraint function called.");}
+
+        if(*mode==1) {
+                if(OMX_DEBUG) {
+                        mxLog("But only gradients requested.  Returning.");
+                        mxLog("-=====================================================-");
+                }
+
+                return;
+        }
+
+        int j, k, l = 0;
+
+        NPSOL_fc->copyParamToModel();
+
+        omxState *globalState = NPSOL_fc->state;
+        for(j = 0; j < globalState->numConstraints; j++) {
+                omxRecompute(globalState->conList[j].result, NPSOL_fc);
+                if(OMX_DEBUG) { omxPrint(globalState->conList[j].result, "Constraint evaluates as:"); }
+                for(k = 0; k < globalState->conList[j].size; k++){
+                        c[l++] = globalState->conList[j].result->data[k];
+                }
+        }
+        if(OMX_DEBUG) { mxLog("-=======================================================-"); }
+}
+
 // Mostly duplicated code in omxCSOLNPConfidenceIntervals
 // needs to be refactored so there is only 1 copy of CI
 // code that can use whatever optimizer is provided.
@@ -378,7 +385,7 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, double t
     /* NPSOL Arguments */
     void (*funcon)(int*, int*, int*, int*, int*, double*, double*, double*, int*);
  
-    funcon = F77_SUB(npsolConstraintFunction);
+    funcon = F77_SUB(npsolConstraintFunctionOld);
  
     int nclin = 0;
     omxState *globalState = NPSOL_fc->state;
@@ -542,7 +549,9 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
                    int *inform_out, bool useGradient, FreeVarGroup *freeVarGroup,
                    int verbose, double *hessOut, double tolerance, bool warmStart)
 {
-       RegularFit rf("NPSOL", fc, fitMatrix, verbose);
+	GradientOptimizerContext rf(verbose);
+	rf.fc = fc;
+	rf.fitMatrix = fitMatrix;
        //rf.ControlMajorLimit = majIter;
        //rf.ControlMinorLimit = minIter;
        //rf.ControlFuncPrecision = funcPrecision;
@@ -553,8 +562,6 @@ void omxInvokeNPSOL(omxMatrix *fitMatrix, FitContext *fc,
                rf.hessOut = hessWrap;
        }
        rf.useGradient = useGradient;
-       rf.verbose = verbose;
-       rf.setupAllBounds();
        omxNPSOL(fc->est, rf);
        *inform_out = rf.informOut;
        hessWrap = rf.hessOut;

@@ -32,16 +32,24 @@ static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
 
+void omxCSOLNP(double *est, GradientOptimizerContext &go)
+{
+	go.optName = "CSOLNP";
+	go.ControlMajorLimit = majIter;
+	go.ControlMinorLimit = minIter;
+	go.ControlFuncPrecision = funcPrecision;
+	solnp(est, go);
+}
+
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc,
                      int *inform_out, FreeVarGroup *freeVarGroup,
                      int verbose, double *hessOut, double tolerance)
 {
-	RegularFit rf("CSOLNP", fc, fitMatrix, verbose);
-	rf.ControlMajorLimit = majIter;
-	rf.ControlMinorLimit = minIter;
-	rf.ControlFuncPrecision = funcPrecision;
+	GradientOptimizerContext rf(verbose);
+	rf.fc = fc;
+	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = std::isfinite(tolerance)? tolerance : 1.0e-9;
-	solnp(fc->est, rf);
+	omxCSOLNP(fc->est, rf);
     
     *inform_out = rf.informOut;
     
@@ -95,7 +103,12 @@ void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *opt, int ver
 						  matName, currentCI->row + 1, currentCI->col + 1,
 						  lower? "lower" : "upper", tries);
 
-			ConfidenceIntervalFit cif("CSOLNP", &fc, fitMatrix, i, lower);
+			ConfidenceIntervalFit cif(0);
+			cif.optName = "CSOLNP";
+			cif.fc = &fc;
+			cif.fitMatrix = fitMatrix;
+			cif.currentInterval = i;
+			cif.calcLower = lower;
 			cif.ControlMajorLimit = majIter;
 			cif.ControlMinorLimit = minIter;
 			cif.ControlFuncPrecision = funcPrecision;

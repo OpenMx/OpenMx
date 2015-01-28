@@ -2785,7 +2785,7 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 
 // ------------------------------------------------------------
 
-void RegularFit::setupIneqConstraintBounds()
+void GradientOptimizerContext::setupIneqConstraintBounds()
 {
 	solLB.resize(fc->numParam);
 	solUB.resize(fc->numParam);
@@ -2833,7 +2833,7 @@ void RegularFit::setupIneqConstraintBounds()
 	}
 };
 
-void RegularFit::setupAllBounds()
+void GradientOptimizerContext::setupAllBounds()
 {
 	FreeVarGroup *freeVarGroup = fc->varGroup;
 	omxState *globalState = fc->state;
@@ -2880,9 +2880,12 @@ void RegularFit::setupAllBounds()
 	}
 }
 
-CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
-	: optName(optName), fc(fc), verbose(verbose)
+GradientOptimizerContext::GradientOptimizerContext(int verbose)
+	: verbose(verbose)
 {
+	optName = "?";
+	fc = NULL;
+	fitMatrix = NULL;
 	ControlMajorLimit = 0;
 	ControlMinorLimit = 0;
 	ControlRho = 1.0;
@@ -2892,13 +2895,7 @@ CSOLNPFit::CSOLNPFit(const char *optName, FitContext *fc, int verbose)
 	warmStart = false;
 }
 
-RegularFit::RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose)
-	: super(optName, fc, verbose), fitMatrix(fmat) {
-
-	setupIneqConstraintBounds();
-};
-
-double RegularFit::solFun(double *myPars, int* mode)
+double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	if (*mode == 1) fc->iterations += 1;
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
@@ -2918,7 +2915,9 @@ double RegularFit::solFun(double *myPars, int* mode)
 	return fc->fit;
 };
 
-void RegularFit::solEqBFun()
+// NOTE: All non-linear constraints are applied regardless of free TODO
+// variable group.  This is probably wrong. TODO
+void GradientOptimizerContext::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
 	omxState *globalState = fc->state;
@@ -2943,7 +2942,9 @@ void RegularFit::solEqBFun()
 	}
 };
 
-void RegularFit::myineqFun()
+// NOTE: All non-linear constraints are applied regardless of free TODO
+// variable group.  This is probably wrong. TODO
+void GradientOptimizerContext::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
 	omxState *globalState = fc->state;
@@ -2967,9 +2968,6 @@ void RegularFit::myineqFun()
 		}
 	}
 };
-
-ConfidenceIntervalFit::ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower) :
-	super(optName, fc, fmat, 0), currentInterval(curInt), calcLower(lower) {};
 
 double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 {

@@ -204,10 +204,11 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
-	const char *optName;
+struct GradientOptimizerContext {
+	const int verbose;
+	const char *optName;  // filled in by the optimizer
 	FitContext *fc;
-	int verbose;
+	omxMatrix *fitMatrix;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;
@@ -229,34 +230,29 @@ struct CSOLNPFit {     // rename to GradientOptimizerAPI TODO
 	// output
 	int informOut;
 	Eigen::VectorXd gradOut;
-	Eigen::MatrixXd hessOut;
+	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
-	CSOLNPFit(const char *optName, FitContext *fc, int verbose);
-	virtual double solFun(double *myPars, int* mode) = 0;
-	virtual void solEqBFun() = 0;
-	virtual void myineqFun() = 0;
-	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
-};
+	GradientOptimizerContext(int verbose);
 
-struct RegularFit : CSOLNPFit { // merge into CSOLNPFit TODO
-	typedef CSOLNPFit super;
-	omxMatrix *fitMatrix;
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
 
-	RegularFit(const char *optName, FitContext *fc, omxMatrix *fmat, int verbose);
 	virtual double solFun(double *myPars, int* mode);
-	virtual void solEqBFun();
-	virtual void myineqFun();
+
+	void solEqBFun();
+	void myineqFun();
+	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
 };
 
-struct ConfidenceIntervalFit : RegularFit {
-	typedef RegularFit super;
+struct ConfidenceIntervalFit : GradientOptimizerContext {
+	typedef GradientOptimizerContext super;
 	int currentInterval;
 	bool calcLower;
 
-	ConfidenceIntervalFit(const char *optName, FitContext *fc, omxMatrix *fmat, int curInt, bool lower);
+ 	ConfidenceIntervalFit(int verbose) : super(verbose) {};
 	virtual double solFun(double *myPars, int* mode);
 };
+
+typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);
 
 #endif

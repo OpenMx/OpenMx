@@ -18,9 +18,9 @@ struct CSOLNP {
     Matrix resY;
 	Matrix sx_Matrix; // search direction
     int mode;
-	CSOLNPFit &fit;
+	GradientOptimizerContext &fit;
 
-	CSOLNP(CSOLNPFit &_fit) : fit(_fit) {};
+	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
 	~CSOLNP() { freeMatrices(); };
     
 	void solnp(double *pars, int verbose);
@@ -42,9 +42,10 @@ struct CSOLNP {
 	Eigen::Array<double, int(indVectorLength), 1> ind;
 };
 
-void solnp(double *solPars, CSOLNPFit &fit)
+void solnp(double *solPars, GradientOptimizerContext &fit)
 {
 	CSOLNP context(fit);
+	fit.setupIneqConstraintBounds();
 	context.solnp(solPars, fit.verbose);
 }
 
