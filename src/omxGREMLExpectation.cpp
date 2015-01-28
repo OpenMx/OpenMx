@@ -47,9 +47,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 
 	oge->y = omxNewMatrixFromSlot(rObj, currentState, "y");
   
-  Rf_protect(dV = R_do_slot(rObj, Rf_install("dV")));
-  Rf_protect(dVnames = R_do_slot(rObj, Rf_install("dVnames")));
-	oge->dVlength = Rf_length(dV);
+  {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
+	ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
+  oge->dVlength = Rf_length(dV);  
   oge->dV.resize(oge->dVlength);
   oge->dVnames.resize(oge->dVlength);
 	if(oge->dVlength){
@@ -58,12 +58,12 @@ void omxInitGREMLExpectation(omxExpectation* ox){
     for(i=0; i < oge->dVlength; i++){
       oge->dV[i] = omxMatrixLookupFromState1(dVint[i], currentState);
       SEXP elem;
-  		Rf_protect(elem = STRING_ELT(dVnames, i));
-			oge->dVnames[i] = CHAR(elem);
+      {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
+			oge->dVnames[i] = CHAR(elem);}
 	}}
-  
-  Rf_protect(do_fixeff = R_do_slot(rObj, Rf_install("fixedEffects")));
-  oge->do_fixeff = INTEGER(do_fixeff);
+  }
+  {ScopedProtect p1(do_fixeff, R_do_slot(rObj, Rf_install("fixedEffects")));
+  oge->do_fixeff = INTEGER(do_fixeff);}
 }
 
 
