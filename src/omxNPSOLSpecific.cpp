@@ -119,40 +119,49 @@ static void omxSetupBoundsAndConstraints(FitContext *fc, double * bl, double * b
 	}
 }
 
+/*
+void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
+				     double* f, double* g, int* nstate)
+{
+	double fit = NPSOL_GOpt->solFun(x, mode);
+	*f = fit;
+}
+*/
+
 /****** Objective Function *********/
 static void
 npsolObjectiveFunction1(int* mode, int* n, double* x,
-			double* f, double* g, double *hessian, int* nstate )
+                        double* f, double* g, double *hessian, int* nstate )
 {
-	if (*mode == 1) NPSOL_fc->iterations += 1;  //major iteration
+        if (*mode == 1) NPSOL_fc->iterations += 1;  //major iteration
 
-	omxMatrix* fitMatrix = NPSOL_fitMatrix;
+        omxMatrix* fitMatrix = NPSOL_fitMatrix;
 
-	// x == fc->est
-	NPSOL_fc->copyParamToModel();
+        // x == fc->est
+        NPSOL_fc->copyParamToModel();
 
-	int want = FF_COMPUTE_FIT;
+        int want = FF_COMPUTE_FIT;
 
-	if (*mode > 0 && NPSOL_useGradient &&
-	    fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
-		NPSOL_fc->grad = Eigen::VectorXd::Zero(NPSOL_fc->numParam);
-		want |= FF_COMPUTE_GRADIENT;
-	}
+        if (*mode > 0 && NPSOL_useGradient &&
+            fitMatrix->fitFunction->gradientAvailable && NPSOL_currentInterval < 0) {
+                NPSOL_fc->grad = Eigen::VectorXd::Zero(NPSOL_fc->numParam);
+                want |= FF_COMPUTE_GRADIENT;
+        }
 
-	ComputeFit("NPSOL", fitMatrix, want, NPSOL_fc);
+        ComputeFit("NPSOL", fitMatrix, want, NPSOL_fc);
 
-	*f = NPSOL_fc->fit;
+        *f = NPSOL_fc->fit;
 
-	if (!std::isfinite(*f) || isErrorRaised()) {
-		*mode = -1;
-	}
+        if (!std::isfinite(*f) || isErrorRaised()) {
+                *mode = -1;
+        }
 }
 
 void F77_SUB(npsolObjectiveFunction)
-	(	int* mode, int* n, double* x,
-		double* f, double* g, int* nstate )
+        (       int* mode, int* n, double* x,
+                double* f, double* g, int* nstate )
 {
-	npsolObjectiveFunction1(mode, n, x, f, g, NULL, nstate);
+        npsolObjectiveFunction1(mode, n, x, f, g, NULL, nstate);
 }
 
 /* Objective function for confidence interval limit finding. 
@@ -251,6 +260,7 @@ void omxNPSOL(double *est, RegularFit &rf)
 
 	NPSOL_useGradient = rf.useGradient;
 	NPSOL_fc = rf.fc;
+	NPSOL_GOpt = &rf;
 	FitContext *fc = rf.fc;
 	double *x = fc->est;
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
