@@ -292,7 +292,8 @@ Jor82Ex1 <- mxModel(
         ncol=numLatEnd,
         free=c(T, F, F, T),
         values=c(.8, 0, 0, 1.8),
-        labels=c('zet1sq', NA, NA, 'zet2sq')
+        labels=c('zet1sq', NA, NA, 'zet2sq'),
+	lbound=1e-6
         ),
     mxMatrix(
         name='Phi',
@@ -326,6 +327,8 @@ Jor82Ex1 <- mxModel(
         ),
     mxFitFunctionR(lisrelCovMx)
 )
+
+Jor82Ex1$ThetaDelta$lbound[diag(numManExo)==1] <- 1e-6
 
 #------------------------------------------------------------------------------
 # Fit the model
