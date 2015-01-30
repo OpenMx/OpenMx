@@ -45,7 +45,7 @@ testmod2 <- mxModel(
   mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,2], name = "X",condenseSlots=T),
   mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,1], name="y",condenseSlots=T),
   mxAlgebra(I %x% Ve,name="V"),
-  ge,
+  ge2,
   gff
 )
 

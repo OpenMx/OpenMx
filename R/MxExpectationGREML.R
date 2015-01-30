@@ -51,8 +51,10 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
             .Object@V <- imxConvertIdentifier(.Object@V, modelname, namespace)
             .Object@X <- imxConvertIdentifier(.Object@X, modelname, namespace)
             .Object@y <- sapply(.Object@y, imxConvertIdentifier, modelname, namespace)
-            .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
-            .Object@dVnames <- names(.Object@dV)
+            if(length(.Object@dV)){
+              .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
+              .Object@dVnames <- names(.Object@dV)
+            }
             .Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
             return(.Object)
           })
@@ -115,7 +117,9 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             #fixefName <- .Object@X
             .Object@X <- imxLocateIndex(flatModel, .Object@X, name)
             .Object@y <- imxLocateIndex(flatModel, .Object@y, name)
-            .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
+            if(length(.Object@dV)){
+              .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
+            }
             #mxDataObject <- flatModel@datasets[[.Object@data]]
             #if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
             if (mxDataObject@type != "raw") {
