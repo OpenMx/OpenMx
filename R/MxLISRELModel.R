@@ -60,13 +60,6 @@ addExogenousMatrices <- function(model, manifest, latent){
 	if (is.null(model[['TD']])) {
 		model[['TD']] <- createMatrixLISREL(model, manifest, manifest, 'TD')
 	}
-	# Do we add means???
-#	if (is.null(model[['TX']])) {
-#		model[['TX']] <- createMatrixLISREL(model, latent, NA, 'TX')
-#	}
-#	if (is.null(model[['KA']])) {
-#		model[['KA']] <- createMatrixLISREL(model, manifest, NA, 'KA')
-#	}
 	return(model)
 }
 
@@ -83,13 +76,6 @@ addEndogenousMatrices <- function(model, manifest, latent){
 	if (is.null(model[['TE']])) {
 		model[['TE']] <- createMatrixLISREL(model, manifest, manifest, 'TE')
 	}
-	# Do we add means???
-#	if (is.null(model[['TY']])) {
-#		model[['TY']] <- createMatrixLISREL(model, latent, NA, 'TY')
-#	}
-#	if (is.null(model[['AL']])) {
-#		model[['AL']] <- createMatrixLISREL(model, manifest, NA, 'AL')
-#	}
 	return(model)
 }
 
@@ -207,11 +193,11 @@ addVariablesLISREL <- function(model, latent, manifest){
 	# if has only exogenous variables
 	if(length(mexog) > 0 & length(mendo) == 0){
 		model <- addExogenousMatrices(model, mexog, lexog)
-		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX=NA, KA=NA) #do we add means?
+		theExpectation <- mxExpectationLISREL(LX='LX', PH='PH', TD='TD', TX=NA, KA=NA)
 	# if has only endogenous variables
 	} else if(length(mexog) == 0 & length(mendo) > 0){
 		model <- addEndogenousMatrices(model, mendo, lendo)
-		theExpectation <- mxExpectationLISREL(LY='LY', BE='BE', PS='PS', TE='TE', TY=NA, AL=NA) #do we add means?
+		theExpectation <- mxExpectationLISREL(LY='LY', BE='BE', PS='PS', TE='TE', TY=NA, AL=NA)
 	# if has both exogenous and endogenous variables
 	} else {
 		model <- addExoEndoMatrices(model, mexog, mendo, lexog, lendo)
@@ -317,9 +303,9 @@ insertAllPathsLISREL <-  function(model, paths){
 	latevars <- model@latentVars
 	exvars <- c(manivars$exogenous, latevars$exogenous)
 	envars <- c(manivars$endogenous, latevars$endogenous)
-#	A <- model[['A']]
-#	S <- model[['S']]
-#	M <- model[['M']]
+	theVariables <- list(lex=latevars$exogenous, len=latevars$endogenous, mex=manivars$exogenous, men=manivars$endogenous)
+	theMatrices <- list(LX=model[['LX']], LY=model[['LY']], BE=model[['BE']], GA=model[['GA']], PH=model[['PH']],
+		PS=model[['PS']], TD=model[['TD']], TE=model[['TE']], TH=model[['TH']])
 	TX <- model[['TX']]
 	TY <- model[['TY']]
 	KA <- model[['KA']]
@@ -327,7 +313,7 @@ insertAllPathsLISREL <-  function(model, paths){
 #	if (is.null(A)) { A <- createMatrixA(model) }
 #	if (is.null(S)) { S <- createMatrixS(model) }
 	
-	legalVars <- c(unlist(latevars), unlist(manivars), "one")
+	legalVars <- c(exvars, envars, "one")
 	
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
@@ -367,22 +353,53 @@ insertAllPathsLISREL <-  function(model, paths){
 			expanded <- expandPathConnect(path@from, path@to, path@connect)
 			path@from <- expanded$from
 			path@to   <- expanded$to
-			retval <- insertPathRAM(path, A, S)
-			A <- retval[[1]]
-			S <- retval[[2]]	
+			theMatrices <- insertPathLISREL(path, theMatrices, theVariables)
+			LISRELMeans <- NULL
 		}
 	}
 	checkPaths(model, paths)
-	#model[['A']] <- A
-	#model[['S']] <- S
-
-	model <- updateLISRELMeans(model, LISRELMeans)
+	
+	model <- updateLISRELMatrices(model, theMatrices)
+	if(!is.null(LISRELMeans)){
+		model <- updateLISRELMeans(model, LISRELMeans)
+	}
 	
 	return(model)
 }
 
-insertPathLISREL <- function(path, matrices){
-
+insertPathLISREL <- function(path, matrices, variables){
+	allfrom <- path@from
+	allto <- path@to
+	allarrows <- path@arrows
+	allfree <- path@free
+	allvalues <- path@values
+	alllabels <- path@labels
+	alllbound <- path@lbound
+	allubound <- path@ubound
+	maxlength <- max(length(allfrom), length(allto))
+	for(i in 0:(maxlength - 1)) {
+		from <- allfrom[[i %% length(allfrom) + 1]]
+		to <- allto[[i %% length(allto) + 1]]
+		arrows <- allarrows[[i %% length(allarrows) + 1]]
+		new <- list()
+		new$value <- allvalues[[i %% length(allvalues) + 1]]
+		new$free <- allfree[[i %% length(allfree) + 1]]
+		new$label <- alllabels[[i %% length(alllabels) + 1]]
+		new$ubound <- allubound[[i %% length(allubound) + 1]]
+		new$lbound <- alllbound[[i %% length(alllbound) + 1]]
+		
+		#N.B. assuming that length(from) and length(to) are both 1
+		if(from %in% variables$lex){
+			matrices <- insertLatentExoPathsLISREL(from, to, arrows, old=matrices, new, variables)
+		} else if(from %in% variables$len){
+			matrices <- insertLatentEndoPathsLISREL(from, to, arrows, old=matrices, new, variables)
+		} else if(from %in% variables$mex){
+			insertManifestExoPathsLISREL()
+		} else if(from %in% variables$men){
+			insertManifestEndoPathsLISREL()
+		}
+	}
+	return(matrices)
 }
 
 # Schematic of where each entry goes depending on its 'from' and 'to' and 'arrows' arguments
@@ -411,7 +428,49 @@ insertPathLISREL <- function(path, matrices){
 #latentExo -> 'one'
 #	stop('nonsense')
 
-insertLatentExoPathsLISREL <- function(){}
+assignNewMatrixStuff <- function(from, to, oldMat, newStuff, remove=FALSE){
+	if(remove==FALSE){
+		oldMat$values[to, from] <- newStuff$value
+		oldMat$free[to, from] <- newStuff$free
+		oldMat$labels[to, from] <- newStuff$label
+		oldMat$lbound[to, from] <- newStuff$lbound
+		oldMat$ubound[to, from] <- newStuff$ubound
+	} else {
+		oldMat$values[to, from] <- 0
+		oldMat$labels[to, from] <- as.character(NA)
+		oldMat$free[to, from] <- FALSE
+	}
+	return(oldMat)
+}
+
+insertLatentExoPathsLISREL <- function(from, to, arrows, old, new, variables){
+	if(to %in% variables$lex){
+		if(arrows==1){
+			stop('nonsense')
+		} else if(arrows==2){
+			#add to PH
+			old$PH <- assignNewMatrixStuff(from, to, old$PH, new)
+			old$PH <- assignNewMatrixStuff(to, from, old$PH, new)
+		}
+	} else if(to %in% variables$len){
+		if(arrows==1){
+			#add to GA
+			old$GA <- assignNewMatrixStuff(from, to, old$GA, new)
+		} else if(arrows==2){
+			stop('nonsense')
+		}
+	} else if(to %in% variables$mex){
+		if(arrows==1){
+			#add to LX
+			old$LX <- assignNewMatrixStuff(from, to, old$LX, new)
+		} else if(arrows==2){
+			stop('nonsense')
+		}
+	} else if(to %in% variables$men){
+		stop('nonsense')
+	}
+	return(old)
+}
 
 #latentEndo -> latentExo
 #	stop('nonsense')
@@ -430,7 +489,32 @@ insertLatentExoPathsLISREL <- function(){}
 #latentEndo -> 'one'
 #	stop('nonsense')
 
-insertLatentEndoPathsLISREL <- function(){}
+insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
+	if(to %in% variables$lex){
+		stop('nonsense')
+	} else if(to %in% variables$len){
+		if(arrows==1){
+			#add to BE
+			old$BE <- assignNewMatrixStuff(from, to, old$BE, new)
+			old$PS <- assignNewMatrixStuff(from, to, old$PS, new, remove=TRUE)
+		} else if(arrows==2){
+			#add to PS
+			old$PS <- assignNewMatrixStuff(from, to, old$PS, new)
+			old$PS <- assignNewMatrixStuff(to, from, old$PS, new)
+			old$BE <- assignNewMatrixStuff(from, to, old$BE, new, remove=TRUE)
+		}
+	} else if(to %in% variables$mex){
+		stop('nonsense')
+	} else if(to %in% variables$men){
+		if(arrows==1){
+			#add to LY
+			old$LY <- assignNewMatrixStuff(from, to, old$LY, new)
+		} else if(arrows==2){
+			stop('nonsense')
+		}
+	}
+	return(old)
+}
 
 #manifestExo -> latentExo
 #	stop('nonsense')
@@ -551,14 +635,45 @@ updateLISRELMeans <- function(model, means){
 	if(!single.na(means[[1]])){
 		model[['TX']] <- means[[1]]
 	}
-	if(!single.na(means[[1]])){
+	if(!single.na(means[[2]])){
 		model[['TY']] <- means[[2]]
 	}
-	if(!single.na(means[[1]])){
+	if(!single.na(means[[3]])){
 		model[['KA']] <- means[[3]]
 	}
-	if(!single.na(means[[1]])){
+	if(!single.na(means[[4]])){
 		model[['AL']] <- means[[4]]
+	}
+	return(model)
+}
+
+updateLISRELMatrices <- function(model, matrices){
+	if(!single.na(matrices$LX)){
+		model[['LX']] <- matrices$LX
+	}
+	if(!single.na(matrices$LY)){
+		model[['LY']] <- matrices$LY
+	}
+	if(!single.na(matrices$BE)){
+		model[['BE']] <- matrices$BE
+	}
+	if(!single.na(matrices$GA)){
+		model[['GA']] <- matrices$GA
+	}
+	if(!single.na(matrices$PH)){
+		model[['PH']] <- matrices$PH
+	}
+	if(!single.na(matrices$PS)){
+		model[['PS']] <- matrices$PS
+	}
+	if(!single.na(matrices$TD)){
+		model[['TD']] <- matrices$TD
+	}
+	if(!single.na(matrices$TE)){
+		model[['TE']] <- matrices$TE
+	}
+	if(!single.na(matrices$TH)){
+		model[['TH']] <- matrices$TH
 	}
 	return(model)
 }

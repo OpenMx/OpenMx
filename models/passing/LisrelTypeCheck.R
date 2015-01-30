@@ -67,6 +67,7 @@ mod4 <- mxModel(name="endogenous LISREL model",
 
 data(demoTwoFactor)
 
+# data
 mod1a <- mxModel(name="A type LISREL model",
 	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
@@ -74,7 +75,7 @@ mod1a <- mxModel(name="A type LISREL model",
 	mxData(demoTwoFactor, 'raw')
 )
 
-
+# means
 mod1b <- mxModel(name="A type LISREL model",
 	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
@@ -86,8 +87,50 @@ mod1b <- mxModel(name="A type LISREL model",
 	mxPath(from="one", to=c("ksi1", "eta1"), values=7, free=FALSE)
 )
 
+# latent exo paths
+mod1c <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from='ksi1', to='x1', values=1, free=TRUE, labels='load1'), #LX
+	mxPath(from='ksi1', to='eta1', values=2, free=TRUE, labels='reg1', ubound=20), #GA
+	mxPath(from='ksi1', arrow=2, values=3, free=FALSE, labels='lvar1') #PH
+)
+
+# latent endo paths
+mod1d <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from='eta1', to='y1', values=1, free=TRUE, labels='load1'), #LY
+	mxPath(from='eta1', arrow=2, values=3, free=FALSE, labels='lvar1'), #PS
+	mxPath(from='eta1', arrow=1, values=3, free=FALSE, labels='lvar1') #BE, N.B. bc 1 dimensional, BE path overwrites PS path.
+)
 
 
+# manifest exo paths
+mod1e <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from='ksi1', to='x1', values=1, free=TRUE, labels='load1'), #LX
+	mxPath(from='ksi1', to='eta1', values=2, free=TRUE, labels='reg1', ubound=20), #GA
+	mxPath(from='ksi1', arrow=2, values=3, free=FALSE, labels='lvar1') #PH
+)
+
+# manifest enod paths
+mod1f <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from='ksi1', to='x1', values=1, free=TRUE, labels='load1'), #LX
+	mxPath(from='ksi1', to='eta1', values=2, free=TRUE, labels='reg1', ubound=20), #GA
+	mxPath(from='ksi1', arrow=2, values=3, free=FALSE, labels='lvar1') #PH
+)
 
 #------------------------------------------------------------------------------
 
