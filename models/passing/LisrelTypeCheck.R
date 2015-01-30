@@ -116,9 +116,8 @@ mod1e <- mxModel(name="A type LISREL model",
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
 	type="LISREL",
 	mxData(demoTwoFactor, 'raw'),
-	mxPath(from='ksi1', to='x1', values=1, free=TRUE, labels='load1'), #LX
-	mxPath(from='ksi1', to='eta1', values=2, free=TRUE, labels='reg1', ubound=20), #GA
-	mxPath(from='ksi1', arrow=2, values=3, free=FALSE, labels='lvar1') #PH
+	mxPath(from='x1', to='x1', values=1, arrows=2, free=TRUE, labels='resid1'), #TD
+	mxPath(from='x1', to='y3', values=2, arrows=2, free=TRUE, labels='residX1') #TH
 )
 
 # manifest enod paths
@@ -127,9 +126,8 @@ mod1f <- mxModel(name="A type LISREL model",
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
 	type="LISREL",
 	mxData(demoTwoFactor, 'raw'),
-	mxPath(from='ksi1', to='x1', values=1, free=TRUE, labels='load1'), #LX
-	mxPath(from='ksi1', to='eta1', values=2, free=TRUE, labels='reg1', ubound=20), #GA
-	mxPath(from='ksi1', arrow=2, values=3, free=FALSE, labels='lvar1') #PH
+	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #LX
+	mxPath(from='y2', to='x5', values=2, arrows=2, free=TRUE, labels='residX2') #GA
 )
 
 #------------------------------------------------------------------------------

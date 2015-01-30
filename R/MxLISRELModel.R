@@ -394,9 +394,9 @@ insertPathLISREL <- function(path, matrices, variables){
 		} else if(from %in% variables$len){
 			matrices <- insertLatentEndoPathsLISREL(from, to, arrows, old=matrices, new, variables)
 		} else if(from %in% variables$mex){
-			insertManifestExoPathsLISREL()
+			matrices <- insertManifestExoPathsLISREL(from, to, arrows, old=matrices, new, variables)
 		} else if(from %in% variables$men){
-			insertManifestEndoPathsLISREL()
+			matrices <- insertManifestEndoPathsLISREL(from, to, arrows, old=matrices, new, variables)
 		}
 	}
 	return(matrices)
@@ -533,7 +533,30 @@ insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 #manifestExo -> 'one'
 #	stop('nonsense')
 
-insertManifestExoPathsLISREL <- function(){}
+insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
+	if(to %in% variables$lex){
+		stop('nonsense')
+	} else if(to %in% variables$len){
+		stop('nonsense')
+	} else if(to %in% variables$mex){
+		if(arrows==1){
+			stop('nonsense')
+		} else if(arrows==2){
+			#add to TD
+			old$TD <- assignNewMatrixStuff(from, to, old$TD, new)
+			old$TD <- assignNewMatrixStuff(to, from, old$TD, new)
+		}
+	} else if(to %in% variables$men){
+		if(arrows==1){
+			stop('nonsense')
+		} else if(arrows==2){
+			#add to TH
+			old$TH <- assignNewMatrixStuff(from, to, old$TH, new)
+			# N.B. TH is asymmetric so do NOT at the to->from path
+		}
+	}
+	return(old)
+}
 
 #manifestEndo -> latentExo
 #	stop('nonsense')
@@ -552,7 +575,30 @@ insertManifestExoPathsLISREL <- function(){}
 #manifestEndo -> 'one'
 #	stop('nonsense')
 
-insertManifestEndoPathsLISREL <- function(){}
+insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
+	if(to %in% variables$lex){
+		stop('nonsense')
+	} else if(to %in% variables$len){
+		stop('nonsense')
+	} else if(to %in% variables$mex){
+		if(arrows==1){
+			stop('nonsense')
+		} else if(arrows==2){
+			#add to TH
+			old$TH <- assignNewMatrixStuff(to, from, old$TH, new) #Note the switch of the from/to
+			# N.B. TH is asymmetric so do NOT at the to->from path
+		}
+	} else if(to %in% variables$men){
+		if(arrows==1){
+			stop('nonsense')
+		} else if(arrows==2){
+			#add to TE
+			old$TE <- assignNewMatrixStuff(from, to, old$TE, new)
+			old$TE <- assignNewMatrixStuff(to, from, old$TE, new)
+		}
+	}
+	return(old)
+}
 
 #'one' -> latentExo
 #	if arrows==1
