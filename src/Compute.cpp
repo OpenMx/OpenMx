@@ -2805,32 +2805,6 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 	int nineqn = globalState->ncnln - eqn;
 	equality.resize(eqn);
 	inequality.resize(nineqn);
-	if (nineqn == 0) return;
-
-	solIneqLB.derived().resize(nineqn);
-	solIneqUB.derived().resize(nineqn);
-
-	int cur=0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
-		omxConstraint &con = globalState->conList[j];
-		if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
-
-		double lb, ub;
-		if (con.opCode == omxConstraint::LESS_THAN) {
-			lb = NEG_INF;
-			ub = -0.0;
-		} else {
-			lb = 0.0;
-			ub = INF;
-		}
-
-		for (int en=0; en < con.size; ++en) {
-			solIneqLB[cur+en] = lb;
-			solIneqUB[cur+en] = ub;
-		}
-
-		cur += con.size;
-	}
 };
 
 void GradientOptimizerContext::setupAllBounds()
@@ -2853,6 +2827,7 @@ void GradientOptimizerContext::setupAllBounds()
 		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
+		case omxConstraint::GREATER_THAN:
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				solLB[index] = NEG_INF;
 				solUB[index] = -0.0;
@@ -2863,14 +2838,6 @@ void GradientOptimizerContext::setupAllBounds()
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				solLB[index] = -0.0;
 				solUB[index] = 0.0;
-				index++;
-			}
-			break;
-		case omxConstraint::GREATER_THAN:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
-				solLB[index] = 0.0;
-				solUB[index] = INF;
 				index++;
 			}
 			break;
@@ -2894,6 +2861,7 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	useGradient = false;
 	warmStart = false;
 	bestFit = std::numeric_limits<double>::max();
+	ineqType = omxConstraint::LESS_THAN;
 }
 
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)
@@ -2975,7 +2943,9 @@ void GradientOptimizerContext::myineqFun()
 
 		omxRecompute(con.result, fc);
 		for(int k = 0; k < globalState->conList[j].size; k++){
-			inequality[cur] = con.result->data[k];
+			double got = con.result->data[k];
+			if (con.opCode != ineqType) got = -got;
+			inequality[cur] = got;
 			++cur;
 		}
 	}

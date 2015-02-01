@@ -122,7 +122,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     ind[indHasJacobianIneq] = 0;
     
     // do inequality checks and return starting values
-    const int nineq = fit.solIneqLB.size();
+    const int nineq = fit.inequality.size();
     ind[indHasIneq] = nineq > 0;    
 
     const int neq = fit.equality.size();
@@ -139,8 +139,8 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     if(nineq) {
 	    pb = fill(2, nineq, (double)0.0);
-	    setColumnInplace(pb, fit.solIneqLB, 0);
-	    setColumnInplace(pb, fit.solIneqUB, 1);
+	    Eigen::Map< Eigen::MatrixXd > pbE(pb.t, pb.rows, pb.cols);
+	    pbE.col(1) = Eigen::VectorXd::Constant(pb.rows, INF);
 	    pb_cont = fill(2, np, (double)0.0);
 	    setColumnInplace(pb_cont, LB, 0);
 	    setColumnInplace(pb_cont, UB, 1);
@@ -190,10 +190,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .fit.solIneqLB, .fit.solIneqUB - constraint[ (neq + 1):tc ] )
             Matrix difference1 = subset(constraint, 0, neq, tc-1);
-            subtractEigen(difference1, fit.solIneqLB);
             Matrix difference2 = subset(constraint, 0, neq, tc-1);
             negate(difference2);
-            addEigen(difference2, fit.solIneqUB);
+	    Eigen::RowVectorXd infVec = Eigen::RowVectorXd::Constant(difference2.cols, INF);
+            addEigen(difference2, infVec);
             tmpv = fill(2, nineq, (double)0.0);
             setColumnInplace(tmpv, difference1, 0);
             setColumnInplace(tmpv, difference2, 1);
@@ -601,9 +601,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     if(nineq) {
 	    pb = fill(2, nineq, (double)0.0);
-            setColumnInplace(pb, fit.solIneqLB, 0);
-            setColumnInplace(pb, fit.solIneqUB, 1);
-	    
+	    Eigen::Map< Eigen::MatrixXd > pbE(pb.t, pb.rows, pb.cols);
+	    pbE.col(1) = Eigen::VectorXd::Constant(pb.rows, INF);
             Matrix pb_cont = fill(2, np, (double)0.0);
             setColumnInplace(pb_cont, LB, 0);
             setColumnInplace(pb_cont, UB, 1);

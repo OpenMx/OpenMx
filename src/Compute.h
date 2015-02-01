@@ -217,12 +217,10 @@ struct GradientOptimizerContext {
 	double ControlTolerance;
 	bool warmStart;
 	bool useGradient;
+	int ineqType;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
-
-	Eigen::VectorXd solIneqLB;
-	Eigen::VectorXd solIneqUB;
 
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;

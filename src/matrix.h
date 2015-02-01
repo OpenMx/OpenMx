@@ -133,6 +133,14 @@ Matrix matrixDotProduct(struct Matrix a, struct Matrix b);
 
 void minMaxAbs(struct Matrix t, double tol);
 
+template <typename T>
+void addEigen(Matrix x,  Eigen::MatrixBase<T> &secondM)
+{
+    Eigen::Map< Eigen::MatrixXd > firstM(x.t, x.rows, x.cols);
+    
+    firstM += secondM;
+}
+
 void addEigen(Matrix x,  Matrix y);
 
 void add(struct Matrix x, struct Matrix y);
