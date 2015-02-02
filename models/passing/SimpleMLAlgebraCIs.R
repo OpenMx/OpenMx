@@ -8,14 +8,13 @@ nVar <- length(manifests)
 nFac <- length(latents)
 
 factorModel <- mxModel("One Factor ML",
-    mxData(cov(demoOneFactor), type="cov", numObs=500),
-    # mxData(demoOneFactor, type="raw"),
+    mxData(cov(demoOneFactor), type="cov", means=colMeans(demoOneFactor), numObs=500),
     mxMatrix("Full", 1, nVar, free=T, values=colMeans(demoOneFactor), name="M"),
     mxMatrix("Full", nVar, nFac, free=T, values=.2, name="A"),
     mxMatrix("Diag", nVar, nVar, free=T, values=1, lbound=.0001, name="D"),
     mxAlgebra(A%*%t(A) + D, name="C"),
     mxAlgebra(sqrt(diag2vec(C)),name="P"),
-    mxFitFunctionML(),mxExpectationNormal("C", dimnames=manifests),
+    mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests),
     mxCI(c("P"))
 )
 factorFitCI <- mxRun(factorModel, intervals=TRUE, suppressWarnings = TRUE)
@@ -28,7 +27,11 @@ omxCheckCloseEnough(ci["One Factor ML.P[3,1]",], c(.575, .613, .651), .005)
 omxCheckCloseEnough(ci["One Factor ML.P[4,1]",], c(.687, .732, .778), .015)
 omxCheckCloseEnough(ci["One Factor ML.P[5,1]",], c(.770, .820, .872), .005)
 
-factorModelRaw <- mxModel(factorFitCI, mxData(demoOneFactor, type="raw"), mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests), name = "One Factor FIML")
+factorModelRaw <- mxModel(factorFitCI,
+                          mxData(demoOneFactor, type="raw"),
+                          mxFitFunctionML(),
+                          mxExpectationNormal("C", "M", dimnames=manifests),
+                          name = "One Factor FIML")
 factorFitRawCI <- mxRun(factorModelRaw, intervals=TRUE, suppressWarnings = TRUE)
 factorSummRawCI <- summary(factorFitRawCI)
 
