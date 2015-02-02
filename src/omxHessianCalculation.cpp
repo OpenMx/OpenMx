@@ -316,7 +316,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->wanted |= FF_COMPUTE_HESSIAN;
 	hessian = fc->getDenseHessUninitialized();
 
-	gradient = (double*) R_alloc(numParams, sizeof(double));
+	fc->grad.resize(numParams);
+	gradient = fc->grad.data();
   
 	doHessianCalculation(numChildren, hess_work);
 
