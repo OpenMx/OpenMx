@@ -301,8 +301,13 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 	fullname <- paste(modelname, 'data', sep = '.')
 	components <- unlist(strsplit(fullname, imxSeparatorChar, fixed = TRUE))
 	modelname <- components[[1]]
-	if ((length(observed) == 0) || (modelname %in% nosort)) {
+	if ( length(observed) == 0 ) {
 		mxData@indexVector <- as.integer(NA)
+		mxData@identicalDefVars <- as.integer(NA)
+		mxData@identicalMissingness <- as.integer(NA)
+		mxData@identicalRows <- as.integer(NA)
+	} else if ( modelname %in% nosort ) {
+		mxData@indexVector <- 0:(nrow(observed)-1L)
 		mxData@identicalDefVars <- as.integer(NA)
 		mxData@identicalMissingness <- as.integer(NA)
 		mxData@identicalRows <- as.integer(NA)

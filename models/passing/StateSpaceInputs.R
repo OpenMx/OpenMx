@@ -213,4 +213,14 @@ omxCheckCloseEnough(srun$C$values[srun$C$free], prevEstC, epsilon=0.001)
 omxCheckCloseEnough(srun$D$values[srun$D$free], prevEstD, epsilon=0.001)
 omxCheckCloseEnough(diag(srun$R$values), prevEstR, epsilon=0.001)
 
+# Check to make sure definition variables can be evaluated
+uAtRow10 <- mxEval(u, smod, compute=TRUE, defvar.row=10)
+dAtRow10 <- mxEval(rbind(data.u1, data.u2), smod, compute=TRUE, defvar.row=10)
+urAtRow10 <- mxEval(u, srun, compute=TRUE, defvar.row=10)
+drAtRow10 <- mxEval(rbind(data.u1, data.u2), srun, compute=TRUE, defvar.row=10)
+
+omxCheckCloseEnough(uAtRow10, dAtRow10, epsilon=1e-10)
+omxCheckCloseEnough(uAtRow10, drAtRow10, epsilon=1e-10)
+omxCheckCloseEnough(urAtRow10, drAtRow10, epsilon=1e-10)
+
 
