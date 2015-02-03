@@ -59,7 +59,7 @@ This model uses notation for the model matrices commonly found in engineering an
 
 The state space expectation is defined by the following model equations.
 
-\deqn{x_{t+1} = A x_t + B u_t + q_t}{x[t+1] = A x[t] + B u[t] + q[t]}
+\deqn{x_t = A x_{t-1} + B u_t + q_t}{x[t] = A x[t-1] + B u[t] + q[t]}
 \deqn{y_t = C x_t + D u_t + r_t}{y[t] = C x[t] + D u[t] + r[t]}
 with \eqn{q_t}{q[t]} and \eqn{r_t}{r[t]} both independently and identically distributed random Gaussian (normal) variables with mean zero and covariance matrices \eqn{Q} and \eqn{R}, respectively.
 
@@ -67,20 +67,22 @@ The first equation is called the state equation.  It describes how the latent st
 
 The second equation is called the output equation.  It describes how the latent states relate to the observed states at a single point in time.  The output equation shows how the observed output is produced by the latent states.  Also, the output equation in state space modeling is directly analogous to the measurement model in LISREL structural equation modeling.
 
-The state and output equations, together with some minimal assumptions and the Kalman filter, imply a new expected covariance matrix and means vector for every row of data.  The expected covariance matrix of row \eqn{t+1} is
+Note that the covariates, \eqn{u}, have "instantaneous" effects on both the state and output equations.  If lagged effects are desired, then the user must create a lagged covariate by shifting their observed variable to the desired lag.
 
-\deqn{S_{t+1} = C ( A P_{t} A^{\sf T} + Q ) C^{\sf T} + R}{S[t+1] = C ( A P[t] A^T + Q ) C^T + R}
+The state and output equations, together with some minimal assumptions and the Kalman filter, imply a new expected covariance matrix and means vector for every row of data.  The expected covariance matrix of row \eqn{t} is
 
-The expected means vector of row \eqn{t+1} is
+\deqn{S_{t} = C ( A P_{t-1} A^{\sf T} + Q ) C^{\sf T} + R}{S[t] = C ( A P[t-1] A^T + Q ) C^T + R}
 
-\deqn{\hat{y}_{t+1} = C x_{t+1} + D u_{t+1}}{yhat[t+1] = C x[t+1] + D u[t+1]}
+The expected means vector of row \eqn{t} is
+
+\deqn{\hat{y}_{t} = C x_{t} + D u_{t}}{yhat[t] = C x[t] + D u[t]}
 
 The 'dimnames' arguments takes an optional character vector.  % TODO: Decide how dimnames are handled.
 %If this argument is not a single NA, then this vector be assigned to be the row names of the 'C' matrix and optionally to the '?' matrix, if the '?' matrix exists.
 
-The 'A' argument refers to the \eqn{A} matrix in the State Space approach. This matrix consists of time regressive coefficients from the latent variable in column \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t+1}.  Entries in the diagonal are autoregressive coefficients.  Entries in the off-diagonal are cross-lagged regressive coefficients.  If the \eqn{A} and \eqn{B} matrices are zero matrices, then the state space model reduces to a factor analysis.  The \eqn{A} matrix is sometimes called the state-transition model.
+The 'A' argument refers to the \eqn{A} matrix in the State Space approach. This matrix consists of time regressive coefficients from the latent variable in column \eqn{j} at time \eqn{t-1} to the latent variable in row \eqn{i} at time \eqn{t}.  Entries in the diagonal are autoregressive coefficients.  Entries in the off-diagonal are cross-lagged regressive coefficients.  If the \eqn{A} and \eqn{B} matrices are zero matrices, then the state space model reduces to a factor analysis.  The \eqn{A} matrix is sometimes called the state-transition model.
 
-The 'B' argument refers to the \eqn{B} matrix in the State Space approach. This matrix consists of time regressive coefficients from the input (manifest covariate) variable \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t+1}.  The \eqn{B} matrix is sometimes called the control-input model. 
+The 'B' argument refers to the \eqn{B} matrix in the State Space approach. This matrix consists of regressive coefficients from the input (manifest covariate) variable \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t}.  Note that the covariate effect is contemporaneous: the covariate at time \eqn{t} has influence on the latent state also at time \eqn{t}.  A lagged effect can be created by lagged the observed variable.  The \eqn{B} matrix is sometimes called the control-input model. 
 
 The 'C' argument refers to the \eqn{C} matrix in the State Space approach. This matrix consists of contemporaneous regression coefficients from the latent variable in column \eqn{j} to the observed variable in row \eqn{i}.  This matrix is directly analogous to the factor loadings matrix in LISREL and Mplus models.  The \eqn{C} matrix is sometimes called the observation model.
 
