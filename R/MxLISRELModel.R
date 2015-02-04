@@ -233,7 +233,7 @@ replaceMethodLISREL <- function(model, index, value){
 	return(model)
 }
 
-addExogenoudMeansLISREL <- function(model){
+addExogenousMeansLISREL <- function(model){
 	if (is.null(model[['TX']])) {
 		model[['TX']] <- createMatrixLISREL(model, model@manifestVars$exogenous, "one", 'TX')
 	}
