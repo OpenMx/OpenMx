@@ -8,15 +8,15 @@ new_cache <- function() {
   }
   
   cache_set <- function(key, value) {
-    assign(key, value, env = cache)
+    assign(key, value, envir = cache)
   }
   
   cache_get <- function(key) {
-    get(key, env = cache, inherits = FALSE)
+    get(key, envir = cache, inherits = FALSE)
   }
   
   cache_has_key <- function(key) {
-    exists(key, env = cache, inherits = FALSE)
+    exists(key, envir = cache, inherits = FALSE)
   }
   
   cache_reset()
