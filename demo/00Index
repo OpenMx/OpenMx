@@ -1,6 +1,5 @@
 OneFactorMatrixDemo                     One factor model from the matrix-style demo on the front page of the website.
 OneFactorPathDemo                       One factor model from the path-style demo on the front page of the website.
-OneFactorOrdinal_Path                   One factor model using path specification with ordinal and joint ordinal continuous data.
 SimpleRegression_PathRaw	            Simple regression using path-centric specification and raw data.
 SimpleRegression_PathCov	            Simple regression using path-centric specification and covariance data
 SimpleRegression_MatrixRaw	            Simple regression using matrix (RAM) specification and raw data
@@ -26,6 +25,12 @@ LatentGrowthCurveModel_PathRaw	        Latent growth curve model using path-cent
 LatentGrowthCurveModel_MatrixRaw	    Latent growth curve model using matrix (RAM) specification and raw data
 LatentGrowthCurveModel_PathRaw_ModelRec Latent Growth model to estimate means and (co)variances of slope and intercept. Raw data, Recursive
 LatentGrowthCurveModel_PathRaw_ObjectAdd Same as above, but with the build and assemble style of model building.
+OneFactorOrdinal01_MatrixRaw            Common factor model with ordinal data and matrix specification fixing two thresholds for identification
+OneFactorOrdinal_MatrixRaw              Common factor model with ordinal data and matrix specification fixing mean and variance for identification
+OneFactorOrdinal_MatrixRawRAM           Common factor model with ordinal data and RAM specification
+OneFactorOrdinal_PathRaw                Common factor model with ordinal data and Path specification
+OneFactorJoint_MatrixRawRAM             Common factor model of both ordinal and continuous data with RAM specification
+OneFactorJoint_PathRaw                  Common factor model of both ordinal and continuous data with Path specification
 UnivariateSaturated_PathCov	            Univariate saturated model using path-centric specification and covariance data
 UnivariateSaturated_PathRaw	            Univariate saturated model using path-centric specification and raw data
 UnivariateSaturated_MatrixCov	        Univariate saturated model using matrix specification and covariance data
