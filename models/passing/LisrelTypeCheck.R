@@ -22,7 +22,7 @@
 #  latentVars arguments.
 #------------------------------------------------------------------------------
 
-# The next TODO item is to start implementing addEntriesLISREL in the
+# The next TODO item is to start implementing removeEntriesLISREL in the
 #  MxLISRELModel.R file.
 
 #------------------------------------------------------------------------------
@@ -126,8 +126,8 @@ mod1f <- mxModel(name="A type LISREL model",
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
 	type="LISREL",
 	mxData(demoTwoFactor, 'raw'),
-	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #LX
-	mxPath(from='y2', to='x5', values=2, arrows=2, free=TRUE, labels='residX2') #GA
+	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #TE
+	mxPath(from='y2', to='x5', values=2, arrows=2, free=TRUE, labels='residX2') #TH
 )
 
 #------------------------------------------------------------------------------

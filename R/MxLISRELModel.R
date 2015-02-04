@@ -278,7 +278,7 @@ addEntriesLISREL <- function(model, entries){
 	filter <- sapply(entries, is, "MxPath")
 	paths <- entries[filter]
 	if (length(paths) > 0) {
-		model <- insertAllPathsLISREL(model, paths) #TODO
+		model <- insertAllPathsLISREL(model, paths)
 	}
 	filter <- sapply(entries, is, "MxThreshold")
 	thresholds <- entries[filter]
