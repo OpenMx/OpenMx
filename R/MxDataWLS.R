@@ -117,7 +117,7 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 			lower=c(dtt$xMin[i], dtt$yMin[i]),
 			upper=c(dtt$xMax[i], dtt$yMax[i]),
 			mean=c(0, 0),
-			cor=corMatrix
+			corr=corMatrix
 			))
 		}
 	
