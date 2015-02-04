@@ -338,7 +338,7 @@ insertAllPathsLISREL <-  function(model, paths){
 		
 		if (length(path@from) == 1 && (path@from == "one")) {
 			if ( (is.null(TX) || is.null(KA)) && any(path@to %in% exvars) ) {
-				model <- addExogenoudMeansLISREL(model)
+				model <- addExogenousMeansLISREL(model)
 				TX <- model[['TX']]
 				KA <- model[['KA']]
 			}
