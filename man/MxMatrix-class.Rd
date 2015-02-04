@@ -17,6 +17,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{MxMatrix-class}
+\alias{MxMatrix}
 \alias{$,MxMatrix-method}
 \alias{$<-,MxMatrix-method}
 \alias{[,MxMatrix-method}
