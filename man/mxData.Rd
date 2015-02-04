@@ -23,7 +23,7 @@
 }
 
 \usage{
-   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullweight=NA, thresholds=NA, ..., sort=TRUE)
+   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ..., sort=TRUE)
 }
 
 \arguments{
@@ -32,6 +32,7 @@
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
    \item{acov}{Asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares at weight matrix.}
+   \item{fullWeight}{Full asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares in standard error and quasi-chi-squared calculation.}
    \item{thresholds}{Observed thresholds.  Used for weighted least squares with ordinal data.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
    \item{sort}{Whether to sort raw data prior to use (default TRUE)}
