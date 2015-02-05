@@ -232,7 +232,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	// Optimizers can terminate with inconsistent fit and parameters
 	fc->copyParamToModel();
-	ComputeFit("ComputeGD", fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
 
 	if (verbose >= 1) {
 		mxLog("%s: final fit is %2f", name, fc->fit);
@@ -399,6 +399,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 
 	mle->copyParamToModel();
+	// auxillary information like per-row likelihoods need a refresh
+	omxRecompute(fitMatrix, mle);
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 	interval.fill(NA_REAL);

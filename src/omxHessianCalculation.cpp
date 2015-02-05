@@ -340,6 +340,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	memcpy(fc->est, optima.data(), sizeof(double) * numParams);
 	fc->copyParamToModel();
+	// auxillary information like per-row likelihoods need a refresh
+	omxRecompute(fitMat, fc);
 }
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
