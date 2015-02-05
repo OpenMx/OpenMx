@@ -35,7 +35,7 @@ c <- mxMatrix("Full", free = FALSE,
 	
 bounds <- mxBounds(c("v1", "v2", "v3"), min = 0)
 
-constraint <- mxConstraint(s < -c, name = "constraint")
+constraint <- mxConstraint(-s < -c, name = "constraint")
 
 model <- mxModel("model", data, s, c, 
 	constraint, bounds, mxFitFunctionML(),mxExpectationNormal("s"))
