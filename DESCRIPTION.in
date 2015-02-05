@@ -133,7 +133,6 @@ Collate:
     'MxDetectCores.R'
     'MxSaturatedModel.R'
     'omxBrownie.R'
-	'omxConstrainThresholds.R'
     'MxFitFunctionR.R'
     'MxRObjective.R'
     'MxExpectationStateSpace.R'
