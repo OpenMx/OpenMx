@@ -125,6 +125,7 @@ cran-build: clean no-npsol-prep build-prep
 	cd build && $(REXEC) CMD build ..
 
 cran-check: cran-build
+	tar ztf build/OpenMx_*.tar.gz
 	$(REXEC) CMD check build/OpenMx_*.tar.gz
 
 pdf: dev-doc
