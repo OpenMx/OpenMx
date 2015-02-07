@@ -121,7 +121,7 @@ no-npsol-prep: code-style maybe-dev-doc
 build/$(TARGET): npsol-prep build-prep
 	cd build; $(REXEC) CMD build ..
 
-cran-build: clean no-npsol-prep build-prep
+cran-build: no-npsol-prep build-prep
 	cd build && $(REXEC) CMD build ..
 
 cran-check: cran-build
@@ -138,7 +138,7 @@ src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
-html: clean npsol-prep build-prep dev-doc
+html: npsol-prep build-prep dev-doc
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
@@ -155,19 +155,19 @@ doc.tar.bz2: html pdf
 	mv build/OpenMx.pdf build/$(BUILDPRE)-$(BUILDNO)
 	cd build && tar jcf ../doc.tar.bz2 $(BUILDPRE)-$(BUILDNO)
 
-build: clean npsol-prep build-prep
+build: npsol-prep build-prep
 	cd build; $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
-build-simple: clean npsol-prep build-prep
+build-simple: npsol-prep build-prep
 	cd build; OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
-common-build32: clean internal-build
+common-build32: internal-build
 	cd build; $(REXEC) --arch i386 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
-common-build64: clean internal-build
+common-build64: internal-build
 	cd build; $(REXEC) --arch x86_64 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
-common-buildppc: clean internal-build
+common-buildppc: internal-build
 	cd build; $(REXEC) --arch ppc CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
 post-build:
@@ -182,7 +182,7 @@ build64: common-build64 post-build
 
 buildppc: common-buildppc post-build
 
-srcbuild: clean internal-build
+srcbuild: internal-build
 
 install: npsol-prep
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
