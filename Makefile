@@ -83,7 +83,10 @@ r-libs-user-dir:
 
 internal-build: build/$(TARGET)
 
-dev-doc:
+DESCRIPTION: DESCRIPTION.in
+	cat DESCRIPTION.in | sed -e "s/VERSION/$(BUILDPRE)/" | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
+
+dev-doc: DESCRIPTION
 	-./util/rox
 
 maybe-dev-doc:
@@ -92,7 +95,7 @@ maybe-dev-doc:
 build-prep: dev-doc
 	mkdir -p build
 
-code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
+code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp DESCRIPTION
 	@echo "Checking code style"
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ScopedProtect instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ScopedProtect instead."; exit 1; fi
@@ -100,7 +103,6 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 2 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
-	cat DESCRIPTION.in | sed -e "s/VERSION/$(BUILDPRE)/" | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
 
 npsol-prep: code-style maybe-dev-doc
 	rm -f inst/no-npsol
