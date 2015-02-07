@@ -10,6 +10,7 @@ oprofile_data
 annotated
 cachegrind.out.*
 ^DESCRIPTION.old
+^DESCRIPTION.in$
 ^NOTICE
 ^dotest
 ^dotest.patch
@@ -29,3 +30,4 @@ cachegrind.out.*
 ^middle/node_modules
 ^docs/source/cache/.*$
 ^docs/source/.*\.Rout$
+^cran-check.log$
