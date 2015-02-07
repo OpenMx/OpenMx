@@ -23,3 +23,4 @@ cachegrind.out.*
 ^docs/source/cache/.*$
 ^docs/source/.*\.Rout$
 ^cran-check.log$
+^DESCRIPTION.in$

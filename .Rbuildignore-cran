@@ -10,6 +10,7 @@ oprofile_data
 annotated
 cachegrind.out.*
 ^DESCRIPTION.old
+^DESCRIPTION.in$
 ^NOTICE
 ^dotest
 ^dotest.patch
