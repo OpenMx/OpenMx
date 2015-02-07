@@ -600,27 +600,27 @@ insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables)
 	return(old)
 }
 
-#'one' -> latentExo
+# 'one' -> latentExo
 #	if arrows==1
 #		add to KA
 #	if arrows==2
 #		stop('nonsense')
-#'one' -> latentEndo
+# 'one' -> latentEndo
 #	if arrows==1
 #		add to AL
 #	if arrows==2
 #		stop('nonsense')
-#'one' -> manifestExo
+# 'one' -> manifestExo
 #	if arrows==1
 #		add to TX
 #	if arrows==2
 #		stop('nonsense')
-#'one' -> manifestEndo
+# 'one' -> manifestEndo
 #	if arrows==1
 #		add to TY
 #	if arrows==2
 #		stop('nonsense')
-#'one' -> 'one'
+# 'one' -> 'one'
 #	stop('nonsense')
 
 insertMeansPathLISREL <- function(path, TX, TY, KA, AL, manifest, latent){
