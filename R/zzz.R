@@ -44,7 +44,7 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 #' from R. We make it available only for testing.
 #' 
 #' @param str the character string to output
-imxLog <- function(str) .Call(mxLog_wrapper, str)
+imxLog <- function(str) .Call(Log_wrapper, str)
 
 #' OpenMx: An package for Structural Equation Modeling and Matrix Algebra Optimization
 #'
