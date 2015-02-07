@@ -29,3 +29,4 @@ cachegrind.out.*
 ^middle/node_modules
 ^docs/source/cache/.*$
 ^docs/source/.*\.Rout$
+^cran-check.log$
