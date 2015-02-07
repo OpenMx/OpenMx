@@ -129,7 +129,8 @@ cran-build: no-npsol-prep build-prep
 cran-check: cran-build
 	tar ztf build/OpenMx_*.tar.gz
 	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
-	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 228 ]; then echo "CRAN check problems have grown; see cran-check.log" ; wc -l OpenMx.Rcheck/00check.log; false; fi
+	wc -l OpenMx.Rcheck/00check.log
+	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 228 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 pdf: dev-doc
 	rm -rf $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
