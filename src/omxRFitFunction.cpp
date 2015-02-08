@@ -58,6 +58,12 @@ void omxInitRFitFunction(omxFitFunction* oo) {
 	oo->computeFun = omxCallRFitFunction;
 	oo->argStruct = (void*) newObj;
 	
+	{
+		SEXP newptr;
+		ScopedProtect p1(newptr, R_do_slot(rObj, Rf_install("units")));
+		oo->setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
+	}
+
 	Rf_protect(newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun")));
 	R_ProtectWithIndex(newObj->model = R_do_slot(rObj, Rf_install("model")), &(newObj->modelIndex));
 	Rf_protect(newObj->flatModel = R_do_slot(rObj, Rf_install("flatModel")));

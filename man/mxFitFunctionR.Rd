@@ -26,12 +26,13 @@ mxFitFunctionR returns an MxFitFunctionR object.
 }
 
 \usage{
-mxFitFunctionR(fitfun, ...)
+mxFitFunctionR(fitfun, ..., units="-2lnL")
 }
 
 \arguments{
    \item{fitfun}{A function that accepts two arguments.}
    \item{...}{The initial state information to the objective function.}
+   \item{units}{(optional) The units of the fit statistic.}
 }
 
 \details{

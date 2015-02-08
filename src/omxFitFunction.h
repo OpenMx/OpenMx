@@ -51,13 +51,21 @@ typedef struct {
 	int rows, cols;
 } omxRListElement;
 
+enum FitStatisticUnits {
+	FIT_UNITS_UNINITIALIZED=0,
+	FIT_UNITS_UNKNOWN,
+	FIT_UNITS_MINUS2LL
+	// add least squares here TODO
+};
+
 struct omxFitFunction {					// A fit function
 
 	/* Fields unique to FitFunction Functions */
 	void (*initFun)(omxFitFunction *oo);
 	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
-	// ffcompute is somewhat redundent because grad=NULL when gradients are unwanted
+
 	void (*computeFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
+	void (*ciFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
 	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals); // DEPRECATED, use addOutput instead
 
@@ -76,11 +84,14 @@ struct omxFitFunction {					// A fit function
 // We do not need to allocate or free it.
 	const char* fitType;														// Type of FitFunction Function
 
-	omxMatrix* matrix;															// The (1x1) matrix populated by this fit function
+	omxMatrix* matrix;
 	bool initialized;
 	FreeVarGroup *freeVarGroup;
 	bool gradientAvailable;
 	bool hessianAvailable;
+	FitStatisticUnits units;
+
+	void setUnitsFromName(const char *name);
 };
 
 /* Initialize and Destroy */
@@ -96,6 +107,7 @@ void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
 /* FitFunction-specific implementations of matrix functions */
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
+void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
@@ -113,5 +125,7 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 void omxInitGREMLFitFunction(omxFitFunction *oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
+void ComputeCIFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
+void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
 #endif /* _OMXFITFUNCTION_H_ */

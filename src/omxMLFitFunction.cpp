@@ -291,6 +291,7 @@ static void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 void omxInitMLFitFunction(omxFitFunction* oo)
 {
 	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
+	oo->units = FIT_UNITS_MINUS2LL;
 
 	omxExpectation *expectation = oo->expectation;
 	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
@@ -300,6 +301,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
 
+	oo->ciFun = loglikelihoodCIFun;
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->addOutput = addOutput;
