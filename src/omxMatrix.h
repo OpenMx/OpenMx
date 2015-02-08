@@ -76,8 +76,8 @@ class omxMatrix {
 
 /* Curent State */
 	omxState* currentState;				// Optimizer State
-	int cleanVersion;
-	int version;
+	unsigned cleanVersion;
+	unsigned version;
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
