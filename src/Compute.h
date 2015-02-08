@@ -167,8 +167,8 @@ class FitContext {
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
-	// If std::isfinite(fit) then IterationError.size()>0 but not all of
-	// the code is audited to ensure this condition is true.
+	// If !std::isfinite(fit) then IterationError.size() should be nonzero but not all of
+	// the code is audited to ensure that this condition is true.
 	bool outsideFeasibleSet() const { return !std::isfinite(fit) || IterationError.size() > 0; }
 
 	std::string getIterationError();
