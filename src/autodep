@@ -39,7 +39,10 @@ matrix.o: Makevars.in matrix.cpp omxDefines.h omxBuffer.h matrix.h \
  omxState.h omxExpectation.h omxData.h omxFitFunction.h Compute.h \
  glue.h omxOpenmpWrap.h
 merge.o: Makevars.in merge.cpp merge.h
-nloptcpp.o: Makevars.in nloptcpp.cpp
+nloptcpp.o: Makevars.in nloptcpp.cpp omxState.h omxDefines.h omxMatrix.h \
+ omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxFitFunction.h \
+ omxData.h omxExpectation.h Compute.h \
+ glue.h omxOpenmpWrap.h nloptcpp.h finiteDifferences.h
 omxAlgebra.o: Makevars.in omxAlgebra.cpp omxMatrix.h omxDefines.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxExpectation.h omxData.h omxFitFunction.h Compute.h \

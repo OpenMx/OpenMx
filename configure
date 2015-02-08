@@ -147,12 +147,11 @@ if [ ! -e inst/no-npsol -a -n "${npsol_library+1}" ]; then
     fi
 fi
 
-if false && pkg-config --exists nlopt; then
-  echo "NLOPT_CXXFLAGS=-DHAS_NLOPT $(pkg-config --cflags nlopt)" >> src/Makevars
-  echo "NLOPT_LDFLAGS=$(pkg-config --libs nlopt)" >> src/Makevars
-else
-  echo "NLOPT_CXXFLAGS=" >> src/Makevars
-  echo "NLOPT_LDFLAGS=" >> src/Makevars
+if [ $($REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")') = TRUE ]; then
+  echo "
+NLOPT_CXXFLAGS=$($REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())')
+NLOPT_LDFLAGS=$($REXEC  --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat(nloptr:::LdFlags())')
+" >> src/Makevars
 fi
 
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars

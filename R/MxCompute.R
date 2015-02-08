@@ -249,7 +249,7 @@ setClass(Class = "MxComputeGradientDescent",
 	     tolerance = "numeric",
 	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
-	     warmStart = "MxOptionalMatrix"))
+	     warmStart = "MxOptionalMatrix"))  # rename to 'preconditioner'?
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
 	function(.Object, modelname, namespace) {
