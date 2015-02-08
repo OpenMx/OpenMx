@@ -217,8 +217,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
 #ifdef HAS_NLOPT
         case OptEngine_NLOPT:
-		//omxInvokeNLOPTorSANN(fitMatrix, fc, &fc->inform, varGroup, verbose,
-                // fc->getDenseHessUninitialized(), optimalityTolerance);
+		omxInvokeNLOPT(fc->est, rf);
 		break;
 #endif
         default: Rf_error("Optimizer %d is not available", engine);
@@ -292,7 +291,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
 	// Could be smarter about setting upper & lower once instead of every attempt TODO
-	ConfidenceIntervalFit cif(0);
+	ConfidenceIntervalFit cif(verbose);
 	cif.fitMatrix = fitMatrix;
 	cif.ControlTolerance = std::isfinite(optimalityTolerance)? optimalityTolerance : 1.0e-16;
 
@@ -302,18 +301,16 @@ void ComputeCI::computeImpl(FitContext *mle)
 	case OptEngine_NPSOL:{
 		std::string option = string_snprintf("Cold start");
 		F77_CALL(npoptn)((char*) option.c_str(), option.size());
-		//omxNPSOLConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
 		go = omxNPSOL;
 		break;}
 #endif
 	case OptEngine_CSOLNP:
-		//omxCSOLNPConfidenceIntervals(fitMatrix, mle, verbose, optimalityTolerance);
 		go = omxCSOLNP;
 		break;
 #ifdef HAS_NLOPT
-    case OptEngine_NLOPT:
-	    //omxNLOPTorSANNConfidenceIntervals(fitMatrix, mle, optimalityTolerance);
-        break;
+	case OptEngine_NLOPT:
+		go = omxInvokeNLOPT;
+		break;
 #endif
 	default:
 		Rf_error("huh?");

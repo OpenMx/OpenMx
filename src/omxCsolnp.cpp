@@ -40,6 +40,7 @@ void omxCSOLNP(double *est, GradientOptimizerContext &go)
 	go.ControlFuncPrecision = funcPrecision;
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
 	go.useGradient = false;  // not implemented yet
+	go.ineqType = omxConstraint::GREATER_THAN;
 	solnp(est, go);
 }
 

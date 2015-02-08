@@ -167,6 +167,10 @@ class FitContext {
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
+	// If std::isfinite(fit) then IterationError.size()>0 but not all of
+	// the code is audited to ensure this condition is true.
+	bool outsideFeasibleSet() const { return !std::isfinite(fit) || IterationError.size() > 0; }
+
 	std::string getIterationError();
 
 	static void cacheFreeVarDependencies();
@@ -204,9 +208,15 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-struct GradientOptimizerContext {
+class GradientOptimizerContext {
+ private:
+	void copyBounds();
+
+ public:
 	const int verbose;
 	const char *optName;  // filled in by the optimizer
+	bool feasible;
+	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;
 
@@ -217,13 +227,12 @@ struct GradientOptimizerContext {
 	double ControlTolerance;
 	bool warmStart;
 	bool useGradient;
+	int ineqType;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
-	Eigen::VectorXd solIneqLB;
-	Eigen::VectorXd solIneqUB;
-
+	// TODO remove, better to pass as a parameter so we can avoid copies
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
 
@@ -239,6 +248,7 @@ struct GradientOptimizerContext {
 
 	GradientOptimizerContext(int verbose);
 
+	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
 

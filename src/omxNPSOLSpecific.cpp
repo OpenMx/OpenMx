@@ -35,8 +35,11 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 	int l=0;
 	for(int j = 0; j < globalState->numConstraints; j++) {
 		omxRecompute(globalState->conList[j].result, fc);
+		omxConstraint::Type type = globalState->conList[j].opCode;
 		for(int k = 0; k < globalState->conList[j].size; k++){
-			constraintOut[l++] = globalState->conList[j].result->data[k];
+			double got = globalState->conList[j].result->data[k];
+			if (type == omxConstraint::GREATER_THAN) got = -got;
+			constraintOut[l++] = got;
 		}
 	}
 }

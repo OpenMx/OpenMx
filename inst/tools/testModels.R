@@ -86,7 +86,7 @@ errorRecover <- function(script, opt, index) {
 	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
   
 	err <- got$value
-	if (is(err, "error")) {
+	if (is(err, "error") && err$message != 'SKIP') {
 	  errors[[opt]][[script]] <<- err$message
 	  sink(type = 'output')
 	  cat("*** ERROR from", script, '***\n')

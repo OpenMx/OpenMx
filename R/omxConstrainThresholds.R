@@ -4,7 +4,7 @@ omxConstrainMLThresholds <- function(model, dist=.1) {
 	thresholdName <- expect$thresholds
     if(!is.na(thresholdName)) {
         threshData <- model$data
-        if(suppressWarnings(is.na(oneFactorJointModel$data)) || 
+        if(suppressWarnings(is.na(model$data)) || 
             threshData$type != "raw") {
             stop(paste("Raw data must be in the model for",
                 "omxConstrainThresholds to work."))
@@ -22,7 +22,8 @@ omxConstrainMLThresholds <- function(model, dist=.1) {
                         "column", i, "(", varNames[i], ")",
                         "of model", model$name))
             }
-            nThresh <- nlevels(tDats)-1
+            nThresh <- nlevels(thisColumn)-1
+            print(nThresh)
             conString <- paste0(thresholdName, "[1:",(nThresh-1), ",", i, "]", 
                                 "<", thresholdName, "[2:", nThresh, ",", i, "]")
             conName <- paste0("ThresholdConstraint",i) # FIXME: May conflict!

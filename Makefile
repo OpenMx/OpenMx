@@ -83,7 +83,10 @@ r-libs-user-dir:
 
 internal-build: build/$(TARGET)
 
-dev-doc:
+DESCRIPTION: DESCRIPTION.in
+	cat DESCRIPTION.in | sed -e "s/VERSION/$(BUILDPRE)/" | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
+
+dev-doc: DESCRIPTION
 	-./util/rox
 
 maybe-dev-doc:
@@ -92,7 +95,7 @@ maybe-dev-doc:
 build-prep: dev-doc
 	mkdir -p build
 
-code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
+code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp DESCRIPTION
 	@echo "Checking code style"
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ScopedProtect instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ScopedProtect instead."; exit 1; fi
@@ -100,7 +103,6 @@ code-style: $(RFILES) src/omxSymbolTable.h src/omxSymbolTable.cpp
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 2 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
-	cat DESCRIPTION.in | sed -e "s/VERSION/$(BUILDPRE)/" | sed -e "s/SVN/$(BUILDNO)/" > DESCRIPTION
 
 npsol-prep: code-style maybe-dev-doc
 	rm -f inst/no-npsol
@@ -121,11 +123,14 @@ no-npsol-prep: code-style maybe-dev-doc
 build/$(TARGET): npsol-prep build-prep
 	cd build; $(REXEC) CMD build ..
 
-cran-build: clean no-npsol-prep build-prep
+cran-build: no-npsol-prep build-prep
 	cd build && $(REXEC) CMD build ..
 
 cran-check: cran-build
-	$(REXEC) CMD check build/OpenMx_*.tar.gz
+	tar ztf build/OpenMx_*.tar.gz
+	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
+	wc -l OpenMx.Rcheck/00check.log
+	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 221 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 pdf: dev-doc
 	rm -rf $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
@@ -137,7 +142,7 @@ src/omxSymbolTable.h: data/omxSymbolTable.tab inst/tools/genSymbolTableHeader.R
 src/omxSymbolTable.cpp: data/omxSymbolTable.tab inst/tools/genSymbolTableSource.R
 	$(REXEC) --slave --vanilla -f inst/tools/genSymbolTableSource.R  > src/omxSymbolTable.cpp
 
-html: clean npsol-prep build-prep dev-doc
+html: npsol-prep build-prep dev-doc
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
@@ -154,19 +159,19 @@ doc.tar.bz2: html pdf
 	mv build/OpenMx.pdf build/$(BUILDPRE)-$(BUILDNO)
 	cd build && tar jcf ../doc.tar.bz2 $(BUILDPRE)-$(BUILDNO)
 
-build: clean npsol-prep build-prep
+build: npsol-prep build-prep
 	cd build; $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
-build-simple: clean npsol-prep build-prep
+build-simple: npsol-prep build-prep
 	cd build; OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build ..
 
-common-build32: clean internal-build
+common-build32: internal-build
 	cd build; $(REXEC) --arch i386 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
-common-build64: clean internal-build
+common-build64: internal-build
 	cd build; $(REXEC) --arch x86_64 CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
-common-buildppc: clean internal-build
+common-buildppc: internal-build
 	cd build; $(REXEC) --arch ppc CMD INSTALL $(BUILDARGS) --build $(TARGET)
 
 post-build:
@@ -181,7 +186,7 @@ build64: common-build64 post-build
 
 buildppc: common-buildppc post-build
 
-srcbuild: clean internal-build
+srcbuild: internal-build
 
 install: npsol-prep
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .

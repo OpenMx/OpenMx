@@ -117,7 +117,7 @@ static R_CallMethodDef callMethods[] = {
 	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
 	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
 	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
-	{"mxLog_wrapper", (DL_FUNC) &testMxLog, 1},
+	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},
 	{NULL, NULL, 0}
 };
 

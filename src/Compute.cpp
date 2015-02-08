@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <stdarg.h>
+#include <limits>
 
 //#include <iostream>
 
@@ -2785,15 +2786,27 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 
 // ------------------------------------------------------------
 
-void GradientOptimizerContext::setupIneqConstraintBounds()
+void GradientOptimizerContext::copyBounds()
 {
-	solLB.resize(fc->numParam);
-	solUB.resize(fc->numParam);
 	FreeVarGroup *varGroup = fc->varGroup;
 	for(int index = 0; index < int(fc->numParam); index++) {
 		solLB[index] = varGroup->vars[index]->lbound;
 		solUB[index] = varGroup->vars[index]->ubound;
 	}
+}
+
+void GradientOptimizerContext::setupSimpleBounds()
+{
+	solLB.resize(fc->numParam);
+	solUB.resize(fc->numParam);
+	copyBounds();
+}
+
+void GradientOptimizerContext::setupIneqConstraintBounds()
+{
+	solLB.resize(fc->numParam);
+	solUB.resize(fc->numParam);
+	copyBounds();
 
 	omxState *globalState = fc->state;
 	int eqn = 0;
@@ -2805,32 +2818,6 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 	int nineqn = globalState->ncnln - eqn;
 	equality.resize(eqn);
 	inequality.resize(nineqn);
-	if (nineqn == 0) return;
-
-	solIneqLB.derived().resize(nineqn);
-	solIneqUB.derived().resize(nineqn);
-
-	int cur=0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
-		omxConstraint &con = globalState->conList[j];
-		if (con.size == 0 || con.opCode == omxConstraint::EQUALITY) continue;
-
-		double lb, ub;
-		if (con.opCode == omxConstraint::LESS_THAN) {
-			lb = NEG_INF;
-			ub = -0.0;
-		} else {
-			lb = 0.0;
-			ub = INF;
-		}
-
-		for (int en=0; en < con.size; ++en) {
-			solIneqLB[cur+en] = lb;
-			solIneqUB[cur+en] = ub;
-		}
-
-		cur += con.size;
-	}
 };
 
 void GradientOptimizerContext::setupAllBounds()
@@ -2843,16 +2830,14 @@ void GradientOptimizerContext::setupAllBounds()
 	solLB.resize(n + globalState->ncnln);
 	solUB.resize(n + globalState->ncnln);
 
-	for(int index = 0; index < n; index++) {
-		solLB[index] = freeVarGroup->vars[index]->lbound;
-		solUB[index] = freeVarGroup->vars[index]->ubound;
-	}
+	copyBounds();
 
 	int index = n;
 	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
 		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
+		case omxConstraint::GREATER_THAN:
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				solLB[index] = NEG_INF;
 				solUB[index] = -0.0;
@@ -2863,14 +2848,6 @@ void GradientOptimizerContext::setupAllBounds()
 			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
 				solLB[index] = -0.0;
 				solUB[index] = 0.0;
-				index++;
-			}
-			break;
-		case omxConstraint::GREATER_THAN:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
-				if(OMX_DEBUG) { mxLog("\tBounds set for constraint %d.%d.", constraintIndex, offset);}
-				solLB[index] = 0.0;
-				solUB[index] = INF;
 				index++;
 			}
 			break;
@@ -2894,6 +2871,8 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	useGradient = false;
 	warmStart = false;
 	bestFit = std::numeric_limits<double>::max();
+	ineqType = omxConstraint::LESS_THAN;
+	feasible = false;
 }
 
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)
@@ -2920,9 +2899,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 	ComputeFit(optName, fitMatrix, want, fc);
 
-	if (!std::isfinite(fc->fit) || isErrorRaised()) {
+	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;
 	}
+	feasible = true;
 
 	return fc->fit;
 };
@@ -2975,7 +2955,9 @@ void GradientOptimizerContext::myineqFun()
 
 		omxRecompute(con.result, fc);
 		for(int k = 0; k < globalState->conList[j].size; k++){
-			inequality[cur] = con.result->data[k];
+			double got = con.result->data[k];
+			if (con.opCode != ineqType) got = -got;
+			inequality[cur] = got;
 			++cur;
 		}
 	}
@@ -2984,6 +2966,8 @@ void GradientOptimizerContext::myineqFun()
 double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 {
 	fc->fit = super::solFun(myPars, mode);
+
+	if (fc->outsideFeasibleSet()) return nan("infeasible");
 
 	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
 
@@ -3003,13 +2987,21 @@ double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
 		return fc->fit;
 	}
 
+	double diff = (calcLower? oCI->lbound : oCI->ubound) - fc->fit;
+	diff *= diff;
+
+	if (diff > 1e2) {
+		// Ensure there aren't any creative solutions
+		fc->fit = nan("infeasible");
+		*mode = -1;
+		return fc->fit;
+	}
+
 	if(calcLower) {
-		double diff = oCI->lbound - fc->fit;		// Offset - likelihood
-		fc->fit = diff * diff + CIElement;
+		fc->fit = diff + CIElement;
 		// Minimize element for lower bound.
 	} else {
-		double diff = oCI->ubound - fc->fit;			// Offset - likelihood
-		fc->fit = diff * diff - CIElement;
+		fc->fit = diff - CIElement;
 		// Maximize element for upper bound.
 	}
 

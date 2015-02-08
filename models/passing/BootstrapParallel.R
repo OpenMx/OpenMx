@@ -33,7 +33,7 @@
 #options(error = utils::recover)
 require(OpenMx)
 
-#mxOption(NULL, "Default optimizer", "NPSOL")
+if (mxOption(NULL, "Default optimizer") == 'NLOPT') stop("SKIP")
 
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
