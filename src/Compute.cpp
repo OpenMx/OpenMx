@@ -2907,8 +2907,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	return fc->fit;
 };
 
-// NOTE: All non-linear constraints are applied regardless of free TODO
-// variable group.  This is probably wrong. TODO
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
 void GradientOptimizerContext::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
@@ -2934,8 +2934,8 @@ void GradientOptimizerContext::solEqBFun()
 	}
 };
 
-// NOTE: All non-linear constraints are applied regardless of free TODO
-// variable group.  This is probably wrong. TODO
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
 void GradientOptimizerContext::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
