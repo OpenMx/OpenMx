@@ -99,8 +99,8 @@ Functions
 \item{\code{\link{vechs2full}}}{Inverse strict half-vectorization}
 \item{\code{\link{vec2diag}}}{Create matrix from a diagonal vector (similar to \link{diag}) }
 \item{\code{\link{diag2vec}}}{Extract diagonal from matrix (similar to \link{diag}) }
-\item{\code{\link{mexp}}}{Matrix Exponential}
-\item{\code{\link{mlog}}}{Matrix Logarithm}
+\item{\code{\link{expm}}}{Matrix Exponential}
+\item{\code{\link{logm}}}{Matrix Logarithm}
 \item{\code{\link{omxExponential}}}{Matrix Exponential}
 \item{\code{\link{omxMnor}}}{Multivariate Normal Integration}
 \item{\code{\link{omxAllInt}}}{All cells Multivariate Normal Integration}
