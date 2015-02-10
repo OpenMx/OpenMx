@@ -1,0 +1,33 @@
+library(OpenMx)
+
+dn <- paste("m",1:2, sep="")
+dataCov <- matrix(c(1,.2,.2,1.5), nrow=2, dimnames=list(dn,dn))
+dataMeans <- c(-.2, .3)
+names(dataMeans) <- dn
+
+n2 <- mxModel("normal2",
+        mxData(observed=dataCov, type="cov",
+               means=dataMeans, numObs=35),
+        mxMatrix(name="cov", "Symm", 2, 2, free=T, values = c(1, 0, 1),
+                 labels = c("var1", "cov12", "var2"), dimnames=list(dn,dn)),
+        mxMatrix(name="mean", "Full", 1, 2, free=T, labels=dn, dimnames=list(NULL,dn)),
+        mxFitFunctionML(),
+        mxExpectationNormal("cov", "mean"))
+
+plan <- mxComputeSequence(list(
+  mxComputeNewtonRaphson(),
+  mxComputeOnce('fitfunction', 'information', 'hessian'),
+  mxComputeStandardError(),
+  mxComputeHessianQuality()))
+
+for (retry in 1:2) {
+  if (retry == 2) n2 <- mxModel(n2, plan)
+  n2Fit <- mxRun(n2)
+  
+  omxCheckCloseEnough(n2Fit$output$fit, 80.866, .01)
+  omxCheckCloseEnough(n2Fit$cov$values, dataCov, 1e-4)
+  omxCheckCloseEnough(c(n2Fit$mean$values), dataMeans, 1e-4)
+  omxCheckCloseEnough(log(n2Fit$output$conditionNumber), 1.63, .1)
+  omxCheckCloseEnough(c(n2Fit$output$standardErrors),
+                      c(0.243, 0.213, 0.364, 0.169, 0.207), .01)
+}
