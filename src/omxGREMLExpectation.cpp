@@ -63,7 +63,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 	}}
   }
   {ScopedProtect p1(do_fixeff, R_do_slot(rObj, Rf_install("fixedEffects")));
-  oge->do_fixeff = INTEGER(do_fixeff);}
+  oge->do_fixeff = Rf_asInteger(do_fixeff);}
 }
 
 

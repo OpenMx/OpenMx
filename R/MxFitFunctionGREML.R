@@ -13,13 +13,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClass(Class = "MxFitFunctionGREML", contains = "MxBaseFitFunction")
+setClass(Class = "MxFitFunctionGREML", 
+         slots=c(
+           casesToDrop="integer",
+           dropNAfromV = "logical"),
+         contains = "MxBaseFitFunction")
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction') {
+          function(.Object, name = 'fitfunction', casesToDrop=integer(0), dropNAfromV=logical(0)) {
             .Object@name <- name
             .Object@vector <- FALSE
+            .Object@casesToDrop <- casesToDrop
+            .Object@dropNAfromV <- dropNAfromV
             return(.Object)
           }
 )
@@ -64,5 +70,94 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionGREML",
           function(.Object, flatModel) {return(matrix(as.double(NA), 1, 1))})
 
 
-mxFitFunctionGREML <- function() {return(new("MxFitFunctionGREML"))}
+mxFitFunctionGREML <- function(casesToDrop=integer(0), dropNAfromV=TRUE){
+  return(new("MxFitFunctionGREML",casesToDrop=casesToDrop,dropNAfromV=dropNAfromV))
+}
 
+mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dropNAfromV=TRUE){
+  
+  #Input checks:
+  dropNAfromV <- as.logical(dropNAfromV)[1]
+  addOnes <- as.logical(addOnes)[1]
+  if( !(class(model) %in% c("character","MxModel")) ){
+    stop("argument 'model' must be either a character string or an MxModel object")
+  }
+  if( !is.matrix(data) && !is.data.frame(data) ){
+    stop("argument 'data' must be either a matrix or dataframe")
+  }
+  if(!length(colnames(data))){stop("data must have column names")}
+  if( !is.list(Xdata) ){Xdata <- list(Xdata)}
+  if( !all(sapply(Xdata,is.character)) ){
+    stop("elements of argument 'Xdata' must be of type 'character' (the data column names of the covariates)")
+  }
+  if(!is.character(ydata)){
+    stop("argument 'ydata' must be of type 'character' (the data column names of the phenotypes)")
+  }
+  if(!is.character(Xname)){
+    stop("argument 'Xname' is not of type 'character' (the name for the matrix of covariates)")
+  }
+  if(!is.character(Xname)){
+    stop("argument 'yname' is not of type 'character' (the name for the column vector of phenotypes)")
+  }
+  if(length(Xdata)!=length(ydata)){
+    #In the polyphenotype case, the same covariates will often be used for all phenotypes:
+    if(length(Xdata)<length(ydata)){Xdata <- rep(Xdata,length.out=length(ydata))}
+    else{stop("conflicting number of phenotypes specified by arguments 'Xdata' and 'ydata'")}
+  }
+  
+  #Stack phenotypes:
+  y <- NULL
+  i <- 1
+  while(i <= length(ydata)){
+    y <- rbind(y,as.matrix(data[,ydata[i]]))
+    i <- i+1
+  }
+  
+  #Assemble matrix of covariates:
+  X <- NULL
+  i <- 1
+  while(i <= length(ydata)){
+    ncolprev <- ncol(X)
+    Xcurr <- as.matrix(data[ ,Xdata[[i]] ])
+    if(addOnes){Xcurr <- cbind(1,Xcurr)}
+    if(i==1){X <- Xcurr}
+    else{
+      X <- rbind(
+        cbind( X, matrix(0,nrow(X),ncol(Xcurr)) ),
+        cbind( matrix(0,nrow(Xcurr),ncol(X)), Xcurr )
+      )
+    }
+    if(length(ydata)==1){
+      if(addOnes){colnames(X) <- c("1",Xdata[[1]])}
+      else{colnames(X) <- Xdata[[1]]}
+    }
+    else{
+      if(addOnes){colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c("1",Xdata[[i]]), sep="_")}
+      else{colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c(Xdata[[i]]), sep="_")}
+    }
+    i <- i+1
+  }
+  
+  #Identify which subjects have incomplete data:
+  whichHaveNA <- which(as.logical(rowSums(is.na(cbind(y,X)))))
+  if(length(whichHaveNA)){
+    y <- as.matrix(y[-whichHaveNA,])
+    X <- as.matrix(X[-whichHaveNA,])
+  }
+  if(dropNAfromV){gff <- mxFitFunctionGREML(casesToDrop=whichHaveNA, dropNAfromV=TRUE)}
+  else{
+    gff <- mxFitFunctionGREML(dropNAfromV=FALSE)
+  }
+  
+  #Assemble MxModel to be returned:
+  model.out <- mxModel(
+      model,
+      mxData(observed = matrix(as.double(NA),1,1,dimnames = list("dummyData","dummyData")), type="raw"),
+      mxMatrix(type="Full",nrow=nrow(y),ncol=1,free=F,values=y,dimnames=list(NULL,yname),name=yname,
+               condenseSlots=T),
+      mxMatrix(type="Full",nrow=nrow(X),ncol=ncol(X),free=F,values=X,dimnames=list(NULL,colnames(X)),name=Xname,
+               condenseSlots=T),
+      gff
+  )
+  return(model.out)
+}
