@@ -27,10 +27,12 @@ struct omxGREMLFitState {
   omxMatrix* y;
   omxMatrix* X;
   omxMatrix* V;
+  std::vector< int > dropcase;
+  int numcases2drop;
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   int dVlength;
-  int* do_fixeff;
+  int do_fixeff;
   double nll;
   Eigen::MatrixXd XtVinv;
   Eigen::MatrixXd quadXinv;
@@ -52,7 +54,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     
   omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
   
-  //Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup (is this necessary?):
+  //Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup
+  //(not necessary for most compute plans):
   if(fc && gff->varGroup != fc->varGroup){
     gff->buildParamMap(fc->varGroup);
 	}
@@ -62,13 +65,20 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   int i;
   EigenMatrixAdaptor Eigy(gff->y);
   
+  //Trim out cases with missing data from V, if necessary:
+  Eigen::MatrixXd EigV(gff->y->rows, gff->y->rows); //= new Eigen::MatrixXd(gff->y->rows, gff->y->rows);
+  if( gff->numcases2drop ){
+    dropCasesAndCopyToEigen(gff->V, EigV, gff->numcases2drop, gff->dropcase);
+  }
+  else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->V), gff->V->rows, gff->V->cols);}
+  
   if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     
     //Declare local variables for this scope:
     double logdetV=0, logdetquadX=0;
     Eigen::MatrixXd Vinv, quadX;
     EigenMatrixAdaptor EigX(gff->X);
-    EigenMatrixAdaptor EigV(gff->V);
+    //EigenMatrixAdaptor EigV(gff->V);
     Eigen::LDLT< Eigen::MatrixXd > rbstcholV(gff->y->rows);
     Eigen::LDLT< Eigen::MatrixXd > rbstcholquadX(gff->X->cols);
     
@@ -88,7 +98,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     for(i=0; i < gff->y->rows; i++){
       logdetV += log(rbstcholV.vectorD()[i]);
     }
-    Vinv = rbstcholV.solve(Eigen::MatrixXd::Identity(gff->V->rows, gff->V->cols)); //<-- V inverse
+    Vinv = rbstcholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
     
     gff->XtVinv = EigX.transpose() * Vinv;
     quadX = gff->XtVinv * EigX; //<--Quadratic form in X
@@ -120,7 +130,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     //Declare local variables for this scope:
     int j=0, t1=0, t2=0;
-    Eigen::MatrixXd PdV_dtheta1, PdV_dtheta2;
+    Eigen::MatrixXd PdV_dtheta1, PdV_dtheta2;//, dV_dtheta1, dV_dtheta2;
+    Eigen::MatrixXd dV_dtheta1(gff->y->rows, gff->y->rows); //<--Derivative of V w/r/t parameter i.
+    Eigen::MatrixXd dV_dtheta2(gff->y->rows, gff->y->rows); //<--Derivative of V w/r/t parameter j.
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     
@@ -136,7 +148,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-      EigenMatrixAdaptor dV_dtheta1(gff->dV[i]); //<--Derivative of V w/r/t parameter i.
+      if( gff->numcases2drop ){
+        dropCasesAndCopyToEigen(gff->dV[i], dV_dtheta1, gff->numcases2drop, gff->dropcase);
+      }
+      else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
       PdV_dtheta1 = gff->P * dV_dtheta1;
       for(j=i; j < gff->dVlength; j++){
         if(j==i){
@@ -149,7 +164,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
         else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
           t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
           if(t2 < 0){continue;}
-          EigenMatrixAdaptor dV_dtheta2(gff->dV[j]); //<--Derivative of V w/r/t parameter j.
+          if( gff->numcases2drop ){
+            dropCasesAndCopyToEigen(gff->dV[j], dV_dtheta2, gff->numcases2drop, gff->dropcase);
+          }
+          else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
           gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * gff->P * dV_dtheta2 * gff->Py)(0,0);
           gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
     }}}}
@@ -171,7 +189,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 
 void omxInitGREMLFitFunction(omxFitFunction *oo){
   
-  if(OMX_DEBUG) { mxLog("Initializing GREML fit function."); }
+  if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   oo->computeFun = omxCallGREMLFitFunction;
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;
@@ -185,7 +203,45 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->nll = 0;
   newObj->varGroup = NULL;
   
+  if( newObj->X->rows != newObj->y->rows ){
+    Rf_error("X and y matrices do not have equal numbers of rows");
+  }
+   if( newObj->V->rows != newObj->V->cols ){
+    Rf_error("V matrix is not square");
+  }
+  
+  //Deal with missing data:
+  SEXP rObj = oo->rObj;
+  SEXP casesToDrop, do_drop;
+  int* casesToDrop_intptr;
+  int i=0;
+  newObj->numcases2drop = 0;
+  {
+  ScopedProtect p1(casesToDrop, R_do_slot(rObj, Rf_install("casesToDrop")));
+  ScopedProtect p2(do_drop, R_do_slot(rObj, Rf_install("dropNAfromV")));
+  if(Rf_length(casesToDrop) && Rf_asInteger(do_drop)){
+    if(OMX_DEBUG) { mxLog("Preparing GREML fitfunction to handle missing data."); }
+    newObj->numcases2drop = Rf_length(casesToDrop);
+    casesToDrop_intptr = INTEGER(casesToDrop);
+    newObj->dropcase.assign(newObj->V->rows,0);
+    for(i=0; i < Rf_length(casesToDrop); i++){
+      if(casesToDrop_intptr[i] >= newObj->V->rows){
+        Rf_warning("casesToDrop vector in GREML fitfunction contains indices greater than the number of observations");
+      }
+      //Need to subtract 1 from the index because R begins array indexing with 1, not 0:
+      else{newObj->dropcase[casesToDrop_intptr[i]-1] = 1;}
+  }}
+  }
+  
+  if(newObj->y->rows != newObj->V->rows - newObj->numcases2drop){
+    Rf_error("y and V matrices do not have equal numbers of rows");
+  }
+  if(newObj->X->rows != newObj->V->rows - newObj->numcases2drop){
+    Rf_error("X and V matrices do not have equal numbers of rows");
+  }
+  
   omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+  if(OMX_DEBUG) { mxLog("Beginning last steps in initializing GREML fitfunction."); }
   newObj->do_fixeff = oge->do_fixeff;
   newObj->dV = oge->dV;
   newObj->dVnames = oge->dVnames;
@@ -196,7 +252,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     oo->hessianAvailable = true;
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
   }
-  //omxRaiseErrorf("Best to stop here for now");
 }
 
 
@@ -213,7 +268,7 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
   if(gff->do_fixeff){
     EigenMatrixAdaptor Eigy(gff->y);
-	Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
+	  Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
     SEXP b_ext, bcov_ext;
     Rf_protect(b_ext = Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
     for(int row = 0; row < GREML_b.rows(); row++){
@@ -260,10 +315,58 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
 
 void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 {
+  if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
   varGroup = newVarGroup;
 	gradMap.resize(dV.size());
 	for (size_t nx=0; nx < dV.size(); ++nx) {
 		int to = varGroup->lookupVar(dVnames[nx]);
 		gradMap[nx] = to;
 	}
+}
+
+
+static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
+{
+  int index = 0;
+	if(row >= om->originalRows || col >= om->originalCols) {
+		char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
+			row + 1, col + 1, om->originalRows, om->originalCols);
+		Rf_error(errstr);
+		free(errstr);  // TODO not reached
+        return (NA_REAL);
+	}
+	if(om->colMajor) {
+		index = col * om->originalRows + row;
+	} else {
+		index = row * om->originalCols + col;
+	}
+	return om->data[index];
+}
+
+
+void dropCasesAndCopyToEigen(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){
+  
+  if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
+  
+  if(num2drop < 1){ return; }
+  
+  omxMatrixDataColumnMajor(om);
+  
+  em.setZero(om->rows - num2drop, om->cols - num2drop);
+
+	int nextCol = 0;
+	int nextRow = 0;
+  
+	for(int j = 0; j < om->cols; j++) {
+	  if(todrop[j]) continue;
+		nextRow = 0;
+		for(int k = 0; k < om->rows; k++) {
+			if(todrop[k]) continue;
+			em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j);
+			nextRow++;
+		}
+		nextCol++;
+	}
+  if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }

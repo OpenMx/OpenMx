@@ -27,9 +27,12 @@ setClass(Class = "MxExpectationGREML",
            name = "character"),
          contains = "MxBaseExpectation")
 
-
+#Since there is a small chance that furutre developers or sophisticated users might create MxExpectationGREML
+#objects with new() instead of mxExpectationGREML(), the class constructor should provide defaults for all 
+#the slots...
 setMethod("initialize", "MxExpectationGREML",
-          function(.Object, V, X, y, dV, fixedEffects, dVnames=character(0),
+          function(.Object, V=character(0), X=character(0), y=character(0), dV=character(0), 
+                   fixedEffects=TRUE, dVnames=character(0),
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
@@ -82,11 +85,14 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             .Object@X <- renameReference(.Object@X, oldname, newname)
             .Object@V <- renameReference(.Object@V, oldname, newname)
             .Object@data <- renameReference(.Object@data, oldname, newname)
-            .Object@y <- sapply(.Object@y, renameReference, oldname, newname)		
+            .Object@y <- sapply(.Object@y, renameReference, oldname, newname)
+            if(length(.Object@dV)){
+              .Object@dV <- sapply(.Object@dV, renameReference, oldname, newname)
+            }
             return(.Object)
           })
 
-mxExpectationGREML <- function(V, X, y, dV=character(0), fixedEffects=TRUE) {
+mxExpectationGREML <- function(V, X="X", y="y", dV=character(0), fixedEffects=TRUE) {
   fixedEffects <- as.logical(fixedEffects)
   if (missing(V) || typeof(V) != "character") {
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
@@ -105,29 +111,25 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
           function(.Object, flatModel, model, labelsData, defVars, dependencies) {
             modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
             name <- .Object@name
-            if(length(defVars)){stop("GREML expectation incompatible with defintion variables")}
+            if(length(defVars)){stop("definition variables are incompatible (and unnecessary) with GREML expectation",call.=F)}
             #There just needs to be something in the data slot, since the backend expects it:
             if(single.na(.Object@data)){.Object@data <- mxData(matrix(as.double(NA),1,1,dimnames = list(" "," ")), type="raw")}
             mxDataObject <- flatModel@datasets[[.Object@data]]
+            #Right now, checks on the data are unnecessary, since GREML presently does not use mxData objects...
+            #if (mxDataObject@type != "raw") {
+            #  stop("GREML expectation only compatible with raw data",call.=F)
+            #}
             dataName <- .Object@data
+            checkNumericData(mxDataObject)
+            #if(sum(sapply(mxDataObject@observed, is.factor))>0){
+            #  stop("GREML expectation not compatible with ordinal data", call.=F)
+            #}
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
-            #covName <- .Object@V
-            #covariance <- flatModel[[covName]]
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
-            #fixefName <- .Object@X
             .Object@X <- imxLocateIndex(flatModel, .Object@X, name)
             .Object@y <- imxLocateIndex(flatModel, .Object@y, name)
             if(length(.Object@dV)){
               .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
-            }
-            #mxDataObject <- flatModel@datasets[[.Object@data]]
-            #if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
-            if (mxDataObject@type != "raw") {
-              stop("GREML expectation only compatible with raw data",call.=F)
-            }
-            checkNumericData(mxDataObject)
-            if(sum(sapply(mxDataObject@observed, is.factor))>0){
-              stop("GREML expectation treats ordinal variables as continuous", call.=F)
             }
             return(.Object)
           })
