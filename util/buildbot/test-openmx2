@@ -1,16 +1,15 @@
 #!/bin/sh
-
-wd=$1
-cd $wd
-echo "cd $wd"
-shift
+echo "enter test-openmx2"
+#SBATCH --partition=standard 
+#SBATCH --time=1-12:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
 
 if [ "x$TMPDIR" != x ]; then
   export R_LIBS_USER="$TMPDIR"/R
 fi
 
-mkdir -p $(R -q  --vanilla -e 'Sys.getenv("R_LIBS_USER")' | fgrep -v '>' | cut -d '"' -f 2 | sed -e "s,~,$HOME,")
-
+echo "launching test-openmx3 $*"
 $HOME/bin/test-openmx3 $*
 
 echo $? > ../status

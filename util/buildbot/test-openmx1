@@ -1,8 +1,11 @@
 #!/bin/sh
 
-wd=$(pwd)
+echo "** loading modules"
+eval $(modulecmd sh load R gcc git)
+echo "** OK"
+
 export EXIT_STATUS=../status
 rm -f $EXIT_STATUS
-qsub -I -l select=1:ncpus=2 -l walltime=36:00:00 -- ./bin/test-openmx2 $wd $*
+srun -p standard --time=1-12:00:00 --cpus-per-task=4 --pty -u $HOME/bin/test-openmx2 $*
 status=$(cat $EXIT_STATUS)
 exit $status

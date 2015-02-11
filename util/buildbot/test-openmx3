@@ -1,35 +1,63 @@
 #!/bin/sh
 
-#set -o errexit
+test=$1  # this is the name of the builder
 
-test=$1
-#echo "test=$test"
+#set -o errexit
+echo "** begin env dump"
+env | sort
+echo "** end env dump"
+
+# Somehow lost module stuff
+#export MODULEPATH=/share/apps/modulefiles
+#export MODULESHOME=/usr/share/Modules
+#eval $(modulecmd sh load R gcc git)
+#module load R gcc git
+
+export IMX_SAFE=1
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export INSTALLMAKEFLAGS="-j $SLURM_CPUS_PER_TASK"
+export MAKEFLAGS="-j $SLURM_CPUS_PER_TASK"
 
 declare -i RESULT=0
 
-for rexec in R $HOME/R-2.14/bin/R-2.14 $HOME/R-3.0/bin/R; do
+for rexec in R ; do
+  echo "Cleaning $R_LIBS_USER"
+  rm -rf $R_LIBS_USER
+  mkdir -p $R_LIBS_USER
+  rm -f runtimes.csv
+
   $rexec --no-save <<EOF
-install.packages('mvtnorm')
-install.packages('snowfall')
+install.packages(c('digest', 'mvtnorm', 'snowfall', 'roxygen2', 'StanHeaders'))
+install.packages(c('numDeriv', 'BH'))
+install.packages('rpf')
+#install.packages('nloptr')
 EOF
   RESULT+=$?
-  REXEC=$rexec make install
+  make REXEC=$rexec install
   RESULT+=$?
 
   if [ "x$test" = xnightly ]; then
-    REXEC=$rexec make nightly
+    make REXEC=$rexec nightly
     RESULT+=$?
   elif [ "x$test" = xskip ]; then
     echo skipped test
   else
-    REXEC=$rexec make test
+    make REXEC=$rexec test
     RESULT+=$?
   fi
-done
 
-if [ "x$test" = xnightly ]; then
-  make torture
-  RESULT+=$?
-fi
+  if [ "x$test" = xnightly -a $rexec = R ]; then
+    make REXEC=$rexec torture
+    RESULT+=$?
+  fi
+  if [ "x$rexec" == xR ]; then
+    make REXEC=$rexec cran-check
+    RESULT+=$?
+  fi
+  if [ ! -s runtimes.csv ]; then
+    echo "runtimes.csv not found; aborting"
+    exit 1
+  fi
+done
 
 exit $RESULT
