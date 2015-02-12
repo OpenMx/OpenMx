@@ -2,7 +2,6 @@
 ^build
 ^support
 ^.gitignore
-^.gitattributes
 ^.dir-locals.el
 ^.gdbinit
 .*.log

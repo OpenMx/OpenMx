@@ -2,7 +2,6 @@
 ^build
 ^support
 .gitignore
-.gitattributes
 ^inst/npsol
 ^.dir-locals.el
 ^.gdbinit
