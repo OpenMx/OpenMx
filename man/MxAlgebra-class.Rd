@@ -14,6 +14,7 @@
 %   limitations under the License.
 
 \name{MxAlgebra-class}
+\alias{MxAlgebra-class}
 \alias{MxAlgebra}
 \alias{print,MxAlgebra-method}
 \alias{show,MxAlgebra-method}

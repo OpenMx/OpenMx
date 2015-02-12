@@ -17,7 +17,7 @@ mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dr
   \item{Xdata}{A list of character vectors.  The number of elements (vectors) in the list equals the number of phenotypes.  The elements of each vector (the character strings) are the column names of \code{data} to be used as covariates with the corresponding phenotype.}
   \item{ydata}{Character vector.  Each string is a column name of argument \code{data}, to be used as a phenotype.}
   \item{Xname}{Character string.  The name for the \code{\link{MxMatrix}} that \code{mxGREMLStarter()} will create, to serve as 'X' in the GREML analysis.}
-  \item{Xname}{Character string.  The name for the \code{\link{MxMatrix}} that \code{mxGREMLStarter()} will create, to serve as 'y' in the GREML analysis.}
+  \item{yname}{Character string.  The name for the \code{\link{MxMatrix}} that \code{mxGREMLStarter()} will create, to serve as 'y' in the GREML analysis.}
   \item{addOnes}{Logical; should lead columns of ones (for the regression intercepts) be adhered to the covariates when assembling the 'X' matrix?  Defaults to \code{TRUE}.}
   \item{dropNAfromV}{Logical; internally passed to \code{\link{mxFitFunctionGREML}()}.}
 }
@@ -41,5 +41,5 @@ dat <- cbind(rnorm(100),rep(1,100))
 colnames(dat) <- c("y","x")
 dat[42,1] <- NA
 dat[57,2] <- NA
-start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = F, dropNAfromV = T)
+start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = FALSE, dropNAfromV = TRUE)
 }

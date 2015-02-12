@@ -14,6 +14,7 @@
 %   limitations under the License.
 
 \name{MxData-class}
+\alias{MxData-class}
 \alias{MxData}
 \alias{MxNonNullData-class}
 \alias{print,MxNonNullData-method}
