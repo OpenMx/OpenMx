@@ -190,7 +190,7 @@ runHelper <- function(model, frontendStart,
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), output)
-	if(model$data$type=="acov"){
+	if(length(model$data) > 0 && model$data$type=="acov"){
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- wlsSEs$Cov
