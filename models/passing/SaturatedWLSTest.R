@@ -98,7 +98,7 @@ obsThr <- matrix(c(
 	2, 3, byrow=TRUE)
 dimnames(obsThr) <- list(NULL, letters[(27-nvar):26])
 
-obsWDat <- mxData(observed=obsCor, type='acov', thresholds=obsThr, acov=obsAcov, numObs=nrow(cDat))
+obsWDat <- mxData(observed=obsCor, type='acov', thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov, numObs=nrow(cDat))
 
 #------------------------------
 # Make WLS saturated model
