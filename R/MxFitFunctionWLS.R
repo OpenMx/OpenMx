@@ -135,6 +135,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 		#	if it's identified how we want, then do nothing
 		#	else throw error
 		# else throw error that WLS doesn't work for that yet.
+		job <- mxOption(job, "Calculate Hessian", "No")
+		job <- mxOption(job, "Standard Errors", "No")
 		return(job)
 })
 
@@ -223,7 +225,9 @@ imxWlsStandardErrors <- function(model){
 	W <- ginv(model$data$fullWeight)
 	dvd <- solve( t(d) %*% V %*% d )
 	nacov <- dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd
-	wls.se <- sqrt(diag(nacov))
+	wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
+	dimnames(nacov) <- list(names(theParams), names(theParams))
+	rownames(wls.se) <- names(theParams)
 	#SE is the standard errors
 	#Cov is the analog of the Hessian for WLS
 	return(list(SE=wls.se, Cov=nacov))
