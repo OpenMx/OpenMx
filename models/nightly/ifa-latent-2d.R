@@ -116,4 +116,4 @@ m3 <- mxModel("en", m2$mean, m2$cov,
                 mxComputeReportDeriv())))
 m3Fit <- mxRun(m3, silent=TRUE)
 omxCheckCloseEnough(m3Fit$output$hessian[1:2,1:2], -2 * -numPeople * Icov, .001)
-omxCheckCloseEnough(m3Fit$output$hessian[3:5,3:5], -2 * numPeople * -.5 * sigma.coef(Icov), .001)
+omxCheckCloseEnough(m3Fit$output$hessian[3:5,3:5], -2 * (numPeople-1) * -.5 * sigma.coef(Icov), .001)
