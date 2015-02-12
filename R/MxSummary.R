@@ -165,10 +165,8 @@ computeFitStatistics <- function(likelihood, DoF, numObs,
 		    is.nan(rmseaSquared)) { 
 					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 			RMSEA <- NA
-		} else if (rmseaSquared < 0) {
-			RMSEA <- 0.0
 		} else {
-			RMSEA <- sqrt(rmseaSquared)
+		  RMSEA <- ifelse(rmseaSquared < 0, 0.0, sqrt(rmseaSquared))
 			ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, numObs, .025, .975))
 			if (!inherits(ci, "try-error")) RMSEACI <- ci
 		}
@@ -180,7 +178,7 @@ catFitStatistics <- function(x) {
 	cat("CFI:", x$CFI, '\n')
 	cat("TLI:", x$TLI, '\n')
 	if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
-		cat("RMSEA: ", x$RMSEA, '*(Non-centrality parameter is negative)', '\n')
+	  cat("RMSEA:  ", x$RMSEA, " *(Non-centrality parameter is negative)", "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	} else {
 		cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	}
