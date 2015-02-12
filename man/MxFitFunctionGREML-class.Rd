@@ -2,7 +2,6 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{MxFitFunctionGREML-class}
-\alias{MxFitFunctionGREML}
 
 \title{Class \code{"MxFitFunctionGREML"}}
 \description{
@@ -24,9 +23,9 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(casesToDrop
   }
 }
 \section{Extends}{
-Class \code{"MxBaseFitFunction"}, directly.
-Class \code{"MxBaseNamed"}, by class "MxBaseFitFunction", distance 2.
-Class \code{"MxFitFunction"}, by class "MxBaseFitFunction", distance 2.
+Class \code{"\linkS4class{MxBaseFitFunction}"}, directly.
+Class \code{"\linkS4class{MxBaseNamed}"}, by class "MxBaseFitFunction", distance 2.
+Class \code{"\linkS4class{MxFitFunction}"}, by class "MxBaseFitFunction", distance 2.
 }
 \section{Methods}{
 No methods defined with class "MxFitFunctionGREML" in the signature.

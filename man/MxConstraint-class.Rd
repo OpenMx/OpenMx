@@ -14,7 +14,6 @@
 %   limitations under the License.
 
 \name{MxConstraint-class}
-\alias{MxConstraint-class}
 \alias{MxConstraint}
 
 \title{MxConstraint Class}

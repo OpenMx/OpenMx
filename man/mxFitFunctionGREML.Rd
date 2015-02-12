@@ -1,6 +1,6 @@
-\name{mxFitFunctionGREML}
-\alias{mxFitFunctionGREML}
-
+\name{mxFitFunction}
+\alias{mxFitFunction}
+%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Create MxFitFunctionGREML Object
 }
@@ -23,6 +23,9 @@ Returns a new object of class \code{\link{MxFitFunctionGREML}}.
 }
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+}
+\author{
+%%  ~~who you are~~
 }
 
 \seealso{

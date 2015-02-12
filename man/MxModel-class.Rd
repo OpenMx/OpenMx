@@ -14,7 +14,6 @@
 %   limitations under the License.
 
 \name{MxModel-class}
-\alias{MxModel-class}
 \alias{MxModel}
 \alias{$,MxModel-method}
 \alias{$<-,MxModel-method}

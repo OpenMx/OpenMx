@@ -14,7 +14,6 @@
 %   limitations under the License.
 
 \name{MxBounds-class}
-\alias{MxBounds-class}
 \alias{MxBounds}
 
 \title{MxBounds Class}

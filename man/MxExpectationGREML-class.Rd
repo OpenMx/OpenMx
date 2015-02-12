@@ -4,7 +4,7 @@
 \alias{MxExpectationGREML-class}
 \alias{MxExpectationGREML}
 
-\title{Class "MxExpectationGREML"}
+\title{Class \code{"MxExpectationGREML"}}
 \description{
 \code{MxExpectationGREML} is a type of expectation class.  It contains the necessary elements for specifying a GREML model.  For more information, see \code{\link{mxExpectationGREML}()}.
 }
@@ -30,9 +30,9 @@ Objects can be created by calls of the form \code{mxExpectationGREML(V, X, y, dV
   }
 }
 \section{Extends}{
-Class \code{"MxBaseExpectation"}, directly.
-Class \code{"MxBaseNamed"}, by class "MxBaseExpectation", distance 2.
-Class \code{"MxExpectation"}, by class "MxBaseExpectation", distance 2.
+Class \code{"\linkS4class{MxBaseExpectation}"}, directly.
+Class \code{"\linkS4class{MxBaseNamed}"}, by class "MxBaseExpectation", distance 2.
+Class \code{"\linkS4class{MxExpectation}"}, by class "MxBaseExpectation", distance 2.
 }
 \section{Methods}{
 No methods defined with class "MxExpectationGREML" in the signature.
