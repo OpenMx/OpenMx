@@ -29,7 +29,9 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	numCols <- ncol(x)
 	numColsStar <- numCols*(numCols+1)/2
 	
-	if(type=="ULS") {return(diag(1, numColsStar))}
+	if(type=="ULS") {
+		useWeight <- diag(1, numColsStar)
+	}
 	
 	x <- x - rep(colMeans(x), each=nrow(x))
 	V <- cov(x)*(numRows-1)/numRows
@@ -48,7 +50,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		for(i in 1:numColsStar){
 			U[i,i] <- 1/(sum((x[,M[i, 1]]**2) * (x[,M[i, 2]]**2)) / numRows - V[M[i, 1], M[i, 2]]**2)
 		}
-		return(U)
+		useWeight <- U
 	}
 	
 	#Step 2: Create the U MATRIX
@@ -59,7 +61,11 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		}
 	}
 	U <- vech2full(vech(U))
-	return(chol2inv(chol(U)))
+	fullWeight <- chol2inv(chol(U))
+	if(type=="WLS"){
+		useWeight <- fullWeight
+	}
+	return(list(use=useWeight, full=fullWeight))
 }
 
 
@@ -422,7 +428,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# if no ordinal variables, use continuous-only helper
 	if(nvar ==0){ #N.B. This fails for any missing data
 		wls <- wlsContinuousOnlyHelper(data, type)
-		return(mxData(cov(data), type="acov", acov=wls, numObs=n))
+		return(mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n))
 	}
 	
 	# separate ordinal and continuous variables (temporary)
