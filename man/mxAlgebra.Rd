@@ -15,6 +15,9 @@
 
 \name{mxAlgebra}
 \alias{mxAlgebra}
+\alias{p2z}
+\alias{\%&\%}
+\alias{\%^\%}
 
 \title{Create MxAlgebra Object}
 
@@ -88,7 +91,7 @@ Functions
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}
-\item{\code{p2z}}{Standard-normal quantile}
+\item{\code{p2z}}{\emph{Standard}-normal quantile}
 \item{\code{lgamma}}{Log-gamma function}
 \item{\code{\link{eigenval}}}{Eigenvalues of a square matrix. Usage: eigenval(x); eigenvec(x); ieigenval(x); ieigenvec(x)}
 \item{\code{\link{rvectorize}}}{Vectorize by row}

@@ -25,11 +25,20 @@
 \alias{dim,MxMatrix-method}
 \alias{dimnames,MxMatrix-method}
 \alias{dimnames<-,MxMatrix-method}
-\alias{imxCreateMatrix,MxMatrix-method}
-\alias{imxDeparse,MxMatrix-method}
-\alias{imxSquareMatrix,MxMatrix-method}
-\alias{imxSymmetricMatrix,MxMatrix-method}
-\alias{imxVerifyMatrix,MxMatrix-method}
+%\alias{imxCreateMatrix,MxMatrix-method}
+%\alias{imxDeparse,MxMatrix-method}
+%\alias{imxSquareMatrix,MxMatrix-method}
+%\alias{imxSymmetricMatrix,MxMatrix-method}
+%\alias{imxVerifyMatrix,MxMatrix-method}
+\alias{DiagMatrix-class}
+\alias{FullMatrix-class}
+\alias{IdenMatrix-class}
+\alias{LowerMatrix-class}
+\alias{SdiagMatrix-class}
+\alias{StandMatrix-class}
+\alias{SymmMatrix-class}
+\alias{UnitMatrix-class}
+\alias{ZeroMatrix-class}
 \alias{length,MxMatrix-method}
 \alias{names,MxMatrix-method}
 \alias{ncol,MxMatrix-method}
@@ -68,11 +77,11 @@ MxMatrix is a virtual S4 class that comprises the nine types of matrix objects u
     \item{dim}{\code{signature(x = "MxMatrix")}: ... }
     \item{dimnames}{\code{signature(x = "MxMatrix")}: ... }
     \item{dimnames<-}{\code{signature(x = "MxMatrix")}: ... }
-    \item{imxCreateMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
-    \item{imxDeparse}{\code{signature(object = "MxMatrix")}: ... }
-    \item{imxSquareMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
-    \item{imxSymmetricMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
-    \item{imxVerifyMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    %\item{imxCreateMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    %\item{imxDeparse}{\code{signature(object = "MxMatrix")}: ... }
+    %\item{imxSquareMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    %\item{imxSymmetricMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
+    %\item{imxVerifyMatrix}{\code{signature(.Object = "MxMatrix")}: ... }
     \item{length}{\code{signature(x = "MxMatrix")}: ... }
     \item{names}{\code{signature(x = "MxMatrix")}: ... }
     \item{ncol}{\code{signature(x = "MxMatrix")}: ... }
