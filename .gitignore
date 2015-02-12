@@ -1,4 +1,5 @@
 .Rhistory
+.gitattributes
 *.o
 *.so
 *.old
