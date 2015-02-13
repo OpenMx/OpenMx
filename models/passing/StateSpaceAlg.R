@@ -79,7 +79,7 @@ rownames(tx) <- paste('x', 1:xdim, sep='')
 Astart <- tA
 
 smod <- mxModel(
-	name='State Space Example',
+	name='StateSpaceExample',
 	mxMatrix(name='A', values=Astart, nrow=xdim, ncol=xdim, free=TRUE, labels='a'),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
 	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=FALSE, dimnames=list(rownames(ty), rownames(tx))),
@@ -128,8 +128,17 @@ srunC <- mxRun(smodC)
 omxCheckCloseEnough(summary(srunC)$parameters[,5:6], summary(srunA)$parameters[,5:6], epsilon=1e-8)
 
 # As a submodel
-#salg <- mxModel(smod2, model="State Space Example with Algebra for C Matrix")
-#salgr <- mxRun(salg)
+smodS <- mxModel(model="Sub", smod, mxFitFunctionAlgebra("StateSpaceExample.fitfunction"))
+srunS <- mxRun(smodS)
+
+omxCheckCloseEnough(summary(srun)$parameters[,5:6], summary(srunS)$parameters[,5:6], epsilon=1e-8)
+
+
+# Check submodel likelihood evaluation
+omxCheckCloseEnough(mxEval(Sub.fitfunction, srunS), 434.5657, epsilon=1e-3)
+
+omxCheckCloseEnough(attr(mxEval(StateSpaceExample.fitfunction, srunS), "likelihoods"), attr(srunS$StateSpaceExample.fitfunction$result, "likelihoods"), epsilon=1e-8)
+
 
 
 
