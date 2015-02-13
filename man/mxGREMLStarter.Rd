@@ -24,7 +24,7 @@ mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dr
 \details{
 In some cases, it may be simple for the user to drop rows and columns from 'V' prior to runtime.  In such cases, use \code{dropNAfromV=FALSE}.  Then, look at the \code{casesToDrop} slot of the fitfunction in the \code{\link{MxModel}} output by \code{mxGREMLStarter()}.  There, the indices of the rows and columns that need to be dropped can be found.  Since internally dropping rows and columns during runtime has a performance cost, it is recommended that it be done prior to runtime if possible.
 
-For a monophenotype analysis, argument \code{Xdata} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then code{Xdata} can be a list of length 1.
+For a monophenotype analysis (only), argument \code{Xdata} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then code{Xdata} can be a list of length 1.
 }
 \value{
 The function returns an \code{\link{MxModel}}, which contains the \code{\link{MxFitFunctionGREML}} and the two \code{\link[=MxMatrix]{MxMatrices}} to serve as 'y' and 'X.'  As of this writing, GREML analyses do not make use of \code{\link{MxData}} objects.  But, for compatibility reasons, the returned \code{\link{MxModel}} also contains a "dummy" \code{\link{MxData}} object.
