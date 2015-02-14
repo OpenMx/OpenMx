@@ -164,7 +164,6 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	double min;						// Value at lower bound
 	int lCode;						// Optimizer code at lower bound
 	int uCode;						// Optimizer code at upper bound
-	unsigned short calcLower;		// Are we currently calculating lbound?
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 };
 

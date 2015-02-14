@@ -141,4 +141,4 @@ Collate:
     'MxFitFunctionGREML.R'
     'MxExpectationGREML.R'
     'zzz.R'
-Version: VERSION-SVN
+Version: VERSION

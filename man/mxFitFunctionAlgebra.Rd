@@ -27,7 +27,7 @@
 
 \usage{
 mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
-                 NA_character_, hessian = NA_character_, verbose = 0L)
+                 NA_character_, hessian = NA_character_, verbose = 0L, units="-2lnL")
 }
 
 \arguments{
@@ -41,7 +41,8 @@ mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
    \item{hessian}{(optional) A character string indicating the name of
      an \link{MxAlgebra} object.}
    \item{verbose}{(optional An integer to increase the level of runtime
-   log output.}
+     log output.}
+   \item{units}{(optional) The units of the fit statistic.}
 }
 
 \details{

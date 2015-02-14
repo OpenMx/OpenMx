@@ -211,6 +211,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
 	oo->argStruct = (void*)newObj;
+	oo->units = FIT_UNITS_UNKNOWN;
 	
     /* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");

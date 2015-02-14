@@ -190,6 +190,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
+  oo->units = FIT_UNITS_UNKNOWN;  // should be FIT_UNITS_MINUS2LL ? TODO
   oo->computeFun = omxCallGREMLFitFunction;
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;

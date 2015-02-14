@@ -135,6 +135,11 @@ class FitContext {
 	int wanted;
 	std::vector< class FitContext* > childList;
 
+	// for confidence intervals
+	omxConfidenceInterval *CI;
+	double targetFit;
+	bool lowerBound;
+
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void createChildren();
@@ -211,6 +216,8 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
+typedef void (*ComputeFitFunctionType)(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
+
 class GradientOptimizerContext {
  private:
 	void copyBounds();
@@ -222,6 +229,7 @@ class GradientOptimizerContext {
 	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;
+	ComputeFitFunctionType cff;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;
@@ -249,26 +257,17 @@ class GradientOptimizerContext {
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
-	GradientOptimizerContext(int verbose);
+	GradientOptimizerContext(int verbose, ComputeFitFunctionType cff);
 
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
 
-	virtual double solFun(double *myPars, int* mode);
+	double solFun(double *myPars, int* mode);
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
-};
-
-struct ConfidenceIntervalFit : GradientOptimizerContext {
-	typedef GradientOptimizerContext super;
-	int currentInterval;
-	bool calcLower;
-
- 	ConfidenceIntervalFit(int verbose) : super(verbose) {};
-	virtual double solFun(double *myPars, int* mode);
 };
 
 typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);

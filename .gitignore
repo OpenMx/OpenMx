@@ -18,6 +18,7 @@
 /src/Makevars.win
 /inst/no-npsol
 /DESCRIPTION
+/R/MxVersion.R
 # The following list of roxygen built man pages is automatically updated
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
