@@ -193,14 +193,14 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
 					name, targetImprovement);
 		steepestDescent = true;
-		searchDir = fc->grad;
-		targetImprovement = searchDir.norm();
-		if (!std::isfinite(targetImprovement)) {
+		// the steepness really provides no information due to unknown curvature
+		searchDir = fc->grad / fc->grad.norm();
+		if (!std::isfinite(searchDir.norm())) {
 			fc->inform = INFORM_BAD_DERIVATIVES;
 			return;
 		}
-		if (targetImprovement / fabs(refFit) < tolerance) return;
-		//speed = std::max(speed, .1);  // expect steepestDescent
+		targetImprovement = 1;
+		speed = std::max(speed, .1);  // expect steepestDescent
 	}
 	
 	// This is based on the Goldstein test. However, we don't enforce
@@ -215,7 +215,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
-		if (scaledTarget / fabs(refFit) < tolerance) {
+		if (!steepestDescent && scaledTarget / fabs(refFit) < tolerance) {
 			trial = prevEst;
 			return;
 		}
@@ -258,7 +258,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	}
 
 	const double epsilon = .3;
-	if (speed < 1 && goodness < epsilon) {
+	if (!steepestDescent && speed < 1 && goodness < epsilon) {
 		int retries = 8;
 		while (--retries > 0) {
 			speed *= 1.5;
@@ -284,7 +284,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	if (verbose >= 3) mxLog("%s: using steepestDescent %d probes %d speed %f improved %.3g",
 				name, steepestDescent, probeCount, bestSpeed, bestImproved);
-	if (!steepestDescent) priorSpeed = bestSpeed;
+	priorSpeed = bestSpeed;
 
 	trial = prevEst - bestSpeed * searchDir;
 
