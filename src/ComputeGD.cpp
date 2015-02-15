@@ -177,7 +177,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
     
 	int beforeEval = Global->computeCount;
 
-	GradientOptimizerContext rf(verbose);
+	GradientOptimizerContext rf(verbose, ComputeFit);
 	rf.fc = fc;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
@@ -291,7 +291,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
 	// Could be smarter about setting upper & lower once instead of every attempt TODO
-	ConfidenceIntervalFit cif(verbose);
+	GradientOptimizerContext cif(verbose, ComputeCIFit);
 	cif.fitMatrix = fitMatrix;
 	cif.ControlTolerance = std::isfinite(optimalityTolerance)? optimalityTolerance : 1.0e-16;
 
@@ -337,14 +337,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 				matName = currentCI->matrix->name;
 			}
         
-			currentCI->lbound += mle->fit;          // Convert from offsets to targets
-			currentCI->ubound += mle->fit;          // Convert from offsets to targets
-        
 			for (int lower=0; lower <= 1; ++lower) {
 				if (lower  && !std::isfinite(currentCI->lbound)) continue;
 				if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
-				memcpy(fc.est, mle->est, n * sizeof(double)); // Reset to previous optimum
+				// Reset to previous optimum
+				memcpy(fc.est, mle->est, n * sizeof(double));
         
 				int tries = 0;
 				int inform = -1;
@@ -356,8 +354,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 								  lower? "lower" : "upper", tries);
 
 					cif.bestFit = std::numeric_limits<double>::max();
-					cif.currentInterval = i;
-					cif.calcLower = lower;
+					fc.CI = currentCI;
+					fc.lowerBound = lower;
+					fc.fit = mle->fit;
+					omxFitFunctionComputeCI(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, &fc);
+
 					go(fc.est, cif);
 
 					fc.copyParamToModel();
@@ -369,12 +370,14 @@ void ComputeCI::computeImpl(FitContext *mle)
 						if (lower) currentCI->min = val;
 						else       currentCI->max = val;
 						bestFit = fitOut;
+						if (verbose >= 1) mxLog("CI[%d,%d] bestFit %f bound %f",
+									i, lower,bestFit, val);
 					}
 
 					inform = cif.informOut;
 					if (lower) currentCI->lCode = inform;
 					else       currentCI->uCode = inform;
-					if(verbose>=1) { mxLog("inform(%d,%d) is: %d", i, lower, inform);}
+					if(verbose>=1) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
 					if(inform == 0) break;
 
 					bool jitter = TRUE;

@@ -61,6 +61,18 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionGREML", &omxInitGREMLFitFunction, defaultSetFreeVarGroup},
 };
 
+void omxFitFunction::setUnitsFromName(const char *name)
+{
+	if (strEQ(name, "-2lnL")) {
+		units = FIT_UNITS_MINUS2LL;
+		ciFun = loglikelihoodCIFun;
+	} else {
+		Rf_warning("Unknown units '%s' passed to fit function '%s'",
+			   name, matrix->name);
+		units = FIT_UNITS_UNKNOWN;
+	}
+}
+
 void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
     
@@ -92,6 +104,45 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 	if (fc) fc->wanted |= want;
 }
 
+void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc)
+{
+	if (want & (FF_COMPUTE_DIMS | FF_COMPUTE_INITIAL_FIT)) return;
+
+	if (!off->initialized) Rf_error("FitFunction not initialized");
+
+	off->ciFun(off, want, fc);
+	if (fc) fc->wanted |= want;
+}
+
+static double totalLogLikelihood(omxMatrix *fitMat)
+{
+	if (fitMat->rows != 1) {
+		omxFitFunction *ff = fitMat->fitFunction;
+		if (strEQ(ff->fitType, "MxFitFunctionML") || strEQ(ff->fitType, "imxFitFunctionFIML")) {
+			// NOTE: Floating-point addition is not
+			// associative. If we compute this in parallel
+			// then we introduce non-determinancy.
+			double sum = 0;
+			for(int i = 0; i < fitMat->rows; i++) {
+				sum += log(omxVectorElement(fitMat, i));
+			}
+			if (!Global->rowLikelihoodsWarning) {
+				Rf_warning("%s does not evaluate to a 1x1 matrix. Fixing model by adding "
+					   "mxAlgebra(-2*sum(log(%s)), 'm2ll'), mxFitFunctionAlgebra('m2ll')",
+					   fitMat->name, fitMat->name);
+				Global->rowLikelihoodsWarning = true;
+			}
+			return sum * Global->llScale;
+		} else {
+			omxRaiseErrorf("%s of type %s returned %d values instead of 1, not sure how to proceed",
+				       fitMat->name, ff->fitType, fitMat->rows);
+			return nan("unknown");
+		}
+	} else {
+		return fitMat->data[0];
+	}
+}
+
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;
@@ -117,30 +168,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		omxRecompute(fitMat, fc);
 	}
 	if (doFit) {
-		if (fitMat->rows != 1) {
-			if (strEQ(ff->fitType, "MxFitFunctionML") || strEQ(ff->fitType, "imxFitFunctionFIML")) {
-				// NOTE: Floating-point addition is not
-				// associative. If we compute this in parallel
-				// then we introduce non-determinancy.
-				double sum = 0;
-				for(int i = 0; i < fitMat->rows; i++) {
-					sum += log(omxVectorElement(fitMat, i));
-				}
-				fc->fit = sum * Global->llScale;
-				if (!Global->rowLikelihoodsWarning) {
-					Rf_warning("%s does not evaluate to a 1x1 matrix. Fixing model by adding "
-						   "mxAlgebra(-2*sum(log(%s)), 'm2ll'), mxFitFunctionAlgebra('m2ll')",
-						   fitMat->name, fitMat->name);
-					Global->rowLikelihoodsWarning = true;
-				}
-			} else {
-				omxRaiseErrorf("%s of type %s returned %d values instead of 1, not sure how to proceed",
-					       fitMat->name, ff->fitType, fitMat->rows);
-				fc->fit = nan("unknown");
-			}
-		} else {
-			fc->fit = fitMat->data[0];
-		}
+		fc->fit = totalLogLikelihood(fitMat);
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();
 		}
@@ -243,6 +271,11 @@ void omxChangeFitType(omxFitFunction *oo, const char *fitType)
 	Rf_error("Cannot find fit type '%s'", fitType);
 }
 
+static void defaultCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc)
+{
+	Rf_error("Confidence intervals are not supported for units %d", oo->units);
+}
+
 void omxCompleteFitFunction(omxMatrix *om)
 {
 	omxFitFunction *obj = om->fitFunction;
@@ -256,6 +289,7 @@ void omxCompleteFitFunction(omxMatrix *om)
 	obj->initFun(obj);
 
 	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 
+	if(obj->ciFun == NULL) obj->ciFun = defaultCIFun;
 	
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
@@ -280,3 +314,78 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	return newMatrix;
 }
 
+void ComputeCIFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
+{
+	bool doFit = want & FF_COMPUTE_FIT;
+	R_CheckUserInterrupt();
+
+#pragma omp atomic
+	++Global->computeCount; // could avoid lock by keeping in FitContext
+
+	// old version of openmp can't do this as part of the atomic instruction
+	int evaluation = Global->computeCount;
+
+	if (doFit) {
+		if (OMX_DEBUG) {
+			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
+		}
+		Global->checkpointPrefit(callerName, fc, fc->est, false);
+	}
+
+	omxFitFunction *ff = fitMat->fitFunction;
+	if (!ff) Rf_error("CIs cannot be computed for unitless algebra");
+	omxFitFunctionComputeCI(ff, want, fc);
+
+	if (doFit) {
+		if (fitMat->rows != 1) Rf_error("CI fit matrix must be 1x1");
+		fc->fit = fitMat->data[0];
+		if (std::isfinite(fc->fit)) fc->resetIterationError();
+		Global->checkpointPostfit(fc);
+		if (OMX_DEBUG) {
+			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name, evaluation, fc->fit);
+		}
+	}
+}
+
+void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
+{
+	const omxConfidenceInterval *CI = fc->CI;
+
+	if (want & FF_COMPUTE_PREOPTIMIZE) {
+		fc->targetFit = (fc->lowerBound? CI->lbound : CI->ubound) + fc->fit;
+		return;
+	}
+
+	if (!(want & FF_COMPUTE_FIT)) {
+		Rf_error("Not implemented yet");
+	}
+
+	omxFitFunctionCompute(ff, want, fc);
+	omxRecompute(CI->matrix, fc);
+	double CIElement = omxMatrixElement(CI->matrix, CI->row, CI->col);
+	omxMatrix *fitMat = ff->matrix;
+	omxResizeMatrix(fitMat, 1, 1);  // may differ if row-wise likelihoods are enabled
+
+	if (!std::isfinite(fitMat->data[0]) || !std::isfinite(CIElement)) {
+		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+		fitMat->data[0] = nan("infeasible");
+		return;
+	}
+
+	if (want & FF_COMPUTE_FIT) {
+		double fit = totalLogLikelihood(fitMat);
+		double diff = fc->targetFit - fit;
+		diff *= diff;
+
+		if (diff > 1e2) {
+			// Ensure there aren't any creative solutions
+			fitMat->data[0] = nan("infeasible");
+			return;
+		}
+
+		fitMat->data[0] = diff + (fc->lowerBound? CIElement : -CIElement);
+	}
+	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+		// add deriv adjustments here TODO
+	}
+}

@@ -234,6 +234,11 @@ void omxInitAlgebraFitFunction(omxFitFunction* off)
 	Rf_protect(newptr = R_do_slot(rObj, Rf_install("algebra")));
 	aff->algebra = omxMatrixLookupFromState1(newptr, currentState);
 
+	{
+		ScopedProtect p1(newptr, R_do_slot(rObj, Rf_install("units")));
+		off->setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
+	}
+
 	Rf_protect(newptr = R_do_slot(rObj, Rf_install("gradient")));
 	aff->gradient = omxMatrixLookupFromState1(newptr, currentState);
 	if (aff->gradient) off->gradientAvailable = TRUE;

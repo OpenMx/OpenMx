@@ -34,7 +34,7 @@ mxFitFunctionRow returns an MxFitFunctionRow object.
 \usage{
 mxFitFunctionRow(rowAlgebra, reduceAlgebra, dimnames,
    rowResults = "rowResults", filteredDataRow = "filteredDataRow",
-   existenceVector = "existenceVector")
+   existenceVector = "existenceVector", units="-2lnL")
 }
 
 
@@ -45,6 +45,7 @@ mxFitFunctionRow(rowAlgebra, reduceAlgebra, dimnames,
    \item{rowResults}{The name of the auto-generated "rowResults" matrix.  See details.}
    \item{filteredDataRow}{The name of the auto-generated "filteredDataRow" matrix. See details.}
    \item{existenceVector}{The name of the auto-generated "existenceVector" matrix. See details.}
+   \item{units}{(optional) The units of the fit statistic.}
 }
 
 \details{

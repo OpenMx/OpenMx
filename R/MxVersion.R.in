@@ -13,18 +13,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+gitVersion <- "GIT_VERSION"
+
 mxVersion <- function (model=NULL, verbose=TRUE) {
     pvers <- try(packageVersion("OpenMx"))
     if ("try-error" %in% class(pvers)) {
-        pvers = NA
+        pvers = gitVersion
     }
 	if(verbose){
-	    if ("try-error" %in% class(pvers)) {
-			msg = paste("OpenMx version: unknown - please report this to http://openmx.psyc.virginia.edu/forums", sep="")
-	    }else{
-			msg = paste("OpenMx version: ", pvers, sep="")
-	    }
-
+		msg = paste("OpenMx version: ", pvers, " [GIT ", gitVersion, "]", sep="")
 		msg = paste(msg, "\nR version: ", version$version.string, sep="")
 		msg = paste(msg, "\nPlatform: ", version$platform, sep="")
 
