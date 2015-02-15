@@ -113,17 +113,23 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             name <- .Object@name
             if(length(defVars)){stop("definition variables are incompatible (and unnecessary) with GREML expectation",call.=F)}
             #There just needs to be something in the data slot, since the backend expects it:
-            if(single.na(.Object@data)){.Object@data <- mxData(matrix(as.double(NA),1,1,dimnames = list(" "," ")), type="raw")}
+            if(is.na(.Object@data)){
+              msg <- paste("the GREML expectation function",
+                           "does not have a dataset associated with it in model",
+                           omxQuotes(modelname),
+                           "\nthe model just needs to contain an arbitrary MxData object")
+              stop(msg, call. = FALSE)
+            }
             mxDataObject <- flatModel@datasets[[.Object@data]]
-            #Right now, checks on the data are unnecessary, since GREML presently does not use mxData objects...
+            checkNumericData(mxDataObject)
+            #Right now, most checks on the data are unnecessary, since GREML presently ignores mxData objects...
             #if (mxDataObject@type != "raw") {
             #  stop("GREML expectation only compatible with raw data",call.=F)
             #}
-            dataName <- .Object@data
-            checkNumericData(mxDataObject)
             #if(sum(sapply(mxDataObject@observed, is.factor))>0){
             #  stop("GREML expectation not compatible with ordinal data", call.=F)
             #}
+            dataName <- .Object@data
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
             .Object@X <- imxLocateIndex(flatModel, .Object@X, name)
