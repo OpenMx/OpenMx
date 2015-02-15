@@ -85,6 +85,8 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
     
 	omxMatrix* V = oge->V;
 	omxRecompute(V, NULL);
+  
+  Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->rows));
 }
 
 
