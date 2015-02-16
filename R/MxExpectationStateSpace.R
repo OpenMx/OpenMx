@@ -459,3 +459,86 @@ setMethod("show", "MxExpectationStateSpace", function(object) {
 })
 
 
+#--------------------------------------------------------------------
+KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, const){
+	x <- A %*% x + B %*% u
+	P <- A %*% P %*% t(A) + Q
+	x.pred <- x
+	P.pred <- P
+	
+	r <- y - (C %*% x + D %*% u)
+	S <- C %*% P %*% t(C) + R
+	Sinv <- solve(S)
+	K <- P %*% t(C) %*% Sinv
+	x <- x + K %*% r
+	P <- P - K %*% C %*% P
+	x.upda <- x
+	P.upda <- P
+	
+	m2ll <- log(det(S)) + t(r) %*% Sinv %*% r + const
+	
+	return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.upda, P.upda=P.upda, m2ll=m2ll, L=exp(m2ll/-2) ))
+}
+
+mxKalmanScores <- function(model, data=NA){
+	message("Computing Kalman scores in frontend R.  This may take a few seconds.")
+	if(single.na(data)) {
+		#TODO check that data are raw
+		data <- model@data@observed
+	}
+	if(any(is.na(data))){
+		stop("Missing data handling for Kalman scores is not yet implemented.")
+	}
+	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
+	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
+	X.pred <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
+	X.upda <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
+	X.pred[1,] <- x0
+	X.upda[1,] <- x0
+	P.pred <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
+	P.upda <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
+	P.pred[1,,] <- P0
+	P.upda[1,,] <- P0
+	m2ll <- numeric(nrow(data)+1)
+	m2ll[1] <- 0
+	L <- numeric(nrow(data)+1)
+	L[1] <- 1
+	const <- ncol(data)*log(2*pi)
+	for(i in 1:nrow(data)){
+		A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i)
+		B <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i)
+		C <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i)
+		D <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i)
+		Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i)
+		R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i)
+		u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i)
+		
+		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,])), u=u, P=P.upda[i,,], const=const)
+		X.pred[i+1,] <- res$x.pred
+		X.upda[i+1,] <- res$x.upda
+		P.pred[i+1,,] <- res$P.pred
+		P.upda[i+1,,] <- res$P.upda
+		m2ll[i+1] <- res$m2ll
+		L[i+1] <- res$L
+	}
+	X.smoo <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
+	X.smoo[nrow(data)+1,] <- X.upda[nrow(data)+1, ]
+	P.smoo <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
+	P.smoo[nrow(data)+1,,] <- P.upda[nrow(data)+1,,]
+	for(i in nrow(data):1){
+		A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i)
+		SGain <- P.upda[i,,] %*% A %*% solve(P.pred[i+1,,])
+		X.smoo[i,] <- matrix(X.upda[i,]) + SGain %*% matrix(X.smoo[i+1,] - X.pred[i+1,])
+		P.smoo[i,,] <- P.upda[i,,] + SGain %*% (P.smoo[i+1,,] - P.pred[i+1,,]) %*% t(SGain)
+	}
+	
+	return(list(xPredicted=X.pred, PPredicted=P.pred, xUpdated=X.upda, PUpdated=P.upda, xSmoothed=X.smoo, PSmoothed=P.smoo, m2ll=m2ll, L=L))
+}
+
+
+#a <- Sys.time(); res <- mxKalmanScores(srun); b <- Sys.time()
+
+
+#res <- mxKalmanScores(srun)
+
+
