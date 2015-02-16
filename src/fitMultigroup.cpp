@@ -109,6 +109,7 @@ void initFitMultigroup(omxFitFunction *oo)
 	oo->destructFun = mgDestroy;
 	oo->setVarGroup = mgSetFreeVarGroup;
 	oo->addOutput = mgAddOutput;
+	oo->units = FIT_UNITS_UNINITIALIZED;
 
 	if (!oo->argStruct) oo->argStruct = new FitMultigroup;
 	FitMultigroup *mg = (FitMultigroup *) oo->argStruct;
@@ -147,6 +148,14 @@ void initFitMultigroup(omxFitFunction *oo)
 			omxCompleteFitFunction(mat);
 			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
+			if (oo->units == FIT_UNITS_UNINITIALIZED) {
+				oo->units = mat->fitFunction->units;
+				oo->ciFun = mat->fitFunction->ciFun;
+			} else if (oo->units != mat->fitFunction->units) {
+				Rf_error("%s: cannot combine units %d and %d (from %s)",
+					 oo->matrix->name,
+					 oo->units, mat->fitFunction->units, mat->name);
+			}
 		} else {
 			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;

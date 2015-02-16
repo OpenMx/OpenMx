@@ -17,6 +17,7 @@
 setClass(Class = "MxFitFunctionAlgebra",
 	representation = representation(
 		algebra = "MxCharOrNumber",
+	    units = "character",
 		numObs = "numeric",
 		numStats = "numeric",
 	    gradient = "MxCharOrNumber",
@@ -25,9 +26,10 @@ setClass(Class = "MxFitFunctionAlgebra",
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionAlgebra",
-	function(.Object, algebra, numObs, numStats, gradient, hessian, verbose, name = 'fitfunction') {
+	function(.Object, algebra, units, numObs, numStats, gradient, hessian, verbose, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@algebra <- algebra
+		.Object@units <- units
 		.Object@numObs <- numObs
 		.Object@numStats <- numStats
 		.Object@gradient <- gradient
@@ -102,7 +104,7 @@ setMethod("generateReferenceModels", "MxFitFunctionAlgebra",
 
 mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 				 gradient=NA_character_, hessian=NA_character_,
-				 verbose=0L)
+				 verbose=0L, units="-2lnL")
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -120,12 +122,13 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 	if (single.na(numStats)) {
 		numStats <- as.numeric(NA)
 	}
-	return(new("MxFitFunctionAlgebra", algebra, numObs, numStats, gradient, hessian, verbose))
+	return(new("MxFitFunctionAlgebra", algebra, units, numObs, numStats, gradient, hessian, verbose))
 }
 
 displayMxFitFunctionAlgebra <- function(fitfunction) {
 	cat("MxFitFunctionAlgebra", omxQuotes(fitfunction@name), '\n')
 	cat("$algebra: ", omxQuotes(fitfunction@algebra), '\n')	
+	cat("$units: ", omxQuotes(fitfunction@units), '\n')	
 	cat("$numObs: ", fitfunction@numObs, '\n')
 	cat("$numStats: ", fitfunction@numStats, '\n')
 	if (length(fitfunction@result) == 0) {

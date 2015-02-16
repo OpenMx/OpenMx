@@ -20,26 +20,26 @@ setClass(Class = "MxExpectationGREML",
            y = "MxCharOrNumber",
            dV = "MxCharOrNumber",
            dVnames = "character",
-           fixedEffects = "logical",
+           numFixEff = "integer",
            dims = "character",
            definitionVars = "list",
            numStats = "numeric",
            name = "character"),
          contains = "MxBaseExpectation")
 
-#Since there is a small chance that furutre developers or sophisticated users might create MxExpectationGREML
+#Since there is a small chance that future developers or sophisticated users might create MxExpectationGREML
 #objects with new() instead of mxExpectationGREML(), the class constructor should provide defaults for all 
 #the slots...
 setMethod("initialize", "MxExpectationGREML",
           function(.Object, V=character(0), X=character(0), y=character(0), dV=character(0), 
-                   fixedEffects=TRUE, dVnames=character(0),
+                   dVnames=character(0),
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
             .Object@X <- X
             .Object@y <- y
             .Object@dV <- dV
-            .Object@fixedEffects <- fixedEffects
+            .Object@numFixEff <- integer(0)
             .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@dims <- "foo"
@@ -66,6 +66,7 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
 setMethod("genericExpDependencies", signature("MxExpectationGREML"),
           function(.Object, dependencies) {
             sources <- c(.Object@V)
+            sources <- c(.Object@y)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -92,8 +93,7 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             return(.Object)
           })
 
-mxExpectationGREML <- function(V, X="X", y="y", dV=character(0), fixedEffects=TRUE) {
-  fixedEffects <- as.logical(fixedEffects)
+mxExpectationGREML <- function(V, X="X", y="y", dV=character(0)){
   if (missing(V) || typeof(V) != "character") {
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
   }
@@ -103,7 +103,7 @@ mxExpectationGREML <- function(V, X="X", y="y", dV=character(0), fixedEffects=TR
   if ( missing(y) || typeof(y) != "character" ) {
     stop("argument 'y' is not of type 'character'")
   }
-  return(new("MxExpectationGREML", V, X, y, dV, fixedEffects))
+  return(new("MxExpectationGREML", V, X, y, dV))
 }
 
 
@@ -113,17 +113,28 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             name <- .Object@name
             if(length(defVars)){stop("definition variables are incompatible (and unnecessary) with GREML expectation",call.=F)}
             #There just needs to be something in the data slot, since the backend expects it:
-            if(single.na(.Object@data)){.Object@data <- mxData(matrix(as.double(NA),1,1,dimnames = list(" "," ")), type="raw")}
+            if(is.na(.Object@data)){
+              msg <- paste("the GREML expectation function",
+                           "does not have a dataset associated with it in model",
+                           omxQuotes(modelname),
+                           "\nthe model just needs to contain an arbitrary MxData object")
+              stop(msg, call. = FALSE)
+            }
             mxDataObject <- flatModel@datasets[[.Object@data]]
-            #Right now, checks on the data are unnecessary, since GREML presently does not use mxData objects...
+            checkNumericData(mxDataObject)
+            if(!is.null(mxDataObject$numObs)){mxDataObject$numObs <- 0}
+            #Get number of observed statistics BEFORE call to backend, so summary() can use it:
+            .Object@numStats <- nrow(mxEvalByName(.Object@y,model,T))
+            #Also get number of fixed effects:
+            .Object@numFixEff <- ncol(mxEvalByName(.Object@X,model,T))
+            #Right now, most checks on the data are unnecessary, since GREML presently ignores mxData objects...
             #if (mxDataObject@type != "raw") {
             #  stop("GREML expectation only compatible with raw data",call.=F)
             #}
-            dataName <- .Object@data
-            checkNumericData(mxDataObject)
             #if(sum(sapply(mxDataObject@observed, is.factor))>0){
             #  stop("GREML expectation not compatible with ordinal data", call.=F)
             #}
+            dataName <- .Object@data
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
             .Object@X <- imxLocateIndex(flatModel, .Object@X, name)

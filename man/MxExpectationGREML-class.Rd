@@ -18,10 +18,10 @@ Objects can be created by calls of the form \code{mxExpectationGREML(V, X, y, dV
     \item{\code{y}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the 'y' vector.}
     \item{\code{dV}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the derivatives of 'V' with respect to free parameters.}
     \item{\code{dVnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dV}}
-    \item{\code{fixedEffects}:}{Logical; should fixed effects be computed?}
+    \item{\code{numFixEff}:}{Integer number of covariates in 'X.'}
     \item{\code{dims}:}{Object of class \code{"character"}.}
     \item{\code{definitionVars}:}{Object of class \code{"list"}.}
-    \item{\code{numStats}:}{Object of class \code{"numeric"}.}
+    \item{\code{numStats}:}{Numeric; number of observed statistics.}
     \item{\code{name}:}{Object of class \code{"character"}.}
     \item{\code{data}:}{Object of class \code{"MxCharOrNumber"}.}
     \item{\code{submodels}:}{Object of class \code{"MxOptionalCharOrNumber"}.}

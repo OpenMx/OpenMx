@@ -2857,8 +2857,8 @@ void GradientOptimizerContext::setupAllBounds()
 	}
 }
 
-GradientOptimizerContext::GradientOptimizerContext(int verbose)
-	: verbose(verbose)
+GradientOptimizerContext::GradientOptimizerContext(int verbose, ComputeFitFunctionType cff)
+	: verbose(verbose), cff(cff)
 {
 	optName = "?";
 	fc = NULL;
@@ -2897,18 +2897,19 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
-	ComputeFit(optName, fitMatrix, want, fc);
+	cff(optName, fitMatrix, want, fc);
 
 	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;
+	} else {
+		feasible = true;
 	}
-	feasible = true;
 
 	return fc->fit;
 };
 
-// NOTE: All non-linear constraints are applied regardless of free TODO
-// variable group.  This is probably wrong. TODO
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
 void GradientOptimizerContext::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
@@ -2934,8 +2935,8 @@ void GradientOptimizerContext::solEqBFun()
 	}
 };
 
-// NOTE: All non-linear constraints are applied regardless of free TODO
-// variable group.  This is probably wrong. TODO
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
 void GradientOptimizerContext::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
@@ -2961,53 +2962,4 @@ void GradientOptimizerContext::myineqFun()
 			++cur;
 		}
 	}
-};
-
-double ConfidenceIntervalFit::solFun(double *myPars, int* mode)
-{
-	fc->fit = super::solFun(myPars, mode);
-
-	if (fc->outsideFeasibleSet()) return nan("infeasible");
-
-	omxConfidenceInterval *oCI = Global->intervalList[currentInterval];
-
-	omxRecompute(oCI->matrix, fc);
-
-	double CIElement = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-
-	if(verbose >= 2) {
-		mxLog("Finding Confidence Interval Likelihoods: lbound is %f, ubound is %f, estimate likelihood is %f, and element current value is %f.",
-		      oCI->lbound, oCI->ubound, fc->fit, CIElement);
-	}
-
-	/* Catch boundary-passing condition */
-	if(std::isnan(CIElement) || std::isinf(CIElement)) {
-		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-		// should return NaN? TODO
-		return fc->fit;
-	}
-
-	double diff = (calcLower? oCI->lbound : oCI->ubound) - fc->fit;
-	diff *= diff;
-
-	if (diff > 1e2) {
-		// Ensure there aren't any creative solutions
-		fc->fit = nan("infeasible");
-		*mode = -1;
-		return fc->fit;
-	}
-
-	if(calcLower) {
-		fc->fit = diff + CIElement;
-		// Minimize element for lower bound.
-	} else {
-		fc->fit = diff - CIElement;
-		// Maximize element for upper bound.
-	}
-
-	if(verbose >= 2) {
-		mxLog("Interval fit function in previous iteration was calculated to be %f.", fc->fit);
-	}
-
-	return fc->fit;
 };

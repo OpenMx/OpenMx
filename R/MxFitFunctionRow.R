@@ -18,6 +18,7 @@ setClass(Class = "MxFitFunctionRow",
 	representation = representation(
 		rowAlgebra = "MxCharOrNumber",
 		rowResults = "MxCharOrNumber",
+	    units = "character",
 		filteredDataRow = "MxCharOrNumber",
 		existenceVector = "MxCharOrNumber",
 		reduceAlgebra = "MxCharOrNumber",
@@ -29,12 +30,13 @@ setClass(Class = "MxFitFunctionRow",
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionRow",
-	function(.Object, rowAlgebra, rowResults, filteredDataRow, 
+	function(.Object, rowAlgebra, rowResults, units, filteredDataRow, 
 		existenceVector, reduceAlgebra, dims,
 		data = as.integer(NA), definitionVars = list(), name = 'fitfunction') {
 		.Object@name <- name
 		.Object@rowAlgebra <- rowAlgebra
 		.Object@rowResults <- rowResults
+		.Object@units <- units
 		.Object@reduceAlgebra <- reduceAlgebra
 		.Object@filteredDataRow <- filteredDataRow
 		.Object@existenceVector <- existenceVector
@@ -270,7 +272,7 @@ checkStringArgument <- function(arg, name) {
 }
 
 mxFitFunctionRow <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults", 
-	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector") {
+	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector", units="-2lnL") {
 	if (missing(rowAlgebra) || typeof(rowAlgebra) != "character") {
 		stop("the 'rowAlgebra' argument is not a string (the name of the row-by-row algebra)")
 	}
@@ -286,7 +288,8 @@ mxFitFunctionRow <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "
 	rowResults <- checkStringArgument(rowResults, "rowResults")
 	filteredDataRow <- checkStringArgument(filteredDataRow, "filteredDataRow")
 	existenceVector <- checkStringArgument(existenceVector, "existenceVector")
-	return(new("MxFitFunctionRow", rowAlgebra, rowResults, filteredDataRow, existenceVector, reduceAlgebra, dimnames))
+	return(new("MxFitFunctionRow", rowAlgebra, rowResults, units,
+		   filteredDataRow, existenceVector, reduceAlgebra, dimnames))
 }
 
 printSlot <- function(object, slotName) {
@@ -302,6 +305,7 @@ printSlot <- function(object, slotName) {
 displayRowFitFunction <- function(fitfunction) {
 	cat("MxFitFunctionRow", omxQuotes(fitfunction@name), '\n')
 	cat("$rowAlgebra :", omxQuotes(fitfunction@rowAlgebra), '\n')
+	cat("$units: ", omxQuotes(fitfunction@units), '\n')
 	printSlot(fitfunction, "rowResults")
 	printSlot(fitfunction, "filteredDataRow")
 	printSlot(fitfunction, "existenceVector")

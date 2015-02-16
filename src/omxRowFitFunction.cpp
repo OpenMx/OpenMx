@@ -241,6 +241,11 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	}
 	}
 
+	{
+		ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("units")));
+		oo->setUnitsFromName(CHAR(STRING_ELT(nextMatrix, 0)));
+	}
+
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("filteredDataRow")));
 	newObj->filteredDataRow = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	}

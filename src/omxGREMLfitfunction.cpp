@@ -32,7 +32,6 @@ struct omxGREMLFitState {
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   int dVlength;
-  int do_fixeff;
   double nll;
   Eigen::MatrixXd XtVinv;
   Eigen::MatrixXd quadXinv;
@@ -66,7 +65,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   EigenMatrixAdaptor Eigy(gff->y);
   
   //Trim out cases with missing data from V, if necessary:
-  Eigen::MatrixXd EigV(gff->y->rows, gff->y->rows); //= new Eigen::MatrixXd(gff->y->rows, gff->y->rows);
+  Eigen::MatrixXd EigV(gff->y->rows, gff->y->rows);
   if( gff->numcases2drop ){
     dropCasesAndCopyToEigen(gff->V, EigV, gff->numcases2drop, gff->dropcase);
   }
@@ -190,6 +189,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
+  oo->units = FIT_UNITS_UNKNOWN;  // should be FIT_UNITS_MINUS2LL ? TODO
   oo->computeFun = omxCallGREMLFitFunction;
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;
@@ -240,9 +240,14 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     Rf_error("X and V matrices do not have equal numbers of rows");
   }
   
+  //Tell the frontend fitfunction counterpart how many observations there are:
+  SEXP nval;
+  ScopedProtect p3(nval, R_do_slot(rObj, Rf_install("numObs")));
+  int* numobs = INTEGER(nval);
+  numobs[0] = newObj->y->rows;
+  
   omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
   if(OMX_DEBUG) { mxLog("Beginning last steps in initializing GREML fitfunction."); }
-  newObj->do_fixeff = oge->do_fixeff;
   newObj->dV = oge->dV;
   newObj->dVnames = oge->dVnames;
   newObj->dVlength = oge->dVlength;
@@ -265,25 +270,25 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
+
   omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
-  if(gff->do_fixeff){
-    EigenMatrixAdaptor Eigy(gff->y);
-	  Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
-    SEXP b_ext, bcov_ext;
-    Rf_protect(b_ext = Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
-    for(int row = 0; row < GREML_b.rows(); row++){
-  			REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
-    }
   
-  	Rf_protect(bcov_ext = Rf_allocMatrix(REALSXP, gff->quadXinv.rows(), gff->quadXinv.cols()));
-    for(int row = 0; row < gff->quadXinv.rows(); row++){
-		  for(int col = 0; col < gff->quadXinv.cols(); col++){
-			  REAL(bcov_ext)[col * gff->quadXinv.rows() + row] = gff->quadXinv(row,col);
-		}}
-  
-  	Rf_setAttrib(algebra, Rf_install("b"), b_ext);
-  	Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
+  EigenMatrixAdaptor Eigy(gff->y);
+  Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
+  SEXP b_ext, bcov_ext;
+  Rf_protect(b_ext = Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
+  for(int row = 0; row < GREML_b.rows(); row++){
+    REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
   }
+  
+  Rf_protect(bcov_ext = Rf_allocMatrix(REALSXP, gff->quadXinv.rows(), gff->quadXinv.cols()));
+  for(int row = 0; row < gff->quadXinv.rows(); row++){
+    for(int col = 0; col < gff->quadXinv.cols(); col++){
+      REAL(bcov_ext)[col * gff->quadXinv.rows() + row] = gff->quadXinv(row,col);
+    }}
+    
+  Rf_setAttrib(algebra, Rf_install("b"), b_ext);
+  Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
 }
 
 //Alternate way to do fixed effects using QR solve:
