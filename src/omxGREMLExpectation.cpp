@@ -22,7 +22,7 @@
 void omxInitGREMLExpectation(omxExpectation* ox){
   
   SEXP rObj = ox->rObj;
-  SEXP do_fixeff, dV, dVnames;
+  SEXP dV, dVnames;
   int i=0;
   omxState* currentState = ox->currentState;
   
@@ -62,14 +62,13 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 			oge->dVnames[i] = CHAR(elem);}
 	}}
   }
-  {ScopedProtect p1(do_fixeff, R_do_slot(rObj, Rf_install("fixedEffects")));
-  oge->do_fixeff = Rf_asInteger(do_fixeff);}
 }
 
 
 void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) {
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
 	omxRecompute(oge->V, NULL);
+  omxRecompute(oge->y, NULL);
 }
 
 
@@ -82,11 +81,9 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
-    
-	omxMatrix* V = oge->V;
-	omxRecompute(V, NULL);
   
   Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->rows));
+  Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
 }
 
 

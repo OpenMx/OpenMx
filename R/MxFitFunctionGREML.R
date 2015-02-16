@@ -16,7 +16,8 @@
 setClass(Class = "MxFitFunctionGREML", 
          slots=c(
            casesToDrop="integer",
-           dropNAfromV = "logical"),
+           dropNAfromV = "logical",
+           numObs = "integer"),
          contains = "MxBaseFitFunction")
 
 
@@ -24,6 +25,7 @@ setMethod("initialize", "MxFitFunctionGREML",
           function(.Object, name = 'fitfunction', casesToDrop=integer(0), dropNAfromV=logical(0)) {
             .Object@name <- name
             .Object@vector <- FALSE
+            .Object@numObs <- 0L
             .Object@casesToDrop <- casesToDrop
             .Object@dropNAfromV <- dropNAfromV
             return(.Object)
@@ -181,8 +183,10 @@ mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addO
     warning(msg)
     dummydata <- NULL
   }
-  else{dummydata <- 
+  else{
+    dummydata <- 
          mxData(observed = matrix(as.double(NA),1,1,dimnames = list("dummyData","dummyData")), type="raw")
+    dummydata@numObs <- 0
   }
   
   #Assemble MxModel to be returned:

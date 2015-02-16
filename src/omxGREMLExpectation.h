@@ -21,7 +21,6 @@
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   int dVlength;
-  int do_fixeff;
 } omxGREMLExpectation;
 
 void omxInitGREMLExpectation(omxExpectation* ox);

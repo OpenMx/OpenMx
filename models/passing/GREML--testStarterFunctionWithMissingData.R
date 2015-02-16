@@ -9,7 +9,7 @@ start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = F, d
 
 testmod <- mxModel(
   start,
-  mxExpectationGREML(V="V",X="X",y="y",fixedEffects = T),
+  mxExpectationGREML(V="V",X="X",y="y"),
   mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
   mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
   mxAlgebra(I %x% Ve,name="V")
@@ -23,7 +23,12 @@ omxCheckCloseEnough(testrun$fitfunction$info$b,
                     mean(dat[-testrun$fitfunction$casesToDrop,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun$fitfunction$info$bcov,
                     var(dat[-testrun$fitfunction$casesToDrop,1])/98,epsilon=10^-5)
-omxCheckEquals(testrun$expectation$numStats,98)
+
+testrunsumm <- summary(testrun)
+omxCheckEquals(testrunsumm$numObs,98)
+omxCheckEquals(testrunsumm$estimatedParameters,2)
+omxCheckEquals(testrunsumm$observedStatistics,98)
+omxCheckEquals(testrunsumm$degreesOfFreedom,96)
 
 
 plan <- mxComputeSequence(steps=list(
@@ -36,7 +41,7 @@ plan <- mxComputeSequence(steps=list(
 testmod2 <- mxModel(
   start,
   plan,
-  mxExpectationGREML(V="V",X="X",y="y",dV = c(ve="I"),fixedEffects = T),
+  mxExpectationGREML(V="V",X="X",y="y",dV = c(ve="I")),
   mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
   mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
   mxAlgebra(I %x% Ve,name="V")
@@ -51,7 +56,12 @@ omxCheckCloseEnough(testrun2$fitfunction$info$b,
 omxCheckCloseEnough(testrun2$fitfunction$info$bcov,
                     var(dat[-testrun$fitfunction$casesToDrop,1])/98,epsilon=10^-5)
 omxCheckCloseEnough(testrun2$output$standardErrors[1],sqrt((2*testrun2$output$estimate^2)/98),epsilon=10^-3)
-omxCheckEquals(testrun2$expectation$numStats,98)
+
+testrun2summ <- summary(testrun2)
+omxCheckEquals(testrun2summ$numObs,98)
+omxCheckEquals(testrun2summ$estimatedParameters,2)
+omxCheckEquals(testrun2summ$observedStatistics,98)
+omxCheckEquals(testrun2summ$degreesOfFreedom,96)
 
 
 
