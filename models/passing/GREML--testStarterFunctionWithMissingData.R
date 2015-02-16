@@ -6,6 +6,8 @@ colnames(dat) <- c("y","x")
 dat[42,1] <- NA
 dat[57,2] <- NA
 start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = F, dropNAfromV = T)
+omxCheckEquals(colnames(start$y),"y")
+omxCheckEquals(colnames(start$X),"x")
 
 testmod <- mxModel(
   start,

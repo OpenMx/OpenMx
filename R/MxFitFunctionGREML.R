@@ -159,11 +159,16 @@ mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addO
     warning("resulting 'X' matrix has some redundant column names; is it full rank?")
   }
   
+  y.colnames <- colnames(y)
+  X.colnames <- colnames(X)
+  
   #Identify which subjects have incomplete data:
   whichHaveNA <- which(as.logical(rowSums(is.na(cbind(y,X)))))
   if(length(whichHaveNA)){
     y <- as.matrix(y[-whichHaveNA,])
+    colnames(y) <- y.colnames
     X <- as.matrix(X[-whichHaveNA,])
+    colnames(X) <- X.colnames
   }
   if( ("MxModel" %in% class(model)) && !is.null(model$fitfunction) ){
     msg <- paste("not adding MxFitFunctionGREML because model '",model$name,"' already contains a fitfunction",
