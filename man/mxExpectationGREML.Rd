@@ -8,7 +8,7 @@ Create MxExpectationGREML Object
 This function creates a new \code{\link{MxExpectationGREML}} object.
 }
 \usage{
-mxExpectationGREML(V, X="X", y="y", dV=character(0), fixedEffects=TRUE)
+mxExpectationGREML(V, X="X", y="y", dV=character(0))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -16,7 +16,6 @@ mxExpectationGREML(V, X="X", y="y", dV=character(0), fixedEffects=TRUE)
   \item{X}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the 'X' matrix (the matrix of fixed covariates).}
   \item{y}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the 'y' matrix (the vector of phenotypic observations).}
   \item{dV}{Vector of character strings; defaults to a character vector of length zero.  If a value of non-zero length is provided, it must be a \emph{named} character vector.  This vector's names must be the labels of free parameters in the model.  The vector's elements (i.e., the character strings themselves) must be the names of \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s), each of which equals the first partial derivatives of the 'V' matrix with respect to the corresponding free parameter.}
-  \item{fixedEffects}{Logical; should fixed-effects regression coefficients and their standard errors be computed?  Defaults to \code{TRUE}.  As of this writing, these results for the regression coefficients are stored post-\link[=mxRun]{run} in the \code{info} slot of the \code{\link{MxFitFunctionGREML}} object.}
 }
 \details{
 "GREML" stands for "genomic-relatedness-matrix restricted maximum-likelihood."  In the strictest sense of the term, it refers to genetic variance-component estimation from matrices of subjects' pairwise degree of genetic relatedness, as calculated from genome-wide marker data.  It is from this original motivation that some of the terminology originates, such as calling 'y' the "phenotype" vector.  However, OpenMx's implementation of GREML is applicable for analyses from any subject-matter domain, and in which the following assumptions are reasonable:
@@ -32,7 +31,7 @@ It is necessary that the 'y,' 'X,' and 'V' matrices have the same number or rows
 
 Internally, the 'V' matrix is assumed to be symmetric, and the values in its upper triangle (excluding the main diagonal) are ignored.
 
-Making effective use of argument \code{dV} will usually require a custom \code{link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' (2) neither 'X' nor 'y' depend upon free parameters, and (3) the model contains no \code{\link{MxConstraint}}s.
+Making effective use of argument \code{dV} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' (2) neither 'X' nor 'y' depend upon free parameters, and (3) the model contains no \code{\link{MxConstraint}}s.
 }
 \value{
 Returns a new object of class \code{\link{MxExpectationGREML}}.

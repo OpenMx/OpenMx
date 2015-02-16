@@ -21,6 +21,7 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(casesToDrop
     \item{\code{vector}:}{Object of class \code{"logical"}.}
     \item{\code{result}:}{Object of class \code{"matrix"}.}
     \item{\code{name}:}{Object of class \code{"character"}.}
+    \item{\code{numObs}:}{Integer number of observations in the analysis.}
   }
 }
 \section{Extends}{
