@@ -6,13 +6,15 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
+NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
+
 # Uncomment the following lines to turn on debugging output in the backend
 # DEBUG_CXXFLAGS+=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ALGEBRA             # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # DEBUG_CXXFLAGS+=-DDEBUGMX_MATRIX              # turn on matrix debugging
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
-# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 -fno-inline -O0 -fmax-errors=1  # basic debugging without extra logging
-# DEBUG_CXXFLAGS+=-fno-omit-frame-pointer -fno-inline  # oprofile
+# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=1  # basic debugging without extra logging
+# DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
 
 # To collect gcov statistics (gcc only)
 ifeq ($(IMX_GCOV),1)
