@@ -6,6 +6,10 @@
 #include <stdbool.h>
 #include "matrix.h"
 #include "omxCsolnp.h"
+#include <iostream>
+#include <iomanip>
+using std::cout;
+using std::endl;
 
 struct CSOLNP {
 
@@ -595,29 +599,45 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
     }
     
-    
     Matrix pb;
-    Matrix col1_pb;
+    Eigen::MatrixXd pb_e;
+    Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
+    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);
     
     if(nineq) {
-	    pb = fill(2, nineq, (double)0.0);
-	    Eigen::Map< Eigen::MatrixXd > pbE(pb.t, pb.rows, pb.cols);
-	    pbE.col(1) = Eigen::VectorXd::Constant(pb.rows, INF);
-            Matrix pb_cont = fill(2, np, (double)0.0);
-            setColumnInplace(pb_cont, LB, 0);
-            setColumnInplace(pb_cont, UB, 1);
-            
-            pb = transpose(copy(transpose(pb), transpose(pb_cont)));//MAHSA
+        pb = new_matrix(2, nineq + np);
+        pb_e.setZero(nineq, 2);
+        pb_e.col(1) = Eigen::VectorXd::Constant(pb_e.rows(), INF);
+        Eigen::MatrixXd pb_cont_e;
+        pb_cont_e.setZero(np, 2);
+        pb_cont_e.col(0) = LB_e;
+        pb_cont_e.col(1) = UB_e;
+        pb_e.transposeInPlace();
+        pb_cont_e.transposeInPlace();
+        if (verbose == 3){
+            cout << "pb_e:\n" << pb_e << endl;
+            cout << "pb_cont_e:\n" << pb_cont_e << endl;
+        }
+        Eigen::MatrixXd pbJoined(2, nineq + np);
+        pbJoined << pb_e, pb_cont_e;
+        pbJoined.transposeInPlace();
+        if (verbose == 3){
+            cout << "pbJoined:\n" << pbJoined << endl;
+        }
+        pb_e.resize(pbJoined.rows(), pbJoined.cols());
+        pb_e = pbJoined;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
+        
     } else {
-            pb = fill(2, np, (double)0.0);
-            setColumnInplace(pb, LB, 0);
-            setColumnInplace(pb, UB, 1);
-            
+        pb = fill(2, np, (double)0.0);
+        pb_e.setZero(np, 2);
+        pb_e.col(0) = LB_e;
+        pb_e.col(1) = UB_e;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pb_e.rows(), pb_e.cols()) = pb_e;
     }
     
     if (verbose >= 3){
-        mxLog("pb is: \n");
-        for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
+        cout<< "pb_e is: \n" << pb_e<< endl;
     }
     
     Eigen::Array<double, 3, 1> sob;
@@ -625,25 +645,26 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     //Matrix yyMatrix = duplicateIt(yy);
     
+    //Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
+    Eigen::Map< Eigen::RowVectorXd > vscale_e(vscale.t, vscale.cols);
+    //ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
     divideEigen(ob, subset(vscale, 0, 0, nc));
-    
-    divideEigen(p0, subset(vscale, 0, (neq+1), (nc + np)));
+    Eigen::Map< Eigen::RowVectorXd > p0_e(p0.t, p0.cols);
+    p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
     
     if (verbose >= 3){
-        mxLog("p0_1 is: \n");
-        for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
+        cout<< "p0_e: \n"<< p0_e<< endl;
+        cout<< "vscale_e: \n"<< vscale_e<< endl;
     }
     
     int mm = 0;
     {
-            mm=npic;
-        Matrix vscaleSubset = subset(vscale, 0, neq+1, neq+mm);
-        //double vscaleSubsetLength = (neq+mm) - (neq+1) + 1;
-        Matrix vscaleTwice = fill(pb.cols, pb.rows, (double)0.0);
-        setColumnInplace(vscaleTwice, vscaleSubset, 0);
-        setColumnInplace(vscaleTwice, vscaleSubset, 1);
-        
-	divideEigen(pb, vscaleTwice);
+        mm=npic;
+        Eigen::MatrixXd pbCopied;
+        pbCopied.setZero(pb.rows, pb.cols);
+        pbCopied.col(0) = vscale_e.block(0, neq + 1, 1, mm).transpose();
+        pbCopied.col(1) = vscale_e.block(0, neq + 1, 1, mm).transpose();
+        pb_e = pb_e.cwiseQuotient(pbCopied);
     }
     
     if (verbose >= 3){
@@ -651,24 +672,28 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
     }
     
+    Eigen::Map < Eigen::MatrixXd > yy_e(yy.t, yy.rows, yy.cols);
     // scale the lagrange multipliers and the Hessian
     if( nc > 0) {
         // yy [total constraints = nineq + neq]
         // scale here is [tc] and dot multiplied by yy
         //yy = vscale[ 2:(nc + 1) ] * yy / vscale[ 1 ]
-        Matrix result = transpose(subset(vscale, 0, 1, nc));
-        multiplyEigen(result, yy);
-        yy = duplicateIt(result);
-        divideByScalar2D(yy, M(vscale, 0, 0));
+        
+        yy_e = vscale_e.block(0, 1, 1, nc).transpose().array() * yy_e.array();
+        yy_e = yy_e / vscale_e[0];
+        if (verbose >= 3){
+            cout << "yy_e:\n" << yy_e << endl;
+        }
     }
     
     // hessv [ (np+nineq) x (np+nineq) ]
     // hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
-    Matrix vscaleSubset = subset(vscale, 0, (neq+1), (nc + np));
-    transposeDP(vscaleSubset);
-    multiplyEigen(hessv, vscaleSubset);
-    divideByScalar2D(hessv, M(vscale, 0, 0));
+    Eigen::Map < Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
+    Eigen::MatrixXd result_e;
+    result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
+    hessv_e = hessv_e.cwiseProduct(result_e);
+    hessv_e = hessv_e / vscale_e[0];
     
     j = M(ob, 0, 0);
     if (verbose >= 3){

@@ -20,6 +20,18 @@
 /DESCRIPTION
 /R/MxVersion.R
 # The following list of roxygen built man pages is automatically updated
+man/MxCharOrList-class.Rd
+man/MxCharOrNumber-class.Rd
+man/MxFlatModel.Rd
+man/MxLISRELModel-class.Rd
+man/MxListOrNull-class.Rd
+man/MxOptionalChar-class.Rd
+man/MxOptionalCharOrNumber-class.Rd
+man/MxOptionalLogical-class.Rd
+man/MxOptionalMatrix-class.Rd
+man/MxOptionalNumeric-class.Rd
+man/MxRAMModel-class.Rd
+man/OpenMx.Rd
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
 man/imxAddDependency.Rd
@@ -45,10 +57,10 @@ man/imxExtractSlot.Rd
 man/imxFilterDefinitionVariables.Rd
 man/imxFlattenModel.Rd
 man/imxFreezeModel.Rd
+man/imxGenSwift.Rd
 man/imxGenerateLabels.Rd
 man/imxGenerateNamespace.Rd
 man/imxGenericModelBuilder.Rd
-man/imxGenSwift.Rd
 man/imxGetSlotDisplayNames.Rd
 man/imxHasNPSOL.Rd
 man/imxIdentifier.Rd
@@ -86,8 +98,6 @@ man/imxVerifyModel.Rd
 man/imxVerifyName.Rd
 man/imxVerifyReference.Rd
 man/logm.Rd
-man/MxCharOrList-class.Rd
-man/MxCharOrNumber-class.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeEM.Rd
 man/mxComputeGradientDescent.Rd
@@ -102,17 +112,7 @@ man/mxComputeSequence.Rd
 man/mxComputeStandardError.Rd
 man/mxDataDynamic.Rd
 man/mxExpectationBA81.Rd
-man/MxFlatModel.Rd
-man/MxLISRELModel-class.Rd
-man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
-man/MxOptionalChar-class.Rd
-man/MxOptionalCharOrNumber-class.Rd
-man/MxOptionalLogical-class.Rd
-man/MxOptionalMatrix-class.Rd
-man/MxOptionalNumeric-class.Rd
-man/MxRAMModel-class.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/omxCheckCloseEnough.Rd
-man/OpenMx.Rd
