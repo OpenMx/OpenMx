@@ -111,4 +111,7 @@ summary(m3sRun) #runs in approx 60 seconds on my machine
 mplusParam <- c(3.677, 3.731, 3.706, .978, 1.070, 1.248, 1.769, 1.868, 1.510, 1.039, 1.091, .107, .025, .058, .037)
 omxCheckCloseEnough(omxGetParameters(m3sRun), mplusParam, 0.001)
 
+#Also check standard errors
+mplusSE <- c(.073, .082, .080, .040, .044, .074, .063, .063, .065, .234, .228, .042, .019, .026, .023)
+omxCheckCloseEnough(summary(m3sRun)$parameters[,6], mplusSE, 0.001)
 
