@@ -16,7 +16,14 @@ setMethod("initialize", "MxFitFunctionMultigroup",
 setMethod("genericFitDependencies", signature("MxFitFunctionMultigroup"),
 	function(.Object, flatModel, dependencies) {
 	dependencies <- callNextMethod()
-	dependencies <- imxAddDependency(.Object@groups, .Object@name, dependencies)
+	groups <- vapply(.Object@groups, function(group) {
+		path <- unlist(strsplit(group, imxSeparatorChar, fixed = TRUE))
+		if (length(path) == 1) {
+			group <- paste(path, "fitfunction", sep=".")
+		}
+		group
+	}, "")
+	dependencies <- imxAddDependency(groups, .Object@name, dependencies)
 	return(dependencies)
 })
 
