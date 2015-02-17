@@ -182,10 +182,21 @@ mxCheckIdentification <- function(model, details=TRUE){
   param <- omxGetParameters(model)
   paramNames <- names(param)
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-  cov <- imxGetExpectationComponent(model, 'covariance')
-  mns <- imxGetExpectationComponent(model, 'means')
-  thr <- imxGetExpectationComponent(model, 'thresholds')
-  sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+  if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+    submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+    sparam <- c()
+    for(amod in submNames){
+      cov <- imxGetExpectationComponent(model[[amod]], 'covariance')
+      mns <- imxGetExpectationComponent(model[[amod]], 'means')
+      thr <- imxGetExpectationComponent(model[[amod]], 'thresholds')
+      sparam <- c(sparam, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+    }
+  } else {
+    cov <- imxGetExpectationComponent(model, 'covariance')
+    mns <- imxGetExpectationComponent(model, 'means')
+    thr <- imxGetExpectationComponent(model, 'thresholds')
+    sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+  }
   return(sparam)
 }
 
