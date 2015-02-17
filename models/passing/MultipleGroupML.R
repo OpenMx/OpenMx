@@ -42,3 +42,19 @@ model <- mxModel("both", alg, obj, model1, model2)
 model <- mxRun(model, suppressWarnings = TRUE)
 
 omxCheckCloseEnough(model$output$estimate, c(1, 2), 0.001)
+
+# Also use the multigroup fit function
+mft <- mxFitFunctionMultigroup(c("model1", "model2"))
+mgmodel <- mxModel("mgboth", mft, model1, model2)
+mgmodel <- mxRun(mgmodel, suppressWarnings = TRUE)
+
+#check estimates
+omxCheckCloseEnough(omxGetParameters(model), omxGetParameters(mgmodel), 1e-3)
+
+#check standard errors
+omxCheckCloseEnough(summary(model)$parameters[,6], summary(mgmodel)$parameters[,6], 1e-3)
+
+mgmodel$output$hessian
+mgmodel$output$calculatedHessian
+mgmodel$output$hessianCholesky
+
