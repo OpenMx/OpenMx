@@ -179,6 +179,9 @@ mxCheckIdentification <- function(model, details=TRUE){
 }
 
 .mat2param <- function(x, model){
+  if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+    stop("Multigroup model identification is not yet implemented.")
+  }
   param <- omxGetParameters(model)
   paramNames <- names(param)
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
