@@ -233,4 +233,24 @@ struct Matrix qrDecomposition(struct Matrix t, bool rDecomp);
 
 void rowSort(struct Matrix t);
 
+template <typename T2>
+void rowSort_e(Eigen::MatrixBase<T2>& mat)
+{
+    int r, i, j;
+    for ( r = 0; r < mat.rows(); r++ )
+    {
+        for ( i = 0; i < mat.cols(); i++ )
+        {
+            for ( j = 0; j < mat.cols(); j++ )
+            {
+                if (mat(r, i) < mat(r, j)){
+                    double a = mat(r, i);
+                    mat(r, i) = mat(r, j);
+                    mat(r, j) = a;
+                }
+            }
+        }
+    }
+}
+
 #endif

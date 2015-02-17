@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "matrix.h"
 #include "omxCsolnp.h"
+#include <Eigen/Dense>
 #include <iostream>
 #include <iomanip>
 using std::cout;
@@ -766,14 +767,16 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     }
 
     Matrix g = fill(npic, 1, (double)0.0);
+    Eigen::Map< Eigen::RowVectorXd > g_e(g.t, g.cols);
     Matrix p = subset(p0, 0, 0, (npic-1));
+    Eigen::Map< Eigen::RowVectorXd > p_e(p.t, p.cols);
     
     Matrix dx;
     Matrix b;
+    Eigen::MatrixXd b_e;
     double funv;
     Matrix eqv(fit.equality);
     Matrix ineqv(fit.inequality);
-    Matrix tmpv;
     Matrix constraint;
     Matrix gap;
     
@@ -782,60 +785,75 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     int minit;
     double lambdaValue = lambda;
     
+    Eigen::MatrixXd constraint_e(1, nc);
+    Eigen::MatrixXd y_e;
+    
     if (nc > 0) {
-        constraint = subset(ob, 0, 1, nc);
+        constraint_e = ob_e.block(0, 1, 1, nc);
+        Matrix constraint = new_matrix(nc, 1);
+        Eigen::Map< Eigen::MatrixXd > (constraint.t, constraint_e.rows(), constraint_e.cols()) = constraint_e;
         
         for (int i=0; i<np; i++){
             int index = nineq + i;
             M(p0, index, 0) = M(p0, index, 0) + delta;
-            Matrix tmpv = subset(p0, 0, nineq, (npic-1));
-            multiplyEigen(tmpv, subset(vscale, 0, (nc+1), (nc+np)));
-            
+            Eigen::MatrixXd tmpv_e;
+            tmpv_e = p0_e.block(0, nineq, 1, npic - nineq);
+            tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
+            Matrix tmpv = new_matrix(1, npic - nineq);
+            Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
             if (verbose >= 2){
                 mxLog("7th call is \n");
             }
-	    mode = 0;
             funv = fit.solFun(tmpv.t, &mode);
             
             fit.solEqBFun();
             fit.myineqFun();
             
             solnp_nfn = solnp_nfn + 1;
-            Matrix firstPart;
-            Matrix firstPartt;
-            Matrix secondPart;
+            
+            Eigen::MatrixXd firstPart_e;
+            
+            Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
+            Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
+            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
             
             if (nineq){
                 if(eqv.cols)
                 {
-                    firstPartt = copy(fill(1, 1, funv), eqv);
-                    firstPart = copy(firstPartt, ineqv);
+                    firstPart_e.resize(1, funv_e.size()+ eqv_e.size()+ ineqv_e.size());
+                    firstPart_e << funv_e, eqv_e, ineqv_e;
                 }
                 else{
-                    firstPart = copy(fill(1, 1, funv), ineqv);
+                    firstPart_e.resize(1, funv_e.size() + ineqv_e.size());
+                    firstPart_e << funv_e, ineqv_e;
                 }
             }
             else if (eqv.cols){
-                firstPart = copy(fill(1, 1, funv), eqv);
+                firstPart_e.resize(1, funv_e.size() + eqv_e.size());
+                firstPart_e << funv_e, eqv_e;
             }
-            else firstPart = fill(1, 1, funv);
-            secondPart = subset(vscale, 0, 0, nc);
-            divideEigen(firstPart, secondPart);
-            ob = duplicateIt(firstPart);
+            else
+            {
+                firstPart_e.resize(1, funv_e.size());
+                firstPart_e << funv_e;
+            }
+            Eigen::RowVectorXd secondPart_e;
+            secondPart_e = vscale_e.block(0, 0, 1, nc+1);
+            firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+            ob_e = firstPart_e;
             
-            M(g, index, 0) = (M(ob, 0, 0)-j) / delta;
+            M(g, index, 0) = (ob_e(0, 0)-j) / delta;
             
             if (verbose >= 3){
                 mxLog("g is: \n");
                 for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
                 mxLog("a is: \n");
-                for (int ilog = 0; ilog < a.cols; ilog++) mxLog("%f",a.t[ilog]);
+                for (int ilog = 0; ilog < a.cols * a.rows; ilog++) mxLog("%f",a.t[ilog]);
                 
             }
-            Matrix colValues = subset(ob, 0, 1, nc);
-            subtractEigen(colValues, constraint);
-            divideByScalar2D(colValues, delta);
-            setColumnInplace(a, colValues, index);
+            
+            a_e.col(index) = (ob_e.block(0, 1, 1, nc) - constraint_e).transpose() / delta;
+            Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
             M(p0, index, 0) = M(p0, index, 0) - delta;
         } // end for (int i=0; i<np, i++){
         
@@ -848,11 +866,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         if(ind[indHasIneq] > 0){
             //constraint[ (neq + 1):(neq + nineq) ] = constraint[ (neq + 1):(neq + nineq) ] - p0[ 1:nineq ]
             Matrix firstPart, secondPart;
-            firstPart  = subset(constraint, 0, neq, (neq+nineq-1));
-            secondPart = subset(p0, 0, 0, (nineq-1));
-            subtractEigen(firstPart, secondPart);
-            copyIntoInplace(constraint, firstPart, 0, neq, (neq+nineq-1));
-            
+            constraint_e.block(0, neq, 1, nineq) = (constraint_e.block(0, neq, 1, nineq) - p0_e.block(0, 0, 1, nineq)).block(0, 0, 1, nineq);
+            Eigen::Map< Eigen::MatrixXd > (constraint.t, constraint_e.rows(), constraint_e.cols()) = constraint_e;
         }
         
         if (false && solvecond(a) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
@@ -860,14 +875,13 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                      "Remove redundant constraints and re-OPTIMIZE.");
         }
         
-        //b = fill(nc, 1, (double)0.0);
-        
-        b = transpose(timess(a, transpose(p0)));
+        b_e = (a_e * p0_e.transpose()).transpose();
         //  b [nc,1]
-        subtractEigen(b, constraint);
-        
+        b_e -= constraint_e;
+        b = new_matrix(b_e.cols(), b_e.rows());
+        Eigen::Map< Eigen::MatrixXd > (b.t, b_e.rows(), b_e.cols()) = b_e;
         ch = -1;
-        alp[0] = tol - matrixMaxAbs(constraint);
+        alp[0] = tol - constraint_e.cwiseAbs().maxCoeff();
         if (alp[0] <= 0){
             
             ch = 1;
@@ -876,81 +890,91 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         
         if (alp[0] <= 0){
             int npic_int = npic;
+            Eigen::RowVectorXd onesMatrix_e;
+            onesMatrix_e.setOnes(1, 1);
+            Eigen::RowVectorXd p0_e_copy = p0_e;
             p0 = copy(p0, fill(1, 1, (double)1.0));
-            
-            multiplyByScalar2D(constraint, -1.0);
-            a = copy(a, transpose(constraint));
-            Matrix cx = copy(fill(npic, 1, (double)0.0), fill(1, 1, (double)1.0));
-            
-            dx = fill(1, npic+1, (double)1.0);
-            
+            new (&p0_e) Eigen::Map<Eigen::RowVectorXd>(p0.t, p0.rows, p0.cols);
+            p0_e.resize(p0_e_copy.rows(), p0_e_copy.cols() + onesMatrix_e.cols());
+            p0_e << p0_e_copy, onesMatrix_e;
+            constraint_e *= (-1.0);
+            Eigen::Map< Eigen::MatrixXd > (constraint.t, constraint_e.rows(), constraint_e.cols()) = constraint_e;
+            Eigen::MatrixXd a_e_copy = a_e;
+            a_e.resize(a_e.rows(), a_e.cols() + constraint_e.transpose().cols());
+            a_e << a_e_copy, constraint_e.transpose();
+            a = new_matrix(a_e.cols(), a_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
+            Eigen::MatrixXd firstMatrix_e(1, npic);
+            firstMatrix_e.setZero();
+            Eigen::MatrixXd cx_e(firstMatrix_e.rows(), firstMatrix_e.cols() + onesMatrix_e.cols());
+            cx_e << firstMatrix_e, onesMatrix_e;
+            Matrix cx = new_matrix(cx_e.cols(), cx_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (cx.t, cx_e.rows(), cx_e.cols()) = cx_e;
+            Eigen::MatrixXd dx_e(npic + 1, 1);
+            dx_e.setOnes();
+            dx = new_matrix(dx_e.cols(), dx_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (dx.t, dx_e.rows(), dx_e.cols()) = dx_e;
             go = 1;
             minit = 0;
             
             while(go >= tol)
             {
                 minit = minit + 1;
-                gap = fill(2, mm, (double)0.0);
-                Matrix result = subset(p0, 0, 0, mm-1);
-                subtractEigen(result, getColumn(pb, 0));
-                setColumnInplace(gap, result, 0);
-                Matrix result1 = getColumn(pb, 1);
-                subtractEigen(result1, subset(p0, 0, 0, mm-1));
-                setColumnInplace(gap, result1, 1);
-                rowSort(gap);
-                Matrix dx_t = transpose(dx);
-                copyInto(dx_t, getColumn(gap,0), 0, 0, mm-1);
-                dx = duplicateIt(dx_t);
-                
-                M(dx, npic_int, 0) = M(p0, npic_int, 0);
-                
-                dx = transpose(dx);
-                
-                Matrix argum1 = transpose(timess(a, transpose(diag(dx))));
-                
-                Matrix argum2 = duplicateIt(dx);
-                multiplyEigen(argum2, transpose(cx));
-                
-                
-                Matrix y = QRdsolve(argum1, argum2);
-                
-                Matrix t_cx = transpose(cx);
-                subtractEigen(t_cx, timess(transpose(a),y));
-                Matrix dx_copy = duplicateIt(dx);//MAHSA
-                multiplyEigen(dx_copy, t_cx);
-                multiplyEigen(dx, dx_copy);
-                Matrix v = transpose(dx);//MAHSA
-                
+                Eigen::MatrixXd gap_e(mm, 2);
+                gap_e.setZero();
+                gap_e.col(0) = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
+                gap_e.col(1) = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(1);
+                rowSort_e(gap_e);
+                gap = new_matrix(2, mm);
+                Eigen::Map< Eigen::MatrixXd > (gap.t, gap_e.rows(), gap_e.cols()) = gap_e;
+                dx_e.transpose().block(0, 0, 1, mm) = gap_e.col(0).transpose().block(0, 0, 1, mm);
+                dx_e(npic_int, 0) = p0_e(0, npic_int);
+                Eigen::MatrixXd argum1_e;
+                argum1_e = a_e * dx_e.asDiagonal();
+                argum1_e.transposeInPlace();
+                Eigen::MatrixXd argum2_e;
+                argum2_e = cx_e.asDiagonal() * dx_e;
+                Matrix argum1 = new_matrix(argum1_e.cols(), argum1_e.rows());
+                Eigen::Map< Eigen::MatrixXd > (argum1.t, argum1_e.rows(), argum1_e.cols()) = argum1_e;
+                Matrix argum2 = new_matrix(argum2_e.cols(), argum2_e.rows());
+                Eigen::Map< Eigen::MatrixXd > (argum2.t, argum2_e.rows(), argum2_e.cols()) = argum2_e;
+                Eigen::Map< Eigen::MatrixXd > (dx.t, dx_e.rows(), dx_e.cols()) = dx_e;
+                y_e = argum1_e.colPivHouseholderQr().solve(argum2_e);
+                Matrix y = new_matrix(y_e.cols(), y_e.rows());
+                Eigen::Map< Eigen::MatrixXd > (y.t, y_e.rows(), y_e.cols()) = y_e;
+                Eigen::MatrixXd cx_e_r;
+                cx_e_r = cx_e.transpose() - (a_e.transpose() * y_e);
+                dx_e = (cx_e_r.asDiagonal() * dx_e).asDiagonal() * dx_e;
+                Eigen::Map< Eigen::MatrixXd > (dx.t, dx_e.rows(), dx_e.cols()) = dx_e;
+                Eigen::MatrixXd v_e = dx_e.transpose();
+                Matrix v = new_matrix(v_e.cols(), v_e.rows());
+                Eigen::Map< Eigen::MatrixXd > (v.t, v_e.rows(), v_e.cols()) = v_e;
                 int indexx = npic;
                 
-                if (M(v, indexx, 0) > 0)
+                if (v_e(0, indexx) > 0)
                 {
-                    double z = M(p0, indexx, 0)/M(v, indexx, 0);
+                    double z = p0_e(indexx)/v_e(0, indexx);
                     
                     for (int i=0; i<mm; i++)
                     {
-                        if(M(v, i, 0) < 0)
+                        if(v_e(0, i) < 0)
                         {
-                            z = min(z, -(M(pb, 1, i) - M(p0, i, 0))/M(v, i, 0));
+                            z = min(z, -(pb_e(i, 1) - p0_e(i))/v_e(0, i));
                             
                         }
-                        else if(M(v, i, 0) > 0)
+                        else if(v_e(0, i) > 0)
                         {
                             
-                            z = min(z, (M(p0, i, 0) - M(pb, 0, i))/M(v, i, 0));
+                            z = min(z, (p0_e(i) - pb_e(i, 0))/v_e(0, i));
                         }
                     }
                     
-                    if(z < (M(p0, indexx, 0)/M(v, indexx, 0))) {
+                    if(z < (p0_e(indexx)/v_e(0, indexx))) {
                         z *= 0.9;
                     }
                     
-                    Eigen::Map< Eigen::VectorXd > Ep0(p0.t, p0.cols);
-                    Eigen::Map< Eigen::VectorXd > Ev(v.t, v.cols);
-                    Ep0 -= Ev * z;
-                    
-                    go = M(p0, indexx, 0);
-                    
+                    p0_e -= v_e * z;
+                    go = p0_e(indexx);
                     if(minit >= 10){
                         go = 0;
                     }
@@ -964,30 +988,40 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             if (minit >= 10){
                 mxLog("The linearized problem has no feasible solution. The problem may not be feasible.");
             }
+            
             int h;
             Matrix aMatrix = fill(npic, nc, (double)0.0);
+            Eigen::MatrixXd a_e_c(nc, npic);
             
-            for (h = 0; h<a.rows; h++)
+            for (h = 0; h<a_e.rows(); h++)
             {
-                setRowInplace(aMatrix, h, subset(getRow(a, h), 0, 0, npic-1));
+                a_e_c.row(h) = a_e.row(h).block(0, 0, 1, npic);
             }
+            a_e.resize(a_e_c.rows(), a_e_c.cols());
+            a_e = a_e_c;
             a = duplicateIt(aMatrix);
-            
-            b = timess(a, transpose(subset(p0, 0, 0, npic-1)));
-            
+            Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
+            b_e = (a_e * p0_e.block(0, 0, 1, npic).transpose()).transpose();
+            Eigen::Map< Eigen::MatrixXd > (b.t, b_e.rows(), b_e.cols()) = b_e;
         }// end if(M(alp, 0, 0) <= 0)
     } // end if (nc > 0){
     
-    p = subset(p0, 0, 0, npic-1);
-    if (nc == 0)    t_sol = fill(1, 1, (double)0.0);
+    p_e = p0_e.block(0, 0, 1, npic);
     
+    if (nc == 0){
+        Eigen::MatrixXd sol_e(1, 1);
+        sol_e.setZero();
+        t_sol = new_matrix(sol_e.cols(), sol_e.rows());
+        Eigen::Map< Eigen::MatrixXd > (t_sol.t, sol_e.rows(), sol_e.cols()) = sol_e;
+    }
+
     if (verbose >= 3){
         mxLog("p is: \n");
         for (int i = 0; i < p.cols; i++) mxLog("%f",p.t[i]);
     }
     
     if (ch > 0){
-        tmpv = subset(p, 0, nineq, (npic-1));
+        Matrix tmpv = subset(p, 0, nineq, (npic-1));
         multiplyEigen(tmpv, subset(vscale, 0, (nc+1), (nc+np)));
         if (verbose >= 2){
             mxLog("tmpv is: \n");
@@ -1096,14 +1130,13 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     Matrix yyTerm, firstp, t21, t22, t23, t24, t25, t26, t27;
     Matrix p_copy, p0_copy, pttColOne, t29, t30, t31, t32, t33, t34, temp, tempCol;
     Matrix input, rhs;
-    
+    Matrix tmpv;
     //mxLog("Maxit is: %d", maxit);
     //mxLog("minit is: %d", minit);
     
     
     while (minit < maxit){
         minit = minit + 1;
-        mxLog("minit is: %d", minit);
         if (ch > 0){
             
             for (int i=0; i<np; i++){
