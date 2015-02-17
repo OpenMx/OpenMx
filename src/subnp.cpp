@@ -694,44 +694,77 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
     hessv_e = hessv_e.cwiseProduct(result_e);
     hessv_e = hessv_e / vscale_e[0];
-    
-    j = M(ob, 0, 0);
+    Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
+    j = ob_e(0, 0);
     if (verbose >= 3){
         mxLog("j j is: \n");
-        mxLog("%2f", j);
+        mxLog("%f", j);
     }
+    Eigen::MatrixXd a_e;
     Matrix a;
-    
     if( ind[indHasIneq] > 0){
         if ( ind[indHasEq] <= 0)
         {
             // arrays, rows, cols
-            Matrix onesMatrix = fill(nineq, 1, (double)-1.0);
-            Matrix negDiag = diag(onesMatrix);
-            Matrix zeroMatrix = fill(np, nineq, (double)0.0);
-            // a = cbind( -diag(nineq), matrix(0, ncol = np, nrow = nineq) )
-            a = copy(negDiag, zeroMatrix);
+            Eigen::MatrixXd negDiag;
+            negDiag.setIdentity(nineq, nineq);
+            negDiag.diagonal() *= -1;
+            //std::cout << "Here is the matrix negDiag:\n" << negDiag << std::endl;
+            Eigen::MatrixXd zeroMatrix(nineq, np);
+            zeroMatrix.setZero();
+            //std::cout << "Here is the matrix  zeroMatrix:\n" << zeroMatrix << std::endl;
+            a_e.resize(nineq, np + nineq);
+            a_e << negDiag, zeroMatrix;
+            //std::cout << "Here is the matrix a_e:\n" << a_e << std::endl;
+            a = new_matrix(np + nineq, nineq);
+            Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
         }
         else{
             // [ (neq+nineq) x (nineq+np)]
             //a = rbind( cbind( 0 * .ones(neq, nineq), matrix(0, ncol = np, nrow = neq) ),
             //      cbind( -diag(nineq), matrix(0, ncol = np, nrow = nineq) ) )
             
-            Matrix zeroMatrix = fill(np, nineq, (double)0.0);
-            Matrix firstHalf = copy(fill(nineq, neq, (double)0.0), fill(np, neq, (double)0.0));
-            Matrix onesMatrix = fill(nineq, 1, (double)-1.0);
-            Matrix negDiag = diag(onesMatrix);
-            Matrix secondHalf = copy(negDiag, zeroMatrix);
-            a = transpose(copy(transpose(firstHalf), transpose(secondHalf)));
+            Eigen::MatrixXd zeroMatrix(nineq, np);
+            zeroMatrix.setZero();
+            //Matrix zeroMatrix = fill(np, nineq, (double)0.0);
+            Eigen::MatrixXd firstHalf_e(neq, nineq + np);
+            firstHalf_e.setZero();
+            //Matrix firstHalf = copy(fill(nineq, neq, (double)0.0), fill(np, neq, (double)0.0));
+            Eigen::MatrixXd negDiag;
+            negDiag.setIdentity(nineq, nineq);
+            negDiag.diagonal() *= -1;
+            //Matrix onesMatrix = fill(nineq, 1, (double)-1.0);
+            //Matrix negDiag = diag(onesMatrix);
+            
+            //Matrix secondHalf = copy(negDiag, zeroMatrix);
+            
+            firstHalf_e.transpose();
+            Eigen::MatrixXd secondHalf_e(nineq, np + nineq);
+            secondHalf_e << negDiag, zeroMatrix;
+            a_e.resize(nineq + np, neq + nineq);
+            a_e << firstHalf_e.transpose(), secondHalf_e.transpose();
+            a_e.transposeInPlace();
+            a = new_matrix(a_e.cols(), a_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
+            //a = transpose(copy(transpose(firstHalf), transpose(secondHalf)));
         }
     }	// end 	if(ind[0][3] > 0){
     
     if ( (ind[indHasEq] > 0) && ind[indHasIneq] <= 0 ){
-        a = fill(np, neq, (double)0.0);
+        a_e.resize(neq, np);
+        a_e.setZero();
+        a = new_matrix(a_e.cols(), a_e.rows());
+        Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
+        //a = fill(np, neq, (double)0.0);
     }
     if (ind[indHasEq]<= 0 && (ind[indHasIneq] <= 0)){
-        a = fill(np, 1, (double)0.0);
+        a_e.resize(1, np);
+        a_e.setZero();
+        a = new_matrix(a_e.cols(), a_e.rows());
+        Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
+        //a = fill(np, 1, (double)0.0);
     }
+
     Matrix g = fill(npic, 1, (double)0.0);
     Matrix p = subset(p0, 0, 0, (npic-1));
     
@@ -1070,7 +1103,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     while (minit < maxit){
         minit = minit + 1;
-        //mxLog("minit is: %d", minit);
+        mxLog("minit is: %d", minit);
         if (ch > 0){
             
             for (int i=0; i<np; i++){
@@ -1220,8 +1253,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             addEigen(yg, g);
             negate(sx);
             addEigen(sx, p);
-            negate(yg);
-            negate(sx);
             
             if (t3.t == NULL) t3 = new_matrix(sx.rows, sx.cols);
             transpose_t(t3, sx);
