@@ -69,7 +69,10 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
 	omxRecompute(oge->V, NULL);
   omxRecompute(oge->y, NULL);
-}
+  if(oge->dVlength){
+    for(int i=0; i < oge->dVlength; i++){
+      omxRecompute(oge->dV[i], NULL);
+}}}
 
 
 void omxDestroyGREMLExpectation(omxExpectation* ox) {
