@@ -1750,83 +1750,70 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         double obn = sob.minCoeff();
         if (verbose >= 3){
             mxLog("obn is: \n");
-            mxLog("%.20f", obn);
+            mxLog("%f", obn);
         }
         if (j <= obn){
             maxit = minit;
         }
         if (verbose >= 3){
             mxLog("j is: \n");
-            mxLog("%.20f", j);
+            mxLog("%f", j);
         }
         double reduce = (j - obn) / ((double)1.0 + (double)fabs(j));
         if (verbose >= 3){
             mxLog("reduce is: \n");
-            mxLog("%.20f", reduce);
+            mxLog("%f", reduce);
         }
         if (reduce < tol){
             maxit = minit;
         }
         
         const bool condif1 = (sob[0] <  sob[1]);
-        const bool condif2 = (sob[2] <  sob[1]) && (sob[0] >=  sob[1]);
+        const bool condif2 = (sob[2] <  sob[1]) && (sob[0] >= sob[1]);
         const bool condif3 = (sob[0] >= sob[1]) && (sob[2] >= sob[1]);
         
         if (condif1){
             j = sob[0];
-            if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
-            getColumn_t(p, ptt2, 0);
-            if (ob.t == NULL) ob = new_matrix(ob1.cols, ob1.rows);
-            duplicateIt_t(ob, ob1);
+            p_e = ptt_e.col(0).transpose();
+            ob_e = ob1_e;
             if (verbose >= 3){
                 mxLog("condif1\n");
                 mxLog("j is: \n");
-                mxLog("%2f", j);
-                mxLog("p is: \n");
-                for (int ilog = 0; ilog < p.cols; ilog++) mxLog("%f",p.t[ilog]);
-                mxLog("ob is: \n");
-                for (int ilog = 0; ilog < ob.cols; ilog++) mxLog("%f",ob.t[ilog]);
+                mxLog("%f", j);
+                cout<< "p_e is: \n"  << p_e << endl;
+                cout<< "ob_e is: \n"  << ob_e << endl;
             }
         }
         
         if (condif2){
             
             j = sob[2];
-            if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
-            getColumn_t(p, ptt2, 2);
-            if (ob.t == NULL) ob = new_matrix(ob3.cols, ob3.rows);
-            duplicateIt_t(ob, ob3);
+            p_e = ptt_e.col(2).transpose();
+            ob_e = ob3_e;
             if (verbose >= 3){
                 mxLog("condif2\n");
                 mxLog("j is: \n");
-                mxLog("%2f", j);
-                mxLog("p is: \n");
-                for (int ilog = 0; ilog < p.cols; ilog++) mxLog("%f",p.t[ilog]);
-                mxLog("ob is: \n");
-                for (int ilog = 0; ilog < ob.cols; ilog++) mxLog("%f",ob.t[ilog]);
+                mxLog("%f", j);
+                cout<< "p_e is: \n"  << p_e << endl;
+                cout<< "ob_e is: \n"  << ob_e << endl;
             }
             
         }
         
         if (condif3){
             j = sob[1];
-            if (p.t == NULL) p = new_matrix(ptt2.rows, 1);
-            getColumn_t(p, ptt2, 1);
-            if (ob.t == NULL) ob = new_matrix(ob2.cols, ob2.rows);
-            duplicateIt_t(ob, ob2);
+            p_e = ptt_e.col(1).transpose();
+            ob_e = ob2_e;
             if (verbose >= 3){
                 mxLog("condif3\n");
                 mxLog("j is: \n");
-                mxLog("%2f", j);
-                mxLog("p is: \n");
-                for (int ilog = 0; ilog < p.cols; ilog++) mxLog("%f",p.t[ilog]);
-                mxLog("ob is: \n");
-                for (int ilog = 0; ilog < ob.cols; ilog++) mxLog("%f",ob.t[ilog]);
+                mxLog("%f", j);
+                cout<< "p_e is: \n"  << p_e << endl;
+                cout<< "ob_e is: \n"  << ob_e << endl;
             }
         }
         if (verbose >= 3){
-            mxLog("yg\n");
-            for (int ilog = 0; ilog < yg.cols; ilog++) mxLog("%f",yg.t[ilog]);
+            cout<< "yg_e is: \n"  << yg_e << endl;
         }
         //printSize();
     } // end while (minit < maxit){
@@ -1835,35 +1822,37 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     if(yg_rec(0, 0) / yg_rec(0, 1) > 1000)  flag_NormgZ = 1;
     
     minr_rec = minit;
-    Matrix result2 = getColumn(ptt2, 1);
-    subtractEigen(result2, getColumn(ptt2, 0));
-    Matrix result3 = getColumn(ptt2, 1);
-    subtractEigen(result3, getColumn(ptt2, 2));
-    if (all(result2) || all(result3)) flag_step = 1;
-    //p = p * vscale[ (neq + 2):(nc + np + 1) ]  # unscale the parameter vector
-    Matrix vscalePart = subset(vscale, 0, (neq+1), (nc+np));
-    // I need vscale, p, y, hessv
-    multiplyEigen(p, vscalePart);
     
+    Matrix result2 = getColumn(ptt2, 1);
+     subtractEigen(result2, getColumn(ptt2, 0));
+     Matrix result3 = getColumn(ptt2, 1);
+     subtractEigen(result3, getColumn(ptt2, 2));
+     if (all(result2) || all(result3)) flag_step = 1;
+    //p = p * vscale[ (neq + 2):(nc + np + 1) ]  # unscale the parameter vector
+    p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
+    // I need vscale, p, y, hessv
     if (nc > 0){
         //y = vscale[ 0 ] * y / vscale[ 2:(nc + 1) ] # unscale the lagrange multipliers
         y_e *= vscale_e(0);
+        
         y_e = y_e.cwiseQuotient(vscale_e.block(0, 1, 1, nc));
     }
     
     // hessv = vscale[ 1 ] * hessv / (vscale[ (neq + 2):(nc + np + 1) ] %*%
     //                                t(vscale[ (neq + 2):(nc + np + 1) ]) )
     
-    Matrix transposePart = transpose2D(subset(vscale, 0, (neq+1), (nc+np)));
-    divideEigen(hessv, transposePart);
-    multiplyByScalar2D(hessv, M(vscale,0,0));
+    Eigen::MatrixXd transposePart;
+    transposePart = vscale_e.block(0, neq+1, 1, nc+np-neq).transpose() * vscale_e.block(0, neq+1, 1, nc+np-neq);
+    hessv_e = hessv_e.cwiseQuotient(transposePart);
+    hessv_e = hessv_e * vscale_e(0);
+    
     
     if (verbose >= 1 && reduce > tol) {
         mxLog("m3 solnp Rf_error message being reported.");
     }
     y = new_matrix(y_e.cols(), y_e.rows());
     Eigen::Map< Eigen::MatrixXd > (y.t, y_e.rows(), y_e.cols()) = y_e;
-
+    
     resP = duplicateIt(p);
     resY = transpose(subset(y, 0, 0, (yyRows-1)));
     resHessv = duplicateIt(hessv);
@@ -1876,7 +1865,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         mxLog("y information: ");
         for (int ilog = 0; ilog < resY.cols; ilog++) mxLog("%f",resY.t[ilog]);
         mxLog("hessv information: ");
-        for (int ilog = 0; ilog < resHessv.cols; ilog++) mxLog("%f",resHessv.t[ilog]);
+        for (int ilog = 0; ilog < resHessv.cols * resHessv.rows; ilog++) mxLog("%f",resHessv.t[ilog]);
         mxLog("lambda information: ");
         mxLog("%f", resLambda);
         mxLog("minit information: ");
