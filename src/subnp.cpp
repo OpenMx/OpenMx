@@ -1241,51 +1241,53 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         }
         
         if (minit > 1){
-            negate(yg);
-            addEigen(yg, g);
-            negate(sx);
-            addEigen(sx, p);
+            if (verbose >= 3){
+                cout<< "hessv_e is: \n"  << hessv_e << endl;
+                cout<< "yg_e is: \n"  << yg_e << endl;
+                cout<< "sx_e is: \n"  << sx_e << endl;
+                cout<< "g_e is: \n"  << g_e << endl;
+                cout<< "p_e is: \n"  << p_e << endl;
+            }
             
-            if (t3.t == NULL) t3 = new_matrix(sx.rows, sx.cols);
-            transpose_t(t3, sx);
-            if (t4.t == NULL) t4 = new_matrix(hessv.cols, sx.rows);
-            timessEigen(t4, sx, hessv);
-            if (m_sc.t == NULL) m_sc = new_matrix(t3.cols, t4.rows);
-            timessEigen(m_sc, t4, t3);
-            M(sc, 0, 0) = M(m_sc, 0, 0);
-            if (t5.t == NULL) t5 = new_matrix(yg.rows, yg.cols);
-            transpose_t(t5, yg);
-            if (m_sc2.t == NULL) m_sc2 = new_matrix(t5.cols, sx.rows);
-            timessEigen(m_sc2, sx, t5);
-            M(sc, 1, 0) = M(m_sc2, 0, 0);
-            
-            if ((M(sc, 0, 0) * M(sc, 1, 0)) > 0){
+            yg_e = g_e - yg_e;
+            sx_e = p_e - sx_e;
+            if (verbose >= 3){
+                cout<< "sx_e rows is: \n"<< sx_e.rows() << endl;
+                cout<< "sx_e cols is: \n"<< sx_e.cols() << endl;
+            }
+            Eigen::MatrixXd sc_m1 = (sx_e * hessv_e) * sx_e.transpose();
+            if (verbose >= 3)
+                cout<< "sc_:m1 \n" << sc_m1 << endl;
+            Eigen::MatrixXd sc_m2 = sx_e * yg_e.transpose();
+            if (verbose >= 3)
+                cout<< "sc_m2: \n" << sc_m2 << endl;
+            Eigen::RowVectorXd sc_e(2);
+            sc_e[0] = sc_m1(0, 0);
+            sc_e[1] = sc_m2(0, 0);
+            if (verbose >= 3)
+                cout<< "sc_e: \n" << sc_e << endl;
+            if ((sc_e[0] * sc_e[1]) > 0){
                 //hessv  = hessv - ( sx %*% t(sx) ) / sc[ 1 ] + ( yg %*% t(yg) ) / sc[ 2 ]
-                if (sx2.t == NULL) sx2 = new_matrix(t3.cols, hessv.rows);
-                timessEigen(sx2, hessv, t3);
-                if (t6.t == NULL) t6 = new_matrix(sx2.rows, sx2.cols);
-                transpose_t(t6, sx2);
-                if(sxMatrix.t == NULL) sxMatrix = new_matrix(t6.cols, sx2.rows);
-                timessEigen(sxMatrix, sx2, t6);
-                divideByScalar2D(sxMatrix, M(sc, 0, 0));
-                if (t_yg.t == NULL) t_yg = new_matrix(yg.rows, yg.cols);
-                transpose_t(t_yg, yg);
-                if (ygMatrix.t == NULL) ygMatrix = new_matrix(yg.cols, t_yg.rows);
-                timessEigen(ygMatrix, t_yg, yg);
-                divideByScalar2D(ygMatrix, M(sc, 1, 0));
-                subtractEigen(hessv, sxMatrix);
-                addEigen(hessv, ygMatrix);
+                Eigen::MatrixXd sx_t = sx_e.transpose();
+                sx_e.resize(hessv_e.rows(), sx_t.cols());
+                sx_e = hessv_e * sx_t;
+                
+                if (verbose >= 3)
+                    cout<< "sx_e: \n" << sx_e << endl;
+                Eigen::MatrixXd sxMatrix = (sx_e * sx_e.transpose())/sc_e[0];
+                if (verbose >= 3)
+                    cout<< "sxMatrix: \n" << sxMatrix << endl;
+                Eigen::MatrixXd ygMatrix = (yg_e.transpose() * yg_e) / sc_e[1];
+                if (verbose >= 3)
+                    cout<< "ygMatrix: \n" << ygMatrix << endl;
+                hessv_e -= sxMatrix;
+                hessv_e += ygMatrix;
             }
         }
         if (verbose >= 3){
-            mxLog("yg is: \n");
-            for (int ilog = 0; ilog < yg.cols * yg.rows; ilog++) mxLog("%f",yg.t[ilog]);
-            mxLog("sx is: \n");
-            for (int ilog = 0; ilog < sx.cols * sx.rows; ilog++) mxLog("%f",sx.t[ilog]);
-            mxLog("sc is: \n");
-            for (int ilog = 0; ilog < sc.cols * sc.rows; ilog++) mxLog("%f",sc.t[ilog]);
-            mxLog("hessv is: \n");
-            for (int ilog = 0; ilog < hessv.cols * hessv.rows; ilog++) mxLog("%f",hessv.t[ilog]);
+            cout<< "yg_e: \n" << yg_e << endl;
+            cout<< "sx_e: \n" << sx_e << endl;
+            cout<< "hessv_e: \n" << hessv_e << endl;
         }
         
         dx = fill(npic, 1, 0.01);
@@ -1974,11 +1976,15 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         //for (int ilog = 0; ilog < sx.cols * sx.rows; ilog++) mxLog("%f",sx.t[ilog]);
         //mxLog("sx.rows: %d", sx.rows);
         //mxLog("sx.cols: %d", sx.cols);
-        if (sx.t == NULL) sx = fill(p.cols, p.rows, (double)0.0);
-        duplicateIt_t(sx_Matrix, sx);
-        duplicateIt_t(sx, p);
-        if (yg.t == NULL) yg = new_matrix(g.cols, g.rows);
-        duplicateIt_t(yg, g);
+
+        sx = new_matrix(sx_e.cols(), sx_e.rows());
+        Eigen::Map< Eigen::MatrixXd > (sx.t, sx_e.rows(), sx_e.cols()) = sx_e;
+        sx_Matrix = sx;
+        sx_e.resize(p_e.rows(), p_e.cols());
+        sx_e = p_e;
+        yg_e.resize(g_e.rows(), g_e.cols());
+        yg_e = g_e;
+        
         if (verbose >= 3){
             mxLog("sx is: \n");
             for (int ilog = 0; ilog < sx.cols; ilog++) mxLog("%f",sx.t[ilog]);
