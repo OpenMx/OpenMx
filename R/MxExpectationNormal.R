@@ -200,6 +200,18 @@ mxCheckIdentification <- function(model, details=TRUE){
   return(sparam)
 }
 
+mxGenerateData <- function(model, nrows){
+	require(mvtnorm)
+	if(class(model$expectation) %in% "MxExpectationStateSpace"){
+		data <- generateStateSpaceData(model, nrows)
+	} else {
+		#use generic functions and mvtnorm::rmvnorm() to generate data
+		data <- rmvnorm(nrows, imxGetExpectationComponent(model, "means"), imxGetExpectationComponent(model, "covariance"))
+		# TODO thresholds
+	}
+	return(data)
+}
+
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
 	covariance <- flatModel[[covName]]
 	if (is(covariance, "MxMatrix") && !identical(dim(covariance), dim(data))) {
