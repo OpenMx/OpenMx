@@ -59,7 +59,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	fit.informOut = -1;
     LB = fit.solLB;
     UB = fit.solUB;
-
+    //verbose = 3;
     int i;
     if(verbose >= 3){
         mxLog("solPars is: \n");
@@ -1009,10 +1009,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     p_e = p0_e.block(0, 0, 1, npic);
     
     if (nc == 0){
-        Eigen::MatrixXd sol_e(1, 1);
-        sol_e.setZero();
-        t_sol = new_matrix(sol_e.cols(), sol_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (t_sol.t, sol_e.rows(), sol_e.cols()) = sol_e;
+        y_e.resize(1,1);
+        y_e(0, 0) = 0;
     }
 
     if (verbose >= 3){
@@ -1101,7 +1099,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     minit = 0;
     Matrix yg = fill(npic, 1, (double)0.0);
     Eigen::MatrixXd yg_e;
-    Matrix yg_rec = fill(2, 1, (double)0.0);
+    Eigen::MatrixXd yg_rec(1, 2);
     Matrix sx;
     Eigen::MatrixXd sx_e;
     sx_e.setZero(p.rows, p.cols);
@@ -1274,10 +1272,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 
                 if (verbose >= 3)
                     cout<< "sx_e: \n" << sx_e << endl;
-                Eigen::MatrixXd sxMatrix = (sx_e * sx_e.transpose())/sc_e[0];
+                Eigen::MatrixXd sxMatrix = sx_e * sx_e.transpose();
+                sxMatrix /= sc_e[0];
                 if (verbose >= 3)
                     cout<< "sxMatrix: \n" << sxMatrix << endl;
-                Eigen::MatrixXd ygMatrix = (yg_e.transpose() * yg_e) / sc_e[1];
+                Eigen::MatrixXd ygMatrix = yg_e.transpose() * yg_e;
+                ygMatrix /= sc_e[1];
                 if (verbose >= 3)
                     cout<< "ygMatrix: \n" << ygMatrix << endl;
                 hessv_e -= sxMatrix;
@@ -1328,74 +1328,37 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         }
         
         while(go <= 0){
-            if (dx_c.t == NULL) dx_c = new_matrix(dx.cols, dx.rows);
-            duplicateIt_t(dx_c, dx);
-            
-            multiplyEigen(dx_c, dx_c);
+            Eigen::RowVectorXd dxDiagValues(dx_e.cols());
+            dxDiagValues = dx_e.cwiseProduct(dx_e);
+            Eigen::MatrixXd cz_e;
+            cz_e = dxDiagValues.asDiagonal();
             if (verbose >= 3){
-                mxLog("dx_c is: \n");
-                for (int ilog = 0; ilog < dx_c.cols * dx_c.rows; ilog++) mxLog("%f",dx_c.t[ilog]);
+                cout<< "cz_e size is:	"<< cz_e.rows()<< endl;
+                cout<< "cz_e size is:	"<< cz_e.cols()<< endl;
+                cout<< "cz_e diag is: \n"  << cz_e << endl;
+                cout<< "dxDiagValues.asDiagonal() is: \n" << dxDiagValues.asDiagonal().rows() << endl;
+                cout<< "dxDiagValues.asDiagonal() is: \n" << dxDiagValues.asDiagonal().cols() << endl;
+                cout<< "cz_e lambda is: \n"  << cz_e * lambdaValue << endl;
             }
-            
-            if (dxDiag.t == NULL)
-            {
-                if (dx_c.cols > dx_c.rows)
-                {   dxDiag = new_matrix(dx_c.cols, dx_c.cols);
-                    fill_t(dxDiag, dx_c.cols, dx_c.cols, (double)0.0);
-                }
-                else
-                {   dxDiag = new_matrix(dx_c.rows, dx_c.rows);
-                    fill_t(dxDiag, dx_c.rows, dx_c.rows, (double)0.0);
-                }
-            }
-            
-            diag_t(dxDiag, dx_c);
-            
+            cz_e = hessv_e + (cz_e * lambdaValue);
             if (verbose >= 3){
-                mxLog("dxDiag is: \n");
-                for (int ilog = 0; ilog < dxDiag.cols * dxDiag.rows; ilog++) mxLog("%f",dxDiag.t[ilog]);
+                cout<< "cz_e is: \n"  << cz_e << endl;
             }
-            multiplyByScalar2D(dxDiag, lambdaValue);
+            Eigen::MatrixXd cz_chol = cz_e.llt().matrixL();
+            cz_chol.transposeInPlace();
+            cz = new_matrix(cz_e.cols(), cz_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (cz.t, cz_chol.rows(), cz_chol.cols()) = cz_chol;
             if (verbose >= 3){
-                mxLog("dxDiag is: \n");
-                for (int ilog = 0; ilog < dxDiag.cols * dxDiag.cols; ilog++) mxLog("%f",dxDiag.t[ilog]);
+                cout<< "cz_chol is: \n"  << cz_chol << endl;
             }
             
-            if (cz.t == NULL) cz = new_matrix(hessv.cols, hessv.rows);
-            duplicateIt_t(cz, hessv);
-            
-            addEigen(cz, dxDiag);
-            if (verbose >= 3){
-                mxLog("cz is: \n");
-                for (int ilog = 0; ilog < cz.cols * cz.cols; ilog++) mxLog("%f",cz.t[ilog]);
-            }
-            chol_lpk(cz);
-            if (verbose >= 3){
-                mxLog("cz is: \n");
-                for (int ilog = 0; ilog < cz.cols * cz.cols; ilog++) mxLog("%f",cz.t[ilog]);
-            }
-            if (!R_FINITE(findMax(cz)))
+            if (!R_FINITE((cz_e.maxCoeff())))
             {
                 mxLog("here in findMax");
                 flag = 1;
-                if (t12.t == NULL) t12 = new_matrix(nc + np - neq, 1);
-                subsetEigen(t12, vscale, 0, (neq+1), (nc + np));
-                multiplyEigen(p, t12);
-                if (nc > 0)
-                {
-                    if (y.t == NULL) y = new_matrix(1, 1);
-                    fill_t(y, 1, 1, (double)0.0);
-                }
-                if (t13.t == NULL) t13 = new_matrix(t12.cols, t12.cols);
-                transposeDP_t(t13, t12);
-                divideEigen(hessv, t13);
-                multiplyByScalar2D(hessv, M(vscale, 0, 0));
-                /*if (resP.t == NULL) resP = new_matrix(p.cols, p.rows);
-                 duplicateIt_t(resP, p);
-                 if (resY.t == NULL) resY = new_matrix(y.cols, y.rows);
-                 duplicateIt_t(resY, y);
-                 if (resHessv.t == NULL) resHessv = new_matrix(hessv.cols, hessv.rows);
-                 duplicateIt_t(resHessv, hessv);*/
+                p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
+                if (nc > 0){ y = fill(1, 1, (double)0.0);}
+                hessv_e = hessv_e.cwiseQuotient(vscale_e.block(0, neq+1, 1, nc+np-neq) * vscale_e.block(0, neq+1, 1, nc+np-neq).transpose()) *vscale_e(0);
                 resP = duplicateIt(p);
                 resY = duplicateIt(y);
                 resHessv = duplicateIt(hessv);
@@ -1403,167 +1366,84 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 return g;
             }
             
-            //Matrix identityMatrix = diag(fill(hessv.cols, 1, (double)1.0));
-            
-            solveinv(cz);
-            //cz = luSolve(cz, identityMatrix);
+            Eigen::MatrixXd cz_inv;
+            cz_inv = cz_chol.inverse();
             
             if (verbose >= 3){
-                mxLog("cz.rows: %d", cz.rows);
-                mxLog("cz.cols: %d", cz.cols);
-                
-                mxLog("cz is: \n");
-                for (int ilog = 0; ilog < cz.cols*cz.cols; ilog++) mxLog("%f",cz.t[ilog]);
+                mxLog("cz.rows: %d", cz_chol.rows());
+                mxLog("cz.cols: %d", cz_chol.cols());
+                cout<< "cz_chol.inverse is: \n"  << cz_inv << endl;
             }
             
-            //Matrix getRowed = getRow(cz, 0);
             if (verbose >= 3){
-                mxLog("g is: \n");
-                for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
+                cout<< "g_e is: \n"  << g_e << endl;
             }
-            //Matrix getRowedtwo = getRow(g, 0);
-            //double rr = dotProduct(getRowed, getRowedtwo);
-            if (t14.t == NULL) t14 = new_matrix(g.rows, g.cols);
-            transpose_t(t14, g);
-            if (t15.t == NULL) t15 = new_matrix(cz.rows, cz.cols);
-            transpose_t(t15, cz);
-            if (verbose >= 3){
-                mxLog("yg.rows: %d", yg.rows);
-                mxLog("yg.cols: %d", yg.cols);
-                mxLog("yg is: \n");
-                for (int ilog = 0; ilog < yg.cols * yg.rows; ilog++) mxLog("%f",yg.t[ilog]);
-            }
-            if (yg2.t == NULL) yg2 = new_matrix(t14.cols, t15.rows);
-            timessEigen(yg2, t15, t14);
-            
-            if (minit == 1) M(yg_rec, 0, 0) = vnorm(yg2);
+            yg_e.resize(cz_inv.cols(), g_e.rows());
+            yg_e = cz_inv.transpose() * g_e.transpose();
+            if (minit == 1) yg_rec(0, 0) = yg_e.squaredNorm();
             
             if (verbose >= 3){
-                mxLog("yg is: \n");
-                for (int ilog = 0; ilog < yg.cols * yg.rows; ilog++) mxLog("%f", yg.t[ilog]);
+                cout<< "yg_e is: \n"  << yg_e << endl;
             }
+            Eigen::MatrixXd u_e;
             if (nc <= 0){
-                divideByScalar2D(cz, -1.0);
-                if (u.t == NULL) u = new_matrix(yg2.cols, cz.rows);
-                timessEigen(u, cz, yg2);
-                divideByScalar2D(cz, -1.0);
-                if (t_u.t == NULL) t_u = new_matrix(u.rows, u.cols);
-                transpose_t(t_u, u);
+                u_e = (cz_inv * (-1.0)) * yg_e;
+                u_e.transposeInPlace();
                 if (verbose >= 3){
-                    mxLog("u inside nc <=0 is: \n");
-                    for (int ilog = 0; ilog < t_u.cols * t_u.rows; ilog++) mxLog("%f",t_u.t[ilog]);
+                    cout<< "u_e is: \n"  << u_e << endl;
                 }
             }
             else{
                 //y = qr.solve(t(cz) %*% t(a), yg)
-                if (aTranspose.t == NULL) aTranspose = new_matrix(a.rows, a.cols);
-                transpose_t(aTranspose, a);
+                Eigen::MatrixXd argum1_e;
+                argum1_e = cz_inv.transpose() * a_e.transpose();
                 if (verbose >= 3){
-                    mxLog("aTranspose is: \n");
-                    for (int ilog = 0; ilog < aTranspose.cols; ilog++) mxLog("%f",aTranspose.t[ilog]);
+                    cout<< "argum1_e is: \n"  << argum1_e << endl;
                 }
-                if (t_cz.t == NULL) t_cz = new_matrix(cz.rows, cz.cols);
-                transpose_t(t_cz, cz);
-                if (firstMatrix.t == NULL) firstMatrix = new_matrix(aTranspose.cols, t_cz.rows);
-                timessEigen(firstMatrix, t_cz, aTranspose);
-                if (verbose >= 3){
-                    mxLog("firstMatrix is: \n");
-                    for (int ilog = 0; ilog < firstMatrix.cols; ilog++) mxLog("%f",firstMatrix.t[ilog]);
-                }
-                if (verbose >= 3){
-                    mxLog("yg2 is: \n");
-                    for (int ilog = 0; ilog < yg2.cols; ilog++) mxLog("%f",yg2.t[ilog]);
-                }
-                if (solution.t == NULL) solution = new_matrix(yg2.cols, firstMatrix.cols);
-                if (input.t == NULL) input = new_matrix(firstMatrix.cols, firstMatrix.rows);
-                duplicateIt_t(input, firstMatrix);
-                if (rhs.t == NULL) rhs = fill(yg2.cols, max(firstMatrix.cols, firstMatrix.rows), (double)0.0);
-                for (int i = 0; i < yg2.rows; i++)
-                    for (int j = 0; j < yg2.cols; j++)
-                        M(rhs, j, i) = M(yg2, j, i);
-                QRdsolve_t(solution, input, rhs);
-                if (verbose >= 3){
-                    mxLog("solution is: \n");
-                    for (int ilog = 0; ilog < solution.cols; ilog++) mxLog("%f",solution.t[ilog]);
-                }
-                //Matrix solution = QRd(firstMatrix, secondMatrix);
-                if (t_sol.t == NULL) t_sol = new_matrix(solution.rows, solution.cols);
-                transpose_t(t_sol, solution);
-                if (verbose >= 3){
-                    mxLog("y is: \n");
-                    for (int ilog = 0; ilog < t_sol.cols * t_sol.rows; ilog++) mxLog("%f",t_sol.t[ilog]);
-                }
-                //yMatrix = subset(solution, 0, 0, nc-1);
+                Eigen::MatrixXd solution;
                 
-                //u = -cz %*% (yg - ( t(cz) %*% t(a) ) %*% y)
-                multiplyByScalar2D(cz, -1.0);
-                if (toSubtract.t == NULL) toSubtract = new_matrix(solution.cols, firstMatrix.rows);
-                if (verbose >= 3){
-                    mxLog("solution is: \n");
-                    for (int ilog = 0; ilog < solution.cols; ilog++) mxLog("%f",solution.t[ilog]);
-                }
-                if (verbose >= 3){
-                    mxLog("firstMatrix is: \n");
-                    for (int ilog = 0; ilog < firstMatrix.cols; ilog++) mxLog("%f",firstMatrix.t[ilog]);
-                }
+                solution = QRdsolve(argum1_e, yg_e);
                 
-                timessEigen(toSubtract, firstMatrix, solution);
                 if (verbose >= 3){
-                    mxLog("toSubtract.rows: %d", toSubtract.rows);
-                    mxLog("toSubtract.cols: %d", toSubtract.cols);
-                    
-                    mxLog("toSubtract is: \n");
-                    for (int ilog = 0; ilog < toSubtract.cols * toSubtract.rows; ilog++) mxLog("%f",toSubtract.t[ilog]);
+                    cout<< "solution is: \n"  << solution << endl;
                 }
-                subtractEigen(yg2, toSubtract);
+                y_e.resize(solution.cols(), solution.rows());
+                y_e = solution.transpose();
+                u_e = (cz_inv * (-1.0)) * (yg_e - (argum1_e * solution));
+                u_e.transposeInPlace();
                 if (verbose >= 3){
-                    mxLog("yg2.rows: %d", yg2.rows);
-                    mxLog("yg2.cols: %d", yg2.cols);
-                    mxLog("yg2 is: \n");
-                    for (int ilog = 0; ilog < yg2.cols * yg2.rows; ilog++) mxLog("%f",yg2.t[ilog]);
+                    cout<< "u_e is: \n" << u_e << endl;
                 }
-                if (uu.t == NULL) uu = new_matrix(yg2.cols, cz.rows);
-                timessEigen(uu, cz, yg2);
-                
-                if (t_u.t == NULL) t_u = new_matrix(uu.rows, uu.cols);
-                transpose_t(t_u, uu);
             }
             
-            if (p0_1.t == NULL) p0_1 = new_matrix(npic, 1);
-            subsetEigen(p0_1, t_u, 0, 0, npic-1);
+            Eigen::RowVectorXd p0_e_copy;
+            p0_e_copy = u_e.block(0, 0, 1, npic) + p_e;
+            p0_copy = new_matrix(p0_e_copy.cols(), 1);
+            Eigen::Map< Eigen::RowVectorXd > (p0_copy.t, p0_e_copy.cols()) = p0_e_copy;
+            new (&p0_e) Eigen::Map<Eigen::RowVectorXd>(p0_copy.t, p0_copy.cols);
             
-            addEigen(p0_1, p);
             if (verbose >= 3){
-                mxLog("p0_1 is: \n");
-                for (int ilog = 0; ilog < p0_1.cols; ilog++) mxLog("%f",p0_1.t[ilog]);
+                cout<< "p0_e is: \n"  << p0_e << endl;
+                cout<< "pb_e is: \n"  << pb_e.col(0) << endl;
+                cout<< "mm is: \n" << mm << endl;
             }
             
-	    {
-                if (listPartOne.t == NULL) listPartOne = new_matrix(mm, 1);
-                subsetEigen(listPartOne, p0_1, 0, 0, mm-1);
-                if (t16.t == NULL) t16 = new_matrix(pb.rows, 1);
-                getColumn_t(t16, pb, 0);
-                subtractEigen(listPartOne, t16);
-                if (listPartTwo.t == NULL) listPartTwo = new_matrix(pb.rows, 1);
-                getColumn_t(listPartTwo, pb, 1);
-                if (t17.t == NULL) t17 = new_matrix(mm, 1);
-                subsetEigen(t17, p0_1, 0, 0, mm-1);
-                subtractEigen(listPartTwo, t17);
-                if (llist.t == NULL) llist = new_matrix(listPartOne.cols + listPartTwo.cols, listPartOne.rows);
-                copyEigen(llist, listPartOne, listPartTwo);
-                
-                go = findMin(llist);
+            {
+                Eigen::MatrixXd listPartOne = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
+                Eigen::MatrixXd listPartTwo = pb_e.col(1) - p0_e.block(0, 0, 1, mm).transpose();
+                Eigen::MatrixXd llist(listPartOne.rows(), listPartOne.cols() + listPartTwo.cols());
+                llist << listPartOne, listPartTwo;
+                go = llist.minCoeff();
                 lambdaValue = 3 * lambdaValue;
                 if (verbose >= 3){
                     mxLog("go is: \n");
-                    mxLog("%.20f", go);
+                    mxLog("%f", go);
                     mxLog("lambdaValue is: \n");
-                    mxLog("%.20f", lambdaValue);
+                    mxLog("%f", lambdaValue);
                     
                 }
             }
         } // end while(go <= 0){
-        
         
         alp[0] = 0;
         if (ob1.t == NULL) ob1 = new_matrix(ob.cols, ob.rows);
@@ -1591,8 +1471,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             for (int ilog = 0; ilog < ptt.cols*ptt.rows; ilog++) mxLog("%f", ptt.t[ilog]);
         }
         
-        if (p0_1_t.t == NULL) p0_1_t = new_matrix(p0_1.rows, p0_1.cols);
-        transpose_t(p0_1_t, p0_1);
+        if (p0_1_t.t == NULL) p0_1_t = new_matrix(p0_copy.rows, p0_copy.cols);
+        transpose_t(p0_1_t, p0_copy);
         if (ptt2.t == NULL) ptt2 = new_matrix(ptt.cols + p0_1_t.cols, ptt.rows);
         copyEigen(ptt2, ptt, p0_1_t);
         
@@ -1745,10 +1625,10 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             if (p_copy.t == NULL) p_copy = new_matrix(p.cols, p.rows);
             duplicateIt_t(p_copy, p);
             multiplyByScalar2D(p_copy, (1.0 - alp[1]));
-            if (p0_copy.t == NULL) p0_copy = new_matrix(p0_1.cols, p0_1.rows);
-            duplicateIt_t(p0_copy, p0_1);
-            multiplyByScalar2D(p0_copy, alp[1]);
-            addEigen(p_copy, p0_copy);
+            if (p0_1.t == NULL) p0_1 = new_matrix(p0_copy.cols, p0_copy.rows);
+            duplicateIt_t(p0_1, p0_copy);
+            multiplyByScalar2D(p0_1, alp[1]);
+            addEigen(p_copy, p0_1);
             setColumnInplace(ptt2, p_copy, 1);
             if (pttColOne.t == NULL) pttColOne = new_matrix(ptt2.rows, 1);
             getColumn_t(pttColOne, ptt2, 1);
@@ -2064,8 +1944,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         //printSize();
     } // end while (minit < maxit){
     
-    M(yg_rec, 1, 0) = vnorm(yg);
-    if(M(yg_rec, 0, 0) / M(yg_rec, 1, 0) > 1000)  flag_NormgZ = 1;
+    yg_rec(0, 1) = yg_e.squaredNorm();
+    if(yg_rec(0, 0) / yg_rec(0, 1) > 1000)  flag_NormgZ = 1;
     
     minr_rec = minit;
     Matrix result2 = getColumn(ptt2, 1);
@@ -2080,8 +1960,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     if (nc > 0){
         //y = vscale[ 0 ] * y / vscale[ 2:(nc + 1) ] # unscale the lagrange multipliers
-        multiplyByScalar2D(t_sol, M(vscale,0,0));
-        divideEigen(t_sol, subset(vscale, 0, 1, nc));
+        y_e *= vscale_e(0);
+        y_e = y_e.cwiseQuotient(vscale_e.block(0, 1, 1, nc));
     }
     
     // hessv = vscale[ 1 ] * hessv / (vscale[ (neq + 2):(nc + np + 1) ] %*%
@@ -2094,9 +1974,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     if (verbose >= 1 && reduce > tol) {
         mxLog("m3 solnp Rf_error message being reported.");
     }
-    
+    y = new_matrix(y_e.cols(), y_e.rows());
+    Eigen::Map< Eigen::MatrixXd > (y.t, y_e.rows(), y_e.cols()) = y_e;
+
     resP = duplicateIt(p);
-    resY = transpose(subset(t_sol, 0, 0, (yyRows-1)));
+    resY = transpose(subset(y, 0, 0, (yyRows-1)));
     resHessv = duplicateIt(hessv);
     resLambda = lambdaValue;
     
