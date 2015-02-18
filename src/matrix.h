@@ -55,7 +55,36 @@ Matrix diag2(Matrix A);
 
 void chol_lpk(Matrix mainMat);
 
-Matrix QRdsolve(Matrix mainMat, Matrix RHSMat);
+template <typename T1>
+Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &RHSMat)
+
+{
+    int lwork = 4 * mainMat.rows() * mainMat.cols();
+    int l;
+    char TRANS = 'N';
+    int LDB = std::max(mainMat.cols(), mainMat.rows());
+    Eigen::MatrixXd input = mainMat;
+    Eigen::MatrixXd result(LDB, RHSMat.cols());
+    result.setZero();
+    for (int i = 0; i < RHSMat.rows(); i++)
+        for (int j = 0; j < RHSMat.cols(); j++)
+            result(i, j) = RHSMat(i, j);
+    int input_row = input.rows();
+    int input_col = input.cols();
+    int result_col = result.cols();
+    Eigen::ArrayXd work(lwork);
+    F77_CALL(dgels)(&TRANS, &input_row, &input_col, &result_col, input.data(), &input_row, result.data(), &LDB, work.data(), &lwork, &l);
+    Eigen::MatrixXd Final_result(mainMat.cols(), RHSMat.cols());
+    for (int i = 0; i < mainMat.cols(); i++)
+    {
+        for(int j = 0; j < RHSMat.cols(); j++)
+        {
+            Final_result(i, j) = result(i, j);
+        }
+    }
+    
+    return Final_result;
+}
 
 void QRdsolve_t(Matrix Final_result, Matrix mainMat, Matrix RHSMat);
 

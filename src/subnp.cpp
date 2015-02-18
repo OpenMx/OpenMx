@@ -1290,41 +1290,28 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             cout<< "hessv_e: \n" << hessv_e << endl;
         }
         
-        dx = fill(npic, 1, 0.01);
+        Eigen::MatrixXd dx_e(1, npic);
+        dx_e.setOnes();
+        dx_e *= 0.01;
         
         {
-            if (gap1.t == NULL) gap1 = new_matrix(pb.cols, pb.rows);
-            fill_t(gap1, pb.cols, pb.rows, (double)0.0);
-            if (res.t == NULL) res = new_matrix(mm, 1);
-            subsetEigen(res, p, 0, 0, mm-1);
-            if (col_pb.t == NULL) col_pb = new_matrix(pb.rows, 1);
-            getColumn_t(col_pb, pb, 0);
-            subtractEigen(res, col_pb);
-            setColumnInplace(gap1, res, 0);
-            if (col_pb2.t == NULL) col_pb2 = new_matrix(pb.rows, 1);
-            getColumn_t(col_pb2, pb, 1);
-            if (t7.t == NULL) t7 = new_matrix(mm, 1);
-            subsetEigen(t7, p, 0, 0, mm-1);
-            subtractEigen(col_pb2, t7);
-            setColumnInplace(gap1, col_pb2, 1);
-            rowSort(gap1);
-            if (t8.t == NULL) t8 = new_matrix(1, mm);
-            fill_t(t8, 1, mm, (double)1.0);
-            multiplyByScalar2D(t8, sqrt(DBL_EPSILON));
-            if (gap_c.t == NULL) gap_c = new_matrix(gap1.rows, 1);
-            getColumn_t(gap_c, gap1, 0);
-            addEigen(gap_c, t8);
-            
-            if (gap2.t == NULL) gap2 = new_matrix(gap_c.cols, gap_c.rows);
-            duplicateIt_t(gap2, gap_c);
-            if (t9.t == NULL) t9 = new_matrix(mm, 1);
-            fill_t(t9, mm, 1, (double)1.0);
-            divideEigen(t9, gap2);
-            copyIntoInplace(dx, t9, 0, 0, mm-1);
-            
+            Eigen::MatrixXd gap_e(pb_e.rows(), pb_e.cols());
+            gap_e.setZero();
+            gap_e.col(0) = p_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
+            gap_e.col(1) = pb_e.col(1) - p_e.block(0, 0, 1, mm).transpose();
+            rowSort_e(gap_e);
+            Eigen::MatrixXd temp(mm, 1);
+            temp.setOnes();
+            Eigen::MatrixXd gap_eTemp(mm, 1);
+            gap_eTemp = gap_e.col(0) + (temp * sqrt(DBL_EPSILON));
+            gap_e.resize(mm, 1);
+            gap_e = gap_eTemp;
+            dx_e.block(0, 0, 1, mm) = temp.cwiseQuotient(gap_e).transpose();
+            dx = new_matrix(dx_e.cols(), dx_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (dx.t, dx_e.rows(), dx_e.cols()) = dx_e;
             if (verbose >= 3){
                 mxLog("dx is: \n");
-                for (int ilog = 0; ilog < dx.cols; ilog++) mxLog("%f",dx.t[ilog]);
+                for (int ilog = 0; ilog < dx.cols * dx.rows; ilog++) mxLog("%.50f",dx.t[ilog]);
             }
         }
         
