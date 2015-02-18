@@ -150,6 +150,8 @@ imxGetExpectationComponent <- function(model, component){
 	}
 }
 
+mxGetExpected <- imxGetExpectationComponent
+
 sse <- function(x){sum(x^2)}
 
 mxCheckIdentification <- function(model, details=TRUE){
