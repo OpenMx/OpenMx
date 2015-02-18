@@ -1564,35 +1564,25 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         
         while(go > tol){
             alp[1] = (alp[0] + alp[2]) / 2.0;
-            if (p_copy.t == NULL) p_copy = new_matrix(p.cols, p.rows);
-            duplicateIt_t(p_copy, p);
-            multiplyByScalar2D(p_copy, (1.0 - alp[1]));
-            if (p0_1.t == NULL) p0_1 = new_matrix(p0_copy.cols, p0_copy.rows);
-            duplicateIt_t(p0_1, p0_copy);
-            multiplyByScalar2D(p0_1, alp[1]);
-            addEigen(p_copy, p0_1);
-            setColumnInplace(ptt2, p_copy, 1);
-            if (pttColOne.t == NULL) pttColOne = new_matrix(ptt2.rows, 1);
-            getColumn_t(pttColOne, ptt2, 1);
-            if (tmpv.t == NULL) tmpv = new_matrix(npic-nineq, 1);
-            subsetEigen(tmpv, pttColOne, 0, nineq, (npic-1));
-            if (t29.t == NULL) t29 = new_matrix(nc+np-nc, 1);
-            subsetEigen(t29, vscale, 0, (nc+1), (nc+np));
-            multiplyEigen(tmpv, t29);
+            
+            ptt_e.col(1) = (p_e * (1 - alp[1])) + p0_e * alp[1];
+            Eigen::MatrixXd tmpv_e = ptt_e.col(1).transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
+            Matrix tmpv = new_matrix(tmpv_e.cols(), tmpv_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
+            
             if (verbose >= 3){
-                mxLog("tmpv is: \n");
-                for (int ilog = 0; ilog < tmpv.cols; ilog++) mxLog("%f",tmpv.t[ilog]);
+                cout<< "tmpv_e is: \n"  << tmpv_e << endl;
             }
             
             if (verbose >= 3){
                 mxLog("11th call is \n");
             }
             
-	    mode = 0;
+            mode = 0;
             funv = fit.solFun(tmpv.t, &mode);
             if (verbose >= 3){
                 mxLog("funv is: \n");
-                mxLog("%2f", funv);
+                mxLog("%f", funv);
             }
             
             if (mode == -1)
@@ -1603,98 +1593,73 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
             fit.solEqBFun();
             fit.myineqFun();
-
-            solnp_nfn = solnp_nfn + 1;
-            Matrix firstPart, secondPart, firstPartt;
             
+            solnp_nfn = solnp_nfn + 1;
+            Eigen::MatrixXd firstPart_e;
+            Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
+            Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
+            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
             if (nineq){
                 if(eqv.cols)
                 {
-                    if (t20.t == NULL) t20 = new_matrix(1, 1);
-                    fill_t(t20, 1, 1, funv);
-                    if (firstPartt.t == NULL) firstPartt = new_matrix(t20.cols + eqv.cols, t20.rows);
-                    copyEigen(firstPartt, t20, eqv);
-                    
-                    if (firstPart.t == NULL) firstPart = new_matrix(firstPartt.cols + ineqv.cols, firstPartt.rows);
-                    copyEigen(firstPart, firstPartt, ineqv);
+                    firstPart_e.resize(1, funv_e.size()+ eqv_e.size()+ ineqv_e.size());
+                    firstPart_e << funv_e, eqv_e, ineqv_e;
                 }
                 else{
-                    if (t20.t == NULL) t20 = new_matrix(1, 1);
-                    fill_t(t20, 1, 1, funv);
-                    if (firstPart.t == NULL) firstPart = new_matrix(t20.cols + ineqv.cols, t20.rows);
-                    copyEigen(firstPart, t20, ineqv);
+                    firstPart_e.resize(1, funv_e.size() + ineqv_e.size());
+                    firstPart_e << funv_e, ineqv_e;
                 }
             }
             else if (eqv.cols){
-                if (t20.t == NULL) t20 = new_matrix(1, 1);
-                fill_t(t20, 1, 1, funv);
-                if (firstPart.t == NULL) firstPart = new_matrix(t20.cols + eqv.cols, t20.rows);
-                copyEigen(firstPart, t20, eqv);
+                firstPart_e.resize(1, funv_e.size() + eqv_e.size());
+                firstPart_e << funv_e, eqv_e;
             }
-            else {
-                if (firstPart.t == NULL) firstPart = new_matrix(1, 1);
-                fill_t(firstPart, 1, 1, funv);
-                
+            else
+            {
+                firstPart_e.resize(1, funv_e.size());
+                firstPart_e << funv_e;
             }
-            if (secondPart.t == NULL) secondPart = new_matrix(nc+1, 1);
-            subsetEigen(secondPart, vscale, 0, 0, nc);
-            divideEigen(firstPart, secondPart);
-            duplicateIt_t(ob2, firstPart);
+            Eigen::RowVectorXd secondPart_e;
+            secondPart_e = vscale_e.block(0, 0, 1, nc+1);
+            firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+            Eigen::MatrixXd ob2_e = firstPart_e;
+            Matrix ob2 = new_matrix(ob2_e.cols(), ob2_e.rows());
+            Eigen::Map< Eigen::MatrixXd > (ob2.t, ob2_e.rows(), ob2_e.cols()) = ob2_e;
             
             if (verbose >= 3){
-                mxLog("ob2 is: \n");
-                for (int ilog = 0; ilog < ob2.cols; ilog++) mxLog("%f",ob2.t[ilog]);
+                cout<< "ob2_e is: \n"  << ob2_e << endl;
             }
             
-            sob[1] = M(ob2, 0, 0);
+            sob[1] = ob2_e(0, 0);
             if (verbose >= 3){
                 mxLog("sob is: \n");
                 for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
             }
             if (ind[indHasIneq] > 0.5){
-                if (partOne.t == NULL) partOne = new_matrix(nc-neq, 1);
-                subsetEigen(partOne, ob2, 0, neq+1, nc);
-                if (tempPttCol.t == NULL) tempPttCol = new_matrix(ptt2.rows, 1);
-                getColumn_t(tempPttCol, ptt2, 1);
-                if (partTwo.t == NULL) partTwo = new_matrix(nineq, 1);
-                subsetEigen(partTwo, tempPttCol, 0, 0, nineq-1);
-                subtractEigen(partOne, partTwo);
-                copyIntoInplace(ob2, partOne, 0, neq+1, nc);
-            }
-            
-            if (nc > 0){
-                if (t30.t == NULL) t30 = new_matrix(nc, 1);
-                subsetEigen(t30, ob2, 0, 1, nc);
-                if (t31.t == NULL) t31 = new_matrix(ptt2.rows, 1);
-                getColumn_t(t31, ptt2, 1);
-                if (t32.t == NULL) t32 = new_matrix(t31.rows, t31.cols);
-                transpose_t(t32, t31);
-                if (t33.t == NULL) t33 = new_matrix(t32.cols, a.rows);
-                timessEigen(t33, a, t32);
-                if (t34.t == NULL) t34 = new_matrix(t33.rows, t33.cols);
-                transpose_t(t34, t33);
-                subtractEigen(t30, t34);
-                addEigen(t30, b);
-                copyIntoInplace(ob2, t30, 0, 1, nc);
-                if (temp.t == NULL) temp = new_matrix(nc, 1);
-                subsetEigen(temp, ob2, 0, 1, nc);
-                double vnormTerm = vnorm(temp) * vnorm(temp);
-                if (yyTerm.t == NULL) yyTerm = new_matrix(yy.rows, yy.cols);
-                transpose_t(yyTerm, yy);
-                if (t26.t == NULL) t26 = new_matrix(yyTerm.cols, 1);
-                getRow_t(t26, yyTerm, 0);
-                if (t27.t == NULL) t27 = new_matrix(nc, 1);
-                getRow_t(t27, temp, 0);
-                double dotProductTerm = dotProduct(t26, t27);
-                sob[1] = M(ob2, 0, 0) - dotProductTerm + rho * vnormTerm;
+                Eigen::MatrixXd partOne = ob2_e.block(0, neq+1, 1, nc-neq);
+                Eigen::MatrixXd partTwo = ptt_e.col(1).transpose().block(0, 0, 1, nineq);
+                ob2_e.block(0, neq+1, 1, nc-neq) = partOne - partTwo;
             }
             if (verbose >= 3){
-                mxLog("sob is: \n");
-                for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
+                cout<< "ob2_e is: \n"  << ob2_e << endl;
+            }
+            if (nc > 0){
+                Eigen::MatrixXd result_e = ob2_e.block(0, 1, 1, nc);
+                result_e -= (a_e * ptt_e.col(1)).transpose();
+                result_e += b_e;
+                ob2_e.block(0, 1, 1, nc) = result_e;
+                double vnormTerm = ob2_e.block(0, 1, 1, nc).squaredNorm() * ob2_e.block(0, 1, 1, nc).squaredNorm();
+                Eigen::MatrixXd temp = ob2_e.block(0, 1, 1, nc);
+                double dotProductTerm = yy_e.transpose().row(0).dot(temp.row(0));
+                sob[1] = ob2_e(0, 0) - dotProductTerm + (rho * vnormTerm);
+            }
+            
+            if (verbose >= 3){
+                cout<< "sob is: \n"  << sob << endl;
             }
             const double sobMax = sob.maxCoeff();
             if (verbose >= 3){
-		    mxLog("sobMax is: %f", sobMax);
+                mxLog("sobMax is: %f", sobMax);
             }
             if (sobMax < j){
                 go = tol * (sobMax - sob.minCoeff()) / (j - sobMax);
@@ -1706,85 +1671,65 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
             if (condif1){
                 sob[2] = sob[1];
-                if (ob3.t == NULL) ob3 = new_matrix(ob2.cols, ob2.rows);
-                duplicateIt_t(ob3, ob2);
+                ob3_e = ob2_e;
                 alp[2] = alp[1];
-                if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
-                getColumn_t(tempCol, ptt2, 1);
-                setColumnInplace(ptt2, tempCol, 2);
+                ptt_e.col(2) = ptt_e.col(1);
                 
                 if (verbose >= 3){
-                    mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
-                    mxLog("ob3 is: \n");
-                    for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
-                    mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
-                    mxLog("ptt2 is: \n");
-                    for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);
+                    cout<< "sob is: \n"  << sob << endl;
+                    cout<< "ob3_e is: \n"  << ob3_e << endl;
+                    cout<< "alp[2] is: \n"  << alp << endl;
+                    cout<< "ptt_e is: \n"  << ptt_e << endl;
                 }
             }
             
             if (condif2){
                 sob[2] = sob[1];
-                if (ob3.t == NULL) ob3 = new_matrix(ob2.cols, ob2.rows);
-                duplicateIt_t(ob3, ob2);
+                ob3_e = ob2_e;
                 alp[2] = alp[1];
-                if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
-                getColumn_t(tempCol, ptt2, 1);
-                setColumnInplace(ptt2, tempCol, 2);
+                ptt_e.col(2) = ptt_e.col(1);
                 
                 if (verbose >= 3){
-                    mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
-                    mxLog("ob3 is: \n");
-                    for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
-                    mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
-                    mxLog("ptt2 is: \n");
-                    for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);				}
+                    cout<< "sob is: \n"  << sob << endl;
+                    cout<< "ob3_e is: \n"  << ob3_e << endl;
+                    cout<< "alp[2] is: \n"  << alp << endl;
+                    cout<< "ptt_e is: \n"  << ptt_e << endl;
+                }
             }
             
             if (condif3){
                 sob[0] = sob[1];
-                if (ob1.t == NULL) ob1 = new_matrix(ob2.cols, ob2.rows);
-                duplicateIt_t(ob1, ob2);
+                ob1_e = ob2_e;
                 alp[0] = alp[1];
-                if (tempCol.t == NULL) tempCol = new_matrix(ptt2.rows, 1);
-                getColumn_t(tempCol, ptt2, 1);
-                setColumnInplace(ptt2, tempCol, 0);
+                ptt_e.col(0) = ptt_e.col(1);
+                
                 if (verbose >= 3){
-                    mxLog("sob is: \n");
-                    for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
-                    mxLog("ob3 is: \n");
-                    for (int ilog = 0; ilog < ob3.cols; ilog++) mxLog("%f",ob3.t[ilog]);
-                    mxLog("alp is: \n");
-                    for (int ilog = 0; ilog < alp.size(); ilog++) mxLog("%f",alp[ilog]);
-                    mxLog("ptt2 is: \n");
-                    for (int ilog = 0; ilog < ptt2.cols; ilog++) mxLog("%f",ptt2.t[ilog]);				}
+                    cout<< "sob is: \n"  << sob << endl;
+                    cout<< "ob1_e is: \n"  << ob1_e << endl;
+                    cout<< "alp[2] is: \n"  << alp << endl;
+                    cout<< "ptt_e is: \n"  << ptt_e << endl;
+                }
             }
             
             if (go >= tol){
                 go = alp[2] - alp[0];
                 if (verbose >= 3){
                     mxLog("go is: \n");
-                    mxLog("%.20f", go);
+                    mxLog("%f", go);
                 }
             }
             
         } // 	while(go > tol){
         
+        Eigen::Map< Eigen::MatrixXd > (ptt2.t, ptt_e.rows(), ptt_e.cols()) = ptt_e;
+        Eigen::Map< Eigen::MatrixXd > (ob1.t, ob1_e.rows(), ob1_e.cols()) = ob1_e;
+        Eigen::Map< Eigen::MatrixXd > (ob2.t, ob2_e.rows(), ob2_e.cols()) = ob2_e;
+        Eigen::Map< Eigen::MatrixXd > (ob3.t, ob3_e.rows(), ob3_e.cols()) = ob3_e;
+
         if (verbose >= 3){
             mxLog("go is: \n");
             mxLog("%.16f", go);
         }
-        //mxLog("sx_Matrix is: \n");
-        //for (i = 0; i < sx_Matrix.cols * sx_Matrix.rows; i++) mxLog("%f",sx_Matrix.t[i]);
-        //sx_Matrix = duplicateIt(sx);
-        // mxLog("sx is:");
-        //for (int ilog = 0; ilog < sx.cols * sx.rows; ilog++) mxLog("%f",sx.t[ilog]);
-        //mxLog("sx.rows: %d", sx.rows);
-        //mxLog("sx.cols: %d", sx.cols);
 
         sx = new_matrix(sx_e.cols(), sx_e.rows());
         Eigen::Map< Eigen::MatrixXd > (sx.t, sx_e.rows(), sx_e.cols()) = sx_e;
