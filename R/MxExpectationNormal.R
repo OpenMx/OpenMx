@@ -206,7 +206,10 @@ mxGenerateData <- function(model, nrows){
 		data <- generateStateSpaceData(model, nrows)
 	} else {
 		#use generic functions and mvtnorm::rmvnorm() to generate data
-		data <- rmvnorm(nrows, imxGetExpectationComponent(model, "means"), imxGetExpectationComponent(model, "covariance"))
+		theMeans <- imxGetExpectationComponent(model, "means")
+		theCov <- imxGetExpectationComponent(model, "covariance")
+		data <- rmvnorm(nrows, theMeans, theCov)
+		colnames(data) <- colnames(theCov)
 		# TODO thresholds
 	}
 	return(data)
