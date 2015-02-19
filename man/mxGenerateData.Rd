@@ -55,7 +55,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 #----------
 # Create data based on state space model.
 require(OpenMx)
-varnames <- paste("x", 1:5, sep="")
+nvar <- 5
+varnames <- paste("x", 1:nvar, sep="")
 ssModel <- mxModel(model="State Space Manual Example",
     mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
     mxMatrix("Zero", 1, 1, name="B"),
