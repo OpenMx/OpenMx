@@ -15,8 +15,8 @@ using std::endl;
 struct CSOLNP {
 
     int flag, flag_NormgZ, flag_step, minr_rec;
-    Matrix LB;
-    Matrix UB;
+    Eigen::VectorXd LB_e;
+    Eigen::VectorXd UB_e;
     Matrix resP;
     double resLambda;
     Matrix resHessv;
@@ -57,27 +57,10 @@ void solnp(double *solPars, GradientOptimizerContext &fit)
 void CSOLNP::solnp(double *solPars, int verbose)
 {
 	fit.informOut = -1;
-    LB = fit.solLB;
-    UB = fit.solUB;
+    LB_e = fit.solLB;
+    UB_e = fit.solUB;
     //verbose = 3;
     int i;
-    if(verbose >= 3){
-        mxLog("solPars is: \n");
-        for (i = 0; i < LB.cols; i++) mxLog("%f", solPars[i]);
-        mxLog("4th call is: \n");
-	int mode=0;
-        mxLog("%2f", fit.solFun(solPars, &mode));
-	fit.solEqBFun();
-        mxLog("solEqBFun is: \n");
-        for (i = 0; i < fit.equality.size(); i++) mxLog("%f", fit.equality[i]);
-	fit.myineqFun();
-        mxLog("myineqFun is: \n");
-        for (i = 0; i < fit.inequality.size(); i++) mxLog("%f", fit.inequality[i]);
-        mxLog("solLB is: \n");
-        for (i = 0; i < LB.cols; i++) mxLog("%f", LB.t[i]);
-        mxLog("solUB is: \n");
-        for (i = 0; i < UB.cols; i++) mxLog("%f", UB.t[i]);
-    }
     
     flag = 0;
     flag_NormgZ = 0; flag_step = 0; minr_rec = 0;
@@ -91,24 +74,13 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     int maxit_trace = 0;
     
-    Matrix grad = fill(LB.cols, 1, (double)0.0);
+    Matrix grad = fill(LB_e.size(), 1, (double)0.0);
     //free(matrices.front().t);
     Matrix pb_cont;
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
-    Eigen::Map< Eigen::VectorXd > pars(solPars, LB.cols);
-    
-    if (verbose >= 2){
-        mxLog("LB is: \n");
-        for (i = 0; i < LB.cols; i++) mxLog("%f",LB.t[i]);
-        
-        mxLog("UB is: \n");
-        for (i = 0; i < UB.cols; i++) mxLog("%f",UB.t[i]);
-        
-        mxLog("pars is: \n");
-        for (i = 0; i < pars.size(); i++) mxLog("%f",pars[i]);
-    }
-    
+    Eigen::Map< Eigen::VectorXd > pars(solPars, LB_e.size());
+
     const int np = pars.size();
     
     ind.setZero();
@@ -128,8 +100,8 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     // do inequality checks and return starting values
     const int nineq = fit.inequality.size();
-    ind[indHasIneq] = nineq > 0;    
-
+    ind[indHasIneq] = nineq > 0;
+    
     const int neq = fit.equality.size();
     
     ind[indHasEq] = neq > 0;
@@ -140,20 +112,41 @@ void CSOLNP::solnp(double *solPars, int verbose)
         for (i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
     }
     
+    Matrix ineqx0 = fill(nineq, 1, (double)0.0);
+    Eigen::RowVectorXd ineqx0_e(nineq); ineqx0_e.setZero();
     Matrix pb;
+    Eigen::MatrixXd pb_e;
     
     if(nineq) {
-	    pb = fill(2, nineq, (double)0.0);
-	    Eigen::Map< Eigen::MatrixXd > pbE(pb.t, pb.rows, pb.cols);
-	    pbE.col(1) = Eigen::VectorXd::Constant(pb.rows, INF);
-	    pb_cont = fill(2, np, (double)0.0);
-	    setColumnInplace(pb_cont, LB, 0);
-	    setColumnInplace(pb_cont, UB, 1);
-	    pb = transpose(copy(transpose(pb), transpose(pb_cont)));
+        pb = new_matrix(2, nineq + np);
+        pb_e.setZero(nineq, 2);
+        pb_e.col(1) = Eigen::VectorXd::Constant(pb_e.rows(), INF);
+        Eigen::MatrixXd pb_cont_e;
+        pb_cont_e.setZero(np, 2);
+        pb_cont_e.col(0) = LB_e;
+        pb_cont_e.col(1) = UB_e;
+        pb_e.transposeInPlace();
+        pb_cont_e.transposeInPlace();
+        if (verbose == 3){
+            cout << "pb_e:\n" << pb_e << endl;
+            cout << "pb_cont_e:\n" << pb_cont_e << endl;
+        }
+        Eigen::MatrixXd pbJoined(2, nineq + np);
+        pbJoined << pb_e, pb_cont_e;
+        pbJoined.transposeInPlace();
+        if (verbose == 3){
+            cout << "pbJoined:\n" << pbJoined << endl;
+        }
+        pb_e.resize(pbJoined.rows(), pbJoined.cols());
+        pb_e = pbJoined;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pbJoined.rows(), pbJoined.cols()) = pbJoined;
+        
     } else {
-	    pb = fill(2, np, (double)0.0);
-	    setColumnInplace(pb, LB, 0);
-	    setColumnInplace(pb, UB, 1);
+        pb = fill(2, np, (double)0.0);
+        pb_e.setZero(np, 2);
+        pb_e.col(0) = LB_e;
+        pb_e.col(1) = UB_e;
+        Eigen::Map< Eigen::MatrixXd >(pb.t, pb_e.rows(), pb_e.cols()) = pb_e;
     }
     
     double rho   = fit.ControlRho;
@@ -167,13 +160,18 @@ void CSOLNP::solnp(double *solPars, int verbose)
     double j = funv;
     Matrix jh = fill(1, 1, funv);
     Matrix tt = fill(1, 3, (double)0.0);
+    Eigen::VectorXd tt_e(3); tt_e.setZero();
     
-    Matrix lambda;
     Matrix constraint;
-    Matrix ineqx0;
+    Eigen::MatrixXd constraint_e;
     
     fit.solEqBFun();
     Matrix eqv(fit.equality);
+    Eigen::RowVectorXd eqv_e(neq);
+    
+    Eigen::RowVectorXd ineqv_e(nineq);
+    
+    Matrix lambda;
 
     if (tc > 0){
 	    fit.myineqFun();
@@ -197,7 +195,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             Matrix difference1 = subset(constraint, 0, neq, tc-1);
             Matrix difference2 = subset(constraint, 0, neq, tc-1);
             negate(difference2);
-	    Eigen::RowVectorXd infVec = Eigen::RowVectorXd::Constant(difference2.cols, INF);
+            Eigen::RowVectorXd infVec = Eigen::RowVectorXd::Constant(difference2.cols, INF);
             addEigen(difference2, infVec);
             tmpv = fill(2, nineq, (double)0.0);
             setColumnInplace(tmpv, difference1, 0);
@@ -321,7 +319,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         grad = subnp(p, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
         
-	p = duplicateIt(resP);
+        p = duplicateIt(resP);
         if (flag == 1)
         {
 	    mode = 0;
@@ -373,7 +371,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         
         Matrix temp = subset(p, 0, nineq, (nineq+np-1));
-	mode = 1;
+        mode = 1;
         funv = fit.solFun(temp.t, &mode);
         if (mode == -1)
         {
@@ -602,8 +600,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     Matrix pb;
     Eigen::MatrixXd pb_e;
-    Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
-    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);
+    /*Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
+    Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);*/
     
     if(nineq) {
         pb = new_matrix(2, nineq + np);
@@ -1815,7 +1813,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         if (verbose >= 3){
             cout<< "yg_e is: \n"  << yg_e << endl;
         }
-        //printSize();
     } // end while (minit < maxit){
     
     yg_rec(0, 1) = yg_e.squaredNorm();
@@ -1824,17 +1821,14 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     minr_rec = minit;
     
     Matrix result2 = getColumn(ptt2, 1);
-     subtractEigen(result2, getColumn(ptt2, 0));
-     Matrix result3 = getColumn(ptt2, 1);
-     subtractEigen(result3, getColumn(ptt2, 2));
-     if (all(result2) || all(result3)) flag_step = 1;
-    //p = p * vscale[ (neq + 2):(nc + np + 1) ]  # unscale the parameter vector
+    subtractEigen(result2, getColumn(ptt2, 0));
+    Matrix result3 = getColumn(ptt2, 1);
+    subtractEigen(result3, getColumn(ptt2, 2));
+    if (all(result2) || all(result3)) flag_step = 1;
     p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
     // I need vscale, p, y, hessv
     if (nc > 0){
-        //y = vscale[ 0 ] * y / vscale[ 2:(nc + 1) ] # unscale the lagrange multipliers
         y_e *= vscale_e(0);
-        
         y_e = y_e.cwiseQuotient(vscale_e.block(0, 1, 1, nc));
     }
     
