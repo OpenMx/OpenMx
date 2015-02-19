@@ -79,7 +79,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Matrix pb_cont;
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
     
-    Eigen::Map< Eigen::VectorXd > pars(solPars, LB_e.size());
+    Eigen::Map< Eigen::RowVectorXd > pars(solPars, LB_e.size());
 
     const int np = pars.size();
     
@@ -112,7 +112,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         for (i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
     }
     
-    Matrix ineqx0 = fill(nineq, 1, (double)0.0);
     Eigen::RowVectorXd ineqx0_e(nineq); ineqx0_e.setZero();
     Matrix pb;
     Eigen::MatrixXd pb_e;
@@ -168,51 +167,52 @@ void CSOLNP::solnp(double *solPars, int verbose)
     fit.solEqBFun();
     Matrix eqv(fit.equality);
     Eigen::RowVectorXd eqv_e(neq);
+    eqv_e = fit.equality;
     
+    fit.myineqFun();
+    Matrix ineqv(fit.inequality);
     Eigen::RowVectorXd ineqv_e(nineq);
+    ineqv_e= fit.inequality;
     
     Matrix lambda;
-
+    
     if (tc > 0){
-	    fit.myineqFun();
-	    Matrix ineqv(fit.inequality);
         lambda = fill(1, tc, (double)0.0);
         
         if (nineq){
-            if(eqv.cols)
+            if(neq)
             {
-                constraint = copy(eqv, ineqv);
+                constraint_e.resize(1, eqv_e.size() + ineqv_e.size());
+                constraint_e << eqv_e, ineqv_e;
             }
             else{
-                constraint = duplicateIt(ineqv);
+                constraint_e = ineqv_e;
             }
         }
-        else    constraint = duplicateIt(eqv);
+        else
+            constraint_e = eqv_e;
         
         if( ind[indHasIneq] > 0 ) {
             
             // 	tmpv = cbind(constraint[ (neq[0]):(tc[0]-1) ] - .fit.solIneqLB, .fit.solIneqUB - constraint[ (neq + 1):tc ] )
-            Matrix difference1 = subset(constraint, 0, neq, tc-1);
-            Matrix difference2 = subset(constraint, 0, neq, tc-1);
-            negate(difference2);
-            Eigen::RowVectorXd infVec = Eigen::RowVectorXd::Constant(difference2.cols, INF);
-            addEigen(difference2, infVec);
-            tmpv = fill(2, nineq, (double)0.0);
-            setColumnInplace(tmpv, difference1, 0);
-            setColumnInplace(tmpv, difference2, 1);
-            testMin = rowWiseMin(tmpv);
+            Eigen::MatrixXd diff1 = constraint_e.block(0, neq, 1, tc-neq).transpose();
+            Eigen::MatrixXd diff2 = constraint_e.block(0, neq, 1, tc-neq).transpose();
+            Eigen::VectorXd infVec = Eigen::VectorXd::Constant(diff2.rows(), INF);
+            diff2 = infVec - diff2;
+            Eigen::MatrixXd tmpv_e(nineq, 2);
+            tmpv_e.col(0) = diff1;
+            tmpv_e.col(1) = diff2;
+            Eigen::MatrixXd testMin_e = tmpv_e.rowwise().minCoeff();
             
-            if (allGreaterThan(testMin, 0)) {
-                ineqx0 = subset(constraint, 0, neq, tc-1);
+            if ((testMin_e.array() > 0).all()) {
+                ineqx0_e = constraint_e.block(0, neq, 1, tc-neq);
             }
             
-            Matrix diff = subset(constraint, 0, neq, tc-1);
-            subtractEigen(diff, ineqx0);
-            copyIntoInplace(constraint, diff, 0, neq, tc-1);
+            constraint_e.block(0, neq, 1, tc-neq) = constraint_e.block(0, neq, 1, tc-neq) - ineqx0_e;
         }
         
-        M(tt, 0, 1) = vnorm(constraint);
-        double zeroCheck = M(tt, 0, 1) - (10 * tol);
+        tt_e[1] = constraint_e.squaredNorm();
+        double zeroCheck = tt_e[1] - (10 * tol);
         if( max(zeroCheck, nineq) <= 0 ) {
             rho = 0;
         }
@@ -221,48 +221,67 @@ void CSOLNP::solnp(double *solPars, int verbose)
         lambda = fill(1, 1, (double)0.0);
     }
     
+    constraint = new_matrix(constraint_e.cols(), constraint_e.rows());
+    Eigen::Map< Eigen::MatrixXd > (constraint.t, constraint_e.rows(), constraint_e.cols()) = constraint_e;
     
+    Eigen::Map< Eigen::VectorXd > (tt.t, tt_e.size()) = tt_e;
     Matrix tempv;
     Matrix p;
+    Eigen::RowVectorXd p_e;
     
     if (nineq){
-        p = copy(ineqx0, pars);
+        p_e.resize(1, ineqx0_e.size() + pars.size());
+        p_e << ineqx0_e, pars;
     }
     else{
-        p = duplicateIt(pars);
+        p_e = pars;
     }
     
-    Matrix hessv = diag(fill((np+nineq), 1, (double)1.0));
+    p = new_matrix(p_e.cols(), p_e.rows());
+    Eigen::Map< Eigen::RowVectorXd > (p.t, p_e.size()) = p_e;
     
+    Matrix hessv = diag(fill((np+nineq), 1, (double)1.0));
+    Eigen::Map< Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
+    hessv_e.setIdentity();
     double mu = np;
     
     int solnp_iter = 0;
     
-    Matrix ob;
+    Eigen::MatrixXd ob_e;
     Matrix funvMatrix = fill(1, 1, funv);
+    Eigen::MatrixXd funvMatrix_e(1,1);
+    funvMatrix_e(0, 0) = funv;
+    fit.solEqBFun();
+    eqv_e = fit.equality;
     
     if ( nineq){
-	    fit.myineqFun();
-	    Matrix ineqv(fit.inequality);
-        if(eqv.cols){
-            Matrix firstCopied = copy(funvMatrix, eqv);
-            ob = copy(firstCopied, ineqv);
+        fit.myineqFun();
+        ineqv_e = fit.inequality;
+        if(neq){
+            ob_e.resize(1, 1 + eqv_e.size() + ineqv_e.size());
+            ob_e << funvMatrix_e, eqv_e, ineqv_e;
         }
         else{
-            ob = copy(funvMatrix, ineqv);
+            ob_e.resize(1, 1 + ineqv_e.size());
+            ob_e << funvMatrix_e, ineqv_e;
         }
         
     }
-    else if (eqv.cols) {
-        ob = copy(funvMatrix, eqv);
+    else if (neq) {
+        ob_e.resize(1, 1 + eqv_e.size());
+        ob_e << funvMatrix_e, eqv_e;
     }
-    else ob = duplicateIt(funvMatrix);
-    
+    else {
+        ob_e.resize(1, 1);
+        ob_e = funvMatrix_e;
+    }
     
     if(verbose >= 3){
-        mxLog("ob is: \n");
-        for (i = 0; i < ob.cols; i++) mxLog("%f",ob.t[i]);
+        cout << "ob_e is:" << ob_e << endl;
     }
+    
+    Matrix ob = new_matrix(ob_e.cols(), ob_e.rows());
+    Eigen::Map< Eigen::MatrixXd > (ob.t, ob_e.rows(), ob_e.cols()) = ob_e;
     
     Matrix vscale;
     
