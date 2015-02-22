@@ -22,6 +22,7 @@ struct CSOLNP {
     Eigen::MatrixXd resHessv;
     Eigen::MatrixXd resY;
     Eigen::MatrixXd sx_Matrix; // search direction
+    Eigen::RowVectorXd resGrad;
     int mode;
     GradientOptimizerContext &fit;
 
@@ -31,7 +32,7 @@ struct CSOLNP {
 	void solnp(double *pars, int verbose);
 
     template <typename T1, typename T2>
-    Matrix subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
+    void subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
                  const Eigen::Array<double, 4, 1> &ctrl, int verbose);
 
 	enum indParam {
@@ -74,8 +75,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
     //sec = time (NULL);
     
     int maxit_trace = 0;
-    
-    Matrix grad = fill(LB_e.size(), 1, (double)0.0);
     //free(matrices.front().t);
     Matrix pb_cont;
     Matrix difference1, difference2, tmpv, testMin, firstCopied, subnp_ctrl, subsetMat, temp2, temp1, temp, funv_mat, tempdf, firstPart, copied, subsetOne, subsetTwo, subsetThree, diff1, diff2, copyValues, diff, llist, tempTTVals, searchD;
@@ -333,7 +332,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         sx_Matrix.setZero(p_e.rows(), p_e.cols());
         
-        grad = subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
+        subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
         
         p_e = resP;
         
@@ -386,7 +385,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             lambda_e = resY;
             hessv_e = resHessv;
             mu = resLambda;
-            grad = subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
+            subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
         }
         
         lambda_e = resY;
@@ -563,14 +562,14 @@ void CSOLNP::solnp(double *solPars, int verbose)
     }
     
     memcpy(pars.data(), p_e.data(), pars.size() * sizeof(double));
-    fit.gradOut.resize(grad.cols);
-    memcpy(fit.gradOut.data(), grad.t, fit.gradOut.size() * sizeof(double));
+    fit.gradOut.resize(resGrad.size());
+    memcpy(fit.gradOut.data(), resGrad.data(), fit.gradOut.size() * sizeof(double));
     fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
     memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
 }
 
 template <typename T1, typename T2>
-Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e,
+void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e,
                      double lambda, Eigen::MatrixBase<T2>& vscale_e, const Eigen::Array<double, 4, 1> &ctrl, int verbose)
 {
     int yyRows = yy_e.rows();
@@ -872,7 +871,7 @@ Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, E
             Eigen::Map< Eigen::MatrixXd > (constraint.t, constraint_e.rows(), constraint_e.cols()) = constraint_e;
         }
         
-        if (false && solvecond(a) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
+        if (false && solvecond(a_e) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
             Rf_error("Redundant constraints were found. Poor intermediate results may result. "
                      "Remove redundant constraints and re-OPTIMIZE.");
         }
@@ -1359,7 +1358,7 @@ Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, E
                 resY = y_e;
                 resHessv = hessv_e;
                 resLambda = lambda;
-                return g;
+                resGrad = g_e;
             }
             
             Eigen::MatrixXd cz_inv;
@@ -1825,6 +1824,7 @@ Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, E
     resY = y_e.block(0, 0, 1, yyRows).transpose();
     resHessv = hessv_e;
     resLambda = lambdaValue;
+    resGrad = g_e;
     
     if (verbose >= 3){
         mxLog("------------------------RETURNING FROM SUBNP------------------------");
@@ -1840,7 +1840,4 @@ Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, E
         mxLog("%d", minit);
         mxLog("------------------------END RETURN FROM SUBNP------------------------");
     }
-    
-    return g;
-    
 } // end subnp

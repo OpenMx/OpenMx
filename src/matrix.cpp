@@ -1490,32 +1490,6 @@ void chol_lpk(Matrix mainMat)
     
 }
 
-double solvecond(Matrix inMat)
-{
-    Matrix result = duplicateIt(inMat);
-    int l;
-    char JOBZ = 'S';
-    int lwork = -1;
-    double wkopt;
-    int dim_s = std::max(result.cols, result.rows); // maybe min is sufficient
-    Eigen::ArrayXi iwork(8 * dim_s);
-    Eigen::ArrayXd sv(dim_s);
-    Eigen::ArrayXd u(dim_s * result.rows);
-    Eigen::ArrayXd vt(dim_s * result.cols);
-    F77_CALL(dgesdd)(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), sv.data(), u.data(), &(result.rows), vt.data(), &(result.cols), &wkopt, &lwork, iwork.data(), &l);
-    lwork = (int)wkopt;
-    Eigen::ArrayXd work(lwork);
-    F77_CALL(dgesdd)(&JOBZ, &(result.rows), &(result.cols), result.t, &(result.rows), sv.data(), u.data(), &(result.rows), vt.data(), &(result.cols), work.data(), &lwork, iwork.data(), &l);
-    
-    if (l < 0) Rf_error("the i-th argument had an illegal value");
-    else if (l > 0) Rf_error("DBDSDC did not converge, updating process failed.");
-    else
-    {
-        if ((sv == 0).count()) return std::numeric_limits<double>::infinity();
-        else return sv.maxCoeff() / sv.minCoeff();
-    }
-}
-
 Matrix fillMatrix(int cols, int rows, double* array)
 {
     Matrix t = new_matrix(cols, rows);

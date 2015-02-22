@@ -49,7 +49,34 @@ Matrix fillMatrix(int cols, int rows, double* array);
 
 void fillMatrix_t(Matrix t, int cols, int rows, double* array);
 
-double solvecond(Matrix inMat);
+template <typename T1>
+double solvecond(Eigen::MatrixBase<T1> & inMat)
+{
+    Eigen::MatrixXd result = inMat;
+    int l;
+    char JOBZ = 'S';
+    int lwork = -1;
+    double wkopt;
+    int dim_s = std::max(result.cols(), result.rows()); // maybe min is sufficient
+    Eigen::ArrayXi iwork(8 * dim_s);
+    Eigen::ArrayXd sv(dim_s);
+    Eigen::ArrayXd u(dim_s * result.rows());
+    Eigen::ArrayXd vt(dim_s * result.cols());
+    int result_row = result.rows();
+    int result_col = result.cols();
+    F77_CALL(dgesdd)(&JOBZ, &result_row, &result_col, result.data(), &result_row, sv.data(), u.data(), &result_row, vt.data(), &result_col, &wkopt, &lwork, iwork.data(), &l);
+    lwork = (int)wkopt;
+    Eigen::ArrayXd work(lwork);
+    F77_CALL(dgesdd)(&JOBZ, &result_row, &result_col, result.data(), &result_row, sv.data(), u.data(), &result_row, vt.data(), &result_col, work.data(), &lwork, iwork.data(), &l);
+    
+    if (l < 0) Rf_error("the i-th argument had an illegal value");
+    else if (l > 0) Rf_error("DBDSDC did not converge, updating process failed.");
+    else
+    {
+        if ((sv == 0).count()) return std::numeric_limits<double>::infinity();
+        else return sv.maxCoeff() / sv.minCoeff();
+    }
+}
 
 Matrix diag2(Matrix A);
 
