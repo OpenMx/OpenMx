@@ -27,7 +27,6 @@ struct CSOLNP {
     GradientOptimizerContext &fit;
 
 	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
-	~CSOLNP() { freeMatrices(); };
     
 	void solnp(double *pars, int verbose);
 
@@ -97,7 +96,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     ind[indHasJacobianIneq] = 0;
     
     // do inequality checks and return starting values
-    const int nineq = fit.inequality.size();
+    int nineq = fit.inequality.size();
     ind[indHasIneq] = nineq > 0;
     
     const int neq = fit.equality.size();
@@ -201,7 +200,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         tt_e[1] = constraint_e.squaredNorm();
         double zeroCheck = tt_e[1] - (10 * tol);
-        if( max(zeroCheck, nineq) <= 0 ) {
+        if( std::max(zeroCheck, (double)nineq) <= 0 ) {
             rho = 0;
         }
     } // end if tc > 0
@@ -420,7 +419,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             cout<< "ob_e is" << ob_e << endl;
         }
         
-        resultForTT = (j - ob_e(0, 0)) / max(ob_e.cwiseAbs().maxCoeff(), 1.0);
+        resultForTT = (j - ob_e(0, 0)) / std::max(ob_e.cwiseAbs().maxCoeff(), 1.0);
         tt_e[0] = resultForTT;
         if (verbose >= 1){
             mxLog("resultForTT \n");
@@ -453,7 +452,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             if ( tt_e[2] < (10 *tol)){
                 rho =0;
-                mu = min(mu, tol);
+                mu = std::min(mu, tol);
             }
             
             if ( tt_e[2] < (5 * tt_e[1])){
@@ -461,7 +460,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             }
             
             if ( tt_e[2] > (10 * tt_e[1])){
-                rho = 5 * max(rho, sqrt(tol));
+                rho = 5 * std::max(rho, sqrt(tol));
             }
             
             Eigen::MatrixXd llist(1, 2);
@@ -891,13 +890,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     {
                         if(v_e(0, i) < 0)
                         {
-                            z = min(z, -(pb_e(i, 1) - p0_e(i))/v_e(0, i));
+                            z = std::min(z, -(pb_e(i, 1) - p0_e(i))/v_e(0, i));
                             
                         }
                         else if(v_e(0, i) > 0)
                         {
                             
-                            z = min(z, (p0_e(i) - pb_e(i, 0))/v_e(0, i));
+                            z = std::min(z, (p0_e(i) - pb_e(i, 0))/v_e(0, i));
                         }
                     }
                     
