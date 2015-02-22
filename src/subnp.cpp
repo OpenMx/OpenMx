@@ -17,21 +17,22 @@ struct CSOLNP {
     int flag, flag_NormgZ, flag_step, minr_rec;
     Eigen::VectorXd LB_e;
     Eigen::VectorXd UB_e;
-    Matrix resP;
+    Eigen::MatrixXd resP;
     double resLambda;
-    Matrix resHessv;
-    Matrix resY;
-	Matrix sx_Matrix; // search direction
+    Eigen::MatrixXd resHessv;
+    Eigen::MatrixXd resY;
+    Eigen::MatrixXd sx_Matrix; // search direction
     int mode;
-	GradientOptimizerContext &fit;
+    GradientOptimizerContext &fit;
 
 	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
 	~CSOLNP() { freeMatrices(); };
     
 	void solnp(double *pars, int verbose);
 
-    Matrix subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv, double lambda,  Matrix vscale,
-		 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
+    template <typename T1, typename T2>
+    Matrix subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
+                 const Eigen::Array<double, 4, 1> &ctrl, int verbose);
 
 	enum indParam {
 		indNumParam=0,
@@ -174,10 +175,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Eigen::RowVectorXd ineqv_e(nineq);
     ineqv_e= fit.inequality;
     
-    Matrix lambda;
+    Eigen::MatrixXd lambda_e;
     
     if (tc > 0){
-        lambda = fill(1, tc, (double)0.0);
+        lambda_e.setZero(tc, 1);
         
         if (nineq){
             if(neq)
@@ -218,7 +219,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         }
     } // end if tc > 0
     else {
-        lambda = fill(1, 1, (double)0.0);
+        lambda_e.setZero(1, 1);
     }
     
     constraint = new_matrix(constraint_e.cols(), constraint_e.rows());
@@ -226,7 +227,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     Eigen::Map< Eigen::VectorXd > (tt.t, tt_e.size()) = tt_e;
     Matrix tempv;
-    Matrix p;
     Eigen::RowVectorXd p_e;
     
     if (nineq){
@@ -237,12 +237,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         p_e = pars;
     }
     
-    p = new_matrix(p_e.cols(), p_e.rows());
-    Eigen::Map< Eigen::RowVectorXd > (p.t, p_e.size()) = p_e;
-    
-    Matrix hessv = diag(fill((np+nineq), 1, (double)1.0));
-    Eigen::Map< Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
+    Eigen::MatrixXd hessv_e(np + nineq, np + nineq);
     hessv_e.setIdentity();
+    
     double mu = np;
     
     int solnp_iter = 0;
@@ -280,10 +277,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         cout << "ob_e is:" << ob_e << endl;
     }
     
-    Matrix ob = new_matrix(ob_e.cols(), ob_e.rows());
-    Eigen::Map< Eigen::MatrixXd > (ob.t, ob_e.rows(), ob_e.cols()) = ob_e;
-    
-    Matrix vscale;
     Eigen::RowVectorXd vscale_e;
     
     while(solnp_iter < maxit){
@@ -313,14 +306,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         minMaxAbs(vscale_e, tol);
         
-        vscale = new_matrix(vscale_e.cols(), vscale_e.rows());
-        Eigen::Map< Eigen::RowVectorXd > (vscale.t, vscale_e.size()) = vscale_e;
-        
         if (verbose >= 1){
             mxLog("------------------------CALLING SUBNP------------------------");
             cout<< "p_e is:" << p_e<< endl;
             mxLog("lambda information: ");
-            for (i = 0; i < lambda.cols; i++) mxLog("%f",lambda.t[i]);
+            cout<< lambda_e << endl;
             mxLog("ob information: ");
             cout<< ob_e << endl;
             mxLog("hessv information: ");
@@ -337,19 +327,20 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (mode == -1)
         {
             fit.informOut = 0;
-            memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+            memcpy(pars.data(), p_e.data(), pars.size() * sizeof(double));
             return;
         }
         
-        sx_Matrix = fill(p.cols, p.rows, (double)0.0);
+        sx_Matrix.setZero(p_e.rows(), p_e.cols());
         
-        grad = subnp(p, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
+        grad = subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
         
-        p = resP;
+        p_e = resP;
+        
         if (flag == 1)
         {
             mode = 0;
-            funv = fit.solFun(p.t, &mode);
+            funv = fit.solFun(p_e.data(), &mode);
             funvMatrix_e(0, 0) = funv;
             fit.solEqBFun();
             eqv_e = fit.equality;
@@ -374,10 +365,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
                 ob_e.resize(1, 1);
                 ob_e = funvMatrix_e;
             }
-            
-            ob = new_matrix(ob_e.cols(), ob_e.rows());
-            Eigen::Map< Eigen::MatrixXd > (ob.t, ob_e.rows(), ob_e.cols()) = ob_e;
-            
+
             if ( ind[indHasEq] > 0){
                 
                 double max = ob_e.block(0, 1, 1, neq).cwiseAbs().maxCoeff();
@@ -395,25 +383,25 @@ void CSOLNP::solnp(double *solPars, int verbose)
             vscale_e.resize(1, vscale_t.cols() + onesMatrix.cols());
             vscale_e << vscale_t, onesMatrix;
             
-            lambda = resY;
-            hessv = resHessv;
+            lambda_e = resY;
+            hessv_e = resHessv;
             mu = resLambda;
-            grad = subnp(p, lambda, ob, hessv, mu, vscale, subnp_ctrl, verbose);
+            grad = subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
         }
         
-        lambda = resY;
-        
-        hessv = resHessv;
-        
+        lambda_e = resY;
+        hessv_e = resHessv;
         mu = resLambda;
         
-        Matrix temp = subset(p, 0, nineq, (nineq+np-1));
+        Eigen::MatrixXd temp;
+        temp = p_e.block(0, nineq, 1, np);
+        
         mode = 1;
-        funv = fit.solFun(temp.t, &mode);
+        funv = fit.solFun(temp.data(), &mode);
         if (mode == -1)
         {
             fit.informOut = 0;
-            memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+            memcpy(pars.data(), p_e.data(), pars.size() * sizeof(double));
             return;
         }
         
@@ -444,8 +432,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
             ob_e.resize(1, 1);
             ob_e = funvMatrix_e;
         }
-        ob = new_matrix(ob_e.cols(), ob_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (ob.t, ob_e.rows(), ob_e.cols()) = ob_e;
         
         if (verbose >= 1){
             mxLog("j2 in while: \n");
@@ -504,7 +490,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             
             if (llist.maxCoeff() <= 0){
-                lambda = fill(1, 1, (double)0.0);
+                lambda_e.resize(1, 1); lambda_e(0, 0) = 0;
                 hessv_e = hessv_e.diagonal().asDiagonal();
             }
             
@@ -529,7 +515,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         }
     } // end while(solnp_iter < maxit){
     
-    p = subset(p, 0, nineq, (nineq + np -1));
+    Eigen::RowVectorXd p_e_copy = p_e;
+    p_e.resize(np);
+    p_e = p_e_copy.block(0, nineq, 1, np);
 
     {
         Matrix tempTTVals = fill(2, 1, (double) 0.0);
@@ -538,7 +526,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         double vnormValue = vnorm(tempTTVals);
         if (verbose >= 3){
             mxLog("sx_Matrix (search direction) is: \n");
-            for (i = 0; i < sx_Matrix.cols; i++) mxLog("%f",sx_Matrix.t[i]);
+            cout<< sx_Matrix << endl;
         }
         
         if (verbose >= 1) {
@@ -546,11 +534,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		      vnormValue, flag_NormgZ, minr_rec, flag_step);
 	}
         if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1 && flag_step == 1){
-		double iterateConverge = delta * pow(vnorm(sx_Matrix),(double)2.0);
-		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(vnorm(p), (double)2.0));
+		double iterateConverge = delta * pow(sx_Matrix.squaredNorm(),(double)2.0);
+		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(p_e.squaredNorm(), (double)2.0));
 		if (verbose >= 1) {
 			mxLog("vnorm(sx_Matrix) is %.20f, iterateConverge is %.20f, iterateConvergeCond is: %.20f",
-			      vnorm(sx_Matrix), iterateConverge, iterateConvergeCond);
+			      sx_Matrix.squaredNorm(), iterateConverge, iterateConvergeCond);
 		}
 
             if (iterateConverge <= iterateConvergeCond){
@@ -574,22 +562,18 @@ void CSOLNP::solnp(double *solPars, int verbose)
         }
     }
     
-    memcpy(pars.data(), p.t, pars.size() * sizeof(double));
+    memcpy(pars.data(), p_e.data(), pars.size() * sizeof(double));
     fit.gradOut.resize(grad.cols);
     memcpy(fit.gradOut.data(), grad.t, fit.gradOut.size() * sizeof(double));
-    fit.hessOut.resize(hessv.rows, hessv.cols);
-    memcpy(fit.hessOut.data(), hessv.t, fit.hessOut.size() * sizeof(double));
+    fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
+    memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
 }
 
-Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
-		     double lambda,  Matrix vscale, const Eigen::Array<double, 4, 1> &ctrl, int verbose)
+template <typename T1, typename T2>
+Matrix CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e,
+                     double lambda, Eigen::MatrixBase<T2>& vscale_e, const Eigen::Array<double, 4, 1> &ctrl, int verbose)
 {
-    if (verbose >= 3)
-    {
-        mxLog("pars in subnp is: \n");
-        for (int ilog = 0; ilog < pars.cols; ilog++) mxLog("%f",pars.t[ilog]);
-    }
-    int yyRows = yy.rows;
+    int yyRows = yy_e.rows();
     //int yyCols = yy.cols;
     double j;
     
@@ -618,12 +602,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     int nc = neq + nineq;
     int npic = np + nineq;
     
-    Matrix p0 = duplicateIt(pars);
+    Eigen::RowVectorXd p0_e = pars;
     
     if (verbose >= 3)
     {
         mxLog("p0 p0 is: \n");
-        for (int i = 0; i < p0.cols; i++) mxLog("%f",p0.t[i]);
+        for (int i = 0; i < p0_e.size(); i++) mxLog("%f",p0_e[i]);
     }
     
     Matrix pb;
@@ -672,11 +656,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     
     //Matrix yyMatrix = duplicateIt(yy);
     
-    //Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
-    Eigen::Map< Eigen::RowVectorXd > vscale_e(vscale.t, vscale.cols);
-    //ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
-    divideEigen(ob, subset(vscale, 0, 0, nc));
-    Eigen::Map< Eigen::RowVectorXd > p0_e(p0.t, p0.cols);
+    ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
     p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
     
     if (verbose >= 3){
@@ -699,7 +679,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         for (int i = 0; i < pb.cols; i++) mxLog("%f",pb.t[i]);
     }
     
-    Eigen::Map < Eigen::MatrixXd > yy_e(yy.t, yy.rows, yy.cols);
     // scale the lagrange multipliers and the Hessian
     if( nc > 0) {
         // yy [total constraints = nineq + neq]
@@ -716,12 +695,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     // hessv [ (np+nineq) x (np+nineq) ]
     // hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
-    Eigen::Map < Eigen::MatrixXd > hessv_e(hessv.t, hessv.rows, hessv.cols);
     Eigen::MatrixXd result_e;
     result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
     hessv_e = hessv_e.cwiseProduct(result_e);
     hessv_e = hessv_e / vscale_e[0];
-    Eigen::Map< Eigen::MatrixXd > ob_e(ob.t, ob.rows, ob.cols);
+
     j = ob_e(0, 0);
     if (verbose >= 3){
         mxLog("j j is: \n");
@@ -794,8 +772,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
 
     Matrix g = fill(npic, 1, (double)0.0);
     Eigen::Map< Eigen::RowVectorXd > g_e(g.t, g.cols);
-    Matrix p = subset(p0, 0, 0, (npic-1));
-    Eigen::Map< Eigen::RowVectorXd > p_e(p.t, p.cols);
+    Eigen::RowVectorXd p_e;
+    p_e = p0_e.block(0, 0, 1, npic);
     
     Matrix dx;
     Matrix b;
@@ -821,16 +799,14 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         
         for (int i=0; i<np; i++){
             int index = nineq + i;
-            M(p0, index, 0) = M(p0, index, 0) + delta;
+            p0_e[index] = p0_e[index] + delta;
             Eigen::MatrixXd tmpv_e;
             tmpv_e = p0_e.block(0, nineq, 1, npic - nineq);
             tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
-            Matrix tmpv = new_matrix(1, npic - nineq);
-            Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
             if (verbose >= 2){
                 mxLog("7th call is \n");
             }
-            funv = fit.solFun(tmpv.t, &mode);
+            funv = fit.solFun(tmpv_e.data(), &mode);
             
             fit.solEqBFun();
             fit.myineqFun();
@@ -880,7 +856,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
             a_e.col(index) = (ob_e.block(0, 1, 1, nc) - constraint_e).transpose() / delta;
             Eigen::Map< Eigen::MatrixXd > (a.t, a_e.rows(), a_e.cols()) = a_e;
-            M(p0, index, 0) = M(p0, index, 0) - delta;
+            p0_e[index] = p0_e[index] - delta;
         } // end for (int i=0; i<np, i++){
         
         if (mode == -1)
@@ -919,8 +895,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             Eigen::RowVectorXd onesMatrix_e;
             onesMatrix_e.setOnes(1, 1);
             Eigen::RowVectorXd p0_e_copy = p0_e;
-            p0 = copy(p0, fill(1, 1, (double)1.0));
-            new (&p0_e) Eigen::Map<Eigen::RowVectorXd>(p0.t, p0.rows, p0.cols);
             p0_e.resize(p0_e_copy.rows(), p0_e_copy.cols() + onesMatrix_e.cols());
             p0_e << p0_e_copy, onesMatrix_e;
             constraint_e *= (-1.0);
@@ -1041,7 +1015,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
 
     if (verbose >= 3){
         mxLog("p is: \n");
-        for (int i = 0; i < p.cols; i++) mxLog("%f",p.t[i]);
+        cout << p_e << endl;
     }
     
     if (ch > 0){
@@ -1049,9 +1023,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         Eigen::MatrixXd tmpv_e;
         tmpv_e = p_e.block(0, nineq, 1, npic-nineq);
         tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
-        Matrix tmpv = new_matrix(tmpv_e.cols(), tmpv_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
-        funv = fit.solFun(tmpv.t, &mode);
+        funv = fit.solFun(tmpv_e.data(), &mode);
         if (verbose >= 3){
             mxLog("funv is: \n");
             mxLog("%f", funv);
@@ -1128,7 +1100,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     Eigen::MatrixXd yg_rec(1, 2);
     Matrix sx;
     Eigen::MatrixXd sx_e;
-    sx_e.setZero(p.rows, p.cols);
+    sx_e.setZero(p_e.rows(), p_e.cols());
     Matrix sc = fill(2, 1, (double)0.0);
     Matrix cz;
     Matrix czSolution;
@@ -1166,13 +1138,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 int index = nineq + i;
                 p_e[index] = p_e[index] + delta;
                 Eigen::MatrixXd tmpv_e = p_e.block(0, nineq, 1, npic - nineq).array() * vscale_e.block(0, nc+1, 1, np).array();
-                Matrix tmpv = new_matrix(tmpv_e.cols(), tmpv_e.rows());
-                Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
                 if (verbose >= 3){
                     mxLog("9th call is \n");
                 }
                 mode = 0;
-                funv = fit.solFun(tmpv.t, &mode);
+                funv = fit.solFun(tmpv_e.data(), &mode);
                 if (verbose >= 3){
                     mxLog("funv is: \n");
                     mxLog("%f", funv);
@@ -1248,7 +1218,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                     mxLog("g is: \n");
                     for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
                     mxLog("p is: \n");
-                    for (int ilog = 0; ilog < p.cols; ilog++) mxLog("%f",p.t[ilog]);
+                    for (int ilog = 0; ilog < p_e.size(); ilog++) mxLog("%f",p_e[ilog]);
                 }
             } // end for (i=0; i<np; i++){
             
@@ -1350,7 +1320,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             mxLog("lambdaValue is: \n");
             mxLog("%.20f", lambdaValue);
             mxLog("hessv is: \n");
-            for (int ilog = 0; ilog < hessv.cols; ilog++) mxLog("%f",hessv.t[ilog]);
+            cout<< hessv_e << endl;
         }
         
         while(go <= 0){
@@ -1383,11 +1353,11 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 mxLog("here in findMax");
                 flag = 1;
                 p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
-                if (nc > 0){ y = fill(1, 1, (double)0.0);}
+                if (nc > 0){ y_e.resize(1, 1); y_e(0, 0) = 0;}
                 hessv_e = hessv_e.cwiseQuotient(vscale_e.block(0, neq+1, 1, nc+np-neq) * vscale_e.block(0, neq+1, 1, nc+np-neq).transpose()) *vscale_e(0);
-                resP = duplicateIt(p);
-                resY = duplicateIt(y);
-                resHessv = duplicateIt(hessv);
+                resP = p_e;
+                resY = y_e;
+                resHessv = hessv_e;
                 resLambda = lambda;
                 return g;
             }
@@ -1442,11 +1412,8 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
                 }
             }
             
-            Eigen::RowVectorXd p0_e_copy;
-            p0_e_copy = u_e.block(0, 0, 1, npic) + p_e;
-            p0_copy = new_matrix(p0_e_copy.cols(), 1);
-            Eigen::Map< Eigen::RowVectorXd > (p0_copy.t, p0_e_copy.cols()) = p0_e_copy;
-            new (&p0_e) Eigen::Map<Eigen::RowVectorXd>(p0_copy.t, p0_copy.cols);
+            p0_e.resize(npic);
+            p0_e = u_e.block(0, 0, 1, npic) + p_e;
             
             if (verbose >= 3){
                 cout<< "p0_e is: \n"  << p0_e << endl;
@@ -1474,10 +1441,6 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         alp[0] = 0;
         Eigen::MatrixXd ob1_e = ob_e;
         Eigen::MatrixXd ob2_e = ob1_e;
-        Matrix ob1 = new_matrix(ob1_e.cols(), ob1_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (ob1.t, ob1_e.rows(), ob1_e.cols()) = ob1_e;
-        Matrix ob2 = new_matrix(ob2_e.cols(), ob2_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (ob2.t, ob2_e.rows(), ob2_e.cols()) = ob2_e;
         sob[0] = j;
         sob[1] = j;
         
@@ -1500,24 +1463,18 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
         Eigen::MatrixXd pttCol;
         pttCol = ptt_e.col(2);
         Eigen::MatrixXd tmpv_e = pttCol.transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
-        Matrix tmpv = new_matrix(tmpv_e.cols(), tmpv_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
-        Matrix ptt2 = new_matrix(ptt_e.cols(), ptt_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (ptt2.t, ptt_e.rows(), ptt_e.cols()) = ptt_e;
         
         if (verbose >= 3){
             cout<< "tmpv_e is: \n"  << tmpv_e << endl;
         }
         
         mode = 1;
-        funv = fit.solFun(tmpv.t, &mode);
+        funv = fit.solFun(tmpv_e.data(), &mode);
         if (verbose >= 3){
             mxLog("hessv is: \n");
-            for (int ilog = 0; ilog < hessv.cols; ilog++) mxLog("%f",hessv.t[ilog]);
-            
+            cout<< hessv_e << endl;
             mxLog("g is: \n");
             for (int ilog = 0; ilog < g.cols; ilog++) mxLog("%f",g.t[ilog]);
-            
             mxLog("funv is: \n");
             mxLog("%f", funv);
         }
@@ -1593,9 +1550,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
             ptt_e.col(1) = (p_e * (1 - alp[1])) + p0_e * alp[1];
             Eigen::MatrixXd tmpv_e = ptt_e.col(1).transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
-            Matrix tmpv = new_matrix(tmpv_e.cols(), tmpv_e.rows());
-            Eigen::Map< Eigen::MatrixXd > (tmpv.t, tmpv_e.rows(), tmpv_e.cols()) = tmpv_e;
-            
+
             if (verbose >= 3){
                 cout<< "tmpv_e is: \n"  << tmpv_e << endl;
             }
@@ -1605,7 +1560,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             }
             
             mode = 0;
-            funv = fit.solFun(tmpv.t, &mode);
+            funv = fit.solFun(tmpv_e.data(), &mode);
             if (verbose >= 3){
                 mxLog("funv is: \n");
                 mxLog("%f", funv);
@@ -1648,9 +1603,7 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             Eigen::RowVectorXd secondPart_e;
             secondPart_e = vscale_e.block(0, 0, 1, nc+1);
             firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
-            Eigen::MatrixXd ob2_e = firstPart_e;
-            Matrix ob2 = new_matrix(ob2_e.cols(), ob2_e.rows());
-            Eigen::Map< Eigen::MatrixXd > (ob2.t, ob2_e.rows(), ob2_e.cols()) = ob2_e;
+            ob2_e = firstPart_e;
             
             if (verbose >= 3){
                 cout<< "ob2_e is: \n"  << ob2_e << endl;
@@ -1747,19 +1700,12 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
             
         } // 	while(go > tol){
         
-        Eigen::Map< Eigen::MatrixXd > (ptt2.t, ptt_e.rows(), ptt_e.cols()) = ptt_e;
-        Eigen::Map< Eigen::MatrixXd > (ob1.t, ob1_e.rows(), ob1_e.cols()) = ob1_e;
-        Eigen::Map< Eigen::MatrixXd > (ob2.t, ob2_e.rows(), ob2_e.cols()) = ob2_e;
-        Eigen::Map< Eigen::MatrixXd > (ob3.t, ob3_e.rows(), ob3_e.cols()) = ob3_e;
-
         if (verbose >= 3){
             mxLog("go is: \n");
             mxLog("%.16f", go);
         }
 
-        sx = new_matrix(sx_e.cols(), sx_e.rows());
-        Eigen::Map< Eigen::MatrixXd > (sx.t, sx_e.rows(), sx_e.cols()) = sx_e;
-        sx_Matrix = sx;
+        sx_Matrix = sx_e;
         sx_e.resize(p_e.rows(), p_e.cols());
         sx_e = p_e;
         yg_e.resize(g_e.rows(), g_e.cols());
@@ -1875,21 +1821,21 @@ Matrix CSOLNP::subnp(Matrix pars, Matrix yy,  Matrix ob,  Matrix hessv,
     y = new_matrix(y_e.cols(), y_e.rows());
     Eigen::Map< Eigen::MatrixXd > (y.t, y_e.rows(), y_e.cols()) = y_e;
     
-    resP = duplicateIt(p);
-    resY = transpose(subset(y, 0, 0, (yyRows-1)));
-    resHessv = duplicateIt(hessv);
+    resP = p_e;
+    resY = y_e.block(0, 0, 1, yyRows).transpose();
+    resHessv = hessv_e;
     resLambda = lambdaValue;
     
     if (verbose >= 3){
         mxLog("------------------------RETURNING FROM SUBNP------------------------");
         mxLog("p information: ");
-        for (int ilog = 0; ilog < resP.cols; ilog++) mxLog("%f",resP.t[ilog]);
+        cout<< resP << endl;
         mxLog("y information: ");
-        for (int ilog = 0; ilog < resY.cols; ilog++) mxLog("%f",resY.t[ilog]);
+        cout<< resY << endl;
         mxLog("hessv information: ");
-        for (int ilog = 0; ilog < resHessv.cols * resHessv.rows; ilog++) mxLog("%f",resHessv.t[ilog]);
+        cout<< resHessv << endl;
         mxLog("lambda information: ");
-        mxLog("%f", resLambda);
+        mxLog("%.20f", resLambda);
         mxLog("minit information: ");
         mxLog("%d", minit);
         mxLog("------------------------END RETURN FROM SUBNP------------------------");
