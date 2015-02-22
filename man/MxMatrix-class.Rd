@@ -89,12 +89,13 @@ MxMatrix is a virtual S4 class that comprises the nine types of matrix objects u
     \item{print}{\code{signature(x = "MxMatrix")}: ... }
     \item{show}{\code{signature(object = "MxMatrix")}: ... }
    }
+Note that some methods are documented separately (see below, under "See Also").
 }
 \references{
 The OpenMx User's guide can be found at \url{http://openmx.psyc.virginia.edu/documentation}.
 }
 \seealso{
-\code{\link{mxMatrix}()} for creating MxMatrix objects. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\code{\link{mxMatrix}()} for creating MxMatrix objects.  Note that functions \code{\link{imxCreateMatrix}()}, \code{\link{imxDeparse}()}, \code{\link{imxSquareMatrix}()}, \code{\link{imxSymmetricMatrix}()}, and \code{\link{imxVerifyMatrix}()} are separately documented methods for this class.  More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 \examples{
 showClass("MxMatrix")
