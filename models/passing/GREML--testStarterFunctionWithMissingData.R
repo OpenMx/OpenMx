@@ -97,6 +97,10 @@ omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list("x","x"), ydata = c("y"))
   "conflicting number of phenotypes specified by arguments 'Xdata' and 'ydata'")
 omxCheckError(mxGREMLStarter("A", data=dat, Xdata=c("x","x"), ydata = c("y","y")),
               "argument 'Xdata' must be provided as a list when argument 'ydata' is of length greater than 1")
+omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list("x","x"), ydata = c("y","z")),
+              "'z' in argument 'ydata' is not among the data column names")
+omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list("x","z"), ydata = c("y","y")),
+              "'z' in argument 'Xdata' is not among the data column names")
 
 start2 <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",Xname = "W", yname = "Z",
                          addOnes = F, dropNAfromV = T)
