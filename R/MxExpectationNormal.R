@@ -150,6 +150,8 @@ imxGetExpectationComponent <- function(model, component){
 	}
 }
 
+mxGetExpected <- imxGetExpectationComponent
+
 sse <- function(x){sum(x^2)}
 
 mxCheckIdentification <- function(model, details=TRUE){
@@ -182,11 +184,37 @@ mxCheckIdentification <- function(model, details=TRUE){
   param <- omxGetParameters(model)
   paramNames <- names(param)
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-  cov <- imxGetExpectationComponent(model, 'covariance')
-  mns <- imxGetExpectationComponent(model, 'means')
-  thr <- imxGetExpectationComponent(model, 'thresholds')
-  sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+  if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+    submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+    sparam <- c()
+    for(amod in submNames){
+      cov <- imxGetExpectationComponent(model[[amod]], 'covariance')
+      mns <- imxGetExpectationComponent(model[[amod]], 'means')
+      thr <- imxGetExpectationComponent(model[[amod]], 'thresholds')
+      sparam <- c(sparam, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+    }
+  } else {
+    cov <- imxGetExpectationComponent(model, 'covariance')
+    mns <- imxGetExpectationComponent(model, 'means')
+    thr <- imxGetExpectationComponent(model, 'thresholds')
+    sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+  }
   return(sparam)
+}
+
+mxGenerateData <- function(model, nrows){
+	require(mvtnorm)
+	if(class(model$expectation) %in% "MxExpectationStateSpace"){
+		data <- generateStateSpaceData(model, nrows)
+	} else {
+		#use generic functions and mvtnorm::rmvnorm() to generate data
+		theMeans <- imxGetExpectationComponent(model, "means")
+		theCov <- imxGetExpectationComponent(model, "covariance")
+		data <- rmvnorm(nrows, theMeans, theCov)
+		colnames(data) <- colnames(theCov)
+		# TODO thresholds
+	}
+	return(data)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {

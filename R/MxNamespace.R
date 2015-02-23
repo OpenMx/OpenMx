@@ -151,9 +151,9 @@ imxVerifyReference <- function(reference, stackNumber) {
 #' or row names. OpenMx is (much) more restrictive than base R's make.names.
 #'
 #' @param names a character vector
-#' @param unique whether the pass the result through \link{base::make.unique}
+#' @param unique whether the pass the result through \link[base]{make.unique}
 #' @seealso
-#' \link{base::make.names}
+#' \link[base]{make.names}
 #' @examples
 #' demo <- c("", "103", "data", "foo.bar[3,2]", "+!", "!+")
 #' mxMakeNames(demo, unique=TRUE)

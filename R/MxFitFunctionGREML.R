@@ -98,6 +98,16 @@ mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addO
   if(!is.character(ydata)){
     stop("argument 'ydata' must be of type 'character' (the data column names of the phenotypes)")
   }
+  if( !all(ydata %in% colnames(data)) ){
+    badname <- (ydata[!(ydata %in% colnames(data))])[1]
+    msg <- paste("'",badname,"' in argument 'ydata' is not among the data column names",sep="")
+    stop(msg)
+  }
+  if( !all(unlist(Xdata) %in% colnames(data)) ){
+    badname <- (unlist(Xdata)[!(unlist(Xdata) %in% colnames(data))])[1]
+    msg <- paste("'",badname,"' in argument 'Xdata' is not among the data column names",sep="")
+    stop(msg)
+  }
   if(!is.character(Xname)){
     stop("argument 'Xname' is not of type 'character' (the name for the matrix of covariates)")
   }

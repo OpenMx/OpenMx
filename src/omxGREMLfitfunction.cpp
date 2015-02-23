@@ -67,7 +67,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   //Trim out cases with missing data from V, if necessary:
   Eigen::MatrixXd EigV(gff->y->rows, gff->y->rows);
   if( gff->numcases2drop ){
-    dropCasesAndCopyToEigen(gff->V, EigV, gff->numcases2drop, gff->dropcase);
+    dropCasesAndEigenize(gff->V, EigV, gff->numcases2drop, gff->dropcase);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->V), gff->V->rows, gff->V->cols);}
   
@@ -148,7 +148,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
       if( gff->numcases2drop ){
-        dropCasesAndCopyToEigen(gff->dV[i], dV_dtheta1, gff->numcases2drop, gff->dropcase);
+        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, gff->numcases2drop, gff->dropcase);
       }
       else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
       PdV_dtheta1 = gff->P * dV_dtheta1;
@@ -164,7 +164,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
           t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
           if(t2 < 0){continue;}
           if( gff->numcases2drop ){
-            dropCasesAndCopyToEigen(gff->dV[j], dV_dtheta2, gff->numcases2drop, gff->dropcase);
+            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, gff->numcases2drop, gff->dropcase);
           }
           else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
           gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * gff->P * dV_dtheta2 * gff->Py)(0,0);
@@ -350,28 +350,61 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 }
 
 
-void dropCasesAndCopyToEigen(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){
+void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){
   
   if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
   
   if(num2drop < 1){ return; }
   
-  omxMatrixDataColumnMajor(om);
+  omxEnsureColumnMajor(om);
   
-  em.setZero(om->rows - num2drop, om->cols - num2drop);
-
-	int nextCol = 0;
-	int nextRow = 0;
+  if(om->algebra == NULL){ //i.e., if omxMatrix is from a frontend MxMatrix
   
-	for(int j = 0; j < om->cols; j++) {
-	  if(todrop[j]) continue;
-		nextRow = 0;
-		for(int k = 0; k < om->rows; k++) {
-			if(todrop[k]) continue;
-			em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j);
-			nextRow++;
-		}
-		nextCol++;
-	}
+    em.setZero(om->rows - num2drop, om->cols - num2drop);
+  
+  	int nextCol = 0;
+  	int nextRow = 0;
+    
+  	for(int j = 0; j < om->cols; j++) {
+  	  if(todrop[j]) continue;
+  		nextRow = 0;
+  		for(int k = 0; k < om->rows; k++) {
+  			if(todrop[k]) continue;
+  			em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j);
+  			nextRow++;
+  		}
+  		nextCol++;
+  	}
+  }
+  else{ /*If the omxMatrix is from an algebra, then copying is not necessary; it can be resized directly
+  and and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
+    if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
+    if (om->rows != om->originalRows || om->cols != om->originalCols) {
+      // Feasible, but the code is currently not robust to this case
+      Rf_error("Can only omxRemoveRowsAndColumns once");
+    }
+    
+    int oldRows = om->originalRows;
+    int oldCols = om->originalCols;
+    
+    int nextCol = 0;
+    int nextRow = 0;
+    
+    om->rows = oldRows - num2drop;
+    om->cols = oldCols - num2drop;
+    
+    for(int j = 0; j < oldCols; j++) {
+      if(todrop[j]) continue;
+      nextRow = 0;
+      for(int k = 0; k < oldRows; k++) {
+        if(todrop[k]) continue;
+        omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+        nextRow++;
+      }
+      nextCol++;
+    }
+    em = Eigen::Map< Eigen::MatrixXd >(om->data, om->rows, om->cols);
+    omxMarkDirty(om);
+  }
   if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }
