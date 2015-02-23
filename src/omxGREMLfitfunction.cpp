@@ -227,6 +227,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     for(i=0; i < Rf_length(casesToDrop); i++){
       if(casesToDrop_intptr[i] >= newObj->V->rows){
         Rf_warning("casesToDrop vector in GREML fitfunction contains indices greater than the number of observations");
+        newObj->numcases2drop--; 
       }
       //Need to subtract 1 from the index because R begins array indexing with 1, not 0:
       else{newObj->dropcase[casesToDrop_intptr[i]-1] = 1;}
@@ -235,9 +236,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(newObj->y->rows != newObj->V->rows - newObj->numcases2drop){
     Rf_error("y and V matrices do not have equal numbers of rows");
-  }
-  if(newObj->X->rows != newObj->V->rows - newObj->numcases2drop){
-    Rf_error("X and V matrices do not have equal numbers of rows");
   }
   
   //Tell the frontend fitfunction counterpart how many observations there are:
@@ -256,8 +254,10 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     newObj->gradient.setZero(newObj->dVlength,1);
     oo->hessianAvailable = true;
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
-  }
-}
+    for(i=0; i < newObj->dVlength; i++){
+      if( (newObj->dV[i]->rows != newObj->V->rows) || (newObj->dV[i]->cols != newObj->V->cols) ){
+        Rf_error("all derivatives of V must have the same dimensions as V");
+}}}}
 
 
 void omxDestroyGREMLFitFunction(omxFitFunction *oo){

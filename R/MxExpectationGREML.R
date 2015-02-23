@@ -117,7 +117,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               msg <- paste("the GREML expectation function",
                            "does not have a dataset associated with it in model",
                            omxQuotes(modelname),
-                           "\nthe model just needs to contain an arbitrary MxData object")
+                           "\nconsider setting up your model with mxGREMLStarter()")
               stop(msg, call. = FALSE)
             }
             mxDataObject <- flatModel@datasets[[.Object@data]]
