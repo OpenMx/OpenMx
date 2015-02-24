@@ -37,7 +37,7 @@ The OpenMx User's guide can be found at \url{http://openmx.psyc.virginia.edu/doc
 }
 
 \seealso{
-See \code{\link{mxFitFunctionGREML}()} for creating MxFitFunctionGREML objects.  See \code{\link{mxExpectationGREML}()} for creating MxExpectationGREML objects, and for more information generally concerning GREML analyses. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+See \code{\link{mxFitFunctionGREML}()} for creating MxFitFunctionGREML objects.  See \code{\link{mxExpectationGREML}()} for creating MxExpectationGREML objects, and for more information generally concerning GREML analyses, including a complete example. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 \examples{
 showClass("MxFitFunctionGREML")

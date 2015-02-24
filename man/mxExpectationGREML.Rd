@@ -29,8 +29,6 @@ Computationally, the chief distinguishing feature of an OpenMx GREML analysis is
 
 It is necessary that the 'y,' 'X,' and 'V' matrices have the same number or rows, or at least, that they will have the same number of rows when incomplete observations are trimmed from 'V' at runtime; see \code{\link{mxFitFunctionGREML}()} and \code{\link{mxGREMLStarter}()} for details.  The 'X' and 'y' matrices should not contain any \code{NA}s at runtime.  The 'X' matrix should never depend upon free parameters, and generally, neither should the 'y' matrix.
 
-Internally, the 'V' matrix is assumed to be symmetric, and the values in its upper triangle (excluding the main diagonal) are ignored.
-
 Making effective use of argument \code{dV} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' (2) neither 'X' nor 'y' depend upon free parameters, and (3) the model contains no \code{\link{MxConstraint}}s.
 }
 \value{
@@ -47,5 +45,29 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 See \code{\link{MxExpectationGREML}} for the S4 class created by \code{mxExpectationGREML()}. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 \examples{
-ge <- mxExpectationGREML(V="V", X="X", y="y")
+dat <- cbind(rnorm(100),rep(1,100))
+colnames(dat) <- c("y","x")
+
+ge <- mxExpectationGREML(V="V",X="X",y="y",dV=c(ve="I"))
+gff <- mxFitFunctionGREML()
+plan <- mxComputeSequence(steps=list(
+  mxComputeNewtonRaphson(freeSet=c("Ve"),fitfunction="fitfunction"),
+  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
+  mxComputeStandardError(freeSet=c("Ve")),
+  mxComputeReportDeriv(freeSet=c("Ve"))
+))
+
+testmod <- mxModel(
+  "GREMLtest",
+  mxData(observed = matrix(as.double(NA),1,1,dimnames = list("asdf","asdf")), type="raw", numObs=0),
+  mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 1, labels = "ve", lbound = 0.0001, name = "Ve"),
+  mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+  mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,2], name = "X",condenseSlots=T),
+  mxMatrix(type = "Full", nrow=100, ncol=1, free=F, values=dat[,1], name="y",condenseSlots=T),
+  mxAlgebra(I \%x\% Ve,name="V"),
+  ge,
+  gff,
+  plan
+)
+str(testmod)
 }
