@@ -43,7 +43,7 @@ single.false <- function(a) {
 }
 
 is.condenseSlots <- function(matrix){
-  return( (".condenseSlots" %in% slotNames(matrix)) && matrix@.condenseSlots[1] )
+  return( class(try(matrix@.condenseSlots,silent=T))!="try-error" && matrix@.condenseSlots[1] )
 }
 
 verifySquare <- function(.Object) {
