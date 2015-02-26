@@ -491,17 +491,6 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P){
 	}
 }
 
-#> tA <- matrix(c(.2), 2, 2)
-#> tB <- matrix(0, 2, 4)
-#> tC <- matrix(c(.7, .7, .7, 0, 0, 0, 0, 0, 0, .7, .7, .7), 6, 2)
-#> tD <- matrix(0, 6, 4)
-#> tQ <- diag(1, 2)
-#> tR <- diag(.2, 6)
-#> tx <- matrix(c(1, 2), 2, 1)
-#> ty <- matrix(1:6, 6, 1)
-#> tu <- matrix(0, 4, 1)
-#> tP <- diag(.5, 2)
-#> KalmanFilter(tA, tB, tC, tD, tQ, tR, tx, ty, tu, tP)
 
 mxKalmanScores <- function(model, data=NA){
 	message("Computing Kalman scores in frontend R.  This may take a few seconds.")
@@ -509,9 +498,6 @@ mxKalmanScores <- function(model, data=NA){
 		#TODO check that data are raw
 		data <- model@data@observed
 	}
-#	if(any(is.na(data))){
-#		stop("Missing data handling for Kalman scores is not yet implemented.")
-#	}
 	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
 	X.pred <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
