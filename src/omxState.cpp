@@ -197,6 +197,11 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
+const char *omxState::matrixToName(int matnum)
+{
+	return matnum<0? matrixList[~matnum]->name : algebraList[matnum]->name;
+}
+
 void omxState::setWantStage(int stage)
 {
 	wantStage = stage;

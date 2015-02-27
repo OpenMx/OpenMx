@@ -262,6 +262,8 @@ class omxState {
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void omxExportResults(MxRList *out);
 	~omxState();
+
+	const char *matrixToName(int matnum); // matrix (2s complement) or algebra
 };
 
 /* Initialize and Destroy */
