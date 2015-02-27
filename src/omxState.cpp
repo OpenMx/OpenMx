@@ -421,7 +421,7 @@ std::string string_snprintf(const char *fmt, ...)
 	return str;
 }
 
-void mxLogBig(const std::string str)   // thread-safe
+void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
 	if (len == 0) Rf_error("Attempt to log 0 characters with mxLogBig");
