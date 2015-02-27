@@ -8,7 +8,8 @@ Helper Function for Initializing a GREML Model
 This function takes a dataframe or matrix and uses it to setup the 'y' and 'X' matrices for a GREML analysis.  It trims out \code{NA}s from 'X' and 'y,' and creates an \code{\link{MxFitFunctionGREML}} object that will trim out the corresponding rows and columns from 'V' at runtime.  It returns an \code{\link{MxModel}} object containing the two \code{\link[=MxMatrix]{MxMatrices}} objects and the \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
-mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dropNAfromV=TRUE)
+mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", 
+  addOnes=TRUE, dropNAfromV=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

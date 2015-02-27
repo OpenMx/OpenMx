@@ -9,7 +9,7 @@
 \code{MxExpectationGREML} is a type of expectation class.  It contains the necessary elements for specifying a GREML model.  For more information, see \code{\link{mxExpectationGREML}()}.
 }
 \section{Objects from the Class}{
-Objects can be created by calls of the form \code{mxExpectationGREML(V, X, y, dV, fixedEffects)}.
+Objects can be created by calls of the form \code{mxExpectationGREML(V, X, y, dV)}.
 }
 \section{Slots}{
   \describe{
