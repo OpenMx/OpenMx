@@ -13,7 +13,8 @@ Data set used in some of OpenMx's examples.
 \format{
   A data frame with 800 observations on the following variables.
   \describe{
-    \item{\code{IDNum}}{Twin pair ID}
+    \item{\code{IDNum}}{ID number}
+    \item{\code{TwinNum}}{Twin ID number}
     \item{\code{Zygosity}}{Zygosity of the twin}
     \item{\code{X}}{X variable for twins 1 and 2}
     \item{\code{Y}}{Y variable for twins 1 and 2}
@@ -34,6 +35,6 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 data(example2)
-plot(X2 ~ X1, data=example2)
+plot(Y ~ X, data=example2)
 }
 \keyword{datasets}
