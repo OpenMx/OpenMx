@@ -573,8 +573,8 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		tx[,1] <- x0
 		for(i in 2:(tdim+1)){
 			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
-			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(rmvnorm(1, rep(0, xdim), Q))
-			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(rmvnorm(1, rep(0, ydim), R))
+			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
+			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
 		}
 		ret <- t(ty)
 		colnames(ret) <- dimnames(C)[[1]]

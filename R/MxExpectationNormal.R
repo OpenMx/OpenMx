@@ -230,7 +230,7 @@ generateNormalData <- function(model, nrows){
 	theMeans <- imxGetExpectationComponent(model, "means")
 	theCov <- imxGetExpectationComponent(model, "covariance")
 	theThresh <- imxGetExpectationComponent(model, "thresholds")
-	data <- rmvnorm(nrows, theMeans, theCov)
+	data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 	colnames(data) <- colnames(theCov)
 	if( prod(dim(theThresh)) != 0){
 		data <- as.data.frame(data)
