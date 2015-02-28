@@ -215,34 +215,45 @@ mxCheckIdentification <- function(model, details=TRUE){
   return(sparam)
 }
 
-mxGenerateData <- function(model, nrows){
-	require(mvtnorm)
-	if(class(model$expectation) %in% "MxExpectationStateSpace"){
-		data <- generateStateSpaceData(model, nrows)
-	} else {
-		#use generic functions and mvtnorm::rmvnorm() to generate data
-		theMeans <- imxGetExpectationComponent(model, "means")
-		theCov <- imxGetExpectationComponent(model, "covariance")
-		theThresh <- imxGetExpectationComponent(model, "thresholds")
-		data <- rmvnorm(nrows, theMeans, theCov)
-		colnames(data) <- colnames(theCov)
-		if( prod(dim(theThresh)) != 0){
-			data <- as.data.frame(data)
-			ordvars <- colnames(theThresh)
-			for(avar in ordvars){
-				delthr <- theThresh[,avar]
-				usethr <- !is.na(delthr)
-				delthr <- delthr[usethr]
-				if(!is.null(rownames(theThresh))){
-					levthr <- rownames(theThresh)[usethr]
-				} else {
-					levthr <- 1:(sum(usethr)+1)
-				}
-				delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
-				data[,avar] <- mxFactor(delvar, levels=levthr)
+setGeneric("genericGenerateData",
+	function(.Object, model, nrows) {
+	return(standardGeneric("genericGenerateData"))
+})
+
+setMethod("genericGenerateData", signature("MxExpectationNormal"),
+	function(.Object, model, nrows) {
+		return(generateNormalData(model, nrows))
+})
+
+generateNormalData <- function(model, nrows){
+	#use generic functions and mvtnorm::rmvnorm() to generate data
+	theMeans <- imxGetExpectationComponent(model, "means")
+	theCov <- imxGetExpectationComponent(model, "covariance")
+	theThresh <- imxGetExpectationComponent(model, "thresholds")
+	data <- rmvnorm(nrows, theMeans, theCov)
+	colnames(data) <- colnames(theCov)
+	if( prod(dim(theThresh)) != 0){
+		data <- as.data.frame(data)
+		ordvars <- colnames(theThresh)
+		for(avar in ordvars){
+			delthr <- theThresh[,avar]
+			usethr <- !is.na(delthr)
+			delthr <- delthr[usethr]
+			if(!is.null(rownames(theThresh))){
+				levthr <- rownames(theThresh)[usethr]
+			} else {
+				levthr <- 1:(sum(usethr)+1)
 			}
+			delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
+			data[,avar] <- mxFactor(delvar, levels=levthr)
 		}
 	}
+	return(data)
+}
+
+mxGenerateData <- function(model, nrows){
+	require(mvtnorm)
+	data <- genericGenerateData(model$expectation, model, nrows)
 	return(data)
 }
 

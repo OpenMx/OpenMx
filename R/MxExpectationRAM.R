@@ -509,3 +509,11 @@ setMethod("print", "MxExpectationRAM", function(x,...) {
 setMethod("show", "MxExpectationRAM", function(object) { 
 	displayMxExpectationRAM(object) 
 })
+
+
+#------------------------------------------------------------------------------
+setMethod("genericGenerateData", signature("MxExpectationRAM"),
+	function(.Object, model, nrows) {
+		return(generateNormalData(model, nrows))
+})
+

@@ -551,32 +551,34 @@ mxKalmanScores <- function(model, data=NA){
 
 
 #--------------------------------------------------------------------
-generateStateSpaceData <- function(model, nrows){
-	A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
-	B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
-	C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
-	D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
-	Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
-	R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
-	u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
-	
-	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
-	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
-	
-	tdim <- nrows
-	ydim <- nrow(C)
-	xdim <- nrow(A)
-	tx <- matrix(0, xdim, tdim+1)
-	ty <- matrix(0, ydim, tdim)
-	
-	tx[,1] <- x0
-	for(i in 2:(tdim+1)){
-		u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
-		tx[,i] <- A %*% tx[,i-1] + B %*% u + t(rmvnorm(1, rep(0, xdim), Q))
-		ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(rmvnorm(1, rep(0, ydim), R))
+setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
+	function(.Object, model, nrows) {
+		A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
+		B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
+		C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
+		D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
+		Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
+		R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
+		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
+		
+		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
+		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
+		
+		tdim <- nrows
+		ydim <- nrow(C)
+		xdim <- nrow(A)
+		tx <- matrix(0, xdim, tdim+1)
+		ty <- matrix(0, ydim, tdim)
+		
+		tx[,1] <- x0
+		for(i in 2:(tdim+1)){
+			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
+			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(rmvnorm(1, rep(0, xdim), Q))
+			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(rmvnorm(1, rep(0, ydim), R))
+		}
+		ret <- t(ty)
+		colnames(ret) <- dimnames(C)[[1]]
+		return(ret)
 	}
-	ret <- t(ty)
-	colnames(ret) <- dimnames(C)[[1]]
-	return(ret)
-}
+)
 
