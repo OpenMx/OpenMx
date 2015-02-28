@@ -116,6 +116,11 @@ setMethod("genericGetCovariance", signature("MxExpectationNormal"),
 	function(.Object, model) {
 		covname <- .Object@covariance
 		cov <- mxEvalByName(covname, model, compute=TRUE)
+		dnames <- .Object$dims
+		if(!single.na(dnames)){
+			colnames(cov) <- dnames
+			rownames(cov) <- dnames
+		}
 		return(cov)
 })
 
@@ -124,6 +129,10 @@ setMethod("genericGetMeans", signature("MxExpectationNormal"),
 		meanname <- .Object@means
 		if(!single.na(meanname)){
 			mean <- mxEvalByName(meanname, model, compute=TRUE)
+			dnames <- .Object$dims
+			if(!single.na(dnames)){
+				colnames(mean) <- dnames
+			}
 		} else {mean <- matrix( , 0, 0)}
 		return(mean)
 })
@@ -133,6 +142,10 @@ setMethod("genericGetThresholds", signature("MxExpectationNormal"),
 		thrname <- .Object@thresholds
 		if(!single.na(thrname)){
 			thr <- mxEvalByName(thrname, model, compute=TRUE)
+			tnames <- .Object$threshnames
+			if(!single.na(tnames)){
+				colnames(thr) <- tnames
+			}
 		} else {thr <- matrix( , 0 , 0)}
 		return(thr)
 })
@@ -210,9 +223,25 @@ mxGenerateData <- function(model, nrows){
 		#use generic functions and mvtnorm::rmvnorm() to generate data
 		theMeans <- imxGetExpectationComponent(model, "means")
 		theCov <- imxGetExpectationComponent(model, "covariance")
+		theThresh <- imxGetExpectationComponent(model, "thresholds")
 		data <- rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
-		# TODO thresholds
+		if( prod(dim(theThresh)) != 0){
+			data <- as.data.frame(data)
+			ordvars <- colnames(theThresh)
+			for(avar in ordvars){
+				delthr <- theThresh[,avar]
+				usethr <- !is.na(delthr)
+				delthr <- delthr[usethr]
+				if(!is.null(rownames(theThresh))){
+					levthr <- rownames(theThresh)[usethr]
+				} else {
+					levthr <- 1:(sum(usethr)+1)
+				}
+				delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
+				data[,avar] <- mxFactor(delvar, levels=levthr)
+			}
+		}
 	}
 	return(data)
 }
