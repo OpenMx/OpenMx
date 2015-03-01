@@ -13,15 +13,15 @@ Data set used in some of OpenMx's examples.
 \format{
   A data frame with 500 observations on the following variables.
   \describe{
-    \item{\code{X1}}{}
-    \item{\code{X2}}{}
-    \item{\code{X3}}{}
-    \item{\code{X4}}{}
-    \item{\code{X5}}{}
-    \item{\code{X6}}{}
-    \item{\code{X7}}{}
-    \item{\code{X8}}{}
-    \item{\code{X9}}{}
+    \item{\code{x1}}{}
+    \item{\code{x2}}{}
+    \item{\code{x3}}{}
+    \item{\code{x4}}{}
+    \item{\code{x5}}{}
+    \item{\code{x6}}{}
+    \item{\code{x7}}{}
+    \item{\code{x8}}{}
+    \item{\code{x9}}{}
   }
 }
 
