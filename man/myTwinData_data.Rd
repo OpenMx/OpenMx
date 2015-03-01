@@ -13,7 +13,7 @@ Data set used in some of OpenMx's examples.
 \format{
   A data frame with 3808 observations on the following variables.
   \describe{
-    \item{\code{fam}}{Continuous variable}
+    \item{\code{fam}}{Family ID variable}
     \item{\code{age}}{Age of the twin pair.  Range: 17 to 88.}
     \item{\code{zyg}}{Integer codes for zygosity and gender combinations}
     \item{\code{part}}{}
