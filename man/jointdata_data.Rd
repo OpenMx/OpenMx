@@ -22,7 +22,7 @@ Data set used in some of OpenMx's examples.
 }
 
 \details{
-
+Data generated to test the joint ML algorithm thoroughly.
 }
 
 \source{

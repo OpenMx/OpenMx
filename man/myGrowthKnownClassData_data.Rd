@@ -23,7 +23,7 @@ Data set used in some of OpenMx's examples.
 }
 
 \details{
-
+The same as \link{myGrowthMixtureData}, but with the class membership variable.
 }
 
 \source{

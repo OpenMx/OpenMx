@@ -22,11 +22,11 @@ Data set used in some of OpenMx's examples.
 }
 
 \details{
-
+This is a wide format data set.  A single variable has values for different member of the same nuclear family.
 }
 
 \source{
-
+Likely simulated.
 }
 
 \references{

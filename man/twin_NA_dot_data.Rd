@@ -33,7 +33,7 @@ Same as \link{myTwinData} but has . as the missing data value instead of NA.
 }
 
 \source{
-
+Timothy Bates
 }
 
 \references{

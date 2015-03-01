@@ -29,11 +29,11 @@ Data set used in some of OpenMx's examples.
 }
 
 \details{
-
+Height and weight are highly correlated, and each individually highly heritable.  These data present and opportunity for multivariate behavior genetics modeling.
 }
 
 \source{
-
+Timothy Bates
 }
 
 \references{
