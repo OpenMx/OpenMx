@@ -923,7 +923,7 @@ logLik.MxModel <- function(object, ...) {
   if(SE){ 
     #From Mike Hunter's delta method example:
     covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
-    jacStand <- jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
+    jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
     SEs <- sqrt(diag(covSparam))

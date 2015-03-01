@@ -220,7 +220,7 @@ imxWlsStandardErrors <- function(model){
 	# Does the data have @fullWeight
 	require(numDeriv)
 	theParams <- omxGetParameters(model)
-	d <- jacobian(func=.mat2param, x=theParams, model=model)
+	d <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
 	V <- model$data$acov #used weight matrix
 	W <- ginv(model$data$fullWeight)
 	dvd <- solve( t(d) %*% V %*% d )
@@ -245,7 +245,7 @@ imxWlsChiSquare <- function(model){
 	e <- samp.param - expd.param
 	
 	W <- ginv(model$data$fullWeight)
-	jac <- jacobian(func=.mat2param, x=theParams, model=model)
+	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
 	jacOC <- Null(jac)
 	x2 <- t(e) %*% jacOC %*% ginv( t(jacOC) %*% W %*% jacOC ) %*% t(jacOC) %*% e
 	return(x2)

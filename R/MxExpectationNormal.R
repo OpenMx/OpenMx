@@ -171,7 +171,7 @@ mxCheckIdentification <- function(model, details=TRUE){
 	require(numDeriv)
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	jac <- jacobian(func=.mat2param, x=theParams, model=model)
+	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
