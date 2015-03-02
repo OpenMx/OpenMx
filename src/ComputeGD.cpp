@@ -262,12 +262,14 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	super::initFromFrontend(globalState, rObj);
 
 	SEXP slotValue;
-	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
-	verbose = Rf_asInteger(slotValue);
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(slotValue);
+	}
 
-	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("plan")));
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
-	ScopedProtect p3(s4class, STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
 }
