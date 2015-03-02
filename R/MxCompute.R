@@ -373,16 +373,37 @@ setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="int
 setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(
-	     fitfunction = "MxCharOrNumber",
-	     engine = "character",
-	     tolerance = "numeric",
+	     plan = "MxCompute",
 	     verbose = "integer"))
+
+setMethod("assignId", signature("MxComputeConfidenceInterval"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id 
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeConfidenceInterval"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
 
 setMethod("qualifyNames", signature("MxComputeConfidenceInterval"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('fitfunction')) {
-			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
 	})
@@ -390,20 +411,18 @@ setMethod("qualifyNames", signature("MxComputeConfidenceInterval"),
 setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeConfidenceInterval",
-	  function(.Object, freeSet, engine, fit, verbose, tolerance) {
+	  function(.Object, freeSet, plan, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
-		  .Object@fitfunction <- fit
-		  .Object@engine <- engine
+		  .Object@plan <- plan
 		  .Object@verbose <- verbose
-		  .Object@tolerance <- tolerance
 		  .Object
 	  })
 
@@ -411,36 +430,35 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##'
 ##' Add some description TODO
 ##'
-##' @param freeSet names of matrices containing free variables
+##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param engine specific NPSOL or CSOLNP
-##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
+##' @param freeSet names of matrices containing free variables
 ##' @param verbose level of debugging output
-##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
+##' @param engine deprecated
+##' @param fitfunction deprecated
+##' @param tolerance deprecated
 ##' @aliases
 ##' MxComputeConfidenceInterval-class
 
-mxComputeConfidenceInterval <- function(freeSet=NA_character_, ...,
-					engine=NULL, fitfunction='fitfunction', verbose=0L,
+mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbose=0L,
+					engine=NULL, fitfunction='fitfunction',
 					tolerance=NA_real_) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
 	}
-	if (missing(engine)) {
-		engine <- options()$mxOptions[["Default optimizer"]]
-	}
-
 	verbose <- as.integer(verbose)
-	new("MxComputeConfidenceInterval", freeSet, engine, fitfunction, verbose, tolerance)
+	new("MxComputeConfidenceInterval", freeSet, plan, verbose)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  for (sl in c("fitfunction", "engine", "tolerance", "verbose")) {
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  for (sl in c("verbose")) {
 			  if (is.na(slot(Ob, sl))) next
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {
@@ -663,8 +681,9 @@ setClass(Class = "MxComputeEM",
 
 setMethod("assignId", signature("MxComputeEM"),
 	function(.Object, id, defaultFreeSet) {
-		if (length(.Object@freeSet) == 1 && is.na(.Object@freeSet)) .Object@freeSet <- defaultFreeSet
+		.Object <- callNextMethod()
 		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
 		for (sl in c('mstep')) {
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L

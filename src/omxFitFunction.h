@@ -107,6 +107,7 @@ void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
 /* FitFunction-specific implementations of matrix functions */
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
+void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 	
@@ -125,7 +126,6 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 void omxInitGREMLFitFunction(omxFitFunction *oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
-void ComputeCIFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
 #endif /* _OMXFITFUNCTION_H_ */

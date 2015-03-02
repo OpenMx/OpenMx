@@ -216,8 +216,6 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-typedef void (*ComputeFitFunctionType)(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
-
 class GradientOptimizerContext {
  private:
 	void copyBounds();
@@ -229,7 +227,6 @@ class GradientOptimizerContext {
 	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;
-	ComputeFitFunctionType cff;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;
@@ -257,7 +254,7 @@ class GradientOptimizerContext {
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
-	GradientOptimizerContext(int verbose, ComputeFitFunctionType cff);
+	GradientOptimizerContext(int verbose);
 
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style

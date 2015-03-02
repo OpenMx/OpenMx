@@ -151,9 +151,10 @@ runHelper <- function(model, frontendStart,
 		if (!useOptimizer || numParam == 0) {
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
-			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
+			opt <- mxComputeGradientDescent(fitfunction=fitNum)
+			steps = list(opt)
 			if (intervals) {
-				steps <- c(steps, mxComputeConfidenceInterval(fitfunction=fitNum))
+				steps <- c(steps, mxComputeConfidenceInterval(opt))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
