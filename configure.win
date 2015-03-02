@@ -8,4 +8,4 @@ if [ -d inst/npsol/windows/x86_64/rtools2.12 ]; then
   cp inst/npsol/windows/x86_64/rtools2.12/libnpsol.dll inst/libnpsol64.dll;
   cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst/libnpsol32.dll;
 fi
-rm -rf inst/npsol
+
