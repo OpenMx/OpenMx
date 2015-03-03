@@ -657,6 +657,8 @@ void FitContext::init()
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
 	CI = NULL;
+	targetFit = nan("uninit");
+	lowerBound = false;
 
 	hess.resize(numParam, numParam);
 	ihess.resize(numParam, numParam);
