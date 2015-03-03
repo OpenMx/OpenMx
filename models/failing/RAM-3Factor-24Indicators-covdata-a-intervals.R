@@ -110,6 +110,12 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29344.82, .1)
 
 threeFactorCI <- omxParallelCI(threeFactorOrthogonalOut)
 
+#cat(deparse(fivenum(threeFactorCI$output$confidenceIntervals[,'lbound'])))
+omxCheckCloseEnough(fivenum(threeFactorCI$output$confidenceIntervals[,'lbound']),
+                    c(0.389, 0.631, 0.837, 0.935, 0.987), .01)
+omxCheckCloseEnough(fivenum(threeFactorCI$output$confidenceIntervals[,'ubound']),
+                    c(0.545, 0.804, 1.04, 1.145, 1.344), .01)
