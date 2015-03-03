@@ -189,8 +189,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
-  oo->units = FIT_UNITS_UNKNOWN;  // should be FIT_UNITS_MINUS2LL ? TODO
+  oo->units = FIT_UNITS_MINUS2LL;  // OK
   oo->computeFun = omxCallGREMLFitFunction;
+  oo->ciFun = loglikelihoodCIFun;
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;
   //omxGREMLFitState *newObj = (omxGREMLFitState*) R_alloc(1, sizeof(omxGREMLFitState));
