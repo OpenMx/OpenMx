@@ -23,9 +23,9 @@ set.seed(10)
 # ---------------------------------------------------------------------
 # Data for factor model.
 
-numberSubjects <- 1000
+numberSubjects <- 10000
 numberFactors <- 3
-numberIndPerFactor <- 16
+numberIndPerFactor <- 8
 numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
 
 XMatrix <- matrix(rnorm(numberSubjects*numberFactors, mean=0, sd=1), numberSubjects, numberFactors)
@@ -107,9 +107,6 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     mxData(observed=YMatrix, type="raw")
     )
 
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Calculate Hessian", "No")
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Standard Errors", "No")
-
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 733384.1, 1)

@@ -33,7 +33,7 @@ fixedBMatrixF <- matrix(c(.4, .2), 2, 1, byrow=TRUE)
 randomBMatrixF <- matrix(c(.3, .5), 2, 1, byrow=TRUE)
 XMatrixF <- matrix(rnorm(numberSubjects*2, mean=0, sd=1), numberSubjects, 2)
 UMatrixF <- matrix(rnorm(numberSubjects*1, mean=0, sd=1), numberSubjects, 1)
-Z <- matrix(rnorm(numberSubjects, mean=0, sd=1), nrow=numberSubjects, ncol=2)
+Z <- matrix(floor(runif(numberSubjects, min=0, max=1.999)), nrow=numberSubjects, ncol=2)
 
 XMatrix <- cbind(XMatrixF, XMatrixF %*% fixedBMatrixF + (XMatrixF*Z) %*% randomBMatrixF + UMatrixF)
 
@@ -47,12 +47,15 @@ cor(cbind(XMatrix,Z[,1]))
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-latentMultiRegModerated1 <- cbind(YMatrix,Z=Z[,1])
+YMatrixDegraded <- YMatrix
+YMatrixDegraded[runif(length(c(YMatrix)), min=0.1, max=1.1) > 1] <- NA
+
+latentMultiRegModerated1 <- data.frame(YMatrixDegraded,Z=Z[,1])
 
 round(cor(latentMultiRegModerated1), 3)
 round(cov(latentMultiRegModerated1), 3)
 
-latentMultiRegModerated1[,'Z'] <- latentMultiRegModerated1[,'Z'] - mean(latentMultiRegModerated1[,'Z'])
+latentMultiRegModerated1$Z <- latentMultiRegModerated1$Z - mean(latentMultiRegModerated1$Z)
 
 numberFactors <- 3
 numberIndicators <- 12
@@ -136,4 +139,4 @@ threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
     )
 
 threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
-
+omxCheckCloseEnough(threeLatentNoModeratorOut$output$fit, 34169.31, .1)

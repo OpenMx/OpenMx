@@ -14,7 +14,8 @@
 # there are probably more efficient ways of doing this.                     ##
 ##############################################################################
 
-data <- read.csv("data/fakeSTARTSMissing.csv",header=TRUE) #With Missing Data
+data <- suppressWarnings(try(read.csv("data/fakeSTARTSMissing.csv",header=TRUE))) #With Missing Data
+if (is(data, "try-error")) data <- read.csv("models/nightly/data/fakeSTARTSMissing.csv",header=TRUE)
 waves <- 10 #Total number including phantom waves
 indicators <- 3
 phantom <- c(5,7) #List of waves that are missing
@@ -250,3 +251,4 @@ STARTSM <- mxModel("STARTS",
                   stationarityConstraint,
                   correlatedResiduals)
 startsModel <- mxRun(STARTSM)
+omxCheckCloseEnough(startsModel$output$fit, 2718.452, .01)

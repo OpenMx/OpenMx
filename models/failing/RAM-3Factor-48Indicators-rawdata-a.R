@@ -104,13 +104,9 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean),
-	numObs=nrow(YMatrix), type="cov")
+    mxData(observed=YMatrix, type="raw")
     )
-
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Calculate Hessian", "No")
-threeFactorOrthogonal <- mxOption(threeFactorOrthogonal, "Standard Errors", "No")
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 143158.2, .5)
