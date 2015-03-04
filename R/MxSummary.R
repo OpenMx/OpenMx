@@ -218,8 +218,8 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	return(retval)
 }
 
-omxRMSEA <- function(model, lower, upper){
-	smod <- summary(model)
+omxRMSEA <- function(model, lower, upper, ...){
+	smod <- summary(model, ...)
 	x2 <- smod$Chi
 	df <- smod$ChiDoF
 	N <- smod$numObs
