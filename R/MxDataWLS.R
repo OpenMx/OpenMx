@@ -62,7 +62,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	if(type=="WLS"){
 		useWeight <- fullWeight
 	}
-	return(list(use=useWeight, full=fullWeight))
+	return(list(use=useWeight*numRows, full=fullWeight*numRows))
 }
 
 
