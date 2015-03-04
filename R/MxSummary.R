@@ -218,14 +218,15 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	return(retval)
 }
 
-omxRMSEA <- function(model, lower, upper, ...){
+omxRMSEA <- function(model, lower=.025, upper=.975, null=.05, ...){
 	smod <- summary(model, ...)
 	x2 <- smod$Chi
 	df <- smod$ChiDoF
 	N <- smod$numObs
 	rmsea <- smod$RMSEA
 	ci <- rmseaConfidenceIntervalHelper(chi.squared=x2, df=df, N=N, lower=lower, upper=upper)
-	return(c(ci[1], est.rmsea=rmsea, ci[2]))
+	pn <- 1-pchisq(x2, df=df, ncp=N*df*(null)^2)
+	return(c(ci[1], est.rmsea=rmsea, ci[2], null=null, `Prob(x <= null)`=pn))
 }
 
 rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){

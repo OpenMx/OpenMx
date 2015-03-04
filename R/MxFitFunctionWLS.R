@@ -233,6 +233,7 @@ imxWlsStandardErrors <- function(model){
 	return(list(SE=wls.se, Cov=nacov))
 }
 
+
 imxWlsChiSquare <- function(model){
 	require(numDeriv)
 	theParams <- omxGetParameters(model)
