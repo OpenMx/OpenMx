@@ -508,6 +508,14 @@ checkNameAlignment <- function(lst1, lst2) {
 	}
 }
 
+##' omxCheckNamespace
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param namespace namespace
+##' @details This function checks that the named entities in the model are valid.
 omxCheckNamespace <- function(model, namespace) {
 	checkNamespaceHelper(model, model, namespace)
 }

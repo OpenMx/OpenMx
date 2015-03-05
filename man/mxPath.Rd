@@ -18,6 +18,8 @@
 \alias{MxPath-class}
 \alias{print,MxPath-method}
 \alias{show,MxPath-method}
+\alias{$,MxPath-method}
+\alias{$<-,MxPath-method}
 
 \title{Create List of Paths}
 

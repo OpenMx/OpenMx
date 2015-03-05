@@ -16,6 +16,8 @@
 \name{MxConstraint-class}
 \alias{MxConstraint-class}
 \alias{MxConstraint}
+\alias{$,MxConstraint-method}
+\alias{$<-,MxConstraint-method}
 
 \title{MxConstraint Class}
 

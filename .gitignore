@@ -110,7 +110,7 @@ man/mxComputeSequence.Rd
 man/mxComputeStandardError.Rd
 man/mxDataDynamic.Rd
 man/mxExpectationBA81.Rd
-man/MxFlatModel.Rd
+man/MxFlatModel-class.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
@@ -123,4 +123,9 @@ man/MxRAMModel-class.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/omxCheckCloseEnough.Rd
+man/omxCheckError.Rd
+man/omxCheckNamespace.Rd
+man/omxCheckWarning.Rd
+man/omxDetectCores.Rd
+man/omxGetRAMDepth.Rd
 man/OpenMx.Rd

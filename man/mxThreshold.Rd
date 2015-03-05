@@ -18,6 +18,8 @@
 \alias{MxThreshold-class}
 \alias{print,MxThreshold-method}
 \alias{show,MxThreshold-method}
+\alias{$,MxThreshold-method}
+\alias{$<-,MxThreshold-method}
 
 \title{Create List of Thresholds}
 

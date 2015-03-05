@@ -96,6 +96,8 @@ imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 ##' @param verbose Increase runtime debugging output
 ##' @aliases
 ##' MxDataDynamic-class
+##' print,MxDataDynamic-method
+##' show,MxDataDynamic-method
 mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {

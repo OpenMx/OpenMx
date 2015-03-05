@@ -18,6 +18,8 @@
 \alias{MxAlgebra}
 \alias{print,MxAlgebra-method}
 \alias{show,MxAlgebra-method}
+\alias{$,MxAlgebra-method}
+\alias{$<-,MxAlgebra-method}
 \alias{dimnames,MxAlgebra-method}
 \alias{dimnames<-,MxAlgebra-method}
 

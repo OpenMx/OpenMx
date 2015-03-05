@@ -96,8 +96,8 @@ setMethod("names", "MxBaseFitFunction", slotNames)
 ##' ignore the passed-in dependencies and use "dependencies <-
 ##' callNextMethod()" instead.
 ##'
-##' @param .Object
-##' @param flatModel
+##' @param .Object fit function object
+##' @param flatModel flat model that lives with .Object
 ##' @param dependencies accumulated dependency relationships
 
 setMethod("genericFitDependencies", "MxBaseFitFunction",
