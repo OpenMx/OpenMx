@@ -313,7 +313,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
 			       numChildren, minimum);
 
-	fc->wanted |= FF_COMPUTE_HESSIAN;
+	fc->wanted |= (FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT);
 	hessian = fc->getDenseHessUninitialized();
 
 	fc->grad.resize(numParams);
