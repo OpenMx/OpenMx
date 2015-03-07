@@ -259,6 +259,18 @@ generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	return(omxGetRAMDepth(mxObject, maxdepth))
 }
 
+
+##' omxGetRAMDepth
+##'
+##' Get the potency of a matrix for inversion speed-up
+##'
+##' @param A MxMatrix object 
+##' @param maxdepth Numeric. maximum depth to check
+##' @details This function is used internally by the \link{mxExpectationRAM} function
+##' to determine how far to expand \eqn{(I-A)^{-1} = I + A + A^2 + A^3 + ...}.  It is 
+##' similarly used by \link{mxExpectationLISREL} in expanding \eqn{(I-B)^{-1} = I + B + B^2 + B^3 + ...}.
+##' In many situations \eqn{A^2} is a zero matrix (nilpotent of order 2).  So when \eqn{A} has large
+##' dimension it is much faster to compute \eqn{I+A} than \eqn{(I-A)^{-1}}.
 omxGetRAMDepth <- function(A, maxdepth = nrow(A) - 1) {
 	mxObject <- A
 	aValues <- matrix(0, nrow(mxObject), ncol(mxObject))
@@ -509,3 +521,11 @@ setMethod("print", "MxExpectationRAM", function(x,...) {
 setMethod("show", "MxExpectationRAM", function(object) { 
 	displayMxExpectationRAM(object) 
 })
+
+
+#------------------------------------------------------------------------------
+setMethod("genericGenerateData", signature("MxExpectationRAM"),
+	function(.Object, model, nrows) {
+		return(generateNormalData(model, nrows))
+})
+

@@ -189,14 +189,18 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
-  oo->units = FIT_UNITS_UNKNOWN;  // should be FIT_UNITS_MINUS2LL ? TODO
+  oo->units = FIT_UNITS_MINUS2LL;  // OK
   oo->computeFun = omxCallGREMLFitFunction;
+  oo->ciFun = loglikelihoodCIFun;
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;
   //omxGREMLFitState *newObj = (omxGREMLFitState*) R_alloc(1, sizeof(omxGREMLFitState));
   omxGREMLFitState *newObj = new omxGREMLFitState;
   oo->argStruct = (void*)newObj;
   omxExpectation* expectation = oo->expectation;
+  if(strcmp(expectation->expType, "MxExpectationGREML")!=0){
+    Rf_error("GREML fitfunction is currently only compatible with GREML expectation");
+  }
   newObj->y = omxGetExpectationComponent(expectation, oo, "y");
   newObj->V = omxGetExpectationComponent(expectation, oo, "V");
   newObj->X = omxGetExpectationComponent(expectation, oo, "X");
@@ -219,7 +223,8 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   {
   ScopedProtect p1(casesToDrop, R_do_slot(rObj, Rf_install("casesToDrop")));
   ScopedProtect p2(do_drop, R_do_slot(rObj, Rf_install("dropNAfromV")));
-  if(Rf_length(casesToDrop) && Rf_asInteger(do_drop)){
+  if(Rf_length(casesToDrop) && Rf_asInteger(do_drop)){ /*Only drop cases if asked to do so AND there's a list of 
+                                                        which to drop*/
     if(OMX_DEBUG) { mxLog("Preparing GREML fitfunction to handle missing data."); }
     newObj->numcases2drop = Rf_length(casesToDrop);
     casesToDrop_intptr = INTEGER(casesToDrop);

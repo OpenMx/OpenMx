@@ -94,6 +94,21 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
 }
 
+void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
+{
+	if (want & (FF_COMPUTE_DIMS | FF_COMPUTE_INITIAL_FIT)) return;
+
+	if (!off->initialized) Rf_error("FitFunction not initialized");
+
+	if (!fc->CI) {
+		off->computeFun(off, want, fc);
+	} else {
+		off->ciFun(off, want, fc);
+	}
+
+	if (fc) fc->wanted |= want;
+}
+
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_DIMS | FF_COMPUTE_INITIAL_FIT)) return;
@@ -162,9 +177,10 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	}
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
-		omxFitFunctionCompute(ff, want, fc);
+		omxFitFunctionComputeAuto(ff, want, fc);
 	} else {
 		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
+		if (fc->CI) Rf_error("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
 	if (doFit) {
@@ -314,39 +330,6 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	return newMatrix;
 }
 
-void ComputeCIFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
-{
-	bool doFit = want & FF_COMPUTE_FIT;
-	R_CheckUserInterrupt();
-
-#pragma omp atomic
-	++Global->computeCount; // could avoid lock by keeping in FitContext
-
-	// old version of openmp can't do this as part of the atomic instruction
-	int evaluation = Global->computeCount;
-
-	if (doFit) {
-		if (OMX_DEBUG) {
-			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
-		}
-		Global->checkpointPrefit(callerName, fc, fc->est, false);
-	}
-
-	omxFitFunction *ff = fitMat->fitFunction;
-	if (!ff) Rf_error("CIs cannot be computed for unitless algebra");
-	omxFitFunctionComputeCI(ff, want, fc);
-
-	if (doFit) {
-		if (fitMat->rows != 1) Rf_error("CI fit matrix must be 1x1");
-		fc->fit = fitMat->data[0];
-		if (std::isfinite(fc->fit)) fc->resetIterationError();
-		Global->checkpointPostfit(fc);
-		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name, evaluation, fc->fit);
-		}
-	}
-}
-
 void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 {
 	const omxConfidenceInterval *CI = fc->CI;
@@ -364,16 +347,16 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 	omxRecompute(CI->matrix, fc);
 	double CIElement = omxMatrixElement(CI->matrix, CI->row, CI->col);
 	omxMatrix *fitMat = ff->matrix;
-	omxResizeMatrix(fitMat, 1, 1);  // may differ if row-wise likelihoods are enabled
+	const double fit = totalLogLikelihood(fitMat);
+	omxResizeMatrix(fitMat, 1, 1);
 
-	if (!std::isfinite(fitMat->data[0]) || !std::isfinite(CIElement)) {
+	if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
 		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 		fitMat->data[0] = nan("infeasible");
 		return;
 	}
 
 	if (want & FF_COMPUTE_FIT) {
-		double fit = totalLogLikelihood(fitMat);
 		double diff = fc->targetFit - fit;
 		diff *= diff;
 

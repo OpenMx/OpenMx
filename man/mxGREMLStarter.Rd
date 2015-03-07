@@ -8,7 +8,8 @@ Helper Function for Initializing a GREML Model
 This function takes a dataframe or matrix and uses it to setup the 'y' and 'X' matrices for a GREML analysis.  It trims out \code{NA}s from 'X' and 'y,' and creates an \code{\link{MxFitFunctionGREML}} object that will trim out the corresponding rows and columns from 'V' at runtime.  It returns an \code{\link{MxModel}} object containing the two \code{\link[=MxMatrix]{MxMatrices}} objects and the \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
-mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dropNAfromV=TRUE)
+mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", 
+  addOnes=TRUE, dropNAfromV=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -24,7 +25,7 @@ mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dr
 \details{
 In some cases, it may be simple for the user to drop rows and columns from 'V' prior to runtime.  In such cases, use \code{dropNAfromV=FALSE}.  Then, look at the \code{casesToDrop} slot of the fitfunction in the \code{\link{MxModel}} output by \code{mxGREMLStarter()}.  There, the indices of the rows and columns that need to be dropped can be found.  Since internally dropping rows and columns during runtime has a performance cost, it is recommended that it be done prior to runtime if possible.
 
-For a monophenotype analysis (only), argument \code{Xdata} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then code{Xdata} can be a list of length 1.
+For a monophenotype analysis (only), argument \code{Xdata} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then \code{Xdata} can be a list of length 1.
 }
 \value{
 The function returns an \code{\link{MxModel}}, which contains the \code{\link{MxFitFunctionGREML}} and the two \code{\link[=MxMatrix]{MxMatrices}} to serve as 'y' and 'X.'  As of this writing, GREML analyses do not make use of \code{\link{MxData}} objects.  But, for compatibility reasons, the returned \code{\link{MxModel}} also contains a "dummy" \code{\link{MxData}} object.
@@ -34,7 +35,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-For more information about the GREML fitfunction, see \code{\link{mxFitFunctionGREML}()} and \code{\link{MxFitFunctionGREML}}.  For more information generally concerning GREML analyses, see \code{\link{mxExpectationGREML}()}.  More information about the OpenMx package may be found \link[=OpenMx]{here}.
+For more information about the GREML fitfunction, see \code{\link{mxFitFunctionGREML}()} and \code{\link{MxFitFunctionGREML}}.  For more information generally concerning GREML analyses, including a complete example, see \code{\link{mxExpectationGREML}()}.  More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 \examples{
 dat <- cbind(rnorm(100),rep(1,100))
@@ -42,4 +43,5 @@ colnames(dat) <- c("y","x")
 dat[42,1] <- NA
 dat[57,2] <- NA
 start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = FALSE, dropNAfromV = TRUE)
+str(start)
 }

@@ -31,19 +31,13 @@ enum OptEngine {
     OptEngine_NLOPT
 };
 
-class ComputeGDBase : public omxCompute {
-protected:
+class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	enum OptEngine engine;
 	omxMatrix *fitMatrix;
 	int verbose;
 	double optimalityTolerance;
 
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-};
-
-class omxComputeGD : public ComputeGDBase {
-	typedef ComputeGDBase super;
 	bool useGradient;
 	SEXP hessChol;
 	bool nudge;
@@ -63,29 +57,13 @@ class omxCompute *newComputeGradientDescent()
 	return new omxComputeGD();
 }
 
-class ComputeCI : public ComputeGDBase {
-	typedef ComputeGDBase super;
-	SEXP intervals, intervalCodes;
-
-public:
-	ComputeCI();
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-};
-
-omxCompute *newComputeConfidenceInterval()
-{
-	return new ComputeCI();
-}
-
 omxComputeGD::omxComputeGD()
 {
 	hessChol = NULL;
 	warmStart = NULL;
 }
 
-void ComputeGDBase::initFromFrontend(omxState *globalState, SEXP rObj)
+void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
 
@@ -119,14 +97,8 @@ void ComputeGDBase::initFromFrontend(omxState *globalState, SEXP rObj)
 	} else {
 		Rf_error("%s: engine %s unknown", name, engine_name);
 	}
-}
-
-void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
-{
-	super::initFromFrontend(globalState, rObj);
     
-	SEXP slotValue;
-	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
+	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
 	if (Rf_length(slotValue)) {
 		useGradient = Rf_asLogical(slotValue);
 	} else {
@@ -136,7 +108,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = Rf_asLogical(slotValue);
     
-	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
+	ScopedProtect p6(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {
 		SEXP matrixDims;
 		Rf_protect(matrixDims = Rf_getAttrib(slotValue, R_DimSymbol));
@@ -171,13 +143,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
         }
     
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	omxFitFunctionComputeAuto(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
 	fc->createChildren();
     
 	int beforeEval = Global->computeCount;
 
-	GradientOptimizerContext rf(verbose, ComputeFit);
+	GradientOptimizerContext rf(verbose);
 	rf.fc = fc;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
@@ -259,6 +231,26 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	}
 }
 
+// -----------------------------------------------------------------------
+
+class ComputeCI : public omxCompute {
+	typedef omxCompute super;
+	omxCompute *plan;
+	int verbose;
+	SEXP intervals, intervalCodes;
+
+public:
+	ComputeCI();
+	virtual void initFromFrontend(omxState *, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+omxCompute *newComputeConfidenceInterval()
+{
+	return new ComputeCI();
+}
+
 ComputeCI::ComputeCI()
 {
 	intervals = 0;
@@ -268,6 +260,18 @@ ComputeCI::ComputeCI()
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
+
+	SEXP slotValue;
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(slotValue);
+	}
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	SEXP s4class;
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
+	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan->initFromFrontend(globalState, slotValue);
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
@@ -290,37 +294,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
-	// Could be smarter about setting upper & lower once instead of every attempt TODO
-	GradientOptimizerContext cif(verbose, ComputeCIFit);
-	cif.fitMatrix = fitMatrix;
-	cif.ControlTolerance = std::isfinite(optimalityTolerance)? optimalityTolerance : 1.0e-16;
-
-	GradientOptimizerType go = NULL;
-	switch (engine) {
-#if HAS_NPSOL
-	case OptEngine_NPSOL:{
-		std::string option = string_snprintf("Cold start");
-		F77_CALL(npoptn)((char*) option.c_str(), option.size());
-		go = omxNPSOL;
-		break;}
-#endif
-	case OptEngine_CSOLNP:
-		go = omxCSOLNP;
-		break;
-#ifdef HAS_NLOPT
-	case OptEngine_NLOPT:
-		go = omxInvokeNLOPT;
-		break;
-#endif
-	default:
-		Rf_error("huh?");
-	}
-
 	{
 		const int ciMaxIterations = Global->ciMaxIterations;
 		FitContext fc(mle, mle->varGroup);
-		fc.createChildren();
-		cif.fc = &fc;
 		FreeVarGroup *freeVarGroup = fc.varGroup;
     
 		const int n = int(freeVarGroup->vars.size());
@@ -353,15 +329,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 								  matName, currentCI->row + 1, currentCI->col + 1,
 								  lower? "lower" : "upper", tries);
 
-					cif.bestFit = std::numeric_limits<double>::max();
 					fc.CI = currentCI;
 					fc.lowerBound = lower;
-					fc.fit = mle->fit;
-					omxFitFunctionComputeCI(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, &fc);
-
-					go(fc.est, cif);
-
 					fc.copyParamToModel();
+					fc.fit = mle->fit;
+					plan->compute(&fc);
+
 					const double fitOut = fc.fit;
 
 					if (fitOut < bestFit) {
@@ -370,11 +343,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 						if (lower) currentCI->min = val;
 						else       currentCI->max = val;
 						bestFit = fitOut;
-						if (verbose >= 1) mxLog("CI[%d,%d] bestFit %f bound %f",
+						if (verbose >= 2) mxLog("CI[%d,%d] bestFit %f bound %f",
 									i, lower,bestFit, val);
 					}
 
-					inform = cif.informOut;
+					inform = fc.inform;
 					if (lower) currentCI->lCode = inform;
 					else       currentCI->uCode = inform;
 					if(verbose>=1) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
@@ -399,8 +372,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 
 	mle->copyParamToModel();
-	// auxillary information like per-row likelihoods need a refresh
-	omxRecompute(fitMatrix, mle);
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 	interval.fill(NA_REAL);

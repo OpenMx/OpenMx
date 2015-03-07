@@ -62,7 +62,7 @@ ty <- matrix(0, ydim, tdim)
 tx[,1] <- x0
 for(i in 2:(tdim+1)){
 	tx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + t(rmvnorm(1, rep(0, xdim), tQ))
-	ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
+	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 }
 
 #plot(tx[1,], type='l')
@@ -119,7 +119,7 @@ Astart[1,1] <- -.66 #put starting value within bounds!
 
 smod <- mxModel(
 	name='State Space Example',
-	mxMatrix(name='A', values=Astart, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'csym[1,1]', 'b'), ubound=c(-.6, rep(NA, 8))),
+	mxMatrix(name='A', values=Astart, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'csym[1,1]', 'b'), ubound=c(NA, rep(NA, 8))),
 	mxAlgebra(name='csym', -c),
 	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
 	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx))),
@@ -159,21 +159,20 @@ srun <- mxRun(smod)
 summary(srun)
 
 dlmEstA <- matrix(c(
-	-0.7911864,  0.0000000,  0.0000000,
-	 0.0000000, -0.8960419, -0.1064521,
-	 0.0000000,  0.1064521, -0.8960419),
+	-0.5872484,  0.0000000,  0.0000000,
+	 0.0000000, -0.90844880, -0.09324514,
+	 0.0000000,  0.09324514, -0.90844880),
 	3, 3, byrow=TRUE)
 
 dlmEstC <- c( #nonzero factor loadings
-	0.1798166, 0.4718692, 0.4547457,
-	0.9500226, 0.6864060, 0.9554287,
-	0.4287551, 0.9650694, 0.4956449)
+	0.4547795, 0.5588851, 0.5334843,
+	0.8390506, 0.6466323, 0.9403929,
+	0.4500960, 0.9795006, 0.3998111)
 
 dlmEstR <- c( #diagonal manifest error cov
-	0.3798346, 0.8068893, 1.0383961,
-	0.6261729, 0.1331556, 0.7761499,
-	0.7538665, 0.9816791, 1.2166798)
-
+	0.3613315, 0.7944001, 1.0167006,
+	0.5838246, 0.1587098, 0.7305550,
+	0.7400381, 0.9654145, 1.1970777)
 
 
 omxCheckCloseEnough(srun$A$values, dlmEstA, epsilon=0.001)

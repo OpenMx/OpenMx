@@ -26,7 +26,6 @@ setClass(Class = "MxLISRELModel",
 
 imxModelTypes[['LISREL']] <- "MxLISRELModel"
 
-# imxVariableTypes <- c(imxVariableTypes, "exogenous", "endogenous")
 
 
 #--------------------------------------------------------------------

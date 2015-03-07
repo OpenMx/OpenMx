@@ -460,34 +460,43 @@ setMethod("show", "MxExpectationStateSpace", function(object) {
 
 
 #--------------------------------------------------------------------
-KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, const){
+KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P){
 	x <- A %*% x + B %*% u
 	P <- A %*% P %*% t(A) + Q
 	x.pred <- x
 	P.pred <- P
 	
 	r <- y - (C %*% x + D %*% u)
-	S <- C %*% P %*% t(C) + R
-	Sinv <- solve(S)
-	K <- P %*% t(C) %*% Sinv
-	x <- x + K %*% r
-	P <- P - K %*% C %*% P
-	x.upda <- x
-	P.upda <- P
-	
-	m2ll <- log(det(S)) + t(r) %*% Sinv %*% r + const
-	
-	return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.upda, P.upda=P.upda, m2ll=m2ll, L=exp(m2ll/-2) ))
+	notMiss <- !is.na(r)
+	r[!notMiss] <- 0
+	if(length(r)==sum(!notMiss)){#all missing row
+		m2ll <- log(det(C %*% P %*% t(C) + R))
+		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.pred, P.upda=P.pred, m2ll=m2ll, L=exp(m2ll/-2) ))
+	} else {
+		Cf <- C[notMiss,]
+		Rf <- R[notMiss, notMiss]
+		S <- Cf %*% P %*% t(Cf) + Rf
+		Sinv <- solve(S)
+		rf <- matrix(r[notMiss], ncol=1)
+		K <- P %*% t(Cf) %*% Sinv
+		x <- x + K %*% rf
+		P <- P - K %*% Cf %*% P
+		x.upda <- x
+		P.upda <- P
+		
+		const <- length(rf)*log(2*pi)
+		m2ll <- log(det(S)) + t(rf) %*% Sinv %*% rf + const
+		
+		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.upda, P.upda=P.upda, m2ll=m2ll, L=exp(m2ll/-2) ))
+	}
 }
+
 
 mxKalmanScores <- function(model, data=NA){
 	message("Computing Kalman scores in frontend R.  This may take a few seconds.")
 	if(single.na(data)) {
 		#TODO check that data are raw
 		data <- model@data@observed
-	}
-	if(any(is.na(data))){
-		stop("Missing data handling for Kalman scores is not yet implemented.")
 	}
 	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
@@ -503,7 +512,6 @@ mxKalmanScores <- function(model, data=NA){
 	m2ll[1] <- 0
 	L <- numeric(nrow(data)+1)
 	L[1] <- 1
-	const <- ncol(data)*log(2*pi)
 	for(i in 1:nrow(data)){
 		A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i)
 		B <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i)
@@ -513,7 +521,7 @@ mxKalmanScores <- function(model, data=NA){
 		R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i)
 		u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i)
 		
-		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,])), u=u, P=P.upda[i,,], const=const)
+		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[i,,])
 		X.pred[i+1,] <- res$x.pred
 		X.upda[i+1,] <- res$x.upda
 		P.pred[i+1,,] <- res$P.pred
@@ -543,32 +551,34 @@ mxKalmanScores <- function(model, data=NA){
 
 
 #--------------------------------------------------------------------
-generateStateSpaceData <- function(model, nrows){
-	A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
-	B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
-	C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
-	D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
-	Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
-	R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
-	u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
-	
-	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
-	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
-	
-	tdim <- nrows
-	ydim <- nrow(C)
-	xdim <- nrow(A)
-	tx <- matrix(0, xdim, tdim+1)
-	ty <- matrix(0, ydim, tdim)
-	
-	tx[,1] <- x0
-	for(i in 2:(tdim+1)){
-		u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
-		tx[,i] <- A %*% tx[,i-1] + B %*% u + t(rmvnorm(1, rep(0, xdim), Q))
-		ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(rmvnorm(1, rep(0, ydim), R))
+setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
+	function(.Object, model, nrows) {
+		A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
+		B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
+		C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
+		D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
+		Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
+		R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
+		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
+		
+		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
+		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
+		
+		tdim <- nrows
+		ydim <- nrow(C)
+		xdim <- nrow(A)
+		tx <- matrix(0, xdim, tdim+1)
+		ty <- matrix(0, ydim, tdim)
+		
+		tx[,1] <- x0
+		for(i in 2:(tdim+1)){
+			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
+			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
+			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
+		}
+		ret <- t(ty)
+		colnames(ret) <- dimnames(C)[[1]]
+		return(ret)
 	}
-	ret <- t(ty)
-	colnames(ret) <- dimnames(C)[[1]]
-	return(ret)
-}
+)
 

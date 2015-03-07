@@ -159,3 +159,5 @@ oneFactorThresholdFit <- mxRun(oneFactorThresholdModel, suppressWarnings=TRUE)
 summary(oneFactorThresholdFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------
+
+omxCheckCloseEnough(oneFactorThresholdFit$output$fit, 6277.624, .1)

@@ -120,3 +120,22 @@ testmod3$fitfunction <- NULL
 omxCheckWarning(
   mxGREMLStarter(testmod3,data = dat,Xdata = "x",ydata = "y",Xname = "X",yname = "y",addOnes = F),
   "not adding dummy MxData object because model 'GREMLmod' already contains an MxData object")
+
+
+#Does everything work OK when dropNAfromV=FALSE, and the user resizes V appropriately themselves?:
+start3 <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = F, dropNAfromV = F)
+omxCheckEquals(start3$fitfunction$casesToDrop,c(42,57))
+testmod4 <- mxModel(
+  start3,
+  mxExpectationGREML(V="V",X="X",y="y"),
+  mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+  mxMatrix("Iden",nrow=98,name="I",condenseSlots=T),
+  mxAlgebra(I %x% Ve,name="V")
+)
+testrun4 <- mxRun(testmod4)
+omxCheckCloseEnough(testrun4$output$estimate[1],
+                    var(dat[-c(42,57),1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun$fitfunction$info$b,
+                    mean(dat[-c(42,57),1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun$fitfunction$info$bcov,
+                    var(dat[-c(42,57),1])/98,epsilon=10^-5)

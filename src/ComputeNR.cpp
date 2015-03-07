@@ -323,7 +323,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 		if (!fc->flavor[px]) fc->flavor[px] = "?";
 	}
 
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	omxFitFunctionComputeAuto(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 
 	priorSpeed = 1;
 	minorIter = 0;

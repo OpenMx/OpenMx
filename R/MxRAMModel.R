@@ -26,6 +26,12 @@ setClass(Class = "MxRAMModel",
 
 imxModelTypes[['RAM']] <- "MxRAMModel"
 
+##' imxVariableTypes
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @details The acceptable variable types
 imxVariableTypes <- c(imxVariableTypes, "exogenous", "endogenous")
 
 # Define generic functions

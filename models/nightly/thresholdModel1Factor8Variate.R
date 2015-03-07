@@ -64,3 +64,4 @@ thresholdModel <- mxModel("thresholdModel",
 )
 
 summary(thresholdModelrun <- mxRun(thresholdModel))
+omxCheckCloseEnough(thresholdModelrun$output$fit, 9718.195, .1)

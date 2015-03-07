@@ -14,8 +14,7 @@
 #   limitations under the License.
 
 
-##' @name MxFlatModel
-##' @title MxFlatModel
+##' MxFlatModel
 ##'
 ##' This is an internal class and should not be used.
 ##'
@@ -27,6 +26,7 @@
 ##' [[<-,MxFlatModel-method
 ##' print,MxFlatModel-method
 ##' show,MxFlatModel-method
+##' names,MxFlatModel-method
 setClass(Class = "MxFlatModel",
 	representation = representation(
 		expectations = "list",

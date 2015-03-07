@@ -110,3 +110,16 @@ testmod <- mxModel(
 )
 omxCheckError(mxRun(testmod),
               "No covariance expectation in FIML evaluation.")
+
+testmod <- mxModel(
+  "GREMLtest",
+  mxData(observed = matrix(dat[,1],1,100,dimnames=list(NULL,paste("y",1:100,sep=""))), type="raw"),
+  mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+  mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+  mxMatrix("Zero",1,100,name="Zm"),
+  mxAlgebra(I %x% Ve,name="V"),
+  mxExpectationNormal(covariance="V",means="Zm", dimnames=paste("y",1:100,sep="")),
+  mxFitFunctionGREML()
+)
+omxCheckError(mxRun(testmod),
+              "GREML fitfunction is currently only compatible with GREML expectation")

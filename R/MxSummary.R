@@ -218,14 +218,15 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	return(retval)
 }
 
-omxRMSEA <- function(model, lower, upper){
-	smod <- summary(model)
+omxRMSEA <- function(model, lower=.025, upper=.975, null=.05, ...){
+	smod <- summary(model, ...)
 	x2 <- smod$Chi
 	df <- smod$ChiDoF
 	N <- smod$numObs
 	rmsea <- smod$RMSEA
 	ci <- rmseaConfidenceIntervalHelper(chi.squared=x2, df=df, N=N, lower=lower, upper=upper)
-	return(c(ci[1], est.rmsea=rmsea, ci[2]))
+	pn <- 1-pchisq(x2, df=df, ncp=N*df*(null)^2)
+	return(c(ci[1], est.rmsea=rmsea, ci[2], null=null, `Prob(x <= null)`=pn))
 }
 
 rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
@@ -923,7 +924,7 @@ logLik.MxModel <- function(object, ...) {
   if(SE){ 
     #From Mike Hunter's delta method example:
     covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
-    jacStand <- jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
+    jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
     SEs <- sqrt(diag(covSparam))

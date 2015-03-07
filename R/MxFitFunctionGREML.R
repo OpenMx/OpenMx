@@ -186,11 +186,7 @@ mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addO
     warning(msg)
     gff <- NULL
   }
-  else{
-    if(dropNAfromV){gff <- mxFitFunctionGREML(casesToDrop=whichHaveNA, dropNAfromV=TRUE)}
-    else{
-      gff <- mxFitFunctionGREML(dropNAfromV=FALSE)
-  }}
+  else{gff <- mxFitFunctionGREML(casesToDrop=whichHaveNA, dropNAfromV=dropNAfromV)}
   
   #Create dummy data object (needed for technical reasons):
   if( ("MxModel" %in% class(model)) && !is.null(model$data) ){

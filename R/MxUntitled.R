@@ -24,17 +24,35 @@ unlockCounter <- function() {
 	}
 }
 
+##' imxUntitledNumberReset
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @details Resets the \link{imxUntitledNumber} counter
 imxUntitledNumberReset <- function() {
 	unlockCounter()
 	.untitledCounter <<- 0
 }
 
+##' imxUntitledNumber
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @details Increments the untitled number counter and returns its value
 imxUntitledNumber <- function() {
 	unlockCounter()
 	.untitledCounter <<- .untitledCounter + 1
 	return(.untitledCounter)	
 }
 
+##' imxUntitledName
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @details Returns a character, the name of the next untitled entity
 imxUntitledName <- function() {
 	name <- paste("untitled", format(imxUntitledNumber(), scientific = FALSE),
 		sep="")

@@ -339,6 +339,27 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		}
 	}
 
+	if (OMX_DEBUG) {
+		omxState *state = ox->currentState;
+		std::string msg = string_snprintf("Expectation '%s' of type '%s' has"
+						  " %d definition variables:\n", ox->name, ox->expType, ox->numDefs);
+		for (int dx=0; dx < ox->numDefs; ++dx) {
+			omxDefinitionVar *dv = &ox->defVars[dx];
+			msg += string_snprintf("[%d] column '%s' ->", dx,
+					       omxDataColumnName(dv->source, dv->column));
+			for (int lx=0; lx < dv->numLocations; ++lx) {
+				msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv->matrices[lx]),
+						       dv->rows[lx], dv->cols[lx]);
+			}
+			msg += "\n  dirty:";
+			for (int mx=0; mx < dv->numDeps; ++mx) {
+				msg += string_snprintf(" %s", state->matrixToName(dv->deps[mx]));
+			}
+			msg += "\n";
+		}
+		mxLogBig(msg);
+	}
+
 	ox->isComplete = TRUE;
 }
 

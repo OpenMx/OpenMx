@@ -1,15 +1,14 @@
 # ---------------------------------------------------------------------
-# Program: 3LatentMultiRegWithModerator100521.R
+# Program: RAM-3Factor-12Indicators.R
 #  Author: Steven M. Boker
-#    Date: Sat May 22 11:13:51 EDT 2010
+#    Date: Fri Jul 30 13:45:12 EDT 2010
 #
-# This program tests variations on a latent variable multiple regression
-#    using a standard RAM.
+# This program is a factor model using standard RAM.
 #
 # ---------------------------------------------------------------------
 # Revision History
-#    -- Sat May 22 11:13:51 EDT 2010
-#      Created 3LatentMultiRegWithModerator100521.R.
+#    -- Fri Jul 30 13:45:12 EDT 2010
+#      Created RAM-3Factor-12Indicators.R.
 #
 # ---------------------------------------------------------------------
 
@@ -19,47 +18,34 @@
 library(OpenMx)
 
 options(width=100)
-
-# ---------------------------------------------------------------------
-# Data for multiple regression of F3 on F1 and F2 with moderator variable Z.
-
-numberSubjects <- 1000
-numberIndicators <- 12
-numberFactors <- 3
-
 set.seed(10)
 
-fixedBMatrixF <- matrix(c(.4, .2), 2, 1, byrow=TRUE)
-randomBMatrixF <- matrix(c(.3, .5), 2, 1, byrow=TRUE)
-XMatrixF <- matrix(rnorm(numberSubjects*2, mean=0, sd=1), numberSubjects, 2)
-UMatrixF <- matrix(rnorm(numberSubjects*1, mean=0, sd=1), numberSubjects, 1)
-Z <- matrix(floor(runif(numberSubjects, min=0, max=1.999)), nrow=numberSubjects, ncol=2)
+# ---------------------------------------------------------------------
+# Data for factor model.
 
-XMatrix <- cbind(XMatrixF, XMatrixF %*% fixedBMatrixF + (XMatrixF*Z) %*% randomBMatrixF + UMatrixF)
+numberSubjects <- 1000
+numberFactors <- 3
+numberIndPerFactor <- 8
+numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
 
-BMatrix <- matrix(c( 1, .6, .7, .8,  0,  0,  0,  0,  0,  0,  0,  0,
-                     0,  0,  0,  0,  1, .5, .6, .7,  0,  0,  0,  0,
-                     0,  0,  0,  0,  0,  0,  0,  0,  1, .7, .6, .5), numberFactors, numberIndicators, byrow=TRUE)
+XMatrix <- matrix(rnorm(numberSubjects*numberFactors, mean=0, sd=1), numberSubjects, numberFactors)
+
+tLoadings <- c(1, seq(.5, .9, length.out=(numberIndPerFactor-1)), rep(0, numberIndPerFactor*2),
+  rep(0, numberIndPerFactor*1), 1, seq(.5, .9, length.out=(numberIndPerFactor-1)), rep(0, numberIndPerFactor*1),
+  rep(0, numberIndPerFactor*2), 1, seq(.5, .9, length.out=(numberIndPerFactor-1)))
+BMatrix <- matrix(tLoadings, numberFactors, numberIndicators, byrow=TRUE)
 UMatrix <- matrix(rnorm(numberSubjects*numberIndicators, mean=0, sd=1), numberSubjects, numberIndicators)
 YMatrix <- XMatrix %*% BMatrix + UMatrix
 
-cor(cbind(XMatrix,Z[,1]))
+cor(XMatrix)
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-latentMultiRegModerated1 <- data.frame(YMatrix,Z=Z[,1])
+round(cor(YMatrix), 3)
+round(cov(YMatrix), 3)
 
-round(cor(latentMultiRegModerated1), 3)
-round(cov(latentMultiRegModerated1), 3)
-
-latentMultiRegModerated1$Z <- latentMultiRegModerated1$Z - mean(latentMultiRegModerated1$Z)
-
-numberFactors <- 3
-numberIndicators <- 12
-numberModerators <- 1
 indicators <- paste("X", 1:numberIndicators, sep="")
-moderators <- c("Z")
-totalVars <- numberIndicators + numberFactors + numberModerators
+totalVars <- numberIndicators + numberFactors
 
 # ----------------------------------
 # Build an orthogonal simple structure factor model
@@ -71,16 +57,16 @@ meanLabels <- paste("M_", latents, sep="")
 factorVarLabels <- paste("Var_", latents, sep="")
 
 latents1 <- latents[1]
-indicators1 <- indicators[1:4]
-loadingLabels1 <- paste("b_F1", indicators[1:4], sep="") 
+indicators1 <- indicators[1:numberIndPerFactor]
+loadingLabels1 <- paste("b_F1", indicators[1:numberIndPerFactor], sep="") 
 latents2 <- latents[2]
-indicators2 <- indicators[5:8]
-loadingLabels2 <- paste("b_F2", indicators[5:8], sep="") 
+indicators2 <- indicators[numberIndPerFactor+(1:numberIndPerFactor)]
+loadingLabels2 <- paste("b_F2", indicators[numberIndPerFactor+(1:numberIndPerFactor)], sep="") 
 latents3 <- latents[3]
-indicators3 <- indicators[9:12]
-loadingLabels3 <- paste("b_F3", indicators[9:12], sep="") 
+indicators3 <- indicators[(2*numberIndPerFactor)+(1:numberIndPerFactor)]
+loadingLabels3 <- paste("b_F3", indicators[(2*numberIndPerFactor)+(1:numberIndPerFactor)], sep="") 
 
-threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
+threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     type="RAM",
     manifestVars=c(indicators),
     latentVars=c(latents,"dummy1"),
@@ -118,22 +104,18 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=latentMultiRegModerated1, type="raw")
-    )
+    mxCI(c('A', 'S')),
+    mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean), 
+	numObs=nrow(YMatrix), type="cov")
+)
 
-# ----------------------------------
-# Modify to add in direct paths
+threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29344.82, .1)
 
+threeFactorCI <- omxParallelCI(threeFactorOrthogonalOut)
 
-threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
-    mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, 
-           free=TRUE, values=.2, labels=c("b11", "b12")),
-    mxPath(from="F1",to="F2",
-           arrows=2, 
-           free=TRUE, values=.1, labels=c("cF1F2")),
-    name="threeLatentNoModerator"
-    )
-
-threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
-
+#cat(deparse(fivenum(threeFactorCI$output$confidenceIntervals[,'lbound'])))
+omxCheckCloseEnough(fivenum(threeFactorCI$output$confidenceIntervals[,'lbound']),
+                    c(0.389, 0.631, 0.837, 0.935, 0.987), .01)
+omxCheckCloseEnough(fivenum(threeFactorCI$output$confidenceIntervals[,'ubound']),
+                    c(0.545, 0.804, 1.04, 1.145, 1.344), .01)

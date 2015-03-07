@@ -656,6 +656,9 @@ void FitContext::init()
 	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
+	CI = NULL;
+	targetFit = nan("uninit");
+	lowerBound = false;
 
 	hess.resize(numParam, numParam);
 	ihess.resize(numParam, numParam);
@@ -737,6 +740,9 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
+	CI = parent->CI;
+	targetFit = parent->targetFit;
+	lowerBound = parent->lowerBound;
 }
 
 void FitContext::updateParent()
@@ -2629,7 +2635,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
-			omxFitFunctionCompute(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+			omxFitFunctionComputeAuto(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 			ComputeFit("Once", algebra, want, fc);
 			if (infoMat) {
 				fc->postInfo();
@@ -2857,8 +2863,8 @@ void GradientOptimizerContext::setupAllBounds()
 	}
 }
 
-GradientOptimizerContext::GradientOptimizerContext(int verbose, ComputeFitFunctionType cff)
-	: verbose(verbose), cff(cff)
+GradientOptimizerContext::GradientOptimizerContext(int verbose)
+	: verbose(verbose)
 {
 	optName = "?";
 	fc = NULL;
@@ -2893,11 +2899,12 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	fc->copyParamToModel();
 
 	int want = FF_COMPUTE_FIT;
-	if (*mode > 0 && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+	// eventually want to permit analytic gradient during CI
+	if (*mode > 0 && !fc->CI && useGradient && fitMatrix->fitFunction->gradientAvailable) {
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
-	cff(optName, fitMatrix, want, fc);
+	ComputeFit(optName, fitMatrix, want, fc);
 
 	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;

@@ -202,6 +202,26 @@ tryCatch.W <- function(expr) {
 	     warning = W)
 }
 
+##' Correct Warning Message Function
+##'
+##' This function tests whether the correct warning message is thrown.
+##'
+##' Arguments \sQuote{expression} and \sQuote{message} give the expression
+##' that generates the warning and the message that is supposed to be generated, respectively.
+##'
+##' @param expression an R expression that produces a warning
+##' @param message a character string with the desired warning message
+##' @seealso
+##' \code{\link{omxCheckError}}
+##' \code{\link{omxCheckWithinPercentError}},
+##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
+##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
+##' @references
+##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' @examples
+##' msg <- paste("Objective functions like mxFIMLObjective() have been deprecated in favor of expectation and fit functions.\n",
+##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead, and add a call to mxFitFunctionML(). See examples at help(mxExpectationNormal)")
+##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), msg)
 omxCheckWarning <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	result <- tryCatch.W(expression)
@@ -227,6 +247,32 @@ omxCheckWarning <- function(expression, message) {
 	result$value
 }
 
+##' Correct Error Message Function
+##'
+##' This function tests whether the correct error message is thrown.
+##'
+##' Arguments \sQuote{expression} and \sQuote{message} give the expression
+##' that generates the error and the message that is supposed to be generated, respectively.
+##'
+##' @param expression an R expression that produces an error
+##' @param message a character string with the desired error message
+##' @seealso
+##' \code{\link{omxCheckWarning}}
+##' \code{\link{omxCheckWithinPercentError}},
+##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
+##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
+##' @references
+##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' @examples
+##' A <- mxMatrix('Full', 1, 1, labels = 'data.foo', free = TRUE, name = 'A')
+##' model <- mxModel('model', A)
+##' omxCheckError(mxRun(model), 
+##'	paste("The definition variable 'data.foo'",
+##'		"has been assigned to a",
+##'		"free parameter in matrix 'A'"))
+##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
+##' # Throws error, check the message
+##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01), "In omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9, 3), epsilon = 0.01) : not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	checkErrorState <- FALSE

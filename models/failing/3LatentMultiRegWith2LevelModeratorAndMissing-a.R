@@ -124,19 +124,5 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     mxData(observed=latentMultiRegModerated1, type="raw")
     )
 
-# ----------------------------------
-# Modify to add in direct paths
-
-
-threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
-    mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, 
-           free=TRUE, values=.2, labels=c("b11", "b12")),
-    mxPath(from="F1",to="F2",
-           arrows=2, 
-           free=TRUE, values=.1, labels=c("cF1F2")),
-    name="threeLatentNoModerator"
-    )
-
-threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
-
+threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
+omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 34349.28, .1)

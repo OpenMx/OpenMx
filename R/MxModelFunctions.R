@@ -146,6 +146,14 @@ generateValueHelper <- function(triple, mList) {
 	return(val)
 }
 
+##' imxUpdateModelValues
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @param model model
+##' @param flatModel flat model
+##' @param values values to update
 imxUpdateModelValues <- function(model, flatModel, values) {
 	pList <- flatModel@parameters
 	if(length(pList) != length(values)) {

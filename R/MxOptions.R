@@ -101,6 +101,12 @@ processDefaultOptionList <- function(key, value) {
 	return(invisible(defaultOptions))
 }
 
+##' imxDetermineDefaultOptimizer
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+##'
+##' @details Returns a character, the default optimizer
 imxDetermineDefaultOptimizer <- function() {
 	engine <- Sys.getenv("IMX_OPT_ENGINE")
 	if (!nchar(engine)) {

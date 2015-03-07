@@ -36,6 +36,7 @@ man/imxDataTypes.Rd
 man/imxDefaultGetSlotDisplayNames.Rd
 man/imxDeparse.Rd
 man/imxDependentModels.Rd
+man/imxDetermineDefaultOptimizer.Rd
 man/imxDiff.Rd
 man/imxDmvnorm.Rd
 man/imxEvalByName.Rd
@@ -52,6 +53,7 @@ man/imxGenericModelBuilder.Rd
 man/imxGenSwift.Rd
 man/imxGetSlotDisplayNames.Rd
 man/imxHasNPSOL.Rd
+man/imxHasOpenMP.Rd
 man/imxIdentifier.Rd
 man/imxIndependentModels.Rd
 man/imxInitModel.Rd
@@ -82,6 +84,11 @@ man/imxSparseInvert.Rd
 man/imxSquareMatrix.Rd
 man/imxSymmetricMatrix.Rd
 man/imxTypeName.Rd
+man/imxUntitledName.Rd
+man/imxUntitledNumber.Rd
+man/imxUntitledNumberReset.Rd
+man/imxUpdateModelValues.Rd
+man/imxVariableTypes.Rd
 man/imxVerifyMatrix.Rd
 man/imxVerifyModel.Rd
 man/imxVerifyName.Rd
@@ -103,7 +110,7 @@ man/mxComputeSequence.Rd
 man/mxComputeStandardError.Rd
 man/mxDataDynamic.Rd
 man/mxExpectationBA81.Rd
-man/MxFlatModel.Rd
+man/MxFlatModel-class.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
@@ -116,4 +123,9 @@ man/MxRAMModel-class.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/omxCheckCloseEnough.Rd
+man/omxCheckError.Rd
+man/omxCheckNamespace.Rd
+man/omxCheckWarning.Rd
+man/omxDetectCores.Rd
+man/omxGetRAMDepth.Rd
 man/OpenMx.Rd

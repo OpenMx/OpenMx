@@ -149,7 +149,7 @@ m2 <- mxModel("ex", m1, pm,
                       mxComputeEM('itemModel.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),
                                 tolerance=1e-10, verbose=0L),
-                      mxComputeConfidenceInterval(),
+                      mxComputeConfidenceInterval(mxComputeGradientDescent()),
                       mxComputeOnce('fitfunction', c('fit','gradient')),  # SEM lost the details
                       mxComputeReportDeriv())))
 m2 <- mxOption(m2,"Checkpoint Units",'evaluations')

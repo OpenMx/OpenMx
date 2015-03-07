@@ -134,4 +134,4 @@ threeLatentWithModerator <- mxModel("threeLatentWithModerator",
     )
 
 threeLatentWithModeratorOut <- mxRun(threeLatentWithModerator)
-
+omxCheckCloseEnough(threeLatentWithModeratorOut$output$fit, 37767.09, .1)

@@ -155,6 +155,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' any additional Bayesian prior on difficulty estimates (Baker &
 ##' Kim, 2004, p. 196).
 ##'
+##' @aliases MxExpectationBA81-class show,MxExpectationBA81-method print,MxExpectationBA81-method
 ##' @param ItemSpec a single item model (to replicate) or a list of
 ##' item models in the same order as the column of \code{ItemParam}
 ##' @param item the name of the mxMatrix holding item parameters
