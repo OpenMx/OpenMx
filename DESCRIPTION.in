@@ -140,5 +140,6 @@ Collate:
     'MxExpectationBA81.R'
     'MxFitFunctionGREML.R'
     'MxExpectationGREML.R'
+    'MxMI.R'
     'zzz.R'
 Version: VERSION

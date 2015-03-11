@@ -62,7 +62,8 @@ omxCheckTrue(theRMS < 0.50)
 
 omCheck <- fim$MI.Full[1:length(mplus.mi)][!is.na(mplus.mi)]
 mpCheck <- mplus.mi[!is.na(mplus.mi)]
-omxCheckWithinPercentError(omCheck, mpCheck, 90)
+relMean <- mean(omCheck/mpCheck)
+omxCheckTrue( relMean < 1.05 & relMean > 0.95)
 
 
 #------------------------------------------------------------------------------

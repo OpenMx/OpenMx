@@ -17,7 +17,7 @@
 #------------------------------------------------------------------------------
 # Author: Michael D. Hunter
 # Date: 2015-03-11
-# Filename: mxMI.R
+# Filename: MxMI.R
 # Purpose: Write a function for model modification
 #------------------------------------------------------------------------------
 
@@ -28,9 +28,9 @@
 
 
 mxMI <- function(model, matrices=NA, full=TRUE){
-	#if(single.na(matrices)){
+	if(single.na(matrices)){
 		matrices <- names(model$matrices) #names of them rather
-	#}
+	}
 	param <- omxGetParameters(model)
 	param.names <- names(param)
 	gmodel <- omxSetParameters(model, free=FALSE, labels=param.names)
