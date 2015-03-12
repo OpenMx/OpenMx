@@ -65,6 +65,9 @@ SimUniRandomIntFrame <- data.frame(ID, X, Y)
 
 lmeOut <- summary(lme(Y ~ X, random= list(~ 1 | ID), data=SimUniRandomIntFrame))
 
+# For lme4, use:
+# lmerOut <- lmer(Y ~ X + (1 | ID), data=SimUniRandomIntFrame)
+
 # ----------------------------------
 # Set constants.
 
@@ -132,3 +135,8 @@ omxCheckCloseEnough(lmeOut$sigma, mxEval(sqrt(eY), model=OpenMxModelUniRandomInt
 
 omxCheckCloseEnough(sd(c(lmeOut$coefficients$random$ID)), mxEval(sqrt(vb0i), model=OpenMxModelUniRandomIntModel1Fit), 0.001)
 
+if (0) {
+  omxCheckCloseEnough(lmeOut$coefficients$fixed, fixef(lmerOut), 1e-4)
+  omxCheckCloseEnough(lmeOut$sigma, sigma(lmerOut), 1e-4)
+  omxCheckCloseEnough(c(lmeOut$coefficients$random$ID), ranef(lmerOut)$ID[[1]], 1e-4)
+}
