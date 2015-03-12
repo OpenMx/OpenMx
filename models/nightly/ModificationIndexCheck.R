@@ -126,9 +126,15 @@ if( any(mi.mis$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE)){
 
 omxCheckTrue(all( c(foundFirst, foundSecond) == c(TRUE, FALSE) ) )
 
-prevMIsForSS <- c(0.000002, 10.827511, 1.664330, 2.062372, 1.211038, 1.428606, 3.021569, 1.749314, 0.752319, 2.663316, 1.167776, 0.032929, -0.186243)
+prevMIsForSS <- c(0.000002, 10.827511, 1.664330, 2.062372, 1.211038,
+	1.428606, 3.021569, 1.749314, 0.752319, 2.663316, 1.167776,
+	0.032929, -0.186243)
 
-omxCheckCloseEnough(mi.mis$MI[!is.na(mi.mis$MI)], prevMIsForSS, 0.001)
+miSSCheck <- mi.mis$MI[!is.na(mi.mis$MI)]
+miSSCheck <- miSSCheck[-length(miSSCheck)]
+prevMIsForSS <- prevMIsForSS[-length(prevMIsForSS)]
+
+omxCheckCloseEnough(miSSCheck, prevMIsForSS, 0.01)
 
 
 
