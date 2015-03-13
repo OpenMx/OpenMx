@@ -13,6 +13,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' omxRAMtoML
+##'
+##' Convert a RAM model to an ML model
+##' 
+##' @param model the MxModel
+##' @details
+##' This is a legacy function that was once used to convert RAM models to ML models
+##' in the old (1.0 release of OpenMx) objective function style.
+##' @return
+##' an ML model with an ML objective
 omxRAMtoML <- function(model) {
 	namespace <- imxGenerateNamespace(model)
 	job <- shareData(model)

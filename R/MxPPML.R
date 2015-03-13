@@ -1903,6 +1903,18 @@ PPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 
 # Functions to test PPML solutions against numerically optimized solutions
 # TODO: Move to imxPPMLTester.R (?)
+##' imxPPML.Test.Test
+##'
+##' Test that PPML solutions match non-PPML solutions.
+##' 
+##' @param model the MxModel to evaluate
+##' @param checkLL whether to check log likelihood
+##' @param checkByName check values using their names
+##' @param tolerance closeness tolerance for check
+##' @param testEstimates whether to test for the same parameter estimates
+##' @details
+##' This is an internal function used for comparing PPML and non-PPML solutions.
+##' Generally, non-developers will not use this function.
 imxPPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolerance=0.5, testEstimates=TRUE) {
 	# TODO: Wrap in timing functions for profiling
 	model@options$UsePPML = "No"

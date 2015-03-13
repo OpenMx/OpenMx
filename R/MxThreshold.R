@@ -47,6 +47,19 @@ setReplaceMethod("$", "MxThreshold",
 
 setMethod("names", "MxThreshold", slotNames)
 
+##' omxNormalQuantiles
+##'
+##' Get quantiles from a normal distribution
+##' 
+##' @param nBreaks the number of thresholds, or a vector of the number of thresholds
+##' @param mean the mean of the underlying normal distribution
+##' @param sd the standard deviation of the underlying normal distribution
+##' @return
+##' a vector of quantiles
+##' @examples
+##' omxNormalQuantiles(3)
+##' omxNormalQuantiles(3, mean=7)
+##' omxNormalQuantiles(2, mean=1, sd=3)
 omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
 	if(length(nBreaks) > 1) {
 		return(unlist(mapply(omxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))

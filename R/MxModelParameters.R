@@ -232,6 +232,14 @@ extractSecond <- function(x) {
 	return(x[[2]])
 }
 
+##' omxNameAnonymousParameters
+##'
+##' Assign new names to the unnamed parameters
+##' 
+##' @param model the MxModel
+##' @param indep whether models are independent
+##' @return
+##' a list with components for the new MxModel with named parameters, and the new names.
 omxNameAnonymousParameters <- function(model, indep = FALSE) {
 	rows <- lapply(model@matrices, getAnonymousRows)
     cols <- lapply(model@matrices, getAnonymousCols)

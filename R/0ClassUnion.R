@@ -22,8 +22,10 @@ setClassUnion("MxCharOrNumber", c("character", "integer"))
 ##' @name MxOptionalChar-class
 setClassUnion("MxOptionalChar", c("NULL", "character"))
 
-##' An optional logical
+##' @title An optional logical
 ##' @name MxOptionalLogical-class
+##' @rdname MxOptionalLogical-class
+##' @description This is an internal class, the union of NULL and logical.
 setClassUnion("MxOptionalLogical", c("NULL", "logical"))
 
 ##' A character, integer, or NULL

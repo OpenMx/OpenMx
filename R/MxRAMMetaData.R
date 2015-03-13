@@ -13,6 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' @title Meta Data for RAM
+##' @name MxRAMMetaData-class
+##' @rdname MxRAMMetaData-class
+##' @description This is an internal class, the meta data for RAM.
 setClass(Class = "MxRAMMetaData",
 	representation = representation(
 		A = "MxCharOrNumber",

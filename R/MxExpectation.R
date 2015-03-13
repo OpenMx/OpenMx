@@ -18,6 +18,20 @@
 # The virtual base class for all expectations. Expectations contain
 # enough information to generate simulated data.
 #
+##' MxBaseExpectation
+##'
+##' @description
+##' The virtual base class for all expectations. Expectations contain
+##' enough information to generate simulated data.  This is an internal
+##' class and should not be used directly.
+##'
+##' @aliases
+##' $,MxBaseExpectation-method
+##' $<-,MxBaseExpectation-method
+##' @seealso
+##' \link{mxExpectationNormal}, \link{mxExpectationRAM}, \link{mxExpectationLISREL}, \link{mxExpectationStateSpace},
+##' \link{mxExpectationBA81}
+##' @rdname MxBaseExpectation-class
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
 	   data = "MxCharOrNumber",      # filled in during flattening
@@ -27,6 +41,16 @@ setClass(Class = "MxBaseExpectation",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
+##' @title MxExpectation
+##' @name MxExpectation-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' MxExpectation
+##' MxExpectation-class
+##' @rdname MxExpectation-class
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
 
 setGeneric("genericExpDependencies",

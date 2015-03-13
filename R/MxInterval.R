@@ -13,6 +13,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' MxInterval
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' $,MxInterval-method
+##' $<-,MxInterval-method
+##' print,MxInterval-method
+##' show,MxInterval-method
+##' @seealso
+##' \link{mxCI}
+##' @rdname MxInterval-class
 setClass(Class = "MxInterval",
 	representation = representation(
 		reference = "character",
@@ -83,10 +96,10 @@ mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'))
 		lowerValue <- as.numeric(NA)
 		upperValue <- qchisq(interval, 1)
 	}
-	return(omxInterval(reference, lowerValue, upperValue))
+	return(confidenceIntervalHelper(reference, lowerValue, upperValue))
 }
 
-omxInterval <- function(reference, lowerdelta, upperdelta) {
+confidenceIntervalHelper <- function(reference, lowerdelta, upperdelta) {
 	if (single.na(lowerdelta)) { lowerdelta <- as.numeric(NA) }
 	if (single.na(upperdelta)) { upperdelta <- as.numeric(NA) }
 	if (!is.character(reference) || length(reference) < 1 || any(is.na(reference))) {
@@ -323,6 +336,33 @@ removeAllIntervals <- function(model) {
 	return(model)
 }
 
+##' omxParallelCI
+##'
+##' Create parallel models for parallel confidence intervals
+##' 
+##' @param model an MxModel with confidence intervals in it
+##' @param run whether to run the model or just return the parallelized interval models
+##' @return
+##' an MxModel object
+##' @examples
+##' # raw data version of frontpage model
+##' require(OpenMx)
+##' data(demoOneFactor)
+##' manifests <- names(demoOneFactor)
+##' latents <- c("G")
+##' factorModel <- mxModel("One Factor",
+##'      type="RAM",
+##'      manifestVars = manifests,
+##'      latentVars = latents,
+##'      mxPath(from=latents, to=manifests),
+##'      mxPath(from=manifests, arrows=2),
+##'      mxPath(from=latents, arrows=2,
+##'            free=FALSE, values=1.0),
+##'      mxPath(from = 'one', to = manifests),
+##'      mxData(demoOneFactor, type="raw"),
+##'      mxCI(c('A', 'S'))) # add confidence intervals for free params in A and S matrices
+##' factorRun <- mxRun(factorModel)
+##' factorCI <- omxParallelCI(factorRun)
 omxParallelCI <- function(model, run = TRUE) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
