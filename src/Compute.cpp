@@ -904,6 +904,8 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 
 	{ScopedProtect p1(theCall, Rf_allocVector(LANGSXP, 4));
 
+		// imxUpdateModelValues does not handle parameters with equality
+		// constraints. This is a bug.
 	SETCAR(theCall, Rf_install("imxUpdateModelValues"));
 	SETCADR(theCall, rFitFunction->model);
 	SETCADDR(theCall, rFitFunction->flatModel);

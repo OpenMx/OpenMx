@@ -148,8 +148,8 @@ generateValueHelper <- function(triple, mList) {
 
 ##' imxUpdateModelValues
 ##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
+##' Deprecated. This function does not handle parameters with equality
+##' constraints. Do not use.
 ##'
 ##' @param model model
 ##' @param flatModel flat model

@@ -67,24 +67,16 @@ fitFunction <- mxFitFunctionML()
 testModel <- mxModel(model="testModel", expCov, data, expFunction, fitFunction)
 
 #Use mxRun to optimize the free parameters in the expected covariance matrix
-modelOut <- mxRun(testModel, checkpoint = TRUE)
+modelOut <- mxRun(testModel)
 modelOut$expCov
 
 # Save the ending state of modelOut in a checkpoint file
-#mxSave(modelOut)
-
+mxSave(modelOut)
 
 # Restore the saved model from the checkpoint file
 modelSaved <- mxRestore(testModel)
-# N.B. This FAILS!
-
-
 modelSaved$expCov
 
 # Imagine how much time you saved by not having to re-run the
 # model that took hours or days to run.
-
-
-
-
 }

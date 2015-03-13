@@ -21,50 +21,13 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
-	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
-	chkpt.filename <- paste(chkpt.prefix, model@name, ".omx", sep = '')
-	filepath <- paste(chkpt.directory, chkpt.filename, sep = '/')
-	print.header <- file.access(filepath) != 0
-	pList <- omxGetParameters(model)
-	if (length(model@output) == 0) {
-		iterations <- 0
-		objective <- as.numeric(NA)
-	} else {
-		iterations <- model@output$iterations
-		objective <- model@output$minimum
-	}
-	timestamp <- date()
-	fconnection <- file(filepath, "a")
-	if (!isOpen(fconnection, "w")) {
-		return(FALSE)
-	}
-	if (print.header) {
-		cat("iterations\t", file=fconnection)
-		cat("timestamp\t", file=fconnection)
-		cat("objective\t", file=fconnection)
-		if (length(pList) > 0) {
-			for(i in 1:length(pList)) {
-				cat(omxQuotes(names(pList)[[i]]), file=fconnection)
-				cat("\t", file=fconnection)
-			}
-		}
-		cat("\n", file=fconnection)
-	}
-	cat(iterations, file=fconnection)
-	cat("\t", file=fconnection)
-	cat(omxQuotes(timestamp), file=fconnection)
-	cat("\t", file=fconnection)
-	cat(objective, file=fconnection)
-	cat("\t", file=fconnection)
-	if (length(pList) > 0) {
-		for(i in 1:length(pList)) {
-			cat(pList[[i]], file=fconnection)
-			cat("\t", file=fconnection)
-		}
-	}
-	cat("\n", file=fconnection)
-	close(fconnection)
-	return(TRUE)
+	if (!missing(chkpt.directory)) model <- mxOption(model,"Checkpoint Directory", chkpt.directory)
+	if (!missing(chkpt.prefix))    model <- mxOption(model,"Checkpoint Prefix", chkpt.prefix)
+	model <- mxOption(model,"Checkpoint Units",'evaluations')
+	model <- mxOption(model,"Checkpoint Count",1)
+	model <- mxModel(model, mxComputeOnce('fitfunction', 'fit'))
+	mxRun(model, checkpoint=TRUE, silent=TRUE)
+	invisible(TRUE)
 }
 
 mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {	
@@ -85,27 +48,13 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	flatModel <- generateParameterList(flatModel, dependencies, list())
 	for(i in 1:length(chkpt.files)) {
 		filename <- chkpt.files[[i]]
-		modelname <- substr(filename, nchar(chkpt.prefix) + 1, nchar(filename) - 4)
 		filepath <- paste(chkpt.directory, filename, sep = '/')
 		checkpoint <- read.table(filepath, header=TRUE, stringsAsFactors=FALSE, check.names=FALSE, sep="\t")
-		model <- restoreCheckpointModel(model, modelname, checkpoint, flatModel)
-	}
-	return(model)
-}
-
-restoreCheckpointModel <- function(model, modelname, checkpoint, flatModel) {
-	if (model@independent) {
-		namespace <- imxGenerateNamespace(model)
-		flatModel <- imxFlattenModel(model, namespace)
-	}
-	if (modelname == model@name) {
 		ign <- match(c("OpenMxContext","OpenMxNumFree","OpenMxEvals","iterations","timestamp","objective"),
 			     colnames(checkpoint))
 		ign <- ign[!is.na(ign)]
 		values <- as.numeric(checkpoint[nrow(checkpoint), -ign])
-		model <- imxUpdateModelValues(model, flatModel, values)
+		model <- omxSetParameters(model, labels=colnames(checkpoint)[-ign], values=values)
 	}
-	model@submodels <- lapply(model@submodels, restoreCheckpointModel, modelname, checkpoint, flatModel)
 	return(model)
 }
-
