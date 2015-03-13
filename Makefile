@@ -120,14 +120,14 @@ npsol-prep: code-style maybe-dev-doc
 	echo 'NPSOL_LIBS=$$(NPSOL)' >> src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
 	if ! grep -q 1 src/npsolswitch.h; then echo '#define HAS_NPSOL 1' > src/npsolswitch.h; fi
-	cp .Rbuildignore-npsol .Rbuildignore
+	grep -v inst/npsol .Rbuildignore.in > .Rbuildignore
 
 no-npsol-prep: code-style maybe-dev-doc
 	touch inst/no-npsol
 	if ! grep -q 0 src/npsolswitch.h; then echo '#define HAS_NPSOL 0' > src/npsolswitch.h; fi
 	echo 'NPSOL_LIBS=' > src/Makevars.win
 	cat src/Makevars.win.in >> src/Makevars.win
-	cp .Rbuildignore-cran .Rbuildignore
+	cp .Rbuildignore.in .Rbuildignore
 
 build/$(TARGET): npsol-prep build-prep
 	cd build; $(REXEC) CMD build ..
