@@ -16,14 +16,10 @@
 splitSubstitution <- function(input) {
 	split1 <- unlist(strsplit(input, "[\\[\\]]", perl = TRUE))
 	identifier <- split1[[1]]
-	split2 <- unlist(strsplit(split1[[2]], ",", fixed = TRUE))
-	if (length(split2) == 1) {
-		row <- ""
-		col <- ""
-	} else {
-		row <- split2[[1]]
-		col <- split2[[2]]
-	}
+	# add '+' on both sides to ensure that we always get 2 pieces
+	split2 <- unlist(strsplit(paste("+",split1[[2]],"+",sep=""), ",", fixed = TRUE))
+	row <- substr(split2[1], 2, nchar(split2[1]))
+	col <- substr(split2[2], 1, nchar(split2[2])-1)
 	return(c(identifier, row, col))
 }
 
