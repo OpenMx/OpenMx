@@ -92,10 +92,11 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 
 	ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
 			  values=startcov, free=TRUE, name="ltCov")
+	satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	saturatedModel <- mxModel(name=paste("Saturated", modelName),
 				  datasource,
 				  ltCov,
-				  mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam)),
+				  satCov,
 				  mxExpectationNormal("satCov"),
 				  mxFitFunctionML())
 
@@ -143,11 +144,14 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 				colnames(Zblock) <- varnam[!(varnam %in% binnam)]
 				binaryFilterValues <- cbind(Iblock, Zblock)
 				binaryFilterValues <- binaryFilterValues[,varnam]
+				BinaryVarianceFilteringMatrix <- NULL  # avoid CRAN check warning
 				binaryFilter <- mxMatrix('Full', nrow=numBinary, ncol=numVar, values=binaryFilterValues, free=FALSE, name='BinaryVarianceFilteringMatrix')
+				BinaryVarianceFilteringAlgebra <- NULL  # avoid CRAN check warning
 				binaryAlgebraSat <- mxAlgebra(
 					BinaryVarianceFilteringMatrix %*% diag2vec(satCov), name='BinaryVarianceFilteringAlgebra')
 				binaryAlgebraInd <- mxAlgebra(
 					BinaryVarianceFilteringMatrix %*% diag2vec(indCov), name='BinaryVarianceFilteringAlgebra')
+				BinaryConstantVectorOfOnes <- NULL  # avoid CRAN check warning
 				binaryConstant <- mxMatrix('Full', nrow=numBinary, ncol=1, values=1, free=FALSE, name='BinaryConstantVectorOfOnes')
 				binaryConstraint <- mxConstraint(
 					BinaryConstantVectorOfOnes == BinaryVarianceFilteringAlgebra, name='BinaryVarianceConstraint')
