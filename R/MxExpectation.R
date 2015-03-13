@@ -50,7 +50,7 @@ setClass(Class = "MxBaseExpectation",
 ##' @aliases
 ##' MxExpectation
 ##' MxExpectation-class
-##' @rdname MxExpectation-class
+##' @rdname MxExpectationXclass
 setClassUnion("MxExpectation", c("NULL", "MxBaseExpectation"))
 
 setGeneric("genericExpDependencies",

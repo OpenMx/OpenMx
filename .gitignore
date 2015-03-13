@@ -120,8 +120,8 @@ man/mxDataDynamic.Rd
 man/MxDataFrameOrMatrix-class.Rd
 man/MxDataStatic-class.Rd
 man/MxDirectedGraph-class.Rd
-man/MxExpectation-class.Rd
 man/mxExpectationBA81.Rd
+man/MxExpectationXclass.Rd
 man/MxFitFunction-class.Rd
 man/MxFlatModel-class.Rd
 man/MxInterval-class.Rd
