@@ -561,7 +561,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	if(nvar == 0){ #jumps to continuousonly ADF code.
 		w3 <- diag(hessHold) %*% solve(t(pcJac)%*%pcJac) %*% diag(hessHold)
 		w2 <- covHess %*% solve(t(pcJac)%*%pcJac) %*% covHess
-		w <- wlsContinuousOnlyHelper(cDat)
+		w <- wlsContinuousOnlyHelper(cd)
 	}
 	# TODO: something still must be done about the means!
 	# To replicate old behavior set
