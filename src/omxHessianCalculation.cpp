@@ -45,6 +45,8 @@ class omxComputeNumericDeriv : public omxCompute {
 	bool parallel;
 	int totalProbeCount;
 	int verbose;
+	bool filtered;
+	std::vector<bool> filter;
 
 	omxMatrix *fitMat;
 	double minimum;
@@ -110,17 +112,23 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		
 		fc->copyParamToModel();
 
-		++hess_work->probeCount;
-		omxRecompute(fitMatrix, fc);
-		double f1 = omxMatrixElement(fitMatrix, 0, 0);
+		double f1 = 0;
+		if (true) {
+			++hess_work->probeCount;
+			omxRecompute(fitMatrix, fc);
+			f1 = omxMatrixElement(fitMatrix, 0, 0);
+		}
 
 		freeParams[i] = optima[i] - iOffset;
 
 		fc->copyParamToModel();
 
-		++hess_work->probeCount;
-		omxRecompute(fitMatrix, fc);
-		double f2 = omxMatrixElement(fitMatrix, 0, 0);
+		double f2 = 0;
+		if (true) {
+			++hess_work->probeCount;
+			omxRecompute(fitMatrix, fc);
+			f2 = omxMatrixElement(fitMatrix, 0, 0);
+		}
 
 		Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
@@ -136,9 +144,14 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		}
 	}
 
-	if(verbose >= 2) { mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...", i, i, i*numParams+i, Haprox[0]); }
-	gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
-	hessian[i*numParams + i] = Haprox[0];
+	if (true) {
+		if(verbose >= 2) {
+			mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...",
+			      i, i, i*numParams+i, Haprox[0]);
+		}
+		gradient[i] = Gaprox[0];
+		hessian[i*numParams + i] = Haprox[0];
+	}
 
 	if(verbose >= 2) {mxLog("Done with parameter %d.", i);}
 
@@ -165,18 +178,24 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 
 		fc->copyParamToModel();
 
-		++hess_work->probeCount;
-		omxRecompute(fitMatrix, fc);
-		double f1 = omxMatrixElement(fitMatrix, 0, 0);
+		double f1 = 0;
+		if (filter[i] || filter[l]) {
+			++hess_work->probeCount;
+			omxRecompute(fitMatrix, fc);
+			f1 = omxMatrixElement(fitMatrix, 0, 0);
+		}
 
 		freeParams[i] = optima[i] - iOffset;
 		freeParams[l] = optima[l] - lOffset;
 
 		fc->copyParamToModel();
 
-		++hess_work->probeCount;
-		omxRecompute(fitMatrix, fc);
-		double f2 = omxMatrixElement(fitMatrix, 0, 0);
+		double f2 = 0;
+		if (filter[i] || filter[l]) {
+			++hess_work->probeCount;
+			omxRecompute(fitMatrix, fc);
+			f2 = omxMatrixElement(fitMatrix, 0, 0);
+		}
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 						hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
@@ -200,10 +219,15 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		}
 	}
 
-	if(verbose >= 2) {mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d and %d) with value %f...", i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
-	hessian[i*numParams+l] = Haprox[0];
-	hessian[l*numParams+i] = Haprox[0];
-
+	if (filter[i] || filter[l]) {
+		if(verbose >= 2) {
+			mxLog("Hessian estimation: Populating Hessian"
+			      " ([%d, %d] = %d and %d) with value %f...",
+			      i, l, i*numParams+l, l*numParams+i, Haprox[0]);
+		}
+		hessian[i*numParams+l] = Haprox[0];
+		hessian[l*numParams+i] = Haprox[0];
+	}
 }
 
 void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
@@ -275,6 +299,23 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
 	stepSize = REAL(slotValue)[0];
 	if (stepSize <= 0) Rf_error("stepSize must be positive");
+
+	{
+		filtered = false;
+		filter.assign(varGroup->vars.size(), false);
+		ScopedProtect(slotValue, R_do_slot(rObj, Rf_install("filter")));
+		for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
+			for (int fx=0; fx < Rf_length(slotValue); ++fx) {
+				const char *vname = CHAR(STRING_ELT(slotValue, fx));
+				if (strEQ(vname, varGroup->vars[vx]->name)) {
+					if (verbose >= 1) mxLog("%s: filter by '%s'", name, vname);
+					filter[vx] = true;
+					filtered = true;
+				}
+			}
+		}
+		if (!filtered) filter.assign(varGroup->vars.size(), true);
+	}
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
@@ -319,6 +360,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->grad.resize(numParams);
 	gradient = fc->grad.data();
   
+	if (filtered) {
+		for (int hx=0; hx < numParams * numParams; ++hx) hessian[hx] = NA_REAL;
+	}
+
 	doHessianCalculation(numChildren, hess_work);
 
 	totalProbeCount = 0;
