@@ -41,7 +41,8 @@ Suggests:
     mvtnorm,
     rpf (>= 0.36),
     numDeriv,
-    Matrix
+    Matrix,
+    Rmpi
 LazyLoad: yes
 LazyData: yes
 Collate:
