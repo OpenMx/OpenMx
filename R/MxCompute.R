@@ -13,6 +13,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' BaseCompute
+##'
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' $,BaseCompute-method
+##' $<-,BaseCompute-method
+##' print,BaseCompute-method
+##' show,BaseCompute-method
+##' @seealso
+##' \link{mxComputeEM}, \link{mxComputeGradientDescent}, \link{mxComputeHessianQuality},
+##' \link{mxComputeIterate}, \link{mxComputeNewtonRaphson}, \link{mxComputeNumericDeriv}
+##' @rdname BaseCompute-class
 setClass(Class = "BaseCompute",
 	 representation = representation(
 	   id = "integer",
@@ -22,6 +35,16 @@ setClass(Class = "BaseCompute",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
+##' @title MxCompute
+##' @name MxCompute-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' MxCompute
+##' MxCompute-class
+##' @rdname MxCompute-class
 setClassUnion("MxCompute", c("NULL", "BaseCompute"))
 
 setGeneric("displayCompute",

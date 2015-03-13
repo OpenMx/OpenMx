@@ -17,6 +17,18 @@
 #
 # The virtual base class for all fit functions
 #
+##' MxBaseFitFunction
+##'
+##' The virtual base class for all fit functions. This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' $,MxBaseFitFunction-method
+##' $<-,MxBaseFitFunction-method
+##' @seealso
+##' \link{mxFitFunctionAlgebra}, \link{mxFitFunctionML}, \link{mxFitFunctionMultigroup},
+##' \link{mxFitFunctionR}, \link{mxFitFunctionWLS}, \link{mxFitFunctionRow},
+##' \link{mxFitFunctionGREML}
+##' @rdname MxBaseFitFunction-class
 setClass(Class = "MxBaseFitFunction", 
 	 representation = representation(
 	   info = "list",
@@ -26,6 +38,16 @@ setClass(Class = "MxBaseFitFunction",
 		result = "matrix", "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
+##' @title MxFitFunction
+##' @name MxFitFunction-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##'
+##' @aliases
+##' MxFitFunction
+##' MxFitFunction-class
+##' @rdname MxFitFunction-class
 setClassUnion("MxFitFunction", c("NULL", "MxBaseFitFunction"))
 
 setGeneric("genericFitDependencies",

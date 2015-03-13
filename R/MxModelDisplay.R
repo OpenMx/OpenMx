@@ -13,7 +13,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+##' omxQuotes
+##'
+##' Quote helper function, often for error messages.
+##' 
+##' @param name a character vector
+##' @details
+##' This is a helper function for creating a nicely
+##' put together formatted string.
+##' @return
+##' a character string
+##' @examples
+##' omxQuotes(c("Oh", "blah", "dee", "Oh", "blah", "da"))
+##' omxQuotes(c("A", "S", "F"))
+##' omxQuotes("Hello World")
 omxQuotes <- function(name) {
 	if (length(name) == 0) return('NULL')
 	if (typeof(name) == "S4") return(omxQuotes(list(name)))

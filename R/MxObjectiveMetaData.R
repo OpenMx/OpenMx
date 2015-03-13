@@ -17,6 +17,16 @@
 #
 # The virtual base class for all objective functions meta-data
 #
+##' @title MxBaseObjectiveMetaData
+##' @name MxBaseObjectiveMetaData-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##' It is the virtual base class for all objective functions meta-data
+##'
+##' @aliases
+##' MxBaseObjectiveMetaData
+##' @rdname MxBaseObjectiveMetaData-class
 setClass(Class = "MxBaseObjectiveMetaData", 
 	representation = representation("VIRTUAL"))
 

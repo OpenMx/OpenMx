@@ -13,6 +13,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' @title MxRAMGraph
+##' @name MxRAMGraph-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##' It is a class for RAM directed graphs.
+##'
+##' @aliases
+##' MxRAMGraph
+##' @rdname MxRAMGraph-class
 setClass(Class = "MxRAMGraph",
 	representation = representation(
 		manifestVars = "character", 
@@ -29,6 +39,16 @@ setMethod("initialize", "MxRAMGraph",
 	}
 )
 
+##' @title MxDirectedGraph
+##' @name MxDirectedGraph-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.
+##' It is a class for directed graphs.
+##'
+##' @aliases
+##' MxDirectedGraph
+##' @rdname MxDirectedGraph-class
 setClass(Class = "MxDirectedGraph",
 	representation = representation(
 		nodes = "character", 

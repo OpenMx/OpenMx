@@ -13,6 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' @name MxAlgebraFormula-class
+##' 
+##' @description
+##' This is an internal class for the formulas used in \code{\link{mxAlgebra}} calls.
+##' 
+##' @aliases
+##' MxAlgebraFormula
+##' print,MxAlgebraFormula-method
+##' show,MxAlgebraFormula-method
+##' @rdname MxAlgebraFormula-class
+##' @title MxAlgebraFormula
 setClassUnion("MxAlgebraFormula", c("call", "name", "language", "logical", "numeric"))
 
 setClass(Class = "MxAlgebra",

@@ -13,6 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' @title MxBaseNamed
+##' @name MxBaseNamed-class
+##'
+##' @description
+##' This is an internal class and should not be used directly.  It is the
+##' base class for named entities.  Fit functions, expectations, and computes
+##' contain this class.
+##'
+##' @aliases
+##' MxBaseNamed
+##' @rdname MxBaseNamed-class
 setClass(Class = "MxBaseNamed", 
 	 representation = representation(
 	   name = "character",

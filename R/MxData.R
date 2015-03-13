@@ -13,11 +13,34 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+##' @name MxDataFrameOrMatrix-class
+##' @rdname MxDataFrameOrMatrix-class
+##' @title MxDataFrameOrMatrix
+##'
+##' @description
+##' Internal class that is the union of data.frame and matrix.
+##'
+##' @aliases
+##' MxDataFrameOrMatrix
+##' @details
+##' Not to be used.
 setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
 setClass(Class = "NonNullData")
 
+##' @name MxDataStatic-class
+##' @rdname MxDataStatic-class
+##' @title Create static data
+##'
+##' @description
+##' Internal static data class.
+##'
+##' @aliases
+##' MxDataStatic
+##' print,MxDataStatic-method
+##' show,MxDataStatic-method
+##' @details
+##' Not to be used.
 setClass(Class = "MxDataStatic",
 	 contains = "NonNullData",
 	 representation = representation(
