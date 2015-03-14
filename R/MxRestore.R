@@ -41,11 +41,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	if(length(chkpt.files) == 0) {
 		return(model)
 	}
-	namespace <- imxGenerateNamespace(model)
-	flatModel <- imxFlattenModel(model, namespace)
-	dependencies <- cycleDetection(flatModel)
-	dependencies <- transitiveClosure(flatModel, dependencies)
-	flatModel <- generateParameterList(flatModel, dependencies, list())
+	allPar <- names(omxGetParameters(model, indep=TRUE, free=NA))
 	for(i in 1:length(chkpt.files)) {
 		filename <- chkpt.files[[i]]
 		filepath <- paste(chkpt.directory, filename, sep = '/')
@@ -53,8 +49,11 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 		ign <- match(c("OpenMxContext","OpenMxNumFree","OpenMxEvals","iterations","timestamp","objective"),
 			     colnames(checkpoint))
 		ign <- ign[!is.na(ign)]
+		toSet <- colnames(checkpoint)[-ign]
+		mask <- !is.na(match(toSet, allPar))
+		if (all(!mask)) next
 		values <- as.numeric(checkpoint[nrow(checkpoint), -ign])
-		model <- omxSetParameters(model, labels=colnames(checkpoint)[-ign], values=values)
+		model <- omxSetParameters(model, labels=toSet[mask], values=values[mask])
 	}
 	return(model)
 }
