@@ -26,6 +26,7 @@ Description: The OpenMx Project intends to rewrite and extend the popular
 License: file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
 Depends:
+	R (>= 3.0.2),
     methods,
     digest,
     MASS,
