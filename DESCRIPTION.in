@@ -23,6 +23,7 @@ Description: The OpenMx Project intends to rewrite and extend the popular
     which generate extremely large amounts of data often with complex
     time-dependent patterning; and increased sophistication in the statistical
     models used to analyze the data.
+License_is_FOSS: yes
 License: file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
 Depends:
