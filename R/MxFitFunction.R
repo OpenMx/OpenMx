@@ -84,7 +84,7 @@ setGeneric("generateReferenceModels",
 setMethod("generateReferenceModels", "MxBaseFitFunction",
 	function(.Object, model) {
 		msg <- paste("Don't know how to make reference models for a model with a ",
-			     class(fittype), " fit function.", sep="")
+			     class(.Object), " fit function.", sep="")
 		stop(msg)
 	})
 

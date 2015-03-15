@@ -891,7 +891,8 @@ setClass(Class = "MxComputeNumericDeriv",
 	     parallel = "logical",
 	     stepSize = "numeric",
 	     iterations = "integer",
-	     verbose="integer"))
+	     verbose="integer",
+	     knownHessian="MxOptionalMatrix"))
 
 setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
@@ -910,7 +911,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	})
 
 setMethod("initialize", "MxComputeNumericDeriv",
-	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose) {
+	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
@@ -918,6 +919,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@stepSize <- stepSize
 		  .Object@iterations <- iterations
 		  .Object@verbose <- verbose
+		  .Object@knownHessian <- knownHessian
 		  .Object
 	  })
 
@@ -935,6 +937,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' @param stepSize starting set size (defaults to 0.0001)
 ##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
 ##' @param verbose Level of debugging output.
+##' @param knownHessian an optional matrix of known Hessian entries
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
@@ -956,7 +959,8 @@ setMethod("initialize", "MxComputeNumericDeriv",
 ##' factorModelFit$output$hessian
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
-				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L)
+				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L,
+				  knownHessian=NULL)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -965,7 +969,21 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 
 	verbose <- as.integer(verbose)
 	iterations <- as.integer(iterations)
-	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose)
+
+	if (!is.null(knownHessian)) {
+		if (nrow(knownHessian) != ncol(knownHessian)) {
+			stop("knownHessian must be square")
+		}
+		if (length(dimnames(knownHessian)) != 2 ||
+		    any(rownames(knownHessian) != colnames(knownHessian))) {
+			stop("knownHessian must have matching row and column names")
+		}
+		if (any(knownHessian != t(knownHessian))) {
+			stop("knownHessian must be exactly symmetric")
+		}
+	}
+
+	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose, knownHessian)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="integer"),

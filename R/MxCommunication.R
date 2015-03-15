@@ -17,7 +17,7 @@ generateCommunicationList <- function(model, checkpoint, useSocket, options) {
 	if (mxOption(model,'Always Checkpoint') == "Yes") {
 		checkpoint <- TRUE
 	}
-	if (!checkpoint && !useSocket) return(list())
+	if (!checkpoint) return(list())
 	retval <- list()
 	if (checkpoint) {		
 		chkpt.directory <- mxOption(model, 'Checkpoint Directory')
@@ -58,64 +58,6 @@ generateCommunicationList <- function(model, checkpoint, useSocket, options) {
 			fullpath <- override
 		}
 		description <- list(0L, fullpath, chkpt.units, chkpt.count)
-		retval[[length(retval) + 1]] <- description
-	}
-	if (useSocket) {
-		sock.server <- options[['Socket Server']]
-		sock.port <- options[['Socket Port']]
-		sock.units <- options[['Socket Units']]
-		sock.count <- options[['Socket Count']]
-		if (is.null(sock.server)) sock.directory <- defaults[['Socket Server']]
-		if (is.null(sock.port)) sock.prefix <- defaults[['Socket Port']]
-		if (is.null(sock.units)) sock.units <- defaults[['Socket Units']]
-		if (is.null(sock.count)) {
-			sock.count <- defaults[['Socket Count']]
-			if (length(sock.count) == 2) {
-				sock.count <- sock.count[[sock.units]]
-			}
-		}
-		if (is.null(sock.count)) sock.count <- .Machine$integer.max
-
-		if (is.null(sock.server) || is.null(sock.port)) {
-			stop(paste("Both 'Socket Server' and 'Socket Port'",
-				"must be specified in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (!is.numeric(sock.count) || sock.count < 0) {
-			stop(paste("'Socket Count' model option",
-				"must be a non-negative value in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (!(is.character(sock.server) && length(sock.server) == 1 && sock.server != "")) {
-			stop(paste("'Socket Server' model option",
-				"must be a string in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (!(is.numeric(sock.port) && length(sock.port) == 1)) {
-			stop(paste("'Socket Port' model option",
-				"must be a numeric value in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (!(is.character(sock.units) && length(sock.units) == 1)) {
-			stop(paste("'Socket Units' model option",
-				"must be a string in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (sock.count == 0) {
-			stop(paste("'Socket Count' model option",
-				"must be a non-negative value in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		if (sock.units == "minutes") {
-			type <- 0L
-		} else if (sock.units == "iterations") {
-			type <- 1L
-		} else {
-			stop(paste("'Socket Units' model option",
-				"must be either 'minutes' or 'iterations' in", 
-				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
-		}
-		description <- list(1L, sock.server, as.integer(sock.port), type, sock.count)
 		retval[[length(retval) + 1]] <- description
 	}
 	return(retval)

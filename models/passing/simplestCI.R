@@ -37,3 +37,21 @@ omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522),
 
 omxCheckCloseEnough(fit1$output$fit, fit2$output$fit, 1e-6)
 omxCheckCloseEnough(fit1$output$standardErrors, fit2$output$standardErrors, 1e-6)
+
+# ensure the [1,] syntax is supported
+data(demoOneFactor)
+factorModel <- mxModel("One Factor",
+      mxMatrix("Full", 5, 1, values=0.2,
+           free=TRUE, name="A"),
+      mxMatrix("Symm", 1, 1, values=1,
+           free=FALSE, name="L"),
+      mxMatrix("Diag", 5, 5, values=1,
+           free=TRUE, name="U"),
+      mxAlgebra(A %*% L %*% t(A) + U, name="R"),  mxCI("A[1,]"),
+      mxExpectationNormal("R", dimnames = names(demoOneFactor)),
+      mxFitFunctionML(),
+      mxData(cov(demoOneFactor), type="cov", numObs=500))
+factorModel <- mxRun(factorModel, intervals=T)
+omxCheckEquals(nrow(factorModel$output$confidenceIntervals), 1)
+omxCheckCloseEnough(c(0.368, 0.397, 0.429),
+                    factorModel$output$confidenceIntervals[1,], .01)

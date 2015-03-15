@@ -94,7 +94,7 @@ setMethod("genericFitRename", signature("MxFitFunctionAlgebra"),
 setMethod("generateReferenceModels", "MxFitFunctionAlgebra",
 	function(.Object, model) {
 		msg <- paste("Don't know how to make reference models for a model with a ",
-			     class(fittype), " fit function.", sep="")
+			     class(.Object), " fit function.", sep="")
 		msg <- paste(msg, "\n",
 			     "If you're using this for a mutligroup model, very likely, you can replace your mxFitFunctionAlgebra() call with", "\n",
 			     "mxFitFunctionMultigroup(c('submodelName1', 'submodelName2', ...))", "\n\n",

@@ -75,7 +75,7 @@ runHelper <- function(model, frontendStart,
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
 		return(processHollowModel(model, independents, 
-			dataList, frontendStart, indepElapsed))
+					  frontendStart, indepElapsed))
 	}
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)

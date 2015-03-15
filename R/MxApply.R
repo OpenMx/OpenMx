@@ -44,12 +44,10 @@ imxSfClient <- function() {
 omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
-	if ("package:Swift" %in% libraries && identical(fun,mxRun)) {
-		return(swiftLapply(x, fun, ...))
-	} else if ("package:snowfall" %in% libraries) {
+	if ("package:snowfall" %in% libraries) {
 		return(sfClusterApplyLB(x, fun, ...))
 	} else if ("package:Rmpi" %in% libraries) {
-		return(mpi.parLapply(x, imxMpiWrap(fun), ...))
+		return(Rmpi::mpi.parLapply(x, imxMpiWrap(fun), ...))
 	} else {
 		return(lapply(x, fun, ...))
 	}

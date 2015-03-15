@@ -45,6 +45,8 @@ class omxComputeNumericDeriv : public omxCompute {
 	bool parallel;
 	int totalProbeCount;
 	int verbose;
+	double *knownHessian;
+	std::vector<int> khMap;
 
 	omxMatrix *fitMat;
 	double minimum;
@@ -136,8 +138,11 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		}
 	}
 
-	if(verbose >= 2) { mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...", i, i, i*numParams+i, Haprox[0]); }
-	gradient[i] = Gaprox[0];						// NPSOL reports a gradient that's fine.  Why report two?
+	if(verbose >= 2) {
+		mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...",
+		      i, i, i*numParams+i, Haprox[0]);
+	}
+	gradient[i] = Gaprox[0];
 	hessian[i*numParams + i] = Haprox[0];
 
 	if(verbose >= 2) {mxLog("Done with parameter %d.", i);}
@@ -200,52 +205,37 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		}
 	}
 
-	if(verbose >= 2) {mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d and %d) with value %f...", i, l, i*numParams+l, l*numParams+i, Haprox[0]);}
+	if(verbose >= 2) {
+		mxLog("Hessian estimation: Populating Hessian"
+		      " ([%d, %d] = %d and %d) with value %f...",
+		      i, l, i*numParams+l, l*numParams+i, Haprox[0]);
+	}
 	hessian[i*numParams+l] = Haprox[0];
 	hessian[l*numParams+i] = Haprox[0];
-
 }
 
 void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
 {
-	int i,j;
-
-	int numOffDiagonal = (numParams * (numParams - 1)) / 2;
-	int *diags = Calloc(numOffDiagonal, int);
-	int *offDiags = Calloc(numOffDiagonal, int);
-	int offset = 0;
 	// gcc does not detect the usage of the following variable
 	// in the omp parallel pragma, and marks the variable as
 	// unused, so the attribute is placed to silence the Rf_warning.
     int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	// There must be a way to avoid constructing the
-	// diags and offDiags arrays and replace them with functions
-	// that produce these values given the input
-	/// {0, 1, ..., numOffDiagonal - 1} -- M. Spiegel
-	for(i = 0; i < numParams; i++) {
-		for(j = i - 1; j >= 0; j--) {
-			diags[offset] = i;
-			offDiags[offset] = j;
-			offset++;
-		}
-	}
-
 	#pragma omp parallel for num_threads(parallelism) 
-	for(i = 0; i < numParams; i++) {
+	for(int i = 0; i < numParams; i++) {
+	        if (std::isfinite(hessian[i*numParams + i])) continue;
 		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		omxEstimateHessianOnDiagonal(i, hess_work + threadId);
 	}
 
 	#pragma omp parallel for num_threads(parallelism) 
-	for(offset = 0; offset < numOffDiagonal; offset++) {
+	for(int i = 0; i < numParams; i++) {
 		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-		omxEstimateHessianOffDiagonal(diags[offset], offDiags[offset],
-			hess_work + threadId);
+		for(int j = i - 1; j >= 0; j--) {
+			if (std::isfinite(hessian[i*numParams + j])) continue;
+			omxEstimateHessianOffDiagonal(i, j, hess_work + threadId);
+		}
 	}
-
-	Free(diags);
-	Free(offDiags);
 }
 
 void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
@@ -275,6 +265,35 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
 	stepSize = REAL(slotValue)[0];
 	if (stepSize <= 0) Rf_error("stepSize must be positive");
+
+	knownHessian = NULL;
+	{
+		ScopedProtect(slotValue, R_do_slot(rObj, Rf_install("knownHessian")));
+		if (!Rf_isNull(slotValue)) {
+			knownHessian = REAL(slotValue);
+			SEXP dimnames;
+			ScopedProtect pdn(dimnames, Rf_getAttrib(slotValue, R_DimNamesSymbol));
+			{
+				SEXP names;
+				ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
+				{
+					int nlen = Rf_length(names);
+					khMap.assign(nlen, -1);
+					for (int nx=0; nx < nlen; ++nx) {
+						const char *vname = CHAR(STRING_ELT(names, nx));
+						for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
+							if (strEQ(vname, varGroup->vars[vx]->name)) {
+								khMap[nx] = vx;
+								if (verbose >= 1) mxLog("%s: knownHessian[%d] '%s' mapped to %d",
+											name, nx, vname, vx);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
@@ -315,10 +334,24 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	fc->wanted |= (FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT);
 	hessian = fc->getDenseHessUninitialized();
+	Eigen::Map< Eigen::MatrixXd > eH(hessian, numParams, numParams);
+	eH.setConstant(NA_REAL);
 
 	fc->grad.resize(numParams);
 	gradient = fc->grad.data();
+	for (int hx=0; hx < numParams; ++hx) gradient[hx] = NA_REAL;
   
+	if (knownHessian) {
+		int khSize = int(khMap.size());
+		Eigen::Map< Eigen::MatrixXd > kh(knownHessian, khSize, khMap.size());
+		for (int rx=0; rx < khSize; ++rx) {
+			for (int cx=0; cx < khSize; ++cx) {
+				if (khMap[rx] < 0 || khMap[cx] < 0) continue;
+				eH(khMap[rx], khMap[cx]) = kh(rx, cx);
+			}
+		}
+	}
+
 	doHessianCalculation(numChildren, hess_work);
 
 	totalProbeCount = 0;
