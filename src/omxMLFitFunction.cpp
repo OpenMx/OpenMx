@@ -16,18 +16,14 @@
 
 #include "omxDefines.h"
 
-#include <stan/agrad/rev.hpp>
-#include <stan/agrad/rev/matrix.hpp>
-#include <stan/agrad/fwd.hpp>
-#include <stan/agrad/fwd/matrix.hpp>
-#include <stan/math/functions.hpp>
-#include <stan/math/matrix.hpp>
-#include <stan/prob/constants.hpp>
-#include <stan/prob/traits.hpp>
-#include <stan/error_handling.hpp>
-#include <stan/version.hpp>
-#include <stan/model/util.hpp>
-//#include <stan/prob/distributions/multivariate/continuous/multi_normal_sufficient.hpp>
+#include <stan/math.hpp>
+#include <stan/math/fwd/core.hpp>
+#include <stan/math/fwd/scal/fun/value_of.hpp>
+#include <stan/math/fwd/scal/fun/is_nan.hpp>
+#include <stan/math/fwd/scal/fun/abs.hpp>
+#include <stan/math/fwd/scal/fun/log.hpp>
+#include <stan/math/fwd/mat/fun/multiply.hpp>
+#include <stan/math/mix/mat/functor/hessian.hpp>
 #include "multi_normal_sufficient.hpp"
 
 #include "omxExpectation.h"
@@ -225,7 +221,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 		
 		try {
 			multi_normal_deriv model(fc, fvMask, omo);
-			stan::agrad::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
+			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
 		} catch (const std::exception& e) {
 			init_log_prob = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
