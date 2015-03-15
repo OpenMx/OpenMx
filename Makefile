@@ -88,6 +88,10 @@ code-style: $(RFILES)
 	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
 
 build-prep:
+	@if [ $$(git diff --shortstat 2> /dev/null | wc -l) = 1 ]; then \
+	  echo '***'; echo "*** UNCOMMITTED CHANGES IGNORED ***"; \
+	  echo '***'; echo "*** Use 'git diff' to see what is uncommitted"; \
+          echo '***'; fi
 	-[ -d build ] && rm -r ./build
 	mkdir build
 	git archive --format=tar HEAD | (cd build; tar -xf -)
