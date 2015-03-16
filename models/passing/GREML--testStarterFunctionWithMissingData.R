@@ -31,6 +31,13 @@ omxCheckEquals(testrunsumm$numObs,98)
 omxCheckEquals(testrunsumm$estimatedParameters,2)
 omxCheckEquals(testrunsumm$observedStatistics,98)
 omxCheckEquals(testrunsumm$degreesOfFreedom,96)
+#Check GREML-specific part of summary() output:
+omxCheckEquals(testrunsumm$GREMLfixeff$name,"x")
+omxCheckCloseEnough(testrunsumm$GREMLfixeff$coeff,
+                    mean(dat[-testrun$fitfunction$casesToDrop,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrunsumm$GREMLfixeff$se,
+                    sqrt(var(dat[-testrun$fitfunction$casesToDrop,1])/98),epsilon=10^-5)
+
 
 
 plan <- mxComputeSequence(steps=list(
@@ -64,6 +71,12 @@ omxCheckEquals(testrun2summ$numObs,98)
 omxCheckEquals(testrun2summ$estimatedParameters,2)
 omxCheckEquals(testrun2summ$observedStatistics,98)
 omxCheckEquals(testrun2summ$degreesOfFreedom,96)
+#Check GREML-specific part of summary() output:
+omxCheckEquals(testrun2summ$GREMLfixeff$name,"x")
+omxCheckCloseEnough(testrun2summ$GREMLfixeff$coeff,
+                    mean(dat[-testrun$fitfunction$casesToDrop,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun2summ$GREMLfixeff$se,
+                    sqrt(var(dat[-testrun$fitfunction$casesToDrop,1])/98),epsilon=10^-5)
 
 
 
