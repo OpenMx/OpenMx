@@ -38,6 +38,10 @@ omxCheckEquals(testrunsumm$numObs,100)
 omxCheckEquals(testrunsumm$estimatedParameters,2)
 omxCheckEquals(testrunsumm$observedStatistics,100)
 omxCheckEquals(testrunsumm$degreesOfFreedom,98)
+#Check GREML-specific part of summary() output:
+omxCheckEquals(testrunsumm$GREMLfixeff$name,"x0")
+omxCheckCloseEnough(testrunsumm$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrunsumm$GREMLfixeff$se,sqrt(var(dat[,1])/100),epsilon=10^-5)
 
 
 ge2 <- mxExpectationGREML(V="V",X="X",y="y")
@@ -65,3 +69,8 @@ omxCheckEquals(testrun2summ$numObs,100)
 omxCheckEquals(testrun2summ$estimatedParameters,2)
 omxCheckEquals(testrun2summ$observedStatistics,100)
 omxCheckEquals(testrun2summ$degreesOfFreedom,98)
+#Check GREML-specific part of summary() output:
+omxCheckEquals(testrun2summ$GREMLfixeff$name,"x0")
+omxCheckCloseEnough(testrun2summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun2summ$GREMLfixeff$se,sqrt(var(dat[,1])/100),epsilon=10^-5)
+

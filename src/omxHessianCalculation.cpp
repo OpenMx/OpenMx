@@ -228,13 +228,19 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 		omxEstimateHessianOnDiagonal(i, hess_work + threadId);
 	}
 
-	#pragma omp parallel for num_threads(parallelism) 
+	std::vector<std::pair<int,int> > todo;
+	todo.reserve(numParams * (numParams-1) / 2);
 	for(int i = 0; i < numParams; i++) {
-		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 		for(int j = i - 1; j >= 0; j--) {
 			if (std::isfinite(hessian[i*numParams + j])) continue;
-			omxEstimateHessianOffDiagonal(i, j, hess_work + threadId);
+			todo.push_back(std::make_pair(i,j));
 		}
+	}
+
+	#pragma omp parallel for num_threads(parallelism) 
+	for(int i = 0; i < int(todo.size()); i++) {
+		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
+		omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
 	}
 }
 

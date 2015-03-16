@@ -100,11 +100,13 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				modind <- 0.5*grad^2/hess #use 0.5*g^2/k
 				
 				if(full==TRUE){
+					custom.compute.smart <- mxComputeSequence(list(mxComputeNumericDeriv(knownHessian=model$output$hessian), mxComputeReportDeriv()))
 					# Create and run the all-plus-one-parameter model for the Mplus-type/full MI
-					plusOneParamRun <- mxRun(mxModel(plusOneParamModel, custom.compute), silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)
+					plusOneParamRun <- mxRun(mxModel(plusOneParamModel, custom.compute.smart), silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)
 					
 					# full MI
 					grad.full <- plusOneParamRun$output$gradient
+					grad.full[is.na(grad.full)] <- 0
 					hess.full <- plusOneParamRun$output$hessian
 					modind.full <- 0.5*t(matrix(grad.full)) %*% solve(hess.full) %*% matrix(grad.full)
 				} else {
