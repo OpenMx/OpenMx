@@ -17,6 +17,7 @@
 util/rox text eol=lf
 inst/tools/findBuildNum.sh text eol=lf
 DESCRIPTION.in text eol=lf
+util/prep text eol=lf
 *.dll binary
 *.a binary
 *.so binary
