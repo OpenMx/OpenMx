@@ -451,6 +451,11 @@ print.summary.mxmodel <- function(x,...) {
 		print(x$CI)
 		cat('\n')
 	}
+  if(length(x$GREMLfixeff)>0){
+    cat("regression coefficients:\n")
+    print(x$GREMLfixeff)
+    cat("\n")
+  }
 	cat("observed statistics: ", x$observedStatistics, '\n')
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
@@ -753,6 +758,7 @@ setMethod("summary", "MxModel",
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
+    retval$GREMLfixeff <- GREMLFixEffList(model)
 		retval$infoDefinite <- model@output$infoDefinite
 		retval$conditionNumber <- model@output$conditionNumber
 		retval <- boundsMet(model, retval)
