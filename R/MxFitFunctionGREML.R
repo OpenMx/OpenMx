@@ -76,9 +76,13 @@ mxFitFunctionGREML <- function(casesToDrop=integer(0), dropNAfromV=TRUE){
   return(new("MxFitFunctionGREML",casesToDrop=casesToDrop,dropNAfromV=dropNAfromV))
 }
 
-mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addOnes=TRUE, dropNAfromV=TRUE){
+
+mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", 
+                           addOnes=TRUE, blockByPheno=TRUE, staggerZeroes=TRUE, dropNAfromV=TRUE){
   
   #Input checks:
+  blockByPheno <- as.logical(blockByPheno)[1]
+  staggerZeroes <- as.logical(staggerZeroes)[1]
   dropNAfromV <- as.logical(dropNAfromV)[1]
   addOnes <- as.logical(addOnes)[1]
   if( !(class(model) %in% c("character","MxModel")) ){
@@ -122,49 +126,108 @@ mxGREMLStarter <- function(model, data, Xdata, ydata, Xname="X", yname="y", addO
     msg <- paste("already an MxMatrix or MxAlgebra named '",yname,"' in model '",model$name,"'",sep="")
     stop(msg)
   }
+  if( !staggerZeroes && !all(sapply(Xdata,length)==sapply(Xdata,length)[1]) ){
+    stop("all phenotypes must have the same number of covariates when staggerZeroes=TRUE")
+  }
   if(length(Xdata)!=length(ydata)){
     #In the polyphenotype case, the same covariates will often be used for all phenotypes:
     if(length(Xdata)<length(ydata)){Xdata <- rep(Xdata,length.out=length(ydata))}
     else{stop("conflicting number of phenotypes specified by arguments 'Xdata' and 'ydata'")}
   }
   
-  #Stack phenotypes:
+  #Handle phenotypes:
   y <- NULL
   i <- 1
-  while(i <= length(ydata)){
-    y <- rbind(y,as.matrix(data[,ydata[i]]))
-    i <- i+1
-  }
+  if(blockByPheno){ #Stack phenotypes
+    while(i <= length(ydata)){
+      y <- rbind(y,as.matrix(data[,ydata[i]]))
+      i <- i+1
+  }}
+  else{ #Stack cases
+    for(i in 1:nrow(data)){
+      y <- rbind(y,as.matrix(data[i,ydata]))
+  }}
   
   #Assemble matrix of covariates:
   X <- NULL
   i <- 1
-  while(i <= length(ydata)){
-    ncolprev <- ncol(X)
-    Xcurr <- as.matrix(data[ ,Xdata[[i]] ])
-    if(addOnes){Xcurr <- cbind(1,Xcurr)}
-    if(i==1){X <- Xcurr}
-    else{
-      X <- rbind(
-        cbind( X, matrix(0,nrow(X),ncol(Xcurr)) ),
-        cbind( matrix(0,nrow(Xcurr),ncol(X)), Xcurr )
-      )
-    }
-    if(length(ydata)==1){
-      if(addOnes){colnames(X) <- c("1",Xdata[[1]])}
-      else{colnames(X) <- Xdata[[1]]}
-    }
-    else{
-      if(i==1){
-        if(addOnes){colnames(X) <- paste(ydata[1], c("1",Xdata[[1]]), sep="_")}
-        else{colnames(X) <- paste(ydata[1], c(Xdata[[1]]), sep="_")}
-      }
-      else{
-        if(addOnes){colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c("1",Xdata[[i]]), sep="_")}
-        else{colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c(Xdata[[i]]), sep="_")}
+  if(staggerZeroes){
+    if(blockByPheno){
+      while(i <= length(ydata)){
+        ncolprev <- ncol(X)
+        Xcurr <- as.matrix(data[ ,Xdata[[i]] ])
+        if(addOnes){Xcurr <- cbind(1,Xcurr)}
+        if(i==1){X <- Xcurr}
+        else{
+          X <- rbind(
+            cbind( X, matrix(0,nrow(X),ncol(Xcurr)) ),
+            cbind( matrix(0,nrow(Xcurr),ncol(X)), Xcurr )
+          )
+        }
+        if(length(ydata)==1){
+          if(addOnes){colnames(X) <- c("1",Xdata[[1]])}
+          else{colnames(X) <- Xdata[[1]]}
+        }
+        else{
+          if(i==1){
+            if(addOnes){colnames(X) <- paste(ydata[1], c("1",Xdata[[1]]), sep="_")}
+            else{colnames(X) <- paste(ydata[1], c(Xdata[[1]]), sep="_")}
+          }
+          else{
+            if(addOnes){colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c("1",Xdata[[i]]), sep="_")}
+            else{colnames(X)[(ncolprev+1):ncol(X)] <- paste(ydata[i], c(Xdata[[i]]), sep="_")}
+        }}
+        i <- i+1
     }}
-    i <- i+1
-  }
+    else{ #if !blockByPheno
+      while(i <= length(ydata)){
+        k <- i
+        Xcurr <- matrix(0,nrow(data)*length(ydata),ncol=length(Xdata[[i]])+addOnes)
+        if(length(ydata)==1){
+          if(addOnes){colnames(Xcurr) <- c("1",Xdata[[1]])}
+          else{colnames(Xcurr) <- Xdata[[1]]}
+        }
+        else{
+          if(addOnes){colnames(Xcurr) <- paste(ydata[i], c("1",Xdata[[i]]), sep="_")}
+          else{colnames(Xcurr) <- paste(ydata[i], c(Xdata[[i]]), sep="_")}
+        }
+        for(j in 1:nrow(data)){
+          if(addOnes){Xcurr[k,] <- c(1,as.vector(data[j,Xdata[[i]]]))}
+          else{Xcurr[k,] <- as.vector(data[j,Xdata[[i]]])}
+          k <- k+length(ydata)
+        }
+        if(i==1){X <- Xcurr}
+        else{X <- cbind(X,Xcurr)}
+        i <- i+1
+  }}}
+  else{ #if !staggerZeroes
+    if(blockByPheno){
+      while(i <= length(ydata)){
+        Xcurr <- as.matrix(data[ ,Xdata[[i]] ])
+        if(addOnes){
+          Xcurr <- cbind(1,Xcurr)
+          colnames(Xcurr) <- c("1",Xdata[[1]])
+        }
+        else{colnames(Xcurr) <- Xdata[[1]]}
+        if(i==1){X <- Xcurr}
+        else{X <- rbind(X,Xcurr)}
+        i <- i+1
+      }}
+    else{
+      if(length(ydata)){
+        for(i in 1:nrow(data)){
+          Xcurr <- matrix(NA,nrow=length(ydata),ncol=length(Xdata[[1]]))
+          for(j in 1:length(ydata)){
+            Xcurr[j,] <- as.vector(data[i,Xdata[[j]]])
+          }
+          if(addOnes){Xcurr <- cbind(1,Xcurr)}
+          if(i==1){
+            if(addOnes){colnames(Xcurr) <- c("1",Xdata[[1]])}
+            else{colnames(Xcurr) <- Xdata[[1]]}
+            X <- Xcurr
+          }
+          else{X <- rbind(X,Xcurr)}
+  }}}}
   if( length(unique(colnames(X))) < ncol(X) ){
     warning("resulting 'X' matrix has some redundant column names; is it full rank?")
   }

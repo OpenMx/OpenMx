@@ -114,6 +114,8 @@ omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list("x","x"), ydata = c("y","
               "'z' in argument 'ydata' is not among the data column names")
 omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list("x","z"), ydata = c("y","y")),
               "'z' in argument 'Xdata' is not among the data column names")
+omxCheckError(mxGREMLStarter("A", data=dat, Xdata=list(c("x","x"),"x"), ydata = c("y","y"), staggerZeroes = F),
+              "all phenotypes must have the same number of covariates when staggerZeroes=TRUE")
 
 start2 <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",Xname = "W", yname = "Z",
                          addOnes = F, dropNAfromV = T)

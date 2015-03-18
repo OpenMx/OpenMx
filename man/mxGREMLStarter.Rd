@@ -9,7 +9,7 @@ This function takes a dataframe or matrix and uses it to setup the 'y' and 'X' m
 }
 \usage{
 mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y", 
-  addOnes=TRUE, dropNAfromV=TRUE)
+  addOnes=TRUE, blockByPheno=TRUE, staggerZeroes=TRUE, dropNAfromV=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,6 +20,8 @@ mxGREMLStarter(model, data, Xdata, ydata, Xname="X", yname="y",
   \item{Xname}{Character string.  The name for the \code{\link{MxMatrix}} that \code{mxGREMLStarter()} will create, to serve as 'X' in the GREML analysis.}
   \item{yname}{Character string.  The name for the \code{\link{MxMatrix}} that \code{mxGREMLStarter()} will create, to serve as 'y' in the GREML analysis.}
   \item{addOnes}{Logical; should lead columns of ones (for the regression intercepts) be adhered to the covariates when assembling the 'X' matrix?  Defaults to \code{TRUE}.}
+  \item{blockByPheno}{Logical; relevant to polyphenotype analyses.  If \code{TRUE} (default), then the resulting 'y' will contain phenotype #1 for individuals 1 thru \emph{n}, phenotype #2 for individuals 1 thru \emph{n}, ...  If \code{FALSE}, then observations are "blocked by individual", and the resulting 'y' will contain individual #1's scores on phenotypes 1 thru \emph{p}, individual #2's scores on phenotypes 1 thru \emph{p}, ...  Note that 'X' is always structured appropriately for 'y.'}
+  \item{staggerZeroes}{Logical; relevant to polyphenotype analyses.  If \code{TRUE} (default), then each phenotype's covariates in 'X' are "staggered," and 'X' is padded out with zeroes.  If \code{FALSE}, then 'X' is formed simply by stacking the phenotypes' covariates; this requires each phenotype to have the same number of covariates (i.e., each character vector in \code{Xdata} must be of the same length).  The default (\code{TRUE}) is intended for instances where the multiple phenotypes truly are different variables, whereas \code{staggerZeroes=FALSE} is intended for instances where the multiple "phenotypes" actually represent multiple observations on the same variable.  One example of the latter case is longitudinal data, where the multiple "phenotypes" would be repeated measures on a single phenotype.}
   \item{dropNAfromV}{Logical; internally passed to \code{\link{mxFitFunctionGREML}()}.}
 }
 \details{
