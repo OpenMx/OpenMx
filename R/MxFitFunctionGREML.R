@@ -282,8 +282,9 @@ GREMLFixEffList <- function(model) {
   if(length(model@submodels) > 0) {
     ptable <- vector("list",length(model@submodels)+1)
     names(ptable) <- c(model$name, names(model@submodels))
-    ptable[[1]] <- GREMLFixEffListHelper(model)
     ptable[2:length(ptable)] <- lapply(model@submodels,GREMLFixEffList)
+    ptable[[1]] <- GREMLFixEffListHelper(model)
+    ptable <- ptable[sapply(ptable,function(x){!is.null(x)})]
   } 
   else{
     ptable <- GREMLFixEffListHelper(model)
