@@ -331,14 +331,14 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         message('\nSolution found\n')
         fit<-bestfit
         if(length(fit$intervals)>0){ #only calculate confidence intervals once the best fit is established
-          fit<-omxSetParameters(fit, names(bestfit.params),params)
-          message("Refit using best inits and estimate confidence intervals") 
+          fit<-omxSetParameters(fit, labels=names(bestfit.params),values=bestfit.params)
+          message("Refit using best inits and estimate confidence intervals\n") 
           #           mxOption(NULL, "Default optimizer", "NPSOL")
           cifit<-suppressWarnings(try(mxRun(fit,intervals=TRUE,suppressWarnings=T,silent=T)))
           if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-            message('Confidence interval estimation generated errors')
+            message('Confidence interval estimation generated errors\n')
           } else {
-            if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit')
+            if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
             fit<-cifit
           }
           
@@ -363,12 +363,12 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         fit <- bestfit
         params <- bestfit.params
         if(length(fit$intervals)>0){ #calculate intervals for best fit, even though imperfect
-          fit<-omxSetParameters(fit, names(bestfit.params),params)
-          message("Refit using best inits and estimate confidence intervals") 
+          fit<-omxSetParameters(fit, labels=names(bestfit.params),values=bestfit.params)
+          message("Refit using best inits and estimate confidence intervals\n") 
           #           mxOption(NULL, "Default optimizer", "NPSOL")
           cifit<-suppressWarnings(try(mxRun(fit,intervals=TRUE,suppressWarnings=T,silent=T)))
           if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-            message('Confidence interval estimation generated errors, returning fit without confidence intervals')
+            message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
           } else {
             fit<-cifit
           }
