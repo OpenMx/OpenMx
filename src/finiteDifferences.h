@@ -10,8 +10,9 @@ void fd_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gra
 	Eigen::VectorXd p2;
 	for (int px=0; px < int(point.size()); ++px) {
 		p2 = point;
-		p2[px] += eps;
-		gradOut[px] = (ff(p2) - refFit) / eps;
+		double offset = std::max(fabs(p2[px] * eps), eps);
+		p2[px] += offset;
+		gradOut[px] = (ff(p2) - refFit) / offset;
 	}
 }
 
@@ -26,10 +27,11 @@ void fd_jacobian(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &ref
 	Eigen::VectorXd p2;
 	for (int px=0; px < int(point.size()); ++px) {
 		p2 = point;
-		p2[px] += eps;
+		double offset = std::max(fabs(p2[px] * eps), eps);
+		p2[px] += offset;
 		Eigen::VectorXd probe(jacobiOut.cols());
 		ff(p2, probe);
-		jacobiOut.row(px) = (probe - ref) / eps;
+		jacobiOut.row(px) = (probe - ref) / offset;
 	}
 }
 
