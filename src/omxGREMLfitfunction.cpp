@@ -20,6 +20,7 @@
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
 #include "Eigen/Dense"
+#include <Rmath.h>
 
 struct omxGREMLFitState { 
   //TODO: Some of these members might be redundant with what's stored in the FitContext, 
@@ -122,7 +123,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Finish computing fit (negative loglikelihood):
     gff->P = Vinv - (gff->XtVinv.transpose() * gff->quadXinv * gff->XtVinv);
     gff->Py = gff->P * Eigy;
-    oo->matrix->data[0] = Scale*0.5*(logdetV + logdetquadX + (Eigy.transpose() * gff->Py)(0,0));
+    oo->matrix->data[0] = Scale*0.5*((gff->V->rows*log(M_2PI)) + logdetV + logdetquadX + (Eigy.transpose() * gff->Py)(0,0));
     gff->nll = oo->matrix->data[0]; 
   }
   
