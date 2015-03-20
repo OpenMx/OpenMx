@@ -73,6 +73,16 @@ void omxFitFunction::setUnitsFromName(const char *name)
 	}
 }
 
+const char *fitUnitsToName(int units)
+{
+	switch (units) {
+	case FIT_UNITS_UNINITIALIZED: return "";
+	case FIT_UNITS_UNKNOWN: return "?";
+	case FIT_UNITS_MINUS2LL: return "-2lnL";
+	default: Rf_error("Don't know how to stringify units %d", units);
+	}
+}
+
 void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
     
@@ -156,6 +166,12 @@ static double totalLogLikelihood(omxMatrix *fitMat)
 	} else {
 		return fitMat->data[0];
 	}
+}
+
+void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc)
+{
+	omxFitFunctionComputeAuto(off, FF_COMPUTE_PREOPTIMIZE, fc);
+	fc->fitUnits = off->units;
 }
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)

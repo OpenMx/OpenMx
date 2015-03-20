@@ -649,6 +649,7 @@ void FitContext::init()
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
+	fitUnits = parent? parent->fitUnits : FIT_UNITS_UNINITIALIZED;
 	est = new double[numParam];
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
@@ -754,6 +755,7 @@ void FitContext::updateParent()
 
 	parent->wanted |= wanted;
 	parent->fit = fit;
+	parent->fitUnits = fitUnits;
 	parent->mac = mac;
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
@@ -2657,7 +2659,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
-			omxFitFunctionComputeAuto(algebra->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+			omxFitFunctionPreoptimize(algebra->fitFunction, fc);
 			ComputeFit("Once", algebra, want, fc);
 			if (infoMat) {
 				fc->postInfo();
