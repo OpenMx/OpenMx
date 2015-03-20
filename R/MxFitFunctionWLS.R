@@ -230,11 +230,11 @@ imxWlsStandardErrors <- function(model){
 	rownames(wls.se) <- names(theParams)
 	#SE is the standard errors
 	#Cov is the analog of the Hessian for WLS
-	return(list(SE=wls.se, Cov=nacov))
+	return(list(SE=wls.se, Cov=nacov, Jac=d))
 }
 
 
-imxWlsChiSquare <- function(model){
+imxWlsChiSquare <- function(model, J=NA){
 	require(numDeriv)
 	theParams <- omxGetParameters(model)
 	samp.param <- .mat2param(theParams, model)
@@ -246,7 +246,9 @@ imxWlsChiSquare <- function(model){
 	e <- samp.param - expd.param
 	
 	W <- ginv(model$data$fullWeight)
-	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
+	if(single.na(J)){
+		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
+	} else {jac <- J}
 	jacOC <- Null(jac)
 	x2 <- t(e) %*% jacOC %*% ginv( t(jacOC) %*% W %*% jacOC ) %*% t(jacOC) %*% e
 	return(x2)

@@ -23,12 +23,13 @@
 }
 
 \usage{
-imxWlsChiSquare(model)
+imxWlsChiSquare(model, J=NA)
 }
 
 
 \arguments{
    \item{model}{An MxModel object with acov (WLS) data}
+   \item{J}{Optional pre-computed Jacobian matrix}
 }
 
 \details{
