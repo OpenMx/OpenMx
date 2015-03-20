@@ -251,7 +251,8 @@ imxWlsChiSquare <- function(model, J=NA){
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	x2 <- t(e) %*% jacOC %*% ginv( t(jacOC) %*% W %*% jacOC ) %*% t(jacOC) %*% e
-	return(x2)
+	df <- qr(jacOC)$rank
+	return(list(Chi=x2, ChiDoF=df))
 }
 
 

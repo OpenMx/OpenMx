@@ -83,6 +83,16 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		if (is.na(expectation@weightColumn)) return(list(NA, historySet))
 		dof <- nrow(data@observed) - 1
 		historySet <- append(data, historySet)
+	} else if (data@type == 'acov') {
+		if (data@name %in% historySet) {
+			return (list(0, historySet))
+		}
+		numThresh <- sum(!is.na(data@thresholds))
+		numMeans <- sum(!is.na(data@means))
+		n <- nrow(data@observed)
+		# Include diagonal of observed when no thresholds
+		dof <- numThresh + numMeans + ifelse(numThresh > 0, n*(n-1)/2, n*(n+1)/2)
+		historySet <- append(data, historySet)
 	} else {
 		dof <- 0
 		observed <- data@observed
@@ -141,13 +151,13 @@ computeFValue <- function(datalist, likelihood, chi) {
 		{x@type == 'cov'}))) return(chi)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'cor'}))) return(chi)
+	if(all(sapply(datalist, function(x) 
+		{x@type == 'acov'}))) return(chi)
 	return(NA)
 }
 
-computeFitStatistics <- function(likelihood, DoF, numObs,
+computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 				 independence, indDoF, saturated=0, satDoF=0) {
-	chi <- likelihood - saturated
-	chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
 	CFI <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
 	TLI <- 1
 	rmseaSquared <- 0
@@ -189,13 +199,17 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
 	independence <- retval[['IndependenceLikelihood']]
-	chi <- likelihood - saturated
+	if(is.null(model@output$chi)){
+		chi <- likelihood - saturated
+	} else {chi <- model@output$chi}
 	DoF <- retval$degreesOfFreedom
 	satDoF <- retval$saturatedDoF
 	indDoF <- retval$independenceDoF
 	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
-	chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
+	if(is.null(model@output$chiDoF)){
+		chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
+	} else {chiDoF <- model@output$chiDoF}
 	retval[['ChiDoF']] <- chiDoF
 	retval[['Chi']] <- chi
 	retval[['p']] <- suppressWarnings(pchisq(chi, chiDoF, lower.tail = FALSE))
@@ -211,9 +225,11 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC[,'par'] <- c(AIC.p, BIC.p)
 	IC['BIC:','sample'] <- sBIC
 	retval[['informationCriteria']] <- IC
-
-	fi <- computeFitStatistics(likelihood, DoF, retval[['numObs']],
-				   independence, indDoF, saturated, satDoF)
+	
+	retval$fitUnits <- model@output$fitUnits
+	
+	fi <- computeFitStatistics(likelihood, DoF, chi, chiDoF,
+		retval[['numObs']], independence, indDoF, saturated, satDoF)
 	for (k in names(fi)) retval[[k]] <- fi[[k]]
 	return(retval)
 }
@@ -469,9 +485,9 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	cat("estimated parameters: ", x$estimatedParameters, '\n')
 	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
-	cat("-2 log likelihood: ", x$Minus2LogLikelihood, '\n')
+	cat("fit value (", x$fitUnits, "units ): ", x$Minus2LogLikelihood, '\n')
 	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
-		cat("saturated -2 log likelihood: ", x$SaturatedLikelihood, '\n')
+		cat("saturated fit value (", x$fitUnits, "units ): ", x$SaturatedLikelihood, '\n')
 	}
 	cat("number of observations: ", x$numObs, '\n')
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite) && x$verbose==TRUE) {
@@ -535,13 +551,13 @@ print.summary.mxmodel <- function(x,...) {
 setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, retval) {
 	# populate saturated -2 log likelihood
 	if(is.null(saturatedLikelihood)) {
-		retval$SaturatedLikelihood <- model@output$SaturatedLikelihood
+		retval$SaturatedLikelihood <- attr(model@fitfunction$result, "SaturatedLikelihood")
 	} else {
 		retval$SaturatedLikelihood <- saturatedLikelihood
 	}
 	# populate independence -2 log likelihood	
 	if(is.null(independenceLikelihood)) {
-		retval$IndependenceLikelihood <- model@output$IndependenceLikelihood
+		retval$IndependenceLikelihood <- attr(model@fitfunction$result, "IndependenceLikelihood")
 	} else {
 		retval$IndependenceLikelihood <- independenceLikelihood
 	}

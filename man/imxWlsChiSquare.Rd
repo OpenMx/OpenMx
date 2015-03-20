@@ -38,8 +38,11 @@ The Chi Square fit statistic for models fit with maximum likelihood depends on t
 with \eqn{e'} indicating the transpode of \eqn{e}.  This Equation 2.20a from Browne (1984) where he showed that this statistic is chi-square distributed with the conventional degrees of freedom.
 }
 
-\value{
-numeric value of the Chi Square fit statistic.
+\value{A named list with components
+\describe{
+	\item{Chi}{numeric value of the Chi Square fit statistic.}
+	\item{ChiDoF}{degrees of freedom for the Chi Square fit statistic.}
+}
 }
 
 \references{
