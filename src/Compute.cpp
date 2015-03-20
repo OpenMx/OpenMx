@@ -28,6 +28,7 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 #include "omxState.h"
+#include "finiteDifferences.h"
 
 void pda(const double *ar, int rows, int cols);
 
@@ -1518,7 +1519,7 @@ class ComputeEM : public omxCompute {
 	std::vector<double> probeOffset;
 	std::vector<double> diffWork;
 	std::vector<int> paramHistLen;
-	Eigen::ArrayXd optimum;
+	Eigen::VectorXd optimum;
 	double bestFit;
  	static const double MIDDLE_START;
 	static const double MIDDLE_END;
@@ -1531,9 +1532,13 @@ class ComputeEM : public omxCompute {
 	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			double *stdDiff, bool *mengOK);
 	void MengRubinFamily(FitContext *fc);
+
 	void Oakes(FitContext *fc);
 
  public:
+	template <typename T1, typename T2>
+	void dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result);
+
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
@@ -2153,11 +2158,43 @@ void ComputeEM::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 }
 
+struct estep_jacobian_functional {
+	ComputeEM *em;
+	FitContext *fc;
+
+	estep_jacobian_functional(ComputeEM *em, FitContext *fc) : em(em), fc(fc) {};
+
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+		em->dEstep(fc, x, result);
+	};
+};
+
+template <typename T1, typename T2>
+void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result)
+{
+	Eigen::Map< Eigen::ArrayXd > Est(fc->est, fc->numParam);
+	Est = x;
+	fc->copyParamToModel();
+
+	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	}
+
+	Est = optimum;
+	fc->copyParamToModelClean();
+
+	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
+		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
+	}
+	result = fc->grad;
+	R_CheckUserInterrupt();
+}
+
 void ComputeEM::Oakes(FitContext *fc)
 {
-	const double perturb = 1e-3;  // config option TODO
-
-	if (verbose >= 1) mxLog("ComputeEM: Oakes1999 method=simple perturbation=%f", perturb);
+	if (verbose >= 1) mxLog("ComputeEM: Oakes1999 method=simple");
 
 	int wanted = fc->wanted;
 	const int freeVars = (int) fc->varGroup->vars.size();
@@ -2169,31 +2206,14 @@ void ComputeEM::Oakes(FitContext *fc)
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
 
-	Eigen::ArrayXd refGrad(freeVars);
+	Eigen::VectorXd refGrad(freeVars);
 	refGrad = fc->grad;
 	//std::cout << "refGrad" << refGrad << "\n";
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
-	for (int vx=0; vx < freeVars; ++vx) {
-		fc->est[vx] += perturb;
-		fc->copyParamToModel();
 
-		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-			omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-		}
-
-		memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-		fc->copyParamToModelClean();
-
-		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
-		for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-			omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
-		}
-		//std::cout << "col" << vx << ":" << ((fc->grad.array() - refGrad) / perturb) << "\n";
-		jacobian.col(vx) = (fc->grad.array() - refGrad) / perturb;
-		if (verbose >= 2) mxLog("ComputeEM: deriv of gradient for %d", vx);
-		R_CheckUserInterrupt();
-	}
+	estep_jacobian_functional ejf(this, fc);
+	fd_jacobian(ejf, optimum.matrix(), refGrad, false, jacobian);
 
 	fc->infoMethod = infoMethod;
 	fc->preInfo();

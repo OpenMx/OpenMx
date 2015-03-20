@@ -119,6 +119,25 @@ swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
           0.115, 0.097, 0.104, 0.125,  0.098, 0.099, 0.104, 0.107, 0.111, 0.139, 0.156, 0.11)
 omxCheckCloseEnough(c(i2$output$standardErrors), swse, .001)
 
+i3 <- mxModel(m2,
+	      mxComputeSequence(list(mxComputeEM('expectation', 'scores',
+						 mxComputeNewtonRaphson(), information="oakes1999",
+						 infoArgs=list(fitfunction='fitfunction')),
+				     mxComputeHessianQuality(),
+				     mxComputeStandardError(),
+				     mxComputeReportDeriv())))
+i3 <- mxRun(i3, silent=TRUE)
+omxCheckCloseEnough(log(i3$output$conditionNumber), 6.39, .1)
+omxCheckCloseEnough(log(det(i3$output$hessian)), 282.36, .1)
+#cat(deparse(round(i3$output$standardErrors,3)))
+ose <- c(0.144, 0.109, 0.11, 0.243, 0.15, 0.119, 0.135, 0.105,
+         0.106, 0.093, 0.172, 0.162, 0.154, 0.126, 0.131, 0.147, 0.12,
+         0.113, 0.201, 0.102, 0.106, 0.142, 0.118, 0.115, 0.121, 0.178,
+         0.131, 0.129, 0.129, 0.138, 0.142, 0.126, 0.145, 0.115, 0.113,
+         0.116, 0.116, 0.148, 0.158, 0.124, 0.112, 0.097, 0.102, 0.128,
+         0.097, 0.098, 0.103, 0.106, 0.111, 0.133, 0.155, 0.11)
+omxCheckCloseEnough(c(i3$output$standardErrors), ose, .001)
+
 refModels <- mxRefModels(m2, run=TRUE)
 
 omxCheckCloseEnough(refModels[['Independence']]$output$fit, 14810.21, .01)
