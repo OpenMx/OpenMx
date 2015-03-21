@@ -79,7 +79,7 @@ const char *fitUnitsToName(int units)
 	case FIT_UNITS_UNINITIALIZED: return "";
 	case FIT_UNITS_UNKNOWN: return "?";
 	case FIT_UNITS_MINUS2LL: return "-2lnL";
-	case FIT_UNITS_SQUARED_RESIDUAL: return "Squared Residual";
+	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
 	default: Rf_error("Don't know how to stringify units %d", units);
 	}
 }
