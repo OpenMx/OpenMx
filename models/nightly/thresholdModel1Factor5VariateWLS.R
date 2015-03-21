@@ -95,7 +95,7 @@ rms(ml.T, quants)
 
 ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
-omxCheckWithinPercentError(wls.sum$Chi, 1.84, percent=1)
+omxCheckWithinPercentError(wls.sum$Chi, 1.84, percent=10)
 omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=5)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
