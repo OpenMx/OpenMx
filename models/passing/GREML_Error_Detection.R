@@ -65,7 +65,7 @@ testmod <- mxModel(
   mxFitFunctionGREML(casesToDrop = 101L,dropNAfromV = T)
 )
 omxCheckWarning(
-  mxRun(testmod),
+  mxRun(testmod, suppressWarnings=TRUE),
   "casesToDrop vector in GREML fitfunction contains indices greater than the number of observations")
 
 testmod <- mxModel(
