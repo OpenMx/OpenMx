@@ -504,10 +504,10 @@ mxKalmanScores <- function(model, data=NA){
 	X.upda <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.pred[1,] <- x0
 	X.upda[1,] <- x0
-	P.pred <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
-	P.upda <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
-	P.pred[1,,] <- P0
-	P.upda[1,,] <- P0
+	P.pred <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
+	P.upda <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
+	P.pred[,,1] <- P0
+	P.upda[,,1] <- P0
 	m2ll <- numeric(nrow(data)+1)
 	m2ll[1] <- 0
 	L <- numeric(nrow(data)+1)
@@ -521,23 +521,23 @@ mxKalmanScores <- function(model, data=NA){
 		R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i)
 		u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i)
 		
-		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[i,,])
+		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[,,i])
 		X.pred[i+1,] <- res$x.pred
 		X.upda[i+1,] <- res$x.upda
-		P.pred[i+1,,] <- res$P.pred
-		P.upda[i+1,,] <- res$P.upda
+		P.pred[,,i+1] <- res$P.pred
+		P.upda[,,i+1] <- res$P.upda
 		m2ll[i+1] <- res$m2ll
 		L[i+1] <- res$L
 	}
 	X.smoo <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.smoo[nrow(data)+1,] <- X.upda[nrow(data)+1, ]
-	P.smoo <- array(0, dim=c(nrow(data)+1, nrow(x0), nrow(x0)))
-	P.smoo[nrow(data)+1,,] <- P.upda[nrow(data)+1,,]
+	P.smoo <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
+	P.smoo[,,nrow(data)+1] <- P.upda[,,nrow(data)+1]
 	for(i in nrow(data):1){
 		A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i)
-		SGain <- P.upda[i,,] %*% A %*% solve(P.pred[i+1,,])
+		SGain <- P.upda[,,i] %*% A %*% solve(P.pred[,,i+1])
 		X.smoo[i,] <- matrix(X.upda[i,]) + SGain %*% matrix(X.smoo[i+1,] - X.pred[i+1,])
-		P.smoo[i,,] <- P.upda[i,,] + SGain %*% (P.smoo[i+1,,] - P.pred[i+1,,]) %*% t(SGain)
+		P.smoo[,,i] <- P.upda[,,i] + SGain %*% (P.smoo[,,i+1] - P.pred[,,i+1]) %*% t(SGain)
 	}
 	
 	return(list(xPredicted=X.pred, PPredicted=P.pred, xUpdated=X.upda, PUpdated=P.upda, xSmoothed=X.smoo, PSmoothed=P.smoo, m2ll=m2ll, L=L))
