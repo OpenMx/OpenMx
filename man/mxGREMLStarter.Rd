@@ -44,6 +44,7 @@ dat <- cbind(rnorm(100),rep(1,100))
 colnames(dat) <- c("y","x")
 dat[42,1] <- NA
 dat[57,2] <- NA
-start <- mxGREMLStarter("GREMLmod",data=dat,Xdata="x",ydata = "y",addOnes = FALSE, dropNAfromV = TRUE)
+start <- mxGREMLStarter("GREMLmod", data=dat, Xdata="x", ydata = "y",
+	addOnes = FALSE, dropNAfromV = TRUE)
 str(start)
 }
