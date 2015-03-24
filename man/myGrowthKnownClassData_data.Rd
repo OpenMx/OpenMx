@@ -39,7 +39,8 @@ data(myGrowthKnownClassData)
 
 #plot the observed trajectories
 # blue lines are class 1, green lines are class 2
-matplot(t(myGrowthKnownClassData[,-6]), type='l', lty=1, col=c('blue', 'green')[myGrowthKnownClassData$c])
+colSel <-c('blue', 'green')[myGrowthKnownClassData$c]
+matplot(t(myGrowthKnownClassData[,-6]), type='l', lty=1, col=colSel)
 
 }
 \keyword{datasets}
