@@ -1252,6 +1252,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 resHessv = hessv_e;
                 resLambda = lambda;
                 resGrad = g_e;
+                return;
             }
             
             Eigen::MatrixXd cz_inv;
