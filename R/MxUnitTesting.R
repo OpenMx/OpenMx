@@ -219,10 +219,10 @@ tryCatch.W <- function(expr) {
 ##' @references
 ##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 ##' @examples
-##' msg <- paste("Objective functions like mxFIMLObjective()"
+##' msg <- paste("Objective functions like mxFIMLObjective()",
 ##'		"have been deprecated in favor of expectation and fit functions.\n",
-##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead,
-##'		"and add a call to mxFitFunctionML().
+##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead,",
+##'		"and add a call to mxFitFunctionML().",
 ##'		"See examples at help(mxExpectationNormal)")
 ##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), msg)
 omxCheckWarning <- function(expression, message) {
