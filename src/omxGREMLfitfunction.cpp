@@ -61,6 +61,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   
   //Declare local variables used in more than one scope in this function:
   const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
+  const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
   int i;
   EigenMatrixAdaptor Eigy(gff->y);
   
@@ -122,7 +123,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Finish computing fit (negative loglikelihood):
     gff->P = Vinv - (gff->XtVinv.transpose() * gff->quadXinv * gff->XtVinv);
     gff->Py = gff->P * Eigy;
-    oo->matrix->data[0] = Scale*0.5*(logdetV + logdetquadX + (Eigy.transpose() * gff->Py)(0,0));
+    oo->matrix->data[0] = Scale*0.5*( ((double)gff->V->rows * NATLOG_2PI) + logdetV + logdetquadX + (Eigy.transpose() * gff->Py )(0,0));
     gff->nll = oo->matrix->data[0]; 
   }
   

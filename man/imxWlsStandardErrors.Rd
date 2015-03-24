@@ -42,6 +42,7 @@ A named list with components
 \describe{
 	\item{SE}{The standard errors of the free parameters}
 	\item{Cov}{The full covariance matrix of the free parameters.  The square root of the diagonal elements of Cov equals SE.}
+	\item{Jac}{The Jacobian computed to obtain the standard errors.}
 }
 }
 

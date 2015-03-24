@@ -450,6 +450,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 		if (fc->wanted & FF_COMPUTE_FIT) {
 			result.add("fit", Rf_ScalarReal(fc->fit));
+			if (fc->fitUnits) {
+				SEXP units;
+				Rf_protect(units = Rf_allocVector(STRSXP, 1));
+				SET_STRING_ELT(units, 0, Rf_mkChar(fitUnitsToName(fc->fitUnits)));
+				result.add("fitUnits", units);
+			}
 			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
 		}
 		if (fc->wanted & FF_COMPUTE_BESTFIT) {

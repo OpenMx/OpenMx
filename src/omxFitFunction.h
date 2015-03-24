@@ -54,8 +54,8 @@ typedef struct {
 enum FitStatisticUnits {
 	FIT_UNITS_UNINITIALIZED=0,
 	FIT_UNITS_UNKNOWN,
-	FIT_UNITS_MINUS2LL
-	// add least squares here TODO
+	FIT_UNITS_MINUS2LL,
+	FIT_UNITS_SQUARED_RESIDUAL  // OK?
 };
 
 struct omxFitFunction {					// A fit function
@@ -110,6 +110,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
+void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc);
 	
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
@@ -127,5 +128,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
+
+const char *fitUnitsToName(int units);
 
 #endif /* _OMXFITFUNCTION_H_ */

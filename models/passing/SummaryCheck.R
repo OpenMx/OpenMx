@@ -209,6 +209,8 @@ omxCheckEquals(mg.sum$degreesOfFreedom, 5*500+4*500-27)
 omxCheckWithinPercentError(raw.sum$Minus2LogLikelihood, 9236.675, percent=1e-4)
 omxCheckTrue(is.na(raw.sum$SaturatedLikelihood))
 omxCheckWithinPercentError(raws.sum$SaturatedLikelihood, 9186.911, percent=1e-4)
+omxCheckWithinPercentError(cov.sum$SaturatedLikelihood, 7.520532, percent=1e-4)
+omxCheckWithinPercentError(covs.sum$SaturatedLikelihood, 7.520532, percent=1e-4)
 omxCheckEquals(raw.sum$numObs, 500)
 omxCheckEquals(raws.sum$numObs, 500)
 omxCheckEquals(cov.sum$numObs, 500)
@@ -219,8 +221,9 @@ omxCheckEquals(mg.sum$numObs, 1000)
 #	chi-square, chi dof, chi p
 omxCheckTrue(is.na(raw.sum$Chi))
 omxCheckTrue(!is.na(raws.sum$Chi))
-#cov.sum$Chi
-#covs.sum$Chi
+omxCheckCloseEnough(cov.sum$Chi, 49.66448, epsilon=1e-3)
+omxCheckCloseEnough(covs.sum$Chi, 49.66448, epsilon=1e-3)
+
 
 # ChiDoF = df - sat.df, i.e. df = obsStat-ep, sat.df = obsStat-sat.ep, so ChiDoF = sat.ep - ep
 chi.df <- 34

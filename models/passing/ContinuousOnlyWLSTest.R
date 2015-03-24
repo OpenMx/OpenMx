@@ -114,10 +114,34 @@ omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 
 #--------------------------------------
 # Re-run with ML
-mlMod <- mxModel(wlsMod, name="Re-run WLS model from Bollen as ML",
+mlMod <- mxModel(wlsMod, name="Rerun WLS model from Bollen as ML",
 	mxFitFunctionML(),
 	mxData(cov(Bollen[ , 1:8]), "cov", numObs=nrow(Bollen))
 )
 mlRun <- mxRun(mlMod)
 
+
+#--------------------------------------
+# Compare estimates
+
+mlSum <- summary(mlRun)
+wlsSum <- summary(wlsRun)
+
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+
+# parameters are sort of close
+omxCheckTrue(rms(mlSum$parameters[,5], wlsSum$parameters[,5]) < 0.7)
+
+# standard errors are close
+omxCheckTrue(rms(mlSum$parameters[,6], wlsSum$parameters[,6]) < 0.2)
+
+# Chi square is on par
+omxCheckWithinPercentError(mlSum$Chi, wlsSum$Chi, percent=85)
+
+# Chi square df are the same
+omxCheckEquals(mlSum$ChiDoF, wlsSum$ChiDoF)
+
+# RMSEA confidence intervals overlap
+omxCheckTrue( (wlsSum$RMSEA < mlSum$RMSEACI[2]) & (wlsSum$RMSEA > mlSum$RMSEACI[1]))
+omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI[1]))
 

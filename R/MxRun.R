@@ -196,6 +196,9 @@ runHelper <- function(model, frontendStart,
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- wlsSEs$Cov
 		model@output$calculatedHessian <- wlsSEs$Cov
+		wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
+		model@output$chi <- wlsChi$Chi
+		model@output$chiDoF <- wlsChi$ChiDoF
 	}
 
 	# Currently runstate preserves the pre-backend state of the model.

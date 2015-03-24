@@ -143,7 +143,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
         }
     
-	omxFitFunctionComputeAuto(fitMatrix->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
 
 	fc->createChildren();
     

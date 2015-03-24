@@ -38,7 +38,17 @@ This is a helper function that computes the results of the classical Kalman filt
 }
 
 \value{
-    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.
+    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.  The rows of xPredicted, xUpdated, and xSmoothed correspond to different time points.  The columns are the different latent variables.  The third index of PPredicted, PUpdated, and PSmoothed corresponds to different times.  This works nicely with the R default print method for arrays.  At each time there is a covariance matrix of the latent variable scores.  For all items listed below, the first element goes with the zeroth time point (See example).
+\describe{
+	\item{xPredicted}{matrix of Kalman predicted scores}
+	\item{PPredicted}{array of Kalman predicted error covariances}
+	\item{xUpdated}{matrix of Kalman updated scores}
+	\item{PUpdated}{array of Kalman updated error covariances}
+	\item{xSmoothed}{matrix of RTS smoothed scores}
+	\item{PSmoothed}{array of RTS smoothed error covariances}
+	\item{m2ll}{minus 2 log likelihood}
+	\item{L}{likelihood}
+}
 }
 
 \seealso{
@@ -90,5 +100,13 @@ cor(cbind(ssScores$xPredicted[,1], ssScores$xUpdated[,1], ssScores$xSmoothed[,1]
 # correlate minimally, and the updated and smoothed latent state estimates
 # are extremely close.
 
+# The first few latent predicted scores
+head(ssScores$xPredicted)
+
+# The predicted latent score for time 10
+ssScores$xPredicted[10+1,]
+
+# The error covariance of the predicted score at time 10
+ssScores$PPredicted[,,10+1]
 
 }

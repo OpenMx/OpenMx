@@ -121,6 +121,7 @@ class FitContext {
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
+	int fitUnits;
 	double *est;
 	std::vector<const char*> flavor;
 	Eigen::VectorXd grad;

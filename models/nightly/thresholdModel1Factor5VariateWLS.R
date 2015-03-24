@@ -63,16 +63,15 @@ thresholdModel <- mxModel("thresholdModel",
             mxData(observed=ordinalData, type='raw')
 )
 
-summary(thresholdModelrun <- mxRun(thresholdModel))
+thresholdModelrun <- mxRun(thresholdModel)
+thresholdSaturated <- mxRefModels(thresholdModelrun, run=TRUE)
+summary(thresholdModelrun, refModels=thresholdSaturated)
+
 
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
 	mxExpectationNormal(covariance="impliedCovs", dimnames = fruitynames, thresholds="thresholdMatrix"),
 	mxFitFunctionWLS())
-#mxOption(NULL, "Default optimizer", "NPSOL")
-#thresholdModelWLS <- mxOption(thresholdModelWLS, "Major iterations", 1)
-#thresholdModelWLS <- mxOption(thresholdModelWLS, "Calculate Hessian", "No")
-#thresholdModelWLS <- mxOption(thresholdModelWLS, "Standard Errors", "No")
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
 b-a
@@ -88,11 +87,21 @@ ml.T <- mxEval(thresholdMatrix, thresholdModelrun) #should be all quants
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
-rms(wls.L, .7)
+omxCheckTrue(rms(wls.L, .7) < 0.05)
 rms(ml.L, .7)
 
-rms(wls.T, quants)
+omxCheckTrue(rms(wls.T, quants) < 0.08)
 rms(ml.T, quants)
+
+ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
+wls.sum <- summary(thresholdModelWLSrun)
+omxCheckWithinPercentError(wls.sum$Chi, 1.84, percent=10)
+omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=15)
+omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
+
+ciModel <- mxModel(thresholdModelWLSrun, mxCI("L"))
+omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for units 3")
+
 
 #------------------------------------------------------------------------------
 tmod2 <- mxModel("thresholdModel2",

@@ -172,7 +172,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
-	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
+	//Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
 	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
 }
 
@@ -211,7 +211,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
 	oo->argStruct = (void*)newObj;
-	oo->units = FIT_UNITS_UNKNOWN;
+	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	
     /* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
