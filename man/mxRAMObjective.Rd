@@ -80,7 +80,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 \examples{
    
 
-# Create and fit a model using mxMatrix, mxAlgebra, mxExpectationNormal, and mxFitFunctionML
+# Create and fit a model using mxMatrix, mxAlgebra,
+#  mxExpectationNormal, and mxFitFunctionML
 
 library(OpenMx)
 
@@ -94,9 +95,11 @@ tmpNames <- names(tmpFrame)
 # Define the matrices
 
 matrixS <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(1,0,0,1), 
-              free=c(TRUE,FALSE,FALSE,TRUE), labels=c("Vx", NA, NA, "Vy"), name = "S")
+              free=c(TRUE,FALSE,FALSE,TRUE), labels=c("Vx", NA, NA, "Vy"),
+              name = "S")
 matrixA <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(0,1,0,0), 
-              free=c(FALSE,TRUE,FALSE,FALSE), labels=c(NA, "b", NA, NA), name = "A")
+              free=c(FALSE,TRUE,FALSE,FALSE), labels=c(NA, "b", NA, NA),
+              name = "A")
 matrixF <- mxMatrix(type="Iden", nrow=2, ncol=2, name="F")
 matrixM <- mxMatrix(type = "Full", nrow = 1, ncol = 2, values=c(0,0), 
               free=c(TRUE,TRUE), labels=c("Mx", "My"), name = "M")
@@ -111,7 +114,9 @@ fitFunction <- mxFitFunctionML()
 
 # Define the model
 
-tmpModel <- mxModel(model="exampleRAMModel", matrixA, matrixS, matrixF, matrixM, expFunction, fitFunction, 
+tmpModel <- mxModel(model="exampleRAMModel",
+                    matrixA, matrixS, matrixF, matrixM,
+                    expFunction, fitFunction,
                     mxData(observed=tmpFrame, type="raw"))
 
 # Fit the model and print a summary

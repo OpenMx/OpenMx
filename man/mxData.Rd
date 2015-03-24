@@ -23,7 +23,8 @@
 }
 
 \usage{
-   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ..., sort=TRUE)
+   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+          thresholds=NA, ..., sort=TRUE)
 }
 
 \arguments{

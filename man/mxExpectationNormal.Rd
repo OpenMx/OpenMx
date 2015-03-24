@@ -26,7 +26,8 @@
 }
 
 \usage{
-mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA, threshnames = dimnames)
+mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA,
+                    threshnames = dimnames)
 }
 
 \arguments{

@@ -26,7 +26,8 @@ This function creates an MxExpectationRAM object.
 }
 
 \usage{
-mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA, threshnames = dimnames)
+mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
+                 threshnames = dimnames)
 }
 
 
