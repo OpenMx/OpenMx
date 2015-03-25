@@ -172,11 +172,11 @@ generateIFAReferenceModels <- function(model) {
 	expectation <- model@expectation
 
 	spec <- expectation$ItemSpec
-	nullspec <- lapply(spec, rpf.modify, 0)
+	nullspec <- lapply(spec, rpf::rpf.modify, 0)
 	data <- model$data$observed
 	itemName <- expectation$item
 	item <- model[[itemName]]
-	nullitem <- mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf.rparam)), condenseSlots=FALSE)
+	nullitem <- mxMatrix(name="item", values=mxSimplify2Array(lapply(nullspec, rpf::rpf.rparam)), condenseSlots=FALSE)
 
 	if (is.null(item)) {
 		stop(paste("Cannot find matrix", omxQuotes(itemName),"in model",
@@ -185,8 +185,8 @@ generateIFAReferenceModels <- function(model) {
 
 	pmap <- matrix(NA, nrow(nullitem), ncol(nullitem))
 	for (cx in 1:ncol(item)) {
-		map1 <- match(names(rpf.rparam(nullspec[[cx]])),
-			      names(rpf.rparam(spec[[cx]])))
+		map1 <- match(names(rpf::rpf.rparam(nullspec[[cx]])),
+			      names(rpf::rpf.rparam(spec[[cx]])))
 		if (!length(map1)) next
 		pmap[1:length(map1),cx] <- item$labels[map1,cx]
 	}
@@ -207,8 +207,8 @@ generateIFAReferenceModels <- function(model) {
 		ind$expectation$weightColumn <- weightColumn
 		weights <- data[weightColumn]
 	} else {
-		data <- data[orderCompletely(data),]
-		weights <- as.numeric(tabulateRows(data))
+		data <- data[rpf::orderCompletely(data),]
+		weights <- as.numeric(rpf::tabulateRows(data))
 	}
 	saturated <- NA
 	if (!any(is.na(data[1,]))) {  # Not sure how to handle missingness

@@ -23,7 +23,8 @@
 }
 
 \usage{
-   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ..., sort=TRUE)
+   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+          thresholds=NA, ..., sort=TRUE)
 }
 
 \arguments{
@@ -83,14 +84,15 @@ covMatrix <- matrix( c(0.77642931, 0.39590663,
     0.39590663, 0.49115615), 
     nrow = 2, ncol = 2, byrow = TRUE)
 covNames <- c("x", "y")
-dimnames(covMatrix) <- list(covNames, covNames)
+dimList <- list(covNames, covNames)
+dimnames(covMatrix) <- dimList
 
 #Create an MxData object including that covariance matrix
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
 testModel <- mxModel(model="testModel",
                 mxMatrix(type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), 
-                         free=TRUE, name="expCov", dimnames=list(covNames, covNames)),
+                         free=TRUE, name="expCov", dimnames=dimList),
                 mxExpectationNormal(covariance="expCov", dimnames=covNames),
                 mxFitFunctionML(),
                 testData) 

@@ -133,28 +133,31 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 library(OpenMx)
 
-covData <- matrix(c(0.9223099, 0.1862938, 0.4374359, 0.8959973, 0.9928430, 0.5320662,
-                    0.1862938, 0.2889364, 0.3927790, 0.3321639, 0.3371594, 0.4476898,
-                    0.4374359, 0.3927790, 1.0069552, 0.6918755, 0.7482155, 0.9013952,
-                    0.8959973, 0.3321639, 0.6918755, 1.8059956, 1.6142005, 0.8040448,
-                    0.9928430, 0.3371594, 0.7482155, 1.6142005, 1.9223567, 0.8777786,
-                    0.5320662, 0.4476898, 0.9013952, 0.8040448, 0.8777786, 1.3997558
-                  ), nrow=6, ncol=6, byrow=TRUE, 
-                  dimnames=list(paste("v",as.character(1:6),sep=""),paste("v",as.character(1:6),sep="")))
+vNames <- paste("v",as.character(1:6),sep="")
+dimList <- list(vNames, vNames)
+covData <- matrix(
+  c(0.9223099, 0.1862938, 0.4374359, 0.8959973, 0.9928430, 0.5320662,
+    0.1862938, 0.2889364, 0.3927790, 0.3321639, 0.3371594, 0.4476898,
+    0.4374359, 0.3927790, 1.0069552, 0.6918755, 0.7482155, 0.9013952,
+    0.8959973, 0.3321639, 0.6918755, 1.8059956, 1.6142005, 0.8040448,
+    0.9928430, 0.3371594, 0.7482155, 1.6142005, 1.9223567, 0.8777786,
+    0.5320662, 0.4476898, 0.9013952, 0.8040448, 0.8777786, 1.3997558
+    ), nrow=6, ncol=6, byrow=TRUE, dimnames=dimList)
 
 # Create LISREL matrices
 
-mLX <- mxMatrix("Full", values=c(.5, .6, .8, rep(0, 6), .4, .7, .5), 
-          name="LX", nrow=6, ncol=2, free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE),
-          dimnames=list(paste("v",as.character(1:6),sep=""),c("x1","x2")))
+mLX <- mxMatrix("Full", values=c(.5, .6, .8, rep(0, 6), .4, .7, .5),
+          name="LX", nrow=6, ncol=2,
+          free=c(TRUE,TRUE,TRUE,rep(FALSE, 6),TRUE,TRUE,TRUE),
+          dimnames=list(vNames, c("x1","x2")))
 mTD <- mxMatrix("Diag", values=c(rep(.2, 6)), 
           name="TD", nrow=6, ncol=6, free=TRUE,
-          dimnames=list(paste("v",as.character(1:6),sep=""),paste("v",as.character(1:6),sep="")))
+          dimnames=dimList)
 mPH <- mxMatrix("Symm", values=c(1, .3, 1), 
           name="PH", nrow=2, ncol=2, free=c(FALSE, TRUE, FALSE),
           dimnames=list(c("x1","x2"),c("x1","x2")))
 
-# Create a LISREL objective with LX, TD, and PH matrix names
+# Create a LISREL expectation with LX, TD, and PH matrix names
 
 expFunction <- mxExpectationLISREL(LX="LX", TD="TD", PH="PH")
 
@@ -165,7 +168,8 @@ fitFunction <- mxFitFunctionML()
 
 # Create the model, fit it, and print a summary.
 
-tmpModel <- mxModel(model="exampleModel", mLX, mTD, mPH, expFunction, fitFunction, tmpData)
+tmpModel <- mxModel(model="exampleModel",
+                    mLX, mTD, mPH, expFunction, fitFunction, tmpData)
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 
@@ -179,15 +183,22 @@ data(demoOneFactor)
 nvar <- ncol(demoOneFactor)
 varnames <- colnames(demoOneFactor)
 
-factorMeans <- mxMatrix("Zero", 1, 1, name="Kappa", dimnames=list("F1", NA))
-xIntercepts <- mxMatrix("Zero", nvar, 1, name="TauX", dimnames=list(varnames, NA))
-factorLoadings <- mxMatrix("Full", nvar, 1, TRUE, .6, name="LambdaX", labels=paste("lambda", 1:nvar, sep=""), dimnames=list(varnames, "F1"))
+factorMeans <- mxMatrix("Zero", 1, 1, name="Kappa",
+                        dimnames=list("F1", NA))
+xIntercepts <- mxMatrix("Full", nvar, 1, free=TRUE, name="TauX",
+                        dimnames=list(varnames, NA))
+factorLoadings <- mxMatrix("Full", nvar, 1, TRUE, .6, name="LambdaX",
+                           labels=paste("lambda", 1:nvar, sep=""),
+                           dimnames=list(varnames, "F1"))
 factorCovariance <- mxMatrix("Diag", 1, 1, FALSE, 1, name="Phi")
-xResidualVariance <- mxMatrix("Diag", nvar, nvar, TRUE, .2, name="ThetaDelta", labels=paste("theta", 1:nvar, sep=""))
+xResidualVariance <- mxMatrix("Diag", nvar, nvar, TRUE, .2, name="ThetaDelta",
+                              labels=paste("theta", 1:nvar, sep=""))
 
 liModel <- mxModel(model="LISREL Factor Model",
-	factorMeans, xIntercepts, factorLoadings, factorCovariance, xResidualVariance,
-	mxExpectationLISREL(LX="LambdaX", PH="Phi", TD="ThetaDelta", TX="TauX", KA="Kappa"),
+	factorMeans, xIntercepts, factorLoadings,
+	factorCovariance, xResidualVariance,
+	mxExpectationLISREL(LX="LambdaX", PH="Phi",
+		TD="ThetaDelta", TX="TauX", KA="Kappa"),
 	mxFitFunctionML(),
 	mxData(demoOneFactor, "raw")
 )
@@ -216,7 +227,8 @@ resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
 
 means <- mxMatrix("Full", 5, 1,
-	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M", dimnames=list(names(jointdata), NA))
+	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M",
+	dimnames=list(names(jointdata), NA))
 
 ident <- mxMatrix("Diag", 1, 1, FALSE, 1, name="I")
 zerom <- mxMatrix("Zero", 1, 1, name="Z", dimnames=list("Factor1", NA))
@@ -224,7 +236,8 @@ zerom <- mxMatrix("Zero", 1, 1, name="Z", dimnames=list("Factor1", NA))
 thrFre <- c(TRUE, FALSE, FALSE, rep(TRUE, 5), FALSE)
 thrVal <- c(0, NA, NA, -1, 0, 1, -1, 1, NA)
 thrLab <- c("z2t1", NA, NA, "z4t1", "z4t2", "z4t3", "z5t1", "z5t2", NA)
-thresh <- mxMatrix("Full", 3, 3, free=thrFre, values=thrVal, labels=thrLab, name="T", dimnames=list(c(NA, NA, NA), c("z2", "z4", "z5")))
+thresh <- mxMatrix("Full", 3, 3, free=thrFre, values=thrVal, labels=thrLab,
+	name="T", dimnames=list(c(NA, NA, NA), c("z2", "z4", "z5")))
 
 
 # run factor model

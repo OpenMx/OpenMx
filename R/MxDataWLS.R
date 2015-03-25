@@ -516,7 +516,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				#pcHess[i, j]   <- pcHess[j, i]
 				# get jacobian
 				if( ordPair == 0 ) { # Continuous variables
-					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh, 
+					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
 						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
 						nrow=n, 
 						ncol=1)
@@ -572,6 +572,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	}
 	# TODO: something still must be done about the means!
 	# To replicate old behavior set
+	# The following two lines should be deleted.
 	meanJac <- NULL
 	meanHess <- NULL
 	# even though these might not be NULL and have been processed earlier.

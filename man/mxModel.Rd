@@ -77,7 +77,8 @@ More information about the OpenMx package may be found \link[=OpenMx]{here}.
 
 library(OpenMx)
 
-# At the simplest, you can create an empty model, placing it in an object, and add to it later
+# At the simplest, you can create an empty model,
+#  placing it in an object, and add to it later
 emptyModel <- mxModel(model="IAmEmpty")
 
 # Create a model named 'firstdraft' with one matrix 'A'
@@ -103,7 +104,8 @@ finalModel$matrices$A
 # A working example using OpenMx Path Syntax
 data(HS.ability.data)  # load the data
 
-Spatial   <- c("visual", "cubes", "paper") # The manifest variables loading on each proposed latent variable
+# The manifest variables loading on each proposed latent variable
+Spatial   <- c("visual", "cubes", "paper")
 Verbal    <- c("general", "paragrap", "sentence")
 Math      <- c("numeric", "series", "arithmet")
 

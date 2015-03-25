@@ -219,8 +219,11 @@ tryCatch.W <- function(expr) {
 ##' @references
 ##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 ##' @examples
-##' msg <- paste("Objective functions like mxFIMLObjective() have been deprecated in favor of expectation and fit functions.\n",
-##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead, and add a call to mxFitFunctionML(). See examples at help(mxExpectationNormal)")
+##' msg <- paste("Objective functions like mxFIMLObjective()",
+##'		"have been deprecated in favor of expectation and fit functions.\n",
+##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead,",
+##'		"and add a call to mxFitFunctionML().",
+##'		"See examples at help(mxExpectationNormal)")
 ##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), msg)
 omxCheckWarning <- function(expression, message) {
 	inputExpression <- match.call()$expression
@@ -272,7 +275,9 @@ omxCheckWarning <- function(expression, message) {
 ##'		"free parameter in matrix 'A'"))
 ##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
 ##' # Throws error, check the message
-##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01), "In omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9, 3), epsilon = 0.01) : not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
+##' tmsg <- paste("In omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9, 3), 0.01)",
+##'		": not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
+##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), .01), tmsg)
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	checkErrorState <- FALSE

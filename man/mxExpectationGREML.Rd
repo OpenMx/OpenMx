@@ -52,18 +52,24 @@ ge <- mxExpectationGREML(V="V",X="X",y="y",dV=c(ve="I"))
 gff <- mxFitFunctionGREML()
 plan <- mxComputeSequence(steps=list(
   mxComputeNewtonRaphson(freeSet=c("Ve"),fitfunction="fitfunction"),
-  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
+  mxComputeOnce('fitfunction',
+    c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
   mxComputeStandardError(freeSet=c("Ve")),
   mxComputeReportDeriv(freeSet=c("Ve"))
 ))
 
+nadat <- matrix(as.double(NA),1,1,dimnames = list("asdf","asdf"))
+
 testmod <- mxModel(
   "GREMLtest",
-  mxData(observed = matrix(as.double(NA),1,1,dimnames = list("asdf","asdf")), type="raw", numObs=0),
-  mxMatrix(type = "Full", nrow = 1, ncol=1, free=TRUE, values = 1, labels = "ve", lbound = 0.0001, name = "Ve"),
+  mxData(observed = nadat, type="raw", numObs=0),
+  mxMatrix(type = "Full", nrow = 1, ncol=1, free=TRUE,
+    values = 1, labels = "ve", lbound = 0.0001, name = "Ve"),
   mxMatrix("Iden",nrow=100,name="I",condenseSlots=TRUE),
-  mxMatrix(type = "Full", nrow=100, ncol=1, free=TRUE, values=dat[,2], name = "X",condenseSlots=TRUE),
-  mxMatrix(type = "Full", nrow=100, ncol=1, free=TRUE, values=dat[,1], name="y",condenseSlots=TRUE),
+  mxMatrix(type = "Full", nrow=100, ncol=1, free=TRUE,
+    values=dat[,2], name = "X",condenseSlots=TRUE),
+  mxMatrix(type = "Full", nrow=100, ncol=1, free=TRUE,
+    values=dat[,1], name="y",condenseSlots=TRUE),
   mxAlgebra(I \%x\% Ve,name="V"),
   ge,
   gff,
