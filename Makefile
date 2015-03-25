@@ -111,7 +111,7 @@ srcbuild: build-prep
 cran-check: cran-build
 	$(REXEC) CMD check --as-cran build/OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 220 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 125 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 pdf:
 	./util/prep npsol
