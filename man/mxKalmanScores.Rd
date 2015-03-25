@@ -71,6 +71,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 # Create and fit a model using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
 require(OpenMx)
 data(demoOneFactor)
+# Use only first 50 rows, for speed of example
+data <- demoOneFactor[1:50,]
 nvar <- ncol(demoOneFactor)
 varnames <- colnames(demoOneFactor)
 ssModel <- mxModel(model="State Space Manual Example",
@@ -83,7 +85,7 @@ ssModel <- mxModel(model="State Space Manual Example",
     mxMatrix("Zero", 1, 1, name="x0"),
     mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
     mxMatrix("Zero", 1, 1, name="u"),
-    mxData(observed=demoOneFactor, type="raw"),
+    mxData(observed=data, type="raw"),
     mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
     mxFitFunctionML()
 )

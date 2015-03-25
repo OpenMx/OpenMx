@@ -403,14 +403,15 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	return(labelsData)
 }
 
-mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1) {
+mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1,
+		cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
    if(!is(model, "MxModel")) {
       stop("'model' argument must be a MxModel object")
    }
-   eval(substitute(mxEval(x, model, compute, show, defvar.row),
+   eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack),
       list(x = as.symbol(name))))
 }
 
