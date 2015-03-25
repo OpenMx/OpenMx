@@ -200,7 +200,8 @@ liModel <- mxModel(model="LISREL Factor Model",
 	mxExpectationLISREL(LX="LambdaX", PH="Phi",
 		TD="ThetaDelta", TX="TauX", KA="Kappa"),
 	mxFitFunctionML(),
-	mxData(demoOneFactor, "raw")
+	mxData(cov(demoOneFactor), "cov",
+		means=colMeans(demoOneFactor), numObs=nrow(demoOneFactor))
 )
 
 liRun <- mxRun(liModel)
@@ -242,7 +243,7 @@ thresh <- mxMatrix("Full", 3, 3, free=thrFre, values=thrVal, labels=thrLab,
 
 # run factor model
 jointModel1 <- mxModel("ContinuousOrdinalData",
-	mxData(jointdata, "raw"),
+	mxData(jointdata[1:100,], "raw"), # limit num rows for example speed
 	loadings, resid, means, ident, zerom, thresh,
 	mxFitFunctionML(),
 	mxExpectationLISREL(LX="L", TX="M", PH="I", KA="Z", TD="U",
@@ -251,7 +252,7 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 		threshnames=c("z2", "z4", "z5"))
 )
 
-# Heads up, running this model could take up to 30 seconds.
+# Run the joint model
 jointResults1 <- mxRun(jointModel1, suppressWarnings=TRUE)
 
 
