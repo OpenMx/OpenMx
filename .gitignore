@@ -20,6 +20,7 @@
 /inst/no-npsol
 /DESCRIPTION
 /R/MxVersion.R
+/R/sysdata.rda
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
 man/expm.Rd

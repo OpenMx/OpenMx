@@ -6,10 +6,7 @@ header <- paste(
 	sep = "\n"
 )
 
-symbolTable <- 'data/omxSymbolTable.tab'
-if (file.access(symbolTable) < 0) {
-	symbolTable <- 'data/omxSymbolTable.tab.gz'
-} 
+symbolTable <- 'util/omxSymbolTable.tab'
 
 table <- read.table(symbolTable, header = TRUE,
 	stringsAsFactors = FALSE)
