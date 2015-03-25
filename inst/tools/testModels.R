@@ -19,13 +19,17 @@ if (any(args == 'gctorture')) {
 	cat("*** GCTORTURE ENABLED ***\n");
 }
 
+if (all(file.exists("inst/models", "models") == c(TRUE,FALSE))) {
+	file.symlink("inst/models", "models")
+}
+
 library(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)
 
 directories <- c('models/passing')
 if (any(args == 'nightly')) {
-	directories <- c(directories, 'demo', 'models/nightly')
+	directories <- c(directories, 'models/demo', 'models/nightly')
 }
 if (any(args == 'failing')) {
 	directories <- c('models/failing')
@@ -38,7 +42,7 @@ null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),
 sink(null, type = 'output')
 
 if (any(args == 'gctorture')) {
-	files <- c('demo/RowObjectiveFIMLBivariateSaturated.R',
+	files <- c('models/demo/RowObjectiveFIMLBivariateSaturated.R',
 		   'models/passing/AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R',
 		   'models/passing/JointFIMLTest.R')
@@ -49,7 +53,7 @@ if (any(args == 'gctorture')) {
 
 if (any(args == 'csolnp')) {
 	# remove failing tests using setdiff or whatever TODO
-#	files <- c('demo/RowObjectiveSimpleExamples.R')
+#	files <- c('models/demo/RowObjectiveSimpleExamples.R')
 }
 
 if (any(args == 'lisrel')) {
