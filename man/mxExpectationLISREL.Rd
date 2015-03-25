@@ -243,7 +243,7 @@ thresh <- mxMatrix("Full", 3, 3, free=thrFre, values=thrVal, labels=thrLab,
 
 # run factor model
 jointModel1 <- mxModel("ContinuousOrdinalData",
-	mxData(jointdata[1:100,], "raw"), # limit num rows for example speed
+	mxData(jointdata[1:90,], "raw"), # limit num rows for example speed
 	loadings, resid, means, ident, zerom, thresh,
 	mxFitFunctionML(),
 	mxExpectationLISREL(LX="L", TX="M", PH="I", KA="Z", TD="U",

@@ -140,7 +140,7 @@ ssModel <- mxModel(model="State Space Manual Example",
     mxMatrix("Zero", 1, 1, name="x0"),
     mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
     mxMatrix("Zero", 1, 1, name="u"),
-    mxData(observed=demoOneFactor, type="raw"),
+    mxData(observed=demoOneFactor[1:100,], type="raw"),#fewer rows = fast
     mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
     mxFitFunctionML()
 )
@@ -167,7 +167,7 @@ ssModel <- mxModel(model="State Space Inputs Manual Example",
     mxMatrix("Zero", 1, 1, name="x0"),
     mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
     mxMatrix("Full", 1, 1, FALSE, labels="data.V1", name="u"),
-    mxData(observed=demoOneFactorInputs, type="raw"),
+    mxData(observed=demoOneFactorInputs[1:100,], type="raw"),#fewer rows = fast
     mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", u="u"),
     mxFitFunctionML()
 )
