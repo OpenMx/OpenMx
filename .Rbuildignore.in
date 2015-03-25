@@ -23,13 +23,8 @@ cachegrind.out.*
 ^.Rbuildignore*
 ^man/README$
 .*\.omx$
-^docs/build
+^docs
 ^stan/
 ^OpenMx-html\.tar\.bz2$
-^docs/source/static/demo/.*$
-^docs/source/static/Rdoc/.*$
-^middle/node_modules
-^docs/source/cache/.*$
-^docs/source/.*\.Rout$
 ^cran-check.log$
 ^middle
