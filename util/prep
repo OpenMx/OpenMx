@@ -60,7 +60,7 @@ if [ $flavor = npsol ]; then
   echo 'NPSOL_LIBS=$(NPSOL)' >> src/Makevars.win
   cat src/Makevars.win.in >> src/Makevars.win
   if [ ! -e src/npsolswitch.h ] || ! grep -q 1 src/npsolswitch.h; then echo '#define HAS_NPSOL 1' > src/npsolswitch.h; fi
-  grep -v inst/npsol .Rbuildignore.in > .Rbuildignore
+  grep -E -v '(inst/npsol|configure.win)' .Rbuildignore.in > .Rbuildignore
 else
   touch inst/no-npsol
   if [ ! -e src/npsolswitch.h ] || ! grep -q 0 src/npsolswitch.h; then echo '#define HAS_NPSOL 0' > src/npsolswitch.h; fi

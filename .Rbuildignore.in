@@ -28,3 +28,4 @@ cachegrind.out.*
 ^OpenMx-html\.tar\.bz2$
 ^cran-check.log$
 ^middle
+^configure.win$
