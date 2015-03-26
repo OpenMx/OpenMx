@@ -13,7 +13,7 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
     role="aut"), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"), 
     person("Team", "OpenMx",
-    email='openmx-developers@list.mail.virginia.edu', role='cre'))
+    email='openmx-developers@virginia.edu', role='cre'))
 URL: http://openmx.psyc.virginia.edu
 Description: The OpenMx Project intends to rewrite and extend the popular
     statistical package Mx to address the challenges facing a large range of
