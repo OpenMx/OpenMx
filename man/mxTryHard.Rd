@@ -8,8 +8,10 @@ Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} unti
 }
 
 \usage{
-mxTryHard(model, extraTries=10, greenOK=FALSE, loc=1,
-          scale=0.25, checkHess=TRUE, fit2beat=Inf, paste=TRUE, ...)
+mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, 
+  scale = 0.25, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
+  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE,
+  ...)
 }
 
 \arguments{
