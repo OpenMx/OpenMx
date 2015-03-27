@@ -1010,7 +1010,8 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
         warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
         SE <- FALSE
     }}
-    pkgcheck <- require(numDeriv)
+    libraries <- search()
+    pkgcheck <- ("package:numDeriv" %in% libraries)
     if(SE & !pkgcheck){
       warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
       SE <- FALSE
