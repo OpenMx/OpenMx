@@ -1242,7 +1242,9 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             if (!R_FINITE((cz_e.maxCoeff())))
             {
-                mxLog("here in findMax");
+                if (verbose >= 3){
+                    mxLog("here in findMax");
+                }
                 flag = 1;
                 p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
                 if (nc > 0){ y_e.resize(1, 1); y_e(0, 0) = 0;}
