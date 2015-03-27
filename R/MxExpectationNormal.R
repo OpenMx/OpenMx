@@ -170,7 +170,7 @@ sse <- function(x){sum(x^2)}
 mxCheckIdentification <- function(model, details=TRUE){
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
+	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
