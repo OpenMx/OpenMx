@@ -168,7 +168,6 @@ mxGetExpected <- imxGetExpectationComponent
 sse <- function(x){sum(x^2)}
 
 mxCheckIdentification <- function(model, details=TRUE){
-	require(numDeriv)
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
@@ -252,7 +251,6 @@ generateNormalData <- function(model, nrows){
 }
 
 mxGenerateData <- function(model, nrows){
-	require(mvtnorm)
 	data <- genericGenerateData(model$expectation, model, nrows)
 	return(data)
 }
