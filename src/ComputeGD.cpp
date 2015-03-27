@@ -321,7 +321,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 				memcpy(fc.est, mle->est, n * sizeof(double));
         
 				int tries = 0;
-				int inform = -1;
+				int inform = INFORM_UNINITIALIZED;
 				double bestFit = std::numeric_limits<double>::max();
             
 				while (inform!= 0 && ++tries <= ciMaxIterations) {
@@ -331,7 +331,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 					fc.CI = currentCI;
 					fc.lowerBound = lower;
-					fc.copyParamToModel();
 					fc.fit = mle->fit;
 					plan->compute(&fc);
 
