@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -o nounset
 
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
@@ -48,15 +47,6 @@ Makeconf=$(find $R_HOME_DIR/etc -print | egrep 'Makeconf$' )
 echo "Change default C/C++ compiler and default compile flags by editing $Makeconf"
 
 CXX=$($REXEC CMD config CXX)
-
-COMPILER_CXXFLAGS=
-COMPILER_LDFLAGS=
-arch_CXXFLAGS=
-arch_LDFLAGS=
-OPENMP_CXXFLAGS=
-OPENMP_LDFLAGS=
-xcheck_CXXFLAGS=
-xcheck_LDFLAGS=
 
 if isdef __clang__; then
     cxx_type=clang
