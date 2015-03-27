@@ -162,6 +162,17 @@ echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
 echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars
 echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars
 echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars
+
+# check for special environment variables
+if [ "x$IMX_SAFE" = x1 ]; then
+    echo 'DEBUG_CXXFLAGS=$(xcheck_CXXFLAGS) -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars
+    echo 'DEBUG_LDFLAGS=$(xcheck_LDFLAGS)' >> src/Makevars
+elif [ "x$IMX_GCOV" = x1 ]; then
+    # To collect gcov statistics (gcc only)
+    echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars
+    echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars
+fi
+
 echo >> src/Makevars
 echo "# ---- appending Makevars.in ----" >> src/Makevars
 echo >> src/Makevars
