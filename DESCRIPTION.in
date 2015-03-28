@@ -15,39 +15,42 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Team", "OpenMx",
     email='openmx-developers@virginia.edu', role='cre'))
 URL: http://openmx.psyc.virginia.edu
-Description: OpenMx rewrites and extends the popular
-   statistical package Mx to address the challenges facing a
-   broad range of modern statistical problems.  OpenMx is modular
-   and allows a mix-and-match computational approach that separates model
-   expectations from fit functions and from optimizers.  OpenMx has
-   several noteworthy features, including but not limited to
-   (a) the newly-written optimizer CSOLNP, (b) specificaction of
-   structural equation models in terms of RAM matrices, LISREL matrices,
-   user-defined algebraic expressions, and user-defined R expressions,
-   (c) specification of structural equation models in terms of paths,
-   (d) state space modeling, and (e) item factor analysis.
-   Many of the above features can be used in combination
-   with multiple group modeling, mixture modeling, maximum likelihood,
-   weighted least squares, and ordinal data.
-   OpenMx is a customizeable, advanced modeling environment
-   within the R open-source framework.
+BugReports: https://github.com/OpenMx/OpenMx/issues
+Description: OpenMx is a customizeable advanced 
+    modeling environment including support for Structural Equation
+    Modelling. It extends the popular Mx statistical application to
+    address size and complexity challenges encountered in many modern
+    statistical problems. These include technologies such as
+    magnetic resonance imaging and genetic sequencing which generate
+    extremely large amounts of data often with complex patterning.
+    OpenMx is modular, allowing a mix-and-match approach to
+    expectations, fit functions and optimizers. OpenMx has several
+    noteworthy features, including but not limited to (a) the
+    newly-written optimizer CSOLNP, (b) specification of structural
+    equation models in terms of paths or matrices, (c) support of
+    RAM, LISREL, arbitrary-matrix forms, user-defined algebraic
+    expressions, and user-defined R expressions, (d) state space
+    modeling, and (e) item factor analysis. Many of the above
+    features can be used in combination with multiple group
+    modeling, mixture modeling, maximum likelihood, weighted least
+    squares, and ordinal data.
 License_is_FOSS: yes
 License: file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
 Depends:
 	R (>= 3.0.2),
-    methods,
     digest,
     MASS,
+    methods,
     parallel
 Suggests:
-    snowfall,
-    roxygen2 (>= 3.1),
-    mvtnorm,
-    rpf (>= 0.36),
-    numDeriv,
     Matrix,
-    Rmpi
+    mvtnorm,
+    numDeriv,
+    roxygen2 (>= 3.1),
+    Rmpi,
+    rpf (>= 0.36),
+    snowfall
 LazyLoad: yes
 LazyData: yes
 Collate:
