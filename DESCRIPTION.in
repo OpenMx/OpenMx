@@ -15,14 +15,22 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Team", "OpenMx",
     email='openmx-developers@virginia.edu', role='cre'))
 URL: http://openmx.psyc.virginia.edu
-Description: The OpenMx Project intends to rewrite and extend the popular
-    statistical package Mx to address the challenges facing a large range of
-    modern statistical problems such as: the difficulty of measuring behavioral
-    traits; the availability of technologies - such as such as magnetic
-    resonance imaging, continuous physiological monitoring and microarrays -
-    which generate extremely large amounts of data often with complex
-    time-dependent patterning; and increased sophistication in the statistical
-    models used to analyze the data.
+Description: OpenMx rewrites and extends the popular
+   statistical package Mx to address the challenges facing a
+   broad range of modern statistical problems.  OpenMx is modular
+   and allows a mix-and-match computational approach that separates model
+   expectations from fit functions and from optimizers.  OpenMx has
+   several noteworthy features, including but not limited to
+   (a) the newly-written optimizer CSOLNP, (b) specificaction of
+   structural equation models in terms of RAM matrices, LISREL matrices,
+   user-defined algebraic expressions, and user-defined R expressions,
+   (c) specification of structural equation models in terms of paths,
+   (d) state space modeling, and (e) item factor analysis.
+   Many of the above features can be used in combination
+   with multiple group modeling, mixture modeling, maximum likelihood,
+   weighted least squares, and ordinal data.
+   OpenMx is a customizeable, advanced modeling environment
+   within the R open-source framework.
 License_is_FOSS: yes
 License: file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
