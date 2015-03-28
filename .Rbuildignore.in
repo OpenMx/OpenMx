@@ -4,6 +4,7 @@
 .gitignore
 .gitattributes
 ^inst/npsol
+^inst/CITATION.in
 ^.dir-locals.el
 ^.gdbinit
 .*.log

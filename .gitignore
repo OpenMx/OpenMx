@@ -18,6 +18,7 @@
 /src/npsolswitch.h
 /src/Makevars.win
 /inst/no-npsol
+/inst/CITATION
 /DESCRIPTION
 /R/MxVersion.R
 /R/sysdata.rda

@@ -4,12 +4,6 @@ citFooter(paste("BibTeX entries for LaTeX users are obtained by:\n\n",
 	"OpenMx was developed with support from NIH/NIDA grants:\n\n",
 	"R37-DA018673, R25-DA026119, R21-DA024304\n\n"))
      
-desc <- packageDescription("OpenMx")
-year <- substring(desc$Date, 1, 4)
-revision <- sub("\\..?$", "", sub("-.*", "", desc$Version))
-vers <- paste("R package version", revision)
-authors <- eval(parse(text=desc[["Authors@R"]]))
-     
 citEntry(entry="article",
 	title = paste("Open{M}x 2.0: {E}xtended structural equation and statistical modeling"),
               author = c(
@@ -44,6 +38,10 @@ citEntry(entry="article",
 	     "(in press). Modular open-source software for Item Factor Analysis.",
 	     "Educational and Psychological Measurement"))
 
+year <- @YEAR@
+revision <- "@VERSION@"
+authors <- @AUTHORS@
+     
 citEntry(entry="manual",
 	title = paste("OpenMx", revision, "User Guide"),
     year = year,

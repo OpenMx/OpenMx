@@ -18,8 +18,11 @@ case "$flavor" in
 esac
 
 VERSION=$(./inst/tools/findBuildNum.sh)
+YEAR=$(grep ^Date DESCRIPTION.in | cut -d ' ' -f 2 | cut -d '-' -f 1)
+AUTHORS=$(cat DESCRIPTION.in | perl -0pe 's,\n\s+, ,sg' |grep '^Author' | cut -d ':' -f 2)
 
 cat DESCRIPTION.in | sed -e "s/VERSION/$VERSION/" > DESCRIPTION
+cat inst/CITATION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@YEAR@/$YEAR/" -e "s/@AUTHORS@/$AUTHORS/" > inst/CITATION
 
 mxV=R/MxVersion.R
 sed -e s/GIT_VERSION/$(git describe --dirty)/ $mxV.in > $mxV
