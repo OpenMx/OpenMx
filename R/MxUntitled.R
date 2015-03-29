@@ -20,9 +20,7 @@
 ##' what they are doing.
 ##'
 ##' @details Resets the \link{imxUntitledNumber} counter
-imxUntitledNumberReset <- function() {
-	.untitledCounter <<- 0
-}
+imxUntitledNumberReset <- function() .Call(untitledNumberReset)
 
 ##' imxUntitledNumber
 ##'
@@ -30,10 +28,7 @@ imxUntitledNumberReset <- function() {
 ##' what they are doing.
 ##'
 ##' @details Increments the untitled number counter and returns its value
-imxUntitledNumber <- function() {
-	.untitledCounter <<- .untitledCounter + 1
-	return(.untitledCounter)	
-}
+imxUntitledNumber <- function() .Call(untitledNumber)
 
 ##' imxUntitledName
 ##'

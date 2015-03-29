@@ -33,7 +33,6 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
 .onLoad <- function(libname, pkgname) {
 	mxSetDefaultOptions()
-	imxUntitledNumberReset()
 	mxErrorPool(reset=TRUE)
 }
 
