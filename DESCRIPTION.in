@@ -1,6 +1,6 @@
 Package: OpenMx
 Date: @DATE@
-Title: Implements extended Structural Equation Modelling (SEM) in R
+Title: Extended Structural Equation Modelling (SEM)
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
     "Maes", role="aut"), person(c("Michael", "J."), "Wilde", role="ctb"), person("Michael",
@@ -16,12 +16,16 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     email='openmx-developers@virginia.edu', role='cre'))
 URL: http://openmx.psyc.virginia.edu
 BugReports: http://openmx.psyc.virginia.edu/forums
-Description: OpenMx fits extended Structural Equation Models (SEM).
-    Models may be specified in RAM paths, LISREL format or
-    directly in matrix algebra. OpenMx has modular expectations,
-	fit functions (including FIML, ML, and WLS), and optimizers. Model types
-    include confirmatory factor, multiple group, mixture
-    distribution, categorical threshold, IRT, differential
+Description: Extended Structural Equation Modelling (SEM).
+    Models may be specified with reticular action model (RAM) matrices or paths,
+    linear structural relations (LISREL) matrices or paths, or
+    directly in matrix algebra.
+    To increase modularity, model expectations,
+    fit functions, and optimizers can be easily interchanged.
+    Fit functions include full information maximum likelihood (FIML),
+    maximum likelihood (ML), and weighted least squares (WLS).
+    Possible models include confirmatory factor, multiple group, mixture
+    distribution, categorical threshold, modern test theory, differential
     equations, state space, and many others.
 License: Apache License (== 2.0) | file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
