@@ -81,6 +81,8 @@ imxLookupSymbolTable <- function(name) {
 	return(as.integer(index - 1))
 }
 
+##' @rdname omxLogical
+##' @export
 omxNot <- function(x) {
 	retval <- as.matrix(!x)
 	return(apply(retval, c(1,2), as.numeric))
