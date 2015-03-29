@@ -99,7 +99,6 @@ processErrorConditions <- function(model, unsafe, suppressWarnings) {
 	            "exited abnormally with the error message:",
 	            output$error), call. = FALSE)
     	} else {
-			unlockErrorPool()
 			.errorPoolList[[model@name]] <<- model
 	        stop(paste("The job for model", omxQuotes(model@name),
 	            "exited abnormally with the error message:",

@@ -13,23 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-unlockErrorPool <- function() {
-	if(.errorPoolLocked) {
-		namespace <- getNamespace("OpenMx")
-		unlockBinding('.errorPoolLocked', namespace)
-		.errorPoolLocked <<- FALSE
-		lockBinding('.errorPoolLocked', namespace)
-		unlockBinding('.errorPoolList', namespace)
-	}
-}
-
 mxErrorPool <- function(modelnames = NA, reset = FALSE) {
 	if (!is.logical(reset) || length(reset) != 1 || is.na(reset)) {
 		stop("'reset' argument must be either TRUE or FALSE")
 	} else if (!single.na(modelnames) && !is.character(modelnames)) {
 		stop("'modelnames' argument must be either NA or a chararacter vector")
 	} else if (reset) {
-		unlockErrorPool()
 		.errorPoolList <<- list()
 	}
 	if (single.na(modelnames)) {
@@ -48,6 +37,3 @@ mxErrorPool <- function(modelnames = NA, reset = FALSE) {
 	}
 	return(retval)
 }
-
-.errorPoolLocked <- TRUE
-.errorPoolList <- list()
