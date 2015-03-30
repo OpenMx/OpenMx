@@ -126,7 +126,6 @@ Collate:
     'MxCommunication.R'
     'MxRestore.R'
     'MxVersion.R'
-    'MxErrorPool.R'
     'MxPPML.R'
     'MxRAMtoML.R'
     'MxDiff.R'
