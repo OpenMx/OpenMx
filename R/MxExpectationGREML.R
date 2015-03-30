@@ -16,10 +16,15 @@
 setClass(Class = "MxExpectationGREML",
          slots = c(
            V = "MxCharOrNumber",
-           X = "MxCharOrNumber",
-           y = "MxCharOrNumber",
-           dV = "MxCharOrNumber",
-           dVnames = "character",
+           yvars = "character",
+           Xvars = "list",
+           addOnes="logical", 
+           blockByPheno="logical",
+           staggerZeroes="logical",
+           dataset.is.yX="logical",
+           X="matrix",
+           y="matrix",
+           casesToDrop="integer",
            numFixEff = "integer",
            dims = "character",
            definitionVars = "list",
@@ -31,17 +36,22 @@ setClass(Class = "MxExpectationGREML",
 #objects with new() instead of mxExpectationGREML(), the class constructor should provide defaults for all 
 #the slots...
 setMethod("initialize", "MxExpectationGREML",
-          function(.Object, V=character(0), X=character(0), y=character(0), dV=character(0), 
-                   dVnames=character(0),
+          function(.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
+                   blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE,
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
-            .Object@X <- X
-            .Object@y <- y
-            .Object@dV <- dV
+            .Object@yvars <- yvars
+            .Object@Xvars <- Xvars
+            .Object@addOnes <- addOnes
+            .Object@blockByPheno <- blockByPheno
+            .Object@staggerZeroes <- staggerZeroes
+            .Object@dataset.is.yX <- dataset.is.yX
             .Object@numFixEff <- integer(0)
             .Object@definitionVars <- definitionVars
             .Object@data <- data
+            .Object@X <- matrix(as.numeric(NA),1,1)
+            .Object@y <- matrix(as.numeric(NA),1,1)
             .Object@dims <- "foo"
             return(.Object)
           }
@@ -52,12 +62,6 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
           function(.Object, modelname, namespace) {
             .Object@name <- imxIdentifier(modelname, .Object@name)
             .Object@V <- imxConvertIdentifier(.Object@V, modelname, namespace)
-            .Object@X <- imxConvertIdentifier(.Object@X, modelname, namespace)
-            .Object@y <- sapply(.Object@y, imxConvertIdentifier, modelname, namespace)
-            if(length(.Object@dV)){
-              .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
-              .Object@dVnames <- names(.Object@dV)
-            }
             .Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
             return(.Object)
           })
@@ -66,7 +70,6 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
 setMethod("genericExpDependencies", signature("MxExpectationGREML"),
           function(.Object, dependencies) {
             sources <- c(.Object@V)
-            sources <- c(.Object@y)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -83,27 +86,45 @@ setMethod("genericExpAddEntities", "MxExpectationGREML",
 
 setMethod("genericExpRename", signature("MxExpectationGREML"),
           function(.Object, oldname, newname) {
-            .Object@X <- renameReference(.Object@X, oldname, newname)
             .Object@V <- renameReference(.Object@V, oldname, newname)
             .Object@data <- renameReference(.Object@data, oldname, newname)
-            .Object@y <- sapply(.Object@y, renameReference, oldname, newname)
-            if(length(.Object@dV)){
-              .Object@dV <- sapply(.Object@dV, renameReference, oldname, newname)
-            }
             return(.Object)
           })
 
-mxExpectationGREML <- function(V, X="X", y="y", dV=character(0)){
+mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
+                               staggerZeroes=TRUE, dataset.is.yX=FALSE){
+  blockByPheno <- as.logical(blockByPheno)[1]
+  staggerZeroes <- as.logical(staggerZeroes)[1]
+  addOnes <- as.logical(addOnes)[1]
+  dataset.is.yX <- as.logical(dataset.is.yX)[1]
   if (missing(V) || typeof(V) != "character") {
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
   }
-  if ( missing(X) || typeof(X) != "character" )  {
-    stop("argument 'X' is not of type 'character' (the name of the matrix of covariates)")
-  }
-  if ( missing(y) || typeof(y) != "character" ) {
-    stop("argument 'y' is not of type 'character'")
-  }
-  return(new("MxExpectationGREML", V, X, y, dV))
+  if(!dataset.is.yX){
+    if ( missing(yvars) || typeof(yvars) != "character" )  {
+      stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
+    }
+    if(!length(yvars)){
+      stop("you must specify at least one phenotype in argument 'yvars'")
+    }
+    if( !is.list(Xvars) ){
+      if(length(yvars)==1){Xvars <- list(Xvars)}
+      else{stop("argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1")}
+    }
+    if(length(Xvars)){
+      if( !all(sapply(Xvars,is.character)) ){
+        stop("elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)")
+      }
+      if( !staggerZeroes && !all(sapply(Xvars,length)==sapply(Xvars,length)[1]) ){
+        stop("all phenotypes must have the same number of covariates when staggerZeroes=FALSE")
+      }
+      if(length(Xvars)!=length(yvars)){
+        #In the polyphenotype case, the same covariates will often be used for all phenotypes:
+        if(length(Xvars)<length(yvars) && length(Xvars)==1){Xvars <- rep(Xvars,length.out=length(yvars))}
+        else{stop("conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'")}
+      }
+  }}
+  return(new("MxExpectationGREML", V, yvars, Xvars, addOnes, blockByPheno, staggerZeroes, dataset.is.yX))
 }
 
 
@@ -116,32 +137,176 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             if(is.na(.Object@data)){
               msg <- paste("the GREML expectation function",
                            "does not have a dataset associated with it in model",
-                           omxQuotes(modelname),
-                           "\nconsider setting up your model with mxGREMLStarter()")
+                           omxQuotes(modelname))
               stop(msg, call. = FALSE)
             }
             mxDataObject <- flatModel@datasets[[.Object@data]]
             checkNumericData(mxDataObject)
-            if(!is.null(mxDataObject$numObs)){mxDataObject$numObs <- 0}
+            if (mxDataObject@type != "raw") {
+              stop("GREML expectation only compatible with raw data",call.=F)
+            }
+            if(sum(apply(mxDataObject@observed, 2, is.factor))>0){
+              stop("GREML expectation not compatible with ordinal data", call.=F)
+            }
+            if(!length(colnames(mxDataObject@observed))){
+              msg <- paste("dataset does not have column names in model",omxQuotes(modelname))
+              stop(msg, call. = FALSE)
+            }
+            #if(!is.null(mxDataObject$numObs)){mxDataObject$numObs <- 0}
+            if(.Object@dataset.is.yX){
+              .Object@y <- as.matrix(mxDataObject@observed[,1])
+              .Object@X <- as.matrix(mxDataObject@observed[,-1])
+              .Object@numFixEff <- ncol(mxDataObject@observed)-1
+            }
+            else{
+              if(length(.Object@Xvars)){
+                .Object@numFixEff <- sum(sapply(.Object@Xvars, length)) + (length(.Object@yvars) * .Object@addOnes)
+              } #If Xvars is length 0, then the only covariates will be 1s (for the intercepts)
+              else{.Object@numFixEff <- length(.Object@yvars)}
+              if( !all(.Object@yvars %in% colnames(mxDataObject@observed)) ){
+                badname <- (yvars[!(yvars %in% colnames(mxDataObject@observed))])[1]
+                msg <- paste("'",badname,"' is not among the data column names",sep="")
+                stop(msg)
+              }
+              if( length(.Object@Xvars) && !all(unlist(.Object@Xvars) %in% colnames(mxDataObject@observed)) ){
+                badname <- (unlist(.Object@Xvars)[!(unlist(.Object@Xvars) %in% colnames(mxDataObject@observed))])[1]
+                msg <- paste("'",badname,"' is not among the data column names",sep="")
+                stop(msg)
+              }
+              mm <- GREMLDataHandler(data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
+                                     addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
+                                     staggerZeroes=.Object@staggerZeroes)
+              .Object@y <- mm$y
+              .Object@X <- mm$X
+              .Object@casesToDrop <- mm$casesToDrop
+            }
             #Get number of observed statistics BEFORE call to backend, so summary() can use it:
-            .Object@numStats <- nrow(mxEvalByName(.Object@y,model,T))
-            #Also get number of fixed effects:
-            .Object@numFixEff <- ncol(mxEvalByName(.Object@X,model,T))
-            #Right now, most checks on the data are unnecessary, since GREML presently ignores mxData objects...
-            #if (mxDataObject@type != "raw") {
-            #  stop("GREML expectation only compatible with raw data",call.=F)
-            #}
-            #if(sum(sapply(mxDataObject@observed, is.factor))>0){
-            #  stop("GREML expectation not compatible with ordinal data", call.=F)
-            #}
+            .Object@numStats <- nrow(.Object@y)
             dataName <- .Object@data
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
-            .Object@X <- imxLocateIndex(flatModel, .Object@X, name)
-            .Object@y <- imxLocateIndex(flatModel, .Object@y, name)
-            if(length(.Object@dV)){
-              .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
-            }
             return(.Object)
           })
+
+
+#Long-term, maybe the best thing is for this data-handling to be moved to the backend.  On the other hand,
+#it could be useful to keep it in the frontend and export this function as imx.
+GREMLDataHandler <- function(data, yvars, Xvars, addOnes, blockByPheno, staggerZeroes){
+  #Handle phenotypes:
+  y <- NULL
+  i <- 1
+  if(blockByPheno){ #Stack phenotypes
+    while(i <= length(yvars)){
+      y <- rbind(y,as.matrix(data[,yvars[i]]))
+      i <- i+1
+  }}
+  else{ #Stack cases
+    for(i in 1:nrow(data)){
+      y <- rbind(y,as.matrix(data[i,yvars]))
+  }}
+  if(length(yvars)==1){colnames(y) <- yvars}
+  else{colnames(y) <- "y"}
+  
+  #Assemble matrix of covariates:
+  X <- NULL
+  i <- 1
+  if(!length(Xvars)){
+    X <- diag(length(yvars)) %x% matrix(1,nrow=nrow(data),ncol=1)
+    colnames(X) <- paste("x",1:length(yvars),sep="")
+  }
+  else{
+    if(staggerZeroes){
+      if(blockByPheno){
+        while(i <= length(yvars)){
+          ncolprev <- ncol(X)
+          Xcurr <- as.matrix(data[ ,Xvars[[i]] ])
+          if(addOnes){Xcurr <- cbind(1,Xcurr)}
+          if(i==1){X <- Xcurr}
+          else{
+            X <- rbind(
+              cbind( X, matrix(0,nrow(X),ncol(Xcurr)) ),
+              cbind( matrix(0,nrow(Xcurr),ncol(X)), Xcurr )
+            )
+          }
+          if(length(yvars)==1){
+            if(addOnes){colnames(X) <- c("1",Xvars[[1]])}
+            else{colnames(X) <- Xvars[[1]]}
+          }
+          else{
+            if(i==1){
+              if(addOnes){colnames(X) <- paste(yvars[1], c("1",Xvars[[1]]), sep="_")}
+              else{colnames(X) <- paste(yvars[1], c(Xvars[[1]]), sep="_")}
+            }
+            else{
+              if(addOnes){colnames(X)[(ncolprev+1):ncol(X)] <- paste(yvars[i], c("1",Xvars[[i]]), sep="_")}
+              else{colnames(X)[(ncolprev+1):ncol(X)] <- paste(yvars[i], c(Xvars[[i]]), sep="_")}
+            }}
+          i <- i+1
+        }}
+      else{ #if !blockByPheno
+        while(i <= length(yvars)){
+          k <- i
+          Xcurr <- matrix(0,nrow(data)*length(yvars),ncol=length(Xvars[[i]])+addOnes)
+          if(length(yvars)==1){
+            if(addOnes){colnames(Xcurr) <- c("1",Xvars[[1]])}
+            else{colnames(Xcurr) <- Xvars[[1]]}
+          }
+          else{
+            if(addOnes){colnames(Xcurr) <- paste(yvars[i], c("1",Xvars[[i]]), sep="_")}
+            else{colnames(Xcurr) <- paste(yvars[i], c(Xvars[[i]]), sep="_")}
+          }
+          for(j in 1:nrow(data)){
+            if(addOnes){Xcurr[k,] <- c(1,as.vector(data[j,Xvars[[i]]]))}
+            else{Xcurr[k,] <- as.vector(data[j,Xvars[[i]]])}
+            k <- k+length(yvars)
+          }
+          if(i==1){X <- Xcurr}
+          else{X <- cbind(X,Xcurr)}
+          i <- i+1
+        }}}
+    else{ #if !staggerZeroes
+      if(blockByPheno){
+        while(i <= length(yvars)){
+          Xcurr <- as.matrix(data[ ,Xvars[[i]] ])
+          if(addOnes){
+            Xcurr <- cbind(1,Xcurr)
+            colnames(Xcurr) <- c("1",Xvars[[1]])
+          }
+          else{colnames(Xcurr) <- Xvars[[1]]}
+          if(i==1){X <- Xcurr}
+          else{X <- rbind(X,Xcurr)}
+          i <- i+1
+        }}
+      else{
+        for(i in 1:nrow(data)){
+          Xcurr <- matrix(NA,nrow=length(yvars),ncol=length(Xvars[[1]]))
+          for(j in 1:length(yvars)){
+            Xcurr[j,] <- as.vector(data[i,Xvars[[j]]])
+          }
+          if(addOnes){Xcurr <- cbind(1,Xcurr)}
+          if(i==1){
+            if(addOnes){colnames(Xcurr) <- c("1",Xvars[[1]])}
+            else{colnames(Xcurr) <- Xvars[[1]]}
+            X <- Xcurr
+          }
+          else{X <- rbind(X,Xcurr)}
+  }}}}
+  if( length(unique(colnames(X))) < ncol(X) ){
+    warning("resulting 'X' matrix has some redundant column names; is it full rank?")
+  }
+  
+  y.colnames <- colnames(y)
+  X.colnames <- colnames(X)
+  
+  #Identify which subjects have incomplete data:
+  whichHaveNA <- which(as.logical(rowSums(is.na(cbind(y,X)))))
+  if(length(whichHaveNA)){
+    y <- as.matrix(y[-whichHaveNA,])
+    colnames(y) <- y.colnames
+    X <- as.matrix(X[-whichHaveNA,])
+    colnames(X) <- X.colnames
+  }
+  
+  return(list(y=y, X=X, casesToDrop=whichHaveNA))
+}
 

@@ -22,4 +22,4 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc);
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra);
 
-void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop);
+omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os);
