@@ -163,6 +163,8 @@ computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 	rmseaSquared <- 0
 	RMSEA <- 0
 	RMSEACI <- c(lower=NA, upper=NA)
+	RMSEANull <- 0.05
+	RMSEAClose <- NA
 	if (!is.na(chiDoF) && chiDoF > 0) {
 		TLI <- ((independence-saturated)/(indDoF-satDoF) - (chi)/(DoF-satDoF))/((independence-saturated)/(indDoF-satDoF) - 1)
 					# Here we use N in the denominator as given in the original
@@ -170,28 +172,30 @@ computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 					# for sample sizes over 30. RMSEA should not be taken seriously
 					# such small samples anyway.
 		rmseaSquared <- (chi / (chiDoF) - 1) / numObs
-		RMSEACI <- c(lower=NA, upper=NA)
 		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
 		    is.nan(rmseaSquared)) { 
 					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 			RMSEA <- NA
 		} else {
-		  RMSEA <- ifelse(rmseaSquared < 0, 0.0, sqrt(rmseaSquared))
+			RMSEA <- ifelse(rmseaSquared < 0, 0.0, sqrt(rmseaSquared))
 			ci <- try(rmseaConfidenceIntervalHelper(chi, chiDoF, numObs, .025, .975))
 			if (!inherits(ci, "try-error")) RMSEACI <- ci
+			RMSEAClose <- rmseaPCloseHelper(chi, chiDoF, numObs, null=RMSEANull)
 		}
 	}
-	list(CFI=CFI, TLI=TLI, RMSEA=RMSEA, RMSEASquared=rmseaSquared, RMSEACI=RMSEACI)
+	list(CFI=CFI, TLI=TLI, RMSEA=RMSEA, RMSEASquared=rmseaSquared, RMSEACI=RMSEACI, RMSEAClose=RMSEAClose, RMSEANull=RMSEANull)
 }
 
 catFitStatistics <- function(x) {
 	cat("CFI:", x$CFI, '\n')
-	cat("TLI:", x$TLI, '\n')
+	cat("TLI:", x$TLI, '  (also known as NNFI)', '\n')
 	if (length(x$RMSEASquared) == 1 && !is.na(x$RMSEASquared) && x$RMSEASquared < 0.0) {
-	  cat("RMSEA:  ", x$RMSEA, " *(Non-centrality parameter is negative)", "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
+	  cat("RMSEA: ", x$RMSEA, " *(Non-centrality parameter is negative)", "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	} else {
 		cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	}
+	cat("Prob(RMSEA <= ", x$RMSEANull, "): ", x$RMSEAClose, '\n', sep='')
+	cat("GFI, AGFI, NFI (aka Bentler-Bonett), SRMR:", "Not Recommended", '\n')
 }
 
 fitStatistics <- function(model, useSubmodels, retval) {
@@ -241,7 +245,7 @@ omxRMSEA <- function(model, lower=.025, upper=.975, null=.05, ...){
 	N <- smod$numObs
 	rmsea <- smod$RMSEA
 	ci <- rmseaConfidenceIntervalHelper(chi.squared=x2, df=df, N=N, lower=lower, upper=upper)
-	pn <- 1-pchisq(x2, df=df, ncp=N*df*(null)^2)
+	pn <- rmseaPCloseHelper(x2, df, N, null)
 	return(c(ci[1], est.rmsea=rmsea, ci[2], null=null, `Prob(x <= null)`=pn))
 }
 
@@ -267,6 +271,10 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 
 pChiSqFun <- function(x, val, degf, goal){
 	goal - pchisq(val, degf, ncp=x)
+}
+
+rmseaPCloseHelper <- function(x2, df, N, null){
+	1-pchisq(x2, df=df, ncp=N*df*(null)^2)
 }
 
 
@@ -523,7 +531,8 @@ print.summary.mxmodel <- function(x,...) {
 	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){
 		cat("Some of your fit indices are missing.\n",
 			" To get them, fit saturated and independence models, and include them with\n",
-			" summary(yourModel, SaturatedLikelihood=..., IndependenceLikelihood=...).", '\n')
+			" summary(yourModel, refModels=...)", '\n',
+			" See help(mxRefModels) for an easy way of doing this in many cases.", '\n')
 	}
 	#
 	# Timing information
