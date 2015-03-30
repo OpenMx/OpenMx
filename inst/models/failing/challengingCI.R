@@ -15,11 +15,14 @@ if (is(got, "try-error")) {
 fit <- mxRun(mxModel(memprobmodel2, mxComputeOnce('fitfunction','fit')))
 target <- fit$output$fit + 3.841459
 
-for (engine in c("NPSOL", "CSOLNP")) {
-  ciModel <- mxModel("ciModel", memprobmodel2,
-                     mxAlgebra((target - ctsem.objective)^2 - ctsem.DRIFT[2,1], name="ci"),
-                     mxFitFunctionAlgebra("ci"),
-                     mxComputeGradientDescent(engine=engine))
-  fit <- mxRun(ciModel)
-  omxCheckCloseEnough(fit$ctsem$DRIFT$result[2,1], .3880241, .001)
-}
+ciModel <- mxModel("ciModel", memprobmodel2,
+                   mxAlgebra((target - ctsem.objective)^2 - ctsem.DRIFT[2,1], name="ci"),
+                   mxFitFunctionAlgebra("ci"),
+                   mxComputeGradientDescent(engine="CSOLNP"))
+print(ciModel$ctsem$DRIFT$result[2,1])
+ciModel <- mxRun(ciModel)
+csolnpBound <- ciModel$ctsem$DRIFT$result[2,1]
+print(csolnpBound)
+ciModel <- mxRun(mxModel(ciModel, mxComputeGradientDescent(engine="NPSOL")))
+omxCheckCloseEnough(ciModel$ctsem$DRIFT$result[2,1], .3880241, .001)
+omxCheckCloseEnough(csolnpBound, .3880241, .001)
