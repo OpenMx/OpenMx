@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxFitFunction.cc
 *
 *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
@@ -23,7 +23,7 @@
 *	FitFunction objects are a subclass of data matrix that evaluates
 *   itself anew at each iteration, so that any changes to
 *   free parameters can be incorporated into the update.
-*   // Question: Should FitFunction be a ``subtype'' of 
+*   // Question: Should FitFunction be a ``subtype'' of
 *   // omxAlgebra or a separate beast entirely?
 *
 **********************************************************/
@@ -86,7 +86,7 @@ const char *fitUnitsToName(int units)
 
 void omxFreeFitFunctionArgs(omxFitFunction *off) {
 	if(off==NULL) return;
-    
+
 	/* Completely destroy the fit function structures */
 	if(off->matrix != NULL) {
 		if (off->destructFun) off->destructFun(off);
@@ -100,7 +100,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 	omxFitFunction *ff = src->fitFunction;
 	if(ff == NULL) return;
-    
+
 	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber, ff->rObj);
 	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
 }
@@ -321,9 +321,9 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	obj->initFun(obj);
 
-	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType); 
+	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType);
 	if(obj->ciFun == NULL) obj->ciFun = defaultCIFun;
-	
+
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
 }

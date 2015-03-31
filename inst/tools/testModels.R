@@ -28,6 +28,7 @@ library(OpenMx)
 options('mxPrintUnitTests' = FALSE)
 
 directories <- c('models/passing')
+
 if (any(args == 'nightly')) {
 	directories <- c(directories, 'demo', 'models/nightly')
 }
@@ -106,6 +107,8 @@ errorRecover <- function(script, opt, index) {
 
 optimizers <- c('CSOLNP')
 if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
+#if (any(args == 'nightly'))  optimizers <- c(optimizers, 'SD')
+
 
 for (opt in optimizers) {
 	errors[[opt]] <- list()
