@@ -45,7 +45,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   SEXP rObj = oo->rObj;
-  SEXP nval, dV, dVnames;
+  SEXP dV, dVnames;
   int i=0;
   
   oo->units = FIT_UNITS_MINUS2LL;
@@ -82,15 +82,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
    if( newObj->V->rows != newObj->V->cols ){
     Rf_error("V matrix is not square");
   } */
-  
-  
-  //Tell the frontend fitfunction counterpart how many observations there are:
-  //(TODO move this to populate-attributes step)
-  {
-  ScopedProtect p1(nval, R_do_slot(rObj, Rf_install("numObs")));
-  int* numobs = INTEGER(nval);
-  numobs[0] = newObj->y->rows;
-  }
   
   //Derivatives:
   {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
@@ -182,10 +173,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       logdetquadX *= 2;
       
       //Finish computing fit (negative loglikelihood):
-      P = oge->Vinv.selfadjointView<Eigen::Lower>() * 
+      P = oge->Vinv * 
         (Eigen::MatrixXd::Identity(oge->Vinv.rows(),oge->Vinv.cols()) - 
           (EigX * oge->quadXinv * oge->XtVinv)); //Vinv * (I-Hatmat)
-      Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+      Py = P * Eigy;
       oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + (Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 
     }
@@ -200,7 +191,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       Eigen::VectorXd cholV_vectorD, cholquadX_vectorD;
       
       //Cholesky factorization of V:
-      cholV.compute(EigV.selfadjointView<Eigen::Lower>());
+      cholV.compute(EigV);
       if(cholV.info() != Eigen::Success){
         omxRaiseErrorf("expected covariance matrix is non-positive-definite");
         oo->matrix->data[0] = NA_REAL;
@@ -215,9 +206,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       
       Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
       
-      quadX = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>() * EigX; //<--Quadratic form in X
+      quadX = EigX.transpose() * Vinv * EigX; //<--Quadratic form in X
       
-      cholquadX.compute(quadX.selfadjointView<Eigen::Lower>()); //<--Cholesky factorization of quadX
+      cholquadX.compute(quadX); //<--Cholesky factorization of quadX
       if(cholquadX.info() != Eigen::Success){
         omxRaiseErrorf("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
         oo->matrix->data[0] = NA_REAL;
@@ -231,7 +222,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       
       //Finish computing fit:
       oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + 
-        (Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * (Eigy - yhat) )(0,0));
+        (Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
       gff->nll = oo->matrix->data[0]; 
       return;
     }
@@ -310,6 +301,19 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
+  SEXP rObj = oo->rObj;
+  //omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
+  SEXP nval;
+  int dataNumObs = (int)(oo->expectation->data->numObs);
+  
+  //Tell the frontend fitfunction counterpart how many observations there are...:
+  {
+  ScopedProtect p1(nval, R_do_slot(rObj, Rf_install("numObs")));
+  int* numobs = INTEGER(nval);
+  numobs[0] = 1L - dataNumObs; 
+  /*^^^^The end result is that number of observations will be reported as 1 in summary()...
+  which is always correct with GREML*/
+  }
 /*
   omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
   
@@ -382,3 +386,4 @@ omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os) {
 	}
 	return output;
 }
+

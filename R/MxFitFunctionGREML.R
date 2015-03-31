@@ -90,33 +90,3 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionGREML",
 mxFitFunctionGREML <- function(dV=character(0)){
   return(new("MxFitFunctionGREML",dV=dV))
 }
-
-
-
-#TODO: Make sure the fixed-effects results look OK in summary() output for multigroup model
-GREMLFixEffList <- function(model) {
-  if(length(model@submodels) > 0) {
-    ptable <- vector("list",length(model@submodels)+1)
-    names(ptable) <- c(model$name, names(model@submodels))
-    ptable[2:length(ptable)] <- lapply(model@submodels,GREMLFixEffList)
-    ptable[[1]] <- GREMLFixEffListHelper(model)
-    ptable <- ptable[sapply(ptable,function(x){!is.null(x)})]
-  } 
-  else{
-    ptable <- GREMLFixEffListHelper(model)
-  }
-  return(ptable)
-}
-
-GREMLFixEffListHelper <- function(model) {
-  ptable <- NULL
-  if( (length(model@output)==0) || (length(model$fitfunction$info$b)==0) ){ return(ptable) }
-  if(length(colnames(model[[model$expectation$X]]))>0){
-    ptable <- data.frame(name = colnames(model[[model$expectation$X]]), stringsAsFactors = F)
-  }
-  else{ptable <- data.frame(name = paste("x", 0:(ncol(model[[model$expectation$X]])-1), sep=""), 
-                            stringsAsFactors = F)}
-  ptable$coeff <- model$fitfunction$info$b
-  ptable$se <- sqrt(diag(model$fitfunction$info$bcov))
-  return(ptable)
-}

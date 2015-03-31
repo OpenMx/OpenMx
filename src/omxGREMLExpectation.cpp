@@ -25,7 +25,7 @@
 void omxInitGREMLExpectation(omxExpectation* ox){
   
   SEXP rObj = ox->rObj;
-  SEXP Rmtx, casesToDrop; //dV, dVnames
+  SEXP Rmtx, casesToDrop, yXcolnames;
   int i=0;
   omxState* currentState = ox->currentState;
   
@@ -80,6 +80,17 @@ void omxInitGREMLExpectation(omxExpectation* ox){
     Rf_error("y and V matrices do not have equal numbers of rows");
   }
   
+  //column names of y and X:
+  {
+  ScopedProtect p1(yXcolnames, R_do_slot(rObj, Rf_install("yXcolnames")));
+  oge->yXcolnames.resize(Rf_length(yXcolnames));
+  for(i=0; i < Rf_length(yXcolnames); i++){
+    SEXP elem;
+    {ScopedProtect p2(elem, STRING_ELT(yXcolnames, i));
+  	oge->yXcolnames[i] = CHAR(elem);}
+  }
+  }
+  
   //Initially compute everything involved in computing means:
   oge->alwaysComputeMeans = 1;
   oge->cholV_fail = 0; 
@@ -95,7 +106,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
     dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
-  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
+  cholV.compute(EigV);
   if(cholV.info() != Eigen::Success){
     Rf_error("Expected covariance matrix is non-positive-definite at initial values");
   }
@@ -103,14 +114,13 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
   oge->XtVinv = EigX.transpose() * oge->Vinv;
   quadX = oge->XtVinv * EigX;
-  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
+  cholquadX.compute(quadX);
   if(cholquadX.info() != Eigen::Success){
     Rf_error("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
-  oge->b = oge->quadXinv * oge->XtVinv * Eigy;
-  yhat = EigX * oge->b;
+  yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
   //Rf_error("Best to stop here");
   
   
@@ -166,8 +176,7 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
   if(oge->alwaysComputeMeans){
-    oge->b = oge->quadXinv * oge->XtVinv * Eigy;
-    yhat = EigX * oge->b;
+    yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
   }
   
 /*  if(oge->dVlength){
@@ -191,6 +200,41 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   
   Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->rows));
   Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
+  
+  EigenMatrixAdaptor Eigy(oge->y);
+  SEXP b_ext, bcov_ext, yXcolnames;
+  Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
+  
+  //ScopedProtect p1(b_ext, R_do_slot(algebra, Rf_install("b")));
+  //double* b = REAL(b_ext);
+  {
+  ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
+  for(int row = 0; row < GREML_b.rows(); row++){
+    REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
+  }
+  Rf_setAttrib(algebra, Rf_install("b"), b_ext);
+  }
+  
+  //ScopedProtect p2(bcov_ext, R_do_slot(algebra, Rf_install("bcov")));
+  //double* bcov = REAL(bcov_ext);
+  {
+  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), oge->quadXinv.cols()));
+  for(int row = 0; row < oge->quadXinv.rows(); row++){
+    for(int col = 0; col < oge->quadXinv.cols(); col++){
+      REAL(bcov_ext)[col * oge->quadXinv.rows() + row] = oge->quadXinv(row,col);
+  }}  
+  Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
+  }
+  
+  //yXcolnames:
+  {
+  ScopedProtect p1(yXcolnames, Rf_allocVector(STRSXP, oge->yXcolnames.size()));
+  for(int i=0; i < (int)(oge->yXcolnames.size()); i++){
+    SET_STRING_ELT(yXcolnames, i, Rf_mkChar(oge->yXcolnames[i]));
+  }
+  Rf_setAttrib(algebra, Rf_install("yXcolnames"), yXcolnames);
+  }
+  
 }
 
 
@@ -211,10 +255,32 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* o
   else if(strEQ("means", component)) {
   	retval = oge->means;
   }
-	if (retval) omxRecompute(retval, NULL);
+	if (retval) omxRecompute(retval, NULL); //<--Is this step necessary...?
 	
 	return retval;
 }
+
+
+
+static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
+{
+  int index = 0;
+  if(row >= om->originalRows || col >= om->originalCols) {
+  	char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
+			row + 1, col + 1, om->originalRows, om->originalCols);
+		Rf_error(errstr);
+		free(errstr);  // TODO not reached
+        return (NA_REAL);
+	}
+	if(om->colMajor) {
+		index = col * om->originalRows + row;
+	} else {
+		index = row * om->originalCols + col;
+	}
+	return om->data[index];
+}
+
 
 
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){

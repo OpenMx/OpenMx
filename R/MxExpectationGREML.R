@@ -24,7 +24,10 @@ setClass(Class = "MxExpectationGREML",
            dataset.is.yX="logical",
            X="matrix",
            y="matrix",
+           yXcolnames="character",
            casesToDrop="integer",
+           b="matrix",
+           bcov="matrix",
            numFixEff = "integer",
            dims = "character",
            definitionVars = "list",
@@ -37,7 +40,7 @@ setClass(Class = "MxExpectationGREML",
 #the slots...
 setMethod("initialize", "MxExpectationGREML",
           function(.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
-                   blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE,
+                   blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDrop=integer(0),
                    data = as.integer(NA), definitionVars = list(), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
@@ -48,6 +51,7 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@staggerZeroes <- staggerZeroes
             .Object@dataset.is.yX <- dataset.is.yX
             .Object@numFixEff <- integer(0)
+            .Object@casesToDrop <- casesToDrop
             .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@X <- matrix(as.numeric(NA),1,1)
@@ -92,7 +96,7 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
           })
 
 mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
-                               staggerZeroes=TRUE, dataset.is.yX=FALSE){
+                               staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0)){
   blockByPheno <- as.logical(blockByPheno)[1]
   staggerZeroes <- as.logical(staggerZeroes)[1]
   addOnes <- as.logical(addOnes)[1]
@@ -101,6 +105,7 @@ mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE
     stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
   }
   if(!dataset.is.yX){
+    casesToDropFromV <- integer(0) #<--Ignore casesToDropFromV unless dataset.is.yX is true
     if ( missing(yvars) || typeof(yvars) != "character" )  {
       stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
     }
@@ -124,7 +129,8 @@ mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE
         else{stop("conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'")}
       }
   }}
-  return(new("MxExpectationGREML", V, yvars, Xvars, addOnes, blockByPheno, staggerZeroes, dataset.is.yX))
+  return(new("MxExpectationGREML", V, yvars, Xvars, addOnes, blockByPheno, staggerZeroes, dataset.is.yX, 
+             casesToDrop=casesToDropFromV))
 }
 
 
@@ -155,7 +161,10 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             #if(!is.null(mxDataObject$numObs)){mxDataObject$numObs <- 0}
             if(.Object@dataset.is.yX){
               .Object@y <- as.matrix(mxDataObject@observed[,1])
+              #colnames(.Object@y) <- colnames(mxDataObject@observed)[1]
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
+              #colnames(.Object@X) <- colnames(mxDataObject@observed)[-1]
+              .Object@yXcolnames <- colnames(mxDataObject@observed)
               .Object@numFixEff <- ncol(mxDataObject@observed)-1
             }
             else{
@@ -176,9 +185,13 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               mm <- GREMLDataHandler(data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
                                      addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
                                      staggerZeroes=.Object@staggerZeroes)
-              .Object@y <- mm$y
-              .Object@X <- mm$X
+              .Object@y <- as.matrix(mm$yX[,1])
+              #colnames(.Object@y) <- colnames(mm$yX)[1]
+              .Object@X <- as.matrix(mm$yX[,-1])
+              #colnames(.Object@X) <- colnames(mm$yX)[-1]
+              .Object@yXcolnames <- colnames(mm$yX)
               .Object@casesToDrop <- mm$casesToDrop
+              .Object@numFixEff <- ncol(.Object@X)
             }
             #Get number of observed statistics BEFORE call to backend, so summary() can use it:
             .Object@numStats <- nrow(.Object@y)
@@ -307,6 +320,35 @@ GREMLDataHandler <- function(data, yvars, Xvars, addOnes, blockByPheno, staggerZ
     colnames(X) <- X.colnames
   }
   
-  return(list(y=y, X=X, casesToDrop=whichHaveNA))
+  return(list(yX=cbind(y,X),casesToDrop=whichHaveNA))
 }
 
+
+
+#TODO: Make sure the fixed-effects results look OK in summary() output for multigroup model
+GREMLFixEffList <- function(model) {
+  if(length(model@submodels) > 0) {
+    ptable <- vector("list",length(model@submodels)+1)
+    names(ptable) <- c(model$name, names(model@submodels))
+    ptable[2:length(ptable)] <- lapply(model@submodels,GREMLFixEffList)
+    ptable[[1]] <- GREMLFixEffListHelper(model)
+    ptable <- ptable[sapply(ptable,function(x){!is.null(x)})]
+  } 
+  else{
+    ptable <- GREMLFixEffListHelper(model)
+  }
+  return(ptable)
+}
+
+GREMLFixEffListHelper <- function(model) {
+  ptable <- NULL
+  if( (length(model@output)==0) || (length(model$expectation$b)==0) ){ return(ptable) }
+  if(length(model$expectation$yXcolnames) > 0){
+    ptable <- data.frame(name = model$expectation$yXcolnames[-1], stringsAsFactors = F)
+  }
+  else{ptable <- data.frame(name = paste("x", 0:(length(model$expectation$b)-1), sep=""), 
+                            stringsAsFactors = F)}
+  ptable$coeff <- model$expectation$b
+  ptable$se <- sqrt(diag(model$expectation$bcov))
+  return(ptable)
+}
