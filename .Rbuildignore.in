@@ -7,7 +7,7 @@
 ^inst/CITATION.in
 ^.dir-locals.el
 ^.gdbinit
-.*.log
+.*\.log$
 oprofile_data
 annotated
 cachegrind.out.*
