@@ -1,6 +1,6 @@
 Package: OpenMx
-Date: 2014-05-20
-Title: Multipurpose Software for Statistical Modeling
+Date: @DATE@
+Title: Extended Structural Equation Modelling (SEM)
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
     "Maes", role="aut"), person(c("Michael", "J."), "Wilde", role="ctb"), person("Michael",
@@ -13,33 +13,36 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
     role="aut"), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"), 
     person("Team", "OpenMx",
-    email='openmx-developers@list.mail.virginia.edu', role='cre'))
+    email='openmx-developers@virginia.edu', role='cre'))
 URL: http://openmx.psyc.virginia.edu
-Description: The OpenMx Project intends to rewrite and extend the popular
-    statistical package Mx to address the challenges facing a large range of
-    modern statistical problems such as: the difficulty of measuring behavioral
-    traits; the availability of technologies - such as such as magnetic
-    resonance imaging, continuous physiological monitoring and microarrays -
-    which generate extremely large amounts of data often with complex
-    time-dependent patterning; and increased sophistication in the statistical
-    models used to analyze the data.
-License_is_FOSS: yes
-License: file LICENSE
+BugReports: http://openmx.psyc.virginia.edu/forums
+Description: Extended Structural Equation Modelling (SEM).
+    Models may be specified with reticular action model (RAM) matrices or paths,
+    linear structural relations (LISREL) matrices or paths, or
+    directly in matrix algebra.
+    To increase modularity, model expectations,
+    fit functions, and optimizers can be easily interchanged.
+    Fit functions include full information maximum likelihood (FIML),
+    maximum likelihood (ML), and weighted least squares (WLS).
+    Possible models include confirmatory factor, multiple group, mixture
+    distribution, categorical threshold, modern test theory, differential
+    equations, state space, and many others.
+License: Apache License (== 2.0) | file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
 Depends:
 	R (>= 3.0.2),
-    methods,
     digest,
     MASS,
+    methods,
     parallel
 Suggests:
-    snowfall,
-    roxygen2 (>= 3.1),
-    mvtnorm,
-    rpf (>= 0.36),
-    numDeriv,
     Matrix,
-    Rmpi
+    mvtnorm,
+    numDeriv,
+    roxygen2 (>= 3.1),
+    Rmpi,
+    rpf (>= 0.36),
+    snowfall
 LazyLoad: yes
 LazyData: yes
 Collate:
@@ -123,7 +126,6 @@ Collate:
     'MxCommunication.R'
     'MxRestore.R'
     'MxVersion.R'
-    'MxErrorPool.R'
     'MxPPML.R'
     'MxRAMtoML.R'
     'MxDiff.R'
@@ -140,4 +142,4 @@ Collate:
     'MxExpectationGREML.R'
     'MxMI.R'
     'zzz.R'
-Version: VERSION
+Version: @VERSION@

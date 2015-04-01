@@ -8,8 +8,10 @@ Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} unti
 }
 
 \usage{
-mxTryHard(model, extraTries=10, greenOK=FALSE, loc=1,
-          scale=0.25, checkHess=TRUE, fit2beat=Inf, paste=TRUE, ...)
+mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, 
+  scale = 0.25, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
+  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE,
+  ...)
 }
 
 \arguments{
@@ -20,6 +22,9 @@ mxTryHard(model, extraTries=10, greenOK=FALSE, loc=1,
   \item{checkHess}{Logical; is a positive-definite Hessian a requirement for an acceptable solution?  Defaults to \code{TRUE}.}
   \item{fit2beat}{An upper limit to the objective-function value that an acceptable solution may have.  Useful if a nested submodel of \code{model} has already been fitted, since \code{model}, with its additional free parameters, should not yield a fit-function value any greater than that of the submodel.}
   \item{paste}{Logical.  If \code{TRUE} (default), start values for the returned fitted model are printed to console as a comma-separated string.  This is useful if the user wants to copy-paste these values into an \R script, say, in an \code{\link{omxSetParameters}()} statement. If \code{FALSE}, the vector of start values is printed as-is.  Note that this vector, from \code{\link{omxGetParameters}()}, has names corresponding to the free parameters; these names are not displayed when \code{paste=TRUE}.}
+  \item{iterationSummary}{Logical. If \code{TRUE}, displays parameter estimates and fit values for every fit attempt. Defaults to \code{FALSE}.}
+  \item{bestInitsOutput}{Logical. If \code{TRUE}, outputs starting values that resulted in best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.}
+  \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt. Defaults to \code{FALSE}.}
   \item{...}{Additional arguments to be passed to \code{\link{mxRun}()} (for example, \code{intervals=TRUE}).  Note that \code{mxTryHard()} always internally invokes \code{\link{mxRun}()} with argument \code{suppressWarnings=TRUE}.}
 }
 

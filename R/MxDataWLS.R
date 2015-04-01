@@ -92,7 +92,6 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	#	given particular threshold values
 	#	to be used for jacobian
 	# model: returns model -log likelihood
-	require(mvtnorm)
 	if (ncol(rawData)!=2)stop("Raw data must contain two variables.")
 	if (ncol(thresh)!=2)stop("Threshold matrix must contain two columns.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
@@ -130,7 +129,6 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	}
 
 rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
-	require(mvtnorm)
 	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	
@@ -145,7 +143,6 @@ rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mod
 	}
 
 psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTwo=TRUE){
-	require(mvtnorm)
 	if (ncol(rawData)!=2)stop("Raw data must contain two variables.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	isOrd <- unlist(lapply(rawData, is.ordered))
@@ -251,7 +248,6 @@ normLogLikHess <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 
 
 rc3LogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
-	require(mvtnorm)
 	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
 	if (length(k)!=3)stop("Please provide a variance, a covariance, and another variance to be tested.")
 	
@@ -396,12 +392,6 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	#
 	#available types
 	wlsTypes <- c("ULS", "DLS", "WLS", "XLS")
-	
-	# load required libraries
-	require(OpenMx)
-	require(mvtnorm)
-	require(numDeriv)
-	require(Matrix)
 	
 	# error checking
 	if (!is.data.frame(data)){

@@ -93,9 +93,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	int *Infin;
 	omxDefinitionVar* defVars;
 	
-	omxExpectation* expectation;
-	
-
 	// Locals, for readability.  Compiler should cut through this.
 	cov 		= ofo->cov;
 	means		= ofo->means;
@@ -126,7 +123,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 
 	Infin			= ofo->Infin;
-	expectation 	= localobj->expectation;
+	omxExpectation* expectation = localobj->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	Eigen::VectorXi ordRemove(cov->cols);

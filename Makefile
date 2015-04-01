@@ -88,7 +88,7 @@ code-style: $(RFILES)
 	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
 
 build-prep:
-	@if [ $$(git diff --shortstat 2> /dev/null | wc -l) = 1 ]; then \
+	@if [ $$(git status --short --untracked-files=no 2> /dev/null | wc -l) != 0 ]; then \
 	  echo '***'; echo "*** UNCOMMITTED CHANGES IGNORED ***"; \
 	  echo '***'; echo "*** Use 'git diff' to see what is uncommitted"; \
           echo '***'; fi
@@ -111,7 +111,7 @@ srcbuild: build-prep
 cran-check: cran-build
 	$(REXEC) CMD check --as-cran build/OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 220 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 105 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 pdf:
 	./util/prep npsol

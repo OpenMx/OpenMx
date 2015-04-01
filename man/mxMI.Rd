@@ -73,11 +73,17 @@ factorModel <- mxModel("One Factor",
       mxPath(from=latents, arrows=2,
             free=FALSE, values=1.0),
       mxPath(from = 'one', to = manifests),
-      mxData(demoOneFactor, type="raw"))
+      mxData(demoOneFactor[1:200,], type="raw")) #Not full data
+#No SEs for speed
+factorModel <- mxOption(factorModel, 'Standard Errors', 'No')
 factorRun <- mxRun(factorModel)
 
 # See if it should be modified
-fim <- mxMI(factorRun, full=FALSE)
+# Notes
+#  Using full=FALSE for faster performance
+#  Using matrices= 'A' and 'S' to not get MIs for
+#    the F matrix which is always fixed.
+fim <- mxMI(factorRun, matrices=c('A', 'S'), full=FALSE)
 round(fim$MI, 3)
 plot(fim$MI, ylim=c(0, 10))
 abline(h=qchisq(p=1-0.01, df=1)) # line of "significance"

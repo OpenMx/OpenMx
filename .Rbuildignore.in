@@ -4,9 +4,10 @@
 .gitignore
 .gitattributes
 ^inst/npsol
+^inst/CITATION.in
 ^.dir-locals.el
 ^.gdbinit
-.*.log
+.*\.log$
 oprofile_data
 annotated
 cachegrind.out.*
@@ -23,13 +24,9 @@ cachegrind.out.*
 ^.Rbuildignore*
 ^man/README$
 .*\.omx$
-^docs/build
+^docs
 ^stan/
 ^OpenMx-html\.tar\.bz2$
-^docs/source/static/demo/.*$
-^docs/source/static/Rdoc/.*$
-^middle/node_modules
-^docs/source/cache/.*$
-^docs/source/.*\.Rout$
 ^cran-check.log$
 ^middle
+^configure.win$

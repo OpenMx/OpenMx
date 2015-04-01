@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -o nounset
 
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
@@ -48,15 +47,6 @@ Makeconf=$(find $R_HOME_DIR/etc -print | egrep 'Makeconf$' )
 echo "Change default C/C++ compiler and default compile flags by editing $Makeconf"
 
 CXX=$($REXEC CMD config CXX)
-
-COMPILER_CXXFLAGS=
-COMPILER_LDFLAGS=
-arch_CXXFLAGS=
-arch_LDFLAGS=
-OPENMP_CXXFLAGS=
-OPENMP_LDFLAGS=
-xcheck_CXXFLAGS=
-xcheck_LDFLAGS=
 
 if isdef __clang__; then
     cxx_type=clang
@@ -162,6 +152,17 @@ echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
 echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars
 echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars
 echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars
+
+# check for special environment variables
+if [ "x$IMX_SAFE" = x1 ]; then
+    echo 'DEBUG_CXXFLAGS=$(xcheck_CXXFLAGS) -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars
+    echo 'DEBUG_LDFLAGS=$(xcheck_LDFLAGS)' >> src/Makevars
+elif [ "x$IMX_GCOV" = x1 ]; then
+    # To collect gcov statistics (gcc only)
+    echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars
+    echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars
+fi
+
 echo >> src/Makevars
 echo "# ---- appending Makevars.in ----" >> src/Makevars
 echo >> src/Makevars

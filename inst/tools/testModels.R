@@ -19,6 +19,10 @@ if (any(args == 'gctorture')) {
 	cat("*** GCTORTURE ENABLED ***\n");
 }
 
+if (all(file.exists("inst/models", "models") == c(TRUE,FALSE))) {
+	file.symlink("inst/models", "models")
+}
+
 library(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)

@@ -359,10 +359,10 @@ removeAllIntervals <- function(model) {
 ##'      mxPath(from=latents, arrows=2,
 ##'            free=FALSE, values=1.0),
 ##'      mxPath(from = 'one', to = manifests),
-##'      mxData(demoOneFactor, type="raw"),
-##'      mxCI(c('A', 'S'))) # add confidence intervals for free params in A and S matrices
+##'      mxData(demoOneFactor[1:100,], type="raw"), #cut number of rows for speed
+##'      mxCI(c('A'))) # add confidence intervals for free params in A matrix
 ##' factorRun <- mxRun(factorModel)
-##' factorCI <- omxParallelCI(factorRun)
+##' factorCI <- omxParallelCI(factorRun) # Run CIs in parallel
 omxParallelCI <- function(model, run = TRUE) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")

@@ -45,7 +45,7 @@ omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(sfClusterApplyLB(x, fun, ...))
+		return(snowfall::sfClusterApplyLB(x, fun, ...))
 	} else if ("package:Rmpi" %in% libraries) {
 		return(Rmpi::mpi.parLapply(x, imxMpiWrap(fun), ...))
 	} else {
@@ -57,7 +57,7 @@ omxSapply <- function(x, fun, ..., simplify = TRUE, USE.NAMES = TRUE) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
+		return(snowfall::sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
 	} else {
 		return(sapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
 	}
@@ -67,7 +67,7 @@ omxApply <- function(x, margin, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(sfApply(x, margin, fun, ...))
+		return(snowfall::sfApply(x, margin, fun, ...))
 	} else {
 		return(apply(x, margin, fun, ...))
 	}

@@ -27,7 +27,8 @@
 mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
     cache = new.env(parent = emptyenv()), cacheBack = FALSE)
 
-mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1)
+mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1,
+    cache = new.env(parent = emptyenv()), cacheBack = FALSE)
 }
 
 \arguments{

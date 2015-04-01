@@ -15,21 +15,7 @@ NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
 # DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=1  # basic debugging without extra logging
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
-
-# To collect gcov statistics (gcc only)
-ifeq ($(IMX_GCOV),1)
-     DEBUG_CXXFLAGS+=--coverage
-     DEBUG_LDFLAGS+=--coverage
-endif
-
-ifeq ($(IMX_SAFE),1)
-        DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG
-        DEBUG_LDFLAGS+=$(xcheck_LDFLAGS)
-endif
-
-ifneq ($(DEBUG_CXXFLAGS),)
-      DEBUG_CXXFLAGS+=-UNDEBUG
-endif
+# DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
 
 PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS)
 PKG_LIBS=$(OPENMP_LDFLAGS) $(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)

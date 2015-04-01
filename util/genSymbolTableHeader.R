@@ -1,7 +1,4 @@
-symbolTable <- 'data/omxSymbolTable.tab'
-if (file.access(symbolTable) < 0) {
-	symbolTable <- 'data/omxSymbolTable.tab.gz'
-} 
+symbolTable <- 'util/omxSymbolTable.tab'
 table <- read.table(symbolTable, header = TRUE)
 
 declares <- apply(table, 1, function(x) {		# Generates a declaration line for each of the functions in the table.

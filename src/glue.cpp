@@ -107,6 +107,17 @@ static SEXP testMxLog(SEXP Rstr) {
 	return Rf_ScalarLogical(1);
 }
 
+static int untitledCounter = 0;
+
+static SEXP untitledNumberReset() {
+	untitledCounter = 0;
+	return Rf_ScalarLogical(1);
+}
+
+static SEXP untitledNumber() {
+	return Rf_ScalarInteger(++untitledCounter);
+}
+
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 10},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -118,6 +129,8 @@ static R_CallMethodDef callMethods[] = {
 	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
 	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
 	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},
+	{"untitledNumberReset", (DL_FUNC) &untitledNumberReset, 0},
+	{"untitledNumber", (DL_FUNC) &untitledNumber, 0},
 	{NULL, NULL, 0}
 };
 

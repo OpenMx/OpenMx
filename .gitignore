@@ -18,8 +18,10 @@
 /src/npsolswitch.h
 /src/Makevars.win
 /inst/no-npsol
+/inst/CITATION
 /DESCRIPTION
 /R/MxVersion.R
+/R/sysdata.rda
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
 man/expm.Rd

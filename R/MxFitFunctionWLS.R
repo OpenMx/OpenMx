@@ -218,7 +218,6 @@ imxWlsStandardErrors <- function(model){
 	# Is it a WLS fit function
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
-	require(numDeriv)
 	theParams <- omxGetParameters(model)
 	d <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
 	V <- model$data$acov #used weight matrix
@@ -235,7 +234,6 @@ imxWlsStandardErrors <- function(model){
 
 
 imxWlsChiSquare <- function(model, J=NA){
-	require(numDeriv)
 	theParams <- omxGetParameters(model)
 	samp.param <- .mat2param(theParams, model)
 	cov <- model$data$observed

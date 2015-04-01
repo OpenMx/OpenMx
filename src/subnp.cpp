@@ -7,10 +7,10 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 #include <Eigen/Dense>
-#include <iostream>
-#include <iomanip>
-using std::cout;
-using std::endl;
+//#include <iostream>
+//#include <iomanip>
+//using std::cout;
+//using std::endl;
 
 struct CSOLNP {
 
@@ -121,16 +121,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         pb_cont_e.col(1) = UB_e;
         pb_e.transposeInPlace();
         pb_cont_e.transposeInPlace();
-        if (verbose == 3){
-            cout << "pb_e:\n" << pb_e << endl;
-            cout << "pb_cont_e:\n" << pb_cont_e << endl;
-        }
         Eigen::MatrixXd pbJoined(2, nineq + np);
         pbJoined << pb_e, pb_cont_e;
         pbJoined.transposeInPlace();
-        if (verbose == 3){
-            cout << "pbJoined:\n" << pbJoined << endl;
-        }
         pb_e.resize(pbJoined.rows(), pbJoined.cols());
         pb_e = pbJoined;
         
@@ -253,10 +246,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         ob_e = funvMatrix_e;
     }
     
-    if(verbose >= 3){
-        cout << "ob_e is:" << ob_e << endl;
-    }
-    
     Eigen::RowVectorXd vscale_e;
     
     while(solnp_iter < maxit){
@@ -285,24 +274,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         vscale_e << vscale_t, onesMatrix;
         
         minMaxAbs(vscale_e, tol);
-        
-        if (verbose >= 1){
-            mxLog("------------------------CALLING SUBNP------------------------");
-            cout<< "p_e is:" << p_e<< endl;
-            mxLog("lambda information: ");
-            cout<< lambda_e << endl;
-            mxLog("ob information: ");
-            cout<< ob_e << endl;
-            mxLog("hessv information: ");
-            cout<< hessv_e << endl;
-            mxLog("mu information: ");
-            mxLog("%f", mu);
-            mxLog("vscale information: ");
-            cout<< vscale_e << endl;
-            mxLog("subnp_ctrl information: ");
-            cout<< subnp_ctrl << endl;
-            mxLog("------------------------END CALLING SUBNP------------------------");
-        }
         
         if (mode == -1)
         {
@@ -413,12 +384,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
             ob_e = funvMatrix_e;
         }
         
-        if (verbose >= 1){
-            mxLog("j2 in while: \n");
-            mxLog("%f", j);
-            cout<< "ob_e is" << ob_e << endl;
-        }
-        
         resultForTT = (j - ob_e(0, 0)) / std::max(ob_e.cwiseAbs().maxCoeff(), 1.0);
         tt_e[0] = resultForTT;
         if (verbose >= 1){
@@ -505,11 +470,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
         tempTTVals[1] = tt_e[1];
         double vnormValue = tempTTVals.squaredNorm();
 
-        if (verbose >= 3){
-            mxLog("sx_Matrix (search direction) is: \n");
-            cout<< sx_Matrix << endl;
-        }
-        
         if (verbose >= 1) {
 		mxLog("vnormValue %.20f, flag_NormgZ=%d, minr_rec=%d",
 		      vnormValue, flag_NormgZ, minr_rec);
@@ -603,26 +563,15 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         pb_cont_e.col(1) = UB_e;
         pb_e.transposeInPlace();
         pb_cont_e.transposeInPlace();
-        if (verbose == 3){
-            cout << "pb_e:\n" << pb_e << endl;
-            cout << "pb_cont_e:\n" << pb_cont_e << endl;
-        }
         Eigen::MatrixXd pbJoined(2, nineq + np);
         pbJoined << pb_e, pb_cont_e;
         pbJoined.transposeInPlace();
-        if (verbose == 3){
-            cout << "pbJoined:\n" << pbJoined << endl;
-        }
         pb_e.resize(pbJoined.rows(), pbJoined.cols());
         pb_e = pbJoined;
     } else {
         pb_e.setZero(np, 2);
         pb_e.col(0) = LB_e;
         pb_e.col(1) = UB_e;
-    }
-    
-    if (verbose >= 3){
-        cout<< "pb_e is: \n" << pb_e<< endl;
     }
     
     Eigen::Array<double, 3, 1> sob;
@@ -632,11 +581,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     
     ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
     p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
-    
-    if (verbose >= 3){
-        cout<< "p0_e: \n"<< p0_e<< endl;
-        cout<< "vscale_e: \n"<< vscale_e<< endl;
-    }
     
     int mm = 0;
     {
@@ -648,11 +592,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         pb_e = pb_e.cwiseQuotient(pbCopied);
     }
     
-    if (verbose >= 3){
-        mxLog("pb is: \n");
-        cout<< pb_e << endl;
-    }
-    
     // scale the lagrange multipliers and the Hessian
     if( nc > 0) {
         // yy [total constraints = nineq + neq]
@@ -661,9 +600,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         
         yy_e = vscale_e.block(0, 1, 1, nc).transpose().array() * yy_e.array();
         yy_e = yy_e / vscale_e[0];
-        if (verbose >= 3){
-            cout << "yy_e:\n" << yy_e << endl;
-        }
     }
     
     // hessv [ (np+nineq) x (np+nineq) ]
@@ -805,8 +741,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             if (verbose >= 3){
                 mxLog("g is: \n");
                 for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
-                mxLog("a is: \n");
-                cout<< a_e << endl;
             }
             
             a_e.col(index) = (ob_e.block(0, 1, 1, nc) - constraint_e).transpose() / delta;
@@ -940,11 +874,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         y_e(0, 0) = 0;
     }
 
-    if (verbose >= 3){
-        mxLog("p is: \n");
-        cout << p_e << endl;
-    }
-    
     if (ch > 0){
         
         Eigen::MatrixXd tmpv_e;
@@ -998,11 +927,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         ob_e = firstPart_e;
         
     } // end of if (ch>0)
-    
-    if (verbose >= 3){
-        mxLog("ob is: \n");
-        cout<< ob_e << endl;
-    }
     
     j = ob_e(0, 0);
     
@@ -1126,61 +1050,27 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             }
         } // end if (ch > 0){
         
-        if (verbose >= 3){
-            mxLog("yg is: \n");
-            cout<< yg_e << endl;
-        }
-        
         if (minit > 1){
-            if (verbose >= 3){
-                cout<< "hessv_e is: \n"  << hessv_e << endl;
-                cout<< "yg_e is: \n"  << yg_e << endl;
-                cout<< "sx_e is: \n"  << sx_e << endl;
-                cout<< "g_e is: \n"  << g_e << endl;
-                cout<< "p_e is: \n"  << p_e << endl;
-            }
-            
             yg_e = g_e - yg_e;
             sx_e = p_e - sx_e;
-            if (verbose >= 3){
-                cout<< "sx_e rows is: \n"<< sx_e.rows() << endl;
-                cout<< "sx_e cols is: \n"<< sx_e.cols() << endl;
-            }
             Eigen::MatrixXd sc_m1 = (sx_e * hessv_e) * sx_e.transpose();
-            if (verbose >= 3)
-                cout<< "sc_:m1 \n" << sc_m1 << endl;
             Eigen::MatrixXd sc_m2 = sx_e * yg_e.transpose();
-            if (verbose >= 3)
-                cout<< "sc_m2: \n" << sc_m2 << endl;
             Eigen::RowVectorXd sc_e(2);
             sc_e[0] = sc_m1(0, 0);
             sc_e[1] = sc_m2(0, 0);
-            if (verbose >= 3)
-                cout<< "sc_e: \n" << sc_e << endl;
             if ((sc_e[0] * sc_e[1]) > 0){
                 //hessv  = hessv - ( sx %*% t(sx) ) / sc[ 1 ] + ( yg %*% t(yg) ) / sc[ 2 ]
                 Eigen::MatrixXd sx_t = sx_e.transpose();
                 sx_e.resize(hessv_e.rows(), sx_t.cols());
                 sx_e = hessv_e * sx_t;
                 
-                if (verbose >= 3)
-                    cout<< "sx_e: \n" << sx_e << endl;
                 Eigen::MatrixXd sxMatrix = sx_e * sx_e.transpose();
                 sxMatrix /= sc_e[0];
-                if (verbose >= 3)
-                    cout<< "sxMatrix: \n" << sxMatrix << endl;
                 Eigen::MatrixXd ygMatrix = yg_e.transpose() * yg_e;
                 ygMatrix /= sc_e[1];
-                if (verbose >= 3)
-                    cout<< "ygMatrix: \n" << ygMatrix << endl;
                 hessv_e -= sxMatrix;
                 hessv_e += ygMatrix;
             }
-        }
-        if (verbose >= 3){
-            cout<< "yg_e: \n" << yg_e << endl;
-            cout<< "sx_e: \n" << sx_e << endl;
-            cout<< "hessv_e: \n" << hessv_e << endl;
         }
         
         Eigen::MatrixXd dx_e(1, npic);
@@ -1200,10 +1090,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             gap_e.resize(mm, 1);
             gap_e = gap_eTemp;
             dx_e.block(0, 0, 1, mm) = temp.cwiseQuotient(gap_e).transpose();
-            if (verbose >= 3){
-                mxLog("dx is: \n");
-                cout << dx_e << endl;
-            }
         }
         
         go = -1;
@@ -1212,8 +1098,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         if (verbose >= 3){
             mxLog("lambdaValue is: \n");
             mxLog("%.20f", lambdaValue);
-            mxLog("hessv is: \n");
-            cout<< hessv_e << endl;
         }
         
         while(go <= 0){
@@ -1221,28 +1105,15 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             dxDiagValues = dx_e.cwiseProduct(dx_e);
             Eigen::MatrixXd cz_e;
             cz_e = dxDiagValues.asDiagonal();
-            if (verbose >= 3){
-                cout<< "cz_e size is:	"<< cz_e.rows()<< endl;
-                cout<< "cz_e size is:	"<< cz_e.cols()<< endl;
-                cout<< "cz_e diag is: \n"  << cz_e << endl;
-                cout<< "dxDiagValues.asDiagonal() is: \n" << dxDiagValues.asDiagonal().rows() << endl;
-                cout<< "dxDiagValues.asDiagonal() is: \n" << dxDiagValues.asDiagonal().cols() << endl;
-                cout<< "cz_e lambda is: \n"  << cz_e * lambdaValue << endl;
-            }
             cz_e = hessv_e + (cz_e * lambdaValue);
-            if (verbose >= 3){
-                cout<< "cz_e is: \n"  << cz_e << endl;
-            }
             Eigen::MatrixXd cz_chol = cz_e.llt().matrixL();
             cz_chol.transposeInPlace();
 
-            if (verbose >= 3){
-                cout<< "cz_chol is: \n"  << cz_chol << endl;
-            }
-            
             if (!R_FINITE((cz_e.maxCoeff())))
             {
-                mxLog("here in findMax");
+                if (verbose >= 3){
+                    mxLog("here in findMax");
+                }
                 flag = 1;
                 p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
                 if (nc > 0){ y_e.resize(1, 1); y_e(0, 0) = 0;}
@@ -1261,58 +1132,33 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             if (verbose >= 3){
                 mxLog("cz.rows: %d", cz_chol.rows());
                 mxLog("cz.cols: %d", cz_chol.cols());
-                cout<< "cz_chol.inverse is: \n"  << cz_inv << endl;
             }
             
-            if (verbose >= 3){
-                cout<< "g_e is: \n"  << g_e << endl;
-            }
             yg_e.resize(cz_inv.cols(), g_e.rows());
             yg_e = cz_inv.transpose() * g_e.transpose();
             if (minit == 1) yg_rec(0, 0) = yg_e.squaredNorm();
             
-            if (verbose >= 3){
-                cout<< "yg_e is: \n"  << yg_e << endl;
-            }
             Eigen::MatrixXd u_e;
             if (nc <= 0){
                 u_e = (cz_inv * (-1.0)) * yg_e;
                 u_e.transposeInPlace();
-                if (verbose >= 3){
-                    cout<< "u_e is: \n"  << u_e << endl;
-                }
             }
             else{
                 //y = qr.solve(t(cz) %*% t(a), yg)
                 Eigen::MatrixXd argum1_e;
                 argum1_e = cz_inv.transpose() * a_e.transpose();
-                if (verbose >= 3){
-                    cout<< "argum1_e is: \n"  << argum1_e << endl;
-                }
                 Eigen::MatrixXd solution;
                 
                 solution = QRdsolve(argum1_e, yg_e);
                 
-                if (verbose >= 3){
-                    cout<< "solution is: \n"  << solution << endl;
-                }
                 y_e.resize(solution.cols(), solution.rows());
                 y_e = solution.transpose();
                 u_e = (cz_inv * (-1.0)) * (yg_e - (argum1_e * solution));
                 u_e.transposeInPlace();
-                if (verbose >= 3){
-                    cout<< "u_e is: \n" << u_e << endl;
-                }
             }
             
             p0_e.resize(npic);
             p0_e = u_e.block(0, 0, 1, npic) + p_e;
-            
-            if (verbose >= 3){
-                cout<< "p0_e is: \n"  << p0_e << endl;
-                cout<< "pb_e is: \n"  << pb_e.col(0) << endl;
-                cout<< "mm is: \n" << mm << endl;
-            }
             
             {
                 Eigen::MatrixXd listPartOne = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
@@ -1350,22 +1196,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         ptt_temp << ptt_e, p0_e.transpose();
         ptt_e.resize(ptt_temp.rows(), ptt_temp.cols());
         ptt_e = ptt_temp;
-        if (verbose >= 3){
-            cout<< "ptt_e is: \n"  << ptt_e << endl;
-        }
         Eigen::MatrixXd pttCol;
         pttCol = ptt_e.col(2);
         Eigen::MatrixXd tmpv_e = pttCol.transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
         
-        if (verbose >= 3){
-            cout<< "tmpv_e is: \n"  << tmpv_e << endl;
-        }
-        
         mode = 1;
         funv = fit.solFun(tmpv_e.data(), &mode);
         if (verbose >= 3){
-            mxLog("hessv is: \n");
-            cout<< hessv_e << endl;
             mxLog("g is: \n");
             for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
             mxLog("funv is: \n");
@@ -1411,9 +1248,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         secondPart_e = vscale_e.block(0, 0, 1, nc+1);
         firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
         Eigen::MatrixXd ob3_e = firstPart_e;
-        if (verbose >= 3){
-            cout<< "ob3_e is: \n"  << ob3_e << endl;
-        }
         sob[2] = ob3_e(0, 0);
         
         if (ind[indHasIneq] > 0.5){
@@ -1442,10 +1276,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             ptt_e.col(1) = (p_e * (1 - alp[1])) + p0_e * alp[1];
             Eigen::MatrixXd tmpv_e = ptt_e.col(1).transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
 
-            if (verbose >= 3){
-                cout<< "tmpv_e is: \n"  << tmpv_e << endl;
-            }
-            
             if (verbose >= 3){
                 mxLog("11th call is \n");
             }
@@ -1496,10 +1326,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
             ob2_e = firstPart_e;
             
-            if (verbose >= 3){
-                cout<< "ob2_e is: \n"  << ob2_e << endl;
-            }
-            
             sob[1] = ob2_e(0, 0);
             if (verbose >= 3){
                 mxLog("sob is: \n");
@@ -1509,9 +1335,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 Eigen::MatrixXd partOne = ob2_e.block(0, neq+1, 1, nc-neq);
                 Eigen::MatrixXd partTwo = ptt_e.col(1).transpose().block(0, 0, 1, nineq);
                 ob2_e.block(0, neq+1, 1, nc-neq) = partOne - partTwo;
-            }
-            if (verbose >= 3){
-                cout<< "ob2_e is: \n"  << ob2_e << endl;
             }
             if (nc > 0){
                 Eigen::MatrixXd result_e = ob2_e.block(0, 1, 1, nc);
@@ -1524,9 +1347,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 sob[1] = ob2_e(0, 0) - dotProductTerm + (rho * vnormTerm);
             }
             
-            if (verbose >= 3){
-                cout<< "sob is: \n"  << sob << endl;
-            }
             const double sobMax = sob.maxCoeff();
             if (verbose >= 3){
                 mxLog("sobMax is: %f", sobMax);
@@ -1545,12 +1365,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 alp[2] = alp[1];
                 ptt_e.col(2) = ptt_e.col(1);
                 
-                if (verbose >= 3){
-                    cout<< "sob is: \n"  << sob << endl;
-                    cout<< "ob3_e is: \n"  << ob3_e << endl;
-                    cout<< "alp[2] is: \n"  << alp << endl;
-                    cout<< "ptt_e is: \n"  << ptt_e << endl;
-                }
             }
             
             if (condif2){
@@ -1558,13 +1372,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 ob3_e = ob2_e;
                 alp[2] = alp[1];
                 ptt_e.col(2) = ptt_e.col(1);
-                
-                if (verbose >= 3){
-                    cout<< "sob is: \n"  << sob << endl;
-                    cout<< "ob3_e is: \n"  << ob3_e << endl;
-                    cout<< "alp[2] is: \n"  << alp << endl;
-                    cout<< "ptt_e is: \n"  << ptt_e << endl;
-                }
             }
             
             if (condif3){
@@ -1572,13 +1379,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 ob1_e = ob2_e;
                 alp[0] = alp[1];
                 ptt_e.col(0) = ptt_e.col(1);
-                
-                if (verbose >= 3){
-                    cout<< "sob is: \n"  << sob << endl;
-                    cout<< "ob1_e is: \n"  << ob1_e << endl;
-                    cout<< "alp[2] is: \n"  << alp << endl;
-                    cout<< "ptt_e is: \n"  << ptt_e << endl;
-                }
             }
             
             if (go >= tol){
@@ -1602,12 +1402,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         yg_e.resize(g_e.rows(), g_e.cols());
         yg_e = g_e;
         
-        if (verbose >= 3){
-            mxLog("sx is: \n");
-            cout<< sx_e << endl;
-            mxLog("yg is: \n");
-            cout<< yg_e << endl;
-        }
         ch = 1;
         
         double obn = sob.minCoeff();
@@ -1643,8 +1437,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 mxLog("condif1\n");
                 mxLog("j is: \n");
                 mxLog("%f", j);
-                cout<< "p_e is: \n"  << p_e << endl;
-                cout<< "ob_e is: \n"  << ob_e << endl;
             }
         }
         
@@ -1657,8 +1449,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 mxLog("condif2\n");
                 mxLog("j is: \n");
                 mxLog("%f", j);
-                cout<< "p_e is: \n"  << p_e << endl;
-                cout<< "ob_e is: \n"  << ob_e << endl;
             }
             
         }
@@ -1671,12 +1461,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 mxLog("condif3\n");
                 mxLog("j is: \n");
                 mxLog("%f", j);
-                cout<< "p_e is: \n"  << p_e << endl;
-                cout<< "ob_e is: \n"  << ob_e << endl;
             }
-        }
-        if (verbose >= 3){
-            cout<< "yg_e is: \n"  << yg_e << endl;
         }
     } // end while (minit < maxit){
     
@@ -1710,18 +1495,4 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     resLambda = lambdaValue;
     resGrad = g_e;
     
-    if (verbose >= 3){
-        mxLog("------------------------RETURNING FROM SUBNP------------------------");
-        mxLog("p information: ");
-        cout<< resP << endl;
-        mxLog("y information: ");
-        cout<< resY << endl;
-        mxLog("hessv information: ");
-        cout<< resHessv << endl;
-        mxLog("lambda information: ");
-        mxLog("%.20f", resLambda);
-        mxLog("minit information: ");
-        mxLog("%d", minit);
-        mxLog("------------------------END RETURN FROM SUBNP------------------------");
-    }
 } // end subnp

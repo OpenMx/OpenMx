@@ -114,12 +114,6 @@ algebraErrorChecking <- function(formula, context) {
 	lapply(formula[-1], algebraErrorChecking, context)
 }
 
-defStringsAsFactors <- getOption('stringsAsFactors')
-options(stringsAsFactors = FALSE)
-data(omxSymbolTable)
-options(stringsAsFactors = defStringsAsFactors)
-
-
 formulaList <- function(x) {
 	retval <- as.list(x)
 	retval <- lapply(retval, function(x) {
