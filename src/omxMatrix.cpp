@@ -34,7 +34,7 @@
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber);
 
-const char omxMatrixMajorityList[3] = "Tn";		// BLAS Column Majority.
+static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
 
 // For background, see
 // http://epubs.siam.org/doi/abs/10.1137/090768539
@@ -655,8 +655,8 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 }
 
 void omxMatrixLeadingLagging(omxMatrix *om) {
-	om->majority = &(omxMatrixMajorityList[(om->colMajor?1:0)]);
-	om->minority = &(omxMatrixMajorityList[(om->colMajor?0:1)]);
+	om->majority = omxMatrixMajorityList[(om->colMajor?1:0)];
+	om->minority = omxMatrixMajorityList[(om->colMajor?0:1)];
 	om->leading = (om->colMajor?om->rows:om->cols);
 	om->lagging = (om->colMajor?om->cols:om->rows);
 }
