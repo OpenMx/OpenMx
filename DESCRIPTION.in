@@ -132,6 +132,7 @@ Collate:
     'MxSaturatedModel.R'
     'omxBrownie.R'
     'omxConstrainThresholds.R'
+	'omxGetNPSOL.R'
     'MxFitFunctionR.R'
     'MxRObjective.R'
     'MxExpectationStateSpace.R'
