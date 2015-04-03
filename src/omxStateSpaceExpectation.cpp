@@ -425,9 +425,6 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	eigenExpA.transposeInPlace();
 	delP = eigenExpA.lu().solve(delP);
 	
-	// TODO
-	// copy values of delX to x, and delP to P
-	
 	
 	/* SUMMARY */
 	// PSI = 	A  Q
@@ -437,6 +434,15 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// 			I
 	// IP = PSI IP
 	// P = IP[1] IP[2]^-1
+	
+	/* copy values of delX to x, and delP to P */
+	for(int i=0; i < A->rows; i++){
+		omxSetMatrixElement(x, i, 0, delX(i, 0));
+		for(int j=0; j < A->cols; j++){
+			omxSetMatrixElement(P, i, j, delP(i, j));
+		}
+	}
+	
 }
 
 
