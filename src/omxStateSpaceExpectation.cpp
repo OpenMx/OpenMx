@@ -336,6 +336,10 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 	omxMatrix* Z = ose->Z;
 	omxMatrix* deltaT = ose->deltaT;
+	//omxMatrix* t = ose->t;
+	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(t, "....State Space: t"); }
+	//ose->deltaT = omxMatrixElement(t, 0, 0) - ose->oldT;
+	//ose->oldT = omxMatrixElement(t, 0, 0);
 	
 	//EigenMatrixAdaptor eigenA(A);
 	// intializes eigenA as an instance of EigenMatrixAdaptor class, initialized to omxMatrix A
@@ -358,7 +362,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	/* Z = A * deltaT */
 	omxCopyMatrix(Z, A);
 	EigenMatrixAdaptor eigenA(Z);
-	Eigen::MatrixXd eigenExpA = eigenA * omxMatrixElement(deltaT, 0, 0);
+	Eigen::MatrixXd eigenExpA = eigenA * omxMatrixElement(deltaT, 0, 0); //deltaT
 	
 	/* EA = expm(EA) */
 	eigenExpA = eigenExpA.exp();
@@ -397,7 +401,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	Eigen::MatrixXd PSI(2*A->rows, 2*A->rows);
 	EigenMatrixAdaptor eigenQ(Q);
 	PSI << eigenA, eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), -1.0*eigenA;
-	PSI = PSI*omxMatrixElement(deltaT, 0, 0);
+	PSI = PSI*omxMatrixElement(deltaT, 0, 0); //deltaT
 	/* PSI = PSI * deltaT */
 	/* PSI = expm(PSI) */
 	PSI = PSI.exp();
@@ -487,7 +491,9 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
 	if(OMX_DEBUG) { mxLog("Processing u."); }
 	SSMexp->u = omxNewMatrixFromSlot(rObj, currentState, "u");
-
+	
+	//if(OMX_DEBUG) { mxLog("Processing t."); }
+	//SSMexp->t = omxNewMatrixFromSlot(rObj, currentState, "t");
 	
 	
 	/* Initialize the place holder matrices used in calculations */
@@ -535,6 +541,8 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->smallY = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	
 	SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
+	SSMexp->oldT = 0.0;
+	//SSMexp->deltaT = 0.0;
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);

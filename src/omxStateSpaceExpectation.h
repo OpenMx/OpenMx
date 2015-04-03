@@ -28,6 +28,8 @@ typedef struct {
 	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, D, r, R, K, and S for missing data handling
 	omxMatrix *covInfo; //info from Cholesky decomp of small expected cov (smallS) to be passed to FIML single iteration
 	omxMatrix *deltaT;
+	double oldT;
+	//double deltaT;
 	
 } omxStateSpaceExpectation;
 
