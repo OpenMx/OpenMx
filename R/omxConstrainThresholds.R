@@ -117,7 +117,9 @@ omxConstrainMLThresholds <- function(model, dist=.1) {
                         "of model", model$name))
             }
             nThresh <- nlevels(thisColumn)-1
-            print(nThresh)
+            if(nThresh <= 1) {
+                next;
+            }
             conString <- paste0(thresholdName, "[1:",(nThresh-1), ",", i, "]", 
                                 "<", thresholdName, "[2:", nThresh, ",", i, "]")
             conName <- paste0("ThresholdConstraint",i) # FIXME: May conflict!
