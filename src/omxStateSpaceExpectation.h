@@ -27,12 +27,16 @@ typedef struct {
 	omxMatrix *det; // Determinant of expected covariance matrix S
 	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, D, r, R, K, and S for missing data handling
 	omxMatrix *covInfo; //info from Cholesky decomp of small expected cov (smallS) to be passed to FIML single iteration
+	omxMatrix *deltaT;
+	double oldT;
+	//double deltaT;
 	
 } omxStateSpaceExpectation;
 
 
 void omxKalmanPredict(omxStateSpaceExpectation* ose);
 void omxKalmanUpdate(omxStateSpaceExpectation* ose);
+void omxKalmanBucyPredict(omxStateSpaceExpectation* ose);
 
 void omxInitStateSpaceExpectation(omxExpectation* ox);
 

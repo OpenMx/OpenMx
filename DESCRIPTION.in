@@ -11,9 +11,7 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "D."), "Hunter", role="aut"), person(c("Daniel", "C."), "Hackett", role="ctb"),
     person("Julian", "Karch", role="ctb"), person(c("Andreas", "M."), "Brandmaier", role="ctb"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
-    role="aut"), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"), 
-    person("Team", "OpenMx",
-    email='openmx-developers@virginia.edu', role='cre'))
+    role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"))
 URL: http://openmx.psyc.virginia.edu
 BugReports: http://openmx.psyc.virginia.edu/forums
 Description: Extended Structural Equation Modelling (SEM).
@@ -134,6 +132,7 @@ Collate:
     'MxSaturatedModel.R'
     'omxBrownie.R'
     'omxConstrainThresholds.R'
+	'omxGetNPSOL.R'
     'MxFitFunctionR.R'
     'MxRObjective.R'
     'MxExpectationStateSpace.R'
