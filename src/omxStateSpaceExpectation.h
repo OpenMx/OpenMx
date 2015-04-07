@@ -20,16 +20,16 @@
 
 typedef struct {
 	omxMatrix *cov, *means;
-	omxMatrix *A, *B, *C, *D, *Q, *R; // State Space model Matrices
+	omxMatrix *A, *B, *C, *D, *Q, *R, *t; // State Space model Matrices
 	omxMatrix *r, *s, *u, *x, *y, *z; // Data and place holder vectors
 	omxMatrix *K, *P, *S, *Y, *Z; // Behind the scenes state space matrices (P, S, and K) and place holder matrices
 	omxMatrix *x0, *P0; // Placeholders for initial state and initial Rf_error cov
 	omxMatrix *det; // Determinant of expected covariance matrix S
 	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, D, r, R, K, and S for missing data handling
 	omxMatrix *covInfo; //info from Cholesky decomp of small expected cov (smallS) to be passed to FIML single iteration
-	omxMatrix *deltaT;
+	//omxMatrix *deltaT;
 	double oldT;
-	//double deltaT;
+	double deltaT;
 	
 } omxStateSpaceExpectation;
 

@@ -48,14 +48,15 @@ setClass(Class = "MxExpectationStateSpace",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
-		threshnames = "character"),
+		threshnames = "character",
+		t = "MxCharOrNumber"),
 	contains = "MxBaseExpectation")
 
 
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationStateSpace",
-	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames,
+	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames, t,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -70,6 +71,7 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
+		.Object@t <- t
 		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
 		return(.Object)
@@ -117,6 +119,11 @@ setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 		tuple <- evaluateMxObject(.Object@u, flatModel, labelsData, cache)
 		Umatrix <- tuple[[1]]
 		cache <- tuple[[2]]
+		if(!is.na(.Object@t)){
+			tuple <- evaluateMxObject(.Object@t, flatModel, labelsData, cache)
+			Tmatrix <- tuple[[1]]
+			cache <- tuple[[2]]
+		} else {Tmatrix <- NULL}
 		# Conformability checking
 		ldim <- ncol(Cmatrix)
 		mdim <- nrow(Cmatrix)
@@ -200,6 +207,7 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 		.Object@u <- imxConvertIdentifier(.Object@u, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
+		.Object@t <- imxConvertIdentifier(.Object@t, modelname, namespace)
 		return(.Object)
 	}
 )
@@ -242,6 +250,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		xMatrix <- .Object@x0
 		pMatrix <- .Object@P0
 		uMatrix <- .Object@u
+		tMatrix <- .Object@t
 		data <- .Object@data
 		if(is.na(data)) {
 			msg <- paste("The state space expectation function",
@@ -260,6 +269,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		.Object@x0 <- imxLocateIndex(flatModel, xMatrix, name)
 		.Object@P0 <- imxLocateIndex(flatModel, pMatrix, name)
 		.Object@u <- imxLocateIndex(flatModel, uMatrix, name)
+		.Object@t <- imxLocateIndex(flatModel, tMatrix, name)
 		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 		#
 		# Check the data has row and column names as appropriate
@@ -275,6 +285,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		xMatrix <- flatModel[[xMatrix]]
 		pMatrix <- flatModel[[pMatrix]]
 		uMatrix <- flatModel[[uMatrix]]
+		tMatrix <- flatModel[[tMatrix]]
 		#
 		# Check for missing matrices or combinations of matrices
 		checkSSMNotMissing(cMatrix, 'C', omxQuotes(modelname))
@@ -326,7 +337,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 # **DONE**
 setMethod("genericExpDependencies", signature("MxExpectationStateSpace"),
 	function(.Object, dependencies) {
-		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R, .Object@x0, .Object@P0, .Object@u, .Object@thresholds)
+		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R,
+			.Object@x0, .Object@P0, .Object@u, .Object@thresholds, .Object@t)
 		sources <- sources[!is.na(sources)]
 		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		return(dependencies)
@@ -348,7 +360,8 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 		.Object@P0 <- renameReference(.Object@P0, oldname, newname)
 		.Object@u <- renameReference(.Object@u, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)
+		.Object@t <- renameReference(.Object@t, oldname, newname)
 		return(.Object)
 	}
 )
@@ -395,7 +408,7 @@ checkSSMargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames){
+mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., t=NA){
 	A <- checkSSMargument(A, "A")
 	B <- checkSSMargument(B, "B")
 	C <- checkSSMargument(C, "C")
@@ -405,6 +418,7 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	x0 <- checkSSMargument(x0, "x0")
 	P0 <- checkSSMargument(P0, "P0")
 	u <- checkSSMargument(u, "u")
+	t <- checkSSMargument(t, "t")
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
@@ -420,7 +434,7 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames))
+	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames, t=t))
 }
 
 
