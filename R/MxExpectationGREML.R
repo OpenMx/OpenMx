@@ -158,20 +158,19 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               msg <- paste("dataset does not have column names in model",omxQuotes(modelname))
               stop(msg, call. = FALSE)
             }
-            #if(!is.null(mxDataObject$numObs)){mxDataObject$numObs <- 0}
             if(.Object@dataset.is.yX){
               .Object@y <- as.matrix(mxDataObject@observed[,1])
               #colnames(.Object@y) <- colnames(mxDataObject@observed)[1]
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
               #colnames(.Object@X) <- colnames(mxDataObject@observed)[-1]
               .Object@yXcolnames <- colnames(mxDataObject@observed)
-              .Object@numFixEff <- ncol(mxDataObject@observed)-1
+              .Object@numFixEff <- as.integer(ncol(mxDataObject@observed)-1)
             }
             else{
               if(length(.Object@Xvars)){
-                .Object@numFixEff <- sum(sapply(.Object@Xvars, length)) + (length(.Object@yvars) * .Object@addOnes)
+                .Object@numFixEff <- as.integer(sum(sapply(.Object@Xvars, length)) + (length(.Object@yvars) * .Object@addOnes))
               } #If Xvars is length 0, then the only covariates will be 1s (for the intercepts)
-              else{.Object@numFixEff <- length(.Object@yvars)}
+              else{.Object@numFixEff <- as.integer(length(.Object@yvars))}
               if( !all(.Object@yvars %in% colnames(mxDataObject@observed)) ){
                 badname <- (yvars[!(yvars %in% colnames(mxDataObject@observed))])[1]
                 msg <- paste("'",badname,"' is not among the data column names",sep="")
@@ -182,7 +181,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
                 msg <- paste("'",badname,"' is not among the data column names",sep="")
                 stop(msg)
               }
-              mm <- GREMLDataHandler(data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
+              mm <- mxGREMLDataHandler(data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
                                      addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
                                      staggerZeroes=.Object@staggerZeroes)
               .Object@y <- as.matrix(mm$yX[,1])
@@ -209,6 +208,10 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
   blockByPheno <- as.logical(blockByPheno)[1]
   staggerZeroes <- as.logical(staggerZeroes)[1]
   addOnes <- as.logical(addOnes)[1]
+  if( !is.matrix(data) && !is.data.frame(data) ){
+    stop("argument 'data' must be either a matrix or dataframe")
+  }
+  if(!length(colnames(data))){stop("data must have column names")}
   if ( missing(yvars) || typeof(yvars) != "character" )  {
     stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
   }
@@ -219,9 +222,19 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
     if(length(yvars)==1){Xvars <- list(Xvars)}
     else{stop("argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1")}
   }
+  if( !all(yvars %in% colnames(data)) ){
+    badname <- (yvars[!(yvars %in% colnames(data))])[1]
+    msg <- paste("'",badname,"' in argument 'yvars' is not among the data column names",sep="")
+    stop(msg)
+  }
   if(length(Xvars)){
     if( !all(sapply(Xvars,is.character)) ){
       stop("elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)")
+    }
+    if( !all(unlist(Xvars) %in% colnames(data)) ){
+      badname <- (unlist(Xvars)[!(unlist(Xvars) %in% colnames(data))])[1]
+      msg <- paste("'",badname,"' in argument 'Xvars' is not among the data column names",sep="")
+      stop(msg)
     }
     if( !staggerZeroes && !all(sapply(Xvars,length)==sapply(Xvars,length)[1]) ){
       stop("all phenotypes must have the same number of covariates when staggerZeroes=FALSE")

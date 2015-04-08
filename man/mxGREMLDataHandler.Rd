@@ -12,6 +12,7 @@ mxGREMLDataHandler(data, yvars=character(0), Xvars=list(), addOnes=TRUE, blockBy
 }
 
 \arguments{
+ \item{data}{Either a dataframe or matrix, with column names, containing the variables to be used as phenotypes and covariates in 'y' and 'X,' respectively.}
   \item{yvars}{Character vector.  Each string names a column of the raw dataset, to be used as a phenotype.}
   \item{Xvars}{A list of data column names, specifying the covariates to be used with each phenotype.  The list should have the same length as argument \code{yvars}.}
    \item{addOnes}{Logical; should lead columns of ones (for the regression intercepts) be adhered to the covariates when assembling the 'X' matrix?  Defaults to \code{TRUE}.}
