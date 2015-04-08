@@ -202,9 +202,37 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
           })
 
 
-#Long-term, maybe the best thing is for this data-handling to be moved to the backend.  On the other hand,
-#it could be useful to keep it in the frontend and export this function as imx.
-GREMLDataHandler <- function(data, yvars, Xvars, addOnes, blockByPheno, staggerZeroes){
+mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
+                               staggerZeroes=TRUE){
+  
+  #Input checking:
+  blockByPheno <- as.logical(blockByPheno)[1]
+  staggerZeroes <- as.logical(staggerZeroes)[1]
+  addOnes <- as.logical(addOnes)[1]
+  if ( missing(yvars) || typeof(yvars) != "character" )  {
+    stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
+  }
+  if(!length(yvars)){
+    stop("you must specify at least one phenotype in argument 'yvars'")
+  }
+  if( !is.list(Xvars) ){
+    if(length(yvars)==1){Xvars <- list(Xvars)}
+    else{stop("argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1")}
+  }
+  if(length(Xvars)){
+    if( !all(sapply(Xvars,is.character)) ){
+      stop("elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)")
+    }
+    if( !staggerZeroes && !all(sapply(Xvars,length)==sapply(Xvars,length)[1]) ){
+      stop("all phenotypes must have the same number of covariates when staggerZeroes=FALSE")
+    }
+    if(length(Xvars)!=length(yvars)){
+      #In the polyphenotype case, the same covariates will often be used for all phenotypes:
+      if(length(Xvars)<length(yvars) && length(Xvars)==1){Xvars <- rep(Xvars,length.out=length(yvars))}
+      else{stop("conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'")}
+    }
+  }
+  
   #Handle phenotypes:
   y <- NULL
   i <- 1
