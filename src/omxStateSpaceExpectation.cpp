@@ -38,6 +38,7 @@
 #include "Eigen/Dense"
 #include "Eigen/LU"
 #include <unsupported/Eigen/MatrixFunctions>
+#include <iostream>
 
 
 void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *) {
@@ -55,7 +56,11 @@ void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *
 	//omxRecompute(ose->u);
 	
 	// Probably should loop through all the data here!!!
-	omxKalmanPredict(ose);
+	if(ose->t == NULL){
+		omxKalmanPredict(ose);
+	} else {
+		omxKalmanBucyPredict(ose);
+	}
 	omxKalmanUpdate(ose);
 }
 
@@ -335,11 +340,14 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	omxMatrix* P = ose->P;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 	omxMatrix* Z = ose->Z;
-	omxMatrix* deltaT = ose->deltaT;
-	//omxMatrix* t = ose->t;
-	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(t, "....State Space: t"); }
-	//ose->deltaT = omxMatrixElement(t, 0, 0) - ose->oldT;
-	//ose->oldT = omxMatrixElement(t, 0, 0);
+	omxMatrix* t = ose->t;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(t, "....State Space: t"); }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space oldT on entrance:\n" << ose->oldT << std::endl; }
+	ose->deltaT = omxMatrixElement(t, 0, 0) - ose->oldT;
+	ose->oldT = omxMatrixElement(t, 0, 0);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space oldT on exit:\n" << ose->oldT << std::endl; }
+	double deltaT = ose->deltaT;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
 	
 	//EigenMatrixAdaptor eigenA(A);
 	// intializes eigenA as an instance of EigenMatrixAdaptor class, initialized to omxMatrix A
@@ -362,16 +370,27 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	/* Z = A * deltaT */
 	omxCopyMatrix(Z, A);
 	EigenMatrixAdaptor eigenA(Z);
-	Eigen::MatrixXd eigenExpA = eigenA * omxMatrixElement(deltaT, 0, 0); //deltaT
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+	Eigen::MatrixXd eigenExpA(A->rows, A->cols);
+	eigenExpA = eigenA * deltaT;//omxMatrixElement(deltaT, 0, 0); //deltaT
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
 	/* EA = expm(EA) */
 	eigenExpA = eigenExpA.exp();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
 	/* IA = EA - I*/
 	Eigen::MatrixXd I( A->rows, A->rows );
 	I = Eigen::MatrixXd::Identity( A->rows, A->rows );
-	Eigen::MatrixXd eigenIA = eigenExpA - I;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
+	Eigen::MatrixXd eigenIA(A->rows, A->cols);
+	eigenIA = eigenExpA - I;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
 	eigenIA = eigenA.lu().solve(eigenIA);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
 	/* IA = A^-1 IA */
 	
 	EigenMatrixAdaptor eigenx(x); //or vector
@@ -379,6 +398,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	EigenMatrixAdaptor eigenB(B);
 	Eigen::MatrixXd delX(A->rows, 1);
 	delX = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << delX << std::endl; }
 	
 	/* SUMMARY */
 	// EA = expm(A*deltaT)
@@ -400,11 +420,13 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	*/
 	Eigen::MatrixXd PSI(2*A->rows, 2*A->rows);
 	EigenMatrixAdaptor eigenQ(Q);
-	PSI << eigenA, eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), -1.0*eigenA;
-	PSI = PSI*omxMatrixElement(deltaT, 0, 0); //deltaT
+	PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
+	PSI = PSI * deltaT;//omxMatrixElement(deltaT, 0, 0); //deltaT
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
 	/* PSI = PSI * deltaT */
 	/* PSI = expm(PSI) */
 	PSI = PSI.exp();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI:\n" << PSI << std::endl; }
 	
 	/* IP = block matrix
 	P
@@ -412,18 +434,22 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	*/
 	Eigen::MatrixXd IP(2*A->rows, A->rows);
 	EigenMatrixAdaptor eigenP(P);
-	IP << eigenP, I;
+	IP << I, eigenP;
 	//IP << eigenP, Eigen::MatrixXd::Identity(rows, rows)
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space IP:\n" << IP << std::endl; }
 	
 	/* IP = PSI IP */
 	IP = PSI * IP;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
 	
 	/* PSI = block 1 of IP; IA = block 2 of IP */
 	Eigen::MatrixXd delP(A->rows, A->rows);
-	delP = IP.block(0, 0, A->rows - 1, A->cols-1);
-	eigenExpA = IP.block(A->rows, 0, 2*A->rows - 1, A->cols-1);
-	eigenExpA.transposeInPlace();
-	delP = eigenExpA.lu().solve(delP);
+	delP = IP.block(0, 0, A->rows, A->cols);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << delP << std::endl; }
+	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
+	delP = eigenExpA*delP.lu().inverse();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space delP:\n" << delP << std::endl; }
 	
 	
 	/* SUMMARY */
@@ -442,7 +468,10 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 			omxSetMatrixElement(P, i, j, delP(i, j));
 		}
 	}
-	
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << delX << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << delP << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 }
 
 
@@ -498,8 +527,8 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	if(OMX_DEBUG) { mxLog("Processing u."); }
 	SSMexp->u = omxNewMatrixFromSlot(rObj, currentState, "u");
 	
-	//if(OMX_DEBUG) { mxLog("Processing t."); }
-	//SSMexp->t = omxNewMatrixFromSlot(rObj, currentState, "t");
+	if(OMX_DEBUG) { mxLog("Processing t."); }
+	SSMexp->t = omxNewMatrixFromSlot(rObj, currentState, "t");
 	
 	
 	/* Initialize the place holder matrices used in calculations */
@@ -546,9 +575,9 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->smallS = 	omxInitMatrix(ny, ny, TRUE, currentState);
 	SSMexp->smallY = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	
-	SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
+	//SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->oldT = 0.0;
-	//SSMexp->deltaT = 0.0;
+	SSMexp->deltaT = 0.0;
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);
@@ -598,6 +627,9 @@ void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* of
 		omxRecompute(ose->P0, NULL);
 		omxCopyMatrix(ose->x, ose->x0);
 		omxCopyMatrix(ose->P, ose->P0);
+		if(ose->t != NULL){
+			ose->oldT = 0.0;
+		}
 	}
 }
 
