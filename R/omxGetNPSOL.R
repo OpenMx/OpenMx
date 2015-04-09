@@ -22,11 +22,15 @@
 ##' @return
 ##' Invisible NULL
 ##' @examples
-##' ## Not run:
-##' omxGetNPSOL()
+##' \dontrun{omxGetNPSOL()}
 ##'
 
 omxGetNPSOL <- function() {
+	if (imxHasNPSOL()) {
+		message(paste("NPSOL is available.",
+			      "You have already installed the non-CRAN version of OpenMx."))
+		return()
+	}
     if(version$major < 3) {
         message(paste0("You are using R 2.15 or earlier.  ",
             "OpenMx 2.0 and higher do not support versions ",
