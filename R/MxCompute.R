@@ -269,6 +269,7 @@ setClass(Class = "MxComputeGradientDescent",
 	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
+	     availableEngines = "character",
 	     tolerance = "numeric",
 	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
@@ -304,6 +305,10 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
+		  .Object@availableEngines <- c("CSOLNP")
+		  if (imxHasNPSOL()) {
+			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
+		  }
 		  .Object
 	  })
 
