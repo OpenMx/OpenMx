@@ -352,7 +352,6 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	Eigen::MatrixXd eigenExpA(A->rows, A->cols);
 	Eigen::MatrixXd I( A->rows, A->rows );
 	Eigen::MatrixXd eigenIA(A->rows, A->cols);
-	Eigen::MatrixXd delX(A->rows, 1);
 	Eigen::MatrixXd PSI(2*A->rows, 2*A->rows);
 	Eigen::MatrixXd IP(2*A->rows, A->rows);
 	
@@ -392,12 +391,13 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
 	/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
 	
-	/* delX = expm(A*deltaT) * x + IA * B * u */
+	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
 	EigenMatrixAdaptor eigenu(u); //or vector
 	EigenMatrixAdaptor eigenB(B);
-	delX = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << delX << std::endl; }
+	eigenx.derived() = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << eigenx << std::endl; }
+	
 	
 	/* SUMMARY */
 	// EA = expm(A*deltaT)
@@ -440,12 +440,12 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
 	
 	/* eigenIA = block 1 of IP; eigenExpA = block 2 of IP */
-	eigenIA = IP.block(0, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenIA << std::endl; }
+	eigenP.derived() = IP.block(0, 0, A->rows, A->cols);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenP << std::endl; }
 	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
-	eigenIA = eigenIA.transpose().lu().solve(eigenExpA.transpose());
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space delP:\n" << eigenIA << std::endl; }
+	eigenP.derived() = eigenP.transpose().lu().solve(eigenExpA.transpose());
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
 	/* P = B1 B2^-1  THAT IS  solve B2^T P = B1^T for P */
 	
 	
@@ -458,16 +458,9 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// IP = PSI IP
 	// P = IP[1] IP[2]^-1
 	
-	/* copy values of delX to x, and delP to P */
-	for(int i=0; i < A->rows; i++){
-		omxSetMatrixElement(x, i, 0, delX(i, 0));
-		for(int j=0; j < A->cols; j++){
-			omxSetMatrixElement(P, i, j, eigenIA(i, j));
-		}
-	}
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << delX << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << eigenx << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenIA << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 }
 
