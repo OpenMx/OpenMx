@@ -448,7 +448,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << delP << std::endl; }
 	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
-	delP = eigenExpA*delP.lu().inverse();
+	delP = delP.transpose().lu().solve(eigenExpA.transpose());
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space delP:\n" << delP << std::endl; }
 	
 	
