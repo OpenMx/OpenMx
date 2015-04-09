@@ -90,6 +90,9 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrix(argStruct->smallK);
 	omxFreeMatrix(argStruct->smallS);
 	omxFreeMatrix(argStruct->smallY);
+	
+	delete argStruct;
+	
 }
 
 
@@ -348,12 +351,12 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// Subtract from diagonal 1.0
 	// A.diagonal() -= 1
 	
-	/* Eigen Matrix initialization */
-	Eigen::MatrixXd eigenExpA(A->rows, A->cols);
-	Eigen::MatrixXd I( A->rows, A->rows );
-	Eigen::MatrixXd eigenIA(A->rows, A->cols);
-	Eigen::MatrixXd PSI(2*A->rows, 2*A->rows);
-	Eigen::MatrixXd IP(2*A->rows, A->rows);
+	/* Eigen Matrix reference setting */
+	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
+	Eigen::MatrixXd &eigenIA = ose->eigenIA;
+	Eigen::MatrixXd &PSI = ose->PSI;
+	Eigen::MatrixXd &IP = ose->IP;
+	Eigen::MatrixXd &I = ose->I;
 	
 	
 	/*R code for the next few lines
@@ -382,7 +385,6 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
 	/* eigenIA = eigenExpA - I*/
-	I = Eigen::MatrixXd::Identity( A->rows, A->rows );
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
 	eigenIA = eigenExpA - I;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
@@ -476,7 +478,9 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and fill expectation */
-	omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
+	//omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
+	omxStateSpaceExpectation *SSMexp = new omxStateSpaceExpectation;
+	
 	omxState* currentState = ox->currentState;
 	
 	/* Set Expectation Calls and Structures */
@@ -568,6 +572,14 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->oldT = 0.0;
 	SSMexp->deltaT = 0.0;
+	
+	/* Eigen Matrix initialization */
+	SSMexp->eigenExpA.resize(nx, nx);
+	SSMexp->I.resize(nx, nx);
+	SSMexp->I = Eigen::MatrixXd::Identity(nx, nx);
+	SSMexp->eigenIA.resize(nx, nx);
+	SSMexp->PSI.resize(2*nx, 2*nx);
+	SSMexp->IP.resize(2*nx, nx);
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);
