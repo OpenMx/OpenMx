@@ -111,3 +111,11 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
 omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29344.82, .1)
+
+# This is a local minimum. Without the change in this commit,
+# NPSOL will move to a worse point.
+p1 <- c(66.8474253, 66.7162888, 86.988636, 79.99685, 105.6942539,  107.1596945, 119.0563245, 90.0791803, 97.111435, 116.3041677,  127.0225488, 138.8965557, 167.4370949, 161.1764251, 61.9541787,  73.1054388, 84.0847585, 89.8050077, 98.8327493, 114.9673433,  130.8809636, 2.0449374, 1.0203949, 1.0540143, 0.8909142, 1.0505263,  0.9483473, 0.9124185, 1.0120539, 2.1564055, 0.9999484, 0.9128441,  1.0096901, 1.0618295, 0.9599213, 1.0694914, 1.038408, 1.9846161,  1.0582464, 1.0689193, 1.0500171, 0.9396425, 1.0470683, 0.9089026,  1.0418309, 6.18e-05, 3.33e-05, 5.59e-05, 7.5e-06, -6.74e-05,  -7.11e-05)
+threeFactorOrthogonal <- omxSetParameters(threeFactorOrthogonal, values=p1,
+                                          labels = names(omxGetParameters(threeFactorOrthogonal)))
+threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 30848.7, .1)
