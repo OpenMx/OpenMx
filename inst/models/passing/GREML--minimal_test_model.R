@@ -1,4 +1,4 @@
-library(OpenMx,lib.loc="C:/Program Files/R/R-3.1.1/library/")
+require(OpenMx)
 
 set.seed(1234)
 dat <- cbind(rnorm(100),rep(1,100))

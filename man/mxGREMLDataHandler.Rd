@@ -8,7 +8,8 @@ Helper Function for Structuring GREML Data
 This function takes a dataframe or matrix and uses it to setup the 'y' and 'X' matrices for a GREML analysis; this includes trimming out \code{NA}s from 'X' and 'y.'  The result is a matrix the first column of which is the 'y' vector, and the remaining columns of which constitute 'X.'
 }
 \usage{
-mxGREMLDataHandler(data, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, staggerZeroes=TRUE)
+mxGREMLDataHandler(data, yvars=character(0), Xvars=list(), addOnes=TRUE, 
+                  blockByPheno=TRUE, staggerZeroes=TRUE)
 }
 
 \arguments{

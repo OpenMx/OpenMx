@@ -160,9 +160,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             }
             if(.Object@dataset.is.yX){
               .Object@y <- as.matrix(mxDataObject@observed[,1])
-              #colnames(.Object@y) <- colnames(mxDataObject@observed)[1]
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
-              #colnames(.Object@X) <- colnames(mxDataObject@observed)[-1]
               .Object@yXcolnames <- colnames(mxDataObject@observed)
               .Object@numFixEff <- as.integer(ncol(mxDataObject@observed)-1)
             }
@@ -172,7 +170,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               } #If Xvars is length 0, then the only covariates will be 1s (for the intercepts)
               else{.Object@numFixEff <- as.integer(length(.Object@yvars))}
               if( !all(.Object@yvars %in% colnames(mxDataObject@observed)) ){
-                badname <- (yvars[!(yvars %in% colnames(mxDataObject@observed))])[1]
+                badname <- (.Object@yvars[!(.Object@yvars %in% colnames(mxDataObject@observed))])[1]
                 msg <- paste("'",badname,"' is not among the data column names",sep="")
                 stop(msg)
               }
@@ -185,9 +183,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
                                      addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
                                      staggerZeroes=.Object@staggerZeroes)
               .Object@y <- as.matrix(mm$yX[,1])
-              #colnames(.Object@y) <- colnames(mm$yX)[1]
               .Object@X <- as.matrix(mm$yX[,-1])
-              #colnames(.Object@X) <- colnames(mm$yX)[-1]
               .Object@yXcolnames <- colnames(mm$yX)
               .Object@casesToDrop <- mm$casesToDrop
               .Object@numFixEff <- ncol(.Object@X)
