@@ -23,7 +23,7 @@ options(width=100)
 # ---------------------------------------------------------------------
 # Data for multiple regression of F3 on F1 and F2 with moderator variable Z.
 
-numberSubjects <- 1000
+numberSubjects <- 100000
 numberIndicators <- 12
 numberFactors <- 3
 
@@ -33,7 +33,7 @@ fixedBMatrixF <- matrix(c(.4, .2), 2, 1, byrow=TRUE)
 randomBMatrixF <- matrix(c(.3, .5), 2, 1, byrow=TRUE)
 XMatrixF <- matrix(rnorm(numberSubjects*2, mean=0, sd=1), numberSubjects, 2)
 UMatrixF <- matrix(rnorm(numberSubjects*1, mean=0, sd=1), numberSubjects, 1)
-Z <- matrix(floor(runif(numberSubjects, min=0, max=1.999)), nrow=numberSubjects, ncol=2)
+Z <- matrix(rnorm(numberSubjects, mean=0, sd=1), nrow=numberSubjects, ncol=2)
 
 XMatrix <- cbind(XMatrixF, XMatrixF %*% fixedBMatrixF + (XMatrixF*Z) %*% randomBMatrixF + UMatrixF)
 
@@ -47,15 +47,12 @@ cor(cbind(XMatrix,Z[,1]))
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-YMatrixDegraded <- YMatrix
-YMatrixDegraded[runif(length(c(YMatrix)), min=0.1, max=1.1) > 1] <- NA
-
-latentMultiRegModerated1 <- data.frame(YMatrixDegraded,Z=Z[,1])
+latentMultiRegModerated1 <- cbind(YMatrix,Z=Z[,1])
 
 round(cor(latentMultiRegModerated1), 3)
 round(cov(latentMultiRegModerated1), 3)
 
-latentMultiRegModerated1$Z <- latentMultiRegModerated1$Z - mean(latentMultiRegModerated1$Z)
+latentMultiRegModerated1[,'Z'] <- latentMultiRegModerated1[,'Z'] - mean(latentMultiRegModerated1[,'Z'])
 
 numberFactors <- 3
 numberIndicators <- 12
@@ -88,15 +85,15 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     manifestVars=c(indicators),
     latentVars=c(latents,"dummy1"),
     mxPath(from=latents1, to=indicators1, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels1),
     mxPath(from=latents2, to=indicators2, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels2),
     mxPath(from=latents3, to=indicators3, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels3),
     mxPath(from=latents1, to=indicators1[1], 
@@ -114,7 +111,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-5,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
@@ -124,19 +121,6 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     mxData(observed=latentMultiRegModerated1, type="raw")
     )
 
-# ----------------------------------
-# Modify to add in direct paths
-
-
-threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
-    mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, 
-           free=TRUE, values=.2, labels=c("b11", "b12")),
-    mxPath(from="F1",to="F2",
-           arrows=2, 
-           free=TRUE, values=.1, labels=c("cF1F2")),
-    name="threeLatentNoModerator"
-    )
-
-threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
-omxCheckCloseEnough(threeLatentNoModeratorOut$output$fit, 34169.31, .1)
+threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
+summary(threeLatentOrthogonalOut)
+omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 3788276, 2)

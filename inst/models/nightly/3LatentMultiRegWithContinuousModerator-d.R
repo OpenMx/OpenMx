@@ -23,7 +23,7 @@ options(width=100)
 # ---------------------------------------------------------------------
 # Data for multiple regression of F3 on F1 and F2 with moderator variable Z.
 
-numberSubjects <- 100000
+numberSubjects <- 10000
 numberIndicators <- 12
 numberFactors <- 3
 
@@ -111,7 +111,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-5,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
@@ -122,4 +122,5 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     )
 
 threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
-omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 3788276, 2)
+summary(threeLatentOrthogonalOut)
+omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 379299.2, 1)

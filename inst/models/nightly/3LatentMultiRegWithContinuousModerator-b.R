@@ -110,7 +110,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
            free=TRUE, values=.2, 
            labels=uniqueLabels),
     mxPath(from=latents,
-           arrows=2, 
+           arrows=2, lbound=1e-5,
            free=TRUE, values=.8, 
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
@@ -127,7 +127,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
 
 threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
     mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, 
+           arrows=1, lbound=0,
            free=TRUE, values=.2, labels=c("b11", "b12")),
     mxPath(from="F1",to="F2",
            arrows=2, 
@@ -136,4 +136,5 @@ threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
     )
 
 threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
+summary(threeLatentNoModeratorOut)
 omxCheckCloseEnough(threeLatentNoModeratorOut$output$fit, 37871.72, .1)
