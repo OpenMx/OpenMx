@@ -195,7 +195,7 @@ catFitStatistics <- function(x) {
 		cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	}
 	cat("Prob(RMSEA <= ", x$RMSEANull, "): ", x$RMSEAClose, '\n', sep='')
-	cat("GFI, AGFI, NFI (aka Bentler-Bonett), SRMR:", "Not Recommended", '\n')
+	cat("OpenMx does not recommend using", "GFI, AGFI, NFI (aka Bentler-Bonett), or SRMR:\n", "See help(mxSummary) for why.", '\n')
 }
 
 fitStatistics <- function(model, useSubmodels, retval) {
@@ -498,10 +498,10 @@ print.summary.mxmodel <- function(x,...) {
 		cat("saturated fit value (", x$fitUnits, "units ): ", x$SaturatedLikelihood, '\n')
 	}
 	cat("number of observations: ", x$numObs, '\n')
-	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite) && x$verbose==TRUE) {
+	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
 		if (!x$infoDefinite) {
-			cat("information matrix is not positive definite (not at a candidate optimum)\n")
-		} else {
+			cat("\n** Information matrix is not positive definite (not at a candidate optimum).\n  Be suspicious of these results. At minimum, do not trust the standard errors.\n\n")
+		} else if(x$verbose==TRUE) {
 			cat("condition number of the information matrix: ", x$conditionNumber, "\n")
 		}
 	}
