@@ -114,11 +114,15 @@ cran-check: cran-build
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 105 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 pdf:
+	-[ -d build ] && rm -r ./build
+	mkdir build
 	./util/prep npsol
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
 html:
+	-[ -d build ] && rm -r ./build
+	mkdir build
 	./util/prep npsol
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
@@ -135,7 +139,6 @@ doc.tar.bz2: html pdf
 	mv docs/build/latex/OpenMx.pdf build/$(VERSION)/OpenMxUserGuide.pdf
 	mv build/OpenMx.pdf build/$(VERSION)
 	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
-	-rm -r build/$(VERSION)
 
 install: code-style
 	./util/prep npsol
