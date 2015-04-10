@@ -93,7 +93,6 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
 void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
 {
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
-	static const double eps = 1E-4;	// Kept here for access purposes.
 
 	double *Haprox             = hess_work->Haprox;
 	double *Gaprox             = hess_work->Gaprox;
@@ -102,8 +101,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	double *freeParams         = fc->est;
 
 	/* Part the first: Gradient and diagonal */
-	double iOffset = fabs(stepSize * optima[i]);
-	if(fabs(iOffset) < eps) iOffset += eps;
+	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
 	if(verbose >= 2) {mxLog("Hessian estimation: iOffset: %f.", iOffset);}
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
 		if(verbose >= 2) {mxLog("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.", i, k, iOffset);}
@@ -152,17 +150,14 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
 {
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
-    static const double eps = 1E-4; // Kept here for access purposes.
 
 	double *Haprox             = hess_work->Haprox;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
 	FitContext* fc = hess_work->fc; 
 	double *freeParams         = fc->est;
 
-	double iOffset = fabs(stepSize*optima[i]);
-	if(fabs(iOffset) < eps) iOffset += eps;
-	double lOffset = fabs(stepSize*optima[l]);
-	if(fabs(lOffset) < eps) lOffset += eps;
+	double iOffset = std::max(fabs(stepSize*optima[i]), stepSize);
+	double lOffset = std::max(fabs(stepSize*optima[l]), stepSize);
 
 	for(int k = 0; k < numIter; k++) {
 		freeParams[i] = optima[i] + iOffset;
