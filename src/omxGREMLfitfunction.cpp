@@ -24,7 +24,7 @@
 struct omxGREMLFitState { 
   //TODO: Some of these members might be redundant with what's stored in the FitContext, 
   //and could therefore be cut
-  omxMatrix *y, *X, *cov, *means;
+  omxMatrix *y, *X, *cov, *invcov, *means;
   //std::vector< int > dropcase;
   //int numcases2drop;
   std::vector< omxMatrix* > dV;
@@ -71,17 +71,11 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
 
   newObj->y = omxGetExpectationComponent(expectation, oo, "y");
   newObj->cov = omxGetExpectationComponent(expectation, oo, "cov");
+  newObj->invcov = omxGetExpectationComponent(expectation, oo, "invcov");
   newObj->X = omxGetExpectationComponent(expectation, oo, "X");
   newObj->means = omxGetExpectationComponent(expectation, oo, "means");
   newObj->nll = 0;
   newObj->varGroup = NULL;
-  
-/*  if( newObj->X->rows != newObj->y->rows ){
-    Rf_error("X and y matrices do not have equal numbers of rows");
-  }
-   if( newObj->V->rows != newObj->V->cols ){
-    Rf_error("V matrix is not square");
-  } */
   
   //Derivatives:
   {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
@@ -139,7 +133,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
   const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
   int i;
-  EigenMatrixAdaptor Eigy(gff->y);
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(gff->y), gff->y->cols, 1);
+  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
   EigenMatrixAdaptor EigX(gff->X);
   Eigen::MatrixXd P, Py;
   double logdetV=0, logdetquadX=0;
@@ -161,10 +156,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       }
       
       //Log determinant of V:
-      for(i=0; i < gff->y->rows; i++){
-        logdetV += log(oge->cholV_vectorD[i]);
-      }
-      logdetV *= 2;
+      logdetV = oge->logdetV;
       
       //Log determinant of quadX:
       for(i=0; i < gff->X->cols; i++){
@@ -173,8 +165,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       logdetquadX *= 2;
       
       //Finish computing fit (negative loglikelihood):
-      P = oge->Vinv * 
-        (Eigen::MatrixXd::Identity(oge->Vinv.rows(),oge->Vinv.cols()) - 
+      P = Vinv * 
+        (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P * Eigy;
       oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + (Eigy.transpose() * Py )(0,0));
@@ -186,7 +178,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       EigenMatrixAdaptor EigV(gff->cov);
       double logdetV=0, logdetquadX=0;
       Eigen::MatrixXd Vinv, quadX;
-      Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
+      Eigen::LLT< Eigen::MatrixXd > cholV(gff->cov->rows);
       Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
       Eigen::VectorXd cholV_vectorD, cholquadX_vectorD;
       
@@ -199,7 +191,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       }
       //Log determinant of V:
       cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
-      for(i=0; i < gff->y->rows; i++){
+      for(i=0; i < gff->X->rows; i++){
         logdetV += log(cholV_vectorD[i]);
       }
       logdetV *= 2;
@@ -235,8 +227,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Declare local variables for this scope:
     int j=0, t1=0, t2=0;
     Eigen::MatrixXd PdV_dtheta1, PdV_dtheta2;//, dV_dtheta1, dV_dtheta2;
-    Eigen::MatrixXd dV_dtheta1(gff->y->rows, gff->y->rows); //<--Derivative of V w/r/t parameter i.
-    Eigen::MatrixXd dV_dtheta2(gff->y->rows, gff->y->rows); //<--Derivative of V w/r/t parameter j.
+    Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+    Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     

@@ -23,7 +23,7 @@ setClass(Class = "MxExpectationGREML",
            staggerZeroes="logical",
            dataset.is.yX="logical",
            X="matrix",
-           y="matrix",
+           y="MxData",
            yXcolnames="character",
            casesToDrop="integer",
            b="matrix",
@@ -55,7 +55,7 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@X <- matrix(as.numeric(NA),1,1)
-            .Object@y <- matrix(as.numeric(NA),1,1)
+            #.Object@y <- matrix(as.numeric(NA),1,1)
             .Object@dims <- "foo"
             return(.Object)
           }
@@ -159,7 +159,10 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               stop(msg, call. = FALSE)
             }
             if(.Object@dataset.is.yX){
-              .Object@y <- as.matrix(mxDataObject@observed[,1])
+              .Object@y <- mxData(
+                observed=matrix(mxDataObject@observed[,1], nrow=1,
+                                dimnames=list(NULL,paste("y",1:nrow(mxDataObject@observed),sep=""))),
+                type="raw",sort=FALSE)
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
               .Object@yXcolnames <- colnames(mxDataObject@observed)
               .Object@numFixEff <- as.integer(ncol(mxDataObject@observed)-1)
@@ -182,14 +185,17 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               mm <- mxGREMLDataHandler(data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
                                      addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
                                      staggerZeroes=.Object@staggerZeroes)
-              .Object@y <- as.matrix(mm$yX[,1])
+              .Object@y <- mxData(
+                observed=matrix(mm$yX[,1], nrow=1,
+                                dimnames=list(NULL,paste("y",1:nrow(mxDataObject@observed),sep=""))),
+                type="raw",sort=FALSE)
               .Object@X <- as.matrix(mm$yX[,-1])
               .Object@yXcolnames <- colnames(mm$yX)
               .Object@casesToDrop <- mm$casesToDrop
               .Object@numFixEff <- ncol(.Object@X)
             }
             #Get number of observed statistics BEFORE call to backend, so summary() can use it:
-            .Object@numStats <- nrow(.Object@y)
+            .Object@numStats <- nrow(.Object@X)
             dataName <- .Object@data
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
