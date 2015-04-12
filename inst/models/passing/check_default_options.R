@@ -1,4 +1,3 @@
-# check to ensure that the default optimizer is set to NPSOL
-omxCheckEquals(imxDetermineDefaultOptimizer(), "NPSOL")
+omxCheckEquals(imxDetermineDefaultOptimizer(), "CSOLNP")
 
 omxCheckEquals(options()[['mxCondenseMatrixSlots']], FALSE)

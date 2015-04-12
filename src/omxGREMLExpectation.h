@@ -15,17 +15,23 @@
  */
  
  typedef struct {
-  omxMatrix* y;
-  omxMatrix* V;
-  omxMatrix* X;
-  std::vector< omxMatrix* > dV;
-  std::vector< const char* > dVnames;
-  int dVlength;
+  omxMatrix *cov, *means, *X, *y;
+  int alwaysComputeMeans, numcases2drop, cholV_fail, cholquadX_fail;
+  std::vector< int > dropcase;
+  Eigen::VectorXd cholV_vectorD;
+  Eigen::VectorXd cholquadX_vectorD;
+  Eigen::MatrixXd Vinv, XtVinv, quadXinv;
+  std::vector< const char* > yXcolnames;
+  //const char **yXcolnames;
+  //std::vector< omxMatrix* > dV;
+  //std::vector< const char* > dVnames;
+  //int dVlength;
 } omxGREMLExpectation;
 
 void omxInitGREMLExpectation(omxExpectation* ox);
 void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *);
 void omxDestroyGREMLExpectation(omxExpectation* ox);
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra);
+void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop);
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
-omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os);
+

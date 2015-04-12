@@ -25,7 +25,7 @@ set.seed(10)
 
 numberSubjects <- 1000
 numberFactors <- 3
-numberIndPerFactor <- 16
+numberIndPerFactor <- 8
 numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
 
 XMatrix <- matrix(rnorm(numberSubjects*numberFactors, mean=0, sd=1), numberSubjects, numberFactors)
@@ -72,7 +72,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     latentVars=c(latents,"dummy1"),
     mxPath(from=latents1, to=indicators1, 
            arrows=1, connect="all.pairs",
-           free=TRUE, values=.2, 
+           free=TRUE, values=.2, ubound=5,
            labels=loadingLabels1),
     mxPath(from=latents2, to=indicators2, 
            arrows=1, connect="all.pairs",
@@ -93,21 +93,20 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
            free=FALSE, values=1),
     mxPath(from=indicators, 
            arrows=2, 
-           free=TRUE, values=.2, 
+           free=TRUE, values=.2, lbound=1e-6,
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-6,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean),
-	numObs=nrow(YMatrix), type="cov")
+    mxData(observed=YMatrix, type="raw")
     )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 54933.11, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 73459.23, .1)

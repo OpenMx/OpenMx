@@ -8,15 +8,14 @@ Create MxFitFunctionGREML Object
 This function creates a new \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
-mxFitFunctionGREML(casesToDrop=integer(0), dropNAfromV=TRUE)
+mxFitFunctionGREML(dV=character(0))
 }
 
 \arguments{
-  \item{casesToDrop}{Indices for the rows and columns to be internally dropped from the 'V' matrix (and its derivatives, if applicable), usually because those same rows have been dropped from 'X' and 'y' due to missing data.  Defaults to an integer vector of length zero.}
-  \item{dropNAfromV}{Logical; should the rows and columns indexed by argument \code{casesToDrop} actually be dropped at runtime?  Defaults to \code{TRUE}.}
+  \item{dV}{Vector of character strings; defaults to a character vector of length zero.  If a value of non-zero length is provided, it must be a \emph{named} character vector.  This vector's names must be the labels of free parameters in the model.  The vector's elements (i.e., the character strings themselves) must be the names of \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s), each of which equals the first partial derivatives of the 'V' matrix with respect to the corresponding free parameter.}
 }
 \details{
-Rows and columns are internally dropped only if argument \code{casesToDrop} has nonzero length and argument \code{dropNAfromV} is \code{TRUE}.  The point of these two arguments is that, frequently, the 'V' matrix will be an \code{\link{MxAlgebra}}, and therefore not be computed until runtime.  In contrast, 'y' and 'X' will usually be \code{\link{MxMatrix}} objects and can easily have rows with missing data trimmed out of them prior to runtime. 
+Making effective use of argument \code{dV} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' and (2) the model contains no \code{\link{MxConstraint}}s. 
 }
 \value{
 Returns a new object of class \code{\link{MxFitFunctionGREML}}.
@@ -26,7 +25,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-See \code{\link{mxGREMLStarter}()} for a related helper function.  See \code{\link{MxFitFunctionGREML}} for the S4 class created by \code{mxFitFunctionGREML()}.  For more information generally concerning GREML analyses, including a complete example, see \code{\link{mxExpectationGREML}()}.  More information about the OpenMx package may be found \link[=OpenMx]{here}.
+See \code{\link{MxFitFunctionGREML}} for the S4 class created by \code{mxFitFunctionGREML()}.  For more information generally concerning GREML analyses, including a complete example, see \code{\link{mxExpectationGREML}()}.  More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 \examples{
 gff <- mxFitFunctionGREML()

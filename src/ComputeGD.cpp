@@ -173,10 +173,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		if (!hessChol) {
 			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 		}
-		Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
-		hc = rf.hessOut;
-		Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
-		dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
+		if (rf.hessOut.size()) {
+			Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
+			hc = rf.hessOut;
+			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
+			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
+		}
 #endif
 		break;}
         case OptEngine_CSOLNP:

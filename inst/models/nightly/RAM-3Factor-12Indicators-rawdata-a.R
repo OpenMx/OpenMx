@@ -25,7 +25,7 @@ set.seed(10)
 
 numberSubjects <- 1000
 numberFactors <- 3
-numberIndPerFactor <- 8
+numberIndPerFactor <- 4
 numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
 
 XMatrix <- matrix(rnorm(numberSubjects*numberFactors, mean=0, sd=1), numberSubjects, numberFactors)
@@ -93,11 +93,11 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
            free=FALSE, values=1),
     mxPath(from=indicators, 
            arrows=2, 
-           free=TRUE, values=.2, 
+           free=TRUE, values=.2, lbound=1e-6,
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-6,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
@@ -109,4 +109,4 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 73459.23, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 37940.07, .1)

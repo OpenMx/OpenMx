@@ -1,0 +1,375 @@
+#
+#   Copyright 2007-2015 The OpenMx Project
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+
+
+#------------------------------------------------------------------------------
+# Author: Michael D. Hunter
+# Date: 2015-04-08
+# Filename: StateSpaceContinuous.R
+# Purpose: Create and test three example of continuous time state space models.
+#	Example 1 is an undamped linear oscillator.
+#	Example 2 is a damped linear oscillator with dynamic noise.
+#	Example 3 is a general dynamic model with multiple indicators per factor.
+#	All examples are fit to simulated data.  Their parameter estimates are
+#	compared to their true generating values.  This last example was also fit
+#	with a completely R-based implementation of the same algorithm that is now
+#	implemented in the C++ backend.  The C++ code reaches the same solution
+#	as the R code, and is about 70x faster on the same machine.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# Load packages
+
+require(mvtnorm)
+require(Matrix)
+require(OpenMx)
+
+
+
+#------------------------------------------------------------------------------
+# Example 1
+# Undamped linear oscillator, i.e. a noisy sine wave.
+#	Measurement error, but no dynamic error, single indicator.
+#	This example works great.
+
+#--------------------------------------
+# Data Generation
+
+set.seed(405)
+tlen <- 200
+t <- seq(1.2, 50, length.out=tlen)
+
+freqParam <- .5
+initialCond <- matrix(c(2.5, 0))
+x <- initialCond[1,1]*cos(freqParam*t)
+plot(t, x, type='l')
+
+measVar <- 1.5
+y <- cbind(obs=x+rnorm(tlen, sd=sqrt(measVar)), tim=t)
+
+plot(t, y[,1], type='l')
+
+#--------------------------------------
+# Model Specification
+
+#Note: the bounds are here only to keep CSOLNP from
+# stepping too far off a cliff.  With the bounds in
+# place, CSOLNP finds the right solution.  Without
+# the bounds, CSOLNP goes crazy.
+
+
+cdim <- list('obs', c('ksi', 'ksiDot'))
+
+amat <- mxMatrix('Full', 2, 2, c(F, T, F, T), c(0, -.1, 1, -.2), name='A', lbound=-10)
+bmat <- mxMatrix('Zero', 2, 1, name='B')
+cmat <- mxMatrix('Full', 1, 2, FALSE, c(1, 0), name='C', dimnames=cdim)
+dmat <- mxMatrix('Zero', 1, 1, name='D')
+qmat <- mxMatrix('Zero', 2, 2, name='Q')
+rmat <- mxMatrix('Diag', 1, 1, TRUE, .4, name='R', lbound=1e-6)
+xmat <- mxMatrix('Full', 2, 1, TRUE, c(0, 0), name='x0', lbound=-10, ubound=10)
+pmat <- mxMatrix('Diag', 2, 2, FALSE, 1, name='P0')
+umat <- mxMatrix('Zero', 1, 1, name='u')
+tmat <- mxMatrix('Full', 1, 1, name='time', labels='data.tim')
+
+osc <- mxModel("LinearOscillator", 
+	amat, bmat, cmat, dmat, qmat, rmat, xmat, pmat, umat, tmat,
+	mxExpectationStateSpace('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time'),
+	mxFitFunctionML(),
+	mxData(y, 'raw'))
+
+#osc <- mxOption(osc, 'Calculate Hessian', 'No')
+#osc <- mxOption(osc, 'Standard Errors', 'No')
+#osc <- mxOption(osc, 'Major iterations', 0)
+
+oscr <- mxRun(osc)
+
+
+#--------------------------------------
+# Results Examination
+
+summary(oscr)
+
+
+(ssFreqParam <- mxEval(sqrt(-A[2,1]), oscr))
+freqParam
+omxCheckWithinPercentError(ssFreqParam, freqParam, 1)
+
+
+(ssMeasVar <- mxEval(R, oscr))
+measVar
+omxCheckWithinPercentError(ssMeasVar, measVar, 10)
+
+
+dampingParam <- 0
+(ssDampingParam <- mxEval(-A[2,2], oscr))
+dampingParam
+omxCheckCloseEnough(ssDampingParam, dampingParam, .01)
+
+
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+
+
+(ssInitialCond <- mxEval(x0, oscr))
+initialCond
+omxCheckTrue(rms(ssInitialCond, initialCond) < .1)
+
+
+
+#------------------------------------------------------------------------------
+# Example 2
+# Damped linear oscillator example
+#	There is measurement noise and there are unmeasured dynamic disturbances.
+#	These disturbances are called dynamic noise.
+#	There is a single indicator.
+# TODO Figure out what combination of variables can really be estimated for 
+#	this kind of model.  It is clear that measurement noise and SOME dynamic
+#	noise can be estimated, but not all.
+
+
+#--------------------------------------
+# Data Generation
+
+xdim <- 2
+udim <- 1
+ydim <- 1
+tdim <- 100
+set.seed(315)
+tA <- matrix(c(0, -.3, 1, -.7), xdim, xdim)
+tB <- matrix(c(0), xdim, udim)
+tC <- matrix(c(1, 0), ydim, xdim)
+tD <- matrix(c(0), ydim, udim)
+tQ <- matrix(c(0), xdim, xdim); diag(tQ) <- c(0, 2.2)
+tR <- matrix(c(0), ydim, ydim); diag(tR) <- c(1.5)
+
+x0 <- matrix(c(0, 1), xdim, 1)
+P0 <- diag(c(1), xdim)
+tdx <- matrix(0, xdim, tdim+1)
+tx <- matrix(0, xdim, tdim+1)
+tu <- matrix(0, udim, tdim)
+ty <- matrix(0, ydim, tdim)
+
+tT <- matrix(0:tdim, nrow=1, ncol=tdim+1)
+
+tI <- diag(1, nrow=xdim)
+
+tx[,1] <- x0
+for(i in 2:(tdim+1)){
+	q <- t(rmvnorm(1, rep(0, xdim), tQ))
+	tdx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + q
+	expA <- as.matrix(expm(tA * (tT[,i]-tT[,i-1])))
+	intA <- solve(tA) %*% (expA - tI)
+	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + intA %*% q
+	#ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
+	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
+}
+
+#plot(tx[1,], type='l')
+
+rownames(ty) <- paste('y', 1:ydim, sep='')
+rownames(tx) <- paste('x', 1:xdim, sep='')
+
+plot(tT[,-1], ty[1,], type='l')
+
+
+#--------------------------------------
+# Model Specification
+
+cdim <- list(rownames(ty), c('ksi', 'ksiDot'))
+
+amat <- mxMatrix('Full', xdim, xdim, c(F, T, F, T), c(0, -.1, 1, -.2), name='A')
+bmat <- mxMatrix('Zero', xdim, udim, name='B')
+cmat <- mxMatrix('Full', ydim, xdim, FALSE, c(1, 0), name='C', dimnames=cdim)
+dmat <- mxMatrix('Zero', udim, udim, name='D')
+qmat <- mxMatrix('Diag', xdim, xdim, c(F,T), c(0, 1), name='Q', lbound=1e-6)
+rmat <- mxMatrix('Diag', ydim, ydim, TRUE, 1.5, name='R')
+xmat <- mxMatrix('Full', xdim, 1, c(T,F), c(0, 1), name='x0')
+pmat <- mxMatrix('Diag', xdim, xdim, FALSE, 1, name='P0')
+umat <- mxMatrix('Zero', udim, 1, name='u')
+tmat <- mxMatrix('Full', 1, 1, name='time', labels='data.times')
+
+dosc <- mxModel("DampedLinearOscillator", 
+	amat, bmat, cmat, dmat, qmat, rmat, xmat, pmat, umat, tmat,
+	mxExpectationStateSpace('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time'),
+	mxFitFunctionML(),
+	mxData(cbind(t(ty), times=tT[,-1]), 'raw'))
+
+#dosc <- mxOption(dosc, 'Calculate Hessian', 'No')
+#dosc <- mxOption(dosc, 'Standard Errors', 'No')
+#dosc <- mxOption(dosc, 'Major iterations', 0)
+
+doscr <- mxRun(dosc)
+
+#--------------------------------------
+# Results Examination
+
+summary(doscr)
+
+
+
+mxEval(A, doscr)
+tA
+omxCheckTrue(rms(mxEval(A, doscr)[2,1], tA[2,1]) < .3)
+
+mxEval(R, doscr)
+tR
+omxCheckTrue(rms(mxEval(R, doscr), tR) < .5)
+
+mxEval(Q, doscr)
+tQ
+omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .3)
+
+
+mxEval(x0, doscr) #poorly estimated, likely due to dynamic error
+x0
+
+
+
+#------------------------------------------------------------------------------
+# Example 3
+# Full bore example of general dynamics with dynamic error,
+#	measurement error, and multiple indicators per latent variable.
+
+
+#--------------------------------------
+# Data generation
+
+
+
+xdim <- 3
+udim <- 2
+ydim <- 9
+tdim <- 500
+set.seed(948)
+tA <- matrix(c(-.4, 0, 0, 0, -.9, .1, 0, -.1, -.9), xdim, xdim)
+tB <- matrix(c(0), xdim, udim)
+tC <- matrix(c(runif(3, .4, 1), rep(0, ydim), runif(3, .4, 1), rep(0, ydim), runif(3, .4, 1)), ydim, xdim)
+tD <- matrix(c(0), ydim, udim)
+tQ <- matrix(c(0), xdim, xdim); diag(tQ) <- runif(xdim, 1, 2) # 0, 1
+tR <- matrix(c(0), ydim, ydim); diag(tR) <- runif(ydim)
+
+x0 <- matrix(c(rnorm(xdim)), xdim, 1)
+P0 <- diag(c(runif(xdim)))
+tdx <- matrix(0, xdim, tdim+1)
+tx <- matrix(0, xdim, tdim+1)
+tu <- matrix(0, udim, tdim)
+ty <- matrix(0, ydim, tdim)
+
+tT <- matrix(0:tdim, nrow=1, ncol=tdim+1)
+
+tI <- diag(1, nrow=xdim)
+
+tx[,1] <- x0
+for(i in 2:(tdim+1)){
+	q <- t(rmvnorm(1, rep(0, xdim), tQ))
+	tdx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + q
+	expA <- as.matrix(expm(tA * (tT[,i]-tT[,i-1])))
+	intA <- solve(tA) %*% (expA - tI)
+	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + intA %*% q
+	#ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
+	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
+}
+
+#plot(tx[1,], type='l')
+
+rownames(ty) <- paste('y', 1:ydim, sep='')
+rownames(tx) <- paste('x', 1:xdim, sep='')
+
+plot(ty[1,], type='l')
+
+#--------------------------------------
+# Model Specification
+
+
+
+
+
+smod <- mxModel(
+	name='SSContinuous',
+	mxMatrix(name='A', values=tA, nrow=xdim, ncol=xdim, free=c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE), labels=c('a', NA, NA, NA, 'b', 'c', NA, 'csym[1,1]', 'b'), ubound=c(0, NA, NA, NA, 0, NA, NA, NA, 0)),
+	mxAlgebra(name='csym', -c),
+	mxMatrix(name='B', values=0, nrow=xdim, ncol=udim, free=FALSE),
+	mxMatrix(name='C', values=tC, nrow=ydim, ncol=xdim, free=(tC!=0), dimnames=list(rownames(ty), rownames(tx))),
+	mxMatrix(name='D', values=0, nrow=ydim, ncol=udim, free=FALSE),
+	# Note Factor error matrix is fixed!  This is for model identification.
+	# I happen to fix the variances to their true values.
+	mxMatrix(name='Q', type='Diag', values=diag(tQ), nrow=xdim, ncol=xdim, free=FALSE),
+	mxMatrix(name='R', type='Diag', values=diag(tR), nrow=ydim, ncol=ydim, free=TRUE),
+	mxMatrix(name='x', values=x0, nrow=xdim, ncol=1, free=FALSE),
+	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
+	mxMatrix("Zero", udim, 1, name="u"),
+	mxMatrix("Full", 1, 1, name="time", labels="data.Time"),
+	mxData(observed=cbind(t(ty), Time=tT[,-1]), type='raw'),
+	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', t='time'),
+	mxFitFunctionML()
+)
+
+
+# Uncomment for degugging
+#smod <- mxOption(smod, 'Calculate Hessian', 'No')
+#smod <- mxOption(smod, 'Standard Errors', 'No')
+#smod <- mxOption(smod, 'Major iterations', 0)
+
+
+
+srun <- mxRun(smod)
+# takes about a minute on Squishy.
+# The same model all in R takes 1.46 hours.
+# Speed-up is approx 70x.
+
+
+# Check likelihoods of initial parameters
+# -2LL
+#summary(srun)$Minus2LogLikelihood # when major iterations is 0
+#2*dlmLL(y=t(ty), mod=mfun(tinit)) + 200*9*log(2*pi) # dlm gives back -LL - CONST, so adjust it.  200 is N, 9 is k
+
+#--------------------------------------
+# Results Examination
+
+summary(srun)
+
+
+mxEval(A, srun); tA
+omxCheckTrue(rms(mxEval(A, srun)[tA!=0], tA[tA!=0]) < .2)
+
+mxEval(C, srun)[tC!=0]; tC[tC!=0]
+omxCheckTrue(rms(mxEval(C, srun)[tC!=0], tC[tC!=0]) < .1)
+
+diag(mxEval(R, srun)); diag(tR)
+omxCheckTrue(rms(diag(mxEval(R, srun)), diag(tR)) < .1)
+
+
+restA <- matrix(c(
+ -0.3173239,  0.00000000,  0.00000000,
+  0.0000000, -1.09531962, -0.04313248,
+  0.0000000,  0.04313248, -1.09531962
+  ), xdim, xdim, byrow=TRUE)
+restC <- c(0.4789963, 0.6038891, 0.7602543, 0.9514004, 0.7272259,
+	 1.0570274, 0.5431997, 1.0255853, 0.4885580)
+restR <- c(0.3226227, 0.8767227, 1.1029966, 0.5607970, 0.1622717,
+	 0.8304199, 0.7078884, 0.9453716, 0.9422717)
+
+
+omxCheckCloseEnough(diag(mxEval(A, srun)), diag(restA), 0.05)
+
+omxCheckCloseEnough(mxEval(C, srun)[tC!=0], restC, 0.01)
+
+omxCheckCloseEnough(diag(mxEval(R, srun)), restR, 0.01)
+
+
+#------------------------------------------------------------------------------
+# Done
+

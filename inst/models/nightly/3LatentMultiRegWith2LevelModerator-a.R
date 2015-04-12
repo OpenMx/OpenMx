@@ -19,6 +19,7 @@
 library(OpenMx)
 
 options(width=100)
+set.seed(1)
 
 # ---------------------------------------------------------------------
 # Data for multiple regression of F3 on F1 and F2 with moderator variable Z.
@@ -26,8 +27,6 @@ options(width=100)
 numberSubjects <- 1000
 numberIndicators <- 12
 numberFactors <- 3
-
-set.seed(10)
 
 fixedBMatrixF <- matrix(c(.4, .2), 2, 1, byrow=TRUE)
 randomBMatrixF <- matrix(c(.3, .5), 2, 1, byrow=TRUE)
@@ -47,10 +46,7 @@ cor(cbind(XMatrix,Z[,1]))
 
 dimnames(YMatrix) <- list(NULL, paste("X", 1:numberIndicators, sep=""))
 
-YMatrixDegraded <- YMatrix
-YMatrixDegraded[runif(length(c(YMatrix)), min=0.1, max=1.1) > 1] <- NA
-
-latentMultiRegModerated1 <- data.frame(YMatrixDegraded,Z=Z[,1])
+latentMultiRegModerated1 <- data.frame(YMatrix,Z=Z[,1])
 
 round(cor(latentMultiRegModerated1), 3)
 round(cov(latentMultiRegModerated1), 3)
@@ -88,7 +84,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     manifestVars=c(indicators),
     latentVars=c(latents,"dummy1"),
     mxPath(from=latents1, to=indicators1, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels1),
     mxPath(from=latents2, to=indicators2, 
@@ -114,7 +110,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-5,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
@@ -125,4 +121,5 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     )
 
 threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
-omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 34349.28, .1)
+summary(threeLatentOrthogonalOut)
+omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 37909.974, .1)

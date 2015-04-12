@@ -51,9 +51,6 @@ void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *
 	omxRecompute(ose->D, NULL);
 	omxRecompute(ose->Q, NULL);
 	omxRecompute(ose->R, NULL);
-	//omxRecompute(ose->x0); //Don't think I need to recompute these b.c. kalmanP/U functions do not use these.  They are recomputed on resetting these components.
-	//omxRecompute(ose->P0);
-	//omxRecompute(ose->u);
 	
 	// Probably should loop through all the data here!!!
 	if(ose->t == NULL){
@@ -93,6 +90,9 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrix(argStruct->smallK);
 	omxFreeMatrix(argStruct->smallS);
 	omxFreeMatrix(argStruct->smallY);
+	
+	delete argStruct;
+	
 }
 
 
@@ -111,20 +111,13 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
 	omxMatrix* B = ose->B;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....State Space: B"); }
-	//omxMatrix* C = ose->C;
-	//omxMatrix* D = ose->D;
 	omxMatrix* Q = ose->Q;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Q, "....State Space: Q"); }
-	//omxMatrix* R = ose->R;
-	//omxMatrix* r = ose->r;
-	//omxMatrix* s = ose->s;
 	omxMatrix* u = ose->u;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(u, "....State Space: u"); }
 	omxMatrix* x = ose->x;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
-	//omxMatrix* y = ose->y;
 	omxMatrix* z = ose->z;
-	//omxMatrix* K = ose->K;
 	omxMatrix* P = ose->P;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 	//omxMatrix* S = ose->S;
@@ -358,6 +351,14 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// Subtract from diagonal 1.0
 	// A.diagonal() -= 1
 	
+	/* Eigen Matrix reference setting */
+	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
+	Eigen::MatrixXd &eigenIA = ose->eigenIA;
+	Eigen::MatrixXd &PSI = ose->PSI;
+	Eigen::MatrixXd &IP = ose->IP;
+	Eigen::MatrixXd &I = ose->I;
+	
+	
 	/*R code for the next few lines
 		ldim <- nrow(x$A)
 		I <- diag(1, nrow=ldim)
@@ -367,43 +368,43 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	*/
 	
 	
-	/* Z = A * deltaT */
+	/*  Z = A
+		eigenA = Z
+		eigenExpA = eigenA*deltaT  THAT IS eigenExpA = A*deltaT
+	*/
 	omxCopyMatrix(Z, A);
 	EigenMatrixAdaptor eigenA(Z);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	Eigen::MatrixXd eigenExpA(A->rows, A->cols);
-	eigenExpA = eigenA * deltaT;//omxMatrixElement(deltaT, 0, 0); //deltaT
+	eigenExpA = eigenA * deltaT;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
-	/* EA = expm(EA) */
+	/* eigenExpA = expm(eigenExpA)  THAT IS eigenExpA = expm(A*deltaT) */
 	eigenExpA = eigenExpA.exp();
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
-	/* IA = EA - I*/
-	Eigen::MatrixXd I( A->rows, A->rows );
-	I = Eigen::MatrixXd::Identity( A->rows, A->rows );
+	/* eigenIA = eigenExpA - I*/
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
-	Eigen::MatrixXd eigenIA(A->rows, A->cols);
 	eigenIA = eigenExpA - I;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
 	eigenIA = eigenA.lu().solve(eigenIA);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	/* IA = A^-1 IA */
+	/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
 	
+	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
 	EigenMatrixAdaptor eigenu(u); //or vector
 	EigenMatrixAdaptor eigenB(B);
-	Eigen::MatrixXd delX(A->rows, 1);
-	delX = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << delX << std::endl; }
+	eigenx.derived() = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << eigenx << std::endl; }
+	
 	
 	/* SUMMARY */
 	// EA = expm(A*deltaT)
 	// IA = A^-1 (EA - I)
-	// x = EA x + IA B u = EA x + IB u = EA x + v
+	// x = EA x + IA B u
 	
 	
 	/*R code for the next few lines
@@ -415,24 +416,22 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	
 	
 	/* PSI = block matrix
-	A  Q
-	0 -A
+	-A^T  0
+	 Q    A
 	*/
-	Eigen::MatrixXd PSI(2*A->rows, 2*A->rows);
 	EigenMatrixAdaptor eigenQ(Q);
 	PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
-	PSI = PSI * deltaT;//omxMatrixElement(deltaT, 0, 0); //deltaT
+	PSI = PSI * deltaT;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
 	/* PSI = PSI * deltaT */
 	/* PSI = expm(PSI) */
 	PSI = PSI.exp();
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI:\n" << PSI << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
 	
 	/* IP = block matrix
-	P
 	I
+	P
 	*/
-	Eigen::MatrixXd IP(2*A->rows, A->rows);
 	EigenMatrixAdaptor eigenP(P);
 	IP << I, eigenP;
 	//IP << eigenP, Eigen::MatrixXd::Identity(rows, rows)
@@ -442,35 +441,28 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	IP = PSI * IP;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
 	
-	/* PSI = block 1 of IP; IA = block 2 of IP */
-	Eigen::MatrixXd delP(A->rows, A->rows);
-	delP = IP.block(0, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << delP << std::endl; }
+	/* eigenIA = block 1 of IP; eigenExpA = block 2 of IP */
+	eigenP.derived() = IP.block(0, 0, A->rows, A->cols);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenP << std::endl; }
 	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
-	delP = eigenExpA*delP.lu().inverse();
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space delP:\n" << delP << std::endl; }
+	eigenP.derived() = eigenP.transpose().lu().solve(eigenExpA.transpose());
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
+	/* P = B1 B2^-1  THAT IS  solve B2^T P = B1^T for P */
 	
 	
 	/* SUMMARY */
-	// PSI = 	A  Q
-	//			0 -A
+	// PSI = 	-A^T  0
+	//			 Q    A
 	// PSI = expm(PSI * deltaT)
-	// IP = 	P
-	// 			I
+	// IP = 	I
+	// 			P
 	// IP = PSI IP
 	// P = IP[1] IP[2]^-1
 	
-	/* copy values of delX to x, and delP to P */
-	for(int i=0; i < A->rows; i++){
-		omxSetMatrixElement(x, i, 0, delX(i, 0));
-		for(int j=0; j < A->cols; j++){
-			omxSetMatrixElement(P, i, j, delP(i, j));
-		}
-	}
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << delX << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << eigenx << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << delP << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P"); }
 }
 
@@ -486,7 +478,9 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and fill expectation */
-	omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
+	//omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
+	omxStateSpaceExpectation *SSMexp = new omxStateSpaceExpectation;
+	
 	omxState* currentState = ox->currentState;
 	
 	/* Set Expectation Calls and Structures */
@@ -578,6 +572,14 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->oldT = 0.0;
 	SSMexp->deltaT = 0.0;
+	
+	/* Eigen Matrix initialization */
+	SSMexp->eigenExpA.resize(nx, nx);
+	SSMexp->I.resize(nx, nx);
+	SSMexp->I = Eigen::MatrixXd::Identity(nx, nx);
+	SSMexp->eigenIA.resize(nx, nx);
+	SSMexp->PSI.resize(2*nx, 2*nx);
+	SSMexp->IP.resize(2*nx, nx);
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);

@@ -107,8 +107,22 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
-	NPSOL_GOpt = &rf;
 	FitContext *fc = rf.fc;
+	NPSOL_GOpt = &rf;
+	{
+		// ensure we never move to a worse point
+		int mode = 0;
+		double fit = rf.recordFit(fc->est, &mode);
+		if (!std::isfinite(fit)) {
+			rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+			NPSOL_GOpt = NULL;
+			return;
+		}
+		if (mode == -1) {
+			NPSOL_GOpt = NULL;
+			return;
+		}
+	}
 	fc->grad.resize(fc->numParam); // ensure memory is allocated
 
     omxState *globalState = fc->state;

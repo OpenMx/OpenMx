@@ -23,7 +23,7 @@ set.seed(10)
 # ---------------------------------------------------------------------
 # Data for factor model.
 
-numberSubjects <- 1000
+numberSubjects <- 10000
 numberFactors <- 3
 numberIndPerFactor <- 8
 numberIndicators <- numberIndPerFactor*numberFactors # must be a multiple of numberFactors
@@ -76,7 +76,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
            labels=loadingLabels1),
     mxPath(from=latents2, to=indicators2, 
            arrows=1, connect="all.pairs",
-           free=TRUE, values=.2, 
+           free=TRUE, values=.2, lbound=0, ubound=5,
            labels=loadingLabels2),
     mxPath(from=latents3, to=indicators3, 
            arrows=1, connect="all.pairs",
@@ -97,17 +97,16 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-5,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean), 
-	numObs=nrow(YMatrix), type="cov")
+    mxData(observed=YMatrix, type="raw")
     )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29344.82, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 733384.1, 1)

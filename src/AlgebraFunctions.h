@@ -134,8 +134,16 @@ static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 
 	omxMatrix *src = matList[0];
 
+	if (src->rows == result->rows && src->cols == result->cols) {
+		omxCopyMatrix(result, src);
+		return;
+	}
+
 	if (src->rows != 1 || src->cols != 1) {
-		Rf_error("Don't know how to broadcast from a non 1x1 source matrix");
+		Rf_error("Don't know how to broadcast from %dx%d source "
+			 "matrix '%s' to %dx%d result matrix '%s'",
+			 src->rows, src->cols, src->name,
+			 result->rows, result->cols, result->name);
 	}
 
 	int size = result->rows * result->cols;

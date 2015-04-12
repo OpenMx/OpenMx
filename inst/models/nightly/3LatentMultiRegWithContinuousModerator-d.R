@@ -23,7 +23,7 @@ options(width=100)
 # ---------------------------------------------------------------------
 # Data for multiple regression of F3 on F1 and F2 with moderator variable Z.
 
-numberSubjects <- 1000
+numberSubjects <- 10000
 numberIndicators <- 12
 numberFactors <- 3
 
@@ -85,15 +85,15 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     manifestVars=c(indicators),
     latentVars=c(latents,"dummy1"),
     mxPath(from=latents1, to=indicators1, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels1),
     mxPath(from=latents2, to=indicators2, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels2),
     mxPath(from=latents3, to=indicators3, 
-           arrows=1, connect="all.pairs",
+           arrows=1, connect="all.pairs", 
            free=TRUE, values=.2, 
            labels=loadingLabels3),
     mxPath(from=latents1, to=indicators1[1], 
@@ -111,7 +111,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
            labels=uniqueLabels),
     mxPath(from=latents,
            arrows=2, 
-           free=TRUE, values=.8, 
+           free=TRUE, values=.8, lbound=1e-5,
            labels=factorVarLabels),
     mxPath(from="one", to=indicators, 
            arrows=1, free=FALSE, values=0),
@@ -121,19 +121,6 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
     mxData(observed=latentMultiRegModerated1, type="raw")
     )
 
-# ----------------------------------
-# Modify to add in direct paths
-
-
-threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
-    mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, 
-           free=TRUE, values=.2, labels=c("b11", "b12")),
-    mxPath(from="F1",to="F2",
-           arrows=2, 
-           free=TRUE, values=.1, labels=c("cF1F2")),
-    name="threeLatentNoModerator"
-    )
-
-threeLatentNoModeratorOut <- mxRun(threeLatentNoModerator)
-omxCheckCloseEnough(threeLatentNoModeratorOut$output$fit, 37871.72, .1)
+threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
+summary(threeLatentOrthogonalOut)
+omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 379299.2, 1)
