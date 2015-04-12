@@ -76,7 +76,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
         if(rf.fc->grad.norm() == 0)
         {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
-            mxLog("After %i iterations, gradient achieves zero!", iter);
+            if(rf.verbose >= 2) mxLog("After %i iterations, gradient achieves zero!", iter);
             break;
         }
         bool findit = FitCompare(rf, priorSpeed);
@@ -92,26 +92,26 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
             iter++;
             if(iter == maxIter){
                 rf.informOut = INFORM_ITERATION_LIMIT;
-                mxLog("Maximum iteration achieved!");
+                if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
                 break;
             }
         }
         else if (iter == 0){
-            mxLog("Infeasbile starting values!");
+            if(rf.verbose >= 2) mxLog("Infeasbile starting values!");
             break;
         }
         else if (iter == maxIter - 1){
             rf.informOut = INFORM_ITERATION_LIMIT;
-            mxLog("Maximum iteration achieved!");
+            if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
             break;
         }
         else {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
-            mxLog("After %i iterations, cannot find better estimation along the gradient direction", iter);
+            if(rf.verbose >= 2) mxLog("After %i iterations, cannot find better estimation along the gradient direction", iter);
             break;
         }
     }
-    mxLog("Status code : %i", rf.informOut);
+    if(rf.verbose == 1) mxLog("Status code : %i", rf.informOut);
     return;
 }
 

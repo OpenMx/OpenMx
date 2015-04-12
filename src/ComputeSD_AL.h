@@ -1,6 +1,3 @@
-#ifndef _SteepDescentALLS_H_
-#define __SteepDescentALLS_H_
-
 #include "ComputeSD.h"
 
 template <typename T1, typename T2>
@@ -13,4 +10,4 @@ template <typename T1, typename T2>
 static void omxSD_AR(GradientOptimizerContext &, int, double, Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &, double &);
 
 void omxSD_AL(GradientOptimizerContext &);
-#endif
+

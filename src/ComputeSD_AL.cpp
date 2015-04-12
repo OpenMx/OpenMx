@@ -73,7 +73,7 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
         if(rf.fc->grad.norm() < grad_tol)
         {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
-            mxLog("After %i iterations, gradient achieves zero!", iter);
+            if(rf.verbose >= 2) mxLog("After %i iterations, gradient achieves zero!", iter);
             break;
         }
 
@@ -153,12 +153,12 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
         if (iter == maxIter - 1)
         {
             rf.informOut = INFORM_ITERATION_LIMIT;
-            mxLog("Maximum iteration achieved!");
+            if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
             break;
         }
 
     }
-    mxLog("Status code : %i", rf.informOut);
+    if(rf.verbose == 1) mxLog("Status code : %i", rf.informOut);
     return;
 }
 
@@ -232,9 +232,9 @@ void omxSD_AL(GradientOptimizerContext &rf)
             rho *= gam;
         }
 
-        if((ICM - 0)<ICM_tol)
+        if(ICM < ICM_tol)
         {
-            mxLog("Augmented lagrangian coverges!");
+            if(rf.verbose == 1) mxLog("Augmented lagrangian coverges!");
             return;
         }
     } while (1);

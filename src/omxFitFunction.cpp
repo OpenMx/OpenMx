@@ -389,3 +389,4 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 		// add deriv adjustments here TODO
 	}
 }
+

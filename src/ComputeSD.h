@@ -1,6 +1,3 @@
-#ifndef HAS_SD
-#define HAS_SD
-
 #include <valarray>
 #include <math.h>
 #include "omxState.h"
@@ -12,4 +9,3 @@
 static void SD_grad(GradientOptimizerContext &, double);
 void omxSD(GradientOptimizerContext &, int);
 
-#endif

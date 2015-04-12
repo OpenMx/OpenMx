@@ -98,11 +98,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		Rf_error("NPSOL is not available in this build");
 #endif
 	} else if(strEQ(engine_name, "SD")){
-#ifdef HAS_SD
 		engine = OptEngine_SD;
-#else
-		Rf_error("SD is not available in this build");
-#endif
 	} else {
 		Rf_error("%s: engine %s unknown", name, engine_name);
 	}
