@@ -200,20 +200,19 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
 #endif
         case OptEngine_SD:{
-        rf.fc->copyParamToModel();
-        rf.setupSimpleBounds();
-        rf.setupIneqConstraintBounds();
-        rf.solEqBFun();
-        rf.myineqFun();
-        int MAXIT = 50000;
-        if(rf.inequality.size() == 0 && rf.equality.size() == 0)
-        {
-            omxSD(rf, MAXIT);   // unconstrained problems
-        } else {
-            omxSD_AL(rf);       // constrained problems
-        }
-        break;
-        }
+		rf.fc->copyParamToModel();
+		rf.setupSimpleBounds();
+		rf.setupIneqConstraintBounds();
+		rf.solEqBFun();
+		rf.myineqFun();
+		int MAXIT = 50000;
+		if(rf.inequality.size() == 0 && rf.equality.size() == 0)
+			{
+				omxSD(rf, MAXIT);   // unconstrained problems
+			} else {
+			omxSD_AL(rf);       // constrained problems
+		}
+		break;}
         default: Rf_error("Optimizer %d is not available", engine);
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
