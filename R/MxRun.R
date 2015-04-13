@@ -154,6 +154,7 @@ runHelper <- function(model, frontendStart,
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
 			if (intervals) {
 				steps <- c(steps, mxComputeConfidenceInterval(
+				    fitfunction=fitNum,
 				    mxComputeGradientDescent(fitfunction=fitNum, nudgeZeroStarts=FALSE)))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {

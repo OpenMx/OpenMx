@@ -401,6 +401,7 @@ setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(
 	     plan = "MxCompute",
+	   fitfunction = "MxCharOrNumber",
 	     verbose = "integer"))
 
 setMethod("assignId", signature("MxComputeConfidenceInterval"),
@@ -432,6 +433,9 @@ setMethod("qualifyNames", signature("MxComputeConfidenceInterval"),
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		.Object
 	})
 
@@ -441,15 +445,19 @@ setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeConfidenceInterval",
-	  function(.Object, freeSet, plan, verbose) {
+	  function(.Object, freeSet, plan, verbose, fitfunction) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@plan <- plan
 		  .Object@verbose <- verbose
+		  .Object@fitfunction <- fitfunction
 		  .Object
 	  })
 
@@ -462,7 +470,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param freeSet names of matrices containing free variables
 ##' @param verbose level of debugging output
 ##' @param engine deprecated
-##' @param fitfunction deprecated
+##' @param fitfunction The deviance function to constrain with an inequality constraint.
 ##' @param tolerance deprecated
 ##' @aliases
 ##' MxComputeConfidenceInterval-class
@@ -476,7 +484,7 @@ mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbos
 		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
 	}
 	verbose <- as.integer(verbose)
-	new("MxComputeConfidenceInterval", freeSet, plan, verbose)
+	new("MxComputeConfidenceInterval", freeSet, plan, verbose, fitfunction)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),

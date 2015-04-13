@@ -140,7 +140,7 @@ void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc)
 	if (fc) fc->wanted |= want;
 }
 
-static double totalLogLikelihood(omxMatrix *fitMat)
+double totalLogLikelihood(omxMatrix *fitMat)
 {
 	if (fitMat->rows != 1) {
 		omxFitFunction *ff = fitMat->fitFunction;
@@ -353,6 +353,7 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 
 	if (want & FF_COMPUTE_PREOPTIMIZE) {
 		fc->targetFit = (fc->lowerBound? CI->lbound : CI->ubound) + fc->fit;
+		//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 		return;
 	}
 
@@ -360,11 +361,17 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 		Rf_error("Not implemented yet");
 	}
 
-	omxFitFunctionCompute(ff, want, fc);
+	omxMatrix *fitMat = ff->matrix;
+
+	// We need to compute the fit here because that's the only way to
+	// check our soft feasibility constraints. If parameters don't
+	// change between here and the constraint evaluation then we
+	// should avoid recomputing the fit again in the constraint. TODO
+
+	omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+	const double fit = totalLogLikelihood(fitMat);
 	omxRecompute(CI->matrix, fc);
 	double CIElement = omxMatrixElement(CI->matrix, CI->row, CI->col);
-	omxMatrix *fitMat = ff->matrix;
-	const double fit = totalLogLikelihood(fitMat);
 	omxResizeMatrix(fitMat, 1, 1);
 
 	if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
@@ -374,16 +381,8 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 	}
 
 	if (want & FF_COMPUTE_FIT) {
-		double diff = fc->targetFit - fit;
-		diff *= diff;
-
-		if (diff > 1e2) {
-			// Ensure there aren't any creative solutions
-			fitMat->data[0] = nan("infeasible");
-			return;
-		}
-
-		fitMat->data[0] = diff + (fc->lowerBound? CIElement : -CIElement);
+		fitMat->data[0] = (fc->lowerBound? CIElement : -CIElement);
+		//mxLog("param at %f", fitMat->data[0]);
 	}
 	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 		// add deriv adjustments here TODO
