@@ -243,11 +243,6 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	if (state->numConstraints != 0) {
-		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
-		      state->numConstraints);
-	}
-
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 	setFreeVarGroup(fitMat->fitFunction, varGroup);
 
