@@ -242,6 +242,8 @@ class omxState {
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
+
+	// not copied to sub-states
 	std::vector< omxConstraint > conList;
 
 	long int currentRow; // only used for debugging

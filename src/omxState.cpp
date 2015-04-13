@@ -291,11 +291,6 @@ omxState::omxState(omxState *src)
 		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
 	}
 
-	conList	= src->conList;
-	for(int j = 0; j < int(conList.size()); j++) {
-		conList[j].result = omxDuplicateMatrix(src->conList[j].result, this);
-	}
-
 	for(size_t j = 0; j < src->expectationList.size(); j++) {
 		// TODO: Smarter inference for which expectations to duplicate
 		expectationList.push_back(omxDuplicateExpectation(src->expectationList[j], this));
