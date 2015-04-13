@@ -19,7 +19,7 @@
 #define _BA81QUAD_H_
 
 #include "glue.h"
-#include "Eigen/Core"
+#include <Eigen/Core>
 #include "libifa-rpf.h"
 
 class ba81NormalQuad {

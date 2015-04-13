@@ -315,76 +315,74 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
-	{
-		const int ciMaxIterations = Global->ciMaxIterations;
-		FitContext fc(mle, mle->varGroup);
-		FreeVarGroup *freeVarGroup = fc.varGroup;
+	const int ciMaxIterations = Global->ciMaxIterations;
+	FitContext fc(mle, mle->varGroup);
+	FreeVarGroup *freeVarGroup = fc.varGroup;
 
-		const int n = int(freeVarGroup->vars.size());
+	const int n = int(freeVarGroup->vars.size());
 
-		if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
+	if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
-		const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
+	const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
 
-		for(int i = 0; i < (int) Global->intervalList.size(); i++) {
-			omxConfidenceInterval *currentCI = Global->intervalList[i];
+	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
+		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
-			const char *matName = "anonymous matrix";
-			if (currentCI->matrix->name) {
-				matName = currentCI->matrix->name;
-			}
+		const char *matName = "anonymous matrix";
+		if (currentCI->matrix->name) {
+			matName = currentCI->matrix->name;
+		}
 
-			for (int lower=0; lower <= 1; ++lower) {
-				if (lower  && !std::isfinite(currentCI->lbound)) continue;
-				if (!lower && !std::isfinite(currentCI->ubound)) continue;
+		for (int lower=0; lower <= 1; ++lower) {
+			if (lower  && !std::isfinite(currentCI->lbound)) continue;
+			if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
-				// Reset to previous optimum
-				memcpy(fc.est, mle->est, n * sizeof(double));
+			// Reset to previous optimum
+			memcpy(fc.est, mle->est, n * sizeof(double));
 
-				int tries = 0;
-				int inform = INFORM_UNINITIALIZED;
-				double bestFit = std::numeric_limits<double>::max();
+			int tries = 0;
+			int inform = INFORM_UNINITIALIZED;
+			double bestFit = std::numeric_limits<double>::max();
 
-				while (inform!= 0 && ++tries <= ciMaxIterations) {
-					Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
-								  matName, currentCI->row + 1, currentCI->col + 1,
-								  lower? "lower" : "upper", tries);
+			while (inform!= 0 && ++tries <= ciMaxIterations) {
+				Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
+							  matName, currentCI->row + 1, currentCI->col + 1,
+							  lower? "lower" : "upper", tries);
 
-					fc.CI = currentCI;
-					fc.lowerBound = lower;
-					fc.fit = mle->fit;
-					plan->compute(&fc);
+				fc.CI = currentCI;
+				fc.lowerBound = lower;
+				fc.fit = mle->fit;
+				plan->compute(&fc);
 
-					const double fitOut = fc.fit;
+				const double fitOut = fc.fit;
 
-					if (fitOut < bestFit) {
-						omxRecompute(currentCI->matrix, &fc);
-						double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-						if (lower) currentCI->min = val;
-						else       currentCI->max = val;
-						bestFit = fitOut;
-						if (verbose >= 2) mxLog("CI[%d,%d] bestFit %f bound %f",
-									i, lower,bestFit, val);
+				if (fitOut < bestFit) {
+					omxRecompute(currentCI->matrix, &fc);
+					double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+					if (lower) currentCI->min = val;
+					else       currentCI->max = val;
+					bestFit = fitOut;
+					if (verbose >= 2) mxLog("CI[%d,%d] bestFit %f bound %f",
+								i, lower,bestFit, val);
+				}
+
+				inform = fc.inform;
+				if (lower) currentCI->lCode = inform;
+				else       currentCI->uCode = inform;
+				if(verbose>=1) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
+				if(inform == 0) break;
+
+				bool jitter = TRUE;
+				for(int j = 0; j < n; j++) {
+					if(fabs(fc.est[j] - mle->est[j]) > objDiff) {
+						jitter = FALSE;
+						break;
 					}
-
-					inform = fc.inform;
-					if (lower) currentCI->lCode = inform;
-					else       currentCI->uCode = inform;
-					if(verbose>=1) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
-					if(inform == 0) break;
-
-					bool jitter = TRUE;
+				}
+				if(jitter) {
 					for(int j = 0; j < n; j++) {
-						if(fabs(fc.est[j] - mle->est[j]) > objDiff) {
-							jitter = FALSE;
-							break;
-						}
-					}
-					if(jitter) {
-						for(int j = 0; j < n; j++) {
-							double sign = 2 * (tries % 2) - 1;
-							fc.est[j] = mle->est[j] + sign * objDiff * tries;
-						}
+						double sign = 2 * (tries % 2) - 1;
+						fc.est[j] = mle->est[j] + sign * objDiff * tries;
 					}
 				}
 			}

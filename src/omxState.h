@@ -111,7 +111,8 @@ struct FreeVarGroup {
 #define NEG_INF -2e20
 #define INF 2e20
 
-struct omxConstraint {		// Free Variable Constraints
+class omxConstraint {
+ public:
 	enum Type {
 		LESS_THAN=0,
 		EQUALITY,
@@ -121,7 +122,32 @@ struct omxConstraint {		// Free Variable Constraints
 	const char *name;
 	int size;
 	enum Type opCode;
-	omxMatrix* result;
+
+        omxConstraint(const char *name) : name(name) {};
+	virtual ~omxConstraint() {};
+	void refreshAndGrab(FitContext *fc, double *out)
+	{ refreshAndGrab(fc, opCode, out); };
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
+};
+
+class UserConstraint : public omxConstraint {
+ private:
+	typedef omxConstraint super;
+	omxMatrix *pad;
+	void refresh(FitContext *fc);
+
+ public:
+	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
+	virtual ~UserConstraint();
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+		refresh(fc);
+
+		for(int k = 0; k < size; k++) {
+			double got = pad->data[k];
+			if (opCode != ineqType) got = -got;
+			out[k] = got;
+		}
+	};
 };
 
 enum omxCheckpointType {
@@ -243,9 +269,8 @@ class omxState {
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
 
-	int numConstraints;
-	int ncnln;                                               // Number of linear and nonlinear constraints
-	omxConstraint* conList;											// List of constraints
+	// not copied to sub-states
+	std::vector< omxConstraint* > conList;
 
 	long int currentRow; // only used for debugging
 
@@ -264,6 +289,20 @@ class omxState {
 	~omxState();
 
 	const char *matrixToName(int matnum); // matrix (2s complement) or algebra
+
+	void countNonlinearConstraints(int &equality, int &inequality)
+	{
+		equality = 0;
+		inequality = 0;
+		for(int j = 0; j < int(conList.size()); j++) {
+			omxConstraint *cs = conList[j];
+			if (cs->opCode == omxConstraint::EQUALITY) {
+				equality += cs->size;
+			} else {
+				inequality += cs->size;
+			}
+		}
+	};
 };
 
 /* Initialize and Destroy */

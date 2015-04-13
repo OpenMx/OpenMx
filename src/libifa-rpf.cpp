@@ -21,7 +21,7 @@
 #include <math.h>
 #include <string.h>
 #include "libifa-rpf.h"
-#include "Eigen/Core"
+#include <Eigen/Core>
 
 #ifndef M_LN2
 #define M_LN2           0.693147180559945309417232121458        /* ln(2) */

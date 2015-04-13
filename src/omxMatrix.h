@@ -30,14 +30,13 @@
 #ifndef _OMXMATRIX_H_
 #define _OMXMATRIX_H_
 
-#include "omxDefines.h"
-#include "Eigen/Core"
-#include "omxBLAS.h"
+#include <R_ext/Arith.h>
+#include <R_ext/BLAS.h>
+#include <R_ext/Lapack.h>
 
-#include "omxAlgebra.h"
-#include "omxFitFunction.h"
-#include "omxExpectation.h"
-#include "omxState.h"
+#include "omxDefines.h"
+#include <Eigen/Core>
+#include "omxBLAS.h"
 
 struct populateLocation {
 	int from;

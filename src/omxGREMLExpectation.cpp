@@ -18,9 +18,9 @@
 #include "omxFitFunction.h"
 #include "omxDefines.h"
 #include "omxGREMLExpectation.h"
-#include "Eigen/Core"
-#include "Eigen/Cholesky"
-#include "Eigen/Dense"
+#include <Eigen/Core>
+#include <Eigen/Cholesky>
+#include <Eigen/Dense>
  
 void omxInitGREMLExpectation(omxExpectation* ox){
   

@@ -6,7 +6,7 @@
 #include <R_ext/Lapack.h>
 
 #include "omxDefines.h"
-#include "Eigen/Core"
+#include <Eigen/Core>
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "glue.h"
