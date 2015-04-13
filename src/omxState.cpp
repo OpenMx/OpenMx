@@ -548,8 +548,8 @@ void omxGlobal::checkpointPostfit(FitContext *fc)
 	}
 }
 
-omxConstraint::omxConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2) :
-	name(name)
+UserConstraint::UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2) :
+	super(name)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
@@ -566,12 +566,12 @@ omxConstraint::omxConstraint(FitContext *fc, const char *name, omxMatrix *arg1, 
 	}
 }
 
-omxConstraint::~omxConstraint()
+UserConstraint::~UserConstraint()
 {
 	omxFreeMatrix(pad);
 }
 
-void omxConstraint::refresh(FitContext *fc)
+void UserConstraint::refresh(FitContext *fc)
 {
 	omxRecompute(pad, fc);
 }

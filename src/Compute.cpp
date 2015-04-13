@@ -2957,8 +2957,7 @@ void GradientOptimizerContext::solEqBFun()
 		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
-		Eigen::Map< Eigen::VectorXd > to(&equality(cur), con.size);
-		con.refreshAndGrab(fc, to);
+		con.refreshAndGrab(fc, &equality(cur));
 		cur += con.size;
 	}
 };
@@ -2982,8 +2981,7 @@ void GradientOptimizerContext::myineqFun()
 		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
-		Eigen::Map< Eigen::VectorXd > to(&inequality(cur), con.size);
-		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, to);
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
 		cur += con.size;
 	}
 };

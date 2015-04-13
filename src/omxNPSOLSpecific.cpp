@@ -35,8 +35,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 	int l=0;
 	for(int j = 0; j < (int) globalState->conList.size(); j++) {
 		omxConstraint &cs = *globalState->conList[j];
-		Eigen::Map< Eigen::VectorXd > to(&constraintOut(l), cs.size);
-		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, to);
+		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 		l += cs.size;
 	}
 }

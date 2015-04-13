@@ -365,7 +365,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxMatrix *arg1 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
-		omxConstraint *constr = new omxConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
+		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		conList.push_back(constr);
 	}

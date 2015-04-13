@@ -111,10 +111,7 @@ struct FreeVarGroup {
 #define NEG_INF -2e20
 #define INF 2e20
 
-class omxConstraint {		// Free Variable Constraints
- private:
-	omxMatrix *pad;
-	void refresh(FitContext *fc);
+class omxConstraint {
  public:
 	enum Type {
 		LESS_THAN=0,
@@ -126,33 +123,32 @@ class omxConstraint {		// Free Variable Constraints
 	int size;
 	enum Type opCode;
 
-	omxConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
-	~omxConstraint();
-	template <typename T> void refreshAndGrab(FitContext *fc, Eigen::MatrixBase<T> &out);
-	template <typename T> void refreshAndGrab(FitContext *fc, Type ineqType, Eigen::MatrixBase<T> &out);
+        omxConstraint(const char *name) : name(name) {};
+	virtual ~omxConstraint() {};
+	void refreshAndGrab(FitContext *fc, double *out)
+	{ refreshAndGrab(fc, opCode, out); };
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
 };
 
-template <typename T>
-void omxConstraint::refreshAndGrab(FitContext *fc, Eigen::MatrixBase<T> &out)
-{
-	refresh(fc);
+class UserConstraint : public omxConstraint {
+ private:
+	typedef omxConstraint super;
+	omxMatrix *pad;
+	void refresh(FitContext *fc);
 
-	for(int k = 0; k < size; k++) {
-		out(k) = pad->data[k];
-	}
-}
+ public:
+	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
+	virtual ~UserConstraint();
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+		refresh(fc);
 
-template <typename T>
-void omxConstraint::refreshAndGrab(FitContext *fc, Type ineqType, Eigen::MatrixBase<T> &out)
-{
-	refresh(fc);
-
-	for(int k = 0; k < size; k++) {
-		double got = pad->data[k];
-		if (opCode != ineqType) got = -got;
-		out(k) = got;
-	}
-}
+		for(int k = 0; k < size; k++) {
+			double got = pad->data[k];
+			if (opCode != ineqType) got = -got;
+			out[k] = got;
+		}
+	};
+};
 
 enum omxCheckpointType {
 	OMX_FILE_CHECKPOINT,
