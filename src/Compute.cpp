@@ -2839,13 +2839,8 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 	copyBounds();
 
 	omxState *globalState = fc->state;
-	int eqn = 0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
-		if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
-			eqn += globalState->conList[j].size;
-		}
-	}
-	int nineqn = globalState->ncnln - eqn;
+	int eqn, nineqn;
+	globalState->countNonlinearConstraints(eqn, nineqn);
 	equality.resize(eqn);
 	inequality.resize(nineqn);
 };
@@ -2857,13 +2852,16 @@ void GradientOptimizerContext::setupAllBounds()
 	int n = (int) freeVarGroup->vars.size();
 
 	// treat all constraints as non-linear
-	solLB.resize(n + globalState->ncnln);
-	solUB.resize(n + globalState->ncnln);
+	int eqn, nineqn;
+	globalState->countNonlinearConstraints(eqn, nineqn);
+	int ncnln = eqn + nineqn;
+	solLB.resize(n + ncnln);
+	solUB.resize(n + ncnln);
 
 	copyBounds();
 
 	int index = n;
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
+	for(int constraintIndex = 0; constraintIndex < int(globalState->conList.size()); constraintIndex++) {
 		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
@@ -2948,13 +2946,13 @@ void GradientOptimizerContext::solEqBFun()
 
 	if (verbose >= 3) {
 		mxLog("Starting EqualityFunction %d/%d.",
-		      eq_n, globalState->numConstraints);
+		      eq_n, int(globalState->conList.size()));
 	}
 
 	if (!eq_n) return;
 
 	int cur = 0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
+	for(int j = 0; j < int(globalState->conList.size()); j++) {
 		omxConstraint &con = globalState->conList[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
@@ -2975,13 +2973,13 @@ void GradientOptimizerContext::myineqFun()
 
 	if (verbose >= 3) {
 		mxLog("Starting InequalityFunction %d/%d.",
-		      ineq_n, globalState->numConstraints);
+		      ineq_n, int(globalState->conList.size()));
 	}
 
 	if (!ineq_n) return;
 
 	int cur = 0;
-	for (int j = 0; j < globalState->numConstraints; j++) {
+	for (int j = 0; j < int(globalState->conList.size()); j++) {
 		omxConstraint &con = globalState->conList[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 

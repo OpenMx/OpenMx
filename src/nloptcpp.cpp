@@ -112,7 +112,6 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 
 	FitContext *fc = goc.fc;
 	omxState *globalState = fc->state;
-	int ncnln = globalState->ncnln;
     
         nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, fc->numParam);
 	goc.extraData = opt;
@@ -125,24 +124,20 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
         
 	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
-        if (ncnln) {
-		int neq = 0;
-		for (int j = 0; j < globalState->numConstraints; j++) {
-			if (globalState->conList[j].opCode == omxConstraint::EQUALITY)
-				neq += globalState->conList[j].size;
-		}
-		int nineq = ncnln - neq;
-            
-                if(nineq > 0){
-			goc.inequality.resize(nineq); // TODO remove
-			std::vector<double> tol(nineq, sqrt(std::numeric_limits<double>::epsilon()));
-			nlopt_add_inequality_mconstraint(opt, nineq, nloptInequalityFunction, &goc, tol.data());
+
+	int eq, ieq;
+	globalState->countNonlinearConstraints(eq, ieq);
+        if (eq + ieq) {
+                if (ieq > 0){
+			goc.inequality.resize(ieq); // TODO remove
+			std::vector<double> tol(ieq, sqrt(std::numeric_limits<double>::epsilon()));
+			nlopt_add_inequality_mconstraint(opt, ieq, nloptInequalityFunction, &goc, tol.data());
                 }
                 
-                if (neq > 0){
-			goc.equality.resize(neq); // TODO remove
-			std::vector<double> tol(neq, sqrt(std::numeric_limits<double>::epsilon()));
-			nlopt_add_equality_mconstraint(opt, neq, nloptEqualityFunction, &goc, tol.data());
+                if (eq > 0){
+			goc.equality.resize(eq); // TODO remove
+			std::vector<double> tol(eq, sqrt(std::numeric_limits<double>::epsilon()));
+			nlopt_add_equality_mconstraint(opt, eq, nloptEqualityFunction, &goc, tol.data());
                 }
 	}
         

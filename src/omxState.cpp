@@ -277,8 +277,6 @@ void omxGlobal::deduplicateVarGroups()
 void omxState::init()
 {
 	wantStage = 0;
-	numConstraints = 0;
-	conList = NULL;
 	currentRow = -1;
 }
 
@@ -293,11 +291,8 @@ omxState::omxState(omxState *src)
 		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
 	}
 
-	numConstraints     = src->numConstraints;
-	conList			= (omxConstraint*) R_alloc(numConstraints, sizeof(omxConstraint));
-	for(int j = 0; j < numConstraints; j++) {
-		conList[j].size   = src->conList[j].size;
-		conList[j].opCode = src->conList[j].opCode;
+	conList	= src->conList;
+	for(int j = 0; j < int(conList.size()); j++) {
 		conList[j].result = omxDuplicateMatrix(src->conList[j].result, this);
 	}
 
@@ -333,8 +328,8 @@ omxState::omxState(omxState *src)
 
 omxState::~omxState()
 {
-	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) numConstraints);}
-	for(int k = 0; k < numConstraints; k++) {
+	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conList.size());}
+	for(int k = 0; k < (int) conList.size(); k++) {
 		omxFreeMatrix(conList[k].result);
 	}
 

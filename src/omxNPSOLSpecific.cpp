@@ -33,7 +33,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 {
 	omxState *globalState = fc->state;
 	int l=0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
+	for(int j = 0; j < (int) globalState->conList.size(); j++) {
 		omxRecompute(globalState->conList[j].result, fc);
 		omxConstraint::Type type = globalState->conList[j].opCode;
 		for(int k = 0; k < globalState->conList[j].size; k++){
@@ -128,7 +128,9 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
     omxState *globalState = fc->state;
     int nclin = 0;
     int nlinwid = std::max(1, nclin);
-    int ncnln = globalState->ncnln;
+    int equality, inequality;
+    globalState->countNonlinearConstraints(equality, inequality);
+    int ncnln = equality + inequality;
     int nlnwid = std::max(1, ncnln);
  
 	int n = int(fc->numParam);

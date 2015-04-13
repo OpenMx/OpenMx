@@ -354,16 +354,14 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 {
 	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);
 
-	int ncnln = 0; 
 	if(OMX_DEBUG) { mxLog("Processing Constraints.");}
 	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
-	numConstraints = Rf_length(constraints);
+	int numConstraints = Rf_length(constraints);
 	if(OMX_DEBUG) {mxLog("Found %d constraints.", numConstraints); }
-	conList = (omxConstraint*) R_alloc(numConstraints, sizeof(omxConstraint));
-	ncnln = 0;
+	conList.reserve(numConstraints + 1);  // reserve 1 extra for confidence intervals
 	for(int ci = 0; ci < numConstraints; ci++) {
-		omxConstraint &constr = conList[ci];
+		omxConstraint constr;
 		constr.name = CHAR(Rf_asChar(STRING_ELT(names, ci)));
 		Rf_protect(nextVar = VECTOR_ELT(constraints, ci));
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
@@ -384,8 +382,11 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 			Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect",
 				   constr.name);
 		}
-		ncnln += constr.size;
+		conList.push_back(constr);
 	}
-	if(OMX_DEBUG) { mxLog("%d effective constraints.", ncnln); }
-	this->ncnln = ncnln;
+	if(OMX_DEBUG) {
+		int equality, inequality;
+		countNonlinearConstraints(equality, inequality);
+		mxLog("Found %d equality and %d inequality constraints", equality, inequality);
+	}
 }

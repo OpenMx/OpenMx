@@ -242,10 +242,7 @@ class omxState {
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
-
-	int numConstraints;
-	int ncnln;                                               // Number of linear and nonlinear constraints
-	omxConstraint* conList;											// List of constraints
+	std::vector< omxConstraint > conList;
 
 	long int currentRow; // only used for debugging
 
@@ -264,6 +261,19 @@ class omxState {
 	~omxState();
 
 	const char *matrixToName(int matnum); // matrix (2s complement) or algebra
+
+	void countNonlinearConstraints(int &equality, int &inequality)
+	{
+		equality = 0;
+		inequality = 0;
+		for(int j = 0; j < int(conList.size()); j++) {
+			if (conList[j].opCode == omxConstraint::EQUALITY) {
+				equality += conList[j].size;
+			} else {
+				inequality += conList[j].size;
+			}
+		}
+	};
 };
 
 /* Initialize and Destroy */
