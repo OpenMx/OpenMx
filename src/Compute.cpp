@@ -2956,9 +2956,9 @@ void GradientOptimizerContext::solEqBFun()
 		omxConstraint &con = globalState->conList[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
-		omxRecompute(con.result, fc);
+		con.refresh(fc);
 		for(int k = 0; k < globalState->conList[j].size; k++) {
-			equality[cur] = con.result->data[k];
+			equality[cur] = con.pad->data[k];
 			++cur;
 		}
 	}
@@ -2983,9 +2983,9 @@ void GradientOptimizerContext::myineqFun()
 		omxConstraint &con = globalState->conList[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
-		omxRecompute(con.result, fc);
+		con.refresh(fc);
 		for(int k = 0; k < globalState->conList[j].size; k++){
-			double got = con.result->data[k];
+			double got = con.pad->data[k];
 			if (con.opCode != ineqType) got = -got;
 			inequality[cur] = got;
 			++cur;

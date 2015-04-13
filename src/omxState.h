@@ -121,7 +121,9 @@ struct omxConstraint {		// Free Variable Constraints
 	const char *name;
 	int size;
 	enum Type opCode;
-	omxMatrix* result;
+	omxMatrix *pad;
+
+	void refresh(FitContext *fc);
 };
 
 enum omxCheckpointType {

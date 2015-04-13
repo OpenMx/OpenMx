@@ -325,7 +325,7 @@ omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conList.size());}
 	for(int k = 0; k < (int) conList.size(); k++) {
-		omxFreeMatrix(conList[k].result);
+		omxFreeMatrix(conList[k].pad);
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
@@ -546,6 +546,11 @@ void omxGlobal::checkpointPostfit(FitContext *fc)
 	for(size_t i = 0; i < checkpointList.size(); i++) {
 		checkpointList[i]->postfit(fc);
 	}
+}
+
+void omxConstraint::refresh(FitContext *fc)
+{
+	omxRecompute(pad, fc);
 }
 
 omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),

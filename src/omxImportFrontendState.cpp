@@ -370,13 +370,13 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		arg2 = omxMatrixLookupFromState1(nextLoc, this);
 		constr.opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		omxMatrix *args[2] = {arg1, arg2};
-		constr.result = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
+		constr.pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
 		setWantStage(FF_COMPUTE_DIMS);
-		omxRecompute(constr.result, fc);
+		constr.refresh(fc);
 		setWantStage(FF_COMPUTE_INITIAL_FIT);
-		omxRecompute(constr.result, fc);
-		int nrows = constr.result->rows;
-		int ncols = constr.result->cols;
+		constr.refresh(fc);
+		int nrows = constr.pad->rows;
+		int ncols = constr.pad->cols;
 		constr.size = nrows * ncols;
 		if (constr.size == 0) {
 			Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect",
