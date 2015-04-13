@@ -24,11 +24,14 @@
 #include "Compute.h"
 #include "npsolswitch.h"
 #include "glue.h"
+#include "ComputeSD.h"
+#include "ComputeSD_AL.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
 	OptEngine_CSOLNP,
-    OptEngine_NLOPT
+    OptEngine_NLOPT,
+    OptEngine_SD
 };
 
 class omxComputeGD : public omxCompute {
@@ -44,7 +47,7 @@ class omxComputeGD : public omxCompute {
 
 	int warmStartSize;
 	double *warmStart;
-    
+
 public:
 	omxComputeGD();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -74,10 +77,10 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
-    
+
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	optimalityTolerance = Rf_asReal(slotValue);
-    
+
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strEQ(engine_name, "CSOLNP")) {
@@ -94,10 +97,12 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 #else
 		Rf_error("NPSOL is not available in this build");
 #endif
+	} else if(strEQ(engine_name, "SD")){
+		engine = OptEngine_SD;
 	} else {
 		Rf_error("%s: engine %s unknown", name, engine_name);
 	}
-    
+
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
 	if (Rf_length(slotValue)) {
 		useGradient = Rf_asLogical(slotValue);
@@ -107,7 +112,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = Rf_asLogical(slotValue);
-    
+
 	ScopedProtect p6(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {
 		SEXP matrixDims;
@@ -129,7 +134,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxRaiseErrorf("%s: model has no free parameters", name);
 		return;
 	}
-    
+
 	for (int px = 0; px < int(numParam); ++px) {
 		omxFreeVar *fv = varGroup->vars[px];
 		if (nudge && fc->est[px] == 0.0) {
@@ -142,11 +147,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			fc->est[px] = fv->ubound - 1.0e-6;
 		}
         }
-    
+
 	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
 
 	fc->createChildren();
-    
+
 	int beforeEval = Global->computeCount;
 
 	GradientOptimizerContext rf(verbose);
@@ -194,10 +199,25 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxInvokeNLOPT(fc->est, rf);
 		break;
 #endif
+        case OptEngine_SD:{
+        rf.fc->copyParamToModel();
+        rf.setupSimpleBounds();
+        rf.setupIneqConstraintBounds();
+        rf.solEqBFun();
+        rf.myineqFun();
+        int MAXIT = 50000;
+        if(rf.inequality.size() == 0 && rf.equality.size() == 0)
+        {
+            omxSD(rf, MAXIT);   // unconstrained problems
+        } else {
+            omxSD_AL(rf);       // constrained problems
+        }
+        break;
+        }
         default: Rf_error("Optimizer %d is not available", engine);
 	}
 	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
-    
+
 	fc->inform = rf.informOut;
 	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
@@ -227,7 +247,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
-    
+
 	if (engine == OptEngine_NPSOL) {
 		out->add("hessianCholesky", hessChol);
 	}
@@ -300,32 +320,32 @@ void ComputeCI::computeImpl(FitContext *mle)
 		const int ciMaxIterations = Global->ciMaxIterations;
 		FitContext fc(mle, mle->varGroup);
 		FreeVarGroup *freeVarGroup = fc.varGroup;
-    
+
 		const int n = int(freeVarGroup->vars.size());
-    
+
 		if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
-    
+
 		const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
-    
+
 		for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 			omxConfidenceInterval *currentCI = Global->intervalList[i];
-        
+
 			const char *matName = "anonymous matrix";
 			if (currentCI->matrix->name) {
 				matName = currentCI->matrix->name;
 			}
-        
+
 			for (int lower=0; lower <= 1; ++lower) {
 				if (lower  && !std::isfinite(currentCI->lbound)) continue;
 				if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
 				// Reset to previous optimum
 				memcpy(fc.est, mle->est, n * sizeof(double));
-        
+
 				int tries = 0;
 				int inform = INFORM_UNINITIALIZED;
 				double bestFit = std::numeric_limits<double>::max();
-            
+
 				while (inform!= 0 && ++tries <= ciMaxIterations) {
 					Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
 								  matName, currentCI->row + 1, currentCI->col + 1,
