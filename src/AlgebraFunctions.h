@@ -36,6 +36,7 @@
 #include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
+#include "omxState.h"
 
 // TODO: Implement wrappers for BLAS functions used here.
 

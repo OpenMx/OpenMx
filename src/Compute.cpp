@@ -2862,18 +2862,19 @@ void GradientOptimizerContext::setupAllBounds()
 
 	int index = n;
 	for(int constraintIndex = 0; constraintIndex < int(globalState->conList.size()); constraintIndex++) {
-		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
+		omxConstraint &cs = *globalState->conList[constraintIndex];
+		omxConstraint::Type type = cs.opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
 		case omxConstraint::GREATER_THAN:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < cs.size; offset++) {
 				solLB[index] = NEG_INF;
 				solUB[index] = -0.0;
 				index++;
 			}
 			break;
 		case omxConstraint::EQUALITY:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < cs.size; offset++) {
 				solLB[index] = -0.0;
 				solUB[index] = 0.0;
 				index++;
@@ -2953,14 +2954,12 @@ void GradientOptimizerContext::solEqBFun()
 
 	int cur = 0;
 	for(int j = 0; j < int(globalState->conList.size()); j++) {
-		omxConstraint &con = globalState->conList[j];
+		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
-		con.refresh(fc);
-		for(int k = 0; k < globalState->conList[j].size; k++) {
-			equality[cur] = con.pad->data[k];
-			++cur;
-		}
+		Eigen::Map< Eigen::VectorXd > to(&equality(cur), con.size);
+		con.refreshAndGrab(fc, to);
+		cur += con.size;
 	}
 };
 
@@ -2980,15 +2979,11 @@ void GradientOptimizerContext::myineqFun()
 
 	int cur = 0;
 	for (int j = 0; j < int(globalState->conList.size()); j++) {
-		omxConstraint &con = globalState->conList[j];
+		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
-		con.refresh(fc);
-		for(int k = 0; k < globalState->conList[j].size; k++){
-			double got = con.pad->data[k];
-			if (con.opCode != ineqType) got = -got;
-			inequality[cur] = got;
-			++cur;
-		}
+		Eigen::Map< Eigen::VectorXd > to(&inequality(cur), con.size);
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, to);
+		cur += con.size;
 	}
 };

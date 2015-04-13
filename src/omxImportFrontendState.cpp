@@ -355,33 +355,18 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);
 
 	if(OMX_DEBUG) { mxLog("Processing Constraints.");}
-	omxMatrix *arg1, *arg2;
 	SEXP nextVar, nextLoc;
 	int numConstraints = Rf_length(constraints);
 	if(OMX_DEBUG) {mxLog("Found %d constraints.", numConstraints); }
 	conList.reserve(numConstraints + 1);  // reserve 1 extra for confidence intervals
 	for(int ci = 0; ci < numConstraints; ci++) {
-		omxConstraint constr;
-		constr.name = CHAR(Rf_asChar(STRING_ELT(names, ci)));
 		Rf_protect(nextVar = VECTOR_ELT(constraints, ci));
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
-		arg1 = omxMatrixLookupFromState1(nextLoc, this);
+		omxMatrix *arg1 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
-		arg2 = omxMatrixLookupFromState1(nextLoc, this);
-		constr.opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
-		omxMatrix *args[2] = {arg1, arg2};
-		constr.pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, this); // 10 = binary subtract
-		setWantStage(FF_COMPUTE_DIMS);
-		constr.refresh(fc);
-		setWantStage(FF_COMPUTE_INITIAL_FIT);
-		constr.refresh(fc);
-		int nrows = constr.pad->rows;
-		int ncols = constr.pad->cols;
-		constr.size = nrows * ncols;
-		if (constr.size == 0) {
-			Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect",
-				   constr.name);
-		}
+		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
+		omxConstraint *constr = new omxConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
+		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		conList.push_back(constr);
 	}
 	if(OMX_DEBUG) {

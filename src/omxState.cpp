@@ -325,7 +325,7 @@ omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conList.size());}
 	for(int k = 0; k < (int) conList.size(); k++) {
-		omxFreeMatrix(conList[k].pad);
+		delete conList[k];
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
@@ -546,6 +546,29 @@ void omxGlobal::checkpointPostfit(FitContext *fc)
 	for(size_t i = 0; i < checkpointList.size(); i++) {
 		checkpointList[i]->postfit(fc);
 	}
+}
+
+omxConstraint::omxConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2) :
+	name(name)
+{
+	omxState *state = fc->state;
+	omxMatrix *args[2] = {arg1, arg2};
+	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
+	state->setWantStage(FF_COMPUTE_DIMS);
+	refresh(fc);
+	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
+	refresh(fc);
+	int nrows = pad->rows;
+	int ncols = pad->cols;
+	size = nrows * ncols;
+	if (size == 0) {
+		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
+	}
+}
+
+omxConstraint::~omxConstraint()
+{
+	omxFreeMatrix(pad);
 }
 
 void omxConstraint::refresh(FitContext *fc)

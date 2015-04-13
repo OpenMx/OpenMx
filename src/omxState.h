@@ -111,7 +111,11 @@ struct FreeVarGroup {
 #define NEG_INF -2e20
 #define INF 2e20
 
-struct omxConstraint {		// Free Variable Constraints
+class omxConstraint {		// Free Variable Constraints
+ private:
+	omxMatrix *pad;
+	void refresh(FitContext *fc);
+ public:
 	enum Type {
 		LESS_THAN=0,
 		EQUALITY,
@@ -121,10 +125,34 @@ struct omxConstraint {		// Free Variable Constraints
 	const char *name;
 	int size;
 	enum Type opCode;
-	omxMatrix *pad;
 
-	void refresh(FitContext *fc);
+	omxConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
+	~omxConstraint();
+	template <typename T> void refreshAndGrab(FitContext *fc, Eigen::MatrixBase<T> &out);
+	template <typename T> void refreshAndGrab(FitContext *fc, Type ineqType, Eigen::MatrixBase<T> &out);
 };
+
+template <typename T>
+void omxConstraint::refreshAndGrab(FitContext *fc, Eigen::MatrixBase<T> &out)
+{
+	refresh(fc);
+
+	for(int k = 0; k < size; k++) {
+		out(k) = pad->data[k];
+	}
+}
+
+template <typename T>
+void omxConstraint::refreshAndGrab(FitContext *fc, Type ineqType, Eigen::MatrixBase<T> &out)
+{
+	refresh(fc);
+
+	for(int k = 0; k < size; k++) {
+		double got = pad->data[k];
+		if (opCode != ineqType) got = -got;
+		out(k) = got;
+	}
+}
 
 enum omxCheckpointType {
 	OMX_FILE_CHECKPOINT,
@@ -246,7 +274,7 @@ class omxState {
 	std::vector< omxData* > dataList;
 
 	// not copied to sub-states
-	std::vector< omxConstraint > conList;
+	std::vector< omxConstraint* > conList;
 
 	long int currentRow; // only used for debugging
 
@@ -271,10 +299,11 @@ class omxState {
 		equality = 0;
 		inequality = 0;
 		for(int j = 0; j < int(conList.size()); j++) {
-			if (conList[j].opCode == omxConstraint::EQUALITY) {
-				equality += conList[j].size;
+			omxConstraint *cs = conList[j];
+			if (cs->opCode == omxConstraint::EQUALITY) {
+				equality += cs->size;
 			} else {
-				inequality += conList[j].size;
+				inequality += cs->size;
 			}
 		}
 	};

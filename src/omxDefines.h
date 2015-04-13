@@ -111,6 +111,7 @@ enum omxFFCompute {
 
 typedef struct omxMatrix omxMatrix;
 typedef struct omxState omxState;
+typedef struct omxAlgebra omxAlgebra;
 class FitContext;
 struct FreeVarGroup;
 typedef struct omxFitFunction omxFitFunction;
