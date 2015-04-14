@@ -64,9 +64,8 @@ setMethod("displayCompute", signature(Ob="BaseCompute", indent="integer"),
 			  }
 		  }
 		  if (length(Ob$debug)) {
-			  cat(sp, "$debug :", Ob@debug, '\n')
 			  for (elem in names(Ob$debug)) {
-				  cat(sp, "$debug[[", omxQuotes(elem), "]] :", Ob@debug[[elem]], '\n')
+				  cat(sp, "$debug[[", omxQuotes(elem), "]] : ...", '\n')
 			  }
 		  }
 		  invisible(Ob)
