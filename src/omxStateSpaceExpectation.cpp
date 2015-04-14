@@ -34,9 +34,9 @@
 #include "omxBLAS.h"
 #include "omxFIMLFitFunction.h"
 #include "omxStateSpaceExpectation.h"
-#include "Eigen/Core"
-#include "Eigen/Dense"
-#include "Eigen/LU"
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/LU>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
 

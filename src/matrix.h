@@ -9,7 +9,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
-#include "Eigen/Core"
+#include <Eigen/Core>
 
 typedef struct Matrix Matrix;
 

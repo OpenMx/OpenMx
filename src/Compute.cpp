@@ -2839,13 +2839,8 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 	copyBounds();
 
 	omxState *globalState = fc->state;
-	int eqn = 0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
-		if (globalState->conList[j].opCode == omxConstraint::EQUALITY) {
-			eqn += globalState->conList[j].size;
-		}
-	}
-	int nineqn = globalState->ncnln - eqn;
+	int eqn, nineqn;
+	globalState->countNonlinearConstraints(eqn, nineqn);
 	equality.resize(eqn);
 	inequality.resize(nineqn);
 };
@@ -2857,25 +2852,29 @@ void GradientOptimizerContext::setupAllBounds()
 	int n = (int) freeVarGroup->vars.size();
 
 	// treat all constraints as non-linear
-	solLB.resize(n + globalState->ncnln);
-	solUB.resize(n + globalState->ncnln);
+	int eqn, nineqn;
+	globalState->countNonlinearConstraints(eqn, nineqn);
+	int ncnln = eqn + nineqn;
+	solLB.resize(n + ncnln);
+	solUB.resize(n + ncnln);
 
 	copyBounds();
 
 	int index = n;
-	for(int constraintIndex = 0; constraintIndex < globalState->numConstraints; constraintIndex++) {
-		omxConstraint::Type type = globalState->conList[constraintIndex].opCode;
+	for(int constraintIndex = 0; constraintIndex < int(globalState->conList.size()); constraintIndex++) {
+		omxConstraint &cs = *globalState->conList[constraintIndex];
+		omxConstraint::Type type = cs.opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
 		case omxConstraint::GREATER_THAN:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < cs.size; offset++) {
 				solLB[index] = NEG_INF;
 				solUB[index] = -0.0;
 				index++;
 			}
 			break;
 		case omxConstraint::EQUALITY:
-			for(int offset = 0; offset < globalState->conList[constraintIndex].size; offset++) {
+			for(int offset = 0; offset < cs.size; offset++) {
 				solLB[index] = -0.0;
 				solUB[index] = 0.0;
 				index++;
@@ -2948,21 +2947,18 @@ void GradientOptimizerContext::solEqBFun()
 
 	if (verbose >= 3) {
 		mxLog("Starting EqualityFunction %d/%d.",
-		      eq_n, globalState->numConstraints);
+		      eq_n, int(globalState->conList.size()));
 	}
 
 	if (!eq_n) return;
 
 	int cur = 0;
-	for(int j = 0; j < globalState->numConstraints; j++) {
-		omxConstraint &con = globalState->conList[j];
+	for(int j = 0; j < int(globalState->conList.size()); j++) {
+		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
-		omxRecompute(con.result, fc);
-		for(int k = 0; k < globalState->conList[j].size; k++) {
-			equality[cur] = con.result->data[k];
-			++cur;
-		}
+		con.refreshAndGrab(fc, &equality(cur));
+		cur += con.size;
 	}
 };
 
@@ -2975,22 +2971,17 @@ void GradientOptimizerContext::myineqFun()
 
 	if (verbose >= 3) {
 		mxLog("Starting InequalityFunction %d/%d.",
-		      ineq_n, globalState->numConstraints);
+		      ineq_n, int(globalState->conList.size()));
 	}
 
 	if (!ineq_n) return;
 
 	int cur = 0;
-	for (int j = 0; j < globalState->numConstraints; j++) {
-		omxConstraint &con = globalState->conList[j];
+	for (int j = 0; j < int(globalState->conList.size()); j++) {
+		omxConstraint &con = *globalState->conList[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
-		omxRecompute(con.result, fc);
-		for(int k = 0; k < globalState->conList[j].size; k++){
-			double got = con.result->data[k];
-			if (con.opCode != ineqType) got = -got;
-			inequality[cur] = got;
-			++cur;
-		}
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+		cur += con.size;
 	}
 };

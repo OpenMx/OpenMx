@@ -29,6 +29,7 @@
 #include "omxOpenmpWrap.h"
 #include "matrix.h"
 #include "unsupported/Eigen/MatrixFunctions"
+#include "omxState.h"
 
 // forward declarations
 static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,

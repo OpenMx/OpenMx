@@ -21,7 +21,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include "omxDefines.h"
-#include "Eigen/SparseCore"
+#include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
 

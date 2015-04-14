@@ -111,7 +111,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
             break;
         }
     }
-    if(rf.verbose == 1) mxLog("Status code : %i", rf.informOut);
+    if(rf.verbose >= 1) mxLog("Status code : %i", rf.informOut);
     return;
 }
 

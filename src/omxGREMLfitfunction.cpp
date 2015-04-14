@@ -17,9 +17,9 @@
 #include "omxFitFunction.h"
 #include "omxGREMLfitfunction.h"
 #include "omxGREMLExpectation.h"
-#include "Eigen/Core"
-#include "Eigen/Cholesky"
-#include "Eigen/Dense"
+#include <Eigen/Core>
+#include <Eigen/Cholesky>
+#include <Eigen/Dense>
 
 struct omxGREMLFitState { 
   //TODO: Some of these members might be redundant with what's stored in the FitContext, 

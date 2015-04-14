@@ -11,12 +11,12 @@ static void SD_AL(GradientOptimizerContext &rf, double rho,
     rf.solEqBFun();
     rf.myineqFun();
 
-    for (size_t i = 0; i < rf.equality.size(); ++i)
+    for (size_t i = 0; i < unsigned(rf.equality.size()); ++i)
     {
         rf.fc->fit += 0.5 * rho * (rf.equality[i] + lambda[i] / rho) * (rf.equality[i] + lambda[i] / rho);
     }
 
-    for (size_t i = 0; i < rf.inequality.size(); ++i)
+    for (size_t i = 0; i < unsigned(rf.inequality.size()); ++i)
     {
         rf.fc->fit += 0.5 * rho * std::max(0.0,(rf.inequality[i] + mu[i] / rho)) * std::max(0.0,(rf.inequality[i] + mu[i] / rho));
     }
@@ -158,7 +158,7 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
         }
 
     }
-    if(rf.verbose == 1) mxLog("Status code : %i", rf.informOut);
+    if(rf.verbose >= 1) mxLog("Status code : %i", rf.informOut);
     return;
 }
 
@@ -234,7 +234,7 @@ void omxSD_AL(GradientOptimizerContext &rf)
 
         if(ICM < ICM_tol)
         {
-            if(rf.verbose == 1) mxLog("Augmented lagrangian coverges!");
+            if(rf.verbose >= 1) mxLog("Augmented lagrangian coverges!");
             return;
         }
     } while (1);

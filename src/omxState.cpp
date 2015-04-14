@@ -277,8 +277,6 @@ void omxGlobal::deduplicateVarGroups()
 void omxState::init()
 {
 	wantStage = 0;
-	numConstraints = 0;
-	conList = NULL;
 	currentRow = -1;
 }
 
@@ -291,14 +289,6 @@ omxState::omxState(omxState *src)
 	for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
-	}
-
-	numConstraints     = src->numConstraints;
-	conList			= (omxConstraint*) R_alloc(numConstraints, sizeof(omxConstraint));
-	for(int j = 0; j < numConstraints; j++) {
-		conList[j].size   = src->conList[j].size;
-		conList[j].opCode = src->conList[j].opCode;
-		conList[j].result = omxDuplicateMatrix(src->conList[j].result, this);
 	}
 
 	for(size_t j = 0; j < src->expectationList.size(); j++) {
@@ -333,9 +323,9 @@ omxState::omxState(omxState *src)
 
 omxState::~omxState()
 {
-	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) numConstraints);}
-	for(int k = 0; k < numConstraints; k++) {
-		omxFreeMatrix(conList[k].result);
+	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conList.size());}
+	for(int k = 0; k < (int) conList.size(); k++) {
+		delete conList[k];
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
@@ -556,6 +546,34 @@ void omxGlobal::checkpointPostfit(FitContext *fc)
 	for(size_t i = 0; i < checkpointList.size(); i++) {
 		checkpointList[i]->postfit(fc);
 	}
+}
+
+UserConstraint::UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2) :
+	super(name)
+{
+	omxState *state = fc->state;
+	omxMatrix *args[2] = {arg1, arg2};
+	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
+	state->setWantStage(FF_COMPUTE_DIMS);
+	refresh(fc);
+	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
+	refresh(fc);
+	int nrows = pad->rows;
+	int ncols = pad->cols;
+	size = nrows * ncols;
+	if (size == 0) {
+		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
+	}
+}
+
+UserConstraint::~UserConstraint()
+{
+	omxFreeMatrix(pad);
+}
+
+void UserConstraint::refresh(FitContext *fc)
+{
+	omxRecompute(pad, fc);
 }
 
 omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),
