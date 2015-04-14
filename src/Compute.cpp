@@ -1518,7 +1518,7 @@ class ComputeEM : public omxCompute {
 	double noiseTarget;
 	double noiseTolerance;
 	std::vector<double*> estHistory;
-	std::vector<double> probeOffset;
+	Eigen::MatrixXd probeOffset;
 	std::vector<double> diffWork;
 	std::vector<int> paramProbeCount;
 	Eigen::VectorXd optimum;
@@ -1975,7 +1975,7 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	bool failed = false;
 	const int freeVars = (int) fc->varGroup->vars.size();
 	const int base = paramProbeCount[vx] * freeVars;
-	probeOffset[vx * maxHistLen + paramProbeCount[vx]] = offset;
+	probeOffset(paramProbeCount[vx], vx) = offset;
 	paramProbeCount[vx] += 1;
 
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
@@ -2019,8 +2019,8 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 		if (diff1 >= semTolerance) *mengOK = false;
 		diff += diff1;
 	}
-	double p1 = probeOffset[v1 * maxHistLen + h1];
-	double p2 = probeOffset[v1 * maxHistLen + h2];
+	double p1 = probeOffset(h1, v1);
+	double p2 = probeOffset(h2, v1);
 	double dist = fabs(p1 - p2);
 	if (dist < tolerance/4) Rf_error("SEM: invalid probe offset distance %.9f", dist);
 	*stdDiff = diff / (freeVars * dist);
@@ -2249,7 +2249,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		maxHistLen = semMethodLen;
 	}
 
-	probeOffset.resize(maxHistLen * freeVars);
+	probeOffset.resize(maxHistLen, freeVars);
 	diffWork.resize(maxHistLen * freeVars);
 	paramProbeCount.assign(freeVars, 0);
 	Eigen::MatrixXd rij(freeVars, freeVars);
@@ -2307,7 +2307,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			for (size_t hx=0; hx < estHistory.size(); ++hx) {
 				double popt = optimum[v1];
 				double offset1 = estHistory[hx][v1] - popt;
-				if (paramProbeCount[v1] && fabs(probeOffset[v1 * maxHistLen + paramProbeCount[v1]-1] -
+				if (paramProbeCount[v1] && fabs(probeOffset(paramProbeCount[v1]-1, v1) -
 							     offset1) < tolerance) continue;
 				if (fabs(offset1) < tolerance) continue;
 				if (probeEM(fc, v1, offset1, &rijWork)) break;
