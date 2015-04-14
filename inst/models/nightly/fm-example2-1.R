@@ -64,6 +64,11 @@ omxCheckCloseEnough(emstat$totalMstep, 39, 5)
 omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
 omxCheckCloseEnough(m2$output$evaluations, 463, 5)
 
+semDebug <- m2$compute$steps[[1]]$debug
+omxCheckEquals(semDebug$paramHistLen, rep(4, m2.numItems*2))
+omxCheckCloseEnough(apply(semDebug$probeOffset, 1, mean),
+                    c(0.001, 0.00101, 0.02768, 0.02769), 1e-4)
+
 omxCheckCloseEnough(m2$output$minimum, Scale * 33408.05/-2, .01)
 omxCheckTrue(m2$output$infoDefinite)
 omxCheckCloseEnough(m2$output$conditionNumber, 51, 1)
