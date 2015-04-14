@@ -144,7 +144,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
       
       //Check that factorizations of V and the quadratic form in X succeeded
-      if(oge->cholV_fail){
+      if(oge->cholV_fail_om->data[0]){
         oo->matrix->data[0] = NA_REAL;
         if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
         return;
@@ -156,7 +156,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       }
       
       //Log determinant of V:
-      logdetV = oge->logdetV;
+      logdetV = oge->logdetV_om->data[0];
       
       //Log determinant of quadX:
       for(i=0; i < gff->X->cols; i++){
@@ -294,15 +294,14 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
   SEXP rObj = oo->rObj;
-  //omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
   SEXP nval;
-  int dataNumObs = (int)(oo->expectation->data->numObs);
+  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation->argStruct) )->data2->numObs);
   
   //Tell the frontend fitfunction counterpart how many observations there are...:
   {
   ScopedProtect p1(nval, R_do_slot(rObj, Rf_install("numObs")));
   int* numobs = INTEGER(nval);
-  numobs[0] = 1L - dataNumObs; 
+  numobs[0] = 1L - userSuppliedDataNumObs;
   /*^^^^The end result is that number of observations will be reported as 1 in summary()...
   which is always correct with GREML*/
   }

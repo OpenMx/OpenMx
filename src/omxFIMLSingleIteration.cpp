@@ -323,7 +323,18 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 						
 						determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
 						if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
-					} 
+					} //If it's a GREML expectation, extract the inverse rather than recompute it:
+					else if(!strcmp(expectation->expType, "MxExpectationGREML")){
+						smallMeans = omxGetExpectationComponent(expectation, localobj, "means");
+						smallCov = omxGetExpectationComponent(expectation, localobj, "invcov");
+						info = (int) omxGetExpectationComponent(expectation, localobj, "cholV_fail_om")->data[0];
+						if(info!=0) {
+							if (fc) fc->recordIterationError("expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
+							return TRUE;
+						}
+						determinant = 0.5 * omxGetExpectationComponent(expectation, localobj, "logdetV_om")->data[0];
+						if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
+					}
 					else {
 						/* Calculate derminant and inverse of Censored continuousCov matrix */
 						omxCopyMatrix(smallMeans, means);

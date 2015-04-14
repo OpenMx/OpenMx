@@ -22,7 +22,7 @@ Objects can be created by calls of the form
     \item{\code{blockByPheno}:}{Logical; pertains to data-handling at runtime.}
     \item{\code{staggerZeroes}:}{Logical; pertains to data-handling at runtime.}
     \item{\code{dataset.is.yX}:}{Logical; pertains to data-handling at runtime.}
-    \item{\code{y}:}{A matrix, to contain the 'y' vector of phenotypic observations.}
+    \item{\code{y}:}{Object of class \code{"MxData"}.}
     \item{\code{X}:}{A matrix, to contain the 'X' matrix of covariates.}
     \item{\code{yXcolnames}:}{Character vector; used to store the column names of 'y' and 'X.'}
     \item{\code{casesToDrop}:}{Integer vector, specifying the rows and columns of the 'V' matrix to be removed at runtime.}
@@ -32,6 +32,7 @@ Objects can be created by calls of the form
     \item{\code{dims}:}{Object of class \code{"character"}.}
     \item{\code{definitionVars}:}{Object of class \code{"list"}.}
     \item{\code{numStats}:}{Numeric; number of observed statistics.}
+    \item{\code{dataColumns}:}{Object of class \code{"numeric"}.}
     \item{\code{name}:}{Object of class \code{"character"}.}
     \item{\code{data}:}{Object of class \code{"MxCharOrNumber"}.}
     \item{\code{submodels}:}{Object of class \code{"MxOptionalCharOrNumber"}.}

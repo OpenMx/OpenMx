@@ -32,6 +32,7 @@ setClass(Class = "MxExpectationGREML",
            dims = "character",
            definitionVars = "list",
            numStats = "numeric",
+           dataColumns = "numeric",
            name = "character"),
          contains = "MxBaseExpectation")
 
@@ -55,7 +56,6 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@X <- matrix(as.numeric(NA),1,1)
-            #.Object@y <- matrix(as.numeric(NA),1,1)
             .Object@dims <- "foo"
             return(.Object)
           }
@@ -166,6 +166,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
               .Object@yXcolnames <- colnames(mxDataObject@observed)
               .Object@numFixEff <- as.integer(ncol(mxDataObject@observed)-1)
+              .Object@dataColumns <- as.double(0:(nrow(mxDataObject@observed)-1))
             }
             else{
               if(length(.Object@Xvars)){
@@ -193,6 +194,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               .Object@yXcolnames <- colnames(mm$yX)
               .Object@casesToDrop <- mm$casesToDrop
               .Object@numFixEff <- ncol(.Object@X)
+              .Object@dataColumns <- as.double(0:(nrow(.Object@X)-1))
             }
             #Get number of observed statistics BEFORE call to backend, so summary() can use it:
             .Object@numStats <- nrow(.Object@X)

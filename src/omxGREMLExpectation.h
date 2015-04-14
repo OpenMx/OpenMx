@@ -15,11 +15,11 @@
  */
  
  typedef struct {
-  omxMatrix *cov, *invcov, *means, *X;
-  omxData *y;
-  int alwaysComputeMeans, numcases2drop, cholV_fail, cholquadX_fail;
+  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om;
+  omxData *y, *data2;
+  int alwaysComputeMeans, numcases2drop, cholquadX_fail;
   std::vector< int > dropcase;
-  double logdetV;
+  //double logdetV;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
   Eigen::MatrixXd XtVinv, quadXinv;

@@ -64,7 +64,14 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   if(oge->X->rows != Eigy.rows()){Rf_error("'X' and 'y' matrices have different numbers of rows");}
   //means:
   oge->means = omxInitMatrix(Eigy.rows(), 1, 1, currentState);
-  for(i=0; i < Eigy.rows(); i++){oge->means->data[i] = 0;}
+  //for(i=0; i < Eigy.rows(); i++){oge->means->data[i] = 0;}
+  //logdetV_om:
+  oge->logdetV_om = omxInitMatrix(1, 1, 1, currentState);
+  oge->logdetV_om->data[0] = 0;
+  //cholV_fail_om:
+  oge->cholV_fail_om = omxInitMatrix(1, 1, 1, currentState);
+  oge->cholV_fail_om->data[0] = 0;
+
 
   //Deal with missing data:
   int* casesToDrop_intptr;
@@ -103,9 +110,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   
   //Initially compute everything involved in computing means:
   oge->alwaysComputeMeans = 1;
-  oge->cholV_fail = 0; 
+  //oge->cholV_fail = 0; 
   oge->cholquadX_fail = 0;
-  oge->logdetV = 0;
+  //oge->logdetV = 0;
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
@@ -125,9 +132,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
   for(i=0; i < oge->X->rows; i++){
-    oge->logdetV += log(oge->cholV_vectorD[i]);
+    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
-  oge->logdetV *= 2;
+  oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
   oge->XtVinv = EigX.transpose() * Vinv;
   quadX = oge->XtVinv * EigX;
@@ -138,6 +145,10 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
   yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
+  
+  /*Prepare y as the data that the FIML fitfunction will use:*/
+  oge->data2 = ox->data;
+  ox->data = oge->y;
 }
 
 
@@ -145,9 +156,9 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
 	omxRecompute(oge->cov, NULL);
   int i=0;
-  oge->cholV_fail = 0;
+  oge->cholV_fail_om->data[0] = 0;
   oge->cholquadX_fail = 0;
-  oge->logdetV = 0;
+  oge->logdetV_om->data[0] = 0;
   
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
@@ -163,14 +174,14 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   cholV.compute(EigV);
   if(cholV.info() != Eigen::Success){
-    oge->cholV_fail = 1;
+    oge->cholV_fail_om->data[0] = 1;
     return;
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
   for(i=0; i < oge->X->rows; i++){
-    oge->logdetV += log(oge->cholV_vectorD[i]);
+    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
-  oge->logdetV *= 2;
+  oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
   oge->XtVinv = EigX.transpose() * Vinv;
   quadX = oge->XtVinv * EigX;
@@ -190,9 +201,13 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
 void omxDestroyGREMLExpectation(omxExpectation* ox) {
 	if(OMX_DEBUG) { mxLog("Destroying GREML Expectation."); }
   omxGREMLExpectation* argStruct = (omxGREMLExpectation*)(ox->argStruct);
+  ox->data = argStruct->data2;
   omxFreeMatrix(argStruct->means);
   omxFreeMatrix(argStruct->invcov);
-  omxFreeData(argStruct->y);
+  omxFreeMatrix(argStruct->logdetV_om);
+  omxFreeMatrix(argStruct->cholV_fail_om);
+  //omxFreeMatrix(argStruct->X);
+  //omxFreeData(argStruct->y);
 }
 
 
@@ -244,19 +259,29 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* o
 	omxGREMLExpectation* oge = (omxGREMLExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 
-	if(strEQ("cov", component)) {
-		retval = oge->cov;
-	} else if(strEQ("X", component)) {
-		retval = oge->X;
-	} else if(strEQ("y", component)) {
-		retval = oge->y->dataMat;
+	
+  if(strEQ("y", component)) {
+    retval = oge->y->dataMat;
 	}
-  else if(strEQ("means", component)) {
-  	retval = oge->means;
-  }
   else if(strEQ("invcov", component)) {
     retval = oge->invcov;
   }
+  else if(strEQ("means", component)) {
+  	retval = oge->means;
+  }
+  else if(strEQ("cholV_fail_om", component)){
+    retval = oge->cholV_fail_om;
+  }
+  else if(strEQ("logdetV_om", component)){
+    retval = oge->logdetV_om;
+  }
+  else if(strEQ("cov", component)) {
+		retval = oge->cov;
+	} 
+  else if(strEQ("X", component)) {
+		retval = oge->X;
+	} 
+  
 	if (retval) omxRecompute(retval, NULL); //<--Is this step necessary...?
 	
 	return retval;
