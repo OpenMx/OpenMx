@@ -64,7 +64,7 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
         SD_grad_AL(rf, eps_grad, rho, lambda, mu);
         Eigen::VectorXd searchDir = rf.fc->grad;
 
-        if (isnan(rf.fc->fit))
+        if (std::isnan(rf.fc->fit))
         {
             rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
             break;
