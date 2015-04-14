@@ -1973,7 +1973,7 @@ void ComputeEM::setExpectationPrediction(const char *context)
 bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork)
 {
 	bool failed = false;
-	const size_t freeVars = fc->varGroup->vars.size();
+	const int freeVars = (int) fc->varGroup->vars.size();
 	const int base = paramProbeCount[vx] * freeVars;
 	probeOffset[vx * maxHistLen + paramProbeCount[vx]] = offset;
 	paramProbeCount[vx] += 1;
@@ -1995,7 +1995,7 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->inform = informSave;
 	setExpectationPrediction("nothing");
 
-	for (size_t v1=0; v1 < freeVars; ++v1) {
+	for (int v1=0; v1 < freeVars; ++v1) {
 		double got = (fc->est[v1] - optimum[v1]) / offset;
 		(*rijWork)[base + v1] = got;
 	}
@@ -2007,14 +2007,14 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			   double *stdDiff, bool *mengOK)
 {
-	const size_t freeVars = fc->varGroup->vars.size();
+	const int freeVars = (int) fc->varGroup->vars.size();
 	int h1 = paramProbeCount[v1]-2;
 	int h2 = paramProbeCount[v1]-1;
 	double *rij1 = rijWork.data() + h1 * freeVars;
 	double *rij2 = rijWork.data() + h2 * freeVars;
 	double diff = 0;
 	*mengOK = true;
-	for (size_t v2=0; v2 < freeVars; ++v2) {
+	for (int v2=0; v2 < freeVars; ++v2) {
 		double diff1 = fabs(rij1[v2] - rij2[v2]);
 		if (diff1 >= semTolerance) *mengOK = false;
 		diff += diff1;
@@ -2235,7 +2235,7 @@ void ComputeEM::Oakes(FitContext *fc)
 
 void ComputeEM::MengRubinFamily(FitContext *fc)
 {
-	const size_t freeVars = fc->varGroup->vars.size();
+	const int freeVars = (int) fc->varGroup->vars.size();
 
 	if (verbose >= 1) mxLog("ComputeEM: MengRubinFamily tolerance=%f semMethod=%d, semTolerance=%f ideal noise=[%f,%f]",
 				tolerance, semMethod, semTolerance,
@@ -2254,8 +2254,8 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	paramProbeCount.assign(freeVars, 0);
 	omxBuffer<double> rij(freeVars * freeVars);
 
-	size_t semConverged=0;
-	for (size_t v1=0; v1 < freeVars; ++v1) {
+	int semConverged=0;
+	for (int v1=0; v1 < freeVars; ++v1) {
 		std::vector<double> rijWork(freeVars * maxHistLen);
 		int pick = 0;
 		bool paramConverged = false;
@@ -2360,8 +2360,8 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	}
 
 	// rij = I-rij
-	for (size_t v1=0; v1 < freeVars; ++v1) {
-		for (size_t v2=0; v2 < freeVars; ++v2) {
+	for (int v1=0; v1 < freeVars; ++v1) {
+		for (int v2=0; v2 < freeVars; ++v2) {
 			int cell = v1 * freeVars + v2;
 			double entry = rij[cell];
 			if (v1 == v2) entry = 1 - entry;
