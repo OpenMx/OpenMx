@@ -1530,8 +1530,11 @@ class ComputeEM : public omxCompute {
 
 	void setExpectationPrediction(const char *context);
 	void observedFit(FitContext *fc);
-	bool probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork);
-	void recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
+	template <typename T>
+	bool probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase<T> &rijWork);
+
+	template <typename T>
+	void recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork,
 			double *stdDiff, bool *mengOK);
 	void MengRubinFamily(FitContext *fc);
 
@@ -1970,20 +1973,19 @@ void ComputeEM::setExpectationPrediction(const char *context)
 	}
 }
 
-bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<double> *rijWork)
+template <typename T>
+bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase<T> &rijWork)
 {
 	bool failed = false;
-	const int freeVars = (int) fc->varGroup->vars.size();
-	const int base = paramProbeCount[vx] * freeVars;
 	probeOffset(paramProbeCount[vx], vx) = offset;
-	paramProbeCount[vx] += 1;
 
-	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
+	Eigen::Map< Eigen::VectorXd > Est(fc->est, (int) fc->varGroup->vars.size());
+	Est = optimum;
 	fc->est[vx] += offset;
 	fc->copyParamToModel();
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
-				paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
+				1+paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
 
 	setExpectationPrediction(predict);
 	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
@@ -1995,38 +1997,32 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 	fc->inform = informSave;
 	setExpectationPrediction("nothing");
 
-	for (int v1=0; v1 < freeVars; ++v1) {
-		double got = (fc->est[v1] - optimum[v1]) / offset;
-		(*rijWork)[base + v1] = got;
-	}
-	//pda(rij.data() + base, 1, freeVars);
+	rijWork.col(paramProbeCount[vx]) = (Est - optimum) / offset;
+
+	paramProbeCount[vx] += 1;
 	++semProbeCount;
 	return failed;
 }
 
-void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
+template <typename T>
+void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork,
 			   double *stdDiff, bool *mengOK)
 {
 	const int freeVars = (int) fc->varGroup->vars.size();
 	int h1 = paramProbeCount[v1]-2;
 	int h2 = paramProbeCount[v1]-1;
-	double *rij1 = rijWork.data() + h1 * freeVars;
-	double *rij2 = rijWork.data() + h2 * freeVars;
-	double diff = 0;
-	*mengOK = true;
-	for (int v2=0; v2 < freeVars; ++v2) {
-		double diff1 = fabs(rij1[v2] - rij2[v2]);
-		if (diff1 >= semTolerance) *mengOK = false;
-		diff += diff1;
-	}
+
+	Eigen::ArrayXd diff = (rijWork.col(h1) - rijWork.col(h2)).array().abs();
+	*mengOK = (diff < semTolerance).all();
+
 	double p1 = probeOffset(h1, v1);
 	double p2 = probeOffset(h2, v1);
 	double dist = fabs(p1 - p2);
 	if (dist < tolerance/4) Rf_error("SEM: invalid probe offset distance %.9f", dist);
-	*stdDiff = diff / (freeVars * dist);
+	*stdDiff = diff.sum() / (freeVars * dist);
 	diffWork[v1 * maxHistLen + h1] = *stdDiff;
 	if (verbose >= 2) mxLog("ComputeEM: (%f,%f) mengOK %d diff %f stdDiff %f",
-				p1, p2, *mengOK, diff / freeVars, *stdDiff);
+				p1, p2, *mengOK, diff.sum() / freeVars, *stdDiff);
 }
 
 void ComputeEM::observedFit(FitContext *fc)
@@ -2256,7 +2252,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 
 	int semConverged=0;
 	for (int v1=0; v1 < freeVars; ++v1) {
-		std::vector<double> rijWork(freeVars * maxHistLen);
+		Eigen::MatrixXd rijWork(freeVars, maxHistLen);
 		int pick = 0;
 		bool paramConverged = false;
 		if (semMethod == AgileSEM) {
@@ -2264,9 +2260,9 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			const double stepSize = offset1 * .01;
 
 			double sign = 1;
-			if (probeEM(fc, v1, sign * offset1, &rijWork)) break;
+			if (probeEM(fc, v1, sign * offset1, rijWork)) break;
 			double offset2 = offset1 + stepSize;
-			if (probeEM(fc, v1, sign * offset2, &rijWork)) break;
+			if (probeEM(fc, v1, sign * offset2, rijWork)) break;
 			double diff;
 			bool mengOK;
 			recordDiff(fc, v1, rijWork, &diff, &mengOK);
@@ -2283,13 +2279,13 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 				coef /= iter;
 				if (verbose >= 4) mxLog("ComputeEM: agile iter[%d] coef=%.6g", iter, coef);
 				offset1 = sqrt(coef/noiseTarget);
-				if (probeEM(fc, v1, sign * offset1, &rijWork)) {
+				if (probeEM(fc, v1, sign * offset1, rijWork)) {
 					paramConverged = false;
 					break;
 				}
 				if (iter < agileMaxIter || semDebug) {
 					offset2 = offset1 + stepSize;
-					if (probeEM(fc, v1, sign * offset2, &rijWork)) {
+					if (probeEM(fc, v1, sign * offset2, rijWork)) {
 						paramConverged = false;
 						break;
 					}
@@ -2310,7 +2306,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 				if (paramProbeCount[v1] && fabs(probeOffset(paramProbeCount[v1]-1, v1) -
 							     offset1) < tolerance) continue;
 				if (fabs(offset1) < tolerance) continue;
-				if (probeEM(fc, v1, offset1, &rijWork)) break;
+				if (probeEM(fc, v1, offset1, rijWork)) break;
 				if (hx == 0) continue;
 				pick = hx;
 				double diff;
@@ -2323,7 +2319,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			}
 		} else {
 			for (int hx=0; hx < semMethodLen; ++hx) {
-				probeEM(fc, v1, semMethodData[hx], &rijWork); // ignore errors
+				probeEM(fc, v1, semMethodData[hx], rijWork); // ignore errors
 				if (hx == 0) continue;
 				double diff;
 				bool mengOK;
@@ -2335,7 +2331,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		const char *pname = fc->varGroup->vars[v1]->name;
 		if (paramConverged) {
 			++semConverged;
-			memcpy(&rij.col(v1).coeffRef(0), rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
+			rij.col(v1) = rijWork.col(pick);
 			if (verbose >= 2) mxLog("ComputeEM: %s converged in %d probes",
 						pname, paramProbeCount[v1]);
 		} else {
