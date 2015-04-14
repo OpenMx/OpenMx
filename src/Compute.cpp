@@ -2008,21 +2008,19 @@ template <typename T>
 void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork,
 			   double *stdDiff, bool *mengOK)
 {
-	const int freeVars = (int) fc->varGroup->vars.size();
-	int h1 = paramProbeCount[v1]-2;
-	int h2 = paramProbeCount[v1]-1;
+	const int h1 = paramProbeCount[v1]-2;
+	const int h2 = h1+1;
 
 	Eigen::ArrayXd diff = (rijWork.col(h1) - rijWork.col(h2)).array().abs();
 	*mengOK = (diff < semTolerance).all();
 
-	double p1 = probeOffset(h1, v1);
-	double p2 = probeOffset(h2, v1);
-	double dist = fabs(p1 - p2);
+	double dist = fabs(probeOffset(h1, v1) - probeOffset(h2, v1));
 	if (dist < tolerance/4) Rf_error("SEM: invalid probe offset distance %.9f", dist);
-	*stdDiff = diff.sum() / (freeVars * dist);
+	*stdDiff = diff.sum() / (diff.size() * dist);
 	diffWork[v1 * maxHistLen + h1] = *stdDiff;
 	if (verbose >= 2) mxLog("ComputeEM: (%f,%f) mengOK %d diff %f stdDiff %f",
-				p1, p2, *mengOK, diff.sum() / freeVars, *stdDiff);
+				probeOffset(h1, v1), probeOffset(h2, v1),
+				*mengOK, diff.sum() / diff.size(), *stdDiff);
 }
 
 void ComputeEM::observedFit(FitContext *fc)
@@ -2259,10 +2257,9 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			double offset1 = .001;
 			const double stepSize = offset1 * .01;
 
-			double sign = 1;
-			if (probeEM(fc, v1, sign * offset1, rijWork)) break;
+			if (probeEM(fc, v1, offset1, rijWork)) break;
 			double offset2 = offset1 + stepSize;
-			if (probeEM(fc, v1, sign * offset2, rijWork)) break;
+			if (probeEM(fc, v1, offset2, rijWork)) break;
 			double diff;
 			bool mengOK;
 			recordDiff(fc, v1, rijWork, &diff, &mengOK);
@@ -2279,13 +2276,13 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 				coef /= iter;
 				if (verbose >= 4) mxLog("ComputeEM: agile iter[%d] coef=%.6g", iter, coef);
 				offset1 = sqrt(coef/noiseTarget);
-				if (probeEM(fc, v1, sign * offset1, rijWork)) {
+				if (probeEM(fc, v1, offset1, rijWork)) {
 					paramConverged = false;
 					break;
 				}
 				if (iter < agileMaxIter || semDebug) {
 					offset2 = offset1 + stepSize;
-					if (probeEM(fc, v1, sign * offset2, rijWork)) {
+					if (probeEM(fc, v1, offset2, rijWork)) {
 						paramConverged = false;
 						break;
 					}
