@@ -2252,7 +2252,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	probeOffset.resize(maxHistLen * freeVars);
 	diffWork.resize(maxHistLen * freeVars);
 	paramProbeCount.assign(freeVars, 0);
-	omxBuffer<double> rij(freeVars * freeVars);
+	Eigen::MatrixXd rij(freeVars, freeVars);
 
 	int semConverged=0;
 	for (int v1=0; v1 < freeVars; ++v1) {
@@ -2335,7 +2335,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		const char *pname = fc->varGroup->vars[v1]->name;
 		if (paramConverged) {
 			++semConverged;
-			memcpy(rij.data() + v1 * freeVars, rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
+			memcpy(&rij.col(v1).coeffRef(0), rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
 			if (verbose >= 2) mxLog("ComputeEM: %s converged in %d probes",
 						pname, paramProbeCount[v1]);
 		} else {
@@ -2359,16 +2359,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		memcpy(REAL(rateMatrix), rij.data(), sizeof(double) * freeVars * freeVars);
 	}
 
-	// rij = I-rij
-	for (int v1=0; v1 < freeVars; ++v1) {
-		for (int v2=0; v2 < freeVars; ++v2) {
-			int cell = v1 * freeVars + v2;
-			double entry = rij[cell];
-			if (v1 == v2) entry = 1 - entry;
-			else entry = -entry;
-			rij[cell] = entry;
-		}
-	}
+	rij = Eigen::MatrixXd::Identity(freeVars, freeVars) - rij;
 
 	//mxLog("rij symm");
 	//pda(rij.data(), freeVars, freeVars);
