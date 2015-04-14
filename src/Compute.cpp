@@ -1520,7 +1520,7 @@ class ComputeEM : public omxCompute {
 	std::vector<double*> estHistory;
 	std::vector<double> probeOffset;
 	std::vector<double> diffWork;
-	std::vector<int> paramHistLen;
+	std::vector<int> paramProbeCount;
 	Eigen::VectorXd optimum;
 	double bestFit;
  	static const double MIDDLE_START;
@@ -1974,16 +1974,16 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, std::vector<doubl
 {
 	bool failed = false;
 	const size_t freeVars = fc->varGroup->vars.size();
-	const int base = paramHistLen[vx] * freeVars;
-	probeOffset[vx * maxHistLen + paramHistLen[vx]] = offset;
-	paramHistLen[vx] += 1;
+	const int base = paramProbeCount[vx] * freeVars;
+	probeOffset[vx * maxHistLen + paramProbeCount[vx]] = offset;
+	paramProbeCount[vx] += 1;
 
 	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
 	fc->est[vx] += offset;
 	fc->copyParamToModel();
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
-				paramHistLen[vx], fc->varGroup->vars[vx]->name, offset);
+				paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
 
 	setExpectationPrediction(predict);
 	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
@@ -2008,8 +2008,8 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, std::vector<double> &rijWork,
 			   double *stdDiff, bool *mengOK)
 {
 	const size_t freeVars = fc->varGroup->vars.size();
-	int h1 = paramHistLen[v1]-2;
-	int h2 = paramHistLen[v1]-1;
+	int h1 = paramProbeCount[v1]-2;
+	int h2 = paramProbeCount[v1]-1;
 	double *rij1 = rijWork.data() + h1 * freeVars;
 	double *rij2 = rijWork.data() + h2 * freeVars;
 	double diff = 0;
@@ -2251,7 +2251,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 
 	probeOffset.resize(maxHistLen * freeVars);
 	diffWork.resize(maxHistLen * freeVars);
-	paramHistLen.assign(freeVars, 0);
+	paramProbeCount.assign(freeVars, 0);
 	omxBuffer<double> rij(freeVars * freeVars);
 
 	size_t semConverged=0;
@@ -2307,7 +2307,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			for (size_t hx=0; hx < estHistory.size(); ++hx) {
 				double popt = optimum[v1];
 				double offset1 = estHistory[hx][v1] - popt;
-				if (paramHistLen[v1] && fabs(probeOffset[v1 * maxHistLen + paramHistLen[v1]-1] -
+				if (paramProbeCount[v1] && fabs(probeOffset[v1 * maxHistLen + paramProbeCount[v1]-1] -
 							     offset1) < tolerance) continue;
 				if (fabs(offset1) < tolerance) continue;
 				if (probeEM(fc, v1, offset1, &rijWork)) break;
@@ -2337,10 +2337,10 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 			++semConverged;
 			memcpy(rij.data() + v1 * freeVars, rijWork.data() + pick*freeVars, sizeof(double) * freeVars);
 			if (verbose >= 2) mxLog("ComputeEM: %s converged in %d probes",
-						pname, paramHistLen[v1]);
+						pname, paramProbeCount[v1]);
 		} else {
 			if (verbose >= 2) mxLog("ComputeEM: %s failed to converge after %d probes",
-						pname, paramHistLen[v1]);
+						pname, paramProbeCount[v1]);
 			break;
 		}
 	}
@@ -2469,10 +2469,10 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			dbg.add("semDiff", Rdiff);
 		}
 
-		if (paramHistLen.size()) {
+		if (paramProbeCount.size()) {
 			SEXP Rphl;
 			Rf_protect(Rphl = Rf_allocVector(INTSXP, freeVars));
-			memcpy(INTEGER(Rphl), paramHistLen.data(), sizeof(int) * freeVars);
+			memcpy(INTEGER(Rphl), paramProbeCount.data(), sizeof(int) * freeVars);
 			dbg.add("paramHistLen", Rphl);
 		}
 
