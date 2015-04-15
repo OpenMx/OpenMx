@@ -85,7 +85,7 @@ code-style: $(RFILES)
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep setFinalReturns src/*.cpp | wc -l` -gt 2 ]; then echo "*** setFinalReturns is deprecated. Use populateAttrFun or addOutput."; exit 1; fi
-	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo models; then echo '*** Access of @ slots must be done using $$'; fi
+	@if grep --color=always --exclude '*.rda' --exclude '.R*' -r "@" demo inst/models; then echo '*** Access of @ slots must be done using $$'; fi
 
 build-prep:
 	@if [ $$(git status --short --untracked-files=no 2> /dev/null | wc -l) != 0 ]; then \
