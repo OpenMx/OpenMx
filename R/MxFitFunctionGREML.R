@@ -25,7 +25,6 @@ setMethod("initialize", "MxFitFunctionGREML",
           function(.Object, name = 'fitfunction', dV=character(0)) {
             .Object@name <- name
             .Object@dV <- dV
-            #.Object@dropNAfromV <- dropNAfromV
             .Object@vector <- FALSE
             .Object@numObs <- 0L
             return(.Object)

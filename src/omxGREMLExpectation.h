@@ -19,15 +19,10 @@
   omxData *y, *data2;
   int alwaysComputeMeans, numcases2drop, cholquadX_fail;
   std::vector< int > dropcase;
-  //double logdetV;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
   Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
-  //const char **yXcolnames;
-  //std::vector< omxMatrix* > dV;
-  //std::vector< const char* > dVnames;
-  //int dVlength;
 } omxGREMLExpectation;
 
 void omxInitGREMLExpectation(omxExpectation* ox);

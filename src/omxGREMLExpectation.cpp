@@ -64,7 +64,6 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   if(oge->X->rows != Eigy.rows()){Rf_error("'X' and 'y' matrices have different numbers of rows");}
   //means:
   oge->means = omxInitMatrix(Eigy.rows(), 1, 1, currentState);
-  //for(i=0; i < Eigy.rows(); i++){oge->means->data[i] = 0;}
   //logdetV_om:
   oge->logdetV_om = omxInitMatrix(1, 1, 1, currentState);
   oge->logdetV_om->data[0] = 0;
@@ -110,9 +109,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   
   //Initially compute everything involved in computing means:
   oge->alwaysComputeMeans = 1;
-  //oge->cholV_fail = 0; 
   oge->cholquadX_fail = 0;
-  //oge->logdetV = 0;
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
@@ -206,11 +203,11 @@ void omxDestroyGREMLExpectation(omxExpectation* ox) {
   omxFreeMatrix(argStruct->invcov);
   omxFreeMatrix(argStruct->logdetV_om);
   omxFreeMatrix(argStruct->cholV_fail_om);
-  //omxFreeMatrix(argStruct->X);
-  //omxFreeData(argStruct->y);
 }
 
 
+/*Possible TODO: it will require some additional computation, but it is probably best to calculate the final
+regression coefficients using QR, which is more numerically stable*/
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
@@ -250,6 +247,32 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   }
   
 }
+//Alternate way to do fixed effects using QR solve:
+/*  }
+  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
+    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
+    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
+    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
+    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
+    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
+    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
+    
+    cholV.compute(EigV);
+    if(cholV.info() != Eigen::Success){
+      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
+      return;
+    }
+    S = cholV.matrixL();
+    Sinv = S.inverse();
+    SinvX = Sinv * EigX;
+    Sinvy = Sinv * Eigy;
+    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
+    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
+    cholquadX.compute(quadX);
+    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
+    return;    
+  } */
+
 
 
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
@@ -282,7 +305,7 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* o
 		retval = oge->X;
 	} 
   
-	if (retval) omxRecompute(retval, NULL); //<--Is this step necessary...?
+	if (retval) omxRecompute(retval, NULL);
 	
 	return retval;
 }
@@ -339,7 +362,7 @@ matrix elements*/
   	}
   }
   else{ /*If the omxMatrix is from an algebra, then copying is not necessary; it can be resized directly
-  and and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
+  and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
     if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
     if (om->rows != om->originalRows || om->cols != om->originalCols) {
       // Feasible, but the code is currently not robust to this case
@@ -366,7 +389,7 @@ matrix elements*/
       nextCol++;
     }
     em = Eigen::Map< Eigen::MatrixXd >(om->data, om->rows, om->cols);
-    omxMarkDirty(om);
+    omxMarkDirty(om); //<--Need to mark it dirty so that it gets recalculated back to original dimensions.
   }
   if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }

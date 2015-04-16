@@ -22,7 +22,7 @@ Objects can be created by calls of the form
     \item{\code{blockByPheno}:}{Logical; pertains to data-handling at runtime.}
     \item{\code{staggerZeroes}:}{Logical; pertains to data-handling at runtime.}
     \item{\code{dataset.is.yX}:}{Logical; pertains to data-handling at runtime.}
-    \item{\code{y}:}{Object of class \code{"MxData"}.}
+    \item{\code{y}:}{Object of class \code{"MxData"}.  Its \code{observed} slot will contain the phenotype vector, 'y.'}
     \item{\code{X}:}{A matrix, to contain the 'X' matrix of covariates.}
     \item{\code{yXcolnames}:}{Character vector; used to store the column names of 'y' and 'X.'}
     \item{\code{casesToDrop}:}{Integer vector, specifying the rows and columns of the 'V' matrix to be removed at runtime.}

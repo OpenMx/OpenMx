@@ -22,17 +22,13 @@
 #include <Eigen/Dense>
 
 struct omxGREMLFitState { 
-  //TODO: Some of these members might be redundant with what's stored in the FitContext, 
+  //TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
   //and could therefore be cut
   omxMatrix *y, *X, *cov, *invcov, *means;
-  //std::vector< int > dropcase;
-  //int numcases2drop;
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   int dVlength, usingGREMLExpectation;
   double nll;
-  //Eigen::MatrixXd *Vinv, *XtVinv, *quadXinv;
-  //Eigen::MatrixXd P, Py;
   Eigen::VectorXd gradient;
   Eigen::MatrixXd avgInfo; //the Average Information matrix
   FreeVarGroup *varGroup;
@@ -54,7 +50,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   oo->destructFun = omxDestroyGREMLFitFunction;
   oo->populateAttrFun = omxPopulateGREMLAttributes;
   
-  //omxGREMLFitState *newObj = (omxGREMLFitState*) R_alloc(1, sizeof(omxGREMLFitState));
   omxGREMLFitState *newObj = new omxGREMLFitState;
   oo->argStruct = (void*)newObj;
   omxExpectation* expectation = oo->expectation;
@@ -106,14 +101,12 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     for(i=0; i < newObj->dVlength; i++){
       if( (newObj->dV[i]->rows != newObj->cov->rows) || (newObj->dV[i]->cols != newObj->cov->cols) ){
         Rf_error("all derivatives of V must have the same dimensions as V");
-  }}}
-  
-  /*omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
-  if(OMX_DEBUG) { mxLog("Beginning last steps in initializing GREML fitfunction."); }
-  */
-}
+}}}}
 
 
+
+/*Possible TODO: exploit use of selfadjointView and triangularView to reduce redundant computation during
+matrix operations*/
 void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
   
@@ -143,7 +136,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     if(gff->usingGREMLExpectation){
       omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
       
-      //Check that factorizations of V and the quadratic form in X succeeded
+      //Check that factorizations of V and the quadratic form in X succeeded:
       if(oge->cholV_fail_om->data[0]){
         oo->matrix->data[0] = NA_REAL;
         if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
@@ -304,54 +297,7 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   numobs[0] = 1L - userSuppliedDataNumObs;
   /*^^^^The end result is that number of observations will be reported as 1 in summary()...
   which is always correct with GREML*/
-  }
-/*
-  omxGREMLFitState *gff = ((omxGREMLFitState*)oo->argStruct);
-  
-  EigenMatrixAdaptor Eigy(gff->y);
-  Eigen::MatrixXd GREML_b = gff->quadXinv * gff->XtVinv * Eigy;
-  SEXP b_ext, bcov_ext;
-  Rf_protect(b_ext = Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
-  for(int row = 0; row < GREML_b.rows(); row++){
-    REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
-  }
-  
-  Rf_protect(bcov_ext = Rf_allocMatrix(REALSXP, gff->quadXinv.rows(), gff->quadXinv.cols()));
-  for(int row = 0; row < gff->quadXinv.rows(); row++){
-    for(int col = 0; col < gff->quadXinv.cols(); col++){
-      REAL(bcov_ext)[col * gff->quadXinv.rows() + row] = gff->quadXinv(row,col);
-    }}
-    
-  Rf_setAttrib(algebra, Rf_install("b"), b_ext);
-  Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
-  */
-}
-
-//Alternate way to do fixed effects using QR solve:
-/*  }
-  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
-    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
-    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
-    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
-    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
-    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
-    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
-    
-    cholV.compute(EigV);
-    if(cholV.info() != Eigen::Success){
-      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
-      return;
-    }
-    S = cholV.matrixL();
-    Sinv = S.inverse();
-    SinvX = Sinv * EigX;
-    Sinvy = Sinv * Eigy;
-    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
-    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
-    cholquadX.compute(quadX);
-    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
-    return;    
-  } */
+}}
 
 
 void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
