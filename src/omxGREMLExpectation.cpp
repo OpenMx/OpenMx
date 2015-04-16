@@ -21,6 +21,7 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
+#include <Eigen/QR>
  
 void omxInitGREMLExpectation(omxExpectation* ox){
   
@@ -206,8 +207,7 @@ void omxDestroyGREMLExpectation(omxExpectation* ox) {
 }
 
 
-/*Possible TODO: it will require some additional computation, but it is probably best to calculate the final
-regression coefficients using QR, which is more numerically stable*/
+
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
@@ -216,9 +216,18 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->dataMat->cols));
   Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
   
-  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   SEXP b_ext, bcov_ext, yXcolnames;
-  Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
+  Eigen::Map< Eigen::MatrixXd > EigX(omxMatrixDataColumnMajor(oge->X), oge->X->rows, oge->X->cols);
+  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
+  Eigen::LLT< Eigen::MatrixXd > cholVinv(oge->invcov->rows);
+  Eigen::MatrixXd Sinv, GREML_b;
+  cholVinv.compute(Vinv);
+  Sinv = cholVinv.matrixL();
+  /*Premultiply X & y by the Cholesky factor of V inverse.  This "rotates out" the dependence amongst their 
+  rows.  Then, use QR to get least-squares solution for b, in Xb = y.  This should be more numerically stable
+  than the way we were previously calculating b:*/
+  GREML_b = (Sinv * EigX).colPivHouseholderQr().solve(Sinv * Eigy);
   
   {
   ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
@@ -247,31 +256,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   }
   
 }
-//Alternate way to do fixed effects using QR solve:
-/*  }
-  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
-    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
-    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
-    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
-    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
-    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
-    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
-    
-    cholV.compute(EigV);
-    if(cholV.info() != Eigen::Success){
-      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
-      return;
-    }
-    S = cholV.matrixL();
-    Sinv = S.inverse();
-    SinvX = Sinv * EigX;
-    Sinvy = Sinv * Eigy;
-    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
-    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
-    cholquadX.compute(quadX);
-    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
-    return;    
-  } */
 
 
 
