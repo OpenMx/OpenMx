@@ -3,10 +3,10 @@ require(OpenMx)
 require(rpf)
 
 set.seed(2)
-numItems <- 16
+numItems <- 15
 numPersons <- 1500
-slope <- 8
-groupSize <- 2
+slope <- 4
+groupSize <- 3
 
 items <- list()
 items[1:numItems] <- rpf.drm()
@@ -48,8 +48,8 @@ mkmodel <- function() {
 
 # ----------------------------------------------------------------------------
 
-if (file.exists("models/enormous/lib/stderrlib.R")) {
-  source("models/enormous/lib/stderrlib.R")
+if (file.exists("inst/models/enormous/lib/stderrlib.R")) {
+  source("inst/models/enormous/lib/stderrlib.R")
 } else if (file.exists("lib/stderrlib.R")) {
   source("lib/stderrlib.R")
 } else {
@@ -58,28 +58,60 @@ if (file.exists("models/enormous/lib/stderrlib.R")) {
 
 #got <- MCphase(mkmodel, reps=5, verbose=TRUE, maxCondNum=1e6)
 
-if (0) {
-  # interesting model, converges but is not identified
-  set.seed(18)
-  m1 <- mkmodel()
-  em <- m1$compute
-#  em$verbose = 3L
-  em$tolerance = 1e-5
-  em$information = "mr1991"
-  em$infoArgs = list(fitfunction="fitfunction", semMethod="agile")
-  m1$compute <- mxComputeSequence(list(em,
-                                       mxComputeHessianQuality()))
-  m1 <- mxRun(m1)
-  m1$output$conditionNumber
-  stop("stopped")
-}
-
 name = "ifa-3pl-se"
 getMCdata(name, mkmodel, correct.mat[correct.mask], maxCondNum=5000)
 
-omxCheckCloseEnough(norm(mcBias, "2"), .39367, .001)
-omxCheckCloseEnough(max(abs(mcBias)), .1694, .001)
-omxCheckCloseEnough(log(det(mcHessian)), 90.89, .1)
+omxCheckCloseEnough(norm(mcBias, "2"), .10228, .001)
+omxCheckCloseEnough(max(abs(mcBias)), .054067, .001)
+omxCheckCloseEnough(log(det(mcHessian)), 90.2819, .1)
+
+#-----------------
+if (0) {
+  result <- NULL
+  
+  set.seed(3)
+  model <- mkmodel()
+  em <- model$compute
+  fitfun <- em$mstep$fitfunction
+  em$accel <- ""
+  em$tolerance <- 1e-11
+  for (semType in c('mr','tian')) {
+    em$information <- "mr1991"
+    em$infoArgs <- list(fitfunction=fitfun, semMethod=semType, semTolerance=sqrt(1e-6))
+    plan <- mxComputeSequence(list(
+      em,
+      mxComputeHessianQuality(),
+      mxComputeStandardError(),
+      mxComputeReportDeriv()
+    ))
+    model$compute <- plan
+    fit <- mxRun(model, silent=TRUE)
+    result <- rbind(result, data.frame(rd=(fit$output$standardErrors - mcSE)/mcSE,
+                                       algo=semType, param=names(mcSE)))
+  }
+  if (1) {
+    em$accel <- 'ramsay1975'
+    em$tolerance <- 1e-11
+    em$information <- "mr1991"
+    em$infoArgs <- list(fitfunction=fitfun, semMethod="agile")
+    plan <- mxComputeSequence(list(
+      em,
+      mxComputeHessianQuality(),
+      mxComputeStandardError(),
+      mxComputeReportDeriv()
+    ))
+    if (is.null(fit)) fit <- model
+    fit$compute <- plan
+    # reuse the MLE, if possible
+    fit <- mxRun(fit, silent=TRUE)
+    result <- rbind(result, data.frame(rd=(fit$output$standardErrors - mcSE)/mcSE,
+                                       algo="agile", param=names(mcSE)))
+  }
+  library(ggplot2)
+  ggplot(result, aes(rd, param, color=algo, shape=algo)) + geom_point() + geom_vline(xintercept=0)
+}
+
+#-----------------
 
 detail <- testPhase(mkmodel, 500,
                     methods=c('re', 'estepH', 'mr', 'tian', 'agile', 'meat', 'oakes'))

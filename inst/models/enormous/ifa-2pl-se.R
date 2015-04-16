@@ -2,7 +2,7 @@
 require(OpenMx)
 require(rpf)
 
-numItems <- 20  # any multiple of 5
+numItems <- 5  # any multiple of 5
 numPersons <- 1000
 
 spec <- list()
