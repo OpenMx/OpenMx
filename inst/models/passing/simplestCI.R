@@ -41,7 +41,7 @@ omxCheckCloseEnough(fit1$output$standardErrors, fit2$output$standardErrors, 1e-6
 # ensure the [1,] syntax is supported
 data(demoOneFactor)
 factorModel <- mxModel("One Factor",
-      mxMatrix("Full", 5, 1, values=0.2,
+      mxMatrix("Full", 5, 1, values=0.2, lbound=0, ubound=5,
            free=TRUE, name="A"),
       mxMatrix("Symm", 1, 1, values=1,
            free=FALSE, name="L"),

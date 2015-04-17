@@ -35,7 +35,7 @@ testmod <- mxModel(
   mxFitFunctionGREML()
 )
 omxCheckError(mxRun(testmod),
-              "V matrix is not square")
+              "'V' matrix is not square")
 
 testmod$V <- mxMatrix("Full",nrow=99,ncol=99,free=F,values=diag(100)[-100,-100],name="V",condenseSlots=T)
 omxCheckError(mxRun(testmod),
@@ -79,18 +79,6 @@ testmod <- mxModel(
 omxCheckError(mxRun(testmod),
               "The reference 'J' does not exist.  It is used by named reference 'GREMLtest.fitfunction' .")
 
-#Presently unsafe:
-# testmod <- mxModel(
-#   "GREMLtest",
-#   mxData(observed=dat, type="raw", sort=F),
-#   mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
-#   mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
-#   mxAlgebra(I %x% Ve,name="V"),
-#   mxExpectationGREML(V="V", dataset.is.yX=T),
-#   mxFitFunctionML()
-# )
-# omxCheckError(mxRun(testmod),
-#               "No covariance expectation in FIML evaluation.")
 
 testmod <- mxModel(
   "GREMLtest",

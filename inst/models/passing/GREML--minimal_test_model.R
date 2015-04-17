@@ -15,7 +15,7 @@ plan <- mxComputeSequence(steps=list(
 
 testmod <- mxModel(
   "GREMLtest",
-  mxData(observed = dat, type="raw"),
+  mxData(observed = dat, type="raw", sort=FALSE),
   mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
   mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
   mxAlgebra(I %x% Ve,name="V"),
@@ -46,7 +46,7 @@ gff2 <- mxFitFunctionGREML()
 
 testmod2 <- mxModel(
   "GREMLtest",
-  mxData(observed = dat, type="raw"),
+  mxData(observed = dat, type="raw", sort=FALSE),
   mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
   mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
   mxAlgebra(I %x% Ve,name="V"),
@@ -70,3 +70,33 @@ omxCheckEquals(testrun2summ$GREMLfixeff$name,"x")
 omxCheckCloseEnough(testrun2summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun2summ$GREMLfixeff$se,sqrt(var(dat[,1])/100),epsilon=10^-5)
 
+
+#Test GREML expectation used with FIML fitfunction:
+testmod3 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	ge,
+	mxFitFunctionML()
+)
+
+testrun3 <- mxRun(testmod3)
+
+omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,1])*99/100,epsilon=10^-5)
+omxCheckCloseEnough(testrun3$expectation$b,mean(dat[,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun3$expectation$bcov,(var(dat[,1])*99/100)/100,epsilon=10^-5)
+
+testrun3summ <- summary(testrun3)
+#FIML fitfunction doesn't know how to tell the frontend that a GREML analysis involves only 1 observation:
+omxCheckError( 
+	omxCheckEquals(testrun3summ$numObs,1),
+	"'100' and '1' are not equal")
+omxCheckEquals(testrun3summ$estimatedParameters,2)
+omxCheckEquals(testrun3summ$observedStatistics,100)
+omxCheckEquals(testrun3summ$degreesOfFreedom,98)
+#Check GREML-specific part of summary() output:
+omxCheckEquals(testrun3summ$GREMLfixeff$name,"x")
+omxCheckCloseEnough(testrun3summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])*99/100/100),epsilon=10^-5)

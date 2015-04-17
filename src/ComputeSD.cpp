@@ -30,7 +30,7 @@ static bool FitCompare(GradientOptimizerContext &rf, double speed)
     Eigen::VectorXd prevEst = currEst;
 
     ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
-    if (isnan(rf.fc->fit))
+    if (std::isnan(rf.fc->fit))
     {
         rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
         return FALSE;

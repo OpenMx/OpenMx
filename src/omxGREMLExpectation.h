@@ -15,17 +15,14 @@
  */
  
  typedef struct {
-  omxMatrix *cov, *means, *X, *y;
-  int alwaysComputeMeans, numcases2drop, cholV_fail, cholquadX_fail;
+  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om;
+  omxData *y, *data2;
+  int alwaysComputeMeans, numcases2drop, cholquadX_fail;
   std::vector< int > dropcase;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
-  Eigen::MatrixXd Vinv, XtVinv, quadXinv;
+  Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
-  //const char **yXcolnames;
-  //std::vector< omxMatrix* > dV;
-  //std::vector< const char* > dVnames;
-  //int dVlength;
 } omxGREMLExpectation;
 
 void omxInitGREMLExpectation(omxExpectation* ox);

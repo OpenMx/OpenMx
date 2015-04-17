@@ -82,7 +82,7 @@ omxCheckCloseEnough(testrun2summ$GREMLfixeff$se,
 
 
 
-#Test errors and warnings from mxGREMLStarter():
+#Test errors and warnings from mxGREMLDataHandler():
 omxCheckError(mxGREMLDataHandler(data=2, Xvars="x",yvars="y"),
               "argument 'data' must be either a matrix or dataframe")
 omxCheckError(mxGREMLDataHandler(data=matrix(rnorm(200),100,2), Xvars="x", yvars = "y"),

@@ -21,6 +21,7 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
+#include <Eigen/QR>
  
 void omxInitGREMLExpectation(omxExpectation* ox){
   
@@ -41,21 +42,36 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 	ox->populateAttrFun = omxPopulateGREMLAttributes;
 	ox->argStruct = (void*) oge;
   
+  
     /* Set up expectation structures */
+  //y:
+  oge->y = new omxData(currentState);
+  {ScopedProtect p1(Rmtx, R_do_slot(rObj, Rf_install("y")));
+  oge->y->newDataStatic(Rmtx);
+  }
+  //V:
 	if(OMX_DEBUG) { mxLog("Processing V."); }
 	oge->cov = omxNewMatrixFromSlot(rObj, currentState, "V");
   if( oge->cov->rows != oge->cov->cols ){
-    Rf_error("V matrix is not square");
+    Rf_error("'V' matrix is not square");
   }
+  //X:
 	if(OMX_DEBUG) { mxLog("Processing X."); }
   {ScopedProtect p1(Rmtx, R_do_slot(rObj, Rf_install("X")));
 	oge->X = omxNewMatrixFromRPrimitive(Rmtx, currentState, 0, 0);
   }
-  {ScopedProtect p1(Rmtx, R_do_slot(rObj, Rf_install("y")));
-	oge->y = omxNewMatrixFromRPrimitive(Rmtx, currentState, 0, 0);
-  }
-  oge->means = omxInitMatrix(oge->y->rows, 1, 1, currentState);
-  for(i=0; i < oge->y->rows; i++){oge->means->data[i] = 0;}
+  //Eigy (local) will have however many rows and 1 column:
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
+  if(oge->X->rows != Eigy.rows()){Rf_error("'X' and 'y' matrices have different numbers of rows");}
+  //means:
+  oge->means = omxInitMatrix(Eigy.rows(), 1, 1, currentState);
+  //logdetV_om:
+  oge->logdetV_om = omxInitMatrix(1, 1, 1, currentState);
+  oge->logdetV_om->data[0] = 0;
+  //cholV_fail_om:
+  oge->cholV_fail_om = omxInitMatrix(1, 1, 1, currentState);
+  oge->cholV_fail_om->data[0] = 0;
+
 
   //Deal with missing data:
   int* casesToDrop_intptr;
@@ -76,9 +92,10 @@ void omxInitGREMLExpectation(omxExpectation* ox){
       else{oge->dropcase[casesToDrop_intptr[i]-1] = 1;}
   }}
   }
-  if(oge->y->rows != oge->cov->rows - oge->numcases2drop){
+  if(Eigy.rows() != oge->cov->rows - oge->numcases2drop){
     Rf_error("y and V matrices do not have equal numbers of rows");
   }
+  
   
   //column names of y and X:
   {
@@ -93,26 +110,31 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   
   //Initially compute everything involved in computing means:
   oge->alwaysComputeMeans = 1;
-  oge->cholV_fail = 0; 
   oge->cholquadX_fail = 0;
   EigenMatrixAdaptor EigX(oge->X);
-  EigenMatrixAdaptor Eigy(oge->y);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  Eigen::MatrixXd EigV(oge->y->rows, oge->y->rows);
+  Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
   Eigen::MatrixXd quadX;
-  Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->rows);
+  Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
     dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
+  //invcov:
+  oge->invcov = omxInitMatrix(EigV.rows(), EigV.cols(), 1, currentState);
+  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
   cholV.compute(EigV);
   if(cholV.info() != Eigen::Success){
     Rf_error("Expected covariance matrix is non-positive-definite at initial values");
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
-  oge->Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-  oge->XtVinv = EigX.transpose() * oge->Vinv;
+  for(i=0; i < oge->X->rows; i++){
+    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+  }
+  oge->logdetV_om->data[0] *= 2;
+  Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+  oge->XtVinv = EigX.transpose() * Vinv;
   quadX = oge->XtVinv * EigX;
   cholquadX.compute(quadX);
   if(cholquadX.info() != Eigen::Success){
@@ -121,39 +143,28 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
   yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
-  //Rf_error("Best to stop here");
   
-  
-/*  {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
-	ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
-  oge->dVlength = Rf_length(dV);  
-  oge->dV.resize(oge->dVlength);
-  oge->dVnames.resize(oge->dVlength);
-	if(oge->dVlength){
-    if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
-		int* dVint = INTEGER(dV);
-    for(i=0; i < oge->dVlength; i++){
-      oge->dV[i] = omxMatrixLookupFromState1(dVint[i], currentState);
-      SEXP elem;
-      {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
-			oge->dVnames[i] = CHAR(elem);}
-	}}
-  } */
+  /*Prepare y as the data that the FIML fitfunction will use:*/
+  oge->data2 = ox->data;
+  ox->data = oge->y;
 }
 
 
 void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) {
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
 	omxRecompute(oge->cov, NULL);
-  oge->cholV_fail = 0;
+  int i=0;
+  oge->cholV_fail_om->data[0] = 0;
   oge->cholquadX_fail = 0;
+  oge->logdetV_om->data[0] = 0;
   
   EigenMatrixAdaptor EigX(oge->X);
-  EigenMatrixAdaptor Eigy(oge->y);
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  Eigen::MatrixXd EigV(oge->y->rows, oge->y->rows);
+  Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
+  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::MatrixXd quadX;
-  Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->rows);
+  Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
     dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
@@ -161,12 +172,16 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   cholV.compute(EigV);
   if(cholV.info() != Eigen::Success){
-    oge->cholV_fail = 1;
+    oge->cholV_fail_om->data[0] = 1;
     return;
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
-  oge->Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-  oge->XtVinv = EigX.transpose() * oge->Vinv;
+  for(i=0; i < oge->X->rows; i++){
+    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+  }
+  oge->logdetV_om->data[0] *= 2;
+  Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+  oge->XtVinv = EigX.transpose() * Vinv;
   quadX = oge->XtVinv * EigX;
   cholquadX.compute(quadX);
   if(cholquadX.info() != Eigen::Success){ 
@@ -178,19 +193,19 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   if(oge->alwaysComputeMeans){
     yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
   }
-  
-/*  if(oge->dVlength){
-    for(int i=0; i < oge->dVlength; i++){
-      omxRecompute(oge->dV[i], NULL);
-  }} */
 }
 
 
 void omxDestroyGREMLExpectation(omxExpectation* ox) {
 	if(OMX_DEBUG) { mxLog("Destroying GREML Expectation."); }
   omxGREMLExpectation* argStruct = (omxGREMLExpectation*)(ox->argStruct);
+  ox->data = argStruct->data2;
   omxFreeMatrix(argStruct->means);
+  omxFreeMatrix(argStruct->invcov);
+  omxFreeMatrix(argStruct->logdetV_om);
+  omxFreeMatrix(argStruct->cholV_fail_om);
 }
+
 
 
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
@@ -198,15 +213,22 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
 
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
   
-  Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->rows));
+  Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->dataMat->cols));
   Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
   
-  EigenMatrixAdaptor Eigy(oge->y);
   SEXP b_ext, bcov_ext, yXcolnames;
-  Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
+  Eigen::Map< Eigen::MatrixXd > EigX(omxMatrixDataColumnMajor(oge->X), oge->X->rows, oge->X->cols);
+  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
+  Eigen::LLT< Eigen::MatrixXd > cholVinv(oge->invcov->rows);
+  Eigen::MatrixXd Sinv, GREML_b;
+  cholVinv.compute(Vinv);
+  Sinv = cholVinv.matrixL();
+  /*Premultiply X & y by the Cholesky factor of V inverse.  This "rotates out" the dependence amongst their 
+  rows.  Then, use QR to get least-squares solution for b, in Xb = y.  This should be more numerically stable
+  than the way we were previously calculating b:*/
+  GREML_b = (Sinv * EigX).colPivHouseholderQr().solve(Sinv * Eigy);
   
-  //ScopedProtect p1(b_ext, R_do_slot(algebra, Rf_install("b")));
-  //double* b = REAL(b_ext);
   {
   ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
   for(int row = 0; row < GREML_b.rows(); row++){
@@ -215,8 +237,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   }
   
-  //ScopedProtect p2(bcov_ext, R_do_slot(algebra, Rf_install("bcov")));
-  //double* bcov = REAL(bcov_ext);
   {
   ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), oge->quadXinv.cols()));
   for(int row = 0; row < oge->quadXinv.rows(); row++){
@@ -238,6 +258,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
 }
 
 
+
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
   if(OMX_DEBUG) { mxLog("GREML expectation: %s requested--", component); }
@@ -245,17 +266,30 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* o
 	omxGREMLExpectation* oge = (omxGREMLExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 
-	if(strEQ("cov", component)) {
-		retval = oge->cov;
-	} else if(strEQ("X", component)) {
-		retval = oge->X;
-	} else if(strEQ("y", component)) {
-		retval = oge->y;
+	
+  if(strEQ("y", component)) {
+    retval = oge->y->dataMat;
 	}
+  else if(strEQ("invcov", component)) {
+    retval = oge->invcov;
+  }
   else if(strEQ("means", component)) {
   	retval = oge->means;
   }
-	if (retval) omxRecompute(retval, NULL); //<--Is this step necessary...?
+  else if(strEQ("cholV_fail_om", component)){
+    retval = oge->cholV_fail_om;
+  }
+  else if(strEQ("logdetV_om", component)){
+    retval = oge->logdetV_om;
+  }
+  else if(strEQ("cov", component)) {
+		retval = oge->cov;
+	} 
+  else if(strEQ("X", component)) {
+		retval = oge->X;
+	} 
+  
+	if (retval) omxRecompute(retval, NULL);
 	
 	return retval;
 }
@@ -312,7 +346,7 @@ matrix elements*/
   	}
   }
   else{ /*If the omxMatrix is from an algebra, then copying is not necessary; it can be resized directly
-  and and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
+  and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
     if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
     if (om->rows != om->originalRows || om->cols != om->originalCols) {
       // Feasible, but the code is currently not robust to this case
@@ -339,7 +373,7 @@ matrix elements*/
       nextCol++;
     }
     em = Eigen::Map< Eigen::MatrixXd >(om->data, om->rows, om->cols);
-    omxMarkDirty(om);
+    omxMarkDirty(om); //<--Need to mark it dirty so that it gets recalculated back to original dimensions.
   }
   if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }
