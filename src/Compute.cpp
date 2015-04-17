@@ -2886,6 +2886,7 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	bestFit = std::numeric_limits<double>::max();
 	ineqType = omxConstraint::LESS_THAN;
 	feasible = false;
+	avoidRedundentEvals = false;
 }
 
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)
@@ -2901,6 +2902,12 @@ double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
+	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
+	if (feasible && avoidRedundentEvals && *mode == prevMode) {
+		double diff = (Est - prevPoint).array().abs().sum();
+		if (diff == 0) return fc->fit;
+	}
+
 	if (*mode == 1) fc->iterations += 1;
 	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
 	fc->copyParamToModel();
@@ -2917,6 +2924,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		*mode = -1;
 	} else {
 		feasible = true;
+		prevPoint = Est;
+		prevMode = *mode;
 	}
 
 	return fc->fit;

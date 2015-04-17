@@ -225,6 +225,9 @@ class GradientOptimizerContext {
 	const int verbose;
 	const char *optName;  // filled in by the optimizer
 	bool feasible;
+	bool avoidRedundentEvals;
+	Eigen::VectorXd prevPoint;
+	int prevMode;
 	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;

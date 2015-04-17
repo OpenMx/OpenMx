@@ -174,6 +174,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	switch (engine) {
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
+		rf.avoidRedundentEvals = true;
 		omxNPSOL(fc->est, rf);
 		if (!hessChol) {
 			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
@@ -187,6 +188,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 #endif
 		break;}
         case OptEngine_CSOLNP:
+		rf.avoidRedundentEvals = true;
 		omxCSOLNP(fc->est, rf);
 		if (rf.gradOut.size()) {
 			fc->grad = rf.gradOut.tail(numParam);
