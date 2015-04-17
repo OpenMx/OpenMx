@@ -47,12 +47,18 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 		for(i in 1:length(freemat)){
 			# only walk the lower triangle of Diag and Symm matrices.
 			if(freemat[i]==FALSE && ( notSymDiag || sym.sel[i]==TRUE )){
-				#free single parameter of model that was fixed in original model
-				gmodel[[amat]]$free[i] <- TRUE
-				# create a new model with all the free params of the orig
-				# PLUS the new one under consideration
+				tmpLab <- gmodel[[amat]]$labels[i]
 				plusOneParamModel <- model
-				plusOneParamModel[[amat]]$free[i] <- TRUE
+				if(length(tmpLab) > 0 && !is.na(tmpLab)){
+					gmodel <- omxSetParameters(gmodel, labels=tmpLab, free=TRUE)
+					plusOneParamModel <- omxSetParameters(plusOneParamModel, labels=tmpLab, free=TRUE)
+				} else{
+					#free single parameter of model that was fixed in original model
+					gmodel[[amat]]$free[i] <- TRUE
+					# create a new model with all the free params of the orig
+					# PLUS the new one under consideration
+					plusOneParamModel[[amat]]$free[i] <- TRUE
+				}
 				# specific adjustments for zero matrices
 				if(is(gmodel[[amat]])[1] %in% c("ZeroMatrix")){
 					cop <- gmodel[[amat]]
