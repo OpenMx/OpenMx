@@ -136,5 +136,75 @@ prevMIsForSS <- prevMIsForSS[-length(prevMIsForSS)]
 
 omxCheckCloseEnough(miSSCheck, prevMIsForSS, 0.01)
 
+#------------------------------------------------------------------------------
+# State space model check
+# Similar to the above, but tests the respect of fixed parameter labels.
+# When a fixed parameter occurs in more than one spot (and thus necessarily
+#  has a label), it is freed by its label instead of by the matrix element.
+
+
+# Create data based on state space model.
+require(OpenMx)
+nvar <- 5
+varnames <- paste("x", 1:nvar, sep="")
+ssModel <- mxModel(model="State Space Manual Example",
+    mxMatrix("Full", 1, 1, TRUE, .3, name="A"),
+    mxMatrix("Zero", 1, 1, name="B"),
+    mxMatrix("Full", nvar, 1, TRUE, .6, name="C", dimnames=list(varnames, "F1")),
+    mxMatrix("Zero", nvar, 1, name="D"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="Q"),
+    mxMatrix("Diag", nvar, nvar, c(F, F, T, T, T), .2, name="R", labels=paste('resid', c(1, 1, 3:nvar), sep='')),
+    mxMatrix("Zero", 1, 1, name="x0"),
+    mxMatrix("Diag", 1, 1, FALSE, 1, name="P0"),
+    mxMatrix("Zero", 1, 1, name="u"),
+    mxExpectationStateSpace("A", "B", "C", "D", "Q", "R", "x0", "P0", "u"),
+    mxFitFunctionML()
+)
+
+
+Rmis <- ssModel$R
+lsel <- lower.tri(Rmis$values, TRUE)
+mval <- Rmis$values[lsel]
+mval[2] <- .05
+mfre <- Rmis$free[lsel]
+mfre[2] <- TRUE
+mlab <- Rmis$labels[lsel]
+Rmis <- mxMatrix("Symm", nrow(Rmis), ncol(Rmis), values=mval, labels=mlab, free=mfre, name=Rmis$name)
+ssMis <- mxModel(ssModel, Rmis)
+
+set.seed(101)
+ssMisData <- mxGenerateData(ssMis, 200)
+
+ssMisRun <- mxRun(mxModel(ssModel, mxData(ssMisData, 'raw')))
+
+mi.mis <- mxMI(ssMisRun, full=FALSE)
+
+if( any(mi.mis$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE)){
+	print("Large modification index found")
+	# Grab the plus.param model that has the highest modification index
+	newModelAttempt <- mi.mis$plusOneParamModels[[which.max(mi.mis$MI)]]
+	newRunAttempt <- mxRun(newModelAttempt)
+	mi.cor <- mxMI(newRunAttempt, full=FALSE)
+	foundFirst <- TRUE
+	if(  any(mi.cor$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE ) ){
+		print("Problem.  Model still may need modification")
+		foundSecond <- TRUE
+	} else{
+		print("Success.  All modification indices are sufficiently small now.")
+		foundSecond <- FALSE
+	}
+} else{
+	foundFirst <- FALSE
+}
+
+omxCheckTrue(all( c(foundFirst, foundSecond) == c(TRUE, FALSE) ) )
+
+
+miSSCheck <- mi.mis$MI[!is.na(mi.mis$MI)]
+miSSCheck <- miSSCheck['resid1']
+prevMIsForSS <- 3.909195
+
+omxCheckCloseEnough(miSSCheck, prevMIsForSS, 0.01)
+
 
 
