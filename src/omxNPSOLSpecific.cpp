@@ -105,7 +105,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	FitContext *fc = rf.fc;
 	NPSOL_GOpt = &rf;
-	{
+	if (ncnln == 0) {
 		// ensure we never move to a worse point
 		int mode = 0;
 		double fit = rf.recordFit(fc->est, &mode);
