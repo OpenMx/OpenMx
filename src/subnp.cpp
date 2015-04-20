@@ -1401,30 +1401,12 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
             count--;
             total = total + ineqval[colNum];
         }
-        fitVal << fabs(total) - 1e-4;
+	fitVal.resize(1, 1 + eqval.size());
+        fitVal << fabs(total) - 1e-4, eqval;
     }
     
     else{
-        
-        if (nineq){
-            
-            if(neq){
-                fitVal.resize(1, 1 + eqval.size() + ineqval.size());
-                fitVal << objVal, eqval, ineqval;
-            }
-            else{
-                fitVal.resize(1, 1 + ineqval.size());
-                fitVal << objVal, ineqval;
-            }
-        }
-        
-        else if (neq) {
-            fitVal.resize(1, 1 + eqval.size());
-            fitVal << objVal, eqval;
-        }
-        else {
-            fitVal.resize(1, 1);
-            fitVal = objVal;
-        }
+	    fitVal.resize(1, 1 + eqval.size() + ineqval.size());
+	    fitVal << objVal, eqval, ineqval;
     }
 }
