@@ -291,7 +291,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (flag == 1)
         {
             mode = 0;
-            funv = fit.solFun(p_e.data(), &mode);
+            Eigen::MatrixXd temp;
+            temp = p_e.block(0, nineq, 1, np);
+            funv = fit.solFun(temp.data(), &mode);
             funvMatrix_e(0, 0) = funv;
             fit.solEqBFun();
             eqv_e = fit.equality;
