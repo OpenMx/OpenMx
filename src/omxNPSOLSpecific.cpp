@@ -105,7 +105,16 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	FitContext *fc = rf.fc;
 	NPSOL_GOpt = &rf;
-	{
+
+    omxState *globalState = fc->state;
+    int nclin = 0;
+    int nlinwid = std::max(1, nclin);
+    int equality, inequality;
+    globalState->countNonlinearConstraints(equality, inequality);
+    int ncnln = equality + inequality;
+    int nlnwid = std::max(1, ncnln);
+ 
+	if (ncnln == 0) {
 		// ensure we never move to a worse point
 		int mode = 0;
 		double fit = rf.recordFit(fc->est, &mode);
@@ -119,16 +128,8 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 			return;
 		}
 	}
-	fc->grad.resize(fc->numParam); // ensure memory is allocated
 
-    omxState *globalState = fc->state;
-    int nclin = 0;
-    int nlinwid = std::max(1, nclin);
-    int equality, inequality;
-    globalState->countNonlinearConstraints(equality, inequality);
-    int ncnln = equality + inequality;
-    int nlnwid = std::max(1, ncnln);
- 
+	fc->grad.resize(fc->numParam); // ensure memory is allocated
 	int n = int(fc->numParam);
  
         int nctotl = n + nlinwid + nlnwid;

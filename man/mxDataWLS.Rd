@@ -16,10 +16,13 @@
 \name{mxDataWLS}
 \alias{mxDataWLS}
 
-\title{Create MxData Object for Weighted Least Squares}
+\title{Create MxData Object for Least Squares (WLS, DLS, ULS) Analyses}
 
 \description{
-   This function creates a new \link{MxData} object for use with fitting models with WLS.
+   This function creates a new \link{MxData} object of type 
+   \dQuote{ULS} (unweighted least squares), \dQuote{WLS} (weighted least squares) 
+   or \dQuote{DLS} (diagonally-weighted least squares). The appropriate
+   fit function to include with these models is \code{\link{mxFitFunctionWLS}}
 }
 
 \usage{
@@ -29,17 +32,23 @@
 
 \arguments{
    \item{data}{A matrix or data.frame which provides raw data to be used for WLS.}
-   \item{type}{A character string 'WLS', 'DLS', or 'ULS' for weight, diagonal, or unweighted least squares}
-   \item{useMinusTwo}{Logical.  Use -2LL or -LL.}
-   \item{returnInverted}{Logical.  Return the information matrix or the covariance matrix.}
-   \item{debug}{Logical.  Is debugging being done?}
-   \item{fullWeight}{Logical. Should the full weight matrix be returned?  Needed for standard error and quasi-chi-squared calculation.}
+   \item{type}{A character string 'WLS' (default), 'DLS', or 'ULS' for weighted, diagonal, or unweighted least squares}
+   \item{useMinusTwo}{Logical indicating whether to use -2LL (default) or -LL.}
+   \item{returnInverted}{Logical indicating whether to return the information matrix (default) or the covariance matrix.}
+   \item{debug}{Logical to set debugging on or off (default)}
+   \item{fullWeight}{Logical determining if the full weight matrix is returned (default). Needed for standard error and quasi-chi-squared calculation.}
 }
 
 \details{
-The mxDataWLS function creates an \link{MxData} object, which can be used as arguments in \link{MxModel} objects.  This function takes raw data and gives back the \code{MxData} object to be used in a model to fit with weighted least squares.
+The mxDataWLS function creates an \link{MxData} object, which can be used in
+\link{MxModel} objects.  This function takes raw data and returns 
+an \code{MxData} object to be used in a model to fit with weighted least squares.
 
-Ordinal data are supported.  Continuous data are also supported.  A combination of ordinal and continuous data succeeds, but when using 'WLS' or 'DLS' the answers appear incorrect.  The 'ULS' estimates for joint ordinal and continuous data appear accurate.  Consequently, do not use this function for joint problems unless \code{type='ULS'}.
+Both Ordinal and continuous data are supported.  A combination of these data 
+types succeeds without error, but when using 'WLS' or 'DLS' the answers
+appear incorrect.  The 'ULS' estimates for joint ordinal and continuous data
+appear accurate.  Consequently, do not use this function for joint 
+problems unless \code{type='ULS'}.
 }
 
 \value{

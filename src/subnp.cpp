@@ -291,7 +291,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         if (flag == 1)
         {
             mode = 0;
-            funv = fit.solFun(p_e.data(), &mode);
+            Eigen::MatrixXd temp;
+            temp = p_e.block(0, nineq, 1, np);
+            funv = fit.solFun(temp.data(), &mode);
             funvMatrix_e(0, 0) = funv;
             fit.solEqBFun();
             eqv_e = fit.equality;
@@ -1117,7 +1119,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 flag = 1;
                 p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
                 if (nc > 0){ y_e.resize(1, 1); y_e(0, 0) = 0;}
-                hessv_e = hessv_e.cwiseQuotient(vscale_e.block(0, neq+1, 1, nc+np-neq) * vscale_e.block(0, neq+1, 1, nc+np-neq).transpose()) *vscale_e(0);
+                hessv_e = hessv_e.cwiseQuotient(vscale_e.block(0, neq+1, 1, nc+np-neq).transpose() * vscale_e.block(0, neq+1, 1, nc+np-neq)) *vscale_e(0);
                 resP = p_e;
                 resY = y_e;
                 resHessv = hessv_e;
