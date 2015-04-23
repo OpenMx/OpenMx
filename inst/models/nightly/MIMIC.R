@@ -44,7 +44,6 @@ MIMIC <- mxModel("MIMIC", type="RAM",
 MIMIC <- mxRun(MIMIC)
 
 omxCheckCloseEnough(MIMIC$output$fit, 2893.752, .01)
-omxCheckCloseEnough(c(MIMIC$output$estimate / MIMIC$output$standardErrors),
-                    c(0.065, 0.065, 0.065, 0.065, 0.065, 0.065,
-                      8.075,  8.109, 9.508, 16.252, 16.253, 16.263), .01)
-# cat(deparse(round(MIMIC$output$estimate / MIMIC$output$standardErrors, 3)))
+
+got <- mxCheckIdentification(MIMIC)
+omxCheckEquals(match(got$non_identified_parameters, names(MIMIC$output$estimate)), 1:6)
