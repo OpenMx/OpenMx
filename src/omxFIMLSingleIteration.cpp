@@ -78,7 +78,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	omxFIMLFitFunction* shared_ofo = ((omxFIMLFitFunction*) sharedobj->argStruct);
 	
 	double Q = 0.0;
-	int numDefs;
 	int numOrdRemoves = 0, numContRemoves=0;
 	int returnRowLikelihoods = 0;
 	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0, numIdenticalOrdinalRows = 0, numOrdinal = 1,
@@ -89,9 +88,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	omxMatrix *ordMeans, *ordCov, *ordRow, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxData* data;
-	double *lThresh, *uThresh, *corList, *weights, *oldDefs;
+	double *lThresh, *uThresh, *corList, *weights;
 	int *Infin;
-	omxDefinitionVar* defVars;
 	
 	// Locals, for readability.  Compiler should cut through this.
 	cov 		= ofo->cov;
@@ -110,9 +108,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	data		= ofo->data;
 	dataColumns	= ofo->dataColumns;
-	defVars		= ofo->defVars;
-	oldDefs		= ofo->oldDefs;
-	numDefs		= ofo->numDefs;
 	
 	corList 	= ofo->corList;
 	weights		= ofo->weights;
@@ -124,6 +119,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	Infin			= ofo->Infin;
 	omxExpectation* expectation = localobj->expectation;
+	int numDefs = expectation->defVars.size();
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 	
 	Eigen::VectorXi ordRemove(cov->cols);
@@ -139,7 +135,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	bool firstRow = true;
 	int row = rowbegin;
 	
-	resetDefinitionVariables(oldDefs, numDefs);
+	ofo->oldDefs.setConstant(NA_REAL);
 	
 	// [[Comment 4]] moving row starting position
 	if (row > 0) {
@@ -180,7 +176,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			if((numDefs && numIdenticalDefs <= 0) || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
-				numVarsFilled = handleDefinitionVarList(data, localobj->matrix->currentState, row, defVars, oldDefs, numDefs);
+				numVarsFilled = expectation->handleDefinitionVarList(localobj->matrix->currentState, row, ofo->oldDefs.data());
 				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) { 
 					omxExpectationCompute(expectation, NULL);
 				}

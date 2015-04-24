@@ -55,9 +55,7 @@ typedef struct omxFIMLFitFunction {
 //	double* zeros;
 
 	/* Structures determined from info in the MxFIMLFitFunction Object*/
-	omxDefinitionVar* defVars;	// A list of definition variables
-	double* oldDefs;			// Stores definition variables between rows
-	int numDefs;				// The length of the defVars list
+	Eigen::VectorXd oldDefs;			// Stores definition variables between rows
 
 	/* Reserved memory for faster calculation */
 	omxMatrix* smallRow;		// Memory reserved for operations on each data row
@@ -93,9 +91,6 @@ typedef struct omxFIMLFitFunction {
 	FIMLSingleIterationType SingleIterFn;
 
 } omxFIMLFitFunction;
-
-int handleDefinitionVarList(omxData* data, omxState *state, int row, 
-	omxDefinitionVar* defVars, double* oldDefs, int numDefs);
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
 void omxDestroyFIMLFitFunction(omxFitFunction *oo);

@@ -39,6 +39,7 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	omxFreeMatrix(argStruct->RCX);
 	omxFreeMatrix(argStruct->rowLikelihoods);
 	omxFreeMatrix(argStruct->rowLogLikelihoods);
+	delete argStruct;
 }
 
 void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
@@ -74,59 +75,6 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 }
 
-void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar) {
-
-	int numDeps = defVar->numDeps;
-	int *deps = defVar->deps;
-
-	for (int i = 0; i < numDeps; i++) {
-		int value = deps[i];
-
-		if(value < 0) {
-			omxMarkDirty(os->matrixList[~value]);
-		} else {
-			omxMarkDirty(os->algebraList[value]);
-		}
-	}
-
-}
-
-int handleDefinitionVarList(omxData* data, omxState *state, int row, omxDefinitionVar* defVars, double* oldDefs, int numDefs) {
-
-	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars."); }
-	
-	int numVarsFilled = 0;
-
-	/* Fill in Definition Var Estimates */
-	for(int k = 0; k < numDefs; k++) {
-		if(defVars[k].source != data) {
-			Rf_error("Internal Rf_error: definition variable population into incorrect data source");
-		}
-		double newDefVar = omxDoubleDataElement(data, row, defVars[k].column);
-		if(ISNA(newDefVar)) {
-			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
-		}
-		if(newDefVar == oldDefs[k]) {
-			continue;	// NOTE: Potential speedup vs accuracy tradeoff here using epsilon comparison
-		}
-		oldDefs[k] = newDefVar;
-		numVarsFilled++;
-
-		for(int l = 0; l < defVars[k].numLocations; l++) {
-			if(OMX_DEBUG_ROWS(row)) {
-				mxLog("Populating column %d (value %3.2f) into matrix %d.", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
-			}
-			int matrixNumber = defVars[k].matrices[l];
-			int matrow = defVars[k].rows[l];
-			int matcol = defVars[k].cols[l];
-			omxMatrix *matrix = state->matrixList[matrixNumber];
-			omxSetMatrixElement(matrix, matrow, matcol, newDefVar);
-		}
-		markDefVarDependencies(state, &(defVars[k]));
-	}
-	return numVarsFilled;
-}
-
 static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 {
 	// TODO: Figure out how to give access to other per-iteration structures.
@@ -148,14 +96,13 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
 	omxData* data           = ofiml->data;                            //  read-only
-	const int numDefs	= ofiml->numDefs;
 	omxMatrix *dataColumns	= ofiml->dataColumns;
 
 	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
 	omxExpectation* expectation = off->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
-	if(numDefs == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
+	if(expectation->defVars.size() == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(expectation);
 		// MCN Also do the threshold formulae!
@@ -198,6 +145,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
     }
+
+	expectation->verifyDefVarDataSources(data);
 
 	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
@@ -256,7 +205,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	int numOrdinal = 0, numContinuous = 0;
 	omxMatrix *cov, *means;
 
-	omxFIMLFitFunction *newObj = (omxFIMLFitFunction*) R_alloc(1, sizeof(omxFIMLFitFunction));
+	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	omxExpectation* expectation = off->expectation;
 	if(expectation == NULL) {
 		omxRaiseError("FIML cannot fit without model expectations.");
@@ -326,18 +275,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 	
-	newObj->numDefs = off->expectation->numDefs;
-	newObj->defVars = off->expectation->defVars;
-	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
-
-	if(OMX_DEBUG) {
-		mxLog("Accessing definition variables structure.");
-	}
-	newObj->oldDefs = (double *) R_alloc(newObj->numDefs, sizeof(double));		// Storage for Def Vars
-	memset(newObj->oldDefs, NA_REAL, sizeof(double) * newObj->numDefs);			// Does this work?
-	// for(nextDef = 0; nextDef < newObj->numDefs; nextDef++) {
-	// 	newObj->oldDefs[nextDef] = NA_REAL;					// Def Vars default to NA
-	// }
+	newObj->oldDefs.resize(off->expectation->defVars.size());
 
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;

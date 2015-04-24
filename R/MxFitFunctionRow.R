@@ -22,7 +22,6 @@ setClass(Class = "MxFitFunctionRow",
 		filteredDataRow = "MxCharOrNumber",
 		existenceVector = "MxCharOrNumber",
 		reduceAlgebra = "MxCharOrNumber",
-		definitionVars = "list",
 		data = "MxCharOrNumber",
 		dims = "character",
 		dataColumns = "numeric",
@@ -32,7 +31,7 @@ setClass(Class = "MxFitFunctionRow",
 setMethod("initialize", "MxFitFunctionRow",
 	function(.Object, rowAlgebra, rowResults, units, filteredDataRow, 
 		existenceVector, reduceAlgebra, dims,
-		data = as.integer(NA), definitionVars = list(), name = 'fitfunction') {
+		data = as.integer(NA), name = 'fitfunction') {
 		.Object@name <- name
 		.Object@rowAlgebra <- rowAlgebra
 		.Object@rowResults <- rowResults
@@ -41,7 +40,6 @@ setMethod("initialize", "MxFitFunctionRow",
 		.Object@filteredDataRow <- filteredDataRow
 		.Object@existenceVector <- existenceVector
 		.Object@data <- data
-		.Object@definitionVars <- definitionVars
 		.Object@dims <- dims
 		.Object@expectation <- as.integer(NA)
 		return(.Object)
@@ -121,7 +119,6 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionRow"),
 		dataRowDeps <- union(dependencies[[.Object@filteredDataRow]], dependencies[[.Object@existenceVector]])
 		dataRowDeps <- sapply(dataRowDeps, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
 		dataRowDeps <- as.integer(dataRowDeps)
-		.Object@definitionVars <- imxFilterDefinitionVariables(defVars, dataName)
 		.Object@rowAlgebra <- imxLocateIndex(flatModel, .Object@rowAlgebra, name)
 		.Object@rowResults <- imxLocateIndex(flatModel, .Object@rowResults, name)
 		.Object@filteredDataRow <- imxLocateIndex(flatModel, .Object@filteredDataRow, name)
