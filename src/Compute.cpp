@@ -2924,8 +2924,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		*mode = -1;
 	} else {
 		feasible = true;
-		prevPoint = Est;
-		prevMode = *mode;
+		if (avoidRedundentEvals) {
+			prevPoint = Est;
+			prevMode = *mode;
+		}
 	}
 
 	return fc->fit;
