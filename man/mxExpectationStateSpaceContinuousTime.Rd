@@ -169,7 +169,7 @@ plot(t, y[,1], type='l')
 
 cdim <- list('obs', c('ksi', 'ksiDot'))
 
-amat <- mxMatrix('Full', 2, 2, c(F, T, F, T), c(0, -.1, 1, -.2),
+amat <- mxMatrix('Full', 2, 2, c(FALSE, TRUE, FALSE, TRUE), c(0, -.1, 1, -.2),
 	name='A', lbound=-10)
 bmat <- mxMatrix('Zero', 2, 1, name='B')
 cmat <- mxMatrix('Full', 1, 2, FALSE, c(1, 0), name='C', dimnames=cdim)
