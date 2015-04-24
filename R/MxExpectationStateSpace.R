@@ -437,6 +437,12 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames, t=t))
 }
 
+mxExpectationStateSpaceContinuousTime <- function(A, B, C, D, Q, R, x0, P0, u, t=NA, dimnames = NA, thresholds = NA, threshnames = dimnames){
+	mxExpectationStateSpace(t=t, A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames)
+}
+
+mxExpectationSSCT <- mxExpectationStateSpaceContinuousTime
+
 
 #--------------------------------------------------------------------
 # TODO: Add expected mean and cov printouts

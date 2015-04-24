@@ -203,7 +203,7 @@ tmat <- mxMatrix('Full', 1, 1, name='time', labels='data.times')
 
 dosc <- mxModel("DampedLinearOscillator", 
 	amat, bmat, cmat, dmat, qmat, rmat, xmat, pmat, umat, tmat,
-	mxExpectationStateSpace('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time'),
+	mxExpectationStateSpaceContinuousTime('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time'),
 	mxFitFunctionML(),
 	mxData(cbind(t(ty), times=tT[,-1]), 'raw'))
 
@@ -313,7 +313,7 @@ smod <- mxModel(
 	mxMatrix("Zero", udim, 1, name="u"),
 	mxMatrix("Full", 1, 1, name="time", labels="data.Time"),
 	mxData(observed=cbind(t(ty), Time=tT[,-1]), type='raw'),
-	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', t='time'),
+	mxExpectationSSCT(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', t='time'),
 	mxFitFunctionML()
 )
 
