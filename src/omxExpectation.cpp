@@ -305,10 +305,6 @@ int omxExpectation::handleDefinitionVarList(omxState *state, int row, double* ol
 
 void omxExpectation::loadFakeData(double fake)
 {
-	// This is really just a quick hack that I wrote before I
-	// understood the problem.  What we should really do is call
-	// handleDefinitionVarList to load the first row of data.
-
 	for (int dx=0; dx < int(defVars.size()); ++dx) {
 		defVars[dx].loadFakeData(currentState, fake);
 	}

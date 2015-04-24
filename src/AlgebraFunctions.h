@@ -682,13 +682,7 @@ static void matrixExtractIndices(omxMatrix *source, int dimLength, Eigen::ArrayB
 	/* Count the number of zero, positive, and negative elements */
 	for(int i = 0; i < source->rows * source->cols; i++) {
 		double delement = omxVectorElement(source, i);
-		if (!R_finite(delement)) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "non-finite value in '[' operator.\n");
-			omxRaiseError(errstr);
-			free(errstr);
-			return;
-		}
+		if (!R_finite(delement)) return;
 		int element = (int) delement;
 		if (element < 0) {
 			/* bounds checking */

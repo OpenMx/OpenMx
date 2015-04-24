@@ -280,6 +280,21 @@ void omxState::init()
 	currentRow = -1;
 }
 
+void omxState::loadDefinitionVariables()
+{
+	for(int ex = 0; ex < int(expectationList.size()); ++ex) {
+		omxExpectation *e1 = expectationList[ex];
+		if (e1->defVars.size() == 0) continue;
+		if (e1->data->rows != 1) {
+			e1->loadFakeData(NA_REAL);
+		} else {
+			Eigen::VectorXd oldDefs(e1->defVars.size());
+			oldDefs.setConstant(NA_REAL);
+			e1->handleDefinitionVarList(this, 0, oldDefs.data());
+		}
+	}
+}
+
 omxState::omxState(omxState *src)
 {
 	init();
