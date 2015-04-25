@@ -2904,8 +2904,9 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
 	if (feasible && avoidRedundentEvals && *mode == prevMode) {
-		double diff = (Est - prevPoint).array().abs().sum();
-		if (diff == 0) return fc->fit;
+		if (Est == prevPoint) {
+			return fc->fit;
+		}
 	}
 
 	if (*mode == 1) fc->iterations += 1;
@@ -2924,8 +2925,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		*mode = -1;
 	} else {
 		feasible = true;
-		prevPoint = Est;
-		prevMode = *mode;
+		if (avoidRedundentEvals) {
+			prevPoint = Est;
+			prevMode = *mode;
+		}
 	}
 
 	return fc->fit;

@@ -91,8 +91,7 @@ modelGen <- function() {
                                             mxComputeOnce('fitfunction', "set-starting-values")),
                                        freeSet=latentFG)
     } else {
-      # default tolerance isn't good enough for stable S-EM results
-      latent.plan <- mxComputeGradientDescent(latentFG, fitfunction="latent.fitfunction", tolerance=1e-12)
+      latent.plan <- mxComputeNewtonRaphson(latentFG, fitfunction="latent.fitfunction")
     }
     
       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
@@ -122,11 +121,11 @@ name <- "cyh2011-sim1"
 getMCdata(name, modelGen, c(correct[correct != 0], g2.mean, diag(g2.cov)),
           maxCondNum=5000)
 
-omxCheckCloseEnough(norm(mcBias, "2"), .14077, .001)
+omxCheckCloseEnough(norm(mcBias, "2"), .14194, .001)
 omxCheckCloseEnough(max(abs(mcBias)), .0552, .001)
 omxCheckCloseEnough(log(det(mcHessian)), 281.37, .1)
 
-detail <- testPhase(modelGen, 500, methods=c('estepH', 'tian', 'agile', 'meat'))
+detail <- testPhase(modelGen, 500, methods=c('estepH', 'mr', 'tian', 'agile', 'meat', 'oakes'))
 asem <- studyASEM(modelGen)
 smooth <- checkSmoothness(modelGen)
 

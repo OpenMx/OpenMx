@@ -36,9 +36,6 @@ typedef struct omxRowFitFunction {
 	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
 	/* Structures determined from info in the MxRowFitFunction Object*/
-    double* oldDefs;            // The previous defVar vector.  To avoid recalculations where possible.         // NYI: This element currently unused.
-	omxDefinitionVar* defVars;	// A list of definition variables
-	int numDefs;				// The length of the defVars list
 	omxMatrix* dataRow;         // One row of data, kept for aliasing only
 	omxData*   data;			// The data
 

@@ -82,9 +82,10 @@ struct omxExpectation {					// An Expectation
 	omxMatrix* dataColumns;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0
-	omxDefinitionVar* defVars;
-	int numDefs;
+	std::vector<omxDefinitionVar> defVars;
 	void loadFakeData(double fake);
+	void verifyDefVarDataSources(omxData* data);
+	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
 	
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize

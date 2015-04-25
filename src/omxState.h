@@ -285,6 +285,7 @@ class omxState {
 	void omxProcessConstraints(SEXP constraints, FitContext *fc);
 	void omxProcessMxDataEntities(SEXP data);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
+	void loadDefinitionVariables();
 	void omxExportResults(MxRList *out);
 	~omxState();
 
