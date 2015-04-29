@@ -112,6 +112,15 @@ setGeneric("genericGetThresholds",
 	return(standardGeneric("genericGetThresholds"))
 })
 
+setMethod("genericExpGetPrecision", "MxExpectationNormal",
+	function(.Object) {
+		if(!single.na(.Object@thresholds)) {
+			return(list(stepSize=0.1, iterations=3L))
+		} else {
+			callNextMethod();
+		}
+})
+
 setMethod("genericGetCovariance", signature("MxExpectationNormal"),
 	function(.Object, model) {
 		covname <- .Object@covariance

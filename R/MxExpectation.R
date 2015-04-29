@@ -78,6 +78,11 @@ setGeneric("genericExpConvertEntities",
 	return(standardGeneric("genericExpConvertEntities"))
 })
 
+setGeneric("genericExpGetPrecision",
+	function(.Object) {
+	return(standardGeneric("genericExpGetPrecision"))
+})
+
 
 setMethod("genericExpAddEntities", "MxBaseExpectation",
 	function(.Object, job, flatJob, labelsData) {
@@ -117,6 +122,11 @@ setMethod("genericExpRename", "MxBaseExpectation",
 setMethod("genericExpRename", "NULL",
 	function(.Object, oldname, newname) {
 		return(NULL)
+})
+
+setMethod("genericExpGetPrecision", "MxBaseExpectation",
+	function(.Object) {
+		return(list(stepSize=0.0001, iterations=4L))
 })
 
 setMethod("$", "MxBaseExpectation", imxExtractSlot)

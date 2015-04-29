@@ -229,6 +229,15 @@ setMethod("genericGetMeans", signature("MxExpectationRAM"),
 		return(mean)
 })
 
+setMethod("genericExpGetPrecision", "MxExpectationRAM",
+	function(.Object) {
+		if(!single.na(.Object@thresholds)) {
+			return(list(stepSize=0.1, iterations=3L))
+		} else {
+			callNextMethod();
+		}
+})
+
 setMethod("genericGetThresholds", signature("MxExpectationRAM"),
 	function(.Object, model) {
 		thrname <- .Object@thresholds
