@@ -157,7 +157,11 @@ runHelper <- function(model, frontendStart,
 				    mxComputeGradientDescent(fitfunction=fitNum, nudgeZeroStarts=FALSE)))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {
-				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
+				prec <- lapply(expectations, genericExpGetPrecision)
+				iterations <- Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']])))
+				stepSize <- Reduce(max, c(1e-4, sapply(prec, function(x) x[['stepSize']])))
+				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum,
+									iterations=iterations, stepSize=stepSize))
 			}
 			if (options[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, mxComputeStandardError(), mxComputeHessianQuality())
