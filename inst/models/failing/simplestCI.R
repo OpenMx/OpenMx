@@ -4,7 +4,7 @@ covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), nrow=2, dimnames=list(c("a", "b"),
 means <- c(-1,.5)
 names(means) <- c('a','b')
 
-model <- mxModel("CI Example",
+model <- mxModel("CIExample",
                  mxMatrix(name="expectedCov", "Symm", 2, 2, free=T, values = c(1, 0, 1),
                           labels = c("var1", "cov12", "var2")),
                  mxMatrix(name="expectedMean", "Full", 1, 2, free=T, labels=c('m1','m2')),
@@ -17,6 +17,16 @@ model <- mxOption(model,"Checkpoint Units",'iterations')
 model <- mxOption(model,"Checkpoint Count",1)
 
 fit1 <- mxRun(model, silent=TRUE)
+
+mle <- fit1$output$fit
+
+var1L <- mxModel("var1L", model,
+                 mxAlgebra(CIExample.expectedCov[1,1], "param"),
+                 mxConstraint(0 > CIExample.fitfunction - (mle + 3.84)),
+                 mxFitFunctionAlgebra("param"))
+var1L <- mxRun(var1L)
+omxCheckCloseEnough(var1L$output$estimate['var1'], c(0.973), .01)
+#mxOption(NULL, "Default optimizer", "CSOLNP")
 
 cimodel <- mxModel(model,
                    mxCI("var1", type="lower"),
