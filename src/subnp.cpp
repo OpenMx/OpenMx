@@ -522,10 +522,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     
     Eigen::RowVectorXd p0_e = pars;
     
-    if (verbose >= 3)
-    {
-        mxLog("p0 p0 is: \n");
-        for (int i = 0; i < p0_e.size(); i++) mxLog("%f",p0_e[i]);
+    if (verbose >= 3) {
+	    mxPrintMat("p0", p0_e);
     }
     
     Eigen::MatrixXd pb_e;
@@ -699,8 +697,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             g_e[index] = (ob_e(0, 0)-j) / delta;
             
             if (verbose >= 3){
-                mxLog("g is: \n");
-                for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
+		    mxPrintMat("g", g_e);
             }
             
             a_e.col(index) = (ob_e.block(0, 1, 1, nc) - constraint_e).transpose() / delta;
@@ -960,10 +957,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 p_e[index] = p_e[index] - delta;
                 
                 if (verbose >= 3){
-                    mxLog("g is: \n");
-                    for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
-                    mxLog("p is: \n");
-                    for (int ilog = 0; ilog < p_e.size(); ilog++) mxLog("%f",p_e[ilog]);
+			mxPrintMat("g", g_e);
+			mxPrintMat("p", p_e);
                 }
             } // end for (i=0; i<np; i++){
             
@@ -1108,8 +1103,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         sob[1] = j;
         
         if (verbose >= 3){
-            mxLog("sob is is: \n");
-            for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f", sob[ilog]);
+		mxPrintMat("sob", sob);
         }
         
         Eigen::MatrixXd ptt_e(p_e.cols(), p_e.rows() + p_e.rows());
@@ -1127,8 +1121,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         mode = 1;
         funv = fit.solFun(tmpv_e.data(), &mode);
         if (verbose >= 3){
-            mxLog("g is: \n");
-            for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
+		mxPrintMat("g", g_e);
             mxLog("funv is: \n");
             mxLog("%f", funv);
         }
@@ -1218,8 +1211,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             sob[1] = ob2_e(0, 0);
             if (verbose >= 3){
-                mxLog("sob is: \n");
-                for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
+		    mxPrintMat("sob", sob);
             }
             if (ind[indHasIneq] > 0.5){
                 Eigen::MatrixXd partOne = ob2_e.block(0, neq+1, 1, nc-neq);

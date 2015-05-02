@@ -28,6 +28,7 @@
 #define _OMXDEFINES_H_
 
 #include <string.h>
+#include <string>
 
 #define MIN_ROWS_PER_THREAD 8
 #define TRUE 1
@@ -127,6 +128,8 @@ struct Param_Obj;
 // debug tools
 void pda(const double *ar, int rows, int cols);
 void pia(const int *ar, int rows, int cols);
+std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+void mxLogBig(const std::string &str);
 
 static inline int triangleLoc1(int diag)
 {
@@ -137,5 +140,70 @@ static inline int triangleLoc0(int diag)
 {
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
 }
+
+#ifdef _OPENMP
+
+#include <omp.h>
+
+#if _OPENMP <= 200505
+
+static OMXINLINE int omx_absolute_thread_num(void) {
+   return(omp_get_thread_num());
+}
+
+#else  // _OPENMP <= 200505
+
+static OMXINLINE int omx_absolute_thread_num(void) {
+   int retval = 0;
+   int level = omp_get_level();
+   int scale = 1;
+   for(int i = level; i > 0; i--) {
+       retval += scale * omp_get_ancestor_thread_num(i);
+       scale *= omp_get_team_size(i);
+   }
+   return(retval);
+}
+
+#endif // _OPENMP <= 200505
+
+static OMXINLINE void omx_omp_init_lock(omp_lock_t* lock) {
+   omp_init_lock(lock);
+}
+
+static OMXINLINE void omx_omp_destroy_lock(omp_lock_t* lock) {
+   omp_destroy_lock(lock);
+}
+
+static OMXINLINE void omx_omp_set_lock(omp_lock_t* lock) {
+   omp_set_lock(lock);
+}
+
+static OMXINLINE void omx_omp_unset_lock(omp_lock_t* lock) {
+   omp_unset_lock(lock);
+}
+
+#else  // _OPENMP
+
+typedef int omp_lock_t;
+
+static OMXINLINE int omx_absolute_thread_num(void) {
+   return(0);
+}
+
+static OMXINLINE void omx_omp_init_lock(omp_lock_t* __attribute__((unused)) lock) {}
+
+static OMXINLINE void omx_omp_destroy_lock(omp_lock_t* __attribute__((unused)) lock) {}
+
+static OMXINLINE void omx_omp_set_lock(omp_lock_t* __attribute__((unused)) lock) {}
+
+static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) lock) {}
+
+
+#endif // #ifdef _OPENMP
+
+
+#ifndef _OPENMP
+static inline int omp_get_thread_num() { return 0; }
+#endif
 
 #endif /* _OMXDEFINES_H_ */

@@ -20,7 +20,6 @@
 
 #include "omxState.h"
 #include "Compute.h"
-#include "omxOpenmpWrap.h"
 #include "omxImportFrontendState.h"
 
 struct omxGlobal *Global = NULL;

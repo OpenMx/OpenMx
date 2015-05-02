@@ -33,7 +33,6 @@
 #include "omxMatrix.h"
 #include "merge.h"
 #include "omxBLAS.h"
-#include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
 #include "omxState.h"

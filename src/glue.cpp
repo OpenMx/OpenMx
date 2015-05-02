@@ -27,7 +27,6 @@
 
 #include "omxDefines.h"
 #include "glue.h"
-#include "omxOpenmpWrap.h"
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"

@@ -21,7 +21,6 @@
 #include <string>
 
 #include "omxState.h"
-#include "omxOpenmpWrap.h"
 
 #undef PROTECT_WITH_INDEX
 #undef UNPROTECT

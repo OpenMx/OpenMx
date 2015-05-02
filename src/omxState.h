@@ -316,8 +316,6 @@ void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf,
 void omxStateNextRow(omxState *state);
 
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
-void mxLogBig(const std::string &str);
-std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
 std::string string_vsnprintf(const char *fmt, va_list ap);
 
 #endif /* _OMXSTATE_H_ */

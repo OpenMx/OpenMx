@@ -18,7 +18,6 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
-#include "omxOpenmpWrap.h"
 #include "omxSadmvnWrapper.h"
 
 void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
