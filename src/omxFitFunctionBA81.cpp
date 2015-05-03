@@ -19,7 +19,6 @@
 
 #include "omxFitFunction.h"
 #include "omxExpectationBA81.h"
-#include "omxOpenmpWrap.h"
 #include "libifa-rpf.h"
 #include "matrix.h"
 #include "omxBuffer.h"

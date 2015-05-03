@@ -33,7 +33,6 @@
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
 #include "omxNPSOLSpecific.h"
-#include "omxOpenmpWrap.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "omxBuffer.h"

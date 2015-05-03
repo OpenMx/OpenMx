@@ -26,7 +26,6 @@
 *
 **********************************************************/
 #include "omxMatrix.h"
-#include "omxOpenmpWrap.h"
 #include "matrix.h"
 #include "unsupported/Eigen/MatrixFunctions"
 #include "omxState.h"
@@ -56,34 +55,9 @@ void expm_eigen(int n, double *rz, double *out)
 
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
-	std::string buf;
-	buf += string_snprintf("[%d] %s %s = matrix(c(    # %dx%d",
-			       omx_absolute_thread_num(),
-			       header, source->name? source->name : "?", source->rows, source->cols);
-
-	int first=TRUE;
-	if(source->colMajor) {
-		for(int j = 0; j < source->rows; j++) {
-			buf += "\n";
-			for(int k = 0; k < source->cols; k++) {
-				if (first) first=FALSE;
-				else buf += ",";
-				buf += string_snprintf(" %3.6f", source->data[k*source->rows+j]);
-			}
-		}
-	} else {
-		for(int j = 0; j < source->cols; j++) {
-			buf += "\n";
-			for(int k = 0; k < source->rows; k++) {
-				if (first) first=FALSE;
-				else buf += ",";
-				buf += string_snprintf(" %3.6f", source->data[k*source->cols+j]);
-			}
-		}
-	}
-
-	buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n", source->rows, source->cols);
-	mxLogBig(buf);
+	omxEnsureColumnMajor(source);
+	Eigen::Map< Eigen::MatrixXd > Esrc(source->data, source->rows, source->cols);
+	mxPrintMatrixImpl(header, -1, source->name? source->name : "?", Esrc);
 }
 
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxState* os) {

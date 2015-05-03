@@ -522,10 +522,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     
     Eigen::RowVectorXd p0_e = pars;
     
-    if (verbose >= 3)
-    {
-        mxLog("p0 p0 is: \n");
-        for (int i = 0; i < p0_e.size(); i++) mxLog("%f",p0_e[i]);
+    if (verbose >= 3) {
+	    mxPrintMat("p0", p0_e);
     }
     
     Eigen::MatrixXd pb_e;
@@ -699,8 +697,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             g_e[index] = (ob_e(0, 0)-j) / delta;
             
             if (verbose >= 3){
-                mxLog("g is: \n");
-                for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
+		    mxPrintMat("g", g_e);
             }
             
             a_e.col(index) = (ob_e.block(0, 1, 1, nc) - constraint_e).transpose() / delta;
@@ -960,10 +957,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 p_e[index] = p_e[index] - delta;
                 
                 if (verbose >= 3){
-                    mxLog("g is: \n");
-                    for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
-                    mxLog("p is: \n");
-                    for (int ilog = 0; ilog < p_e.size(); ilog++) mxLog("%f",p_e[ilog]);
+			mxPrintMat("g", g_e);
+			mxPrintMat("p", p_e);
                 }
             } // end for (i=0; i<np; i++){
             
@@ -1108,8 +1103,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         sob[1] = j;
         
         if (verbose >= 3){
-            mxLog("sob is is: \n");
-            for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f", sob[ilog]);
+		mxPrintMat("sob", sob);
         }
         
         Eigen::MatrixXd ptt_e(p_e.cols(), p_e.rows() + p_e.rows());
@@ -1127,8 +1121,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         mode = 1;
         funv = fit.solFun(tmpv_e.data(), &mode);
         if (verbose >= 3){
-            mxLog("g is: \n");
-            for (int ilog = 0; ilog < g_e.size(); ilog++) mxLog("%f",g_e[ilog]);
+		mxPrintMat("g", g_e);
             mxLog("funv is: \n");
             mxLog("%f", funv);
         }
@@ -1218,8 +1211,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             sob[1] = ob2_e(0, 0);
             if (verbose >= 3){
-                mxLog("sob is: \n");
-                for (int ilog = 0; ilog < sob.size(); ilog++) mxLog("%f",sob[ilog]);
+		    mxPrintMat("sob", sob);
             }
             if (ind[indHasIneq] > 0.5){
                 Eigen::MatrixXd partOne = ob2_e.block(0, neq+1, 1, nc-neq);
@@ -1391,21 +1383,31 @@ template <typename T1, typename T2>
 void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2>& eqval, Eigen::MatrixBase<T2>& ineqval, Eigen::MatrixBase<T1>& fitVal, int verbose)
 {
     if (optimize_initial_inequality_constraints){
-        Eigen::MatrixXd::Index colNum;
-        Eigen::RowVectorXd ineqv_c = ineqval;
-        int count = (ineqv_c.array() < 0).count();
-        double total = 0;
-        while (count > 0){
-            ineqv_c.minCoeff(&colNum);
-            ineqv_c[colNum] = 0;
-            count--;
-            total = total + ineqval[colNum];
+        double total;
+        if ((std::isnan(ineqval.sum()))) total = 1e24;
+        else {
+            total = 0;
+            Eigen::MatrixXd::Index colNum;
+            Eigen::RowVectorXd ineqv_c = ineqval;
+            int count = (ineqv_c.array() < 0).count();
+            while (count > 0){
+                ineqv_c.minCoeff(&colNum);
+                ineqv_c[colNum] = 0;
+                count--;
+                total = total + ineqval[colNum];
+                if (std::isnan(total)) {
+                    total = 1e24;
+                }
+            }
         }
-	fitVal.resize(1, 1 + eqval.size());
+        fitVal.resize(1, 1 + eqval.size());
         fitVal << fabs(total) - 1e-4, eqval;
     }
     
     else{
+        for (int i = 0; i < nineq; i++)
+            if ((std::isnan(ineqval[i])))
+                ineqval[i] = 1e24;
 	    fitVal.resize(1, 1 + eqval.size() + ineqval.size());
 	    fitVal << objVal, eqval, ineqval;
     }

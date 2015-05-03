@@ -369,4 +369,44 @@ struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
 	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
 };
 
+#define mxPrintMat(name, mat) mxPrintMatrixImpl(__FILE__, __LINE__, name, mat)
+
+template <typename T>
+void mxPrintMatrixImpl(const char *file, int line, const char *name, Eigen::DenseBase<T> &mat)
+{
+	std::string buf;
+	bool transpose = mat.rows() > mat.cols();
+	buf += string_snprintf("[%d] %s line %d: %s = %s matrix(c(    # %dx%d",
+			       omx_absolute_thread_num(), file, line,
+			       name, transpose? "t(" : "", mat.rows(), mat.cols());
+
+	int first=TRUE;
+	int rr = mat.rows();
+	int cc = mat.cols();
+	if (transpose) std::swap(rr,cc);
+	for(int j = 0; j < rr; j++) {
+		buf += "\n";
+		for(int k = 0; k < cc; k++) {
+			if (first) first=FALSE;
+			else buf += ",";
+			double val;
+			if (transpose) {
+				val = mat(k,j);
+			} else {
+				val = mat(j,k);
+			}
+			buf += string_snprintf(" %3.6f", val);
+		}
+	}
+
+	if (transpose) {
+		buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)%s\n",
+				       mat.cols(), mat.rows(), ")");
+	} else {
+		buf += string_snprintf("), byrow=TRUE, nrow=%d, ncol=%d)\n",
+				       mat.rows(), mat.cols());
+	}
+	mxLogBig(buf);
+}
+
 #endif /* _OMXMATRIX_H_ */

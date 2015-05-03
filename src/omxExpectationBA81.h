@@ -19,7 +19,6 @@
 #define _OMX_EXPECTATIONBA81_H_
 
 #include "omxExpectation.h"
-#include "omxOpenmpWrap.h"
 #include "ba81quad.h"
 
 enum expectation_type {
