@@ -55,9 +55,10 @@ void expm_eigen(int n, double *rz, double *out)
 
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
-	omxEnsureColumnMajor(source);
-	Eigen::Map< Eigen::MatrixXd > Esrc(source->data, source->rows, source->cols);
-	mxPrintMatrixImpl(header, -1, source->name? source->name : "?", Esrc);
+	EigenMatrixAdaptor Esrc(source);
+	if (!header) header = source->name;
+	if (!header) header = "?";
+	mxPrintMat(header, Esrc);
 }
 
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxState* os) {
