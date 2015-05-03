@@ -1383,21 +1383,31 @@ template <typename T1, typename T2>
 void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2>& eqval, Eigen::MatrixBase<T2>& ineqval, Eigen::MatrixBase<T1>& fitVal, int verbose)
 {
     if (optimize_initial_inequality_constraints){
-        Eigen::MatrixXd::Index colNum;
-        Eigen::RowVectorXd ineqv_c = ineqval;
-        int count = (ineqv_c.array() < 0).count();
-        double total = 0;
-        while (count > 0){
-            ineqv_c.minCoeff(&colNum);
-            ineqv_c[colNum] = 0;
-            count--;
-            total = total + ineqval[colNum];
+        double total;
+        if ((std::isnan(ineqval.sum()))) total = 1e24;
+        else {
+            total = 0;
+            Eigen::MatrixXd::Index colNum;
+            Eigen::RowVectorXd ineqv_c = ineqval;
+            int count = (ineqv_c.array() < 0).count();
+            while (count > 0){
+                ineqv_c.minCoeff(&colNum);
+                ineqv_c[colNum] = 0;
+                count--;
+                total = total + ineqval[colNum];
+                if (std::isnan(total)) {
+                    total = 1e24;
+                }
+            }
         }
-	fitVal.resize(1, 1 + eqval.size());
+        fitVal.resize(1, 1 + eqval.size());
         fitVal << fabs(total) - 1e-4, eqval;
     }
     
     else{
+        for (int i = 0; i < nineq; i++)
+            if ((std::isnan(ineqval[i])))
+                ineqval[i] = 1e24;
 	    fitVal.resize(1, 1 + eqval.size() + ineqval.size());
 	    fitVal << objVal, eqval, ineqval;
     }
