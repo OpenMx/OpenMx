@@ -937,7 +937,8 @@ void FitContext::copyParamToModelClean()
 
 	if(OMX_DEBUG) {
 		std::string buf;
-		buf += string_snprintf("copyParamToModel: %d(%d) ", iterations, Global->computeCount);
+		buf += string_snprintf("[%d] copyParamToModel: %d(%d) ",
+				       omx_absolute_thread_num(), iterations, Global->computeCount);
 		buf += ("Estimates: [");
 		for(size_t k = 0; k < numParam; k++) {
 			buf += string_snprintf(" %f", at[k]);
