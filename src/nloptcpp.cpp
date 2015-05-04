@@ -36,7 +36,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
-		return std::numeric_limits<double>::max(); // this is wrong TODO
+		return nan("infeasible");
 	}
 	if (!grad) return fit;
 
