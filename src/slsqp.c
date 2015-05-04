@@ -2036,12 +2036,7 @@ L190:
 	 else if (x[i__] > xu[i__]) x[i__] = xu[i__];
     }
 
-    /* SGJ 2010: optimizing for the common case where the inexact line
-       search succeeds in one step, use special mode = -2 here to
-       eliminate a a subsequent unnecessary mode = -1 call, at the 
-       expense of extra gradient evaluations when more than one inexact
-       line-search step is required */
-    *mode = line == 1 ? -2 : 1;
+    *mode = 1;
     goto L330;
 L200:
     if (nlopt_isfinite(h1)) {
