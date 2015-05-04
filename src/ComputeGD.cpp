@@ -86,11 +86,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (strEQ(engine_name, "CSOLNP")) {
 		engine = OptEngine_CSOLNP;
 	} else if (strEQ(engine_name, "NLOPT")) {
-#ifdef HAS_NLOPT
 		engine = OptEngine_NLOPT;
-#else
-		Rf_error("NLOPT is not available in this build");
-#endif
 	} else if (strEQ(engine_name, "NPSOL")) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
@@ -195,11 +191,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
 		}
 		break;
-#ifdef HAS_NLOPT
         case OptEngine_NLOPT:
 		omxInvokeNLOPT(fc->est, rf);
 		break;
-#endif
         case OptEngine_SD:{
 		rf.fc->copyParamToModel();
 		rf.setupSimpleBounds();

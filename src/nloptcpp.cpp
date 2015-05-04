@@ -10,10 +10,6 @@
 #include "nloptcpp.h"
 #include "finiteDifferences.h"
 
-#include <iostream>
-
-#ifdef HAS_NLOPT
-
 #include <nlopt.h>
 
 struct fit_functional {
@@ -172,5 +168,3 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		goc.informOut = INFORM_CONVERGED_OPTIMUM;
 	}
 }
-
-#endif
