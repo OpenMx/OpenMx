@@ -109,9 +109,9 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 
 void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 {
-	goc.optName = "NLOPT";
+	goc.optName = "SLSQP";
 	goc.setupSimpleBounds();
-	goc.useGradient = false;  // not implemented yet, would be very helpful
+	goc.useGradient = false;  // not implemented yet, would be very helpful TODO
 
 	FitContext *fc = goc.fc;
 	omxState *globalState = fc->state;

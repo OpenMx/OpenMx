@@ -85,7 +85,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	const char *engine_name = CHAR(Rf_asChar(slotValue));
 	if (strEQ(engine_name, "CSOLNP")) {
 		engine = OptEngine_CSOLNP;
-	} else if (strEQ(engine_name, "NLOPT")) {
+	} else if (strEQ(engine_name, "SLSQP")) {
 		engine = OptEngine_NLOPT;
 	} else if (strEQ(engine_name, "NPSOL")) {
 #if HAS_NPSOL
