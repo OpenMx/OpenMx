@@ -123,13 +123,22 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
         //nlopt_set_local_optimizer(opt, local_opt);
         nlopt_set_lower_bounds(opt, goc.solLB.data());
         nlopt_set_upper_bounds(opt, goc.solUB.data());
-	nlopt_set_ftol_rel(opt, 1e-9);
-	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
-        
-	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
 
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
+
+        if (eq + ieq) {
+		nlopt_set_xtol_rel(opt, 1e-5);
+		std::vector<double> tol(fc->numParam, .001);
+		nlopt_set_xtol_abs(opt, tol.data());
+	} else {
+		// For SLSQP, cannot use this with constraints
+		nlopt_set_ftol_rel(opt, 1e-9);
+		nlopt_set_ftol_abs(opt, sqrt(std::numeric_limits<double>::epsilon()));
+	}
+        
+	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
+
         if (eq + ieq) {
                 if (ieq > 0){
 			goc.inequality.resize(ieq); // TODO remove
