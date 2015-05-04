@@ -34,7 +34,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	assert(n == goc->fc->numParam);
 	int mode = 1;
 	double fit = goc->solFun((double*) x, &mode);
-	//if (goc->verbose >= 3 && !grad) std::cout << "fit: " << fit << "\n";
+	if (goc->verbose >= 3) mxLog("fit %f", fit);
 	if (mode == -1) {
 		if (!goc->feasible) {
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
@@ -48,7 +48,9 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
 	fit_functional ff(*goc);
 	fd_gradient(ff, Epoint, Egrad);
-	//if (goc->verbose >= 3) std::cout << "fit: " << fit << "\ngrad:\n" << Egrad << "\n";
+	if (goc->verbose >= 3) {
+		mxPrintMat("gradient", Egrad);
+	}
 	return fit;
 }
 
@@ -101,7 +103,12 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
 	inequality_functional ff(*goc);
 	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
-	//if (goc->verbose >= 3 && grad) std::cout << "inequality:\n" << Eresult << "\n" << jacobian << "\n";
+	if (goc->verbose >= 3) {
+		mxPrintMat("inequality", Eresult);
+		if (grad) {
+			mxPrintMat("inequality jacobian", jacobian);
+		}
+	}
 }
 
 void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
