@@ -10,7 +10,7 @@
 #include "nloptcpp.h"
 #include "finiteDifferences.h"
 
-#include <nlopt.h>
+#include "nlopt.h"
 
 struct fit_functional {
 	GradientOptimizerContext &goc;
