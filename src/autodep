@@ -199,3 +199,8 @@ subnp.o: Makevars.in subnp.cpp matrix.h omxDefines.h \
  glue.h omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
  omxExpectation.h omxData.h omxFitFunction.h \
  
+general.o: Makevars.in general.c nlopt-internal.h nlopt.h nlopt-util.h
+optimize.o: Makevars.in optimize.c nlopt-internal.h nlopt.h nlopt-util.h slsqp.h
+options.o: Makevars.in options.c nlopt-internal.h nlopt.h nlopt-util.h
+slsqp.o: Makevars.in slsqp.c slsqp.h nlopt.h nlopt-util.h
+stop.o: Makevars.in stop.c nlopt-util.h nlopt.h
