@@ -2084,7 +2084,12 @@ L220:
 	}
 /* Computing MAX */
 	d__1 = -c__[j];
-	t += mu[j] * MAX2(d__1,h1);
+	if (nlopt_isfinite(d__1)) {
+		t += mu[j] * MAX2(d__1,h1);
+	} else {
+		t = d__1;
+		break;
+	}
 /* L230: */
     }
     h1 = t - t0;
@@ -2537,6 +2542,11 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 		      if (nlopt_stop_forced(stop)) {
 			  ret = NLOPT_FORCED_STOP; goto done; }
 		      for (k = 0; k < fc[i].m; ++k, ++ii) {
+			  if (!nlopt_isfinite(c[ii])) {
+				  feasible_cur = 0;
+				  infeasibility_cur = HUGE_VAL;
+				  break;
+			  }
 			  infeasibility_cur =
 			      MAX2(infeasibility_cur, c[ii]);
 			  feasible_cur =
