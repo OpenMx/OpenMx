@@ -28,7 +28,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
 	assert(n == goc->fc->numParam);
-	int mode = 1;
+	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (goc->verbose >= 3) mxLog("fit %f", fit);
 	if (mode == -1) {

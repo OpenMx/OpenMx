@@ -75,6 +75,4 @@ omxCheckCloseEnough(expectMin, biRegModelRawOut$output$minimum, 0.001)
 
 omxCheckCloseEnough(biRegModelRawOut$output$status$code, 0)
 
-if (summary(biRegModelRawOut)$optimizerEngine != 'NLOPT') {
-	omxCheckCloseEnough(biRegModelRawOut$output$iterations, 30, 10)
-}
+omxCheckCloseEnough(biRegModelRawOut$output$iterations, 30, 10)
