@@ -140,15 +140,16 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
 
         if (eq + ieq) {
+		double feasibilityTolerance = 1e-6;
                 if (ieq > 0){
 			goc.inequality.resize(ieq); // TODO remove
-			std::vector<double> tol(ieq, sqrt(std::numeric_limits<double>::epsilon()));
+			std::vector<double> tol(ieq, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, ieq, nloptInequalityFunction, &goc, tol.data());
                 }
                 
                 if (eq > 0){
 			goc.equality.resize(eq); // TODO remove
-			std::vector<double> tol(eq, sqrt(std::numeric_limits<double>::epsilon()));
+			std::vector<double> tol(eq, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, eq, nloptEqualityFunction, &goc, tol.data());
                 }
 	}
