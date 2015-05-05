@@ -64,6 +64,7 @@ bivCorModelSpec <- mxModel(
     mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values=c(0,0), name="expMean" ), 
     mxMatrix( type="Symm", nrow=2, ncol=2, name='expCov', values=c(.21, .2, .2, .21), free=TRUE )
 )
+diag(bivCorModelSpec$expCov$lbound) <- .01
 
 bivCorFiltering <- mxModel(
     model=bivCorModelSpec,
