@@ -90,8 +90,8 @@
 ##') # close model
 ##' 
 ##' oneFactorCon <- omxConstrainMLThresholds(oneFactorModel)
-##' #oneFactorResults <- mxRun(oneFactorCon)
-##' #N.B. FAILS!
+##' oneFactorResults <- mxRun(oneFactorCon)
+##' 
 omxConstrainMLThresholds <- function(model, dist=.1) {
     expect <- model$expectation
     

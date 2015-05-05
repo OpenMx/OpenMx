@@ -12,6 +12,7 @@ model <- mxModel("CIExample",
                  mxFitFunctionML(),
                  mxData(covariance, "cov", means, numObs=10000)
 )
+diag(model$expectedCov$lbound) <- .1
 
 model <- mxOption(model,"Checkpoint Units",'iterations')
 model <- mxOption(model,"Checkpoint Count",1)
@@ -20,7 +21,7 @@ fit1 <- mxRun(model, silent=TRUE)
 
 mle <- fit1$output$fit
 
-var1L <- mxModel("var1L", model,
+var1L <- mxModel("var1L", fit1,
                  mxAlgebra(CIExample.expectedCov[1,1], "param"),
                  mxConstraint(0 > CIExample.fitfunction - (mle + 3.84)),
                  mxFitFunctionAlgebra("param"))

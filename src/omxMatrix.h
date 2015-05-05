@@ -369,15 +369,13 @@ struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
 	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
 };
 
-#define mxPrintMat(name, mat) mxPrintMatrixImpl(__FILE__, __LINE__, name, mat)
-
 template <typename T>
-void mxPrintMatrixImpl(const char *file, int line, const char *name, Eigen::DenseBase<T> &mat)
+void mxPrintMat(const char *name, Eigen::DenseBase<T> &mat)
 {
 	std::string buf;
 	bool transpose = mat.rows() > mat.cols();
-	buf += string_snprintf("[%d] %s line %d: %s = %s matrix(c(    # %dx%d",
-			       omx_absolute_thread_num(), file, line,
+	buf += string_snprintf("[%d] %s = %s matrix(c(    # %dx%d",
+			       omx_absolute_thread_num(),
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
 
 	int first=TRUE;

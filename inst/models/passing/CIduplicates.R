@@ -10,6 +10,7 @@ m1 <- mxModel("m1", type="RAM",
 	mxPath(from = latents, arrows = 2, free = F, values = 1), # latents fixed at 1
 	mxData(cov(myFADataRaw, use="complete"), type = "cov", numObs = nrow(myFADataRaw))
 )
+m1$S$lbound <- .1
 m1 = mxRun(m1)
 
 tmp = mxRun(mxModel(m1, mxCI(c("x1_resid","S[1,1]"))), intervals = T)
