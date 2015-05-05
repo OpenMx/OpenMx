@@ -10,11 +10,7 @@
 #include "nloptcpp.h"
 #include "finiteDifferences.h"
 
-#include <iostream>
-
-#ifdef HAS_NLOPT
-
-#include <nlopt.h>
+#include "nlopt.h"
 
 struct fit_functional {
 	GradientOptimizerContext &goc;
@@ -31,8 +27,9 @@ struct fit_functional {
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
-	assert(n == goc->fc->numParam);
-	int mode = 1;
+	FitContext *fc = goc->fc;
+	assert(n == fc->numParam);
+	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (goc->verbose >= 3) mxLog("fit %f", fit);
 	if (mode == -1) {
@@ -40,14 +37,19 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
-		return std::numeric_limits<double>::max(); // this is wrong TODO
+		return nan("infeasible");
 	}
 	if (!grad) return fit;
 
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
-	fit_functional ff(*goc);
-	fd_gradient(ff, Epoint, Egrad);
+	if (fc->wanted & FF_COMPUTE_GRADIENT) {
+		Egrad = fc->grad;
+	} else {
+		fit_functional ff(*goc);
+		fd_gradient(ff, Epoint, Egrad);
+		fc->grad = Egrad;
+	}
 	if (goc->verbose >= 3) {
 		mxPrintMat("gradient", Egrad);
 	}
@@ -113,11 +115,13 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 
 void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 {
-	goc.optName = "NLOPT";
+	goc.optName = "SLSQP";
 	goc.setupSimpleBounds();
-	goc.useGradient = false;  // not implemented yet, would be very helpful
+	goc.useGradient = true;
 
 	FitContext *fc = goc.fc;
+	int oldWanted = fc->wanted;
+	fc->wanted = 0;
 	omxState *globalState = fc->state;
     
         nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, fc->numParam);
@@ -127,23 +131,33 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
         //nlopt_set_local_optimizer(opt, local_opt);
         nlopt_set_lower_bounds(opt, goc.solLB.data());
         nlopt_set_upper_bounds(opt, goc.solUB.data());
-	nlopt_set_ftol_rel(opt, 1e-9);
-	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
-        
-	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
 
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
+
         if (eq + ieq) {
+		nlopt_set_xtol_rel(opt, 1e-5);
+		std::vector<double> tol(fc->numParam, .001);
+		nlopt_set_xtol_abs(opt, tol.data());
+	} else {
+		// For SLSQP, cannot use this with constraints
+		nlopt_set_ftol_rel(opt, 1e-9);
+		nlopt_set_ftol_abs(opt, sqrt(std::numeric_limits<double>::epsilon()));
+	}
+        
+	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
+
+        if (eq + ieq) {
+		double feasibilityTolerance = 1e-6;
                 if (ieq > 0){
-			goc.inequality.resize(ieq); // TODO remove
-			std::vector<double> tol(ieq, sqrt(std::numeric_limits<double>::epsilon()));
+			goc.inequality.resize(ieq);
+			std::vector<double> tol(ieq, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, ieq, nloptInequalityFunction, &goc, tol.data());
                 }
                 
                 if (eq > 0){
-			goc.equality.resize(eq); // TODO remove
-			std::vector<double> tol(eq, sqrt(std::numeric_limits<double>::epsilon()));
+			goc.equality.resize(eq);
+			std::vector<double> tol(eq, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, eq, nloptEqualityFunction, &goc, tol.data());
                 }
 	}
@@ -151,6 +165,8 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	int code = nlopt_optimize(opt, est, &fc->fit);
 
         nlopt_destroy(opt);
+
+	fc->wanted = oldWanted;
 
 	// fatal errors
 	if (code == NLOPT_INVALID_ARGS) {
@@ -164,7 +180,9 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	}
 
 	// non-fatal errors
-	if (code == NLOPT_MAXEVAL_REACHED) {
+	if ((fc->grad.array().abs() > 0.1).any()) {
+		goc.informOut = INFORM_NOT_AT_OPTIMUM;
+	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
 		goc.informOut = INFORM_UNCONVERGED_OPTIMUM;  // is this correct? TODO
@@ -172,5 +190,3 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		goc.informOut = INFORM_CONVERGED_OPTIMUM;
 	}
 }
-
-#endif

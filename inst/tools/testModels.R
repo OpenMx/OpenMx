@@ -52,11 +52,6 @@ if (any(args == 'gctorture')) {
 			    full.names = TRUE, recursive = TRUE)
 }
 
-if (any(args == 'csolnp')) {
-	# remove failing tests using setdiff or whatever TODO
-#	files <- c('demo/RowObjectiveSimpleExamples.R')
-}
-
 if (any(args == 'lisrel')) {
 	files <- grep("LISREL", files, value=TRUE, ignore.case=TRUE)
 }
@@ -105,7 +100,7 @@ errorRecover <- function(script, opt, index) {
 			c('warnRec', 'errors', 'errorRecover', 'opt', 'null', 'files', 'directories', 'runtimes')))
 }
 
-optimizers <- c('CSOLNP')
+optimizers <- c('SLSQP')
 if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
 #if (any(args == 'nightly'))  optimizers <- c(optimizers, 'SD')
 

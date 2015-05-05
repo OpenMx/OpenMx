@@ -114,11 +114,7 @@ template <- mxModel("stErrSim",
                        mxData(observed=obsCov, type="cov", numObs=nObs),
                        mxFitFunctionML(),
                       mxExpectationNormal(covariance='preCov'),
-                       independent = TRUE,
-                    mxComputeSequence(list(
-                      mxComputeGradientDescent(),
-                      mxComputeStandardError(),
-                      mxComputeReportDeriv())))
+                       independent = TRUE)
 # instantiate MxModel
 # -----------------------------------------------------------------------------
 

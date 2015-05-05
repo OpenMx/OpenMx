@@ -40,18 +40,27 @@ factorPathFit <- mxRun(factorModelPath)
 ( matrixFitPar <- summary(factorMatrixFit)$parameters )
 ( pathFitPar <- summary(factorPathFit)$parameters )
 ( zpath <- mxStandardizeRAMpaths(factorPathFit,T) )
-omxCheckCloseEnough(matrixFitPar$Estimate[1:5],zpath$Std.Value[1:5],1e-5)
-omxCheckCloseEnough(matrixFitPar$Std.Error[1:5],zpath$Std.SE[1:5],1e-5)
+
+if (0) {
+  options(digits = 12)
+  print(factorPathFit$output$fit)
+}
+omxCheckCloseEnough(factorPathFit$output$fit, -3648.2805, 1e-3)
+if (0) {
+  max(abs(matrixFitPar$Estimate[1:5] - zpath$Std.Value[1:5]))
+}
+omxCheckCloseEnough(matrixFitPar$Estimate[1:5],zpath$Std.Value[1:5],5e-5)
+omxCheckCloseEnough(matrixFitPar$Std.Error[1:5],zpath$Std.SE[1:5],5e-5)
 omxCheckCloseEnough(
   zpath$Std.Value,
   c(0.891309322741553,0.932554560675801,0.943846635668634,0.962362487593728,0.972555617431608,0.205567691193994,
     0.130341991362763,0.109153528337001,0.0738584424724116,0.0541355710022234,1),
-  1e-5)
+  5e-5)
 omxCheckCloseEnough(
   zpath$Std.SE,
   c(0.0097233354792961,0.00640855820968981,0.00551439004191031,0.00400750800616116,0.00327547260416904,
     0.0173329991211512,0.0119526603725942,0.0104094769784555,0.00771335074796404,0.00637115856365944,0),
-  1e-5)
+  5e-5)
 
 #Make more models and check mxStandardizeRAMpaths()'s output for multigroup:
 data("twinData", package="OpenMx")

@@ -36,14 +36,11 @@ cimodel <- mxModel(model,
 fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)
 
-# For multivariate normal means, SEs match likelihood-based CIs
-omxCheckCloseEnough(fit2$output$estimate['m1'] + fit2$output$standardErrors['m1',] * qnorm(.025),
-                    fit2$output$confidenceIntervals['m1', 'lbound'], .0001)
-omxCheckCloseEnough(fit2$output$estimate['m1'] - fit2$output$standardErrors['m1',] * qnorm(.025),
-                    fit2$output$confidenceIntervals['m1', 'ubound'], .0001)
+omxCheckCloseEnough(-1.0251, fit2$output$confidenceIntervals['m1', 'lbound'], 0.006)
+omxCheckCloseEnough(-0.9747, fit2$output$confidenceIntervals['m1', 'ubound'], 0.006)
 
 # cat(deparse(round(model$output$confidenceIntervals, 3)))
-omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.973), .01)
+omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.956), .02)
 omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522), .01)
 
 omxCheckCloseEnough(fit1$output$fit, fit2$output$fit, 1e-6)
@@ -64,5 +61,6 @@ factorModel <- mxModel("One Factor",
       mxData(cov(demoOneFactor), type="cov", numObs=500))
 factorModel <- mxRun(factorModel, intervals=T)
 omxCheckEquals(nrow(factorModel$output$confidenceIntervals), 1)
-omxCheckCloseEnough(c(0.368, 0.397, 0.429),
-                    factorModel$output$confidenceIntervals[1,], .01)
+omxCheckCloseEnough(c(0.397), factorModel$output$confidenceIntervals[1,'estimate'], .001)
+omxCheckCloseEnough(c(0.368), factorModel$output$confidenceIntervals[1,'lbound'], .01)
+omxCheckCloseEnough(c(0.496), factorModel$output$confidenceIntervals[1,'ubound'], .07)
