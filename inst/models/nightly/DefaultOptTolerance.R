@@ -34,14 +34,6 @@ genPositiveDefMat <- function(dim, low=-1.4, upp=1.4) {
   Sigma
 }
 
-if (0) {
-	if (0) {
-		mxOption(NULL, "Default optimizer", "NPSOL")
-	} else {
-		mxOption(NULL, "Default optimizer", "CSOLNP")
-	}
-}
-
 drift <- 0
 
 for (trial in 1:10) {

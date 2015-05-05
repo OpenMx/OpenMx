@@ -141,8 +141,8 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
 		// For SLSQP, cannot use this with constraints
-		nlopt_set_ftol_rel(opt, 1e-9);
-		nlopt_set_ftol_abs(opt, sqrt(std::numeric_limits<double>::epsilon()));
+		nlopt_set_ftol_rel(opt, 1e-12);
+		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         
 	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
