@@ -180,7 +180,9 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	}
 
 	// non-fatal errors
-	if (code == NLOPT_MAXEVAL_REACHED) {
+	if ((fc->grad.array().abs() > 0.1).any()) {
+		goc.informOut = INFORM_NOT_AT_OPTIMUM;
+	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
 		goc.informOut = INFORM_UNCONVERGED_OPTIMUM;  // is this correct? TODO
