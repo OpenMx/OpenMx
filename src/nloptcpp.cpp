@@ -27,7 +27,8 @@ struct fit_functional {
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
-	assert(n == goc->fc->numParam);
+	FitContext *fc = goc->fc;
+	assert(n == fc->numParam);
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (goc->verbose >= 3) mxLog("fit %f", fit);
@@ -42,8 +43,13 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
-	fit_functional ff(*goc);
-	fd_gradient(ff, Epoint, Egrad);
+	if (fc->wanted & FF_COMPUTE_GRADIENT) {
+		Egrad = fc->grad;
+	} else {
+		fit_functional ff(*goc);
+		fd_gradient(ff, Epoint, Egrad);
+		fc->grad = Egrad;
+	}
 	if (goc->verbose >= 3) {
 		mxPrintMat("gradient", Egrad);
 	}
@@ -111,9 +117,11 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 {
 	goc.optName = "SLSQP";
 	goc.setupSimpleBounds();
-	goc.useGradient = false;  // not implemented yet, would be very helpful TODO
+	goc.useGradient = true;
 
 	FitContext *fc = goc.fc;
+	int oldWanted = fc->wanted;
+	fc->wanted = 0;
 	omxState *globalState = fc->state;
     
         nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, fc->numParam);
@@ -142,13 +150,13 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
         if (eq + ieq) {
 		double feasibilityTolerance = 1e-6;
                 if (ieq > 0){
-			goc.inequality.resize(ieq); // TODO remove
+			goc.inequality.resize(ieq);
 			std::vector<double> tol(ieq, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, ieq, nloptInequalityFunction, &goc, tol.data());
                 }
                 
                 if (eq > 0){
-			goc.equality.resize(eq); // TODO remove
+			goc.equality.resize(eq);
 			std::vector<double> tol(eq, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, eq, nloptEqualityFunction, &goc, tol.data());
                 }
@@ -157,6 +165,8 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	int code = nlopt_optimize(opt, est, &fc->fit);
 
         nlopt_destroy(opt);
+
+	fc->wanted = oldWanted;
 
 	// fatal errors
 	if (code == NLOPT_INVALID_ARGS) {

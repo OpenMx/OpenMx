@@ -2917,6 +2917,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
 	if (*mode > 0 && !fc->CI && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+		fc->grad.resize(fc->numParam);
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
