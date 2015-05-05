@@ -179,6 +179,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			hc = rf.hessOut;
 			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
+			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 		}
 #endif
 		break;}
@@ -189,10 +190,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			fc->grad = rf.gradOut.tail(numParam);
 			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
+			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 		}
 		break;
         case OptEngine_NLOPT:
 		omxInvokeNLOPT(fc->est, rf);
+		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;
         case OptEngine_SD:{
 		rf.fc->copyParamToModel();
@@ -207,10 +210,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			} else {
 			omxSD_AL(rf);       // constrained problems
 		}
+		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;}
         default: Rf_error("Optimizer %d is not available", engine);
 	}
-	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 
 	fc->inform = rf.informOut;
 	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {

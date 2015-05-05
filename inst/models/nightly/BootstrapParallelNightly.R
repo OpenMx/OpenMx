@@ -86,10 +86,7 @@ template <- mxModel(name="stErrSim",
                          mxData(observed=obsCov, type="cov", numObs=nObs),
                       mxExpectationNormal(covariance='preCov'),
                     mxFitFunctionML(),
-                    independent = TRUE,
-                    mxComputeSequence(list(
-                      mxComputeGradientDescent(),
-                      mxComputeReportDeriv())))
+                    independent = TRUE)
 
 submodels <- lapply(1:nReps, function(x) {
   createNewModel(template, paste('stErrSim', x, sep=''))
