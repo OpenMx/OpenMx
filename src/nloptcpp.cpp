@@ -105,11 +105,13 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
 	inequality_functional ff(*goc);
 	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
-	if (goc->verbose >= 3) {
-		mxPrintMat("inequality", Eresult);
-		if (grad) {
-			mxPrintMat("inequality jacobian", jacobian);
-		}
+	if (grad && !std::isfinite(Eresult.sum())) {
+		// infeasible at start of major iteration
+		nlopt_opt opt = (nlopt_opt) goc->extraData;
+		nlopt_force_stop(opt);
+	}
+	if (goc->verbose >= 3 && grad) {
+		mxPrintMat("inequality jacobian", jacobian);
 	}
 }
 
