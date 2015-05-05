@@ -298,6 +298,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
+	int newWanted = fc->wanted | FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
 
@@ -315,7 +316,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxRecompute(fitMat, fc);
 	minimum = omxMatrixElement(fitMat, 0, 0);
 	if (!std::isfinite(minimum)) {
-		omxRaiseErrorf("mxComputeNumericDeriv: reference fit is %f", minimum);
+		if (verbose >= 1) ("%s: reference fit is %f; skipping", name, minimum);
 		return;
 	}
 
@@ -332,7 +333,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
 			       numChildren, minimum);
 
-	fc->wanted |= (FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT);
 	hessian = fc->getDenseHessUninitialized();
 	Eigen::Map< Eigen::MatrixXd > eH(hessian, numParams, numParams);
 	eH.setConstant(NA_REAL);
@@ -375,6 +375,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 	// auxillary information like per-row likelihoods need a refresh
 	omxRecompute(fitMat, fc);
+	fc->wanted = newWanted;
 }
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)

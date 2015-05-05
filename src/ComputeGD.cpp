@@ -125,7 +125,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
-    size_t numParam = varGroup->vars.size();
+	size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
 		omxRaiseErrorf("%s: model has no free parameters", name);
 		return;
@@ -228,15 +228,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	if (verbose >= 1) {
 		mxLog("%s: final fit is %2f", name, fc->fit);
 		fc->log(FF_COMPUTE_ESTIMATE);
-	}
-
-	if (fitMatrix->rows == 1) {
-		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
-			std::string diag = fc->getIterationError();
-			omxRaiseErrorf("MxComputeGradientDescent: fitfunction %s is not finite (%s)",
-				       fitMatrix->name, diag.c_str());
-			return;
-		}
 	}
 
 	fc->wanted |= FF_COMPUTE_BESTFIT;

@@ -24,15 +24,6 @@ ign <- omxCheckWarning(try(mxRun(model), silent=TRUE),
 
 ###
 
-NAer <- function(marg,state) return(NA)
-
-model <- mxModel(name="na",
-		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
-		 mxFitFunctionR(NAer))
-omxCheckError(mxRun(model), "The job for model 'na' exited abnormally with the error message: MxComputeGradientDescent: fitfunction na.fitfunction is not finite ()");
-
-###
-
 counter <<- 1
 count <- function(marg,state) {
 	counter <<- state[[1]]
@@ -56,5 +47,4 @@ model <- mxModel(name="toomany",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(toomany))
 omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: 1:FitFunction returned more than 2 arguments
-2:FitFunction returned more than 2 arguments
-3:MxComputeGradientDescent: fitfunction toomany.fitfunction is not finite ()")
+2:FitFunction returned more than 2 arguments")
