@@ -129,7 +129,6 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		}
 	}
 
-	fc->grad.resize(fc->numParam); // ensure memory is allocated
 	int n = int(fc->numParam);
  
         int nctotl = n + nlinwid + nlnwid;
