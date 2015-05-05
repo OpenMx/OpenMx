@@ -85,7 +85,7 @@ void F77_SUB(npsolConstraintFunction)
 	NPSOL_GOpt->allConstraintsFun(cE);
 }
 
-void omxNPSOL(double *est, GradientOptimizerContext &rf)
+static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, int inequality)
 {
 	rf.optName = "NPSOL";
 	rf.setupAllBounds();
@@ -106,11 +106,8 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	FitContext *fc = rf.fc;
 	NPSOL_GOpt = &rf;
 
-    omxState *globalState = fc->state;
     int nclin = 0;
     int nlinwid = std::max(1, nclin);
-    int equality, inequality;
-    globalState->countNonlinearConstraints(equality, inequality);
     int ncnln = equality + inequality;
     int nlnwid = std::max(1, ncnln);
  
@@ -208,6 +205,47 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	}
 
     NPSOL_GOpt = NULL;
+}
+
+void omxNPSOL(double *est, GradientOptimizerContext &rf)
+{
+	FitContext *fc = rf.fc;
+	omxState *globalState = fc->state;
+
+	int equality, inequality;
+	globalState->countNonlinearConstraints(equality, inequality);
+
+	omxNPSOL1(est, rf, equality, inequality);
+
+	if (equality + inequality == 0) return;
+
+	int retry = 4;
+	double best = std::numeric_limits<double>::max();
+	while (--retry >= 0) {
+		fc->copyParamToModel();
+
+		Eigen::VectorXd cE(equality + inequality);
+		rf.allConstraintsFun(cE);
+
+		double feasibilityTolerance = 1e-5; // factor TODO
+		double norm = cE.norm();
+		if (rf.verbose >= 1) {
+			mxLog("NPSOL: feasibility constraints at %f; retry %d",
+			      norm, 1+retry);
+		}
+		if (norm >= best) {
+			if (rf.verbose >= 1) {
+				mxLog("NPSOL: no improvement in feasibility constraints; giving up");
+			}
+			break;
+		}
+		best = norm;
+		if (!(cE.array().abs() < feasibilityTolerance).all()) {
+			omxNPSOL1(est, rf, equality, inequality);
+		} else {
+			break;
+		}
+	}
 }
 
 void omxSetNPSOLOpts(SEXP options)

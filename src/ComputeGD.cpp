@@ -171,15 +171,16 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		omxNPSOL(fc->est, rf);
-		if (!hessChol) {
-			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-		}
-		if (rf.hessOut.size()) {
+		fc->wanted |= FF_COMPUTE_GRADIENT;
+		if (rf.hessOut.size() && fitMatrix->currentState->conList.size() == 0) {
+			if (!hessChol) {
+				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
+			}
 			Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
 			hc = rf.hessOut;
 			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
-			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
+			fc->wanted |= FF_COMPUTE_HESSIAN;
 		}
 #endif
 		break;}
@@ -245,7 +246,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
 
-	if (engine == OptEngine_NPSOL) {
+	if (engine == OptEngine_NPSOL && hessChol) {
 		out->add("hessianCholesky", hessChol);
 	}
 }

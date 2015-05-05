@@ -150,7 +150,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
 
         if (eq + ieq) {
-		double feasibilityTolerance = 1e-6;
+		double feasibilityTolerance = 1e-5;
                 if (ieq > 0){
 			goc.inequality.resize(ieq);
 			std::vector<double> tol(ieq, feasibilityTolerance);

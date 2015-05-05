@@ -2871,6 +2871,12 @@ void GradientOptimizerContext::setupAllBounds()
 	}
 }
 
+void GradientOptimizerContext::reset()
+{
+	feasible = false;
+	bestFit = std::numeric_limits<double>::max();
+}
+
 GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	: verbose(verbose)
 {
@@ -2884,10 +2890,9 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	ControlTolerance = nan("uninit");
 	useGradient = false;
 	warmStart = false;
-	bestFit = std::numeric_limits<double>::max();
 	ineqType = omxConstraint::LESS_THAN;
-	feasible = false;
 	avoidRedundentEvals = false;
+	reset();
 }
 
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)

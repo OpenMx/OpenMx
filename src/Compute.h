@@ -259,6 +259,7 @@ class GradientOptimizerContext {
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
 	GradientOptimizerContext(int verbose);
+	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style
