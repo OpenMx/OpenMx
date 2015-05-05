@@ -189,7 +189,7 @@ CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
 runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .002)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .4)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'lbound'], mxEval(common.C, runCIclower), .001)
