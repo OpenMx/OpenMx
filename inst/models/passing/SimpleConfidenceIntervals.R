@@ -196,7 +196,7 @@ omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(c
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'lbound'], mxEval(common.C, runCIclower), .001)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .001)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .001)
 
 twinACEParallel <- omxParallelCI(twinACENoIntervals)

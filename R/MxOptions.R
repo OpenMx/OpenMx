@@ -129,7 +129,7 @@ npsolOptions <- list(
 	"Function precision" = "1e-14",
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
-	"Feasibility tolerance" = "1.0e-02",
+	"Feasibility tolerance" = "2e-2",
 	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
 	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
