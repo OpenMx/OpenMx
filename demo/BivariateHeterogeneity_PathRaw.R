@@ -167,7 +167,7 @@ Mx.cov; Mx.mean; Mx.like
 # -----------------------------------------------------------------------------
 
 
-omxCheckCloseEnough(LLHet,Mx.LLHet,.001)
+omxCheckCloseEnough(LLHet,Mx.LLHet,.01)
 omxCheckCloseEnough(EC1Het,Mx.EC1Het,.001)
 omxCheckCloseEnough(EM1Het,Mx.EM1Het,.001)
 omxCheckCloseEnough(EC2Het,Mx.EC2Het,.001)

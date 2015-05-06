@@ -113,5 +113,6 @@ omxCheckCloseEnough(omxGetParameters(m3sRun), mplusParam, 0.001)
 
 #Also check standard errors
 mplusSE <- c(.073, .082, .080, .040, .044, .074, .063, .063, .065, .234, .228, .042, .019, .026, .023)
-omxCheckCloseEnough(summary(m3sRun)$parameters[,6], mplusSE, 0.001)
+#max(abs(summary(m3sRun)$parameters[,6] - mplusSE))
+omxCheckCloseEnough(summary(m3sRun)$parameters[,6], mplusSE, 0.002)
 
