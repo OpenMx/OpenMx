@@ -246,6 +246,10 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				Global->relEps = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
 				Global->maxStackDepth = atoi(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Feasibility tolerance")) {
+				Global->feasibilityTolerance = atof(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
+				Global->optimalityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP")) {
 				CSOLNPOpt_majIter(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP")) {

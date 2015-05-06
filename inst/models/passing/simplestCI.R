@@ -21,27 +21,23 @@ fit1 <- mxRun(model, silent=TRUE)
 
 mle <- fit1$output$fit
 
-var1L <- mxModel("var1L", fit1,
-                 mxAlgebra(CIExample.expectedCov[1,1], "param"),
-                 mxConstraint(0 > CIExample.fitfunction - (mle + 3.84)),
-                 mxFitFunctionAlgebra("param"))
-var1L <- mxRun(var1L)
-omxCheckCloseEnough(var1L$output$estimate['var1'], c(0.973), .01)
-#mxOption(NULL, "Default optimizer", "CSOLNP")
-
 cimodel <- mxModel(model,
                    mxCI("var1", type="lower"),
                    mxCI("cov12", type="upper"),
                    mxCI("m1", type="both"))
 fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)
+print(fit2$output$computes[[2]])
 
-omxCheckCloseEnough(-1.0251, fit2$output$confidenceIntervals['m1', 'lbound'], 0.006)
-omxCheckCloseEnough(-0.9747, fit2$output$confidenceIntervals['m1', 'ubound'], 0.006)
+# For multivariate normal means, SEs match likelihood-based CIs
+omxCheckCloseEnough(fit2$output$estimate['m1'] + fit2$output$standardErrors['m1',] * qnorm(.025),
+                    fit2$output$confidenceIntervals['m1', 'lbound'], .0001)
+omxCheckCloseEnough(fit2$output$estimate['m1'] - fit2$output$standardErrors['m1',] * qnorm(.025),
+                    fit2$output$confidenceIntervals['m1', 'ubound'], .0001)
 
 # cat(deparse(round(model$output$confidenceIntervals, 3)))
-omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.956), .02)
-omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522), .01)
+omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.9727), .001)
+omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522), .001)
 
 omxCheckCloseEnough(fit1$output$fit, fit2$output$fit, 1e-6)
 omxCheckCloseEnough(fit1$output$standardErrors, fit2$output$standardErrors, 1e-6)
@@ -61,6 +57,7 @@ factorModel <- mxModel("One Factor",
       mxData(cov(demoOneFactor), type="cov", numObs=500))
 factorModel <- mxRun(factorModel, intervals=T)
 omxCheckEquals(nrow(factorModel$output$confidenceIntervals), 1)
+print(factorModel$output$computes[[2]])
 omxCheckCloseEnough(c(0.397), factorModel$output$confidenceIntervals[1,'estimate'], .001)
-omxCheckCloseEnough(c(0.368), factorModel$output$confidenceIntervals[1,'lbound'], .01)
-omxCheckCloseEnough(c(0.496), factorModel$output$confidenceIntervals[1,'ubound'], .07)
+omxCheckCloseEnough(c(0.3679), factorModel$output$confidenceIntervals[1,'lbound'], .001)
+omxCheckCloseEnough(c(0.429), factorModel$output$confidenceIntervals[1,'ubound'], .001)

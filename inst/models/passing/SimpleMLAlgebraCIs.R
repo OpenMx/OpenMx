@@ -21,10 +21,10 @@ factorFitCI <- mxRun(factorModel, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 
 ci <- factorFitCI$output$confidenceIntervals
-#cat(deparse(round(ci[,'ubound'], 4)))
+#cat(deparse(round(ci[,'lbound'], 4)))
 omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
-omxCheckCloseEnough(ci[,'lbound'], c(0.3632, 0.4301, 0.4718, 0.5735, 0.6304), .1)
-omxCheckCloseEnough(ci[,'ubound'], c(0.5136, 0.6018, 0.6743, 0.7888, 0.9747), .11)
+omxCheckCloseEnough(ci[,'lbound'], c(0.4193, 0.5082, 0.5755, 0.6872, 0.7704), 1e-3)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.7781, 0.8723), 1e-3)
 
 factorModelRaw <- mxModel(factorFitCI,
                           mxData(demoOneFactor, type="raw"),
@@ -36,8 +36,8 @@ factorSummRawCI <- summary(factorFitRawCI)
 
 ci <- factorFitRawCI$output$confidenceIntervals
 omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
-omxCheckCloseEnough(ci[,'lbound'], c(0.3632, 0.4301, 0.4718, 0.5735, 0.6304), .14)
-omxCheckCloseEnough(ci[,'ubound'], c(0.5136, 0.6018, 0.6743, 0.7888, 0.9747), .11)
+omxCheckCloseEnough(ci[,'lbound'], c(0.4193, 0.5082, 0.5755, 0.6872, 0.7704), 1e-3)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.7781, 0.8723), 1e-3)
 
 # Compare to original MX Estimates
 #          5  Confidence intervals requested in group            1

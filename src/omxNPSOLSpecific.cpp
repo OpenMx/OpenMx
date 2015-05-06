@@ -229,7 +229,6 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		Eigen::VectorXd cE(equality + inequality);
 		rf.allConstraintsFun(cE);
 
-		double feasibilityTolerance = 1e-3; // factor TODO
 		double norm = cE.norm();
 		if (rf.verbose >= 1) {
 			mxLog("NPSOL: feasibility constraints at %f; retry %d",
@@ -242,7 +241,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		} else {
 			best = norm;
 		}
-		if (!(cE.array().abs() < feasibilityTolerance).all()) {
+		if (!(cE.array().abs() < Global->feasibilityTolerance).all()) {
 			omxNPSOL1(est, rf, equality, inequality);
 		} else {
 			break;

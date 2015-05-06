@@ -150,6 +150,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = Global->computeCount;
 
+	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
 	rf.fc = fc;
 	rf.fitMatrix = fitMatrix;
@@ -225,7 +226,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
 
-	if (verbose >= 1) {
+	if (verbose >= 2) {
 		mxLog("%s: final fit is %2f", name, fc->fit);
 		fc->log(FF_COMPUTE_ESTIMATE);
 	}
@@ -249,7 +250,7 @@ class ComputeCI : public omxCompute {
 	omxCompute *plan;
 	omxMatrix *fitMatrix;
 	int verbose;
-	SEXP intervals, intervalCodes;
+	SEXP intervals, intervalCodes, detail;
 
 public:
 	ComputeCI();
@@ -267,6 +268,7 @@ ComputeCI::ComputeCI()
 {
 	intervals = 0;
 	intervalCodes = 0;
+	detail = 0;
 }
 
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -329,8 +331,18 @@ class ciConstraintEq : public omxConstraint {
 	};
 };
 
+void markAsDataFrame(SEXP list)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
+	Rf_setAttrib(list, R_ClassSymbol, classes);
+}
+
 void ComputeCI::computeImpl(FitContext *mle)
 {
+	if (intervals) Rf_error("Can only compute CIs once");
+
 	Global->unpackConfidenceIntervals();
 
 	int numInts = (int) Global->intervalList.size();
@@ -347,18 +359,45 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
-	mle->state->conList.push_back(new ciConstraintIneq(fitMatrix));
+	int totalIntervals = 0;
+	for(int j = 0; j < numInts; j++) {
+		omxConfidenceInterval *oCI = Global->intervalList[j];
+		totalIntervals += std::isfinite(oCI->lbound) + std::isfinite(oCI->ubound);
+	}
+
+	Rf_protect(detail = Rf_allocVector(VECSXP, 3 + mle->numParam));
+	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 1, Rf_allocVector(INTSXP, totalIntervals));
+	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
+		SET_VECTOR_ELT(detail, 2+cx, Rf_allocVector(REALSXP, totalIntervals));
+	}
+
+	SEXP detailCols;
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 3 + mle->numParam));
+	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
+	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
+	SET_STRING_ELT(detailCols, 1, Rf_mkChar("lower"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("fit"));
+	for (int nx=0; nx < int(mle->numParam); ++nx) {
+		SET_STRING_ELT(detailCols, 3+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
+	}
+
+	SEXP detailRowNames = Rf_allocVector(INTSXP, totalIntervals);
+	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
+	markAsDataFrame(detail);
 
 	const int ciMaxIterations = Global->ciMaxIterations;
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
 	const int n = int(freeVarGroup->vars.size());
+	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
 
 	if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
 
-	const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
+	ciConstraintIneq constr(fitMatrix);
 
+	int detailRow = 0;
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
@@ -372,57 +411,81 @@ void ComputeCI::computeImpl(FitContext *mle)
 			if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
 			// Reset to previous optimum
-			memcpy(fc.est, mle->est, n * sizeof(double));
+			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);
+			Est = Mle;
 
 			int tries = 0;
 			int inform = INFORM_UNINITIALIZED;
 			double *store = lower? &currentCI->min : &currentCI->max;
+			Eigen::VectorXd bestEst = Mle;
+			double bestFit = nan("uninit");
 
-			while (inform!= 0 && ++tries <= ciMaxIterations) {
+			while (++tries <= ciMaxIterations) {
 				Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
 							  matName, currentCI->row + 1, currentCI->col + 1,
 							  lower? "lower" : "upper", tries);
 
+				mle->state->conList.push_back(&constr);
 				fc.CI = currentCI;
 				fc.lowerBound = lower;
 				fc.fit = mle->fit;
 				plan->compute(&fc);
+				mle->state->conList.pop_back();
 
 				omxRecompute(currentCI->matrix, &fc);
 				double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-				bool better = !std::isfinite(*store) || fabs(*store - val) > 1e-5; // TODO
-				if (better) *store = val;
 
-				inform = fc.inform;
-				if (lower) currentCI->lCode = inform;
-				else       currentCI->uCode = inform;
-				if(verbose>=2) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
-				if(inform == 0 || !better) break;
+				// We need to check the fit again because a random perturbation
+				// could have moved us into a bad part of the space where we
+				// got sucked into a local minimum. This could be addressed
+				// by choosing a better random starting value.
+				fc.CI = NULL;
+				ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
-				bool jitter = TRUE;
-				for(int j = 0; j < n; j++) {
-					if(fabs(fc.est[j] - mle->est[j]) > objDiff) {
-						jitter = FALSE;
-						break;
-					}
+				bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+					       fc.fit - 1e-2 < fc.targetFit &&
+					       ((!std::isfinite(*store) ||
+						 (lower && val < *store) || (!lower && val > *store))));
+
+				if(verbose>=2) {
+					mxLog("CI[%d,%d] inform=%d best=%f val=%f fit-target=%f better=%d",
+					      i, lower, inform, *store, val, fc.fit - fc.targetFit, better);
 				}
-				if(jitter) {
-					if (verbose >= 2) mxLog("jitter param vector");
-					for(int j = 0; j < n; j++) {
-						double sign = 2 * (tries % 2) - 1;
-						fc.est[j] = mle->est[j] + sign * objDiff * tries;
-					}
+
+				if (better) {
+					*store = val;
+					bestEst = Est;
+					bestFit = fc.fit;
+
+					inform = fc.inform;
+					if (lower) currentCI->lCode = inform;
+					else       currentCI->uCode = inform;
 				}
+
+				// Try different starting values, but try to stay close enough to
+				// the MLE that we don't leave the feasible set.
+				Eigen::VectorXd dir(fc.numParam);
+				dir.setRandom();
+				Est = Mle + ((Est - Mle).array() * dir.array()).matrix();
 			}
+
 			if (verbose >= 1) {
-				mxLog("%s[%d, %d] %s CI %f", matName, currentCI->row + 1, currentCI->col + 1,
-				      lower? "lower" : "upper", *store);
-				fc.log(FF_COMPUTE_ESTIMATE);
+				mxLog("%s[%d, %d] %s CI %f fit %f", matName, currentCI->row + 1, currentCI->col + 1,
+				      lower? "lower" : "upper", *store, bestFit);
 			}
+
+			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
+			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
+			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
+			REAL(VECTOR_ELT(detail, 2))[detailRow] = bestFit;
+			for (int px=0; px < int(fc.numParam); ++px) {
+				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = bestEst[px];
+			}
+
+			++detailRow;
 		}
 	}
 
-	mle->state->conList.pop_back(); // will leak on exception TODO
 	mle->copyParamToModel();
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
@@ -481,4 +544,8 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	Rf_setAttrib(intervalCodes, R_DimNamesSymbol, dimnames);
 
 	out->add("confidenceIntervalCodes", intervalCodes);
+
+	MxRList output;
+	output.add("detail", detail);
+	slots->add("output", output.asR());
 }
