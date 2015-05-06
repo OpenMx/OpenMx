@@ -60,6 +60,10 @@ thresholdModel <- mxModel("thresholdModel",
 
 thresholdModelrun <- mxRun(thresholdModel)
 summary(thresholdModelrun)
+
+# NOTE! The reason that this is a failing test is because Windows can
+# find a better solution, 39011.83. Possibly there are some box
+# constraints missing.
 omxCheckCloseEnough(thresholdModelrun$output$fit, 39034.359, 1.5)
 
 got <- omxGetParameters(thresholdModelrun)
