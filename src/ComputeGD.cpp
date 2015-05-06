@@ -441,12 +441,13 @@ void ComputeCI::computeImpl(FitContext *mle)
 				// We need to check the fit again because a random perturbation
 				// could have moved us into a bad part of the space where we
 				// got sucked into a local minimum. This could be addressed
-				// by choosing a better random starting value.
+				// by choosing a better random starting value. Or not trying more than once.
 				fc.CI = NULL;
 				ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
+				// 1e-4 should really be some function of the feasibility tolerance TODO
 				bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
-					       fc.fit - 1e-2 < fc.targetFit &&
+					       fc.fit - fabs(fc.fit * 1e-4) < fc.targetFit &&
 					       ((!std::isfinite(*store) ||
 						 (lower && val < *store) || (!lower && val > *store))));
 
