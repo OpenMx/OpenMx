@@ -304,7 +304,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
-		  .Object@availableEngines <- c("CSOLNP")
+		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
 		  }
@@ -322,12 +322,12 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'
 ##' This optimizer does not require analytic derivatives of the fit
 ##' function. The open-source version of OpenMx only offers 1 choice,
-##' CSOLNP (based on Ye, 1988).  The proprietary version of OpenMx
-##' offers the choice of two optimizers, CSOLNP and NPSOL.
+##' SLSQP (from the NLOPT collection).  The proprietary version of
+##' OpenMx offers the choice of two optimizers, SLSQP and NPSOL.
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param engine specific NPSOL or CSOLNP
+##' @param engine specific NPSOL or SLSQP
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)

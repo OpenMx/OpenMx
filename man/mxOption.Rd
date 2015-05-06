@@ -65,13 +65,13 @@ Number of Threads \tab \var{i}          \tab the number of processor cores to us
  to find how many are available. \cr
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
 Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
-CI Max Iterations \tab \var{i}          \tab the maximum number of retries when calculating confidence intervals. \cr
-Default optimizer \tab [NPSOL | CSOLNP] \tab the gradient descent optimizer to use \cr
+Default optimizer \tab [NPSOL | SLSQP] \tab the gradient descent optimizer to use \cr
 Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 uses \code{detectCores() - 1}. \cr
+Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
+Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
 }
 
-CSOLNP is our new, experimental optimizer. There are known bugs. See the
-release note for details.
+SLSQP is our new, experimental optimizer.
 
 NPSOL-specific options
 
@@ -83,7 +83,6 @@ Print file            \tab \var{i} \tab for \var{i} > 0 a full log is sent to th
 Summary file          \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
 Function precision    \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
 Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
-Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
 Major iterations      \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
 Verify level          \tab [-1:3 | Yes | No]     \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r}    \tab controls the accuracy with which a step is taken. \cr

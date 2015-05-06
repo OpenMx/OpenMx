@@ -161,10 +161,10 @@ plot(t, y[,1], type='l')
 #--------------------------------------
 # Model Specification
 
-#Note: the bounds are here only to keep CSOLNP from
+#Note: the bounds are here only to keep SLSQP from
 # stepping too far off a cliff.  With the bounds in
-# place, CSOLNP finds the right solution.  Without
-# the bounds, CSOLNP goes crazy.
+# place, SLSQP finds the right solution.  Without
+# the bounds, SLSQP goes crazy.
 
 
 cdim <- list('obs', c('ksi', 'ksiDot'))
