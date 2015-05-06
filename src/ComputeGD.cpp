@@ -339,6 +339,9 @@ void markAsDataFrame(SEXP list)
 	Rf_setAttrib(list, R_ClassSymbol, classes);
 }
 
+// Optimization: For profile CIs of free parameters, the gradient for
+// the fit is trivial.  Many evaluations could be saved.
+
 void ComputeCI::computeImpl(FitContext *mle)
 {
 	if (intervals) Rf_error("Can only compute CIs once");
