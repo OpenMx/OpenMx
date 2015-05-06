@@ -316,7 +316,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxRecompute(fitMat, fc);
 	minimum = omxMatrixElement(fitMat, 0, 0);
 	if (!std::isfinite(minimum)) {
-		if (verbose >= 1) ("%s: reference fit is %f; skipping", name, minimum);
+		if (verbose >= 1) mxLog("%s: reference fit is %f; skipping", name, minimum);
 		return;
 	}
 
