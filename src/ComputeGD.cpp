@@ -305,7 +305,6 @@ class ciConstraintIneq : public omxConstraint {
 		const double fit = totalLogLikelihood(fitMat);
 		double diff = std::max(fit - fc->targetFit, 0.0);
 		if (diff > 100) diff = nan("infeasible");
-		diff *= diff;
 		if (ineqType != opCode) diff = -diff;
 		//mxLog("fit %f diff %f", fit, diff);
 		out[0] = diff;
