@@ -210,8 +210,10 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 void omxNPSOL(double *est, GradientOptimizerContext &rf)
 {
 	FitContext *fc = rf.fc;
-	omxState *globalState = fc->state;
+	Eigen::Map< Eigen::ArrayXd > Est(est, fc->numParam);
+	Eigen::ArrayXd startingPoint = Est;
 
+	omxState *globalState = fc->state;
 	int equality, inequality;
 	globalState->countNonlinearConstraints(equality, inequality);
 
@@ -219,7 +221,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 
 	if (equality + inequality == 0) return;
 
-	int retry = 4;
+	int retry = 6;
 	double best = std::numeric_limits<double>::max();
 	while (--retry >= 0) {
 		fc->copyParamToModel();
@@ -227,19 +229,19 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		Eigen::VectorXd cE(equality + inequality);
 		rf.allConstraintsFun(cE);
 
-		double feasibilityTolerance = 1e-5; // factor TODO
+		double feasibilityTolerance = 1e-3; // factor TODO
 		double norm = cE.norm();
 		if (rf.verbose >= 1) {
 			mxLog("NPSOL: feasibility constraints at %f; retry %d",
 			      norm, 1+retry);
 		}
 		if (norm >= best) {
-			if (rf.verbose >= 1) {
-				mxLog("NPSOL: no improvement in feasibility constraints; giving up");
-			}
-			break;
+			// NPSOL can jump off a cliff and get lost.
+			// Try to move back toward a more feasible region.
+			Est = (Est + startingPoint) / 2;
+		} else {
+			best = norm;
 		}
-		best = norm;
 		if (!(cE.array().abs() < feasibilityTolerance).all()) {
 			omxNPSOL1(est, rf, equality, inequality);
 		} else {
