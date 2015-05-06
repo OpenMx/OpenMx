@@ -129,7 +129,7 @@ npsolOptions <- list(
 	"Function precision" = "1e-14",
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
-	"Feasibility tolerance" = "1.0e-05",
+	"Feasibility tolerance" = "1.0e-02",
 	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
 	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
@@ -141,7 +141,7 @@ npsolOptions <- list(
     "Function precision_CSOLNP" = "1.0e-7",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"CI Max Iterations" = "5",
+	"CI Max Iterations" = "1",
 	"Analytic Gradients" = "Yes",
 	"Number of Threads" = 0
 )

@@ -137,20 +137,19 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
 
-        if (eq + ieq) {
-		nlopt_set_xtol_rel(opt, 1e-5);
-		std::vector<double> tol(fc->numParam, .001);
+	if (fc->CI) {
+		nlopt_set_xtol_rel(opt, 1e-2);
+		std::vector<double> tol(fc->numParam, 1e-3);
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
-		// For SLSQP, cannot use this with constraints
-		nlopt_set_ftol_rel(opt, 1e-12);
+		nlopt_set_ftol_rel(opt, Global->optimalityTolerance);
 		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         
 	nlopt_set_min_objective(opt, nloptObjectiveFunction, &goc);
 
         if (eq + ieq) {
-		double feasibilityTolerance = 1e-5;
+		double feasibilityTolerance = Global->feasibilityTolerance;
                 if (ieq > 0){
 			goc.inequality.resize(ieq);
 			std::vector<double> tol(ieq, feasibilityTolerance);
@@ -165,6 +164,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	}
         
 	int code = nlopt_optimize(opt, est, &fc->fit);
+	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
 
         nlopt_destroy(opt);
 
