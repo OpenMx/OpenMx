@@ -199,7 +199,6 @@ class omxGlobal {
 	std::vector< FreeVarGroup* > freeGroup;
 
  public:
-	int ciMaxIterations;
 	int numThreads;
 	int analyticGradients;
 	double llScale;

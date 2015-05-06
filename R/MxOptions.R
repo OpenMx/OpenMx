@@ -141,7 +141,6 @@ npsolOptions <- list(
     "Function precision_CSOLNP" = "1.0e-7",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"CI Max Iterations" = "1",
 	"Analytic Gradients" = "Yes",
 	"Number of Threads" = 0
 )

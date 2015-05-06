@@ -389,7 +389,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
 	markAsDataFrame(detail);
 
-	const int ciMaxIterations = Global->ciMaxIterations;
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
@@ -417,65 +416,43 @@ void ComputeCI::computeImpl(FitContext *mle)
 			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);
 			Est = Mle;
 
-			int tries = 0;
-			int inform = INFORM_UNINITIALIZED;
 			double *store = lower? &currentCI->min : &currentCI->max;
-			Eigen::VectorXd bestEst = Mle;
-			double bestFit = nan("uninit");
 
-			while (++tries <= ciMaxIterations) {
-				Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
-							  matName, currentCI->row + 1, currentCI->col + 1,
-							  lower? "lower" : "upper", tries);
+			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
+						  matName, currentCI->row + 1, currentCI->col + 1,
+						  lower? "lower" : "upper");
 
-				mle->state->conList.push_back(&constr);
-				fc.CI = currentCI;
-				fc.lowerBound = lower;
-				fc.fit = mle->fit;
-				plan->compute(&fc);
-				mle->state->conList.pop_back();
+			mle->state->conList.push_back(&constr);
+			fc.CI = currentCI;
+			fc.lowerBound = lower;
+			fc.fit = mle->fit;
+			plan->compute(&fc);
+			mle->state->conList.pop_back();
 
-				omxRecompute(currentCI->matrix, &fc);
-				double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+			omxRecompute(currentCI->matrix, &fc);
+			double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 
-				// We need to check the fit again because a random perturbation
-				// could have moved us into a bad part of the space where we
-				// got sucked into a local minimum. This could be addressed
-				// by choosing a better random starting value. Or not trying more than once.
-				fc.CI = NULL;
-				ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+			// We check the fit again so we can report it
+			// in the detail data.frame.
+			fc.CI = NULL;
+			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
-				// 1e-4 should really be some function of the feasibility tolerance TODO
-				bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
-					       fc.fit - fabs(fc.fit * 1e-4) < fc.targetFit &&
-					       ((!std::isfinite(*store) ||
-						 (lower && val < *store) || (!lower && val > *store))));
+			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+				       ((!std::isfinite(*store) ||
+					 (lower && val < *store) || (!lower && val > *store))));
 
-				if(verbose>=2) {
-					mxLog("CI[%d,%d] inform=%d best=%f val=%f fit-target=%f better=%d",
-					      i, lower, inform, *store, val, fc.fit - fc.targetFit, better);
-				}
-
-				if (better) {
-					*store = val;
-					bestEst = Est;
-					bestFit = fc.fit;
-
-					inform = fc.inform;
-					if (lower) currentCI->lCode = inform;
-					else       currentCI->uCode = inform;
-				}
-
-				// Try different starting values, but try to stay close enough to
-				// the MLE that we don't leave the feasible set.
-				Eigen::VectorXd dir(fc.numParam);
-				dir.setRandom();
-				Est = Mle + ((Est - Mle).array() * dir.array()).matrix();
+			if (better) {
+				*store = val;
 			}
+			double bestFit = fc.fit;
 
-			if (verbose >= 1) {
-				mxLog("%s[%d, %d] %s CI %f fit %f", matName, currentCI->row + 1, currentCI->col + 1,
-				      lower? "lower" : "upper", *store, bestFit);
+			int inform = fc.inform;
+			if (lower) currentCI->lCode = inform;
+			else       currentCI->uCode = inform;
+
+			if(verbose >= 1) {
+				mxLog("%s[%d,%d] inform=%d best=%f val=%f fit-target=%f better=%d",
+				      matName, i, lower, inform, *store, val, fc.fit - fc.targetFit, better);
 			}
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
@@ -483,7 +460,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
 			REAL(VECTOR_ELT(detail, 2))[detailRow] = bestFit;
 			for (int px=0; px < int(fc.numParam); ++px) {
-				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = bestEst[px];
+				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = Est[px];
 			}
 
 			++detailRow;
