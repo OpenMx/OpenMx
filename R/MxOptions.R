@@ -134,6 +134,7 @@ npsolOptions <- list(
 	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
 	"Derivative level" = "0",
+    "Step limit" = "2.0",
 	"Hessian" = "Yes",
 # below are not npsol options
     "Major iteration_CSOLNP" = "400",
