@@ -1091,12 +1091,17 @@ void FitContext::createChildren()
 	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
 }
 
-FitContext::~FitContext()
+void FitContext::destroyChildren()
 {
 	for (int cx=0; cx < int(childList.size()); ++cx) {
 		delete childList[cx];
 	}
 	childList.clear();
+}
+
+FitContext::~FitContext()
+{
+	destroyChildren();
 	if (parent && parent->state != state) {
 		delete state;
 	}
@@ -1418,6 +1423,7 @@ void omxCompute::compute(FitContext *fc)
 	if (OMX_DEBUG) { mxLog("exit %s varGroup %d", name, varGroup->id[0]); }
 	fc->inform = std::max(origInform, narrow->inform);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
 

@@ -2,5 +2,5 @@ set print thread-events off
 dir src
 run
 i thr
-where full
+thread apply all where full
 quit

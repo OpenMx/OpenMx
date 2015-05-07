@@ -144,6 +144,7 @@ class FitContext {
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void createChildren();
+	void destroyChildren();
 	void allocStderrs();
 	void copyParamToModel();
 	void copyParamToModelClean();

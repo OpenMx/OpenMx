@@ -215,13 +215,6 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 	// unused, so the attribute is placed to silence the Rf_warning.
     int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	#pragma omp parallel for num_threads(parallelism) 
-	for(int i = 0; i < numParams; i++) {
-	        if (std::isfinite(hessian[i*numParams + i])) continue;
-		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-		omxEstimateHessianOnDiagonal(i, hess_work + threadId);
-	}
-
 	std::vector<std::pair<int,int> > todo;
 	todo.reserve(numParams * (numParams-1) / 2);
 	for(int i = 0; i < numParams; i++) {
@@ -231,10 +224,27 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 		}
 	}
 
-	#pragma omp parallel for num_threads(parallelism) 
-	for(int i = 0; i < int(todo.size()); i++) {
-		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-		omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
+	if (numChildren) {
+#pragma omp parallel for num_threads(parallelism)
+		for(int i = 0; i < numParams; i++) {
+			if (std::isfinite(hessian[i*numParams + i])) continue;
+			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
+			omxEstimateHessianOnDiagonal(i, hess_work + threadId);
+		}
+
+#pragma omp parallel for num_threads(parallelism)
+		for(int i = 0; i < int(todo.size()); i++) {
+			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
+			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
+		}
+	} else {
+		for(int i = 0; i < numParams; i++) {
+			if (std::isfinite(hessian[i*numParams + i])) continue;
+			omxEstimateHessianOnDiagonal(i, hess_work);
+		}
+		for(int i = 0; i < int(todo.size()); i++) {
+			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work);
+		}
 	}
 }
 
