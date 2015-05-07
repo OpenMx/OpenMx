@@ -140,6 +140,7 @@ class FitContext {
 	omxConfidenceInterval *CI;
 	double targetFit;
 	bool lowerBound;
+	bool compositeCIFunction;
 
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);

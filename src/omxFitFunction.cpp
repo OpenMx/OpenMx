@@ -381,7 +381,19 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 	}
 
 	if (want & FF_COMPUTE_FIT) {
-		fitMat->data[0] = (fc->lowerBound? CIElement : -CIElement);
+		double param = (fc->lowerBound? CIElement : -CIElement);
+		if (fc->compositeCIFunction) {
+			double diff = fc->targetFit - fit;
+			diff *= diff;
+			if (diff > 1e2) {
+				// Ensure there aren't any creative solutions
+				diff = nan("infeasible");
+				return;
+			}
+			fitMat->data[0] = diff + param;
+		} else {
+			fitMat->data[0] = param;
+		}
 		//mxLog("param at %f", fitMat->data[0]);
 	}
 	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {

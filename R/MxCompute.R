@@ -332,7 +332,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @param useGradient whether to use the analytic gradient (if available)
-##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value
+##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @aliases
 ##' MxComputeGradientDescent-class
@@ -402,6 +402,7 @@ setClass(Class = "MxComputeConfidenceInterval",
 	 representation = representation(
 	     plan = "MxCompute",
 	   fitfunction = "MxCharOrNumber",
+	     constraintType = "character",
 	     verbose = "integer"))
 
 setMethod("assignId", signature("MxComputeConfidenceInterval"),
@@ -452,12 +453,13 @@ setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 	})
 
 setMethod("initialize", "MxComputeConfidenceInterval",
-	  function(.Object, freeSet, plan, verbose, fitfunction) {
+	  function(.Object, freeSet, plan, verbose, fitfunction, constraintType) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@plan <- plan
 		  .Object@verbose <- verbose
 		  .Object@fitfunction <- fitfunction
+		  .Object@constraintType <- constraintType
 		  .Object
 	  })
 
@@ -489,6 +491,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param engine deprecated
 ##' @param fitfunction The deviance function to constrain with an inequality constraint.
 ##' @param tolerance deprecated
+##' @param constraintType ineq (default), eq, both, none
 ##' @references
 ##' Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
 ##' \emph{Psychometrica.}
@@ -497,14 +500,14 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 
 mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbose=0L,
 					engine=NULL, fitfunction='fitfunction',
-					tolerance=NA_real_) {
+					tolerance=NA_real_, constraintType='ineq') {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
 	}
 	verbose <- as.integer(verbose)
-	new("MxComputeConfidenceInterval", freeSet, plan, verbose, fitfunction)
+	new("MxComputeConfidenceInterval", freeSet, plan, verbose, fitfunction, constraintType)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),

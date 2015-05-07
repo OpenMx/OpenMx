@@ -38,8 +38,8 @@ ci <- factorFitCI$output$confidenceIntervals
 #print(ci)
 #cat(deparse(round(ci[,'ubound'],4)))
 omxCheckCloseEnough(ci[,'estimate'], c(0.4456, 0.5401, 0.6116, 0.7302, 0.8187), .001)
-omxCheckCloseEnough(ci[,'lbound'], c(0.4193, 0.5082, 0.5755, 0.6872, 0.7704), .002)
-omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.778, 0.8723), .002)
+omxCheckCloseEnough(ci[,'lbound'], c(0.406, 0.485, 0.553, 0.6872, 0.769), .03)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.778, 0.8723), .06)
 
 factorParallel <- omxParallelCI(factorFit)
 omxCheckCloseEnough(factorParallel$output$confidenceIntervals,

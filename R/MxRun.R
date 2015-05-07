@@ -153,9 +153,11 @@ runHelper <- function(model, frontendStart,
 		} else {
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
 			if (intervals) {
+				ciOpt <- mxComputeGradientDescent(fitfunction=fitNum, nudgeZeroStarts=FALSE)
+				cType <- 'ineq'
+				if (ciOpt$engine == "NPSOL") cType <- 'none'
 				steps <- c(steps, mxComputeConfidenceInterval(
-				    fitfunction=fitNum,
-				    mxComputeGradientDescent(fitfunction=fitNum, nudgeZeroStarts=FALSE)))
+				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {
 				prec <- lapply(expectations, genericExpGetPrecision)

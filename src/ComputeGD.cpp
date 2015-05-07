@@ -254,6 +254,9 @@ class ComputeCI : public omxCompute {
 	omxMatrix *fitMatrix;
 	int verbose;
 	SEXP intervals, intervalCodes, detail;
+	const char *ctypeName;
+	bool useInequality;
+	bool useEquality;
 
 public:
 	ComputeCI();
@@ -272,6 +275,8 @@ ComputeCI::ComputeCI()
 	intervals = 0;
 	intervalCodes = 0;
 	detail = 0;
+	useInequality = false;
+	useEquality = false;
 }
 
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -282,6 +287,22 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	{
 		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(slotValue);
+	}
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("constraintType")));
+		ctypeName = CHAR(Rf_asChar(slotValue));
+		if (strEQ(ctypeName, "ineq")) {
+			useInequality = true;
+		} else if (strEQ(ctypeName, "eq")) {
+			useEquality = true;
+		} else if (strEQ(ctypeName, "both")) {
+			useEquality = true;
+			useInequality = true;
+		} else if (strEQ(ctypeName, "none")) {
+			// OK
+		} else {
+			Rf_error("%s: unknown constraintType='%s'", name, ctypeName);
+		}
 	}
 
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
@@ -329,6 +350,7 @@ class ciConstraintEq : public omxConstraint {
 		const double fit = totalLogLikelihood(fitMat);
 		double diff = fit - fc->targetFit;
 		diff *= diff;
+		if (fabs(diff) > 100000) diff = nan("infeasible");
 		//mxLog("fit %f diff %f", fit, diff);
 		out[0] = diff;
 	};
@@ -357,8 +379,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
 
 	int numInts = (int) Global->intervalList.size();
-	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (reference fit %f)",
-				name, numInts, fitMatrix->name, mle->fit);
+	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (ref fit %f %s)",
+				name, numInts, fitMatrix->name, mle->fit, ctypeName);
 	if (!numInts) return;
 
 	if (!std::isfinite(mle->fit)) Rf_error("%s: reference fit is not finite", name);
@@ -406,7 +428,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 	const int n = int(freeVarGroup->vars.size());
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
 
-	ciConstraintIneq constr(fitMatrix);
+	ciConstraintEq constrEq(fitMatrix);
+	ciConstraintIneq constrIneq(fitMatrix);
 
 	int detailRow = 0;
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
@@ -431,16 +454,20 @@ void ComputeCI::computeImpl(FitContext *mle)
 						  matName, currentCI->row + 1, currentCI->col + 1,
 						  lower? "lower" : "upper");
 
-			mle->state->conList.push_back(&constr);
+			if (useInequality) mle->state->conList.push_back(&constrIneq);
+			if (useEquality)   mle->state->conList.push_back(&constrEq);
+
 			fc.CI = currentCI;
+			fc.compositeCIFunction = (!useInequality && !useEquality);
 			fc.lowerBound = lower;
 			fc.fit = mle->fit;
 			plan->compute(&fc);
-			mle->state->conList.pop_back();
+
+			if (useInequality) mle->state->conList.pop_back();
+			if (useEquality)   mle->state->conList.pop_back();
 
 			omxRecompute(currentCI->matrix, &fc);
 			double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-			double crazy = fabs(val) - fabs(fc.fit);
 
 			// We check the fit again so we can report it
 			// in the detail data.frame.
@@ -460,9 +487,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 			else       currentCI->uCode = inform;
 
 			if(verbose >= 1) {
-				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d crazy=%g",
+				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
 				      1+i, (lower?"lower":"upper"), matName, 1+currentCI->row, 1+currentCI->col,
-				      val, fc.fit - fc.targetFit, better, crazy);
+				      val, fc.fit - fc.targetFit, better);
 			}
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
