@@ -89,6 +89,11 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 {
 	rf.optName = "NPSOL";
 	rf.setupAllBounds();
+	{
+		double ft = (equality+inequality)? Global->feasibilityTolerance : 1e-5;
+		std::string opt = string_snprintf("Feasibility tolerance %.8g", ft);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
 	if (std::isfinite(rf.ControlTolerance)) {
 		std::string opt = string_snprintf("Optimality tolerance %.8g", rf.ControlTolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
