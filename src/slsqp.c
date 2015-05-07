@@ -1815,6 +1815,7 @@ static void slsqpb_(int *m, int *meq, int *la, int *
     const double hun = 100.;
     const double ten = 10.;
     const double two = 2.;
+    const int maxLineSearchIterations = 20;
 
     /* System generated locals */
     int a_dim1, a_offset, i__1, i__2;
@@ -2040,7 +2041,7 @@ L190:
     goto L330;
 L200:
     if (nlopt_isfinite(h1)) {
-	    if (h1 <= h3 / ten || line > 10) {
+	    if (h1 <= h3 / ten || line > maxLineSearchIterations) {
 		    goto L240;
 	    }
 	    /* Computing MAX */
