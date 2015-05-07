@@ -38,6 +38,10 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 		l += cs.size;
 	}
+
+	if (verbose >= 3) {
+		mxPrintMat("constraints", constraintOut);
+	}
 }
 
 #ifdef  __cplusplus
@@ -218,6 +222,12 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	Eigen::Map< Eigen::ArrayXd > Est(est, fc->numParam);
 	Eigen::ArrayXd startingPoint = Est;
 
+	if (rf.verbose >= 1) {
+		fc->copyParamToModel();
+		ComputeFit("NPSOL", rf.fitMatrix, FF_COMPUTE_FIT, fc);
+		mxLog("NPSOL: initial fit %f", fc->fit);
+	}
+
 	omxState *globalState = fc->state;
 	int equality, inequality;
 	globalState->countNonlinearConstraints(equality, inequality);
@@ -226,9 +236,10 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 
 	if (equality + inequality == 0) return;
 
-	int retry = 6;
+	const int maxRetries = 6;
+	int retry = 0;
 	double best = std::numeric_limits<double>::max();
-	while (--retry >= 0) {
+	while (++retry < maxRetries) {
 		fc->copyParamToModel();
 
 		Eigen::VectorXd cE(equality + inequality);
@@ -236,8 +247,8 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 
 		double norm = cE.norm();
 		if (rf.verbose >= 1) {
-			mxLog("NPSOL: feasibility constraints at %f; retry %d",
-			      norm, 1+retry);
+			mxLog("NPSOL[%d]: fit %f feasibility constraints at %g (best %g)",
+			      retry, fc->fit, norm, best);
 		}
 		if (norm >= best) {
 			// NPSOL can jump off a cliff and get lost.

@@ -2944,6 +2944,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		}
 	}
 
+	if (verbose >= 3) {
+		mxLog("fit %f (mode %d)", fc->fit, *mode);
+	}
+
 	return fc->fit;
 };
 

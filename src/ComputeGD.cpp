@@ -36,6 +36,7 @@ enum OptEngine {
 
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
+	const char *engineName;
 	enum OptEngine engine;
 	omxMatrix *fitMatrix;
 	int verbose;
@@ -82,21 +83,21 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	optimalityTolerance = Rf_asReal(slotValue);
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
-	const char *engine_name = CHAR(Rf_asChar(slotValue));
-	if (strEQ(engine_name, "CSOLNP")) {
+	engineName = CHAR(Rf_asChar(slotValue));
+	if (strEQ(engineName, "CSOLNP")) {
 		engine = OptEngine_CSOLNP;
-	} else if (strEQ(engine_name, "SLSQP")) {
+	} else if (strEQ(engineName, "SLSQP")) {
 		engine = OptEngine_NLOPT;
-	} else if (strEQ(engine_name, "NPSOL")) {
+	} else if (strEQ(engineName, "NPSOL")) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
 		Rf_error("NPSOL is not available in this build");
 #endif
-	} else if(strEQ(engine_name, "SD")){
+	} else if(strEQ(engineName, "SD")){
 		engine = OptEngine_SD;
 	} else {
-		Rf_error("%s: engine %s unknown", name, engine_name);
+		Rf_error("%s: engine %s unknown", name, engineName);
 	}
 
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
@@ -149,6 +150,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	fc->createChildren();
 
 	int beforeEval = Global->computeCount;
+
+	if (verbose >= 1) mxLog("%s: using engine %s (ID %d)", name, engineName, engine);
 
 	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
@@ -348,9 +351,17 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	Global->unpackConfidenceIntervals();
 
+	// Not strictly necessary, but makes it easier to run
+	// mxComputeConfidenceInterval alone without other compute
+	// steps.
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
+
 	int numInts = (int) Global->intervalList.size();
-	if (verbose >= 1) mxLog("%s: starting work on %d intervals", name, numInts);
+	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (reference fit %f)",
+				name, numInts, fitMatrix->name, mle->fit);
 	if (!numInts) return;
+
+	if (!std::isfinite(mle->fit)) Rf_error("%s: reference fit is not finite", name);
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
 	if (mle->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->inform != INFORM_NOT_AT_OPTIMUM) {
@@ -395,8 +406,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 	const int n = int(freeVarGroup->vars.size());
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
 
-	if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
-
 	ciConstraintIneq constr(fitMatrix);
 
 	int detailRow = 0;
@@ -431,6 +440,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			omxRecompute(currentCI->matrix, &fc);
 			double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+			double crazy = fabs(val) - fabs(fc.fit);
 
 			// We check the fit again so we can report it
 			// in the detail data.frame.
@@ -444,21 +454,21 @@ void ComputeCI::computeImpl(FitContext *mle)
 			if (better) {
 				*store = val;
 			}
-			double bestFit = fc.fit;
 
 			int inform = fc.inform;
 			if (lower) currentCI->lCode = inform;
 			else       currentCI->uCode = inform;
 
 			if(verbose >= 1) {
-				mxLog("%s[%d,%d] inform=%d best=%f val=%f fit-target=%f better=%d",
-				      matName, i, lower, inform, *store, val, fc.fit - fc.targetFit, better);
+				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d crazy=%g",
+				      1+i, (lower?"lower":"upper"), matName, 1+currentCI->row, 1+currentCI->col,
+				      val, fc.fit - fc.targetFit, better, crazy);
 			}
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
 			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
 			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
-			REAL(VECTOR_ELT(detail, 2))[detailRow] = bestFit;
+			REAL(VECTOR_ELT(detail, 2))[detailRow] = fc.fit;
 			for (int px=0; px < int(fc.numParam); ++px) {
 				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = Est[px];
 			}

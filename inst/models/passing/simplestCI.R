@@ -19,20 +19,20 @@ model <- mxOption(model,"Checkpoint Count",1)
 
 fit1 <- mxRun(model, silent=TRUE)
 
-mle <- fit1$output$fit
-
-cimodel <- mxModel(model,
+cimodel <- mxModel(fit1,
                    mxCI("var1", type="lower"),
                    mxCI("cov12", type="upper"),
-                   mxCI("m1", type="both"))
+                   mxCI("m1", type="both"),
+                   mxComputeConfidenceInterval(verbose=0,plan=mxComputeGradientDescent(verbose=0)))
+
 fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)
 print(fit2$output$computes[[2]])
 
 # For multivariate normal means, SEs match likelihood-based CIs
-omxCheckCloseEnough(fit2$output$estimate['m1'] + fit2$output$standardErrors['m1',] * qnorm(.025),
+omxCheckCloseEnough(fit2$output$estimate['m1'] + fit1$output$standardErrors['m1',] * qnorm(.025),
                     fit2$output$confidenceIntervals['m1', 'lbound'], .0001)
-omxCheckCloseEnough(fit2$output$estimate['m1'] - fit2$output$standardErrors['m1',] * qnorm(.025),
+omxCheckCloseEnough(fit2$output$estimate['m1'] - fit1$output$standardErrors['m1',] * qnorm(.025),
                     fit2$output$confidenceIntervals['m1', 'ubound'], .0001)
 
 # cat(deparse(round(model$output$confidenceIntervals, 3)))
@@ -40,7 +40,6 @@ omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.9727),
 omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522), .001)
 
 omxCheckCloseEnough(fit1$output$fit, fit2$output$fit, 1e-6)
-omxCheckCloseEnough(fit1$output$standardErrors, fit2$output$standardErrors, 1e-6)
 
 # ensure the [1,] syntax is supported
 data(demoOneFactor)
