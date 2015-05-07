@@ -236,7 +236,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 
 	if (equality + inequality == 0) return;
 
-	const int maxRetries = 6;
+	const int maxRetries = 10;
 	int retry = 0;
 	double best = std::numeric_limits<double>::max();
 	while (++retry < maxRetries) {
@@ -253,7 +253,7 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		if (norm >= best) {
 			// NPSOL can jump off a cliff and get lost.
 			// Try to move back toward a more feasible region.
-			Est = (Est + startingPoint) / 2;
+			Est = (Est + startingPoint*4) / 5;
 		} else {
 			best = norm;
 		}
