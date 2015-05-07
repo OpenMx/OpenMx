@@ -463,7 +463,24 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 
 ##' Find likelihood-based confidence intervals
 ##'
-##' Add some description TODO
+##' There are various ways to pose an equivalent profile likelihood
+##' problem. For good performance, it is essential to tailor the
+##' problem to the abilities of the optimizer. The problem can be
+##' posed without the use of constraints. This is how the code worked
+##' in version 2.1 and prior. Although this way of posing the problem
+##' creates an ill-conditioned Hessian, NPSOL is somehow able to
+##' isolate the poor conditioning from the rest of the problem and
+##' optimize it quickly. However, SLSQP is not so clever and exhibits
+##' very poor performance. For SLSQP, good performance is contingent
+##' on posing the problem using an inequality constraint on the fit.
+##'
+##' Geometrically, SLSQP performs best on smooth likelihood surfaces
+##' with smooth derivatives. In the profile CI problem, the distance
+##' limit on the deviance is like a wall. Walls do not have smooth
+##' derivatives but are more like a step function. The point of
+##' \link{mxConstraint} is to isolate the parts of a problem that are
+##' geometrically non-smooth. Constraints are dealt with specially in
+##' SLSQP to best accommodate their sharp geometry.
 ##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -472,6 +489,9 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param engine deprecated
 ##' @param fitfunction The deviance function to constrain with an inequality constraint.
 ##' @param tolerance deprecated
+##' @references
+##' Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
+##' \emph{Psychometrica.}
 ##' @aliases
 ##' MxComputeConfidenceInterval-class
 
