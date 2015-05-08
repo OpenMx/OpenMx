@@ -2639,7 +2639,7 @@ done:
      if (!nlopt_isinf(minor.fval)) {
 	     *minf = minor.fval;
 	     memcpy(theSpot, minor.par, sizeof(double)*n);
-     } else {
+     } else if (!nlopt_isinf(cur.fval)) {
 	     /* didn't find any feasible points, just return last point evaluated */
 	     *minf = cur.fval;
 	     memcpy(theSpot, cur.par, sizeof(double)*n);
