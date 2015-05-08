@@ -1,5 +1,9 @@
 require(OpenMx)
 
+if (mxOption(NULL, "Default optimizer") == "SLSQP") {
+  mxOption(NULL, "Optimality tolerance", "6e-10")
+}
+
 data(demoOneFactor)
 
 manifests <- names(demoOneFactor)

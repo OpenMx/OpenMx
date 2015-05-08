@@ -34,9 +34,11 @@ genPositiveDefMat <- function(dim, low=-1.4, upp=1.4) {
   Sigma
 }
 
-drift <- 0
+trials <- 100
 
-for (trial in 1:10) {
+drift <- matrix(NA, nrow=trials, 5)
+
+for (trial in 1:100) {
   set.seed(trial)
   trueMean <- rnorm(numDims)
   trueCov <- round(genPositiveDefMat(numDims), 6)
@@ -57,10 +59,10 @@ for (trial in 1:10) {
   
   t1Fit <- mxRun(t1, silent=TRUE, suppressWarnings=TRUE)
   
-  drift <- drift + sqrt(sum(c(t1Fit$mean$values - trueMean,
-			      t1Fit$cov$values - trueCov)^2))
+  drift[trial,] <- t1Fit$output$estimate - c(trueMean, trueCov)[-4]
 }
 
-print(drift)
+stat <- sqrt(sum(c(drift)^2))
+print(stat)
 
-omxCheckCloseEnough(drift, 0, 8e-6)
+omxCheckCloseEnough(stat, 0, 4e-6)
