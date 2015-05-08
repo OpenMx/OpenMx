@@ -2608,7 +2608,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 
 	  /* note: mode == -1 corresponds to the completion of a line search,
 	     and is the only time we should check convergence (as in original slsqp code) */
-	  if (mode == -1 && feasible_cur) {
+	  if (mode == -1) {
 	       if (!nlopt_isinf(fprev)) {
 		    if (nlopt_stop_ftol(stop, fcur, fprev))
 			 ret = NLOPT_FTOL_REACHED;
