@@ -31,7 +31,6 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	assert(n == fc->numParam);
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
-	if (goc->verbose >= 3) mxLog("fit %f", fit);
 	if (mode == -1) {
 		if (!goc->feasible) {
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
@@ -46,6 +45,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
 		Egrad = fc->grad;
 	} else {
+		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
 		fd_gradient(ff, Epoint, Egrad);
 		fc->grad = Egrad;
