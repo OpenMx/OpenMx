@@ -138,9 +138,9 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	globalState->countNonlinearConstraints(eq, ieq);
 
 	if (fc->CI) {
-		nlopt_set_xtol_rel(opt, 1e-2);
+		nlopt_set_xtol_rel(opt, 1e-3);
 		std::vector<double> tol(fc->numParam, 1e-3);
-		nlopt_set_xtol_abs(opt, tol.data());
+		//nlopt_set_xtol_abs(opt, tol.data());
 	} else {
 		// The 0.01 factor is a bit ridiculous. NPSOL doesn't
 		// have the same definition of relative tolerance
