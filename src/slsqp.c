@@ -2460,6 +2460,14 @@ static void estimate_return(struct estimate *est, double *minf, double *x)
 	memcpy(x, est->par, sizeof(double)*est->n);
 }
 
+static void estimate_copy(struct estimate *to, struct estimate *from)
+{
+	to->feasible = from->feasible;
+	to->infeasibility = from->infeasibility;
+	memcpy(to->par, from->par, sizeof(double)*to->n);
+	to->fval = from->fval;
+}
+
 nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			 unsigned m, nlopt_constraint *fc,
 			 unsigned p, nlopt_constraint *h,
@@ -2480,7 +2488,8 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      nlopt_result ret = NLOPT_SUCCESS;
      unsigned max_cdim;
      int want_grad = 1;
-     struct estimate cur, minor;
+     struct estimate cur, minor, major;
+     int foundBetterSpot = 0;
      
      max_cdim = MAX2(nlopt_max_constraint_dim(m, fc),
 		    nlopt_max_constraint_dim(p, h));
@@ -2489,7 +2498,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 #define U(n) ((unsigned) (n))
      work = (double *) malloc(sizeof(double) * (U(mpi1) * (n + 1) 
 						+ U(mpi) 
-						+ n+1 + n + n + max_cdim*n
+						+ n+1 + n + n + n + max_cdim*n
 						+ U(len_w))
 			      + sizeof(int) * U(len_jw));
      if (!work) return NLOPT_OUT_OF_MEMORY;
@@ -2498,7 +2507,8 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      grad = c + mpi;
      estimate_init(&cur, n, grad + n+1, theSpot);
      estimate_init(&minor, n, cur.par + n, theSpot);
-     cgradtmp = minor.par + n;
+     estimate_init(&major, n, minor.par + n, theSpot);
+     cgradtmp = major.par + n;
      w = cgradtmp + max_cdim*n;
      jw = (int *) (w + len_w);
      
@@ -2511,6 +2521,29 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 		&acc, &iter, &mode,
 		w, &len_w, jw, &len_jw,
 		&state);
+
+	  /* note: mode == -1 corresponds to the completion of a line search,
+	     and is the only time we should check convergence (as in original slsqp code) */
+	  if (mode == -1 && !nlopt_isinf(minor.fval)) {
+		  estimate_copy(&cur, &minor);
+		  //printf("best minor %f %f\n", minor.fval, minor.infeasibility);
+
+		  if (minor.feasible || !foundBetterSpot) {
+			  //printf("check major %f %f\n", minor.fval, minor.infeasibility);
+			  if (!nlopt_isinf(major.fval)) {
+				  if (nlopt_stop_ftol(stop, minor.fval, major.fval))
+					  ret = NLOPT_FTOL_REACHED;
+				  else if (nlopt_stop_x(stop, minor.par, major.par))
+					  ret = NLOPT_XTOL_REACHED;
+				  if (ret != NLOPT_SUCCESS) goto done;
+			  }
+			  estimate_copy(&major, &minor);
+		  }
+
+		  /* prep for new minor iteration */
+		  minor.feasible = 0;
+		  foundBetterSpot = 0;
+	  }
 
 	  switch (mode) {
 	  case -1:  /* objective & gradient evaluation */
@@ -2614,39 +2647,33 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	  }
 	  prev_mode = mode;
 
-	  /* update best point so far */
-	  if (nlopt_isfinite(cur.fval) && ((cur.fval < *minf && (cur.feasible || !minor.feasible))
-				       || (!minor.feasible && cur.infeasibility < minor.infeasibility))) {
-	       *minf = cur.fval;
-	       minor.feasible = cur.feasible;
-	       minor.infeasibility = cur.infeasibility;
-	  }
+	  /* printf("check minor: fval %f < %f %d infe %f < %f %d\n", */
+	  /* 	 cur.fval, minor.fval, cur.fval < minor.fval, */
+	  /* 	 cur.infeasibility,  minor.infeasibility, cur.infeasibility < minor.infeasibility); */
 
-	  /* note: mode == -1 corresponds to the completion of a line search,
-	     and is the only time we should check convergence (as in original slsqp code) */
-	  if (mode == -1) {
-	       if (!nlopt_isinf(minor.fval)) {
-		    if (nlopt_stop_ftol(stop, cur.fval, minor.fval))
-			 ret = NLOPT_FTOL_REACHED;
-		    else if (nlopt_stop_x(stop, cur.par, minor.par))
-			 ret = NLOPT_XTOL_REACHED;
-	       }
-	       minor.fval = cur.fval;
-	       memcpy(minor.par, cur.par, sizeof(double)*n);
+	  /* update best point so far */
+	  if (nlopt_isfinite(cur.fval) &&
+	      ((cur.fval < minor.fval && (cur.feasible || !minor.feasible))
+	       || (!minor.feasible && cur.infeasibility < minor.infeasibility))) {
+
+		  //printf("best eval so far %f %f\n", cur.fval, cur.infeasibility);
+		  estimate_copy(&minor, &cur);
+		  foundBetterSpot = 1;
 	  }
 
 	  /* do some additional termination tests */
 	  if (nlopt_stop_evals(stop)) ret = NLOPT_MAXEVAL_REACHED;
 	  else if (nlopt_stop_time(stop)) ret = NLOPT_MAXTIME_REACHED;
-	  else if (minor.feasible && *minf < stop->minf_max) ret = NLOPT_MINF_MAX_REACHED;
+	  else if (major.feasible && major.fval < stop->minf_max) ret = NLOPT_MINF_MAX_REACHED;
      } while (ret == NLOPT_SUCCESS);
 
 done:
-     if (!nlopt_isinf(minor.fval)) {
+     if (!nlopt_isinf(major.fval)) {
+	     estimate_return(&major, minf, theSpot);
+     } else if (!nlopt_isinf(minor.fval)) {
 	     estimate_return(&minor, minf, theSpot);
      } else if (!nlopt_isinf(cur.fval)) {
-	     /* didn't find any feasible points, just return last point evaluated */
-	     estimate_return(&cur, minf, theSpot);
+	     estimate_return(&cur,   minf, theSpot);
      }
 
      free(work);
