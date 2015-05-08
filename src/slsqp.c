@@ -2614,7 +2614,6 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	       *minf = cur.fval;
 	       minor.feasible = cur.feasible;
 	       minor.infeasibility = cur.infeasibility;
-	       memcpy(x, cur.par, sizeof(double)*n);
 	  }
 
 	  /* note: mode == -1 corresponds to the completion of a line search,
@@ -2637,15 +2636,13 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      } while (ret == NLOPT_SUCCESS);
 
 done:
-     if (nlopt_isinf(*minf)) { /* didn't find any feasible points, just return last point evaluated */
-	  if (nlopt_isinf(cur.fval)) { /* invalid cur. point, use previous pt. */
-	       *minf = minor.fval;
-	       memcpy(x, minor.par, sizeof(double)*n);
-	  }
-	  else {
-	       *minf = cur.fval;
-	       memcpy(x, cur.par, sizeof(double)*n);
-	  }
+     if (!nlopt_isinf(minor.fval)) {
+	     *minf = minor.fval;
+	     memcpy(x, minor.par, sizeof(double)*n);
+     } else {
+	     /* didn't find any feasible points, just return last point evaluated */
+	     *minf = cur.fval;
+	     memcpy(x, cur.par, sizeof(double)*n);
      }
 
      free(work);
