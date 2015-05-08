@@ -2458,7 +2458,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			 unsigned m, nlopt_constraint *fc,
 			 unsigned p, nlopt_constraint *h,
 			 const double *lb, const double *ub,
-			 double *x, double *minf,
+			 double *theSpot, double *minf,
 			 nlopt_stopping *stop)
 {
      slsqpb_state state = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,NULL};
@@ -2490,8 +2490,8 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      cgrad = work;
      c = cgrad + U(mpi1) * (n + 1);
      grad = c + mpi;
-     estimate_init(&cur, n, grad + n+1, x);
-     estimate_init(&minor, n, cur.par + n, x);
+     estimate_init(&cur, n, grad + n+1, theSpot);
+     estimate_init(&minor, n, cur.par + n, theSpot);
      cgradtmp = minor.par + n;
      w = cgradtmp + max_cdim*n;
      jw = (int *) (w + len_w);
@@ -2638,11 +2638,11 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 done:
      if (!nlopt_isinf(minor.fval)) {
 	     *minf = minor.fval;
-	     memcpy(x, minor.par, sizeof(double)*n);
+	     memcpy(theSpot, minor.par, sizeof(double)*n);
      } else {
 	     /* didn't find any feasible points, just return last point evaluated */
 	     *minf = cur.fval;
-	     memcpy(x, cur.par, sizeof(double)*n);
+	     memcpy(theSpot, cur.par, sizeof(double)*n);
      }
 
      free(work);
