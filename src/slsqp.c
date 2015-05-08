@@ -2454,6 +2454,12 @@ static void estimate_init(struct estimate *est, int n, double *par, double *x)
 	est->fval = HUGE_VAL;
 }
 
+static void estimate_return(struct estimate *est, double *minf, double *x)
+{
+	*minf = est->fval;
+	memcpy(x, est->par, sizeof(double)*est->n);
+}
+
 nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			 unsigned m, nlopt_constraint *fc,
 			 unsigned p, nlopt_constraint *h,
@@ -2637,12 +2643,10 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 
 done:
      if (!nlopt_isinf(minor.fval)) {
-	     *minf = minor.fval;
-	     memcpy(theSpot, minor.par, sizeof(double)*n);
+	     estimate_return(&minor, minf, theSpot);
      } else if (!nlopt_isinf(cur.fval)) {
 	     /* didn't find any feasible points, just return last point evaluated */
-	     *minf = cur.fval;
-	     memcpy(theSpot, cur.par, sizeof(double)*n);
+	     estimate_return(&cur, minf, theSpot);
      }
 
      free(work);
