@@ -484,6 +484,9 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' geometrically non-smooth. Constraints are dealt with specially in
 ##' SLSQP to best accommodate their sharp geometry.
 ##'
+##' For the default compute plan, the choice of constraintType is
+##' determined by which optimizer is selected.
+##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -491,7 +494,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param engine deprecated
 ##' @param fitfunction The deviance function to constrain with an inequality constraint.
 ##' @param tolerance deprecated
-##' @param constraintType ineq (default), eq, both, none
+##' @param constraintType one of c('ineq', 'eq', 'both', 'none')
 ##' @references
 ##' Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
 ##' \emph{Psychometrica.}
