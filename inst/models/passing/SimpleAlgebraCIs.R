@@ -28,12 +28,18 @@ factorFitCI <- mxRun(factorFit, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
 
+if (0) {
+  options(digits=12)
+  print(factorFitCI$output$fit)
+  print(factorFitCI$output$computes[[2]])
+}
+
 ci <- factorFitCI$output$confidenceIntervals
-omxCheckCloseEnough(ci["One Factor.P[1,1]",], c(.419, .446, .474), .005)
-omxCheckCloseEnough(ci["One Factor.P[2,1]",], c(.508, .541, .575), .005)
-omxCheckCloseEnough(ci["One Factor.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(ci["One Factor.P[4,1]",], c(.687, .732, .778), .005)
-omxCheckCloseEnough(ci["One Factor.P[5,1]",], c(.770, .820, .872), .005)
+#print(ci)
+#cat(deparse(round(ci[,'ubound'],4)))
+omxCheckCloseEnough(ci[,'estimate'], c(0.4456, 0.5401, 0.6116, 0.7302, 0.8187), .001)
+omxCheckCloseEnough(ci[,'lbound'], c(0.406, 0.485, 0.553, 0.6872, 0.769), .03)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.778, 0.8723), .06)
 
 factorParallel <- omxParallelCI(factorFit)
 omxCheckCloseEnough(factorParallel$output$confidenceIntervals,

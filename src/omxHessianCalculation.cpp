@@ -215,13 +215,6 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 	// unused, so the attribute is placed to silence the Rf_warning.
     int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	#pragma omp parallel for num_threads(parallelism) 
-	for(int i = 0; i < numParams; i++) {
-	        if (std::isfinite(hessian[i*numParams + i])) continue;
-		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-		omxEstimateHessianOnDiagonal(i, hess_work + threadId);
-	}
-
 	std::vector<std::pair<int,int> > todo;
 	todo.reserve(numParams * (numParams-1) / 2);
 	for(int i = 0; i < numParams; i++) {
@@ -231,10 +224,27 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 		}
 	}
 
-	#pragma omp parallel for num_threads(parallelism) 
-	for(int i = 0; i < int(todo.size()); i++) {
-		int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-		omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
+	if (numChildren) {
+#pragma omp parallel for num_threads(parallelism)
+		for(int i = 0; i < numParams; i++) {
+			if (std::isfinite(hessian[i*numParams + i])) continue;
+			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
+			omxEstimateHessianOnDiagonal(i, hess_work + threadId);
+		}
+
+#pragma omp parallel for num_threads(parallelism)
+		for(int i = 0; i < int(todo.size()); i++) {
+			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
+			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
+		}
+	} else {
+		for(int i = 0; i < numParams; i++) {
+			if (std::isfinite(hessian[i*numParams + i])) continue;
+			omxEstimateHessianOnDiagonal(i, hess_work);
+		}
+		for(int i = 0; i < int(todo.size()); i++) {
+			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work);
+		}
 	}
 }
 
@@ -298,6 +308,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
+	int newWanted = fc->wanted | FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
 
@@ -315,7 +326,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxRecompute(fitMat, fc);
 	minimum = omxMatrixElement(fitMat, 0, 0);
 	if (!std::isfinite(minimum)) {
-		omxRaiseErrorf("mxComputeNumericDeriv: reference fit is %f", minimum);
+		if (verbose >= 1) mxLog("%s: reference fit is %f; skipping", name, minimum);
 		return;
 	}
 
@@ -332,7 +343,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
 			       numChildren, minimum);
 
-	fc->wanted |= (FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT);
 	hessian = fc->getDenseHessUninitialized();
 	Eigen::Map< Eigen::MatrixXd > eH(hessian, numParams, numParams);
 	eH.setConstant(NA_REAL);
@@ -375,6 +385,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 	// auxillary information like per-row likelihoods need a refresh
 	omxRecompute(fitMat, fc);
+	fc->wanted = newWanted;
 }
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)

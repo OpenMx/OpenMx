@@ -140,10 +140,12 @@ class FitContext {
 	omxConfidenceInterval *CI;
 	double targetFit;
 	bool lowerBound;
+	bool compositeCIFunction;
 
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	void createChildren();
+	void destroyChildren();
 	void allocStderrs();
 	void copyParamToModel();
 	void copyParamToModelClean();
@@ -259,6 +261,7 @@ class GradientOptimizerContext {
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
 	GradientOptimizerContext(int verbose);
+	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style

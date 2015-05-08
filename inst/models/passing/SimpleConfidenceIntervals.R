@@ -37,7 +37,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6,  
+			values=.6, lbound=.1,
 			label="a", 
 			name="X"
 		), 
@@ -46,7 +46,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6,  
+			values=sqrt(.6), lbound=sqrt(.1),
 			label="c", 
 			name="Y"
 		),
@@ -55,7 +55,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6, lbound=1e-2,
+			values=.6, lbound=.1,
 			label="e", 
 			name="Z"
 		),
@@ -132,6 +132,7 @@ twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 summary(twinACEFit)
 
 iterateMxRun <- function(model, maxIterations) {
+  model <- mxOption(model, "Optimality tolerance", 1e-6)
 	return(iterateMxRunHelper(mxRun(model), maxIterations, 1))
 }
 
@@ -148,40 +149,42 @@ iterateMxRunHelper <- function(model, maxIterations, iteration) {
 twinACEIntervals <- twinACEFit
 # twinACEIntervals$output <- list()
 
+maxMisfit <- mxEval(objective, twinACEFit)[1,1] + 3.84
+
 CIaupper <- mxModel(twinACEIntervals, name = 'A_CIupper',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.A,name="upperCIa"), 
+    mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(- common.A, name="upperCIa"), 
 		mxFitFunctionAlgebra("upperCIa"))
 
 CIalower <- mxModel(twinACEIntervals, name = 'A_CIlower',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.A,name="lowerCIa"),
+		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(common.A, name="lowerCIa"),
 		mxFitFunctionAlgebra("lowerCIa"))
 
 runCIalower <- suppressWarnings(iterateMxRun(CIalower, 3))
 runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
 
 CIcupper <- mxModel(twinACEIntervals, name = 'C_CIupper',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.C,name="upperCIc"), 
+		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(- common.C,name="upperCIc"), 
 		mxFitFunctionAlgebra("upperCIc"))
 
 CIclower <- mxModel(twinACEIntervals, name = 'C_CIlower',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.C,name="lowerCIc"),
+		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(common.C,name="lowerCIc"),
 		mxFitFunctionAlgebra("lowerCIc"))
 
 runCIclower <- suppressWarnings(iterateMxRun(CIclower, 3))
 runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
 
 CIeupper <- mxModel(twinACEIntervals, name = 'E_CIupper',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"), 
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 - common.E,name="upperCIe"), 
+		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(- common.E,name="upperCIe"), 
 		mxFitFunctionAlgebra("upperCIe"))
 
 CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
-		mxMatrix("Full", values=mxEval(objective, twinACEFit), name="oldfit"),
-		mxAlgebra(((oldfit + 3.84) - (MZ.objective + DZ.objective))^2 + common.E,name="lowerCIe"),
+		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
+		mxAlgebra(common.E,name="lowerCIe"),
 		mxFitFunctionAlgebra("lowerCIe"))
 
 runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
@@ -193,7 +196,7 @@ omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(c
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'lbound'], mxEval(common.C, runCIclower), .001)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .001)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .001)
 
 twinACEParallel <- omxParallelCI(twinACENoIntervals)

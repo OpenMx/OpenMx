@@ -28,5 +28,6 @@ if (0) {
 	cmodFit$M$values
 	colMeans(xdat, na.rm=T)
 }
-omxCheckCloseEnough(as.vector(mxEval(M, cmodFit)), as.vector(colMeans(xdat, na.rm=T)), epsilon=10^(-5))
-omxCheckCloseEnough(as.vector(mxEval(sumlog, cmodFit)), sum(log(colMeans(xdat, na.rm=T))), epsilon=10^(-5))
+
+omxCheckCloseEnough(as.vector(mxEval(M, cmodFit)), as.vector(colMeans(xdat, na.rm=T)), epsilon=1e-4)
+omxCheckCloseEnough(as.vector(mxEval(sumlog, cmodFit)), sum(log(colMeans(xdat, na.rm=T))), epsilon=1e-4)

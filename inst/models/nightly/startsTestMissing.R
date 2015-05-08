@@ -251,4 +251,4 @@ STARTSM <- mxModel("STARTS",
                   stationarityConstraint,
                   correlatedResiduals)
 startsModel <- mxRun(STARTSM)
-omxCheckCloseEnough(startsModel$output$fit, 2718.452, .01)
+omxCheckCloseEnough(startsModel$output$fit, 2718.410, .05)

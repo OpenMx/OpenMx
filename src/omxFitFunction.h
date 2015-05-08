@@ -129,6 +129,8 @@ void omxInitGREMLFitFunction(omxFitFunction *oo);
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
+double totalLogLikelihood(omxMatrix *fitMat);
+
 const char *fitUnitsToName(int units);
 
 #endif /* _OMXFITFUNCTION_H_ */

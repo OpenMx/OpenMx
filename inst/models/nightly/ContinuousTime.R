@@ -197,6 +197,7 @@ larFit <- mxModel(larModel, mxComputeOnce('fitfunction', 'fit'))
 got <- mxRun(larFit, silent=TRUE)
 omxCheckCloseEnough(got$output$fit, 43550.90, .01)
 
+larModel <- mxOption(larModel, "Feasibility tolerance", 2e-2)
 testfit<-mxRun(larModel, intervals = TRUE)
 
 omxCheckCloseEnough(testfit$output$fit, 8383.78, .1)
@@ -209,11 +210,9 @@ if (0) {
 omxCheckCloseEnough(testfit$output$estimate, est, .01)
 
 ci <- testfit$output$confidenceIntervals
-#cat(deparse(c(round(ci['F22',],3))))
-omxCheckCloseEnough(ci['F11',], c(-0.518, -0.464, -0.413), .01)
-omxCheckCloseEnough(ci['F21',], c(0.2, 0.246, 0.295), .01)
-omxCheckCloseEnough(ci['F12',], c(0.028, 0.056, 0.084), .01)
-omxCheckCloseEnough(ci['F22',], c(-0.157, -0.131, -0.106), .01)
+#cat(deparse(round(ci[,'ubound'], 4)))
+omxCheckCloseEnough(ci[,'lbound'], c(-0.518, 0.1997, 0.0282, -0.1568), .03)
+omxCheckCloseEnough(ci[,'ubound'], c(-0.4135, 0.2948, 0.0837, -0.1062), .03)
 
 if (0) {
   omxCheckCloseEnough(testfit$output$iterations, 9, 1)

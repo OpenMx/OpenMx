@@ -955,7 +955,7 @@ void FitContext::copyParamToModelClean()
 			int row = loc->row;
 			int col = loc->col;
 			omxSetMatrixElement(matrix, row, col, at[k]);
-			if(OMX_DEBUG) {
+			if (OMX_DEBUG_MATRIX) {
 				mxLog("free var %d, matrix %s[%d, %d] = %f",
 				      (int) k, matrix->name, row, col, at[k]);
 			}
@@ -1091,12 +1091,17 @@ void FitContext::createChildren()
 	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
 }
 
-FitContext::~FitContext()
+void FitContext::destroyChildren()
 {
 	for (int cx=0; cx < int(childList.size()); ++cx) {
 		delete childList[cx];
 	}
 	childList.clear();
+}
+
+FitContext::~FitContext()
+{
+	destroyChildren();
 	if (parent && parent->state != state) {
 		delete state;
 	}
@@ -1418,6 +1423,7 @@ void omxCompute::compute(FitContext *fc)
 	if (OMX_DEBUG) { mxLog("exit %s varGroup %d", name, varGroup->id[0]); }
 	fc->inform = std::max(origInform, narrow->inform);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
 
@@ -2871,6 +2877,12 @@ void GradientOptimizerContext::setupAllBounds()
 	}
 }
 
+void GradientOptimizerContext::reset()
+{
+	feasible = false;
+	bestFit = std::numeric_limits<double>::max();
+}
+
 GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	: verbose(verbose)
 {
@@ -2884,10 +2896,9 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	ControlTolerance = nan("uninit");
 	useGradient = false;
 	warmStart = false;
-	bestFit = std::numeric_limits<double>::max();
 	ineqType = omxConstraint::LESS_THAN;
-	feasible = false;
 	avoidRedundentEvals = false;
+	reset();
 }
 
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)
@@ -2917,6 +2928,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
 	if (*mode > 0 && !fc->CI && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+		fc->grad.resize(fc->numParam);
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
@@ -2932,6 +2944,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		}
 	}
 
+	if (verbose >= 3) {
+		mxLog("fit %f (mode %d)", fc->fit, *mode);
+	}
+
 	return fc->fit;
 };
 
@@ -2941,11 +2957,6 @@ void GradientOptimizerContext::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
 	omxState *globalState = fc->state;
-
-	if (verbose >= 3) {
-		mxLog("Starting EqualityFunction %d/%d.",
-		      eq_n, int(globalState->conList.size()));
-	}
 
 	if (!eq_n) return;
 
@@ -2957,6 +2968,10 @@ void GradientOptimizerContext::solEqBFun()
 		con.refreshAndGrab(fc, &equality(cur));
 		cur += con.size;
 	}
+
+	if (verbose >= 3) {
+		mxPrintMat("equality", equality);
+	}
 };
 
 // NOTE: All non-linear constraints are applied regardless of free
@@ -2965,11 +2980,6 @@ void GradientOptimizerContext::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
 	omxState *globalState = fc->state;
-
-	if (verbose >= 3) {
-		mxLog("Starting InequalityFunction %d/%d.",
-		      ineq_n, int(globalState->conList.size()));
-	}
 
 	if (!ineq_n) return;
 
@@ -2980,5 +2990,9 @@ void GradientOptimizerContext::myineqFun()
 
 		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
 		cur += con.size;
+	}
+
+	if (verbose >= 3) {
+		mxPrintMat("inequality", inequality);
 	}
 };

@@ -72,7 +72,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 	if (key == "Default optimizer") {
 		stop(paste(key, "is a global option and cannot be set on models.\n",
 		"To switch optimizers globally, use, e.g.:\n",
-		"mxOption(NULL, 'Default optimizer', 'CSOLNP')", sep = ""))
+		"mxOption(NULL, 'Default optimizer', 'SLSQP')", sep = ""))
         # to use NLOPT, use: mxOption(NULL, 'Default optimizer', 'NLOPT')
 	}
 	model@options[[key]] <- value
@@ -111,9 +111,9 @@ imxDetermineDefaultOptimizer <- function() {
 	engine <- Sys.getenv("IMX_OPT_ENGINE")
 	if (!nchar(engine)) {
 		if (imxHasNPSOL()) {
-			engine <- "CSOLNP"
+			engine <- "SLSQP"
 		} else {
-			engine <- "CSOLNP"
+			engine <- "SLSQP"
 		}
 	}
 	engine
@@ -129,11 +129,12 @@ npsolOptions <- list(
 	"Function precision" = "1e-14",
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
-	"Feasibility tolerance" = "1.0e-05",
+	"Feasibility tolerance" = "2e-2",
 	"Major iterations" = function(nParams, nConstraints) { max(1000, 3 * nParams + 10 * nConstraints) },
 	"Verify level" = "-1",
 	"Line search tolerance" = "0.3",
 	"Derivative level" = "0",
+    "Step limit" = "2.0",
 	"Hessian" = "Yes",
 # below are not npsol options
     "Major iteration_CSOLNP" = "400",
@@ -141,7 +142,6 @@ npsolOptions <- list(
     "Function precision_CSOLNP" = "1.0e-7",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"CI Max Iterations" = "5",
 	"Analytic Gradients" = "Yes",
 	"Number of Threads" = 0
 )

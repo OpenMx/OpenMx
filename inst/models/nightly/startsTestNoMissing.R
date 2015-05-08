@@ -251,4 +251,5 @@ STARTSM <- mxModel("STARTS",
                   correlatedResiduals)
 startsModel <- mxRun(STARTSM)
 
-omxCheckCloseEnough(startsModel$output$Minus2LogLikelihood, 3035.196, 0.01)
+summary(startsModel)
+omxCheckCloseEnough(startsModel$output$Minus2LogLikelihood, 3035.2189, 0.01)

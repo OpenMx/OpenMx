@@ -66,7 +66,10 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{MxCI} for the S4 class created by mxCI. \link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+  \link{MxCI} for the S4 class created by mxCI.
+  \link{mxComputeConfidenceInterval} is the internal compute plan that
+  implements the algorithm.
+\link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{

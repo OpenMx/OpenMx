@@ -208,8 +208,7 @@ friendlyStringToLogical(const char *key, const char *str, int *out)
 }
 
 // TODO: make member of omxGlobal class
-static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
-		     int *analyticGradients)
+static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 {
 		int numOptions = Rf_length(options);
 		SEXP optionNames;
@@ -217,10 +216,7 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
 			const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
-			if (matchCaseInsensitive(nextOptionName, "CI Max Iterations")) {
-				int newvalue = atoi(nextOptionValue);
-				if (newvalue > 0) *ciMaxIterations = newvalue;
-			} else if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
+			if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
 				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
 				Global->llScale = atof(nextOptionValue);
@@ -246,6 +242,10 @@ static void readOpts(SEXP options, int *ciMaxIterations, int *numThreads,
 				Global->relEps = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
 				Global->maxStackDepth = atoi(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Feasibility tolerance")) {
+				Global->feasibilityTolerance = atof(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
+				Global->optimalityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP")) {
 				CSOLNPOpt_majIter(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP")) {
@@ -276,8 +276,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	omxState *globalState = new omxState;
 
-	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
-			&Global->analyticGradients);
+	readOpts(options, &Global->numThreads, &Global->analyticGradients);
 
 	/* Retrieve All Matrices From the MatList */
 
@@ -353,8 +352,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	/* Create new omxState for current state storage and initialize it. */
 	omxState *globalState = new omxState;
 
-	readOpts(options, &Global->ciMaxIterations, &Global->numThreads, 
-			&Global->analyticGradients);
+	readOpts(options, &Global->numThreads, &Global->analyticGradients);
 #if HAS_NPSOL
 	omxSetNPSOLOpts(options);
 #endif
@@ -434,6 +432,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
+
+		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit) &&
+		    fc->inform != INFORM_STARTING_VALUES_INFEASIBLE) {
+			std::string diag = fc->getIterationError();
+			omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+		}
 	}
 
 	SEXP evaluations;

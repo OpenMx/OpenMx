@@ -38,6 +38,10 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 		l += cs.size;
 	}
+
+	if (verbose >= 3) {
+		mxPrintMat("constraints", constraintOut);
+	}
 }
 
 #ifdef  __cplusplus
@@ -85,10 +89,15 @@ void F77_SUB(npsolConstraintFunction)
 	NPSOL_GOpt->allConstraintsFun(cE);
 }
 
-void omxNPSOL(double *est, GradientOptimizerContext &rf)
+static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, int inequality)
 {
 	rf.optName = "NPSOL";
 	rf.setupAllBounds();
+	{
+		double ft = (equality+inequality)? Global->feasibilityTolerance : 1e-5;
+		std::string opt = string_snprintf("Feasibility tolerance %.8g", ft);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
 	if (std::isfinite(rf.ControlTolerance)) {
 		std::string opt = string_snprintf("Optimality tolerance %.8g", rf.ControlTolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
@@ -106,11 +115,8 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	FitContext *fc = rf.fc;
 	NPSOL_GOpt = &rf;
 
-    omxState *globalState = fc->state;
     int nclin = 0;
     int nlinwid = std::max(1, nclin);
-    int equality, inequality;
-    globalState->countNonlinearConstraints(equality, inequality);
     int ncnln = equality + inequality;
     int nlnwid = std::max(1, ncnln);
  
@@ -129,7 +135,6 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		}
 	}
 
-	fc->grad.resize(fc->numParam); // ensure memory is allocated
 	int n = int(fc->numParam);
  
         int nctotl = n + nlinwid + nlnwid;
@@ -209,6 +214,55 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	}
 
     NPSOL_GOpt = NULL;
+}
+
+void omxNPSOL(double *est, GradientOptimizerContext &rf)
+{
+	FitContext *fc = rf.fc;
+	Eigen::Map< Eigen::ArrayXd > Est(est, fc->numParam);
+	Eigen::ArrayXd startingPoint = Est;
+
+	if (rf.verbose >= 1) {
+		fc->copyParamToModel();
+		ComputeFit("NPSOL", rf.fitMatrix, FF_COMPUTE_FIT, fc);
+		mxLog("NPSOL: initial fit %f", fc->fit);
+	}
+
+	omxState *globalState = fc->state;
+	int equality, inequality;
+	globalState->countNonlinearConstraints(equality, inequality);
+
+	omxNPSOL1(est, rf, equality, inequality);
+
+	if (equality + inequality == 0) return;
+
+	const int maxRetries = 10;
+	int retry = 0;
+	double best = std::numeric_limits<double>::max();
+	while (++retry < maxRetries) {
+		fc->copyParamToModel();
+
+		Eigen::VectorXd cE(equality + inequality);
+		rf.allConstraintsFun(cE);
+
+		double norm = cE.norm();
+		if (rf.verbose >= 1) {
+			mxLog("NPSOL[%d]: fit %f feasibility constraints at %g (best %g)",
+			      retry, fc->fit, norm, best);
+		}
+		if (norm >= best) {
+			// NPSOL can jump off a cliff and get lost.
+			// Try to move back toward a more feasible region.
+			Est = (Est + startingPoint*4) / 5;
+		} else {
+			best = norm;
+		}
+		if (!(cE.array().abs() < Global->feasibilityTolerance).all()) {
+			omxNPSOL1(est, rf, equality, inequality);
+		} else {
+			break;
+		}
+	}
 }
 
 void omxSetNPSOLOpts(SEXP options)

@@ -304,7 +304,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
-		  .Object@availableEngines <- c("CSOLNP")
+		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
 		  }
@@ -322,17 +322,17 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'
 ##' This optimizer does not require analytic derivatives of the fit
 ##' function. The open-source version of OpenMx only offers 1 choice,
-##' CSOLNP (based on Ye, 1988).  The proprietary version of OpenMx
-##' offers the choice of two optimizers, CSOLNP and NPSOL.
+##' SLSQP (from the NLOPT collection).  The proprietary version of
+##' OpenMx offers the choice of two optimizers, SLSQP and NPSOL.
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param engine specific NPSOL or CSOLNP
+##' @param engine specific NPSOL or SLSQP
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @param useGradient whether to use the analytic gradient (if available)
-##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value
+##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @aliases
 ##' MxComputeGradientDescent-class
@@ -401,6 +401,8 @@ setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(
 	     plan = "MxCompute",
+	   fitfunction = "MxCharOrNumber",
+	     constraintType = "character",
 	     verbose = "integer"))
 
 setMethod("assignId", signature("MxComputeConfidenceInterval"),
@@ -432,6 +434,9 @@ setMethod("qualifyNames", signature("MxComputeConfidenceInterval"),
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
 		.Object
 	})
 
@@ -441,42 +446,68 @@ setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeConfidenceInterval",
-	  function(.Object, freeSet, plan, verbose) {
+	  function(.Object, freeSet, plan, verbose, fitfunction, constraintType) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@plan <- plan
 		  .Object@verbose <- verbose
+		  .Object@fitfunction <- fitfunction
+		  .Object@constraintType <- constraintType
 		  .Object
 	  })
 
 ##' Find likelihood-based confidence intervals
 ##'
-##' Add some description TODO
+##' There are various ways to pose an equivalent profile likelihood
+##' problem. For good performance, it is essential to tailor the
+##' problem to the abilities of the optimizer. The problem can be
+##' posed without the use of constraints. This is how the code worked
+##' in version 2.1 and prior. Although this way of posing the problem
+##' creates an ill-conditioned Hessian, NPSOL is somehow able to
+##' isolate the poor conditioning from the rest of the problem and
+##' optimize it quickly. However, SLSQP is not so clever and exhibits
+##' very poor performance. For SLSQP, good performance is contingent
+##' on posing the problem using an inequality constraint on the fit.
+##'
+##' Geometrically, SLSQP performs best on smooth likelihood surfaces
+##' with smooth derivatives. In the profile CI problem, the distance
+##' limit on the deviance is like a wall. Walls do not have smooth
+##' derivatives but are more like a step function. The point of
+##' \link{mxConstraint} is to isolate the parts of a problem that are
+##' geometrically non-smooth. Constraints are dealt with specially in
+##' SLSQP to best accommodate their sharp geometry.
 ##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
 ##' @param verbose level of debugging output
 ##' @param engine deprecated
-##' @param fitfunction deprecated
+##' @param fitfunction The deviance function to constrain with an inequality constraint.
 ##' @param tolerance deprecated
+##' @param constraintType ineq (default), eq, both, none
+##' @references
+##' Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
+##' \emph{Psychometrica.}
 ##' @aliases
 ##' MxComputeConfidenceInterval-class
 
 mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbose=0L,
 					engine=NULL, fitfunction='fitfunction',
-					tolerance=NA_real_) {
+					tolerance=NA_real_, constraintType='ineq') {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
 	}
 	verbose <- as.integer(verbose)
-	new("MxComputeConfidenceInterval", freeSet, plan, verbose)
+	new("MxComputeConfidenceInterval", freeSet, plan, verbose, fitfunction, constraintType)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),

@@ -30,5 +30,5 @@ omxCheckCloseEnough(omxGetParameters(m1), trueParam, 0.01)
  
 # Now: Switch to vector
 m2 <- mxModel(m1, mxFitFunctionML(vector = TRUE), name = "vector_is_TRUE")
-m2 <- omxCheckWarning(mxRun(m2), "vector_is_TRUE.fitfunction does not evaluate to a 1x1 matrix. Fixing model by adding mxAlgebra(-2*sum(log(vector_is_TRUE.fitfunction)), 'm2ll'), mxFitFunctionAlgebra('m2ll')")
+m2 <- omxCheckWarning(mxRun(m2, suppressWarnings=TRUE), "vector_is_TRUE.fitfunction does not evaluate to a 1x1 matrix. Fixing model by adding mxAlgebra(-2*sum(log(vector_is_TRUE.fitfunction)), 'm2ll'), mxFitFunctionAlgebra('m2ll')")
 omxCheckCloseEnough(omxGetParameters(m2), trueParam, 0.01)

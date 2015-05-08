@@ -176,7 +176,6 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
-	ciMaxIterations = 5;
 	numThreads = 1;
 	analyticGradients = 0;
 	llScale = -2.0;

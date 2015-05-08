@@ -36,6 +36,7 @@ enum OptEngine {
 
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
+	const char *engineName;
 	enum OptEngine engine;
 	omxMatrix *fitMatrix;
 	int verbose;
@@ -82,25 +83,21 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	optimalityTolerance = Rf_asReal(slotValue);
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
-	const char *engine_name = CHAR(Rf_asChar(slotValue));
-	if (strEQ(engine_name, "CSOLNP")) {
+	engineName = CHAR(Rf_asChar(slotValue));
+	if (strEQ(engineName, "CSOLNP")) {
 		engine = OptEngine_CSOLNP;
-	} else if (strEQ(engine_name, "NLOPT")) {
-#ifdef HAS_NLOPT
+	} else if (strEQ(engineName, "SLSQP")) {
 		engine = OptEngine_NLOPT;
-#else
-		Rf_error("NLOPT is not available in this build");
-#endif
-	} else if (strEQ(engine_name, "NPSOL")) {
+	} else if (strEQ(engineName, "NPSOL")) {
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
 		Rf_error("NPSOL is not available in this build");
 #endif
-	} else if(strEQ(engine_name, "SD")){
+	} else if(strEQ(engineName, "SD")){
 		engine = OptEngine_SD;
 	} else {
-		Rf_error("%s: engine %s unknown", name, engine_name);
+		Rf_error("%s: engine %s unknown", name, engineName);
 	}
 
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
@@ -129,7 +126,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
-    size_t numParam = varGroup->vars.size();
+	size_t numParam = varGroup->vars.size();
 	if (numParam <= 0) {
 		omxRaiseErrorf("%s: model has no free parameters", name);
 		return;
@@ -154,6 +151,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = Global->computeCount;
 
+	if (verbose >= 1) mxLog("%s: using engine %s (ID %d)", name, engineName, engine);
+
+	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
 	rf.fc = fc;
 	rf.fitMatrix = fitMatrix;
@@ -175,14 +175,16 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		omxNPSOL(fc->est, rf);
-		if (!hessChol) {
-			Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-		}
-		if (rf.hessOut.size()) {
+		fc->wanted |= FF_COMPUTE_GRADIENT;
+		if (rf.hessOut.size() && fitMatrix->currentState->conList.size() == 0) {
+			if (!hessChol) {
+				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
+			}
 			Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
 			hc = rf.hessOut;
 			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
+			fc->wanted |= FF_COMPUTE_HESSIAN;
 		}
 #endif
 		break;}
@@ -193,13 +195,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			fc->grad = rf.gradOut.tail(numParam);
 			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
+			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 		}
 		break;
-#ifdef HAS_NLOPT
         case OptEngine_NLOPT:
 		omxInvokeNLOPT(fc->est, rf);
+		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;
-#endif
         case OptEngine_SD:{
 		rf.fc->copyParamToModel();
 		rf.setupSimpleBounds();
@@ -213,10 +215,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			} else {
 			omxSD_AL(rf);       // constrained problems
 		}
+		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;}
         default: Rf_error("Optimizer %d is not available", engine);
 	}
-	fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 
 	fc->inform = rf.informOut;
 	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {
@@ -227,18 +229,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	fc->copyParamToModel();
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
 
-	if (verbose >= 1) {
+	if (verbose >= 2) {
 		mxLog("%s: final fit is %2f", name, fc->fit);
 		fc->log(FF_COMPUTE_ESTIMATE);
-	}
-
-	if (fitMatrix->rows == 1) {
-		if (!std::isfinite(fc->fit) || fc->fit == 1e24) {  // remove magic number 1e24 TODO
-			std::string diag = fc->getIterationError();
-			omxRaiseErrorf("MxComputeGradientDescent: fitfunction %s is not finite (%s)",
-				       fitMatrix->name, diag.c_str());
-			return;
-		}
 	}
 
 	fc->wanted |= FF_COMPUTE_BESTFIT;
@@ -248,7 +241,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
 
-	if (engine == OptEngine_NPSOL) {
+	if (engine == OptEngine_NPSOL && hessChol) {
 		out->add("hessianCholesky", hessChol);
 	}
 }
@@ -258,8 +251,12 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 class ComputeCI : public omxCompute {
 	typedef omxCompute super;
 	omxCompute *plan;
+	omxMatrix *fitMatrix;
 	int verbose;
-	SEXP intervals, intervalCodes;
+	SEXP intervals, intervalCodes, detail;
+	const char *ctypeName;
+	bool useInequality;
+	bool useEquality;
 
 public:
 	ComputeCI();
@@ -277,6 +274,9 @@ ComputeCI::ComputeCI()
 {
 	intervals = 0;
 	intervalCodes = 0;
+	detail = 0;
+	useInequality = false;
+	useEquality = false;
 }
 
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -288,6 +288,26 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(slotValue);
 	}
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("constraintType")));
+		ctypeName = CHAR(Rf_asChar(slotValue));
+		if (strEQ(ctypeName, "ineq")) {
+			useInequality = true;
+		} else if (strEQ(ctypeName, "eq")) {
+			useEquality = true;
+		} else if (strEQ(ctypeName, "both")) {
+			useEquality = true;
+			useInequality = true;
+		} else if (strEQ(ctypeName, "none")) {
+			// OK
+		} else {
+			Rf_error("%s: unknown constraintType='%s'", name, ctypeName);
+		}
+	}
+
+	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
+	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
+	omxCompleteFitFunction(fitMatrix);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
@@ -298,13 +318,72 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
 
+class ciConstraintIneq : public omxConstraint {
+ private:
+	typedef omxConstraint super;
+	omxMatrix *fitMat;
+ public:
+	ciConstraintIneq(omxMatrix *fitMat) : super("CI"), fitMat(fitMat)
+	{ size=1; opCode = LESS_THAN; };
+
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		double diff = std::max(fit - fc->targetFit, 0.0);
+		if (diff > 100) diff = nan("infeasible");
+		if (ineqType != opCode) diff = -diff;
+		//mxLog("fit %f diff %f", fit, diff);
+		out[0] = diff;
+	};
+};
+
+class ciConstraintEq : public omxConstraint {
+ private:
+	typedef omxConstraint super;
+	omxMatrix *fitMat;
+ public:
+	ciConstraintEq(omxMatrix *fitMat) : super("CI"), fitMat(fitMat)
+	{ size=1; opCode = EQUALITY; };
+
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		double diff = fit - fc->targetFit;
+		diff *= diff;
+		if (fabs(diff) > 100000) diff = nan("infeasible");
+		//mxLog("fit %f diff %f", fit, diff);
+		out[0] = diff;
+	};
+};
+
+void markAsDataFrame(SEXP list)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
+	Rf_setAttrib(list, R_ClassSymbol, classes);
+}
+
+// Optimization: For profile CIs of free parameters, the gradient for
+// the fit is trivial.  Many evaluations could be saved.
+
 void ComputeCI::computeImpl(FitContext *mle)
 {
+	if (intervals) Rf_error("Can only compute CIs once");
+
 	Global->unpackConfidenceIntervals();
 
+	// Not strictly necessary, but makes it easier to run
+	// mxComputeConfidenceInterval alone without other compute
+	// steps.
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
+
 	int numInts = (int) Global->intervalList.size();
-	if (verbose >= 1) mxLog("%s: starting work on %d intervals", name, numInts);
+	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (ref fit %f %s)",
+				name, numInts, fitMatrix->name, mle->fit, ctypeName);
 	if (!numInts) return;
+
+	if (!std::isfinite(mle->fit)) Rf_error("%s: reference fit is not finite", name);
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
 	if (mle->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->inform != INFORM_NOT_AT_OPTIMUM) {
@@ -316,16 +395,43 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
-	const int ciMaxIterations = Global->ciMaxIterations;
+	int totalIntervals = 0;
+	for(int j = 0; j < numInts; j++) {
+		omxConfidenceInterval *oCI = Global->intervalList[j];
+		totalIntervals += std::isfinite(oCI->lbound) + std::isfinite(oCI->ubound);
+	}
+
+	Rf_protect(detail = Rf_allocVector(VECSXP, 3 + mle->numParam));
+	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 1, Rf_allocVector(INTSXP, totalIntervals));
+	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
+		SET_VECTOR_ELT(detail, 2+cx, Rf_allocVector(REALSXP, totalIntervals));
+	}
+
+	SEXP detailCols;
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 3 + mle->numParam));
+	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
+	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
+	SET_STRING_ELT(detailCols, 1, Rf_mkChar("lower"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("fit"));
+	for (int nx=0; nx < int(mle->numParam); ++nx) {
+		SET_STRING_ELT(detailCols, 3+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
+	}
+
+	SEXP detailRowNames = Rf_allocVector(INTSXP, totalIntervals);
+	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
+	markAsDataFrame(detail);
+
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
 	const int n = int(freeVarGroup->vars.size());
+	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
 
-	if(OMX_DEBUG) { mxLog("Calculating likelihood-based confidence intervals."); }
+	ciConstraintEq constrEq(fitMatrix);
+	ciConstraintIneq constrIneq(fitMatrix);
 
-	const double objDiff = 1.e-4;     // TODO : Use function precision to determine CI jitter?
-
+	int detailRow = 0;
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
@@ -339,54 +445,62 @@ void ComputeCI::computeImpl(FitContext *mle)
 			if (!lower && !std::isfinite(currentCI->ubound)) continue;
 
 			// Reset to previous optimum
-			memcpy(fc.est, mle->est, n * sizeof(double));
+			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);
+			Est = Mle;
 
-			int tries = 0;
-			int inform = INFORM_UNINITIALIZED;
-			double bestFit = std::numeric_limits<double>::max();
+			double *store = lower? &currentCI->min : &currentCI->max;
 
-			while (inform!= 0 && ++tries <= ciMaxIterations) {
-				Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI (try %d)",
-							  matName, currentCI->row + 1, currentCI->col + 1,
-							  lower? "lower" : "upper", tries);
+			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
+						  matName, currentCI->row + 1, currentCI->col + 1,
+						  lower? "lower" : "upper");
 
-				fc.CI = currentCI;
-				fc.lowerBound = lower;
-				fc.fit = mle->fit;
-				plan->compute(&fc);
+			if (useInequality) mle->state->conList.push_back(&constrIneq);
+			if (useEquality)   mle->state->conList.push_back(&constrEq);
 
-				const double fitOut = fc.fit;
+			fc.CI = currentCI;
+			fc.compositeCIFunction = (!useInequality && !useEquality);
+			fc.lowerBound = lower;
+			fc.fit = mle->fit;
+			plan->compute(&fc);
 
-				if (fitOut < bestFit) {
-					omxRecompute(currentCI->matrix, &fc);
-					double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
-					if (lower) currentCI->min = val;
-					else       currentCI->max = val;
-					bestFit = fitOut;
-					if (verbose >= 2) mxLog("CI[%d,%d] bestFit %f bound %f",
-								i, lower,bestFit, val);
-				}
+			if (useInequality) mle->state->conList.pop_back();
+			if (useEquality)   mle->state->conList.pop_back();
 
-				inform = fc.inform;
-				if (lower) currentCI->lCode = inform;
-				else       currentCI->uCode = inform;
-				if(verbose>=1) { mxLog("CI[%d,%d] inform=%d", i, lower, inform);}
-				if(inform == 0) break;
+			omxRecompute(currentCI->matrix, &fc);
+			double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
 
-				bool jitter = TRUE;
-				for(int j = 0; j < n; j++) {
-					if(fabs(fc.est[j] - mle->est[j]) > objDiff) {
-						jitter = FALSE;
-						break;
-					}
-				}
-				if(jitter) {
-					for(int j = 0; j < n; j++) {
-						double sign = 2 * (tries % 2) - 1;
-						fc.est[j] = mle->est[j] + sign * objDiff * tries;
-					}
-				}
+			// We check the fit again so we can report it
+			// in the detail data.frame.
+			fc.CI = NULL;
+			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+
+			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+				       ((!std::isfinite(*store) ||
+					 (lower && val < *store) || (!lower && val > *store))));
+
+			if (better) {
+				*store = val;
 			}
+
+			int inform = fc.inform;
+			if (lower) currentCI->lCode = inform;
+			else       currentCI->uCode = inform;
+
+			if(verbose >= 1) {
+				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
+				      1+i, (lower?"lower":"upper"), matName, 1+currentCI->row, 1+currentCI->col,
+				      val, fc.fit - fc.targetFit, better);
+			}
+
+			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
+			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
+			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
+			REAL(VECTOR_ELT(detail, 2))[detailRow] = fc.fit;
+			for (int px=0; px < int(fc.numParam); ++px) {
+				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = Est[px];
+			}
+
+			++detailRow;
 		}
 	}
 
@@ -399,8 +513,13 @@ void ComputeCI::computeImpl(FitContext *mle)
 		omxConfidenceInterval *oCI = Global->intervalList[j];
 		omxRecompute(oCI->matrix, mle);
 		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
-		interval(j, 0) = std::min(oCI->min, interval(j, 1));
-		interval(j, 2) = std::max(oCI->max, interval(j, 1));
+		if (1) {
+			interval(j, 0) = std::min(oCI->min, interval(j, 1));
+			interval(j, 2) = std::max(oCI->max, interval(j, 1));
+		} else {
+			interval(j, 0) = oCI->min;
+			interval(j, 2) = oCI->max;
+		}
 		intervalCode[j] = oCI->lCode;
 		intervalCode[j + numInts] = oCI->uCode;
 	}
@@ -443,4 +562,8 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	Rf_setAttrib(intervalCodes, R_DimNamesSymbol, dimnames);
 
 	out->add("confidenceIntervalCodes", intervalCodes);
+
+	MxRList output;
+	output.add("detail", detail);
+	slots->add("output", output.asR());
 }

@@ -42,8 +42,8 @@ twinACEModel <- mxModel("twinACE",
 	# Matrix expMean for expected mean vector for MZ and DZ twins    
 	mxMatrix("Full", 1, 2, T, 20, "mean", name="expMean"), 
 	# Matrices X, Y, and Z to store the a, c, and e path coefficients
-	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=0 , label="a", name="X"),
-	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=0 , label="c", name="Y"),
+	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=.01 , label="a", name="X"),
+	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=.01 , label="c", name="Y"),
 	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, lbound=.1, ubound=10, label="e", name="Z"),
 	# Matrixes A, C, and E to compute A, C, and E variance components
 	mxAlgebra(X * t(X), name="A"),

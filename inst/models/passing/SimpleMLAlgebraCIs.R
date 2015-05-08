@@ -20,12 +20,13 @@ factorModel <- mxModel("One Factor ML",
 factorFitCI <- mxRun(factorModel, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 
+#print(factorFitCI$output$computes[[2]])
+
 ci <- factorFitCI$output$confidenceIntervals
-omxCheckCloseEnough(ci["One Factor ML.P[1,1]",], c(.419, .446, .474), .005)
-omxCheckCloseEnough(ci["One Factor ML.P[2,1]",], c(.508, .541, .575), .005)
-omxCheckCloseEnough(ci["One Factor ML.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(ci["One Factor ML.P[4,1]",], c(.687, .732, .778), .015)
-omxCheckCloseEnough(ci["One Factor ML.P[5,1]",], c(.770, .820, .872), .005)
+#cat(deparse(round(ci[,'lbound'], 4)))
+omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
+omxCheckCloseEnough(ci[,'lbound'], c(0.4174, 0.5082, 0.5755, 0.6872, 0.7704), 2e-2)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.7781, 0.8723), 4e-2)
 
 factorModelRaw <- mxModel(factorFitCI,
                           mxData(demoOneFactor, type="raw"),
@@ -36,11 +37,9 @@ factorFitRawCI <- mxRun(factorModelRaw, intervals=TRUE, suppressWarnings = TRUE)
 factorSummRawCI <- summary(factorFitRawCI)
 
 ci <- factorFitRawCI$output$confidenceIntervals
-omxCheckCloseEnough(ci["One Factor FIML.P[1,1]",], c(.419, .446, .474), .005)
-omxCheckCloseEnough(ci["One Factor FIML.P[2,1]",], c(.508, .541, .575), .005)
-omxCheckCloseEnough(ci["One Factor FIML.P[3,1]",], c(.575, .613, .651), .005)
-omxCheckCloseEnough(ci["One Factor FIML.P[4,1]",], c(.687, .732, .778), .005)
-omxCheckCloseEnough(ci["One Factor FIML.P[5,1]",], c(.770, .820, .872), .005)
+omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
+omxCheckCloseEnough(ci[,'lbound'], c(0.4193, 0.5082, 0.5755, 0.6872, 0.7704), 1e-3)
+omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.7781, 0.8723), 1e-3)
 
 # Compare to original MX Estimates
 #          5  Confidence intervals requested in group            1
