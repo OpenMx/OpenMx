@@ -2478,6 +2478,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      slsqpb_state state = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,NULL};
      unsigned mtot = nlopt_count_constraints(m, fc);
      unsigned ptot = nlopt_count_constraints(p, h);
+     int constrained = (m+p) > 0;
      double *work, *cgrad, *c, *grad, *w, *cgradtmp;
      int mpi = (int) (mtot + ptot), pi = (int) ptot,  ni = (int) n, mpi1 = mpi > 0 ? mpi : 1;
      int len_w, len_jw, *jw;
@@ -2489,7 +2490,6 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      unsigned max_cdim;
      int want_grad = 1;
      struct estimate cur, minor, major;
-     int foundBetterSpot = 0;
      
      max_cdim = MAX2(nlopt_max_constraint_dim(m, fc),
 		    nlopt_max_constraint_dim(p, h));
@@ -2526,23 +2526,20 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	     and is the only time we should check convergence (as in original slsqp code) */
 	  if (mode == -1 && !nlopt_isinf(minor.fval)) {
 		  estimate_copy(&cur, &minor);
-		  //printf("best minor %f %f\n", minor.fval, minor.infeasibility);
+		  //printf("best minor %f %f feasible %d\n",
+		  //minor.fval, minor.infeasibility, minor.feasible);
 
-		  if (minor.feasible || !foundBetterSpot) {
-			  //printf("check major %f %f\n", minor.fval, minor.infeasibility);
+		  if (!constrained || (constrained && minor.feasible)) {
 			  if (!nlopt_isinf(major.fval)) {
+				  //printf("check major %f %f\n", minor.fval, minor.infeasibility);
 				  if (nlopt_stop_ftol(stop, minor.fval, major.fval))
 					  ret = NLOPT_FTOL_REACHED;
 				  else if (nlopt_stop_x(stop, minor.par, major.par))
 					  ret = NLOPT_XTOL_REACHED;
-				  if (ret != NLOPT_SUCCESS) goto done;
 			  }
 			  estimate_copy(&major, &minor);
+			  if (ret != NLOPT_SUCCESS) goto done;
 		  }
-
-		  /* prep for new minor iteration */
-		  minor.feasible = 0;
-		  foundBetterSpot = 0;
 	  }
 
 	  switch (mode) {
@@ -2647,18 +2644,12 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	  }
 	  prev_mode = mode;
 
-	  /* printf("check minor: fval %f < %f %d infe %f < %f %d\n", */
-	  /* 	 cur.fval, minor.fval, cur.fval < minor.fval, */
-	  /* 	 cur.infeasibility,  minor.infeasibility, cur.infeasibility < minor.infeasibility); */
-
 	  /* update best point so far */
-	  if (nlopt_isfinite(cur.fval) &&
-	      ((cur.fval < minor.fval && (cur.feasible || !minor.feasible))
-	       || (!minor.feasible && cur.infeasibility < minor.infeasibility))) {
+	  if (nlopt_isfinite(cur.fval) && nlopt_isfinite(cur.infeasibility) &&
+	      !(cur.fval >= minor.fval && cur.infeasibility >= minor.infeasibility)) {
 
-		  //printf("best eval so far %f %f\n", cur.fval, cur.infeasibility);
+		  //printf("best eval so far %f %f feasible %d\n", cur.fval, cur.infeasibility, cur.feasible);
 		  estimate_copy(&minor, &cur);
-		  foundBetterSpot = 1;
 	  }
 
 	  /* do some additional termination tests */
