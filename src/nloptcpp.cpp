@@ -138,7 +138,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	globalState->countNonlinearConstraints(eq, ieq);
 
 	if (fc->CI) {
-		nlopt_set_xtol_rel(opt, 1e-4);
+		nlopt_set_xtol_rel(opt, 5e-3);
 		std::vector<double> tol(fc->numParam, std::numeric_limits<double>::epsilon());
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
