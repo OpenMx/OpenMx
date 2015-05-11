@@ -210,6 +210,7 @@ class omxGlobal {
 	bool rowLikelihoodsWarning;
 	double feasibilityTolerance;
 	double optimalityTolerance;
+	int majorIterations;
 
 	double maxptsa;
 	double maxptsb;

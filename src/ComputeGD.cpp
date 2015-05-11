@@ -40,6 +40,7 @@ class omxComputeGD : public omxCompute {
 	omxMatrix *fitMatrix;
 	int verbose;
 	double optimalityTolerance;
+	int maxIter;
 
 	bool useGradient;
 	SEXP hessChol;
@@ -120,6 +121,13 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 		warmStartSize = rows;
 		warmStart = REAL(slotValue);
+	}
+
+	ScopedProtect p7(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
+	if (Rf_length(slotValue)) {
+		maxIter = Rf_asInteger(slotValue);
+	} else {
+		maxIter = -1; // different engines have different defaults
 	}
 }
 
@@ -207,12 +215,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.setupIneqConstraintBounds();
 		rf.solEqBFun();
 		rf.myineqFun();
-		int MAXIT = 50000;
-		if(rf.inequality.size() == 0 && rf.equality.size() == 0)
-			{
-				omxSD(rf, MAXIT);   // unconstrained problems
-			} else {
-			omxSD_AL(rf);       // constrained problems
+		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
+			omxSD(rf, maxIter);   // unconstrained problems
+		} else {
+			omxSD_AL(rf, maxIter);       // constrained problems
 		}
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;}

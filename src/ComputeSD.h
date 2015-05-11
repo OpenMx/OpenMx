@@ -10,6 +10,6 @@
 #include "matrix.h"
 
 void omxSD(GradientOptimizerContext &, int);
-void omxSD_AL(GradientOptimizerContext &);
+void omxSD_AL(GradientOptimizerContext &, int);
 
 #endif

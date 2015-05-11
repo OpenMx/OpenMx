@@ -17,6 +17,8 @@ struct fit_functional {
 
 void omxSD(GradientOptimizerContext &rf, int maxIter)
 {
+	if (maxIter == -1) maxIter = 50000;
+
 	FitContext *fc = rf.fc;
     int iter = 0;
 	double priorSpeed = 1.0, shrinkage = 0.7;
@@ -242,8 +244,10 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
     return;
 }
 
-void omxSD_AL(GradientOptimizerContext &rf)
+void omxSD_AL(GradientOptimizerContext &rf, int maxIter)
 {
+	if (maxIter == -1) maxIter = 50000;
+
     double ICM = HUGE_VAL;
     /* magic parameters from Birgin & Martinez */
     const double tau = 0.5, gam = 10;
@@ -279,7 +283,7 @@ void omxSD_AL(GradientOptimizerContext &rf)
     int iter = 0, minorIter = 1000;
     Eigen::VectorXd V(ineq_size);
 
-    do{
+    while (1) {
         iter++;
         double ICM_tol = 1e-4;
         double prev_ICM = ICM;
@@ -317,7 +321,11 @@ void omxSD_AL(GradientOptimizerContext &rf)
             if(rf.verbose >= 1) mxLog("Augmented lagrangian coverges!");
             return;
         }
-    } while (1);
+	if (iter >= maxIter) {
+		rf.informOut = INFORM_ITERATION_LIMIT;
+		break;
+	}
+    }
 }
 
 

@@ -246,6 +246,8 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->feasibilityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
 				Global->optimalityTolerance = atof(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "Major iterations")) {
+				Global->majorIterations = atoi(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP")) {
 				CSOLNPOpt_majIter(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP")) {
