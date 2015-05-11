@@ -25,7 +25,6 @@
 #include "npsolswitch.h"
 #include "glue.h"
 #include "ComputeSD.h"
-#include "ComputeSD_AL.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
