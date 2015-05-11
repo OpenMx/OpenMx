@@ -44,6 +44,10 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
 		Egrad = fc->grad;
+	} else if (fc->CI && fc->CI->varIndex >= 0) {
+		Egrad.setZero();
+		Egrad[fc->CI->varIndex] = fc->lowerBound? 1 : -1;
+		fc->grad = Egrad;
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);

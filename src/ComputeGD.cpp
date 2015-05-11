@@ -440,6 +440,10 @@ void ComputeCI::computeImpl(FitContext *mle)
 			matName = currentCI->matrix->name;
 		}
 
+		if (useInequality || useEquality) {
+			currentCI->varIndex = freeVarGroup->lookupVar(currentCI->matrix, currentCI->row, currentCI->col);
+		}
+
 		for (int lower=0; lower <= 1; ++lower) {
 			if (lower  && !std::isfinite(currentCI->lbound)) continue;
 			if (!lower && !std::isfinite(currentCI->ubound)) continue;

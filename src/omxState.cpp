@@ -57,6 +57,24 @@ bool FreeVarGroup::hasSameVars(FreeVarGroup *g2)
 	return true;
 }
 
+int FreeVarGroup::lookupVar(int matrix, int row, int col)
+{
+	for (size_t vx=0; vx < vars.size(); ++vx) {
+		std::vector<omxFreeVarLocation> &locations = vars[vx]->locations;
+		for (size_t lx=0; lx < locations.size(); lx++) {
+			const omxFreeVarLocation &loc = locations[lx];
+			if (loc.matrix != matrix) continue;
+			if (loc.row == row && loc.col == col) return vx;
+		}
+	}
+	return -1;
+}
+
+int FreeVarGroup::lookupVar(omxMatrix *matrix, int row, int col)
+{
+	return lookupVar(~matrix->matrixNumber, row, col);
+}
+
 int FreeVarGroup::lookupVar(const char *name)
 {
 	for (size_t vx=0; vx < vars.size(); ++vx) {

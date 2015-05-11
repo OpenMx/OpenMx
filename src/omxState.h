@@ -98,6 +98,8 @@ struct FreeVarGroup {
 	std::vector<bool> locations;
 
 	int lookupVar(const char *name);  // index or -1 if not found
+	int lookupVar(int matrix, int row, int col);
+	int lookupVar(omxMatrix *matrix, int row, int col);
 	void cacheDependencies(omxState *os);
 	void markDirty(omxState *os);
 	void log(omxState *os);
@@ -184,6 +186,7 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	const char *name;
 	omxMatrix* matrix;				// The matrix
 	int row, col;					// Location of element to calculate
+	int varIndex;
 	double ubound;					// Fit-space upper boundary
 	double lbound;					// Fit-space lower boundary
 	double max;						// Value at upper bound
