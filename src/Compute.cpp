@@ -1420,8 +1420,8 @@ void omxCompute::compute(FitContext *fc)
 	narrow->inform = INFORM_UNINITIALIZED;
 	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
 	computeImpl(narrow);
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d", name, varGroup->id[0]); }
 	fc->inform = std::max(origInform, narrow->inform);
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->inform); }
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);

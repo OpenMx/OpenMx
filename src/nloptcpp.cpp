@@ -31,6 +31,9 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	assert(n == fc->numParam);
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
+	if (grad && goc->verbose >= 2) {
+		mxLog("major iteration fit=%.12f", fit);
+	}
 	if (mode == -1) {
 		if (!goc->feasible) {
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
@@ -107,6 +110,13 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
+	if (grad && goc->verbose >= 2) {
+		if (m == 1) {
+			mxLog("major iteration ineq=%.12f", Eresult[0]);
+		} else {
+			mxPrintMat("major iteration ineq", Eresult);
+		}
+	}
 	inequality_functional ff(*goc);
 	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
 	if (grad && !std::isfinite(Eresult.sum())) {
@@ -177,24 +187,20 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 
 	fc->wanted = oldWanted;
 
-	// fatal errors
 	if (code == NLOPT_INVALID_ARGS) {
 		Rf_error("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
 		Rf_error("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
 		goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
+		goc.informOut = INFORM_UNCONVERGED_OPTIMUM;  // is this correct? TODO
 	} else if (code < 0) {
 		Rf_error("NLOPT fatal error %d", code);
-	}
-
-	// non-fatal errors
-	if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
+	} else if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
 		goc.informOut = INFORM_NOT_AT_OPTIMUM;
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
-	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		goc.informOut = INFORM_UNCONVERGED_OPTIMUM;  // is this correct? TODO
 	} else {
 		goc.informOut = INFORM_CONVERGED_OPTIMUM;
 	}

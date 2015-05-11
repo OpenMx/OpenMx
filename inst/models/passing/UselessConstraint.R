@@ -24,7 +24,7 @@ factorModelPath <- mxModel("OneFactorPath",
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Count",1)
 factorFit <- try(mxRun(factorModelPath), silent = TRUE)
 
-if (is(factorFit, "try-error")) {
+if (factorFit$output$status$code != 0) {
   # good
 } else {
   # Any constraints that show up here by mistake will have a zero gradient.

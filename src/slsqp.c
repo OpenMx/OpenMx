@@ -2499,6 +2499,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      nlopt_result ret = NLOPT_SUCCESS;
      unsigned max_cdim;
      int want_grad = 1;
+     int makingProgress = 0;
      struct estimate cur, minor, major;
      
      max_cdim = MAX2(nlopt_max_constraint_dim(m, fc),
@@ -2536,6 +2537,10 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	     and is the only time we should check convergence (as in original slsqp code).
 	     We also check if slsqp failed to determine a search direction.
 	  */
+	  if (mode == -1 && !makingProgress) {
+		  ret = NLOPT_ROUNDOFF_LIMITED;
+		  goto done;
+	  }
 	  if ((mode == -1 && !nlopt_isinf(minor.fval)) || !nlopt_isfinite(cur.par[0])) {
 		  estimate_copy(&cur, &minor);
 		  //printf("best minor %f %f feasible %d\n",
@@ -2552,6 +2557,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			  estimate_copy(&major, &minor);
 			  if (ret != NLOPT_SUCCESS) goto done;
 		  }
+		  makingProgress = 0;
 	  }
 
 	  switch (mode) {
@@ -2662,6 +2668,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 
 		  //printf("best eval so far %f %f feasible %d\n", cur.fval, cur.infeasibility, cur.feasible);
 		  estimate_copy(&minor, &cur);
+		  makingProgress = 1;
 	  }
 
 	  /* do some additional termination tests */
