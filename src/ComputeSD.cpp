@@ -63,14 +63,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
 		if (nextEst == prevEst) break;
 		prevEst = nextEst;
 
-		if(rf.verbose >= 4){
-			for(int index = 0; index < int(fc->numParam); index++) {
-				if(nextEst[index] == rf.solLB[index])
-					mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
-				if(nextEst[index] == rf.solUB[index])
-					mxLog("paramter %i hit upper bound %f", index, rf.solUB[index]);
-			}
-		}
+		rf.checkActiveBoxConstraints(nextEst);
 
 		int mode = 0;
 		double fit = rf.solFun(nextEst.data(), &mode);
@@ -209,15 +202,8 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
 
                 currEst = prevEst - alpha * searchDir / searchDir.norm();
                 currEst = currEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
-                if(rf.verbose >= 2){
-                    for(int index = 0; index < int(rf.fc->numParam); index++)
-                    {
-                        if(currEst[index] == rf.solLB[index])
-                            mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
-                        if(currEst[index] == rf.solUB[index])
-                            mxLog("paramter %i hit upper bound %f", index, rf.solUB[index]);
-                    }
-                }
+
+		rf.checkActiveBoxConstraints(currEst);
 
                 SD_AL(rf, rho, lambda, mu);
                 phi = rf.fc->fit;
@@ -236,15 +222,9 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
 
                 currEst = prevEst - alpha * searchDir / searchDir.norm();
                 currEst = currEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
-                if(rf.verbose >= 2){
-                    for(int index = 0; index < int(rf.fc->numParam); index++)
-                    {
-                        if(currEst[index] == rf.solLB[index])
-                            mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
-                        if(currEst[index] == rf.solUB[index])
-                            mxLog("paramter %i hit upper bound %f", index, rf.solUB[index]);
-                    }
-                }
+
+		rf.checkActiveBoxConstraints(currEst);
+
                 SD_AL(rf, rho, lambda, mu);
                 phi = rf.fc->fit;
             }while(phi > dashline);

@@ -272,7 +272,21 @@ class GradientOptimizerContext {
 	void solEqBFun();
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
+	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 };
+
+template <typename T1>
+void GradientOptimizerContext::checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst)
+{
+	if(verbose < 4) return;
+
+	for (int index = 0; index < int(fc->numParam); index++) {
+		if(nextEst[index] == solLB[index])
+			mxLog("paramter %i hit lower bound %f", index, solLB[index]);
+		if(nextEst[index] == solUB[index])
+			mxLog("paramter %i hit upper bound %f", index, solUB[index]);
+	}
+}
 
 typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);
 

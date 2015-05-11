@@ -129,6 +129,7 @@ struct Param_Obj;
 void pda(const double *ar, int rows, int cols);
 void pia(const int *ar, int rows, int cols);
 std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogBig(const std::string &str);
 
 static inline int triangleLoc1(int diag)
