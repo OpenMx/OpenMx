@@ -2531,8 +2531,10 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 		&state);
 
 	  /* note: mode == -1 corresponds to the completion of a line search,
-	     and is the only time we should check convergence (as in original slsqp code) */
-	  if (mode == -1 && !nlopt_isinf(minor.fval)) {
+	     and is the only time we should check convergence (as in original slsqp code).
+	     We also check if slsqp failed to determine a search direction.
+	  */
+	  if ((mode == -1 && !nlopt_isinf(minor.fval)) || !nlopt_isfinite(cur.par[0])) {
 		  estimate_copy(&cur, &minor);
 		  //printf("best minor %f %f feasible %d\n",
 		  //minor.fval, minor.infeasibility, minor.feasible);
