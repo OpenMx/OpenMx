@@ -2040,8 +2040,11 @@ L190:
     *mode = 1;
     goto L330;
 L200:
+    if (line > maxLineSearchIterations) {
+	    goto L240;
+    }
     if (nlopt_isfinite(h1)) {
-	    if (h1 <= h3 / ten || line > maxLineSearchIterations) {
+	    if (h1 <= h3 / ten) {
 		    goto L240;
 	    }
 	    /* Computing MAX */
