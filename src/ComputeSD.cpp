@@ -88,6 +88,9 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
             break;
         }
     }
+    if ((fc->grad.array().abs() > 0.1).any()) {
+	    rf.informOut = INFORM_NOT_AT_OPTIMUM;
+    }
     if (iter >= maxIter - 1) {
             rf.informOut = INFORM_ITERATION_LIMIT;
             if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
