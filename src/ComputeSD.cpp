@@ -1,6 +1,7 @@
 /* Steepest Descent optimizer for unconstrained problems*/
 
 #include "ComputeSD.h"
+#include "finiteDifferences.h"
 
 static void SD_grad(GradientOptimizerContext &rf, double eps)
 {
@@ -19,46 +20,7 @@ static void SD_grad(GradientOptimizerContext &rf, double eps)
         grad[px] = (rf.fc->fit - refFit) / eps;
         p1 = p2;
     }
-    rf.fc->copyParamToModel();
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
     rf.fc->grad = grad;
-}
-
-static bool FitCompare(GradientOptimizerContext &rf, double speed)
-{
-    Eigen::Map< Eigen::VectorXd > currEst(rf.fc->est, rf.fc->numParam);
-    Eigen::VectorXd prevEst = currEst;
-
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
-    if (std::isnan(rf.fc->fit))
-    {
-        rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
-        return FALSE;
-    }
-    double refFit = rf.fc->fit;
-
-    Eigen::VectorXd searchDir = rf.fc->grad;
-    currEst = prevEst - speed * searchDir / searchDir.norm();
-    currEst = currEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
-    if(rf.verbose >= 2){
-        for(int index = 0; index < int(rf.fc->numParam); index++)
-        {
-            if(currEst[index] == rf.solLB[index])
-                mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
-            if(currEst[index] == rf.solUB[index])
-                mxLog("paramter %i hit upper bound %f", index, rf.solUB[index]);
-        }
-    }
-
-    rf.fc->copyParamToModel();
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
-    double newFit = rf.fc->fit;
-
-    if(newFit < refFit) return newFit < refFit;
-    currEst = prevEst;
-    rf.fc->copyParamToModel();
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
-    return newFit < refFit;
 }
 
 void omxSD(GradientOptimizerContext &rf, int maxIter)
@@ -67,52 +29,73 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
 	double priorSpeed = 1.0, shrinkage = 0.7, epsilon = 1e-9;
     rf.setupSimpleBounds();
     rf.informOut = INFORM_UNINITIALIZED;
-    rf.fc->copyParamToModel();
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);  // To check isErrorRaised()
 
-	while(iter < maxIter && !isErrorRaised())
-	{
-        SD_grad(rf, epsilon);
+    int mode = 1;
+    rf.solFun(rf.fc->est, &mode);
+    if (mode == -1) {
+	    rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+	    return;
+    }
+    double refFit = rf.fc->fit;
+
+    Eigen::Map< Eigen::VectorXd > currEst(rf.fc->est, rf.fc->numParam);
+
+    while(iter < maxIter && !isErrorRaised()) {
+	    Eigen::VectorXd majorEst = currEst;
+	    SD_grad(rf, epsilon);
+	    if (rf.verbose >= 3) mxPrintMat("grad", rf.fc->grad);
+
         if(rf.fc->grad.norm() == 0)
         {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
             if(rf.verbose >= 2) mxLog("After %i iterations, gradient achieves zero!", iter);
             break;
         }
-        bool findit = FitCompare(rf, priorSpeed);
 
         int retries = 300;
         double speed = priorSpeed;
-        while (--retries > 0 && !findit && !isErrorRaised()){
-            speed *= shrinkage;
-            findit = FitCompare(rf, speed);
+	bool foundBetter = false;
+	Eigen::VectorXd prevEst(currEst.size());
+	prevEst.setConstant(nan("uninit"));
+        while (--retries > 0 && !isErrorRaised()){
+		Eigen::VectorXd &searchDir = rf.fc->grad;
+		Eigen::VectorXd nextEst = majorEst - speed * searchDir / searchDir.norm();
+		nextEst = nextEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
+
+		if (nextEst == prevEst) break;
+		prevEst = nextEst;
+
+		if(rf.verbose >= 4){
+			for(int index = 0; index < int(rf.fc->numParam); index++) {
+				if(nextEst[index] == rf.solLB[index])
+					mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
+				if(nextEst[index] == rf.solUB[index])
+					mxLog("paramter %i hit upper bound %f", index, rf.solUB[index]);
+			}
+		}
+
+		int mode = 0;
+		double fit = rf.solFun(nextEst.data(), &mode);
+		if (fit < refFit) {
+			foundBetter = true;
+			refFit = rf.fc->fit;
+			priorSpeed = speed * 1.1;
+			iter++;
+			break;
+		}
+		speed *= shrinkage;
         }
-        if(findit){
-            priorSpeed = speed * 1.1;
-            iter++;
-            if(iter == maxIter){
-                rf.informOut = INFORM_ITERATION_LIMIT;
-                if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
-                break;
-            }
-        }
-        else if (iter == 0){
-            if(rf.verbose >= 2) mxLog("Infeasbile starting values!");
-            break;
-        }
-        else if (iter == maxIter - 1){
-            rf.informOut = INFORM_ITERATION_LIMIT;
-            if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
-            break;
-        }
-        else {
+        if (!foundBetter) {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
             if(rf.verbose >= 2) mxLog("After %i iterations, cannot find better estimation along the gradient direction", iter);
             break;
         }
     }
+    if (iter >= maxIter - 1) {
+            rf.informOut = INFORM_ITERATION_LIMIT;
+            if(rf.verbose >= 2) mxLog("Maximum iteration achieved!");
+    }
     if(rf.verbose >= 1) mxLog("Status code : %i", rf.informOut);
-    return;
 }
 
 /* Steepest Descent optimizer for constrained problems */
