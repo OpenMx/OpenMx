@@ -3,49 +3,46 @@
 #include "ComputeSD.h"
 #include "finiteDifferences.h"
 
-static void SD_grad(GradientOptimizerContext &rf, double eps)
-{
-    rf.fc->copyParamToModel();
-    ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
+struct fit_functional {
+	GradientOptimizerContext &goc;
 
-    const double refFit = rf.fc->fit;
-    Eigen::Map< Eigen::VectorXd > p1(rf.fc->est, rf.fc->numParam);
-    Eigen::VectorXd p2 = p1;
-    Eigen::VectorXd grad(rf.fc->numParam);
+	fit_functional(GradientOptimizerContext &goc) : goc(goc) {};
 
-    for (int px = 0; px < int(rf.fc->numParam); px++) {
-        p1[px] += eps;
-        rf.fc->copyParamToModel();
-        ComputeFit("Steepest Descent", rf.fitMatrix, FF_COMPUTE_FIT, rf.fc);
-        grad[px] = (rf.fc->fit - refFit) / eps;
-        p1 = p2;
-    }
-    rf.fc->grad = grad;
-}
+	template <typename T1>
+	double operator()(Eigen::MatrixBase<T1>& x) const {
+		int mode = 0;
+		return goc.solFun(x.derived().data(), &mode);
+	}
+};
 
 void omxSD(GradientOptimizerContext &rf, int maxIter)
 {
+	FitContext *fc = rf.fc;
     int iter = 0;
-	double priorSpeed = 1.0, shrinkage = 0.7, epsilon = 1e-9;
+	double priorSpeed = 1.0, shrinkage = 0.7;
     rf.setupSimpleBounds();
     rf.informOut = INFORM_UNINITIALIZED;
 
     int mode = 1;
-    rf.solFun(rf.fc->est, &mode);
+    rf.solFun(fc->est, &mode);
     if (mode == -1) {
 	    rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
 	    return;
     }
-    double refFit = rf.fc->fit;
+    double refFit = fc->fit;
 
-    Eigen::Map< Eigen::VectorXd > currEst(rf.fc->est, rf.fc->numParam);
+    fc->grad.resize(fc->numParam);
+
+    fit_functional ff(rf);
+    Eigen::Map< Eigen::VectorXd > currEst(fc->est, fc->numParam);
 
     while(iter < maxIter && !isErrorRaised()) {
 	    Eigen::VectorXd majorEst = currEst;
-	    SD_grad(rf, epsilon);
-	    if (rf.verbose >= 3) mxPrintMat("grad", rf.fc->grad);
+	    fd_gradient(ff, majorEst, fc->grad);
 
-        if(rf.fc->grad.norm() == 0)
+	    if (rf.verbose >= 3) mxPrintMat("grad", fc->grad);
+
+        if(fc->grad.norm() == 0)
         {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
             if(rf.verbose >= 2) mxLog("After %i iterations, gradient achieves zero!", iter);
@@ -58,7 +55,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
 	Eigen::VectorXd prevEst(currEst.size());
 	prevEst.setConstant(nan("uninit"));
         while (--retries > 0 && !isErrorRaised()){
-		Eigen::VectorXd &searchDir = rf.fc->grad;
+		Eigen::VectorXd &searchDir = fc->grad;
 		Eigen::VectorXd nextEst = majorEst - speed * searchDir / searchDir.norm();
 		nextEst = nextEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
 
@@ -66,7 +63,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
 		prevEst = nextEst;
 
 		if(rf.verbose >= 4){
-			for(int index = 0; index < int(rf.fc->numParam); index++) {
+			for(int index = 0; index < int(fc->numParam); index++) {
 				if(nextEst[index] == rf.solLB[index])
 					mxLog("paramter %i hit lower bound %f", index, rf.solLB[index]);
 				if(nextEst[index] == rf.solUB[index])
@@ -78,7 +75,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
 		double fit = rf.solFun(nextEst.data(), &mode);
 		if (fit < refFit) {
 			foundBetter = true;
-			refFit = rf.fc->fit;
+			refFit = fc->fit;
 			priorSpeed = speed * 1.1;
 			iter++;
 			break;
