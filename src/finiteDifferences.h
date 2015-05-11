@@ -2,9 +2,8 @@
 #define _finiteDifferences_H_
 
 template <typename T1, typename T2, typename T3>
-void fd_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
+void fd_gradient_with_ref(T1 ff, double refFit, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
 {
-	const double refFit = ff(point);  // maybe could avoid this? TODO
         const double eps = 1e-5;
 	
 	Eigen::VectorXd p2;
@@ -14,6 +13,13 @@ void fd_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gra
 		p2[px] += offset;
 		gradOut[px] = (ff(p2) - refFit) / offset;
 	}
+}
+
+template <typename T1, typename T2, typename T3>
+void fd_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
+{
+	const double refFit = ff(point);
+	fd_gradient_with_ref(ff, refFit, point, gradOut);
 }
 
 template <typename T1, typename T2, typename T3, typename T4>

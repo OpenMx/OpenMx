@@ -23,7 +23,7 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
     rf.setupSimpleBounds();
     rf.informOut = INFORM_UNINITIALIZED;
 
-    int mode = 1;
+    int mode = 0;
     rf.solFun(fc->est, &mode);
     if (mode == -1) {
 	    rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
@@ -37,8 +37,9 @@ void omxSD(GradientOptimizerContext &rf, int maxIter)
     Eigen::Map< Eigen::VectorXd > currEst(fc->est, fc->numParam);
 
     while(iter < maxIter && !isErrorRaised()) {
+	    fc->iterations += 1;
 	    Eigen::VectorXd majorEst = currEst;
-	    fd_gradient(ff, majorEst, fc->grad);
+	    fd_gradient_with_ref(ff, refFit, majorEst, fc->grad);
 
 	    if (rf.verbose >= 3) mxPrintMat("grad", fc->grad);
 
