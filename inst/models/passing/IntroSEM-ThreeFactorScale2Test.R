@@ -186,13 +186,10 @@ expectMin <- 7699.145
 print(max(abs(as.vector(threeFactorObliqueRaw2Out$output$standardErrors))))
 omxCheckCloseEnough(expectVal2, threeFactorObliqueRaw1Out$output$estimate, 0.001)
 
-omxCheckCloseEnough(expectSE2, 
-    as.vector(threeFactorObliqueRaw1Out$output$standardError), 0.001)
-
 omxCheckCloseEnough(expectMin, threeFactorObliqueRaw1Out$output$minimum, 0.001)
 
-
-
+omxCheckCloseEnough(c((threeFactorObliqueRaw1Out$output$standardError - expectSE2)/expectSE2),
+                    rep(0,length(expectSE2)), 0.01)
 
 #------------------
 # Check values: threeFactorObliqueRaw2Out
@@ -215,7 +212,8 @@ expectMin <- 7699.195
 
 omxCheckCloseEnough(expectVal3, threeFactorObliqueRaw2Out$output$estimate, 0.001)
 
-omxCheckWithinPercentError(as.vector(threeFactorObliqueRaw2Out$output$standardErrors), expectSE3, 1)
+omxCheckCloseEnough(c((threeFactorObliqueRaw2Out$output$standardErrors - expectSE3)/expectSE3),
+                           rep(0, length(expectSE3)), 0.015)
 
 omxCheckCloseEnough(expectMin, threeFactorObliqueRaw2Out$output$minimum, 0.001)
 

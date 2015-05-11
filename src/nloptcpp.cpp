@@ -31,7 +31,6 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	assert(n == fc->numParam);
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
-	if (goc->verbose >= 3) mxLog("fit %f", fit);
 	if (mode == -1) {
 		if (!goc->feasible) {
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
@@ -46,6 +45,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
 		Egrad = fc->grad;
 	} else {
+		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
 		fd_gradient(ff, Epoint, Egrad);
 		fc->grad = Egrad;
@@ -138,11 +138,14 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	globalState->countNonlinearConstraints(eq, ieq);
 
 	if (fc->CI) {
-		nlopt_set_xtol_rel(opt, 1e-2);
-		std::vector<double> tol(fc->numParam, 1e-3);
+		nlopt_set_xtol_rel(opt, 5e-3);
+		std::vector<double> tol(fc->numParam, std::numeric_limits<double>::epsilon());
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
-		nlopt_set_ftol_rel(opt, Global->optimalityTolerance);
+		// The 0.01 factor is a bit ridiculous. NPSOL doesn't
+		// have the same definition of relative tolerance
+		// compare to SLSQP.
+		nlopt_set_ftol_rel(opt, Global->optimalityTolerance * 0.01);
 		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         
@@ -182,7 +185,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	}
 
 	// non-fatal errors
-	if ((fc->grad.array().abs() > 0.1).any()) {
+	if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
 		goc.informOut = INFORM_NOT_AT_OPTIMUM;
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;

@@ -28,8 +28,10 @@
 # -----------------------------------------------------------------------
 
 require(OpenMx)
-dataMZ <-read.table("data/sim1.mz",header=F)
-dataDZ <-read.table("data/sim1.dz",header=F)
+dataMZ <-suppressWarnings(try(read.table("data/sim1.mz",header=F), silent=TRUE))
+if (is(dataMZ, "try-error")) dataMZ <- read.table("models/passing/data/sim1.mz",header=F)
+dataDZ <-suppressWarnings(try(read.table("data/sim1.dz",header=F), silent=TRUE))
+if (is(dataDZ, "try-error")) dataDZ <- read.table("models/passing/data/sim1.dz",header=F)
 dataMZ <- dataMZ[,1:2] # discard unused data column
 dataDZ <- dataDZ[,1:2]
 selVars<-c("T1","T2")

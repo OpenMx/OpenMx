@@ -89,12 +89,18 @@ void F77_SUB(npsolConstraintFunction)
 	NPSOL_GOpt->allConstraintsFun(cE);
 }
 
+static double getNPSOLFeasibilityTolerance()
+{
+	// convert units (who knows what the units are)
+	return Global->feasibilityTolerance * 2e-2 / 5e-2;
+}
+
 static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, int inequality)
 {
 	rf.optName = "NPSOL";
 	rf.setupAllBounds();
 	{
-		double ft = (equality+inequality)? Global->feasibilityTolerance : 1e-5;
+		double ft = (equality+inequality)? getNPSOLFeasibilityTolerance() : 1e-5;
 		std::string opt = string_snprintf("Feasibility tolerance %.8g", ft);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
@@ -253,11 +259,11 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 		if (norm >= best) {
 			// NPSOL can jump off a cliff and get lost.
 			// Try to move back toward a more feasible region.
-			Est = (Est + startingPoint*4) / 5;
+			Est = (Est + startingPoint) / 2;
 		} else {
 			best = norm;
 		}
-		if (!(cE.array().abs() < Global->feasibilityTolerance).all()) {
+		if (!(cE.array().abs() < getNPSOLFeasibilityTolerance()).all()) {
 			omxNPSOL1(est, rf, equality, inequality);
 		} else {
 			break;
