@@ -2129,6 +2129,11 @@ L255:
 L260:
     i__1 = *n;
     for (i__ = 1; i__ <= i__1; ++i__) {
+	    /* We may have jumped back to an earlier point in the line
+	       search (not the most recent point) */
+	    s[i__] = x[i__] - x0[i__];
+    }
+    for (i__ = 1; i__ <= i__1; ++i__) {
 	u[i__] = g[i__] - ddot_sl__(m, &a[i__ * a_dim1 + 1], 1, &r__[1], 1) - v[i__];
 /* L270: */
     }
