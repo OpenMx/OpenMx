@@ -144,7 +144,10 @@ runHelper <- function(model, frontendStart,
 			   ", but there is no fitfunction given, and no default.\n",
 			   "To fix, see, e.g. help(mxFitFunctionML) for an example fit function, and how these pair with the expectation", sep = ""))
 	}
-	if (!is.null(model@fitfunction) && is.null(model@compute)) {
+	if (!is.null(model@fitfunction) &&
+	    (is.null(model@compute) ||
+	     # match mxComputeNothing() too
+	     (is(model@compute, 'MxComputeSequence') && length(model@compute$steps) == 0))) {
 		# horrible hack, sorry
 		compute <- NULL
 		fitNum <- paste(model@name, 'fitfunction', sep=".")
