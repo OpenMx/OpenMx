@@ -2537,10 +2537,6 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	     and is the only time we should check convergence (as in original slsqp code).
 	     We also check if slsqp failed to determine a search direction.
 	  */
-	  if (mode == -1 && !makingProgress) {
-		  ret = NLOPT_ROUNDOFF_LIMITED;
-		  goto done;
-	  }
 	  if ((mode == -1 && !nlopt_isinf(minor.fval)) || !nlopt_isfinite(cur.par[0])) {
 		  estimate_copy(&cur, &minor);
 		  //printf("best minor %f %f feasible %d\n",
@@ -2556,6 +2552,16 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			  }
 			  estimate_copy(&major, &minor);
 			  if (ret != NLOPT_SUCCESS) goto done;
+		  }
+	  }
+
+	  /* A constrained problem with a small enough feasibility
+	     tolerance will never be feasible. We need to prevent such
+	     problems from looping forever. */
+	  if (mode == -1 && constrained) {
+		  if (!makingProgress) {
+			  ret = NLOPT_ROUNDOFF_LIMITED;
+			  goto done;
 		  }
 		  makingProgress = 0;
 	  }
