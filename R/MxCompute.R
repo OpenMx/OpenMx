@@ -273,6 +273,7 @@ setClass(Class = "MxComputeGradientDescent",
 	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
 	     maxIter = "integer",
+	     gradientAlgo = "character",
 	     warmStart = "MxOptionalMatrix"))  # rename to 'preconditioner'?
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
@@ -295,7 +296,7 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 
 setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
-		   nudgeZeroStarts, maxIter) {
+		   nudgeZeroStarts, maxIter, gradientAlgo) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
@@ -306,6 +307,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
 		  .Object@maxIter <- maxIter
+		  .Object@gradientAlgo <- gradientAlgo
 		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
@@ -337,6 +339,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @param maxIter maximum number of major iterations
+##' @param gradientAlgo one of c('forward','central'), defaults to 'forward'
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -364,7 +367,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxIter=NULL) {
+				     nudgeZeroStarts=TRUE, maxIter=NULL, gradientAlgo='forward') {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -381,7 +384,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	maxIter <- as.integer(maxIter)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart, nudgeZeroStarts, maxIter)
+	    tolerance, warmStart, nudgeZeroStarts, maxIter, gradientAlgo)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),

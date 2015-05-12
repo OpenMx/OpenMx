@@ -252,4 +252,4 @@ STARTSM <- mxModel("STARTS",
 startsModel <- mxRun(STARTSM)
 
 summary(startsModel)
-omxCheckCloseEnough(startsModel$output$Minus2LogLikelihood, 3035.2189, 0.01)
+omxCheckCloseEnough(startsModel$output$Minus2LogLikelihood, 3035.1959, 0.03)

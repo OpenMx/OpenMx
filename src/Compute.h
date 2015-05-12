@@ -24,6 +24,7 @@
 #include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
+#include "finiteDifferences.h"
 
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
@@ -243,6 +244,8 @@ class GradientOptimizerContext {
 	bool warmStart;
 	bool useGradient;
 	int ineqType;
+	enum GradientAlgorithm gradientAlgo;
+	int gradientOrder;  // rename to gradientIterations
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;

@@ -60,7 +60,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
-		fd_gradient_with_ref(ff, fit, Epoint, Egrad);
+		gradient_with_ref(goc->gradientAlgo, goc->gradientOrder, ff, fit, Epoint, Egrad);
 		fc->grad = Egrad;
 	}
 	if (goc->verbose >= 3) {

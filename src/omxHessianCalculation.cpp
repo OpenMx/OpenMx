@@ -309,6 +309,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	int newWanted = fc->wanted | FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT;
+	bool hasGradient = fc->wanted & FF_COMPUTE_GRADIENT;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
 
@@ -348,8 +349,12 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	eH.setConstant(NA_REAL);
 
 	fc->grad.resize(numParams);
+	Eigen::VectorXd oldGrad;
+	if (hasGradient) {
+		oldGrad = fc->grad;
+	}
+	fc->grad.setConstant(NA_REAL);
 	gradient = fc->grad.data();
-	for (int hx=0; hx < numParams; ++hx) gradient[hx] = NA_REAL;
   
 	if (knownHessian) {
 		int khSize = int(khMap.size());
@@ -379,6 +384,19 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			Free(hw->Gaprox);
 		}
 		Free(hess_work);
+	}
+
+	if (hasGradient && ((oldGrad - fc->grad).array().abs() > .1).any()) {
+		if (std::isfinite((oldGrad - fc->grad).norm())) {
+			if (verbose >= 1) {
+				mxLog("Central difference gradient estimates differs from forward difference by %f",
+				      (oldGrad - fc->grad).norm());
+			}
+			if (fc->inform < INFORM_NOT_AT_OPTIMUM) fc->inform = INFORM_NOT_AT_OPTIMUM;
+			for (int px=0; px < oldGrad.size(); ++px) {
+				if (fabs(oldGrad[px] - fc->grad[px]) > .1) fc->grad[px] = NA_REAL;
+			}
+		}
 	}
 
 	memcpy(fc->est, optima.data(), sizeof(double) * numParams);

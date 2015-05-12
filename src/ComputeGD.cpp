@@ -37,6 +37,8 @@ class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	const char *engineName;
 	enum OptEngine engine;
+	const char *gradientAlgoName;
+	enum GradientAlgorithm gradientAlgo;
 	omxMatrix *fitMatrix;
 	int verbose;
 	double optimalityTolerance;
@@ -129,6 +131,16 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	} else {
 		maxIter = -1; // different engines have different defaults
 	}
+
+	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gradientAlgo")));
+	gradientAlgoName = CHAR(Rf_asChar(slotValue));
+	if (strEQ(gradientAlgoName, "forward")) {
+		gradientAlgo = GradientAlgorithm_Forward;
+	} else if (strEQ(gradientAlgoName, "central")) {
+		gradientAlgo = GradientAlgorithm_Central;
+	} else {
+		Rf_error("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
+	}
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -158,7 +170,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = Global->computeCount;
 
-	if (verbose >= 1) mxLog("%s: using engine %s (ID %d)", name, engineName, engine);
+	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s", name, engineName, engine, gradientAlgoName);
 
 	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
@@ -166,6 +178,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
+	rf.gradientAlgo = gradientAlgo;
+	rf.gradientOrder = 2;
 	if (maxIter == -1) {
 		rf.maxMajorIterations = -1;
 	} else {

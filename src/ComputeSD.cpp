@@ -42,7 +42,7 @@ void omxSD(GradientOptimizerContext &rf)
     while(iter < maxIter && !isErrorRaised()) {
 	    fc->iterations += 1;
 	    Eigen::VectorXd majorEst = currEst;
-	    fd_gradient_with_ref(ff, refFit, majorEst, fc->grad);
+	    gradient_with_ref(rf.gradientAlgo, rf.gradientOrder, ff, refFit, majorEst, fc->grad);
 
 	    if (rf.verbose >= 3) mxPrintMat("grad", fc->grad);
 

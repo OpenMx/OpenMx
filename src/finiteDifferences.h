@@ -2,16 +2,29 @@
 #define _finiteDifferences_H_
 
 template <typename T1, typename T2, typename T3>
-void fd_gradient_with_ref(T1 ff, double refFit, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
+void fd_gradient_with_ref(T1 ff, double refFit, Eigen::MatrixBase<T2> &point, int numIter, Eigen::MatrixBase<T3> &gradOut)
 {
+	// http://en.wikipedia.org/wiki/Finite_difference
         const double eps = 1e-5;
 	
 	Eigen::VectorXd p2;
+	p2 = point;
 	for (int px=0; px < int(point.size()); ++px) {
-		p2 = point;
-		double offset = std::max(fabs(p2[px] * eps), eps);
-		p2[px] += offset;
-		gradOut[px] = (ff(p2) - refFit) / offset;
+		double offset = std::max(fabs(point[px] * eps), eps);
+		std::vector<double> Gaprox(numIter);
+		for(int k = 0; k < numIter; k++) {
+			p2[px] = point[px] + offset;
+			Gaprox[k] = (ff(p2) - refFit) / offset;
+			offset *= .5;
+		}
+		for(int m = 1; m < numIter; m++) {						// Richardson Step
+			for(int k = 0; k < (numIter - m); k++) {
+				// NumDeriv Hard-wires 4s for r here. Why?
+				Gaprox[k] = (Gaprox[k+1] * pow(4.0, m) - Gaprox[k])/(pow(4.0, m)-1);
+			}
+		}
+		gradOut[px] = Gaprox[0];
+		p2[px] = point[px];
 	}
 }
 
@@ -19,7 +32,7 @@ template <typename T1, typename T2, typename T3>
 void fd_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
 {
 	const double refFit = ff(point);
-	fd_gradient_with_ref(ff, refFit, point, gradOut);
+	fd_gradient_with_ref(ff, refFit, point, 1, gradOut);
 }
 
 template <typename T1, typename T2, typename T3, typename T4>
@@ -42,15 +55,14 @@ void fd_jacobian(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &ref
 }
 
 template <typename T1, typename T2, typename T3>
-void re_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
+void re_gradient(T1 ff, Eigen::MatrixBase<T2> &point, int numIter, Eigen::MatrixBase<T3> &gradOut)
 {
-        const double eps = 1e-4;
-	const int numIter = 3;
+        const double eps = 1e-5;
 
 	Eigen::VectorXd p2;
 	for (int px=0; px < int(point.size()); ++px) {
 		double offset = std::max(fabs(point[px] * eps), eps);
-		double Gaprox[numIter];
+		std::vector<double> Gaprox(numIter);
 		for(int k = 0; k < numIter; k++) {
 			p2 = point;
 			p2[px] += offset;
@@ -68,6 +80,26 @@ void re_gradient(T1 ff, Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gra
 			}
 		}
 		gradOut[px] = Gaprox[0];
+	}
+}
+
+enum GradientAlgorithm {
+	GradientAlgorithm_Forward,
+	GradientAlgorithm_Central
+};
+
+template <typename T1, typename T2, typename T3>
+void gradient_with_ref(GradientAlgorithm algo, int order, T1 ff, double refFit,
+		       Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
+{
+	switch (algo) {
+	case GradientAlgorithm_Forward:
+		fd_gradient_with_ref(ff, refFit, point, order, gradOut);
+		break;
+	case GradientAlgorithm_Central:
+		re_gradient(ff, point, order, gradOut);
+		break;
+	default: Rf_error("Unknown gradient algorithm %d", algo);
 	}
 }
 
