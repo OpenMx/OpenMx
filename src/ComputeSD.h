@@ -9,7 +9,7 @@
 #include "Compute.h"
 #include "matrix.h"
 
-void omxSD(GradientOptimizerContext &, int);
-void omxSD_AL(GradientOptimizerContext &, int);
+void omxSD(GradientOptimizerContext &);
+void omxSD_AL(GradientOptimizerContext &);
 
 #endif

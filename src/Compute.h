@@ -233,6 +233,7 @@ class GradientOptimizerContext {
 	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;
+	int maxMajorIterations;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;

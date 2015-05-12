@@ -15,8 +15,9 @@ struct fit_functional {
 	}
 };
 
-void omxSD(GradientOptimizerContext &rf, int maxIter)
+void omxSD(GradientOptimizerContext &rf)
 {
+	int maxIter = rf.maxMajorIterations;
 	if (maxIter == -1) maxIter = 50000;
 
 	FitContext *fc = rf.fc;
@@ -244,8 +245,9 @@ static void omxSD_AR(GradientOptimizerContext &rf, int maxIter, double rho,
     return;
 }
 
-void omxSD_AL(GradientOptimizerContext &rf, int maxIter)
+void omxSD_AL(GradientOptimizerContext &rf)
 {
+	int maxIter = rf.maxMajorIterations;
 	if (maxIter == -1) maxIter = 50000;
 
     double ICM = HUGE_VAL;

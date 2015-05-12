@@ -166,6 +166,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
+	if (maxIter == -1) {
+		rf.maxMajorIterations = -1;
+	} else {
+		rf.maxMajorIterations = fc->iterations + maxIter;
+	}
 	if (warmStart) {
 		if (warmStartSize != int(numParam)) {
 			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
@@ -206,6 +211,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 		break;
         case OptEngine_NLOPT:
+		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		omxInvokeNLOPT(fc->est, rf);
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;
@@ -216,9 +222,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.solEqBFun();
 		rf.myineqFun();
 		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
-			omxSD(rf, maxIter);   // unconstrained problems
+			omxSD(rf);   // unconstrained problems
 		} else {
-			omxSD_AL(rf, maxIter);       // constrained problems
+			omxSD_AL(rf);       // constrained problems
 		}
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;}

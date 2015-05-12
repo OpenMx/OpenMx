@@ -27,16 +27,22 @@ struct fit_functional {
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
+	nlopt_opt opt = (nlopt_opt) goc->extraData;
 	FitContext *fc = goc->fc;
 	assert(n == fc->numParam);
-	int mode = grad != 0;
+	int mode = 0;
 	double fit = goc->solFun((double*) x, &mode);
+	if (grad) {
+		fc->iterations += 1;
+		if (goc->maxMajorIterations != -1 && fc->iterations >= goc->maxMajorIterations) {
+			nlopt_force_stop(opt);
+		}
+	}
 	if (grad && goc->verbose >= 2) {
 		mxLog("major iteration fit=%.12f", fit);
 	}
 	if (mode == -1) {
 		if (!goc->feasible) {
-			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
 		return nan("infeasible");
@@ -192,7 +198,11 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
 		Rf_error("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
-		goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		if (goc.maxMajorIterations != -1 && fc->iterations >= goc.maxMajorIterations) {
+			goc.informOut = INFORM_ITERATION_LIMIT;
+		} else {
+			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		}
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
 		goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 	} else if (code < 0) {
