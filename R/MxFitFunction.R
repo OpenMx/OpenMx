@@ -31,10 +31,11 @@
 ##' @rdname MxBaseFitFunction-class
 setClass(Class = "MxBaseFitFunction", 
 	 representation = representation(
-	   info = "list",
+		info = "list",
 		dependencies = "integer",
 		expectation = "integer",
-	        vector = "logical",
+		vector = "logical",
+		rowDiagnostics = "logical",
 		result = "matrix", "VIRTUAL"),
 	 contains = "MxBaseNamed")
 

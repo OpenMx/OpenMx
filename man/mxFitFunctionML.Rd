@@ -26,17 +26,22 @@
 }
 
 \usage{
-mxFitFunctionML(vector = FALSE)
+mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE)
 }
 
 \arguments{
    \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
+   \item{rowDiagnostics}{A logical value indicating whether the row-wise results of the objective function should be returned as an attribute of the fit function.}
 }
 
 \details{
 Fit functions are functions for which free parameter values are optimized such that the value of a cost function is minimized. The mxFitFunctionML function computes -2*(log likelihood) of the data given the current values of the free parameters and the expectation function (e.g., \link{mxExpectationNormal} or \link{mxExpectationRAM})  selected for the model. 
 
 The 'vector' argument is either TRUE or FALSE, and determines whether the objective function returns a column vector of the likelihoods, or a single -2*(log likelihood) value.
+
+The 'rowDiagnostics' arguent is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.
+
+When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, fitfunction can be referenced in the model and included in algebras as a scalar. The row likelihoods are an attribute of the fit function but are not accessible in the model.
 
 Usage Notes: 
 
@@ -93,4 +98,5 @@ tmpModel <- mxModel(model="exampleModel", M, S, A, I, expCov, expFunction, fitFu
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 
+mxEval(fitfunction, tmpModelOut)
 }
