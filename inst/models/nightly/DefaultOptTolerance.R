@@ -1,6 +1,7 @@
 #options(error = utils::recover)
 library(OpenMx)
 
+set.seed(1)
 numDims <- 2
 
 genOrthogonal<-function(dim) { 
@@ -34,35 +35,35 @@ genPositiveDefMat <- function(dim, low=-1.4, upp=1.4) {
   Sigma
 }
 
-trials <- 100
+trueMean <- rnorm(numDims)
+trueCov <- round(genPositiveDefMat(numDims), 6)
+names(trueMean) <- paste("f", 1:numDims, sep="")
+dimnames(trueCov) <- list(paste("f", 1:numDims, sep=""), paste("f", 1:numDims, sep=""))
 
-drift <- matrix(NA, nrow=trials, 5)
+t1 <- mxModel("test",
+              mxData(observed=trueCov, means=trueMean, numObs=100, type="cov"),
+              mxMatrix(name="mean", values=rnorm(numDims), nrow=1, ncol=numDims, free=TRUE,
+                       dimnames=list(NULL, paste("f", 1:numDims, sep=""))),
+              mxMatrix(type="Symm", name="cov", ncol=numDims, nrow=numDims, free=TRUE,
+                       labels=paste("v", 1:(numDims*(numDims+1)/2), sep=""),
+                       dimnames=dimnames(trueCov)),
+              mxExpectationNormal(means="mean", covariance="cov"),
+              mxFitFunctionML(),
+              mxComputeGradientDescent())
+t1$cov$values <- diag(numDims)
+startVal <- omxGetParameters(t1)
+
+trials <- 100
+drift <- rep(NA, trials)
 
 for (trial in 1:100) {
   set.seed(trial)
-  trueMean <- rnorm(numDims)
-  trueCov <- round(genPositiveDefMat(numDims), 6)
-  names(trueMean) <- paste("f", 1:numDims, sep="")
-  dimnames(trueCov) <- list(paste("f", 1:numDims, sep=""), paste("f", 1:numDims, sep=""))
-  
-  t1 <- mxModel("test",
-                mxData(observed=trueCov, means=trueMean, numObs=100, type="cov"),
-                mxMatrix(name="mean", values=rnorm(numDims), nrow=1, ncol=numDims, free=TRUE,
-                         dimnames=list(NULL, paste("f", 1:numDims, sep=""))),
-                mxMatrix(type="Symm", name="cov", ncol=numDims, nrow=numDims, free=TRUE,
-                         labels=paste("v", 1:(numDims*(numDims+1)/2), sep=""),
-                         dimnames=dimnames(trueCov)),
-                mxExpectationNormal(means="mean", covariance="cov"),
-                mxFitFunctionML(),
-		mxComputeGradientDescent())
-  t1$cov$values <- diag(numDims)
-  
+  t1 <- omxSetParameters(t1, values=startVal + runif(5, -.25, .25), labels=names(startVal))
   t1Fit <- mxRun(t1, silent=TRUE, suppressWarnings=TRUE)
-  
-  drift[trial,] <- t1Fit$output$estimate - c(trueMean, trueCov)[-4]
+  drift[trial] <- t1Fit$output$fit
 }
 
-stat <- sqrt(sum(c(drift)^2))
+stat <- sd(drift)
 print(stat)
 
-omxCheckCloseEnough(stat, 0, 4e-6)
+omxCheckCloseEnough(stat, 0, 2e-10)
