@@ -38,10 +38,10 @@ void omxSD(GradientOptimizerContext &rf)
 
     fit_functional ff(rf);
     Eigen::Map< Eigen::VectorXd > currEst(fc->est, fc->numParam);
+    Eigen::VectorXd majorEst = currEst;
 
-    while(iter < maxIter && !isErrorRaised()) {
+    while(++iter < maxIter && !isErrorRaised()) {
 	    fc->iterations += 1;
-	    Eigen::VectorXd majorEst = currEst;
 	    gradient_with_ref(rf.gradientAlgo, rf.gradientIterations, rf.gradientStepSize,
 			      ff, refFit, majorEst, fc->grad);
 
@@ -55,13 +55,16 @@ void omxSD(GradientOptimizerContext &rf)
         }
 
         int retries = 300;
-        double speed = priorSpeed;
+        double speed = std::min(priorSpeed, 1.0);
+	double bestSpeed = speed;
 	bool foundBetter = false;
-	Eigen::VectorXd prevEst(currEst.size());
+	Eigen::VectorXd bestEst(majorEst.size());
+	Eigen::VectorXd prevEst(majorEst.size());
+	Eigen::VectorXd searchDir = fc->grad;
+	searchDir /= searchDir.norm();
 	prevEst.setConstant(nan("uninit"));
         while (--retries > 0 && !isErrorRaised()){
-		Eigen::VectorXd &searchDir = fc->grad;
-		Eigen::VectorXd nextEst = majorEst - speed * searchDir / searchDir.norm();
+		Eigen::VectorXd nextEst = majorEst - speed * searchDir;
 		nextEst = nextEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
 
 		if (nextEst == prevEst) break;
@@ -74,17 +77,43 @@ void omxSD(GradientOptimizerContext &rf)
 		if (fit < refFit) {
 			foundBetter = true;
 			refFit = fc->fit;
-			priorSpeed = speed * 1.1;
-			iter++;
+			bestSpeed = speed;
+			bestEst = nextEst;
 			break;
 		}
 		speed *= shrinkage;
         }
+
+	if (false && foundBetter) {
+		// In some tests, this did not help so it is not enabled.
+		// It might be worth testing more.
+		mxLog("trying larger step size");
+		retries = 3;
+		while (--retries > 0 && !isErrorRaised()){
+			speed *= 1.01;
+			Eigen::VectorXd nextEst = majorEst - speed * searchDir;
+			nextEst = nextEst.cwiseMax(rf.solLB).cwiseMin(rf.solUB);
+			rf.checkActiveBoxConstraints(nextEst);
+			int mode = 0;
+			double fit = rf.solFun(nextEst.data(), &mode);
+			if (fit < refFit) {
+				foundBetter = true;
+				refFit = fc->fit;
+				bestSpeed = speed;
+				bestEst = nextEst;
+			}
+		}
+	}
+
         if (!foundBetter) {
             rf.informOut = INFORM_CONVERGED_OPTIMUM;
             if(rf.verbose >= 2) mxLog("After %i iterations, cannot find better estimation along the gradient direction", iter);
             break;
         }
+
+	if (rf.verbose >= 2) mxLog("major fit %f bestSpeed %g", refFit, bestSpeed);
+	majorEst = bestEst;
+	priorSpeed = bestSpeed * 1.1;
     }
     if ((fc->grad.array().abs() > 0.1).any()) {
 	    rf.informOut = INFORM_NOT_AT_OPTIMUM;
