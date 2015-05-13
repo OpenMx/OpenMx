@@ -345,6 +345,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param maxIter maximum number of major iterations
 ##' @param gradientAlgo one of c('forward','central'), defaults to 'forward'
 ##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
+##' @param gradientStepSize the step size for the gradient (default 1e-5)
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
