@@ -245,7 +245,8 @@ class GradientOptimizerContext {
 	bool useGradient;
 	int ineqType;
 	enum GradientAlgorithm gradientAlgo;
-	int gradientOrder;  // rename to gradientIterations
+	int gradientIterations;
+	double gradientStepSize;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;

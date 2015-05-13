@@ -274,6 +274,8 @@ setClass(Class = "MxComputeGradientDescent",
 	   verbose = "integer",
 	     maxIter = "integer",
 	     gradientAlgo = "character",
+	     gradientIterations = "integer",
+	     gradientStepSize = "numeric",
 	     warmStart = "MxOptionalMatrix"))  # rename to 'preconditioner'?
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
@@ -296,7 +298,7 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 
 setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
-		   nudgeZeroStarts, maxIter, gradientAlgo) {
+		   nudgeZeroStarts, maxIter, gradientAlgo, gradientIterations, gradientStepSize) {
 		  .Object@name <- 'compute'
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
@@ -308,6 +310,8 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
 		  .Object@maxIter <- maxIter
 		  .Object@gradientAlgo <- gradientAlgo
+		  .Object@gradientIterations <- gradientIterations
+		  .Object@gradientStepSize <- gradientStepSize
 		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
@@ -340,6 +344,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @param maxIter maximum number of major iterations
 ##' @param gradientAlgo one of c('forward','central'), defaults to 'forward'
+##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
@@ -367,7 +372,8 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxIter=NULL, gradientAlgo='forward') {
+				     nudgeZeroStarts=TRUE, maxIter=NULL, gradientAlgo='forward',
+				     gradientIterations=2, gradientStepSize=1e-5) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -382,9 +388,11 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 	}
 	verbose <- as.integer(verbose)
 	maxIter <- as.integer(maxIter)
+	gradientIterations <- as.integer(gradientIterations)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart, nudgeZeroStarts, maxIter, gradientAlgo)
+	    tolerance, warmStart, nudgeZeroStarts, maxIter,
+	    gradientAlgo, gradientIterations, gradientStepSize)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),

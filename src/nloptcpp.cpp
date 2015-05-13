@@ -60,7 +60,8 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
-		gradient_with_ref(goc->gradientAlgo, goc->gradientOrder, ff, fit, Epoint, Egrad);
+		gradient_with_ref(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+				  ff, fit, Epoint, Egrad);
 		fc->grad = Egrad;
 	}
 	if (goc->verbose >= 3) {
@@ -165,7 +166,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		// The 0.01 factor is a bit ridiculous. NPSOL doesn't
 		// have the same definition of relative tolerance
 		// compare to SLSQP.
-		nlopt_set_ftol_rel(opt, Global->optimalityTolerance * 0.01);
+		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 0.01);
 		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         

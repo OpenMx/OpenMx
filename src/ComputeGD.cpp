@@ -39,6 +39,8 @@ class omxComputeGD : public omxCompute {
 	enum OptEngine engine;
 	const char *gradientAlgoName;
 	enum GradientAlgorithm gradientAlgo;
+	int gradientIterations;
+	double gradientStepSize;
 	omxMatrix *fitMatrix;
 	int verbose;
 	double optimalityTolerance;
@@ -83,6 +85,9 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	optimalityTolerance = Rf_asReal(slotValue);
+	if (!std::isfinite(optimalityTolerance)) {
+		optimalityTolerance = Global->optimalityTolerance;
+	}
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
 	engineName = CHAR(Rf_asChar(slotValue));
@@ -141,6 +146,12 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	} else {
 		Rf_error("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
 	}
+
+	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("gradientIterations")));
+	gradientIterations = std::max(Rf_asInteger(slotValue), 1);
+
+	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("gradientStepSize")));
+	gradientStepSize = Rf_asReal(slotValue);
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -170,7 +181,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = Global->computeCount;
 
-	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s", name, engineName, engine, gradientAlgoName);
+	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g",
+				name, engineName, engine, gradientAlgoName, optimalityTolerance);
 
 	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
@@ -179,7 +191,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
 	rf.gradientAlgo = gradientAlgo;
-	rf.gradientOrder = 2;
+	rf.gradientIterations = gradientIterations;
+	rf.gradientStepSize = gradientStepSize;
 	if (maxIter == -1) {
 		rf.maxMajorIterations = -1;
 	} else {
