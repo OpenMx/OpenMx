@@ -24,7 +24,11 @@
 #include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
-#include "finiteDifferences.h"
+
+enum GradientAlgorithm {
+	GradientAlgorithm_Forward,
+	GradientAlgorithm_Central
+};
 
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"

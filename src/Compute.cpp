@@ -2209,14 +2209,14 @@ void ComputeEM::Oakes(FitContext *fc)
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
 
+	Eigen::VectorXd optimumCopy = optimum;  // will be modified
 	Eigen::VectorXd refGrad(freeVars);
 	refGrad = fc->grad;
-	//std::cout << "refGrad" << refGrad << "\n";
+	//mxPrintMat("refGrad", refGrad);
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
-
 	estep_jacobian_functional ejf(this, fc);
-	fd_jacobian(ejf, optimum.matrix(), refGrad, false, jacobian);
+	fd_jacobian(GradientAlgorithm_Forward, 1, 1e-5, ejf, refGrad, optimumCopy, jacobian);
 
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
@@ -2229,7 +2229,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	fc->refreshDenseHess();
 	double *hess = fc->getDenseHessUninitialized();
 	Eigen::Map< Eigen::MatrixXd > hessMat(hess, freeVars, freeVars);
-	hessMat += (jacobian + jacobian.transpose()) / 2;  //only need upper triangle TODO
+	hessMat += (jacobian + jacobian.transpose()) * 0.5;  //only need upper triangle TODO
 
 	fc->wanted = wanted | FF_COMPUTE_HESSIAN;
 }

@@ -92,7 +92,11 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
 	equality_functional ff(*goc);
-	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
+	ff(Epoint, Eresult);
+	if (grad) {
+		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+			    ff, Eresult, Epoint, jacobian);
+	}
 	//if (goc->verbose >= 3 && grad) std::cout << "equality:\n" << Eresult << "\n" << jacobian << "\n";
 }
 
@@ -125,11 +129,15 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 		}
 	}
 	inequality_functional ff(*goc);
-	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
-	if (grad && !std::isfinite(Eresult.sum())) {
-		// infeasible at start of major iteration
-		nlopt_opt opt = (nlopt_opt) goc->extraData;
-		nlopt_force_stop(opt);
+	ff(Epoint, Eresult);
+	if (grad) {
+		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+			    ff, Eresult, Epoint, jacobian);
+		if (!std::isfinite(Eresult.sum())) {
+			// infeasible at start of major iteration
+			nlopt_opt opt = (nlopt_opt) goc->extraData;
+			nlopt_force_stop(opt);
+		}
 	}
 	if (goc->verbose >= 3 && grad) {
 		mxPrintMat("inequality jacobian", jacobian);
