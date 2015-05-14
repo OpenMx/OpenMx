@@ -333,6 +333,17 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' SLSQP (from the NLOPT collection).  The proprietary version of
 ##' OpenMx offers the choice of two optimizers, SLSQP and NPSOL.
 ##'
+##' One of the most important options for SLSQP is
+##' \code{gradientAlgo}. By default, the \code{forward} method is
+##' used. This method requires \code{gradientIterations} function
+##' evaluations per parameter per gradient.  This method often works
+##' well enough but can result in imprecise gradient estimations that
+##' may not allow SLSQP to fully optimize a given model. If code red
+##' is reported then you are encouraged to try the \code{central}
+##' method. The \code{central} method requires 2 times
+##' \code{gradientIterations} function evaluations per parameter per
+##' gradient, but it can be much more accurate.
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param engine specific NPSOL or SLSQP
@@ -348,9 +359,8 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param gradientStepSize the step size for the gradient (default 1e-5)
 ##' @aliases
 ##' MxComputeGradientDescent-class
-##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
-##' quadratic, and linearly constrained convex programming.}
-##' (Unpublished doctoral dissertation.) Stanford University, CA.
+##' @references
+##' Luenberger, D. G. & Ye, Y. (2008). \emph{Linear and nonlinear programming.} Springer.
 ##' @examples
 ##' data(demoOneFactor)
 ##' factorModel <- mxModel(name ="One Factor",
