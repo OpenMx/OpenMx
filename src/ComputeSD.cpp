@@ -115,6 +115,7 @@ void omxSD(GradientOptimizerContext &rf)
 	majorEst = bestEst;
 	priorSpeed = bestSpeed * 1.1;
     }
+    currEst = majorEst;
     if ((fc->grad.array().abs() > 0.1).any()) {
 	    rf.informOut = INFORM_NOT_AT_OPTIMUM;
     }
