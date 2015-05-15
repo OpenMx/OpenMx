@@ -69,10 +69,10 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			omxQuotes(optionsNames[[match]]), ": please correct",
 			"the capitalization and re-run mxOption()."))
 	}
-	if (key == "Default optimizer") {
-		stop(paste(key, "is a global option and cannot be set on models.\n",
-		"To switch optimizers globally, use, e.g.:\n",
-		"mxOption(NULL, 'Default optimizer', 'SLSQP')", sep = ""))
+	if (key == "Default optimizer" || key == "Gradient algorithm") {
+		stop(paste(omxQuotes(key), " is a global option and cannot be set on models.\n",
+		"To change ", omxQuotes(key) ," globally, use, e.g.:\n",
+		"mxOption(NULL, '", key, "', '", value,"')", sep = ""))
         # to use NLOPT, use: mxOption(NULL, 'Default optimizer', 'NLOPT')
 	}
 	model@options[[key]] <- value
@@ -173,7 +173,8 @@ otherOptions <- list(
     "mvnMaxPointsC" = 5000,
     "mvnAbsEps" = 1e-3,
     "mvnRelEps" = 0,
-    "maxStackDepth" = 25000L   # R_PPSSIZE/2
+    "maxStackDepth" = 25000L,   # R_PPSSIZE/2
+    "Gradient algorithm" = "forward"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

@@ -362,7 +362,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @param maxMajorIter maximum number of major iterations
-##' @param gradientAlgo one of c('forward','central'), defaults to 'forward'
+##' @param gradientAlgo one of c('forward','central')
 ##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
 ##' @param gradientStepSize the step size for the gradient (default 1e-5)
 ##' @aliases
@@ -391,7 +391,8 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxMajorIter=NULL, gradientAlgo='forward',
+				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
+				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=2, gradientStepSize=1e-5) {
 
 	garbageArguments <- list(...)
@@ -418,14 +419,17 @@ setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="int
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  cat(sp, "$engine :", omxQuotes(Ob@engine), '\n')
-		  cat(sp, "$fitfunction :", omxQuotes(Ob@fitfunction), '\n')
-		  cat(sp, "$verbose :", Ob@verbose, '\n')
-		  if (!is.na(Ob@tolerance)) {
-			  cat(sp, "$tolerance :", Ob@tolerance, '\n')
-		  }
-		  if (!is.null(Ob@useGradient)) {
-			  cat(sp, "$useGradient :", Ob@useGradient, '\n')
+		  for (sl in c("engine", "fitfunction", "verbose", "tolerance", "useGradient",
+			       "nudgeZeroStarts", "maxMajorIter",
+			       "gradientAlgo", "gradientIterations", "gradientStepSize")) {
+			  val <- slot(Ob, sl)
+			  if (length(val)==0 || is.na(val)) next
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
 		  }
 		  invisible(Ob)
 	  })
