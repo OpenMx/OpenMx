@@ -110,6 +110,6 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 # This is necessary to work-around a bug in SLSQP.
 threeFactorOrthogonalOut <- mxRun(mxModel(threeFactorOrthogonal,
                                           mxComputeGradientDescent(engine="SD", maxIter=3)))
-threeFactorOrthogonalOut <- mxRun(mxModel(threeFactorOrthogonalOut, mxComputeNothing()))
+threeFactorOrthogonalOut <- mxRun(mxModel(threeFactorOrthogonalOut, mxComputeDefault()))
 summary(threeFactorOrthogonalOut)
 omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 733384.1, 1)

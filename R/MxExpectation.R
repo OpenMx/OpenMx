@@ -150,7 +150,6 @@ convertExpectationFunctions <- function(flatModel, model, labelsData, defVars, d
 
 expectationFunctionAddEntities <- function(model, flatModel, labelsData) {
 
-	model@.forcesequential <- FALSE
 	model@.newobjects <- FALSE
 
 	expectations <- flatModel@expectations

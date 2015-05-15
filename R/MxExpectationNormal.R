@@ -68,18 +68,6 @@ setMethod("genericExpDependencies", signature("MxExpectationNormal"),
 	return(dependencies)
 })
 
-setMethod("genericExpAddEntities", "MxExpectationNormal",
-	function(.Object, job, flatJob, labelsData) {
-		precision <- "Function precision"
-		if(!single.na(.Object@thresholds)) {
-			if (is.null(job@options[[precision]])) {
-				job <- mxOption(job, precision, 1e-9)
-			}
-		}
-		return(job)
-	}
-)
-
 setMethod("genericExpConvertEntities", "MxExpectationNormal",
 	function(.Object, flatModel, namespace, labelsData) {
 		flatModel <- updateExpectationDimnames(.Object, flatModel, labelsData)
@@ -115,7 +103,7 @@ setGeneric("genericGetThresholds",
 setMethod("genericExpGetPrecision", "MxExpectationNormal",
 	function(.Object) {
 		if(!single.na(.Object@thresholds)) {
-			return(list(stepSize=0.1, iterations=3L))
+			return(list(stepSize=0.1, iterations=3L, functionPrecision=1e-9))
 		} else {
 			callNextMethod();
 		}

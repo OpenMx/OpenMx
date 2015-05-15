@@ -47,12 +47,6 @@ setMethod("qualifyNames", signature("MxFitFunctionR"),
 		return(.Object)
 })
 
-setMethod("genericFitAddEntities", signature("MxFitFunctionR"),
-	function(.Object, job, flatJob, labelsData) {
-		job@.forcesequential <- TRUE
-		return(job)
-})
-
 mxFitFunctionR <- function(fitfun, ..., units="-2lnL") {
 	if (!is.function(fitfun)) {
 		stop("First argument 'fitfun' must be of type function")

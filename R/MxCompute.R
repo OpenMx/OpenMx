@@ -32,6 +32,7 @@ setClass(Class = "BaseCompute",
 	     freeSet = "MxOptionalChar",
 	     output = "list",
 	     debug = "list",
+	     .persist = "logical",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
@@ -60,7 +61,12 @@ setMethod("displayCompute", signature(Ob="BaseCompute", indent="integer"),
 		  cat(sp, "$freeSet :", omxQuotes(Ob@freeSet), '\n')
 		  if (length(Ob$output)) {
 			  for (elem in names(Ob$output)) {
-				  cat(sp, "$output[[", omxQuotes(elem), "]] :", Ob@output[[elem]], '\n')
+				  stuff <- Ob@output[[elem]]
+				  if (is.list(stuff)) {
+					  cat(sp, "$output[[", omxQuotes(elem), "]] : ...", '\n')
+				  } else {
+					  cat(sp, "$output[[", omxQuotes(elem), "]] :", stuff, '\n')
+				  }
 			  }
 		  }
 		  if (length(Ob$debug)) {
@@ -188,6 +194,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, from, what, how, freeSet, verbose, .is.bestfit) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@from <- from
 		  .Object@what <- what
 		  .Object@how <- how
@@ -300,6 +307,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
 		   nudgeZeroStarts, maxIter, gradientAlgo, gradientIterations, gradientStepSize) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
@@ -482,6 +490,7 @@ setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 setMethod("initialize", "MxComputeConfidenceInterval",
 	  function(.Object, freeSet, plan, verbose, fitfunction, constraintType) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@plan <- plan
 		  .Object@verbose <- verbose
@@ -542,7 +551,7 @@ mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbos
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
 	  function(Ob, indent) {
-		  callNextMethod();
+		  callNextMethod()
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "$plan :", '\n')
 		  displayCompute(Ob@plan, indent+1L)
@@ -589,6 +598,7 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 setMethod("initialize", "MxComputeNewtonRaphson",
 	  function(.Object, freeSet, fit, maxIter, tolerance, verbose) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@maxIter <- maxIter
@@ -706,6 +716,7 @@ setClass(Class = "MxComputeIterate",
 setMethod("initialize", "MxComputeIterate",
 	  function(.Object, steps, maxIter, tolerance, verbose, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
@@ -852,6 +863,7 @@ setMethod("initialize", "MxComputeEM",
 	  function(.Object, expectation, predict, mstep, observedFit, maxIter, tolerance,
 		   verbose, accel, information, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
 		  .Object@mstep <- mstep
@@ -978,6 +990,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 setMethod("initialize", "MxComputeNumericDeriv",
 	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@parallel <- parallel
@@ -987,6 +1000,17 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@knownHessian <- knownHessian
 		  .Object
 	  })
+
+adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
+	for (nd in 1:length(m@compute@steps)) {
+		if (is(m@compute@steps[[nd]], "MxComputeNumericDeriv")) {
+			m@compute@steps[[nd]]$iterations <- iterations
+			m@compute@steps[[nd]]$stepSize <- stepSize
+			break
+		}
+	}
+	m
+}
 
 ##' Numerically estimate Hessian using Richardson extrapolation
 ##'
@@ -1074,6 +1098,7 @@ setClass(Class = "MxComputeStandardError",
 setMethod("initialize", "MxComputeStandardError",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1096,6 +1121,7 @@ setClass(Class = "MxComputeHessianQuality",
 setMethod("initialize", "MxComputeHessianQuality",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1125,6 +1151,7 @@ setClass(Class = "MxComputeReportDeriv",
 setMethod("initialize", "MxComputeReportDeriv",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1152,6 +1179,7 @@ setClass(Class = "MxComputeSequence",
 setMethod("initialize", "MxComputeSequence",
 	  function(.Object, steps, freeSet, independent) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
@@ -1173,6 +1201,31 @@ mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_, independ
 	}
 
 	new("MxComputeSequence", steps=steps, freeSet, independent)
+}
+
+setClass(Class = "MxComputeDefault",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeDefault",
+	  function(.Object, freeSet) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object
+	  })
+
+##' Default compute plan
+##'
+##' The default compute plan is approximately as follows:
+##' \code{mxComputeSequence(list(mxComputeGradientDescent(),
+##' mxComputeConfidenceInterval(), mxComputeNumericDeriv(),
+##' mxComputeStandardError(), mxComputeReportDeriv()))}
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeDefault-class
+mxComputeDefault <- function(freeSet=NA_character_) {
+	new("MxComputeDefault", freeSet)
 }
 
 ##' Compute nothing

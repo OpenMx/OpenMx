@@ -490,6 +490,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	ox->mutateFun = omxSetStateSpaceExpectationComponent;
 	ox->populateAttrFun = omxPopulateSSMAttributes;
 	ox->argStruct = (void*) SSMexp;
+	ox->canDuplicate = false;
 	
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing State Space Meta Data for expectation."); }

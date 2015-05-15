@@ -95,7 +95,6 @@ imxFlattenModel <- function(model, namespace) {
 	name <- model@name
 	flatModel@fitfunction <- safeQualifyNames(model@fitfunction, name, namespace)
 	flatModel@expectation <- safeQualifyNames(model@expectation, name, namespace)
-	flatModel@compute   <- safeQualifyNames(model@compute, name, namespace)
 	defaultData <- qualifyNamesData(model@data, name)
 	flatModel@data <- defaultData
 	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
@@ -105,7 +104,6 @@ imxFlattenModel <- function(model, namespace) {
 	flatModel@datasets <- collectDatasets(model)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
-	flatModel@compute <- safeQualifyNames(model@compute, model@name, namespace)
 	flatModel@submodels <- list()
 	return(flatModel)
 }

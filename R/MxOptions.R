@@ -176,14 +176,23 @@ otherOptions <- list(
     "maxStackDepth" = 25000L   # R_PPSSIZE/2
 )
 
-generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
+limitMajorIterations <- function(options, numParam, numConstraints) {
+	mIters <- options[["Major iterations"]]
+	if (typeof(mIters) == "closure") {
+		mIters <- do.call(mIters, list(numParam, numConstraints))
+	}
+	options[["Major iterations"]] <- as.character(mIters)
+	options
+}
+
+generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
-		if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
+		if (is.null(input[["Standard Errors"]]) && constraints > 0) {
 			input[["Standard Errors"]] <- "No"
 		}
-		if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
+		if (is.null(input[["Calculate Hessian"]]) && constraints > 0) {
 			input[["Calculate Hessian"]] <- "No"
 		}
 		if( !is.null(input[["UsePPML"]]) 
@@ -194,13 +203,6 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 		}
 	}
 	options <- combineDefaultOptions(input)
-	if (!is.null(model)) {
-		mIters <- options[["Major iterations"]]
-		if (typeof(mIters) == "closure") {
-			mIters <- do.call(mIters, list(numParam, length(constraints)))
-		}
-		options[["Major iterations"]] <- as.character(mIters)
-	}
 	if (useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
 		#PPML Analytical solution
@@ -209,10 +211,7 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}
-	if (!is.null(model) && model@.forcesequential) {
-		options[["Number of Threads"]] <- 1L 
-	} else if (is.null(options[["Number of Threads"]]) || 
-			options[["Number of Threads"]] == 0) {
+	if (is.null(options[["Number of Threads"]]) || options[["Number of Threads"]] == 0) {
 		if (imxSfClient()) {
  			options[["Number of Threads"]] <- 1L 
 		} else {
