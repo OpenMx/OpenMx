@@ -473,6 +473,9 @@ print.summary.mxmodel <- function(x,...) {
 	if (!is.null(x$CI) && length(x$CI) > 0) {
 		cat("confidence intervals:\n")
 		print(x$CI)
+		if (any(is.na(x$CI[,c('lbound','ubound')]))) {
+			cat("  Investigate missing CIs with the detail output in MxComputeConfidenceInterval", '\n')
+		}
 		cat('\n')
 	}
   if(length(x$GREMLfixeff)>0){

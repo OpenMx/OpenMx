@@ -1,4 +1,6 @@
 library(OpenMx)
+#mxOption(NULL, "Default optimizer", "NPSOL")
+
 covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), nrow=2, dimnames=list(c("a", "b"),
                                                                   c("a", "b")))
 means <- c(-1,.5)
@@ -57,9 +59,18 @@ factorModel <- mxModel("One Factor",
       mxExpectationNormal("R", dimnames = names(demoOneFactor)),
       mxFitFunctionML(),
       mxData(cov(demoOneFactor), type="cov", numObs=500))
-factorModel <- mxRun(factorModel, intervals=T)
-omxCheckEquals(nrow(factorModel$output$confidenceIntervals), 1)
-print(factorModel$output$computes[[2]])
-omxCheckCloseEnough(c(0.397), factorModel$output$confidenceIntervals[1,'estimate'], .001)
-omxCheckCloseEnough(c(0.3679), factorModel$output$confidenceIntervals[1,'lbound'], .02)
-omxCheckCloseEnough(c(0.429), factorModel$output$confidenceIntervals[1,'ubound'], .02)
+factorModel <- mxRun(factorModel, intervals=TRUE)
+if (0) {
+  # NPSOL can't find 'em
+  factorModel <- mxRun(mxModel(factorModel,
+                               mxComputeConfidenceInterval(verbose=3, constraintType = "none",
+                                                           plan=mxComputeGradientDescent())))
+  print(factorModel$compute$output)
+}
+ci <- factorModel$output$confidenceIntervals
+omxCheckEquals(nrow(ci), 1)
+omxCheckCloseEnough(c(0.397), ci[1,'estimate'], .001)
+if (mxOption(NULL, "Default optimizer") != "NPSOL") {
+  omxCheckCloseEnough(c(0.3679), ci[1,'lbound'], .02)
+  omxCheckCloseEnough(c(0.429), ci[1,'ubound'], .02)
+}

@@ -443,21 +443,23 @@ void ComputeCI::computeImpl(FitContext *mle)
 		totalIntervals += std::isfinite(oCI->lbound) + std::isfinite(oCI->ubound);
 	}
 
-	Rf_protect(detail = Rf_allocVector(VECSXP, 3 + mle->numParam));
+	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
-	SET_VECTOR_ELT(detail, 1, Rf_allocVector(INTSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 2, Rf_allocVector(INTSXP, totalIntervals));
 	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
-		SET_VECTOR_ELT(detail, 2+cx, Rf_allocVector(REALSXP, totalIntervals));
+		SET_VECTOR_ELT(detail, 3+cx, Rf_allocVector(REALSXP, totalIntervals));
 	}
 
 	SEXP detailCols;
-	Rf_protect(detailCols = Rf_allocVector(STRSXP, 3 + mle->numParam));
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 4 + mle->numParam));
 	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
 	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
-	SET_STRING_ELT(detailCols, 1, Rf_mkChar("lower"));
-	SET_STRING_ELT(detailCols, 2, Rf_mkChar("fit"));
+	SET_STRING_ELT(detailCols, 1, Rf_mkChar("value"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("lower"));
+	SET_STRING_ELT(detailCols, 3, Rf_mkChar("fit"));
 	for (int nx=0; nx < int(mle->numParam); ++nx) {
-		SET_STRING_ELT(detailCols, 3+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
+		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
 
 	SEXP detailRowNames = Rf_allocVector(INTSXP, totalIntervals);
@@ -520,7 +522,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 			fc.CI = NULL;
 			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
+			double dist = lower? currentCI->lbound : currentCI->ubound;
 			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+				       fabs(fc.fit - fc.targetFit) < (dist * .05) &&
 				       ((!std::isfinite(*store) ||
 					 (lower && val < *store) || (!lower && val > *store))));
 
@@ -540,10 +544,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
 			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
-			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
-			REAL(VECTOR_ELT(detail, 2))[detailRow] = fc.fit;
+			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
+			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = lower;
+			REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
 			for (int px=0; px < int(fc.numParam); ++px) {
-				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = Est[px];
+				REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
 			}
 
 			++detailRow;
