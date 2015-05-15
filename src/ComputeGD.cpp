@@ -130,7 +130,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		warmStart = REAL(slotValue);
 	}
 
-	ScopedProtect p7(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
+	ScopedProtect p7(slotValue, R_do_slot(rObj, Rf_install("maxMajorIter")));
 	if (Rf_length(slotValue)) {
 		maxIter = Rf_asInteger(slotValue);
 	} else {

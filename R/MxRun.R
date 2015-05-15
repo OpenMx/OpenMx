@@ -104,7 +104,7 @@ runHelper <- function(model, frontendStart,
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
 			if (intervals) {
 				ciOpt <- mxComputeGradientDescent(
-				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxIter=150)
+				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- 'ineq'
 				if (ciOpt$engine == "NPSOL") cType <- 'none'
 				steps <- c(steps, mxComputeConfidenceInterval(

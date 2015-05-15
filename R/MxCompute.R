@@ -279,7 +279,7 @@ setClass(Class = "MxComputeGradientDescent",
 	     tolerance = "numeric",
 	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
-	     maxIter = "integer",
+	     maxMajorIter = "integer",
 	     gradientAlgo = "character",
 	     gradientIterations = "integer",
 	     gradientStepSize = "numeric",
@@ -305,7 +305,7 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 
 setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
-		   nudgeZeroStarts, maxIter, gradientAlgo, gradientIterations, gradientStepSize) {
+		   nudgeZeroStarts, maxMajorIter, gradientAlgo, gradientIterations, gradientStepSize) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -316,7 +316,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
-		  .Object@maxIter <- maxIter
+		  .Object@maxMajorIter <- maxMajorIter
 		  .Object@gradientAlgo <- gradientAlgo
 		  .Object@gradientIterations <- gradientIterations
 		  .Object@gradientStepSize <- gradientStepSize
@@ -361,7 +361,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
-##' @param maxIter maximum number of major iterations
+##' @param maxMajorIter maximum number of major iterations
 ##' @param gradientAlgo one of c('forward','central'), defaults to 'forward'
 ##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
 ##' @param gradientStepSize the step size for the gradient (default 1e-5)
@@ -391,7 +391,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxIter=NULL, gradientAlgo='forward',
+				     nudgeZeroStarts=TRUE, maxMajorIter=NULL, gradientAlgo='forward',
 				     gradientIterations=2, gradientStepSize=1e-5) {
 
 	garbageArguments <- list(...)
@@ -406,11 +406,11 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 		stop("Only NPSOL supports warmStart")
 	}
 	verbose <- as.integer(verbose)
-	maxIter <- as.integer(maxIter)
+	maxMajorIter <- as.integer(maxMajorIter)
 	gradientIterations <- as.integer(gradientIterations)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart, nudgeZeroStarts, maxIter,
+	    tolerance, warmStart, nudgeZeroStarts, maxMajorIter,
 	    gradientAlgo, gradientIterations, gradientStepSize)
 }
 
