@@ -29,6 +29,9 @@ fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)
 print(fit2$compute$output$detail)
 
+fit3 <- mxRun(cimodel, intervals = FALSE)
+omxCheckTrue(is.null(fit3$output$confidenceIntervals))
+
 # For multivariate normal means, SEs match likelihood-based CIs
 omxCheckCloseEnough(fit2$output$estimate['m1'] + fit1$output$standardErrors['m1',] * qnorm(.025),
                     fit2$output$confidenceIntervals['m1', 'lbound'], .0001)

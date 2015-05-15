@@ -408,6 +408,10 @@ void markAsDataFrame(SEXP list)
 void ComputeCI::computeImpl(FitContext *mle)
 {
 	if (intervals) Rf_error("Can only compute CIs once");
+	if (!Global->intervals) {
+		if (verbose >= 1) mxLog(name, "%s: mxRun(..., intervals=FALSE), skipping");
+		return;
+	}
 
 	Global->unpackConfidenceIntervals();
 

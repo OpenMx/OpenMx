@@ -211,6 +211,7 @@ class omxGlobal {
 	double feasibilityTolerance;
 	double optimalityTolerance;
 	int majorIterations;
+	bool intervals;
 
 	double maxptsa;
 	double maxptsb;
