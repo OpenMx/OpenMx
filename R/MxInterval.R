@@ -358,7 +358,8 @@ removeAllIntervals <- function(model) {
 ##'                       mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
 ##'                       mxData(observed=cov(demoOneFactor), type="cov",
 ##'                       numObs=500),
-##'                       mxCI(c('A', 'S'))) # add confidence intervals for free params in A and S matrices
+##'      # add confidence intervals for free params in A and S matrices
+##'                       mxCI(c('A', 'S')))
 ##' factorRun <- mxRun(factorModel)
 ##' factorCI <- omxParallelCI(factorRun) # Run CIs in parallel
 omxParallelCI <- function(model, run = TRUE) {
