@@ -111,6 +111,5 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 threeFactorOrthogonalOut <- mxRun(mxModel(threeFactorOrthogonal,
                                           mxComputeGradientDescent(engine="SD", maxMajorIter=3)))
 threeFactorOrthogonalOut <- mxRun(mxModel(threeFactorOrthogonalOut, mxComputeDefault()))
->>>>>>> 28a156c... Rename maxIter -> maxMajorIter
 summary(threeFactorOrthogonalOut)
 omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 733384.1, 1)
