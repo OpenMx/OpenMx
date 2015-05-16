@@ -1420,8 +1420,8 @@ void omxCompute::compute(FitContext *fc)
 	narrow->inform = INFORM_UNINITIALIZED;
 	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
 	computeImpl(narrow);
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d", name, varGroup->id[0]); }
 	fc->inform = std::max(origInform, narrow->inform);
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->inform); }
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
@@ -2209,14 +2209,14 @@ void ComputeEM::Oakes(FitContext *fc)
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
 
+	Eigen::VectorXd optimumCopy = optimum;  // will be modified
 	Eigen::VectorXd refGrad(freeVars);
 	refGrad = fc->grad;
-	//std::cout << "refGrad" << refGrad << "\n";
+	//mxPrintMat("refGrad", refGrad);
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
-
 	estep_jacobian_functional ejf(this, fc);
-	fd_jacobian(ejf, optimum.matrix(), refGrad, false, jacobian);
+	fd_jacobian(GradientAlgorithm_Forward, 1, 1e-5, ejf, refGrad, optimumCopy, jacobian);
 
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
@@ -2229,7 +2229,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	fc->refreshDenseHess();
 	double *hess = fc->getDenseHessUninitialized();
 	Eigen::Map< Eigen::MatrixXd > hessMat(hess, freeVars, freeVars);
-	hessMat += (jacobian + jacobian.transpose()) / 2;  //only need upper triangle TODO
+	hessMat += (jacobian + jacobian.transpose()) * 0.5;  //only need upper triangle TODO
 
 	fc->wanted = wanted | FF_COMPUTE_HESSIAN;
 }

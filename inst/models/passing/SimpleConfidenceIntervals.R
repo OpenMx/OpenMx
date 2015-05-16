@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 require(OpenMx)
+#mxOption(NULL, "Default optimizer", "NPSOL")
 
 #Prepare Data
 # -----------------------------------------------------------------------
@@ -130,6 +131,7 @@ twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
 twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
 summary(twinACEFit)
+print(twinACEFit$compute$steps[[2]]$output[['detail']])
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
@@ -169,12 +171,6 @@ CIcupper <- mxModel(twinACEIntervals, name = 'C_CIupper',
 		mxAlgebra(- common.C,name="upperCIc"), 
 		mxFitFunctionAlgebra("upperCIc"))
 
-CIclower <- mxModel(twinACEIntervals, name = 'C_CIlower',
-		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
-		mxAlgebra(common.C,name="lowerCIc"),
-		mxFitFunctionAlgebra("lowerCIc"))
-
-runCIclower <- suppressWarnings(iterateMxRun(CIclower, 3))
 runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
 
 CIeupper <- mxModel(twinACEIntervals, name = 'E_CIupper',
@@ -192,13 +188,15 @@ runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
 
 ci <- twinACEFit$output$confidenceIntervals
 #cat(deparse(round(ci[,'ubound'],4)))
-omxCheckCloseEnough(ci[,'lbound'], c(0.4697, 0.1, 0.1567), .005)
+omxCheckCloseEnough(ci[-2,'lbound'], c(0.4697, 0.1567), .005)
 omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .02)
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'lbound'], mxEval(common.C, runCIclower), .001)
+if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
+  omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
+}
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
@@ -210,5 +208,6 @@ if (0) {
   twinACEFit$output$confidenceIntervals - twinACEParallel$output$confidenceIntervals
 }
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals, 
-	twinACEParallel$output$confidenceIntervals, .001)
+mask <- !is.na(twinACEFit$output$confidenceIntervals)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[mask],
+	twinACEParallel$output$confidenceIntervals[mask], .001)

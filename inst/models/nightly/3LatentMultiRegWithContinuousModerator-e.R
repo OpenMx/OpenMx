@@ -124,6 +124,8 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
 diag(threeLatentOrthogonal$S$lbound) <- .01
 diag(threeLatentOrthogonal$S$ubound) <- 5
 
-threeLatentOrthogonalOut <- mxRun(threeLatentOrthogonal)
+threeLatentOrthogonalOut <- mxRun(mxModel(threeLatentOrthogonal,
+                                          mxComputeGradientDescent(engine="SD", maxMajorIter=3)))
+threeLatentOrthogonalOut <- mxRun(mxModel(threeLatentOrthogonalOut, mxComputeDefault()))
 summary(threeLatentOrthogonalOut)
 omxCheckCloseEnough(threeLatentOrthogonalOut$output$fit, 3788276, 2)

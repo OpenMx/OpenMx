@@ -1775,7 +1775,7 @@ typedef struct {
     double alpha;
     int iexact;
     int incons, ireset, itermx;
-    double *x0;
+    double *x0;   /* point at start of major iteration */
 } slsqpb_state;
 
 #define SS(var) state->var = var
@@ -1826,12 +1826,14 @@ static void slsqpb_(int *m, int *meq, int *la, int *
 
     /* saved state from one call to the next;
        SGJ 2010: save/restore via state parameter, to make re-entrant. */
-    double t, f0, h1, h2, h3, h4;
+    double t, f0, h2, h4;
+    double h1;     /* improvement compared to major iter */
+    double h3;     /* expected improvement */
     int n1, n2, n3;
     double t0, gs;
     double tol;
-    int line;
-    double alpha;
+    int line;     /* count of minor iterations */
+    double alpha; /* line search step scalar */
     int iexact;
     int incons, ireset, itermx;
     RESTORE_STATE;
@@ -1864,7 +1866,13 @@ static void slsqpb_(int *m, int *meq, int *la, int *
 
     /* Function Body */
     if (*mode == -1) {
-	goto L260;
+	    i__1 = *n;
+	    for (i__ = 1; i__ <= i__1; ++i__) {
+		    /* We may have jumped back to an earlier point in the line
+		       search (not the most recent point) */
+		    s[i__] = x[i__] - x0[i__];
+	    }
+	    goto L260;
     } else if (*mode == 0) {
 	goto L100;
     } else {
@@ -2040,8 +2048,11 @@ L190:
     *mode = 1;
     goto L330;
 L200:
+    if (line > maxLineSearchIterations) {
+	    goto L240;
+    }
     if (nlopt_isfinite(h1)) {
-	    if (h1 <= h3 / ten || line > maxLineSearchIterations) {
+	    if (h1 <= h3 / ten) {
 		    goto L240;
 	    }
 	    /* Computing MAX */
@@ -2127,7 +2138,6 @@ L255:
 /*   CALL JACOBIAN AT CURRENT X */
 /*   UPDATE CHOLESKY-FACTORS OF HESSIAN MATRIX BY MODIFIED BFGS FORMULA */
 L260:
-    i__1 = *n;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	u[i__] = g[i__] - ddot_sl__(m, &a[i__ * a_dim1 + 1], 1, &r__[1], 1) - v[i__];
 /* L270: */
@@ -2489,6 +2499,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      nlopt_result ret = NLOPT_SUCCESS;
      unsigned max_cdim;
      int want_grad = 1;
+     int makingProgress = 0;
      struct estimate cur, minor, major;
      
      max_cdim = MAX2(nlopt_max_constraint_dim(m, fc),
@@ -2523,8 +2534,10 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 		&state);
 
 	  /* note: mode == -1 corresponds to the completion of a line search,
-	     and is the only time we should check convergence (as in original slsqp code) */
-	  if (mode == -1 && !nlopt_isinf(minor.fval)) {
+	     and is the only time we should check convergence (as in original slsqp code).
+	     We also check if slsqp failed to determine a search direction.
+	  */
+	  if ((mode == -1 && !nlopt_isinf(minor.fval)) || !nlopt_isfinite(cur.par[0])) {
 		  estimate_copy(&cur, &minor);
 		  //printf("best minor %f %f feasible %d\n",
 		  //minor.fval, minor.infeasibility, minor.feasible);
@@ -2540,6 +2553,17 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			  estimate_copy(&major, &minor);
 			  if (ret != NLOPT_SUCCESS) goto done;
 		  }
+	  }
+
+	  /* A constrained problem with a small enough feasibility
+	     tolerance will never be feasible. We need to prevent such
+	     problems from looping forever. */
+	  if (mode == -1 && constrained) {
+		  if (!makingProgress) {
+			  ret = NLOPT_ROUNDOFF_LIMITED;
+			  goto done;
+		  }
+		  makingProgress = 0;
 	  }
 
 	  switch (mode) {
@@ -2645,11 +2669,12 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	  prev_mode = mode;
 
 	  /* update best point so far */
-	  if (nlopt_isfinite(cur.fval) && nlopt_isfinite(cur.infeasibility) &&
+	  if (mode != -1 && nlopt_isfinite(cur.fval) && nlopt_isfinite(cur.infeasibility) &&
 	      !(cur.fval >= minor.fval && cur.infeasibility >= minor.infeasibility)) {
 
 		  //printf("best eval so far %f %f feasible %d\n", cur.fval, cur.infeasibility, cur.feasible);
 		  estimate_copy(&minor, &cur);
+		  makingProgress = 1;
 	  }
 
 	  /* do some additional termination tests */

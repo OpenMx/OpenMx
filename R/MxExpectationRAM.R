@@ -232,7 +232,7 @@ setMethod("genericGetMeans", signature("MxExpectationRAM"),
 setMethod("genericExpGetPrecision", "MxExpectationRAM",
 	function(.Object) {
 		if(!single.na(.Object@thresholds)) {
-			return(list(stepSize=0.1, iterations=3L))
+			return(list(stepSize=0.1, iterations=3L, functionPrecision=1e-9))
 		} else {
 			callNextMethod();
 		}
@@ -373,13 +373,6 @@ updateRAMdimnames <- function(flatExpectation, flatJob) {
 
 setMethod("genericExpAddEntities", "MxExpectationRAM",
 	  function(.Object, job, flatJob, labelsData) {
-		  precision <- "Function precision"
-		  if(!single.na(.Object@thresholds)) {
-			  if (is.null(job@options[[precision]])) {
-				  job <- mxOption(job, precision, 1e-9)
-			  }
-		  }
-
 		  ppmlModelOption <- job@options$UsePPML
 		  if (is.null(ppmlModelOption)) {
 			  enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")

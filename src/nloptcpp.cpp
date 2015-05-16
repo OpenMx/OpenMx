@@ -27,13 +27,22 @@ struct fit_functional {
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
+	nlopt_opt opt = (nlopt_opt) goc->extraData;
 	FitContext *fc = goc->fc;
 	assert(n == fc->numParam);
-	int mode = grad != 0;
+	int mode = 0;
 	double fit = goc->solFun((double*) x, &mode);
+	if (grad) {
+		fc->iterations += 1;
+		if (goc->maxMajorIterations != -1 && fc->iterations >= goc->maxMajorIterations) {
+			nlopt_force_stop(opt);
+		}
+	}
+	if (grad && goc->verbose >= 2) {
+		mxLog("major iteration fit=%.12f", fit);
+	}
 	if (mode == -1) {
 		if (!goc->feasible) {
-			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
 		return nan("infeasible");
@@ -44,10 +53,15 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
 		Egrad = fc->grad;
+	} else if (fc->CI && fc->CI->varIndex >= 0) {
+		Egrad.setZero();
+		Egrad[fc->CI->varIndex] = fc->lowerBound? 1 : -1;
+		fc->grad = Egrad;
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
-		fd_gradient(ff, Epoint, Egrad);
+		gradient_with_ref(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+				  ff, fit, Epoint, Egrad);
 		fc->grad = Egrad;
 	}
 	if (goc->verbose >= 3) {
@@ -78,7 +92,11 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
 	equality_functional ff(*goc);
-	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
+	ff(Epoint, Eresult);
+	if (grad) {
+		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+			    ff, Eresult, Epoint, jacobian);
+	}
 	//if (goc->verbose >= 3 && grad) std::cout << "equality:\n" << Eresult << "\n" << jacobian << "\n";
 }
 
@@ -103,12 +121,23 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
+	if (grad && goc->verbose >= 2) {
+		if (m == 1) {
+			mxLog("major iteration ineq=%.12f", Eresult[0]);
+		} else {
+			mxPrintMat("major iteration ineq", Eresult);
+		}
+	}
 	inequality_functional ff(*goc);
-	fd_jacobian(ff, Epoint, Eresult, grad==NULL, jacobian);
-	if (grad && !std::isfinite(Eresult.sum())) {
-		// infeasible at start of major iteration
-		nlopt_opt opt = (nlopt_opt) goc->extraData;
-		nlopt_force_stop(opt);
+	ff(Epoint, Eresult);
+	if (grad) {
+		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+			    ff, Eresult, Epoint, jacobian);
+		if (!std::isfinite(Eresult.sum())) {
+			// infeasible at start of major iteration
+			nlopt_opt opt = (nlopt_opt) goc->extraData;
+			nlopt_force_stop(opt);
+		}
 	}
 	if (goc->verbose >= 3 && grad) {
 		mxPrintMat("inequality jacobian", jacobian);
@@ -142,10 +171,10 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		std::vector<double> tol(fc->numParam, std::numeric_limits<double>::epsilon());
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
-		// The 0.01 factor is a bit ridiculous. NPSOL doesn't
+		// The 0.005 factor is a bit ridiculous. NPSOL doesn't
 		// have the same definition of relative tolerance
 		// compare to SLSQP.
-		nlopt_set_ftol_rel(opt, Global->optimalityTolerance * 0.01);
+		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 0.005);
 		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         
@@ -173,24 +202,24 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 
 	fc->wanted = oldWanted;
 
-	// fatal errors
 	if (code == NLOPT_INVALID_ARGS) {
 		Rf_error("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
 		Rf_error("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
-		goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		if (goc.maxMajorIterations != -1 && fc->iterations >= goc.maxMajorIterations) {
+			goc.informOut = INFORM_ITERATION_LIMIT;
+		} else {
+			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		}
+	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
+		goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 	} else if (code < 0) {
 		Rf_error("NLOPT fatal error %d", code);
-	}
-
-	// non-fatal errors
-	if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
+	} else if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
 		goc.informOut = INFORM_NOT_AT_OPTIMUM;
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
-	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		goc.informOut = INFORM_UNCONVERGED_OPTIMUM;  // is this correct? TODO
 	} else {
 		goc.informOut = INFORM_CONVERGED_OPTIMUM;
 	}

@@ -345,22 +345,21 @@ removeAllIntervals <- function(model) {
 ##' @return
 ##' an MxModel object
 ##' @examples
-##' # raw data version of frontpage model
 ##' require(OpenMx)
 ##' data(demoOneFactor)
 ##' manifests <- names(demoOneFactor)
 ##' latents <- c("G")
-##' factorModel <- mxModel("One Factor",
-##'      type="RAM",
-##'      manifestVars = manifests,
-##'      latentVars = latents,
-##'      mxPath(from=latents, to=manifests),
-##'      mxPath(from=manifests, arrows=2),
-##'      mxPath(from=latents, arrows=2,
-##'            free=FALSE, values=1.0),
-##'      mxPath(from = 'one', to = manifests),
-##'      mxData(demoOneFactor[1:100,], type="raw"), #cut number of rows for speed
-##'      mxCI(c('A'))) # add confidence intervals for free params in A matrix
+##' factorModel <- mxModel("One Factor", 
+##'                       type="RAM",
+##'                       manifestVars=manifests, 
+##'                       latentVars=latents,
+##'                       mxPath(from=latents, to=manifests),
+##'                       mxPath(from=manifests, arrows=2),
+##'                       mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
+##'                       mxData(observed=cov(demoOneFactor), type="cov",
+##'                       numObs=500),
+##'      # add confidence intervals for free params in A and S matrices
+##'                       mxCI(c('A', 'S')))
 ##' factorRun <- mxRun(factorModel)
 ##' factorCI <- omxParallelCI(factorRun) # Run CIs in parallel
 omxParallelCI <- function(model, run = TRUE) {

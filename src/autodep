@@ -7,7 +7,7 @@ ComputeGD.o: Makevars.in ComputeGD.cpp omxDefines.h omxState.h omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
  glue.h omxNPSOLSpecific.h omxExportBackendState.h omxCsolnp.h nloptcpp.h \
- npsolswitch.h ComputeSD.h matrix.h ComputeSD_AL.h
+ npsolswitch.h ComputeSD.h matrix.h
 ComputeNR.o: Makevars.in ComputeNR.cpp omxState.h omxDefines.h omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
@@ -16,12 +16,7 @@ ComputeSD.o: Makevars.in ComputeSD.cpp ComputeSD.h omxState.h omxDefines.h \
  omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
- glue.h omxExportBackendState.h matrix.h
-ComputeSD_AL.o: Makevars.in ComputeSD_AL.cpp ComputeSD_AL.h ComputeSD.h omxState.h \
- omxDefines.h omxMatrix.h \
- omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
- omxData.h omxFitFunction.h Compute.h \
- glue.h omxExportBackendState.h matrix.h
+ glue.h omxExportBackendState.h matrix.h finiteDifferences.h
 ba81quad.o: Makevars.in ba81quad.cpp ba81quad.h glue.h omxState.h omxDefines.h \
  omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
@@ -50,7 +45,7 @@ merge.o: Makevars.in merge.cpp merge.h
 nloptcpp.o: Makevars.in nloptcpp.cpp omxState.h omxDefines.h omxMatrix.h \
  omxBLAS.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h Compute.h \
- glue.h nloptcpp.h finiteDifferences.h
+ glue.h nloptcpp.h finiteDifferences.h nlopt.h
 omxAlgebra.o: Makevars.in omxAlgebra.cpp omxMatrix.h omxDefines.h \
  omxBLAS.h omxFitFunction.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
  omxState.h omxExpectation.h omxData.h Compute.h \

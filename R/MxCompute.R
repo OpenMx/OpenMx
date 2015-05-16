@@ -32,6 +32,7 @@ setClass(Class = "BaseCompute",
 	     freeSet = "MxOptionalChar",
 	     output = "list",
 	     debug = "list",
+	     .persist = "logical",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
@@ -60,7 +61,12 @@ setMethod("displayCompute", signature(Ob="BaseCompute", indent="integer"),
 		  cat(sp, "$freeSet :", omxQuotes(Ob@freeSet), '\n')
 		  if (length(Ob$output)) {
 			  for (elem in names(Ob$output)) {
-				  cat(sp, "$output[[", omxQuotes(elem), "]] :", Ob@output[[elem]], '\n')
+				  stuff <- Ob@output[[elem]]
+				  if (is.list(stuff)) {
+					  cat(sp, "$output[[", omxQuotes(elem), "]] : ...", '\n')
+				  } else {
+					  cat(sp, "$output[[", omxQuotes(elem), "]] :", stuff, '\n')
+				  }
 			  }
 		  }
 		  if (length(Ob$debug)) {
@@ -188,6 +194,7 @@ setMethod("convertForBackend", signature("MxComputeOnce"),
 setMethod("initialize", "MxComputeOnce",
 	  function(.Object, from, what, how, freeSet, verbose, .is.bestfit) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@from <- from
 		  .Object@what <- what
 		  .Object@how <- how
@@ -272,6 +279,10 @@ setClass(Class = "MxComputeGradientDescent",
 	     tolerance = "numeric",
 	     nudgeZeroStarts = "logical",
 	   verbose = "integer",
+	     maxMajorIter = "integer",
+	     gradientAlgo = "character",
+	     gradientIterations = "integer",
+	     gradientStepSize = "numeric",
 	     warmStart = "MxOptionalMatrix"))  # rename to 'preconditioner'?
 
 setMethod("qualifyNames", signature("MxComputeGradientDescent"),
@@ -294,8 +305,9 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 
 setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
-		   nudgeZeroStarts) {
+		   nudgeZeroStarts, maxMajorIter, gradientAlgo, gradientIterations, gradientStepSize) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@engine <- engine
@@ -304,6 +316,10 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
+		  .Object@maxMajorIter <- maxMajorIter
+		  .Object@gradientAlgo <- gradientAlgo
+		  .Object@gradientIterations <- gradientIterations
+		  .Object@gradientStepSize <- gradientStepSize
 		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
@@ -325,6 +341,17 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' SLSQP (from the NLOPT collection).  The proprietary version of
 ##' OpenMx offers the choice of two optimizers, SLSQP and NPSOL.
 ##'
+##' One of the most important options for SLSQP is
+##' \code{gradientAlgo}. By default, the \code{forward} method is
+##' used. This method requires \code{gradientIterations} function
+##' evaluations per parameter per gradient.  This method often works
+##' well enough but can result in imprecise gradient estimations that
+##' may not allow SLSQP to fully optimize a given model. If code red
+##' is reported then you are encouraged to try the \code{central}
+##' method. The \code{central} method requires 2 times
+##' \code{gradientIterations} function evaluations per parameter per
+##' gradient, but it can be much more accurate.
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param engine specific NPSOL or SLSQP
@@ -334,11 +361,14 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
+##' @param maxMajorIter maximum number of major iterations
+##' @param gradientAlgo one of c('forward','central')
+##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
+##' @param gradientStepSize the step size for the gradient (default 1e-5)
 ##' @aliases
 ##' MxComputeGradientDescent-class
-##' @references Ye, Y. (1988). \emph{Interior algorithms for linear,
-##' quadratic, and linearly constrained convex programming.}
-##' (Unpublished doctoral dissertation.) Stanford University, CA.
+##' @references
+##' Luenberger, D. G. & Ye, Y. (2008). \emph{Linear and nonlinear programming.} Springer.
 ##' @examples
 ##' data(demoOneFactor)
 ##' factorModel <- mxModel(name ="One Factor",
@@ -360,7 +390,10 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
-				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL, nudgeZeroStarts=TRUE) {
+				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
+				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
+				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
+				     gradientIterations=2, gradientStepSize=1e-5) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -374,23 +407,29 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 		stop("Only NPSOL supports warmStart")
 	}
 	verbose <- as.integer(verbose)
+	maxMajorIter <- as.integer(maxMajorIter)
+	gradientIterations <- as.integer(gradientIterations)
 
 	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart, nudgeZeroStarts)
+	    tolerance, warmStart, nudgeZeroStarts, maxMajorIter,
+	    gradientAlgo, gradientIterations, gradientStepSize)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  cat(sp, "$engine :", omxQuotes(Ob@engine), '\n')
-		  cat(sp, "$fitfunction :", omxQuotes(Ob@fitfunction), '\n')
-		  cat(sp, "$verbose :", Ob@verbose, '\n')
-		  if (!is.na(Ob@tolerance)) {
-			  cat(sp, "$tolerance :", Ob@tolerance, '\n')
-		  }
-		  if (!is.null(Ob@useGradient)) {
-			  cat(sp, "$useGradient :", Ob@useGradient, '\n')
+		  for (sl in c("engine", "fitfunction", "verbose", "tolerance", "useGradient",
+			       "nudgeZeroStarts", "maxMajorIter",
+			       "gradientAlgo", "gradientIterations", "gradientStepSize")) {
+			  val <- slot(Ob, sl)
+			  if (length(val)==0 || is.na(val)) next
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
 		  }
 		  invisible(Ob)
 	  })
@@ -455,6 +494,7 @@ setMethod("convertForBackend", signature("MxComputeConfidenceInterval"),
 setMethod("initialize", "MxComputeConfidenceInterval",
 	  function(.Object, freeSet, plan, verbose, fitfunction, constraintType) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@plan <- plan
 		  .Object@verbose <- verbose
@@ -515,7 +555,7 @@ mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbos
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
 	  function(Ob, indent) {
-		  callNextMethod();
+		  callNextMethod()
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "$plan :", '\n')
 		  displayCompute(Ob@plan, indent+1L)
@@ -562,6 +602,7 @@ setMethod("convertForBackend", signature("MxComputeNewtonRaphson"),
 setMethod("initialize", "MxComputeNewtonRaphson",
 	  function(.Object, freeSet, fit, maxIter, tolerance, verbose) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@maxIter <- maxIter
@@ -679,6 +720,7 @@ setClass(Class = "MxComputeIterate",
 setMethod("initialize", "MxComputeIterate",
 	  function(.Object, steps, maxIter, tolerance, verbose, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
 		  .Object@maxIter <- maxIter
 		  .Object@tolerance <- tolerance
@@ -825,6 +867,7 @@ setMethod("initialize", "MxComputeEM",
 	  function(.Object, expectation, predict, mstep, observedFit, maxIter, tolerance,
 		   verbose, accel, information, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@expectation <- expectation
 		  .Object@predict <- predict
 		  .Object@mstep <- mstep
@@ -951,6 +994,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 setMethod("initialize", "MxComputeNumericDeriv",
 	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@parallel <- parallel
@@ -960,6 +1004,17 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@knownHessian <- knownHessian
 		  .Object
 	  })
+
+adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
+	for (nd in 1:length(m@compute@steps)) {
+		if (is(m@compute@steps[[nd]], "MxComputeNumericDeriv")) {
+			m@compute@steps[[nd]]$iterations <- iterations
+			m@compute@steps[[nd]]$stepSize <- stepSize
+			break
+		}
+	}
+	m
+}
 
 ##' Numerically estimate Hessian using Richardson extrapolation
 ##'
@@ -1047,6 +1102,7 @@ setClass(Class = "MxComputeStandardError",
 setMethod("initialize", "MxComputeStandardError",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1069,6 +1125,7 @@ setClass(Class = "MxComputeHessianQuality",
 setMethod("initialize", "MxComputeHessianQuality",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1098,6 +1155,7 @@ setClass(Class = "MxComputeReportDeriv",
 setMethod("initialize", "MxComputeReportDeriv",
 	  function(.Object, freeSet) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object
 	  })
@@ -1125,6 +1183,7 @@ setClass(Class = "MxComputeSequence",
 setMethod("initialize", "MxComputeSequence",
 	  function(.Object, steps, freeSet, independent) {
 		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
@@ -1148,6 +1207,31 @@ mxComputeSequence <- function(steps=list(), ..., freeSet=NA_character_, independ
 	new("MxComputeSequence", steps=steps, freeSet, independent)
 }
 
+setClass(Class = "MxComputeDefault",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeDefault",
+	  function(.Object, freeSet) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object
+	  })
+
+##' Default compute plan
+##'
+##' The default compute plan is approximately as follows:
+##' \code{mxComputeSequence(list(mxComputeGradientDescent(),
+##' mxComputeConfidenceInterval(), mxComputeNumericDeriv(),
+##' mxComputeStandardError(), mxComputeReportDeriv()))}
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeDefault-class
+mxComputeDefault <- function(freeSet=NA_character_) {
+	new("MxComputeDefault", freeSet)
+}
+
 ##' Compute nothing
 ##'
 ##' Note that this compute plan actually does nothing whereas
@@ -1163,7 +1247,7 @@ setMethod("displayCompute", signature(Ob="MxComputeSequence", indent="integer"),
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "independent :", Ob@independent, '\n')
-		  for (step in 1:length(Ob@steps)) {
+		  if (length(Ob@steps)) for (step in 1:length(Ob@steps)) {
 			  cat(sp, "steps[[", step, "]] :", '\n')
 			  displayCompute(Ob@steps[[step]], indent+1L)
 		  }

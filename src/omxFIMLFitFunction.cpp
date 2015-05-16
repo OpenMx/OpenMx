@@ -68,11 +68,13 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
 	
-	omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
-	Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
-	for(int row = 0; row < rowLikelihoodsInt->rows; row++)
-		REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
-	Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+	if(argStruct->populateRowDiagnostics){
+		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
+		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+	}
 }
 
 static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
@@ -259,8 +261,15 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Accessing row likelihood option.");
 	}
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
-    newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
-    newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	
+	
+	if(OMX_DEBUG) {
+		mxLog("Accessing row likelihood population option.");
+	}
+	newObj->populateRowDiagnostics = Rf_asInteger(R_do_slot(rObj, Rf_install("rowDiagnostics")));
+
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");

@@ -345,6 +345,7 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP intervalList, omxState *curre
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, currentState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
+		oCI->varIndex = -1;
 		oCI->lbound = intervalInfo[3];
 		oCI->ubound = intervalInfo[4];
 		oCI->max = R_NaReal;					// NAs, in case something goes wrong

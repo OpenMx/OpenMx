@@ -25,7 +25,6 @@
 #include "npsolswitch.h"
 #include "glue.h"
 #include "ComputeSD.h"
-#include "ComputeSD_AL.h"
 
 enum OptEngine {
 	OptEngine_NPSOL,
@@ -38,9 +37,14 @@ class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	const char *engineName;
 	enum OptEngine engine;
+	const char *gradientAlgoName;
+	enum GradientAlgorithm gradientAlgo;
+	int gradientIterations;
+	double gradientStepSize;
 	omxMatrix *fitMatrix;
 	int verbose;
 	double optimalityTolerance;
+	int maxIter;
 
 	bool useGradient;
 	SEXP hessChol;
@@ -81,6 +85,9 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	optimalityTolerance = Rf_asReal(slotValue);
+	if (!std::isfinite(optimalityTolerance)) {
+		optimalityTolerance = Global->optimalityTolerance;
+	}
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
 	engineName = CHAR(Rf_asChar(slotValue));
@@ -122,6 +129,29 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		warmStartSize = rows;
 		warmStart = REAL(slotValue);
 	}
+
+	ScopedProtect p7(slotValue, R_do_slot(rObj, Rf_install("maxMajorIter")));
+	if (Rf_length(slotValue)) {
+		maxIter = Rf_asInteger(slotValue);
+	} else {
+		maxIter = -1; // different engines have different defaults
+	}
+
+	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gradientAlgo")));
+	gradientAlgoName = CHAR(Rf_asChar(slotValue));
+	if (strEQ(gradientAlgoName, "forward")) {
+		gradientAlgo = GradientAlgorithm_Forward;
+	} else if (strEQ(gradientAlgoName, "central")) {
+		gradientAlgo = GradientAlgorithm_Central;
+	} else {
+		Rf_error("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
+	}
+
+	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("gradientIterations")));
+	gradientIterations = std::max(Rf_asInteger(slotValue), 1);
+
+	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("gradientStepSize")));
+	gradientStepSize = Rf_asReal(slotValue);
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -151,7 +181,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = Global->computeCount;
 
-	if (verbose >= 1) mxLog("%s: using engine %s (ID %d)", name, engineName, engine);
+	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g",
+				name, engineName, engine, gradientAlgoName, optimalityTolerance);
 
 	//if (fc->CI) verbose=3;
 	GradientOptimizerContext rf(verbose);
@@ -159,6 +190,14 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
+	rf.gradientAlgo = gradientAlgo;
+	rf.gradientIterations = gradientIterations;
+	rf.gradientStepSize = gradientStepSize;
+	if (maxIter == -1) {
+		rf.maxMajorIterations = -1;
+	} else {
+		rf.maxMajorIterations = fc->iterations + maxIter;
+	}
 	if (warmStart) {
 		if (warmStartSize != int(numParam)) {
 			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
@@ -199,6 +238,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 		break;
         case OptEngine_NLOPT:
+		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		omxInvokeNLOPT(fc->est, rf);
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;
@@ -208,11 +248,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.setupIneqConstraintBounds();
 		rf.solEqBFun();
 		rf.myineqFun();
-		int MAXIT = 50000;
-		if(rf.inequality.size() == 0 && rf.equality.size() == 0)
-			{
-				omxSD(rf, MAXIT);   // unconstrained problems
-			} else {
+		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
+			omxSD(rf);   // unconstrained problems
+		} else {
 			omxSD_AL(rf);       // constrained problems
 		}
 		fc->wanted |= FF_COMPUTE_GRADIENT;
@@ -370,6 +408,10 @@ void markAsDataFrame(SEXP list)
 void ComputeCI::computeImpl(FitContext *mle)
 {
 	if (intervals) Rf_error("Can only compute CIs once");
+	if (!Global->intervals) {
+		if (verbose >= 1) mxLog(name, "%s: mxRun(..., intervals=FALSE), skipping");
+		return;
+	}
 
 	Global->unpackConfidenceIntervals();
 
@@ -401,21 +443,23 @@ void ComputeCI::computeImpl(FitContext *mle)
 		totalIntervals += std::isfinite(oCI->lbound) + std::isfinite(oCI->ubound);
 	}
 
-	Rf_protect(detail = Rf_allocVector(VECSXP, 3 + mle->numParam));
+	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
-	SET_VECTOR_ELT(detail, 1, Rf_allocVector(INTSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
+	SET_VECTOR_ELT(detail, 2, Rf_allocVector(INTSXP, totalIntervals));
 	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
-		SET_VECTOR_ELT(detail, 2+cx, Rf_allocVector(REALSXP, totalIntervals));
+		SET_VECTOR_ELT(detail, 3+cx, Rf_allocVector(REALSXP, totalIntervals));
 	}
 
 	SEXP detailCols;
-	Rf_protect(detailCols = Rf_allocVector(STRSXP, 3 + mle->numParam));
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 4 + mle->numParam));
 	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
 	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
-	SET_STRING_ELT(detailCols, 1, Rf_mkChar("lower"));
-	SET_STRING_ELT(detailCols, 2, Rf_mkChar("fit"));
+	SET_STRING_ELT(detailCols, 1, Rf_mkChar("value"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("lower"));
+	SET_STRING_ELT(detailCols, 3, Rf_mkChar("fit"));
 	for (int nx=0; nx < int(mle->numParam); ++nx) {
-		SET_STRING_ELT(detailCols, 3+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
+		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
 
 	SEXP detailRowNames = Rf_allocVector(INTSXP, totalIntervals);
@@ -438,6 +482,10 @@ void ComputeCI::computeImpl(FitContext *mle)
 		const char *matName = "anonymous matrix";
 		if (currentCI->matrix->name) {
 			matName = currentCI->matrix->name;
+		}
+
+		if (useInequality || useEquality) {
+			currentCI->varIndex = freeVarGroup->lookupVar(currentCI->matrix, currentCI->row, currentCI->col);
 		}
 
 		for (int lower=0; lower <= 1; ++lower) {
@@ -474,7 +522,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 			fc.CI = NULL;
 			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
+			double dist = lower? currentCI->lbound : currentCI->ubound;
 			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+				       fabs(fc.fit - fc.targetFit) < (dist * .05) &&
 				       ((!std::isfinite(*store) ||
 					 (lower && val < *store) || (!lower && val > *store))));
 
@@ -494,10 +544,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
 			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
-			INTEGER(VECTOR_ELT(detail, 1))[detailRow] = lower;
-			REAL(VECTOR_ELT(detail, 2))[detailRow] = fc.fit;
+			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
+			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = lower;
+			REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
 			for (int px=0; px < int(fc.numParam); ++px) {
-				REAL(VECTOR_ELT(detail, 3+px))[detailRow] = Est[px];
+				REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
 			}
 
 			++detailRow;

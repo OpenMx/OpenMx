@@ -93,7 +93,7 @@ smod <- mxModel(
 	mxMatrix("Zero", udim, 1, name="u"),
 	mxData(observed=t(ty), type='raw'),
 	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u'),
-	mxFitFunctionML()
+	mxFitFunctionML(rowDiagnostics=TRUE)
 )
 
 

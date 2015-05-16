@@ -54,6 +54,7 @@ UnivariateTwinAnalysis_MatrixRaw	    Univariate ACE model using matrix specifica
 OneLocusLikelihood	                    One Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
 TwoLocusLikelihood	                    Two Locus Likelihood model to estimate allele frequencies (ABO blood-groups)
 MatrixAlgebra	                        Basic matrix algebra operations
+LISRELJointFactorModel			LISREL joint ordinal continuous factor model
 SimpleCheckpoint	                    Saving optimizer state to a file
 GrowthMixtureModel_MatrixRaw	        Growth mixture model using matrix (RAM) specification and raw data
 GrowthMixtureModel_PathRaw	            Growth mixture model using path specification and raw data

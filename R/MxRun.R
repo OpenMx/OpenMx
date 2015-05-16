@@ -13,12 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
+mxRun <- function(model, ..., intervals=NULL, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
 		useOptimizer = TRUE){
 
-	if (length(intervals) != 1 ||
+	if (is.null(intervals)) {
+		# OK
+	} else if (length(intervals) != 1 ||
 		typeof(intervals) != "logical" ||
 		is.na(intervals)) {
 		stop(paste("'intervals' argument",
@@ -80,11 +82,53 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
-	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
 	flatModel <- imxFlattenModel(model, namespace)	
+	options <- generateOptionsList(model, length(flatModel@constraints), useOptimizer)
+	options[['intervals']] <- intervals
+
+	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
+		model@compute <- NULL
+	}
+	if (!is.null(model@expectation) && is.null(model@fitfunction) && is.null(model@compute)) {
+		# The purpose of this check is to prevent analysts new to OpenMx
+		# from running nonsensical models.
+		stop(paste(model@name, " has expectation ", class(model@expectation),
+			   ", but there is no fitfunction given, and no default.\n",
+			   "To fix, see, e.g. help(mxFitFunctionML) for an example fit function, and how these pair with the expectation", sep = ""))
+	}
+
+	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
+	if (!is.null(model@fitfunction) && defaultComputePlan) {
+		compute <- NULL
+		fitNum <- paste(model@name, 'fitfunction', sep=".")
+		if (!useOptimizer) {
+			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
+		} else {
+			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
+			if (length(intervals) && intervals) {
+				ciOpt <- mxComputeGradientDescent(
+				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
+				cType <- 'ineq'
+				if (ciOpt$engine == "NPSOL") cType <- 'none'
+				steps <- c(steps, mxComputeConfidenceInterval(
+				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
+			}
+			if (options[["Calculate Hessian"]] == "Yes") {
+				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
+			}
+			if (options[["Standard Errors"]] == "Yes") {
+				steps <- c(steps, mxComputeStandardError(), mxComputeHessianQuality())
+			}
+			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
+		}
+		compute@.persist <- FALSE
+		model@compute <- compute
+	}
+	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
+	flatModelCompute <- safeQualifyNames(model@compute, model@name, namespace)
+
 	omxCheckNamespace(model, namespace)
 	convertArguments <- imxCheckVariables(flatModel, namespace)
-	freeVarGroups <- buildFreeVarGroupList(flatModel)
 	flatModel <- constraintsToAlgebras(flatModel)
 	flatModel <- eliminateObjectiveFunctions(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
@@ -115,6 +159,8 @@ runHelper <- function(model, frontendStart,
 	dependencies <- transitiveClosure(flatModel, dependencies)
 	flatModel <- populateDefInitialValues(flatModel)
 	flatModel <- checkEvaluation(model, flatModel)
+	flatModel@compute <- flatModelCompute
+	freeVarGroups <- buildFreeVarGroupList(flatModel)
 	flatModel <- generateParameterList(flatModel, dependencies, freeVarGroups)
 	matrices <- generateMatrixList(flatModel)
 	algebras <- generateAlgebraList(flatModel)
@@ -123,6 +169,22 @@ runHelper <- function(model, frontendStart,
 		defVars <- generateDefinitionList(flatModel, dependencies)
 	}
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
+
+	if (length(expectations)) {
+		prec <- lapply(expectations, genericExpGetPrecision)
+
+		functionPrecision <- Reduce(max, c(as.numeric(options[['Function precision']]),
+						   sapply(prec, function(x) x[['functionPrecision']])))
+		options[['Function precision']] <- as.character(functionPrecision)
+
+		if (defaultComputePlan && is(model@compute, "MxComputeSequence")) {
+			iterations <- Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']])))
+			stepSize <- Reduce(max, c(1e-4, sapply(prec, function(x) x[['stepSize']])))
+			model <- adjustDefaultNumericDeriv(model, iterations, stepSize)
+			flatModel <- adjustDefaultNumericDeriv(flatModel, iterations, stepSize)
+		}
+	}
+
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
 	numAlgebras <- length(algebras)
@@ -130,52 +192,20 @@ runHelper <- function(model, frontendStart,
 	constraints <- convertConstraints(flatModel)
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
+	if (numParam == 0 && defaultComputePlan && !is.null(model@fitfunction)) {
+		compute <- mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
+					 'fit', .is.bestfit=TRUE)
+		compute@.persist <- FALSE
+		compute <- assignId(compute, 1L, '.')
+		model@compute <- compute
+		flatModel@compute <- compute
+	}
+
 	intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
-	options <- generateOptionsList(model, numParam, constraints, useOptimizer)
-	
-	defaultCompute <- NULL
-	if (!is.null(model@expectation) && is.null(model@fitfunction) && is.null(model@compute)) {
-		# The purpose of this check is to prevent analysts new to OpenMx
-		# from running nonsensical models.
-		stop(paste(model@name, " has expectation ", class(model@expectation),
-			   ", but there is no fitfunction given, and no default.\n",
-			   "To fix, see, e.g. help(mxFitFunctionML) for an example fit function, and how these pair with the expectation", sep = ""))
-	}
-	if (!is.null(model@fitfunction) && is.null(model@compute)) {
-		# horrible hack, sorry
-		compute <- NULL
-		fitNum <- paste(model@name, 'fitfunction', sep=".")
-		if (!useOptimizer || numParam == 0) {
-			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
-		} else {
-			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
-			if (intervals) {
-				ciOpt <- mxComputeGradientDescent(fitfunction=fitNum, nudgeZeroStarts=FALSE)
-				cType <- 'ineq'
-				if (ciOpt$engine == "NPSOL") cType <- 'none'
-				steps <- c(steps, mxComputeConfidenceInterval(
-				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
-			}
-			if (options[["Calculate Hessian"]] == "Yes") {
-				prec <- lapply(expectations, genericExpGetPrecision)
-				iterations <- Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']])))
-				stepSize <- Reduce(max, c(1e-4, sapply(prec, function(x) x[['stepSize']])))
-				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum,
-									iterations=iterations, stepSize=stepSize))
-			}
-			if (options[["Standard Errors"]] == "Yes") {
-				steps <- c(steps, mxComputeStandardError(), mxComputeHessianQuality())
-			}
-			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
-		}
-		compute <- assignId(compute, 1L, '.')
-		flatModel@compute <- compute
-		defaultCompute <- compute
-	}
-
+	options <- limitMajorIterations(options, numParam, length(constraints))
 	computes <- convertComputes(flatModel, model)
 	
 	frontendStop <- Sys.time()
@@ -193,6 +223,7 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelExpectationDims(model, expectations)
 	model <- updateModelData(model, flatModel, output$data)
 	model@compute <-updateModelCompute(model, output$computes)
+	output[['computes']] <- NULL
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
@@ -222,11 +253,7 @@ runHelper <- function(model, frontendStart,
 	runstate$constraints <- flatModel@constraints
 	runstate$independents <- independents
 	runstate$defvars <- names(defVars)
-	if (!is.null(defaultCompute)) {
-		runstate$compute <- defaultCompute  # more hack
-	} else {
-		runstate$compute <- computes
-	}
+	runstate$compute <- computes
 	model@runstate <- runstate
 
 	frontendStop <- Sys.time()

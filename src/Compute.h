@@ -25,6 +25,11 @@
 #include "glue.h"
 #include "omxState.h"
 
+enum GradientAlgorithm {
+	GradientAlgorithm_Forward,
+	GradientAlgorithm_Central
+};
+
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
 // These are ordered from good to bad so we can use max() on a set
@@ -233,6 +238,7 @@ class GradientOptimizerContext {
 	void *extraData;
 	FitContext *fc;
 	omxMatrix *fitMatrix;
+	int maxMajorIterations;
 
 	int ControlMajorLimit;
 	int ControlMinorLimit;
@@ -242,6 +248,9 @@ class GradientOptimizerContext {
 	bool warmStart;
 	bool useGradient;
 	int ineqType;
+	enum GradientAlgorithm gradientAlgo;
+	int gradientIterations;
+	double gradientStepSize;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
@@ -272,7 +281,21 @@ class GradientOptimizerContext {
 	void solEqBFun();
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
+	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 };
+
+template <typename T1>
+void GradientOptimizerContext::checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst)
+{
+	if(verbose < 4) return;
+
+	for (int index = 0; index < int(fc->numParam); index++) {
+		if(nextEst[index] == solLB[index])
+			mxLog("paramter %i hit lower bound %f", index, solLB[index]);
+		if(nextEst[index] == solUB[index])
+			mxLog("paramter %i hit upper bound %f", index, solUB[index]);
+	}
+}
 
 typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);
 

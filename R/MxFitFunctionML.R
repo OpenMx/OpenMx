@@ -18,9 +18,10 @@ setClass(Class = "MxFitFunctionML",
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionML",
-	function(.Object, vector, name = 'fitfunction') {
+	function(.Object, vector, rowDiagnostics, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@vector <- vector
+		.Object@rowDiagnostics <- rowDiagnostics
 		return(.Object)
 	}
 )
@@ -47,6 +48,13 @@ setMethod("genericFitConvertEntities", "MxFitFunctionML",
 				msg <- paste("The ML fit function",
 					"in model", omxQuotes(modelname), "has specified",
 					"'vector' = TRUE, but the observed data is not raw data")
+				stop(msg, call.=FALSE)
+			}
+			if (.Object@rowDiagnostics) {
+				modelname <- getModelName(.Object)
+				msg <- paste("The ML fit function",
+					"in model", omxQuotes(modelname), "has specified",
+					"'rowDiagnostics' = TRUE, but the observed data is not raw data")
 				stop(msg, call.=FALSE)
 			}
 		}
@@ -143,16 +151,20 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)
 	})
 
-mxFitFunctionML <- function(vector = FALSE) {
+mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE) {
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("'vector' argument is not a logical value")
 	}
-	return(new("MxFitFunctionML", vector))
+	if (length(rowDiagnostics) > 1 || typeof(rowDiagnostics) != "logical") {
+		stop("'rowDiagnostics' argument is not a logical value")
+	}
+	return(new("MxFitFunctionML", vector, rowDiagnostics))
 }
 
 displayMxFitFunctionML <- function(fitfunction) {
 	cat("MxFitFunctionML", omxQuotes(fitfunction@name), '\n')
 	cat("$vector :", fitfunction@vector, '\n')
+	cat("$rowDiagnostics :", fitfunction@rowDiagnostics, '\n')
 	print(fitfunction@result)
 	invisible(fitfunction)
 }

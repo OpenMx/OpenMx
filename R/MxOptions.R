@@ -69,10 +69,10 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			omxQuotes(optionsNames[[match]]), ": please correct",
 			"the capitalization and re-run mxOption()."))
 	}
-	if (key == "Default optimizer") {
-		stop(paste(key, "is a global option and cannot be set on models.\n",
-		"To switch optimizers globally, use, e.g.:\n",
-		"mxOption(NULL, 'Default optimizer', 'SLSQP')", sep = ""))
+	if (key == "Default optimizer" || key == "Gradient algorithm") {
+		stop(paste(omxQuotes(key), " is a global option and cannot be set on models.\n",
+		"To change ", omxQuotes(key) ," globally, use, e.g.:\n",
+		"mxOption(NULL, '", key, "', '", value,"')", sep = ""))
         # to use NLOPT, use: mxOption(NULL, 'Default optimizer', 'NLOPT')
 	}
 	model@options[[key]] <- value
@@ -173,17 +173,27 @@ otherOptions <- list(
     "mvnMaxPointsC" = 5000,
     "mvnAbsEps" = 1e-3,
     "mvnRelEps" = 0,
-    "maxStackDepth" = 25000L   # R_PPSSIZE/2
+    "maxStackDepth" = 25000L,   # R_PPSSIZE/2
+    "Gradient algorithm" = "forward"
 )
 
-generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
+limitMajorIterations <- function(options, numParam, numConstraints) {
+	mIters <- options[["Major iterations"]]
+	if (typeof(mIters) == "closure") {
+		mIters <- do.call(mIters, list(numParam, numConstraints))
+	}
+	options[["Major iterations"]] <- as.character(mIters)
+	options
+}
+
+generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
-		if (is.null(input[["Standard Errors"]]) && length(constraints) > 0) {
+		if (is.null(input[["Standard Errors"]]) && constraints > 0) {
 			input[["Standard Errors"]] <- "No"
 		}
-		if (is.null(input[["Calculate Hessian"]]) && length(constraints) > 0) {
+		if (is.null(input[["Calculate Hessian"]]) && constraints > 0) {
 			input[["Calculate Hessian"]] <- "No"
 		}
 		if( !is.null(input[["UsePPML"]]) 
@@ -194,13 +204,6 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 		}
 	}
 	options <- combineDefaultOptions(input)
-	if (!is.null(model)) {
-		mIters <- options[["Major iterations"]]
-		if (typeof(mIters) == "closure") {
-			mIters <- do.call(mIters, list(numParam, length(constraints)))
-		}
-		options[["Major iterations"]] <- as.character(mIters)
-	}
 	if (useOptimizer) {
 		options[["useOptimizer"]] <- "Yes"
 		#PPML Analytical solution
@@ -209,10 +212,7 @@ generateOptionsList <- function(model, numParam, constraints, useOptimizer) {
 	} else {
 		options[["useOptimizer"]] <- "No"
 	}
-	if (!is.null(model) && model@.forcesequential) {
-		options[["Number of Threads"]] <- 1L 
-	} else if (is.null(options[["Number of Threads"]]) || 
-			options[["Number of Threads"]] == 0) {
+	if (is.null(options[["Number of Threads"]]) || options[["Number of Threads"]] == 0) {
 		if (imxSfClient()) {
  			options[["Number of Threads"]] <- 1L 
 		} else {
