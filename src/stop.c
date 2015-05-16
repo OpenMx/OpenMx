@@ -142,14 +142,14 @@ char *nlopt_vsprintf(char *p, const char *format, va_list ap)
     int ret;
 
     p = (char *) realloc(p, len);
-    if (!p) abort();
+    if (!p) return 0;
     
     while ((ret = vsnprintf(p, len, format, ap)) < 0 || (size_t)ret >= len) {
         /* C99 vsnprintf returns the required number of bytes (excluding \0)
            if the buffer is too small; older versions (e.g. MS) return -1 */
         len = ret >= 0 ? (size_t)(ret + 1) : (len*3)>>1;
         p = realloc(p, len);
-        if (!p) abort();
+        if (!p) return 0;
     }
     return p;
 }
