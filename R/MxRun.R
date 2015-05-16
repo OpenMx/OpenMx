@@ -13,12 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, ..., intervals = FALSE, silent = FALSE, 
+mxRun <- function(model, ..., intervals=NULL, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
 		useOptimizer = TRUE){
 
-	if (length(intervals) != 1 ||
+	if (is.null(intervals)) {
+		# OK
+	} else if (length(intervals) != 1 ||
 		typeof(intervals) != "logical" ||
 		is.na(intervals)) {
 		stop(paste("'intervals' argument",
@@ -103,7 +105,7 @@ runHelper <- function(model, frontendStart,
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
 			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
-			if (intervals) {
+			if (length(intervals) && intervals) {
 				ciOpt <- mxComputeGradientDescent(
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- 'ineq'

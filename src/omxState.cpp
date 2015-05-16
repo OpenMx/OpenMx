@@ -203,6 +203,7 @@ omxGlobal::omxGlobal()
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
 	fc = NULL;
+	intervals = true;
 
 	FreeVarGroup *fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
