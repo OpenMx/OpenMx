@@ -387,8 +387,14 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	}
 
 	if (hasGradient && ((oldGrad - fc->grad).array().abs() > .1).any()) {
+		// We could actually estimate the forward, backward,
+		// and central gradient here without any more fit
+		// evaluations or relying on fc->grad. It might be
+		// nice to return these estimates separately in the
+		// $output slot.
 		if (std::isfinite((oldGrad - fc->grad).norm())) {
 			if (verbose >= 1) {
+				// fc->grad may not be the forward difference
 				mxLog("Central difference gradient estimates differs from forward difference by %f",
 				      (oldGrad - fc->grad).norm());
 			}
