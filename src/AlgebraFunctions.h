@@ -315,9 +315,6 @@ static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 	omxMatrix* postMul = matList[1];
 	/* A %&% B = ABA' */
 
-	static double zero = 0.0;
-	static double one = 1.0;
-
 	/* Conformability Check! */
 	if(preMul->cols != postMul->rows || postMul->rows != postMul->cols) {
 		omxRaiseError("Non-conformable matrices in Matrix Quadratic Product.");
@@ -332,11 +329,9 @@ static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 	/* The call itself */
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: premul.");}
-	F77_CALL(omxunsafedgemm)((preMul->majority), (postMul->majority), &(preMul->rows), &(postMul->cols), &(preMul->cols), &one, preMul->data, &(preMul->leading), postMul->data, &(postMul->leading), &zero, intermediate->data, &(intermediate->leading));
-
+	omxDGEMM(0, 0, 1, preMul, postMul, 0, intermediate);
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: postmul.");}
-//	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic postmul: result is (%d x %d), %d leading, inter is (%d x %d), prem is (%d x %d), post is (%d x %d).", result->rows, result->cols, result->leading, intermediate->rows, intermediate->cols, preMul->rows, preMul->cols, postMul->rows, postMul->cols);}
-	F77_CALL(omxunsafedgemm)((intermediate->majority), (preMul->minority), &(intermediate->rows), &(preMul->rows), &(intermediate->cols), &one, intermediate->data, &(intermediate->leading), preMul->data, &(preMul->leading), &zero, result->data, &(result->leading));
+	omxDGEMM(0, 1, 1, intermediate, preMul, 0, result);
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Quadratic: clear.");}
 
 	omxFreeMatrix(intermediate);

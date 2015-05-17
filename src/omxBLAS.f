@@ -3,7 +3,7 @@
       SUBROUTINE OMXUNSAFEDGEMM (TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,
      $                   BETA, C, LDC )
 *     .. Scalar Arguments ..
-      CHARACTER*1        TRANSA, TRANSB
+      INTEGER        TRANSA, TRANSB
       INTEGER            M, N, K, LDA, LDB, LDC
       DOUBLE PRECISION   ALPHA, BETA
 *     .. Array Arguments ..
@@ -151,8 +151,8 @@
 *     transposed and set  NROWA, NCOLA and  NROWB  as the number of rows
 *     and  columns of  A  and the  number of  rows  of  B  respectively.
 *
-      NOTA  = LSAME( TRANSA, 'N' )
-      NOTB  = LSAME( TRANSB, 'N' )
+      NOTA  = TRANSA.EQ.0
+      NOTB  = TRANSB.EQ.0
       IF( NOTA )THEN
          NROWA = M
          NCOLA = K
@@ -169,15 +169,7 @@
 *     Test the input parameters.
 *
       INFO = 0
-      IF(      ( .NOT.NOTA                 ).AND.
-     $         ( .NOT.LSAME( TRANSA, 'C' ) ).AND.
-     $         ( .NOT.LSAME( TRANSA, 'T' ) )      )THEN
-         INFO = 1
-      ELSE IF( ( .NOT.NOTB                 ).AND.
-     $         ( .NOT.LSAME( TRANSB, 'C' ) ).AND.
-     $         ( .NOT.LSAME( TRANSB, 'T' ) )      )THEN
-         INFO = 2
-      ELSE IF( M  .LT.0               )THEN
+      IF( M  .LT.0               )THEN
          INFO = 3
       ELSE IF( N  .LT.0               )THEN
          INFO = 4
@@ -319,7 +311,7 @@
 *     .. Scalar Arguments ..
       DOUBLE PRECISION   ALPHA, BETA
       INTEGER            INCX, INCY, LDA, M, N
-      CHARACTER*1        TRANS
+      INTEGER        TRANS
 *     .. Array Arguments ..
       DOUBLE PRECISION   A( LDA, * ), X( * ), Y( * )
 *     ..
@@ -434,11 +426,7 @@
 *     Test the input parameters.
 *
       INFO = 0
-      IF     ( .NOT.LSAME( TRANS, 'N' ).AND.
-     $         .NOT.LSAME( TRANS, 'T' ).AND.
-     $         .NOT.LSAME( TRANS, 'C' )      )THEN
-         INFO = 1
-      ELSE IF( M.LT.0 )THEN
+      IF( M.LT.0 )THEN
          INFO = 2
       ELSE IF( N.LT.0 )THEN
          INFO = 3
@@ -463,7 +451,7 @@
 *     Set  LENX  and  LENY, the lengths of the vectors x and y, and set
 *     up the start points in  X  and  Y.
 *
-      IF( LSAME( TRANS, 'N' ) )THEN
+      IF( TRANS.EQ.0 )THEN
          LENX = N
          LENY = M
       ELSE
@@ -514,7 +502,7 @@
       END IF
       IF( ALPHA.EQ.ZERO )
      $   RETURN
-      IF( LSAME( TRANS, 'N' ) )THEN
+      IF( TRANS.EQ.0 )THEN
 *
 *        Form  y := alpha*A*x + y.
 *
