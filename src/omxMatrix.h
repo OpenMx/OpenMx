@@ -240,22 +240,24 @@ static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
 }
 
 
-static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMM(bool transposeA, bool transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
 	int nrow = (transposeA?a->cols:a->rows);
 	int nmid = (transposeA?a->rows:a->cols);
 	int ncol = (transposeB?b->rows:b->cols);
 
-	F77_CALL(omxunsafedgemm)((transposeA?a->minority:a->majority), (transposeB?b->minority:b->majority), 
+	int transa = !(transposeA ^ bool(a->colMajor));
+	int transb = !(transposeB ^ bool(b->colMajor));
+	F77_CALL(omxunsafedgemm)(&transa, &transb,
 							&(nrow), &(ncol), &(nmid),
 							&alpha, a->data, &(a->leading), 
 							b->data, &(b->leading),
-							&beta, result->data, &(result->leading));
+				 &beta, result->data, &(result->leading));
 
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }
 
-static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMV(bool transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix*result) {							// where B is treated as a vector
 	int onei = 1;
 	int nrows = mat->rows;
@@ -268,7 +270,8 @@ static OMXINLINE void omxDGEMV(unsigned short int transposeMat, double alpha, om
 			Rf_error("Mismatch in vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", (transposeMat?"transposed":""), mat->rows, mat->cols, nVecEl); // :::DEBUG:::
 		}
 	}
-	F77_CALL(omxunsafedgemv)((transposeMat?mat->minority:mat->majority), &(nrows), &(ncols), 
+	int trans = !(transposeMat ^ bool(mat->colMajor));
+	F77_CALL(omxunsafedgemv)(&trans, &(nrows), &(ncols), 
 	        &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
 	if(!result->colMajor) omxToggleRowColumnMajor(result);
 }

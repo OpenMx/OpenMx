@@ -7,11 +7,11 @@
 extern "C" {
 #endif
 
-void F77_CALL(omxunsafedgemm)(const char*, const char*, int*, int*,
+void F77_CALL(omxunsafedgemm)(int*, int*, int*, int*,
 	int*, double*, double*, int*, double*, int*, double*,
 	double*, int*);
 
-void F77_CALL(omxunsafedgemv)(const char*, int*, int*, double*, double*,
+void F77_CALL(omxunsafedgemv)(int*, int*, int*, double*, double*,
 	int*, double*, int*, double*, double*, int*);
 
 #ifdef  __cplusplus
