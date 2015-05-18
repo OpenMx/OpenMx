@@ -275,6 +275,7 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					attr$dim <- NULL
 					candidate@info <- attr
 				} else if(is(candidate, "MxMatrix")) {
+					if(candidate@name=="filteredDataRow" && !candidate@.persist){next} #bit of a hack
 					if (any(dim(candidate@values) != dim(value))) {
 						msg <- paste("Backend returned a", omxQuotes(dim(value)),
 							     "matrix for a", omxQuotes(dim(candidate@values)),
