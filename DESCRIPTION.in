@@ -11,7 +11,9 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "D."), "Hunter", role="aut"), person(c("Daniel", "C."), "Hackett", role="ctb"),
     person("Julian", "Karch", role="ctb"), person(c("Andreas", "M."), "Brandmaier", role="ctb"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
-    role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"))
+    role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"),
+    person(c("Robert", "M."), "Kirkpatrick", role="aut"),
+    person(c("Yang"), "Wang", role="ctb"))
 URL: http://openmx.psyc.virginia.edu
 BugReports: http://openmx.psyc.virginia.edu/forums
 Description: Facilitates treatment of statistical model specifications
