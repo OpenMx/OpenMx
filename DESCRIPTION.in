@@ -1,6 +1,6 @@
 Package: OpenMx
 Date: @DATE@
-Title: Extended Structural Equation Modelling (SEM)
+Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
     "Maes", role="aut"), person(c("Michael", "J."), "Wilde", role="ctb"), person("Michael",
@@ -14,17 +14,17 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"), person(c("Robert", "M."), "Kirkpatrick", role="aut"))
 URL: http://openmx.psyc.virginia.edu
 BugReports: http://openmx.psyc.virginia.edu/forums
-Description: Extended Structural Equation Modelling (SEM).
-    Models may be specified with reticular action model (RAM) matrices or paths,
-    linear structural relations (LISREL) matrices or paths, or
+Description: Facilitates treatment of statistical model specifications
+    as things that can be generated and manipulated programmatically.
+    Structural equation models may be specified with reticular action model matrices or paths,
+    linear structural relations matrices or paths, or
     directly in matrix algebra.
-    To increase modularity, model expectations,
-    fit functions, and optimizers can be easily interchanged.
-    Fit functions include full information maximum likelihood (FIML),
-    maximum likelihood (ML), and weighted least squares (WLS).
-    Possible models include confirmatory factor, multiple group, mixture
+    Fit functions include full information maximum likelihood,
+    maximum likelihood, and weighted least squares.
+    Example models include confirmatory factor, multiple group, mixture
     distribution, categorical threshold, modern test theory, differential
     equations, state space, and many others.
+SystemRequirements: GNU make
 License: Apache License (== 2.0) | file LICENSE
 LinkingTo: RcppEigen, StanHeaders, BH
 Depends:
