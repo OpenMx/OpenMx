@@ -1,4 +1,4 @@
-#ifndef _SteepDescent_H_
+#ifndef __SteepDescent_H_
 #define __SteepDescent_H_
 
 #include <valarray>
