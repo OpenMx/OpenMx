@@ -33,10 +33,13 @@ citEntry(entry="article",
 	     person(c("Michael", "D."), "Hunter"),
 	     person(c("Steven", "M."), "Boker")),
 	 journal = "Educational and Psychological Measurement",
-	 year = "in press",
+	 year = "2015",
+	 volume= "75",
+	 number="3",
+	 pages = "458-474",
 	 textVersion = paste("Pritikin, J. N., Hunter, M. D., & Boker, S. M.",
-	     "(in press). Modular open-source software for Item Factor Analysis.",
-	     "Educational and Psychological Measurement"))
+	     "(2015). Modular open-source software for Item Factor Analysis.",
+	     "Educational and Psychological Measurement, 75(3), 458-474"))
 
 year <- @YEAR@
 revision <- "@VERSION@"
