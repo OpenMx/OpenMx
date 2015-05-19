@@ -2,12 +2,12 @@ require(OpenMx)
 data(demoOneFactor)
 
 Rff <- mxMatrix(type="Stand",nrow=1,ncol=1,free=F,name="Rff")
-L <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,values=0.2,labels=paste("l",1:5,sep=""),name="L")
+L <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,values=0.2,labels=paste("l",1:5,sep=""),lbound=-2,ubound=2,name="L")
 I <- mxMatrix(type="Iden",nrow=5,ncol=5,name="I")
 C <- mxAlgebra(L %*% Rff %*% t(L),name="C")
 U <- mxAlgebra(I-(I*C),name="U")
 SD <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,values=0.6,
-               labels=c("sd1","sd2","sd3","sd4","sd5"),lbound=0,name="SD")
+               labels=c("sd1","sd2","sd3","sd4","sd5"),lbound=0,ubound=2,name="SD")
 Sigma <- mxAlgebra( (C+U) * (SD%*%t(SD)), name="Sigma", dimnames=list(colnames(demoOneFactor),colnames(demoOneFactor)))
 
 factorModelMatrix <- mxModel(
@@ -17,7 +17,7 @@ factorModelMatrix <- mxModel(
   mxCI("L"),
   mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
-factorMatrixFit <- mxRun(factorModelMatrix)
+factorMatrixFit <- mxRun(factorModelMatrix, suppressWarnings = T)
 omxCheckError(mxStandardizeRAMpaths(factorMatrixFit),"model 'OneFactorMatrix' does not use RAM expectation")
 
 manifests <- names(demoOneFactor)
@@ -35,7 +35,7 @@ factorModelPath <- mxModel("OneFactorPath",
                                   numObs=500))
 omxCheckWarning(mxStandardizeRAMpaths(factorModelPath,T),
                 "standard errors will not be computed because model 'OneFactorPath' has not yet been run")
-factorPathFit <- mxRun(factorModelPath)
+factorPathFit <- mxRun(factorModelPath, suppressWarnings = T)
 
 ( matrixFitPar <- summary(factorMatrixFit)$parameters )
 ( pathFitPar <- summary(factorPathFit)$parameters )
@@ -184,7 +184,7 @@ bigmod <- mxModel(
   mxFitFunctionMultigroup(c("OneFactorPath.fitfunction","OneFactorMatrix.fitfunction","twinACE.fitfunction",
                             "LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
 )
-bigrun <- mxRun(bigmod)
+bigrun <- mxRun(bigmod, suppressWarnings = T)
 zpath2 <- mxStandardizeRAMpaths(bigrun,T)
 omxCheckEquals(names(zpath2),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath2[[2]]),c("MZ","DZ"))
@@ -195,7 +195,7 @@ bigmod2 <- mxModel(
   twinACEModel,growthCurveModel,
   mxFitFunctionMultigroup(c("twinACE.fitfunction","LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
 )
-bigrun2 <- mxRun(bigmod2)
+bigrun2 <- mxRun(bigmod2, suppressWarnings = T)
 zpath3 <- mxStandardizeRAMpaths(bigrun2,T)
 omxCheckEquals(names(zpath3),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath3[[2]]),c("MZ","DZ"))
@@ -205,7 +205,7 @@ omxCheckEquals(sum(zpath3$OneFactorPath==zpath,na.rm=T),93)
 bigmod3 <- mxModel(
   model="foo",mxModel(factorModelPath,independent=T),mxModel(factorModelMatrix,independent=T),
   mxModel(twinACEModel,independent=T),mxModel(growthCurveModel,independent=T))
-bigrun3 <- mxRun(bigmod3)
+bigrun3 <- mxRun(bigmod3, suppressWarnings = T)
 zpath4 <- mxStandardizeRAMpaths(bigrun3,T)
 omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),93)
 omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
