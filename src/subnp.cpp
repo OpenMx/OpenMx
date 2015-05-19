@@ -219,7 +219,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             constraint_e.block(0, neq, 1, tc-neq) = constraint_e.block(0, neq, 1, tc-neq) - ineqx0_e;
         }
         
-        tt_e[1] = constraint_e.squaredNorm();
+        tt_e[1] = sqrt(constraint_e.squaredNorm());
         double zeroCheck = tt_e[1] - (10 * tol);
         if( std::max(zeroCheck, (double)nineq) <= 0 ) {
             rho = 0;
@@ -308,6 +308,8 @@ void CSOLNP::solnp(double *solPars, int verbose)
             funvMatrix_e[0] = funv;
             fit.solEqBFun();
             eqv_e = fit.equality;
+            fit.myineqFun();
+            ineqv_e = fit.inequality;
             obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
             if ( ind[indHasEq] > 0){
@@ -354,7 +356,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
         fit.solEqBFun();
         eqv_e = fit.equality;
         funvMatrix_e[0] = funv;
-        
+        fit.myineqFun();
+        ineqv_e = fit.inequality;
+
         obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
         
         resultForTT = (j - ob_e(0, 0)) / std::max(ob_e.cwiseAbs().maxCoeff(), 1.0);
@@ -385,7 +389,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
                 
             } // end if (ind[0][3] > 0.5){
             
-            tt_e[2] = constraint_e.squaredNorm();
+            tt_e[2] = sqrt(constraint_e.squaredNorm());
             
             
             if ( tt_e[2] < (10 *tol)){
@@ -419,7 +423,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         Eigen::VectorXd tempTTVals(2);
         tempTTVals[0] = tt_e[0];
         tempTTVals[1] = tt_e[1];
-        double vnormValue = tempTTVals.squaredNorm();
+        double vnormValue = sqrt(tempTTVals.squaredNorm());
         
         if (vnormValue <= tol){
             maxit_trace = maxit;
@@ -441,18 +445,18 @@ void CSOLNP::solnp(double *solPars, int verbose)
         Eigen::VectorXd tempTTVals(2);
         tempTTVals[0] = tt_e[0];
         tempTTVals[1] = tt_e[1];
-        double vnormValue = tempTTVals.squaredNorm();
+        double vnormValue = sqrt(tempTTVals.squaredNorm());
 
         if (verbose >= 1) {
 		mxLog("vnormValue %.20f, flag_NormgZ=%d, minr_rec=%d",
 		      vnormValue, flag_NormgZ, minr_rec);
 	}
         if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1){
-		double iterateConverge = delta * pow(sx_Matrix.squaredNorm(),(double)2.0);
-		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(p_e.squaredNorm(), (double)2.0));
+		double iterateConverge = delta * pow(sqrt(sx_Matrix.squaredNorm()),(double)2.0);
+		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(sqrt(p_e.squaredNorm()), (double)2.0));
 		if (verbose >= 1) {
 			mxLog("vnorm(sx_Matrix) is %.20f, iterateConverge is %.20f, iterateConvergeCond is: %.20f",
-			      sx_Matrix.squaredNorm(), iterateConverge, iterateConvergeCond);
+			      sqrt(sx_Matrix.squaredNorm()), iterateConverge, iterateConvergeCond);
 		}
 
             if (iterateConverge <= iterateConvergeCond){
@@ -691,7 +695,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             Eigen::RowVectorXd secondPart_e;
             secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-            firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+            firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
             ob_e = firstPart_e;
             
             g_e[index] = (ob_e(0, 0)-j) / delta;
@@ -757,7 +761,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 Eigen::MatrixXd gap_e(mm, 2);
                 gap_e.setZero();
                 gap_e.col(0) = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
-                gap_e.col(1) = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(1);
+                gap_e.col(1) = pb_e.col(1) - p0_e.block(0, 0, 1, mm).transpose();
                 rowSort_e(gap_e);
                 dx_e.transpose().block(0, 0, 1, mm) = gap_e.col(0).transpose().block(0, 0, 1, mm);
                 dx_e(npic_int, 0) = p0_e(0, npic_int);
@@ -766,7 +770,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 argum1_e.transposeInPlace();
                 Eigen::MatrixXd argum2_e;
                 argum2_e = cx_e.asDiagonal() * dx_e;
-                y_e = argum1_e.colPivHouseholderQr().solve(argum2_e);
+                y_e = QRdsolve(argum1_e, argum2_e);
                 Eigen::MatrixXd cx_e_r;
                 cx_e_r = cx_e.transpose() - (a_e.transpose() * y_e);
                 dx_e = (cx_e_r.asDiagonal() * dx_e).asDiagonal() * dx_e;
@@ -862,7 +866,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         
         Eigen::RowVectorXd secondPart_e;
         secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-        firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+        firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
         ob_e = firstPart_e;
         
     } // end of if (ch>0)
@@ -878,7 +882,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         result_e -= (a_e * p_e.transpose()).transpose();
         result_e += b_e;
         ob_e.block(0, 1, 1, nc) = result_e;
-        double vnormTerm = ob_e.block(0, 1, 1, nc).squaredNorm() * ob_e.block(0, 1, 1, nc).squaredNorm();
+        double vnormTerm = ob_e.block(0, 1, 1, nc).squaredNorm();
         double dotProductTerm = yy_e.transpose().row(0).dot(ob_e.block(0, 1, 1, nc).row(0));
         j = ob_e(0, 0) - dotProductTerm + rho * vnormTerm;
     }
@@ -928,7 +932,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 Eigen::RowVectorXd secondPart_e;
                 secondPart_e = vscale_e.block(0, 0, 1, nc+1);
                 
-                firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+                firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
                 obm_e = firstPart_e;
                 
                 if (verbose >= 3){
@@ -946,7 +950,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     result_e -= (a_e * p_e.transpose()).transpose();
                     result_e += b_e;
                     obm_e.block(0, 1, 1, nc) = result_e;
-                    double vnormTerm = obm_e.block(0, 1, 1, nc).squaredNorm() * obm_e.block(0, 1, 1, nc).squaredNorm();
+                    double vnormTerm = obm_e.block(0, 1, 1, nc).squaredNorm();
                     double dotProductTerm = yy_e.transpose().row(0).dot(obm_e.block(0, 1, 1, nc).row(0));
                     obm = obm_e(0, 0) - dotProductTerm + rho * vnormTerm;
                 }
@@ -1146,7 +1150,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         
         Eigen::RowVectorXd secondPart_e;
         secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-        firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+        firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
         Eigen::MatrixXd ob3_e = firstPart_e;
         sob[2] = ob3_e(0, 0);
         
@@ -1163,7 +1167,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             result_e -= (a_e * ptt_e.col(2)).transpose();
             result_e += b_e;
             ob3_e.block(0, 1, 1, nc) = result_e;
-            double vnormTerm = ob3_e.block(0, 1, 1, nc).squaredNorm() * ob3_e.block(0, 1, 1, nc).squaredNorm();
+            double vnormTerm = ob3_e.block(0, 1, 1, nc).squaredNorm();
             double dotProductTerm = yy_e.transpose().row(0).dot(ob3_e.block(0, 1, 1, nc).row(0));
             sob[2] = ob3_e(0, 0) - dotProductTerm + (rho * vnormTerm);
         }
@@ -1206,7 +1210,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             Eigen::RowVectorXd secondPart_e;
             secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-            firstPart_e = firstPart_e * secondPart_e.asDiagonal().inverse();
+            firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
             ob2_e = firstPart_e;
             
             sob[1] = ob2_e(0, 0);
@@ -1223,7 +1227,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 result_e -= (a_e * ptt_e.col(1)).transpose();
                 result_e += b_e;
                 ob2_e.block(0, 1, 1, nc) = result_e;
-                double vnormTerm = ob2_e.block(0, 1, 1, nc).squaredNorm() * ob2_e.block(0, 1, 1, nc).squaredNorm();
+                double vnormTerm = ob2_e.block(0, 1, 1, nc).squaredNorm();
                 Eigen::MatrixXd temp = ob2_e.block(0, 1, 1, nc);
                 double dotProductTerm = yy_e.transpose().row(0).dot(temp.row(0));
                 sob[1] = ob2_e(0, 0) - dotProductTerm + (rho * vnormTerm);
