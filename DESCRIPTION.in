@@ -28,7 +28,7 @@ Description: Facilitates treatment of statistical model specifications
     equations, state space, and many others.
 SystemRequirements: GNU make
 License: Apache License (== 2.0) | file LICENSE
-LinkingTo: RcppEigen, StanHeaders, BH
+LinkingTo: Rcpp, RcppEigen, StanHeaders, BH
 Depends:
 	R (>= 3.0.2),
     digest,
