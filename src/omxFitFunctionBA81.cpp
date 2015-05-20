@@ -97,7 +97,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 
 	if (state->haveLatentMap == fc->varGroup->id[0]) return;
 	if (estate->verbose >= 1) mxLog("%s: rebuild latent parameter map for var group %d",
-					oo->matrix->name, fc->varGroup->id[0]);
+					oo->name(), fc->varGroup->id[0]);
 
 	state->freeLatents = false;
 
@@ -152,7 +152,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 
 	if (state->haveItemMap == fc->varGroup->id[0]) return;
 	if (estate->verbose >= 1) mxLog("%s: rebuild item parameter map for var group %d",
-					oo->matrix->name, fc->varGroup->id[0]);
+					oo->name(), fc->varGroup->id[0]);
 
 	omxMatrix *itemParam = estate->itemParam;
 	int size = itemParam->cols * state->itemDerivPadSize;
@@ -202,7 +202,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 				state->paramFlavor[px] = flavor;
 			} else if (strcmp(state->paramFlavor[px], flavor) != 0) {
 				Rf_error("Cannot equate %s with %s[%d,%d]", fv->name,
-				      itemParam->name, loc->row, loc->col);
+					 itemParam->name(), loc->row, loc->col);
 			}
 			if (fv->lbound == NEG_INF && std::isfinite(lower)) {
 				fv->lbound = lower;
@@ -283,16 +283,16 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
 	if (do_deriv && !state->freeItemParams) {
-		omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
+		omxRaiseErrorf("%s: no free parameters", oo->name());
 		return NA_REAL;
 	}
 
 	if (state->returnRowLikelihoods) {
-		omxRaiseErrorf("%s: vector=TRUE not implemented", oo->matrix->name);
+		omxRaiseErrorf("%s: vector=TRUE not implemented", oo->name());
 		return NA_REAL;
 	}
 
-	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->matrix->name, do_fit, do_deriv);
+	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->name(), do_fit, do_deriv);
 
 	if (do_fit) estate->grp.ba81OutcomeProb(itemParam->data, TRUE);
 
@@ -394,7 +394,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (excluded && estate->verbose >= 1) {
 		mxLog("%s: Hessian not positive definite for %d/%d items",
-		      oo->matrix->name, (int) excluded, (int) numItems);
+		      oo->name(), (int) excluded, (int) numItems);
 	}
 	if (excluded == numItems) {
 		omxRaiseErrorf("Hessian not positive definite for %d/%d items",
@@ -413,7 +413,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->matrix->name);
+	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->name());
 
 	estate->grp.ba81OutcomeProb(estate->itemParam->data, FALSE);
 
@@ -670,7 +670,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove
 
 	if (estate->verbose >= 1) {
 		mxLog("%s: set latent parameters for version %d",
-		      oo->matrix->name, estate->ElatentVersion);
+		      oo->name(), estate->ElatentVersion);
 	}
 }
 
@@ -823,7 +823,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
-	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->matrix->name);
+	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->name());
 
 	estate->grp.ba81OutcomeProb(estate->itemParam->data, FALSE);
 
@@ -843,7 +843,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		Matrix tmp(icovMat.data(), pDims, pDims);
 		int info = InvertSymmetricPosDef(tmp, 'U');
 		if (info) {
-			omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->matrix->name);
+			omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->name());
 			return;
 		}
 		icovMat.triangularView<Eigen::Lower>() = icovMat.transpose().triangularView<Eigen::Lower>();
@@ -1070,7 +1070,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_INFO) {
 			buildLatentParamMap(oo, fc);
 			if (!state->freeItemParams) {
-				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
+				omxRaiseErrorf("%s: no free parameters", oo->name());
 				return;
 			}
 			ba81SetupQuadrature(oo->expectation);
@@ -1100,7 +1100,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			buildLatentParamMap(oo, fc); // only to check state->freeLatents
 			buildItemParamMap(oo, fc);
 			if (!state->freeItemParams && !state->freeLatents) {
-				omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
+				omxRaiseErrorf("%s: no free parameters", oo->name());
 				return;
 			}
 			ba81SetupQuadrature(oo->expectation);
@@ -1115,14 +1115,14 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					return;
 				}
 				if (!state->freeItemParams) {
-					omxRaiseErrorf("%s: no free parameters", oo->matrix->name);
+					omxRaiseErrorf("%s: no free parameters", oo->name());
 					return;
 				}
 				sandwich(oo, fc);
 			}
 		}
 		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-			omxRaiseErrorf("%s: Hessian is not available for observed data", oo->matrix->name);
+			omxRaiseErrorf("%s: Hessian is not available for observed data", oo->name());
 		}
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
@@ -1158,12 +1158,12 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				}
 				double fit = Global->llScale * got;
 				if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
-								oo->matrix->name, fit, estate->grp.excludedPatterns, numUnique);
+								oo->name(), fit, estate->grp.excludedPatterns, numUnique);
 				oo->matrix->data[0] = fit;
 			}
 		}
 	} else {
-		Rf_error("%s: Predict nothing or scores before computing %d", oo->matrix->name, want);
+		Rf_error("%s: Predict nothing or scores before computing %d", oo->name(), want);
 	}
 }
 

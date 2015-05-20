@@ -56,7 +56,7 @@ void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs);
 void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs);
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name, SEXP dimnames);
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames);
 	omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
 
@@ -64,7 +64,6 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP mxmat, const char* name, SEX
 	 																	// Adjust an algebra for a table entry
 	void omxAlgebraCopyAlgebra(omxAlgebra *dest, omxAlgebra *src);		// Copy across another element.  
 																		// NOTE: Duplicates.
-	omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name);
 
 void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc);
 

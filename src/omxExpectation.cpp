@@ -319,7 +319,7 @@ void omxDefinitionVar::loadFakeData(omxState *state, double fake)
 		omxMatrix *matrix = state->matrixList[matrixNumber];
 		if(OMX_DEBUG) {
 			mxLog("Populating fake data (value %3.2f) into matrix '%s' at [%d,%d]",
-			      fake, matrix->name, 1+matrow, 1+matcol);
+			      fake, matrix->name(), 1+matrow, 1+matcol);
 		}
 		omxSetMatrixElement(matrix, matrow, matcol, fake);
 	}

@@ -56,7 +56,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
-		mat->name = CHAR(STRING_ELT(matListNames, index));
+		mat->nameStr = CHAR(STRING_ELT(matListNames, index));
 		matrixList.push_back(mat);
 
 		if(OMX_DEBUG) { omxPrintMatrix(mat, "Imported"); }
@@ -85,14 +85,15 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			const char *fitType = CHAR(fitFunctionClass);
 			omxMatrix *fm = algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
-			fm->name = CHAR(STRING_ELT(algListNames, index));
+			fm->nameStr = CHAR(STRING_ELT(algListNames, index));
 		} else {								// This is an algebra spec.
 			SEXP dimnames, formula;
 			omxMatrix *amat = algebraList[index];
 			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
 			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
-			omxFillMatrixFromMxAlgebra(amat, formula, CHAR(STRING_ELT(algListNames, index)), dimnames);
+			std::string name = CHAR(STRING_ELT(algListNames, index));
+			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames);
 		}
 		if (isErrorRaised()) return;
 	}
@@ -323,6 +324,20 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 	Global->deduplicateVarGroups();
 }
 
+omxConfidenceInterval::omxConfidenceInterval()
+{
+	matrix = 0;
+	row = -1;
+	col = -1;
+	varIndex = -1;
+	ubound = R_NaReal;
+	lbound = R_NaReal;
+	max = R_NaReal;
+	min = R_NaReal;
+	lCode = INFORM_UNINITIALIZED;
+	uCode = INFORM_UNINITIALIZED;
+}
+
 /*
 	intervalList is a list().  Each element refers to one confidence interval request.
 	Each interval request is a Rf_length 5 vector of REAL.
@@ -345,11 +360,8 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP intervalList, omxState *curre
 		oCI->matrix = omxMatrixLookupFromState1( nextVar, currentState);	// Expects an R object
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->varIndex = -1;
 		oCI->lbound = intervalInfo[3];
 		oCI->ubound = intervalInfo[4];
-		oCI->max = R_NaReal;					// NAs, in case something goes wrong
-		oCI->min = R_NaReal;
 		Global->intervalList.push_back(oCI);
 	}
 }

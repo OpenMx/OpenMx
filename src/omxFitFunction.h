@@ -92,6 +92,7 @@ struct omxFitFunction {					// A fit function
 	FitStatisticUnits units;
 
 	void setUnitsFromName(const char *name);
+	const char *name() const { return matrix->name(); }
 };
 
 /* Initialize and Destroy */

@@ -81,10 +81,7 @@ static int BroadcastIndex = 0;
 
 static void nameBroadcastAlg(omxMatrix *bc)
 {
-	std::string str = string_snprintf("broadcast%03d", ++BroadcastIndex);
-	SEXP name;
-	Rf_protect(name = Rf_mkChar(str.c_str()));
-	bc->name = CHAR(name);
+	bc->nameStr = string_snprintf("broadcast%03d", ++BroadcastIndex);
 }
 
 static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *result)
@@ -94,7 +91,7 @@ static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *re
 
 	if (mat0->cols == mat1->cols && mat0->rows == mat1->rows) {
 		if(OMX_DEBUG_ALGEBRA) { 
-			mxLog("Resize %s to %dx%d", result->name, mat0->rows, mat0->cols);
+			mxLog("Resize %s to %dx%d", result->name(), mat0->rows, mat0->cols);
 		}
 		omxResizeMatrix(result, mat0->rows, mat0->cols);
 		return;
@@ -142,8 +139,8 @@ static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 	if (src->rows != 1 || src->cols != 1) {
 		Rf_error("Don't know how to broadcast from %dx%d source "
 			 "matrix '%s' to %dx%d result matrix '%s'",
-			 src->rows, src->cols, src->name,
-			 result->rows, result->cols, result->name);
+			 src->rows, src->cols, src->name(),
+			 result->rows, result->cols, result->name());
 	}
 
 	int size = result->rows * result->cols;

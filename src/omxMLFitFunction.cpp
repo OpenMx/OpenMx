@@ -177,7 +177,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 			}
 		} catch (const std::exception& e) {
 			fit = NA_REAL;
-			if (fc) fc->recordIterationError("%s: %s", oo->matrix->name, e.what());
+			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
 		oo->matrix->data[0] = Scale * fit;
 	} else if (strEQ(expectation->expType, "MxExpectationNormal") &&
@@ -228,7 +228,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 			stan::agrad::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
 		} catch (const std::exception& e) {
 			init_log_prob = NA_REAL;
-			if (fc) fc->recordIterationError("%s: %s", oo->matrix->name, e.what());
+			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
 
 		if (want & FF_COMPUTE_FIT) {
@@ -347,7 +347,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		} else {
-			omxRaiseErrorf("%s: Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n", oo->matrix->name);
+			omxRaiseErrorf("%s: Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n", oo->name());
 			return;	        
 		}
 	}

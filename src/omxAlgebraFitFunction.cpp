@@ -40,7 +40,7 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 	varGroup = newVarGroup;
 	if (verbose) {
 		mxLog("%s: rebuild parameter map for var group %d",
-		      ff->matrix->name, varGroup->id[0]);
+		      ff->matrix->name(), varGroup->id[0]);
 	}
 	numDeriv = 0;
 
@@ -48,22 +48,22 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 		if (int(std::max(gradient->algebra->rownames.size(),
 				 gradient->algebra->colnames.size())) !=
 		    std::max(gradient->rows, gradient->cols)) {
-			Rf_error("%s: gradient must have row or column names", ff->matrix->name);
+			Rf_error("%s: gradient must have row or column names", ff->matrix->name());
 		}
 	}
 	if (hessian) {
 		if (hessian->rows != hessian->cols) {
 			Rf_error("%s: Hessian must be square (instead of %dx%d)",
-				 ff->matrix->name, hessian->rows, hessian->cols);
+				 ff->matrix->name(), hessian->rows, hessian->cols);
 		}
 		if (int(hessian->algebra->rownames.size()) != hessian->rows ||
 		    int(hessian->algebra->colnames.size()) != hessian->rows) {
-			Rf_error("%s: Hessian must have row and column names", ff->matrix->name);
+			Rf_error("%s: Hessian must have row and column names", ff->matrix->name());
 		}
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->algebra->colnames[hx], hessian->algebra->rownames[hx]) != 0) {
 				Rf_error("%s: Hessian must have identical row and column names (mismatch at %d)",
-					 ff->matrix->name, 1+hx);
+					 ff->matrix->name(), 1+hx);
 			}
 		}
 		// Is this the best way to test? TODO
@@ -73,14 +73,14 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 		int size = gradient->rows * gradient->cols;
 		if (hessian->rows != size) {
 			Rf_error("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
-				 ff->matrix->name, size, hessian->rows, hessian->cols);
+				 ff->matrix->name(), size, hessian->rows, hessian->cols);
 		}
 		std::vector<const char*> &gnames = gradient->algebra->rownames;
 		if (gnames.size() == 0) gnames = gradient->algebra->colnames;
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->algebra->colnames[hx], gnames[hx]) != 0) {
 				Rf_error("%s: Hessian and gradient must have identical names (mismatch at %d)",
-					 ff->matrix->name, 1+hx);
+					 ff->matrix->name(), 1+hx);
 			}
 		}
 	}
@@ -102,7 +102,7 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 		if (to >= 0) ++numDeriv;
 		if (verbose) {
 			mxLog("%s: name '%s' mapped to free parameter %d",
-			      ff->matrix->name, (*names)[nx], gradMap[nx]);
+			      ff->matrix->name(), (*names)[nx], gradMap[nx]);
 		}
 	}
 }
@@ -186,7 +186,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 						double coef2 = omxMatrixElement(hessian, h1, h2);
 						if (coef1 != coef2) {
 							Rf_warning("%s: Hessian algebra '%s' is not symmetric at [%d,%d]",
-								   ff->matrix->name, hessian->name, 1+h2, 1+h1);
+								   ff->matrix->name(), hessian->name(), 1+h2, 1+h1);
 						}
 						hb->mat(d2,d1) = coef1;
 					}

@@ -957,7 +957,7 @@ void FitContext::copyParamToModelClean()
 			omxSetMatrixElement(matrix, row, col, at[k]);
 			if (OMX_DEBUG_MATRIX) {
 				mxLog("free var %d, matrix %s[%d, %d] = %f",
-				      (int) k, matrix->name, row, col, at[k]);
+				      (int) k, matrix->name(), row, col, at[k]);
 			}
 		}
 	}
@@ -1870,7 +1870,7 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 			if (strEQ(key, "fitfunction")) {
 				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
 					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
-					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
+					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name());
 					infoFitFunction.push_back(ff);
 				}
 			} else if (strEQ(key, "inputInfo")) {
@@ -1908,7 +1908,7 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 			if (strEQ(key, "fitfunction")) {
 				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
 					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
-					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name);
+					if (!ff->fitFunction) Rf_error("infoArgs$fitfunction is %s, not a fitfunction", ff->name());
 					infoFitFunction.push_back(ff);
 				}
 			} else if (strEQ(key, "inputInfo")) {

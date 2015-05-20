@@ -352,7 +352,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 
 	if (k != RAMexp->S->cols || k != RAMexp->S->rows || k != RAMexp->A->rows) {
 		Rf_error("RAM matrices '%s' and '%s' must have the same dimensions",
-			 RAMexp->S->name, RAMexp->A->name);
+			 RAMexp->S->name(), RAMexp->A->name());
 	}
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }

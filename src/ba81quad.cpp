@@ -294,9 +294,9 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 			int nlen = Rf_length(names);
 			for (int nx=0; nx < nlen; ++nx) {
 				const char *name = CHAR(STRING_ELT(names, nx));
-				if (strEQ(factorNames[nx], name)) continue;
+				if (strEQ(factorNames[nx].c_str(), name)) continue;
 				Rf_error("%s %snames[%d] is '%s', does not match factor name '%s'",
-					 matName, dimname[dx], 1+nx, name, factorNames[nx]);
+					 matName, dimname[dx], 1+nx, name, factorNames[nx].c_str());
 			}
 		}
 	}

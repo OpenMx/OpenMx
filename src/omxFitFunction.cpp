@@ -45,7 +45,7 @@ static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
 {
 	if (OMX_DEBUG && ff->freeVarGroup && ff->freeVarGroup != fvg) {
 		Rf_warning("%s: setFreeVarGroup called with different group (%d vs %d)",
-			ff->matrix->name, ff->freeVarGroup->id[0], fvg->id[0]);
+			   ff->matrix->name(), ff->freeVarGroup->id[0], fvg->id[0]);
 	}
 	ff->freeVarGroup = fvg;
 }
@@ -68,7 +68,7 @@ void omxFitFunction::setUnitsFromName(const char *name)
 		ciFun = loglikelihoodCIFun;
 	} else {
 		Rf_warning("Unknown units '%s' passed to fit function '%s'",
-			   name, matrix->name);
+			   name, matrix->name());
 		units = FIT_UNITS_UNKNOWN;
 	}
 }
@@ -155,13 +155,13 @@ double totalLogLikelihood(omxMatrix *fitMat)
 			if (!Global->rowLikelihoodsWarning) {
 				Rf_warning("%s does not evaluate to a 1x1 matrix. Fixing model by adding "
 					   "mxAlgebra(-2*sum(log(%s)), 'm2ll'), mxFitFunctionAlgebra('m2ll')",
-					   fitMat->name, fitMat->name);
+					   fitMat->name(), fitMat->name());
 				Global->rowLikelihoodsWarning = true;
 			}
 			return sum * Global->llScale;
 		} else {
 			omxRaiseErrorf("%s of type %s returned %d values instead of 1, not sure how to proceed",
-				       fitMat->name, ff->fitType, fitMat->rows);
+				       fitMat->name(), ff->fitType, fitMat->rows);
 			return nan("unknown");
 		}
 	} else {
@@ -188,7 +188,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 
 	if (doFit) {
 		if (OMX_DEBUG) {
-			mxLog("%s: starting evaluation %d, want %d", fitMat->name, evaluation, want);
+			mxLog("%s: starting evaluation %d, want %d", fitMat->name(), evaluation, want);
 		}
 		Global->checkpointPrefit(callerName, fc, fc->est, false);
 	}
@@ -207,7 +207,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		}
 		Global->checkpointPostfit(fc);
 		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name, evaluation, fc->fit);
+			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name(), evaluation, fc->fit);
 		}
 	}
 }
@@ -289,7 +289,7 @@ void omxChangeFitType(omxFitFunction *oo, const char *fitType)
 {
 	if (oo->initialized) {
 		Rf_error("%s: cannot omxChangeFitType from %s to %s; already initialized",
-			 oo->matrix->name, oo->fitType, fitType);
+			 oo->matrix->name(), oo->fitType, fitType);
 	}
 
 	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {

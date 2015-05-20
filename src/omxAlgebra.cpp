@@ -75,7 +75,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
-	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->name, NULL);
+	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL);
 	    tgt->algebra->rownames = src->algebra->rownames;
 	    tgt->algebra->colnames = src->algebra->colnames;
     } else if(src->fitFunction != NULL) {
@@ -109,16 +109,16 @@ void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc)
 			std::string buf;
 			for (int ax=0; ax < oa->numArgs; ++ax) {
 				if (ax) buf += ", ";
-				const char *argname = oa->algArgs[ax]->name;
+				const char *argname = oa->algArgs[ax]->name();
 				buf += argname? argname : "?";
 			}
-			mxLog("Algebra '%s' %s(%s)", oa->matrix->name, oa->oate->rName, buf.c_str());
+			mxLog("Algebra '%s' %s(%s)", oa->matrix->name(), oa->oate->rName, buf.c_str());
 		}
 		(*(algebra_op_t)oa->funWrapper)(fc, oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
 	if(OMX_DEBUG_ALGEBRA) {
-		std::string name = string_snprintf("Algebra '%s' result", oa->matrix->name);
+		std::string name = string_snprintf("Algebra '%s' result", oa->matrix->name());
 		omxAlgebraPrint(oa, name.c_str());
 	}
 }
@@ -128,7 +128,7 @@ omxAlgebra::omxAlgebra()
 	Global->algebraList.push_back(this);
 }
 
-static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, const char *name)
+static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string &name)
 {
 	omxMatrix *om = omxInitMatrix(0, 0, TRUE, os);
 
@@ -150,7 +150,21 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	omxAlgebraAllocArgs(oa, oate->numArgs==-1? realNumArgs : oate->numArgs);
 }
 
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, SEXP dimnames)
+static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::string &name) {
+	omxMatrix* newMat;
+	if(OMX_DEBUG) { mxLog("Helper: processing next arg..."); }
+	
+	if(!Rf_isInteger(algebraArg)) {
+		if(OMX_DEBUG) { mxLog("Helper detected list element.  Recursing."); }
+		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
+	} else {
+		newMat = omxMatrixLookupFromState1(algebraArg, os);
+	}
+	
+	return(newMat);
+}
+
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames)
 {
 	int value;
 	omxAlgebra *oa = NULL;
@@ -170,14 +184,12 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			SEXP algebraArg;
 			{
 				ScopedProtect p1(algebraArg, VECTOR_ELT(algebra, j+1));
-				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, NULL);
+				std::string name = string_snprintf("%s arg %d", om->name(), j);
+				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name);
 			}
-			if (!oa->algArgs[j]->name) {
+			if (oa->algArgs[j]->nameStr.size() == 0) {
 				// A bit inefficient but invaluable for debugging
-				std::string str = string_snprintf("alg%03d", ++Global->anonAlgebra);
-				SEXP name;
-				ScopedProtect p1(name, Rf_mkChar(str.c_str()));
-				oa->algArgs[j]->name = CHAR(name);
+				oa->algArgs[j]->nameStr = string_snprintf("alg%03d", ++Global->anonAlgebra);
 			}
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
@@ -203,7 +215,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			}
 		}
 	}
-	om->name        = name;
+	om->nameStr     = name;
 	oa->sexpAlgebra = algebra;
 
 	if (dimnames && !Rf_isNull(dimnames)) {
@@ -213,7 +225,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			if (!Rf_isNull(names) && !Rf_isString(names)) {
 				Rf_warning("rownames for algebra '%s' is of "
 					   "type '%s' instead of a string vector (ignored)",
-					   name, Rf_type2char(TYPEOF(names)));
+					   name.c_str(), Rf_type2char(TYPEOF(names)));
 			} else {
 				int nlen = Rf_length(names);
 				oa->rownames.resize(nlen);
@@ -227,7 +239,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			if (!Rf_isNull(names) && !Rf_isString(names)) {
 				Rf_warning("colnames for algebra '%s' is of "
 					   "type '%s' instead of a string vector (ignored)",
-					   name, Rf_type2char(TYPEOF(names)));
+					   name.c_str(), Rf_type2char(TYPEOF(names)));
 			} else {
 				int nlen = Rf_length(names);
 				oa->colnames.resize(nlen);
@@ -237,20 +249,6 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, const char *name, S
 			}
 		}
 	}
-}
-
-omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, const char *name) {
-	omxMatrix* newMat;
-	if(OMX_DEBUG) { mxLog("Helper: processing next arg..."); }
-	
-	if(!Rf_isInteger(algebraArg)) {
-		if(OMX_DEBUG) { mxLog("Helper detected list element.  Recursing."); }
-		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
-	} else {
-		newMat = omxMatrixLookupFromState1(algebraArg, os);
-	}
-	
-	return(newMat);
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
@@ -296,7 +294,7 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	
 	om = omxInitAlgebra(oa, os);
 	omxFillAlgebraFromTableEntry(oa, entry, entry->numArgs);
-	om->name = entry->opName;
+	om->nameStr = entry->opName;
 
 	if(OMX_DEBUG) {mxLog("Calculating args for %s.", entry->rName);}
 	omxAlgebraAllocArgs(oa, numArgs);

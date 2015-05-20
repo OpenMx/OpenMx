@@ -168,7 +168,7 @@ class ifaGroup {
 	int numSpecific;
 	double *mean;
 	double *cov;
-	std::vector<const char*> factorNames;
+	std::vector<std::string> factorNames;
 
 	// data related
 	SEXP dataRowNames;
