@@ -1890,7 +1890,7 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 		semFixSymmetry = true;
 		semForcePD = false;
 		noiseTarget = exp(-5.2); //constexpr
-		noiseTolerance = exp(2); //constexpr
+		noiseTolerance = exp(2.0); //constexpr
 
 		// Meng & Rubin set this parameter in terms of the absolute tolerance
 		// instead of the relative tolerance. semTolerance is used to compare

@@ -10,7 +10,7 @@ xdat
 cmod <- mxModel(
   name='Estimation Row Model with Missingness',
   mxData(observed=xdat, type='raw'),
-  mxMatrix(values=.75, ncol=2, nrow=1, free=TRUE, name='M'),
+  mxMatrix(values=c(4,5), ncol=2, nrow=1, free=TRUE, name='M'),
   mxAlgebra(omxSelectCols(M, existenceVector), name='fM'),
   mxAlgebra((filteredDataRow-fM)%^%2, name='rowAlgebra'),
   mxAlgebra(sum(rowResults), name='reduceAlgebra'),

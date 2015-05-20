@@ -42,9 +42,7 @@ fi
 
 REXEC=${R_HOME}/bin/R
 
-eval $(grep R_HOME_DIR $REXEC | head -1)
-Makeconf=$(find $R_HOME_DIR/etc -print | egrep 'Makeconf$' )
-echo "Change default C/C++ compiler and default compile flags by editing $Makeconf"
+echo 'Change default C/C++ compiler and default compile flags by editing ~/.R/Makevars'
 
 CXX=$($REXEC CMD config CXX)
 
@@ -55,14 +53,11 @@ elif isdef __llvm__; then
 elif isdef __GNUC__; then
     cxx_type=gcc
 else
-    echo "Compiler unrecognized:"
-    $CXX --version
-    exit 1
+    echo "Compiler '$CXX' unrecognized; using defaults"
 fi
 
-cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
-
 if [ "$cxx_type" = gcc ]; then
+    cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
     COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs"
     if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto"
@@ -76,23 +71,21 @@ if [ "$cxx_type" = gcc ]; then
     fi
 fi
 
-host_cpu=$(uname -p)
-if [ "x$host_cpu" = xunknown ]; then
-  # tanglu 1 has the machine architecture here
-  host_cpu=$(uname -m)
-fi
-case "$host_cpu" in
-    *86_64) omx_arch=x86_64 ;;
-    *86) omx_arch=x86 ;;
-    *)
-	echo "Host arch is not recognized: ${host_cpu}"
-	exit 1
-	;;
-esac
-
-npsol_dir='inst/npsol'
-
 if [ -r inst/npsol/checksum ]; then
+    host_cpu=$(uname -p)
+    if [ "x$host_cpu" = xunknown ]; then
+	# tanglu 1 has the machine architecture here
+	host_cpu=$(uname -m)
+    fi
+    case "$host_cpu" in
+	*86_64) omx_arch=x86_64 ;;
+	*86) omx_arch=x86 ;;
+	*)
+	    echo "Host arch is not recognized: ${host_cpu}"
+	    exit 1
+	    ;;
+    esac
+
     os=$(uname -s)
     case "$os" in
 	*Linux)
@@ -115,7 +108,7 @@ if [ -r inst/npsol/checksum ]; then
 	    omx_os=osx
 	    arch_LDFLAGS="-mmacosx-version-min=10.4"
 	    arch_CXXFLAGS="-mmacosx-version-min=10.4"
-	    npsol_library="${npsol_dir}/osx"
+	    npsol_library="inst/npsol/osx"
 	    ;;
 	*)
 	    echo "Host os is not recognized: $os"
