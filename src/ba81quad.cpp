@@ -485,7 +485,12 @@ void ifaGroup::import(SEXP Rlist)
 		if (weightColumnName) {
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(weightColumnName, dataColNames[dc])) {
-					rowWeight = REAL(VECTOR_ELT(Rdata, dc));
+					SEXP col = VECTOR_ELT(Rdata, dc);
+					if (TYPEOF(col) != REALSXP) {
+						Rf_error("Column '%s' is of type %s; expecting type numeric (double)",
+							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
+					}
+					rowWeight = REAL(col);
 					break;
 				}
 			}
