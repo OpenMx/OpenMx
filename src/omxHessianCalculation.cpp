@@ -44,6 +44,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	bool parallel;
 	int totalProbeCount;
 	int verbose;
+	bool checkGradient;
 	double *knownHessian;
 	std::vector<int> khMap;
 
@@ -269,6 +270,9 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("parallel")));
 	parallel = Rf_asLogical(slotValue);
 
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("checkGradient")));
+	checkGradient = Rf_asLogical(slotValue);
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
 
@@ -386,7 +390,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		Free(hess_work);
 	}
 
-	if (hasGradient && ((oldGrad - fc->grad).array().abs() > .1).any()) {
+	if (checkGradient && hasGradient && ((oldGrad - fc->grad).array().abs() > .1).any()) {
 		// We could actually estimate the forward, backward,
 		// and central gradient here without any more fit
 		// evaluations or relying on fc->grad. It might be

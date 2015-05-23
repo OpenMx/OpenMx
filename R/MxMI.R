@@ -94,7 +94,8 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				plusOneParamModel[[amat]] <- newPlusOneParamMat
 				
 				# The custom compute plan.  Only do derivatives
-				custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(), mxComputeReportDeriv()))
+				custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE),
+									 mxComputeReportDeriv()))
 				
 				# Create and run the single-parameter model for the LISREL-type/partial/[lower bound] MI
 				gmodel <- mxModel(gmodel, custom.compute)
@@ -106,7 +107,9 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				modind <- 0.5*grad^2/hess #use 0.5*g^2/k
 				
 				if(full==TRUE){
-					custom.compute.smart <- mxComputeSequence(list(mxComputeNumericDeriv(knownHessian=model$output$hessian), mxComputeReportDeriv()))
+					custom.compute.smart <- mxComputeSequence(list(
+					    mxComputeNumericDeriv(knownHessian=model$output$hessian, checkGradient=FALSE),
+					    mxComputeReportDeriv()))
 					# Create and run the all-plus-one-parameter model for the Mplus-type/full MI
 					plusOneParamRun <- mxRun(mxModel(plusOneParamModel, custom.compute.smart), silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)
 					
