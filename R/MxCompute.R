@@ -1024,8 +1024,11 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##'
 ##' For N free parameters, Richardson extrapolation requires
 ##' (iterations * (N^2 + N)) function evaluations.
-##' 
 ##' The implementation is closely based on the numDeriv R package.
+##'
+##' In addition to an estimate of the Hessian, forward, central, and
+##' backward estimates of the gradient are made available in this
+##' compute plan's output slot.
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.

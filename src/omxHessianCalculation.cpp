@@ -52,8 +52,9 @@ class omxComputeNumericDeriv : public omxCompute {
 	double minimum;
 	Eigen::ArrayXd optima;
 	int numParams;
-	double *gradient;
+	double *gcentral, *gforward, *gbackward;
 	double *hessian;
+	SEXP detail;
 
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
@@ -69,7 +70,9 @@ class omxComputeNumericDeriv : public omxCompute {
 struct hess_struct {
 	int probeCount;
 	double* Haprox;
-	double* Gaprox;
+	double *Gcentral;
+	double *Gforward;
+	double *Gbackward;
 	FitContext *fc;
 	omxMatrix* fitMatrix;
 };
@@ -77,7 +80,9 @@ struct hess_struct {
 void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)
 {
 	hess_work->Haprox = (double*) Calloc(numIter, double);		// Hessian Workspace
-	hess_work->Gaprox = (double*) Calloc(numIter, double);		// Gradient Workspace
+	hess_work->Gcentral = (double*) Calloc(numIter, double);		// Gradient Workspace
+	hess_work->Gforward = (double*) Calloc(numIter, double);
+	hess_work->Gbackward = (double*) Calloc(numIter, double);
 	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
 	hess_work->fc = fc;
 	memcpy(fc->est, optima.data(), numParams * sizeof(double));
@@ -95,7 +100,9 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
-	double *Gaprox             = hess_work->Gaprox;
+	double *Gcentral             = hess_work->Gcentral;
+	double *Gforward             = hess_work->Gforward;
+	double *Gbackward            = hess_work->Gbackward;
 	omxMatrix* fitMatrix = hess_work->fitMatrix; 
 	FitContext* fc = hess_work->fc; 
 	double *freeParams         = fc->est;
@@ -122,7 +129,9 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		omxRecompute(fitMatrix, fc);
 		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
-		Gaprox[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
+		Gcentral[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
+		Gforward[k] = (minimum - f2) / iOffset;
+		Gbackward[k] = (f1 - minimum) / iOffset;
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
 		freeParams[i] = optima[i];									// Reset parameter value
 		iOffset /= v;
@@ -131,8 +140,11 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 	for(int m = 1; m < numIter; m++) {						// Richardson Step
 		for(int k = 0; k < (numIter - m); k++) {
-			Gaprox[k] = (Gaprox[k+1] * pow(4.0, m) - Gaprox[k])/(pow(4.0, m)-1); // NumDeriv Hard-wires 4s for r here. Why?
-			Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k])/(pow(4.0, m)-1); // NumDeriv Hard-wires 4s for r here. Why?
+			// NumDeriv Hard-wires 4s for r here. Why?
+			Gcentral[k] = (Gcentral[k+1] * pow(4.0, m) - Gcentral[k])/(pow(4.0, m)-1);
+			Gforward[k] = (Gforward[k+1] * pow(4.0, m) - Gforward[k])/(pow(4.0, m)-1);
+			Gbackward[k] = (Gbackward[k+1] * pow(4.0, m) - Gbackward[k])/(pow(4.0, m)-1);
+			Haprox[k] = (Haprox[k+1] * pow(4.0, m) - Haprox[k])/(pow(4.0, m)-1);
 		}
 	}
 
@@ -140,7 +152,9 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...",
 		      i, i, i*numParams+i, Haprox[0]);
 	}
-	gradient[i] = Gaprox[0];
+	gcentral[i]  = Gcentral[0];
+	gforward[i]  = Gforward[0];
+	gbackward[i] = Gbackward[0];
 	hessian[i*numParams + i] = Haprox[0];
 
 	if(verbose >= 2) {mxLog("Done with parameter %d.", i);}
@@ -308,12 +322,14 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 			}
 		}
 	}
+
+	totalProbeCount = 0;
+	detail = 0;
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	int newWanted = fc->wanted | FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT;
-	bool hasGradient = fc->wanted & FF_COMPUTE_GRADIENT;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
 
@@ -352,14 +368,36 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	Eigen::Map< Eigen::MatrixXd > eH(hessian, numParams, numParams);
 	eH.setConstant(NA_REAL);
 
-	fc->grad.resize(numParams);
-	Eigen::VectorXd oldGrad;
-	if (hasGradient) {
-		oldGrad = fc->grad;
+	Rf_protect(detail = Rf_allocVector(VECSXP, 4));
+	SET_VECTOR_ELT(detail, 0, Rf_allocVector(LGLSXP, numParams));
+	for (int gx=0; gx < 3; ++gx) {
+		SET_VECTOR_ELT(detail, 1+gx, Rf_allocVector(REALSXP, numParams));
 	}
-	fc->grad.setConstant(NA_REAL);
-	gradient = fc->grad.data();
+	gforward = REAL(VECTOR_ELT(detail, 1));
+	gcentral = REAL(VECTOR_ELT(detail, 2));
+	gbackward = REAL(VECTOR_ELT(detail, 3));
+	Eigen::Map< Eigen::ArrayXd > Gf(gforward, numParams);
+	Eigen::Map< Eigen::ArrayXd > Gc(gcentral, numParams);
+	Eigen::Map< Eigen::ArrayXd > Gb(gbackward, numParams);
+	Gf.setConstant(NA_REAL);
+	Gc.setConstant(NA_REAL);
+	Gb.setConstant(NA_REAL);
   
+	SEXP detailCols;
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 4));
+	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
+	SET_STRING_ELT(detailCols, 0, Rf_mkChar("symmetric"));
+	SET_STRING_ELT(detailCols, 1, Rf_mkChar("forward"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("central"));
+	SET_STRING_ELT(detailCols, 3, Rf_mkChar("backward"));
+
+	SEXP detailRowNames;
+	Rf_protect(detailRowNames = Rf_allocVector(STRSXP, numParams));
+	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
+	for (int nx=0; nx < int(numParams); ++nx) {
+		SET_STRING_ELT(detailRowNames, nx, Rf_mkChar(fc->varGroup->vars[nx]->name));
+	}
+
 	if (knownHessian) {
 		int khSize = int(khMap.size());
 		Eigen::Map< Eigen::MatrixXd > kh(knownHessian, khSize, khMap.size());
@@ -373,40 +411,43 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	doHessianCalculation(numChildren, hess_work);
 
-	totalProbeCount = 0;
-
 	if (numChildren < 2) {
 		totalProbeCount = hess_work->probeCount;
 		Free(hess_work->Haprox);
-		Free(hess_work->Gaprox);
+		Free(hess_work->Gcentral);
 	    Free(hess_work);
 	} else {
 		for(int i = 0; i < numChildren; i++) {
 			struct hess_struct *hw = hess_work + i;
 			totalProbeCount += hw->probeCount;
 			Free(hw->Haprox);
-			Free(hw->Gaprox);
+			Free(hw->Gcentral);
 		}
 		Free(hess_work);
 	}
 
-	if (checkGradient && hasGradient && ((oldGrad - fc->grad).array().abs() > .1).any()) {
-		// We could actually estimate the forward, backward,
-		// and central gradient here without any more fit
-		// evaluations or relying on fc->grad. It might be
-		// nice to return these estimates separately in the
-		// $output slot.
-		if (std::isfinite((oldGrad - fc->grad).norm())) {
-			if (verbose >= 1) {
-				// fc->grad may not be the forward difference
-				mxLog("Central difference gradient estimates differs from forward difference by %f",
-				      (oldGrad - fc->grad).norm());
-			}
-			if (fc->inform < INFORM_NOT_AT_OPTIMUM) fc->inform = INFORM_NOT_AT_OPTIMUM;
-			for (int px=0; px < oldGrad.size(); ++px) {
-				if (fabs(oldGrad[px] - fc->grad[px]) > .1) fc->grad[px] = NA_REAL;
-			}
+	markAsDataFrame(detail);
+	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
+	Eigen::ArrayXi Gsmall(numParams);
+	double gradThresh = std::max(fabs(minimum) * 1e-6, .01);
+	for (int px=0; px < numParams; ++px) {
+		Gsmall[px] = fabs(Gc[px]) < gradThresh;
+		Gsymmetric[px] = (Gsmall[px] && Gf[px] < 0 && 0 < Gb[px] &&
+				  fabs(Gf[px] + Gb[px]) < (Gb[px] - Gf[px]));
+		if (verbose >= 2 && Gsmall[px] && !Gsymmetric[px]) {
+			mxLog("%s: param[%d] %d %g < %g", name, px, Gsymmetric[px],
+			      fabs(Gf[px] + Gb[px]), (Gb[px] - Gf[px]));
 		}
+	}
+	
+	fc->grad.resize(numParams);
+	fc->grad = Gc.matrix();
+
+	if (checkGradient && !Gsmall.all()) {
+		if (verbose >= 1) {
+			mxLog("Some gradient entries are too large, norm %f", Gc.matrix().norm());
+		}
+		if (fc->inform < INFORM_NOT_AT_OPTIMUM) fc->inform = INFORM_NOT_AT_OPTIMUM;
 	}
 
 	memcpy(fc->est, optima.data(), sizeof(double) * numParams);
@@ -425,6 +466,7 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 
 	MxRList out;
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
+	if (detail) out.add("gradient", detail);
 	slots->add("output", out.asR());
 }
 

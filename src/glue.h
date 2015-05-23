@@ -88,4 +88,6 @@ void exception_to_try_Rf_error( const std::exception& ex ) __attribute__ ((noret
 
 void getMatrixDims(SEXP r_theta, int *rows, int *cols);
 
+void markAsDataFrame(SEXP list);
+
 #endif // #define _NPSOLWRAP_H

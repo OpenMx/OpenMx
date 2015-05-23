@@ -40,6 +40,14 @@
 #include "npsolswitch.h"
 #include "omxCsolnp.h"
 
+void markAsDataFrame(SEXP list)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
+	Rf_setAttrib(list, R_ClassSymbol, classes);
+}
+
 static SEXP do_logm_eigen(SEXP x)
 {
     SEXP dims, z;

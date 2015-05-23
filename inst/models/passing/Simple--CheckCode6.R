@@ -23,6 +23,8 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("absX"))
 
 m1 <- mxRun(m1)
+omxCheckCloseEnough(c(m1$compute$steps[[2]]$output$gradient[1,c('forward','central','backward')]),
+                    c(-1, 0, 1), 1e-2)
 if (0) {
   # We cannot detect this reliably.
   omxCheckEquals(m1$output$status$code,6)
