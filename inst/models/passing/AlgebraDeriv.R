@@ -32,7 +32,8 @@ model1 <- mxModel("model1", mat1, obj, grad, hess,
                     mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian', 'ihessian')),
                     mxComputeReportDeriv()
                   )))
-got <- mxRun(model1, silent=TRUE)
+got <- omxCheckWarning(mxRun(model1, silent=TRUE, useOptimizer=FALSE),
+                       "mxRun(..., useOptimizer=FALSE) ignored due to custom compute plan")
 omxCheckCloseEnough(got$output$fit, -2 * log(dnorm(got$output$estimate, sd=sqrt(sigma))), 1e-4)
 omxCheckCloseEnough(got$output$gradient, 2*(mat1$values[1]-mu)/sigma, 1e-4)
 omxCheckCloseEnough(got$output$hessian, 2/sigma)
