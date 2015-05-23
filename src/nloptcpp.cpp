@@ -171,10 +171,8 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		std::vector<double> tol(fc->numParam, std::numeric_limits<double>::epsilon());
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
-		// The 0.005 factor is a bit ridiculous. NPSOL doesn't
-		// have the same definition of relative tolerance
-		// compare to SLSQP.
-		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 0.005);
+		// The *2 is there to roughly equate accuracy with NPSOL.
+		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
 		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	}
         
