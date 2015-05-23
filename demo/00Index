@@ -63,3 +63,4 @@ RowObjectiveSimpleExamples	            Basic examples of using the row-wise obje
 RObjectiveLISRELFactorRegression	    Implementing LISREL style model specification with the MxRObjective function
 AlternativeApproaches                  Fitting a range of models using the matrix style specification
 mxThreshold			       Example of mxThreshold
+omxConstrainMLThresholds		       Example of omxConstrainMLThresholds
