@@ -107,6 +107,7 @@ man/MxCharOrList-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
+man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
 man/mxComputeGradientDescent.Rd
 man/mxComputeHessianQuality.Rd
@@ -146,6 +147,7 @@ man/omxCheckNamespace.Rd
 man/omxCheckWarning.Rd
 man/omxConstrainMLThresholds.Rd
 man/omxDetectCores.Rd
+man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxNameAnonymousParameters.Rd
 man/omxNormalQuantiles.Rd
