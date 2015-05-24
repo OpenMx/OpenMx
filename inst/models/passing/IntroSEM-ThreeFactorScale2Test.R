@@ -83,6 +83,7 @@ threeFactorOrthoRaw1 <- mxModel("threeFactorOrthogonal",
     )
 
 threeFactorOrthoRaw1Out <- mxRun(threeFactorOrthoRaw1, suppressWarnings=TRUE)
+omxCheckTrue(any(threeFactorOrthoRaw1Out$output[['standardErrorsSuspect']]))
 
 summary(threeFactorOrthoRaw1Out)
 
@@ -99,6 +100,7 @@ threeFactorObliqueRaw1 <- mxModel(threeFactorOrthoRaw1,
     )
 
 threeFactorObliqueRaw1Out <- mxRun(threeFactorObliqueRaw1, suppressWarnings=TRUE)
+omxCheckTrue(any(threeFactorObliqueRaw1Out$output[['standardErrorsSuspect']]))
 
 summary(threeFactorObliqueRaw1Out)
 
@@ -159,7 +161,7 @@ expectMin <- 8042.699
 omxCheckCloseEnough(expectVal1, threeFactorOrthoRaw1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE1, 
-    as.vector(threeFactorOrthoRaw1Out$output$standardError), 0.001)
+    as.vector(threeFactorOrthoRaw1Out$output[['standardErrors']]), 0.001)
 
 omxCheckCloseEnough(expectMin, threeFactorOrthoRaw1Out$output$minimum, 0.001)
 
@@ -183,12 +185,12 @@ expectSE2 <- c(0.091768, 0.090312, 0.095406, 0.097918, 0.098236, 0.08515,
 0.122689, 0.156731, 0.15303, 0.127346, 0.115371)
 
 expectMin <- 7699.145
-print(max(abs(as.vector(threeFactorObliqueRaw2Out$output$standardErrors))))
+print(max(abs(as.vector(threeFactorObliqueRaw2Out$output[['standardErrors']]))))
 omxCheckCloseEnough(expectVal2, threeFactorObliqueRaw1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectMin, threeFactorObliqueRaw1Out$output$minimum, 0.001)
 
-omxCheckCloseEnough(c((threeFactorObliqueRaw1Out$output$standardError - expectSE2)/expectSE2),
+omxCheckCloseEnough(c((threeFactorObliqueRaw1Out$output[['standardErrors']] - expectSE2)/expectSE2),
                     rep(0,length(expectSE2)), 0.01)
 
 #------------------
@@ -212,7 +214,7 @@ expectMin <- 7699.195
 
 omxCheckCloseEnough(expectVal3, threeFactorObliqueRaw2Out$output$estimate, 0.001)
 
-omxCheckCloseEnough(c((threeFactorObliqueRaw2Out$output$standardErrors - expectSE3)/expectSE3),
+omxCheckCloseEnough(c((threeFactorObliqueRaw2Out$output[['standardErrors']] - expectSE3)/expectSE3),
                            rep(0, length(expectSE3)), 0.015)
 
 omxCheckCloseEnough(expectMin, threeFactorObliqueRaw2Out$output$minimum, 0.001)
@@ -239,7 +241,7 @@ expectMin <- 7837.312
 omxCheckCloseEnough(expectVal4, threeFactorObliqueRaw3Out$output$estimate, 0.005)
 
 omxCheckCloseEnough(expectSE4, 
-    as.vector(threeFactorObliqueRaw3Out$output$standardError), 0.005)
+    as.vector(threeFactorObliqueRaw3Out$output[['standardErrors']]), 0.005)
 
 omxCheckCloseEnough(expectMin, threeFactorObliqueRaw3Out$output$minimum, 0.005)
 

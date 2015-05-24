@@ -82,4 +82,4 @@ omxCheckCloseEnough(expectMin, multivariateRegModelOut$output$minimum, 0.001)
 omxCheckCloseEnough(expectVal, multivariateRegModelOut$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(multivariateRegModelOut$output$standardError), 0.001)
+    as.vector(multivariateRegModelOut$output[['standardErrors']]), 0.001)

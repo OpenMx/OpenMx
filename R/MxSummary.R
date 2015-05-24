@@ -452,8 +452,8 @@ print.summary.mxmodel <- function(x,...) {
 	params <- x$parameters
 	if (!is.null(params) && nrow(params)) {
 		cat("free parameters:\n")
-		params$lbound <- mapply(highlightBounds, params$lbound, params$lboundMet)
-		params$ubound <- mapply(highlightBounds, params$ubound, params$uboundMet)
+		params$lbound <- mapply(highlightProblem, params$lbound, params$lboundMet)
+		params$ubound <- mapply(highlightProblem, params$ubound, params$uboundMet)
 		params$lbound[is.na(params$lbound)] <- ""
 		params$ubound[is.na(params$ubound)] <- ""
 		params$lboundMet <- NULL
@@ -465,6 +465,16 @@ print.summary.mxmodel <- function(x,...) {
 			if (all(params$lbound == "" & params$ubound == "")) {
 				params[['lbound']] <- NULL
 				params[['ubound']] <- NULL
+			}
+		}
+		if (!is.null(params[['Std.Error']]) && !is.null(x[['seSuspect']])) {
+			seCol <- match('Std.Error', colnames(params))
+			before <- params[1:seCol]
+			stars <- mapply(highlightProblem, rep('',length(x[['seSuspect']])), x[['seSuspect']])
+			if (length(params) > seCol) {
+				params <- cbind(before, 'A'=stars, params[(seCol+1):length(params)])
+			} else {
+				params <- cbind(before, 'A'=stars)
 			}
 		}
 		print(params)
@@ -666,7 +676,7 @@ compareBounds <- function(estimate, bound, threshold){
 	return (absDelta < threshold)
 }
 
-highlightBounds <- function(bound, boundMet){
+highlightProblem <- function(bound, boundMet){
 	if (boundMet){
 		return(paste(bound, "*", sep=""))
 	}
@@ -786,6 +796,7 @@ setMethod("summary", "MxModel",
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
+		retval$seSuspect <- model@output[['standardErrorsSuspect']]
     retval$GREMLfixeff <- GREMLFixEffList(model)
 		retval$infoDefinite <- model@output$infoDefinite
 		retval$conditionNumber <- model@output$conditionNumber

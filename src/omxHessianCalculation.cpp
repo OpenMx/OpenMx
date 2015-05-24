@@ -459,6 +459,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
+	fc->allocStderrs();
+
 	SEXP calculatedHessian;
 	Rf_protect(calculatedHessian = Rf_allocMatrix(REALSXP, numParams, numParams));
 	fc->copyDenseHess(REAL(calculatedHessian));
@@ -466,7 +468,13 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 
 	MxRList out;
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
-	if (detail) out.add("gradient", detail);
+	if (detail) {
+		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
+		for (int px=0; px < fc->numParam; ++px) {
+			fc->seSuspect[px] = !Gsymmetric[px];
+		}
+		out.add("gradient", detail);
+	}
 	slots->add("output", out.asR());
 }
 

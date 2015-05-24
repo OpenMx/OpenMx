@@ -1029,6 +1029,15 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' In addition to an estimate of the Hessian, forward, central, and
 ##' backward estimates of the gradient are made available in this
 ##' compute plan's output slot.
+##' 
+##' When \code{checkGradient=TRUE}, the central difference estimate of
+##' the gradient is used to determine whether the first order
+##' convergence criterion is met. In addition, the forward and
+##' backward difference estimates of the gradient are compared for
+##' symmetry. When sufficient asymmetry is detected, the standard
+##' error is flagged. In the case, profile likelihood confidence
+##' intervals should be used for inference instead of standard errors
+##' (see \code{mxComputeConfidenceInterval}).
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
