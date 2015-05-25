@@ -440,11 +440,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			continue;
 		}
 		Gsmall[px] = fabs(Gc[px]) < gradThresh;
-		Gsymmetric[px] = (Gsmall[px] && Gf[px] < 0 && 0 < Gb[px] &&
-				  fabs(Gf[px] + Gb[px]) < (Gb[px] - Gf[px]));
-		if (verbose >= 2 && Gsmall[px] && !Gsymmetric[px]) {
-			mxLog("%s: param[%d] %d %g < %g", name, px, Gsymmetric[px],
-			      fabs(Gf[px] + Gb[px]), (Gb[px] - Gf[px]));
+		double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
+		Gsymmetric[px] = (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
+		if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
+			mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
 		}
 	}
 	
@@ -467,8 +466,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
-	fc->allocStderrs();
-
 	SEXP calculatedHessian;
 	Rf_protect(calculatedHessian = Rf_allocMatrix(REALSXP, numParams, numParams));
 	fc->copyDenseHess(REAL(calculatedHessian));
@@ -478,10 +475,13 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
 	if (detail) {
 		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
-		for (int px=0; px < fc->numParam; ++px) {
-			fc->seSuspect[px] = !Gsymmetric[px];
-		}
 		out.add("gradient", detail);
+		if (checkGradient) {
+			fc->allocStderrs();
+			for (int px=0; px < int(fc->numParam); ++px) {
+				fc->seSuspect[px] = !Gsymmetric[px];
+			}
+		}
 	}
 	slots->add("output", out.asR());
 }
