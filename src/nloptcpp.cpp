@@ -214,8 +214,6 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 		goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 	} else if (code < 0) {
 		Rf_error("NLOPT fatal error %d", code);
-	} else if (eq + ieq == 0 && (fc->grad.array().abs() > 0.1).any()) {
-		goc.informOut = INFORM_NOT_AT_OPTIMUM;
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
 	} else {

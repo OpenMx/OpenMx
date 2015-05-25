@@ -430,7 +430,15 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	Eigen::ArrayXi Gsmall(numParams);
 	double gradThresh = std::max(fabs(minimum) * 1e-6, .01);
+	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
+		omxFreeVar &fv = *fc->varGroup->vars[px];
+		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
+		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
+			Gsmall[px] = true;
+			Gsymmetric[px] = false;
+			continue;
+		}
 		Gsmall[px] = fabs(Gc[px]) < gradThresh;
 		Gsymmetric[px] = (Gsmall[px] && Gf[px] < 0 && 0 < Gb[px] &&
 				  fabs(Gf[px] + Gb[px]) < (Gb[px] - Gf[px]));
