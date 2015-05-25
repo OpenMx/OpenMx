@@ -183,7 +183,7 @@ class omxCheckpoint {
 };
 
 struct omxConfidenceInterval {		// For Confidence interval request
-	const char *name;
+	std::string name;
 	omxMatrix* matrix;				// The matrix
 	int row, col;					// Location of element to calculate
 	int varIndex;
@@ -193,6 +193,7 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	double min;						// Value at lower bound
 	int lCode;						// Optimizer code at lower bound
 	int uCode;						// Optimizer code at upper bound
+	omxConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 };
 

@@ -422,7 +422,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	int numInts = (int) Global->intervalList.size();
 	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (ref fit %f %s)",
-				name, numInts, fitMatrix->name, mle->fit, ctypeName);
+				name, numInts, fitMatrix->name(), mle->fit, ctypeName);
 	if (!numInts) return;
 
 	if (!std::isfinite(mle->fit)) Rf_error("%s: reference fit is not finite", name);
@@ -462,8 +462,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
 
-	SEXP detailRowNames = Rf_allocVector(INTSXP, totalIntervals);
-	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
+	SEXP detailRowNames;
+	Rf_protect(detailRowNames = Rf_allocVector(INTSXP, totalIntervals));
 	markAsDataFrame(detail);
 
 	FitContext fc(mle, mle->varGroup);
@@ -479,10 +479,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
-		const char *matName = "anonymous matrix";
-		if (currentCI->matrix->name) {
-			matName = currentCI->matrix->name;
-		}
+		std::string &matName = currentCI->matrix->nameStr;
 
 		if (useInequality || useEquality) {
 			currentCI->varIndex = freeVarGroup->lookupVar(currentCI->matrix, currentCI->row, currentCI->col);
@@ -499,7 +496,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 			double *store = lower? &currentCI->min : &currentCI->max;
 
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
-						  matName, currentCI->row + 1, currentCI->col + 1,
+						  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
 						  lower? "lower" : "upper");
 
 			if (useInequality) mle->state->conList.push_back(&constrIneq);
@@ -538,12 +535,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			if(verbose >= 1) {
 				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
-				      1+i, (lower?"lower":"upper"), matName, 1+currentCI->row, 1+currentCI->col,
+				      1+i, (lower?"lower":"upper"), matName.c_str(), 1+currentCI->row, 1+currentCI->col,
 				      val, fc.fit - fc.targetFit, better);
 			}
 
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
-			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name));
+			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
 			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
 			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = lower;
 			REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
@@ -554,6 +551,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 			++detailRow;
 		}
 	}
+
+	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
 
 	mle->copyParamToModel();
 
@@ -594,7 +593,7 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	Rf_protect(names = Rf_allocVector(STRSXP, numInt)); //shared between the two matrices
 	for (int nx=0; nx < numInt; ++nx) {
 		omxConfidenceInterval *ci = Global->intervalList[nx];
-		SET_STRING_ELT(names, nx, Rf_mkChar(ci->name));
+		SET_STRING_ELT(names, nx, Rf_mkChar(ci->name.c_str()));
 	}
 	SET_VECTOR_ELT(dimnames, 0, names);
 

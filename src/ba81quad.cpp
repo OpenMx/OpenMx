@@ -294,9 +294,9 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 			int nlen = Rf_length(names);
 			for (int nx=0; nx < nlen; ++nx) {
 				const char *name = CHAR(STRING_ELT(names, nx));
-				if (strEQ(factorNames[nx], name)) continue;
+				if (strEQ(factorNames[nx].c_str(), name)) continue;
 				Rf_error("%s %snames[%d] is '%s', does not match factor name '%s'",
-					 matName, dimname[dx], 1+nx, name, factorNames[nx]);
+					 matName, dimname[dx], 1+nx, name, factorNames[nx].c_str());
 			}
 		}
 	}
@@ -485,7 +485,12 @@ void ifaGroup::import(SEXP Rlist)
 		if (weightColumnName) {
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(weightColumnName, dataColNames[dc])) {
-					rowWeight = REAL(VECTOR_ELT(Rdata, dc));
+					SEXP col = VECTOR_ELT(Rdata, dc);
+					if (TYPEOF(col) != REALSXP) {
+						Rf_error("Column '%s' is of type %s; expecting type numeric (double)",
+							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
+					}
+					rowWeight = REAL(col);
 					break;
 				}
 			}

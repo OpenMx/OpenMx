@@ -56,7 +56,7 @@ void expm_eigen(int n, double *rz, double *out)
 void omxPrintMatrix(omxMatrix *source, const char* header)
 {
 	EigenMatrixAdaptor Esrc(source);
-	if (!header) header = source->name;
+	if (!header) header = source->name();
 	if (!header) header = "?";
 	mxPrintMat(header, Esrc);
 }
@@ -86,7 +86,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 	om->fitFunction = NULL;
 
 	om->currentState = os;
-	om->name = NULL;
+	om->nameStr = "?";
 	om->version = 1;
 	om->cleanVersion = 0;
 
@@ -205,7 +205,7 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
-	newMat->name = src->name;
+	newMat->nameStr = src->nameStr;
     
 	newMat->rownames = src->rownames;
 	newMat->colnames = src->colnames;
@@ -271,13 +271,8 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	} else {
 		typeString = matrixString;
 	}
-	if (om->name == NULL) {
-		sprintf(errstr, "Attempted to set row and column (%d, %d) in %s with dimensions %d x %d.", 
-			row, col, typeString, numrow, numcol);
-	} else {
-		sprintf(errstr, "Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
-			row, col, typeString, om->name, numrow, numcol);
-	}
+	sprintf(errstr, "Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
+		row, col, typeString, om->name(), numrow, numcol);
 	Rf_error(errstr);
 	free(errstr);  // TODO not reached
 }
@@ -322,9 +317,7 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 void omxMarkDirty(omxMatrix *om) {
 	om->version += 1;
 	if (OMX_DEBUG_ALGEBRA) {
-		const char *name = "?";
-		if (om->name) name = om->name;
-		mxLog("Marking matrix %s dirty", name);
+		mxLog("Marking matrix %s dirty", om->name());
 	}
 }
 
@@ -333,9 +326,7 @@ void omxMarkClean(omxMatrix *om)
 	om->version += 1;
 	om->cleanVersion = om->version;
 	if (OMX_DEBUG_ALGEBRA) {
-		const char *name = "?";
-		if (om->name) name = om->name;
-		mxLog("Marking matrix %s clean", name);
+		mxLog("Marking matrix %s clean", om->name());
 	}
 }
 
@@ -597,7 +588,7 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 {
 	if (populate.size() == 0) return;
 	if (OMX_DEBUG_ALGEBRA) {
-		mxLog("omxPopulateSubstitutions %s, %d locations", name, (int) populate.size());
+		mxLog("omxPopulateSubstitutions %s, %d locations", name(), (int) populate.size());
 	}
 	for (size_t pi = 0; pi < populate.size(); pi++) {
 		populateLocation &pl = populate[pi];
@@ -623,8 +614,8 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 			omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
 			if (OMX_DEBUG_ALGEBRA) {
 				mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
-				      value, sourceMatrix->name, pl.srcRow, pl.srcCol,
-				      name, pl.destRow, pl.destCol);
+				      value, sourceMatrix->name(), pl.srcRow, pl.srcCol,
+				      name(), pl.destRow, pl.destCol);
 			}
 		}
 	}
@@ -646,9 +637,7 @@ static bool omxNeedsUpdate(omxMatrix *matrix)
 		yes = TRUE;
 	}
 	if (OMX_DEBUG_ALGEBRA) {
-		const char *name = "?";
-		if (matrix->name) name = matrix->name;
-		mxLog("Matrix %s %s update", name, yes? "needs" : "does not need");
+		mxLog("Matrix %s %s update", matrix->name(), yes? "needs" : "does not need");
 	}
 	return yes;
 }

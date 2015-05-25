@@ -729,13 +729,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	if (state->_latentMeanOut && state->_latentMeanOut->rows * state->_latentMeanOut->cols != maxAbilities) {
 		Rf_error("The mean matrix '%s' must be a row or column vector of size %d",
-		      state->_latentMeanOut->name, maxAbilities);
+			 state->_latentMeanOut->name(), maxAbilities);
 	}
 
 	if (state->_latentCovOut && (state->_latentCovOut->rows != maxAbilities ||
 				    state->_latentCovOut->cols != maxAbilities)) {
 		Rf_error("The cov matrix '%s' must be %dx%d",
-		      state->_latentCovOut->name, maxAbilities, maxAbilities);
+			 state->_latentCovOut->name(), maxAbilities, maxAbilities);
 	}
 
 	state->grp.setLatentDistribution(maxAbilities,

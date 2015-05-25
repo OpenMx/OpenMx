@@ -82,7 +82,8 @@ class omxMatrix {
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
 
-	const char* name;
+	std::string nameStr;
+	const char *name() const { return nameStr.c_str(); }
 
 	// char pointers are from R and should not be freed
 	std::vector<const char *> rownames;

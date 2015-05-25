@@ -55,10 +55,10 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 		if (want & FF_COMPUTE_FIT) {
 			if(f1->rows != 1 || f1->cols != 1) {
 				omxRaiseErrorf("%s[%d]: %s of type %s does not evaluate to a 1x1 matrix",
-					       fitMatrix->name, (int)ex, f1->name, f1->fitFunction->fitType);
+					       fitMatrix->name(), (int)ex, f1->name(), f1->fitFunction->fitType);
 			}
 			fit += f1->data[0];
-			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name, f1->name, f1->data[0]); }
+			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name(), f1->name(), f1->data[0]); }
 		}
 	}
 
@@ -66,7 +66,7 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (want & FF_COMPUTE_FIT) {
 		fitMatrix->data[0] = fit;
-		if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name, fit); }
+		if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name(), fit); }
 	}
 }
 
@@ -153,8 +153,8 @@ void initFitMultigroup(omxFitFunction *oo)
 				oo->ciFun = mat->fitFunction->ciFun;
 			} else if (oo->units != mat->fitFunction->units) {
 				Rf_error("%s: cannot combine units %d and %d (from %s)",
-					 oo->matrix->name,
-					 oo->units, mat->fitFunction->units, mat->name);
+					 oo->matrix->name(),
+					 oo->units, mat->fitFunction->units, mat->name());
 			}
 		} else {
 			oo->gradientAvailable = FALSE;

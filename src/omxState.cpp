@@ -177,14 +177,14 @@ void FreeVarGroup::log(omxState *os)
 		if (dependencies[i]) {
 			int offset = ~(i - numMats);
 			str += " ";
-			str += os->matrixList[offset]->name;
+			str += os->matrixList[offset]->name();
 		}
 	}
 
 	for(size_t i = 0; i < numAlgs; i++) {
 		if (dependencies[i + numMats]) {
 			str += " ";
-			str += os->algebraList[i]->name;
+			str += os->algebraList[i]->name();
 		}
 	}
 	str += "\n";
@@ -216,7 +216,7 @@ omxGlobal::omxGlobal()
 
 const char *omxState::matrixToName(int matnum)
 {
-	return matnum<0? matrixList[~matnum]->name : algebraList[matnum]->name;
+	return matnum<0? matrixList[~matnum]->name() : algebraList[matnum]->name();
 }
 
 void omxState::setWantStage(int stage)
@@ -261,8 +261,7 @@ void omxGlobal::unpackConfidenceIntervals()
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				omxConfidenceInterval *cell = new omxConfidenceInterval(*ci);
-				std::string name = string_snprintf("%s[%d,%d]", ci->name, 1+rx, 1+cx);
-				cell->name = CHAR(Rf_mkChar(name.c_str()));
+				cell->name = string_snprintf("%s[%d,%d]", ci->name.c_str(), 1+rx, 1+cx);
 				cell->row = rx;
 				cell->col = cx;
 				if (uniqueCIs.count(cell) == 0) {
