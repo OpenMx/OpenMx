@@ -508,7 +508,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				result.add("standardErrors", stdErrors);
 
 				Rf_protect(stdErrors = Rf_allocVector(LGLSXP, numFree));
-				for (int px=0; px < numFree; ++px) {
+				for (int px=0; px < int(numFree); ++px) {
 					INTEGER(stdErrors)[px] = fc->seSuspect[px];
 				}
 				result.add("standardErrorsSuspect", stdErrors);
