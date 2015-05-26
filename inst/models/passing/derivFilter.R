@@ -18,7 +18,6 @@ factorModel <- mxModel(
       mxComputeReportDeriv()))
     )
 fitModel <- mxRun(factorModel)
-fullG <- fitModel$output$gradient
 fullH <- fitModel$output$hessian
 
 omxCheckEquals(fitModel$compute$steps[[1]]$output$probeCount, 4 * (10^2+10))
@@ -28,7 +27,6 @@ limModel <- mxRun(mxModel(factorModel,
                             mxComputeNumericDeriv(verbose=0,
                                                   knownHessian=fullH[3:10,3:10]),
                             mxComputeReportDeriv()))))
-omxCheckCloseEnough(limModel$output$gradient[1:2], fullG[1:2], 1e-3)
 omxCheckCloseEnough(limModel$output$hessian[,1:2], fullH[,1:2], 1e-3)
 
 omxCheckEquals(limModel$compute$steps[[1]]$output$probeCount, 152)

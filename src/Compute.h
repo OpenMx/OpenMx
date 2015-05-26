@@ -133,6 +133,7 @@ class FitContext {
 	int infoDefinite;
 	double infoCondNum;
 	double *stderrs;   // plural to distinguish from stdio's stderr
+	std::vector<bool> seSuspect;
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat

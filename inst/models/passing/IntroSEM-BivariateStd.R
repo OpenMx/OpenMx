@@ -66,7 +66,7 @@ expectMin <- 1850.685
 omxCheckCloseEnough(expectVal, biRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(biRegModelOut$output$standardError), 0.001)
+    as.vector(biRegModelOut$output[['standardErrors']]), 0.001)
 
 omxCheckCloseEnough(expectMin, biRegModelOut$output$minimum, 0.001)
 

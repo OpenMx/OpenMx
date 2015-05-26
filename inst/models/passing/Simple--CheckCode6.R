@@ -15,7 +15,7 @@
 
 require(OpenMx)
 #mxOption(NULL, "Default optimizer", "NPSOL")
-omxCheckEquals(mxOption(NULL, "Gradient algorithm"), "forward")
+omxCheckEquals(mxOption(NULL, "Gradient algorithm"), "central")
 
 m1 <- mxModel(
   mxMatrix(nrow=1,ncol=1,free=TRUE,name="x", values=.5),
@@ -23,9 +23,13 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("absX"))
 
 m1 <- mxRun(m1)
-omxCheckTrue(all(is.na(m1$output$gradient)))
-omxCheckEquals(m1$output$status$code,6)
-omxCheckEquals(summary(m1)$npsolMessage, "The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)")
+omxCheckCloseEnough(c(m1$compute$steps[[2]]$output$gradient[1,c('forward','central','backward')]),
+                    c(-1, 0, 1), 1e-2)
+if (0) {
+  # We cannot detect this reliably.
+  omxCheckEquals(m1$output$status$code,6)
+  omxCheckEquals(summary(m1)$npsolMessage, "The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)")
+}
 
 omxCheckError(mxOption(m1, "Gradient algorithm", "forward"), "'Gradient algorithm' is a global option and cannot be set on models.
 To change 'Gradient algorithm' globally, use, e.g.:

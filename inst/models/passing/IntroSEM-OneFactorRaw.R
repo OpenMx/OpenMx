@@ -81,7 +81,7 @@ expectMin <- 9706.388
 omxCheckCloseEnough(expectVal, oneFactorRaw1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(oneFactorRaw1Out$output$standardError), 0.001)
+    as.vector(oneFactorRaw1Out$output[['standardErrors']]), 0.001)
 
 omxCheckCloseEnough(expectMin, oneFactorRaw1Out$output$minimum, 0.001)
 
@@ -148,7 +148,7 @@ expectMin <- 9706.388
 omxCheckCloseEnough(expectVal, oneFactorRaw2Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(oneFactorRaw2Out$output$standardError), 0.001)
+    as.vector(oneFactorRaw2Out$output[['standardErrors']]), 0.001)
 
 omxCheckCloseEnough(expectMin, oneFactorRaw2Out$output$minimum, 0.001)
 

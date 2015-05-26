@@ -70,6 +70,7 @@ Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimi
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
 Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
 Gradient algorithm \tab see list \tab finite difference method, either 'forward' or 'central'. \cr
+Gradient iterations \tab 1:4 \tab the number of Richardson extrapolation iterations\cr
 }
 
 SLSQP is our new, experimental optimizer.

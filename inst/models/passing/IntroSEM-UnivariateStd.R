@@ -55,7 +55,7 @@ expectMin <- 1312.985
 omxCheckCloseEnough(expectVal, uniRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(uniRegModelOut$output$standardError), 0.001)
+    as.vector(uniRegModelOut$output[['standardErrors']]), 0.001)
 
 omxCheckCloseEnough(expectMin, uniRegModelOut$output$minimum, 0.001)
 

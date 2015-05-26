@@ -393,7 +393,8 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
-				     gradientIterations=2, gradientStepSize=1e-5) {
+				     gradientIterations=mxOption(NULL, "Gradient iterations"),
+				     gradientStepSize=1e-5) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -973,7 +974,8 @@ setClass(Class = "MxComputeNumericDeriv",
 	     stepSize = "numeric",
 	     iterations = "integer",
 	     verbose="integer",
-	     knownHessian="MxOptionalMatrix"))
+	     knownHessian="MxOptionalMatrix",
+	     checkGradient="logical"))
 
 setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
@@ -992,7 +994,8 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 	})
 
 setMethod("initialize", "MxComputeNumericDeriv",
-	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian) {
+	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian,
+		   checkGradient) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -1002,6 +1005,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@iterations <- iterations
 		  .Object@verbose <- verbose
 		  .Object@knownHessian <- knownHessian
+		  .Object@checkGradient <- checkGradient
 		  .Object
 	  })
 
@@ -1020,9 +1024,21 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##'
 ##' For N free parameters, Richardson extrapolation requires
 ##' (iterations * (N^2 + N)) function evaluations.
-##' 
 ##' The implementation is closely based on the numDeriv R package.
+##'
+##' In addition to an estimate of the Hessian, forward, central, and
+##' backward estimates of the gradient are made available in this
+##' compute plan's output slot.
 ##' 
+##' When \code{checkGradient=TRUE}, the central difference estimate of
+##' the gradient is used to determine whether the first order
+##' convergence criterion is met. In addition, the forward and
+##' backward difference estimates of the gradient are compared for
+##' symmetry. When sufficient asymmetry is detected, the standard
+##' error is flagged. In the case, profile likelihood confidence
+##' intervals should be used for inference instead of standard errors
+##' (see \code{mxComputeConfidenceInterval}).
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
@@ -1031,6 +1047,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
 ##' @param verbose Level of debugging output.
 ##' @param knownHessian an optional matrix of known Hessian entries
+##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
@@ -1053,7 +1070,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L,
-				  knownHessian=NULL)
+				  knownHessian=NULL, checkGradient=TRUE)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1076,7 +1093,8 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 		}
 	}
 
-	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations, verbose, knownHessian)
+	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations,
+	    verbose, knownHessian, checkGradient)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="integer"),

@@ -40,6 +40,14 @@
 #include "npsolswitch.h"
 #include "omxCsolnp.h"
 
+void markAsDataFrame(SEXP list)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
+	Rf_setAttrib(list, R_ClassSymbol, classes);
+}
+
 static SEXP do_logm_eigen(SEXP x)
 {
     SEXP dims, z;
@@ -498,6 +506,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 				memcpy(REAL(stdErrors), fc->stderrs, sizeof(double) * numFree);
 				result.add("standardErrors", stdErrors);
+
+				Rf_protect(stdErrors = Rf_allocVector(LGLSXP, numFree));
+				for (int px=0; px < int(numFree); ++px) {
+					INTEGER(stdErrors)[px] = fc->seSuspect[px];
+				}
+				result.add("standardErrorsSuspect", stdErrors);
 			}
 			if (fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 				result.add("infoDefinite", Rf_ScalarLogical(fc->infoDefinite));

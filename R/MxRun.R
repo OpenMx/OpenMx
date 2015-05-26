@@ -98,6 +98,9 @@ runHelper <- function(model, frontendStart,
 	}
 
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
+	if (!useOptimizer && !defaultComputePlan) {
+		warning("mxRun(..., useOptimizer=FALSE) ignored due to custom compute plan")
+	}
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
 		compute <- NULL
 		fitNum <- paste(model@name, 'fitfunction', sep=".")

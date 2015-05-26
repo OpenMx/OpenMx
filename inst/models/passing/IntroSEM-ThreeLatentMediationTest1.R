@@ -169,7 +169,7 @@ expectMin <- 7710.62
 omxCheckCloseEnough(expectVal, threeLatentMediation4Out$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation4Out$output$standardError), 0.002)
+    as.vector(threeLatentMediation4Out$output[['standardErrors']]), 0.002)
 
 omxCheckCloseEnough(expectMin, threeLatentMediation4Out$output$minimum, 0.002)
 
@@ -196,7 +196,7 @@ expectMin <- 7710.615
 omxCheckCloseEnough(expectVal, threeLatentMediation3Out$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation3Out$output$standardError), 0.002)
+    as.vector(threeLatentMediation3Out$output[['standardErrors']]), 0.002)
 
 omxCheckCloseEnough(expectMin, threeLatentMediation3Out$output$minimum, 0.002)
 
@@ -223,7 +223,7 @@ expectMin <- 7840.327
 omxCheckCloseEnough(expectVal, threeLatentMediation2Out$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation2Out$output$standardError), 0.002)
+    as.vector(threeLatentMediation2Out$output[['standardErrors']]), 0.002)
 
 omxCheckCloseEnough(expectMin, threeLatentMediation2Out$output$minimum, 0.002)
 
@@ -250,7 +250,7 @@ expectMin <- 7867.323
 omxCheckCloseEnough(expectVal, threeLatentMediation1Out$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentMediation1Out$output$standardError), 0.002)
+    as.vector(threeLatentMediation1Out$output[['standardErrors']]), 0.002)
 
 omxCheckCloseEnough(expectMin, threeLatentMediation1Out$output$minimum, 0.002)
 
@@ -277,7 +277,7 @@ expectMin <- 7897.082
 omxCheckCloseEnough(expectVal, threeLatentOrthoRaw1Out$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
-    as.vector(threeLatentOrthoRaw1Out$output$standardError), 0.002)
+    as.vector(threeLatentOrthoRaw1Out$output[['standardErrors']]), 0.002)
 
 omxCheckCloseEnough(expectMin, threeLatentOrthoRaw1Out$output$minimum, 0.002)
 
