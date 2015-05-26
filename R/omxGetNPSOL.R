@@ -33,9 +33,9 @@ omxGetNPSOL <- function() {
 	}
 	if(.Platform$OS.type=="windows"){
 		message(
-			paste("Windows users should either restart R, or run\n",
+			paste("Windows users should either restart R or run\n",
 						"detach('package:OpenMx',unload=TRUE)\n",
-						"and then run\n",
+						", and then run\n",
 						"source('http://openmx.psyc.virginia.edu/getOpenMx.R')\n")
 		)
 		return()
