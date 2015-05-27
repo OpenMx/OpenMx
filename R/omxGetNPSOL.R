@@ -31,6 +31,15 @@ omxGetNPSOL <- function() {
 			      "You have already installed the non-CRAN version of OpenMx."))
 		return()
 	}
+	if(.Platform$OS.type=="windows"){
+		message(
+			paste("Windows users should either restart R or run\n",
+						"detach('package:OpenMx',unload=TRUE)\n",
+						", and then run\n",
+						"source('http://openmx.psyc.virginia.edu/getOpenMx.R')\n")
+		)
+		return()
+	}
     if(version$major < 3) {
         message(paste0("You are using R 2.15 or earlier.  ",
             "OpenMx 2.0 and higher do not support versions ",
