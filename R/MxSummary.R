@@ -488,7 +488,7 @@ print.summary.mxmodel <- function(x,...) {
 		}
 		cat('\n')
 	}
-  if(length(x$GREMLfixeff)>0){
+  if(length(x$GREMLfixeff)>0 && any(sapply(x$GREMLfixeff,length)>0)){
     cat("regression coefficients:\n")
     print(x$GREMLfixeff)
     cat("\n")
