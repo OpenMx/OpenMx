@@ -99,7 +99,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
-		Rf_error("NPSOL is not available in this build");
+		Rf_error("NPSOL is not available in this build. See ?omxGetNPSOL() to download this optimizer");
 #endif
 	} else if(strEQ(engineName, "SD")){
 		engine = OptEngine_SD;
