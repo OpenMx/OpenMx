@@ -113,7 +113,7 @@ runHelper <- function(model, frontendStart,
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- 'ineq'
 				if (ciOpt$engine == "NPSOL") cType <- 'none'
-				steps <- c(steps, mxComputeConfidenceInterval(
+				steps <- c(steps, CIstep=mxComputeConfidenceInterval(
 				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {

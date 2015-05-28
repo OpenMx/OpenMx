@@ -377,11 +377,12 @@ GREMLFixEffList <- function(model) {
     names(ptable) <- c(model$name, names(model@submodels))
     ptable[2:length(ptable)] <- lapply(model@submodels,GREMLFixEffList)
     ptable[[1]] <- GREMLFixEffListHelper(model)
-    ptable <- ptable[sapply(ptable,function(x){!is.null(x)})]
+    ptable <- ptable[sapply(ptable,function(x){length(x)>0})]
   } 
   else{
     ptable <- GREMLFixEffListHelper(model)
   }
+  if(length(ptable)==0){ptable <- NULL}
   return(ptable)
 }
 
