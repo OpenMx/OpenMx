@@ -107,22 +107,22 @@ runHelper <- function(model, frontendStart,
 		if (!useOptimizer) {
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
-			steps = list(mxComputeGradientDescent(fitfunction=fitNum))
+			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum))
 			if (length(intervals) && intervals) {
 				ciOpt <- mxComputeGradientDescent(
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- 'ineq'
 				if (ciOpt$engine == "NPSOL") cType <- 'none'
-				steps <- c(steps, CIstep=mxComputeConfidenceInterval(
+				steps <- c(steps, CI=mxComputeConfidenceInterval(
 				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {
-				steps <- c(steps, mxComputeNumericDeriv(fitfunction=fitNum))
+				steps <- c(steps, ND=mxComputeNumericDeriv(fitfunction=fitNum))
 			}
 			if (options[["Standard Errors"]] == "Yes") {
-				steps <- c(steps, mxComputeStandardError(), mxComputeHessianQuality())
+				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
 			}
-			compute <- mxComputeSequence(c(steps, mxComputeReportDeriv()))
+			compute <- mxComputeSequence(c(steps, RD=mxComputeReportDeriv()))
 		}
 		compute@.persist <- FALSE
 		model@compute <- compute
