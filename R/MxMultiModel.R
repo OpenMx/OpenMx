@@ -82,6 +82,7 @@ imxFreezeModel <- function(model) {
 	model@matrices <- append(model@matrices, algebras)
 	model@algebras <- list()
 	model@constraints <- list()
+	model@intervals <- list()
 	model@submodels <- lapply(model@submodels, imxFreezeModel)
 	return(model)
 }
