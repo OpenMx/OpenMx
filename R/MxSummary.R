@@ -483,10 +483,15 @@ print.summary.mxmodel <- function(x,...) {
 	if (!is.null(x$CI) && length(x$CI) > 0) {
 		cat("confidence intervals:\n")
 		print(x$CI)
-		if (any(is.na(x$CI[,c('lbound','ubound')]))) {
-			cat("  Investigate missing CIs with the detail output in MxComputeConfidenceInterval", '\n')
+		if (any(is.na(x$CI[,c('lbound','ubound')])) && !(x$verbose)) {
+			cat("  To investigate missing CIs, run summary() again, with verbose=T, to see CI details.", '\n')
 		}
 		cat('\n')
+	}
+	if(x$verbose && length(x$CIdetail)){
+		cat("CI details:\n")
+		print(x$CIdetail)
+		cat("\n")
 	}
   if(length(x$GREMLfixeff)>0 && any(sapply(x$GREMLfixeff,length)>0)){
     cat("regression coefficients:\n")
@@ -823,6 +828,9 @@ setMethod("summary", "MxModel",
 		if (!is.null(model@output$status$code)) {
 			message <- optimizerMessages[[as.character(model@output$status$code)]]
 			retval[['npsolMessage']] <- message
+		}
+		if( .hasSlot(model,"compute") && length(model$compute$steps$CI) ){
+			retval$CIdetail <- model$compute$steps$CI$output$detail
 		}
 		retval$timestamp <- model@output$timestamp
 		retval$frontendTime <- model@output$frontendTime
