@@ -1127,6 +1127,8 @@ setMethod("initialize", "MxComputeStandardError",
 
 ##' Compute standard errors given the Hessian or inverse Hessian
 ##'
+##' The fit is assumed to be in deviance units (-2 log likelihood).
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @aliases
 ##' MxComputeStandardError-class
