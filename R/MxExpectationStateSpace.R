@@ -522,6 +522,14 @@ mxKalmanScores <- function(model, data=NA){
 	x0 <- tem[[1]]
 	tem <- mxEvalByName(model@expectation@P0, model, compute=TRUE, cache=tem[[2]], cacheBack=TRUE)
 	P0 <- tem[[1]]
+	hasDefVars <- FALSE
+	for(i in 1:length(model@matrices)){
+		attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
+		if(any(attempt)){
+			hasDefVars <- TRUE
+			break
+		}
+	}
 	X.pred <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.upda <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.pred[1,] <- x0
@@ -535,20 +543,22 @@ mxKalmanScores <- function(model, data=NA){
 	L <- numeric(nrow(data)+1)
 	L[1] <- 1
 	for(i in 1:nrow(data)){
-		tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		A <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		B <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		C <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		D <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		Q <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		R <- tem[[1]]
-		tem <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		u <- tem[[1]]
+		if(i==1 || hasDefVars){
+			tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			A <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			B <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			C <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			D <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			Q <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			R <- tem[[1]]
+			tem <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			u <- tem[[1]]
+		}
 		
 		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[,,i])
 		X.pred[i+1,] <- res$x.pred
@@ -591,6 +601,15 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
 		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
 		
+		hasDefVars <- FALSE
+		for(i in 1:length(model@matrices)){
+			attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
+			if(any(attempt)){
+				hasDefVars <- TRUE
+				break
+			}
+		}
+		
 		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
 		
@@ -602,7 +621,9 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		
 		tx[,1] <- x0
 		for(i in 2:(tdim+1)){
-			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
+			if(hasDefVars){
+				u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
+			}
 			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
 			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
 		}
