@@ -13,7 +13,8 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
     role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"),
     person(c("Robert", "M."), "Kirkpatrick", role="aut"),
-    person(c("Yang"), "Wang", role="ctb"))
+    person(c("Yang"), "Wang", role="ctb"),
+    person(c("Charles"), "Driver", email="driver@mpib-berlin.mpg.de", role="ctb"))
 URL: http://openmx.psyc.virginia.edu
 BugReports: http://openmx.psyc.virginia.edu/forums
 Description: Facilitates treatment of statistical model specifications
