@@ -143,5 +143,6 @@ Collate:
     'MxFitFunctionGREML.R'
     'MxExpectationGREML.R'
     'MxMI.R'
+    'MxAvailableOptimizers.R'
     'zzz.R'
 Version: @VERSION@
