@@ -698,8 +698,6 @@ void FitContext::allocStderrs()
 	for (size_t px=0; px < numParam; ++px) {
 		stderrs[px] = NA_REAL;
 	}
-
-	seSuspect.assign(numParam, false);
 }
 
 FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
@@ -776,7 +774,6 @@ void FitContext::updateParent()
 			parent->allocStderrs();
 			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 				parent->stderrs[mapToParent[s1]] = stderrs[s1];
-				parent->seSuspect[mapToParent[s1]] = seSuspect[s1];
 			}
 		}
 	}

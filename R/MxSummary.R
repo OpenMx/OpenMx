@@ -796,7 +796,9 @@ setMethod("summary", "MxModel",
 		if (is.null(useSubmodels)) { useSubmodels <- TRUE }
 		retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
 		retval$parameters <- parameterList(model, useSubmodels)
-		retval$seSuspect <- model@output[['standardErrorsSuspect']]
+		if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient) {
+			retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
+		}
     retval$GREMLfixeff <- GREMLFixEffList(model)
 		retval$infoDefinite <- model@output$infoDefinite
 		retval$conditionNumber <- model@output$conditionNumber

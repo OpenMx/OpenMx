@@ -1101,7 +1101,8 @@ setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="intege
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations", "verbose")) {
+		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations",
+			       "verbose", "knownHessian", 'checkGradient')) {
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {
 				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
