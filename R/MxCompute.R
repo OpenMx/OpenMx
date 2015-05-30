@@ -1101,7 +1101,8 @@ setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="intege
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations", "verbose")) {
+		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations",
+			       "verbose", "knownHessian", 'checkGradient')) {
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {
 				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
@@ -1126,6 +1127,8 @@ setMethod("initialize", "MxComputeStandardError",
 	  })
 
 ##' Compute standard errors given the Hessian or inverse Hessian
+##'
+##' The fit is assumed to be in deviance units (-2 log likelihood).
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @aliases

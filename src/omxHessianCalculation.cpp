@@ -476,12 +476,6 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 	if (detail) {
 		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
 		out.add("gradient", detail);
-		if (checkGradient) {
-			fc->allocStderrs();
-			for (int px=0; px < int(fc->numParam); ++px) {
-				fc->seSuspect[px] = !Gsymmetric[px];
-			}
-		}
 	}
 	slots->add("output", out.asR());
 }

@@ -55,9 +55,10 @@ To evaluate an algebra fit function, place the following objects in a \code{\lin
 First and second derivatives can be provided with the algebra fit
 function. The dimnames on the gradient and hessian MxAlgebras are
 matched against names of free variables. Names that do not match are
-ignored. If you are working in log likelihood units, the customary -2
-scaling factor is not applied automatically. You have to take care of
-multiplying by -2 yourself.
+ignored. The fit is assumed to be in deviance units (-2 log
+likelihood units). If you are working in log likelihood units, the -2
+scaling factor is not applied automatically. You have to
+multiply by -2 yourself.
 }
 
 \value{

@@ -83,7 +83,7 @@ threeFactorOrthoRaw1 <- mxModel("threeFactorOrthogonal",
     )
 
 threeFactorOrthoRaw1Out <- mxRun(threeFactorOrthoRaw1, suppressWarnings=TRUE)
-omxCheckTrue(any(threeFactorOrthoRaw1Out$output[['standardErrorsSuspect']]))
+omxCheckTrue(any(summary(threeFactorOrthoRaw1Out)[['seSuspect']]))
 
 summary(threeFactorOrthoRaw1Out)
 
@@ -100,7 +100,7 @@ threeFactorObliqueRaw1 <- mxModel(threeFactorOrthoRaw1,
     )
 
 threeFactorObliqueRaw1Out <- mxRun(threeFactorObliqueRaw1, suppressWarnings=TRUE)
-omxCheckTrue(any(threeFactorObliqueRaw1Out$output[['standardErrorsSuspect']]))
+omxCheckTrue(any(summary(threeFactorObliqueRaw1Out)[['seSuspect']]))
 
 summary(threeFactorObliqueRaw1Out)
 
