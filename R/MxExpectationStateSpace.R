@@ -518,14 +518,13 @@ mxKalmanScores <- function(model, data=NA){
 		#TODO check that data are raw
 		data <- model@data@observed
 	}
-	tem <- mxEvalByName(model@expectation@x0, model, compute=TRUE, cacheBack=TRUE)
-	x0 <- tem[[1]]
-	tem <- mxEvalByName(model@expectation@P0, model, compute=TRUE, cache=tem[[2]], cacheBack=TRUE)
-	P0 <- tem[[1]]
+	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
+	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
 	hasDefVars <- FALSE
 	for(i in 1:length(model@matrices)){
 		attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
-		if(any(attempt)){
+		attempt2 <- grep('[', model@matrices[[i]]$labels, fixed=TRUE)
+		if(any(attempt) || length(attempt2) > 0){
 			hasDefVars <- TRUE
 			break
 		}
@@ -544,7 +543,7 @@ mxKalmanScores <- function(model, data=NA){
 	L[1] <- 1
 	for(i in 1:nrow(data)){
 		if(i==1 || hasDefVars){
-			tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
+			tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cacheBack=TRUE)
 			A <- tem[[1]]
 			tem <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
 			B <- tem[[1]]
