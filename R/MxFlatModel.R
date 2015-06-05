@@ -189,7 +189,8 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a free parameter",
 						"and a fixed value!"), call. = FALSE)
-				} else if (label %in% freeVars && startVals[[label]] != value) {
+				} else if (label %in% freeVars && !is.na(value) && length(startVals[[label]]) &&
+					   startVals[[label]] != value) {
 					loc <- varlocations[[label]]
 					stop(paste("The free parameter", omxQuotes(label),
 						"has been assigned multiple starting values!",
@@ -230,7 +231,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"at location", 
 						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 				} else {
-					startVals[[label]] <- value
+					if (!is.na(value)) startVals[[label]] <- value
 					freeVars <- union(freeVars, label)
 					bounds[[label]] <- c(lbound, ubound)
 				}
@@ -240,7 +241,8 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 					stop(paste("The label", omxQuotes(label),
 						"has been assigned to a fixed value",
 						"and a free parameter!"), call. = FALSE)
-				} else if (label %in% fixedVars && startVals[[label]] != value) {
+				} else if (label %in% fixedVars && !is.na(value) && length(startVals[[label]]) &&
+					   startVals[[label]] != value) {
 					loc <- varlocations[[label]]
 					stop(paste("The fixed variable", omxQuotes(label),
 						"has been assigned multiple starting values!",
@@ -256,7 +258,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"model <- omxAssignFirstParameters(model)",
 						"before running again."), call. = FALSE)
 				} else {
-					startVals[[label]] <- value
+					if (!is.na(value)) startVals[[label]] <- value
 					fixedVars <- union(fixedVars, label)
 				}
 			}
