@@ -26,7 +26,6 @@ mxVersion <- function (model=NULL, verbose=TRUE) {
 		msg = paste(msg, "\nPlatform: ", version$platform, sep="")
 		if ("Darwin" ==Sys.info()["sysname"]){
 			msg = paste(msg, "\nMacOS:", system("sw_vers -productVersion", intern=TRUE))
-			msg = paste(msg, "\nXcode:", system("xcodebuild -version | head -1", intern=TRUE))
 		}
 		msg = paste(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"), sep="")
 		if (!is.null(model)) {
