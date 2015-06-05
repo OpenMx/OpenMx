@@ -107,6 +107,8 @@ build-simple: build-prep
 
 srcbuild: build-prep
 	cd build && ./util/prep npsol && $(REXEC) CMD build .
+	@echo 'To generate a PACKAGES file, use:'
+	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
 
 cran-check: cran-build
 	$(REXEC) CMD check --as-cran build/OpenMx_*.tar.gz | tee cran-check.log
