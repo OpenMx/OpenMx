@@ -93,13 +93,21 @@ generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
 		svalue <- NA
 		if (length(svalues) > 1) {
 			values <- sapply(svalues, generateValueHelper, mList)
-			if (!all(values == values[[1]])) {
-				warning(paste('Parameter',i,'has multiple start values.',
-					      'Selecting', values[[1]]))
+			values <- values[!is.na(values)]
+			if (length(values) == 0) {
+				svalue <- NA
+			} else {
+				if (!all(values == values[[1]])) {
+					warning(paste('Parameter',names(pList)[i],'has multiple start values.',
+						      'Selecting', values[[1]]))
+				}
+				svalue <- values[[1]]
 			}
-			svalue <- values[[1]]
 		} else {
 			svalue <- generateValueHelper(svalues[[1]], mList)
+		}
+		if (is.na(svalue)) {
+			stop(paste("Parameter '",names(pList)[i],"' has no starting value",sep=""))
 		}
 		pList[[i]] <- c(original, svalue)
 	}
@@ -139,10 +147,6 @@ generateValueHelper <- function(triple, mList) {
 	row <- triple[2] + 1
 	col <- triple[3] + 1
 	val <- mList[[mat]]@values[row,col]
-	if (is.na(val)) {
-		stop(paste("Starting value in ",names(mList)[[mat]],
-			   "[",row,",",col,"] is missing", sep=""))
-	}
 	return(val)
 }
 

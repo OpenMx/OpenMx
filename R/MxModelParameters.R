@@ -124,7 +124,15 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 		subparams <- unlist(subparams)
 		parameters <- c(parameters, subparams)
 	}
-	parameters <- parameters[!duplicated(names(parameters), incomparables = NA)]
+	if (length(parameters) == 0) return(parameters)
+	notDup1 <- !duplicated(names(parameters), incomparables = NA)
+	notDup2 <- !duplicated(names(parameters[!is.na(parameters)]), incomparables = NA)
+	if (sum(notDup1) == sum(notDup2)) {
+		# Filter out NAs when some instance of the parameter does have a value.
+		parameters <- parameters[!is.na(parameters)]
+		notDup1 <- notDup2
+	}
+	parameters <- parameters[notDup1]
 	return(parameters)
 }
 
