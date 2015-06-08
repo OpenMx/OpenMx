@@ -43,11 +43,6 @@
 
 static void omxMatrixTranspose(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->cols, matList[0]->rows);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	omxCopyMatrix(result, inMat);
@@ -61,11 +56,6 @@ static void omxMatrixTranspose(FitContext *fc, omxMatrix** matList, int numArgs,
 
 static void omxMatrixInvert(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 	omxCopyMatrix(result, inMat);
 
@@ -84,15 +74,12 @@ static void nameBroadcastAlg(omxMatrix *bc)
 	bc->nameStr = string_snprintf("broadcast%03d", ++BroadcastIndex);
 }
 
-static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *result)
+static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *result)
 {
 	omxMatrix *mat0 = matList[0];
 	omxMatrix *mat1 = matList[1];
 
 	if (mat0->cols == mat1->cols && mat0->rows == mat1->rows) {
-		if(OMX_DEBUG_ALGEBRA) { 
-			mxLog("Resize %s to %dx%d", result->name(), mat0->rows, mat0->cols);
-		}
 		omxResizeMatrix(result, mat0->rows, mat0->cols);
 		return;
 	}
@@ -108,6 +95,7 @@ static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *re
 		omxFillAlgebraFromTableEntry(oa, entry, 1);
 		oa->algArgs[0] = mat0;
 		matList[0] = om;
+		omxAlgebraRecompute(oa, fc);
 		return;
 	}
 	if (mat1->cols == 1 && mat1->rows == 1 && mat0->rows != 0 && mat0->cols != 0) {
@@ -121,14 +109,13 @@ static void ensureElemConform(const char *op, omxMatrix **matList, omxMatrix *re
 		omxFillAlgebraFromTableEntry(oa, entry, 1);
 		oa->algArgs[0] = mat1;
 		matList[1] = om;
+		omxAlgebraRecompute(oa, fc);
 		return;
 	}
 }
 
 static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *src = matList[0];
 
 	if (src->rows == result->rows && src->cols == result->cols) {
@@ -153,13 +140,6 @@ static void omxMatrixMult(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 {
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
-
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		if (preMul->cols != 0 && preMul->cols == postMul->rows) {
-			omxResizeMatrix(result, preMul->rows, postMul->cols);
-		}
-		return;
-	}
 
 	if(preMul == NULL || postMul == NULL) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -189,18 +169,13 @@ static void omxMatrixMult(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("elementwise power", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -223,10 +198,7 @@ static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("elementwise multiplication", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -234,8 +206,6 @@ static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArg
 	int cols = first->cols;
 	int size = rows * cols;
 	
-	omxResizeMatrix(result, rows, cols);
-
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -258,8 +228,6 @@ static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxKroneckerProd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
 
@@ -284,8 +252,6 @@ static void omxKroneckerProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxKroneckerPower(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
 
@@ -306,8 +272,6 @@ static void omxKroneckerPower(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* preMul = matList[0];
 	omxMatrix* postMul = matList[1];
 	/* A %&% B = ABA' */
@@ -337,18 +301,13 @@ static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxElementDivide(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("elementwise divide", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -396,18 +355,13 @@ static void omxUnaryNegation(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("binary or", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
-		int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
+	int size = rows * cols;
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -440,18 +394,13 @@ static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("binary and", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
-		int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
+	int size = rows * cols;
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -484,18 +433,13 @@ static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 
 static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("binary less than", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
-		int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
+	int size = rows * cols;
 
 		if (first->colMajor == second->colMajor) {
 	        	for(int i = 0; i < size; i++) {
@@ -529,18 +473,13 @@ static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxBinaryGreaterThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("binary greater than", matList, result);
-		return;
-	}
-	
+	ensureElemConform(fc, matList, result);
+
         omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
         	for(int i = 0; i < size; i++) {
@@ -626,18 +565,13 @@ static void omxBinaryApproxEquals(FitContext *fc, omxMatrix** matList, int numAr
 
 static void omxMatrixAdd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("matrix add", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -744,8 +678,6 @@ static void matrixExtractIndices(omxMatrix *source, int dimLength, Eigen::ArrayB
 
 static void omxMatrixExtract(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 	omxMatrix* rowMatrix = matList[1];
 	omxMatrix* colMatrix = matList[2];
@@ -776,18 +708,13 @@ static void omxMatrixExtract(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxMatrixSubtract(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		ensureElemConform("matrix subtract", matList, result);
-		return;
-	}
+	ensureElemConform(fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-
-	omxResizeMatrix(result, rows, cols);
 
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
@@ -831,42 +758,17 @@ static void omxUnaryMinus(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxMatrixHorizCatOp(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		int rows = 0;
-		int cols = 0;
-		for (int ax=0; ax < numArgs; ++ax) {
-			rows = std::max(rows, matList[ax]->rows);
-			cols += matList[ax]->cols;
-		}
-		omxResizeMatrix(result, rows, cols);
-		return;
-	}
-
 	omxMatrixHorizCat(matList, numArgs, result);
 }
 
 static void omxMatrixVertCatOp(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		int rows = 0;
-		int cols = 0;
-		for (int ax=0; ax < numArgs; ++ax) {
-			rows += matList[ax]->rows;
-			cols = std::max(cols, matList[ax]->cols);
-		}
-		omxResizeMatrix(result, rows, cols);
-		return;
-	}
-
 	omxMatrixVertCat(matList, numArgs, result);
 }
 
 static void omxMatrixDeterminant(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
+	omxResizeMatrix(result, 1, 1);
 
 	omxMatrix* inMat = matList[0];
 	omxMatrix* calcMat;					// This should be preallocated.
@@ -924,20 +826,13 @@ static void omxMatrixDeterminant(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxMatrixTraceOp(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
-
+	omxResizeMatrix(result, 1, 1);
 	omxMatrixTrace(matList, numArgs, result);
 }
 
 static void omxMatrixTotalSum(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
+	omxResizeMatrix(result, 1, 1);
 
 	double sum = 0.0;
 
@@ -955,10 +850,7 @@ static void omxMatrixTotalSum(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxMatrixTotalProduct(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
+	omxResizeMatrix(result, 1, 1);
 
 	double product = 1.0;
 
@@ -976,11 +868,7 @@ static void omxMatrixTotalProduct(FitContext *fc, omxMatrix** matList, int numAr
 
 static void omxMatrixArithmeticMean(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
-
+	omxResizeMatrix(result, 1, 1);
 	omxMatrix *input = matList[0];
 	int matLength = input->rows * input->cols;
 	if (matLength == 0) return;
@@ -995,10 +883,7 @@ static void omxMatrixArithmeticMean(FitContext *fc, omxMatrix** matList, int num
 
 static void omxMatrixMinimum(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
+	omxResizeMatrix(result, 1, 1);
 
 	double min = DBL_MAX; // DBL_MAX is the maximum possible DOUBLE value, usually 10e37.
 						  // We could change this to use NPSOL's INFINITY, but why bother?
@@ -1016,10 +901,7 @@ static void omxMatrixMinimum(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxMatrixMaximum(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, 1, 1);
-		return;
-	}
+	omxResizeMatrix(result, 1, 1);
 
 	double max = -DBL_MAX;
 
@@ -1069,8 +951,6 @@ static void omxMatrixDiagonal(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxMatrixFromDiagonal(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 	int diags = inMat->cols;
 
@@ -1103,11 +983,6 @@ static void omxMatrixFromDiagonal(FitContext *fc, omxMatrix** matList, int numAr
 
 static void omxElementCosine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1123,11 +998,6 @@ static void omxElementCosine(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxElementCosh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1143,11 +1013,6 @@ static void omxElementCosh(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxElementSine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1163,11 +1028,6 @@ static void omxElementSine(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxElementSinh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1183,11 +1043,6 @@ static void omxElementSinh(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxElementTangent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1203,11 +1058,6 @@ static void omxElementTangent(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxElementTanh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1223,11 +1073,6 @@ static void omxElementTanh(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxElementExponent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1243,11 +1088,6 @@ static void omxElementExponent(FitContext *fc, omxMatrix** matList, int numArgs,
 
 static void omxElementNaturalLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1263,11 +1103,6 @@ static void omxElementNaturalLog(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxElementSquareRoot(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix *inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1282,11 +1117,6 @@ static void omxElementSquareRoot(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxElementPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-  if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-  	omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix *inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1301,11 +1131,6 @@ static void omxElementPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxElementLgamma(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-  if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-    omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix *inMat = matList[0];
 
 	int max = inMat->cols * inMat->rows;
@@ -1320,8 +1145,6 @@ static void omxElementLgamma(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxMatrixVech(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *inMat = matList[0];
 
 	int size;
@@ -1355,7 +1178,6 @@ static void omxMatrixVech(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
 	omxMatrix *inMat = matList[0];
 
 	int size;
@@ -1389,8 +1211,6 @@ static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void omxRowVectorize(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *inMat = matList[0];
 
 	int size = (inMat->rows * inMat->cols);
@@ -1413,8 +1233,6 @@ static void omxRowVectorize(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxColVectorize(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *inMat = matList[0];
 
 	int size = (inMat->rows * inMat->cols);
@@ -1437,8 +1255,6 @@ static void omxColVectorize(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	double start = omxVectorElement(matList[0], 0);
 	double stop = omxVectorElement(matList[1], 0);
 
@@ -1491,8 +1307,6 @@ static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	omxMatrix* lBoundMat = matList[2];
@@ -1624,8 +1438,6 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 
 static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	int nCols = cov->cols;
@@ -1872,8 +1684,6 @@ static void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* res
 
 static void omxRealEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
@@ -1944,8 +1754,6 @@ RealEigenValCleanup:
 
 static void omxRealEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols);
@@ -2023,8 +1831,6 @@ RealEigenVecCleanup:
 
 static void omxImaginaryEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(B, matList[0]);
@@ -2098,8 +1904,6 @@ ImagEigenValCleanup:
 
 static void omxImaginaryEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
 	omxCopyMatrix(result, matList[0]);
 	omxResizeMatrix(A, result->rows, result->cols);
@@ -2179,8 +1983,6 @@ ImagEigenVecCleanup:
 
 static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
 
@@ -2231,8 +2033,6 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
 
@@ -2282,8 +2082,6 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 	omxMatrix* selector = matList[1];
 
@@ -2341,8 +2139,6 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
 
 static void omxCovToCor(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
     omxMatrix* inMat = matList[0];
     int rows = inMat->rows;
 
@@ -2392,8 +2188,6 @@ static void omxCovToCor(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 static void omxCholesky(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix* inMat = matList[0];
 
     int l = 0; char u = 'U';
@@ -2424,8 +2218,6 @@ static void omxCholesky(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 static void omxVechToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *inMat = matList[0];
 	
 	int dim = (inMat->cols > inMat->rows) ? inMat->cols : inMat->rows;
@@ -2464,8 +2256,6 @@ static void omxVechToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxVechsToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) return;
-
 	omxMatrix *inMat = matList[0];
 	
 	int dim = (inMat->cols > inMat->rows) ? inMat->cols : inMat->rows;
@@ -2506,12 +2296,10 @@ static void omxVechsToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
+	if (result->currentState->getWantStage() == FF_COMPUTE_INITIAL_FIT) {
 		if (numArgs == 2) {
 			Rf_warning("The second argument to omxExponential is ignored");
 		}
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
 	}
 
 	omxMatrix* inMat = matList[0];
@@ -2525,11 +2313,6 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	if (result->currentState->getWantStage() == FF_COMPUTE_DIMS) {
-		omxResizeMatrix(result, matList[0]->rows, matList[0]->cols);
-		return;
-	}
-
 	omxMatrix* inMat = matList[0];
 	if (inMat->rows != inMat->cols) Rf_error("logm requires a symmetric matrix");
 	omxEnsureColumnMajor(inMat);
