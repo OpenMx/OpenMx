@@ -44,6 +44,7 @@ two <- 2
 
 # Insert passing tests
 model <- mxModel(model, mxAlgebra(A * (B + A), name = 'parens'))
+model <- mxModel(model, mxAlgebraFromString("A * (B + A)", name = 'parens2'))
 model <- mxModel(model, mxAlgebra(A, name = 'test0'))
 model <- mxModel(model, mxAlgebra(solve(A), name = 'test1'))
 model <- mxModel(model, mxAlgebra(t(A), name = 'test2'))
@@ -254,6 +255,7 @@ model <- mxRun(model)
 # Check passing tests
 omxCheckCloseEnough(model[['test0']]$result, A$values, 0.001)
 omxCheckCloseEnough(model[['parens']]$result, A$values * (B$values + A$values), 0.001)
+omxCheckCloseEnough(model[['parens2']]$result, A$values * (B$values + A$values), 0.001)
 omxCheckCloseEnough(model[['test1']]$result, solve(A$values), 0.001)
 omxCheckCloseEnough(model[['test2']]$result, t(A$values), 0.001)
 omxCheckCloseEnough(model[['test3']]$result, A$values ^ B$values, 0.001)
