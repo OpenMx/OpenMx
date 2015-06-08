@@ -99,6 +99,7 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc)
 {
 	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], fc);
+	if (isErrorRaised()) return;
 
 	if(oa->funWrapper == NULL) {
 		if(oa->numArgs != 1) Rf_error("Internal Error: Empty algebra evaluated");
