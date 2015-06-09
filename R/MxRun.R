@@ -323,7 +323,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         values = newparams * runif(length(params),loc-scale,loc+scale))  #set to multiply bestfit.params instead of params
     }
     else { #if fit was not an error
-      if (fit$output$minimum <= bestfitsofar) {
+      if ( !is.nan(fit$output$minimum) && (fit$output$minimum <= bestfitsofar) ){
         bestfit <- fit
         bestfit.params <- omxGetParameters(bestfit)
       }
