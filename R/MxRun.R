@@ -328,7 +328,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         bestfit.params <- omxGetParameters(bestfit)
       }
       
-      if(fit$output$minimum < bestfitsofar) bestfitsofar <- fit$output$minimum
+      if( !is.nan(fit$output$minimum) && (fit$output$minimum < bestfitsofar) ) bestfitsofar <- fit$output$minimum
       
       if (length(fit$output$calculatedHessian) == 0) {
         checkHess <- FALSE
