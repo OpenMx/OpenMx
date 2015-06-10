@@ -165,6 +165,11 @@ mxGetExpected <- imxGetExpectationComponent
 sse <- function(x){sum(x^2)}
 
 mxCheckIdentification <- function(model, details=TRUE){
+	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
+	if( class(model$fitfunction) %in% notAllowedFits ){
+		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
+		stop(msg, call.=FALSE)
+	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model)

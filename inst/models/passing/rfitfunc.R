@@ -39,6 +39,12 @@ omxCheckTrue(counter > 1)
 
 ###
 
+omxCheckError(mxCheckIdentification(model), "Identification check is not possible for models with 'MxFitFunctionAlgebra', 'MxFitFunctionRow', and 'MxFitFunctionR' fit functions.
+ If you have a multigroup model, use mxFitFunctionMultigroup.")
+
+
+###
+
 toomany <- function(marg,state) {
 	return(list(1, state, 5))
 }
