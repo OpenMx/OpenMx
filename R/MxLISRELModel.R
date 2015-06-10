@@ -292,6 +292,10 @@ addEntriesLISREL <- function(model, entries){
 		}
 		data <- data[[1]]
 		model@data <- data
+		# If the data are WLS, then change the fit function to WLS away from the default ML.
+		if(model@data@type=="acov" && class(model@fitfunction) %in% "MxFitFunctionML"){
+			model[['fitfunction']] <- mxFitFunctionWLS()
+		}
 		#model[['F']] <- createMatrixF(model) #TODO something here about re-structuring LX and LY if needed
 	}
 	return(model)
