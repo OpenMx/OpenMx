@@ -27,6 +27,8 @@ static const char engineName[] = "NnRn";
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
+	Eigen::VectorXd lbound;
+	Eigen::VectorXd ubound;
 
 	int maxIter;
 	double tolerance;
@@ -219,7 +221,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			trial = prevEst;
 			return;
 		}
-		trial = prevEst - speed * searchDir;
+		trial = (prevEst - speed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
 		++minorIter;
 		fc->copyParamToModel();
 		ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
@@ -263,7 +265,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		while (--retries > 0) {
 			speed *= 1.5;
 			++probeCount;
-			trial = prevEst - speed * searchDir;
+			trial = (prevEst - speed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
 			++minorIter;
 			fc->copyParamToModel();
 			ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
@@ -286,7 +288,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 				name, steepestDescent, probeCount, bestSpeed, bestImproved);
 	priorSpeed = bestSpeed;
 
-	trial = prevEst - bestSpeed * searchDir;
+	trial = (prevEst - bestSpeed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
 
 	*maxAdj = 0;
 	for (size_t px=0; px < numParam; ++px) {
@@ -311,6 +313,13 @@ void ComputeNR::computeImpl(FitContext *fc)
 	if (numParam <= 0) {
 		Rf_error("Model has no free parameters");
 		return;
+	}
+
+	lbound.resize(numParam);
+	ubound.resize(numParam);
+	for(int px = 0; px < int(numParam); px++) {
+		lbound[px] = varGroup->vars[px]->lbound;
+		ubound[px] = varGroup->vars[px]->ubound;
 	}
 
 	fc->inform = INFORM_UNINITIALIZED;

@@ -309,7 +309,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
     numdone <- numdone + 1
     
     fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
-    if (class(fit) == "try-error" || fit$output$status$status== -1) {
+    if (class(fit) == "try-error" || fit$output$status$status== -1 || is.nan(fit$output$minimum)) {
       newparams<-omxGetParameters(model) #get recent fit
       if(exists('bestfit')) newparams<-bestfit.params #if bestfit exists use this instead
       if(numdone %% 4 == 0) newparams<-inits #sometimes, use initial start values instead
@@ -323,7 +323,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         values = newparams * runif(length(params),loc-scale,loc+scale))  #set to multiply bestfit.params instead of params
     }
     else { #if fit was not an error
-      if (fit$output$minimum <= bestfitsofar) {
+      if (fit$output$minimum <= bestfitsofar){
         bestfit <- fit
         bestfit.params <- omxGetParameters(bestfit)
       }

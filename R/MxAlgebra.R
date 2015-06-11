@@ -95,6 +95,30 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) 
 	return(retval)	
 }
 
+#' Create MxAlgebra object from a string
+#'
+#' @param algString the character string to convert into an R expression
+#' @param name An optional character string indicating the name of the object.
+#' @param dimnames list. The dimnames attribute for the algebra: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.
+#' @param ... Not used.  Forces any remaining arguments to be specified by name.
+#' @seealso \link{mxAlgebra}
+#' @examples
+#' A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
+#' B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
+#' model <- mxModel(A, B, name = 'model',
+#'   mxAlgebraFromString("A * (B + A)", name = 'test'))
+#' model <- mxRun(model)
+#' model[['test']]$result
+#' A$values * (B$values + A$values)
+mxAlgebraFromString <- function(algString, name=NA, dimnames=NA, ...) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxAlgebraFromString does not accept values for the '...' argument")
+	}
+	eval(substitute(mxAlgebra(tExp, name=name, dimnames=dimnames),
+			list(tExp = parse(text=algString)[[1]])))
+}
+
 algebraErrorChecking <- function(formula, context) {
 	if(length(formula) < 2) {
 		return()

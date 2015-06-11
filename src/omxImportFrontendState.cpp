@@ -165,13 +165,6 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	size_t numMats = state->matrixList.size();
 	int numAlgs = state->algebraList.size();
 
-	state->setWantStage(FF_COMPUTE_DIMS);
-
-	for (int ax=0; ax < numAlgs; ++ax) {
-		omxMatrix *matrix = state->algebraList[ax];
-		omxRecompute(matrix, fc);
-	}
-
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
 
 	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
@@ -184,9 +177,6 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 		// for indexing. We will load real data later.
 		state->expectationList[ex]->loadFakeData(1);
 	}
-
-	// This is required because FF_COMPUTE_DIMS cannot compute
-	// dims for all algebra ops.
 
 	for(size_t index = 0; index < numMats; index++) {
 		omxRecompute(state->matrixList[index], fc);

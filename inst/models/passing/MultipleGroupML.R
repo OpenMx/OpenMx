@@ -58,3 +58,7 @@ mgmodel$output$hessian
 mgmodel$output$calculatedHessian
 mgmodel$output$hessianCholesky
 
+
+omxCheckError(mxCheckIdentification(model), "Identification check is not possible for models with 'MxFitFunctionAlgebra', 'MxFitFunctionRow', and 'MxFitFunctionR' fit functions.
+ If you have a multigroup model, use mxFitFunctionMultigroup.")
+

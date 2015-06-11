@@ -585,8 +585,6 @@ UserConstraint::UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
 	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
-	state->setWantStage(FF_COMPUTE_DIMS);
-	refresh(fc);
 	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 	refresh(fc);
 	int nrows = pad->rows;
