@@ -29,6 +29,7 @@
 #include "omxBuffer.h"
 #include "omxState.h"
 #include "finiteDifferences.h"
+#include <Eigen/Cholesky>
 
 void pda(const double *ar, int rows, int cols);
 
@@ -1569,7 +1570,9 @@ class ComputeStandardError : public omxCompute {
 
 class ComputeHessianQuality : public omxCompute {
 	typedef omxCompute super;
+	int verbose;
  public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -2694,87 +2697,66 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	}
 }
 
-/*
-Date: Fri, 3 Jan 2014 14:02:34 -0600
-From: Michael Hunter <mhunter@ou.edu>
+void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
 
-Determining positive definiteness of matrix is typically done by
-trying the Cholesky decomposition.  If it fails, the matrix is not
-positive definite; if it passes, the matrix is.  The benefit of the
-Cholesky is that it's much faster and easier to compute than a set of
-eigenvalues.
+	SEXP slotValue;
 
-The BLAS/LAPACK routine DTRCO quickly computes a good approximation to the
-reciprocal condition number of a triangular matrix.  Hand it the Cholesky
-(a triangular matrix) the rest is history.  I don't think we need the
-exact condition number as long as it's just for finding very
-ill-conditioned problems.  For the solution to a linear system of
-equations, if you really care about the difference in precision between
-1e-14 and 1e-11, then the exact condition number is needed.  Otherwise, the
-approximation is faster and equally useful.
-*/
+	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
+}
+
 void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
 	// memcmp is required here because NaN != NaN always
 	if (fc->infoDefinite != NA_LOGICAL ||
-	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) return; // already set elsewhere
+	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) {
+		if (verbose >= 1) {
+			mxLog("%s: information matrix already determined to be non positive definite; skipping", name);
+		}
+		return; // already set elsewhere
+	}
 
 	int numParams = int(fc->varGroup->vars.size());
 
-	double *mat = fc->getDenseHessianish();
-	if (!mat) {
-		fc->infoDefinite = false;
-		return;
-	}
-	omxBuffer<double> hessWork(numParams * numParams);
-	memcpy(hessWork.data(), mat, sizeof(double) * numParams * numParams);
-
-	char jobz = 'N';
-	char range = 'A';
-	char uplo = 'U';
-	double abstol = 0;
-	int m;
-	omxBuffer<double> w(numParams);
-	double optWork;
-	int lwork = -1;
-	omxBuffer<int> iwork(5 * numParams);
-	int info;
-	double realIgn = 0;
-	int intIgn = 0;
-	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 NULL, &numParams, &optWork, &lwork, iwork.data(), NULL, &info);
-
-	lwork = optWork;
-	omxBuffer<double> work(lwork);
-	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 NULL, &numParams, work.data(), &lwork, iwork.data(), NULL, &info);
-	if (info < 0) {
-		Rf_error("dsyevx %d", info);
-	} else if (info) {
-		return;
-	}
-
-	bool definite = true;
-	bool neg = w[0] < 0;
-	for (int px=1; px < numParams; ++px) {
-		if ((w[px] < 0) ^ neg) {
-			definite = false;
-			break;
+	fc->infoDefinite = false;
+	double *hessMem = fc->getDenseHessianish();
+	if (!hessMem) {
+		if (verbose >= 1) {
+			mxLog("%s: information matrix not available; skipping", name);
 		}
+		return;
+	}
+	Eigen::Map< Eigen::MatrixXd > hess(hessMem, numParams, numParams);
+	hess.triangularView<Eigen::Lower>() = hess.transpose().triangularView<Eigen::Lower>();
+	Eigen::LDLT< Eigen::MatrixXd > cholH(hess);
+	if (cholH.info() != Eigen::Success || !(cholH.vectorD().array() > 0.0).all()) {
+		if (verbose >= 1) {
+			mxLog("%s: Cholesky decomposition failed", name);
+		}
+		return;
 	}
 
-	fc->infoDefinite = definite;
+	Eigen::MatrixXd ihess(numParams, numParams);
+	ihess.setIdentity();
+	ihess = cholH.solve(ihess);
 
-	if (definite) {
-		double ev[2] = { fabs(w[0]), fabs(w[numParams-1]) };
-		if (ev[0] < ev[1]) std::swap(ev[0], ev[1]);
-		double got = ev[0] / ev[1];
-		if (std::isfinite(got)) fc->infoCondNum = got;
+	// see LAPACK's dtrcon
+	double cn = ihess.colwise().sum().maxCoeff() * hess.colwise().sum().maxCoeff();
+	if (!std::isfinite(cn)) {
+		if (verbose >= 1) {
+			mxLog("%s: result is not finite", name);
+		}
+		return;
 	}
+
+	if (cn < 1.0) cn = 1/cn;
+
+	fc->infoDefinite = true;
+	fc->infoCondNum = cn;
 }
 
 void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)

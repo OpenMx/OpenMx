@@ -154,7 +154,7 @@ i2 <- mxModel(m2,
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)
 
-omxCheckCloseEnough(i2$output$conditionNumber, 11, .1)
+omxCheckCloseEnough(log(i2$output$conditionNumber), 2, .1)
 #cat(deparse(round(i2$output$standardErrors,3)))
 swse <- c(0.161, 0.109, 0.238, 0.161, 0.166, 0.104, 0.194,  0.109, 0.131,
           0.094, 0.213, 0.13, 0.167, 0.101, 0.188, 0.12,  0.157, 0.098, 0.157, 0.113)

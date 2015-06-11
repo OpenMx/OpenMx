@@ -182,7 +182,7 @@ i1 <- mxRun(i1)
           0.087, 0.095, 0.09, 0.064, 0.07, 0.135, 0.115,  0.091, 0.095, 0.097,
           0.098, 0.096, 0.093, 0.12, 0.512, 0.072,  0.057)
   omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
-  omxCheckCloseEnough(log(i1$output$conditionNumber), 5.6, .2)
+  omxCheckCloseEnough(log(i1$output$conditionNumber), 5.6, .5)
 
 if (0) {
   library(mirt)

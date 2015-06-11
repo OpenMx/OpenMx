@@ -1141,13 +1141,16 @@ mxComputeStandardError <- function(freeSet=NA_character_) {
 #----------------------------------------------------
 
 setClass(Class = "MxComputeHessianQuality",
-	 contains = "BaseCompute")
+	 contains = "BaseCompute",
+	 representation = representation(
+	     verbose = "integer"))
 
 setMethod("initialize", "MxComputeHessianQuality",
-	  function(.Object, freeSet) {
+	  function(.Object, freeSet, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
@@ -1159,13 +1162,20 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' Second Order Test (p. 190) and Condition Number (p. 239).
 ##' 
 ##' @param freeSet names of matrices containing free variables
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param verbose Level of debugging output.
 ##' @aliases
 ##' MxComputeHessianQuality-class
 ##' @references
 ##' Luenberger, D. G. & Ye, Y. (2008). Linear and nonlinear programming. Springer.
 
-mxComputeHessianQuality <- function(freeSet=NA_character_) {
-	new("MxComputeHessianQuality", freeSet)
+mxComputeHessianQuality <- function(freeSet=NA_character_, ..., verbose=0L) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeHessianQuality does not accept values for the '...' argument")
+	}
+
+	new("MxComputeHessianQuality", freeSet, as.integer(verbose))
 }
 
 #----------------------------------------------------
