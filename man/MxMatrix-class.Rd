@@ -22,6 +22,8 @@
 \alias{$<-,MxMatrix-method}
 \alias{[,MxMatrix-method}
 \alias{[<-,MxMatrix-method}
+\alias{[[,MxMatrix-method}
+\alias{[[<-,MxMatrix-method}
 \alias{dim,MxMatrix-method}
 \alias{dimnames,MxMatrix-method}
 \alias{dimnames<-,MxMatrix-method}
