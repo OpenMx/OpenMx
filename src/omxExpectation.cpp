@@ -288,17 +288,12 @@ int omxExpectation::handleDefinitionVarList(omxState *state, int row, double* ol
 		oldDefs[k] = newDefVar;
 		numVarsFilled++;
 
-		for(int l = 0; l < defVars[k].numLocations; l++) {
-			if(OMX_DEBUG_ROWS(row)) {
-				mxLog("Populating column %d (value %3.2f) into matrix %d.", defVars[k].column, omxDoubleDataElement(defVars[k].source, row, defVars[k].column), defVars[k].matrices[l]);
-			}
-			int matrixNumber = defVars[k].matrices[l];
-			int matrow = defVars[k].rows[l];
-			int matcol = defVars[k].cols[l];
-			omxMatrix *matrix = state->matrixList[matrixNumber];
-			omxSetMatrixElement(matrix, matrow, matcol, newDefVar);
+		if(OMX_DEBUG_ROWS(row)) {
+			mxLog("Populating definition variable from [%d,%d] (value %3.2f)",
+			      row, defVars[k].column, newDefVar);
 		}
-		markDefVarDependencies(state, &(defVars[k]));
+
+		defVars[k].loadData(state, newDefVar);
 	}
 	return numVarsFilled;
 }
@@ -306,23 +301,20 @@ int omxExpectation::handleDefinitionVarList(omxState *state, int row, double* ol
 void omxExpectation::loadFakeData(double fake)
 {
 	for (int dx=0; dx < int(defVars.size()); ++dx) {
-		defVars[dx].loadFakeData(currentState, fake);
+		defVars[dx].loadData(currentState, fake);
 	}
 }
 
-void omxDefinitionVar::loadFakeData(omxState *state, double fake)
+void omxDefinitionVar::loadData(omxState *state, double val)
 {
 	for(int l = 0; l < numLocations; l++) {
 		int matrixNumber = matrices[l];
 		int matrow = rows[l];
 		int matcol = cols[l];
 		omxMatrix *matrix = state->matrixList[matrixNumber];
-		if(OMX_DEBUG) {
-			mxLog("Populating fake data (value %3.2f) into matrix '%s' at [%d,%d]",
-			      fake, matrix->name(), 1+matrow, 1+matcol);
-		}
-		omxSetMatrixElement(matrix, matrow, matcol, fake);
+		omxSetMatrixElement(matrix, matrow, matcol, val);
 	}
+	markDefVarDependencies(state, this);
 }
 
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
