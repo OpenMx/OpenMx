@@ -789,21 +789,6 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
-template <typename T>
-void FitContext::moveInsideBounds(std::vector<T> &prevEst)
-{
-	for (size_t px=0; px < numParam; ++px) {
-		const double param = est[px];
-		omxFreeVar *fv = varGroup->vars[px];
-		if (param < fv->lbound) {
-			est[px] = prevEst[px] - (prevEst[px] - fv->lbound) / 2;
-		}
-		if (param > fv->ubound) {
-			est[px] = prevEst[px] + (fv->ubound - prevEst[px]) / 2;
-		}
-	}
-}
-
 void FitContext::log(int what)
 {
 	size_t count = varGroup->vars.size();
@@ -1168,7 +1153,7 @@ void EMAccel::recordEstimate(const int px, const double newEst)
 		mxLogBig(buf);
 	}
 
-	fc->est[px] = newEst;
+	fc->est[px] = std::min(std::max(newEst, fv->lbound), fv->ubound);
 }
 
 class Ramsay1975 : public EMAccel {
@@ -2087,7 +2072,6 @@ void ComputeEM::computeImpl(FitContext *fc)
 		}
 
 		setExpectationPrediction("nothing");
-		fc->moveInsideBounds(prevEst);
 		if (accel) {
 			accel->recordTrajectory(prevEst);
 
