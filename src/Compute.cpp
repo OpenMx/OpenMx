@@ -1142,17 +1142,6 @@ void EMAccel::recordEstimate(const int px, const double newEst)
 {
 	omxFreeVar *fv = fc->varGroup->vars[px];
 	
-	if (verbose >= 4) {
-		std::string buf;
-		buf += string_snprintf("EMAccel: %d~%s %.4f -> %.4f",
-				       px, fv->name, newEst - prevAdj1[px], newEst);
-		if (prevAdj1[px] * prevAdj2[px] < 0) {
-			buf += " *OSC*";
-		}
-		buf += "\n";
-		mxLogBig(buf);
-	}
-
 	fc->est[px] = std::min(std::max(newEst, fv->lbound), fv->ubound);
 }
 
@@ -1486,6 +1475,8 @@ class ComputeEM : public omxCompute {
 	double tolerance;
 	double semTolerance;
 	int verbose;
+	Eigen::VectorXd lbound;
+	Eigen::VectorXd ubound;
 	const char *accelName;
 	bool useRamsay;
 	bool useVaradhan;
@@ -2020,9 +2011,9 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork
 
 void ComputeEM::observedFit(FitContext *fc)
 {
-	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 	fc->copyParamToModel();
 	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
+	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->fit);
 
 	if (!(fc->wanted & FF_COMPUTE_FIT)) {
 		omxRaiseErrorf("ComputeEM: fit not available");
@@ -2038,11 +2029,12 @@ void ComputeEM::computeImpl(FitContext *fc)
 	double prevFit = 0;
 	double mac = tolerance * 10;
 	bool converged = false;
-	const size_t freeVars = fc->varGroup->vars.size();
+	const int freeVars = int(fc->varGroup->vars.size());
 	bool in_middle = false;
 	maxHistLen = 0;
 	EMcycles = 0;
 	semProbeCount = 0;
+	lbound.resize(0);
 
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
 				tolerance, accelName, information);
@@ -2073,6 +2065,20 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		setExpectationPrediction("nothing");
 		if (accel) {
+			if (!lbound.size()) {
+				// omxFitFunctionPreoptimize can change bounds
+				lbound.resize(freeVars);
+				ubound.resize(freeVars);
+				for(int px = 0; px < int(freeVars); px++) {
+					lbound[px] = varGroup->vars[px]->lbound;
+					ubound[px] = varGroup->vars[px]->ubound;
+				}
+				if (verbose >= 3) {
+					mxPrintMat("lbound", lbound);
+					mxPrintMat("ubound", ubound);
+				}
+			}
+
 			accel->recordTrajectory(prevEst);
 
 			bool wantRestart;
@@ -2098,6 +2104,14 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		double change = 0;
 		if (prevFit != 0) {
+			if (verbose >= 4) {
+				for (int px=0; px < freeVars; ++px) {
+					omxFreeVar *fv = fc->varGroup->vars[px];
+					mxLog("%d~%s %.4f -> %.4f",
+					      px, fv->name, prevEst[px], fc->est[px]);
+				}
+			}
+
 			change = (prevFit - fc->fit) / fc->fit;
 			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
 						EMcycles, mstepIter, fc->fit, change);

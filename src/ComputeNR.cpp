@@ -198,6 +198,13 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		// the steepness really provides no information due to unknown curvature
 		searchDir = fc->grad / fc->grad.norm();
 		if (!std::isfinite(searchDir.norm())) {
+			if (verbose >= 2) {
+				for (int px=0; px < fc->grad.size(); ++px) {
+					if (std::isfinite(fc->grad[px])) continue;
+					omxFreeVar *fv = fc->varGroup->vars[px];
+					mxLog("%s=%f is infeasible; try adding bounds", fv->name, fc->est[px]);
+				}
+			}
 			fc->inform = INFORM_BAD_DERIVATIVES;
 			return;
 		}
@@ -315,13 +322,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 		return;
 	}
 
-	lbound.resize(numParam);
-	ubound.resize(numParam);
-	for(int px = 0; px < int(numParam); px++) {
-		lbound[px] = varGroup->vars[px]->lbound;
-		ubound[px] = varGroup->vars[px]->ubound;
-	}
-
 	fc->inform = INFORM_UNINITIALIZED;
 	fc->flavor.assign(numParam, NULL);
 
@@ -333,6 +333,14 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
+
+	// omxFitFunctionPreoptimize can change bounds
+	lbound.resize(numParam);
+	ubound.resize(numParam);
+	for(int px = 0; px < int(numParam); px++) {
+		lbound[px] = varGroup->vars[px]->lbound;
+		ubound[px] = varGroup->vars[px]->ubound;
+	}
 
 	priorSpeed = 1;
 	minorIter = 0;
@@ -346,6 +354,10 @@ void ComputeNR::computeImpl(FitContext *fc)
 	if (verbose >= 2) {
 		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
 		      (int)numParam, tolerance, maxIter);
+		if (verbose >= 3) {
+			mxPrintMat("lbound", lbound);
+			mxPrintMat("ubound", ubound);
+		}
 	}
 	while (1) {
 		fc->iterations += 1;
