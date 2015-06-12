@@ -2148,6 +2148,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
+	fc->inform = converged? INFORM_CONVERGED_OPTIMUM : INFORM_ITERATION_LIMIT;
 	bestFit = fc->fit;
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
 				EMcycles, maxIter, totalMstepIter, bestFit);
