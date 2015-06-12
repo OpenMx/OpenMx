@@ -210,7 +210,7 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 	if (is.na(weightColumn)) weightColumn <- as.integer(weightColumn)
 
 	return(new("MxExpectationBA81", ItemSpec, item, EstepItem,
-		   qpoints, qwidth, mean, cov, verbose, debugInternal,
+		   qpoints, qwidth, mean, cov, as.integer(verbose), debugInternal,
 		   minItemsPerScore, weightColumn))
 }
 

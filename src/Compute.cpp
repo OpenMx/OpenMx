@@ -1119,12 +1119,12 @@ protected:
 	std::vector<double> prevAdj2;
 	int verbose;
 
-	void recordEstimate(const int px, const double newEst);
 public:
 	EMAccel(FitContext *fc, int verbose) : fc(fc), verbose(verbose) {
 		numParam = fc->varGroup->vars.size();
 		prevAdj1.assign(numParam, 0);
 		prevAdj2.resize(numParam);
+		dir.resize(numParam);
 	};
 	virtual ~EMAccel() {};
 	template <typename T> void recordTrajectory(std::vector<T> &prevEst) {
@@ -1133,17 +1133,12 @@ public:
 			prevAdj1[px] = fc->est[px] - prevEst[px];
 		}
 	};
-	virtual void apply() = 0;
-	virtual void recalibrate(bool *restart) = 0;
+
+	Eigen::VectorXd dir;
+	virtual bool calcDirection(bool major) = 0;
+	virtual void recalibrate() = 0;
 	virtual bool retry() { return false; };
 };
-
-void EMAccel::recordEstimate(const int px, const double newEst)
-{
-	omxFreeVar *fv = fc->varGroup->vars[px];
-	
-	fc->est[px] = std::min(std::max(newEst, fv->lbound), fv->ubound);
-}
 
 class Ramsay1975 : public EMAccel {
 	// Ramsay, J. O. (1975). Solving Implicit Equations in
@@ -1159,8 +1154,8 @@ public:
 	double caution;
 
 	Ramsay1975(FitContext *fc, int verbose, double minCaution);
-	virtual void apply();
-	virtual void recalibrate(bool *restart);
+	virtual void recalibrate();
+	virtual bool calcDirection(bool major);
 };
 
 // Some evidence suggests that better performance is obtained when the
@@ -1190,15 +1185,16 @@ Ramsay1975::Ramsay1975(FitContext *fc, int verbose, double minCaution) :
 	}
 }
 
-void Ramsay1975::apply()
+bool Ramsay1975::calcDirection(bool major)
 {
 	for (int vx=0; vx < numParam; ++vx) {
 		const double prevEst = fc->est[vx] - prevAdj1[vx];
-		recordEstimate(vx, (1 - caution) * fc->est[vx] + caution * prevEst);
+		dir[vx] = ((1 - caution) * fc->est[vx] + caution * prevEst) - fc->est[vx];
 	}
+	return true;
 }
 
-void Ramsay1975::recalibrate(bool *restart)
+void Ramsay1975::recalibrate()
 {
 	if (numParam == 0) return;
 
@@ -1241,7 +1237,6 @@ void Ramsay1975::recalibrate(bool *restart)
 			mxLog("Ramsay: caution %.2f > %.2f, extreme oscillation, restart recommended",
 			      caution, highWatermark);
 		}
-		*restart = TRUE;
 		goingWild = true;
 	}
 	highWatermark += .02; // arbitrary guess
@@ -1270,7 +1265,7 @@ class Varadhan2008 : public EMAccel {
 	double alpha;
 	Eigen::Map< Eigen::VectorXd > rr;
 	Eigen::VectorXd vv;
-	void moveEst();
+
 public:
 	Varadhan2008(FitContext *fc, int verbose) :
 		EMAccel(fc, verbose), rr(&prevAdj2[0], numParam), vv(numParam)
@@ -1279,30 +1274,25 @@ public:
 		maxAlpha = 0;
 		retried = false;
 	};
-	virtual void apply();
-	virtual void recalibrate(bool *restart);
+	virtual void recalibrate();
 	virtual bool retry();
+	virtual bool calcDirection(bool major);
 };
 
-void Varadhan2008::apply()
+bool Varadhan2008::calcDirection(bool major)
 {
-	for (int vx=0; vx < numParam; ++vx) {
-		recordEstimate(vx, fc->est[vx]);
-	}
-}
-
-void Varadhan2008::moveEst()
-{
+	if (!major) return false;
 	if (verbose >= 3) mxLog("Varadhan: alpha = %.2f", alpha);
 
 	for (int vx=0; vx < numParam; ++vx) {
 		double adj2 = prevAdj1[vx] + prevAdj2[vx];
 		double t0 = fc->est[vx] - adj2;
-		fc->est[vx] = t0 + 2 * alpha * rr[vx] + alpha * alpha * vv[vx];
+		dir[vx] = (t0 + 2 * alpha * rr[vx] + alpha * alpha * vv[vx]) - fc->est[vx];
 	}
+	return true;
 }
 
-void Varadhan2008::recalibrate(bool *restart)
+void Varadhan2008::recalibrate()
 {
 	if (numParam == 0) return;
 
@@ -1315,7 +1305,6 @@ void Varadhan2008::recalibrate(bool *restart)
 	if (!std::isfinite(alpha) || alpha < 1) alpha = 1;
 	if (maxAlpha && alpha > maxAlpha) alpha = maxAlpha;
 
-	moveEst();
 	retried = false;
 }
 
@@ -1327,7 +1316,6 @@ bool Varadhan2008::retry()
 	alpha = alpha / 4;
 	if (alpha < 1.5) alpha = 1;
 	maxAlpha = alpha;
-	moveEst();
 	return true;
 }
 
@@ -1514,6 +1502,8 @@ class ComputeEM : public omxCompute {
 
 	void setExpectationPrediction(const char *context);
 	void observedFit(FitContext *fc);
+	template <typename T1>
+	void accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel);
 	template <typename T>
 	bool probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase<T> &rijWork);
 
@@ -2023,6 +2013,29 @@ void ComputeEM::observedFit(FitContext *fc)
 	}
 }
 
+template <typename T1>
+void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel)
+{
+	Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
+	if (!accel->calcDirection(major)) {
+		observedFit(fc);
+		return;
+	}
+	if (verbose >= 4) mxPrintMat("accelDir", accel->dir);
+	double speed = 1.0;
+	int retry = 3;
+	while (--retry) {
+		pVec = (accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound);
+		observedFit(fc);
+		if (std::isfinite(fc->fit)) return;
+		speed *= .3;
+		if (verbose >= 3) mxLog("%s: fit NaN; reduce accel speed to %f", name, speed);
+	}
+	// give up
+	pVec = preAccel;
+	observedFit(fc);
+}
+
 void ComputeEM::computeImpl(FitContext *fc)
 {
 	const double Scale = fabs(Global->llScale);
@@ -2079,32 +2092,27 @@ void ComputeEM::computeImpl(FitContext *fc)
 				}
 			}
 
+			Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
+			Eigen::VectorXd preAccel = pVec;
 			accel->recordTrajectory(prevEst);
 
-			bool wantRestart;
-			// parameterize the delay until the first recalibration? TODO
 			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
-				Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
-				Eigen::VectorXd preAccel = pVec;
-				accel->recalibrate(&wantRestart);
-				observedFit(fc);
+				accel->recalibrate();
+				accelLineSearch(true, fc, preAccel);
 				while (prevFit < fc->fit) {
-					pVec = preAccel;
 					if (!accel->retry()) break;
-					observedFit(fc);
+					accelLineSearch(true, fc, preAccel);
 				}
 			} else {
-				observedFit(fc);
+				accelLineSearch(false, fc, preAccel);
 			}
-
-			accel->apply();
 		} else {
 			observedFit(fc);
 		}
 
 		double change = 0;
 		if (prevFit != 0) {
-			if (verbose >= 4) {
+			if (verbose >= 5) {
 				for (int px=0; px < freeVars; ++px) {
 					omxFreeVar *fv = fc->varGroup->vars[px];
 					mxLog("%d~%s %.4f -> %.4f",
