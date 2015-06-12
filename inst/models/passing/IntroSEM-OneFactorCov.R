@@ -95,6 +95,15 @@ omxCheckTrue(rms(expectVal, omxGetParameters(oneFactorCovWLSOut)) < .25)
 omxCheckTrue(rms(expectSE, summary(oneFactorCovWLSOut)$parameters[,6]) < .025)
 
 
+# Swap the data back to cov and make sure the fit function automatically adjusts
+oneFactorCovML <- mxModel(oneFactorCovWLSOut, name='ML',
+	mxData(observed=cov(factorExample1), type="cov", numObs=500)
+)
+
+oneFactorCovMLOut <- mxRun(oneFactorCovML, suppressWarnings=TRUE)
+omxCheckCloseEnough(expectVal, oneFactorCovMLOut$output$estimate, 0.001)
+
+
 # ----------------------------------
 # Build an OpenMx single factor covariance model with fixed loading
 
