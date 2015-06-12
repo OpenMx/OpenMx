@@ -124,7 +124,7 @@ se <- c(0.195, 0.275, 0.129, 0.12, 0.123, 0.083, 0.337, 0.197,  0.138, 0.157, 0.
         0.141, 0.159,  0.111, 0.161, 0.136, 0.094, 0.144, 0.154, 0.096, 0.141, 0.147,
         0.101, 0.154, 0.219, 0.169, 0.212, 0.176, 0.172, 0.152, 0.197,  0.125, 0.179,
         0.178, 0.107, 0.151, 0.134, 0.101)
-omxCheckCloseEnough(i1$output$conditionNumber, 59, 1)
+omxCheckCloseEnough(log(i1$output$conditionNumber), 3.3, .2)
 omxCheckCloseEnough(c(i1$output$standardErrors), se, .001)
 
 i2 <- mxModel(m1,
@@ -133,7 +133,7 @@ i2 <- mxModel(m1,
                 mxComputeStandardError(),
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)
-omxCheckCloseEnough(i2$output$conditionNumber, 174, 1)
+omxCheckCloseEnough(log(i2$output$conditionNumber), 3.6, .2)
 
 swse <- c(0.255, 0.333, 0.13, 0.133, 0.145, 0.082, 0.464, 0.291,  0.17, 0.161, 0.199, 0.12,
           0.283, 0.259, 0.171, 0.208, 0.208,  0.152, 0.276, 0.282, 0.255, 0.14, 0.145, 0.104,

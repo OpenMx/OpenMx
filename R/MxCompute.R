@@ -1157,9 +1157,14 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' Compute the quality of the Hessian
 ##'
 ##' Tests whether the Hessian is positive definite
-##' (model$output$infoDefinite) and, if so, computes the condition
+##' (model$output$infoDefinite) and, if so, computes the approximate condition
 ##' number (model$output$conditionNumber). See Luenberger & Ye (2008)
 ##' Second Order Test (p. 190) and Condition Number (p. 239).
+##'
+##' The condition number is approximated by \eqn{\mathrm{norm}(H) *
+##' \mathrm{norm}(H^{-1})}{norm(H) * norm(solve(H))} where H is the
+##' Hessian. The norm is either the 1- or infinity-norm (both obtain
+##' the same result due to symmetry).
 ##' 
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.

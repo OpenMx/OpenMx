@@ -75,7 +75,7 @@ m2 <- mxModel(model="m2", ip.mat,
 m2 <- mxRun(m2, silent=TRUE)
 omxCheckCloseEnough(m2$output$minimum, 50661.377, .01)
 
-omxCheckCloseEnough(m2$output$conditionNumber, 1640, 50)
+omxCheckCloseEnough(log(m2$output$conditionNumber), 6.57, .5)
 #omxCheckTrue(is.na(m2$output$conditionNumber))
 #cat(deparse(round(c(m2$output$standardErrors), 3)))
 
@@ -109,7 +109,7 @@ i1 <- mxModel(m2,
 i1 <- mxRun(i1, silent=TRUE)
 
 omxCheckTrue(i1$output$infoDefinite)
-omxCheckCloseEnough(log(i1$output$conditionNumber), 8.20, .1)  # matches flexmirt
+omxCheckCloseEnough(log(i1$output$conditionNumber), 7.3, .5)
 
 #cat(deparse(round(c(i1$output$standardErrors), 3)))
 se <- c(0.019, 0.1, 0.123, 0.121, 0.119, 0.237, 0.246, 0.33, 0.417,  0.386, 0.281,

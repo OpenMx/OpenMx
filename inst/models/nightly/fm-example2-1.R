@@ -71,7 +71,7 @@ omxCheckCloseEnough(apply(semDebug$probeOffset, 1, mean),
 
 omxCheckCloseEnough(m2$output$minimum, Scale * 33408.05/-2, .01)
 omxCheckTrue(m2$output$infoDefinite)
-omxCheckCloseEnough(m2$output$conditionNumber, 51, 1)
+omxCheckCloseEnough(log(m2$output$conditionNumber), 3.6, .2)
 #cat(deparse(round(c(m2$output$standardErrors),3)))
 
 omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 33456.047, .01)
@@ -99,7 +99,7 @@ m5 <- mxModel(m2,
                 mxComputeReportDeriv())))
 m5 <- mxRun(m5, silent=TRUE)
 omxCheckTrue(m5$output$infoDefinite)
-omxCheckCloseEnough(m5$output$conditionNumber, 51, 1)
+omxCheckCloseEnough(log(m5$output$conditionNumber), 3.6, .2)
 
 if (0) {
   probe <- function(pt) {
