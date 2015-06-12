@@ -85,6 +85,7 @@ omxCheckCloseEnough(m2$output$evaluations, 59, 5)
 
 #print(m2$matrices$item$values)
 #print(correct.mat)
+omxCheckEquals(m2$output$fitUnits, "-2lnL")
 omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
 omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 6256.27, .02)
 omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)

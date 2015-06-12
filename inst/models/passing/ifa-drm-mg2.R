@@ -134,6 +134,7 @@ grpModel <- mxRun(grpModel)  #, checkpoint = TRUE
 omxCheckCloseEnough(max(abs(grpModel$output$gradient)), 0, .17)
 
 omxCheckCloseEnough(grpModel$output$fit, 30114.94, .02)
+omxCheckEquals(grpModel$output$fitUnits, "-2lnL")
 omxCheckCloseEnough(AIC(logLik(grpModel)), 30202.95, .02)
 omxCheckCloseEnough(BIC(logLik(grpModel)), 30436.73, .02)
 omxCheckCloseEnough(summary(grpModel)$informationCriteria['AIC:','par'], 30202.95, .02)
