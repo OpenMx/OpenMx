@@ -513,7 +513,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			double dist = lower? currentCI->lbound : currentCI->ubound;
 			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
-				       fabs(fc.fit - fc.targetFit) < (dist * .05) &&
+				       ((!useInequality && !useEquality) || fabs(fc.fit - fc.targetFit) < (dist * .05)) &&
 				       ((!std::isfinite(*store) ||
 					 (lower && val < *store) || (!lower && val > *store))));
 
