@@ -296,18 +296,29 @@ void omxState::init()
 	currentRow = -1;
 }
 
-void omxState::loadDefinitionVariables()
+void omxState::loadDefinitionVariables(bool start)
 {
 	for(int ex = 0; ex < int(expectationList.size()); ++ex) {
 		omxExpectation *e1 = expectationList[ex];
 		if (e1->defVars.size() == 0) continue;
-		if (e1->data->rows != 1) {
-			e1->loadFakeData(NA_REAL);
+		int row = 0;
+		if (start) {
+			if (e1->data->rows != 1) {
+				e1->loadFakeData(NA_REAL);
+				continue;
+			}
 		} else {
-			Eigen::VectorXd oldDefs(e1->defVars.size());
-			oldDefs.setConstant(NA_REAL);
-			e1->handleDefinitionVarList(this, 0, oldDefs.data());
+			int obs = omxDataNumObs(e1->data);
+			for (int dx=0; dx < obs; ++dx) {
+				if (omxDataIndex(e1->data, dx) == 0) {
+					row = dx;
+					break;
+				}
+			}
 		}
+		Eigen::VectorXd oldDefs(e1->defVars.size());
+		oldDefs.setConstant(NA_REAL);
+		e1->handleDefinitionVarList(this, row, oldDefs.data());
 	}
 }
 

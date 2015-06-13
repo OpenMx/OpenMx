@@ -199,11 +199,10 @@ mod1 <- mxModel(obsAge1, obsAge2, Mean, betaAf, Tmzf, inc,
 mod1Res <- mxRun(mod1)
 
 # definition variables and dependencies should be set to NA upon return
-omxCheckTrue(all(is.na(mod1Res$Age1$values)))
-omxCheckTrue(all(is.na(mod1Res$Age2$values)))
-omxCheckTrue(all(!is.na(mod1Res$Low$values)))
-omxCheckTrue(all(!is.na(mod1Res$ThMZf$values)))
-omxCheckTrue(all(!is.na(mod1Res$BageTHf$values)))
-omxCheckTrue(all(is.na(mod1Res$Age1$values)))
+omxCheckEquals(mod1Res$Age1$values, dataMZf$observed[1,'age1'])
+omxCheckEquals(mod1Res$Age2$values, dataMZf$observed[1,'age2'])
+omxCheckCloseEnough(c(mod1Res$ThMZf$values), c(0.314, -0.187), .01)
+omxCheckCloseEnough(c(mod1Res$BageTHf$values), c(0.009, 0.022), .01)
 omxCheckEquals(nrow(mod1Res$data$observed), 250)
-omxCheckTrue(all(is.na(mod1Res$expThresMZf$result)))
+omxCheckEquals(mod1Res$expThresMZf$result,
+               mxEval(expThresMZf, mod1Res, compute=T, defvar.row = 1))
