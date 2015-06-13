@@ -29,6 +29,7 @@
 #include "omxBuffer.h"
 #include "omxState.h"
 #include "finiteDifferences.h"
+#include <Eigen/Cholesky>
 
 void pda(const double *ar, int rows, int cols);
 
@@ -788,21 +789,6 @@ void FitContext::updateParentAndFree()
 	delete this;
 }
 
-template <typename T>
-void FitContext::moveInsideBounds(std::vector<T> &prevEst)
-{
-	for (size_t px=0; px < numParam; ++px) {
-		const double param = est[px];
-		omxFreeVar *fv = varGroup->vars[px];
-		if (param < fv->lbound) {
-			est[px] = prevEst[px] - (prevEst[px] - fv->lbound) / 2;
-		}
-		if (param > fv->ubound) {
-			est[px] = prevEst[px] + (fv->ubound - prevEst[px]) / 2;
-		}
-	}
-}
-
 void FitContext::log(int what)
 {
 	size_t count = varGroup->vars.size();
@@ -1133,12 +1119,12 @@ protected:
 	std::vector<double> prevAdj2;
 	int verbose;
 
-	void recordEstimate(const int px, const double newEst);
 public:
 	EMAccel(FitContext *fc, int verbose) : fc(fc), verbose(verbose) {
 		numParam = fc->varGroup->vars.size();
 		prevAdj1.assign(numParam, 0);
 		prevAdj2.resize(numParam);
+		dir.resize(numParam);
 	};
 	virtual ~EMAccel() {};
 	template <typename T> void recordTrajectory(std::vector<T> &prevEst) {
@@ -1147,28 +1133,12 @@ public:
 			prevAdj1[px] = fc->est[px] - prevEst[px];
 		}
 	};
-	virtual void apply() = 0;
-	virtual void recalibrate(bool *restart) = 0;
+
+	Eigen::VectorXd dir;
+	virtual bool calcDirection(bool major) = 0;
+	virtual void recalibrate() = 0;
 	virtual bool retry() { return false; };
 };
-
-void EMAccel::recordEstimate(const int px, const double newEst)
-{
-	omxFreeVar *fv = fc->varGroup->vars[px];
-	
-	if (verbose >= 4) {
-		std::string buf;
-		buf += string_snprintf("EMAccel: %d~%s %.4f -> %.4f",
-				       px, fv->name, newEst - prevAdj1[px], newEst);
-		if (prevAdj1[px] * prevAdj2[px] < 0) {
-			buf += " *OSC*";
-		}
-		buf += "\n";
-		mxLogBig(buf);
-	}
-
-	fc->est[px] = newEst;
-}
 
 class Ramsay1975 : public EMAccel {
 	// Ramsay, J. O. (1975). Solving Implicit Equations in
@@ -1184,8 +1154,8 @@ public:
 	double caution;
 
 	Ramsay1975(FitContext *fc, int verbose, double minCaution);
-	virtual void apply();
-	virtual void recalibrate(bool *restart);
+	virtual void recalibrate();
+	virtual bool calcDirection(bool major);
 };
 
 // Some evidence suggests that better performance is obtained when the
@@ -1215,15 +1185,16 @@ Ramsay1975::Ramsay1975(FitContext *fc, int verbose, double minCaution) :
 	}
 }
 
-void Ramsay1975::apply()
+bool Ramsay1975::calcDirection(bool major)
 {
 	for (int vx=0; vx < numParam; ++vx) {
 		const double prevEst = fc->est[vx] - prevAdj1[vx];
-		recordEstimate(vx, (1 - caution) * fc->est[vx] + caution * prevEst);
+		dir[vx] = ((1 - caution) * fc->est[vx] + caution * prevEst) - fc->est[vx];
 	}
+	return true;
 }
 
-void Ramsay1975::recalibrate(bool *restart)
+void Ramsay1975::recalibrate()
 {
 	if (numParam == 0) return;
 
@@ -1266,7 +1237,6 @@ void Ramsay1975::recalibrate(bool *restart)
 			mxLog("Ramsay: caution %.2f > %.2f, extreme oscillation, restart recommended",
 			      caution, highWatermark);
 		}
-		*restart = TRUE;
 		goingWild = true;
 	}
 	highWatermark += .02; // arbitrary guess
@@ -1295,7 +1265,7 @@ class Varadhan2008 : public EMAccel {
 	double alpha;
 	Eigen::Map< Eigen::VectorXd > rr;
 	Eigen::VectorXd vv;
-	void moveEst();
+
 public:
 	Varadhan2008(FitContext *fc, int verbose) :
 		EMAccel(fc, verbose), rr(&prevAdj2[0], numParam), vv(numParam)
@@ -1304,30 +1274,25 @@ public:
 		maxAlpha = 0;
 		retried = false;
 	};
-	virtual void apply();
-	virtual void recalibrate(bool *restart);
+	virtual void recalibrate();
 	virtual bool retry();
+	virtual bool calcDirection(bool major);
 };
 
-void Varadhan2008::apply()
+bool Varadhan2008::calcDirection(bool major)
 {
-	for (int vx=0; vx < numParam; ++vx) {
-		recordEstimate(vx, fc->est[vx]);
-	}
-}
-
-void Varadhan2008::moveEst()
-{
+	if (!major) return false;
 	if (verbose >= 3) mxLog("Varadhan: alpha = %.2f", alpha);
 
 	for (int vx=0; vx < numParam; ++vx) {
 		double adj2 = prevAdj1[vx] + prevAdj2[vx];
 		double t0 = fc->est[vx] - adj2;
-		fc->est[vx] = t0 + 2 * alpha * rr[vx] + alpha * alpha * vv[vx];
+		dir[vx] = (t0 + 2 * alpha * rr[vx] + alpha * alpha * vv[vx]) - fc->est[vx];
 	}
+	return true;
 }
 
-void Varadhan2008::recalibrate(bool *restart)
+void Varadhan2008::recalibrate()
 {
 	if (numParam == 0) return;
 
@@ -1340,7 +1305,6 @@ void Varadhan2008::recalibrate(bool *restart)
 	if (!std::isfinite(alpha) || alpha < 1) alpha = 1;
 	if (maxAlpha && alpha > maxAlpha) alpha = maxAlpha;
 
-	moveEst();
 	retried = false;
 }
 
@@ -1352,7 +1316,6 @@ bool Varadhan2008::retry()
 	alpha = alpha / 4;
 	if (alpha < 1.5) alpha = 1;
 	maxAlpha = alpha;
-	moveEst();
 	return true;
 }
 
@@ -1500,6 +1463,8 @@ class ComputeEM : public omxCompute {
 	double tolerance;
 	double semTolerance;
 	int verbose;
+	Eigen::VectorXd lbound;
+	Eigen::VectorXd ubound;
 	const char *accelName;
 	bool useRamsay;
 	bool useVaradhan;
@@ -1537,6 +1502,8 @@ class ComputeEM : public omxCompute {
 
 	void setExpectationPrediction(const char *context);
 	void observedFit(FitContext *fc);
+	template <typename T1>
+	void accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel);
 	template <typename T>
 	bool probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase<T> &rijWork);
 
@@ -1569,7 +1536,9 @@ class ComputeStandardError : public omxCompute {
 
 class ComputeHessianQuality : public omxCompute {
 	typedef omxCompute super;
+	int verbose;
  public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -2032,9 +2001,9 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork
 
 void ComputeEM::observedFit(FitContext *fc)
 {
-	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit", EMcycles);
 	fc->copyParamToModel();
 	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
+	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->fit);
 
 	if (!(fc->wanted & FF_COMPUTE_FIT)) {
 		omxRaiseErrorf("ComputeEM: fit not available");
@@ -2044,17 +2013,41 @@ void ComputeEM::observedFit(FitContext *fc)
 	}
 }
 
+template <typename T1>
+void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel)
+{
+	Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
+	if (!accel->calcDirection(major)) {
+		observedFit(fc);
+		return;
+	}
+	if (verbose >= 4) mxPrintMat("accelDir", accel->dir);
+	double speed = 1.0;
+	int retry = 3;
+	while (--retry) {
+		pVec = (accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound);
+		observedFit(fc);
+		if (std::isfinite(fc->fit)) return;
+		speed *= .3;
+		if (verbose >= 3) mxLog("%s: fit NaN; reduce accel speed to %f", name, speed);
+	}
+	// give up
+	pVec = preAccel;
+	observedFit(fc);
+}
+
 void ComputeEM::computeImpl(FitContext *fc)
 {
 	const double Scale = fabs(Global->llScale);
 	double prevFit = 0;
 	double mac = tolerance * 10;
 	bool converged = false;
-	const size_t freeVars = fc->varGroup->vars.size();
+	const int freeVars = int(fc->varGroup->vars.size());
 	bool in_middle = false;
 	maxHistLen = 0;
 	EMcycles = 0;
 	semProbeCount = 0;
+	lbound.resize(0);
 
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
 				tolerance, accelName, information);
@@ -2084,33 +2077,49 @@ void ComputeEM::computeImpl(FitContext *fc)
 		}
 
 		setExpectationPrediction("nothing");
-		fc->moveInsideBounds(prevEst);
 		if (accel) {
-			accel->recordTrajectory(prevEst);
-
-			bool wantRestart;
-			// parameterize the delay until the first recalibration? TODO
-			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
-				Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
-				Eigen::VectorXd preAccel = pVec;
-				accel->recalibrate(&wantRestart);
-				observedFit(fc);
-				while (prevFit < fc->fit) {
-					pVec = preAccel;
-					if (!accel->retry()) break;
-					observedFit(fc);
+			if (!lbound.size()) {
+				// omxFitFunctionPreoptimize can change bounds
+				lbound.resize(freeVars);
+				ubound.resize(freeVars);
+				for(int px = 0; px < int(freeVars); px++) {
+					lbound[px] = varGroup->vars[px]->lbound;
+					ubound[px] = varGroup->vars[px]->ubound;
 				}
-			} else {
-				observedFit(fc);
+				if (verbose >= 3) {
+					mxPrintMat("lbound", lbound);
+					mxPrintMat("ubound", ubound);
+				}
 			}
 
-			accel->apply();
+			Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
+			Eigen::VectorXd preAccel = pVec;
+			accel->recordTrajectory(prevEst);
+
+			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
+				accel->recalibrate();
+				accelLineSearch(true, fc, preAccel);
+				while (prevFit < fc->fit) {
+					if (!accel->retry()) break;
+					accelLineSearch(true, fc, preAccel);
+				}
+			} else {
+				accelLineSearch(false, fc, preAccel);
+			}
 		} else {
 			observedFit(fc);
 		}
 
 		double change = 0;
 		if (prevFit != 0) {
+			if (verbose >= 5) {
+				for (int px=0; px < freeVars; ++px) {
+					omxFreeVar *fv = fc->varGroup->vars[px];
+					mxLog("%d~%s %.4f -> %.4f",
+					      px, fv->name, prevEst[px], fc->est[px]);
+				}
+			}
+
 			change = (prevFit - fc->fit) / fc->fit;
 			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
 						EMcycles, mstepIter, fc->fit, change);
@@ -2139,6 +2148,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
+	fc->inform = converged? INFORM_CONVERGED_OPTIMUM : INFORM_ITERATION_LIMIT;
 	bestFit = fc->fit;
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
 				EMcycles, maxIter, totalMstepIter, bestFit);
@@ -2694,87 +2704,66 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	}
 }
 
-/*
-Date: Fri, 3 Jan 2014 14:02:34 -0600
-From: Michael Hunter <mhunter@ou.edu>
+void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
 
-Determining positive definiteness of matrix is typically done by
-trying the Cholesky decomposition.  If it fails, the matrix is not
-positive definite; if it passes, the matrix is.  The benefit of the
-Cholesky is that it's much faster and easier to compute than a set of
-eigenvalues.
+	SEXP slotValue;
 
-The BLAS/LAPACK routine DTRCO quickly computes a good approximation to the
-reciprocal condition number of a triangular matrix.  Hand it the Cholesky
-(a triangular matrix) the rest is history.  I don't think we need the
-exact condition number as long as it's just for finding very
-ill-conditioned problems.  For the solution to a linear system of
-equations, if you really care about the difference in precision between
-1e-14 and 1e-11, then the exact condition number is needed.  Otherwise, the
-approximation is faster and equally useful.
-*/
+	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(slotValue);
+}
+
 void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
 	// memcmp is required here because NaN != NaN always
 	if (fc->infoDefinite != NA_LOGICAL ||
-	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) return; // already set elsewhere
+	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) {
+		if (verbose >= 1) {
+			mxLog("%s: information matrix already determined to be non positive definite; skipping", name);
+		}
+		return; // already set elsewhere
+	}
 
 	int numParams = int(fc->varGroup->vars.size());
 
-	double *mat = fc->getDenseHessianish();
-	if (!mat) {
-		fc->infoDefinite = false;
-		return;
-	}
-	omxBuffer<double> hessWork(numParams * numParams);
-	memcpy(hessWork.data(), mat, sizeof(double) * numParams * numParams);
-
-	char jobz = 'N';
-	char range = 'A';
-	char uplo = 'U';
-	double abstol = 0;
-	int m;
-	omxBuffer<double> w(numParams);
-	double optWork;
-	int lwork = -1;
-	omxBuffer<int> iwork(5 * numParams);
-	int info;
-	double realIgn = 0;
-	int intIgn = 0;
-	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 NULL, &numParams, &optWork, &lwork, iwork.data(), NULL, &info);
-
-	lwork = optWork;
-	omxBuffer<double> work(lwork);
-	F77_CALL(dsyevx)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-			 &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-			 NULL, &numParams, work.data(), &lwork, iwork.data(), NULL, &info);
-	if (info < 0) {
-		Rf_error("dsyevx %d", info);
-	} else if (info) {
-		return;
-	}
-
-	bool definite = true;
-	bool neg = w[0] < 0;
-	for (int px=1; px < numParams; ++px) {
-		if ((w[px] < 0) ^ neg) {
-			definite = false;
-			break;
+	fc->infoDefinite = false;
+	double *hessMem = fc->getDenseHessianish();
+	if (!hessMem) {
+		if (verbose >= 1) {
+			mxLog("%s: information matrix not available; skipping", name);
 		}
+		return;
+	}
+	Eigen::Map< Eigen::MatrixXd > hess(hessMem, numParams, numParams);
+	hess.triangularView<Eigen::Lower>() = hess.transpose().triangularView<Eigen::Lower>();
+	Eigen::LDLT< Eigen::MatrixXd > cholH(hess);
+	if (cholH.info() != Eigen::Success || !(cholH.vectorD().array() > 0.0).all()) {
+		if (verbose >= 1) {
+			mxLog("%s: Cholesky decomposition failed", name);
+		}
+		return;
 	}
 
-	fc->infoDefinite = definite;
+	Eigen::MatrixXd ihess(numParams, numParams);
+	ihess.setIdentity();
+	ihess = cholH.solve(ihess);
 
-	if (definite) {
-		double ev[2] = { fabs(w[0]), fabs(w[numParams-1]) };
-		if (ev[0] < ev[1]) std::swap(ev[0], ev[1]);
-		double got = ev[0] / ev[1];
-		if (std::isfinite(got)) fc->infoCondNum = got;
+	// see LAPACK's dtrcon
+	double cn = ihess.colwise().sum().maxCoeff() * hess.colwise().sum().maxCoeff();
+	if (!std::isfinite(cn)) {
+		if (verbose >= 1) {
+			mxLog("%s: result is not finite", name);
+		}
+		return;
 	}
+
+	if (cn < 1.0) cn = 1/cn;
+
+	fc->infoDefinite = true;
+	fc->infoCondNum = cn;
 }
 
 void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)

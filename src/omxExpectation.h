@@ -54,7 +54,7 @@ struct omxDefinitionVar {		 	// Definition Var
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
 
-	void loadFakeData(omxState *state, double fake);
+	void loadData(omxState *state, double val);
 };
 
 /* Expectation structure itself */

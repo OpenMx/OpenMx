@@ -1141,31 +1141,46 @@ mxComputeStandardError <- function(freeSet=NA_character_) {
 #----------------------------------------------------
 
 setClass(Class = "MxComputeHessianQuality",
-	 contains = "BaseCompute")
+	 contains = "BaseCompute",
+	 representation = representation(
+	     verbose = "integer"))
 
 setMethod("initialize", "MxComputeHessianQuality",
-	  function(.Object, freeSet) {
+	  function(.Object, freeSet, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
 ##' Compute the quality of the Hessian
 ##'
 ##' Tests whether the Hessian is positive definite
-##' (model$output$infoDefinite) and, if so, computes the condition
+##' (model$output$infoDefinite) and, if so, computes the approximate condition
 ##' number (model$output$conditionNumber). See Luenberger & Ye (2008)
 ##' Second Order Test (p. 190) and Condition Number (p. 239).
+##'
+##' The condition number is approximated by \eqn{\mathrm{norm}(H) *
+##' \mathrm{norm}(H^{-1})}{norm(H) * norm(solve(H))} where H is the
+##' Hessian. The norm is either the 1- or infinity-norm (both obtain
+##' the same result due to symmetry).
 ##' 
 ##' @param freeSet names of matrices containing free variables
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param verbose Level of debugging output.
 ##' @aliases
 ##' MxComputeHessianQuality-class
 ##' @references
 ##' Luenberger, D. G. & Ye, Y. (2008). Linear and nonlinear programming. Springer.
 
-mxComputeHessianQuality <- function(freeSet=NA_character_) {
-	new("MxComputeHessianQuality", freeSet)
+mxComputeHessianQuality <- function(freeSet=NA_character_, ..., verbose=0L) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeHessianQuality does not accept values for the '...' argument")
+	}
+
+	new("MxComputeHessianQuality", freeSet, as.integer(verbose))
 }
 
 #----------------------------------------------------

@@ -18,7 +18,8 @@ plan <- mxComputeSequence(list(
   mxComputeNewtonRaphson(),
   mxComputeOnce('fitfunction', 'information', 'hessian'),
   mxComputeStandardError(),
-  mxComputeHessianQuality()))
+  mxComputeHessianQuality(),
+  mxComputeReportDeriv()))
 
 for (retry in 1:2) {
   if (retry == 2) n2 <- mxModel(n2, plan)
@@ -27,7 +28,7 @@ for (retry in 1:2) {
   omxCheckCloseEnough(n2Fit$output$fit, 80.866, .01)
   omxCheckCloseEnough(n2Fit$cov$values, dataCov, 1e-4)
   omxCheckCloseEnough(c(n2Fit$mean$values), dataMeans, 1e-4)
-  omxCheckCloseEnough(log(n2Fit$output$conditionNumber), 1.63, .1)
+  omxCheckCloseEnough(log(n2Fit$output$conditionNumber), 1.63, .2)
   omxCheckCloseEnough(c(n2Fit$output$standardErrors),
                       c(0.243, 0.213, 0.364, 0.169, 0.207), .01)
 }

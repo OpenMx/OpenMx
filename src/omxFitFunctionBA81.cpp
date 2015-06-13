@@ -1156,7 +1156,12 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					if (patternLik[ux] == 0) continue;
 					got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);
 				}
-				double fit = Global->llScale * got;
+				double fit = nan("infeasible");
+				if (estate->grp.excludedPatterns < numUnique) {
+					fit = Global->llScale * got;
+					// add in some badness for excluded patterns
+					fit += fit * estate->grp.excludedPatterns;
+				}
 				if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
 								oo->name(), fit, estate->grp.excludedPatterns, numUnique);
 				oo->matrix->data[0] = fit;

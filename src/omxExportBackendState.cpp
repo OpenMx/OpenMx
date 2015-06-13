@@ -33,6 +33,8 @@ void omxState::omxExportResults(MxRList *out)
 	SEXP expectations;
 	SEXP datums;
 
+	loadDefinitionVariables();
+
 	Rf_protect(matrices = Rf_allocVector(VECSXP, matrixList.size()));
 	Rf_protect(algebras = Rf_allocVector(VECSXP, algebraList.size()));
 	Rf_protect(expectations = Rf_allocVector(VECSXP, expectationList.size()));

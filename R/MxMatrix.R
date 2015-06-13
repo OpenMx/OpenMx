@@ -414,7 +414,7 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
-setMethod("$", "MxMatrix", function(x,name){
+.mxMatGetLayer <- function(x,name) {
   if(!is.condenseSlots(x)){return(imxExtractSlot(x,name))}
   if (!.hasSlot(x, name)) {
     return(NULL)
@@ -424,17 +424,20 @@ setMethod("$", "MxMatrix", function(x,name){
                                             nr=nrow(x),nc=ncol(x)),name=name))
     }
   return(slot(x,name))
-})
+}
 
+setMethod("$", "MxMatrix", .mxMatGetLayer)
+setMethod("[[", "MxMatrix", function(x,i,exact) { .mxMatGetLayer(x,i) })
 
-setReplaceMethod("$", "MxMatrix",
-	function(x, name, value) {
+.mxMatSetLayer <- function(x, name, value) {
         if(name %in% c("labels","values","free","lbound","ubound")) {
-          return(imxConDecMatrixSlots(populateMatrixSlot(x, name, value, nrow(x), ncol(x),repop=TRUE)))
+		return(imxConDecMatrixSlots(populateMatrixSlot(x, name, value, nrow(x), ncol(x),repop=TRUE)))
         }
         return(imxConDecMatrixSlots(imxReplaceSlot(x, name, value, check=TRUE)))
-	}
-)
+}
+
+setReplaceMethod("$", "MxMatrix", .mxMatSetLayer)
+setReplaceMethod("[[", "MxMatrix", function(x,i,value) { .mxMatSetLayer(x,i,value) })
 
 setMethod("names", "MxMatrix", slotNames)
 

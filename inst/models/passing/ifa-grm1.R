@@ -90,7 +90,7 @@ omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 1*scores[,2])/500, .714, .01
 omxCheckCloseEnough(sum(abs(scores[,1] - ability) < 2*scores[,2])/500, .95, .01)
 
 omxCheckTrue(m2$output$infoDefinite)
-omxCheckCloseEnough(c(m2$output$conditionNumber), 658.58, 1)
+omxCheckCloseEnough(log(m2$output$conditionNumber), 3.1, .2)
 
 #cat(deparse(round(m2$output$standardErrors,3)))
 
@@ -110,7 +110,7 @@ i2 <- mxModel(m2,
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)
 
-omxCheckCloseEnough(i2$output$conditionNumber, 662, 1)
+omxCheckCloseEnough(log(i2$output$conditionNumber), 2.9, .5)
 #cat(deparse(round(i2$output$standardErrors,3)))
 swse <- c(0.143, 0.11, 0.11, 0.238, 0.149, 0.125, 0.134, 0.106,  0.108, 0.094,
           0.169, 0.165, 0.154, 0.128, 0.13, 0.148, 0.121,  0.119, 0.199, 0.102,
@@ -127,7 +127,8 @@ i3 <- mxModel(m2,
 				     mxComputeStandardError(),
 				     mxComputeReportDeriv())))
 i3 <- mxRun(i3, silent=TRUE)
-omxCheckCloseEnough(log(i3$output$conditionNumber), 6.39, .1)
+omxCheckTrue(i3$output$infoDefinite)
+omxCheckCloseEnough(log(i3$output$conditionNumber), 2.9, .1)
 omxCheckCloseEnough(log(det(i3$output$hessian)), 282.36, .1)
 #cat(deparse(round(i3$output$standardErrors,3)))
 ose <- c(0.144, 0.109, 0.11, 0.243, 0.15, 0.119, 0.135, 0.105,

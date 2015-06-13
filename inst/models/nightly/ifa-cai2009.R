@@ -120,7 +120,7 @@ if (1) {
           0.432, 0.254,  0.324, 0.175, 0.242, 0.125, 0.146, 0.265, 0.1, 0.141, 0.201,
           0.101, 0.189, 0.192, 0.13)
   omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
-  omxCheckCloseEnough(i1$output$conditionNumber, 199, 1) 
+  omxCheckCloseEnough(log(i1$output$conditionNumber), 5.1, .2)
 }
 
 omxIFAComputePlan <- function(groups) {

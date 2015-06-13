@@ -109,7 +109,6 @@ void initFitMultigroup(omxFitFunction *oo)
 	oo->destructFun = mgDestroy;
 	oo->setVarGroup = mgSetFreeVarGroup;
 	oo->addOutput = mgAddOutput;
-	oo->units = FIT_UNITS_UNINITIALIZED;
 
 	if (!oo->argStruct) oo->argStruct = new FitMultigroup;
 	FitMultigroup *mg = (FitMultigroup *) oo->argStruct;
@@ -119,6 +118,7 @@ void initFitMultigroup(omxFitFunction *oo)
 
 	if (mg->fits.size()) return; // hack to prevent double initialization, remove TOOD
 
+	oo->units = FIT_UNITS_UNINITIALIZED;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 

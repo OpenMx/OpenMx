@@ -32,12 +32,12 @@ ip.mat <- mxMatrix(name="item", nrow=4, ncol=numItems,
 rownames(ip.mat) <- c('f1','b','g','u')
 colnames(ip.mat) <- cols
 
-m2 <- mxModel(model="drm1", ip.mat,
+m1 <- mxModel(model="drm1", ip.mat,
 	      mxData(observed=data, type="raw"),
               mxExpectationBA81(items, qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
 	      mxComputeOnce('expectation', 'scores'))
-m2 <- mxRun(m2)
+m2 <- mxRun(m1)
 omxCheckCloseEnough(sum(m2$expectation$debug$patternLikelihood), -2032.9, .1)
 omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
                     c(-7.5454472, -7.3950031, -7.3950031, -6.9391761, -3.5411989), .001)
@@ -77,6 +77,7 @@ m2 <- mxModel(m2,
 m2 <- mxRun(m2)
 
 omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .033)
+omxCheckEquals(m2$output$status$code, 0)
 
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 10, 1)
@@ -85,9 +86,15 @@ omxCheckCloseEnough(m2$output$evaluations, 59, 5)
 
 #print(m2$matrices$item$values)
 #print(correct.mat)
+omxCheckEquals(m2$output$fitUnits, "-2lnL")
 omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
 omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 6256.27, .02)
 omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)
+
+short <- mxModel(m1, mxComputeEM('expectation', 'scores',
+	                  mxComputeNewtonRaphson(), maxIter=4))
+short <- mxRun(short)
+omxCheckEquals(short$output$status$code, 4)
 
 refModels <- mxRefModels(m2, run=TRUE)
 ind <- refModels[['Independence']]
@@ -154,7 +161,7 @@ i2 <- mxModel(m2,
                 mxComputeHessianQuality())))
 i2 <- mxRun(i2, silent=TRUE)
 
-omxCheckCloseEnough(i2$output$conditionNumber, 11, .1)
+omxCheckCloseEnough(log(i2$output$conditionNumber), 2, .1)
 #cat(deparse(round(i2$output$standardErrors,3)))
 swse <- c(0.161, 0.109, 0.238, 0.161, 0.166, 0.104, 0.194,  0.109, 0.131,
           0.094, 0.213, 0.13, 0.167, 0.101, 0.188, 0.12,  0.157, 0.098, 0.157, 0.113)
