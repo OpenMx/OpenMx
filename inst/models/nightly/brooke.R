@@ -52,21 +52,6 @@ df <- rbind(df, temp)
 colnames(df) <- c("zyg", "mj1", "nssi1", "mj2",
                   "nssi2", "age1", "age2")
 mj_nssi <- data.frame(df, stringsAsFactors=F)        
-head(mj_nssi)
-require(polycor)
-for (i in 1:4) {
-  these <- mj_nssi[which(mj_nssi$zyg == i),]
-  print(i)
-  print(table(these[,2], these[,4]))
-  print(table(these[,3], these[,5]))
-  rmat <- diag(4)
-  for (j in 1:3) {
-    for (k in ((j+1):4)) {
-      rmat[k,j] <- polychor(these[,k+1], these[,j+1])
-    }
-  }
-  print(rmat)
-}
 
 require(OpenMx)
 
