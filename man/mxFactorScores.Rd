@@ -24,7 +24,7 @@ This function creates the factor scores and their standard errors under differen
 }
 
 \usage{
-mxKalmanScores(model, type=c('ML', 'WeightedML', 'Regression'))
+mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'))
 }
 
 

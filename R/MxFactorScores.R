@@ -57,7 +57,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 				work@submodels[[1]]@data <- mxData(model$data$observed[i,,drop=FALSE], 'raw')
 				fit <- mxModel(model=work, name=paste0(work@name, i, "Of", nrows))
 			}
-			fit <- mxRun(fit)
+			fit <- mxRun(fit, suppressWarnings=TRUE)
 			res[i,,1] <- omxGetParameters(fit) #params
 			res[i,,2] <- fit$output$standardErrors #SEs
 		}
