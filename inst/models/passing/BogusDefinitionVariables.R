@@ -37,3 +37,16 @@ omxCheckError(mxRun(model), paste("The definition variable",
 	"'model.data.baz' in matrix 'foo'",
 	"refers to a data set that does",
 	"not contain a column with name 'baz'"))
+
+# --------------- unattached
+
+data<-matrix(rnorm(20,0,1),ncol=1)
+colnames(data)<-c('y1')
+model<-mxModel(model="unattached", mxData(data, type='raw'),
+               mxMatrix(name='A',labels='data.y1',free=F,nrow=1,ncol=1),
+               mxAlgebra(name='rowAlgebra', A),
+               mxAlgebra(name='reduceAlgebra', sum(rowResults)),
+               mxFitFunctionRow('rowAlgebra', 'reduceAlgebra', colnames(data))
+)
+
+omxCheckError(mxRun(model), "Definition variables 'unattached.data.y1' are not attached to an expectation")

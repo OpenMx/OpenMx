@@ -188,6 +188,15 @@ runHelper <- function(model, frontendStart,
 		}
 	}
 
+	if (length(defVars)) {
+		attachedDV <- sapply(expectations, function (e) names(e@definitionVars))
+		if (length(defVars) != length(attachedDV)) {
+			unattached <- names(defVars[is.na(match(names(defVars), attachedDV))])
+			stop(paste("Definition variables", omxQuotes(unattached),
+				   "are not attached to an expectation"))
+		}
+	}
+
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
 	numAlgebras <- length(algebras)

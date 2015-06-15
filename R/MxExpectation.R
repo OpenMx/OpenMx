@@ -37,6 +37,7 @@ setClass(Class = "MxBaseExpectation",
 	   data = "MxCharOrNumber",      # filled in during flattening
 	   submodels = "MxOptionalCharOrNumber", # filled in during flattening
 	   container = "MxOptionalCharOrNumber", # filled in during flattening
+	   definitionVars = "list",
 	     .runDims = "character",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
