@@ -2057,6 +2057,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (useRamsay) accel = new Ramsay1975(fc, verbose, -1.25);
 	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
 
+	int mstepInform = INFORM_UNINITIALIZED;
 	std::vector<double> prevEst(fc->numParam);
 	while (EMcycles < maxIter) {
 		++ EMcycles;
@@ -2066,14 +2067,13 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		{
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
-			int informSave = fc->inform;
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
 			int startIter = fc1->iterations;
 			fit1->compute(fc1);
 			mstepIter = fc1->iterations - startIter;
 			totalMstepIter += mstepIter;
+			mstepInform = fc1->inform;
 			fc1->updateParentAndFree();
-			fc->inform = informSave;
 		}
 
 		setExpectationPrediction("nothing");
@@ -2148,10 +2148,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
-	fc->inform = converged? INFORM_CONVERGED_OPTIMUM : INFORM_ITERATION_LIMIT;
+	fc->inform = converged? mstepInform : INFORM_ITERATION_LIMIT;
 	bestFit = fc->fit;
-	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f",
-				EMcycles, maxIter, totalMstepIter, bestFit);
+	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f inform %d",
+				EMcycles, maxIter, totalMstepIter, bestFit, fc->inform);
 
 	if (!converged || information == EMInfoNone) return;
 
