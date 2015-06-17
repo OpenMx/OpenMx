@@ -39,6 +39,7 @@ class ComputeNR : public omxCompute {
 
 	void lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
 			int *maxAdjParam, double *improvement);
+	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
 
 public:
 	virtual void initFromFrontend(omxState *state, SEXP rObj);
@@ -224,7 +225,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
-		if (!steepestDescent && scaledTarget / fabs(refFit) < tolerance) {
+		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
 			trial = prevEst;
 			return;
 		}
@@ -287,7 +288,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 			bestFit = fc->fit;
 			bestImproved = improved;
 			bestSpeed = speed;
-			if (improvementOverBest / fabs(refFit) < tolerance) break;
+			if (relImprovement(improvementOverBest) < tolerance) break;
 		}
 	}
 
@@ -386,7 +387,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 			return;
 		}
 
-		converged = improvement / fabs(refFit) < tolerance;
+		converged = relImprovement(improvement) < tolerance;
 		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel();
@@ -395,11 +396,17 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	if (converged) {
-		fc->inform = INFORM_CONVERGED_OPTIMUM;
-		fc->wanted |= FF_COMPUTE_BESTFIT;
+		double gradThresh = Global->getGradientThreshold(fc->fit);
+		if ((fc->grad.array().abs() > gradThresh).any()) {
+			fc->inform = INFORM_NOT_AT_OPTIMUM;
+		} else {
+			fc->inform = INFORM_CONVERGED_OPTIMUM;
+			fc->wanted |= FF_COMPUTE_BESTFIT;
+		}
 		if (verbose >= 1) {
 			int iter = fc->iterations - startIter;
-			mxLog("%s: converged in %d cycles (%d minor iterations)", name, iter, minorIter);
+			mxLog("%s: converged in %d cycles (%d minor iterations) inform=%d",
+			      name, iter, minorIter, fc->inform);
 		}
 	} else {
 		fc->inform = INFORM_ITERATION_LIMIT;

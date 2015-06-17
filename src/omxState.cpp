@@ -204,6 +204,7 @@ omxGlobal::omxGlobal()
 	unpackedConfidenceIntervals = false;
 	fc = NULL;
 	intervals = true;
+	gradientTolerance = 1e-6;
 
 	FreeVarGroup *fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
