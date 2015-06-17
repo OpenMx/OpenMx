@@ -66,19 +66,21 @@ if (file.exists("models/enormous/lib/stderrlib.R")) {
 #got <- MCphase(mkmodel, reps=5, verbose=TRUE, maxCondNum = NA)
 
 name <- paste("ifa-grm", numItems, "-se", sep="")
-getMCdata(name, mkmodel, correct, maxCondNum = NA)
+getMCdata(name, mkmodel, correct, maxCondNum = 1e6, recompute=FALSE)
 
 omxCheckCloseEnough(norm(mcBias, "2"), 0.22297, .001)
 omxCheckCloseEnough(max(abs(mcBias)), 0.11124, .001)
 omxCheckCloseEnough(log(det(mcHessian)), 368.81, .1)
 
+rda <- paste(name, "-result.rda", sep="")
+load(rda)
 detail <- testPhase(mkmodel, 500,
                     methods=c('re', 'estepH', 'mr','tian', 'agile', 'meat', 'oakes'))
+if (0) {
+  asem <- studyASEM(mkmodel)
+  smooth <- checkSmoothness(mkmodel)
+}
 
-asem <- studyASEM(mkmodel)
-smooth <- checkSmoothness(mkmodel)
-
-rda <- paste(name, "-result.rda", sep="")
 save(detail, asem, smooth, file=rda)
 
 stop("done")

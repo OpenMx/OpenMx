@@ -1,26 +1,27 @@
 #options(error = browser)
 require(OpenMx)
 require(rpf)
+require(ifaTools)
 
 set.seed(2)
 numItems <- 15
-numPersons <- 1500
-slope <- 4
-groupSize <- 3
+numPersons <- 250
+slope <- 2
+groupSize <- 5
 
 items <- list()
 items[1:numItems] <- rpf.drm()
 correct.mat <- matrix(NA, 4, numItems)
 dimnames(correct.mat) <- list(names(rpf.rparam(items[[1]])), paste("i", 1:numItems, sep=""))
 correct.mat['a',] <- slope
-correct.mat['b',] <- slope * seq(-1.5, 1.5, length.out = numItems)
-correct.mat['g',] <- kronecker(logit(1/3:(2+numItems/groupSize)), rep(1,groupSize))
+correct.mat['b',] <- slope * seq(-1.5, 1.5, length.out = groupSize)
+correct.mat['g',] <- kronecker(logit(1/2:(1+numItems/groupSize)), rep(1,groupSize))
 correct.mat['u',] <- logit(1)
 
 correct.mask <- matrix(FALSE, 4, numItems)
 correct.mask[1,1] <- TRUE
 correct.mask[2,] <- TRUE
-correct.mask[3,] <- rep(c(TRUE, rep(FALSE, groupSize-1)), numItems/groupSize)
+correct.mask[3,] <- TRUE
 
 mkmodel <- function() {
   maxParam <- max(vapply(items, rpf.numParam, 0))
@@ -29,21 +30,25 @@ mkmodel <- function() {
   data <- rpf.sample(numPersons, items, correct.mat)
 
   ip.mat <- mxMatrix(name="item", nrow=maxParam, ncol=numItems,
-                     values=c(1, 0, logit(.1), logit(1)), free=TRUE,
+                     values=c(1, 0, NA, logit(1)), free=TRUE,
                      dimnames=list(names(rpf.rparam(items[[1]])),
                                    colnames(data)))
   ip.mat$free[1,] <- TRUE
   ip.mat$labels[1,] <- 'slope'
+  ip.mat$values[3,] <- correct.mat['g',]
+  ip.mat$labels[3,] <- paste0('g', 1:ncol(ip.mat))
   ip.mat$free[4,] <- FALSE
-  ip.mat$labels[3,] <- paste('g', kronecker(1:(numItems/groupSize),rep(1,groupSize)), sep='')
-#  ip.mat$labels
   
-  m1 <- mxModel(model="drm", ip.mat,
+  m1 <- mxModel(model="model1", ip.mat,
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(ItemSpec=items),
-                mxFitFunctionML(),
-                mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson()))
-  m1
+                mxFitFunctionML())
+
+  m2 <- mxModel("3pl", m1,
+                univariatePrior("logit-norm", paste0('g', 1:ncol(ip.mat)), correct.mat['g',]),
+                mxFitFunctionMultigroup(c('model1', 'univariatePrior')),
+                mxComputeEM('model1.expectation', 'scores', mxComputeNewtonRaphson()))
+  m2
 }
 
 # ----------------------------------------------------------------------------
@@ -59,11 +64,12 @@ if (file.exists("inst/models/enormous/lib/stderrlib.R")) {
 #got <- MCphase(mkmodel, reps=5, verbose=TRUE, maxCondNum=1e6)
 
 name = "ifa-3pl-se"
-getMCdata(name, mkmodel, correct.mat[correct.mask], maxCondNum=5000)
+recompute=FALSE
+getMCdata(name, mkmodel, correct.mat[correct.mask], maxCondNum=5000, recompute=recompute)
 
-omxCheckCloseEnough(norm(mcBias, "2"), .10228, .001)
-omxCheckCloseEnough(max(abs(mcBias)), .054067, .001)
-omxCheckCloseEnough(log(det(mcHessian)), 90.2819, .1)
+omxCheckCloseEnough(norm(mcBias, "2"), .5525, .001)
+omxCheckCloseEnough(max(abs(mcBias)), .3055, .001)
+omxCheckCloseEnough(log(det(mcHessian)), 90.31, .1)
 
 #-----------------
 if (0) {
@@ -71,6 +77,15 @@ if (0) {
   
   set.seed(3)
   model <- mkmodel()
+  model <- mxRun(mxModel(model, mxComputeSequence(list(
+    mxComputeOnce('model1.expectation', 'scores'),
+    mxComputeOnce('fitfunction', 'information', 'hessian'),
+    mxComputeReportDeriv()
+  ))))
+  h1 <- model$output$hessian
+  h2 <- model$output$hessian
+  h3 <- model$output$hessian
+  
   em <- model$compute
   fitfun <- em$mstep$fitfunction
   em$accel <- ""
@@ -113,13 +128,16 @@ if (0) {
 
 #-----------------
 
+rda <- paste(name, "-result.rda", sep="")
+load(rda)
 detail <- testPhase(mkmodel, 500,
                     methods=c('re', 'estepH', 'mr', 'tian', 'agile', 'meat', 'oakes'))
 
-asem <- studyASEM(mkmodel)
-smooth <- checkSmoothness(mkmodel)
+if (0) {
+  asem <- studyASEM(mkmodel)
+  smooth <- checkSmoothness(mkmodel)
+}
 
-rda <- paste(name, "-result.rda", sep="")
 save(detail, asem, smooth, file=rda)
 
 stop("done")

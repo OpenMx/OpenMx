@@ -46,12 +46,12 @@ if (file.exists("models/enormous/lib/stderrlib.R")) {
 #got <- MCphase(mkmodel, reps=5, verbose=TRUE)
 
 name <- paste("ifa-2pl", numItems, "-se", sep="")
-getMCdata(name, mkmodel, correct, maxCondNum=5000)
+getMCdata(name, mkmodel, correct, maxCondNum=1e7, recompute=FALSE)
 
 if (numItems == 5) {
-  omxCheckCloseEnough(norm(mcBias, "2"), .17008, .001)
-  omxCheckCloseEnough(max(abs(mcBias)), .13898, .001)
-  omxCheckCloseEnough(log(det(mcHessian)), 33.11, .1)
+  omxCheckCloseEnough(norm(mcBias, "2"), .8423, .001)
+  omxCheckCloseEnough(max(abs(mcBias)), .665, .001)
+  omxCheckCloseEnough(log(det(mcHessian)), 35.195, .1)
 } else if (numItems == 20) {
   omxCheckCloseEnough(norm(mcBias, "2"), 0.3872, .001)
   omxCheckCloseEnough(max(abs(mcBias)), 0.2757, .001)

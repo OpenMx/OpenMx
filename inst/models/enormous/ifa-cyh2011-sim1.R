@@ -119,17 +119,48 @@ if (file.exists("models/enormous/lib/stderrlib.R")) {
 
 name <- "cyh2011-sim1"
 getMCdata(name, modelGen, c(correct[correct != 0], g2.mean, diag(g2.cov)),
-          maxCondNum=5000)
+          maxCondNum=5000, recompute=FALSE)
 
 omxCheckCloseEnough(norm(mcBias, "2"), .14194, .001)
 omxCheckCloseEnough(max(abs(mcBias)), .0552, .001)
 omxCheckCloseEnough(log(det(mcHessian)), 281.37, .1)
 
-detail <- testPhase(modelGen, 500, methods=c('estepH', 'mr', 'tian', 'agile', 'meat', 'oakes'))
-asem <- studyASEM(modelGen)
-smooth <- checkSmoothness(modelGen)
+if (0) {
+  set.seed(500-484)
+  model <- modelGen()
+  em <- model$compute
+  fitfun <- c()
+  if (is(em$mstep, "MxComputeSequence")) {
+    fitfun <- sapply(em$mstep$steps, function(step) step$fitfunction)
+  } else {
+    fitfun <- em$mstep$fitfunction
+  }
+  em$accel <- ""
+  em$tolerance <- 1e-11
+  em$maxIter <- 750L
+#  em$verbose <- 2L
+  em$information <- "mr1991"
+  em$infoArgs <- list(fitfunction=fitfun, semMethod='mr', semTolerance=sqrt(1e-6))
+  plan <- mxComputeSequence(list(
+    em,
+    mxComputeStandardError(),
+    mxComputeReportDeriv()
+  ))
+  model$compute <- plan
+  fit <- try(mxRun(model, silent=TRUE, suppressWarnings=TRUE), silent=TRUE)
+  
+}
 
 rda <- paste(name, "-result.rda", sep="")
+load(rda)
+
+detail <- testPhase(modelGen, 500, methods=c('re', 'estepH', 'mr', 'tian', 'agile', 'meat', 'oakes'))
+
+if (0) {
+  asem <- studyASEM(modelGen)
+  smooth <- checkSmoothness(modelGen)
+}
+
 save(detail, asem, smooth, file=rda)
 
 if (0) {

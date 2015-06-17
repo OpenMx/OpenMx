@@ -2,6 +2,16 @@
 
 condNumLimit <- 1e7
 
+calcCondNum <- function(hess) {
+  d <- try(svd(hess, nu=0, nv=0)$d)
+  if (is(d, "try-error")) return(1e16)
+  if (all(d > 0)) {
+    max(d)/min(d)
+  } else {
+    1e16
+  }
+}
+
 MCphase <- function(modelGen, reps=500, verbose=TRUE, maxCondNum) {
   emcycles <- rep(NA, reps)
   condnum <- rep(NA, reps)
@@ -10,31 +20,29 @@ MCphase <- function(modelGen, reps=500, verbose=TRUE, maxCondNum) {
     set.seed(rep)
     model <- modelGen()
     em <- model$compute
-    getCondNum <- list()
-    if (!is.na(maxCondNum)) {
-      getCondNum <- list(mxComputeOnce('fitfunction', 'information', 'meat'),
-                         mxComputeHessianQuality())
-    }
+    getCondNum <- list(mxComputeOnce('fitfunction', 'information', 'meat'),
+                       mxComputeReportDeriv())
     plan <- mxComputeSequence(c(em, getCondNum))
     model$compute <- plan
-    fit <- try(mxRun(model, silent=TRUE), silent=TRUE)
+    fit <- try(mxRun(model, silent=TRUE, suppressWarnings = TRUE), silent=TRUE)
     if (inherits(fit, "try-error")) {
       print(fit)
       condnum[rep] <- 1e16
       next
+    } else if (fit$output$status$code != 0) {
+      print(paste("status code", fit$output$status$code))
+      next
     }
     emstat <- fit$compute$steps[[1]]$output
     emcycles[rep] <- emstat$EMcycles
-    if (!is.na(maxCondNum)) {
-      condnum[rep] <- fit$output$conditionNumber
-    }
-    if (verbose) print(paste(c(rep, emstat, round(condnum[rep])), collapse=" "))
+    condnum[rep] <- calcCondNum(fit$output$hessian)
     par <- omxGetParameters(fit)
     if (any(is.na(par))) {
       print(par)
       condnum[rep] <- 1e16
       next
     }
+    if (verbose) print(paste(c(rep, emstat, round(condnum[rep])), collapse=" "))
     if (all(dim(est) == 1)) {
       est <- matrix(NA, length(par), reps)
       rownames(est) <- names(par)
@@ -112,8 +120,13 @@ summarizeInfo1 <- function(condnum, emstat=list(EMcycles=NA, semProbeCount=NA),
   
   normRd <- NA
   rd <- (standardErrors - mcSE) / mcSE
-  if (!is.na(condnum) && all(is.finite(rd))) {
-    normRd <- norm(rd, "2")
+  if (!is.na(condnum)) {
+    if (all(is.finite(rd))) {
+      normRd <- norm(rd, "2")
+    } else {
+      print(paste("Method", method,"condition number", condnum, "but some SEs are NA"))
+      condnum <- NA
+    }
   }
   
   got <- c(cputime, emstat$EMcycles, emstat$semProbeCount, condnum, normH, normRd)
@@ -128,16 +141,23 @@ summarizeInfo1 <- function(condnum, emstat=list(EMcycles=NA, semProbeCount=NA),
 }
 
 summarizeInfo <- function(fitModel, method) {
-  condnum <- fitModel$output$conditionNumber
-  if (is.null(condnum)) condnum <- NA
-  
   emstat <- list(EMcycles=NA, semProbeCount=NA)
   if (length(intersect(c('mr', 'tian', 'agile'), method))) {
     emstat <- fitModel$compute$steps[[1]]$output
   }
   
+  if (fitModel$output$status$code != 0) {
+    summarizeInfo1(NA, emstat, NULL, NULL,
+                   fitModel$output$cpuTime, method)
+    return
+  }
+
+  H <- fitModel$output$hessian
+  if (is.null(H)) H <- fitModel$output$ihessian
+  condnum <- calcCondNum(H)
+
   H <- NULL
-  if (!is.na(condnum) && condnum < 1e16) {
+  if (!is.na(condnum) && condnum < 1e12) {
     if (!is.null(fitModel$output[['hessian']])) {
       H <- fitModel$output[['hessian']]
     }
@@ -170,6 +190,7 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
                   dimnames=list(rec, methods, NULL))
   
   for (rep in 1:reps) {
+    warnings()
     set.seed(rep)
     model <- modelGen()
     em <- model$compute
@@ -186,21 +207,24 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
     if (length(sem)) {
       em$accel <- ""
       em$tolerance <- 1e-11
+      em$maxIter <- 750L
       for (semType in sem) {
         em$information <- "mr1991"
         em$infoArgs <- list(fitfunction=fitfun, semMethod=semType, semTolerance=sqrt(1e-6))
         plan <- mxComputeSequence(list(
           em,
-          mxComputeHessianQuality(),
           mxComputeStandardError(),
           mxComputeReportDeriv()
         ))
         model$compute <- plan
-        fit <- try(mxRun(model, silent=TRUE), silent=TRUE)
+        fit <- try(mxRun(model, silent=TRUE, suppressWarnings=TRUE), silent=TRUE)
         if (inherits(fit, "try-error")) {
           print(paste("error in", semType))
           print(fit)
           next
+        } else if (fit$output$status$code != 0) {
+          print(paste("status code", fit$output$status$code, "without acceleration"))
+          break
         } else {
           detail[,semType,rep] <- summarizeInfo(fit, semType)
         }
@@ -211,10 +235,13 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
     if (is.null(fit) || inherits(fit, "try-error")) {
       em$tolerance <- 1e-11
       model$compute <- em
-      fit <- try(mxRun(model, silent=TRUE), silent=TRUE)
+      fit <- try(mxRun(model, silent=TRUE, suppressWarnings = TRUE), silent=TRUE)
       if (inherits(fit, "try-error")) {
         print(paste("error finding MLE"))
         print(fit)
+        next
+      } else if (fit$output$status$code != 0) {
+        print(paste("status code", fit$output$status$code))
         next
       }
     }
@@ -226,17 +253,19 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
       em$infoArgs <- list(fitfunction=fitfun, semMethod="agile")
       plan <- mxComputeSequence(list(
         em,
-        mxComputeHessianQuality(),
         mxComputeStandardError(),
         mxComputeReportDeriv()
       ))
       if (is.null(fit)) fit <- model
       fit$compute <- plan
       # reuse the MLE, if possible
-      fit <- try(mxRun(fit, silent=TRUE), silent=TRUE)
+      fit <- try(mxRun(fit, silent=TRUE, suppressWarnings = TRUE), silent=TRUE)
       if (inherits(fit, "try-error")) {
         print(paste("error in agile"))
         print(fit)
+        next
+      } else if (fit$output$status$code != 0) {
+        print(paste("status code", fit$output$status$code, "in agile"))
         next
       } else {
         detail[,"agile",rep] <- summarizeInfo(fit, "agile")
@@ -248,7 +277,6 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
                       mxComputeSequence(steps=list(
                         mxComputeOnce('fitfunction', 'information', "meat"),
                         mxComputeStandardError(),
-                        mxComputeHessianQuality(),
                         mxComputeReportDeriv())))
       meat <- mxRun(meat, silent=TRUE)
       detail[,"meat",rep] <- summarizeInfo(meat, "meat")
@@ -259,7 +287,6 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
                       mxComputeSequence(steps=list(
                         mxComputeOnce('fitfunction', 'information', "sandwich"),
                         mxComputeStandardError(),
-                        mxComputeHessianQuality(),
                         mxComputeReportDeriv())))
       sandwich <- mxRun(sandwich, silent=TRUE)
       detail[,"sandwich",rep] <- summarizeInfo(sandwich, "sandwich")
@@ -272,16 +299,18 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
       em$infoArgs <- list(fitfunction=fitfun)
       plan <- mxComputeSequence(list(
         em,
-        mxComputeHessianQuality(),
         mxComputeStandardError(),
         mxComputeReportDeriv()
       ))
       fit$compute <- plan
       # reuse the MLE
-      fit <- try(mxRun(fit, silent=TRUE), silent=TRUE)
+      fit <- try(mxRun(fit, silent=TRUE, suppressWarnings = TRUE), silent=TRUE)
       if (inherits(fit, "try-error")) {
         print(paste("error in agile"))
         print(fit)
+        next
+      } else if (fit$output$status$code != 0) {
+        print(paste("status code",fit$output$status$code,"in agile"))
         next
       } else {
         detail[,"oakes",rep] <- summarizeInfo(fit, "oakes")
@@ -294,7 +323,6 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
                           mxComputeOnce(em$expectation, 'scores'),
                           mxComputeOnce(fitfun, 'information', "hessian"),
                           mxComputeStandardError(),
-                          mxComputeHessianQuality(),
                           mxComputeReportDeriv())))
       estepH <- mxRun(estepH, silent=TRUE)
       detail[,"estepH",rep] <- summarizeInfo(estepH, "estepH")
@@ -305,7 +333,6 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
                     mxComputeSequence(steps=list(
                       mxComputeNumericDeriv(stepSize = 1e-3, iterations = 2),
                       mxComputeStandardError(),
-                      mxComputeHessianQuality(),
                       mxComputeReportDeriv())))
       re <- mxRun(re, silent=TRUE)
       detail[,"re",rep] <- summarizeInfo(re, "re")
@@ -329,7 +356,7 @@ quantifyAsymmetry <- function(info) {
 summarizeAgile <- function(fit) {
   numReturn <- 4
   
-  condnum <- fit$output$conditionNumber
+  condnum <- calcCondNum(fit$output$ihessian)
   if (is.null(condnum)) condnum <- NA
   if (is.na(condnum) || (!is.na(condnum) && condnum > condNumLimit)) return(rep(NA, numReturn))
 
@@ -401,7 +428,6 @@ studyASEM <- function(modelGen, reps = 100, verbose=TRUE) {
                        noiseTarget=exp(targets[tx]), semFixSymmetry=TRUE)
       plan <- mxComputeSequence(list(
         em,
-        mxComputeHessianQuality(),
         mxComputeStandardError(),
         mxComputeReportDeriv()
       ))
