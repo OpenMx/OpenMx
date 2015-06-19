@@ -17,7 +17,6 @@ setClass(Class = "MxExpectationNormal",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
-		definitionVars = "list",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		dataColumns = "numeric",

@@ -213,6 +213,7 @@ class omxGlobal {
 	double optimalityTolerance;
 	int majorIterations;
 	bool intervals;
+	double gradientTolerance;
 
 	double maxptsa;
 	double maxptsb;
@@ -249,6 +250,7 @@ class omxGlobal {
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
 	void checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force);
 	void checkpointPostfit(FitContext *fc);
+	double getGradientThreshold(double fit) { return std::max(fabs(fit) * gradientTolerance, .01); }
 
 	void cacheDependencies(omxState *os) {
 		for (size_t vg=0; vg < freeGroup.size(); ++vg) {
@@ -292,7 +294,7 @@ class omxState {
 	void omxProcessConstraints(SEXP constraints, FitContext *fc);
 	void omxProcessMxDataEntities(SEXP data);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
-	void loadDefinitionVariables();
+	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out);
 	~omxState();
 
