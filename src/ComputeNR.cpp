@@ -397,7 +397,18 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 	if (converged) {
 		double gradThresh = Global->getGradientThreshold(fc->fit);
-		if ((fc->grad.array().abs() > gradThresh).any()) {
+		double feasibilityTolerance = Global->feasibilityTolerance;
+		bool localMin = true;
+		// factor out simliar code in omxHessianCalculation
+		for (int gx=0; gx < int(fc->numParam); ++gx) {
+			if (fabs(fc->grad[gx]) > gradThresh &&
+			    !((fc->grad[gx] > 0 && fabs(fc->est[gx] - lbound[gx]) < feasibilityTolerance) ||
+			      (fc->grad[gx] < 0 && fabs(fc->est[gx] - ubound[gx]) < feasibilityTolerance))) {
+				localMin = false;
+				break;
+			}
+		}
+		if (!localMin) {
 			fc->inform = INFORM_NOT_AT_OPTIMUM;
 		} else {
 			fc->inform = INFORM_CONVERGED_OPTIMUM;

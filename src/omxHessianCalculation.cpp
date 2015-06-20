@@ -432,6 +432,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	double gradThresh = Global->getGradientThreshold(minimum);
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
+		// factor out simliar code in ComputeNR
 		omxFreeVar &fv = *fc->varGroup->vars[px];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {

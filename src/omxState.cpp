@@ -205,6 +205,7 @@ omxGlobal::omxGlobal()
 	fc = NULL;
 	intervals = true;
 	gradientTolerance = 1e-6;
+	boundsUpdated = false;
 
 	FreeVarGroup *fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_ALL);   // all variables

@@ -90,10 +90,13 @@ omxCheckEquals(m2$output$fitUnits, "-2lnL")
 omxCheckCloseEnough(m2$fitfunction$result, 6216.272, .01)
 omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'], 6256.27, .02)
 omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)
+omxCheckTrue(all(m2$item$lbound['f1',] == 1e-6))
+omxCheckTrue(all(is.na(m2$item$lbound[2:nrow(m2$item),])))
+omxCheckTrue(all(is.na(m2$item$ubound)))
 
 short <- mxModel(m1, mxComputeEM('expectation', 'scores',
 	                  mxComputeNewtonRaphson(), maxIter=4))
-short <- mxRun(short)
+short <- mxRun(short, suppressWarnings = TRUE)
 omxCheckEquals(short$output$status$code, 4)
 
 refModels <- mxRefModels(m2, run=TRUE)

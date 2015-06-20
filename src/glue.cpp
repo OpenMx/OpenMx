@@ -345,6 +345,12 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 	}
 }
 
+static double internalToUserBound(double val, double inf)
+{
+	if (val == inf) return NA_REAL;
+	return val;
+}
+
 SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
@@ -493,15 +499,28 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			result.add("minimum", Rf_ScalarReal(fc->fit));
 		}
 
-		size_t numFree = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
+		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+		int numFree = int(varGroup->vars.size());
 		if (numFree) {
-			// move other global reporting here TODO
-
 			SEXP estimate;
 			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
 			memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
 			result.add("estimate", estimate);
 
+			if (Global->boundsUpdated) {
+				MxRList bret;
+				SEXP Rlb = Rf_allocVector(REALSXP, numFree);
+				bret.add("l", Rlb);
+				SEXP Rub = Rf_allocVector(REALSXP, numFree);
+				bret.add("u", Rub);
+				double *lb = REAL(Rlb);
+				double *ub = REAL(Rub);
+				for(int px = 0; px < numFree; px++) {
+					lb[px] = internalToUserBound(varGroup->vars[px]->lbound, NEG_INF);
+					ub[px] = internalToUserBound(varGroup->vars[px]->ubound, INF);
+				}
+				result.add("bounds", bret.asR());
+			}
 			if (fc->stderrs) {
 				SEXP stdErrors;
 				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));

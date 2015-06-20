@@ -231,6 +231,7 @@ class omxGlobal {
 
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
+	bool boundsUpdated;
 
 	// These lists exist only to free memory
 	std::vector< omxCompute* > computeList;

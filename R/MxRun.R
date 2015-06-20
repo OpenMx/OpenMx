@@ -236,6 +236,12 @@ runHelper <- function(model, frontendStart,
 	model <- updateModelData(model, flatModel, output$data)
 	model@compute <-updateModelCompute(model, output$computes)
 	output[['computes']] <- NULL
+	if (!is.null(output[['bounds']])) {
+		model <- omxSetParameters(model, names(parameters),
+					  lbound=output[['bounds']][['l']],
+					  ubound=output[['bounds']][['u']])
+		output[['bounds']] <- NULL
+	}
 	independents <- lapply(independents, undoDataShare, dataList)
 	model <- imxReplaceModels(model, independents)
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
