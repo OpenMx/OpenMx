@@ -193,6 +193,7 @@ clean:
 	-rm src/*.dll
 	-rm DESCRIPTION
 	-rm runtimes.csv
+	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 veryclean: clean
 	-find . -name "*~" -exec rm -f '{}' \;
