@@ -1,0 +1,147 @@
+Package: OpenMx
+Title: Extended Structural Equation Modelling
+Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
+    person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
+    "Maes", role="aut"), person(c("Michael", "J."), "Wilde", role="ctb"), person("Michael",
+    "Spiegel", role="aut"), person(c("Timothy", "R."), "Brick", role="aut"),
+    person("Ryne", "Estabrook", role="aut"), person(c("Timothy", "C."),
+    "Bates", role="aut"), person("Paras", "Mehta", role="ctb"), person("Timo", c("von",
+    "Oertzen"), role="ctb"), person(c("Ross", "J."), "Gore", role="aut"),
+    person(c("Michael", "D."), "Hunter", role="aut"), person(c("Daniel", "C."), "Hackett", role="ctb"),
+    person("Julian", "Karch", role="ctb"), person(c("Andreas", "M."), "Brandmaier", role="ctb"),
+    person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
+    role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"),
+    person(c("Robert", "M."), "Kirkpatrick", role="aut"),
+    person(c("Yang"), "Wang", role="ctb"),
+    person(c("Charles"), "Driver", email="driver@mpib-berlin.mpg.de", role="ctb"))
+URL: http://openmx.psyc.virginia.edu
+BugReports: http://openmx.psyc.virginia.edu/forums
+Description: Facilitates treatment of statistical model specifications
+    as things that can be generated and manipulated programmatically.
+    Structural equation models may be specified with reticular action model matrices or paths,
+    linear structural relations matrices or paths, or
+    directly in matrix algebra.
+    Fit functions include full information maximum likelihood,
+    maximum likelihood, and weighted least squares.
+    Example models include confirmatory factor, multiple group, mixture
+    distribution, categorical threshold, modern test theory, differential
+    equations, state space, and many others.
+SystemRequirements: GNU make
+License: Apache License (== 2.0) | file LICENSE
+LinkingTo: RcppEigen, StanHeaders, BH
+Depends:
+	R (>= 3.0.2),
+    digest,
+    MASS,
+    methods,
+    parallel
+Suggests:
+    Matrix,
+    mvtnorm,
+    numDeriv,
+    roxygen2 (>= 3.1),
+    Rmpi,
+    rpf (>= 0.36),
+    snowfall
+LazyLoad: yes
+LazyData: yes
+Collate:
+    '0ClassUnion.R'
+    'cache.R'
+    'MxBaseNamed.R'
+    'MxData.R'
+    'MxDataWLS.R'
+    'DefinitionVars.R'
+    'MxReservedNames.R'
+    'MxNamespace.R'
+    'MxSearchReplace.R'
+    'MxFlatSearchReplace.R'
+    'MxUntitled.R'
+    'MxAlgebraFunctions.R'
+    'MxExponential.R'
+    'MxMatrix.R'
+    'DiagMatrix.R'
+    'FullMatrix.R'
+    'IdenMatrix.R'
+    'LowerMatrix.R'
+    'SdiagMatrix.R'
+    'StandMatrix.R'
+    'SymmMatrix.R'
+    'UnitMatrix.R'
+    'ZeroMatrix.R'
+    'MxMatrixFunctions.R'
+    'MxAlgebra.R'
+    'MxCycleDetection.R'
+    'MxDependencies.R'
+    'MxAlgebraConvert.R'
+    'MxAlgebraTransform.R'
+    'MxSquareBracket.R'
+    'MxEval.R'
+    'MxRename.R'
+    'MxPath.R'
+    'MxObjectiveMetaData.R'
+    'MxRAMMetaData.R'
+    'MxExpectation.R'
+    'MxExpectationNormal.R'
+    'MxExpectationRAM.R'
+    'MxExpectationLISREL.R'
+    'MxFitFunction.R'
+    'MxFitFunctionAlgebra.R'
+    'MxFitFunctionML.R'
+    'MxFitFunctionMultigroup.R'
+    'MxFitFunctionRow.R'
+    'MxFitFunctionWLS.R'
+    'MxRAMObjective.R'
+    'MxLISRELObjective.R'
+    'MxFIMLObjective.R'
+    'MxMLObjective.R'
+    'MxRowObjective.R'
+    'MxAlgebraObjective.R'
+    'MxBounds.R'
+    'MxConstraint.R'
+    'MxInterval.R'
+    'MxTypes.R'
+    'MxCompute.R'
+    'MxModel.R'
+    'MxRAMModel.R'
+    'MxLISRELModel.R'
+    'MxModelDisplay.R'
+    'MxFlatModel.R'
+    'MxMultiModel.R'
+    'MxModelFunctions.R'
+    'MxModelParameters.R'
+    'MxUnitTesting.R'
+    'MxApply.R'
+    'MxRun.R'
+    'MxRunHelperFunctions.R'
+    'MxSummary.R'
+    'MxCompare.R'
+    'MxSwift.R'
+    'MxOptions.R'
+    'MxThreshold.R'
+    'OriginalMx.R'
+    'MxGraph.R'
+    'MxGraphviz.R'
+    'MxDeparse.R'
+    'MxCommunication.R'
+    'MxRestore.R'
+    'MxVersion.R'
+    'MxPPML.R'
+    'MxRAMtoML.R'
+    'MxDiff.R'
+    'MxErrorHandling.R'
+    'MxDetectCores.R'
+    'MxSaturatedModel.R'
+    'omxBrownie.R'
+    'omxConstrainThresholds.R'
+    'omxGetNPSOL.R'
+    'MxFitFunctionR.R'
+    'MxRObjective.R'
+    'MxExpectationStateSpace.R'
+    'MxExpectationBA81.R'
+    'MxFitFunctionGREML.R'
+    'MxExpectationGREML.R'
+    'MxMI.R'
+    'MxFactorScores.R'
+    'MxAvailableOptimizers.R'
+    'zzz.R'
