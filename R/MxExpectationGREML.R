@@ -287,7 +287,7 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
             )
           }
           if(length(yvars)==1){
-            if(addOnes){colnames(X) <- c("1",Xvars[[1]])}
+            if(addOnes){colnames(X) <- c("Intrcpt",Xvars[[1]])}
             else{colnames(X) <- Xvars[[1]]}
           }
           else{
@@ -306,7 +306,7 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
           k <- i
           Xcurr <- matrix(0,nrow(data)*length(yvars),ncol=length(Xvars[[i]])+addOnes)
           if(length(yvars)==1){
-            if(addOnes){colnames(Xcurr) <- c("1",Xvars[[1]])}
+            if(addOnes){colnames(Xcurr) <- c("Intrcpt",Xvars[[1]])}
             else{colnames(Xcurr) <- Xvars[[1]]}
           }
           else{
@@ -328,7 +328,7 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
           Xcurr <- as.matrix(data[ ,Xvars[[i]] ])
           if(addOnes){
             Xcurr <- cbind(1,Xcurr)
-            colnames(Xcurr) <- c("1",Xvars[[1]])
+            colnames(Xcurr) <- c("Intrcpt",Xvars[[1]])
           }
           else{colnames(Xcurr) <- Xvars[[1]]}
           if(i==1){X <- Xcurr}
@@ -343,7 +343,7 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
           }
           if(addOnes){Xcurr <- cbind(1,Xcurr)}
           if(i==1){
-            if(addOnes){colnames(Xcurr) <- c("1",Xvars[[1]])}
+            if(addOnes){colnames(Xcurr) <- c("Intrcpt",Xvars[[1]])}
             else{colnames(Xcurr) <- Xvars[[1]]}
             X <- Xcurr
           }
