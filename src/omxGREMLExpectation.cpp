@@ -118,7 +118,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 0);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   //invcov:
@@ -167,7 +167,7 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 0);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   cholV.compute(EigV);
@@ -238,7 +238,8 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   }
   
   {
-  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), oge->quadXinv.cols()));
+  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), 
+  	oge->quadXinv.cols()));
   for(int row = 0; row < oge->quadXinv.rows(); row++){
     for(int col = 0; col < oge->quadXinv.cols(); col++){
       REAL(bcov_ext)[col * oge->quadXinv.rows() + row] = oge->quadXinv(row,col);
@@ -317,9 +318,8 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 
 
 
-void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){
-/*TODO: Assuming this function is only to be used with symmetric matrices, rewrite it to ignore nonunique
-matrix elements*/
+void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop,
+	int symmetric){
   
   if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
   
@@ -336,8 +336,8 @@ matrix elements*/
     
     for(int j = 0; j < om->cols; j++) {
   	  if(todrop[j]) continue;
-  		nextRow = 0;
-  		for(int k = 0; k < om->rows; k++) {
+  		nextRow = (symmetric ? nextCol : 0);
+  		for(int k = (symmetric ? j : 0); k < om->rows; k++) {
   			if(todrop[k]) continue;
   			em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j);
   			nextRow++;
@@ -364,8 +364,8 @@ matrix elements*/
     
     for(int j = 0; j < oldCols; j++) {
       if(todrop[j]) continue;
-      nextRow = 0;
-      for(int k = 0; k < oldRows; k++) {
+      nextRow = (symmetric ? nextCol : 0);
+      for(int k = (symmetric ? j : 0); k < oldRows; k++) {
         if(todrop[k]) continue;
         omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
         nextRow++;

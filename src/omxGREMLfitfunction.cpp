@@ -162,7 +162,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P * Eigy;
-      oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + (Eigy.transpose() * Py )(0,0));
+      oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + ( Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
@@ -207,7 +207,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       
       //Finish computing fit:
       oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + 
-        (Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
+        ( Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
       gff->nll = oo->matrix->data[0]; 
       return;
     }
@@ -238,7 +238,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
       if( oge->numcases2drop ){
-        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase);
+        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 0);
       }
       else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
       PdV_dtheta1 = P * dV_dtheta1;
@@ -254,7 +254,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
           t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
           if(t2 < 0){continue;}
           if( oge->numcases2drop ){
-            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase);
+            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 0);
           }
           else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
           gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P * dV_dtheta2 * Py)(0,0);
