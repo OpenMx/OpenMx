@@ -2,9 +2,6 @@ library(OpenMx)
 
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
-#Create a constraint between MxMatrices 'A' and 'B'
-constraint <- mxConstraint(A > B, name = 'AdominatesB')
-
 # Constrain matrix 'K' to be equal to matrix 'limit'
 model <- mxModel(model="con_test",
                  mxMatrix(type="Full", nrow=2, ncol=2, free=TRUE, name="K"),

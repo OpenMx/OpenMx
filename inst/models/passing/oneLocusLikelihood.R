@@ -38,8 +38,8 @@ onelocus<-mxModel("onelocus", mxFitFunctionAlgebra("NegativeLogLikelihood"),
 
 #run the model
 run<-mxRun(onelocus)
-run$matrices
-run$algebras
+#run$matrices
+#run$algebras
 
 omxCheckCloseEnough(run$algebras$NegativeLogLikelihood$result, 627.028, .1)
 
@@ -49,3 +49,9 @@ Mx1Estimates<-c(0.2945,0.1540,0.5515)
 omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 
 
+onelocus <- mxModel(onelocus,
+		    mxConstraint(P + Q + R == 1, "redundent"))
+run <- mxRun(onelocus)
+omxCheckCloseEnough(run$algebras$NegativeLogLikelihood$result, 627.028, .1)
+estimates<-c(run$matrices$P$values,run$matrices$Q$values,run$matrices$R$values)
+omxCheckCloseEnough(estimates,Mx1Estimates,.01)
