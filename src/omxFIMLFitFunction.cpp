@@ -49,13 +49,13 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 	omxMatrix *expCovInt, *expMeanInt;
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
-
+	
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
 			REAL(expCovExt)[col * expCovInt->rows + row] =
 				omxMatrixElement(expCovInt, row, col);
-	if (expMeanInt != NULL) {
+	if (expMeanInt != NULL && expMeanInt->rows > 0  && expMeanInt->cols > 0) {
 		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
 		for(int row = 0; row < expMeanInt->rows; row++)
 			for(int col = 0; col < expMeanInt->cols; col++)
