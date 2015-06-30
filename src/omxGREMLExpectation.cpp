@@ -180,8 +180,17 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
     oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
   oge->logdetV_om->data[0] *= 2;
-  Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-  oge->XtVinv = EigX.transpose() * Vinv;
+  if(oge->alwaysComputeMeans){
+  	Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+  	oge->XtVinv = EigX.transpose() * Vinv;
+  }
+  /*alwaysComputeMeans is initialized as true, and the only way it can be set to false is by the GREML 
+  fitfunction.  If its false, that means that the GREML fitfunction is being used, and it knows how to handle
+  a "half-full" Vinv.*/
+  else{
+  	Vinv = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>(); //<-- V inverse
+  	oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
+  }
   quadX = oge->XtVinv * EigX;
   cholquadX.compute(quadX);
   if(cholquadX.info() != Eigen::Success){ 

@@ -158,7 +158,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       logdetquadX *= 2;
       
       //Finish computing fit (negative loglikelihood):
-      P = Vinv * 
+      P = Vinv.selfadjointView<Eigen::Lower>() * 
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P * Eigy;
