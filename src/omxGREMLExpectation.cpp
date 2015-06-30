@@ -118,13 +118,13 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 0);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   //invcov:
   oge->invcov = omxInitMatrix(EigV.rows(), EigV.cols(), 1, currentState);
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
-  cholV.compute(EigV);
+  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
     Rf_error("Expected covariance matrix is non-positive-definite at initial values");
   }
@@ -167,10 +167,10 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 0);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
-  cholV.compute(EigV);
+  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
     oge->cholV_fail_om->data[0] = 1;
     return;
