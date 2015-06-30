@@ -258,7 +258,7 @@ computeMatrix <- function(matrix, model, labelsData, defvar.row, env, cache) {
 		contextString <- paste("label at row ", row, " and column ", col, " of matrix ", 
 			omxQuotes(simplifyName(matrix@name, model@name)), sep = '')
 		tuple <- evaluateExpression(expression, contextString, model, labelsData, env, 
-			compute=TRUE, show=FALSE, outsideAlgebra=FALSE, cache=cache)
+			compute=TRUE, show=FALSE, outsideAlgebra=FALSE, defvar.row=defvar.row, cache=cache)
 		result <- tuple[[1]]
 		cache <- tuple[[2]]
 		result <- as.matrix(result)
