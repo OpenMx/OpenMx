@@ -171,11 +171,11 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 
 	// Need something finite for definition variables to avoid exceptions
 
-	for (int ex = 0; ex < (int) state->expectationList.size(); ++ex) {
+	for (int ex = 0; ex < (int) state->dataList.size(); ++ex) {
 		// It is necessary to load some number (like 1) instead
 		// of NAs because algebra can use definition variables
 		// for indexing. We will load real data later.
-		state->expectationList[ex]->loadFakeData(1);
+		state->dataList[ex]->loadFakeData(1);
 	}
 
 	for(size_t index = 0; index < numMats; index++) {

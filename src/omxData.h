@@ -47,6 +47,20 @@ typedef struct omxThresholdColumn omxThresholdColumn;
 #include "omxFitFunction.h"
 #include "omxState.h"
 
+struct omxDefinitionVar {		 	// Definition Var
+
+	int data, column;		// Where it comes from
+	omxData* source;		// Data source
+	int numLocations;		// Num locations
+	int* rows;				// row positions
+	int* cols;				// column positions
+	int* matrices;			// matrix numbers
+	int  numDeps;           // number of algebra/matrix dependencies
+	int* deps;              // indices of algebra/matrix dependencies
+
+	void loadData(omxState *state, double val);
+};
+
 struct omxContiguousData {
 	int isContiguous;
 	int start;
@@ -95,10 +109,15 @@ class omxData {
 	int* identicalDefs;					// Number of consecutive rows with identical def. vars
 	int* identicalMissingness;			// Number of consecutive rows with identical missingness patterns
 	int* identicalRows;					// Number of consecutive rows with identical data
+
+	std::vector<omxDefinitionVar> defVars;
  public:
 	int rows, cols;						// Matrix size 
 	int verbose;
 	omxState *currentState;
+
+	void loadFakeData(double fake);
+	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers

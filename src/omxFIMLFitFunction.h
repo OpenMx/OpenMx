@@ -55,9 +55,6 @@ typedef struct omxFIMLFitFunction {
 
 //	double* zeros;
 
-	/* Structures determined from info in the MxFIMLFitFunction Object*/
-	Eigen::VectorXd oldDefs;			// Stores definition variables between rows
-
 	/* Reserved memory for faster calculation */
 	omxMatrix* smallRow;		// Memory reserved for operations on each data row
 	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix

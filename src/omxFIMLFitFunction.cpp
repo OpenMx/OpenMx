@@ -104,7 +104,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxExpectation* expectation = off->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
-	if(expectation->defVars.size() == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
+	if (data->defVars.size() == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(expectation);
 		// MCN Also do the threshold formulae!
@@ -147,8 +147,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
     }
-
-	expectation->verifyDefVarDataSources(data);
 
 	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
@@ -284,8 +282,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 	
-	newObj->oldDefs.resize(off->expectation->defVars.size());
-
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;
 	if(OMX_DEBUG){mxLog("Number of columns found is %d", covCols);}
