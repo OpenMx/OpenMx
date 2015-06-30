@@ -305,151 +305,216 @@ updateModelExpectationDims <- function(model, expectations){
 #     deltas).
 
 mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1, 
-  scale = 0.25, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE,
-  ...) 
-{
-  
-  stopflag <- FALSE
-  numdone <- 0
-  bestfitsofar<-Inf
-  inits<-omxGetParameters(model)
-  while (!stopflag) {
-    if(iterationSummary==TRUE) message(paste0('\nBegin fit attempt ', numdone+1, ' of at maximum ', extraTries +1, ' tries'))
-    params <- omxGetParameters(model)
-    if(showInits==TRUE) {
-      message('Starting values:  ')
-      message(paste0(names(params),' : ', params,'\n'))
-    }
-    numdone <- numdone + 1
+    scale = 0.25,  initialGradientStepSize = .00001, initialGradientIterations = 1,
+    initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
+    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0,
+    ...){
+    lastNoError<-TRUE
     
-    fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
-    if (class(fit) == "try-error" || fit$output$status$status== -1 || is.nan(fit$output$minimum)) {
-      newparams<-omxGetParameters(model) #get recent fit
-      if(exists('bestfit')) newparams<-bestfit.params #if bestfit exists use this instead
-      if(numdone %% 4 == 0) newparams<-inits #sometimes, use initial start values instead
-      #       if(numdone %% 5 == 0) { #sometimes, switch optimizers
-      #         if(mxOption(NULL, "Default optimizer")=='CSOLNP') newoptimizer<-'NPSOL'
-      #         if(mxOption(NULL, "Default optimizer")=='NPSOL') newoptimizer<-'CSOLNP'
-      #         message(paste0('Switching to ',newoptimizer,' optimizer for OpenMx temporarily')) 
-      #         mxOption(NULL, "Default optimizer", newoptimizer)
-      #       }
-      model <- omxSetParameters(model, labels = names(newparams), 
-        values = newparams * runif(length(params),loc-scale,loc+scale))  #set to multiply bestfit.params instead of params
-    }
-    else { #if fit was not an error
-      if (fit$output$minimum <= bestfitsofar){
-        bestfit <- fit
-        bestfit.params <- omxGetParameters(bestfit)
-      }
+    gradientStepSize<- initialGradientStepSize
+    tolerance <- initialTolerance
+    lastBestFitCount<-0 #number of consecutive improvements in fit
+    gradientIterations <- initialGradientIterations  
+    stopflag <- FALSE #should the iterative optimization process stop
+    numdone <- 0
+    lowestminsofar<-Inf 
+    inits<-omxGetParameters(model) 
+    
+    
+    while (!stopflag) {
       
-      if(fit$output$minimum < bestfitsofar) bestfitsofar <- fit$output$minimum
+      if(iterationSummary==TRUE) message(paste0('\nBegin fit attempt ', numdone+1, ' of at maximum ', extraTries +1, ' tries'))
       
-      if (length(fit$output$calculatedHessian) == 0) {
-        checkHess <- FALSE
-      }
-      if (checkHess) {
-        if (sum(is.na(fit$output$calculatedHessian)) > 
-            0) {
-          checkHess <- FALSE
-        }
-      }
+      if(lastNoError==TRUE) params <- omxGetParameters(model)
       
-      stopflag <- ifelse(checkHess, (fit$output$status[[1]] <= 
-          greenOK) & (all(eigen(fit$output$calculatedHessian, 
-            symmetric = T, only.values = T)$values > 0)) & 
-          (fit$output$minimum <= fit2beat) & (fit$output$minimum <= bestfitsofar), (fit$output$status[[1]] <=  #added bestfitsofar condition
-              greenOK) & (fit$output$minimum <= fit2beat) & (fit$output$minimum <= bestfitsofar) )
-      if (!stopflag) {
-        model <- fit
-        newparams<-omxGetParameters(fit) #get recent fit
-        if(exists('bestfit')) newparams<-bestfit.params #if bestfit exists use this instead
-        if(numdone %% 4 == 0) newparams<-inits #sometimes, use initial start values instead
-        #         if(numdone %% 5 == 0) { #sometimes, switch optimizers
-        #           if(mxOption(NULL, "Default optimizer")=='CSOLNP') newoptimizer<-'NPSOL'
-        #           if(mxOption(NULL, "Default optimizer")=='NPSOL') newoptimizer<-'CSOLNP'
-        #           message(paste0('Switching to ',newoptimizer,' optimizer for OpenMx temporarily')) 
-        #           mxOption(NULL, "Default optimizer", newoptimizer)
-        #         }
+      if(lastBestFitCount == 0 & numdone > 0){ #if the last fit was not the best
+        message('\n Setting gradientStepSize and gradientIterations to defaults')
+        if(exists('bestfit')) params<-bestfit.params #if bestfit exists use this instead
+        if(numdone %% 4 == 0) params<-inits #sometimes, use initial start values instead
+        #       if(numdone %% 5 == 0) { #sometimes, switch optimizers
+        #         if(mxOption(NULL, "Default optimizer")=='CSOLNP') newoptimizer<-'NPSOL'
+        #         if(mxOption(NULL, "Default optimizer")=='NPSOL') newoptimizer<-'CSOLNP'
+        #         message(paste0('Switching to ',newoptimizer,' optimizer for OpenMx temporarily')) 
+        #         mxOption(NULL, "Default optimizer", newoptimizer)
+        #       }
+        
         model <- omxSetParameters(model, labels = names(params), 
-          values = newparams * runif(length(params),loc-scale,loc+scale))
-        fit2beat <- ifelse(fit$output$minimum < fit2beat, fit$output$minimum, 
-          fit2beat)
-        if(iterationSummary==TRUE){
-          message(paste0("Attempt ",numdone," fit:  "))
-          message(paste(names(params),": ", fit$output$estimate,"\n"))
-          message(paste0("-2LL = ", fit$output$Minus2LogLikelihood))
-        }
+          values = params * runif(length(params),loc-(rnorm(1,scale,1)),loc+(rnorm(1,scale,1))))
+        
+        gradientStepSize <- initialGradientStepSize
+        #             tolerance <- initialTolerance
+        gradientIterations<-initialGradientIterations
       }
       
-      if(stopflag){
-        message('\nSolution found\n')
-        fit<-bestfit
-        if(length(fit$intervals)>0){ #only calculate confidence intervals once the best fit is established
-          fit<-omxSetParameters(fit, labels=names(bestfit.params),values=bestfit.params)
-          message("Refit using best inits and estimate confidence intervals\n") 
-          #           mxOption(NULL, "Default optimizer", "NPSOL")
-          cifit<-suppressWarnings(try(mxRun(fit,intervals=TRUE,suppressWarnings=T,silent=T)))
-          if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-            message('Confidence interval estimation generated errors\n')
-          } else {
-            if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
-            fit<-cifit
+      
+      
+      
+      if(lastBestFitCount > 0){ #if the last fit was the best so far
+        if(exists('bestfit')) {
+          params<-bestfit.params      
+          model<-bestfit
+        }
+        message('\n Lowest minimum so far')
+        
+        
+        if(lastBestFitCount == 3) gradientStepSize <- gradientStepSize *.1
+        if(lastBestFitCount == 4) gradientStepSize <- gradientStepSize *10
+        if(lastBestFitCount  %in% seq(1,100,4)) tolerance<-tolerance * .01 
+        if(lastBestFitCount  %in% seq(1,100,4)) gradientIterations<-gradientIterations+1
+        if(lastBestFitCount  %in% seq(3,100,4)) gradientIterations<-gradientIterations-1
+        if(lastBestFitCount > 5) model <- omxSetParameters(model, labels = names(bestfit.params), 
+          values = bestfit.params * runif(length(bestfit.params),loc-(rnorm(1,scale,1)/10),loc+(rnorm(1,scale,1)/10)))
+      }
+      
+      
+      
+      
+      model<-mxModel(model, mxComputeSequence(list(
+        mxComputeGradientDescent(verbose=verbose, gradientStepSize = gradientStepSize, 
+          nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
+          maxMajorIter=3000),
+        mxComputeReportDeriv())))
+      
+      if(showInits==TRUE) {
+        message('Starting values:  ')
+        message(paste0(names(omxGetParameters(model)),' : ', omxGetParameters(model),'\n'))
+      }
+      
+      
+      fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
+      
+      numdone <- numdone + 1
+      
+      
+      if(class(fit) == "try-error" || fit$output$status$status== -1 || is.na(fit$output$minimum)) {
+        lastBestFitCount <- 0
+        lastNoError<-FALSE
+        message('\n Fit attempt generated errors') 
+      }
+      
+      if(class(fit) != "try-error" && fit$output$status$status != -1 && !is.na(fit$output$minimum)) { #if fit was not an error
+        
+        if (fit$output$minimum >= lowestminsofar) {
+          lastBestFitCount <- 0
+          lastNoError<-TRUE
+          message('\n Fit attempt did not beat the current best') 
+        }
+        
+        if (fit$output$minimum < lowestminsofar) { #if this is the best fit so far, check the following if required
+          lastBestFitCount<-lastBestFitCount+1 
+          lowestminsofar <- fit$output$minimum
+          lastNoError<-TRUE
+          bestfit <- fit
+          bestfit.params <- omxGetParameters(bestfit)
+          
+          if (length(fit$output$calculatedHessian) == 0) {
+            checkHess <- FALSE
+          }
+          if (checkHess) {
+            if (sum(is.na(fit$output$calculatedHessian)) > 
+                0) {
+              checkHess <- FALSE
+            }
+          }
+        }
+        
+        
+        stopflag <- ifelse(checkHess, (fit$output$status[[1]] <= 
+            greenOK) & (all(eigen(fit$output$calculatedHessian, 
+              symmetric = T, only.values = T)$values > 0)) & 
+            (fit$output$minimum <= fit2beat) & (fit$output$minimum <= lowestminsofar), (fit$output$status[[1]] <=  #added lowestminsofar condition
+                greenOK) & (fit$output$minimum <= fit2beat) & (fit$output$minimum <= lowestminsofar) )
+        
+        if (!stopflag) {        
+          if(iterationSummary==TRUE){
+            message(paste0("Attempt ",numdone," fit:  "))
+            message(paste(names(params),": ", fit$output$estimate,"\n"))
+            message(paste0("-2LL = ", fit$output$Minus2LogLikelihood))
+          }
+        }
+        
+        if(stopflag){
+          message('\nSolution found\n')
+          if(length(bestfit$intervals)>0){ #only calculate confidence intervals once the best fit is established
+            
+            message("Estimating confidence intervals\n") 
+            
+            mxOption(NULL, "Default optimizer")
+            bestfit <- OpenMx::mxModel(bestfit, 
+              mxComputeConfidenceInterval(plan=mxComputeGradientDescent(nudgeZeroStarts=FALSE, 
+                gradientIterations=gradientIterations, tolerance=tolerance, 
+                maxMajorIter=1000),
+                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')))
+            
+            cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
+            
+            
+            if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
+              message('Confidence interval estimation generated errors\n')
+            } else {
+              if (length(OpenMx::summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
+              bestfit<-cifit
+            }
+            
+          }
+          if (length(OpenMx::summary(bestfit)$npsolMessage) > 0) {
+            warning(OpenMx::summary(bestfit)$npsolMessage)
+          }
+          
+          if(iterationSummary==TRUE){
+            message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
+            message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
           }
           
         }
-        if (length(summary(fit)$npsolMessage) > 0) {
-          warning(summary(fit)$npsolMessage)
-        }
-        
-        params <- bestfit.params
-        
-        if(iterationSummary==TRUE){
-          message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-          message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
-        }
-        
-      }
-    } #end 'if fit not an error' section
-    if (numdone > extraTries & stopflag==FALSE) { #added stopflag==FALSE
-      message('\nRetry limit reached')
-      stopflag <- TRUE
-      if (exists("bestfit")) {
-        fit <- bestfit
-        params <- bestfit.params
-        if(length(fit$intervals)>0){ #calculate intervals for best fit, even though imperfect
-          fit<-omxSetParameters(fit, labels=names(bestfit.params),values=bestfit.params)
-          message("Refit using best inits and estimate confidence intervals\n") 
-          #           mxOption(NULL, "Default optimizer", "NPSOL")
-          cifit<-suppressWarnings(try(mxRun(fit,intervals=TRUE,suppressWarnings=T,silent=T)))
-          if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-            message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
-          } else {
-            fit<-cifit
+      } #end 'if fit not an error' section
+      
+      
+      
+      
+      
+      
+      if (numdone > extraTries & stopflag==FALSE) { #added stopflag==FALSE
+        message('\nRetry limit reached')
+        stopflag <- TRUE
+        if (exists("bestfit")) {
+          
+          if(length(bestfit$intervals)>0){ #calculate intervals for best fit, even though imperfect
+            message("Estimate confidence intervals for imperfect solution\n") 
+            #           mxOption(NULL, "Default optimizer", "NPSOL")
+            cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
+            if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
+              message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
+            } else {
+              bestfit<-cifit
+            }
+          }
+          if (length(bestfit$output$status$statusMsg) > 0) { 
+            warning(bestfit$output$status$statusMsg)
+          }
+          if(bestfit$output$status$code==6) message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
+          if(iterationSummary==TRUE){
+            message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
+            message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
           }
         }
-        if (length(fit$output$status$statusMsg) > 0) { 
-          warning(fit$output$status$statusMsg)
-        }
-        if(fit$output$status$code==6) message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
-        if(iterationSummary==TRUE){
-          message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-          message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
-        }
       }
-      if (!exists("bestfit")) {
-        if (length(fit$output$status$statusMsg) > 0) { 
-          warning(fit$output$status$statusMsg)
-        }
-      }
+    } #end while loop
+    
+    
+    
+    if(bestInitsOutput && exists("bestfit")){
+      bestfit.params <- omxGetParameters(bestfit)
+      message("\nStart values from best fit:")
+      if(paste) message(paste(bestfit.params, sep=",", collapse = ",")) 
+      if(!paste)  message(paste(names(bestfit.params),": ", bestfit.params,"\n"))
     }
+    
+    if (!exists("bestfit")) {
+      if(class(fit) == 'try-error') warning(fit[[length(fit)]])
+      message('All fit attempts resulted in errors - check starting values or model specification')
+      bestfit<-fit
+    }
+    
+    return(bestfit)
   }
-  if(bestInitsOutput){
-    message("\nStart values from best fit:")
-    if(paste) message(paste(params, sep=",", collapse = ",")) 
-    if(!paste)  message(paste(names(params),": ", params,"\n"))
-  }
-  return(fit)
-}
-
-  
