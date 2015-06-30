@@ -115,3 +115,42 @@ omxCheckCloseEnough(omxGetParameters(m3sRun), mplusParam, 0.001)
 mplusSE <- c(.073, .082, .080, .040, .044, .074, .063, .063, .065, .234, .228, .042, .019, .026, .023)
 rd <- (summary(m3sRun)$parameters[,6] - mplusSE) / mplusSE
 omxCheckCloseEnough(rd, rep(0, length(mplusSE)), 0.01)
+
+
+#------------------------------------------------------------------------------
+# Different way to do the same multilevel model.
+# This way avoids the multigroup overhead.
+# Instead of using multiple groups, it just re-initializes
+
+# This example only re-initialized the covariances, bc the
+# between cluster means are always zero.
+
+
+# Create continue cluster variable
+# 0 at the beginning of each cluster, 1 everywhere else.
+dataC <- data
+dataC$cclus <- c(0, 1-diff(dataC$V1))
+
+
+a2 <- mxMatrix(name='A', 'Diag', nx, nx, labels='data.cclus')
+sw <- mxMatrix(name='con', 'Full', 1, 1, labels='data.cclus')
+q2 <- mxAlgebra((1-con) %x% CovB, name='Q')
+
+simpleModel <- mxModel('SimpleMultilevel',
+	a2, b, c, d, q2, x0, u, sw,
+	LW, PW, TW, CW, LB, PB, TB, CB,
+	mxExpectationStateSpace(A="A", B="B", C="C", D="D", Q="Q", R="CovW", x0="x0", P0="CovB", u="u"),
+	# note the R and P0 matrices
+	mxFitFunctionML(),
+	mxData(dataC, type='raw')
+)
+
+simpleRun <- mxRun(simpleModel)
+
+omxCheckCloseEnough(omxGetParameters(simpleRun), mplusParam, 0.001)
+
+rd <- (summary(simpleRun)$parameters[,6] - mplusSE) / mplusSE
+omxCheckCloseEnough(rd, rep(0, length(mplusSE)), 0.01)
+
+
+
