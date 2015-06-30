@@ -587,6 +587,27 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# try the weird non-hao version
 	xls <- quad
 	
+	if(debug){
+		custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE), mxComputeReportDeriv()))
+		satModel <- mxModel('SatModel4Hess',
+			mxMatrix('Symm', nrow(pcMatrix), ncol(pcMatrix), values=pcMatrix, free=TRUE, name='theCov'),
+			mxMatrix('Full', 1, length(meanEst), values=meanEst, free=TRUE, name='theMeans'),
+			mxMatrix('Full', nrow(thresh), ncol(thresh), values=thresh, free=TRUE, name='theThresh'),
+			mxExpectationNormal(cov='theCov', means='theMeans', thresholds='theThresh', dimnames=names(data)),
+			mxFitFunctionML(),
+			mxData(data, 'raw'),
+			custom.compute)
+		
+		run <- mxRun(satModel)
+		mlHess <- run$output$hessian
+		meanID <- grep('.theMeans', rownames(mlHess))
+	}
+	
+	
+	retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
+		acov=diag(1), fullWeight=NA, thresholds=thresh)
+	retVal2@acov <- satModel$output$hessian
+	
 	if(fullWeight==TRUE){
 		fw <- wls
 	} else {fw <- NA}
