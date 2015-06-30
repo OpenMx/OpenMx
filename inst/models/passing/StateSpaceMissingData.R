@@ -46,6 +46,10 @@ missmat <- matrix(c(
 	sample(1:nvar, size=nmiss, replace=TRUE)), ncol=2, nrow=nmiss)
 demoOneFactorMiss[missmat] <- NA
 
+# Try case of plenty of missing data in last row
+demoOneFactorMiss[cbind(rep(nrow(demoOneFactorMiss), 3), c(1,3, 4))] <- NA
+
+
 #------------------------------------------------------------------------------
 # Compare an SSM with no missing data to one with a little mcar missing data.
 
