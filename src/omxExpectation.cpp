@@ -205,17 +205,11 @@ static void omxExpectationProcessDefinitionVars(omxData* od, SEXP rObj)
 		omxDefinitionVar dvar;
 		
 		SEXP dataSource, columnSource, depsSource; 
-		int nextDataSource, numDeps;
+		int numDeps;
 
 		SEXP itemList;
 		ScopedProtect p1(itemList, VECTOR_ELT(nextMatrix, nextDef));
-		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0));
-		nextDataSource = INTEGER(dataSource)[0];
-		if(OMX_DEBUG) {
-			mxLog("Data source number is %d.", nextDataSource);
-		}
-		dvar.data = nextDataSource;
-		dvar.source = od;
+		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0)); // remove TODO
 		ScopedProtect p3(columnSource, VECTOR_ELT(itemList, 1));
 		if(OMX_DEBUG) {
 			mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
@@ -321,8 +315,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 						  int(od->defVars.size()));
 		for (int dx=0; dx < int(od->defVars.size()); ++dx) {
 			omxDefinitionVar &dv = od->defVars[dx];
-			msg += string_snprintf("[%d] column '%s' ->", dx,
-					       omxDataColumnName(dv.source, dv.column));
+			msg += string_snprintf("[%d] column '%s' ->", dx, omxDataColumnName(od, dv.column));
 			for (int lx=0; lx < dv.numLocations; ++lx) {
 				msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv.matrices[lx]),
 						       dv.rows[lx], dv.cols[lx]);

@@ -49,8 +49,7 @@ typedef struct omxThresholdColumn omxThresholdColumn;
 
 struct omxDefinitionVar {		 	// Definition Var
 
-	int data, column;		// Where it comes from
-	omxData* source;		// Data source
+	int column;		// Where it comes from
 	int numLocations;		// Num locations
 	int* rows;				// row positions
 	int* cols;				// column positions
