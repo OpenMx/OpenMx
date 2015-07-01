@@ -160,7 +160,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       //Finish computing fit (negative loglikelihood):
       P = Vinv.selfadjointView<Eigen::Lower>() * 
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
-          (EigX * oge->quadXinv * oge->XtVinv)); //Vinv * (I-Hatmat)
+          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P * Eigy;
       oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + ( Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 

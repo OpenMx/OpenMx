@@ -71,6 +71,8 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   //cholV_fail_om:
   oge->cholV_fail_om = omxInitMatrix(1, 1, 1, currentState);
   oge->cholV_fail_om->data[0] = 0;
+  //quadXinv:
+  oge->quadXinv.setZero(oge->X->cols, oge->X->cols);
 
 
   //Deal with missing data:
@@ -114,7 +116,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
-  Eigen::MatrixXd quadX;
+  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
+  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
@@ -135,14 +139,14 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
   oge->XtVinv = EigX.transpose() * Vinv;
-  quadX = oge->XtVinv * EigX;
-  cholquadX.compute(quadX);
+  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){
     Rf_error("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
-  yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
+  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
+  yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
   
   /*Prepare y as the data that the FIML fitfunction will use:*/
   oge->data2 = ox->data;
@@ -166,7 +170,8 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
-  Eigen::MatrixXd quadX;
+  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
@@ -194,16 +199,16 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   	Vinv = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>(); //<-- V inverse
   	oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
   }
-  quadX = oge->XtVinv * EigX;
-  cholquadX.compute(quadX);
+  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){ 
     oge->cholquadX_fail = 1;
     return;
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
+  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
   if(oge->alwaysComputeMeans){
-    yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
+    yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
   }
 }
 
@@ -249,6 +254,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   }
   
+  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   {
   ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), 
   	oge->quadXinv.cols()));
