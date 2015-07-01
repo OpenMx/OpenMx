@@ -231,7 +231,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::LLT< Eigen::MatrixXd > cholVinv(oge->invcov->rows);
   Eigen::MatrixXd Sinv, GREML_b;
-  cholVinv.compute(Vinv);
+  cholVinv.compute(Vinv.selfadjointView<Eigen::Lower>());
   Sinv = cholVinv.matrixL();
   /*Premultiply X & y by the Cholesky factor of V inverse.  This "rotates out" the dependence amongst their 
   rows.  Then, use QR to get least-squares solution for b, in Xb = y.  This should be more numerically stable
