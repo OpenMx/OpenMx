@@ -150,7 +150,7 @@ simpleRun <- mxRun(simpleModel)
 omxCheckCloseEnough(omxGetParameters(simpleRun), mplusParam, 0.001)
 
 rd <- (summary(simpleRun)$parameters[,6] - mplusSE) / mplusSE
-omxCheckCloseEnough(rd, rep(0, length(mplusSE)), 0.01)
+omxCheckCloseEnough(rd, rep(0, length(mplusSE)), 0.015)
 
 
 

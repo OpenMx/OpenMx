@@ -601,12 +601,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		run <- mxRun(satModel)
 		mlHess <- run$output$hessian
 		meanID <- grep('.theMeans', rownames(mlHess))
+		
+		retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
+			acov=diag(1), fullWeight=NA, thresholds=thresh)
+		retVal2@acov <- satModel$output$hessian
 	}
-	
-	
-	retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
-		acov=diag(1), fullWeight=NA, thresholds=thresh)
-	retVal2@acov <- satModel$output$hessian
 	
 	if(fullWeight==TRUE){
 		fw <- wls
