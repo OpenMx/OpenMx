@@ -42,7 +42,7 @@ When the \link{mxFitFunctionMultigroup} fit function is used, \code{mxRefModels}
 
 One potentially important limitation of the \code{mxRefModels} function is for behavioral genetics models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.
 
-Another potential misuse of this function is for models with definition variables.  If definition variables are detect, a warning message is passed because the saturated and independence model may not be correct because they do not account for the definition variables.
+Another potential misuse of this function is for models with definition variables.  If definition variables are used, the saturated and independence model may not be correct because they do not account for the definition variables.
 
 When an MxModel has been run, some effort is made to make the reference models for only the variables used in the model.  For covariance data, all variables are modeled by default.  For raw data when the model has been run, only the modeled variables are used in the reference models.  This matches the behavior of \link{mxModel}.
 
