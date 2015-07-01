@@ -147,6 +147,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   /*Prepare y as the data that the FIML fitfunction will use:*/
   oge->data2 = ox->data;
   ox->data = oge->y;
+  if (oge->data2->hasDefinitionVariables()) {
+	  Rf_error("definition variables are incompatible (and unnecessary) with GREML expectation");
+  }
 }
 
 

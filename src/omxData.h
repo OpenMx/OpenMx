@@ -117,6 +117,7 @@ class omxData {
 
 	void loadFakeData(double fake);
 	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
+	bool hasDefinitionVariables() { return defVars.size() != 0; };
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
