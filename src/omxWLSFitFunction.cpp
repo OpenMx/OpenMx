@@ -199,6 +199,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	
 	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
     omxData* dataMat = oo->expectation->data;
+    if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
 	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "cov")) {
 		char *errstr = (char*) calloc(250, sizeof(char));

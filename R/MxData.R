@@ -344,7 +344,7 @@ sortRawData <- function(mxData, defVars, modelname, modeloptions) {
 			stop(msg, call. = FALSE)
 		}
 		if (length(defVars) > 0) {
-			defkeys <- names(imxFilterDefinitionVariables(defVars, fullname))
+			defkeys <- grep(paste('^',modelname,'\\.data\\.',sep=''), names(defVars),value=TRUE)
 			defkeys <- sapply(defkeys, function(x) {
 				unlist(strsplit(x, imxSeparatorChar, fixed = TRUE))[[3]]
 			})

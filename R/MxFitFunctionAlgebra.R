@@ -51,7 +51,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionAlgebra"),
 })
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		algebra <- .Object@algebra
 		if (is.na(algebra) && is.na(.Object@gradient) && is.na(.Object@hessian)) {

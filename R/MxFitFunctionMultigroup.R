@@ -35,7 +35,7 @@ setMethod("qualifyNames", signature("MxFitFunctionMultigroup"),
 
 # "model.algebra" or "model" for "model.fitfunction"
 setMethod("genericFitFunConvert", "MxFitFunctionMultigroup", 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		if (length(.Object@groups)) {
 			origGroups <- .Object@groups

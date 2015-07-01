@@ -30,7 +30,6 @@ setClass(Class = "MxExpectationGREML",
            bcov="matrix",
            numFixEff = "integer",
            dims = "character",
-           definitionVars = "list",
            numStats = "numeric",
            dataColumns = "numeric",
            name = "character"),
@@ -42,7 +41,7 @@ setClass(Class = "MxExpectationGREML",
 setMethod("initialize", "MxExpectationGREML",
           function(.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
                    blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDrop=integer(0),
-                   data = as.integer(NA), definitionVars = list(), name = 'expectation') {
+                   data = as.integer(NA), name = 'expectation') {
             .Object@name <- name
             .Object@V <- V
             .Object@yvars <- yvars
@@ -53,7 +52,6 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@dataset.is.yX <- dataset.is.yX
             .Object@numFixEff <- integer(0)
             .Object@casesToDrop <- casesToDrop
-            .Object@definitionVars <- definitionVars
             .Object@data <- data
             .Object@X <- matrix(as.numeric(NA),1,1)
             .Object@dims <- "foo"
@@ -135,10 +133,9 @@ mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE
 
 
 setMethod("genericExpFunConvert", "MxExpectationGREML", 
-          function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+          function(.Object, flatModel, model, labelsData, dependencies) {
             modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
             name <- .Object@name
-            if(length(defVars)){stop("definition variables are incompatible (and unnecessary) with GREML expectation",call.=F)}
             #There just needs to be something in the data slot, since the backend expects it:
             if(is.na(.Object@data)){
               msg <- paste("the GREML expectation function",

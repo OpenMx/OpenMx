@@ -35,7 +35,7 @@ setMethod("initialize", "MxFitFunctionR",
 )
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionR"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		.Object@model <- model
 		.Object@flatModel <- flatModel
 		return(.Object)
