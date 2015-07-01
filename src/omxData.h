@@ -183,4 +183,7 @@ void omxPrintData(omxData *od, const char *header);
 
 double omxDataDF(omxData *od);
 
+SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
+			   SEXP skipMissingness, SEXP skipDefvars);
+
 #endif /* _OMXDATA_H_ */

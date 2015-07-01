@@ -238,7 +238,7 @@ checkSSMConformable <- function(mat, rows, cols, matname, modname){
 # TODO: Allow subsets of the matrices to be specified
 #  by filling in default matrices.
 setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
@@ -314,7 +314,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
-			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)

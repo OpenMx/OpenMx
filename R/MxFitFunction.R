@@ -73,7 +73,7 @@ setGeneric("genericFitNewEntities",
 
 
 setGeneric("genericFitFunConvert", 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 	return(standardGeneric("genericFitFunConvert"))	
 })
 
@@ -214,8 +214,8 @@ fitFunctionModifyEntities <- function(flatModel, namespace, labelsData) {
 	return(flatModel)
 }
 
-convertFitFunctions <- function(flatModel, model, labelsData, defVars, dependencies) {
+convertFitFunctions <- function(flatModel, model, labelsData, dependencies) {
 	retval <- lapply(flatModel@fitfunctions, genericFitFunConvert, 
-		flatModel, model, labelsData, defVars, dependencies)
+		flatModel, model, labelsData, dependencies)
 	return(retval)
 }

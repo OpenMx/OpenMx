@@ -125,45 +125,6 @@ static SEXP untitledNumber() {
 	return Rf_ScalarInteger(++untitledCounter);
 }
 
-static R_CallMethodDef callMethods[] = {
-	{"backend", (DL_FUNC) omxBackend, 10},
-	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
-	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
-	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
-	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
-	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
-	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
-	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
-	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
-	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},
-	{"untitledNumberReset", (DL_FUNC) &untitledNumberReset, 0},
-	{"untitledNumber", (DL_FUNC) &untitledNumber, 0},
-	{NULL, NULL, 0}
-};
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
-void R_init_OpenMx(DllInfo *info) {
-	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
-
-	// There is no code that will change behavior whether openmp
-	// is set for nested or not. I'm just keeping this in case it
-	// makes a difference with older versions of openmp. 2012-12-24 JNP
-#if defined(_OPENMP) && _OPENMP <= 200505
-	omp_set_nested(0);
-#endif
-}
-
-void R_unload_OpenMx(DllInfo *) {
-	// keep this stub in case we need it
-}
-
-#ifdef  __cplusplus
-}
-#endif
-
 void string_to_try_Rf_error( const std::string& str )
 {
 	Rf_error("%s", str.c_str());
@@ -353,7 +314,8 @@ static double internalToUserBound(double val, double inf)
 
 SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
+		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
+		 SEXP defvars)
 {
 	SEXP nextLoc;
 
@@ -376,7 +338,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 #endif
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	globalState->omxProcessMxDataEntities(data);
+	globalState->omxProcessMxDataEntities(data, defvars);
     
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxExpectationEntities(expectList);
@@ -564,18 +526,58 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	return result.asR();
 }
 
-SEXP omxBackend(SEXP constraints, SEXP matList,
+static SEXP omxBackend(SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options)
+		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
+		SEXP defvars)
 {
 	try {
 		return omxBackend2(constraints, matList,
 				   varList, algList, expectList, computeList,
-				   data, intervalList, checkpointList, options);
+				   data, intervalList, checkpointList, options, defvars);
 	} catch( std::exception& __ex__ ) {
 		exception_to_try_Rf_error( __ex__ );
 	} catch(...) {
 		string_to_try_Rf_error( "c++ exception (unknown reason)" );
 	}
 }
+
+static R_CallMethodDef callMethods[] = {
+	{"backend", (DL_FUNC) omxBackend, 11},
+	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
+	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
+	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
+	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
+	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
+	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
+	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
+	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
+	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},
+	{"untitledNumberReset", (DL_FUNC) &untitledNumberReset, 0},
+	{"untitledNumber", (DL_FUNC) &untitledNumber, 0},
+	{NULL, NULL, 0}
+};
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+void R_init_OpenMx(DllInfo *info) {
+	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+
+	// There is no code that will change behavior whether openmp
+	// is set for nested or not. I'm just keeping this in case it
+	// makes a difference with older versions of openmp. 2012-12-24 JNP
+#if defined(_OPENMP) && _OPENMP <= 200505
+	omp_set_nested(0);
+#endif
+}
+
+void R_unload_OpenMx(DllInfo *) {
+	// keep this stub in case we need it
+}
+
+#ifdef  __cplusplus
+}
+#endif
 
