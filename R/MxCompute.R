@@ -1283,8 +1283,10 @@ setMethod("displayCompute", signature(Ob="MxComputeSequence", indent="integer"),
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "independent :", Ob@independent, '\n')
+		  stepName <- paste("'", names(Ob@steps), "'",sep='')
+		  if (length(stepName) != length(Ob@steps)) stepName <- 1:length(Ob@steps)
 		  if (length(Ob@steps)) for (step in 1:length(Ob@steps)) {
-			  cat(sp, "steps[[", step, "]] :", '\n')
+			  cat(sp, "steps[[", stepName[step], "]] :", '\n')
 			  displayCompute(Ob@steps[[step]], indent+1L)
 		  }
 		  invisible(Ob)
