@@ -161,7 +161,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P.selfadjointView<Eigen::Lower>() * Eigy;
-      oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + ( Eigy.transpose() * Py )(0,0));
+      oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + logdetquadX + ( Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
