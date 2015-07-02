@@ -116,7 +116,7 @@ I <- mxMatrix(type="Iden", nrow=2, ncol=2, name="I")
 
 
 # Define the expectation
-expect <- mxExpectationRAM('A', 'S', 'I', 'M', dimnames=tmpNames)
+expect <- mxExpectationRAM('A', 'S', 'I', 'M', dimnames=dsNames)
 
 
 # Choose a fit function
