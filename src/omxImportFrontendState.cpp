@@ -31,7 +31,7 @@ int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
 }
 
-void omxState::omxProcessMxDataEntities(SEXP data)
+void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 {
 	SEXP nextLoc;
 	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
@@ -41,6 +41,44 @@ void omxState::omxProcessMxDataEntities(SEXP data)
 	for(int index = 0; index < Rf_length(data); index++) {
 		ScopedProtect p1(nextLoc, VECTOR_ELT(data, index));			// Retrieve the data object
 		omxNewDataFromMxData(nextLoc, CHAR(STRING_ELT(listNames, index)));
+	}
+
+	int numDefs = Rf_length(defvars);
+	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
+		omxDefinitionVar dvar;
+		
+		SEXP dataSource, columnSource, depsSource; 
+		int numDeps;
+
+		SEXP itemList;
+		ScopedProtect p1(itemList, VECTOR_ELT(defvars, nextDef));
+		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0));
+		omxData *od = dataList[ INTEGER(dataSource)[0] ];
+		ScopedProtect p3(columnSource, VECTOR_ELT(itemList, 1));
+		if(OMX_DEBUG) {
+			mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
+		}
+		dvar.column = INTEGER(columnSource)[0];
+		ScopedProtect p4(depsSource, VECTOR_ELT(itemList, 2));
+		numDeps = LENGTH(depsSource);
+		dvar.numDeps = numDeps;
+		dvar.deps = (int*) R_alloc(numDeps, sizeof(int));
+		for(int i = 0; i < numDeps; i++) {
+			dvar.deps[i] = INTEGER(depsSource)[i];
+		}
+
+		dvar.numLocations = Rf_length(itemList) - 3;
+		dvar.matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		dvar.rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		dvar.cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
+		for(int index = 3; index < Rf_length(itemList); index++) {
+			SEXP nextItem;
+			ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
+			dvar.matrices[index-3] = INTEGER(nextItem)[0];
+			dvar.rows[index-3] = INTEGER(nextItem)[1];
+			dvar.cols[index-3] = INTEGER(nextItem)[2];
+		}
+		od->defVars.push_back(dvar);
 	}
 }
 

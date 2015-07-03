@@ -184,60 +184,6 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 	}
 }
 
-static void omxExpectationProcessDefinitionVars(omxData* od, SEXP rObj)
-{
-	if(!R_has_slot(rObj, Rf_install("definitionVars"))) {
-		return;
-	}
-
-	if(OMX_DEBUG) {
-		mxLog("Accessing definition variables structure.");
-	}
-
-	SEXP nextMatrix;
-	ScopedProtect dv(nextMatrix, R_do_slot(rObj, Rf_install("definitionVars")));
-	int numDefs = Rf_length(nextMatrix);
-	if(OMX_DEBUG) {
-		mxLog("Number of definition variables is %d.", numDefs);
-	}
-	od->defVars.reserve(numDefs);
-	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
-		omxDefinitionVar dvar;
-		
-		SEXP dataSource, columnSource, depsSource; 
-		int numDeps;
-
-		SEXP itemList;
-		ScopedProtect p1(itemList, VECTOR_ELT(nextMatrix, nextDef));
-		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0)); // remove TODO
-		ScopedProtect p3(columnSource, VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG) {
-			mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
-		}
-		dvar.column = INTEGER(columnSource)[0];
-		ScopedProtect p4(depsSource, VECTOR_ELT(itemList, 2));
-		numDeps = LENGTH(depsSource);
-		dvar.numDeps = numDeps;
-		dvar.deps = (int*) R_alloc(numDeps, sizeof(int));
-		for(int i = 0; i < numDeps; i++) {
-			dvar.deps[i] = INTEGER(depsSource)[i];
-		}
-
-		dvar.numLocations = Rf_length(itemList) - 3;
-		dvar.matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		dvar.rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		dvar.cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		for(int index = 3; index < Rf_length(itemList); index++) {
-			SEXP nextItem;
-			ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
-			dvar.matrices[index-3] = INTEGER(nextItem)[0];
-			dvar.rows[index-3] = INTEGER(nextItem)[1];
-			dvar.cols[index-3] = INTEGER(nextItem)[2];
-		}
-		od->defVars.push_back(dvar);
-	}
-}
-
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;
@@ -254,10 +200,6 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	SEXP nextMatrix;
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
 	expect->data = omxDataLookupFromState(nextMatrix, os);
-	}
-
-	if (rObj) {
-		omxExpectationProcessDefinitionVars(expect->data, rObj);
 	}
 
 	return expect;

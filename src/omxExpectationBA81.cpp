@@ -649,6 +649,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// The following summary stats would be cheaper to calculate too.
 
 	omxData *data = state->data;
+	if (data->hasDefinitionVariables()) Rf_error("%s: not implemented yet", oo->name);
+
 	std::vector<int> &rowMap = state->grp.rowMap;
 
 	int weightCol;

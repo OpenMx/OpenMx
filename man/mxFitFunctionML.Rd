@@ -41,7 +41,7 @@ The 'vector' argument is either TRUE or FALSE, and determines whether the object
 
 The 'rowDiagnostics' arguent is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.
 
-When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, fitfunction can be referenced in the model and included in algebras as a scalar. The row likelihoods are an attribute of the fit function but are not accessible in the model.
+When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, fitfunction can be referenced in the model and included in algebras as a scalar. The row likelihoods are an attribute of the fit function but are not accessible in the model during optimization.  The row likelihoods are accessible to the user after the model has been run.
 
 Usage Notes: 
 
@@ -51,6 +51,8 @@ The results of the optimization can be reported using the \link{summary} functio
 \value{
 Returns a new MxFitFunctionML object. One and only one MxFitFunctionML object should be included in each model along  with an associated \link{mxExpectationNormal} or \link{mxExpectationRAM} object.
 }
+
+\seealso{\link{mxFitFunctionMultigroup} for multiple group models and \link{mxFitFunctionAlgebra} for user-defined fit functions.}
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
@@ -86,7 +88,9 @@ expFunction <- mxExpectationNormal(covariance="expCov", means="M", dimnames=tmpN
 
 # Choose a fit function
 
-fitFunction <- mxFitFunctionML()
+fitFunction <- mxFitFunctionML(rowDiagnostics=TRUE)
+# also return row likelihoods, even though the fit function
+#  value is still 1x1
 
 # Define the model
 
@@ -98,5 +102,12 @@ tmpModel <- mxModel(model="exampleModel", M, S, A, I, expCov, expFunction, fitFu
 tmpModelOut <- mxRun(tmpModel)
 summary(tmpModelOut)
 
-mxEval(fitfunction, tmpModelOut)
+fitResOnly <- mxEval(fitfunction, tmpModelOut)
+attributes(fitResOnly) <- NULL
+fitResOnly
+
+# Look at the row likelihoods alone
+fitLikeOnly <- attr(mxEval(fitfunction, tmpModelOut), 'likelihoods')
+head(fitLikeOnly)
+
 }

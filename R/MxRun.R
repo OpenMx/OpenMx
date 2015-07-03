@@ -171,7 +171,7 @@ runHelper <- function(model, frontendStart,
 		# We're only going to find them if we found them the first time
 		defVars <- generateDefinitionList(flatModel, dependencies)
 	}
-	expectations <- convertExpectationFunctions(flatModel, model, labelsData, defVars, dependencies)
+	expectations <- convertExpectationFunctions(flatModel, model, labelsData, dependencies)
 
 	if (length(expectations)) {
 		prec <- lapply(expectations, genericExpGetPrecision)
@@ -188,16 +188,7 @@ runHelper <- function(model, frontendStart,
 		}
 	}
 
-	if (length(defVars)) {
-		attachedDV <- sapply(expectations, function (e) names(e@definitionVars))
-		if (length(defVars) != length(attachedDV)) {
-			unattached <- names(defVars[is.na(match(names(defVars), attachedDV))])
-			stop(paste("Definition variables", omxQuotes(unattached),
-				   "are not attached to an expectation"))
-		}
-	}
-
-	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, defVars, dependencies)
+	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
 	numAlgebras <- length(algebras)
 	algebras <- append(algebras, fitfunctions)
@@ -226,7 +217,7 @@ runHelper <- function(model, frontendStart,
 	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
-			data, intervalList, communication, options, PACKAGE = "OpenMx")
+			data, intervalList, communication, options, defVars, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)

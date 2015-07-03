@@ -117,6 +117,7 @@ class omxData {
 
 	void loadFakeData(double fake);
 	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
+	bool hasDefinitionVariables() { return defVars.size() != 0; };
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
@@ -182,5 +183,8 @@ void omxPrintData(omxData *od, const char *header, int maxRows);
 void omxPrintData(omxData *od, const char *header);
 
 double omxDataDF(omxData *od);
+
+SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
+			   SEXP skipMissingness, SEXP skipDefvars);
 
 #endif /* _OMXDATA_H_ */

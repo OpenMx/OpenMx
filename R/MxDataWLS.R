@@ -593,7 +593,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 			mxMatrix('Symm', nrow(pcMatrix), ncol(pcMatrix), values=pcMatrix, free=TRUE, name='theCov'),
 			mxMatrix('Full', 1, length(meanEst), values=meanEst, free=TRUE, name='theMeans'),
 			mxMatrix('Full', nrow(thresh), ncol(thresh), values=thresh, free=TRUE, name='theThresh'),
-			mxExpectationNormal(cov='theCov', means='theMeans', thresholds='theThresh', dimnames=names(data)),
+			mxExpectationNormal(covariance='theCov', means='theMeans', thresholds='theThresh', dimnames=names(data)),
 			mxFitFunctionML(),
 			mxData(data, 'raw'),
 			custom.compute)
@@ -601,12 +601,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		run <- mxRun(satModel)
 		mlHess <- run$output$hessian
 		meanID <- grep('.theMeans', rownames(mlHess))
+		
+		retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
+			acov=diag(1), fullWeight=NA, thresholds=thresh)
+		retVal2@acov <- satModel$output$hessian
 	}
-	
-	
-	retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
-		acov=diag(1), fullWeight=NA, thresholds=thresh)
-	retVal2@acov <- satModel$output$hessian
 	
 	if(fullWeight==TRUE){
 		fw <- wls

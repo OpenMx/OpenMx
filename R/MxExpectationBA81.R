@@ -62,7 +62,7 @@ setMethod("genericExpDependencies", signature("MxExpectationBA81"),
 	  })
 
 setMethod("genericExpFunConvert", signature("MxExpectationBA81"), 
-	  function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	  function(.Object, flatModel, model, labelsData, dependencies) {
 		  modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		  if(is.na(.Object@data)) {
 			  msg <- paste(typeof(.Object),

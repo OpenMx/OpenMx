@@ -73,26 +73,3 @@ populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	matrix@values <- value
 	return(matrix)
 }
-
-defVariableIsMatch <- function(defName, dataName) {
-	components <- unlist(strsplit(defName, imxSeparatorChar, fixed = TRUE))
-	target <- paste(components[[1]], components[[2]], sep = '.')
-	return(identical(target, dataName))
-}
-
-##' imxFilterDefinitionVariables
-##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
-##'
-##' @param defVars defVars
-##' @param dataName dataName
-imxFilterDefinitionVariables <- function(defVars, dataName) {
-	if (length(defVars) == 0) return(defVars)
-	dvNames <- names(defVars)	
-	filter <- sapply(dvNames, defVariableIsMatch, dataName)
-	return(defVars[filter])
-}
-
-
-

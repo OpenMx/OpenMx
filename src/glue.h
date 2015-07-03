@@ -25,15 +25,6 @@
 #undef PROTECT_WITH_INDEX
 #undef UNPROTECT
 
-/* Functions for Export */
-SEXP omxBackend(SEXP constraints, SEXP matList,
-		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options);
-
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options);
-SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
-	SEXP skipMissingness, SEXP skipDefvars);
-
 class omxManageProtectInsanity {
 	PROTECT_INDEX initialpix;
  public:

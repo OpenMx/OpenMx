@@ -63,7 +63,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionML",
 })
 
 setMethod("genericFitFunConvert", "MxFitFunctionML", 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		expectName <- paste(modelname, "expectation", sep=".")
@@ -139,13 +139,6 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
 				"of all the variables in the data will be made.  For reference models",
 				"of only the variables used in the model, provide the model after it has been run."))
-		}
-		if(.hasSlot(model@expectation, 'definitionVars')){
-			if(length(model@expectation@definitionVars) > 0){
-				message(paste("The model", omxQuotes(modelName), "has definition variables.",
-				"The saturated and independence models generated may be incorrect.",
-				"Commence shooting yourself in the foot."))
-			}
 		}
 		
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)

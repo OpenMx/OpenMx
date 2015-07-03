@@ -22,7 +22,6 @@ setClass(Class = "MxExpectationRAM",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		definitionVars = "list",
 		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
@@ -45,7 +44,6 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
-		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
@@ -86,7 +84,7 @@ setMethod("genericExpRename", signature("MxExpectationRAM"),
 })
 
 setMethod("genericExpFunConvert", signature("MxExpectationRAM"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
@@ -165,7 +163,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
-			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)

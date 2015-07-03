@@ -139,6 +139,11 @@ generateDefinitionList <- function(flatModel, dependencies) {
 			result, i - 1L)
 	}
 	result <- lapply(result, definitionDependencyList, flatModel, dependencies)
+	# data number
+	# column number
+	# integer vector of dependencies (doLocateIndex coded)
+	# (matrix row col) triples
+	# ...
 	return(result)
 }
 
