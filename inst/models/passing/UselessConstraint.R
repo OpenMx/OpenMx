@@ -24,7 +24,11 @@ factorModelPath <- mxModel("OneFactorPath",
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Count",1)
 factorFit <- try(mxRun(factorModelPath), silent = TRUE)
 
-if (factorFit$output$status$code != 0) {
+if (mxOption(NULL, "Default optimizer") == 'SLSQP') {
+  omxCheckTrue(is(factorFit, "try-error"))
+  omxCheckEquals(attr(factorFit, 'condition')$message,
+                 "SLSQP: Failed due to singular matrix E or C in LSQ subproblem or rank-deficient equality constraint subproblem or positive directional derivative in line search")
+} else if (factorFit$output$status$code != 0) {
   # good
 } else {
   # Any constraints that show up here by mistake will have a zero gradient.

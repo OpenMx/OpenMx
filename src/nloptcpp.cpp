@@ -249,6 +249,8 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
                 }
 	}
         
+	int priorIterations = fc->iterations;
+
 	int code = nlopt_optimize(opt, est, &fc->fit);
 	if (ctx.eqredundent) {
 		nlopt_remove_equality_constraints(opt);
@@ -270,13 +272,19 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
 		Rf_error("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
-		if (goc.maxMajorIterations != -1 && fc->iterations >= goc.maxMajorIterations) {
-			goc.informOut = INFORM_ITERATION_LIMIT;
-		} else {
+		if (fc->iterations - priorIterations <= 1) {
 			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		} else {
+			goc.informOut = INFORM_ITERATION_LIMIT;
 		}
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
+		if (fc->iterations - priorIterations <= 2) {
+			Rf_error("%s: Failed due to singular matrix E or C in LSQ subproblem or "
+				 "rank-deficient equality constraint subproblem or "
+				 "positive directional derivative in line search", goc.optName);
+		} else {
+			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
+		}
 	} else if (code < 0) {
 		Rf_error("NLOPT fatal error %d", code);
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
