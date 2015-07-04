@@ -46,6 +46,8 @@ mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
 }
 
 \details{
+If you want to fit a multigroup model, the preferred way is to use \code{\link{mxFitFunctionMultigroup}}.
+
 Fit functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. While the other fit functions in OpenMx require an expectation function for the model, the \code{mxAlgebraObjective} function uses the referenced \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object as the function to be minimized.
 
 If a model's  fit function is an \code{mxFitFunctionAlgebra} objective function, then the referenced algebra in the objective function must return a 1 x 1 matrix (when using OpenMx's default optimizer).  There is no restriction on the dimensions of an fit function that is not the primary, or \sQuote{topmost}, objective function.

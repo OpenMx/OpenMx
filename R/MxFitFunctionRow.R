@@ -100,7 +100,7 @@ setMethod("genericFitRename", signature("MxFitFunctionRow"),
 })
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionRow"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		dataName <- .Object@data

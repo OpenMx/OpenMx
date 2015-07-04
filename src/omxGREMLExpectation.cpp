@@ -71,6 +71,8 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   //cholV_fail_om:
   oge->cholV_fail_om = omxInitMatrix(1, 1, 1, currentState);
   oge->cholV_fail_om->data[0] = 0;
+  //quadXinv:
+  oge->quadXinv.setZero(oge->X->cols, oge->X->cols);
 
 
   //Deal with missing data:
@@ -114,17 +116,19 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
-  Eigen::MatrixXd quadX;
+  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
+  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   //invcov:
   oge->invcov = omxInitMatrix(EigV.rows(), EigV.cols(), 1, currentState);
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
-  cholV.compute(EigV);
+  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
     Rf_error("Expected covariance matrix is non-positive-definite at initial values");
   }
@@ -135,18 +139,21 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
   oge->XtVinv = EigX.transpose() * Vinv;
-  quadX = oge->XtVinv * EigX;
-  cholquadX.compute(quadX);
+  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){
     Rf_error("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
-  yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
+  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
+  yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
   
   /*Prepare y as the data that the FIML fitfunction will use:*/
   oge->data2 = ox->data;
   ox->data = oge->y;
+  if (oge->data2->hasDefinitionVariables()) {
+	  Rf_error("definition variables are incompatible (and unnecessary) with GREML expectation");
+  }
 }
 
 
@@ -163,14 +170,15 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
-  Eigen::MatrixXd quadX;
+  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
-  cholV.compute(EigV);
+  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
     oge->cholV_fail_om->data[0] = 1;
     return;
@@ -180,18 +188,27 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
     oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
   oge->logdetV_om->data[0] *= 2;
-  Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-  oge->XtVinv = EigX.transpose() * Vinv;
-  quadX = oge->XtVinv * EigX;
-  cholquadX.compute(quadX);
+  if(oge->alwaysComputeMeans){
+  	Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+  	oge->XtVinv = EigX.transpose() * Vinv;
+  }
+  /*alwaysComputeMeans is initialized as true, and the only way it can be set to false is by the GREML 
+  fitfunction.  If its false, that means that the GREML fitfunction is being used, and it knows how to handle
+  a "half-full" Vinv.*/
+  else{
+  	Vinv = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>(); //<-- V inverse
+  	oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
+  }
+  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){ 
     oge->cholquadX_fail = 1;
     return;
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols));
+  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
   if(oge->alwaysComputeMeans){
-    yhat = EigX * oge->quadXinv * oge->XtVinv * Eigy;
+    yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
   }
 }
 
@@ -222,7 +239,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::LLT< Eigen::MatrixXd > cholVinv(oge->invcov->rows);
   Eigen::MatrixXd Sinv, GREML_b;
-  cholVinv.compute(Vinv);
+  cholVinv.compute(Vinv.selfadjointView<Eigen::Lower>());
   Sinv = cholVinv.matrixL();
   /*Premultiply X & y by the Cholesky factor of V inverse.  This "rotates out" the dependence amongst their 
   rows.  Then, use QR to get least-squares solution for b, in Xb = y.  This should be more numerically stable
@@ -237,8 +254,10 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   }
   
+  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   {
-  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), oge->quadXinv.cols()));
+  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), 
+  	oge->quadXinv.cols()));
   for(int row = 0; row < oge->quadXinv.rows(); row++){
     for(int col = 0; col < oge->quadXinv.cols(); col++){
       REAL(bcov_ext)[col * oge->quadXinv.rows() + row] = oge->quadXinv(row,col);
@@ -317,9 +336,8 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 
 
 
-void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop){
-/*TODO: Assuming this function is only to be used with symmetric matrices, rewrite it to ignore nonunique
-matrix elements*/
+void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop,
+	int symmetric){
   
   if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
   
@@ -336,8 +354,8 @@ matrix elements*/
     
     for(int j = 0; j < om->cols; j++) {
   	  if(todrop[j]) continue;
-  		nextRow = 0;
-  		for(int k = 0; k < om->rows; k++) {
+  		nextRow = (symmetric ? nextCol : 0);
+  		for(int k = (symmetric ? j : 0); k < om->rows; k++) {
   			if(todrop[k]) continue;
   			em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j);
   			nextRow++;
@@ -364,8 +382,8 @@ matrix elements*/
     
     for(int j = 0; j < oldCols; j++) {
       if(todrop[j]) continue;
-      nextRow = 0;
-      for(int k = 0; k < oldRows; k++) {
+      nextRow = (symmetric ? nextCol : 0);
+      for(int k = (symmetric ? j : 0); k < oldRows; k++) {
         if(todrop[k]) continue;
         omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
         nextRow++;

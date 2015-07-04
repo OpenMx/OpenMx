@@ -4,13 +4,14 @@
 \title{Make multiple attempts to run a model}
 
 \description{
-Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} until the optimizer yields an acceptable solution or the maximum number of attempts is reached.  Each attempt uses the parameter estimates of the previous attempt as start values, except they are each multiplied by random draws from a uniform distribution.  From among its attempts, the function returns the fitted, post-\code{\link{mxRun}()} model with the smallest fit-function value, and prints to the console the start values it used for that model.
+Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} until the optimizer yields an acceptable solution or the maximum number of attempts is reached.  Each attempt uses the parameter estimates of the previous attempt as start values, but they are each multiplied by random draws from a uniform distribution, and optimization parameters may be altered.  From among its attempts, the function returns the fitted, post-\code{\link{mxRun}()} model with the smallest fit-function value, and can print to the console the start values it used for that model.
 }
 
 \usage{
 mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, 
-  scale = 0.25, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE,
+  scale = 0.25, initialGradientStepSize = .00001, initialGradientIterations = 1,
+    initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
+  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose = 0,
   ...)
 }
 
@@ -19,12 +20,14 @@ mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1,
   \item{extraTries}{The number of attempts to run the model \emph{in addition to the first}.  In effect, is the maximum number of attempts \code{mxTryHard()} will make, since the function will stop once an acceptable solution is reached.  Defaults to 10, in which case a maximum of 11 total attempts will be made.}
   \item{greenOK}{Logical; is a solution with Mx status GREEN (npsolstatus=1) acceptable?  Defaults to \code{FALSE}.}
   \item{loc, scale}{The location and scale parameters of the uniform (rectangular) distribution from which random values are drawn to disturb start values between attempts.  The location parameter is the distribution's median, and the scale parameter is the half-width of the rectangle (that is, the absolute difference between the median and the extrema).  Defaults to a uniform distribution on the interval (0.75, 1.25).}
+  \item{initialGradientStepSize, initialGradientIterations, initialTolerance}{Optimization parameters passed to \code{\link{mxComputeGradientDescent}}.}
   \item{checkHess}{Logical; is a positive-definite Hessian a requirement for an acceptable solution?  Defaults to \code{TRUE}.}
   \item{fit2beat}{An upper limit to the objective-function value that an acceptable solution may have.  Useful if a nested submodel of \code{model} has already been fitted, since \code{model}, with its additional free parameters, should not yield a fit-function value any greater than that of the submodel.}
   \item{paste}{Logical.  If \code{TRUE} (default), start values for the returned fitted model are printed to console as a comma-separated string.  This is useful if the user wants to copy-paste these values into an \R script, say, in an \code{\link{omxSetParameters}()} statement. If \code{FALSE}, the vector of start values is printed as-is.  Note that this vector, from \code{\link{omxGetParameters}()}, has names corresponding to the free parameters; these names are not displayed when \code{paste=TRUE}.}
   \item{iterationSummary}{Logical. If \code{TRUE}, displays parameter estimates and fit values for every fit attempt. Defaults to \code{FALSE}.}
   \item{bestInitsOutput}{Logical. If \code{TRUE}, outputs starting values that resulted in best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.}
   \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt. Defaults to \code{FALSE}.}
+  \item{verbose}{Passed to \code{\link{mxComputeGradientDescent}} to specify level of output to console during optimization.}
   \item{...}{Additional arguments to be passed to \code{\link{mxRun}()} (for example, \code{intervals=TRUE}).  Note that \code{mxTryHard()} always internally invokes \code{\link{mxRun}()} with argument \code{suppressWarnings=TRUE}.}
 }
 

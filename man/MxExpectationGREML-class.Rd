@@ -30,7 +30,6 @@ Objects can be created by calls of the form
     \item{\code{bcov}:}{A matrix, to contain the sampling covariance matrix of the regression coefficients calculated at runtime.}
     \item{\code{numFixEff}:}{Integer number of covariates in 'X.'}
     \item{\code{dims}:}{Object of class \code{"character"}.}
-    \item{\code{definitionVars}:}{Object of class \code{"list"}.}
     \item{\code{numStats}:}{Numeric; number of observed statistics.}
     \item{\code{dataColumns}:}{Object of class \code{"numeric"}.}
     \item{\code{name}:}{Object of class \code{"character"}.}

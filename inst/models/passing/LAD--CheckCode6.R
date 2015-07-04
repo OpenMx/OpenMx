@@ -48,7 +48,7 @@ Laplace_rgsn_mod1 <- mxModel(
             values=5, 
             name="lambda", labels="lambdapar", lbound=0.0001), #<--Residual dispersion parameter
   mxMatrix(type="Full", nrow=1, ncol=1, free=F,
-           name="xdef"),  # this is not a definition variable TODO
+           name="xdef", labels="data.x"), #<--x is definition variable.
   mxAlgebra(A + B*xdef, name="yhat", dimnames=list(NULL,"y")), #<--yhat
   mxAlgebra((log(2*lambda) + (abs(filteredDataRow - yhat)/lambda) 
   ), name="rowAlgebra"), #<--Negative loglikelihood for 1 observation
@@ -60,6 +60,9 @@ Laplace_rgsn_mod1 <- mxModel(
 
 Laplace_rgsn_fit1 <- mxRun(Laplace_rgsn_mod1)
 summary(Laplace_rgsn_fit1)
+omxCheckCloseEnough(Laplace_rgsn_fit1$output$fit, 64.55, .02)
+omxCheckCloseEnough(Laplace_rgsn_fit1$output$estimate, c(3.21, 1.01, 0.85), .03)
+
 print(Laplace_rgsn_fit1$compute$steps[[2]]$output$gradient)
 if (0) {
   # We cannot detect this problem reliably.

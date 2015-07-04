@@ -293,7 +293,7 @@ class omxState {
 	void omxProcessMxExpectationEntities(SEXP expList);
 	void omxCompleteMxExpectationEntities();
 	void omxProcessConstraints(SEXP constraints, FitContext *fc);
-	void omxProcessMxDataEntities(SEXP data);
+	void omxProcessMxDataEntities(SEXP data, SEXP defvars);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out);

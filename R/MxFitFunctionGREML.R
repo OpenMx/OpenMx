@@ -65,7 +65,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionGREML",
 
 
 setMethod("genericFitFunConvert", "MxFitFunctionGREML", 
-          function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+          function(.Object, flatModel, model, labelsData, dependencies) {
             name <- .Object@name
             modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
             expectName <- paste(modelname, "expectation", sep=".")

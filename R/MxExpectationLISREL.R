@@ -45,7 +45,6 @@ setClass(Class = "MxExpectationLISREL",
 	        numStats = "numeric",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		definitionVars = "list",
 		dataColumns = "numeric", #Used in FIML to grab the correct data elements
 		thresholdColumns = "numeric", #Used in FIML
 		thresholdLevels = "numeric", # Used in FIML
@@ -76,7 +75,6 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
-		.Object@definitionVars <- list()
 		return(.Object)
 	}
 )
@@ -234,7 +232,7 @@ checkLISRELmeans <- function(Lam, ManMean, LatMean, X, modelname){
 # **DONE**
 # Note: Lots of error checking is done in this method
 setMethod("genericExpFunConvert", signature("MxExpectationLISREL"), 
-	function(.Object, flatModel, model, labelsData, defVars, dependencies) {
+	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		lxMatrix <- .Object@LX
@@ -460,7 +458,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
-			.Object@definitionVars <- imxFilterDefinitionVariables(defVars, data)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)

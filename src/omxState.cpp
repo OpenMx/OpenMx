@@ -300,19 +300,19 @@ void omxState::init()
 
 void omxState::loadDefinitionVariables(bool start)
 {
-	for(int ex = 0; ex < int(expectationList.size()); ++ex) {
-		omxExpectation *e1 = expectationList[ex];
+	for(int ex = 0; ex < int(dataList.size()); ++ex) {
+		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
 		int row = 0;
 		if (start) {
-			if (e1->data->rows != 1) {
+			if (e1->rows != 1) {
 				e1->loadFakeData(NA_REAL);
 				continue;
 			}
 		} else {
-			int obs = omxDataNumObs(e1->data);
+			int obs = omxDataNumObs(e1);
 			for (int dx=0; dx < obs; ++dx) {
-				if (omxDataIndex(e1->data, dx) == 0) {
+				if (omxDataIndex(e1, dx) == 0) {
 					row = dx;
 					break;
 				}

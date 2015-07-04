@@ -42,21 +42,6 @@
 #include "omxData.h"
 #include "omxState.h"
 
-/* Def Var and Threshold Structures */
-struct omxDefinitionVar {		 	// Definition Var
-
-	int data, column;		// Where it comes from
-	omxData* source;		// Data source
-	int numLocations;		// Num locations
-	int* rows;				// row positions
-	int* cols;				// column positions
-	int* matrices;			// matrix numbers
-	int  numDeps;           // number of algebra/matrix dependencies
-	int* deps;              // indices of algebra/matrix dependencies
-
-	void loadData(omxState *state, double val);
-};
-
 /* Expectation structure itself */
 struct omxExpectation {					// An Expectation
 
@@ -82,10 +67,6 @@ struct omxExpectation {					// An Expectation
 	omxMatrix* dataColumns;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0
-	std::vector<omxDefinitionVar> defVars;
-	void loadFakeData(double fake);
-	void verifyDefVarDataSources(omxData* data);
-	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
 	
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize

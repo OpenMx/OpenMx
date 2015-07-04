@@ -895,9 +895,11 @@ setMethod("initialize", "MxComputeEM",
 ##' requires a special kind of expectation that can predict its
 ##' missing data to create a completed data model.
 ##'
-##' The EM algorithm does not produce a parameter covariance matrixn
+##' The EM algorithm does not produce a parameter covariance matrix
 ##' for standard errors. S-EM, an implementation of Meng & Rubin
 ##' (1991), is included.
+##'
+##' Ramsay (1975) was recommended in Bock, Gibbons, & Muraki (1988).
 ##'
 ##' @param expectation a vector of expectation names
 ##' @param predict what to predict from the observed data (available options depend on the expectation)
@@ -914,6 +916,11 @@ setMethod("initialize", "MxComputeEM",
 ##' @aliases
 ##' MxComputeEM-class
 ##' @references
+##'
+##' Bock, R. D., Gibbons, R., & Muraki, E. (1988). Full-information
+##' item factor analysis. \emph{Applied Psychological Measurement,
+##' 6}(4), 431-444.
+##' 
 ##' Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from
 ##' incomplete data via the EM algorithm. \emph{Journal of the Royal Statistical Society.
 ##' Series B (Methodological)}, 1-38.
@@ -1283,8 +1290,10 @@ setMethod("displayCompute", signature(Ob="MxComputeSequence", indent="integer"),
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "independent :", Ob@independent, '\n')
+		  stepName <- paste("'", names(Ob@steps), "'",sep='')
+		  if (length(stepName) != length(Ob@steps)) stepName <- 1:length(Ob@steps)
 		  if (length(Ob@steps)) for (step in 1:length(Ob@steps)) {
-			  cat(sp, "steps[[", step, "]] :", '\n')
+			  cat(sp, "steps[[", stepName[step], "]] :", '\n')
 			  displayCompute(Ob@steps[[step]], indent+1L)
 		  }
 		  invisible(Ob)

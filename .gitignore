@@ -4,6 +4,7 @@
 *.so
 *.old
 *.bak
+*.Rproj
 /build
 /config.log
 /config.status

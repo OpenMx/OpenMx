@@ -224,3 +224,15 @@ omxCheckCloseEnough(uAtRow10, drAtRow10, epsilon=1e-10)
 omxCheckCloseEnough(urAtRow10, drAtRow10, epsilon=1e-10)
 
 
+
+# Check that OpenMx errors appropriately for a missing definition variable.
+naData <- cbind(t(ty), t(tu))
+naData[10,11] <- NA
+naModel <- mxModel(smod, name='missingDef', mxData(observed=naData, type='raw'))
+
+omxCheckError(naRun <- mxRun(naModel), 'Error: NA value for a definition variable is Not Yet Implemented.')
+
+# Check for proper error message when there exist missing definition variables.
+
+
+
