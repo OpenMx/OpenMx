@@ -97,7 +97,189 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 
 
 void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
-    if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
+	if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
+	
+	/* Initialize */
+	omxSetExpectationComponent(ox, NULL, "Reset", NULL); //maybe shoulde be on ose?  after next line?
+	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	
+	if( !(ose->returnScores) ){
+		if(OMX_DEBUG) { mxLog("Not asking for attributes, this is being skipped!"); }
+		return;
+	}
+	
+	SEXP xpred, ypred, ppred, spred, xupda, yupda, pupda, supda;
+	
+	omxRecompute(ose->A, NULL);
+	omxRecompute(ose->B, NULL);
+	omxRecompute(ose->C, NULL);
+	omxRecompute(ose->D, NULL);
+	omxRecompute(ose->Q, NULL);
+	omxRecompute(ose->R, NULL);
+	
+	
+	// allocate matrices to be returned
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Allocating initial population matrices ..."); }
+	int nx = ose->C->cols;
+	int ny = ose->C->rows;
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Find number of rows of data ..."); }
+	//int nt = ox->data->dataMat->rows;
+	int nt = ox->data->numObs;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... numObs:\n" << nt << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Done Finding rows of data ..."); }
+	int np = ((nx+1)*nx)/2;
+	int ns = ((ny+1)*ny)/2;
+	Rf_protect(xpred = Rf_allocMatrix(REALSXP, nt+1, nx));
+	Rf_protect(ypred = Rf_allocMatrix(REALSXP, nt+1, ny));
+	Rf_protect(ppred = Rf_allocMatrix(REALSXP, nt+1, np));
+	Rf_protect(spred = Rf_allocMatrix(REALSXP, nt+1, ns));
+	Rf_protect(xupda = Rf_allocMatrix(REALSXP, nt+1, nx));
+	Rf_protect(yupda = Rf_allocMatrix(REALSXP, nt+1, ny));
+	Rf_protect(pupda = Rf_allocMatrix(REALSXP, nt+1, np));
+	Rf_protect(supda = Rf_allocMatrix(REALSXP, nt+1, ns));
+	
+	
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Setting zeroth row ..."); }
+	// Set first row of xpred to x0
+	int row = 0;
+	for(int col = 0; col < nx; col++){
+		REAL(xpred)[col * (nt+1) + row] =
+			omxMatrixElement(ose->x, col, 0);
+		REAL(xupda)[col * (nt+1) + row] =
+			omxMatrixElement(ose->x, col, 0);
+	}
+	
+	// Set first row of ppred to vech(P0)
+	int counter = 0;
+	for(int i = 0; i < ose->P->cols; i++) {
+		for(int j = i; j < ose->P->rows; j++) {
+			REAL(ppred)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+			REAL(pupda)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+			counter++;
+		}
+	}
+	
+	
+	// Probably should loop through all the data here!!!
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning loop ..."); }
+	for(row=1; row < (nt+1); row++){
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Setting first data row ..."); }
+		// Set row of data
+		for(int i = 0; i < ny; i++) {
+			omxSetMatrixElement(ose->y, i, 0, omxDoubleDataElement(ox->data, row-1, i));
+		}
+		
+		/* Run Kalman prediction */
+		if(ose->t == NULL){
+			omxKalmanPredict(ose);
+		} else {
+			omxKalmanBucyPredict(ose);
+		}
+		
+		// Copy latent state
+		for(int col = 0; col < nx; col++)
+			REAL(xpred)[col * (nt+1) + row] =
+				omxMatrixElement(ose->x, col, 0);
+		
+		// Copy latent cov
+		counter = 0;
+		for(int i = 0; i < ose->P->cols; i++) {
+			for(int j = i; j < ose->P->rows; j++) {
+				REAL(ppred)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+				counter++;
+			}
+		}
+		
+		// Create Full observed cov prediction
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Hand prediction of full observed cov ..."); }
+		omxDSYMM(FALSE, 1.0, ose->P, ose->C, 0.0, ose->Y); // Y = C P
+		omxCopyMatrix(ose->S, ose->R); // S = R
+		omxDGEMM(FALSE, TRUE, 1.0, ose->Y, ose->C, 1.0, ose->S); // S = Y C^T + S THAT IS C P C^T + R
+		
+		// Copy observed cov
+		counter = 0;
+		for(int i = 0; i < ose->S->cols; i++) {
+			for(int j = i; j < ose->S->rows; j++) {
+				REAL(spred)[counter * (nt+1) + row] = omxMatrixElement(ose->S, j, i);
+				counter++;
+			}
+		}
+		
+		/* Run Kalman update */
+		omxKalmanUpdate(ose);
+		
+		// Copy latent state
+		for(int col = 0; col < nx; col++)
+			REAL(xupda)[col * (nt+1) + row] =
+				omxMatrixElement(ose->x, col, 0);
+		
+		// Copy latent cov
+		counter = 0;
+		for(int i = 0; i < ose->P->cols; i++) {
+			for(int j = i; j < ose->P->rows; j++) {
+				REAL(pupda)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+				counter++;
+			}
+		}
+		
+		// Copy observed means prediction
+		for(int col = 0; col < ny; col++)
+			REAL(ypred)[col * (nt+1) + row] =
+				omxMatrixElement(ose->s, col, 0);
+		
+		// TODO Add m2ll calculation here.
+		// Probably like this
+		/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
+		//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
+		//m2ll = omxDDOT(y, s); // m2ll = y s THAT IS y^T S y
+		//m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + y^T S y
+		// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
+	}
+	
+	/* TODO Add Backward pass through data for Kalman smoother*/
+	
+	// TODO check on definition variable population
+	//  I suspect this does yet work properly for def vars.
+	
+	Rf_setAttrib(algebra, Rf_install("xPredicted"), xpred);
+	Rf_setAttrib(algebra, Rf_install("yPredicted"), ypred);
+	Rf_setAttrib(algebra, Rf_install("PPredicted"), ppred);
+	Rf_setAttrib(algebra, Rf_install("SPredicted"), spred);
+	Rf_setAttrib(algebra, Rf_install("xUpdated"), xupda);
+	Rf_setAttrib(algebra, Rf_install("PUpdated"), pupda);
+	
+	
+	/*
+	omxMatrix *expCovInt, *expMeanInt;
+	expCovInt = argStruct->cov;
+	expMeanInt = argStruct->means;
+	
+	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
+	for(int row = 0; row < expCovInt->rows; row++)
+		for(int col = 0; col < expCovInt->cols; col++)
+			REAL(expCovExt)[col * expCovInt->rows + row] =
+				omxMatrixElement(expCovInt, row, col);
+	if (expMeanInt != NULL && expMeanInt->rows > 0  && expMeanInt->cols > 0) {
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
+		for(int row = 0; row < expMeanInt->rows; row++)
+			for(int col = 0; col < expMeanInt->cols; col++)
+				REAL(expMeanExt)[col * expMeanInt->rows + row] =
+					omxMatrixElement(expMeanInt, row, col);
+	} else {
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
+	}
+
+	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
+	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
+	
+	if(argStruct->populateRowDiagnostics){
+		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
+		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+	}
+	*/
 	
 }
 
@@ -577,6 +759,13 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->eigenIA.resize(nx, nx);
 	SSMexp->PSI.resize(2*nx, 2*nx);
 	SSMexp->IP.resize(2*nx, nx);
+	
+	/* Population of Kalman scores*/
+	if(OMX_DEBUG) {
+		mxLog("Accessing Kalman score population option.");
+	}
+	SSMexp->returnScores = Rf_asInteger(R_do_slot(rObj, Rf_install("scores")));
+	
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);

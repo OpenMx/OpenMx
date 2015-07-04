@@ -28,7 +28,7 @@ This function creates a new MxExpectationStateSpace object.
 \usage{
 mxExpectationStateSpace(A, B, C, D, Q, R, x0, P0, u,
                         dimnames = NA, thresholds = NA, threshnames = dimnames,
-                        ..., t = NA)
+                        ..., t = NA, scores=FALSE)
 }
 
 
@@ -47,6 +47,7 @@ mxExpectationStateSpace(A, B, C, D, Q, R, x0, P0, u,
    \item{threshnames}{Not Yet Implemented. An optional character vector to be assigned to the column names of the thresholds matrix.}
    \item{...}{Unused.  Requires further arguments to be named.}
    \item{t}{Not to be used}
+   \item{scores}{Not to be used}
 }
 
 \details{

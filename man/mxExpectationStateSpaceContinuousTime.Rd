@@ -25,9 +25,11 @@ This function creates a new MxExpectationStateSpace object.
 
 \usage{
 mxExpectationStateSpaceContinuousTime(A, B, C, D, Q, R, x0, P0, u, t = NA,
-                        dimnames = NA, thresholds = NA, threshnames = dimnames)
+                        dimnames = NA, thresholds = NA, threshnames = dimnames,
+                        ..., scores=FALSE)
 mxExpectationSSCT(A, B, C, D, Q, R, x0, P0, u, t = NA,
-                        dimnames = NA, thresholds = NA, threshnames = dimnames)
+                        dimnames = NA, thresholds = NA, threshnames = dimnames,
+                        ..., scores=FALSE)
 }
 
 
@@ -45,6 +47,8 @@ mxExpectationSSCT(A, B, C, D, Q, R, x0, P0, u, t = NA,
    \item{dimnames}{An optional character vector to be assigned to the row names of the 'C' matrix.}
    \item{thresholds}{Not Yet Implemented. An optional character string indicating the name of the thresholds matrix.}
    \item{threshnames}{Not Yet Implemented. An optional character vector to be assigned to the column names of the thresholds matrix.}
+   \item{...}{Unused.  Requires further arguments to be named.}
+   \item{scores}{Not to be used}
 }
 
 \details{
