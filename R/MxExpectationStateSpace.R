@@ -49,14 +49,21 @@ setClass(Class = "MxExpectationStateSpace",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
 		threshnames = "character",
-		t = "MxCharOrNumber"),
+		t = "MxCharOrNumber",
+		scores = "logical",
+		xPredicted = "matrix",
+		yPredicted = "matrix",
+		PPredicted = "matrix",
+		SPredicted = "matrix",
+		xUpdated = "matrix",
+		PUpdated = "matrix"),
 	contains = "MxBaseExpectation")
 
 
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationStateSpace",
-	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames, t,
+	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames, t, scores,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -72,6 +79,7 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
 		.Object@t <- t
+		.Object@scores <- scores
 		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
 		return(.Object)
@@ -208,6 +216,7 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
 		.Object@t <- imxConvertIdentifier(.Object@t, modelname, namespace)
+		#.Object@scores <- imxConvertIdentifier(.Object@scores, modelname, namespace)
 		return(.Object)
 	}
 )
@@ -407,7 +416,7 @@ checkSSMargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., t=NA){
+mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., t=NA, scores=FALSE){
 	A <- checkSSMargument(A, "A")
 	B <- checkSSMargument(B, "B")
 	C <- checkSSMargument(C, "C")
@@ -418,6 +427,9 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	P0 <- checkSSMargument(P0, "P0")
 	u <- checkSSMargument(u, "u")
 	t <- checkSSMargument(t, "t")
+	if (length(scores) > 1 || typeof(scores) != "logical") {
+		stop("'scores' argument is not a logical value")
+	}
 	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
@@ -433,11 +445,11 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames, t=t))
+	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames, t=t, scores=scores))
 }
 
-mxExpectationStateSpaceContinuousTime <- function(A, B, C, D, Q, R, x0, P0, u, t=NA, dimnames = NA, thresholds = NA, threshnames = dimnames){
-	mxExpectationStateSpace(t=t, A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames)
+mxExpectationStateSpaceContinuousTime <- function(A, B, C, D, Q, R, x0, P0, u, t=NA, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., scores=FALSE){
+	mxExpectationStateSpace(t=t, scores=scores, A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames)
 }
 
 mxExpectationSSCT <- mxExpectationStateSpaceContinuousTime
@@ -582,7 +594,17 @@ mxKalmanScores <- function(model, data=NA){
 }
 
 
+# From StateSpaceOsc.R
+#smod2 <- mxModel(name='with scores', model=smod,
+#	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', scores=TRUE)
+#)
+#smod2 <- omxSetParameters(smod2, labels=names(omxGetParameters(smod2)), free=FALSE)
+#srun2 <- mxRun(smod2)
 #a <- Sys.time(); res <- mxKalmanScores(srun); b <- Sys.time()
+#as.numeric(b-a)/as.numeric(summary(srun2)$wallTime)
+## [1] 147.7429
+# Without the backward pass yet (i.e. no smoother)
+#  backend is 147 times as fast as frontent.
 
 
 #res <- mxKalmanScores(srun)
