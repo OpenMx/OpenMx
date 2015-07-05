@@ -610,7 +610,7 @@ mxKalmanScores <- function(model, data=NA){
 #require(rbenchmark)
 #benchmark(mxKalmanScores(srun), mxRun(smod3), replications=20)
 ## relative time: 186x speedup
-benchmark(mxRun(smod), mxRun(smod2), replications=20)
+#benchmark(mxRun(smod), mxRun(smod2), replications=20)
 ## .2% increase in relative time
 ## .0085 extra seconds per model
 
