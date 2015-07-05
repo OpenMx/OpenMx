@@ -108,7 +108,8 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		return;
 	}
 	
-	SEXP xpred, ypred, ppred, spred, xupda, yupda, pupda, supda;
+	SEXP xpred, ypred, ppred, spred, xupda, pupda, xsmoo, psmoo;
+	// yupda, supda
 	
 	omxRecompute(ose->A, NULL);
 	omxRecompute(ose->B, NULL);
@@ -134,9 +135,11 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	Rf_protect(ppred = Rf_allocMatrix(REALSXP, nt+1, np));
 	Rf_protect(spred = Rf_allocMatrix(REALSXP, nt+1, ns));
 	Rf_protect(xupda = Rf_allocMatrix(REALSXP, nt+1, nx));
-	Rf_protect(yupda = Rf_allocMatrix(REALSXP, nt+1, ny));
+	//Rf_protect(yupda = Rf_allocMatrix(REALSXP, nt+1, ny));
 	Rf_protect(pupda = Rf_allocMatrix(REALSXP, nt+1, np));
-	Rf_protect(supda = Rf_allocMatrix(REALSXP, nt+1, ns));
+	//Rf_protect(supda = Rf_allocMatrix(REALSXP, nt+1, ns));
+	Rf_protect(xsmoo = Rf_allocMatrix(REALSXP, nt+1, nx));
+	Rf_protect(psmoo = Rf_allocMatrix(REALSXP, nt+1, np));
 	
 	
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Setting zeroth row ..."); }
@@ -161,7 +164,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	
 	
 	// Probably should loop through all the data here!!!
-	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning loop ..."); }
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning forward loop ..."); }
 	for(row=1; row < (nt+1); row++){
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Setting first data row ..."); }
 		// Set row of data
@@ -237,6 +240,77 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	}
 	
 	/* TODO Add Backward pass through data for Kalman smoother*/
+	// Initialize end of smoothed latents to last updated latents
+	// P = last updated P
+	// x = last updated x
+	
+	// Copy x and P as smoothed estimates for export
+	row = nt;
+	// Copy latent state
+	for(int col = 0; col < nx; col++)
+		REAL(xsmoo)[col * (nt+1) + row] =
+			omxMatrixElement(ose->x, col, 0);
+	
+	// Copy latent cov
+	counter = 0;
+	for(int i = 0; i < ose->P->cols; i++) {
+		for(int j = i; j < ose->P->rows; j++) {
+			REAL(psmoo)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+			counter++;
+		}
+	}
+	
+	// loop backwars through all data
+	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning backward loop ..."); }
+	for(row = nt-1; row > -1; row--){
+		// Copy Z = updated P from pupda
+		counter = 0;
+		for(int i = 0; i < nx; i++) {
+			for(int j = i; j < nx; j++) {
+				double next = REAL(pupda)[counter * (nt+1) + row];
+				omxSetMatrixElement(ose->Z, i, j, next);
+				omxSetMatrixElement(ose->Z, j, i, next);
+				counter++;
+			}
+		}
+		
+		// Copy z = updated x from xupda
+		for(int col = 0; col < nx; col++)
+			omxSetMatrixElement(ose->z, col, 0, REAL(xupda)[col * (nt+1) + row]);
+		
+		// Copy eigenExpA = predicted P from later row of ppred
+		counter = 0;
+		for(int i = 0; i < nx; i++) {
+			for(int j = i; j < nx; j++) {
+				double next = REAL(ppred)[counter * (nt+1) + row + 1];
+				ose->eigenExpA(i, j) = next;
+				ose->eigenExpA(j, i) = next;
+				counter++;
+			}
+		}
+		
+		// Copy eigenPreX = predicted x from later row of xpred
+		for(int col = 0; col < nx; col++)
+			ose->eigenPreX(col, 0) =  REAL(xpred)[col * (nt+1) + row + 1];
+		
+		// Run Smoother
+		omxRauchTungStriebelSmooth(ose);
+		
+		// Copy latent state to xsmoo
+		for(int col = 0; col < nx; col++)
+			REAL(xsmoo)[col * (nt+1) + row] =
+				omxMatrixElement(ose->x, col, 0);
+		
+		// Copy latent cov to psmoo
+		counter = 0;
+		for(int i = 0; i < ose->P->cols; i++) {
+			for(int j = i; j < ose->P->rows; j++) {
+				REAL(psmoo)[counter * (nt+1) + row] = omxMatrixElement(ose->P, j, i);
+				counter++;
+			}
+		}
+	}
+	
 	
 	// TODO check on definition variable population
 	//  I suspect this does yet work properly for def vars.
@@ -247,6 +321,8 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("SPredicted"), spred);
 	Rf_setAttrib(algebra, Rf_install("xUpdated"), xupda);
 	Rf_setAttrib(algebra, Rf_install("PUpdated"), pupda);
+	Rf_setAttrib(algebra, Rf_install("xSmoothed"), xsmoo);
+	Rf_setAttrib(algebra, Rf_install("PSmoothed"), psmoo);
 	
 	
 	/*
@@ -645,6 +721,56 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 }
 
 
+void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
+	if(OMX_DEBUG) { mxLog("Rauch Tung Striebel Smooth Called."); }
+	/* Creat local copies of State Space Matrices */
+	omxMatrix* A = ose->A;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(A, "....State Space: A"); }
+	omxMatrix* x = ose->x;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x smoothed"); }
+	omxMatrix* z = ose->z;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(z, "....State Space: x updated"); }
+	omxMatrix* P = ose->P;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P smoothed"); }
+	omxMatrix* Z = ose->Z;
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Z, "....State Space: P updated"); }
+	
+	/* Eigen Matrix reference setting */
+	Eigen::MatrixXd &eigenPreX = ose->eigenPreX;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space x predicted:\n" << eigenPreX << std::endl; }
+	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space P predicted:\n" << eigenExpA << std::endl; }
+	Eigen::MatrixXd &eigenIA = ose->eigenIA; // Storage for Sg (RTS smoother gain matrix)
+	
+	/* Eigen Adaptor copies (not really copies, more like wrappers) */
+	EigenMatrixAdaptor eigenA(A);
+	EigenMatrixAdaptor eigenx(x);
+	EigenMatrixAdaptor eigenz(z);
+	EigenMatrixAdaptor eigenP(P);
+	EigenMatrixAdaptor eigenZ(Z);
+	
+	
+	/* Create the RTS Gain matrix*/
+	// Sg = Pui * A * Ppi+1 ^-1
+	// eigenIA = Z * A * eigenExpA^-1
+	eigenIA = eigenExpA.lu().solve( eigenA.transpose() * eigenZ ).transpose();
+	// try also
+	//eigenIA = eigenExpA.ldlt().solve( eigenA.transpose() * eigenZ ).transpose();
+	// with #include <Eigen/Cholesky>
+	
+	/* Smooth the latent state */
+	// xsi = xui + Sg * (xsi+1 - xpi+1)
+	// x = z + eigenIA * (x - eigenPreX)
+	eigenx.derived() = eigenz + eigenIA * (eigenx - eigenPreX);
+	
+	/* Smooth the latent covariance */
+	// Psi = Pui + Sg * (Psi+1 - Ppi+1) * Sg^T
+	// P = Z + eigenIA * (P - eigenExpA) * eigenIA^T
+	eigenP.derived() = eigenZ + eigenIA * (eigenP - eigenExpA) * eigenIA.transpose();
+	
+	// TODO add eigenPreX to struct and initialize
+}
+
 
 void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	
@@ -759,6 +885,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->eigenIA.resize(nx, nx);
 	SSMexp->PSI.resize(2*nx, 2*nx);
 	SSMexp->IP.resize(2*nx, nx);
+	SSMexp->eigenPreX.resize(nx, 1);
 	
 	/* Population of Kalman scores*/
 	if(OMX_DEBUG) {
