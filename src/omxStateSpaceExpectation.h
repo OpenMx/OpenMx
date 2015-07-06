@@ -37,6 +37,7 @@ typedef struct {
 	Eigen::MatrixXd eigenIA;
 	Eigen::MatrixXd PSI;
 	Eigen::MatrixXd IP;
+	Eigen::MatrixXd eigenPreX;
 	
 } omxStateSpaceExpectation;
 
@@ -44,6 +45,7 @@ typedef struct {
 void omxKalmanPredict(omxStateSpaceExpectation* ose);
 void omxKalmanUpdate(omxStateSpaceExpectation* ose);
 void omxKalmanBucyPredict(omxStateSpaceExpectation* ose);
+void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose);
 
 void omxInitStateSpaceExpectation(omxExpectation* ox);
 

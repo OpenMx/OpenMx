@@ -56,7 +56,9 @@ setClass(Class = "MxExpectationStateSpace",
 		PPredicted = "matrix",
 		SPredicted = "matrix",
 		xUpdated = "matrix",
-		PUpdated = "matrix"),
+		PUpdated = "matrix",
+		xSmoothed = "matrix",
+		PSmoothed = "matrix"),
 	contains = "MxBaseExpectation")
 
 
@@ -598,14 +600,19 @@ mxKalmanScores <- function(model, data=NA){
 #smod2 <- mxModel(name='with scores', model=smod,
 #	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', scores=TRUE)
 #)
-#smod2 <- omxSetParameters(smod2, labels=names(omxGetParameters(smod2)), free=FALSE)
-#srun2 <- mxRun(smod2)
+#smod3 <- omxSetParameters(smod2, labels=names(omxGetParameters(smod2)), free=FALSE)
+#srun3 <- mxRun(smod3)
 #a <- Sys.time(); res <- mxKalmanScores(srun); b <- Sys.time()
-#as.numeric(b-a)/as.numeric(summary(srun2)$wallTime)
+#as.numeric(b-a)/as.numeric(summary(srun3)$wallTime)
 ## [1] 147.7429
 # Without the backward pass yet (i.e. no smoother)
 #  backend is 147 times as fast as frontent.
-
+#require(rbenchmark)
+#benchmark(mxKalmanScores(srun), mxRun(smod3), replications=20)
+## relative time: 186x speedup
+#benchmark(mxRun(smod), mxRun(smod2), replications=20)
+## .2% increase in relative time
+## .0085 extra seconds per model
 
 #res <- mxKalmanScores(srun)
 

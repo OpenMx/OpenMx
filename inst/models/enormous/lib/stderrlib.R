@@ -185,6 +185,8 @@ summarizeDetail <- function(detail, maxCondNum=NA) {
 }
 
 testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'meat')) {
+  methods <- setdiff(methods, "oakes")
+  
   rec <- c('cputime', 'emcycles', 'probes', 'condnum', 'hNorm', 'rdNorm')
   detail <- array(NA, dim=c(length(rec), length(methods), reps),
                   dimnames=list(rec, methods, NULL))
@@ -292,8 +294,6 @@ testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'me
       detail[,"sandwich",rep] <- summarizeInfo(sandwich, "sandwich")
     }
 
-    if (length(intersect(methods, "oaks"))) stop("oaks is spelled oakes")
-    
     if (length(intersect(methods, c("oakes")))) {
       em$information <- "oakes1999"
       em$infoArgs <- list(fitfunction=fitfun)
