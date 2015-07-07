@@ -266,33 +266,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   }
   
 }
-//Alternate way to do fixed effects using QR solve:
-/*  }
-  if(want & (FF_COMPUTE_FIXEDEFFECTS)){
-    Eigen::MatrixXd S, Sinv, SinvX, Sinvy, quadX;
-    EigenMatrixAdaptor Eigy = EigenMatrixAdaptor(gff->y);
-    EigenMatrixAdaptor EigX = EigenMatrixAdaptor(gff->X);
-    EigenMatrixAdaptor EigV = EigenMatrixAdaptor(gff->V);
-    Eigen::LLT< Eigen::MatrixXd > cholV(gff->y->rows);
-    Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
-    
-    cholV.compute(EigV);
-    if(cholV.info() != Eigen::Success){
-      omxRaiseErrorf("Cholesky factorization failed due to unknown numerical error (is the expected covariance matrix asymmetric?)");
-      return;
-    }
-    S = cholV.matrixL();
-    Sinv = S.inverse();
-    SinvX = Sinv * EigX;
-    Sinvy = Sinv * Eigy;
-    fc->GREML_b = SinvX.colPivHouseholderQr().solve(Sinvy);
-    quadX = EigX.transpose() * Sinv * Sinv.transpose() * EigX;
-    cholquadX.compute(quadX);
-    fc->GREML_bcov = cholquadX.solve(Eigen::MatrixXd::Identity(gff->X->cols, gff->X->cols));
-    return;    
-  } */
-
-
 
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
