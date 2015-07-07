@@ -48,7 +48,6 @@ man/imxExtractMethod.Rd
 man/imxExtractNames.Rd
 man/imxExtractReferences.Rd
 man/imxExtractSlot.Rd
-man/imxFilterDefinitionVariables.Rd
 man/imxFlattenModel.Rd
 man/imxFreezeModel.Rd
 man/imxGenerateLabels.Rd
@@ -100,6 +99,8 @@ man/imxVerifyName.Rd
 man/imxVerifyReference.Rd
 man/logm.Rd
 man/MxAlgebraFormula-class.Rd
+man/mxAlgebraFromString.Rd
+man/mxAvailableOptimizers.Rd
 man/MxBaseExpectation-class.Rd
 man/MxBaseFitFunction-class.Rd
 man/MxBaseNamed-class.Rd
