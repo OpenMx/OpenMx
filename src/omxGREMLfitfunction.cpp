@@ -28,7 +28,7 @@ struct omxGREMLFitState {
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   int dVlength, usingGREMLExpectation;
-  double nll;
+  double nll, REMLcorrection;
   Eigen::VectorXd gradient;
   Eigen::MatrixXd avgInfo; //the Average Information matrix
   FreeVarGroup *varGroup;
@@ -70,6 +70,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->X = omxGetExpectationComponent(expectation, oo, "X");
   newObj->means = omxGetExpectationComponent(expectation, oo, "means");
   newObj->nll = 0;
+  newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
   
   //Derivatives:
@@ -155,13 +156,14 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
         logdetquadX += log(oge->cholquadX_vectorD[i]);
       }
       logdetquadX *= 2;
+      gff->REMLcorrection = Scale*0.5*logdetquadX;
       
       //Finish computing fit (negative loglikelihood):
       P.triangularView<Eigen::Lower>() = Vinv.selfadjointView<Eigen::Lower>() * 
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
       Py = P.selfadjointView<Eigen::Lower>() * Eigy;
-      oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + logdetquadX + ( Eigy.transpose() * Py )(0,0));
+      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ( Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
@@ -203,9 +205,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
         logdetquadX += log(cholquadX_vectorD[i]);
       }
       logdetquadX *= 2;
+      gff->REMLcorrection = Scale*0.5*logdetquadX;
       
       //Finish computing fit:
-      oo->matrix->data[0] = Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + logdetquadX + 
+      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + 
         ( Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
       gff->nll = oo->matrix->data[0]; 
       return;
@@ -288,7 +291,7 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
   SEXP rObj = oo->rObj;
-  SEXP nval;
+  SEXP nval, mlfitval;
   int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation->argStruct) )->data2->numObs);
   
   //Tell the frontend fitfunction counterpart how many observations there are...:
@@ -298,7 +301,15 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   numobs[0] = 1L - userSuppliedDataNumObs;
   /*^^^^The end result is that number of observations will be reported as 1 in summary()...
   which is always correct with GREML*/
-}}
+	}
+	
+	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct;
+	{
+	ScopedProtect p1(mlfitval, R_do_slot(rObj, Rf_install("MLfit")));
+	double* mlfit = REAL(mlfitval);
+	mlfit[0] = gff->nll - gff->REMLcorrection;
+	}
+}
 
 
 void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)

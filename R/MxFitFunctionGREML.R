@@ -17,6 +17,7 @@ setClass(Class = "MxFitFunctionGREML",
          slots=c(
            dV = "MxCharOrNumber",
            dVnames = "character",
+           MLfit = "numeric",
            numObs = "integer"),
          contains = "MxBaseFitFunction")
 
@@ -25,6 +26,7 @@ setMethod("initialize", "MxFitFunctionGREML",
           function(.Object, name = 'fitfunction', dV=character(0)) {
             .Object@name <- name
             .Object@dV <- dV
+            .Object@MLfit <- 0
             .Object@vector <- FALSE
             .Object@numObs <- 0L
             return(.Object)
