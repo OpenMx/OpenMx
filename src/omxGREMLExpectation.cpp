@@ -235,6 +235,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   SEXP b_ext, bcov_ext, yXcolnames;
+  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
   
   {
@@ -245,7 +246,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   }
   
-  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   {
   ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), 
   	oge->quadXinv.cols()));
