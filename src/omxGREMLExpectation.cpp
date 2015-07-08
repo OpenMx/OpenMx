@@ -21,7 +21,6 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
-#include <Eigen/QR>
  
 void omxInitGREMLExpectation(omxExpectation* ox){
   
@@ -224,7 +223,8 @@ void omxDestroyGREMLExpectation(omxExpectation* ox) {
 }
 
 
-
+/*Possible TODO: it will require some additional computation, but it is probably best to calculate the final
+regression coefficients using QR, which is more numerically stable*/
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
@@ -233,18 +233,10 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->dataMat->cols));
   Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
   
-  SEXP b_ext, bcov_ext, yXcolnames;
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
-  Eigen::Map< Eigen::MatrixXd > EigX(omxMatrixDataColumnMajor(oge->X), oge->X->rows, oge->X->cols);
-  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
-  Eigen::LLT< Eigen::MatrixXd > cholVinv(oge->invcov->rows);
-  Eigen::MatrixXd Sinv, GREML_b;
-  cholVinv.compute(Vinv.selfadjointView<Eigen::Lower>());
-  Sinv = cholVinv.matrixL();
-  /*Premultiply X & y by the Cholesky factor of V inverse.  This "rotates out" the dependence amongst their 
-  rows.  Then, use QR to get least-squares solution for b, in Xb = y.  This should be more numerically stable
-  than the way we were previously calculating b:*/
-  GREML_b = (Sinv * EigX).colPivHouseholderQr().solve(Sinv * Eigy);
+  SEXP b_ext, bcov_ext, yXcolnames;
+  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
+  Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
   
   {
   ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
@@ -254,7 +246,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   Rf_setAttrib(algebra, Rf_install("b"), b_ext);
   }
   
-  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   {
   ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(), 
   	oge->quadXinv.cols()));
@@ -275,8 +266,6 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   }
   
 }
-
-
 
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
