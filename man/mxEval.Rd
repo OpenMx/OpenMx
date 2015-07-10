@@ -36,7 +36,7 @@ mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1,
    \item{model}{The model in which to evaluate the expression.}
    \item{compute}{If TRUE then compute the value of algebra expressions.}
    \item{show}{If TRUE then print the translated expression.}
-   \item{defvar.row}{The row number for definition variables when compute=TRUE.}
+   \item{defvar.row}{The row number for definition variables when compute=TRUE; defaults to 1.  When compute=FALSE, values for definition variables are always taken from the first (i.e., first before any automated sorting is done) row of the raw data.}
    \item{cache}{An R environment of matrix values used to speedup computation.}
    \item{cacheBack}{If TRUE then return the list pair (value, cache).}
    \item{name}{The character name of an object to evaluate.}
