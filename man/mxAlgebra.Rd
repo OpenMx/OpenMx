@@ -50,6 +50,8 @@ it must be placed in an \link{MxModel} object, along with all referenced \code{M
 objects and the \code{mxFitFunctionAlgebra} function. 
 The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
 
+Note that, if the result for an \link{MxAlgebra} depends upon one or more "definition variables" (see \code{\link{mxMatrix}()}), then the value returned after the call to \code{\link{mxRun}()} will be computed using the values of those definition variables in the first (i.e., first before any automated sorting is done) row of the raw dataset.
+
 The following operators and functions are supported in mxAlgebra:
 
 Operators
