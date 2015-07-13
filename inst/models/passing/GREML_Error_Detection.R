@@ -92,3 +92,39 @@ testmod <- mxModel(
 )
 omxCheckError(mxRun(testmod),
               "GREML fitfunction is currently only compatible with GREML expectation")
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
+	mxFitFunctionGREML()
+)
+omxCheckError(mxRefModels(testmod),
+							"reference models for GREML expectation not implemented")
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
+	mxFitFunctionML()
+)
+omxCheckError(mxRefModels(testmod),
+							"reference models for GREML expectation not implemented")
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Unit", nrow = 100, ncol=100, name = "V", condenseSlots = T),
+	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
+	mxFitFunctionGREML()
+)
+omxCheckError(mxRun(testmod),
+							"Expected covariance matrix is non-positive-definite at initial values")
+
