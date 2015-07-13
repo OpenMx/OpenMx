@@ -128,3 +128,19 @@ testmod <- mxModel(
 omxCheckError(mxRun(testmod),
 							"Expected covariance matrix is non-positive-definite at initial values")
 
+
+z <- matrix(-1,100,2)
+colnames(z) <- c("z1","z2")
+dat2 <- cbind(dat,z)
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat2, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",Xvars=list(c("x","z1","z2")),yvars="y",addOnes=F),
+	mxFitFunctionGREML()
+)
+omxCheckError(mxRun(testmod),
+	"Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient")
+
