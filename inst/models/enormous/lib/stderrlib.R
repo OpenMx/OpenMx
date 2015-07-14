@@ -88,8 +88,9 @@ getMCdata <- function(name, modelGen, correct, recompute=FALSE, reps=500,
     if (!is.na(maxCondNum)) {
       cat(paste("Note:", sum(!mcMask), "excluded due to condition number\n"))
     }
-    cat("Monte-Carlo study complete. Now rerun with analyses.\n")
-    stop("stopped here")
+    cat("Monte-Carlo study complete. Proceeding with accuracy benchmark.\n")
+#    stop("stopped here")
+    load(rda, envir=envir)  # copy to parent environment
   }
 }
 
