@@ -121,6 +121,9 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		if (is(expectation, "MxExpectationBA81")) {
 			return(generateIFAReferenceModels(model))
 		}
+		if(is(expectation, "MxExpectationGREML")){
+			stop("reference models for GREML expectation not implemented")
+		}
 		# assume it's multivariate Normal
 
 		datatype <- datasource@type

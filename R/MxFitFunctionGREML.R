@@ -87,6 +87,11 @@ setMethod("genericFitFunConvert", "MxFitFunctionGREML",
 setMethod("genericFitInitialMatrix", "MxFitFunctionGREML",
           function(.Object, flatModel) {return(matrix(as.double(NA), 1, 1))})
 
+setMethod("generateReferenceModels", "MxFitFunctionGREML",
+					function(.Object, model) {
+						stop("reference models for GREML expectation not implemented")
+					})
+
 
 mxFitFunctionGREML <- function(dV=character(0)){
   return(new("MxFitFunctionGREML",dV=dV))
