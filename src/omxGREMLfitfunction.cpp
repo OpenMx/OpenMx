@@ -233,7 +233,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     
     //Begin looping thru free parameters:
-#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism)
+		{
     for(i=0; i < gff->dVlength; i++){
     	//Declare locals within parallelized region:
     	int j=0, t1=0, t2=0;
@@ -268,6 +269,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
           gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
           gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
     }}}}
+		}
     //Assign upper triangle elements of avgInfo to the HessianBlock:
     if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
       for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
