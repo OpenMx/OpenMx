@@ -70,7 +70,5 @@ omxCheckCloseEnough(expectSE,
 
 omxCheckCloseEnough(expectMin, biRegModelOut$output$minimum, 0.001)
 
-
-
-    
+omxCheckEquals(brmSum$optimizerEngine, mxOption(NULL, "Default optimizer"))
 

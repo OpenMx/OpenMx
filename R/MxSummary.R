@@ -841,17 +841,11 @@ setMethod("summary", "MxModel",
 		retval$cpuTime <- model@output$cpuTime
 		retval$mxVersion <- model@output$mxVersion
 		retval$modelName <- model@name
-		if (is.null(model@compute)) {
-			# default compute plan
-			retval$compute <- model@runstate$compute
-			if (is(retval$compute, "MxComputeSequence")) {
-				gd <- retval$compute$steps[[1]]
-				if (is(gd, "MxComputeGradientDescent")) {
-					retval$optimizerEngine <- gd$engine
-				}
+		if (.hasSlot(model,"compute") && is(model$compute, "MxComputeSequence")) {
+			gd <- model$compute$steps[['GD']]
+			if (is(gd, "MxComputeGradientDescent")) {
+				retval$optimizerEngine <- gd$engine
 			}
-		} else {
-			retval$compute <- model@compute
 		}
 		retval$verbose <- verbose
 		class(retval) <- "summary.mxmodel"
