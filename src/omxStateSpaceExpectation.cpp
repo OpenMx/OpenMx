@@ -162,6 +162,9 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		}
 	}
 	
+	Eigen::VectorXd oldDefs;
+	oldDefs.resize(ox->data->defVars.size());
+	oldDefs.setConstant(NA_REAL);
 	
 	// Probably should loop through all the data here!!!
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning forward loop ..."); }
@@ -171,6 +174,10 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		for(int i = 0; i < ny; i++) {
 			omxSetMatrixElement(ose->y, i, 0, omxDoubleDataElement(ox->data, row-1, i));
 		}
+		
+		// handle definition variables
+		int numVarsFilled = 0;
+		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row-1, oldDefs.data());
 		
 		/* Run Kalman prediction */
 		if(ose->t == NULL){

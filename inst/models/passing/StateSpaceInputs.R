@@ -69,9 +69,13 @@ tu <- matrix(c(rep(1, tdim), rnorm(tdim)), udim, tdim, byrow=TRUE) # Note: Const
 ty <- matrix(0, ydim, tdim)
 
 tx[,1] <- x0
-for(i in 1:tdim){
-	tx[,i+1] <- tA %*% tx[,i] + tB %*% tu[,i] + t(rmvnorm(1, rep(0, xdim), tQ))
-	ty[,i] <- tC %*% tx[,i] + tD %*% tu[,i] + t(rmvnorm(1, rep(0, ydim), tR))
+#for(i in 1:tdim){
+#	tx[,i+1] <- tA %*% tx[,i] + tB %*% tu[,i] + t(rmvnorm(1, rep(0, xdim), tQ))
+#	ty[,i] <- tC %*% tx[,i] + tD %*% tu[,i] + t(rmvnorm(1, rep(0, ydim), tR))
+#}
+for(i in 2:(tdim+1)){
+	tx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + t(rmvnorm(1, rep(0, xdim), tQ))
+	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 }
 
 #plot(tx[1,], type='l')
@@ -148,7 +152,7 @@ smod <- mxModel(
 	mxMatrix(name='P', values=P0, nrow=xdim, ncol=xdim, free=FALSE),
 	mxMatrix(type="Full", udim, 1, labels=c("data.u1", "data.u2"), name="u"),
 	mxData(observed=cbind(t(ty), t(tu)), type='raw'),
-	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u'),
+	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', scores=TRUE),
 	mxFitFunctionML()
 )
 
@@ -178,32 +182,32 @@ tD
 summary(srun)
 
 prevEstA <- matrix(c(
-	-0.4257303,  0,  0,
-	0, -0.91055730, -0.07911831,
-	0,  0.07911831, -0.91055730),
+	 -0.5120488,  0.0000000,  0.0000000,
+	  0.0000000, -0.9138461, -0.0804081,
+	  0.0000000,  0.0804081, -0.9138461),
 	3, 3, byrow=TRUE)
 
 prevEstB <- matrix(c(
-	3.148693, 0,
-	2.453093, 0,
-	-2.665611, 0),
+	  3.586831,    0,
+	  2.566541,    0,
+	 -2.467185,    0),
 	3, 2, byrow=TRUE
 )
 
 prevEstC <- c( #nonzero factor loadings
-	0.8583088, 0.7937657, 0.9579501,
-	0.6644578, 1.0106484, 0.7930609,
-	0.8550824, 0.4275447, 0.7458151)
+	0.8098549, 0.7388864, 0.8933953,
+	0.6473688, 0.9509194, 0.7705916,
+	0.9083092, 0.4261629, 0.8682982)
 
 prevEstD <- c( #nonzero part of feedthrough matrix
-	0.1403990, 0.2109081, 0.2053676,
-	0.2072296, 0.2264465, 0.2165627,
-	0.2441243, 0.1693315, 0.1071348)
+	0.17368033, 0.23882681, 0.23983565,
+	0.23048017, 0.26401039, 0.24613672,
+	0.24795466, 0.17059682, 0.09830594)
 
 prevEstR <- c( #diagonal manifest error cov
-	0.40386356, 0.18829600, 0.55455299,
-	0.07861948, 0.43234128, 0.31897326,
-	0.24716066, 0.68094051, 0.73224564)
+	0.45646303, 0.16792211, 0.54165256,
+	0.07453542, 0.41766447, 0.33869364,
+	0.21551307, 0.69513482, 0.69142726)
 
 
 
@@ -233,6 +237,11 @@ naModel <- mxModel(smod, name='missingDef', mxData(observed=naData, type='raw'))
 omxCheckError(naRun <- mxRun(naModel), 'Error: NA value for a definition variable is Not Yet Implemented.')
 
 # Check for proper error message when there exist missing definition variables.
+
+
+cor(t(tx), srun$expectation$xPredicted)
+cor(t(tx), srun$expectation$xUpdated)
+cor(t(tx), srun$expectation$xSmoothed)
 
 
 
