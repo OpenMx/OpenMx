@@ -270,6 +270,10 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	// loop backwars through all data
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning backward loop ..."); }
 	for(row = nt-1; row > -1; row--){
+		// handle definition variables
+		int numVarsFilled = 0;
+		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row, oldDefs.data());
+		
 		// Copy Z = updated P from pupda
 		counter = 0;
 		for(int i = 0; i < nx; i++) {
