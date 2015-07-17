@@ -220,10 +220,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
     
     //Declare local variables for this scope:
-    int j=0, t1=0, t2=0;
-    Eigen::MatrixXd PdV_dtheta1; //PdV_dtheta2, dV_dtheta1, dV_dtheta2;
-    Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-    Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+    int numChildren = fc->childList.size();
+    int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     
@@ -235,7 +233,13 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     
     //Begin looping thru free parameters:
+#pragma omp parallel for num_threads(parallelism) 
     for(i=0; i < gff->dVlength; i++){
+    	//Declare locals within parallelized region:
+    	int j=0, t1=0, t2=0;
+    	Eigen::MatrixXd PdV_dtheta1;
+    	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+    	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
       t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
