@@ -753,7 +753,8 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	/* Create the RTS Gain matrix*/
 	// Sg = Pui * A * Ppi+1 ^-1
 	// eigenIA = Z * A * eigenExpA^-1
-	eigenIA = eigenExpA.lu().solve( eigenA.transpose() * eigenZ ).transpose();
+	// Possible typo above, A should be A^T
+	eigenIA = eigenExpA.lu().solve( eigenA * eigenZ ).transpose();
 	// try also
 	//eigenIA = eigenExpA.ldlt().solve( eigenA.transpose() * eigenZ ).transpose();
 	// with #include <Eigen/Cholesky>
