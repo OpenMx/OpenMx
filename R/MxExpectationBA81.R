@@ -172,7 +172,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' E-step. This option is mainly of use for debugging derivatives.
 ##' @param debugInternal when enabled, some of the internal tables are
 ##' returned in $debug. This is mainly of use to developers.
-##' @seealso \href{http://cran.r-project.org/web/packages/rpf/index.html}{RPF}
+##' @seealso \href{http://cran.r-project.org/package=rpf}{RPF}
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 ##' parameters: Application of an EM algorithm. Psychometrika, 46, 443-459.

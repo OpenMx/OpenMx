@@ -3,17 +3,18 @@
 
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/variate_generator.hpp>
-#include <stan/error_handling/matrix/check_ldlt_factor.hpp>
-#include <stan/error_handling/matrix/check_size_match.hpp>
-#include <stan/error_handling/matrix/check_symmetric.hpp>
-#include <stan/error_handling/scalar/check_finite.hpp>
-#include <stan/error_handling/scalar/check_not_nan.hpp>
-#include <stan/error_handling/scalar/check_positive.hpp>
-#include <stan/math/matrix/trace_inv_quad_form_ldlt.hpp>
-#include <stan/math/matrix/log_determinant_ldlt.hpp>
-#include <stan/meta/traits.hpp>
-#include <stan/prob/constants.hpp>
-#include <stan/prob/traits.hpp>
+#include <stan/math/prim/mat/err/check_ldlt_factor.hpp>
+#include <stan/math/prim/mat/err/check_symmetric.hpp>
+#include <stan/math/prim/scal/err/check_size_match.hpp>
+#include <stan/math/prim/scal/err/check_finite.hpp>
+#include <stan/math/prim/scal/err/check_not_nan.hpp>
+#include <stan/math/prim/scal/err/check_positive.hpp>
+#include <stan/math/prim/mat/fun/trace_inv_quad_form_ldlt.hpp>
+#include <stan/math/prim/mat/fun/log_determinant_ldlt.hpp>
+#include <stan/math/prim/scal/meta/return_type.hpp>
+#include <stan/math/prim/scal/meta/VectorViewMvt.hpp>
+#include <stan/math/prim/scal/meta/max_size_mvt.hpp>
+#include <stan/math/prim/scal/meta/include_summand.hpp>
 
 namespace stan {
 
@@ -31,12 +32,12 @@ namespace stan {
       typedef param_t lp_type;
       lp_type lp(0.0);
 	   
-      using stan::error_handling::check_size_match;
-      using stan::error_handling::check_finite;
-      using stan::error_handling::check_not_nan;
-      using stan::error_handling::check_positive;
-      using stan::error_handling::check_symmetric;
-      using stan::error_handling::check_ldlt_factor;
+      using stan::math::check_size_match;
+      using stan::math::check_finite;
+      using stan::math::check_not_nan;
+      using stan::math::check_positive;
+      using stan::math::check_symmetric;
+      using stan::math::check_ldlt_factor;
 	   
       check_size_match(function,
                        "Rows of covariance parameter", sampleSigma.rows(), 

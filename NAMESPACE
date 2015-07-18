@@ -2,7 +2,9 @@ import(parallel)
 import(methods)
 import(MASS)
 import(digest)
-importFrom(utils, .DollarNames)
+importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
+importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize,
+	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var)
 
 useDynLib(OpenMx, .registration=TRUE)
 
