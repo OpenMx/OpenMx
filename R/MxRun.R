@@ -364,6 +364,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         mxComputeGradientDescent(verbose=verbose, gradientStepSize = gradientStepSize, 
           nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
           maxMajorIter=3000),
+        mxComputeNumericDeriv(), mxComputeStandardError(),  
         mxComputeReportDeriv())))
       
       if(showInits==TRUE) {
@@ -432,10 +433,13 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             
             mxOption(NULL, "Default optimizer")
             bestfit <- OpenMx::mxModel(bestfit, 
-              mxComputeConfidenceInterval(plan=mxComputeGradientDescent(nudgeZeroStarts=FALSE, 
-                gradientIterations=gradientIterations, tolerance=tolerance, 
-                maxMajorIter=1000),
-                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')))
+              mxComputeSequence(list(
+                mxComputeConfidenceInterval(plan=mxComputeGradientDescent(nudgeZeroStarts=FALSE, 
+                  gradientIterations=gradientIterations, tolerance=tolerance, 
+                  maxMajorIter=1000),
+                  constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')),
+                mxComputeNumericDeriv(), mxComputeStandardError(), 
+                mxComputeReportDeriv())))
             
             cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
             
