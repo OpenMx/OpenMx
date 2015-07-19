@@ -162,6 +162,9 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		}
 	}
 	
+	Eigen::VectorXd oldDefs;
+	oldDefs.resize(ox->data->defVars.size());
+	oldDefs.setConstant(NA_REAL);
 	
 	// Probably should loop through all the data here!!!
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning forward loop ..."); }
@@ -171,6 +174,10 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		for(int i = 0; i < ny; i++) {
 			omxSetMatrixElement(ose->y, i, 0, omxDoubleDataElement(ox->data, row-1, i));
 		}
+		
+		// handle definition variables
+		int numVarsFilled = 0;
+		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row-1, oldDefs.data());
 		
 		/* Run Kalman prediction */
 		if(ose->t == NULL){
@@ -263,6 +270,10 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	// loop backwars through all data
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning backward loop ..."); }
 	for(row = nt-1; row > -1; row--){
+		// handle definition variables
+		int numVarsFilled = 0;
+		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row, oldDefs.data());
+		
 		// Copy Z = updated P from pupda
 		counter = 0;
 		for(int i = 0; i < nx; i++) {
@@ -753,7 +764,8 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	/* Create the RTS Gain matrix*/
 	// Sg = Pui * A * Ppi+1 ^-1
 	// eigenIA = Z * A * eigenExpA^-1
-	eigenIA = eigenExpA.lu().solve( eigenA.transpose() * eigenZ ).transpose();
+	// Possible typo above, A should be A^T
+	eigenIA = eigenExpA.lu().solve( eigenA * eigenZ ).transpose();
 	// try also
 	//eigenIA = eigenExpA.ldlt().solve( eigenA.transpose() * eigenZ ).transpose();
 	// with #include <Eigen/Cholesky>
