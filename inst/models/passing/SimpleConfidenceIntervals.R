@@ -131,7 +131,10 @@ twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
 twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
 summary(twinACEFit)
-print(twinACEFit$compute$steps[[2]]$output[['detail']])
+ci <- twinACEFit$compute$steps[['CI']]$output[['detail']]
+omxCheckTrue(is.factor(ci[['side']]))
+omxCheckEquals(levels(ci[['side']]), c('upper', 'lower'))
+omxCheckEquals(c(unclass(ci[['side']])), rep(c(1,2),3))
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
