@@ -394,6 +394,23 @@ class ciConstraintEq : public omxConstraint {
 	};
 };
 
+static SEXP makeFactor(SEXP vec, int levels, const char **labels)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
+	Rf_setAttrib(vec, R_ClassSymbol, classes);
+
+	SEXP Rlev;
+	Rf_protect(Rlev = Rf_allocVector(STRSXP, levels));
+	for (int lx=0; lx < levels; ++lx) {
+		SET_STRING_ELT(Rlev, lx, Rf_mkChar(labels[lx]));
+	}
+
+	Rf_setAttrib(vec, Rf_install("levels"), Rlev);
+	return vec;
+}
+
 // Optimization: For profile CIs of free parameters, the gradient for
 // the fit is trivial.  Many evaluations could be saved.
 
@@ -438,7 +455,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
 	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
-	SET_VECTOR_ELT(detail, 2, Rf_allocVector(INTSXP, totalIntervals));
+	const char *sideLabels[] = { "upper", "lower" };
+	SET_VECTOR_ELT(detail, 2, makeFactor(Rf_allocVector(INTSXP, totalIntervals), 2, sideLabels));
 	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
 		SET_VECTOR_ELT(detail, 3+cx, Rf_allocVector(REALSXP, totalIntervals));
 	}
@@ -448,7 +466,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
 	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
 	SET_STRING_ELT(detailCols, 1, Rf_mkChar("value"));
-	SET_STRING_ELT(detailCols, 2, Rf_mkChar("lower"));
+	SET_STRING_ELT(detailCols, 2, Rf_mkChar("side"));
 	SET_STRING_ELT(detailCols, 3, Rf_mkChar("fit"));
 	for (int nx=0; nx < int(mle->numParam); ++nx) {
 		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
@@ -534,7 +552,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
 			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
 			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
-			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = lower;
+			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = 1+lower;
 			REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
 			for (int px=0; px < int(fc.numParam); ++px) {
 				REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];

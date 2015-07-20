@@ -841,8 +841,9 @@ setMethod("summary", "MxModel",
 		retval$cpuTime <- model@output$cpuTime
 		retval$mxVersion <- model@output$mxVersion
 		retval$modelName <- model@name
-		if (.hasSlot(model,"compute") && is(model$compute, "MxComputeSequence")) {
-			gd <- model$compute$steps[['GD']]
+		plan <- model@runstate$compute
+		if (is(plan, "MxComputeSequence")) {
+			gd <- plan$steps[['GD']]
 			if (is(gd, "MxComputeGradientDescent")) {
 				retval$optimizerEngine <- gd$engine
 			}
