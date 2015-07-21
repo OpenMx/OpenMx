@@ -242,7 +242,6 @@ runHelper <- function(model, frontendStart,
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
-		model@output$calculatedHessian <- model@output$hessian
 		wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF

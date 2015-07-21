@@ -329,6 +329,13 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
+	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL) {
+		numParams = 0;
+		if (verbose >= 1) mxLog("%s: derivatives %s units are meaningless",
+					name, fitUnitsToName(fc->fitUnits));
+		return;
+	}
+
 	int newWanted = fc->wanted | FF_COMPUTE_HESSIAN | FF_COMPUTE_GRADIENT;
 	numParams = int(fc->numParam);
 	if (numParams <= 0) Rf_error("Model has no free parameters");
@@ -467,6 +474,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
+	if (numParams == 0) return;
+
 	SEXP calculatedHessian;
 	Rf_protect(calculatedHessian = Rf_allocMatrix(REALSXP, numParams, numParams));
 	fc->copyDenseHess(REAL(calculatedHessian));
