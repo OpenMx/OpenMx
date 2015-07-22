@@ -93,7 +93,7 @@ wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 # Run WLS model
 wlsRun <- mxRun(wlsMod)
 summary(wlsRun)
-
+omxCheckTrue(is.null(wlsRun$output$calculatedHessian))
 
 #TODO Fix summary for WLS data/fitfunctions
 # Standard errors correct?
