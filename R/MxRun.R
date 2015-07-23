@@ -398,23 +398,28 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
           bestfit <- fit
           bestfit.params <- omxGetParameters(bestfit)
           
-          if (length(fit$output$calculatedHessian) == 0) {
-            checkHess <- FALSE
+          #         if (length(fit$output$calculatedHessian) == 0) {
+          #           checkHess <- FALSE
+          #         }
+          #         if (checkHess) {
+          #           if (sum(is.na(fit$output$calculatedHessian)) > 
+          #               0) {
+          #             checkHess <- FALSE
+          #           }
+          #         }
+          
+          
+          if(checkHess==TRUE) {
+            hessCheck <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
+            if(class(hessCheck)=='try-error') hessCheck<- -999
+            hessCheck <- all(hessCheck > 0)
           }
-          if (checkHess) {
-            if (sum(is.na(fit$output$calculatedHessian)) > 
-                0) {
-              checkHess <- FALSE
-            }
-          }
-        }
-        
-        
-        stopflag <- ifelse(checkHess, (fit$output$status[[1]] <= 
-            greenOK) & (all(eigen(fit$output$calculatedHessian, 
-              symmetric = T, only.values = T)$values > 0)) & 
-            (fit$output$minimum <= fit2beat) & (fit$output$minimum <= lowestminsofar), (fit$output$status[[1]] <=  #added lowestminsofar condition
-                greenOK) & (fit$output$minimum <= fit2beat) & (fit$output$minimum <= lowestminsofar) )
+          
+          stopflag <- fit$output$status[[1]] <= greenOK & 
+            hessCheck==TRUE &
+            (fit$output$minimum <= fit2beat) & 
+            (fit$output$minimum <= lowestminsofar)
+        }#end if lowest min section
         
         if (!stopflag) {        
           if(iterationSummary==TRUE){
