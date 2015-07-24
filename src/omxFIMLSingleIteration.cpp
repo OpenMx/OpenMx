@@ -145,11 +145,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 		row += (prevIdentical - 1);
 	}
 	
-	if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
-		if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
-		omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
-	}
-	
 	
 	while(row < data->rows && (row - rowbegin) < rowcount) {
 		localobj->matrix->currentState->currentRow = row;		// Set to a new row.
@@ -179,7 +174,11 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				numVarsFilled = data->handleDefinitionVarList(localobj->matrix->currentState, row, oldDefs.data());
-				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) { 
+				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+					if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
+						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
+						omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
+					}
 					omxExpectationCompute(expectation, NULL);
 				}
 			}
