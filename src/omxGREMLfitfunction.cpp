@@ -106,6 +106,8 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
 
 
 
+/*Possible TODO: exploit use of selfadjointView and triangularView to reduce redundant computation during
+matrix operations*/
 void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
   
@@ -129,7 +131,6 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
   EigenMatrixAdaptor EigX(gff->X);
   Eigen::MatrixXd P, Py;
-  P.setZero(gff->invcov->rows, gff->invcov->cols);
   double logdetV=0, logdetquadX=0;
   
   if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -159,10 +160,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       gff->REMLcorrection = Scale*0.5*logdetquadX;
       
       //Finish computing fit (negative loglikelihood):
-      P.triangularView<Eigen::Lower>() = Vinv.selfadjointView<Eigen::Lower>() * 
+      P = Vinv.selfadjointView<Eigen::Lower>() * 
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
           (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
-      Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+      Py = P * Eigy;
       oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ( Eigy.transpose() * Py )(0,0));
       gff->nll = oo->matrix->data[0]; 
     }
@@ -220,8 +221,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
     
     //Declare local variables for this scope:
-    int numChildren = fc->childList.size();
-    int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
+    int i=0, j=0, t1=0, t2=0;
+    Eigen::MatrixXd PdV_dtheta1;//, dV_dtheta1, dV_dtheta2;
+    Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+    Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     
@@ -233,23 +236,15 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     
     //Begin looping thru free parameters:
-#pragma omp parallel for num_threads(parallelism) 
     for(i=0; i < gff->dVlength; i++){
-    	//Declare locals within parallelized region:
-    	int j=0, t1=0, t2=0;
-    	Eigen::MatrixXd PdV_dtheta1;
-    	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-    	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
       t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
       if( oge->numcases2drop ){
-        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
+        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 0);
       }
       else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-      //PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-      PdV_dtheta1 = P.selfadjointView<Eigen::Lower>();
-      PdV_dtheta1 = PdV_dtheta1 * dV_dtheta1.selfadjointView<Eigen::Lower>();
+      PdV_dtheta1 = P * dV_dtheta1;
       for(j=i; j < gff->dVlength; j++){
         if(j==i){
           gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0));
@@ -262,10 +257,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
           t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
           if(t2 < 0){continue;}
           if( oge->numcases2drop ){
-            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
+            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 0);
           }
           else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-          gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
+          gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P * dV_dtheta2 * Py)(0,0);
           gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
     }}}}
     //Assign upper triangle elements of avgInfo to the HessianBlock:
