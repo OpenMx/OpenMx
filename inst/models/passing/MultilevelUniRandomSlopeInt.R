@@ -21,15 +21,18 @@ require(nlme)
 # Date: Sun Nov 29 14:06:07 EST 2009
 
 
-# This script is used to test the multilevel long format functionality using definition variables
-#    as indices.
+# This script is used to test the multilevel long format
+# functionality using definition variables as indices.
 totalOccasions <- 100
 totalSubjects <- 10
 set.seed(42) # repeatibility
 tID <- rep(1:totalSubjects, each=totalOccasions)
-trueX <- rep(rnorm(totalOccasions, mean=0, sd=2), each=totalSubjects) + rnorm(totalOccasions*totalSubjects, mean=0, sd=.2)
+trueX <- rep(rnorm(totalOccasions, mean=0, sd=2), each=totalSubjects) +
+    rnorm(totalOccasions*totalSubjects, mean=0, sd=.2)
 trueB <- rep(rnorm(totalSubjects, mean=.8, sd=.3), each=totalOccasions)
-tDataFrame <- data.frame(ID=tID, X=trueX, Y=trueB*trueX + rnorm(totalOccasions*totalSubjects,mean=0, sd=.1),trueB=trueB)
+tDataFrame <- data.frame(
+    ID=tID, X=trueX, Y=trueB*trueX +
+	rnorm(totalOccasions*totalSubjects,mean=0, sd=.1),trueB=trueB)
 summary(tDataFrame)
 
 manifestVars <- c("X", "Y")
@@ -96,10 +99,10 @@ cbind(multilevelModel2Fit$output$estimate[1:numSubjects],
 
 mean(multilevelModel2Fit$output$estimate[1:numSubjects])
 
-omxCheckCloseEnough(mean(multilevelModel2Fit$output$estimate[1:numSubjects]), 
-    lmeOut$coef$fixed[2],
-    0.001)
+est <- multilevelModel2Fit$output$estimate
 
-omxCheckCloseEnough(mean(multilevelModel2Fit$output$estimate[(1:numSubjects)+(1*numSubjects)]), 
-    lmeOut$coef$fixed[1],
-    0.001)
+omxCheckCloseEnough(mean(est[1:numSubjects]), 
+    lmeOut$coef$fixed[2], 0.001)
+
+omxCheckCloseEnough(mean(est[(1:numSubjects) + (1*numSubjects)]), 
+    lmeOut$coef$fixed[1], 0.001)
