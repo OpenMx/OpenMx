@@ -316,11 +316,19 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
   if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
   varGroup = newVarGroup;
 	gradMap.resize(dV.size());
-	for (size_t nx=0; nx < dV.size(); ++nx) {
-		int to = varGroup->lookupVar(dVnames[nx]);
-		gradMap[nx] = to;
+	int gx=0;
+	for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
+		for (int nx=0; nx < int(dV.size()); ++nx) {
+			if (strEQ(varGroup->vars[vx]->name, dVnames[nx])) {
+				gradMap[gx] = vx;
+				++gx;
+				break;
+			}
+		}
 	}
+	if (gx != int(dV.size())) Rf_error("Problem in dVnames mapping");
 }
+
 
 
 omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os) {
