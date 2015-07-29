@@ -28,3 +28,22 @@ omxCheckError(mxModel(model, A, B, remove=TRUE),
 	"See http://openmx.psyc.virginia.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
 model <- mxModel(model, 'A', 'B', remove=TRUE)
 omxCheckEquals(length(names(model)), 10)
+
+genModel <- function() {
+  mxModel("remove",
+          mxMatrix(nrow=1, ncol=1, labels="x", name="X"),
+          mxConstraint(X == 0, "e1"))
+}
+
+m1 <- genModel()
+omxCheckTrue(!is.null(m1$e1))
+m1$e1 <- NULL
+omxCheckTrue(is.null(m1$e1))
+
+m1 <- genModel()
+m1[['e1']] <- NULL
+omxCheckTrue(is.null(m1$e1))
+
+m1 <- genModel()
+m1 <- mxModel(m1, 'e1', remove=TRUE)
+omxCheckTrue(is.null(m1$e1))
