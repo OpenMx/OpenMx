@@ -51,6 +51,13 @@ void FitContext::queue(HessianBlock *hb)
 		if (std::distance(hb->vars.end(),it) != 0) {
 			Rf_error("HessianBlock var mapping is not 1-to-1");
 		}
+		int prev = hb->vars[0];
+		for (int vx=1; vx < int(hb->vars.size()); vx++) {
+			if (prev > hb->vars[vx]) {
+				Rf_error("hb->vars must be sorted");
+			}
+			prev = hb->vars[vx];
+		}
 	}
 
 	minBlockSize = std::max(int(hb->vars.size()), minBlockSize);

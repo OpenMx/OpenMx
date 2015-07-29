@@ -18,9 +18,9 @@
 #  Author: Steve Boker
 #    Date: Wed Aug 15 10:50:12 CEST 2012
 #
-# This program simulates some univariate multilevel data with random intercepts only,
-#   fits it with lme(), fits a naive wide format multilevel OpenMx model and
-#   checks the results
+# This program simulates some univariate multilevel data with random
+# intercepts only, fits it with lme(), fits a naive wide format
+# multilevel OpenMx model and checks the results
 #
 # ---------------------------------------------------------------------
 # Revision History
@@ -63,7 +63,8 @@ SimUniRandomIntFrame <- data.frame(ID, X, Y)
 # ----------------------------------
 # Test with lme().
 
-lmeOut <- summary(lme(Y ~ X, random= list(~ 1 | ID), data=SimUniRandomIntFrame))
+lmeOut <- summary(lme(Y ~ X, random= list(~ 1 | ID),
+		      data=SimUniRandomIntFrame))
 
 # For lme4, use:
 # lmerOut <- lmer(Y ~ X + (1 | ID), data=SimUniRandomIntFrame)
@@ -86,7 +87,8 @@ for (tID in theIDs) {
 # Wide-format the data frame from tall format.
 
 wideMatrix <- matrix(NA, nrow=totalN, ncol=1 + (maxP*totalVars))
-colnames(wideMatrix) <- c("ID", paste("Y",1:maxP, sep=""), paste("X",1:maxP, sep=""))
+colnames(wideMatrix) <- c("ID", paste("Y",1:maxP, sep=""),
+			  paste("X",1:maxP, sep=""))
 i <- 1
 for (tID in theIDs) {
     wideMatrix[i, 1] <- tID
@@ -110,33 +112,44 @@ OpenMxModelUniRandomIntModel1 <- mxModel("OpenMxModelUniRandomIntModel1",
 	type="RAM", 
 	manifestVars=manifestNames,
     latentVars=latentNames,
-    mxPath(from=xNames, to=yNames, connect="single", arrows=1, free=TRUE, values=.2, labels="b1"),
-    mxPath(from=xNames, to=xNames, connect="single", arrows=2, free=TRUE, values=.8, labels="vX"),
-    mxPath(from=yNames, to=yNames, connect="single", arrows=2, free=TRUE, values=.8, labels="eY"),
+    mxPath(from=xNames, to=yNames, connect="single", arrows=1,
+	   free=TRUE, values=.2, labels="b1"),
+    mxPath(from=xNames, to=xNames, connect="single", arrows=2,
+	   free=TRUE, values=.8, labels="vX"),
+    mxPath(from=yNames, to=yNames, connect="single", arrows=2,
+	   free=TRUE, values=.8, labels="eY"),
     mxPath(from=latentNames, to=yNames, arrows=1, free=FALSE, values=1),
-    mxPath(from=latentNames, to=latentNames, connect="single", arrows=2, free=TRUE, values=.8, labels="vb0i"),
-    mxPath(from="one", to=c(xNames), arrows=1, free=TRUE, values=1, labels="mX"),
-    mxPath(from="one", to=c(latentNames), arrows=1, free=TRUE, values=1, labels="mb0i"),
+    mxPath(from=latentNames, to=latentNames, connect="single", arrows=2,
+	   free=TRUE, values=.8, labels="vb0i"),
+    mxPath(from="one", to=c(xNames), arrows=1,
+	   free=TRUE, values=1, labels="mX"),
+    mxPath(from="one", to=c(latentNames), arrows=1,
+	   free=TRUE, values=1, labels="mb0i"),
     mxData(observed=wideFrame, type="raw")
 )
 
 # ----------------------------------
 # Fit the model and examine the summary results.
 
-OpenMxModelUniRandomIntModel1Fit <- mxRun(OpenMxModelUniRandomIntModel1)
+omxFit <- mxRun(OpenMxModelUniRandomIntModel1)
 
-summary(OpenMxModelUniRandomIntModel1Fit)
+summary(omxFit)
 
-omxCheckCloseEnough(lmeOut$coefficients$fixed[1], mxEval(mb0i, model=OpenMxModelUniRandomIntModel1Fit), 0.001)
+omxCheckCloseEnough(lmeOut$coefficients$fixed[1],
+		    mxEval(mb0i, model=omxFit), 0.001)
 
-omxCheckCloseEnough(lmeOut$coefficients$fixed[2], mxEval(b1, model=OpenMxModelUniRandomIntModel1Fit), 0.001)
+omxCheckCloseEnough(lmeOut$coefficients$fixed[2],
+		    mxEval(b1, model=omxFit), 0.001)
 
-omxCheckCloseEnough(lmeOut$sigma, mxEval(sqrt(eY), model=OpenMxModelUniRandomIntModel1Fit), 0.001)
+omxCheckCloseEnough(lmeOut$sigma,
+		    mxEval(sqrt(eY), model=omxFit), 0.001)
 
-omxCheckCloseEnough(sd(c(lmeOut$coefficients$random$ID)), mxEval(sqrt(vb0i), model=OpenMxModelUniRandomIntModel1Fit), 0.001)
+omxCheckCloseEnough(sd(c(lmeOut$coefficients$random$ID)),
+		    mxEval(sqrt(vb0i), model=omxFit), 0.001)
 
 if (0) {
   omxCheckCloseEnough(lmeOut$coefficients$fixed, fixef(lmerOut), 1e-4)
   omxCheckCloseEnough(lmeOut$sigma, sigma(lmerOut), 1e-4)
-  omxCheckCloseEnough(c(lmeOut$coefficients$random$ID), ranef(lmerOut)$ID[[1]], 1e-4)
+  omxCheckCloseEnough(c(lmeOut$coefficients$random$ID),
+		      ranef(lmerOut)$ID[[1]], 1e-4)
 }
