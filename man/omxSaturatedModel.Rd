@@ -50,6 +50,8 @@ In general, it is best practice to give \code{mxRefModels} a model that has alre
 
 For IFA models (\link{mxExpectationBA81}), the independence model
 preserves equality constraints among item parameters from the original model.
+
+\code{mxRefModels()} is not compatible with \link[mxExpectationGREML]{GREML expectation}, as there is no sensible general definition for a saturated GREML-type model.
 }
 
 \references{
