@@ -263,6 +263,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
 	}
 
+	if (verbose >= 1) {
+		mxLog("%s: engine %s done, iter=%d inform=%d",
+		      name, engineName, Global->computeCount - beforeEval, fc->inform);
+	}
+
 	// Optimizers can terminate with inconsistent fit and parameters
 	fc->copyParamToModel();
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
