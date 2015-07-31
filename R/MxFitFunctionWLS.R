@@ -84,6 +84,10 @@ setMethod("genericFitFunConvert", "MxFitFunctionWLS",
 			expectIndex <- as.integer(NA)
 		}
 		.Object@expectation <- expectIndex
+		eobj <- flatModel@expectations[[1L+expectIndex]]
+		if(!single.na(eobj@thresholds)){
+			checkWLSIdentification(model, eobj)
+		}
 		return(.Object)
 })
 
@@ -118,11 +122,12 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 
 setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 	function(.Object, job, flatJob, labelsData) {
-		type <- strsplit(is(job@expectation)[1], "MxExpectation")[[1]][2]
-		if(!single.na(job@data@thresholds)){
-			checkWLSIdentification(model=job, type=type)
-		}
-		# Note: only check identification when the data have thresholds
+		job <- mxOption(job, "Calculate Hessian", "No")
+		job <- mxOption(job, "Standard Errors", "No")
+		return(job)
+})
+
+checkWLSIdentification <- function(model, expect) {
 		#TODO check the job's expectation
 		# if it's expectation Normal
 		#	if it's identified how we want, then do nothing
@@ -135,17 +140,13 @@ setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 		#	if it's identified how we want, then do nothing
 		#	else throw error
 		# else throw error that WLS doesn't work for that yet.
-		job <- mxOption(job, "Calculate Hessian", "No")
-		job <- mxOption(job, "Standard Errors", "No")
-		return(job)
-})
 
-checkWLSIdentification <- function(model, type){
+	type <- strsplit(is(expect)[1], "MxExpectation")[[1]][2]
 	if(type=='RAM'){
-		A <- model@expectation@A
-		S <- model@expectation@S
-		F <- model@expectation@F
-		M <- model@expectation@M
+		A <- expect@A
+		S <- expect@S
+		F <- expect@F
+		M <- expect@M
 		# ???
 		# mxComputeOnce the RAM expectation?
 		stop("Ordinal WLS with the RAM expectation is not yet implemented.  For now, use mxExpectationNormal.")
@@ -158,11 +159,11 @@ checkWLSIdentification <- function(model, type){
 	else if(type=='Normal'){
 		#Note: below strategy does NOT catch cases where starting values
 		# make the criteria true by accident.
-		theCov <- mxEvalByName(model@expectation@covariance, model, compute=TRUE) #Perhaps save time with cache?
+		theCov <- mxEvalByName(expect@covariance, model, compute=TRUE) #Perhaps save time with cache?
 		covDiagsOne <- all( ( (diag(theCov) - 1)^2 ) < 1e-7 )
-		meanName <- model@expectation@means
+		meanName <- expect@means
 		if(!single.na(meanName)){
-			theMeans <- mxEvalByName(model@expectation@means, model, compute=TRUE)
+			theMeans <- mxEvalByName(expect@means, model, compute=TRUE)
 			meanZeroNA <- all( ( (diag(theMeans) - 0)^2 ) < 1e-7 )
 		} else {
 			meanZeroNA <- TRUE
