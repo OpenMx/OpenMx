@@ -272,7 +272,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
 		Rf_error("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
-		if (fc->iterations - priorIterations <= 1) {
+		if (!goc.feasible) {
 			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
 		} else {
 			goc.informOut = INFORM_ITERATION_LIMIT;
