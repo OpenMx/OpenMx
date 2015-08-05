@@ -220,10 +220,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
     
     //Declare local variables for this scope:
-    int i=0, j=0, t1=0, t2=0;
-    Eigen::MatrixXd PdV_dtheta1;
-    Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-    Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+    int nThreadz = Global->numThreads;
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     
@@ -235,7 +232,17 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     }
     
     //Begin looping thru free parameters:
-    for(i=0; i < gff->dVlength; i++){
+#pragma omp parallel num_threads(nThreadz)
+{
+		int i=0, j=0, t1=0, t2=0;
+		Eigen::MatrixXd PdV_dtheta1;
+		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+		int threadID = omx_absolute_thread_num();
+		int istart = threadID * gff->dVlength / nThreadz;
+		int iend = (threadID+1) * gff->dVlength / nThreadz;
+		if(threadID == nThreadz-1){iend = gff->dVlength;}
+    for(i=istart; i < iend; i++){
       t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
       if(t1 < 0){continue;}
       if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
@@ -264,6 +271,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
           gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
           gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
     }}}}
+}
     //Assign upper triangle elements of avgInfo to the HessianBlock:
     if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
       for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
