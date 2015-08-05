@@ -30,7 +30,7 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	invisible(TRUE)
 }
 
-mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {	
+mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL) {
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
@@ -40,6 +40,18 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	chkpt.files <- grep(pattern, chkpt.files, perl=TRUE, value=TRUE)
 	if(length(chkpt.files) == 0) {
 		return(model)
+	}
+	# Move the most likely match to the end so those estimates take precedence.
+	matchIndex <- match(paste(model$name, 'omx', sep="."), chkpt.files)
+	chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
+	if (length(chkpt.files) > 1 && !is.null(line)) {
+		stop(paste("Ambiguous: cannot specify line =", line,
+			   "with more than one checkpoint found:",
+			   omxQuotes(chkpt.files)))
+	}
+	if (length(chkpt.files) > 1) {
+		message(paste("Loading estimates from more than one checkpoint:",
+			      omxQuotes(chkpt.files)))
 	}
 	allPar <- names(omxGetParameters(model, indep=TRUE, free=NA))
 	for(i in 1:length(chkpt.files)) {
@@ -52,7 +64,18 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 		toSet <- colnames(checkpoint)[-ign]
 		mask <- !is.na(match(toSet, allPar))
 		if (all(!mask)) next
-		values <- as.numeric(checkpoint[nrow(checkpoint), -ign])
+		if (is.null(line)) {
+			row <- nrow(checkpoint)
+		} else {
+			row <- line
+			if (row < 2 || row > nrow(checkpoint)) {
+				warning(paste("Requested line", line,
+					      "but checkpoint contains lines 2 to",
+					      nrow(checkpoint), "; using the last line"))
+				row <- nrow(checkpoint)
+			}
+		}
+		values <- as.numeric(checkpoint[row, -ign])
 		model <- omxSetParameters(model, labels=toSet[mask], values=values[mask])
 	}
 	return(model)
