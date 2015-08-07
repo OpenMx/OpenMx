@@ -242,35 +242,35 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 		int istart = threadID * gff->dVlength / nThreadz;
 		int iend = (threadID+1) * gff->dVlength / nThreadz;
 		if(threadID == nThreadz-1){iend = gff->dVlength;}
-    for(i=istart; i < iend; i++){
-      t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
-      if(t1 < 0){continue;}
-      if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-      if( oge->numcases2drop ){
-        dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
-      }
-      else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-      //PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-      PdV_dtheta1 = P.selfadjointView<Eigen::Lower>();
-      PdV_dtheta1 = PdV_dtheta1 * dV_dtheta1.selfadjointView<Eigen::Lower>();
-      for(j=i; j < gff->dVlength; j++){
-        if(j==i){
-          gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0));
-          fc->grad(t1) += gff->gradient(t1);
-          if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-            gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * Py)(0,0);
-          }
-        }
-        else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-          t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
-          if(t2 < 0){continue;}
-          if( oge->numcases2drop ){
-            dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
-          }
-          else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-          gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
-          gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
-    }}}}
+		for(i=istart; i < iend; i++){
+			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
+			if(t1 < 0){continue;}
+			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
+			if( oge->numcases2drop ){
+				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
+			}
+			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
+			//PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+			PdV_dtheta1 = P.selfadjointView<Eigen::Lower>();
+			PdV_dtheta1 = PdV_dtheta1 * dV_dtheta1.selfadjointView<Eigen::Lower>();
+			for(j=i; j < gff->dVlength; j++){
+				if(j==i){
+					gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0));
+					fc->grad(t1) += gff->gradient(t1);
+					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+						gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * Py)(0,0);
+					}
+				}
+				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+					t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
+					if(t2 < 0){continue;}
+					if( oge->numcases2drop ){
+						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
+					}
+					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
+					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
+					gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+				}}}}
 }
     //Assign upper triangle elements of avgInfo to the HessianBlock:
     if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
