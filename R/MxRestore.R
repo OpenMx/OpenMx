@@ -30,7 +30,7 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 	invisible(TRUE)
 }
 
-mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL) {
+mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL, strict=FALSE) {
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
@@ -41,9 +41,18 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL
 	if(length(chkpt.files) == 0) {
 		return(model)
 	}
-	# Move the most likely match to the end so those estimates take precedence.
 	matchIndex <- match(paste(model$name, 'omx', sep="."), chkpt.files)
-	chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
+	if (strict) {
+		if (!is.na(matchIndex)) {
+			chkpt.files <- chkpt.files[matchIndex]
+		} else {
+			stop(paste("Cannot find", omxQuotes(paste(model$name, 'omx', sep=".")),
+				   "in", chkp.directory))
+		}
+	} else {
+		# Move the most likely match to the end so those estimates take precedence.
+		chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
+	}
 	if (length(chkpt.files) > 1 && !is.null(line)) {
 		stop(paste("Ambiguous: cannot specify line =", line,
 			   "with more than one checkpoint found:",
