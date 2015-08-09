@@ -185,7 +185,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
                                      staggerZeroes=.Object@staggerZeroes)
               .Object@y <- mxData(
                 observed=matrix(mm$yX[,1], nrow=1,
-                                dimnames=list(NULL,paste("y",1:nrow(mxDataObject@observed),sep=""))),
+                                dimnames=list(NULL,paste("y",1:length(mm$yX[,1]),sep=""))),
                 type="raw",sort=FALSE)
               .Object@X <- as.matrix(mm$yX[,-1])
               .Object@yXcolnames <- colnames(mm$yX)
