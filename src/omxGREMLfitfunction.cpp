@@ -127,10 +127,11 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   int i;
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(gff->y), gff->y->cols, 1);
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
+  Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(gff->means), gff->means->rows, gff->means->cols);
   EigenMatrixAdaptor EigX(gff->X);
   Eigen::MatrixXd P, Py;
   P.setZero(gff->invcov->rows, gff->invcov->cols);
-  double logdetV=0, logdetquadX=0;
+  double logdetV=0, logdetquadX=0, ytPy=0, WSSR=0;
   
   if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     if(gff->usingGREMLExpectation){
@@ -159,11 +160,16 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       gff->REMLcorrection = Scale*0.5*logdetquadX;
       
       //Finish computing fit (negative loglikelihood):
-      P.triangularView<Eigen::Lower>() = Vinv.selfadjointView<Eigen::Lower>() * 
+      P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * 
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
-          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
+          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>(); //Vinv * (I-Hatmat)
+      mxLog("P(0,1) is %3.3f",P(0,1));
       Py = P.selfadjointView<Eigen::Lower>() * Eigy;
-      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ( Eigy.transpose() * Py )(0,0));
+      ytPy = (Eigy.transpose() * Py)(0,0);
+      mxLog("ytPy is %3.3f", ytPy);
+      WSSR = ((Eigy - yhat).transpose() * Vinv.selfadjointView<Eigen::Lower>() * (Eigy - yhat))(0,0);
+      mxLog("WSSR is %3.3f", WSSR);
+      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy);
       gff->nll = oo->matrix->data[0]; 
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
