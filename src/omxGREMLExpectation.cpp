@@ -195,8 +195,8 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   fitfunction.  If its false, that means that the GREML fitfunction is being used, and it knows how to handle
   a "half-full" Vinv.*/
   else{
-  	Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>(); //<-- V inverse
-  	mxLog("Vinv(0,1) is %3.3f", Vinv(0,1));
+  	//V inverse:
+  	Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>();
   	oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
   }
   quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
@@ -207,9 +207,9 @@ void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) 
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
-  //if(oge->alwaysComputeMeans){
+  if(oge->alwaysComputeMeans){
     yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
-  //}
+  }
 }
 
 
