@@ -93,6 +93,23 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             return(.Object)
           })
 
+setMethod("genericGetCovariance", signature("MxExpectationGREML"),
+					function(.Object, model) {
+						covname <- .Object@V
+						cov <- mxEvalByName(covname, model, compute=TRUE)
+						return(cov)
+					})
+
+setMethod("genericGetMeans", signature("MxExpectationGREML"),
+					function(.Object, model) {
+						return(NA)
+					})
+
+setMethod("genericGetThresholds", signature("MxExpectationGREML"),
+					function(.Object, model) {
+						return(NA)
+					})
+
 mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
                                staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0)){
   blockByPheno <- as.logical(blockByPheno)[1]
