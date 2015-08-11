@@ -23,7 +23,7 @@
 }
 
 \usage{
-mxRestore(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL)
+mxRestore(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL, strict=FALSE)
 }
 
 \arguments{
@@ -31,7 +31,9 @@ mxRestore(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL)
     \item{chkpt.directory}{character. Directory where the checkpoint file is located.}
     \item{chkpt.prefix}{character. Prefix of the checkpoint file.}
     \item{line}{integer. Which line from the checkpoint file to restore
-    (defaults to the last line)}
+      (defaults to the last line)}
+    \item{strict}{logical. Require that the checkpoint name and model
+    name match.}
 }
 
 \details{

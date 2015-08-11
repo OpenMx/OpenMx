@@ -130,7 +130,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   EigenMatrixAdaptor EigX(gff->X);
   Eigen::MatrixXd P, Py;
   P.setZero(gff->invcov->rows, gff->invcov->cols);
-  double logdetV=0, logdetquadX=0;
+  double logdetV=0, logdetquadX=0, ytPy=0;
   
   if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     if(gff->usingGREMLExpectation){
@@ -159,11 +159,13 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       gff->REMLcorrection = Scale*0.5*logdetquadX;
       
       //Finish computing fit (negative loglikelihood):
-      P.triangularView<Eigen::Lower>() = Vinv.selfadjointView<Eigen::Lower>() * 
+      P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
         (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
-          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv)); //Vinv * (I-Hatmat)
+          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
       Py = P.selfadjointView<Eigen::Lower>() * Eigy;
-      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ( Eigy.transpose() * Py )(0,0));
+      ytPy = (Eigy.transpose() * Py)(0,0);
+      if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy);
       gff->nll = oo->matrix->data[0]; 
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...

@@ -23,3 +23,22 @@ loadings <- c(1, -0.625, 0.1953125,
 loadings <- matrix(loadings, 6, 3, byrow = TRUE)
 L <- mxMatrix("Full", free=FALSE, values=loadings, name="L", byrow=TRUE)
 omxCheckIdentical(loadings, L$values)
+
+mxMatrixFromChar <- function(inputm, name=NA) {
+  inputmFixed <- suppressWarnings(matrix(
+    as.numeric(inputm),nrow = nrow(inputm), ncol = ncol(inputm)))
+  inputmCharacter <- inputm
+  inputmCharacter[!is.na(inputmFixed)] <- NA
+  mxMatrix(nrow=nrow(inputm), ncol=ncol(inputm),
+           free=!is.na(inputmCharacter),
+           values=inputmFixed,
+           labels=inputmCharacter,
+           dimnames=dimnames(inputm), name=name)
+}
+
+mat <- mxMatrixFromChar(matrix(c(1,2,"a","b"), nrow=2,ncol=2))
+omxCheckEquals(mat$labels[,2], c('a','b'))
+omxCheckTrue(all(is.na(mat$labels[,1])))
+omxCheckTrue(all(is.na(mat$values[,2])))
+omxCheckEquals(mat$values[,1], c(1,2))
+omxCheckEquals(c(mat$free), c(FALSE,FALSE,TRUE,TRUE))

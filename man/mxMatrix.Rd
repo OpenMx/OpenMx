@@ -108,4 +108,21 @@ symmMatrix <- mxMatrix(type = "Symm", nrow = 3, ncol = 3,
     values = c(1, .8, .8, 1, .8, 1),
     labels = c(NA, "free1", "free2", NA, "free3", NA),
     name = "bar")
+
+# Create an mxMatrix from a character matrix.  All numbers are
+# interpreted as fixed and non-numbers are interpreted as free
+# parameters.
+
+matrixFromChar <- function(inputm, name=NA) {
+  inputmFixed <- suppressWarnings(matrix(
+    as.numeric(inputm),nrow = nrow(inputm), ncol = ncol(inputm)))
+  inputmCharacter <- inputm
+  inputmCharacter[!is.na(inputmFixed)] <- NA
+  mxMatrix(nrow=nrow(inputm), ncol=ncol(inputm),
+           free=!is.na(inputmCharacter),
+           values=inputmFixed,
+           labels=inputmCharacter,
+           dimnames=dimnames(inputm), name=name)
+}
+
 }
