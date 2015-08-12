@@ -154,3 +154,55 @@ omxCheckCloseEnough(testrun$output$estimate,testrun2$output$estimate,0.001)
 omxCheckCloseEnough(testrun$output$standardErrors,testrun2$output$standardErrors,0.0001)
 omxCheckCloseEnough(testrun$expectation$b,testrun2$expectation$b,1e-5)
 omxCheckCloseEnough(testrun$expectation$bcov,testrun2$expectation$bcov,1e-6)
+
+
+# Reparametrize the problem in terms of total variance and heritability: ###
+
+gff3 <- mxFitFunctionGREML(dV=c(h2="dVdH2",vp="dVdVp")) #<--Need new fitfunction object
+#Need new compute plan:
+plan3 <- mxComputeSequence(freeSet = c("H2","Vp"),steps=list(
+	mxComputeNewtonRaphson(fitfunction="fitfunction"),
+	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeConfidenceInterval(
+		plan=mxComputeGradientDescent(
+			fitfunction="GREML_1GRM_1trait_altparam.fitfunction", nudgeZeroStarts=FALSE, maxMajorIter=150),
+		fitfunction="GREML_1GRM_1trait_altparam.fitfunction",
+		constraintType=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL","none","ineq")
+	),
+	mxComputeStandardError(),
+	mxComputeReportDeriv()
+))
+
+testmod3 <- mxModel(
+	"GREML_1GRM_1trait_altparam", #<--Model name
+	#1x1 matrix containing heritability:
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.5, labels = "h2", lbound = 0.0001, ubound=0.9999,
+					 name = "H2"),
+	#1x1 matrix containing total phenotypic variance:
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = var(y), labels = "vp", name = "Vp"),
+	#1000x1000 identity matrix--the "relatedness matrix" for the residuals:
+	mxMatrix("Iden",nrow=1000,name="I"),
+	#The GRM:
+	mxMatrix("Symm",nrow=1000,free=F,values=A,name="A"),
+	#MxAlgebra for additive-genetic variance:
+	mxAlgebra(H2*Vp, name="Va"),
+	#MxAlgebra for residual variance:
+	mxAlgebra((1-H2)*Vp, name="Ve"),
+	#The model-expected covariance matrix:
+	mxAlgebra( (A%x%Va) + (I%x%Ve), name="V"),
+	#MxAlgebras for derivatives of V w/r/t free parameters:
+	mxAlgebra((A-I)%x%Vp, name="dVdH2"),
+	mxAlgebra(I + (A-I)%x%H2, name="dVdVp"),
+	mxCI("h2"), #<--Request confidence interval for heritability
+	mxdat, #<--MxData object
+	ge, #<--GREML expectation
+	gff3, #<--GREML fitfunction
+	plan3 #<--Custom compute plan
+)
+
+testrun3 <- mxRun(testmod3, intervals = T)
+summary(testrun3)
+
+#Compare:
+mxEval(h2,testrun3,T) + 2*c(-0.07824315,0.07824315) #<--0.07824315 is the SE of h2
+testrun3$output$confidenceIntervals
