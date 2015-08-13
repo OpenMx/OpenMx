@@ -89,11 +89,10 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
 	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
+		mxLogSetCurrentRow(row);
 
 		data->handleDefinitionVarList(localobj->matrix->currentState, row, oldDefs.data());
 
-		omxStateNextRow(localobj->matrix->currentState);						// Advance row
-		
         // Populate data row
 		numRemoves = 0;
 	

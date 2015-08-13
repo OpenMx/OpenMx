@@ -55,7 +55,7 @@ void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov,
    	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
 		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
 
-   	if(OMX_DEBUG && !oo->matrix->currentState->currentRow) {
+   	if (0) {
    		char infinCodes[3][20];
    		strcpy(infinCodes[0], "(-INF, upper]");
    		strcpy(infinCodes[1], "[lower, INF)");
