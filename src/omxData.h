@@ -113,9 +113,8 @@ class omxData {
  public:
 	int rows, cols;						// Matrix size 
 	int verbose;
-	omxState *currentState;
 
-	void loadFakeData(double fake);
+	void loadFakeData(omxState *state, double fake);
 	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
 	bool hasDefinitionVariables() { return defVars.size() != 0; };
 
@@ -123,10 +122,10 @@ class omxData {
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
 	int version;
 
-	omxData(omxState *);
-	void newDataStatic(SEXP dataObject);
+	omxData();
+	void newDataStatic(omxState *, SEXP dataObject);
 	SEXP getRowNames();
-	void connectDynamicData();
+	void connectDynamicData(omxState *currentState);
 	void recompute();
 };
 
@@ -143,7 +142,7 @@ double *omxDoubleDataColumn(omxData *od, int col);
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
-omxMatrix* omxDataAcov(omxData *od); 						// Populates a matrix with the asymptotic covariance matrix
+omxMatrix* omxDataAcov(omxData *od, omxState *currentState);
 
 std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 

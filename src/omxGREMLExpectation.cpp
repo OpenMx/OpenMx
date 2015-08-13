@@ -44,9 +44,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   
     /* Set up expectation structures */
   //y:
-  oge->y = new omxData(currentState);
+  oge->y = new omxData();
   {ScopedProtect p1(Rmtx, R_do_slot(rObj, Rf_install("y")));
-  oge->y->newDataStatic(Rmtx);
+	  oge->y->newDataStatic(currentState, Rmtx);
   }
   //V:
 	if(OMX_DEBUG) { mxLog("Processing V."); }

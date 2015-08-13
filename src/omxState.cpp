@@ -293,20 +293,26 @@ void omxGlobal::deduplicateVarGroups()
 	}
 }
 
+int omxState::nextId = 0;
+
 void omxState::init()
 {
+	stateId = ++nextId;
 	wantStage = 0;
 }
 
 void omxState::loadDefinitionVariables(bool start)
 {
+	if (OMX_DEBUG) {
+		mxLog("omxState[%d]::loadDefinitionVariables(start=%d)", getId(), start);
+	}
 	for(int ex = 0; ex < int(dataList.size()); ++ex) {
 		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
 		int row = 0;
 		if (start) {
 			if (e1->rows != 1) {
-				e1->loadFakeData(NA_REAL);
+				e1->loadFakeData(this, NA_REAL);
 				continue;
 			}
 		} else {

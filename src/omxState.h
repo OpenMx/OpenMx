@@ -269,10 +269,13 @@ extern struct omxGlobal *Global;
 class omxState {
  private:
 	void init();
+	static int nextId;
+	int stateId;
 	int wantStage;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
+	int getId() const { return stateId; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;

@@ -375,7 +375,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->omxCompleteMxExpectationEntities();
 
 	for (int dx=0; dx < (int) globalState->dataList.size(); ++dx) {
-		globalState->dataList[dx]->connectDynamicData();
+		globalState->dataList[dx]->connectDynamicData(globalState);
 	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
