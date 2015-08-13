@@ -282,8 +282,6 @@ class omxState {
 	// not copied to sub-states
 	std::vector< omxConstraint* > conList;
 
-	long int currentRow; // only used for debugging
-
 	omxState() { init(); };
 	omxState(omxState *src);
 	void omxProcessMxMatrixEntities(SEXP matList);
@@ -322,8 +320,6 @@ omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
-
-void omxStateNextRow(omxState *state);
 
 std::string string_vsnprintf(const char *fmt, va_list ap);
 

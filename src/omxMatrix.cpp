@@ -317,7 +317,7 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 void omxMarkDirty(omxMatrix *om) {
 	om->version += 1;
 	if (OMX_DEBUG_ALGEBRA) {
-		mxLog("Marking matrix %s dirty", om->name());
+		mxLog("Marking %s %s dirty", om->getType(), om->name());
 	}
 }
 
@@ -326,7 +326,7 @@ void omxMarkClean(omxMatrix *om)
 	om->version += 1;
 	om->cleanVersion = om->version;
 	if (OMX_DEBUG_ALGEBRA) {
-		mxLog("Marking matrix %s clean", om->name());
+		mxLog("Marking %s %s clean", om->getType(), om->name());
 	}
 }
 
@@ -637,7 +637,7 @@ static bool omxNeedsUpdate(omxMatrix *matrix)
 		yes = TRUE;
 	}
 	if (OMX_DEBUG_ALGEBRA) {
-		mxLog("Matrix %s %s update", matrix->name(), yes? "needs" : "does not need");
+		mxLog("%s %s is %s", matrix->getType(), matrix->name(), yes? "dirty" : "clean");
 	}
 	return yes;
 }

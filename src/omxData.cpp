@@ -916,6 +916,10 @@ void omxDefinitionVar::loadData(omxState *state, double val)
 		int matcol = cols[l];
 		omxMatrix *matrix = state->matrixList[matrixNumber];
 		omxSetMatrixElement(matrix, matrow, matcol, val);
+		if (OMX_DEBUG) {
+			mxLog("Load fake data %f into %s[%d,%d], state[%d]",
+			      val, matrix->name(), matrow, matcol, state->getId());
+		}
 	}
 	markDefVarDependencies(state, this);
 }

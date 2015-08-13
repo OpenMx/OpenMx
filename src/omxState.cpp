@@ -194,6 +194,7 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
+	mxLogSetCurrentRow(-1);
 	numThreads = 1;
 	analyticGradients = 0;
 	llScale = -2.0;
@@ -295,7 +296,6 @@ void omxGlobal::deduplicateVarGroups()
 void omxState::init()
 {
 	wantStage = 0;
-	currentRow = -1;
 }
 
 void omxState::loadDefinitionVariables(bool start)
@@ -361,8 +361,6 @@ omxState::omxState(omxState *src)
 		if (!matrix->fitFunction) continue;
 		omxCompleteFitFunction(matrix);
 	}
-
-	currentRow 		= src->currentRow;
 }
 
 omxState::~omxState()
@@ -455,14 +453,41 @@ std::string string_snprintf(const char *fmt, ...)
 	return str;
 }
 
+#if OMX_DEBUG
+// __thread is a gcc extension. I'm not sure about portability to
+// other compilers. This is only here for debugging so you can remove
+// it if you have trouble getting it through the compiler on your
+// system.
+
+static __thread int mxLogCurrentRow;
+
+void mxLogSetCurrentRow(int row)
+{
+	mxLogCurrentRow = row;
+}
+#else
+static const int mxLogCurrentRow = -1;
+void mxLogSetCurrentRow(int row) {}
+#endif
+
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
 	if (len == 0) Rf_error("Attempt to log 0 characters with mxLogBig");
+
+	std::string fullstr;
+	if (mxLogCurrentRow == -1) {
+		fullstr = string_snprintf("[%d] ", omx_absolute_thread_num());
+	} else {
+		fullstr = string_snprintf("[%d@%d] ", omx_absolute_thread_num(), mxLogCurrentRow);
+	}
+	fullstr += str;
+	len = ssize_t(fullstr.size());
+	
 	ssize_t wrote = 0;
 	int maxRetries = 20;
 	ssize_t got;
-	const char *outBuf = str.c_str();
+	const char *outBuf = fullstr.c_str();
 #pragma omp critical(stderp)
 	{
 		while (--maxRetries > 0) {
@@ -488,7 +513,12 @@ void mxLog(const char* msg, ...)   // thread-safe
 	vsnprintf(buf1, maxLen, msg, ap);
 	va_end(ap);
 
-	int len = snprintf(buf2, maxLen, "[%d] %s\n", omx_absolute_thread_num(), buf1);
+	int len;
+	if (mxLogCurrentRow == -1) {
+		len = snprintf(buf2, maxLen, "[%d] %s\n", omx_absolute_thread_num(), buf1);
+	} else {
+		len = snprintf(buf2, maxLen, "[%d@%d] %s\n", omx_absolute_thread_num(), mxLogCurrentRow, buf1);
+	}
 
 	int maxRetries = 20;
 	ssize_t wrote = 0;
@@ -559,10 +589,6 @@ const char *omxGlobal::getBads()
 void omxRaiseError(const char* msg) { // DEPRECATED
 	omxRaiseErrorf("%s", msg);
 }
-
-	void omxStateNextRow(omxState *state) {
-		state->currentRow++;
-	};
 
 void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
 {
