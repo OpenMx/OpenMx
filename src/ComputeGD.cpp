@@ -120,7 +120,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	ScopedProtect p6(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {
 		SEXP matrixDims;
-		Rf_protect(matrixDims = Rf_getAttrib(slotValue, R_DimSymbol));
+		ScopedProtect pws(matrixDims, Rf_getAttrib(slotValue, R_DimSymbol));
 		int *dimList = INTEGER(matrixDims);
 		int rows = dimList[0];
 		int cols = dimList[1];

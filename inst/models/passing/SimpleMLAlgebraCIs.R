@@ -4,6 +4,7 @@ if (mxOption(NULL, "Default optimizer") == "SLSQP") {
   mxOption(NULL, "Optimality tolerance", "6e-10")
 }
 
+set.seed(654684)
 data(demoOneFactor)
 
 manifests <- names(demoOneFactor)
@@ -21,12 +22,12 @@ factorModel <- mxModel("One Factor ML",
     mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests),
     mxCI(c("P"))
 )
-factorFitCI <- mxTryHard(factorModel, fit2beat=-2863, extraTries=2, intervals=TRUE, suppressWarnings = TRUE)
+factorFitCI <- mxTryHard(factorModel, fit2beat=-2863, extraTries=3, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 
 #print(factorFitCI$output$computes[[2]])
 
-ci <- factorFitCI$output$confidenceIntervals
+( ci <- factorFitCI$output$confidenceIntervals )
 #cat(deparse(round(ci[,'lbound'], 4)))
 omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
 omxCheckCloseEnough(ci[,'lbound'], c(0.4174, 0.5082, 0.5755, 0.6872, 0.7704), 2e-2)

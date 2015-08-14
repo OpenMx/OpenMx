@@ -153,10 +153,8 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 
 static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::string &name) {
 	omxMatrix* newMat;
-	if(OMX_DEBUG) { mxLog("Helper: processing next arg..."); }
 	
 	if(!Rf_isInteger(algebraArg)) {
-		if(OMX_DEBUG) { mxLog("Helper detected list element.  Recursing."); }
 		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
 	} else {
 		newMat = omxMatrixLookupFromState1(algebraArg, os);
@@ -172,12 +170,9 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	
 	value = Rf_asInteger(VECTOR_ELT(algebra, 0));
 
-	if(OMX_DEBUG) {mxLog("Creating Algebra from Sexp.");}
-
 	if(value > 0) { 			// This is an operator.
 		oa = new omxAlgebra;
 		omxInitAlgebraWithMatrix(oa, om);
-		if(OMX_DEBUG) {mxLog("Retrieving Table Entry %d.", value);}
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
 		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);

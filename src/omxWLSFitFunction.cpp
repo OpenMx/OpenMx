@@ -223,7 +223,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	/* Read and set expected means, variances, and weights */
     cov = omxDataCovariance(dataMat);
     means = omxDataMeans(dataMat);
-    weights = omxDataAcov(dataMat);
+    weights = omxDataAcov(dataMat, cov->currentState);
 
     newObj->observedCov = cov;
     newObj->observedMeans = means;

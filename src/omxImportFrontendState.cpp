@@ -203,7 +203,7 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 	size_t numMats = state->matrixList.size();
 	int numAlgs = state->algebraList.size();
 
-	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
+	if(OMX_DEBUG) mxLog("omxInitialMatrixAlgebraCompute(state[%d], ...)", state->getId());
 
 	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 
@@ -213,7 +213,7 @@ void omxInitialMatrixAlgebraCompute(omxState *state, FitContext *fc)
 		// It is necessary to load some number (like 1) instead
 		// of NAs because algebra can use definition variables
 		// for indexing. We will load real data later.
-		state->dataList[ex]->loadFakeData(1);
+		state->dataList[ex]->loadFakeData(state, 1);
 	}
 
 	for(size_t index = 0; index < numMats; index++) {
