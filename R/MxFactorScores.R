@@ -38,7 +38,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		model <- omxSetParameters(model, labels=names(omxGetParameters(model)), free=FALSE)
 		ksiMean <- mxEvalByName(model$expectation$KA, model, compute=TRUE)
 		newKappa <- mxMatrix("Full", nksi, 1, values=ksiMean, free=TRUE, name="Score", labels=paste0("fscore", 1:nksi))
-		scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], dimnames(lx)[[2]]))
+		scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], 'one'))
 		newExpect <- mxExpectationLISREL(LX=model$expectation$LX, PH=model$expectation$PH, TD=model$expectation$TD, TX=model$expectation$TX, KA="SKAPPA", thresholds=model$expectation$thresholds)
 		newWeight <- mxAlgebraFromString(paste0("log(det(", model$expectation$PH, ")) + ( (t(SKAPPA)) %&% ", model$expectation$PH, " ) + ", nksi, "*log(2*3.1415926535)"), name="weight")
 		work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newKappa, scoreKappa, newExpect, newWeight)
@@ -57,7 +57,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 				work@submodels[[1]]@data <- mxData(model$data$observed[i,,drop=FALSE], 'raw')
 				fit <- mxModel(model=work, name=paste0(work@name, i, "Of", nrows))
 			}
-			fit <- mxRun(fit, silent=!as.logical(i%%100), suppressWarnings=TRUE)
+			fit <- mxRun(fit, silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
 			res[i,,1] <- omxGetParameters(fit) #params
 			res[i,,2] <- fit$output$standardErrors #SEs
 		}

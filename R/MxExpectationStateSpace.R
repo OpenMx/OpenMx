@@ -506,8 +506,8 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P){
 		m2ll <- log(det(C %*% P %*% t(C) + R))
 		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.pred, P.upda=P.pred, m2ll=m2ll, L=exp(m2ll/-2) ))
 	} else {
-		Cf <- C[notMiss,]
-		Rf <- R[notMiss, notMiss]
+		Cf <- C[notMiss, , drop=FALSE]
+		Rf <- R[notMiss, notMiss, drop=FALSE]
 		S <- Cf %*% P %*% t(Cf) + Rf
 		Sinv <- solve(S)
 		rf <- matrix(r[notMiss], ncol=1)
