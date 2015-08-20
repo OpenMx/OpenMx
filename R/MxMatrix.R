@@ -248,22 +248,22 @@ imxConDecMatrixSlots <- function(object){ #<--This function assumes that the 4 c
 
 setMethod("imxVerifyMatrix", "MxMatrix",
 	function(.Object) {
-	  if( (!is.condenseSlots(.Object) | !all.na(.Object@labels)) && !all(dim(.Object@labels) == dim(.Object@values)) ){
+	  if( (!is.condenseSlots(.Object) || !all.na(.Object@labels)) && !all(dim(.Object@labels) == dim(.Object@values)) ){
 	    stop(paste("'labels' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) | !all.false(.Object@free)) && !all(dim(.Object@free) == dim(.Object@values))){
+	  if( (!is.condenseSlots(.Object) || !all.false(.Object@free)) && !all(dim(.Object@free) == dim(.Object@values))){
 	    stop(paste("'values' and 'free' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) | !all.na(.Object@lbound)) && !all(dim(.Object@lbound) == dim(.Object@values)) ){
+	  if( (!is.condenseSlots(.Object) || !all.na(.Object@lbound)) && !all(dim(.Object@lbound) == dim(.Object@values)) ){
 	    stop(paste("'lbound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) | !all.na(.Object@ubound)) && !all(dim(.Object@ubound) == dim(.Object@values)) ){
+	  if( (!is.condenseSlots(.Object) || !all.na(.Object@ubound)) && !all(dim(.Object@ubound) == dim(.Object@values)) ){
 	    stop(paste("'ubound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
