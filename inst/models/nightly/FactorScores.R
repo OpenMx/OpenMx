@@ -142,7 +142,37 @@ omxCheckCloseEnough(cor(lism[,,1], lisw[,,1]), .868, 0.01)
 #dev.off()
 
 
+#------------------------------------------------------------------------------
+# Frontpage model in RAM form
 
+require(OpenMx)
+data(demoOneFactor)
+manifests <- names(demoOneFactor)
+latents <- c("G")
+factorModel <- mxModel("OneFactor",
+      type="RAM",
+      manifestVars = manifests,
+      latentVars = latents,
+      mxPath(from=latents, to=manifests),
+      mxPath(from=manifests, arrows=2),
+      mxPath(from=latents, arrows=2,
+            free=FALSE, values=1.0),
+      mxPath(from='one', to=manifests),
+      mxData(observed=demoOneFactor, type="raw"))
+summary(factorRamRun <- mxRun(factorModel))
+
+rr1 <- mxFactorScores(factorRamRun, 'ML')
+omxCheckError(rr2 <- mxFactorScores(factorRamRun, 'Regression'), "Regression factor scores are only possible for LISREL expectations.")
+rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
+
+
+omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
+omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
+
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+
+omxCheckCloseEnough(rms(rr1[,,1], r1[,,1]), 0, .1)
+omxCheckCloseEnough(rms(rr3[,,1], r3[,,1]), 0, .1)
 
 
 
