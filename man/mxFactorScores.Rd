@@ -20,7 +20,7 @@
 \title{Estimate factor scores and standard errors}
 
 \description{
-This function creates the factor scores and their standard errors under different methods for an MxModel object that has an MxExpectationLISREL object.
+This function creates the factor scores and their standard errors under different methods for an MxModel object that has either a RAM or LISREL expectation.
 }
 
 \usage{
@@ -29,18 +29,18 @@ mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'))
 
 
 \arguments{
-   \item{model}{An MxModel object with an MxExpectationLISREL}
+   \item{model}{An MxModel object with either an MxExpectationLISREL or MxExpectationRAM}
    \item{type}{The type of factor scores to compute}
 }
 
 \details{
 This is a helper function to compute or estimate factor scores along with their standard errors.  The two maximum likelihood methods create a new model for each data row.  They then estimate the factor scores as free parameters in a model with a single data row.  For 'ML', the conditional likelihood of the data given the factor scores is optimized: \deqn{L(D|F)}.  For 'WeightedML', the joint likelihood of the data and the factor scores is optimized: \deqn{L(D, F) = L(D|F) L(F)}.  The WeightedML scores are akin to the empirical Bayes random effects estimates from mixed effects modeling.  They display the same kind of shrinkage as random effects estimates, and for the same reason: they account for the latent variable distribution in their estimation.  In many cases, especially for ordinal data or missing data, the weighted ML scores are to be preferred over alternatives (Estabrook & Neale, 2013).
 
-For 'Regression', factor scores are computed based on a simple formula.  This formula is equivalent to the formula for the Kalman updated scores in a state space model with zero dynamics (Priestly & Subba Rao, 1975).  Thus, to compute the regression factor scores, the appropriate state space model is set-up and the mxKalmanScores function is used to produce the factor scores and their standard errors.
+For 'Regression', factor scores are computed based on a simple formula.  This formula is equivalent to the formula for the Kalman updated scores in a state space model with zero dynamics (Priestly & Subba Rao, 1975).  Thus, to compute the regression factor scores, the appropriate state space model is set-up and the \link{mxKalmanScores} function is used to produce the factor scores and their standard errors.
 }
 
 \value{
-    An array with dimensions (Number of Rows of Data, Number of Latent Variables, 2).  The third dimension has the scores in the first slot and the standard errors in the second slot.
+    An array with dimensions (Number of Rows of Data, Number of Latent Variables, 2).  The third dimension has the scores in the first slot and the standard errors in the second slot.  The rows are in the order of the \emph{sorted} data.
 }
 
 \seealso{
