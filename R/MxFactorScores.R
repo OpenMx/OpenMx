@@ -25,23 +25,32 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 	if(model$data$type!='raw'){
 		stop("The 'model' arugment must have raw data.")
 	}
-	if(!(class(model$expectation) %in% "MxExpectationLISREL")){
-		stop('Factor scores are only implemented for LISREL expectations.')
+	classExpect <- class(model$expectation)
+	# TODO Add handling of multigroup models
+	if(!(classExpect %in% "MxExpectationLISREL") && !(classExpect %in% "MxExpectationRAM")){
+		stop('Factor scores are only implemented for LISREL and RAM expectations.')
 	}
-	lx <- mxEvalByName(model$expectation$LX, model, compute=TRUE)
-	nksix <- dim(lx)
-	nksi <- nksix[2]
-	nx <- nksix[1]
+	if((classExpect %in% "MxExpectationLISREL") && !single.na(model$expectation$LY)){
+		stop('Factor scores for LISREL are only implemented for the exogenous-only model, but an LY matrix was detected.  Try restructuring your model as LISREL exogenous-only, or as RAM.')
+	}
+	if(classExpect %in% "MxExpectationLISREL"){
+		lx <- mxEvalByName(model$expectation$LX, model, compute=TRUE)
+		nksix <- dim(lx)
+		nksi <- nksix[2]
+		nx <- nksix[1]
+		factorScoreHelperFUN <- lisrelFactorScoreHelper
+	} else if(classExpect %in% "MxExpectationRAM"){
+		fm <- mxEvalByName(model$expectation$F, model, compute=TRUE)
+		nksix <- dim(fm)
+		nksi <- nksix[2] - nksix[1]
+		nx <- nksix[1]
+		factorScoreHelperFUN <- ramFactorScoreHelper
+	}
 	nrows <- nrow(model$data$observed)
 	res <- array(NA, c(nrows, nksi, 2))
 	if(any(type %in% c('ML', 'WeightedML'))){
 		model <- omxSetParameters(model, labels=names(omxGetParameters(model)), free=FALSE)
-		ksiMean <- mxEvalByName(model$expectation$KA, model, compute=TRUE)
-		newKappa <- mxMatrix("Full", nksi, 1, values=ksiMean, free=TRUE, name="Score", labels=paste0("fscore", 1:nksi))
-		scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], 'one'))
-		newExpect <- mxExpectationLISREL(LX=model$expectation$LX, PH=model$expectation$PH, TD=model$expectation$TD, TX=model$expectation$TX, KA="SKAPPA", thresholds=model$expectation$thresholds)
-		newWeight <- mxAlgebraFromString(paste0("log(det(", model$expectation$PH, ")) + ( (t(SKAPPA)) %&% ", model$expectation$PH, " ) + ", nksi, "*log(2*3.1415926535)"), name="weight")
-		work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newKappa, scoreKappa, newExpect, newWeight)
+			work <- factorScoreHelperFUN(model)
 		if(type[1]=='WeightedML'){
 			wup <- mxModel(model="Container", work,
 				mxAlgebraFromString(paste(work@name, ".weight + ", work@name, ".fitfunction", sep=""), name="wtf"),
@@ -65,6 +74,9 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		if(!single.na(model$expectation$thresholds)){
 			stop('Regression factor scores cannot be computed when there are thresholds (ordinal data).')
 		}
+		if(!(classExpect %in% "MxExpectationLISREL")){
+			stop('Regression factor scores are only possible for LISREL expectations.')
+		}
 		ss <- mxModel(model=model,
 			mxMatrix('Zero', nksi, nksi, name='stateSpaceA'),
 			mxMatrix('Zero', nksi, nx, name='stateSpaceB'),
@@ -80,6 +92,51 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 	return(res)
 }
 
+lisrelFactorScoreHelper <- function(model){
+	lx <- mxEvalByName(model$expectation$LX, model, compute=TRUE)
+	nksix <- dim(lx)
+	nksi <- nksix[2]
+	nx <- nksix[1]
+	ksiMean <- mxEvalByName(model$expectation$KA, model, compute=TRUE)
+	newKappa <- mxMatrix("Full", nksi, 1, values=ksiMean, free=TRUE, name="Score", labels=paste0("fscore", 1:nksi))
+	scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], 'one'))
+	newExpect <- mxExpectationLISREL(LX=model$expectation$LX, PH=model$expectation$PH, TD=model$expectation$TD, TX=model$expectation$TX, KA="SKAPPA", thresholds=model$expectation$thresholds)
+	newWeight <- mxAlgebraFromString(paste0("log(det(", model$expectation$PH, ")) + ( (t(SKAPPA)) %&% ", model$expectation$PH, " ) + ", nksi, "*log(2*3.1415926535)"), name="weight")
+	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newKappa, scoreKappa, newExpect, newWeight)
+	return(work)
+}
 
+createOppositeF <- function(Fmatrix){
+	is.manifest <- as.logical(colSums(Fmatrix))
+	mdim <- nrow(Fmatrix)
+	tdim <- ncol(Fmatrix)
+	ldim <- tdim - mdim
+	tnam <- dimnames(Fmatrix)[[2]]
+	lnam <- tnam[!is.manifest]
+	OFmatrix <- matrix(0, nrow=ldim, ncol=tdim, dimnames=list(lnam, tnam))
+	OFmatrix[lnam, lnam] <- diag(1, nrow=ldim)
+	return(list(OF=OFmatrix, is.manifest=is.manifest))
+}
 
+ramFactorScoreHelper <- function(model){
+	Fmat <- mxEvalByName(model$expectation$F, model, compute=TRUE)
+	alldim <- dim(Fmat)
+	tdim <- alldim[2]
+	mdim <- alldim[1]
+	ldim <- tdim - mdim
+	OFmat <- createOppositeF(Fmat)
+	fullMean <- mxEvalByName(model$expectation$M, model, compute=TRUE)
+	scoreStart <- fullMean
+	scoreStart[!OFmat$is.manifest] <- 0
+	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", dimnames(Fmat)[[2]]))
+	scoreMean <- mxAlgebraFromString(paste("Score -", model$expectation$M), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
+	newExpect <- mxExpectationRAM(A=model$expectation$A, S=model$expectation$S, F=model$expectation$F, M="ScoreMinusM", thresholds=model$expectation$thresholds)
+	oppF <- mxMatrix('Full', nrow=tdim-mdim, ncol=tdim, values=OFmat$OF, name='oppositeF')
+	imat <- mxMatrix('Iden', tdim, tdim, name='IdentityMatrix')
+	imaInv <- mxAlgebraFromString(paste("solve(IdentityMatrix - ", model$expectation$A, ")"), name='IdentityMinusAInverse')
+	lcov <- mxAlgebraFromString(paste("oppositeF %*% IdentityMinusAInverse %*% ", model$expectation$S, " %*% t(IdentityMinusAInverse) %*% t(oppositeF)"), name='TheLatentRAMCovariance')
+	newWeight <- mxAlgebraFromString(paste0("log(det(TheLatentRAMCovariance)) + ( (ScoreMinusM %*% t(oppositeF)) %&% TheLatentRAMCovariance ) + ", ldim, "*log(2*3.1415926535)"), name="weight")
+	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newMean, scoreMean, newExpect, oppF, imat, imaInv, lcov, newWeight)
+	return(work)
+}
 
