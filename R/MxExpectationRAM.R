@@ -31,7 +31,7 @@ setClass(Class = "MxExpectationRAM",
 		ppmlData = "MxData",
 		UnfilteredExpCov = "matrix",
 	        numStats = "numeric"),
-	contains = "MxBaseExpectation")
+	contains = "MxExpectationNormal")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,

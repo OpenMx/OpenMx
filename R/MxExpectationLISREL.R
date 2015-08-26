@@ -50,7 +50,7 @@ setClass(Class = "MxExpectationLISREL",
 		thresholdLevels = "numeric", # Used in FIML
 		threshnames = "character",
 		depth = "integer"), #Used to speed up I-A inverse in RAM, could be used to speed up I-B inverse in LISREL
-	contains = "MxBaseExpectation")
+	contains = "MxExpectationNormal")
 
 
 #--------------------------------------------------------------------

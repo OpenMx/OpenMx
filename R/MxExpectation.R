@@ -83,6 +83,11 @@ setGeneric("genericExpGetPrecision",
 	return(standardGeneric("genericExpGetPrecision"))
 })
 
+setGeneric("genericGetParameters",
+	function(expectation, model) {
+		return(standardGeneric("genericGetParameters"))
+	})
+
 
 setMethod("genericExpAddEntities", "MxBaseExpectation",
 	function(.Object, job, flatJob, labelsData) {
@@ -128,6 +133,9 @@ setMethod("genericExpGetPrecision", "MxBaseExpectation",
 	function(.Object) {
 		return(list(stepSize=0.0001, iterations=4L))
 })
+
+setMethod("genericGetParameters", "MxBaseExpectation",
+	  function(expectation, model) stop("Not implemented"))
 
 setMethod("$", "MxBaseExpectation", imxExtractSlot)
 
