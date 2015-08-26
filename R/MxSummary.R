@@ -1088,3 +1088,5 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
       )])]
       return(out)
 }}}
+
+coef.MxModel <- function(object, ...) omxGetParameters(object)
