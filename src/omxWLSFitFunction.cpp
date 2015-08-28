@@ -104,8 +104,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
         omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
     } else {
         // ULS Case: Memcpy faster than dgemv.
-        // TODO: Better to use an omxMatrix duplicator here.
-        memcpy(P, B, B->cols*sizeof(double)); //omxCopyMatrix()
+	omxCopyMatrix(P, B);
     }
 
     sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
@@ -124,7 +123,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 	omxMatrix *weightInt = argStruct->weights;			// Expected means
 
-	SEXP expCovExt, expMeanExt, weightExt, gradients;
+	SEXP expCovExt, expMeanExt, gradients;
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -142,11 +141,13 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	}
 	
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weightInt, "...WLS Weight Matrix: W"); }
-	Rf_protect(weightExt = Rf_allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
-	for(int row = 0; row < weightInt->rows; row++)
-		for(int col = 0; col < weightInt->cols; col++)
-			REAL(weightExt)[col * weightInt->rows + row] = weightInt->data[col * weightInt->rows + row];
-				//omxMatrixElement(weightInt, row, col);
+	SEXP weightExt = NULL;
+	if (weightInt) {
+		Rf_protect(weightExt = Rf_allocMatrix(REALSXP, weightInt->rows, weightInt->cols));
+		for(int row = 0; row < weightInt->rows; row++)
+			for(int col = 0; col < weightInt->cols; col++)
+				REAL(weightExt)[col * weightInt->rows + row] = weightInt->data[col * weightInt->rows + row];
+	}
 	
 	
 	if(0) {  /* TODO fix for new internal API
@@ -168,7 +169,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Installing populated WLS Attributes."); }
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	Rf_setAttrib(algebra, Rf_install("weights"), weightExt);
+	if (weightExt) Rf_setAttrib(algebra, Rf_install("weights"), weightExt);
 	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
@@ -223,7 +224,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	/* Read and set expected means, variances, and weights */
     cov = omxDataCovariance(dataMat);
     means = omxDataMeans(dataMat);
-    weights = omxDataAcov(dataMat, cov->currentState);
+    weights = omxDataAcov(dataMat);
 
     newObj->observedCov = cov;
     newObj->observedMeans = means;

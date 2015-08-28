@@ -142,7 +142,7 @@ double *omxDoubleDataColumn(omxData *od, int col);
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
-omxMatrix* omxDataAcov(omxData *od, omxState *currentState);
+omxMatrix* omxDataAcov(omxData *od);
 
 std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 
