@@ -84,10 +84,11 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE) 
 	}
 	imxVerifyName(name, 0)
 	retval <- new("MxAlgebra", NA, name, fixed)
-	retval@formula <- match.call()$expression
-	if(is.character(retval@formula)){
+	formula <- match.call()$expression
+	if(is.character(formula)){
 		stop("mxAlgebra wants an unquoted expression or formula")
 	}
+	retval@formula <- formula
     algebraErrorChecking(retval@formula, "mxAlgebra")
 	if(!(length(dimnames) == 1 && is.na(dimnames))) {
 		dimnames(retval) <- dimnames

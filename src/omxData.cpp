@@ -382,16 +382,9 @@ omxMatrix* omxDataCovariance(omxData *od)
 	Rf_error("%s: type='cov' data must be in matrix storage", od->name);
 }
 
-omxMatrix* omxDataAcov(omxData *od, omxState *currentState)
+omxMatrix* omxDataAcov(omxData *od)
 {
-	if(od->acovMat) return od->acovMat;
-
-	// Otherwise, we must construct the matrix.
-	int numRows = ( (od->rows)*(od->rows + 1) ) / 2;
-	
-	omxMatrix* om = omxInitMatrix(numRows, numRows, TRUE, currentState);
-	omxCopyMatrix(om, od->acovMat);
-	return om;
+	return od->acovMat;  // can be NULL
 }
 
 bool omxDataColumnIsFactor(omxData *od, int col)

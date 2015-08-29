@@ -74,9 +74,9 @@ U <- mxMatrix(type="Unit",nrow=4,ncol=1,name="U")
 
 #an MxMatrix of regression coefficients:
 Beta <- mxMatrix(type="Full",nrow=5,ncol=1,free=T,
-				 values=c(0.5,0.3,0.2,-0.1,0.8), #<--Start values from the GLM above
-				 labels=c("intrcpt","betax1","betax2","betax3","betatime"),
-				 name="Beta")
+								 values=c(0.5,0.3,0.2,-0.1,0.8), #<--Start values from the GLM above
+								 labels=c("intrcpt","betax1","betax2","betax3","betatime"),
+								 name="Beta")
 if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 	Beta$lbound[1:5,1] <- -20
 	Beta$ubound[1:5,1] <- 20
@@ -101,42 +101,29 @@ rowX <- mxAlgebra(cbind(U,(U%*%Xdef),timeVec), name="rowX")
 #regressors, or equivalently, the log of the conditional mean equals a linear composite of predictors.  Notice
 #also that we need to drop the elements of 'yhat' that correspond to missing values--that's what the use of
 #omxSelectRows() does:
-yhatAlg <- mxAlgebra( exp(t(omxSelectRows(rowX%*%Beta, existenceVector))), name="yhat")
+yhatAlg <- mxAlgebra( exp(t(rowX%*%Beta)), name="yhat")
 
 #Vector of conditional standard deviations:
 S <- mxAlgebra(vec2diag(sqrt(yhat%x%Disper)), name="S")
 
 #Conditional covariance matrix:
-V <- mxAlgebra(S %*% omxSelectRowsAndCols(R,existenceVector) %*% S, name="V")
+V <- mxAlgebra(S %*% R %*% S, name="V")
 
-#Inverse of V:
-Vinv <- mxAlgebra(solve(V),name="Vinv")
-
-#This is (ignoring a constant) the multivariate-normal -2logL for a single row.  We use this likelihood only for 
-#convenience, not because we actually think multivariate normality reasonably describes the data:
-rowAlg <- mxAlgebra( log(det(V)) + 
-										 	(filteredDataRow-yhat)%*%Vinv%*%t(filteredDataRow-yhat), name="rowAlgebra")
-
-#The reduceAlgebra takes the results of the rowAlgebras and turns them into a scalar fitfunction value:
-reduceAlg <- mxAlgebra(sum(rowResults),name="reduceAlgebra")
-
-#Our fitfunction:
-fitfunc <- mxFitFunctionRow(rowAlgebra="rowAlgebra", reduceAlgebra="reduceAlgebra", 
-														dimnames=c("y0","y1","y2","y3"))
+#We will use the multivariate-normal fitfunction and expectation out of mere convenience, and not because we
+#actually think multivariate normality reasonably describes the data:
+expec <- mxExpectationNormal(covariance="V", means="yhat", dimnames=c("y0","y1","y2","y3"))
+fitfunc <- mxFitFunctionML()
 
 #Put everything together into our MxModel:
 mygeemodel <- mxModel(
 	"GEE",
-	Beta,Disper,fitfunc,mydat,R,reduceAlg,rowAlg,rowX,S,timeVec,U,V,Vinv,Xdef,yhatAlg
+	Beta,Disper,expec,fitfunc,mydat,R,rowX,S,timeVec,U,V,Xdef,yhatAlg
 )
 #We do not actually want OpenMx's Hessian and standard errors, because they are based on a likelihood
 #(multivariate normal) that we do not actually think is realistic.  Instead, we will later obtain standard
 #errors from the "sandwich estimator":
 mygeemodel <- mxOption(mygeemodel,"Calculate Hessian","No")
 mygeemodel <- mxOption(mygeemodel,"Standard Errors","No")
-mygeemodel <- mxOption(mygeemodel,"Always Checkpoint","Yes")
-mygeemodel <- mxOption(mygeemodel,"Checkpoint Units","evaluations")
-mygeemodel <- mxOption(mygeemodel,"Checkpoint Count",1)
 
 #Run our model:
 mygeerun <- mxRun(mygeemodel)
