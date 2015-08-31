@@ -47,7 +47,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL
 			chkpt.files <- chkpt.files[matchIndex]
 		} else {
 			stop(paste("Cannot find", omxQuotes(paste(model$name, 'omx', sep=".")),
-				   "in", chkp.directory))
+				   "in", chkpt.directory))
 		}
 	} else {
 		# Move the most likely match to the end so those estimates take precedence.
