@@ -4,8 +4,8 @@ RBUILD = build
 RINSTALL = INSTALL
 RCHECK = check
 RPDF = Rd2pdf
-BUILDPRE = 1.4
-BUILDNO = 1
+BUILDPRE = 1.5
+BUILDNO = 0
 TARGET = OpenMx_$(BUILDPRE)-$(BUILDNO).tar.gz 
 PDFFILE = $(RBUILD)/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
@@ -80,6 +80,7 @@ build/$(TARGET): $(RFILES) $(RDFILES)
 	cp DESCRIPTION DESCRIPTION.bak
 	sed '/Version:/d' DESCRIPTION.bak > DESCRIPTION
 	echo "Version: "$(BUILDPRE)"-"$(BUILDNO) >> DESCRIPTION	
+	-mkdir -p $(RBUILD)
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RBUILD) ..
 	mv DESCRIPTION.bak DESCRIPTION
 pdf:
@@ -129,7 +130,7 @@ winbuild: common-build
 
 winbuild-biarch:
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) --force-biarch --build $(TARGET)
-	
+
 install: clean internal-build
 	cd $(RBUILD); $(REXEC) $(RCOMMAND) $(RINSTALL) $(BUILDARGS) $(TARGET) 
 
@@ -145,7 +146,7 @@ testdocs:
 
 test:
 	$(REXEC) --vanilla --slave --cpus=$(CPUS) < $(TESTFILE)
-	
+
 nightly:
 	$(REXEC) --vanilla --slave < $(NIGHTLYFILE)	
 
