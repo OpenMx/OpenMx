@@ -55,6 +55,10 @@ linux)
    AC_PROG_AWK
    major_release=`echo "$GCC_VERSION" | $AWK -F '.' '{print $1 "." $2}'`
    npsol_library="${npsol_library}/linux/${omx_arch}/gcc${major_release}"
+   mkdir -p "${npsol_library}"
+   if test ! -e "${npsol_library}/libnpsol.a"; then
+     ln -s "../gcc4.8/libnpsol.a" "${npsol_library}/libnpsol.a"
+   fi
 ;;
 osx)
    npsol_library="${npsol_library}/osx"
