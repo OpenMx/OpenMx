@@ -4,7 +4,6 @@
 *.so
 *.old
 *.bak
-*.Rproj
 /build
 /config.log
 /config.status
@@ -159,3 +158,4 @@ man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+.Rproj.user
