@@ -98,9 +98,7 @@ rowX <- mxAlgebra(cbind(U,(U%*%Xdef),timeVec), name="rowX")
 
 #This MxAlgebra yields the conditional mean response, given the covariates and wave of assessment.  
 #Notice that we are using a loglinear link: the conditional mean equals an exponentiated linear composite of 
-#regressors, or equivalently, the log of the conditional mean equals a linear composite of predictors.  Notice
-#also that we need to drop the elements of 'yhat' that correspond to missing values--that's what the use of
-#omxSelectRows() does:
+#regressors, or equivalently, the log of the conditional mean equals a linear composite of predictors:
 yhatAlg <- mxAlgebra( exp(t(rowX%*%Beta)), name="yhat")
 
 #Vector of conditional standard deviations:
