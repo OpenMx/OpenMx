@@ -148,8 +148,10 @@ man/omxCheckNamespace.Rd
 man/omxCheckWarning.Rd
 man/omxConstrainMLThresholds.Rd
 man/omxDetectCores.Rd
+man/omxGetManifestModelParameters.Rd
 man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
+man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
 man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
