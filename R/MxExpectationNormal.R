@@ -13,6 +13,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setClass(Class = "BaseExpectationNormal",
+	 contains = "MxBaseExpectation")
+
 setClass(Class = "MxExpectationNormal",
 	representation = representation(
 		covariance = "MxCharOrNumber",
@@ -26,7 +29,7 @@ setClass(Class = "MxExpectationNormal",
 		ExpCov = "matrix",
 		ExpMean = "matrix",
 	        numStats = "numeric"),
-	contains = "MxBaseExpectation")
+	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationNormal",
 	function(.Object, covariance, means, dims, thresholds, threshnames,
@@ -162,6 +165,22 @@ mxGetExpected <- imxGetExpectationComponent
 
 sse <- function(x){sum(x^2)}
 
+#' Estimate the Jacobian of manifest model with respect to parameters
+#'
+#' The manifest model excludes any latent variables or processes. For
+#' RAM and LISREL models, the manifest model contains only the
+#' manifest variables with free means, covariance, and thresholds.
+#'
+#' The Jacobian is estimated by the central finite difference.
+#'
+#' @param model an mxModel
+#' @return a matrix with manifests in the rows and original parameters in the columns
+#' @seealso \link{omxGetManifestModelParameters}
+omxManifestModelByParameterJacobian <- function(model) {
+	theParams <- omxGetParameters(model)
+	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model)
+}
+
 mxCheckIdentification <- function(model, details=TRUE){
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
@@ -170,7 +189,7 @@ mxCheckIdentification <- function(model, details=TRUE){
 	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model)
+	jac <- omxManifestModelByParameterJacobian(model)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
@@ -192,26 +211,59 @@ mxCheckIdentification <- function(model, details=TRUE){
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
+setMethod("genericGetParameters", "BaseExpectationNormal",
+	  function(expectation, model) {
+		  cov <- genericGetCovariance(expectation, model)
+		  mns <- genericGetMeans(expectation, model)
+		  thr <- genericGetThresholds(expectation, model)
+		  c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
+ 	  })
+
 .mat2param <- function(x, model){
-  param <- omxGetParameters(model)
-  paramNames <- names(param)
+  paramNames <- names(omxGetParameters(model))
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
+  omxGetManifestModelParameters(model)
+}
+
+#' Returns the parameter vector of the expected manifest model
+#'
+#' The manifest model excludes any latent variables or processes. For
+#' RAM and LISREL models, the manifest model contains only the
+#' manifest variables with free means, covariance, and thresholds.
+#'
+#' The returned vector is not named because the model manifest
+#' parameters are typically not stored explicitly.
+#'
+#' @param model an mxModel
+#' @return a paramter vector
+#' @seealso \link{mxGetExpected}
+#' @examples
+#' require(OpenMx)
+#' manifests <- paste("x", 1:5, sep="")
+#' latents <- c("G")
+#' factorModel <- mxModel("One Factor",
+#'       type="RAM",
+#'       manifestVars = manifests,
+#'       latentVars = latents,
+#'       mxPath(from=latents, to=manifests),
+#'       mxPath(from=manifests, arrows=2),
+#'       mxPath(from=latents, arrows=2,
+#'             free=FALSE, values=1.0),
+#'       mxPath(from = 'one', to = manifests))
+#' 
+#' omxGetManifestModelParameters(factorModel)
+omxGetManifestModelParameters <- function(model) {
+  sparam <- c()
   if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
     submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
-    sparam <- c()
     for(amod in submNames){
-      cov <- imxGetExpectationComponent(model[[amod]], 'covariance')
-      mns <- imxGetExpectationComponent(model[[amod]], 'means')
-      thr <- imxGetExpectationComponent(model[[amod]], 'thresholds')
-      sparam <- c(sparam, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+	    m1 <- model[[amod]]
+	    sparam <- c(sparam, genericGetParameters(m1$expectation, m1))
     }
   } else {
-    cov <- imxGetExpectationComponent(model, 'covariance')
-    mns <- imxGetExpectationComponent(model, 'means')
-    thr <- imxGetExpectationComponent(model, 'thresholds')
-    sparam <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+	  sparam <- c(sparam, genericGetParameters(model$expectation, model))
   }
-  return(sparam)
+  sparam
 }
 
 setGeneric("genericGenerateData",

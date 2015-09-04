@@ -530,3 +530,10 @@ omxCheckError(
 omxCheckError(
   dimnames(Fu) <- c("a","b"),
   "the MxMatrix object 'Fu' has specified dimnames with dimensions 1 x 1 but the matrix is of dimensions 2 x 3")
+
+# test square brackets
+m1 <- mxModel("sb", Fu)
+v <- 2.5
+names(v) <- "sb.Fu[1,1]"
+m1 <- omxSetParameters(m1, names(v), values=v, strict=FALSE)
+omxCheckEquals(m1$Fu$values[1,1], 2.5)

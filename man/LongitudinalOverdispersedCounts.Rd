@@ -36,15 +36,6 @@ Four-timepoint longitudinal data generated from an arbitrary Monte Carlo simulat
   	\item{\code{t3}: Time variable at third follow-up (in this case, 3).}
   }
 }
-\details{
-%%  ~~ If necessary, more details than the __description__ above ~~
-}
-\source{
-%%  ~~ reference to a publication or URL from which the data were obtained ~~
-}
-\references{
-%%  ~~ possibly secondary sources and usages ~~
-}
 \examples{
 data(LongitudinalOverdispersedCounts)
 head(wideData)

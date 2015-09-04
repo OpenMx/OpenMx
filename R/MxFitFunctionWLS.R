@@ -219,13 +219,13 @@ imxWlsStandardErrors <- function(model){
 	# Is it a WLS fit function
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
-	theParams <- omxGetParameters(model)
-	d <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
+	d <- omxManifestModelByParameterJacobian(model)
 	V <- model$data$acov #used weight matrix
 	W <- ginv(model$data$fullWeight)
 	dvd <- solve( t(d) %*% V %*% d )
 	nacov <- dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd
 	wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
+	theParams <- omxGetParameters(model)
 	dimnames(nacov) <- list(names(theParams), names(theParams))
 	rownames(wls.se) <- names(theParams)
 	#SE is the standard errors
@@ -235,8 +235,7 @@ imxWlsStandardErrors <- function(model){
 
 
 imxWlsChiSquare <- function(model, J=NA){
-	theParams <- omxGetParameters(model)
-	samp.param <- .mat2param(theParams, model)
+	samp.param <- omxGetManifestModelParameters(model)
 	cov <- model$data$observed
 	mns <- model$data$means
 	thr <- model$data$thresholds
@@ -246,7 +245,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	
 	W <- ginv(model$data$fullWeight)
 	if(single.na(J)){
-		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, model=model)
+		jac <- omxManifestModelByParameterJacobian(model)
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	if(prod(dim(jacOC)) > 0){

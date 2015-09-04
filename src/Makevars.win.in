@@ -1,5 +1,4 @@
-PKG_LIBS=$(SHLIB_OPENMP_CXXFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # PKG_CFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
