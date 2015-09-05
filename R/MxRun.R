@@ -28,7 +28,6 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 			deparse(width.cutoff = 400L, sys.call())), call. = FALSE)
 	}
 
-	if(!silent) message("Running ", model@name)
 	frontendStart <- Sys.time()
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -213,7 +212,10 @@ runHelper <- function(model, frontendStart,
 	
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
+	if(!silent) message("Running ", model@name, " with ", numParam, " parameter",
+			    ifelse(numParam==1, "", "s"))
 	if (onlyFrontend) return(model)
+
 	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
