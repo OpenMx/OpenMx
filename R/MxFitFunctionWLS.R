@@ -235,7 +235,7 @@ imxWlsStandardErrors <- function(model){
 
 
 imxWlsChiSquare <- function(model, J=NA){
-	samp.param <- omxGetManifestModelParameters(model)
+	samp.param <- mxGetExpected(model, 'vector')
 	cov <- model$data$observed
 	mns <- model$data$means
 	thr <- model$data$thresholds

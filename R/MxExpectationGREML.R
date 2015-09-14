@@ -93,22 +93,21 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
             return(.Object)
           })
 
-setMethod("genericGetCovariance", signature("MxExpectationGREML"),
-					function(.Object, model) {
-						covname <- .Object@V
-						cov <- mxEvalByName(covname, model, compute=TRUE)
-						return(cov)
-					})
-
-setMethod("genericGetMeans", signature("MxExpectationGREML"),
-					function(.Object, model) {
-						return(NA)
-					})
-
-setMethod("genericGetThresholds", signature("MxExpectationGREML"),
-					function(.Object, model) {
-						return(NA)
-					})
+setMethod("genericGetExpected", signature("MxExpectationGREML"),
+	  function(.Object, model, what, defvar.row=1) {
+		  if ('covariance' %in% what) {
+			  covname <- .Object@V
+			  cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
+			  ret[['covariance']] <- cov
+		  }
+		  if ('means' %in% what) {
+			  ret[['means']] <- NA
+		  }
+		  if ('thresholds' %in% what) {
+			  ret[['thresholds']] <- NA
+		  }
+		  ret
+	  })
 
 mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
                                staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0)){
