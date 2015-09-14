@@ -23,7 +23,7 @@ setClass(Class = "MxFitFunctionGREML",
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction', dV=character(0)) {
+          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0) {
             .Object@name <- name
             .Object@dV <- dV
             .Object@MLfit <- 0
