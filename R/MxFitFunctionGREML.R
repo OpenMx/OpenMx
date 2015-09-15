@@ -26,7 +26,7 @@ setMethod("initialize", "MxFitFunctionGREML",
           function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L) {
             .Object@name <- name
             .Object@dV <- dV
-            .Object@dVnames <- names(dV)
+            .Object@dVnames <- as.character(names(dV))
             .Object@MLfit <- MLfit
             .Object@vector <- vector
             .Object@numObs <- numObs
