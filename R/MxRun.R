@@ -345,17 +345,19 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 model<-bestfit
             }
             
-            if(defaultComputePlan==TRUE){
-                if(lastBestFitCount == 4) gradientStepSize <- gradientStepSize *.1
-                if(lastBestFitCount == 5) gradientStepSize <- gradientStepSize *10
-                if(lastBestFitCount  %in% seq(2,100,4)) tolerance<-tolerance * .01 
-                if(lastBestFitCount  %in% seq(3,100,4)) gradientIterations<-gradientIterations+1
-                if(lastBestFitCount  %in% seq(4,100,4)) gradientIterations<-gradientIterations-1
-                if(lastBestFitCount > 6) model <- omxSetParameters(model, labels = names(bestfit.params), 
-                    values = bestfit.params * rnorm(length(params),loc,scale/10) + 
-                        rnorm(length(params),0,scale / 10)
-                )
-            }
+          if(defaultComputePlan==TRUE){
+            
+            if(lastBestFitCount == 2) gradientStepSize <- gradientStepSize *.1
+            if(lastBestFitCount == 3) gradientStepSize <- gradientStepSize *10
+            if(lastBestFitCount == 5) gradientStepSize <- gradientStepSize *.1
+            if(lastBestFitCount  > 0) tolerance<-tolerance * .001 
+            if(lastBestFitCount  > 0) gradientIterations<-gradientIterations+2
+            # if(lastBestFitCount  %in% seq(4,100,4)) gradientIterations<-gradientIterations-1
+            if(lastBestFitCount > 2) model <- omxSetParameters(model, labels = names(bestfit.params), 
+              values = bestfit.params * rnorm(length(params),loc,scale/10) + 
+                rnorm(length(params),0,scale / 10)
+            )
+          }
             
             if(defaultComputePlan==FALSE){
                 model <- omxSetParameters(model, labels = names(bestfit.params), 
@@ -398,6 +400,8 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 lastNoError<-TRUE
                 message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
             }
+          
+          if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
             if (fit$output$minimum < lowestminsofar) { #if this is the best fit so far
                 message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
@@ -407,8 +411,6 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 bestfit <- fit
                 bestfit.params <- omxGetParameters(bestfit)
             }
-            
-            if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
             if (fit$output$minimum <= lowestminsofar + generalTolerance) { #if this is the best fit or equal best so far, check the following
                 ###########stopflag checks
