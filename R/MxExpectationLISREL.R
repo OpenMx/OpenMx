@@ -658,21 +658,16 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  LX <- mxEvalByName(LXname, model, compute=TRUE, defvar.row=defvar.row)
 			  PH <- mxEvalByName(PHname, model, compute=TRUE, defvar.row=defvar.row)
 			  TD <- mxEvalByName(TDname, model, compute=TRUE, defvar.row=defvar.row)
-			  TX <- mxEvalByName(TXname, model, compute=TRUE, defvar.row=defvar.row)
-			  KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
 		  } else {
 			  LX <- matrix( , 0, 0)
 			  PH <- matrix( , 0, 0)
 			  TD <- matrix( , 0, 0)
-			  TX <- matrix( , 0, 1)
-			  KA <- matrix( , 0, 1)
 		  }
 		  if(hasY){
 			  LY <- mxEvalByName(LYname, model, compute=TRUE, defvar.row=defvar.row)
 			  BE <- mxEvalByName(BEname, model, compute=TRUE, defvar.row=defvar.row)
 			  PS <- mxEvalByName(PSname, model, compute=TRUE, defvar.row=defvar.row)
 			  TE <- mxEvalByName(TEname, model, compute=TRUE, defvar.row=defvar.row)
-			  TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
 			  AL <- mxEvalByName(ALname, model, compute=TRUE, defvar.row=defvar.row)
 			  I <- diag(1, nrow=nrow(BE))
 			  A <- LY %*% solve(I-BE)
@@ -681,7 +676,6 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  BE <- matrix( , 0, 0)
 			  PS <- matrix( , 0, 0)
 			  TE <- matrix( , 0, 0)
-			  TY <- matrix( , 0, 1)
 			  AL <- matrix( , 0, 1)
 			  A <- matrix( , 0, 0)
 		  }
@@ -710,7 +704,10 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 				  if(hasY & single.na(TYname)){
 					  stop("Model has endogenous variables but not endogenous means.")
 				  }
+				  KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+				  TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
 				  endoMean <- TY + A %*% (AL + GA %*% KA)
+				  TX <- mxEvalByName(TXname, model, compute=TRUE, defvar.row=defvar.row)
 				  exoMean <- TX + LX %*% KA
 				  mean <- rbind(endoMean, exoMean)
 			  }
