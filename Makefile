@@ -149,12 +149,12 @@ doc.tar.bz2: html pdf
 
 install: code-style
 	./util/prep npsol
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
 	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 cran-install: code-style
 	./util/prep cran
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
 	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 rproftest:
