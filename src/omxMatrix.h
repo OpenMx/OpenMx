@@ -144,7 +144,7 @@ void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemov
 
 /* Matrix-Internal Helper functions */
 	void omxMatrixLeadingLagging(omxMatrix *matrix);
-void omxPrintMatrix(omxMatrix *source, const char* header);
+void omxPrintMatrix(omxMatrix *source, const char* header);  // deprecated, use omxPrint
 
 /* OMXINLINE functions and helper functions */
 

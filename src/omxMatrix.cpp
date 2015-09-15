@@ -53,7 +53,7 @@ void expm_eigen(int n, double *rz, double *out)
     outMat = inMat.exp();
 }
 
-void omxPrintMatrix(omxMatrix *source, const char* header)
+void omxPrintMatrix(omxMatrix *source, const char* header) // make static TODO
 {
 	EigenMatrixAdaptor Esrc(source);
 	if (!header) header = source->name();
