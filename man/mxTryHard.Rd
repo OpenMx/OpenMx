@@ -11,8 +11,7 @@ Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} unti
 mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, 
   scale = 0.25, initialGradientStepSize = .00001, initialGradientIterations = 1,
     initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose = 0,
-  ...)
+  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose = 0, intervals = FALSE)
 }
 
 \arguments{
@@ -28,7 +27,7 @@ mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1,
   \item{bestInitsOutput}{Logical. If \code{TRUE}, outputs starting values that resulted in best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.}
   \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt. Defaults to \code{FALSE}.}
   \item{verbose}{Passed to \code{\link{mxComputeGradientDescent}} to specify level of output to console during optimization.}
-  \item{...}{Additional arguments to be passed to \code{\link{mxRun}()} (for example, \code{intervals=TRUE}).  Note that \code{mxTryHard()} always internally invokes \code{\link{mxRun}()} with argument \code{suppressWarnings=TRUE}.}
+  \item{intervals}{Logical. If TRUE, OpenMx will estimate any specified confidence intervals.}
 }
 
 

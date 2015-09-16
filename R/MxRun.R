@@ -299,8 +299,7 @@ updateModelExpectationDims <- function(model, expectations){
 mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1, 
     scale = 0.25,  initialGradientStepSize = .00001, initialGradientIterations = 1,
     initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0,
-    ...){
+    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE){
     
     defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
     
@@ -467,7 +466,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             
             if(stopflag){
                 message('\nSolution found\n')
-                if(length(bestfit$intervals)>0){ #only calculate confidence intervals once the best fit is established
+                if(length(bestfit$intervals)>0 & intervals==TRUE){ #only calculate confidence intervals once the best fit is established
                     
                     message("Estimating confidence intervals\n") 
                     
@@ -513,7 +512,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             stopflag <- TRUE
             if (exists("bestfit")) {
                 
-                if(length(bestfit$intervals)>0){ #calculate intervals for best fit, even though imperfect
+                if(length(bestfit$intervals)>0 & intervals==TRUE){ #calculate intervals for best fit, even though imperfect
                     message("Estimate confidence intervals for imperfect solution\n") 
                     
                     if(defaultComputePlan==TRUE) bestfit <- OpenMx::mxModel(bestfit, 
