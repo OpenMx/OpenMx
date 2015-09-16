@@ -220,12 +220,23 @@ imxWlsStandardErrors <- function(model){
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
 	d <- omxManifestModelByParameterJacobian(model)
-	V <- model$data$acov #used weight matrix
-	W <- ginv(model$data$fullWeight)
+	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		sV <- list()
+		sW <- list()
+		for(amod in submNames){
+			sV[[amod]] <- model[[amod]]$data$acov
+			sW[[amod]] <- ginv(model[[amod]]$data$fullWeight)
+		}
+		V <- Matrix::bdiag(sV)
+		W <- Matrix::bdiag(sW)
+	} else {
+		V <- model$data$acov #used weight matrix
+		W <- MASS::ginv(model$data$fullWeight)
+	}
 	dvd <- solve( t(d) %*% V %*% d )
-	nacov <- dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd
+	nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
 	wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
-	theParams <- omxGetParameters(model)
 	dimnames(nacov) <- list(names(theParams), names(theParams))
 	rownames(wls.se) <- names(theParams)
 	#SE is the standard errors
@@ -234,25 +245,41 @@ imxWlsStandardErrors <- function(model){
 }
 
 
+
 imxWlsChiSquare <- function(model, J=NA){
 	samp.param <- mxGetExpected(model, 'vector')
-	cov <- model$data$observed
-	mns <- model$data$means
-	thr <- model$data$thresholds
-	expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		sW <- list()
+		expd.param <- c()
+		for(amod in submNames){
+			cov <- model[[amod]]$data$observed
+			mns <- model[[amod]]$data$means
+			thr <- model[[amod]]$data$thresholds
+			expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+			sW[[amod]] <- MASS::ginv(model[[amod]]$data$fullWeight)
+		}
+		W <- Matrix::bdiag(sW)
+	} else {
+		cov <- model$data$observed
+		mns <- model$data$means
+		thr <- model$data$thresholds
+		expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+		W <- MASS::ginv(model$data$fullWeight)
+	}
 	
 	e <- samp.param - expd.param
 	
-	W <- ginv(model$data$fullWeight)
 	if(single.na(J)){
 		jac <- omxManifestModelByParameterJacobian(model)
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	if(prod(dim(jacOC)) > 0){
-		x2 <- t(e) %*% jacOC %*% ginv( t(jacOC) %*% W %*% jacOC ) %*% t(jacOC) %*% e
+		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
 	df <- qr(jacOC)$rank
 	return(list(Chi=x2, ChiDoF=df))
 }
+
 
 
