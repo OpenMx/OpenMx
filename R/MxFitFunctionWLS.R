@@ -219,6 +219,7 @@ imxWlsStandardErrors <- function(model){
 	# Is it a WLS fit function
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
+	theParams <- omxGetParameters(model)
 	d <- omxManifestModelByParameterJacobian(model)
 	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
@@ -248,6 +249,7 @@ imxWlsStandardErrors <- function(model){
 
 imxWlsChiSquare <- function(model, J=NA){
 	samp.param <- mxGetExpected(model, 'vector')
+	theParams <- omxGetParameters(model)
 	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sW <- list()

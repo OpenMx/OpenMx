@@ -240,7 +240,9 @@ runHelper <- function(model, frontendStart,
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), output)
-	if(length(model$data) > 0 && model$data$type=="acov"){
+	
+	is.SingleGroupWLS <- length(model$data) > 0 && model$data$type=="acov"
+	if( is.SingleGroupWLS || (model$output$fitUnits %in% "r'Wr") ){
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian

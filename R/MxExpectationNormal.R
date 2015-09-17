@@ -147,7 +147,15 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1)
 {
-	if (length(component) == 1 && component == 'vector') {
+	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		got <- list()
+		for(amod in submNames){
+			got[[amod]] <- imxGetExpectationComponent(model[[amod]], component, defvar.row=1)
+		}
+		if(component=='vector'){got <- unlist(got)}
+		got
+	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model$expectation, model, defvar.row)
 	} else {
 		got <- genericGetExpected(model$expectation, model, component, defvar.row)
@@ -210,7 +218,7 @@ mxCheckIdentification <- function(model, details=TRUE){
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
-.mat2param <- function(x, model, defvar.row){
+.mat2param <- function(x, model, defvar.row=1){
   paramNames <- names(omxGetParameters(model))
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
   got <- mxGetExpected(model, 'vector', defvar.row)
