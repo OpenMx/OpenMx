@@ -175,4 +175,20 @@ omxCheckCloseEnough(rms(rr1[,,1], r1[,,1]), 0, .1)
 omxCheckCloseEnough(rms(rr3[,,1], r3[,,1]), 0, .1)
 
 
+#------------------------------------------------------------------------------
+# Multiple group example
+
+factorModel2 <- mxModel(factorModel, name='ConstrainedResidual',
+	mxPath(from=manifests, arrows=2, labels='resid')
+)
+
+twoGroup <- mxModel(model='multipleGroup', factorModel, factorModel2,
+	mxFitFunctionMultigroup(c('OneFactor', 'ConstrainedResidual'))
+)
+twoGroupRun <- mxRun(twoGroup)
+
+tg1 <- mxFactorScores(twoGroupRun, 'ML')
+
+omxCheckCloseEnough(rms(tg1[[1]], rr1), 0, .001)
+omxCheckCloseEnough(rms(tg1[[2]], rr1), 0, .001)
 
