@@ -698,18 +698,25 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  if(single.na(TXname) & single.na(TYname)){
 				  mean <- matrix( , 0, 0)
 			  } else {
-				  if(hasX & single.na(TXname)){
-					  stop("Model has exogenous variables but not exogenous means.")
-				  }
-				  if(hasY & single.na(TYname)){
-					  stop("Model has endogenous variables but not endogenous means.")
-				  }
-				  KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
-				  TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
-				  endoMean <- TY + A %*% (AL + GA %*% KA)
-				  TX <- mxEvalByName(TXname, model, compute=TRUE, defvar.row=defvar.row)
-				  exoMean <- TX + LX %*% KA
-				  mean <- rbind(endoMean, exoMean)
+					if(hasX & single.na(TXname)){
+						stop("Model has exogenous variables but not exogenous means.")
+					}
+					if(hasY & single.na(TYname)){
+						stop("Model has endogenous variables but not endogenous means.")
+					}
+					endoMean <- NULL
+					exoMean <- NULL
+					if(hasY){
+						KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
+						endoMean <- TY + A %*% (AL + GA %*% KA)
+					}
+					if(hasX){
+						TX <- mxEvalByName(TXname, model, compute=TRUE, defvar.row=defvar.row)
+						KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						exoMean <- TX + LX %*% KA
+					}
+					mean <- rbind(endoMean, exoMean)
 			  }
 			  ret[['means']] <- mean
 		  }
