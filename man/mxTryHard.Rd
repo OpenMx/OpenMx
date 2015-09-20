@@ -11,7 +11,8 @@ Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} unti
 mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, 
   scale = 0.25, initialGradientStepSize = .00001, initialGradientIterations = 1,
     initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-  iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose = 0, intervals = FALSE)
+    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose = 0, 
+    intervals = FALSE)
 }
 
 \arguments{
