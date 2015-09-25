@@ -69,6 +69,14 @@ The summary function can report Error codes as follows:
    \item 9: An input parameter was invalid
    }
 
+When the information matrix is available, standard errors are reported.
+If the information matrix was estimated using finite differences then an
+additional diagnostic column 'A' is displayed. An exclamation point in
+the 'A' column indicates that the gradient appears to be asymmetric and
+the standard error may not accurately reflect the variability of that
+parameter. As a precaution, it is recommended that you compare the SEs
+with likelihood-based confidence intervals.
+
 For many raw data models, OpenMx does not automatically report the absolute fit indices (Chi-Squared, CFI, TLI, and RMSEA).  They are available once you fit reference models.  See the example given in \link{mxRefModels}.
 
 OpenMx does not recommend using some fit indices.  These are GFI, AGFI, NFI, and SRMR.  The Goodness of Fit Index (GFI) and Adjusted Goodness of Fit Index (AGFI) are not recommended because they are strongly influeced by sample size and have rather high Type I error rates (Sharma, Mukherjee, Kumar, & Dillon, 2005).  The Normed Fit Index (NFI) has no penalty for model complexity.  That is, adding more parameters to a model always improves the NFI, regardless of how useful those parameters are.  Because the Non-Normed Fit Index (NNFI), also known as the Tucker-Lewis Index (TLI), does adjust for model complexity it is used instead.  Lastly, the Standardized Root Mean Square Residual (SRMR) is not reported because it (1) only applies to covariance models, having no direct extension to missing data, (2) has no penalty for model complexity, similar to the NFI, and (3) is positively biased (Hu & Bentler, 1999).
