@@ -50,6 +50,8 @@ typedef int ComputeInform;
 	// The problem may have no feasible solution.
 #define INFORM_ITERATION_LIMIT 4
 	// The major iteration limit was reached (Mx status BLUE).
+#define INFORM_NOT_CONVEX 5
+        // Hessian is not positive definite (Mx status RED)
 #define INFORM_NOT_AT_OPTIMUM 6
 	// The model does not satisfy the first-order optimality conditions (i.e. gradient close to zero)
 	// to the required accuracy, and no improved point for the

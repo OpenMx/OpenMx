@@ -2751,6 +2751,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		if (verbose >= 1) {
 			mxLog("%s: Cholesky decomposition failed", name);
 		}
+		fc->inform = std::max(fc->inform, INFORM_NOT_CONVEX);
 		return;
 	}
 
@@ -2764,6 +2765,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		if (verbose >= 1) {
 			mxLog("%s: result is not finite", name);
 		}
+		fc->inform = std::max(fc->inform, INFORM_NOT_CONVEX);
 		return;
 	}
 
