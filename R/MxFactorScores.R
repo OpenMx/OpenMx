@@ -22,6 +22,14 @@
 
 
 mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
+	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		ret <- list()
+		for(amod in submNames){
+			ret[[amod]] <- mxFactorScores(model[[amod]], type)
+		}
+		return(ret)
+	}
 	if(model$data$type!='raw'){
 		stop("The 'model' arugment must have raw data.")
 	}

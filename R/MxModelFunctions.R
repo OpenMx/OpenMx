@@ -291,10 +291,15 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					}
 					candidate@result <- value
 				} else if (is(candidate,"MxFitFunction")) {
-					candidate@result <- as.matrix(value)
-					attr <- attributes(value)
-					attr$dim <- NULL
-					candidate@info <- attr
+					if(is(candidate,"MxFitFunctionGREML")){
+						candidate@MLfit <- attr(value,"MLfit")
+						candidate@result <- as.matrix(as.numeric(value))
+					} else{
+						candidate@result <- as.matrix(value)
+						attr <- attributes(value)
+						attr$dim <- NULL
+						candidate@info <- attr
+					}
 				} else if(is(candidate, "MxMatrix")) {
 					if(candidate@name=="filteredDataRow" && !candidate@.persist){next} #bit of a hack
 					if (any(dim(candidate@values) != dim(value))) {

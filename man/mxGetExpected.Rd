@@ -25,22 +25,29 @@ This function extracts the expected means, covariance, or thresholds from a mode
 }
 
 \usage{
-mxGetExpected(model, component)
-imxGetExpectationComponent(model, component)
+mxGetExpected(model, component, defvar.row=1)
+imxGetExpectationComponent(model, component, defvar.row=1)
 }
 
 
 \arguments{
    \item{model}{MxModel object from which to extract the expectation component.}
    \item{component}{A character. The name of the component to extract.}
+   \item{defvar.row}{A row index. Which row to load for definition variables.}
 }
 
 \details{
-The expected means, covariance, or thresholds can be extracted from Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), and LISREL (\link{mxExpectationLISREL}) models.
+The expected means, covariance, or thresholds can be extracted from
+Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), and
+LISREL (\link{mxExpectationLISREL}) models. When more than one component
+is requested, the components will be returned as a list.
+
+If component 'vector' is requested then the non-redundent coefficients
+of the expected manifest distribution will be returned as a vector.
 }
 
 \value{
-    A matrix, giving the expectation component requested.
+See details.
 }
 
 

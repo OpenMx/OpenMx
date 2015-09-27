@@ -22,7 +22,7 @@ factorModel <- mxModel("One Factor ML",
     mxFitFunctionML(),mxExpectationNormal("C", "M", dimnames=manifests),
     mxCI(c("P"))
 )
-factorFitCI <- mxTryHard(factorModel, fit2beat=-2863, extraTries=3, intervals=TRUE, suppressWarnings = TRUE)
+factorFitCI <- mxTryHard(factorModel, fit2beat=-2863, extraTries=3, intervals=TRUE)
 factorSummCI <- summary(factorFitCI)
 
 #print(factorFitCI$output$computes[[2]])

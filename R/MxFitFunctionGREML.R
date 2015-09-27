@@ -23,12 +23,13 @@ setClass(Class = "MxFitFunctionGREML",
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0) {
+          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L) {
             .Object@name <- name
             .Object@dV <- dV
-            .Object@MLfit <- 0
-            .Object@vector <- FALSE
-            .Object@numObs <- 0L
+            .Object@dVnames <- as.character(names(dV))
+            .Object@MLfit <- MLfit
+            .Object@vector <- vector
+            .Object@numObs <- numObs
             return(.Object)
           }
 )

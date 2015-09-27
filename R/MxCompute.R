@@ -337,9 +337,9 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' Optimize parameters using a gradient descent optimizer
 ##'
 ##' This optimizer does not require analytic derivatives of the fit
-##' function. The open-source version of OpenMx only offers 1 choice,
-##' SLSQP (from the NLOPT collection).  The proprietary version of
-##' OpenMx offers the choice of two optimizers, SLSQP and NPSOL.
+##' function. The open-source version of OpenMx offers 2 choices,
+##' SLSQP (from the NLOPT collection) and CSOLNP.  The proprietary version of
+##' OpenMx offers the choice of three optimizers: SLSQP, CSOLNP, and NPSOL.
 ##'
 ##' One of the most important options for SLSQP is
 ##' \code{gradientAlgo}. By default, the \code{forward} method is
@@ -354,7 +354,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param engine specific NPSOL or SLSQP
+##' @param engine specific 'NPSOL', 'SLSQP', or 'CSOLNP'
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param verbose level of debugging output
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)

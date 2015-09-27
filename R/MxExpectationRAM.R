@@ -196,34 +196,39 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		return(.Object)
 })
 
-setMethod("genericGetCovariance", signature("MxExpectationRAM"),
-	function(.Object, model) {
-		Aname <- .Object@A
-		Sname <- .Object@S
-		Fname <- .Object@F
-		A <- mxEvalByName(Aname, model, compute=TRUE)
-		S <- mxEvalByName(Sname, model, compute=TRUE)
-		F <- mxEvalByName(Fname, model, compute=TRUE)
-		I <- diag(1, nrow=nrow(A))
-		ImA <- solve(I-A)
-		cov <- F %*% ImA %*% S %*% t(ImA) %*% t(F)
-		return(cov)
-})
-
-setMethod("genericGetMeans", signature("MxExpectationRAM"),
-	function(.Object, model) {
-		Mname <- .Object@M
-		Aname <- .Object@A
-		Fname <- .Object@F
-		if(single.na(Mname)){
-			return(matrix( , 0, 0))
-		}
-		M <- mxEvalByName(Mname, model, compute=TRUE)
-		A <- mxEvalByName(Aname, model, compute=TRUE)
-		F <- mxEvalByName(Fname, model, compute=TRUE)
-		I <- diag(1, nrow=nrow(A))
-		mean <- M %*% t(solve(I-A)) %*% t(F)
-		return(mean)
+setMethod("genericGetExpected", signature("MxExpectationRAM"),
+	  function(.Object, model, what, defvar.row=1) {
+		  ret <- list()
+		  Aname <- .Object@A
+		  Sname <- .Object@S
+		  Fname <- .Object@F
+		  Mname <- .Object@M
+		  A <- mxEvalByName(Aname, model, compute=TRUE, defvar.row=defvar.row)
+		  S <- mxEvalByName(Sname, model, compute=TRUE, defvar.row=defvar.row)
+		  F <- mxEvalByName(Fname, model, compute=TRUE, defvar.row=defvar.row)
+		  I <- diag(1, nrow=nrow(A))
+		  if ('covariance' %in% what) {
+			  ImA <- solve(I-A)
+			  cov <- F %*% ImA %*% S %*% t(ImA) %*% t(F)
+			  ret[['covariance']] <- cov
+		  }
+		  if ('means' %in% what) {
+			  if(single.na(Mname)){
+				  mean <- matrix( , 0, 0)
+			  } else {
+				  M <- mxEvalByName(Mname, model, compute=TRUE, defvar.row=defvar.row)
+				  mean <- M %*% t(solve(I-A)) %*% t(F)
+			  }
+			  ret[['means']] <- mean
+		  }
+		  if ('thresholds' %in% what) {
+			  thrname <- .Object@thresholds
+			  if(!single.na(thrname)){
+				  thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
+			  } else {thr <- matrix( , 0, 0)}
+			  ret[['thresholds']] <- thr
+		  }
+		  ret
 })
 
 setMethod("genericExpGetPrecision", "MxExpectationRAM",
@@ -234,16 +239,6 @@ setMethod("genericExpGetPrecision", "MxExpectationRAM",
 			callNextMethod();
 		}
 })
-
-setMethod("genericGetThresholds", signature("MxExpectationRAM"),
-	function(.Object, model) {
-		thrname <- .Object@thresholds
-		if(!single.na(thrname)){
-			thr <- mxEvalByName(thrname, model, compute=TRUE)
-		} else {thr <- matrix( , 0, 0)}
-		return(thr)
-})
-
 
 generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	mxObject <- flatModel[[aMatrixName]]

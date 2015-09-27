@@ -86,21 +86,6 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 		return(.Object)
 })
 
-setGeneric("genericGetCovariance",
-	function(.Object, model) {
-	return(standardGeneric("genericGetCovariance"))
-})
-
-setGeneric("genericGetMeans",
-	function(.Object, model) {
-	return(standardGeneric("genericGetMeans"))
-})
-
-setGeneric("genericGetThresholds",
-	function(.Object, model) {
-	return(standardGeneric("genericGetThresholds"))
-})
-
 setMethod("genericExpGetPrecision", "MxExpectationNormal",
 	function(.Object) {
 		if(!single.na(.Object@thresholds)) {
@@ -110,54 +95,75 @@ setMethod("genericExpGetPrecision", "MxExpectationNormal",
 		}
 })
 
-setMethod("genericGetCovariance", signature("MxExpectationNormal"),
-	function(.Object, model) {
-		covname <- .Object@covariance
-		cov <- mxEvalByName(covname, model, compute=TRUE)
-		dnames <- .Object$dims
-		if(!single.na(dnames)){
-			colnames(cov) <- dnames
-			rownames(cov) <- dnames
-		}
-		return(cov)
-})
-
-setMethod("genericGetMeans", signature("MxExpectationNormal"),
-	function(.Object, model) {
-		meanname <- .Object@means
-		if(!single.na(meanname)){
-			mean <- mxEvalByName(meanname, model, compute=TRUE)
+setMethod("genericGetExpected", signature("MxExpectationNormal"),
+	function(.Object, model, what, defvar.row=1) {
+		ret <- list()
+		if ('covariance' %in% what) {
+			covname <- .Object@covariance
+			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			dnames <- .Object$dims
 			if(!single.na(dnames)){
-				colnames(mean) <- dnames
+				colnames(cov) <- dnames
+				rownames(cov) <- dnames
 			}
-		} else {mean <- matrix( , 0, 0)}
-		return(mean)
+			ret[['covariance']] <- cov
+		}
+		if ('means' %in% what) {
+			meanname <- .Object@means
+			if(!single.na(meanname)){
+				mean <- mxEvalByName(meanname, model, compute=TRUE, defvar.row=defvar.row)
+				dnames <- .Object$dims
+				if(!single.na(dnames)){
+					colnames(mean) <- dnames
+				}
+			} else {mean <- matrix( , 0, 0)}
+			ret[['means']] <- mean
+		}
+		if ('thresholds' %in% what) {
+			thrname <- .Object@thresholds
+			if(!single.na(thrname)){
+				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
+				tnames <- .Object$threshnames
+				if(!single.na(tnames)){
+					colnames(thr) <- tnames
+				}
+			} else {thr <- matrix( , 0 , 0)}
+			ret[['thresholds']] <- thr
+		}
+		ret
+	})
+
+setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
+	function(.Object, model, defvar.row=1) {
+		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row)
+		cov <- ret[['covariance']]
+		mns <- ret[['means']]
+		if (is.null(mns)) stop("mns is null")
+		thr <- ret[['thresholds']]
+		if (is.null(thr)) stop("thresholds is null")
+		v <- c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
+		return(v)
 })
 
-setMethod("genericGetThresholds", signature("MxExpectationNormal"),
-	function(.Object, model) {
-		thrname <- .Object@thresholds
-		if(!single.na(thrname)){
-			thr <- mxEvalByName(thrname, model, compute=TRUE)
-			tnames <- .Object$threshnames
-			if(!single.na(tnames)){
-				colnames(thr) <- tnames
-			}
-		} else {thr <- matrix( , 0 , 0)}
-		return(thr)
-})
-
-imxGetExpectationComponent <- function(model, component){
-	expectation <- model$expectation
-	if(component=='covariance'){
-		genericGetCovariance(expectation, model)
-	} else if(component=='means'){
-		genericGetMeans(expectation, model)
-	} else if(component=='thresholds'){
-		genericGetThresholds(expectation, model)
+imxGetExpectationComponent <- function(model, component, defvar.row=1)
+{
+	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		got <- list()
+		for(amod in submNames){
+			got[[amod]] <- imxGetExpectationComponent(model[[amod]], component, defvar.row=1)
+		}
+		if(component=='vector'){got <- unlist(got)}
+		got
+	} else if (length(component) == 1 && component == 'vector') {
+		genericGetExpectedVector(model$expectation, model, defvar.row)
 	} else {
-		stop('component not recognized')
+		got <- genericGetExpected(model$expectation, model, component, defvar.row)
+		if (length(got) == 1) {
+			got[[1]]
+		} else {
+			got
+		}
 	}
 }
 
@@ -174,11 +180,12 @@ sse <- function(x){sum(x^2)}
 #' The Jacobian is estimated by the central finite difference.
 #'
 #' @param model an mxModel
+#' @param defvar.row which row to use for definition variables
 #' @return a matrix with manifests in the rows and original parameters in the columns
-#' @seealso \link{omxGetManifestModelParameters}
-omxManifestModelByParameterJacobian <- function(model) {
+#' @seealso \link{mxGetExpected}
+omxManifestModelByParameterJacobian <- function(model, defvar.row=1) {
 	theParams <- omxGetParameters(model)
-	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model)
+	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row)
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
@@ -211,59 +218,11 @@ mxCheckIdentification <- function(model, details=TRUE){
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
-setMethod("genericGetParameters", "BaseExpectationNormal",
-	  function(expectation, model) {
-		  cov <- genericGetCovariance(expectation, model)
-		  mns <- genericGetMeans(expectation, model)
-		  thr <- genericGetThresholds(expectation, model)
-		  c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
- 	  })
-
-.mat2param <- function(x, model){
+.mat2param <- function(x, model, defvar.row=1){
   paramNames <- names(omxGetParameters(model))
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-  omxGetManifestModelParameters(model)
-}
-
-#' Returns the parameter vector of the expected manifest model
-#'
-#' The manifest model excludes any latent variables or processes. For
-#' RAM and LISREL models, the manifest model contains only the
-#' manifest variables with free means, covariance, and thresholds.
-#'
-#' The returned vector is not named because the model manifest
-#' parameters are typically not stored explicitly.
-#'
-#' @param model an mxModel
-#' @return a paramter vector
-#' @seealso \link{mxGetExpected}
-#' @examples
-#' require(OpenMx)
-#' manifests <- paste("x", 1:5, sep="")
-#' latents <- c("G")
-#' factorModel <- mxModel("One Factor",
-#'       type="RAM",
-#'       manifestVars = manifests,
-#'       latentVars = latents,
-#'       mxPath(from=latents, to=manifests),
-#'       mxPath(from=manifests, arrows=2),
-#'       mxPath(from=latents, arrows=2,
-#'             free=FALSE, values=1.0),
-#'       mxPath(from = 'one', to = manifests))
-#' 
-#' omxGetManifestModelParameters(factorModel)
-omxGetManifestModelParameters <- function(model) {
-  sparam <- c()
-  if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
-    submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
-    for(amod in submNames){
-	    m1 <- model[[amod]]
-	    sparam <- c(sparam, genericGetParameters(m1$expectation, m1))
-    }
-  } else {
-	  sparam <- c(sparam, genericGetParameters(model$expectation, model))
-  }
-  sparam
+  got <- mxGetExpected(model, 'vector', defvar.row)
+  got
 }
 
 setGeneric("genericGenerateData",

@@ -34,7 +34,8 @@ count <- function(marg,state) {
 model <- mxModel(name="count",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(count, 1))
-model <- mxRun(model, silent=TRUE)
+model <- omxCheckWarning(mxRun(model, silent=TRUE),
+                         "In model 'count' Optimizer returned a non-zero status code 5. The Hessian at the solution does not appear to be convex (Mx status RED).")
 omxCheckTrue(counter > 1)
 
 ###
@@ -52,5 +53,7 @@ toomany <- function(marg,state) {
 model <- mxModel(name="toomany",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(toomany))
-omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: 1:FitFunction returned more than 2 arguments
-2:FitFunction returned more than 2 arguments")
+model <- omxCheckWarning(
+  omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: 1:FitFunction returned more than 2 arguments
+2:FitFunction returned more than 2 arguments"),
+  "In model 'toomany' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")

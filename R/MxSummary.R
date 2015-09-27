@@ -683,7 +683,7 @@ compareBounds <- function(estimate, bound, threshold){
 
 highlightProblem <- function(bound, boundMet){
 	if (boundMet){
-		return(paste(bound, "*", sep=""))
+		return(paste(bound, "!", sep=""))
 	}
 	else {
 		return(bound)

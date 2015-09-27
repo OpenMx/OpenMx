@@ -240,13 +240,19 @@ runHelper <- function(model, frontendStart,
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), output)
-	if(length(model$data) > 0 && model$data$type=="acov"){
+	
+	theFitUnits <- model$output$fitUnits
+	if( length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
 		wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
+	}
+	if (model@output$status$code < 5 && !is.null(model@output[['infoDefinite']]) &&
+	    !is.na(model@output[['infoDefinite']]) && !model@output[['infoDefinite']]) {
+		model@output$status$code <- 5
 	}
 
 	# Currently runstate preserves the pre-backend state of the model.
@@ -299,8 +305,7 @@ updateModelExpectationDims <- function(model, expectations){
 mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1, 
     scale = 0.25,  initialGradientStepSize = .00001, initialGradientIterations = 1,
     initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0,
-    ...){
+    iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE){
     
     defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
     
@@ -345,17 +350,19 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 model<-bestfit
             }
             
-            if(defaultComputePlan==TRUE){
-                if(lastBestFitCount == 4) gradientStepSize <- gradientStepSize *.1
-                if(lastBestFitCount == 5) gradientStepSize <- gradientStepSize *10
-                if(lastBestFitCount  %in% seq(2,100,4)) tolerance<-tolerance * .01 
-                if(lastBestFitCount  %in% seq(3,100,4)) gradientIterations<-gradientIterations+1
-                if(lastBestFitCount  %in% seq(4,100,4)) gradientIterations<-gradientIterations-1
-                if(lastBestFitCount > 6) model <- omxSetParameters(model, labels = names(bestfit.params), 
-                    values = bestfit.params * rnorm(length(params),loc,scale/10) + 
-                        rnorm(length(params),0,scale / 10)
-                )
-            }
+          if(defaultComputePlan==TRUE){
+            
+            if(lastBestFitCount == 2) gradientStepSize <- gradientStepSize *.1
+            if(lastBestFitCount == 3) gradientStepSize <- gradientStepSize *10
+            if(lastBestFitCount == 5) gradientStepSize <- gradientStepSize *.1
+            if(lastBestFitCount  > 0) tolerance<-tolerance * .001 
+            if(lastBestFitCount  > 0) gradientIterations<-gradientIterations+2
+            # if(lastBestFitCount  %in% seq(4,100,4)) gradientIterations<-gradientIterations-1
+            if(lastBestFitCount > 2) model <- omxSetParameters(model, labels = names(bestfit.params), 
+              values = bestfit.params * rnorm(length(params),loc,scale/10) + 
+                rnorm(length(params),0,scale / 10)
+            )
+          }
             
             if(defaultComputePlan==FALSE){
                 model <- omxSetParameters(model, labels = names(bestfit.params), 
@@ -398,6 +405,8 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 lastNoError<-TRUE
                 message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
             }
+          
+          if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
             if (fit$output$minimum < lowestminsofar) { #if this is the best fit so far
                 message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
@@ -407,8 +416,6 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                 bestfit <- fit
                 bestfit.params <- omxGetParameters(bestfit)
             }
-            
-            if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
             if (fit$output$minimum <= lowestminsofar + generalTolerance) { #if this is the best fit or equal best so far, check the following
                 ###########stopflag checks
@@ -465,7 +472,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             
             if(stopflag){
                 message('\nSolution found\n')
-                if(length(bestfit$intervals)>0){ #only calculate confidence intervals once the best fit is established
+                if(length(bestfit$intervals)>0 & intervals==TRUE){ #only calculate confidence intervals once the best fit is established
                     
                     message("Estimating confidence intervals\n") 
                     
@@ -511,7 +518,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             stopflag <- TRUE
             if (exists("bestfit")) {
                 
-                if(length(bestfit$intervals)>0){ #calculate intervals for best fit, even though imperfect
+                if(length(bestfit$intervals)>0 & intervals==TRUE){ #calculate intervals for best fit, even though imperfect
                     message("Estimate confidence intervals for imperfect solution\n") 
                     
                     if(defaultComputePlan==TRUE) bestfit <- OpenMx::mxModel(bestfit, 
