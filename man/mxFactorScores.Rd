@@ -71,8 +71,12 @@ factorModel <- mxModel("OneFactor",
                        mxPath(from=manifests, arrows=2),
                        mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
                        mxPath(from='one', to=manifests),
-                       mxData(observed=demoOneFactor[1:50,], type="raw"))
+                       mxData(observed=cov(demoOneFactor), type="cov", numObs=500,
+                              means = colMeans(demoOneFactor)))
 summary(factorRun <- mxRun(factorModel))
+
+# Swap in raw data in place of summary data
+factorRun <- mxModel(factorRun, mxData(observed=demoOneFactor[1:50,], type="raw"))
 
 # Estimate factor scores for the model
 r1 <- mxFactorScores(factorRun, 'Regression')
