@@ -398,7 +398,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             message('\n Fit attempt generated errors') 
         }
         
-        if(class(fit) != "try-error" & !is.na(fit$output$minimum) & fit$output$status$status != -1) { #if fit was not an error
+        if(class(fit) != "try-error" && !is.na(fit$output$minimum) && fit$output$status$status != -1) { #if fit was not an error
             
             if (fit$output$minimum >= lowestminsofar + generalTolerance) {
                 lastBestFitCount <- 0
