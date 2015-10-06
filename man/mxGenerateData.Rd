@@ -102,7 +102,10 @@ factorModel <- mxModel("One Factor",
 
 factorData <- mxGenerateData(factorModel, 100)
 
-factorModel <- mxModel(factorModel, mxData(factorData, 'raw'))
+factorModel <- mxModel(factorModel,
+                       mxData(observed=cov(factorData), type="cov",
+                              numObs=nrow(factorData),
+                              means = colMeans(factorData)))
 factorRun <- mxRun(factorModel)
 cbind(Rand=omxGetParameters(factorRun), Gen=omxGetParameters(factorModel))
 
