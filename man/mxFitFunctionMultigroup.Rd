@@ -131,9 +131,11 @@ mgFitFun <- mxFitFunctionMultigroup(c('g1model', 'g2model'))
 
 # Define the models
 m1 <- mxModel(model="g1model", M, S1, A, I, expect, fitFunction, 
-                    mxData(observed=ds1, type="raw"))
+              mxData(observed=cov(ds1), type="cov", numObs=nrow(ds1),
+                     means=colMeans(ds1)))
 m2 <- mxModel(model="g2model", M, S2, A, I, expect, fitFunction, 
-                    mxData(observed=ds2, type="raw"))
+              mxData(observed=cov(ds2), type="cov", numObs=nrow(ds2),
+                     means=colMeans(ds2)))
 mg <- mxModel(model='multipleGroup', m1, m2, mgFitFun)
 
 # Fit the model and print a summary
@@ -147,10 +149,6 @@ summary(mgOut)
 fitResOnly <- mxEval(fitfunction, mgOut)
 ( g1Fit <- mxEval(g1model.fitfunction, mgOut) )
 ( g2Fit <- mxEval(g2model.fitfunction, mgOut) )
-
-# Look at the row likelihoods alone
-( g1RowLike <- attr(g1Fit, 'likelihoods') )
-( g2RowLike <- attr(g2Fit, 'likelihoods') )
 
 
 }
