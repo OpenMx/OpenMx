@@ -1,0 +1,32 @@
+
+
+umx 2.3.1
+--------------
+
+* To Be Updated
+
+
+umx 2.2.6
+--------------
+
+* Available on CRAN.
+* New optimizer: SLSQP
+* New data and model types: WLS, LISREL, GREML
+* Additional helpers:
+* mxMI() Modification indicies for any single-group likelihood-based model.
+* mxGenerateData() Generate data based on a single-group RAM, LISREL, Normal, or State Space model.
+* mxGetExpected() Get the expected means, covariance, or thresholds from a RAM, LISREL, or Normal model.
+* mxCheckIdentification() Check the identification of single or multigroup, RAM, LISREL, Normal, or State Space model.
+* omxRMSEA() Get the RMSEA with confidence interval and test of approximate fit. Also, reported in mxSummary.
+* mxKalmanScores() Get the Kalman latent state scores from a state space model. It can also be adapted for non-ordinal factor scores.
+* mxFactorScores() Estimate latent variable scores from a LISREL factor model via several methods including maximum likelihood and for ordinal data.
+* mxAlgebraFromString() Construct an mxAlgebra from an R expression provided as a character string.
+* mxFitFunctionMultigroup() used to require "modelname.fitfunction", : now "modelname" will work too.
+* Definition variables work correctly with mxFitFunctionRow().
+* Confidence intervals are improved:
+* parameter vector at each confidence limit ("bound") is now available in mxSummary(verbose=T).
+* Improvements to CSOLNP. Note that CSOLNP should still be used with caution
+* mxExpectationStateSpaceContinuousTime()
+* Improvements to mxTryHard().
+* Improvements to the internal interface with NPSOL:
+* Further improvements to WLS are expected in subsequent releases.
