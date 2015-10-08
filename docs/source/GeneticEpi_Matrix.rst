@@ -101,8 +101,8 @@ Let's go through each of the matrices step by step.  First, we start with the ``
                            free=TRUE, values=svMe, label="mean", name="expMean" )
     covMZ     <- mxAlgebra( expression=rbind( cbind(V, A+C), 
                                               cbind(A+C, V)), name="expCovMZ" )
-    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ 0.25%x%C), 
-                                              cbind(0.5%x%A+ 0.25%x%C , V)), name="expCovDZ" )
+    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ C),
+                                              cbind(0.5%x%A+C , V)), name="expCovDZ" )
 
     # Data objects for Multiple Groups
     dataMZ    <- mxData( observed=mzData, type="raw" )
@@ -203,8 +203,8 @@ Previous Mx users will likely be familiar with the look of the expected covarian
     # Algebra for expected and Variance/Covariance Matrices in MZ & DZ twins
     covMZ     <- mxAlgebra( expression=rbind( cbind(V, A+C), 
                                               cbind(A+C, V)), name="expCovMZ" )
-    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ 0.25%x%C), 
-                                              cbind(0.5%x%A+ 0.25%x%C, V)), name="expCovDZ" )
+    covDZ     <- mxAlgebra( expression=rbind( cbind(V, 0.5%x%A+ C), 
+                                              cbind(0.5%x%A+ C, V)), name="expCovDZ" )
 
 Next, the observed data are put in a ``mxData`` object which also includes a ``type`` argument, such that OpenMx can apply the appropriate fit function.  The actual model expectations are combined in the ``mxExpectationNormal`` statements which reference the respective predicted covariance matrix, predicted means and list of selected variables to map them onto the data.  The maximum likelihood fit function ``mxFitFunction()`` is used to obtain ML estimates of the parameters of the model.
 
