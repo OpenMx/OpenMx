@@ -20,7 +20,7 @@
 
 
 require(OpenMx)
-options(mxCondenseMatrixSlots=FALSE)  #<--Saves memory
+options(mxCondenseMatrixSlots=TRUE)  #<--Saves memory
 require(mvtnorm)
 
 
