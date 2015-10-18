@@ -158,10 +158,10 @@ variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, 
 	} else {
 		if (length(manifestVars) + length(latentVars) > 0) {
 			if(length(names(latentVars)) == 0 || !is.list(latentVars) ){
-				stop("The latentVars argument of a LISREL models must be a named list.")
+				stop("Unlike RAM, LISREL models must have latent variables.  The latentVars argument of a LISREL model must be a named list.")
 			}
 			if(length(names(manifestVars)) == 0 || !is.list(manifestVars) ){
-				stop("The manifestVars argument of a LISREL models must be a named list.")
+				stop("The manifestVars argument of a LISREL model must be a named list.")
 			}
 			latentVars <- varsToCharacter(latentVars, "latent")
 			manifestVars <- varsToCharacter(manifestVars, "manifest")
@@ -451,7 +451,7 @@ assignNewMatrixStuff <- function(from, to, oldMat, newStuff, remove=FALSE){
 insertLatentExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 	if(to %in% variables$lex){
 		if(arrows==1){
-			stop('nonsense')
+			stop('In LISREL, one-headed arrows do not exist between latent exogenous variables.  They are allowed when the destination is endogenous, and two-headed arrows are okay.')
 		} else if(arrows==2){
 			#add to PH
 			old$PH <- assignNewMatrixStuff(from, to, old$PH, new)
@@ -462,17 +462,17 @@ insertLatentExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 			#add to GA
 			old$GA <- assignNewMatrixStuff(from, to, old$GA, new)
 		} else if(arrows==2){
-			stop('nonsense')
+			stop('In LISREL, two-headed arrows do not exist between latent exogenous and latent endogenous variables.  One-headed arrows are okay.')
 		}
 	} else if(to %in% variables$mex){
 		if(arrows==1){
 			#add to LX
 			old$LX <- assignNewMatrixStuff(from, to, old$LX, new)
 		} else if(arrows==2){
-			stop('nonsense')
+			stop('In LISREL, two-headed arrows do not exist between latent and manifest exogenous variables.')
 		}
 	} else if(to %in% variables$men){
-		stop('nonsense')
+		stop('In LISREL, one-headed arrows cannot go from latent exogenous variables to manifest endogenous variables.')
 	}
 	return(old)
 }
@@ -496,7 +496,7 @@ insertLatentExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 
 insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 	if(to %in% variables$lex){
-		stop('nonsense')
+		stop('In LISREL, no paths can go from latent endogenous variables to latent exogenous variables.')
 	} else if(to %in% variables$len){
 		if(arrows==1){
 			#add to BE
@@ -509,13 +509,13 @@ insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 			old$BE <- assignNewMatrixStuff(from, to, old$BE, new, remove=TRUE)
 		}
 	} else if(to %in% variables$mex){
-		stop('nonsense')
+		stop('In LISREL, no paths can go from latent endogenous variables to manifest exogenous variables.')
 	} else if(to %in% variables$men){
 		if(arrows==1){
 			#add to LY
 			old$LY <- assignNewMatrixStuff(from, to, old$LY, new)
 		} else if(arrows==2){
-			stop('nonsense')
+			stop('In LISREL, two-headed arrows do not exist between latent and manifest endogenous variables.')
 		}
 	}
 	return(old)
@@ -540,12 +540,12 @@ insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 
 insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 	if(to %in% variables$lex){
-		stop('nonsense')
+		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
 	} else if(to %in% variables$len){
-		stop('nonsense')
+		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
 	} else if(to %in% variables$mex){
 		if(arrows==1){
-			stop('nonsense')
+			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')
 		} else if(arrows==2){
 			#add to TD
 			old$TD <- assignNewMatrixStuff(from, to, old$TD, new)
@@ -553,7 +553,7 @@ insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 		}
 	} else if(to %in% variables$men){
 		if(arrows==1){
-			stop('nonsense')
+			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous and manifest endogenous variables.')
 		} else if(arrows==2){
 			#add to TH
 			old$TH <- assignNewMatrixStuff(from, to, old$TH, new)
@@ -582,12 +582,12 @@ insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 
 insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 	if(to %in% variables$lex){
-		stop('nonsense')
+		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
 	} else if(to %in% variables$len){
-		stop('nonsense')
+		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
 	} else if(to %in% variables$mex){
 		if(arrows==1){
-			stop('nonsense')
+			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')
 		} else if(arrows==2){
 			#add to TH
 			old$TH <- assignNewMatrixStuff(to, from, old$TH, new) #Note the switch of the from/to
@@ -595,7 +595,7 @@ insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables)
 		}
 	} else if(to %in% variables$men){
 		if(arrows==1){
-			stop('nonsense')
+			stop('In LISREL, one-headed arrows are not allowed between manifest variables.')
 		} else if(arrows==2){
 			#add to TE
 			old$TE <- assignNewMatrixStuff(from, to, old$TE, new)
