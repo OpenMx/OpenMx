@@ -14,7 +14,11 @@
 #   limitations under the License.
 
 setClass(Class = "BaseExpectationNormal",
-	 contains = "MxBaseExpectation")
+	 contains = "MxBaseExpectation",
+	 representation = representation(
+	     varyBy = "list",
+	     Z = "MxCharOrNumber"  # fix TODO
+	 ))
 
 setClass(Class = "MxExpectationNormal",
 	representation = representation(
@@ -52,6 +56,7 @@ setMethod("qualifyNames", signature("MxExpectationNormal"),
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
 			modelname, namespace)
+		.Object@Z <- imxConvertIdentifier(.Object@Z, modelname, namespace)
 		.Object@means <- imxConvertIdentifier(.Object@means, 
 			modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, 
@@ -63,7 +68,7 @@ setMethod("qualifyNames", signature("MxExpectationNormal"),
 
 setMethod("genericExpDependencies", signature("MxExpectationNormal"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
+	sources <- c(.Object@covariance, .Object@means, .Object@thresholds, .Object@Z)
 	sources <- sources[!is.na(sources)]
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
@@ -298,6 +303,55 @@ verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
 	}
 }
 
+convertVaryByClause <- function(.Object, flatModel, mxDataObject) {
+	name <- flatModel@name
+	if (length(.Object@Z)) {
+		Z <- flatModel[[ .Object@Z ]]
+		if (!is.null(Z)) {
+			# TODO
+			## if (any(colnames(Z) != colnames(covariance))) {
+			## 	msg <- paste("Colnames of Z", omxQuotes(colnames(Z)),
+			## 		     "must match colnames of the covariance matrix",
+			## 		     omxQuotes(colnames(covariance)))
+			## 	stop(msg, call.=FALSE)
+			## }
+			missing <- is.na(match(rownames(Z), colnames(mxDataObject@observed)))
+			if (any(missing)) {
+				msg <- paste("Some rownames of Z", omxQuotes(rownames(Z)[missing]),
+					     "are not found in the observed data")
+				stop(msg, call.=FALSE)
+			}
+		}
+		.Object@Z <- imxLocateIndex(flatModel, .Object@Z, name)
+	}
+
+	if (length(.Object@varyBy) == 0) return(.Object)
+	if (mxDataObject@type != "raw") {
+		msg <- paste("Cannot vary by", omxQuotes(names(.Object@varyBy)),
+			     "without raw data")
+		stop(msg, call.=FALSE)
+	}
+	colnum <- match(names(.Object@varyBy), colnames(mxDataObject@observed)) - 1L
+	if (any(is.na(colnum))) {
+		msg <- paste("Cannot find partitioning factors",
+			     omxQuotes(names(.Object@varyBy)[is.na(colnum)]),
+			     "in observed data")
+		stop(msg, call.=FALSE)
+	}
+	enum <- match(paste(.Object@varyBy, "expectation", sep=imxSeparatorChar),
+		      names(flatModel@expectations)) - 1L
+	if (any(is.na(enum))) {
+		msg <- paste("Cannot find models",
+			     omxQuotes(.Object@varyBy[is.na(enum)]),
+			     "varying by factors",
+			     omxQuotes(names(.Object@varyBy)[is.na(enum)]))
+		stop(msg, call.=FALSE)
+	}
+	.Object@varyBy <- as.list(enum)
+	names(.Object@varyBy) <- colnum
+	.Object
+}
+
 setMethod("genericExpFunConvert", "MxExpectationNormal", 
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
@@ -322,6 +376,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
 
+		.Object <- convertVaryByClause(.Object, flatModel, mxDataObject)
 		if (mxDataObject@type != "raw") {
 			verifyExpectedObservedNames(mxDataObject@observed, covName, flatModel, modelname, "Normal")
 			verifyMeans(meansName, mxDataObject, flatModel, modelname)

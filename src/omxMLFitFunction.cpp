@@ -301,13 +301,26 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->addOutput = addOutput;
-	oo->populateAttrFun = omxPopulateMLAttributes;
 
 	omxData* dataMat = oo->expectation->data;
 
 	if(strEQ(omxDataType(dataMat), "raw")) {
-		if(OMX_DEBUG) { mxLog("Raw Data: Converting from multivariate Normal ML to FIML"); }
-		omxChangeFitType(oo, "imxFitFunctionFIML");
+		const char *from = oo->fitType;
+		SEXP rObj = oo->rObj;
+		int fellner;
+		{
+			SEXP tmp;
+			ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("fellner")));
+			fellner = Rf_asLogical(tmp);
+		}
+		const char *to;
+		if (fellner == 1) {
+			to = "imxFitFunctionFellner";
+		} else {
+			to = "imxFitFunctionFIML";
+		}
+		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", from, to); }
+		omxChangeFitType(oo, to);
 		omxCompleteFitFunction(oo->matrix);
 		return;
 	}
@@ -319,6 +332,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	MLFitState *newObj = new MLFitState;
 	oo->argStruct = (void*)newObj;
+	oo->populateAttrFun = omxPopulateMLAttributes;
 
 	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataCovariance(dataMat);

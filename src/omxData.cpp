@@ -173,7 +173,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 		od->rawCols.reserve(numCols);
 		for(int j = 0; j < numCols; j++) {
 			const char *colname = CHAR(STRING_ELT(colnames, j));
-			ColumnData cd = { colname, NULL, NULL };
+			ColumnData cd = { colname, NULL, NULL, NULL };
 			SEXP rcol;
 			ScopedProtect p1(rcol, VECTOR_ELT(dataLoc, j));
 			if(Rf_isFactor(rcol)) {
@@ -183,6 +183,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 				}
 				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
 				cd.intData = INTEGER(rcol);
+				cd.levels = Rf_getAttrib(rcol, R_LevelsSymbol);
 				od->numFactor++;
 			} else if (Rf_isInteger(rcol)) {
 				Rf_error("Data column '%s' is in integer format but is not an ordered factor (see ?mxFactor)", colname);
@@ -358,6 +359,13 @@ double *omxDoubleDataColumn(omxData *od, int col)
 	ColumnData &cd = od->rawCols[col];
 	if (!cd.realData) Rf_error("Column '%s' is integer, not real", cd.name);
 	else return cd.realData;
+}
+
+int omxDataGetNumFactorLevels(omxData *od, int col)
+{
+	ColumnData &cd = od->rawCols[col];
+	if (!cd.levels) Rf_error("omxDataGetNumFactorLevels attempt on non-factor");
+	return Rf_length(cd.levels);
 }
 
 int omxIntDataElement(omxData *od, int row, int col) {
@@ -867,7 +875,7 @@ static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 
 bool omxData::handleDefinitionVarList(omxState *state, int row)
 {
-	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars."); }
+	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
 	
 	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {

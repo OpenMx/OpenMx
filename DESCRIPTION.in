@@ -35,9 +35,9 @@ Depends:
     digest,
     MASS,
     methods,
+    Matrix,
     parallel
 Suggests:
-    Matrix,
     mvtnorm,
     numDeriv,
     roxygen2 (>= 3.1),

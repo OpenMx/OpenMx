@@ -89,14 +89,15 @@ setMethod("imxVerifyModel", "MxRAMModel",
 		  }
 		  expectation <- model$expectation
 		  if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
-			  if (!is.null(model@data) && model@data@type == "raw" &&
-			      is.null(model$M)) {
-				  msg <- paste("The RAM model", omxQuotes(model@name),
-					       "contains raw data but has not specified any means paths.",
-					       "Add something like mxPath(from = 'one', to = manifests) to your model."
-					       )
-				  stop(msg, call. = FALSE)
-			  }
+			  # TODO
+			  ## if (!is.null(model@data) && model@data@type == "raw" &&
+			  ##     is.null(model$M)) {
+			  ## 	  msg <- paste("The RAM model", omxQuotes(model@name),
+			  ## 		       "contains raw data but has not specified any means paths.",
+			  ## 		       "Add something like mxPath(from = 'one', to = manifests) to your model."
+			  ## 		       )
+			  ## 	  stop(msg, call. = FALSE)
+			  ## }
 			  if (!is.null(model@data) && !single.na(model@data@means) &&
 			      is.null(model$M)) {
 				  msg <- paste("The RAM model", omxQuotes(model@name),

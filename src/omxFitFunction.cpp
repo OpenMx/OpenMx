@@ -59,6 +59,7 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionR",					&omxInitRFitFunction, defaultSetFreeVarGroup},
 	{"MxFitFunctionMultigroup", &initFitMultigroup, mgSetFreeVarGroup},
 	{"MxFitFunctionGREML", &omxInitGREMLFitFunction, defaultSetFreeVarGroup},
+	{"imxFitFunctionFellner", &InitFellnerFitFunction, defaultSetFreeVarGroup},
 };
 
 void omxFitFunction::setUnitsFromName(const char *name)

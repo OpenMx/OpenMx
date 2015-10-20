@@ -81,6 +81,7 @@ struct ColumnData {
 	// exactly one of these is non-null
 	double *realData;
 	int    *intData;
+	SEXP levels;       // factors only
 };
 
 class omxData {
@@ -137,6 +138,7 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 
 /* Getters 'n Setters */
 static inline bool omxDataIsSorted(omxData* data) { return data->isSorted; }
+int omxDataGetNumFactorLevels(omxData *od, int col);
 double omxDoubleDataElement(omxData *od, int row, int col);
 double *omxDoubleDataColumn(omxData *od, int col);
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer

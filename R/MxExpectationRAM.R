@@ -66,6 +66,7 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace)
 		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace)
 		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace)
+		.Object@Z <- imxConvertIdentifier(.Object@Z, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
 			imxConvertIdentifier, modelname, namespace)
@@ -115,6 +116,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			stop(msg, call. = FALSE)		
 		}
 		checkNumericData(mxDataObject)
+		.Object <- convertVaryByClause(.Object, flatModel, mxDataObject)
 		.Object@A <- imxLocateIndex(flatModel, aMatrix, name)
 		.Object@S <- imxLocateIndex(flatModel, sMatrix, name)
 		.Object@F <- imxLocateIndex(flatModel, fMatrix, name)
@@ -402,14 +404,15 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 			return(flatModel)
 		}
 
-		if (is.na(.Object@M) || is.null(flatModel[[.Object@M]])) {
-			modelname <- getModelName(.Object)
-			msg <- paste("The RAM expectation function",
-				"has raw data but is missing",
-				"an expected means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call.=FALSE)
-		}
+		# TODO
+		## if (is.na(.Object@M) || is.null(flatModel[[.Object@M]])) {
+		## 	modelname <- getModelName(.Object)
+		## 	msg <- paste("The RAM expectation function",
+		## 		"has raw data but is missing",
+		## 		"an expected means vector in model",
+		## 		omxQuotes(modelname))
+		## 	stop(msg, call.=FALSE)
+		## }
 				
 		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
 
