@@ -72,9 +72,6 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 	om->cols = ncols;
 	om->colMajor = (isColMajor ? 1 : 0);
 
-	om->originalRows = om->rows;
-	om->originalCols = om->cols;
-
 	om->owner = NULL;
 	if(om->rows == 0 || om->cols == 0) {
 		om->data = NULL;
@@ -110,15 +107,13 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 	int regenerateMemory = TRUE;
 
-	if(!dest->owner && (dest->originalRows == orig->rows && dest->originalCols == orig->cols)) {
+	if(!dest->owner && (dest->rows == orig->rows && dest->cols == orig->cols)) {
 		regenerateMemory = FALSE;				// If it's local data and the right size, we can keep memory.
 	}
 
 	dest->rows = orig->rows;
 	dest->cols = orig->cols;
 	dest->colMajor = orig->colMajor;
-	dest->originalRows = dest->rows;
-	dest->originalCols = dest->cols;
 	dest->populate = orig->populate;
 
 	if(dest->rows == 0 || dest->cols == 0) {
@@ -228,8 +223,6 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 
 	om->rows = nrows;
 	om->cols = ncols;
-	om->originalRows = om->rows;
-	om->originalCols = om->cols;
 
 	omxMatrixLeadingLagging(om);
 }
@@ -293,25 +286,6 @@ void setVectorError(int index, int numrow, int numcol) {
 	}
 	Rf_error(errstr);
 	free(errstr);  // TODO not reached
-}
-
-static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
-{
-	int index = 0;
-	if(row >= om->originalRows || col >= om->originalCols) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Requested improper value (%d, %d) from (%d, %d) matrix.", 
-			row + 1, col + 1, om->originalRows, om->originalCols);
-		Rf_error(errstr);
-		free(errstr);  // TODO not reached
-        return (NA_REAL);
-	}
-	if(om->colMajor) {
-		index = col * om->originalRows + row;
-	} else {
-		index = row * om->originalCols + col;
-	}
-	return om->data[index];
 }
 
 void omxMarkDirty(omxMatrix *om) {
@@ -401,8 +375,6 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	}
 
 	om->colMajor = TRUE;
-	om->originalRows = om->rows;
-	om->originalCols = om->cols;
 	om->algebra = NULL;
 	om->fitFunction = NULL;
 	om->currentState = state;
@@ -498,82 +470,76 @@ void omxTransposeMatrix(omxMatrix *mat) {
 	omxMatrixLeadingLagging(mat);
 }
 
-void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]) {
-
-	if(numRemoved < 1) { return; }
-
-	int oldElements;
-
-	if (om->rows > 1) {
-		if(om->originalRows == 0) Rf_error("Not allocated");
-		oldElements = om->originalRows;
-		om->rows = oldElements - numRemoved;
-	} else {
-		if(om->originalCols == 0) Rf_error("Not allocated");
-		oldElements = om->originalCols;
-		om->cols = oldElements - numRemoved;
-	}
-
+void omxRemoveElements(omxMatrix *om, int removed[])
+{
+	int oldElements = om->rows * om->cols;
 	int nextElement = 0;
 
 	for(int j = 0; j < oldElements; j++) {
-		if(!removed[j]) {
-			omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om, j));
-			nextElement++;
-		}
+		if(removed[j]) continue;
+		omxUnsafeSetVectorElement(om, nextElement, omxUnsafeVectorElement(om, j));
+		nextElement++;
 	}
 
-	omxMatrixLeadingLagging(om);
+	if (om->rows > 1) {
+		om->rows = nextElement;
+	} else {
+		om->cols = nextElement;
+	}
 }
 
-void omxRemoveRowsAndColumns(omxMatrix *om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[])
+void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[])
 {
-    // TODO: Create short-circuit form of omxRemoveRowsAndCols to remove just rows or just columns.
+	int origRows = om->rows;
+	int origCols = om->cols;
 
-	if(numRowsRemoved < 1 && numColsRemoved < 1) { return; }
-
-	int oldRows, oldCols;
-
-	if(om->originalRows == 0 || om->originalCols == 0) Rf_error("Not allocated");
-	if (om->rows != om->originalRows || om->cols != om->originalCols) {
-		// Feasible, but the code is currently not robust to this case
-		Rf_error("Can only omxRemoveRowsAndColumns once");
+	int newRows = origRows;
+	for(int j = 0; j < om->rows; j++) {
+#if OMX_DEBUG
+		if (rowsRemoved[j] != (rowsRemoved[j] & 1)) Rf_error("Removed flag can only be 0 or 1");
+#endif
+		newRows -= rowsRemoved[j];
+	}
+	int newCols = origCols;
+	for(int j = 0; j < om->cols; j++) {
+#if OMX_DEBUG
+		if (colsRemoved[j] != (colsRemoved[j] & 1)) Rf_error("Removed flag can only be 0 or 1");
+#endif
+		newCols -= colsRemoved[j];
 	}
 
-	oldRows = om->originalRows;
-	oldCols = om->originalCols;
-
-	int nextCol = 0;
-	int nextRow = 0;
-
-	om->rows = oldRows - numRowsRemoved;
-	om->cols = oldCols - numColsRemoved;
-
+	om->rows = newRows;
+	om->cols = newCols;
+	
 	if (om->colMajor) {
-		for(int j = 0; j < oldCols; j++) {
+		int nextCol = 0;
+		for(int j = 0; j < origCols; j++) {
 			if(colsRemoved[j]) continue;
-			nextRow = 0;
-			for(int k = 0; k < oldRows; k++) {
+			int nextRow = 0;
+			for(int k = 0; k < origRows; k++) {
 				if(rowsRemoved[k]) continue;
-				omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+				double val = om->data[j * origRows + k];
+				omxSetMatrixElement(om, nextRow, nextCol, val);
 				nextRow++;
 			}
 			nextCol++;
 		}
 	} else {
-		for(int k = 0; k < oldRows; k++) {
+		int nextRow = 0;
+		for(int k = 0; k < origRows; k++) {
 			if(rowsRemoved[k]) continue;
-			nextCol = 0;
-			for(int j = 0; j < oldCols; j++) {
+			int nextCol = 0;
+			for(int j = 0; j < origCols; j++) {
 				if(colsRemoved[j]) continue;
-				omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j));
+				double val = om->data[k * origCols + j];
+				omxSetMatrixElement(om, nextRow, nextCol, val);
 				nextCol++;
 			}
 			nextRow++;
 		}
 	}
 
-	omxMatrixLeadingLagging(om);
+	omxMatrixLeadingLagging(om);  // should be unnecessary, modulo grotesque hacks TODO
 }
 
 /* Function wrappers that switch based on inclusion of algebras */

@@ -334,6 +334,9 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std:
   if(num2drop < 1){ return; }
   
   omxEnsureColumnMajor(om);
+
+  om->originalRows = om->rows;
+  om->originalCols = om->cols;
   
   if(om->algebra == NULL){ //i.e., if omxMatrix is from a frontend MxMatrix
   
