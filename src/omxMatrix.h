@@ -63,10 +63,6 @@ class omxMatrix {
 
 	SEXP owner;	// The R object owning data or NULL if we own it.
 
-	// size of allocated memory of data pointer
-	int originalRows;
-	int originalCols;
-
 /* For BLAS Multiplication Speedup */ 	// TODO: Replace some of these with inlines or macros.
 	const char* majority;				// Filled by compute(), included for speed
 	const char* minority;				// Filled by compute(), included for speed
@@ -77,6 +73,9 @@ class omxMatrix {
 	omxState* currentState;				// Optimizer State
 	unsigned cleanVersion;
 	unsigned version;
+
+	int originalRows; //deprecated
+	int originalCols; //deprecated
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
@@ -139,8 +138,8 @@ void omxEnsureColumnMajor(omxMatrix *mat);
 void omxRecompute(omxMatrix *matrix, FitContext *fc);
 
 
-void omxRemoveElements(omxMatrix *om, int numRemoved, int removed[]);
-void omxRemoveRowsAndColumns(omxMatrix* om, int numRowsRemoved, int numColsRemoved, int rowsRemoved[], int colsRemoved[]);
+void omxRemoveElements(omxMatrix *om, int removed[]);
+void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[]);
 
 /* Matrix-Internal Helper functions */
 	void omxMatrixLeadingLagging(omxMatrix *matrix);

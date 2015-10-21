@@ -1989,7 +1989,6 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	int rows = inMat->rows;
     int selectLength = selector->rows * selector->cols;
     Eigen::VectorXi toRemove(rows);
-    int numRemoves = 0;
     
     if((selector->cols != 1) && selector->rows !=1) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2011,23 +2010,14 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
-            numRemoves++;
             toRemove[index] = 1;
         } else {
             toRemove[index] = 0;
         }
     }
     
-    if(numRemoves >= rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to select zero columns.\n");
-        omxRaiseError(errstr);
-		free(errstr);        
-		return;
-    }
-    
     std::vector<int> zeros(inMat->cols);
-    omxRemoveRowsAndColumns(result, numRemoves, 0, toRemove.data(), zeros.data());
+    omxRemoveRowsAndColumns(result, toRemove.data(), zeros.data());
 
 }
 
@@ -2039,7 +2029,6 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	int cols = inMat->cols;
     int selectLength = selector->rows * selector->cols;
     Eigen::VectorXi toRemove(cols);
-    int numRemoves = 0;
 
     if((selector->cols != 1) && selector->rows !=1) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2061,23 +2050,14 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
-            numRemoves++;
             toRemove[index] = 1;
         } else {
             toRemove[index] = 0;
         }
     }
     
-    if(numRemoves >= cols) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to select zero columns.\n");
-        omxRaiseError(errstr);
-		free(errstr);        
-		return;
-    }
-    
     std::vector<int> zeros(inMat->rows);
-    omxRemoveRowsAndColumns(result, 0, numRemoves, zeros.data(), toRemove.data());
+    omxRemoveRowsAndColumns(result, zeros.data(), toRemove.data());
 }
 
 static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2089,7 +2069,6 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
 	int cols = inMat->cols;
     int selectLength = selector->rows * selector->cols;
     Eigen::VectorXi toRemove(cols);
-    int numRemoves = 0;
 
     if((selector->cols != 1) && selector->rows !=1) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -2119,22 +2098,13 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
 	
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
-            numRemoves++;
             toRemove[index] = 1;
         } else {
             toRemove[index] = 0;
         }
     }
     
-    if(numRemoves >= cols) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to select zero columns.\n");
-        omxRaiseError(errstr);
-		free(errstr);        
-		return;
-    }
-    
-    omxRemoveRowsAndColumns(result, numRemoves, numRemoves, toRemove.data(), toRemove.data());
+    omxRemoveRowsAndColumns(result, toRemove.data(), toRemove.data());
 }
 
 static void omxCovToCor(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
