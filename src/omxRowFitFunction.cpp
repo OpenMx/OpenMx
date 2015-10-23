@@ -66,7 +66,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     omxMatrix *dataColumns;
 	omxData *data;
 	int isContiguous, contiguousStart, contiguousLength;
-    int numCols, numRemoves;
+    int numCols;
 
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = shared_oro->rowResults;
@@ -94,8 +94,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 		data->handleDefinitionVarList(localobj->matrix->currentState, row, oldDefs.data());
 
         // Populate data row
-		numRemoves = 0;
-	
 		if (isContiguous) {
 			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, dataRow);
 		} else {
@@ -107,7 +105,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 		for(int j = 0; j < dataColumns->cols; j++) {
 			double dataValue = omxVectorElement(dataRow, j);
 			if(std::isnan(dataValue)) {
-				numRemoves++;
 				toRemove[j] = 1;
                 omxSetVectorElement(existenceVector, j, 0);
 			} else {
@@ -115,18 +112,9 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
                 omxSetVectorElement(existenceVector, j, 1);
 			}
 		}		
-		// TODO: Determine if this is the correct response.
 		
-		if(numRemoves == numCols) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Row %d completely missing.  omxRowFitFunction cannot have completely missing rows.", omxDataIndex(data, row));
-			omxRaiseError(errstr);
-			free(errstr);
-			continue;
-		}
-
 		omxCopyMatrix(filteredDataRow, dataRow);
-		omxRemoveRowsAndColumns(filteredDataRow, 0, numRemoves, zeros, toRemove);
+		omxRemoveRowsAndColumns(filteredDataRow, zeros, toRemove);
 
 		omxRecompute(rowAlgebra, fc);
 

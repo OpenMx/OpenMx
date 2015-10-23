@@ -246,7 +246,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	
     newObj->SingleIterFn = omxFIMLSingleIterationJoint;
 
-	off->fitType = "imxFitFunctionFIML";
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
 
