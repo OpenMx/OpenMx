@@ -188,7 +188,7 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 
 	SEXP ExpectationClass;
 	const char *expType;
-	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
+	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
 		expType = CHAR(ExpectationClass);
 	}
 

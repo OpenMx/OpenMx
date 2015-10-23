@@ -1633,7 +1633,7 @@ void omxComputeSequence::initFromFrontend(omxState *globalState, SEXP rObj)
 		SEXP s4class;
 		const char *s4name;
 		{
-			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
+			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, R_ClassSymbol), 0));
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
@@ -1695,7 +1695,7 @@ void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 		SEXP s4class;
 		const char *s4name;
 		{
-			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, Rf_install("class")), 0));
+			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, R_ClassSymbol), 0));
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
@@ -1784,7 +1784,7 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("mstep")));
-	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, Rf_install("class")), 0));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	fit1 = omxNewCompute(globalState, CHAR(s4class));
 	fit1->initFromFrontend(globalState, slotValue);
 

@@ -323,7 +323,7 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObject, const char *name)
 
 	SEXP DataClass;
 	const char* dclass;
-	{ScopedProtect p1(DataClass, STRING_ELT(Rf_getAttrib(dataObject, Rf_install("class")), 0));
+	{ScopedProtect p1(DataClass, STRING_ELT(Rf_getAttrib(dataObject, R_ClassSymbol), 0));
 		dclass = CHAR(DataClass);
 	}
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
