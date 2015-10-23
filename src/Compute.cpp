@@ -1063,6 +1063,10 @@ void FitContext::createChildren()
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
 		if (!state->expectationList[j]->canDuplicate) return;
 	}
+	for(size_t j = 0; j < state->algebraList.size(); j++) {
+		omxFitFunction *ff = state->algebraList[j]->fitFunction;
+		if (ff && !ff->canDuplicate) return;
+	}
 
 	if (childList.size()) return;
 

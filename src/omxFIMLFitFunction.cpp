@@ -200,6 +200,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Initializing FIML fit function function.");
 	}
+	off->canDuplicate = TRUE;
 	SEXP rObj = off->rObj;
 
 	int numOrdinal = 0, numContinuous = 0;
