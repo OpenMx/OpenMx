@@ -213,13 +213,13 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		return;
 	}
 
-	cov = omxGetExpectationComponent(expectation, off, "cov");
+	cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
 		omxRaiseError("No covariance expectation in FIML evaluation.");
 		return;
 	}
 
-	means = omxGetExpectationComponent(expectation, off, "means");
+	means = omxGetExpectationComponent(expectation, "means");
 	
 	if(means == NULL) { 
 		omxRaiseError("No means model in FIML evaluation.");

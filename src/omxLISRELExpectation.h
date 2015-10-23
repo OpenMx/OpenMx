@@ -46,7 +46,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);
 
 void omxInitLISRELExpectation(omxExpectation* oo);
 
-omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
+omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, const char* component);
 
 /*
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse

@@ -49,7 +49,7 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose);
 
 void omxInitStateSpaceExpectation(omxExpectation* ox);
 
-omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
+omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* component);
 
 void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om);
 

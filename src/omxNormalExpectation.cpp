@@ -100,7 +100,7 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 	one->thresholds = omxNewMatrixFromSlot(rObj, currentState, "thresholds");
 }
 
-omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
+omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
 	if(OMX_DEBUG) { mxLog("Normal expectation: %s requested--", component); }
 

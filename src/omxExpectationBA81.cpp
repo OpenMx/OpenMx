@@ -511,7 +511,7 @@ static void ba81Destroy(omxExpectation *oo) {
 static void ignoreSetVarGroup(omxExpectation*, FreeVarGroup *)
 {}
 
-static omxMatrix *getComponent(omxExpectation *oo, omxFitFunction*, const char *what)
+static omxMatrix *getComponent(omxExpectation *oo, const char *what)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 

@@ -328,8 +328,8 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	if(OMX_DEBUG) { mxLog("Processing n."); }
 	newObj->n = omxDataNumObs(dataMat);
 
-	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
-	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 
 	if(newObj->expectedCov == NULL) {
 		omxRaiseError("Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");

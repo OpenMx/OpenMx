@@ -376,7 +376,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 
 	if (od->expectation.size()) {
 		omxExpectation *ex = od->expectation[0];
-		return omxGetExpectationComponent(ex, NULL, "covariance");
+		return omxGetExpectationComponent(ex, "covariance");
 	}
 
 	Rf_error("%s: type='cov' data must be in matrix storage", od->name);
@@ -406,7 +406,7 @@ omxMatrix* omxDataMeans(omxData *od)
 	if (od->meansMat) return od->meansMat;
 	if (od->expectation.size()) {
 		omxExpectation *ex = od->expectation[0];
-		omxMatrix *mat = omxGetExpectationComponent(ex, NULL, "mean");
+		omxMatrix *mat = omxGetExpectationComponent(ex, "mean");
 		if (!mat) return NULL;
 		if (mat->rows != 1) omxTransposeMatrix(mat);
 		return mat;

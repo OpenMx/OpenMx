@@ -73,7 +73,7 @@ void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how
 	ox->computeFun(ox, what, how);
 }
 
-omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component)
+omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 {
 	if(component == NULL) return NULL;
 
@@ -84,8 +84,7 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 
 	if(ox->componentFun == NULL) return NULL;
 
-	return(ox->componentFun(ox, off, component));
-	
+	return(ox->componentFun(ox, component));
 }
 
 void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {

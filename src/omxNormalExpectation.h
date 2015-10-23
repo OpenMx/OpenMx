@@ -29,7 +29,7 @@ typedef struct {
 } omxNormalExpectation;
 
 void omxInitNormalExpectation(omxExpectation* oo);
-omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
+omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, const char* component);
 // void omxProcessThresholds();
 
 #endif /* _OMX_NORMAL_EXPECTATION_H_ */

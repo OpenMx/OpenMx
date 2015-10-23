@@ -64,11 +64,11 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     oge->alwaysComputeMeans = 0;
   }
 
-  newObj->y = omxGetExpectationComponent(expectation, oo, "y");
-  newObj->cov = omxGetExpectationComponent(expectation, oo, "cov");
-  newObj->invcov = omxGetExpectationComponent(expectation, oo, "invcov");
-  newObj->X = omxGetExpectationComponent(expectation, oo, "X");
-  newObj->means = omxGetExpectationComponent(expectation, oo, "means");
+  newObj->y = omxGetExpectationComponent(expectation, "y");
+  newObj->cov = omxGetExpectationComponent(expectation, "cov");
+  newObj->invcov = omxGetExpectationComponent(expectation, "invcov");
+  newObj->X = omxGetExpectationComponent(expectation, "X");
+  newObj->means = omxGetExpectationComponent(expectation, "means");
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
