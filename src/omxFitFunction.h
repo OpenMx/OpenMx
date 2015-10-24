@@ -90,6 +90,7 @@ struct omxFitFunction {					// A fit function
 	bool gradientAvailable;
 	bool hessianAvailable;
 	FitStatisticUnits units;
+	bool canDuplicate;
 
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }

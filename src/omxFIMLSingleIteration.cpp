@@ -304,30 +304,30 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					
 					/* If it's a state space expectation, extract the inverse rather than recompute it */
 					if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
-						smallMeans = omxGetExpectationComponent(expectation, localobj, "means");
+						smallMeans = omxGetExpectationComponent(expectation, "means");
 						omxRemoveElements(smallMeans, contRemove.data());
 						if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }
-						smallCov = omxGetExpectationComponent(expectation, localobj, "inverse");
+						smallCov = omxGetExpectationComponent(expectation, "inverse");
 						if(OMX_DEBUG_ROWS(row)) { omxPrint(smallCov, "Inverse of Local Covariance Matrix in state space model"); }
 						//Get covInfo from state space expectation
-						info = (int) omxGetExpectationComponent(expectation, localobj, "covInfo")->data[0];
+						info = (int) omxGetExpectationComponent(expectation, "covInfo")->data[0];
 						if(info!=0) {
 							if (fc) fc->recordIterationError("Expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
 							return TRUE;
 						}
 						
-						determinant = *omxGetExpectationComponent(expectation, localobj, "determinant")->data;
+						determinant = *omxGetExpectationComponent(expectation, "determinant")->data;
 						if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
 					} //If it's a GREML expectation, extract the inverse rather than recompute it:
 					else if(!strcmp(expectation->expType, "MxExpectationGREML")){
-						smallMeans = omxGetExpectationComponent(expectation, localobj, "means");
-						smallCov = omxGetExpectationComponent(expectation, localobj, "invcov");
-						info = (int) omxGetExpectationComponent(expectation, localobj, "cholV_fail_om")->data[0];
+						smallMeans = omxGetExpectationComponent(expectation, "means");
+						smallCov = omxGetExpectationComponent(expectation, "invcov");
+						info = (int) omxGetExpectationComponent(expectation, "cholV_fail_om")->data[0];
 						if(info!=0) {
 							if (fc) fc->recordIterationError("expected covariance matrix is not positive-definite in data row %d", omxDataIndex(data, row));
 							return TRUE;
 						}
-						determinant = 0.5 * omxGetExpectationComponent(expectation, localobj, "logdetV_om")->data[0];
+						determinant = 0.5 * omxGetExpectationComponent(expectation, "logdetV_om")->data[0];
 						if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
 					}
 					else {

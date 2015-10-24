@@ -56,7 +56,7 @@ struct omxExpectation {					// An Expectation
 	// componentfun & mutateFun probably take encapsulation a little too seriously.
 	// The Fit function should probably just include the structure definition
 	// for the expectation and access fields directly or through object methods.
-	omxMatrix* (*componentFun)(omxExpectation*, omxFitFunction*, const char*);
+	omxMatrix* (*componentFun)(omxExpectation*, const char*);
 	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*);
 
 	SEXP rObj;																	// Original r Object Pointer
@@ -106,7 +106,7 @@ static inline void omxExpectationCompute(omxExpectation *ox, const char *what)
 	
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation
 	
-omxMatrix* omxGetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component);
+omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component);
 	
 void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component, omxMatrix *om);
 

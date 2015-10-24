@@ -477,6 +477,13 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 			M <- insertMeansPathRAM(path, M)
 		} else {
+			if (length(intersect(path@from, "one"))) {
+				# This really ought to work, but it doesn't.
+				msg <- paste("Cannot create path from 'one' and other nodes simultaneously.",
+					     "Create paths from 'one' and then separately from",
+					     omxQuotes(setdiff(path@from, "one")))
+				stop(msg, call.=FALSE)
+			}
 			expanded <- expandPathConnect(path@from, path@to, path@connect)
 			path@from <- expanded$from
 			path@to   <- expanded$to

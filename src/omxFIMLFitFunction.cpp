@@ -200,6 +200,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Initializing FIML fit function function.");
 	}
+	off->canDuplicate = TRUE;
 	SEXP rObj = off->rObj;
 
 	int numOrdinal = 0, numContinuous = 0;
@@ -212,13 +213,13 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		return;
 	}
 
-	cov = omxGetExpectationComponent(expectation, off, "cov");
+	cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
 		omxRaiseError("No covariance expectation in FIML evaluation.");
 		return;
 	}
 
-	means = omxGetExpectationComponent(expectation, off, "means");
+	means = omxGetExpectationComponent(expectation, "means");
 	
 	if(means == NULL) { 
 		omxRaiseError("No means model in FIML evaluation.");

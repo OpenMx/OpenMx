@@ -511,7 +511,7 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 
 }
 
-omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, const char* component) {
 	omxLISRELExpectation* ore = (omxLISRELExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 

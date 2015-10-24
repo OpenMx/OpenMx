@@ -66,7 +66,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     omxMatrix *dataColumns;
 	omxData *data;
 	int isContiguous, contiguousStart, contiguousLength;
-    int numCols;
 
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = shared_oro->rowResults;
@@ -84,7 +83,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	oldDefs.resize(data->defVars.size());
 	oldDefs.setConstant(NA_REAL);
 
-	numCols = dataColumns->cols;
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 

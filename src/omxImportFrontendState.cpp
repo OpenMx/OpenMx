@@ -119,7 +119,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			SEXP fitFunctionClass;
-			ScopedProtect p1(fitFunctionClass, STRING_ELT(Rf_getAttrib(nextAlgTuple, Rf_install("class")), 0));
+			ScopedProtect p1(fitFunctionClass, STRING_ELT(Rf_getAttrib(nextAlgTuple, R_ClassSymbol), 0));
 			const char *fitType = CHAR(fitFunctionClass);
 			omxMatrix *fm = algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
@@ -187,7 +187,7 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 	if (Rf_isNull(rObj)) return;
 
 	SEXP s4class;
-	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
 	omxCompute *compute = omxNewCompute(currentState, CHAR(s4class));
 	compute->initFromFrontend(currentState, rObj);
 	computeList.push_back(compute);

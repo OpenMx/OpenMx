@@ -73,7 +73,7 @@ void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how
 	ox->computeFun(ox, what, how);
 }
 
-omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component)
+omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 {
 	if(component == NULL) return NULL;
 
@@ -84,8 +84,7 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, omxFitFunction* off, c
 
 	if(ox->componentFun == NULL) return NULL;
 
-	return(ox->componentFun(ox, off, component));
-	
+	return(ox->componentFun(ox, component));
 }
 
 void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
@@ -188,7 +187,7 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 
 	SEXP ExpectationClass;
 	const char *expType;
-	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, Rf_install("class")), 0));
+	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
 		expType = CHAR(ExpectationClass);
 	}
 

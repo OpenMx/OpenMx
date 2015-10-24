@@ -216,8 +216,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	
     /* Get Expectation Elements */
-	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, oo, "cov");
-	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, oo, "means");
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 
     // FIXME: threshold structure should be asked for by omxGetExpectationComponent
 

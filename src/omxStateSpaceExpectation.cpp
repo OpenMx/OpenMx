@@ -911,7 +911,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 }
 
 
-omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* component) {
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	omxMatrix* retval = NULL;
 

@@ -55,7 +55,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
     omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
     omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 static void fastRAMGradientML(omxExpectation* oo, omxFitFunction* off, double* result);
-static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component);
+static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
 // Speedup Helper
 static void ADB(omxMatrix** A, omxMatrix** B, int numArgs, omxMatrix** D, int *Dcounts, 
@@ -1023,7 +1023,7 @@ static void calculateRAMGradientComponents(omxExpectation* oo, omxMatrix** dSigm
 
 }
 
-static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component) {
+static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
 	
 	if(OMX_DEBUG) { mxLog("RAM expectation: %s requested--", component); }
 

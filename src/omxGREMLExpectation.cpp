@@ -268,7 +268,7 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   
 }
 
-omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component){
+omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
   if(OMX_DEBUG) { mxLog("GREML expectation: %s requested--", component); }
 

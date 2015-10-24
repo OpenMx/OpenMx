@@ -379,7 +379,7 @@ struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
 };
 
 template <typename T>
-void mxPrintMat(const char *name, Eigen::DenseBase<T> &mat)
+void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 {
 	std::string buf;
 	bool transpose = mat.rows() > mat.cols();
