@@ -683,6 +683,7 @@ compareBounds <- function(estimate, bound, threshold){
 
 highlightProblem <- function(bound, boundMet){
 	if (boundMet){
+		if (is.numeric(bound)) bound <- round(bound,4)
 		return(paste(bound, "!", sep=""))
 	}
 	else {
