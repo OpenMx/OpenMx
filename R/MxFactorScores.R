@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 #------------------------------------------------------------------------------
-# Author:
+# Author: Michael D. Hunter
 # Date: 2015-06-14
 # Filename: MxFactorScores.R
 # Purpose: Write a helper function for computing various type of factor scores
@@ -22,6 +22,11 @@
 
 
 mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
+	if(length(unlist(strsplit(model@name, split=' ', fixed=TRUE))) > 1){
+		message(paste('The model called', omxQuotes(model@name), 'has spaces in the model name.  I cannot handle models with spaces in the model name, so I removed them before getting factor scores.'))
+		model <- mxRename(model, paste(unlist(strsplit(model@name, split=' ', fixed=TRUE)), collapse=''))
+	}
+	# Handling of multigroup models
 	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		ret <- list()
@@ -34,7 +39,6 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		stop("The 'model' arugment must have raw data.")
 	}
 	classExpect <- class(model$expectation)
-	# TODO Add handling of multigroup models
 	if(!(classExpect %in% "MxExpectationLISREL") && !(classExpect %in% "MxExpectationRAM")){
 		stop('Factor scores are only implemented for LISREL and RAM expectations.')
 	}
@@ -46,12 +50,14 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		nksix <- dim(lx)
 		nksi <- nksix[2]
 		nx <- nksix[1]
+		factorNames <- dimnames(lx)[2]
 		factorScoreHelperFUN <- lisrelFactorScoreHelper
 	} else if(classExpect %in% "MxExpectationRAM"){
 		fm <- mxEvalByName(model$expectation$F, model, compute=TRUE)
 		nksix <- dim(fm)
 		nksi <- nksix[2] - nksix[1]
 		nx <- nksix[1]
+		factorNames <- dimnames(fm)[[2]][!createOppositeF(fm)$is.manifest]
 		factorScoreHelperFUN <- ramFactorScoreHelper
 	}
 	nrows <- nrow(model$data$observed)
@@ -97,6 +103,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 	} else {
 		stop('Unknown type argument to mxFactorScores')
 	}
+	dimnames(res) <- list(1:dim(res)[1], factorNames, c('Scores', 'StandardErrors'))
 	return(res)
 }
 
