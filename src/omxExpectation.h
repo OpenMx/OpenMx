@@ -43,8 +43,9 @@
 #include "omxState.h"
 
 struct varyBy {
-	struct omxExpectation *model;
 	int factorCol;
+	struct omxExpectation *model;
+	omxMatrix *Zmatrix;
 };
 
 /* Expectation structure itself */
@@ -79,7 +80,6 @@ struct omxExpectation {					// An Expectation
 	int expNum;
 
 	std::vector<varyBy> varying; // only relevant for BaseExpectationNormal
-	omxMatrix *Zmatrix;     // hack TODO
 	omxExpectation *container;
 	std::vector<omxExpectation *> submodels;
 

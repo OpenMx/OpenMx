@@ -29,6 +29,7 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/CholmodSupport>
+#include <Eigen/SparseLU>  // UmfPackSupport is likely faster TODO
 #include "omxFitFunction.h"
 
 // New Expectation API : per case to full distribution adapter TODO
@@ -177,7 +178,7 @@ namespace FellnerFitFunction {
 			filteredPos += st->smallCov->rows;
 		}
 
-		if(0){Eigen::MatrixXd tmp = fullCov.block(0,0,8,8);
+		if(0 && expectation->varying.size()){Eigen::MatrixXd tmp = fullCov;//.block(0,0,8,8);
 			mxPrintMat("R", tmp);}
 
 		for (size_t vx=0; vx < expectation->varying.size(); ++vx) {
@@ -187,8 +188,27 @@ namespace FellnerFitFunction {
 					 omxDataColumnName(data, vb.factorCol), vb.factorCol);
 			}
 			omxMatrix *cov = omxGetExpectationComponent(vb.model, "unfilteredCov");
-			omxMatrix *Zspec = vb.model->Zmatrix;
+			omxMatrix *Zspec = vb.Zmatrix;
 
+			Eigen::VectorXi betweenRemove(cov->cols);
+			betweenRemove.setConstant(1);
+			int numFound = 0;
+			for (int zx=0, bx=0; zx < Zspec->cols; ++zx) {
+				while (bx < cov->cols) {
+					if (strEQ(Zspec->colnames[zx], cov->colnames[bx])) {
+						betweenRemove[bx] = 0;
+						++numFound;
+						++bx;
+						break;
+					}
+					++bx;
+				}
+			}
+			if (numFound != Zspec->cols) Rf_error("Cannot find between loadings in varying covariance");
+			omxCopyMatrix(st->smallCov, cov);
+			omxRemoveRowsAndColumns(st->smallCov, betweenRemove.data(), betweenRemove.data());
+
+			// upper model must have no manifest variables
 			int levels = omxDataGetNumFactorLevels(data, vb.factorCol);
 			std::vector<bool> curLevelMask;
 			curLevelMask.resize(data->rows);
@@ -200,24 +220,22 @@ namespace FellnerFitFunction {
 					numAtLevel += yes;
 				}
 				Eigen::MatrixXd Zmat(Zspec->rows * numAtLevel, Zspec->cols);
-				Eigen::VectorXd voldDefs;
-				voldDefs.resize(vb.model->data->defVars.size());
-				voldDefs.setConstant(NA_REAL);
 				int zr=0;
 				for (int rx=0; rx < data->rows; ++rx) {
 					if (!curLevelMask[rx]) continue;
-					vb.model->data->handleDefinitionVarList(oo->matrix->currentState, rx, voldDefs.data());
+					data->handleDefinitionVarList(oo->matrix->currentState, rx, oldDefs.data());
 					omxRecompute(Zspec, fc);
 					EigenMatrixAdaptor eZspec(Zspec);
 					//mxPrintMat("Zspec", eZspec);
 					Zmat.block(zr, 0, Zspec->rows, Zspec->cols).array() = eZspec.array();
 					zr += Zspec->rows;
 				}
-				EigenMatrixAdaptor ecov(cov);
+				EigenMatrixAdaptor ecov(st->smallCov);
 				//mxPrintMat("Z", Zmat);
 				//mxPrintMat("G", ecov);
+				// If Z is constant, ZGZ will be the same for all factor levels
 				Eigen::MatrixXd ZGZ = Zmat * ecov.selfadjointView<Eigen::Lower>() * Zmat.transpose();
-				//mxPrintMat("ZGZ", ZGZ.block(0,0,8,8));
+				//mxPrintMat("ZGZ", ZGZ); //.block(0,0,8,8));
 				for (int r1=0,v1=0; r1 < data->rows; ++r1) {
 					if (!curLevelMask[r1]) continue;
 					for (int r2=0,v2=0; r2 <= r1; ++r2) {
@@ -237,7 +255,7 @@ namespace FellnerFitFunction {
 			}
 		}
 
-		if(0){Eigen::MatrixXd tmp = fullCov.block(0,0,8,8);
+		if(0){Eigen::MatrixXd tmp = fullCov;//.block(0,0,8,8);
 			mxPrintMat("V", tmp);}
 
 		double lp = NA_REAL;
@@ -337,6 +355,7 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 		}
 	}
 
+	//mxLog("total observations %d", st->totalNotMissing);
 	st->data.resize(st->totalNotMissing);
 	for (int row=0, dx=0; row < data->rows; ++row) {
 		omxDataRow(data, row, dataColumns, st->smallRow);

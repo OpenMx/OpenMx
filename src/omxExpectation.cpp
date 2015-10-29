@@ -184,18 +184,19 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 
 	if (R_has_slot(rObj, Rf_install("varyBy"))) {
 		ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("varyBy")));
+		SEXP varyMap;
+		ScopedProtect p2(varyMap, R_do_slot(rObj, Rf_install("varyByMap")));
 		SEXP names = Rf_getAttrib(nextMatrix, R_NamesSymbol);
 		ox->varying.reserve(Rf_length(names));
 		for (int vx=0; vx < Rf_length(names); ++vx) {
 			varyBy vb;
 			int ex = Rf_asInteger(VECTOR_ELT(nextMatrix, vx));
-			vb.model = ox->currentState->expectationList[ex];
 			vb.factorCol = atoi(CHAR(STRING_ELT(names, vx)));
+			vb.model = ox->currentState->expectationList[ex];
+			vb.Zmatrix = omxMatrixLookupFromState1(VECTOR_ELT(varyMap, vx), ox->currentState);
 			ox->varying.push_back(vb);
 		}
 	}
-
-	ox->Zmatrix = omxNewMatrixFromSlot(rObj, ox->currentState, "Z"); // hack TODO
 }
 
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
