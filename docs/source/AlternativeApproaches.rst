@@ -28,9 +28,7 @@ This will be done for a bivariate extension of the first example.
 
 The code used to run the examples in this chapter is available here, and you may wish to access it while working through this manual. 
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/AlternativeApproaches.R
-
-* http://www.vipbg.vcu.edu/OpenMx/html/AlternativeApproaches.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/AlternativeApproaches.R
 
 
 Introduction

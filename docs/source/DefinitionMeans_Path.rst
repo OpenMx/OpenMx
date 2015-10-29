@@ -10,11 +10,11 @@ Mean Differences
 
 The example shows the use of definition variables to test for mean differences. It is available in the following file:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/DefinitionMeans_PathRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/DefinitionMeans_PathRaw.R
 
 A parallel version of this example, using matrix specification of models rather than paths, can be found here:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/DefinitionMeans_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/DefinitionMeans_MatrixRaw.R
 
 
 Statistical Model
