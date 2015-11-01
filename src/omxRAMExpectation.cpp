@@ -72,28 +72,35 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 
 }
 
-static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
-    if(OMX_DEBUG) { mxLog("Populating RAM Attributes."); }
-
+static void refreshUnfilteredCov(omxExpectation *oo)
+{
+	// Ax = ZSZ' = Covariance matrix including latent variables
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
 	omxMatrix* A = oro->A;
 	omxMatrix* S = oro->S;
-	//omxMatrix* X = oro->X;
 	omxMatrix* Ax= oro->Ax;
 	omxMatrix* Z = oro->Z;
 	omxMatrix* I = oro->I;
     int numIters = oro->numIters;
-    double oned = 1.0, zerod = 0.0;
     
     omxRecompute(A, NULL);
     omxRecompute(S, NULL);
 	
     omxShallowInverse(NULL, numIters, A, Z, Ax, I ); // Z = (I-A)^-1
-	
-	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
-	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
-	// Ax = ZSZ' = Covariance matrix including latent variables
+    EigenMatrixAdaptor eZ(Z);
+    EigenMatrixAdaptor eS(S);
+    EigenMatrixAdaptor eAx(Ax);
+
+    eAx.block(0, 0, eAx.rows(), eAx.cols()) = eZ * eS * eZ.transpose();
+}
+
+static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
+    if(OMX_DEBUG) { mxLog("Populating RAM Attributes."); }
+
+    refreshUnfilteredCov(oo);
+	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
+	omxMatrix* Ax= oro->Ax;
 	
 	{
 	SEXP expCovExt;
