@@ -32,6 +32,9 @@
 
 # Load Libraries
 require(OpenMx)
+
+"%*%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
+
 # -----------------------------------------------------------------------------
 
 readData <- function(path) {

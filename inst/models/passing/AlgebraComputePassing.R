@@ -16,6 +16,8 @@
 
 require(OpenMx)
 
+"%*%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
+
 A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
 B <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'B')
 C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')

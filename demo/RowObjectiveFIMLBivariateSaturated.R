@@ -43,6 +43,8 @@ require(MASS)
 # Load Library
 # -----------------------------------------------------------------------------
 
+"%*%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
+
 set.seed(200)
 rs <- .5
 xy <- mvrnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
