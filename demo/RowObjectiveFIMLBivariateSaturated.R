@@ -43,7 +43,7 @@ require(MASS)
 # Load Library
 # -----------------------------------------------------------------------------
 
-"%*%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
+"%&%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
 
 set.seed(200)
 rs <- .5

@@ -33,7 +33,7 @@
 # Load Libraries
 require(OpenMx)
 
-"%*%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
+"%&%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
 
 # -----------------------------------------------------------------------------
 
