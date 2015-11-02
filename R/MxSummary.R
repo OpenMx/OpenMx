@@ -195,7 +195,6 @@ catFitStatistics <- function(x) {
 		cat("RMSEA:  ", x$RMSEA, "  [95% CI (", x$RMSEACI[1], ", ", x$RMSEACI[2], ")]", '\n', sep="")
 	}
 	cat("Prob(RMSEA <= ", x$RMSEANull, "): ", x$RMSEAClose, '\n', sep='')
-	cat("OpenMx does not recommend using", "GFI, AGFI, NFI (aka Bentler-Bonett), or SRMR:\n", "See help(mxSummary) for why.", '\n')
 }
 
 fitStatistics <- function(model, useSubmodels, retval) {
@@ -540,17 +539,13 @@ print.summary.mxmodel <- function(x,...) {
 	IC <- x$informationCriteria
 	colnames(IC) <- c(" |  df Penalty", " |  Parameters Penalty", " |  Sample-Size Adjusted")
 	print(IC)
-	# cat("\n")
-	# cat("adjusted BIC:", '\n')
 	#
+	# Absolute fit indices
 	if(x$verbose==TRUE || any(!is.na(c(x$CFI, x$TLI, x$RMSEA)))){
 		catFitStatistics(x)
 	}
 	if(any(is.na(c(x$CFI, x$TLI, x$RMSEA)))){
-		cat("Some of your fit indices are missing.\n",
-			" To get them, fit saturated and independence models, and include them with\n",
-			" summary(yourModel, refModels=...)", '\n',
-			" See help(mxRefModels) for an easy way of doing this in many cases.", '\n')
+		cat("To get additional fit indices, see help(mxRefModels)\n")
 	}
 	#
 	# Timing information
