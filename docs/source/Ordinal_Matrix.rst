@@ -7,17 +7,17 @@ This chapter deals with the specification of models that are either fit exclusiv
 
 The examples for this chapter can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_MatrixRawRAM.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorJoint_MatrixRawRAM.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorOrdinal_MatrixRawRAM.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorJoint_MatrixRawRAM.R
 
 The continuous version of this model for raw data can be found the previous demos here:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorModel_MatrixRaw.R
 
 We will also discuss an example with simulated ordinal data using a regular matrix specification and an alternative one.  We will discuss a common factor model with several indicators.  This example can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorOrdinal01_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorOrdinal_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorOrdinal01_MatrixRaw.R
     
 
 Ordinal Data Modeling

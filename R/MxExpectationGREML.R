@@ -273,7 +273,7 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
   }}
   else{ #Stack cases
     for(i in 1:nrow(data)){
-      y <- rbind(y,as.matrix(data[i,yvars]))
+      y <- rbind(y,matrix(data[i,yvars]))
   }}
   if(length(yvars)==1){colnames(y) <- yvars}
   else{colnames(y) <- "y"}

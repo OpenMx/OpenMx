@@ -255,6 +255,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	int value = 0;
 	omxMatrix* output = NULL;
 
+	if (Rf_length(matrix) == 0) return NULL;
 	if (Rf_isInteger(matrix)) {
 		value = Rf_asInteger(matrix);
 		if(value == NA_INTEGER) {

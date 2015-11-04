@@ -38,6 +38,8 @@ For typical structural equation models the saturated model is the free-est possi
 
 The independence model, sometimes called the null model, is a model of each variable being completely independent of every other variable.  As such, all the variances and, when possible, all means are estimated.  However, covariances are set to zero.  Ordinal variables are handled the same for the independence and saturated models.  The independence model is used, along with the saturated model, to create CFI and TLI fit indices.
 
+The saturated and independence models could be used to create further fit indices.  However, OpenMx does not recommend using GFI, AGFI, NFI (aka Bentler-Bonett), or SRMR.  The page for \code{\link{mxSummary}} has information about why.
+
 When the \link{mxFitFunctionMultigroup} fit function is used, \code{mxRefModels} creates the appropriate multigroup saturated and independence models.  Saturated and independence models are created separately for each group.  Each group has its own saturated and independence model.  The multigroup saturated model is a multigroup model where each group has its own saturated model, and similarly for the independence model.
 
 One potentially important limitation of the \code{mxRefModels} function is for behavioral genetics models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.

@@ -4,17 +4,17 @@ Growth Mixture Modeling, Path Specification
 
 This example will demonstrate how to specify a growth mixture model using path specification. Unlike other examples, this application will not be demonstrated with covariance data, as this model can only be fit to raw data. The script for this example can be found in the following file:
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/GrowthMixtureModel_PathRaw.R
+** http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/GrowthMixtureModel_PathRaw.R
 
 A parallel example using matrix specification can be found here:
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/GrowthMixtureModel_MatrixRaw.R
+** http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/GrowthMixtureModel_MatrixRaw.R
 
 The latent growth curve used in this example is the same one fit in the latent growth curve example. Path and matrix versions of that example for raw data can be found here: 
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/LatentGrowthCurveModel_PathRaw.R
+** http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/LatentGrowthCurveModel_PathRaw.R
 
-** http://openmx.psyc.virginia.edu/svn/trunk/demo/LatentGrowthCurveModel_MatrixRaw.R
+** http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/LatentGrowthCurveModel_MatrixRaw.R
 
 Mixture Modeling
 ----------------

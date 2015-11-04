@@ -5,8 +5,8 @@ Factor Analysis Ordinal, Matrix Specification
 
 This example builds on the 'Factor Analysis, Matrix Specification' example, and extends it to the ordinal case.  We will discuss a common factor model with several indicators.  This example can be found in the following files:
 
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModelOrdinal_MatrixRaw.R
-* http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModelOrdinal01_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorModelOrdinal_MatrixRaw.R
+* http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorModelOrdinal01_MatrixRaw.R
 
 Common Factor Model
 -------------------

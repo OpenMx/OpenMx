@@ -5,15 +5,15 @@ Full Information Maximum Likelihood, Row Fit Specification
 
 This example will show how full information maximum likelihood (FIML) can be implemented using a row-by-row evaluation of a likelihood function.  **Note: You do not have to implement your own FIML! The method of FIML used in this example  is for didactic purposes only.**  If you are looking for how to get your model to use FIML, then look for any model that uses raw data.  For example
 
-*   http://openmx.psyc.virginia.edu/svn/trunk/demo/OneFactorModel_PathRaw.R
+*   http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/OneFactorModel_PathRaw.R
 
 This document seeks to inform users about how they can implement their own row fit functions using FIML as an example.  The example is in two parts.  The first part is a discussion of full information maximum likelihood.  The second part is an example implementation of full information maximum likelihood in a row-wise fit function that estimates the saturated model in two variables.  The second part refers to the following file:
 
-*    http://openmx.psyc.virginia.edu/svn/trunk/demo/RowObjectiveFIMLBivariateSaturated.R
+*    http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/RowObjectiveFIMLBivariateSaturated.R
 
 There is an analogous version of this example that uses the standard full information maximum likelihood implementation here:
 
-*    http://openmx.psyc.virginia.edu/svn/trunk/demo/BivariateCorrelation.R
+*    http://openmx.psyc.virginia.edu/docs/OpenMx/latest/_static/demo/BivariateCorrelation.R
 
 The goal of the current document is twofold: to increase users' understanding of full information maximum likelihood, and to assist users in implementing their own row fit functions.
 
