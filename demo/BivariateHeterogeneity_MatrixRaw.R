@@ -42,16 +42,16 @@ require(MASS)
 
 set.seed(200)
 rs=.5
-xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy1 <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 xy1 <- xy1[, order(apply(xy1, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 # group 1
 # --------------------------------------
 set.seed(200)
 rs=.4
-xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy2 <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 xy2 <- xy2[, order(apply(xy2, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 # group 2
 # --------------------------------------
 # Simulate Data
@@ -129,54 +129,17 @@ LRT
 # Fit Homnogeneity Model
 # -----------------------------------------------------------------------------
 
+omxCheckCloseEnough(LLHet, 10927.4024, .001)
+omxCheckCloseEnough(c(expCov1Het), c(1.0656, 0.4752, 0.4752, 0.9292), .001)
+omxCheckCloseEnough(c(expMean1Het), c(0.0582, 0.0063), .001)
+omxCheckCloseEnough(c(expCov2Het), c(1.0728, 0.3739, 0.3739, 0.9283),.001)
+omxCheckCloseEnough(c(expMean2Het), c(0.0596, 0.0028),.001)
 
-
-Mx.expMean1Het <- matrix(c(0.03211284, -0.004889846),1,2)
-Mx.expCov1Het <- matrix(c(1.0092856, 0.4813512, 0.4813512, 0.9935414),2,2)
-Mx.expMean2Het <- matrix(c(0.03341992, -0.007112054),1,2)
-Mx.expCov2Het <- matrix(c(1.012324, 0.3799160, 0.379916, 0.9956605),2,2)
-Mx.LLHet <- 10944.873
-# 1: Heterogeneity Model
-# -------------------------------------
-
-Mx.expMean1Hom <- matrix(c(0.03276872, -0.0059975),1,2)
-Mx.expCov1Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
-Mx.expMean2Hom <- matrix(c(0.03276872, -0.0059975),1,2)
-Mx.expCov2Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
-Mx.LLHom <- 10954.368
-# 2: Homogeneity Model
-# -------------------------------------
-# Mx answers hard-coded
-# -----------------------------------------------------------------------------
-
-
-cov <- rbind(cbind(expCov1Het,expCov2Het),cbind(expCov1Hom,expCov2Hom))
-mean <- rbind(cbind(expMean1Het, expMean2Het),cbind(expMean1Hom,expMean2Hom))
-like <- rbind(cbind(LLHet),cbind(LLHom))
-cov; mean; like
-# OpenMx summary
-# -----------------------------------------------------------------------------
-
-Mx.cov <- rbind(cbind(Mx.expCov1Het,Mx.expCov2Het),cbind(Mx.expCov1Hom,Mx.expCov2Hom))
-Mx.mean <- rbind(cbind(Mx.expMean1Het, Mx.expMean2Het),cbind(Mx.expMean1Hom,Mx.expMean2Hom))
-Mx.like <- rbind(cbind(Mx.LLHet),cbind(Mx.LLHom))
-Mx.cov; Mx.mean; Mx.like
-# old Mx summary
-# -----------------------------------------------------------------------------
-
-
-
-omxCheckCloseEnough(LLHet,Mx.LLHet,.001)
-omxCheckCloseEnough(expCov1Het,Mx.expCov1Het,.001)
-omxCheckCloseEnough(expMean1Het,Mx.expMean1Het,.001)
-omxCheckCloseEnough(expCov2Het,Mx.expCov2Het,.001)
-omxCheckCloseEnough(expMean2Het,Mx.expMean2Het,.001)
-
-omxCheckCloseEnough(LLHom,Mx.LLHom,.001)
-omxCheckCloseEnough(expCov1Hom,Mx.expCov1Hom,.001)
-omxCheckCloseEnough(expMean1Hom,Mx.expMean1Hom,.001)
-omxCheckCloseEnough(expCov2Hom,Mx.expCov2Hom,.001)
-omxCheckCloseEnough(expMean2Hom,Mx.expMean2Hom,.001)
+omxCheckCloseEnough(LLHom, 10936.95,.001)
+omxCheckCloseEnough(c(expCov1Hom), c(1.0692, 0.4245, 0.4245, 0.9287),.001)
+omxCheckCloseEnough(c(expMean1Hom), c(0.0589, 0.0046),.001)
+omxCheckCloseEnough(c(expCov2Hom), c(1.0692, 0.4245, 0.4245, 0.9287),.001)
+omxCheckCloseEnough(c(expMean2Hom), c(0.0589, 0.0046),.001)
 # Compare OpenMx results to Mx results 
 # (LL: likelihood; expCov: expected covariance, expMean: expected means)
 # -----------------------------------------------------------------------------

@@ -33,7 +33,7 @@
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
-require(MASS)
+
 # Load libraries
 # -----------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ sigma <- loadings %*% t(loadings) + vec2diag(residuals)
 mu <- matrix(0,nrow=nVariables,ncol=1)
 
 set.seed(1234)
-continuousData <- mvrnorm(n=nSubjects,mu,sigma)
+continuousData <- mvtnorm::rmvnorm(n=nSubjects,mu,sigma)
 # Simulate multivariate normal data
 # -------------------------------------
 
@@ -160,4 +160,4 @@ summary(oneFactorThresholdFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------
 
-omxCheckCloseEnough(oneFactorThresholdFit$output$fit, 6277.624, .1)
+omxCheckCloseEnough(oneFactorThresholdFit$output$fit, 6282.134, .1)

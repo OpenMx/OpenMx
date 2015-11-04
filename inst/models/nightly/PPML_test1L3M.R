@@ -1,5 +1,5 @@
 require(OpenMx)
-require(MASS)
+
 
 # Seed
 set.seed(4)

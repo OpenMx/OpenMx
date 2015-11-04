@@ -4,14 +4,14 @@
 # 	http://openmx.psyc.virginia.edu/thread/861
 
 require(OpenMx)
-require(MASS)
+
 #Simulate Data
 set.seed(200)
 rs = .5
 nSubs = 1000
 selVars <- c('X','Y')
 nVar = length(selVars)
-xy <- mvrnorm (nSubs, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy <- mvtnorm::rmvnorm (nSubs, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- data.frame(xy) 
 names(testData) <- selVars
  

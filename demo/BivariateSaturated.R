@@ -39,10 +39,10 @@ require(MASS)
 
 set.seed(200)
 rs=.5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
 testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 selVars <- c('X','Y')
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
@@ -412,100 +412,61 @@ LL6 <- mxEval(fitfunction,bivSatFit6)
 # -----------------------------------------------------------------------------
 
 
-
-Mx.EC1 <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
-Mx.LL1 <- -2.258885e-13
-# example Mx..1: Saturated Model 
-# with Cov Matrices
-# -------------------------------------
-
-Mx.EM1m <- matrix(c(0.03211648, -0.004883811),1,2)
-Mx.EC1m <- matrix(c(1.0102951, 0.4818317, 0.4818317, 0.9945329),2,2)
-Mx.LL1m <- -5.828112e-14
-# example Mx..1m: Saturated Model 
-# with Cov Matrices & Means
-# -------------------------------------
-
-Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
-Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
-Mx.LL2 <- 5415.772
-# example Mx..2: Saturated Model with
-# Raw Data
-# -------------------------------------
-# Mx answers hard-coded
-# -----------------------------------------------------------------------------
-
-cov <- rbind(cbind(EC1,EC1m,EC2),cbind(EC3,EC3m,EC4))
-mean <- rbind(cbind(EM1m, EM2),cbind(EM3m,EM4))
-like <- rbind(cbind(LL1,LL1m,LL2),cbind(LL3,LL3m,LL4))
-cov; mean; like
-# OpenMx summary
-# -----------------------------------------------------------------------
-
-
-Mx.cov <- cbind(Mx.EC1,Mx.EC1m,Mx.EC2)
-Mx.mean <- cbind(Mx.EM1m,Mx.EM2)
-Mx.like <- cbind(Mx.LL1,Mx.LL1m,Mx.LL2)
-Mx.cov; Mx.mean; Mx.like
-# old Mx summary
-# -----------------------------------------------------------------------
-
-
-omxCheckCloseEnough(Chi1,Mx.LL1,.01)
-omxCheckCloseEnough(EC1,Mx.EC1,.001)
+omxCheckCloseEnough(Chi1, 0,.01)
+omxCheckCloseEnough(c(EC1), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
 #1:CovPat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi1m,Mx.LL1m,.01)
-omxCheckCloseEnough(EC1m,Mx.EC1m,.001)
-omxCheckCloseEnough(EM1m,Mx.EM1m,.001)
+omxCheckCloseEnough(Chi1m, 0,.01)
+omxCheckCloseEnough(c(EC1m), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
+omxCheckCloseEnough(c(EM1m), c(0.0582, 0.0063), .001)
 #1m:CovMPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL2,Mx.LL2,.01)
-omxCheckCloseEnough(EC2,Mx.EC2,.001)
-omxCheckCloseEnough(EM2,Mx.EM2,.001)
+omxCheckCloseEnough(LL2, 5407.037,.01)
+omxCheckCloseEnough(c(EC2), c(1.0656, 0.4752, 0.4752, 0.9292),.001)
+omxCheckCloseEnough(c(EM2), c(0.0582, 0.0063), .001)
 #2:RawPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL2s,Mx.LL2,.01)
-omxCheckCloseEnough(EC2s,Mx.EC2,.001)
-omxCheckCloseEnough(EM2s,Mx.EM2,.001)
+omxCheckCloseEnough(LL2s, 5407.037, .01)
+omxCheckCloseEnough(c(EC2s), c(1.0656, 0.4752, 0.4752, 0.9292),.001)
+omxCheckCloseEnough(c(EM2s), c(0.0582, 0.0063),.001)
 #2:RawSPat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi3,Mx.LL1,.01)
-omxCheckCloseEnough(EC3,Mx.EC1,.001)
+omxCheckCloseEnough(Chi3, 0,.01)
+omxCheckCloseEnough(c(EC3),c(1.067, 0.476, 0.476, 0.93),.001)
 #3:CovMat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi3m,Mx.LL1m,.01)
-omxCheckCloseEnough(EC3m,Mx.EC1m,.001)
-omxCheckCloseEnough(EM3m,Mx.EM1m,.001)
+omxCheckCloseEnough(Chi3m,0,.01)
+omxCheckCloseEnough(c(EC3m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EM3m),c(0.058, 0.006),.001)
 #3m:CovMPat 
 # -------------------------------------
 
-omxCheckCloseEnough(LL4,Mx.LL2,.01)
-omxCheckCloseEnough(EC4,Mx.EC2,.001)
-omxCheckCloseEnough(EM4,Mx.EM2,.001)
+omxCheckCloseEnough(LL4,5407.037,.01)
+omxCheckCloseEnough(c(EC4),c(1.066, 0.475, 0.475, 0.929),.001)
+omxCheckCloseEnough(c(EM4),c(0.058, 0.006),.001)
 #4:RawMat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi5,Mx.LL1,.01)
-omxCheckCloseEnough(EC5,Mx.EC1,.001)
+omxCheckCloseEnough(Chi5,0,.01)
+omxCheckCloseEnough(c(EC5),c(1.067, 0.476, 0.476, 0.93),.001)
 #5:CovMat Cholesky
 # -------------------------------------
 
-omxCheckCloseEnough(Chi5m,Mx.LL1m,.01)
-omxCheckCloseEnough(EC5m,Mx.EC1m,.001)
-omxCheckCloseEnough(EM5m,Mx.EM1m,.001)
+omxCheckCloseEnough(Chi5m,0,.01)
+omxCheckCloseEnough(c(EC5m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EM5m),c(0.058, 0.006),.001)
 #5m:CovMPat Cholesky
 # -------------------------------------
 
 
-omxCheckCloseEnough(LL6,Mx.LL2,.01)
-omxCheckCloseEnough(EC6,Mx.EC2,.001)
-omxCheckCloseEnough(EM6,Mx.EM2,.001)
+omxCheckCloseEnough(LL6,5407.037,.01)
+omxCheckCloseEnough(c(EC6),c(1.066, 0.475, 0.475, 0.929),.001)
+omxCheckCloseEnough(c(EM6),c(0.058, 0.006),.001)
 #6:RawMat Cholesky
 # -------------------------------------
 # Compare OpenMx results to Mx results 

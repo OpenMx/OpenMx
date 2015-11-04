@@ -5,7 +5,7 @@
 #       Revised Timothy Brick 10 Jan 2011
 
 require(OpenMx)
-require(MASS)
+
 
 # First simulation: 2 by 2, one factor for each, uncorrelated.
 # Because there's no correlation between the factors, the result of the joint optimization
@@ -30,7 +30,7 @@ mu <- matrix(0,nrow=nVariables,ncol=1)
 
 # Step 1: simulate multivariate normal data for first simulation
 set.seed(1234)
-continuousData <- data.frame(matrix(mvrnorm(n=nSubjects,mu,sigma), nrow=nSubjects, ncol=nVariables))
+continuousData <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu,sigma), nrow=nSubjects, ncol=nVariables))
 
 # Step 2: chop continuous variables into ordinal data 
 # with nThresholds+1 approximately equal categories, based on 1st variable
@@ -138,7 +138,7 @@ mu <- matrix(0,nrow=nVariables,ncol=1)
 
 # Step 2: simulate multivariate normal data for second simulation
 set.seed(1234)
-continuousCrossData <- data.frame(matrix(mvrnorm(n=nSubjects,mu,sigma), nrow=nSubjects, ncol=nVariables))
+continuousCrossData <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu,sigma), nrow=nSubjects, ncol=nVariables))
 
 # Step 3: chop continuous variables into ordinal data 
 # with nThresholds+1 approximately equal categories, based on 1st variable
@@ -264,7 +264,7 @@ nVars <- dim(cov1)[1]
 #   Comparison condition is to an NA column of the same type--with missingness, it's
 #   all the same to the math.
 set.seed(1234)
-continuousData1 <- data.frame(matrix(mvrnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
+continuousData1 <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
 continuousData1[,nVars] <- as.numeric(NA)
 names(continuousData1) <- cNames1
 
@@ -298,7 +298,7 @@ contFit1A <- mxRun(contModel1A, suppressWarnings=TRUE)
 contSum1 <- summary(contFit1)
 contSum1A <- summary(contFit1A)
 
-ordinalData1 <- data.frame(matrix(mvrnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
+ordinalData1 <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu1,cov1), nrow=nSubjects, ncol=nVars))
 quants <- quantile(ordinalData1[,1],  probs = c((1:nThresh)/(nThresh+1)))
 for(i in 1:nVars) {
    ordinalData1[,i] <- cut(as.vector(ordinalData1[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh))
@@ -352,7 +352,7 @@ startCont2 <- c(2, .7, 3)
 startOrd2 <- c(1, .5, 1)
 startAll2 <- c(1, .5, 0, 0, 1, 0, 0, 1, .5, 1)
 startMeans2 <-c(0, 0, 0, 0)
-allContinuousData2 <- data.frame(matrix(mvrnorm(n=nSubjects,mu2,cov2), nrow=nSubjects, ncol=nVars))
+allContinuousData2 <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu2,cov2), nrow=nSubjects, ncol=nVars))
 continuousData2 <- allContinuousData2[,1:nCont]
 ordinalData2 <- allContinuousData2[,(1:nOrd) + nCont]
 quants <- quantile(ordinalData2[,1],  probs = c((1:nThresh)/(nThresh+1)))
@@ -446,7 +446,7 @@ dubSum2  <- summary(dubFit2)
 # mu3 <- c(5, 10, 0, 0)
 # startAll3 <- c(1, .5, .5, .5, 1, .5, .5, 1, .5, 1)
 # startMeans3 <-c(0, 0, 0, 0)
-# allContinuousData3 <- data.frame(matrix(mvrnorm(n=nSubjects,mu3,cov3), nrow=nSubjects, ncol=nVars))
+# allContinuousData3 <- data.frame(matrix(mvtnorm::rmvnorm(n=nSubjects,mu3,cov3), nrow=nSubjects, ncol=nVars))
 # continuousData3 <- allContinuousData3[,1:nCont]
 # ordinalData3 <- allContinuousData3[,(1:nOrd) + nCont]
 # quants <- quantile(ordinalData3[,1],  probs = c((1:nThresh)/(nThresh+1)))

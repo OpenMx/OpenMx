@@ -47,10 +47,10 @@ require(MASS)
 
 set.seed(200)
 rs <- .5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
+xy <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1, rs, rs, 1), nrow=2, ncol=2))
 testData <- as.data.frame(xy)
 testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 testVars <- c('X','Y')
 names(testData) <- testVars
 summary(testData)
@@ -112,15 +112,9 @@ LL <- mxEval(objective, bivCorFit)
 # Run Model and Generate Output
 # -----------------------------------------------------------------------------
 
-Mx.EM <- matrix(c(0.03211656, -0.004883885), nrow=1, ncol=2)
-Mx.EC <- matrix(c(1.0092853, 0.4813504, 0.4813504, 0.9935390), nrow=2, ncol=2)
-Mx.LL <- 5415.772
-# Mx Answers of Saturated Model Hard-coded
-# -----------------------------------------------------------------------------
-
-omxCheckCloseEnough(LL, Mx.LL, .001)
-omxCheckCloseEnough(EC, Mx.EC, .001)
-omxCheckCloseEnough(EM, Mx.EM, .001)
+omxCheckCloseEnough(LL, 5407.037, .001)
+omxCheckCloseEnough(c(EC), c(1.066, 0.475, 0.475, 0.929), .001)
+omxCheckCloseEnough(c(EM), c(0.058, 0.006), .001)
 # Compare OpenMx Results to Mx Results 
 # LL: likelihood; EC: expected covariance, EM: expected means
 # -----------------------------------------------------------------------------

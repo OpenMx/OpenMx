@@ -4,7 +4,7 @@
 # one represents a linear part, and one an exponential part
 
 require(OpenMx)
-require(MASS)
+
 
 # Random covariance matrix
 
@@ -23,7 +23,7 @@ dataLatents <- matrix(rnorm(3*3), 3, 3)
 dataTest <- lambda %*% dataLatents %*% t(dataLatents) %*% t(lambda) + diag(rep(1,100))
 dataTest <- (dataTest + t(dataTest)) / 2
 
-dataRaw <- mvrnorm(n=5000, rep(0,100), dataTest)
+dataRaw <- mvtnorm::rmvnorm(n=5000, rep(0,100), dataTest)
 colnames(dataRaw) <- manifests
 
 colnames(dataTest) <- manifests

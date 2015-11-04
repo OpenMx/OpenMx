@@ -50,8 +50,8 @@ library(MASS)
 set.seed(200)
 N=500
 Sigma          <- matrix(c(1,.5,.5,1),2,2)
-group1         <- mvrnorm(N, c(1,2), Sigma) # Use mvrnorm from MASS package
-group2         <- mvrnorm(N, c(0,0), Sigma)
+group1         <- mvtnorm::rmvnorm(N, c(1,2), Sigma) # Use mvrnorm from MASS package
+group2         <- mvtnorm::rmvnorm(N, c(0,0), Sigma)
 
 xy             <- rbind(group1,group2)      # Bind groups together by rows
 dimnames(xy)[2]<- list(c("x","y"))          # Add names

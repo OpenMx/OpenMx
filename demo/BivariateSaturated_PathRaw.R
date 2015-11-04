@@ -38,10 +38,10 @@ require(MASS)
 
 set.seed(200)
 rs=.5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
 testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
@@ -89,16 +89,9 @@ Chi2 <- LL2-SL2
 # Example 2: Saturated Model with Raw Data and Path input
 # -----------------------------------------------------------------------------
 
-Mx.EM2 <- matrix(c(0.03211188, -0.004889211),1,2)
-Mx.EC2 <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
-Mx.LL2 <- 5415.772
-# example Mx..2: Saturated Model with Raw Data
-# Mx answers hard-coded
-# -----------------------------------------------------------------------------
-
-omxCheckCloseEnough(LL2,Mx.LL2,.001)
-omxCheckCloseEnough(EC2,Mx.EC2,.001)
-omxCheckCloseEnough(EM2,Mx.EM2,.001)
+omxCheckCloseEnough(LL2, 5407.037,.001)
+omxCheckCloseEnough(c(EC2),c(1.066, 0.475, 0.475, 0.929),.001)
+omxCheckCloseEnough(c(EM2),c(0.058, 0.006),.001)
 # 2:RawPat 
 # -------------------------------------
 # Compare OpenMx results to Mx results 

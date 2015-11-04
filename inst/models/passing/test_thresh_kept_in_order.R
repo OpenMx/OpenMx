@@ -1,6 +1,6 @@
 #  OpenMx Out of order thresholds test
 require(OpenMx)
-require(MASS)
+
 set.seed(1234)
 # Set up simulation parameters 
 nVariables  <- 3
@@ -15,7 +15,7 @@ residuals <- 1 - (loadings * loadings)
 sigma     <- loadings %*% t(loadings) + vec2diag(residuals)
 mu        <- matrix(0,nrow=nVariables,ncol=1)
 
-continuousData <- mvrnorm(n=nSubjects, mu, sigma)
+continuousData <- mvtnorm::rmvnorm(n=nSubjects, mu, sigma)
 quants <-quantile(continuousData[,1],  probs = c((1:nThresholds)/(nThresholds+1)))
 quants[2] <- .65
 ordinalData <- matrix(0, nrow = nSubjects, ncol = nVariables)

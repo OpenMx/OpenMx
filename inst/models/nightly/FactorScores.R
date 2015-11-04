@@ -73,7 +73,7 @@ omxCheckCloseEnough(coef(lmR), c(0, 1), 0.03)
 
 # Step 1: load libraries
 require(OpenMx)
-require(MASS)
+
 #
 # Step 2: set up simulation parameters 
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
