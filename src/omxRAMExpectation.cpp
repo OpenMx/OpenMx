@@ -18,25 +18,23 @@
 #include "omxFitFunction.h"
 #include "omxBLAS.h"
 #include "omxRAMExpectation.h"
-
-typedef struct {
-
-	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *X, *Y, *Z, *Ax;
-
-	int numIters;
-	double logDetObserved;
-	double n;
-	double *work;
-	int lwork;
-
-} omxRAMExpectation;
+#include "RAMInternal.h"
 
 static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
     omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
     omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
+
+void omxRAMExpectation::ensureTrivialF()
+{
+	omxRecompute(F, NULL);  // should not do anything
+	EigenMatrixAdaptor eF(F);
+	Eigen::MatrixXd ident(F->rows, F->rows);
+	ident.setIdentity();
+	if (ident != eF.block(0, 0, F->rows, F->rows)) {
+		Rf_error("Square part of F matrix is not trivial");
+	}
+}
 
 static void omxCallRAMExpectation(omxExpectation* oo, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
@@ -69,7 +67,7 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 	omxFreeMatrix(argStruct->Y);
 	omxFreeMatrix(argStruct->Z);
 	omxFreeMatrix(argStruct->Ax);
-
+	delete argStruct;
 }
 
 static void refreshUnfilteredCov(omxExpectation *oo)
@@ -175,7 +173,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 
 	SEXP slotValue;
 	
-	omxRAMExpectation *RAMexp = (omxRAMExpectation*) R_alloc(1, sizeof(omxRAMExpectation));
+	omxRAMExpectation *RAMexp = new omxRAMExpectation;
 	
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallRAMExpectation;
@@ -207,6 +205,49 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("depth")));
 	RAMexp->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
+	}
+
+	{
+		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("join")));
+		if (Rf_length(slotValue) && !oo->data) Rf_error("%s: data is required for joins", oo->name);
+		RAMexp->joins.reserve(Rf_length(slotValue));
+		for (int jx=0; jx < Rf_length(slotValue); ++jx) {
+			SEXP rjoin = VECTOR_ELT(slotValue, jx);
+			SEXP rfk; ScopedProtect p1(rfk, R_do_slot(rjoin, Rf_install("foreignKey")));
+			SEXP rex; ScopedProtect p2(rex, R_do_slot(rjoin, Rf_install("expectation")));
+			join j1;
+			j1.foreignKey = Rf_asInteger(rfk) - 1;
+			j1.ex = omxExpectationFromIndex(Rf_asInteger(rex), currentState);
+			if (!strEQ(j1.ex->expType, "MxExpectationRAM")) {
+				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
+			}
+			if (omxDataIsSorted(j1.ex->data)) {
+				Rf_error("%s join with %s but observed data is sorted",
+					 oo->name, j1.ex->name);
+			}
+			if (!omxDataColumnIsKey(oo->data, j1.foreignKey)) {
+				Rf_error("Cannot join using non-key type column '%s' in '%s'",
+					 omxDataColumnName(oo->data, j1.foreignKey),
+					 oo->data->name);
+			}
+			omxRAMExpectation *ram = (omxRAMExpectation*) j1.ex->argStruct;
+			ram->ensureTrivialF();
+			j1.regression = omxNewMatrixFromSlot(rjoin, currentState, "regression");
+			if (OMX_DEBUG) {
+				mxLog("%s: join col %d against %s using regression matrix %s",
+				      oo->name, j1.foreignKey, j1.ex->name, j1.regression->name());
+			}
+			{
+				SEXP map; ScopedProtect p3(map, R_do_slot(rjoin, Rf_install("lowerMap")));
+				j1.lowerMap = INTEGER(map);
+			}{
+				SEXP map; ScopedProtect p3(map, R_do_slot(rjoin, Rf_install("upperMap")));
+				j1.upperMap = INTEGER(map);
+			}
+				
+			j1.data = j1.ex->data;
+			RAMexp->joins.push_back(j1);
+		}
 	}
 
 	l = RAMexp->F->rows;

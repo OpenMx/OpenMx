@@ -502,7 +502,7 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 
 generateDataColumns <- function(flatModel, covNames, dataName) {
 	retval <- c()
-	dataColumnNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
+	dataColumnNames <- colnames(flatModel@datasets[[dataName]]@observed)
 	for(i in 1:length(covNames)) {
 		targetName <- covNames[[i]]
 		index <- match(targetName, dataColumnNames)

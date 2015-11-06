@@ -29,8 +29,10 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/CholmodSupport>
-#include <Eigen/SparseLU>  // UmfPackSupport is likely faster TODO
+//#include <Eigen/SparseLU>
+#include <Eigen/UmfPackSupport>
 #include "omxFitFunction.h"
+#include "RAMInternal.h"
 
 // New Expectation API : per case to full distribution adapter TODO
 
@@ -117,19 +119,60 @@ namespace FellnerFitFunction {
 	};
 
 	struct state {
-		omxMatrix *smallRow;
-		int totalNotMissing;
-		std::vector<bool> notMissing;
+		omxMatrix *smallCol;
+		omxMatrix *smallCol2;
+		std::vector<bool> notMissing;   // use to fill the full A matrix
+		std::vector<bool> latentFilter; // use to reduce the A matrix
 		Eigen::VectorXd data;
-		omxMatrix *cov;
-		omxMatrix *means;
-		omxMatrix *smallCov;
-		omxMatrix *smallMeans;
-		Eigen::SparseMatrix<double> fullCov;
+		Eigen::SparseMatrix<double>      fullA;
+		Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+		Eigen::SparseMatrix<double>      filteredA;
+		Eigen::SparseMatrix<double>      fullS;
+		Eigen::SparseMatrix<double>      fullCov;
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		Eigen::VectorXd fullMeans;
+
+		int loadOneRow(omxRAMExpectation *ram, int nmx, int lx);
 	};
 	
+	int state::loadOneRow(omxRAMExpectation *ram, int nmx, int lx)
+	{
+		EigenMatrixAdaptor eA(ram->A);
+		for (int cx=0, cy=-1; cx < eA.cols(); ++cx) {
+			if (!notMissing[nmx + cx]) continue;
+			++cy;
+			for (int rx=0, ry=-1; rx < eA.rows(); ++rx) {
+				if (!notMissing[nmx + rx]) continue;
+				++ry;
+				if (rx == cx || eA(rx,cx) == 0) continue;
+				// can't use eA.block(..) -= because fullA must remain sparse
+				fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
+			}
+		}
+
+		EigenMatrixAdaptor eS(ram->S);
+		for (int cx=0, cy=-1; cx < eS.cols(); ++cx) {
+			if (!notMissing[nmx + cx]) continue;
+			++cy;
+			for (int rx=0, ry=-1; rx < eS.rows(); ++rx) {
+				if (!notMissing[nmx + rx]) continue;
+				++ry;
+				if (rx < cx || eS(rx,cx) == 0) continue;
+				fullS.coeffRef(lx + ry, lx + cy) += eS(rx, cx);
+			}
+		}
+
+		int nmInc = -1;
+		EigenVectorAdaptor eM(ram->M);
+		for (int mx=0; mx < eM.size(); ++mx) {
+			if (!notMissing[nmx + mx]) continue;
+			++nmInc;
+			fullMeans[lx + nmInc] = eM[mx];
+		}
+
+		return nmInc;
+	}
+
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
@@ -137,50 +180,38 @@ namespace FellnerFitFunction {
 
 		state *st                               = (state *) oo->argStruct;
 		omxExpectation *expectation             = oo->expectation;
+		omxRAMExpectation *ram                  = (omxRAMExpectation*) expectation->argStruct;
 		omxData *data                           = expectation->data;
-		omxMatrix *cov                          = st->cov;
-		omxMatrix *means                        = st->means;
+		Eigen::SparseMatrix<double> &fullA      = st->fullA;
+		Eigen::SparseMatrix<double> &filteredA  = st->filteredA;
+		Eigen::SparseMatrix<double> &fullS      = st->fullS;
 		Eigen::SparseMatrix<double> &fullCov    = st->fullCov;
 		Eigen::VectorXd &fullMeans              = st->fullMeans;
 
-		Eigen::VectorXi contRemove(cov->cols);
-		Eigen::VectorXd oldDefs;
-		oldDefs.resize(data->defVars.size());
-		oldDefs.setConstant(NA_REAL);
+		fullMeans.resize(st->latentFilter.size());
 
-		fullMeans.resize(st->totalNotMissing);
-		fullCov.resize(st->totalNotMissing, st->totalNotMissing);
-		fullCov.setZero();
-
-		int filteredPos = 0;
-		for (int row=0; row < data->rows; ++row) {
-			int numVarsFilled = data->handleDefinitionVarList(oo->matrix->currentState, row, oldDefs.data());
-			if (row == 0 || numVarsFilled) {
-				omxExpectationCompute(expectation, NULL);
-			}
-
-			int fullPos = row * cov->rows;
-			for (int dx=0; dx < cov->rows; ++dx) contRemove[dx] = !st->notMissing[fullPos + dx];
-			omxCopyMatrix(st->smallMeans, means);
-			omxRemoveElements(st->smallMeans, contRemove.data());
-			omxCopyMatrix(st->smallCov, cov);
-			omxRemoveRowsAndColumns(st->smallCov, contRemove.data(), contRemove.data());
-
-			EigenVectorAdaptor smallMeans(st->smallMeans);
-			EigenMatrixAdaptor smallCov(st->smallCov);
-
-			fullMeans.segment(filteredPos, st->smallCov->rows) = smallMeans;
-			for (int sr=0; sr < smallCov.rows(); ++sr) {
-				for (int sc=0; sc <= sr; ++sc) {
-					fullCov.coeffRef(filteredPos + sr, filteredPos + sc) = smallCov(sr,sc);
+		if (fullA.nonZeros() == 0) {
+			fullA.resize(st->latentFilter.size(), st->latentFilter.size());
+			fullA.setIdentity();
+		} else {
+			for (int k=0; k<fullA.outerSize(); ++k) {
+				for (Eigen::SparseMatrix<double>::InnerIterator it(fullA, k); it; ++it) {
+					it.valueRef() = it.row() == it.col()? 1 : 0;
 				}
 			}
-			filteredPos += st->smallCov->rows;
+		}
+		if (fullS.nonZeros() == 0) {
+			fullS.resize(st->latentFilter.size(), st->latentFilter.size());
+		} else {
+			for (int k=0; k<fullS.outerSize(); ++k) {
+				for (Eigen::SparseMatrix<double>::InnerIterator it(fullS, k); it; ++it) {
+					it.valueRef() = 0;
+				}
+			}
 		}
 
-		if(0 && expectation->varying.size()){Eigen::MatrixXd tmp = fullCov;//.block(0,0,8,8);
-			mxPrintMat("R", tmp);}
-
+		/***
+		    // Need to apply recursively to every expectation that contains observations TODO
 		for (size_t vx=0; vx < expectation->varying.size(); ++vx) {
 			varyBy &vb = expectation->varying[vx];
 			if (!omxDataColumnIsFactor(data, vb.factorCol)) {
@@ -254,23 +285,115 @@ namespace FellnerFitFunction {
 				}
 			}
 		}
+		***/
 
-		if(0){Eigen::MatrixXd tmp = fullCov;//.block(0,0,8,8);
-			mxPrintMat("V", tmp);}
+		for (int nmx=0, lx=0, row=0; row < data->rows; ++row) {
+			bool defVarChg = data->handleDefinitionVarList(oo->matrix->currentState, row);
+			if (row == 0 || defVarChg) {
+				omxRecompute(ram->A, fc);
+				omxRecompute(ram->S, fc);
+				omxRecompute(ram->M, fc);
+			}
+
+			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+				join &j1 = ram->joins[jx];
+				int key = omxKeyDataElement(data, row, j1.foreignKey);
+				if (key == NA_INTEGER) continue;
+				int frow = omxDataLookupRowOfKey(j1.data, key);
+				int jOffset = j1.data->rowToOffsetMap[frow];
+				if (jOffset != nmx) continue;
+
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				j1.ex->data->handleDefinitionVarList(oo->matrix->currentState, frow);
+				omxRecompute(ram2->A, fc);
+				omxRecompute(ram2->S, fc);
+				omxRecompute(ram2->M, fc);
+
+				int nmInc = st->loadOneRow(ram2, nmx, lx);
+				lx += nmInc + 1;
+				nmx += ram2->A->rows;
+			}
+			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+				join &j1 = ram->joins[jx];
+				int key = omxKeyDataElement(data, row, j1.foreignKey);
+				if (key == NA_INTEGER) continue;
+				int frow = omxDataLookupRowOfKey(j1.data, key);
+				int jOffset = j1.data->rowToOffsetMap[frow];
+				omxMatrix *betA = j1.regression;
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				for (int rx=0, ry=-1; rx < ram->A->rows; ++rx) {  //lower
+					if (!st->notMissing[nmx + rx]) continue;
+					++ry;
+					for (int cx=0, cy=-1; cx < ram2->A->rows; ++cx) {  //upper
+						if (!st->notMissing[jOffset + cx]) continue;
+						++cy;
+						for (int mr=0; mr < betA->rows; ++mr) {
+							if (j1.lowerMap[mr] != rx) continue;
+							for (int mc=0; mc < betA->cols; ++mc) {
+								if (j1.upperMap[mc] != cx) continue;
+								fullA.coeffRef(lx + ry, jOffset + cy) -=
+									omxMatrixElement(betA, mr, mc);
+							}
+						}
+					}
+				}
+			}
+
+			int nmInc = st->loadOneRow(ram, nmx, lx);
+			lx += nmInc + 1;
+			nmx += ram->A->rows;
+		}
+
+		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
+		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
 
 		double lp = NA_REAL;
 		try {
-			st->covDecomp.analyzePattern(fullCov);
+			if (!fullA.isCompressed()) {
+				fullA.makeCompressed();
+				st->Asolver.analyzePattern(fullA);
+			}
+			st->Asolver.factorize(fullA);
+			if (filteredA.nonZeros() == 0) {
+				filteredA.resize(st->data.size(), fullA.rows());
+				filteredA.reserve(st->data.size());
+			}
+			Eigen::VectorXd a1(fullA.rows());
+			a1.setZero();
+			Eigen::VectorXd result(fullA.rows());
+			for (int ax=0; ax < fullA.rows(); ++ax) {
+				// is there a faster way to do this? TODO
+				a1[ax] = 1.0;
+				result = st->Asolver.solve(a1);
+				for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
+					if (!st->latentFilter[lx]) continue;
+					++ox;
+					if (result[lx] == 0) continue;
+					filteredA.coeffRef(ox, ax) = result[lx];
+				}
+				a1[ax] = 0.0;
+			}
+			filteredA.makeCompressed();
+			//mxPrintMat("S", fullS);
+			//Eigen::MatrixXd fullCovDense =
+			bool firstTime = fullCov.nonZeros() == 0;
+			fullCov = (filteredA * fullS.selfadjointView<Eigen::Lower>() * filteredA.transpose());
+			//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
+
+			if (firstTime) {
+				fullCov.makeCompressed();
+				st->covDecomp.analyzePattern(fullCov);
+			}
+
 			st->covDecomp.factorize(fullCov);
 			lp = st->covDecomp.log_determinant();
-			Eigen::VectorXd resid = st->data - fullMeans;
+			Eigen::VectorXd resid = st->data - filteredA * fullMeans;
 			double iqf = st->covDecomp.inv_quad_form(resid);
 			lp += iqf;
-			lp += M_LN_2PI * st->totalNotMissing;
+			lp += M_LN_2PI * st->data.size();
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
-		//mxLog("%f", lp);
 		oo->matrix->data[0] = lp;
 	}
 
@@ -298,9 +421,8 @@ namespace FellnerFitFunction {
 	static void destroy(omxFitFunction *oo)
 	{
 		state *st = (state*) oo->argStruct;
-		omxFreeMatrix(st->smallMeans);
-		omxFreeMatrix(st->smallCov);
-		omxFreeMatrix(st->smallRow);
+		omxFreeMatrix(st->smallCol);
+		omxFreeMatrix(st->smallCol2);
 		delete st;
 	}
 };
@@ -312,16 +434,8 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 		omxRaiseErrorf("%s cannot fit without a model expectation", oo->fitType);
 		return;
 	}
-	omxMatrix *cov = omxGetExpectationComponent(expectation, "cov");
-	if(cov == NULL) { 
-		omxRaiseError("No covariance expectation in FIML evaluation.");
-		return;
-	}
-
-	omxMatrix *means = omxGetExpectationComponent(expectation, "means");
-	if(means == NULL) { 
-		omxRaiseError("No means model in FIML evaluation.");
-		return;
+	if (!strEQ(expectation->expType, "MxExpectationRAM")) {
+		Rf_error("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 	}
 
 	// prohibit ordinal for now TODO
@@ -335,34 +449,95 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 	FellnerFitFunction::state *st = new FellnerFitFunction::state;
 	oo->argStruct = st;
 
-	st->cov = cov;
-	st->means = means;
-	st->smallCov   = omxInitMatrix(1, 1, TRUE, oo->matrix->currentState);
-	st->smallMeans = omxInitMatrix(1, 1, TRUE, oo->matrix->currentState);
-	st->smallRow = omxInitMatrix(1, cov->cols, TRUE, oo->matrix->currentState);
+	omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+	ram->ensureTrivialF();
+	int numManifest = ram->F->rows;
+
+	st->smallCol = omxInitMatrix(1, numManifest, TRUE, oo->matrix->currentState);
+	st->smallCol2 = omxInitMatrix(1, 0, TRUE, oo->matrix->currentState);
 	omxData *data               = expectation->data;
 	omxMatrix *dataColumns	    = expectation->dataColumns;
 
-	st->totalNotMissing = 0;
-	st->notMissing.reserve(data->rows * cov->cols);
+	int totalLatent = 0;
+	int totalObserved = 0;
+	int maxSize = 0;
 	for (int row=0; row < data->rows; ++row) {
-		omxDataRow(data, row, dataColumns, st->smallRow);
-		for (int col=0; col < cov->cols; ++col) {
-			double val = omxMatrixElement(st->smallRow, 0, col);
-			bool yes = std::isfinite(val);
-			st->notMissing.push_back(yes);
-			if (yes) ++st->totalNotMissing;
+		omxDataRow(data, row, dataColumns, st->smallCol);
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			int frow = omxDataLookupRowOfKey(j1.data, key);
+			// insert_or_assign would be nice here
+			std::map<int,int>::const_iterator it = j1.data->rowToOffsetMap.find(frow);
+			if (it == j1.data->rowToOffsetMap.end()) {
+				if (OMX_DEBUG) {
+					mxLog("join[%d]: place row %d at %d", int(jx), frow, totalObserved);
+				}
+				j1.data->rowToOffsetMap[frow] = totalObserved + totalLatent;
+				int jCols = j1.ex->dataColumns->cols;
+				if (st->smallCol2->cols < jCols) {
+					omxResizeMatrix(st->smallCol2, 1, jCols);
+				}
+				omxDataRow(j1.ex, frow, st->smallCol2);
+				for (int col=0; col < jCols; ++col) {
+					double val = omxMatrixElement(st->smallCol2, 0, col);
+					bool yes = std::isfinite(val);
+					if (yes) ++totalObserved;
+				}
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				totalLatent += ram2->F->cols - ram2->F->rows;
+				maxSize += ram2->F->cols;
+			}
 		}
+		for (int col=0; col < numManifest; ++col) {
+			double val = omxMatrixElement(st->smallCol, 0, col);
+			bool yes = std::isfinite(val);
+			if (yes) ++totalObserved;
+		}
+		totalLatent += ram->F->cols - ram->F->rows;
+		maxSize += ram->F->cols;
 	}
 
-	//mxLog("total observations %d", st->totalNotMissing);
-	st->data.resize(st->totalNotMissing);
-	for (int row=0, dx=0; row < data->rows; ++row) {
-		omxDataRow(data, row, dataColumns, st->smallRow);
-		for (int col=0; col < cov->cols; ++col) {
-			double val = omxMatrixElement(st->smallRow, 0, col);
-			if (!std::isfinite(val)) continue;
+	//mxLog("total observations %d", totalObserved);
+	st->notMissing.assign(maxSize, true); // will have latentFilter.size() true entries
+	st->latentFilter.assign(totalObserved + totalLatent, false); // will have totalObserved true entries
+	st->data.resize(totalObserved);
+	
+	for (int row=0, dx=0, lx=0, nmx=0; row < data->rows; ++row) {
+		omxDataRow(data, row, dataColumns, st->smallCol);
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			int frow = omxDataLookupRowOfKey(j1.data, key);
+			if (j1.data->rowToOffsetMap[frow] != nmx) continue;
+
+			//mxLog("join[%d]: vectorize row %d at %d", int(jx), frow, nmx);
+			int jCols = j1.ex->dataColumns->cols;
+			omxDataRow(j1.ex, frow, st->smallCol2);
+			for (int col=0; col < jCols; ++col) {
+				double val = omxMatrixElement(st->smallCol2, 0, col);
+				bool yes = std::isfinite(val);
+				st->notMissing[ nmx++ ] = yes;
+				if (!yes) continue;
+				st->latentFilter[ lx++ ] = true;
+				st->data[ dx++ ] = val;
+			}
+			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+			nmx += ram2->F->cols - ram2->F->rows;
+			lx += ram2->F->cols - ram2->F->rows;
+		}
+
+		for (int col=0; col < numManifest; ++col) {
+			double val = omxMatrixElement(st->smallCol, 0, col);
+			bool yes = std::isfinite(val);
+			st->notMissing[ nmx++ ] = yes;
+			if (!yes) continue;
+			st->latentFilter[ lx++ ] = true;
 			st->data[ dx++ ] = val;
 		}
+		nmx += ram->F->cols - ram->F->rows;
+		lx += ram->F->cols - ram->F->rows;
 	}
 }
