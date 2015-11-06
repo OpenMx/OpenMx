@@ -162,10 +162,6 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		}
 	}
 	
-	Eigen::VectorXd oldDefs;
-	oldDefs.resize(ox->data->defVars.size());
-	oldDefs.setConstant(NA_REAL);
-	
 	// Probably should loop through all the data here!!!
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning forward loop ..."); }
 	for(row=1; row < (nt+1); row++){
@@ -176,8 +172,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		}
 		
 		// handle definition variables
-		int numVarsFilled = 0;
-		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row-1, oldDefs.data());
+		ox->data->handleDefinitionVarList(ox->currentState, row-1);
 		
 		/* Run Kalman prediction */
 		if(ose->t == NULL){
@@ -271,8 +266,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning backward loop ..."); }
 	for(row = nt-1; row > -1; row--){
 		// handle definition variables
-		int numVarsFilled = 0;
-		numVarsFilled = ox->data->handleDefinitionVarList(ox->currentState, row, oldDefs.data());
+		ox->data->handleDefinitionVarList(ox->currentState, row);
 		
 		// Copy Z = updated P from pupda
 		counter = 0;

@@ -324,9 +324,7 @@ void omxState::loadDefinitionVariables(bool start)
 				}
 			}
 		}
-		Eigen::VectorXd oldDefs(e1->defVars.size());
-		oldDefs.setConstant(NA_REAL);
-		e1->handleDefinitionVarList(this, row, oldDefs.data());
+		e1->handleDefinitionVarList(this, row);
 	}
 }
 

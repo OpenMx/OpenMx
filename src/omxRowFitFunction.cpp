@@ -79,17 +79,13 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	contiguousStart = oro->contiguous.start;
 	contiguousLength = oro->contiguous.length;
 
-	Eigen::VectorXd oldDefs;
-	oldDefs.resize(data->defVars.size());
-	oldDefs.setConstant(NA_REAL);
-
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
 	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
 		mxLogSetCurrentRow(row);
 
-		data->handleDefinitionVarList(localobj->matrix->currentState, row, oldDefs.data());
+		data->handleDefinitionVarList(localobj->matrix->currentState, row);
 
         // Populate data row
 		if (isContiguous) {
