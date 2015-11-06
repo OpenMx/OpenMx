@@ -79,8 +79,7 @@ setMethod("imxModelBuilder", "MxRAMModel",
 setMethod("imxVerifyModel", "MxRAMModel",
 	  function(model) {
 		  if ((length(model$A) == 0) ||
-		      (length(model$S) == 0) ||
-		      (length(model$F) == 0)) {
+		      (length(model$S) == 0)) {
 			  msg <- paste("The RAM model", omxQuotes(model@name),
 				       "does not contain any paths.",
 				       " You can add paths to your model like this:",

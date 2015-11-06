@@ -109,7 +109,6 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 
 setMethod("qualifyNames", signature("MxExpectationRAM"), 
 	function(.Object, modelname, namespace) {
-		  .Object <- qualifyVaryByClause(.Object, modelname, namespace)
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)
 		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace)
@@ -222,7 +221,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			stop(msg, call. = FALSE)		
 		}
 		checkNumericData(mxDataObject)
-		.Object <- convertVaryByClause(.Object, flatModel, mxDataObject)
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
 		fMatrix <- flatModel[[fMatrix]]@values
 		if (is.null(dimnames(fMatrix))) {
@@ -263,38 +261,44 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		}
 		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
-		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
-			threshName <- .Object@thresholds
-			checkNumberOrdinalColumns(mxDataObject)
-			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-			retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
-			.Object@thresholdColumns <- retval[[1]]
-			.Object@thresholdLevels <- retval[[2]]
-			if (length(mxDataObject@observed) == 0) {
-				.Object@data <- as.integer(NA)
-			}
-			if (single.na(.Object@dims)) {
-				.Object@dims <- translatedNames
+		if (length(translatedNames)) {
+			if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
+				threshName <- .Object@thresholds
+				checkNumberOrdinalColumns(mxDataObject)
+				.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
+				verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
+				.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
+				retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
+				.Object@thresholdColumns <- retval[[1]]
+				.Object@thresholdLevels <- retval[[2]]
+				if (length(mxDataObject@observed) == 0) {
+					.Object@data <- as.integer(NA)
+				}
+				if (single.na(.Object@dims)) {
+					.Object@dims <- translatedNames
+				}
+			} else {
+				.Object@thresholds <- as.integer(NA)
+				targetNames <- rownames(mxDataObject@observed)
+				if (!identical(translatedNames, targetNames)) {
+					varsNotInData <- translatedNames[!(translatedNames %in% targetNames)]
+					msg <- paste("The names of the manifest",
+						     "variables in the F matrix of model",
+						     omxQuotes(modelname), "does not match the",
+						     "dimnames of the observed covariance matrix.")
+					if (length(varsNotInData) > 0) {
+						msg <- paste(msg,
+							     "To get you started, the following variables are used but",
+							     "are not in the observed data:", 
+							     omxQuotes(varsNotInData))
+					}
+					stop(msg, call. = FALSE)
+				}
 			}
 		} else {
 			.Object@thresholds <- as.integer(NA)
-			targetNames <- rownames(mxDataObject@observed)
-			if (!identical(translatedNames, targetNames)) {
-				varsNotInData <- translatedNames[!(translatedNames %in% targetNames)]
-				msg <- paste("The names of the manifest",
-					"variables in the F matrix of model",
-					omxQuotes(modelname), "does not match the",
-					"dimnames of the observed covariance matrix.")
-				if (length(varsNotInData) > 0) {
-					msg <- paste(msg,
-						"To get you started, the following variables are used but",
-						"are not in the observed data:", 
-						omxQuotes(varsNotInData))
-				}
-				stop(msg, call. = FALSE)
-			}
+			.Object@thresholdColumns <- as.integer(NA)
+			.Object@thresholdLevels <- as.integer(NA)
 		}
 		return(.Object)
 })
@@ -412,6 +416,7 @@ generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
 
 fMatrixTranslateNames <- function(fMatrix, modelName) {
 	retval <- character()
+	if (length(fMatrix) == 0) return(retval)
 	colNames <- dimnames(fMatrix)[[2]]
 	for(i in 1:nrow(fMatrix)) {
 		irow <- fMatrix[i,]

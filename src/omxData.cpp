@@ -425,6 +425,8 @@ bool omxDataColumnIsKey(omxData *od, int col)
 int omxDataLookupRowOfKey(omxData *od, int key)
 {
 	if(od->dataMat != NULL) Rf_error("%s: only raw data can have a primary key", od->name);
+	if (od->primaryKey < 0) Rf_error("%s: omxDataLookupRowOfKey attempted "
+					 "but no primary key specified", od->name);
 	ColumnData &cd = od->rawCols[od->primaryKey];
 	// dumb column scan, could be optimized with an index
 	for (int rx=0; rx < od->rows; ++rx) {

@@ -278,6 +278,8 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					     "not found in", omxQuotes(data@name)))
 			  }
 			  data@primaryKey <- pk
+		  } else {
+			  data@primaryKey <- 0L
 		  }
 
 		  data

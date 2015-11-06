@@ -133,6 +133,8 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
 	omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
 	
+	if (F->rows == 0) return;
+
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {

@@ -132,45 +132,43 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		Eigen::VectorXd fullMeans;
 
-		int loadOneRow(omxRAMExpectation *ram, int nmx, int lx);
+		void loadOneRow(omxRAMExpectation *ram, int &nmx, int &lx);
 	};
 	
-	int state::loadOneRow(omxRAMExpectation *ram, int nmx, int lx)
+	void state::loadOneRow(omxRAMExpectation *ram, int &nmx, int &lx)
 	{
+		int cy = -1;
 		EigenMatrixAdaptor eA(ram->A);
-		for (int cx=0, cy=-1; cx < eA.cols(); ++cx) {
+		EigenMatrixAdaptor eS(ram->S);
+		for (int cx=0; cx < eA.cols(); ++cx) {
 			if (!notMissing[nmx + cx]) continue;
 			++cy;
 			for (int rx=0, ry=-1; rx < eA.rows(); ++rx) {
 				if (!notMissing[nmx + rx]) continue;
 				++ry;
-				if (rx == cx || eA(rx,cx) == 0) continue;
-				// can't use eA.block(..) -= because fullA must remain sparse
-				fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
+				if (rx != cx && eA(rx,cx) != 0) {
+					// can't use eA.block(..) -= because fullA must remain sparse
+					fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
+				}
+				if (rx >= cx && eS(rx,cx) != 0) {
+					fullS.coeffRef(lx + ry, lx + cy) += eS(rx, cx);
+				}
 			}
 		}
 
-		EigenMatrixAdaptor eS(ram->S);
-		for (int cx=0, cy=-1; cx < eS.cols(); ++cx) {
-			if (!notMissing[nmx + cx]) continue;
-			++cy;
-			for (int rx=0, ry=-1; rx < eS.rows(); ++rx) {
-				if (!notMissing[nmx + rx]) continue;
-				++ry;
-				if (rx < cx || eS(rx,cx) == 0) continue;
-				fullS.coeffRef(lx + ry, lx + cy) += eS(rx, cx);
+		if (ram->M) {
+			EigenVectorAdaptor eM(ram->M);
+			for (int mx=0, my=-1; mx < eM.size(); ++mx) {
+				if (!notMissing[nmx + mx]) continue;
+				++my;
+				fullMeans[lx + my] = eM[mx];
 			}
+		} else {
+			fullMeans.segment(lx, cy+1).setZero();
 		}
 
-		int nmInc = -1;
-		EigenVectorAdaptor eM(ram->M);
-		for (int mx=0; mx < eM.size(); ++mx) {
-			if (!notMissing[nmx + mx]) continue;
-			++nmInc;
-			fullMeans[lx + nmInc] = eM[mx];
-		}
-
-		return nmInc;
+		lx += cy + 1;
+		nmx += ram->A->rows;
 	}
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
@@ -210,83 +208,6 @@ namespace FellnerFitFunction {
 			}
 		}
 
-		/***
-		    // Need to apply recursively to every expectation that contains observations TODO
-		for (size_t vx=0; vx < expectation->varying.size(); ++vx) {
-			varyBy &vb = expectation->varying[vx];
-			if (!omxDataColumnIsFactor(data, vb.factorCol)) {
-				Rf_error("Column %s (%d) is not a factor",
-					 omxDataColumnName(data, vb.factorCol), vb.factorCol);
-			}
-			omxMatrix *cov = omxGetExpectationComponent(vb.model, "unfilteredCov");
-			omxMatrix *Zspec = vb.Zmatrix;
-
-			Eigen::VectorXi betweenRemove(cov->cols);
-			betweenRemove.setConstant(1);
-			int numFound = 0;
-			for (int zx=0, bx=0; zx < Zspec->cols; ++zx) {
-				while (bx < cov->cols) {
-					if (strEQ(Zspec->colnames[zx], cov->colnames[bx])) {
-						betweenRemove[bx] = 0;
-						++numFound;
-						++bx;
-						break;
-					}
-					++bx;
-				}
-			}
-			if (numFound != Zspec->cols) Rf_error("Cannot find between loadings in varying covariance");
-			omxCopyMatrix(st->smallCov, cov);
-			omxRemoveRowsAndColumns(st->smallCov, betweenRemove.data(), betweenRemove.data());
-
-			// upper model must have no manifest variables
-			int levels = omxDataGetNumFactorLevels(data, vb.factorCol);
-			std::vector<bool> curLevelMask;
-			curLevelMask.resize(data->rows);
-			for (int lx=1; lx <= levels; ++lx) {
-				int numAtLevel = 0;
-				for (int rx=0; rx < data->rows; ++rx) {
-					bool yes = omxIntDataElement(data, rx, vb.factorCol) == lx;
-					curLevelMask[rx] = yes;
-					numAtLevel += yes;
-				}
-				Eigen::MatrixXd Zmat(Zspec->rows * numAtLevel, Zspec->cols);
-				int zr=0;
-				for (int rx=0; rx < data->rows; ++rx) {
-					if (!curLevelMask[rx]) continue;
-					data->handleDefinitionVarList(oo->matrix->currentState, rx, oldDefs.data());
-					omxRecompute(Zspec, fc);
-					EigenMatrixAdaptor eZspec(Zspec);
-					//mxPrintMat("Zspec", eZspec);
-					Zmat.block(zr, 0, Zspec->rows, Zspec->cols).array() = eZspec.array();
-					zr += Zspec->rows;
-				}
-				EigenMatrixAdaptor ecov(st->smallCov);
-				//mxPrintMat("Z", Zmat);
-				//mxPrintMat("G", ecov);
-				// If Z is constant, ZGZ will be the same for all factor levels
-				Eigen::MatrixXd ZGZ = Zmat * ecov.selfadjointView<Eigen::Lower>() * Zmat.transpose();
-				//mxPrintMat("ZGZ", ZGZ); //.block(0,0,8,8));
-				for (int r1=0,v1=0; r1 < data->rows; ++r1) {
-					if (!curLevelMask[r1]) continue;
-					for (int r2=0,v2=0; r2 <= r1; ++r2) {
-						if (!curLevelMask[r2]) continue;
-						for (int b1=0; b1 < Zspec->rows; ++b1) {
-							for (int b2=0; b2 < Zspec->rows; ++b2) {
-								double val = ZGZ(Zspec->rows * v1 + b1, Zspec->rows * v2 + b2);
-								if (val == 0) continue;
-								fullCov.coeffRef(Zspec->rows * r1 + b1,
-										 Zspec->rows * r2 + b2) += val;
-							}
-						}
-						++v2;
-					}
-					++v1;
-				}
-			}
-		}
-		***/
-
 		for (int nmx=0, lx=0, row=0; row < data->rows; ++row) {
 			bool defVarChg = data->handleDefinitionVarList(oo->matrix->currentState, row);
 			if (row == 0 || defVarChg) {
@@ -307,11 +228,10 @@ namespace FellnerFitFunction {
 				j1.ex->data->handleDefinitionVarList(oo->matrix->currentState, frow);
 				omxRecompute(ram2->A, fc);
 				omxRecompute(ram2->S, fc);
-				omxRecompute(ram2->M, fc);
 
-				int nmInc = st->loadOneRow(ram2, nmx, lx);
-				lx += nmInc + 1;
-				nmx += ram2->A->rows;
+				if (ram2->M) omxRecompute(ram2->M, fc);
+				
+				st->loadOneRow(ram2, nmx, lx);
 			}
 			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
 				join &j1 = ram->joins[jx];
@@ -320,6 +240,7 @@ namespace FellnerFitFunction {
 				int frow = omxDataLookupRowOfKey(j1.data, key);
 				int jOffset = j1.data->rowToOffsetMap[frow];
 				omxMatrix *betA = j1.regression;
+				omxRecompute(betA, fc);
 				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
 				for (int rx=0, ry=-1; rx < ram->A->rows; ++rx) {  //lower
 					if (!st->notMissing[nmx + rx]) continue;
@@ -339,9 +260,7 @@ namespace FellnerFitFunction {
 				}
 			}
 
-			int nmInc = st->loadOneRow(ram, nmx, lx);
-			lx += nmInc + 1;
-			nmx += ram->A->rows;
+			st->loadOneRow(ram, nmx, lx);
 		}
 
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }

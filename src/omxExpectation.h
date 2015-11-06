@@ -42,12 +42,6 @@
 #include "omxData.h"
 #include "omxState.h"
 
-struct varyBy {
-	int factorCol;
-	struct omxExpectation *model;
-	omxMatrix *Zmatrix; // from cols to rows (like RAM's A matrix)
-};
-
 /* Expectation structure itself */
 struct omxExpectation {					// An Expectation
 
@@ -79,7 +73,6 @@ struct omxExpectation {					// An Expectation
 	omxState* currentState;
 	int expNum;
 
-	std::vector<varyBy> varying; // move to RAM expectation? TODO
 	omxExpectation *container;
 	std::vector<omxExpectation *> submodels;
 
