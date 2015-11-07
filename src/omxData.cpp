@@ -865,31 +865,19 @@ static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 	}
 }
 
-int omxData::handleDefinitionVarList(omxState *state, int row, double* oldDefs)
+bool omxData::handleDefinitionVarList(omxState *state, int row)
 {
 	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars."); }
 	
-	int numVarsFilled = 0;
-
+	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {
 		double newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
 		if(ISNA(newDefVar)) {
 			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
 		}
-		if(newDefVar == oldDefs[k]) {
-			continue;
-		}
-		oldDefs[k] = newDefVar;
-		numVarsFilled++;
-
-		if(OMX_DEBUG_ROWS(row)) {
-			mxLog("Populating definition variable from [%d,%d] (value %3.2f)",
-			      row, defVars[k].column, newDefVar);
-		}
-
-		defVars[k].loadData(state, newDefVar);
+		changed |= defVars[k].loadData(state, newDefVar);
 	}
-	return numVarsFilled;
+	return changed;
 }
 
 void omxData::loadFakeData(omxState *state, double fake)
@@ -899,19 +887,21 @@ void omxData::loadFakeData(omxState *state, double fake)
 	}
 }
 
-void omxDefinitionVar::loadData(omxState *state, double val)
+bool omxDefinitionVar::loadData(omxState *state, double val)
 {
 	for(int l = 0; l < numLocations; l++) {
 		int matrixNumber = matrices[l];
 		int matrow = rows[l];
 		int matcol = cols[l];
 		omxMatrix *matrix = state->matrixList[matrixNumber];
+		if (val == omxMatrixElement(matrix, matrow, matcol)) return false;
 		omxSetMatrixElement(matrix, matrow, matcol, val);
 		if (OMX_DEBUG) {
-			mxLog("Load fake data %f into %s[%d,%d], state[%d]",
+			mxLog("Load data %f into %s[%d,%d], state[%d]",
 			      val, matrix->name(), matrow, matcol, state->getId());
 		}
 	}
 	markDefVarDependencies(state, this);
+	return true;
 }
 

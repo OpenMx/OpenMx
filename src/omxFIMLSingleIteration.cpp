@@ -134,10 +134,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	bool firstRow = true;
 	int row = rowbegin;
 	
-	Eigen::VectorXd oldDefs;
-	oldDefs.resize(data->defVars.size());
-	oldDefs.setConstant(NA_REAL);
-	
 	// [[Comment 4]] moving row starting position
 	if (row > 0) {
 		int prevIdentical = omxDataNumIdenticalRows(data, row - 1);
@@ -172,9 +168,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {  // If we're keeping covariance from the previous row, do not populate 
 			// Handle Definition Variables.
 			if((numDefs && numIdenticalDefs <= 0) || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
-				int numVarsFilled = 0;
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
-				numVarsFilled = data->handleDefinitionVarList(localobj->matrix->currentState, row, oldDefs.data());
+				bool numVarsFilled = data->handleDefinitionVarList(localobj->matrix->currentState, row);
 				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 					if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
 						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }

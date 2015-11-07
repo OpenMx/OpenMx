@@ -57,7 +57,7 @@ struct omxDefinitionVar {		 	// Definition Var
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
 
-	void loadData(omxState *state, double val);
+	bool loadData(omxState *state, double val);
 };
 
 struct omxContiguousData {
@@ -115,7 +115,7 @@ class omxData {
 	int verbose;
 
 	void loadFakeData(omxState *state, double fake);
-	int handleDefinitionVarList(omxState *state, int row, double* oldDefs);
+	bool handleDefinitionVarList(omxState *state, int row);
 	bool hasDefinitionVariables() { return defVars.size() != 0; };
 
 	// Used when the expectation provides the observed data (DataDynamic)
