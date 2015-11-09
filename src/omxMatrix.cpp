@@ -354,24 +354,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 		SEXP dimnames;
 		ScopedProtect pdn(dimnames, Rf_getAttrib(matrix, R_DimNamesSymbol));
-		if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
-			SEXP names;
-			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
-			int nlen = Rf_length(names);
-			om->rownames.resize(nlen);
-			for (int nx=0; nx < nlen; ++nx) {
-				om->rownames[nx] = CHAR(STRING_ELT(names, nx));
-			}
-			}
-
-			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
-				int nlen = Rf_length(names);
-			om->colnames.resize(nlen);
-			for (int nx=0; nx < nlen; ++nx) {
-				om->colnames[nx] = CHAR(STRING_ELT(names, nx));
-			}
-			}
-		}
+		om->loadDimnames(dimnames);
 	}
 
 	om->colMajor = TRUE;
@@ -386,6 +369,45 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	omxMatrixLeadingLagging(om);
 
 	return om;
+}
+
+void omxMatrix::loadDimnames(SEXP dimnames)
+{
+	if (!dimnames || Rf_isNull(dimnames)) return;
+
+	if (rownames.size() || colnames.size()) {
+		Rf_error("Attempt to load dimnames more than once for %s", name());
+	}
+
+	SEXP names;
+	if (Rf_length(dimnames) >= 1) {
+		ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
+		if (!Rf_isNull(names) && !Rf_isString(names)) {
+			Rf_warning("rownames for '%s' is of "
+				   "type '%s' instead of a string vector (ignored)",
+				   name(), Rf_type2char(TYPEOF(names)));
+		} else {
+			int nlen = Rf_length(names);
+			rownames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				rownames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+	}
+	if (Rf_length(dimnames) >= 2) {
+		ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
+		if (!Rf_isNull(names) && !Rf_isString(names)) {
+			Rf_warning("colnames for '%s' is of "
+				   "type '%s' instead of a string vector (ignored)",
+				   name(), Rf_type2char(TYPEOF(names)));
+		} else {
+			int nlen = Rf_length(names);
+			colnames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				colnames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+	}
 }
 
 void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)

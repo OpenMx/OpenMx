@@ -41,10 +41,6 @@ struct omxAlgebra {						// A matrix
 	omxMatrix* matrix;				// The matrix populated by this algebra
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
 
-	// char pointers are from R and should not be freed
-	std::vector<const char *> rownames;
-	std::vector<const char *> colnames;
-
 	const omxAlgebraTableEntry *oate;
 
 	omxAlgebra();

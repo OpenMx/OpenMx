@@ -90,6 +90,7 @@ class omxMatrix {
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
 	void unshareMemroyWithR();
+	void loadDimnames(SEXP dimnames);
 	const char *getType() const {
 		const char *what = "matrix";
 		if (algebra) what = "algebra";

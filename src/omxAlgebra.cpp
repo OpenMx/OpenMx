@@ -76,8 +76,6 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL);
-	    tgt->algebra->rownames = src->algebra->rownames;
-	    tgt->algebra->colnames = src->algebra->colnames;
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -213,38 +211,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	}
 	om->nameStr     = name;
 	oa->sexpAlgebra = algebra;
-
-	if (dimnames && !Rf_isNull(dimnames)) {
-		SEXP names;
-		if (Rf_length(dimnames) >= 1) {
-			ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
-			if (!Rf_isNull(names) && !Rf_isString(names)) {
-				Rf_warning("rownames for algebra '%s' is of "
-					   "type '%s' instead of a string vector (ignored)",
-					   name.c_str(), Rf_type2char(TYPEOF(names)));
-			} else {
-				int nlen = Rf_length(names);
-				oa->rownames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					oa->rownames[nx] = CHAR(STRING_ELT(names, nx));
-				}
-			}
-		}
-		if (Rf_length(dimnames) >= 2) {
-			ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
-			if (!Rf_isNull(names) && !Rf_isString(names)) {
-				Rf_warning("colnames for algebra '%s' is of "
-					   "type '%s' instead of a string vector (ignored)",
-					   name.c_str(), Rf_type2char(TYPEOF(names)));
-			} else {
-				int nlen = Rf_length(names);
-				oa->colnames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					oa->colnames[nx] = CHAR(STRING_ELT(names, nx));
-				}
-			}
-		}
-	}
+	om->loadDimnames(dimnames);
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
