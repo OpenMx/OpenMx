@@ -120,7 +120,6 @@ namespace FellnerFitFunction {
 
 	struct state {
 		omxMatrix *smallCol;
-		std::vector<bool> notMissing;   // use to fill the full A matrix
 		std::vector<bool> latentFilter; // use to reduce the A matrix
 		bool AmatDependsOnParameters;
 		bool haveFilteredAmat;
@@ -133,14 +132,23 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		Eigen::VectorXd fullMeans;
 
-		void loadOneRow(omxExpectation *expectation, FitContext *fc, int row, int &nmx, int &lx);
-		void placeOneRow(omxExpectation *expectation, int frow, int &totalLatent, int &totalObserved, int &maxSize);
-		void prepOneRow(omxExpectation *expectation, int row_or_key, int &nmx, int &lx, int &dx);
+		void loadOneRow(omxExpectation *expectation, FitContext *fc, int row, int &lx);
+		void placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
+		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	};
 	
-	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int row, int &nmx, int &lx)
+	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
 	{
 		omxData *data = expectation->data;
+
+		int row;
+		if (!data->hasPrimaryKey()) {
+			row = key_or_row;
+		} else {
+			row = data->lookupRowOfKey(key_or_row);
+			if (data->rowToOffsetMap[row] != lx) return;
+		}
+
 		data->handleDefinitionVarList(expectation->currentState, row);
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		omxRecompute(ram->A, fc);
@@ -151,11 +159,7 @@ namespace FellnerFitFunction {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, row, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
-			int frow = j1.data->lookupRowOfKey(key);
-			int jOffset = j1.data->rowToOffsetMap[frow];
-			if (jOffset != nmx) continue;
-
-			loadOneRow(j1.ex, fc, frow, nmx, lx);
+			loadOneRow(j1.ex, fc, key, lx);
 		}
 		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
 			join &j1 = ram->joins[jx];
@@ -166,17 +170,13 @@ namespace FellnerFitFunction {
 			omxMatrix *betA = j1.regression;
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
-			for (int rx=0, ry=-1; rx < ram->A->rows; ++rx) {  //lower
-				if (!notMissing[nmx + rx]) continue;
-				++ry;
-				for (int cx=0, cy=-1; cx < ram2->A->rows; ++cx) {  //upper
-					if (!notMissing[jOffset + cx]) continue;
-					++cy;
+			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					for (int mr=0; mr < betA->rows; ++mr) {
 						if (j1.lowerMap[mr] != rx) continue;
 						for (int mc=0; mc < betA->cols; ++mc) {
 							if (j1.upperMap[mc] != cx) continue;
-							fullA.coeffRef(lx + ry, jOffset + cy) -=
+							fullA.coeffRef(lx + rx, jOffset + cx) -=
 								omxMatrixElement(betA, mr, mc);
 						}
 					}
@@ -184,50 +184,37 @@ namespace FellnerFitFunction {
 			}
 		}
 
-		int cy = -1;
 		if (!haveFilteredAmat) {
 			EigenMatrixAdaptor eA(ram->A);
 			for (int cx=0; cx < eA.cols(); ++cx) {
-				if (!notMissing[nmx + cx]) continue;
-				++cy;
-				for (int rx=0, ry=-1; rx < eA.rows(); ++rx) {
-					if (!notMissing[nmx + rx]) continue;
-					++ry;
+				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
 						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
+						fullA.coeffRef(lx + rx, lx + cx) -= eA(rx, cx);
 					}
 				}
 			}
 		}
 
-		cy = -1;
 		EigenMatrixAdaptor eS(ram->S);
 		for (int cx=0; cx < eS.cols(); ++cx) {
-			if (!notMissing[nmx + cx]) continue;
-			++cy;
-			for (int rx=0, ry=-1; rx < eS.rows(); ++rx) {
-				if (!notMissing[nmx + rx]) continue;
-				++ry;
+			for (int rx=0; rx < eS.rows(); ++rx) {
 				if (rx >= cx && eS(rx,cx) != 0) {
-					fullS.coeffRef(lx + ry, lx + cy) += eS(rx, cx);
+					fullS.coeffRef(lx + rx, lx + cx) += eS(rx, cx);
 				}
 			}
 		}
 
 		if (ram->M) {
 			EigenVectorAdaptor eM(ram->M);
-			for (int mx=0, my=-1; mx < eM.size(); ++mx) {
-				if (!notMissing[nmx + mx]) continue;
-				++my;
-				fullMeans[lx + my] = eM[mx];
+			for (int mx=0; mx < eM.size(); ++mx) {
+				fullMeans[lx + mx] = eM[mx];
 			}
 		} else {
-			fullMeans.segment(lx, cy+1).setZero();
+			fullMeans.segment(lx, ram->A->cols).setZero();
 		}
 
-		lx += cy + 1;
-		nmx += ram->A->rows;
+		lx += ram->A->cols;
 	}
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
@@ -266,8 +253,9 @@ namespace FellnerFitFunction {
 			}
 		}
 
-		for (int nmx=0, lx=0, row=0; row < data->rows; ++row) {
-			st->loadOneRow(expectation, fc, row, nmx, lx);
+		for (int lx=0, row=0; row < data->rows; ++row) {
+			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
+			st->loadOneRow(expectation, fc, key_or_row, lx);
 		}
 
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
@@ -316,6 +304,8 @@ namespace FellnerFitFunction {
 
 			st->covDecomp.factorize(fullCov);
 			lp = st->covDecomp.log_determinant();
+			//mxPrintMat("dataVec", st->dataVec);
+			//mxPrintMat("fullMeans", fullMeans);
 			Eigen::VectorXd resid = st->dataVec - filteredA * fullMeans;
 			double iqf = st->covDecomp.inv_quad_form(resid);
 			lp += iqf;
@@ -354,7 +344,7 @@ namespace FellnerFitFunction {
 		delete st;
 	}
 
-	void state::placeOneRow(omxExpectation *expectation, int frow, int &totalLatent, int &totalObserved, int &maxSize)
+	void state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -363,21 +353,24 @@ namespace FellnerFitFunction {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, frow, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
-			placeOneRow(j1.ex, j1.data->lookupRowOfKey(key), totalLatent, totalObserved, maxSize);
+			placeOneRow(j1.ex, j1.data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
 		if (data->hasPrimaryKey()) {
 			// insert_or_assign would be nice here
 			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
 			if (it != data->rowToOffsetMap.end()) return;
 
-			int loc = totalObserved + totalLatent;
 			if (OMX_DEBUG) {
-				mxLog("%s: place row %d at %d", expectation->name, frow, loc);
+				mxLog("%s: place row %d at %d", expectation->name, frow, maxSize);
 			}
-			data->rowToOffsetMap[frow] = loc;
+			data->rowToOffsetMap[frow] = maxSize;
 		}
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
+			if (!ram->M) {
+				Rf_error("'%s' has manifest observations but '%s' has no mean model",
+					 data->name, expectation->name);
+			}
 			if (smallCol->cols < jCols) {
 				omxResizeMatrix(smallCol, 1, jCols);
 			}
@@ -388,12 +381,11 @@ namespace FellnerFitFunction {
 				if (yes) ++totalObserved;
 			}
 		}
-		totalLatent += ram->F->cols - ram->F->rows;
 		maxSize += ram->F->cols;
 		AmatDependsOnParameters |= ram->A->dependsOnParameters();
 	}
 
-	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &nmx, int &lx, int &dx)
+	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -403,14 +395,14 @@ namespace FellnerFitFunction {
 			frow = row_or_key;
 		} else {
 			frow = data->lookupRowOfKey(row_or_key);
-			if (data->rowToOffsetMap[frow] != nmx) return;
+			if (data->rowToOffsetMap[frow] != lx) return;
 		}
 
 		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, frow, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
-			prepOneRow(j1.ex, key, nmx, lx, dx);
+			prepOneRow(j1.ex, key, lx, dx);
 		}
 
 		int jCols = expectation->dataColumns->cols;
@@ -419,14 +411,12 @@ namespace FellnerFitFunction {
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(smallCol, 0, col);
 				bool yes = std::isfinite(val);
-				notMissing[ nmx++ ] = yes;
 				if (!yes) continue;
-				latentFilter[ lx++ ] = true;
+				latentFilter[ lx + col ] = true;
 				dataVec[ dx++ ] = val;
 			}
 		}
-		nmx += ram->F->cols - ram->F->rows;
-		lx += ram->F->cols - ram->F->rows;
+		lx += ram->F->cols;
 	}
 
 	static void init(omxFitFunction *oo)
@@ -460,22 +450,20 @@ namespace FellnerFitFunction {
 		st->smallCol = omxInitMatrix(1, numManifest, TRUE, oo->matrix->currentState);
 		omxData *data               = expectation->data;
 
-		int totalLatent = 0;
 		int totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
-			st->placeOneRow(expectation, row, totalLatent, totalObserved, maxSize);
+			st->placeOneRow(expectation, row, totalObserved, maxSize);
 		}
 		//mxLog("AmatDependsOnParameters=%d", st->AmatDependsOnParameters);
 
 		//mxLog("total observations %d", totalObserved);
-		st->notMissing.assign(maxSize, true); // will have latentFilter.size() true entries
-		st->latentFilter.assign(totalObserved + totalLatent, false); // will have totalObserved true entries
+		st->latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		st->dataVec.resize(totalObserved);
 	
-		for (int row=0, dx=0, lx=0, nmx=0; row < data->rows; ++row) {
+		for (int row=0, dx=0, lx=0; row < data->rows; ++row) {
 			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
-			st->prepOneRow(expectation, key_or_row, nmx, lx, dx);
+			st->prepOneRow(expectation, key_or_row, lx, dx);
 		}
 	}
 };
