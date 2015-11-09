@@ -89,7 +89,7 @@ class omxMatrix {
 	std::vector<const char *> colnames;
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
-	void setNotConstant();
+	void unshareMemroyWithR();
 	const char *getType() const {
 		const char *what = "matrix";
 		if (algebra) what = "algebra";

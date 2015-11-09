@@ -396,7 +396,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", numPopLocs); }
 
-	setNotConstant();
+	unshareMemroyWithR();
 
 	populate.resize(numPopLocs);
 
@@ -414,7 +414,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 	}
 }
 
-void omxMatrix::setNotConstant()
+void omxMatrix::unshareMemroyWithR()
 {
 	if (!owner) return;
 
