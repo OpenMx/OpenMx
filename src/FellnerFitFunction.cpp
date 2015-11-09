@@ -123,6 +123,8 @@ namespace FellnerFitFunction {
 		omxMatrix *smallCol2;
 		std::vector<bool> notMissing;   // use to fill the full A matrix
 		std::vector<bool> latentFilter; // use to reduce the A matrix
+		bool AmatDependsOnParameters;
+		bool haveFilteredAmat;
 		Eigen::VectorXd data;
 		Eigen::SparseMatrix<double>      fullA;
 		Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
@@ -138,18 +140,30 @@ namespace FellnerFitFunction {
 	void state::loadOneRow(omxRAMExpectation *ram, int &nmx, int &lx)
 	{
 		int cy = -1;
-		EigenMatrixAdaptor eA(ram->A);
+		if (!haveFilteredAmat) {
+			EigenMatrixAdaptor eA(ram->A);
+			for (int cx=0; cx < eA.cols(); ++cx) {
+				if (!notMissing[nmx + cx]) continue;
+				++cy;
+				for (int rx=0, ry=-1; rx < eA.rows(); ++rx) {
+					if (!notMissing[nmx + rx]) continue;
+					++ry;
+					if (rx != cx && eA(rx,cx) != 0) {
+						// can't use eA.block(..) -= because fullA must remain sparse
+						fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
+					}
+				}
+			}
+		}
+
+		cy = -1;
 		EigenMatrixAdaptor eS(ram->S);
-		for (int cx=0; cx < eA.cols(); ++cx) {
+		for (int cx=0; cx < eS.cols(); ++cx) {
 			if (!notMissing[nmx + cx]) continue;
 			++cy;
-			for (int rx=0, ry=-1; rx < eA.rows(); ++rx) {
+			for (int rx=0, ry=-1; rx < eS.rows(); ++rx) {
 				if (!notMissing[nmx + rx]) continue;
 				++ry;
-				if (rx != cx && eA(rx,cx) != 0) {
-					// can't use eA.block(..) -= because fullA must remain sparse
-					fullA.coeffRef(lx + ry, lx + cy) -= eA(rx, cx);
-				}
 				if (rx >= cx && eS(rx,cx) != 0) {
 					fullS.coeffRef(lx + ry, lx + cy) += eS(rx, cx);
 				}
@@ -273,26 +287,29 @@ namespace FellnerFitFunction {
 				st->Asolver.analyzePattern(fullA);
 			}
 			st->Asolver.factorize(fullA);
-			if (filteredA.nonZeros() == 0) {
+			if (!st->haveFilteredAmat) {
+				// try passing the whole identity matrix instead of col by col
+				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf
 				filteredA.resize(st->data.size(), fullA.rows());
 				filteredA.reserve(st->data.size());
-			}
-			Eigen::VectorXd a1(fullA.rows());
-			a1.setZero();
-			Eigen::VectorXd result(fullA.rows());
-			for (int ax=0; ax < fullA.rows(); ++ax) {
-				// is there a faster way to do this? TODO
-				a1[ax] = 1.0;
-				result = st->Asolver.solve(a1);
-				for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
-					if (!st->latentFilter[lx]) continue;
-					++ox;
-					if (result[lx] == 0) continue;
-					filteredA.coeffRef(ox, ax) = result[lx];
+				Eigen::VectorXd a1(fullA.rows());
+				a1.setZero();
+				Eigen::VectorXd result(fullA.rows());
+				for (int ax=0; ax < fullA.rows(); ++ax) {
+					// is there a faster way to do this? TODO
+					a1[ax] = 1.0;
+					result = st->Asolver.solve(a1);
+					for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
+						if (!st->latentFilter[lx]) continue;
+						++ox;
+						if (result[lx] == 0) continue;
+						filteredA.coeffRef(ox, ax) = result[lx];
+					}
+					a1[ax] = 0.0;
 				}
-				a1[ax] = 0.0;
+				filteredA.makeCompressed();
+				st->haveFilteredAmat = !st->AmatDependsOnParameters;
 			}
-			filteredA.makeCompressed();
 			//mxPrintMat("S", fullS);
 			//Eigen::MatrixXd fullCovDense =
 			bool firstTime = fullCov.nonZeros() == 0;
@@ -372,6 +389,8 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 	ram->ensureTrivialF();
 	int numManifest = ram->F->rows;
 
+	st->AmatDependsOnParameters = ram->A->dependsOnParameters();
+	st->haveFilteredAmat = false;
 	st->smallCol = omxInitMatrix(1, numManifest, TRUE, oo->matrix->currentState);
 	st->smallCol2 = omxInitMatrix(1, 0, TRUE, oo->matrix->currentState);
 	omxData *data               = expectation->data;
@@ -407,6 +426,7 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
 				totalLatent += ram2->F->cols - ram2->F->rows;
 				maxSize += ram2->F->cols;
+				st->AmatDependsOnParameters |= ram2->A->dependsOnParameters();
 			}
 		}
 		for (int col=0; col < numManifest; ++col) {
@@ -417,6 +437,7 @@ void InitFellnerFitFunction(omxFitFunction *oo)
 		totalLatent += ram->F->cols - ram->F->rows;
 		maxSize += ram->F->cols;
 	}
+	//mxLog("AmatDependsOnParameters=%d", st->AmatDependsOnParameters);
 
 	//mxLog("total observations %d", totalObserved);
 	st->notMissing.assign(maxSize, true); // will have latentFilter.size() true entries
