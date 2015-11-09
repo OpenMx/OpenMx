@@ -89,8 +89,15 @@ class omxData {
  private:
 	SEXP rownames;
 	void addDynamicDataSource(omxExpectation *ex);
+	int primaryKey;   // column of primary key
 
  public: // move everything to private TODO
+	bool hasPrimaryKey() const { return primaryKey >= 0; };
+	int lookupRowOfKey(int key);
+	int primaryKeyOfRow(int row);
+	void omxPrintData(const char *header, int maxRows);
+	void omxPrintData(const char *header);
+
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
 	omxMatrix* dataMat;                             // do not use directly
@@ -115,7 +122,6 @@ class omxData {
  public:
 	int rows, cols;						// Matrix size 
 	int verbose;
-	int primaryKey;   // column of primary key
 	std::map<int,int> rowToOffsetMap;
 
 	void loadFakeData(omxState *state, double fake);
@@ -151,8 +157,6 @@ inline int omxKeyDataElement(omxData *od, int row, int col)
 	ColumnData &cd = od->rawCols[col];
 	return cd.intData[row];
 }
-
-int omxDataLookupRowOfKey(omxData *od, int key);
 
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);

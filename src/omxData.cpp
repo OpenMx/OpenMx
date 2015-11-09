@@ -422,17 +422,24 @@ bool omxDataColumnIsKey(omxData *od, int col)
 	return cd.intData && !cd.levels;
 }
 
-int omxDataLookupRowOfKey(omxData *od, int key)
+int omxData::primaryKeyOfRow(int row)
 {
-	if(od->dataMat != NULL) Rf_error("%s: only raw data can have a primary key", od->name);
-	if (od->primaryKey < 0) Rf_error("%s: omxDataLookupRowOfKey attempted "
-					 "but no primary key specified", od->name);
-	ColumnData &cd = od->rawCols[od->primaryKey];
+	if(dataMat != NULL) Rf_error("%s: only raw data can have a primary key", name);
+	ColumnData &cd = rawCols[primaryKey];
+	return cd.intData[row];
+}
+
+int omxData::lookupRowOfKey(int key)
+{
+	if(dataMat != NULL) Rf_error("%s: only raw data can have a primary key", name);
+	if (primaryKey < 0) Rf_error("%s: omxDataLookupRowOfKey attempted "
+					 "but no primary key specified", name);
+	ColumnData &cd = rawCols[primaryKey];
 	// dumb column scan, could be optimized with an index
-	for (int rx=0; rx < od->rows; ++rx) {
+	for (int rx=0; rx < rows; ++rx) {
 		if (cd.intData[rx] == key) return rx;
 	}
-	Rf_error("%s: key %d not found in column '%s'", od->name, key, cd.name);
+	Rf_error("%s: key %d not found in column '%s'", name, key, cd.name);
 }
 
 const char *omxDataColumnName(omxData *od, int col)
@@ -787,10 +794,11 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 }
 
 
-void omxPrintData(omxData *od, const char *header, int maxRows)
+void omxData::omxPrintData(const char *header, int maxRows)
 {
 	if (!header) header = "Default data";
 
+	omxData *od = this;
 	if (!od) {
 		mxLog("%s: NULL", header);
 		return;
@@ -799,7 +807,7 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 	std::string buf;
 	buf += string_snprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
 			       od->rows, od->cols);
-	if (od->primaryKey != NA_INTEGER) {
+	if (hasPrimaryKey()) {
 		buf += string_snprintf("primaryKey %d\n", od->primaryKey);
 	}
 
@@ -855,9 +863,9 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
 }
 
-void omxPrintData(omxData *od, const char *header)
+void omxData::omxPrintData(const char *header)
 {
-        omxPrintData(od, header, -1);
+        omxPrintData(header, -1);
 }
 
 double omxDataDF(omxData *od)
