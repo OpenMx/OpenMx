@@ -47,9 +47,12 @@ struct populateLocation {
 };
 
 class omxMatrix {
-/* For inclusion in(or of) other matrices */
-	std::vector< populateLocation > populate;
+	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
+	bool dependsOnParametersCache;    // Ignores free variable groups
  public:
+	omxMatrix() { dependsOnParametersCache = false; };
+	void setDependsOnParameters() { dependsOnParametersCache = true; };
+	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	void transposePopulate();
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);

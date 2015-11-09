@@ -591,6 +591,9 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 		omxRecompute(sourceMatrix, fc);
 
 		if (want & FF_COMPUTE_INITIAL_FIT) {
+			if (sourceMatrix->dependsOnParameters()) {
+				setDependsOnParameters();
+			}
 			if (pl.srcRow >= sourceMatrix->rows || pl.srcCol >= sourceMatrix->cols) {
 				// may not be properly dimensioned yet
 				continue;
@@ -636,7 +639,7 @@ void omxRecompute(omxMatrix *matrix, FitContext *fc)
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
 	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, fc);
+	else if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}

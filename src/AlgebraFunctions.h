@@ -95,7 +95,7 @@ static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *re
 		omxFillAlgebraFromTableEntry(oa, entry, 1);
 		oa->algArgs[0] = mat0;
 		matList[0] = om;
-		omxAlgebraRecompute(oa, fc);
+		omxAlgebraRecompute(om, FF_COMPUTE_INITIAL_FIT, fc);
 		return;
 	}
 	if (mat1->cols == 1 && mat1->rows == 1 && mat0->rows != 0 && mat0->cols != 0) {
@@ -109,7 +109,7 @@ static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *re
 		omxFillAlgebraFromTableEntry(oa, entry, 1);
 		oa->algArgs[0] = mat1;
 		matList[1] = om;
-		omxAlgebraRecompute(oa, fc);
+		omxAlgebraRecompute(om, FF_COMPUTE_INITIAL_FIT, fc);
 		return;
 	}
 }

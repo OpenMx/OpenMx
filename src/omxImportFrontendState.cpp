@@ -284,7 +284,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 	}
 }
 
-void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
+void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
 	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
@@ -339,6 +339,12 @@ void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 			loc.col = theVarList[2];
 
 			fv->locations.push_back(loc);
+
+			omxMatrix *mat = matrixList[loc.matrix];
+			if (OMX_DEBUG && !mat->dependsOnParameters()) {
+				mxLog("Matrix %s depends on free parameter %s", mat->name(), fv->name);
+			}
+			mat->setDependsOnParameters();
 		}
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, Rf_length(nextVar)-1));
 		double sv = REAL(nextLoc)[0];

@@ -94,9 +94,30 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
-void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc)
+void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
-	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], fc);
+	omxAlgebra *oa = mat->algebra;
+
+	if (want & FF_COMPUTE_INITIAL_FIT) {
+		bool fvDep = false;
+		for(int j = 0; j < oa->numArgs; j++) {
+			if (oa->algArgs[j]->dependsOnParameters()) {
+				if (OMX_DEBUG && !fvDep) {
+					mxLog("Algebra %s depends on free parameters "
+					      "because of argument[%d] %s",
+					      mat->name(), j, oa->algArgs[j]->name());
+				}
+				fvDep = true;
+			}
+		}
+		if (fvDep) {
+			mat->setDependsOnParameters();
+		}
+	}
+
+	for(int j = 0; j < oa->numArgs; j++) {
+		omxRecompute(oa->algArgs[j], fc);
+	}
 	if (isErrorRaised()) return;
 
 	if(oa->funWrapper == NULL) {

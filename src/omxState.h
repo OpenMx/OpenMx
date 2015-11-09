@@ -288,6 +288,7 @@ class omxState {
 	omxState() { init(); };
 	omxState(omxState *src);
 	void omxProcessMxMatrixEntities(SEXP matList);
+	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 	void omxProcessMxAlgebraEntities(SEXP algList);
 	void omxCompleteMxFitFunction(SEXP algList);
 	void omxProcessConfidenceIntervals(SEXP intervalList);

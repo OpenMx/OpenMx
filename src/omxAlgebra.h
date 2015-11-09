@@ -61,7 +61,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	void omxAlgebraCopyAlgebra(omxAlgebra *dest, omxAlgebra *src);		// Copy across another element.  
 																		// NOTE: Duplicates.
 
-void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc);
+void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc);
 
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 
