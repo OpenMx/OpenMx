@@ -76,8 +76,6 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL);
-	    tgt->algebra->rownames = src->algebra->rownames;
-	    tgt->algebra->colnames = src->algebra->colnames;
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -96,9 +94,30 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
-void omxAlgebraRecompute(omxAlgebra *oa, FitContext *fc)
+void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
-	for(int j = 0; j < oa->numArgs; j++) omxRecompute(oa->algArgs[j], fc);
+	omxAlgebra *oa = mat->algebra;
+
+	if (want & FF_COMPUTE_INITIAL_FIT) {
+		bool fvDep = false;
+		for(int j = 0; j < oa->numArgs; j++) {
+			if (oa->algArgs[j]->dependsOnParameters()) {
+				if (OMX_DEBUG && !fvDep) {
+					mxLog("Algebra %s depends on free parameters "
+					      "because of argument[%d] %s",
+					      mat->name(), j, oa->algArgs[j]->name());
+				}
+				fvDep = true;
+			}
+		}
+		if (fvDep) {
+			mat->setDependsOnParameters();
+		}
+	}
+
+	for(int j = 0; j < oa->numArgs; j++) {
+		omxRecompute(oa->algArgs[j], fc);
+	}
 	if (isErrorRaised()) return;
 
 	if(oa->funWrapper == NULL) {
@@ -213,38 +232,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	}
 	om->nameStr     = name;
 	oa->sexpAlgebra = algebra;
-
-	if (dimnames && !Rf_isNull(dimnames)) {
-		SEXP names;
-		if (Rf_length(dimnames) >= 1) {
-			ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
-			if (!Rf_isNull(names) && !Rf_isString(names)) {
-				Rf_warning("rownames for algebra '%s' is of "
-					   "type '%s' instead of a string vector (ignored)",
-					   name.c_str(), Rf_type2char(TYPEOF(names)));
-			} else {
-				int nlen = Rf_length(names);
-				oa->rownames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					oa->rownames[nx] = CHAR(STRING_ELT(names, nx));
-				}
-			}
-		}
-		if (Rf_length(dimnames) >= 2) {
-			ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
-			if (!Rf_isNull(names) && !Rf_isString(names)) {
-				Rf_warning("colnames for algebra '%s' is of "
-					   "type '%s' instead of a string vector (ignored)",
-					   name.c_str(), Rf_type2char(TYPEOF(names)));
-			} else {
-				int nlen = Rf_length(names);
-				oa->colnames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					oa->colnames[nx] = CHAR(STRING_ELT(names, nx));
-				}
-			}
-		}
-	}
+	om->loadDimnames(dimnames);
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {

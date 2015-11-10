@@ -45,8 +45,8 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 	numDeriv = 0;
 
 	if (gradient) {
-		if (int(std::max(gradient->algebra->rownames.size(),
-				 gradient->algebra->colnames.size())) !=
+		if (int(std::max(gradient->rownames.size(),
+				 gradient->colnames.size())) !=
 		    std::max(gradient->rows, gradient->cols)) {
 			Rf_error("%s: gradient must have row or column names", ff->matrix->name());
 		}
@@ -56,12 +56,12 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 			Rf_error("%s: Hessian must be square (instead of %dx%d)",
 				 ff->matrix->name(), hessian->rows, hessian->cols);
 		}
-		if (int(hessian->algebra->rownames.size()) != hessian->rows ||
-		    int(hessian->algebra->colnames.size()) != hessian->rows) {
+		if (int(hessian->rownames.size()) != hessian->rows ||
+		    int(hessian->colnames.size()) != hessian->rows) {
 			Rf_error("%s: Hessian must have row and column names", ff->matrix->name());
 		}
 		for (int hx=0; hx < hessian->rows; ++hx) {
-			if (strcmp(hessian->algebra->colnames[hx], hessian->algebra->rownames[hx]) != 0) {
+			if (strcmp(hessian->colnames[hx], hessian->rownames[hx]) != 0) {
 				Rf_error("%s: Hessian must have identical row and column names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
@@ -75,10 +75,10 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 			Rf_error("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
 				 ff->matrix->name(), size, hessian->rows, hessian->cols);
 		}
-		std::vector<const char*> &gnames = gradient->algebra->rownames;
-		if (gnames.size() == 0) gnames = gradient->algebra->colnames;
+		std::vector<const char*> &gnames = gradient->rownames;
+		if (gnames.size() == 0) gnames = gradient->colnames;
 		for (int hx=0; hx < hessian->rows; ++hx) {
-			if (strcmp(hessian->algebra->colnames[hx], gnames[hx]) != 0) {
+			if (strcmp(hessian->colnames[hx], gnames[hx]) != 0) {
 				Rf_error("%s: Hessian and gradient must have identical names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
@@ -87,11 +87,11 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 
 	std::vector<const char*> *names = NULL;
 	if (gradient) {
-		names = &gradient->algebra->rownames;
-		if (names->size() == 0) names = &gradient->algebra->colnames;
+		names = &gradient->rownames;
+		if (names->size() == 0) names = &gradient->colnames;
 	}
 	if (hessian && names == NULL) {
-		names = &hessian->algebra->rownames;
+		names = &hessian->rownames;
 	}
 	if (!names) return;
 

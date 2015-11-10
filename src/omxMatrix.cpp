@@ -354,24 +354,7 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 
 		SEXP dimnames;
 		ScopedProtect pdn(dimnames, Rf_getAttrib(matrix, R_DimNamesSymbol));
-		if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
-			SEXP names;
-			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
-			int nlen = Rf_length(names);
-			om->rownames.resize(nlen);
-			for (int nx=0; nx < nlen; ++nx) {
-				om->rownames[nx] = CHAR(STRING_ELT(names, nx));
-			}
-			}
-
-			{ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
-				int nlen = Rf_length(names);
-			om->colnames.resize(nlen);
-			for (int nx=0; nx < nlen; ++nx) {
-				om->colnames[nx] = CHAR(STRING_ELT(names, nx));
-			}
-			}
-		}
+		om->loadDimnames(dimnames);
 	}
 
 	om->colMajor = TRUE;
@@ -388,6 +371,45 @@ static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState*
 	return om;
 }
 
+void omxMatrix::loadDimnames(SEXP dimnames)
+{
+	if (!dimnames || Rf_isNull(dimnames)) return;
+
+	if (rownames.size() || colnames.size()) {
+		Rf_error("Attempt to load dimnames more than once for %s", name());
+	}
+
+	SEXP names;
+	if (Rf_length(dimnames) >= 1) {
+		ScopedProtect p1(names, VECTOR_ELT(dimnames, 0));
+		if (!Rf_isNull(names) && !Rf_isString(names)) {
+			Rf_warning("rownames for '%s' is of "
+				   "type '%s' instead of a string vector (ignored)",
+				   name(), Rf_type2char(TYPEOF(names)));
+		} else {
+			int nlen = Rf_length(names);
+			rownames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				rownames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+	}
+	if (Rf_length(dimnames) >= 2) {
+		ScopedProtect p1(names, VECTOR_ELT(dimnames, 1));
+		if (!Rf_isNull(names) && !Rf_isString(names)) {
+			Rf_warning("colnames for '%s' is of "
+				   "type '%s' instead of a string vector (ignored)",
+				   name(), Rf_type2char(TYPEOF(names)));
+		} else {
+			int nlen = Rf_length(names);
+			colnames.resize(nlen);
+			for (int nx=0; nx < nlen; ++nx) {
+				colnames[nx] = CHAR(STRING_ELT(names, nx));
+			}
+		}
+	}
+}
+
 void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 {
 	if(Rf_length(matStruct) <= 1) return;
@@ -396,7 +418,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", numPopLocs); }
 
-	setNotConstant();
+	unshareMemroyWithR();
 
 	populate.resize(numPopLocs);
 
@@ -414,7 +436,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 	}
 }
 
-void omxMatrix::setNotConstant()
+void omxMatrix::unshareMemroyWithR()
 {
 	if (!owner) return;
 
@@ -569,6 +591,9 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 		omxRecompute(sourceMatrix, fc);
 
 		if (want & FF_COMPUTE_INITIAL_FIT) {
+			if (sourceMatrix->dependsOnParameters()) {
+				setDependsOnParameters();
+			}
 			if (pl.srcRow >= sourceMatrix->rows || pl.srcCol >= sourceMatrix->cols) {
 				// may not be properly dimensioned yet
 				continue;
@@ -614,7 +639,7 @@ void omxRecompute(omxMatrix *matrix, FitContext *fc)
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
 	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra != NULL) omxAlgebraRecompute(matrix->algebra, fc);
+	else if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
 	else if(matrix->fitFunction != NULL) {
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}
