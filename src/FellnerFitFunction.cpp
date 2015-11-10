@@ -137,6 +137,8 @@ namespace FellnerFitFunction {
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	};
 	
+	// verify whether sparse can deal with parameters set to exactly zero TODO
+
 	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
 	{
 		omxData *data = expectation->data;
@@ -170,6 +172,7 @@ namespace FellnerFitFunction {
 			omxMatrix *betA = j1.regression;
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+			// enforce correct size for between matrix to simplify loop TODO
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					for (int mr=0; mr < betA->rows; ++mr) {
@@ -269,27 +272,47 @@ namespace FellnerFitFunction {
 			}
 			st->Asolver.factorize(fullA);
 			if (!st->haveFilteredAmat) {
-				// try passing the whole identity matrix instead of col by col
-				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf
-				filteredA.resize(st->dataVec.size(), fullA.rows());
-				filteredA.reserve(st->dataVec.size());
-				Eigen::VectorXd a1(fullA.rows());
-				a1.setZero();
-				Eigen::VectorXd result(fullA.rows());
-				for (int ax=0; ax < fullA.rows(); ++ax) {
-					// is there a faster way to do this? TODO
-					a1[ax] = 1.0;
-					result = st->Asolver.solve(a1);
-					for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
-						if (!st->latentFilter[lx]) continue;
-						++ox;
-						if (result[lx] == 0) continue;
-						filteredA.coeffRef(ox, ax) = result[lx];
+				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
+
+				if (1) {
+					Eigen::SparseMatrix<double> ident;
+					ident.resize(fullA.rows(), fullA.rows());
+					ident.setIdentity();
+					Eigen::SparseMatrix<double> result = st->Asolver.solve(ident);
+					//{ Eigen::MatrixXd tmp = result; mxPrintMat("result", tmp); }
+					filteredA.resize(st->dataVec.size(), fullA.rows());
+					filteredA.setZero();
+					for (int rx=0, dx=-1; rx < fullA.rows(); ++rx) {
+						if (!st->latentFilter[rx]) continue;
+						++dx;
+						for (int cx=0; cx < fullA.cols(); ++cx) {
+							if (result.coeff(rx, cx) == 0) continue;
+							filteredA.coeffRef(dx, cx) = result.coeff(rx, cx);
+						}
 					}
-					a1[ax] = 0.0;
+				} else {
+					// at least 3x slower than inverting the whole matrix in one go
+					filteredA.resize(st->dataVec.size(), fullA.rows());
+					filteredA.reserve(st->dataVec.size());
+					Eigen::VectorXd a1(fullA.rows());
+					a1.setZero();
+					Eigen::VectorXd result(fullA.rows());
+					for (int ax=0; ax < fullA.rows(); ++ax) {
+						// is there a faster way to do this? TODO
+						a1[ax] = 1.0;
+						result = st->Asolver.solve(a1);
+						for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
+							if (!st->latentFilter[lx]) continue;
+							++ox;
+							if (result[lx] == 0) continue;
+							filteredA.coeffRef(ox, ax) = result[lx];
+						}
+						a1[ax] = 0.0;
+					}
 				}
 				filteredA.makeCompressed();
 				st->haveFilteredAmat = !st->AmatDependsOnParameters;
+				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 			}
 			//mxPrintMat("S", fullS);
 			//Eigen::MatrixXd fullCovDense =
