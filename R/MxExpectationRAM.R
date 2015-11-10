@@ -530,16 +530,6 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 			return(flatModel)
 		}
 
-		# TODO
-		## if (is.na(.Object@M) || is.null(flatModel[[.Object@M]])) {
-		## 	modelname <- getModelName(.Object)
-		## 	msg <- paste("The RAM expectation function",
-		## 		"has raw data but is missing",
-		## 		"an expected means vector in model",
-		## 		omxQuotes(modelname))
-		## 	stop(msg, call.=FALSE)
-		## }
-				
 		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
 
 		return(flatModel)

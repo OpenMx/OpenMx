@@ -298,7 +298,6 @@ verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
 	}
 }
 
-# could split into into check and convert? TODO
 setMethod("genericExpFunConvert", "MxExpectationNormal", 
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]

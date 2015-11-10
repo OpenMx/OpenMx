@@ -98,7 +98,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
 	if (!means) {
-		omxRaiseError("No means model in FIML evaluation.");
+		omxRaiseErrorf("%s: raw data observed but no expected means "
+			       "vector was provided. Add something like mxPath(from = 'one',"
+			       " to = manifests) to your model.", off->name());
 		return;
 	}
 	omxData* data           = ofiml->data;                            //  read-only

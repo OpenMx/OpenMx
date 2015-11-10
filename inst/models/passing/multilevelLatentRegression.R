@@ -95,7 +95,6 @@ tMod <- mxModel("teacher", type="RAM",
                        values=1,free=c(FALSE, rep(TRUE,numIndicators-1))))
 
 sMod <- mxModel("student", type="RAM",
-                # Need to ensure sort is disabled TODO
                 mxData(type="raw", observed=studentData, sort=FALSE),
                 manifestVars = paste0('i', 1:numIndicators),
                 latentVars = "studentSkill",
