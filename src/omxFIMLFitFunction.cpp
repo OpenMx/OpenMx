@@ -97,6 +97,10 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
+	if (!means) {
+		omxRaiseError("No means model in FIML evaluation.");
+		return;
+	}
 	omxData* data           = ofiml->data;                            //  read-only
 	omxMatrix *dataColumns	= ofiml->dataColumns;
 
@@ -221,11 +225,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	means = omxGetExpectationComponent(expectation, "means");
 	
-	if(means == NULL) { 
-		omxRaiseError("No means model in FIML evaluation.");
-		return;
-	}
-
 	if(OMX_DEBUG) {
 		mxLog("FIML Initialization Completed.");
 	}
@@ -293,14 +292,16 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 //  newObj->zeros = omxInitMatrix(1, newObj->cov->cols, TRUE, off->matrix->currentState);
 
     omxCopyMatrix(newObj->smallCov, newObj->cov);          // Will keep its aliased state from here on.
-    newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-    omxCopyMatrix(newObj->smallMeans, newObj->means);
+    if (means) {
+	    newObj->smallMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+	    omxCopyMatrix(newObj->smallMeans, newObj->means);
+	    newObj->ordMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
+	    omxCopyMatrix(newObj->ordMeans, newObj->means);
+    }
     newObj->contRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
     omxCopyMatrix(newObj->contRow, newObj->smallRow );
     newObj->ordCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
     omxCopyMatrix(newObj->ordCov, newObj->cov);
-    newObj->ordMeans = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-    omxCopyMatrix(newObj->ordMeans, newObj->means);
     newObj->ordRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
     omxCopyMatrix(newObj->ordRow, newObj->smallRow );
     newObj->Infin = (int*) R_alloc(covCols, sizeof(int));

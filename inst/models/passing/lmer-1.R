@@ -10,6 +10,8 @@ if (is.factor(sleepstudy$Subject)) {
   sleepstudy$Subject <- as.integer(levels(sleepstudy$Subject)[unclass(sleepstudy$Subject)])
 }
 
+# ------------------- hybrid matrix/path spec
+if(1) {
 m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars = "DayEffect",
         mxData(type="raw", observed=sleepstudy, sort = FALSE),
         mxPath(c("one"), "Reaction"),
@@ -53,3 +55,53 @@ m1$fitfunction$fellner <- TRUE
 m1 <- mxRun(m1)
 
 omxCheckCloseEnough(logLik(m1), logLik(fm1), 1e-8)
+}
+# ------------------- all path spec
+
+m2 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars = "DayEffect",
+              mxData(type="raw", observed=sleepstudy, sort = FALSE),
+              mxPath(c("one"), "Reaction"),
+              mxPath(c("one"), "DayEffect", free=FALSE, labels="data.Days"),
+              mxPath("DayEffect", "Reaction"),
+              mxPath(c("Reaction"), arrows=2, values=1))
+
+omxCheckError(mxModel(m2, mxPath('by_Subject.intercept', 'Reaction',
+                   values=1, free=FALSE, joinOn="Subject")),
+              "Nice try. You need to create an upper level RAM model called 'by_Subject' and add it as a submodel of 'sleep' before you can create paths between these models.")
+
+bySub <- mxModel(
+  model="by_Subject", type="RAM",
+  latentVars=c("slope", "intercept"),
+  mxData(type="raw",
+         # no data here, only primary key
+         observed=data.frame(Subject=unique(sleepstudy$Subject)),
+         primaryKey = "Subject"),
+  mxPath(c("intercept", "slope"), arrows=2, values=1),
+  mxPath("intercept", "slope", arrows=2, values=.25, labels="cov1"))
+
+m2 <- mxModel(m2, bySub)
+
+omxCheckError(mxModel(m2, mxPath('intercept', 'Reaction',
+                         values=1, free=FALSE, joinOn="Subject")),
+              "Between level paths must be from modelName.variableName, not 'intercept'")
+
+omxCheckError(mxModel(m2, mxPath(c('Bathtub.intercept', 'Sink.intercept'), 'Reaction',
+                                 values=1, free=FALSE, joinOn="Subject")),
+              "Deal with one upper level model at a time, not 'Bathtub' and 'Sink'")
+
+omxCheckError(mxModel(m2, mxPath('by_Subject.intersept', 'Reaction',
+                                 values=1, free=FALSE, joinOn="Subject")),
+              "Nice try, you need to add 'intersept' to either manifestVars or latentVars in model 'by_Subject' before you can use them in a path.")
+
+omxCheckError(mxModel(m2, mxPath('by_Subject.intercept', 'React',
+                                 values=1, free=FALSE, joinOn="Subject")),
+              "Nice try, you need to add 'React' to either manifestVars or latentVars before you can use them in a path.")
+
+m2 <- mxModel(m2,
+              mxPath('by_Subject.intercept', 'Reaction',
+                     values=1, free=FALSE, joinOn="Subject"),
+              mxPath('by_Subject.slope', 'Reaction', labels='data.Days',
+                     free=FALSE, joinOn="Subject"))
+
+m2 <- mxRun(m2)
+omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-8)
