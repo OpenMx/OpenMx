@@ -43,7 +43,8 @@ Suggests:
     roxygen2 (>= 3.1),
     Rmpi,
     rpf (>= 0.36),
-    snowfall
+    snowfall,
+    lme4
 LazyLoad: yes
 LazyData: yes
 Collate:
