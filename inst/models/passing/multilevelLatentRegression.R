@@ -110,8 +110,7 @@ sMod <- mxModel("student", type="RAM",
 
                 # this is the between level regression
                 mxMatrix(name="Z", nrow=1, ncol=1, free=TRUE, labels="regr",
-                         dimnames=list("studentSkill", "teacherSkill")),
-                mxFitFunctionML(fellner=TRUE))
+                         dimnames=list("studentSkill", "teacherSkill")))
 
 sMod$expectation$join <- list(mxJoin(foreignKey='teacherID',
                                      expectation='teacher',

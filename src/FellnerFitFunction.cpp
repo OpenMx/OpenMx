@@ -182,8 +182,8 @@ namespace FellnerFitFunction {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, row, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
-			int frow = j1.data->lookupRowOfKey(key);
-			int jOffset = j1.data->rowToOffsetMap[frow];
+			int frow = j1.ex->data->lookupRowOfKey(key);
+			int jOffset = j1.ex->data->rowToOffsetMap[frow];
 			omxMatrix *betA = j1.regression;
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
@@ -384,7 +384,7 @@ namespace FellnerFitFunction {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, frow, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
-			placeOneRow(j1.ex, j1.data->lookupRowOfKey(key), totalObserved, maxSize);
+			placeOneRow(j1.ex, j1.ex->data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
 		if (data->hasPrimaryKey()) {
 			// insert_or_assign would be nice here

@@ -20,7 +20,7 @@ m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars 
         # this is the between level mapping
         mxMatrix(name="Z", nrow=1, ncol=2, values=1, labels=c('data.Days', NA),
                  dimnames=list(c("Reaction"), c("slope", "intercept"))),
-        mxFitFunctionML(fellner=TRUE))
+        mxFitFunctionML(fellner=FALSE))
 
 m1$expectation$join <- list(mxJoin(foreignKey="Subject",
                                    expectation="bySubject",
@@ -46,6 +46,9 @@ map <- mxMatrix(name="Z", nrow=2, ncol=2,
 map$labels['Reaction','slope'] <- 'data.Days'
 map$values['Reaction','intercept'] <- 1
 m1 <- mxModel(m1, map)
+
+omxCheckError(mxRun(m1), "sleep.fitfunction: fellner=TRUE is required for sleep.expectation")
+m1$fitfunction$fellner <- TRUE
 
 m1 <- mxRun(m1)
 

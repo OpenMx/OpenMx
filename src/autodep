@@ -137,7 +137,7 @@ omxMLFitFunction.o: Makevars.in omxMLFitFunction.cpp omxDefines.h \
  multi_normal_sufficient.hpp omxExpectation.h omxMatrix.h omxBLAS.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h \
  omxData.h Compute.h \
- glue.h omxFIMLFitFunction.h omxRAMExpectation.h omxBuffer.h matrix.h
+ glue.h omxFIMLFitFunction.h omxRAMExpectation.h omxBuffer.h matrix.h RAMInternal.h
 omxMatrix.o: Makevars.in omxMatrix.cpp omxMatrix.h omxDefines.h \
  omxBLAS.h matrix.h \
  omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \

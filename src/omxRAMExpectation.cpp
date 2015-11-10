@@ -25,7 +25,7 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
     omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
-void omxRAMExpectation::ensureTrivialF()
+void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 {
 	omxRecompute(F, NULL);  // should not do anything
 	EigenMatrixAdaptor eF(F);
@@ -240,7 +240,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 				      oo->name, j1.foreignKey, j1.ex->name, j1.regression->name());
 			}
 				
-			j1.data = j1.ex->data;
 			RAMexp->joins.push_back(j1);
 		}
 	}

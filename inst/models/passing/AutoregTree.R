@@ -52,8 +52,7 @@ m1 <- mxModel("person", type="RAM",
               mxPath("one", "height"),
               mxPath("height", arrows=2, values=1),
               mxMatrix(name="Z", nrow=2, ncol=2, dimnames=list(c('height', 'maleEffect'),
-                                                               c('height', 'maleEffect'))),
-              mxFitFunctionML(fellner = TRUE))
+                                                               c('height', 'maleEffect'))))
 
 m1$Z$free['height', 'height'] <- TRUE
 

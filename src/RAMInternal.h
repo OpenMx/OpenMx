@@ -5,7 +5,6 @@ struct join {
 	int foreignKey;
 	struct omxExpectation *ex;
 	omxMatrix *regression;
-	omxData *data;
 };
 
 struct omxRAMExpectation {

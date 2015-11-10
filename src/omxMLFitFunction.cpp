@@ -29,6 +29,7 @@
 #include "omxExpectation.h"
 #include "omxFIMLFitFunction.h"
 #include "omxRAMExpectation.h"
+#include "RAMInternal.h"
 #include "omxBuffer.h"
 #include "matrix.h"
 
@@ -304,22 +305,29 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	omxData* dataMat = oo->expectation->data;
 
-	if(strEQ(omxDataType(dataMat), "raw")) {
-		const char *from = oo->fitType;
+	if (strEQ(omxDataType(dataMat), "raw")) {
 		SEXP rObj = oo->rObj;
+		bool onlyFellner = false;
+		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			onlyFellner = ram->joins.size();
+		}
 		int fellner;
 		{
 			SEXP tmp;
 			ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("fellner")));
 			fellner = Rf_asLogical(tmp);
 		}
+		if (fellner == NA_LOGICAL && onlyFellner) fellner = 1;
+		if (onlyFellner && fellner == 0) Rf_error("%s: fellner=TRUE is required for %s",
+							  oo->name(), expectation->name);
 		const char *to;
 		if (fellner == 1) {
 			to = "imxFitFunctionFellner";
 		} else {
 			to = "imxFitFunctionFIML";
 		}
-		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", from, to); }
+		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", oo->fitType, to); }
 		omxChangeFitType(oo, to);
 		omxCompleteFitFunction(oo->matrix);
 		return;
