@@ -121,6 +121,21 @@ container <- mxModel("container", tMod, sMod,
                      mxFitFunctionMultigroup(c('student')))
 container <- omxSetParameters(container, names(p1), values=p1)
 
+omxCheckError(mxRun(container), "Join mapping matrix student.Z must have 4 rows: 'i1', 'i2', 'i3', and 'studentSkill'")
+
+map <- mxMatrix(name="Z", nrow=ncol(sMod$A), ncol=1,
+                dimnames=list(colnames(sMod$A), "teacherSkill"))
+map$free['studentSkill', 'teacherSkill'] <- TRUE
+map$labels['studentSkill', 'teacherSkill'] <- 'regr'
+container$student$Z <- map
+omxCheckError(mxRun(container), "Join mapping matrix student.Z must have 4 columns: 'i1', 'i2', 'i3', and 'teacherSkill'")
+
+map <- mxMatrix(name="Z", nrow=nrow(sMod$A), ncol=ncol(tMod$A),
+                dimnames=list(rownames(sMod$A), colnames(tMod$A)))
+map$free['studentSkill', 'teacherSkill'] <- TRUE
+map$labels['studentSkill', 'teacherSkill'] <- 'regr'
+container$student$Z <- map
+
 if (1) {
   container <- mxRun(container)
 #  summary(container)

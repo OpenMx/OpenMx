@@ -36,8 +36,6 @@
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
 
-// New Expectation API : per case to full distribution adapter TODO
-
 namespace FellnerFitFunction {
 	// Based on lme4CholmodDecomposition.h from lme4
 	template<typename _MatrixType, int _UpLo = Eigen::Lower>
@@ -189,17 +187,10 @@ namespace FellnerFitFunction {
 			omxMatrix *betA = j1.regression;
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
-			// enforce correct size for between matrix to simplify loop TODO
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-					for (int mr=0; mr < betA->rows; ++mr) {
-						if (j1.lowerMap[mr] != rx) continue;
-						for (int mc=0; mc < betA->cols; ++mc) {
-							if (j1.upperMap[mc] != cx) continue;
-							fullA.coeffRef(lx + rx, jOffset + cx) -=
-								omxMatrixElement(betA, mr, mc);
-						}
-					}
+					fullA.coeffRef(lx + rx, jOffset + cx) -=
+						omxMatrixElement(betA, rx, cx);
 				}
 			}
 		}
@@ -489,6 +480,8 @@ namespace FellnerFitFunction {
 		st->haveFilteredAmat = false;
 		st->smallCol = omxInitMatrix(1, numManifest, TRUE, oo->matrix->currentState);
 		omxData *data               = expectation->data;
+
+		// don't permit reuse of our expectations by some other fit function TODO
 
 		int totalObserved = 0;
 		int maxSize = 0;

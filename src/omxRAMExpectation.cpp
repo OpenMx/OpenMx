@@ -239,13 +239,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 				mxLog("%s: join col %d against %s using regression matrix %s",
 				      oo->name, j1.foreignKey, j1.ex->name, j1.regression->name());
 			}
-			{
-				SEXP map; ScopedProtect p3(map, R_do_slot(rjoin, Rf_install("lowerMap")));
-				j1.lowerMap = INTEGER(map);
-			}{
-				SEXP map; ScopedProtect p3(map, R_do_slot(rjoin, Rf_install("upperMap")));
-				j1.upperMap = INTEGER(map);
-			}
 				
 			j1.data = j1.ex->data;
 			RAMexp->joins.push_back(j1);

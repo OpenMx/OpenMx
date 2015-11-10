@@ -38,6 +38,15 @@ m1 <- mxModel(m1, mxModel(
 
 m1$bySubject$fitfunction <- NULL
 
+omxCheckError(mxRun(m1), "Join mapping matrix sleep.Z must have 2 rows: 'Reaction' and 'DayEffect'")
+
+# fix map matrix
+map <- mxMatrix(name="Z", nrow=2, ncol=2, 
+                dimnames=list(c("Reaction", 'DayEffect'), c("slope", "intercept")))
+map$labels['Reaction','slope'] <- 'data.Days'
+map$values['Reaction','intercept'] <- 1
+m1 <- mxModel(m1, map)
+
 m1 <- mxRun(m1)
 
 omxCheckCloseEnough(logLik(m1), logLik(fm1), 1e-8)

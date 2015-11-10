@@ -16,10 +16,8 @@
 setClass(Class = "MxJoin",
 	representation = representation(
 	    foreignKey = "MxCharOrNumber",
-	    expectation = "MxCharOrNumber",
-	    regression = "MxCharOrNumber",
-	    upperMap = "integer",
-	    lowerMap = "integer"
+	    expectation = "MxCharOrNumber",  # rename to 'model' ? TODO
+	    regression = "MxCharOrNumber"  # rename TODO
 	))
 
 setMethod("initialize", "MxJoin",
@@ -186,22 +184,32 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				upperA <- flatModel[[ flatModel@expectations[[exNum]]$A ]]
 				lowerA <- flatModel[[ aMatrix ]]
 				zMat <- flatModel[[e2@regression]]
-				rmap <- match(rownames(zMat), colnames(lowerA))
-				if (any(is.na(rmap))) {
-					msg <- paste("Cannot find join columns",
-						     omxQuotes(rownames(zMat)[is.na(rmap)]),
-						     "in lower level data", omxQuotes(mxDataObject$name))
+				if (length(rownames(zMat)) != length(colnames(lowerA))) {
+					msg <- paste("Join mapping matrix", e2@regression,
+						     "must have", length(colnames(lowerA)), "rows:",
+						     omxQuotes(colnames(lowerA)))
 					stop(msg, call. = FALSE)
 				}
-				e2@lowerMap <- rmap - 1L
-				cmap <- match(colnames(zMat), colnames(upperA))
-				if (any(is.na(cmap))) {
-					msg <- paste("Cannot find join columns",
-						     omxQuotes(rownames(zMat)[is.na(cmap)]),
-						     "in upper level data", omxQuotes(mxDataObject$name))
+				lowerMatch <- rownames(zMat) == colnames(lowerA)
+				if (any(!lowerMatch)) {
+					msg <- paste("Join mapping matrix", e2@regression,
+						     "needs mapping rows for",
+						     omxQuotes(colnames(lowerA)[!lowerMatch]))
 					stop(msg, call. = FALSE)
 				}
-				e2@upperMap <- cmap - 1L
+				if (length(colnames(zMat)) != length(colnames(upperA))) {
+					msg <- paste("Join mapping matrix", e2@regression,
+						     "must have", length(colnames(upperA)), "columns:",
+						     omxQuotes(colnames(upperA)))
+					stop(msg, call. = FALSE)
+				}
+				upperMatch <- colnames(zMat) == colnames(upperA)
+				if (any(!upperMatch)) {
+					msg <- paste("Join mapping matrix", e2@regression,
+						     "needs mapping columns for",
+						     omxQuotes(colnames(upperA)[!upperMatch]))
+					stop(msg, call. = FALSE)
+				}
 				e2@regression <- imxLocateIndex(flatModel, e2@regression, name)
 				e2
 			})

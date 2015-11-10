@@ -27,7 +27,7 @@ mkPerson <- function(df, mother=NA, father=NA) {
 }
 
 pdat <- mkPerson(NULL)
-for (px in 1:19) {
+for (px in 1:39) {
   mother <- NA
   father <- NA
   if (any(pdat$male)) {
@@ -49,10 +49,13 @@ m1 <- mxModel("person", type="RAM",
               mxData(type="raw", observed=pdat, primaryKey = 'personID'),
               mxPath("one", "maleEffect", free=FALSE, labels="data.male"),
               mxPath("maleEffect", "height", values=10),
-              mxPath("one", "height", values=100),
+              mxPath("one", "height"),
               mxPath("height", arrows=2, values=1),
-              mxMatrix(name="Z", nrow=1, ncol=1, dimnames=list('height', 'height'), values=.4),
+              mxMatrix(name="Z", nrow=2, ncol=2, dimnames=list(c('height', 'maleEffect'),
+                                                               c('height', 'maleEffect'))),
               mxFitFunctionML(fellner = TRUE))
+
+m1$Z$free['height', 'height'] <- TRUE
 
 m1$expectation$join <- list(
   mxJoin(foreignKey = "motherID", expectation = "person", regression = "Z"),
@@ -66,4 +69,5 @@ if (0) {
   summary(m1)  # 102.5036
 }
 
-omxCheckCloseEnough(m1$output$fit, 102.5036, 1e-2)
+omxCheckCloseEnough(m1$output$fit, 220.699, 1e-2)
+omxCheckCloseEnough(coef(m1), c(13.994, 21.607, -6.213, 0.416), 1e-2)
