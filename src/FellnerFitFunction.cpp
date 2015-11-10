@@ -22,6 +22,8 @@
 
 #include "glue.h"
 #include <iterator>
+#include <exception>
+#include <stdexcept>
 #include <Rconfig.h>
 #include <Rmath.h>
 #include <RcppEigenCholmod.h>
@@ -46,10 +48,16 @@ namespace FellnerFitFunction {
 	protected:
 		typedef Eigen::CholmodDecomposition<_MatrixType, _UpLo> Base;
 		using Base::m_factorizationIsOk;
+		typedef void (*cholmod_error_type)(int status, const char *file, int line, const char *message);
 
 	        cholmod_factor* factor() const { return Base::m_cholmodFactor; }
 		cholmod_common& cholmod() const {
 			return const_cast<Cholmod<_MatrixType, _UpLo>*>(this)->Base::cholmod();
+		}
+
+		cholmod_error_type oldHandler;
+		static void cholmod_error(int status, const char *file, int line, const char *message) {
+			throw std::runtime_error(message);
 		}
 
      // * If you are going to factorize hundreds or more matrices with the same
@@ -59,6 +67,13 @@ namespace FellnerFitFunction {
      // * call it only once. TODO
 
 	public:
+		Cholmod() {
+			oldHandler = cholmod().error_handler;
+			cholmod().error_handler = cholmod_error;
+		};
+		~Cholmod() {
+			cholmod().error_handler = oldHandler;
+		};
 		double log_determinant() const {
 			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
 			cholmod_factor *cf = factor();
