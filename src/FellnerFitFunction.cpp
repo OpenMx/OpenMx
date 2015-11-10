@@ -29,8 +29,8 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/CholmodSupport>
-//#include <Eigen/SparseLU>
-#include <Eigen/UmfPackSupport>
+#include <Eigen/SparseLU>
+//#include <Eigen/UmfPackSupport>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
 
@@ -125,7 +125,9 @@ namespace FellnerFitFunction {
 		bool haveFilteredAmat;
 		Eigen::VectorXd dataVec;
 		Eigen::SparseMatrix<double>      fullA;
-		Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+		Eigen::SparseLU< Eigen::SparseMatrix<double>,
+				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
+		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 		Eigen::SparseMatrix<double>      filteredA;
 		Eigen::SparseMatrix<double>      fullS;
 		Eigen::SparseMatrix<double>      fullCov;
