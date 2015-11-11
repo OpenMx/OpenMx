@@ -31,7 +31,7 @@
 mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
     "all.bivariate", "unique.bivariate"), arrows = 1,
     free = TRUE, values = NA, labels = NA, 
-    lbound = NA, ubound = NA, ...)
+    lbound = NA, ubound = NA, ..., joinOn = as.character(NA))
 }
 
 \arguments{
@@ -44,7 +44,11 @@ mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
    \item{labels}{character vector. The names of the paths.}
    \item{lbound}{numeric vector. The lower bounds of free parameters.}
    \item{ubound}{numeric vector. The upper bounds of free parameters.}
-   \item{...}{Not used.  Allows OpenMx to catch the use of the deprecated \sQuote{all} argument.}
+   \item{...}{Not used.  Allows OpenMx to catch the use of the
+     deprecated \sQuote{all} argument.}
+   \item{joinOn}{character vector. The name of the foreign key to join
+   against some other model to create a cross model path (regression or
+   factor loading.}
 }
 
 \note{
