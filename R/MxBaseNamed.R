@@ -32,6 +32,12 @@ setClass(Class = "MxBaseNamed",
 setGeneric("qualifyNames",
 	   function(.Object, modelname, namespace) standardGeneric("qualifyNames"))
 
+setGeneric("genericNameToNumber", 
+	   function(.Object, flatModel, model) standardGeneric("genericNameToNumber"))
+
+setMethod("genericNameToNumber", signature("MxBaseNamed"),
+	  function(.Object, flatModel, model) .Object)
+
 ##' imxExtractSlot
 ##'
 ##' Checks for and extracts a slot from the object

@@ -44,12 +44,12 @@ help:
 	@echo "  build-simple  create an OpenMx binary for unix systems without OpenMP"
 	@echo "  srcbuild      create an OpenMx source release"
 	@echo "  cran-build    build OpenMx without NPSOL"
-	@echo "  cran-check    build OpenMx without NPSOL and run CRAN check"
 	@echo ""		
 	@echo "INSTALL"
 	@echo ""	
-	@echo "  install       install OpenMx with NPSOL"
-	@echo "  cran-install  install OpenMx without NPSOL"
+	@echo "  r-libs-user-dir create R_LIBS_USER to contain installed packages"
+	@echo "  cran-install    install OpenMx without NPSOL"
+	@echo "  install         install OpenMx with NPSOL"
 	@echo ""
 	@echo "DOCUMENTATION"
 	@echo ""	
@@ -59,10 +59,12 @@ help:
 	@echo ""
 	@echo "TESTING"
 	@echo ""	
-	@echo "  test          run the test suite"
+	@echo "  test               run the test suite"
+	@echo "  cran-check         build OpenMx without NPSOL and run CRAN check"
+	@echo "  cran-check-strict  build OpenMx without NPSOL and run CRAN check with --as-cran"
+	@echo ""
 	@echo "  test-failing  run the failing test collection"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
-	@echo "  check         run the R package checking system on the OpenMx package"		
 	@echo "  nightly       run the nightly test suite"			
 	@echo "  testdocs      test the examples in the Sphinx documentation"	
 	@echo "  failtest      run the failing test suite"
@@ -115,6 +117,11 @@ srcbuild: build-prep
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
 
 cran-check: cran-build
+	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
+	wc -l OpenMx.Rcheck/00check.log
+	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 90 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+
+cran-check-strict: cran-build
 	$(REXEC) CMD check --as-cran build/OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 90 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi

@@ -133,8 +133,8 @@ m3 = mxModel("bob", m1, m2,
 m3r = mxRun(m3)
 ref <- mxRefModels(m3r, run=TRUE)
 
-omxCheckError(summary(m3r, SaturatedLikelihood=ref), "List of length two (illegal argument) passed to 'SaturatedLikelihood' argument of summary function in .local(object, ...) .  You probably meant to use the refModels argument instead.")
-
+omxCheckError(summary(m3r, SaturatedLikelihood=ref),
+              "List of length two (illegal argument) passed to 'SaturatedLikelihood' argument of summary function. You probably meant to use the refModels argument instead.")
 
 #TODO add checking of fit stats for this model
 

@@ -58,7 +58,8 @@ setClass(Class = "MxDataStatic",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
 		.isSorted = "logical",
-		.needSort = "logical",
+	     .needSort = "logical",
+	     primaryKey = "MxCharOrNumber",
 		name   = "character"))
 
 setClass(Class = "MxDataDynamic",
@@ -73,7 +74,8 @@ setClass(Class = "MxDataDynamic",
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
-	function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds, sort, name = "data") {
+	  function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds,
+		   sort, primaryKey) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -81,9 +83,20 @@ setMethod("initialize", "MxDataStatic",
 		.Object@acov <- acov
 		.Object@fullWeight <- fullWeight
 		.Object@thresholds <- thresholds
-		.Object@name <- name
+		.Object@name <- "data"
+		if (is.na(primaryKey)) {
+			if (is.na(sort)) {
+				sort <- TRUE
+			}
+		} else {
+			if (!is.na(sort) && sort) {
+				warning("sort=TRUE is not supported when a primary key is provided")
+			}
+			sort <- FALSE
+		}
 		.Object@.needSort <- sort
 		.Object@.isSorted <- FALSE
+		.Object@primaryKey <- primaryKey
 		return(.Object)
 	}
 )
@@ -132,7 +145,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 }
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
-		   sort=TRUE) {
+		   sort=NA, primaryKey = as.character(NA)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -196,7 +209,20 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
-	return(new("MxDataStatic", observed, means, type, numObs, acov, fullWeight, thresholds, sort))
+
+	if (length(primaryKey) > 1) {
+		stop("More than 1 primary key is not implemented yet")
+	} else if (!is.na(primaryKey)) {
+		if (type != "raw") {
+			stop(paste("Raw data is required when a primary key is provided"))
+		}
+		if (!(primaryKey %in% colnames(observed))) {
+			stop(paste("Primary key", omxQuotes(primaryKey),
+				   "must be provided in the observed data"))
+		}
+	}
+
+	return(new("MxDataStatic", observed, means, type, numObs, acov, fullWeight, thresholds, sort, primaryKey))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -245,6 +271,17 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 				  }, data@observed, colnames(data@observed))
 			  }
 		  }
+		  if (!is.na(data@primaryKey)) {
+			  pk <- match(data@primaryKey, colnames(data@observed))
+			  if (is.na(pk)) {
+				  stop(paste("Primary key", omxQuotes(data@primaryKey),
+					     "not found in", omxQuotes(data@name)))
+			  }
+			  data@primaryKey <- pk
+		  } else {
+			  data@primaryKey <- 0L
+		  }
+
 		  data
 	  })
 
@@ -547,6 +584,9 @@ undoDataShare <- function(model, dataList) {
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')
+	if (!is.na(object@primaryKey)) {
+		cat("primary key :", omxQuotes(object@primaryKey), '\n')
+	}
 	cat("numObs :", omxQuotes(object@numObs), '\n')
 	cat("observed : \n") 
 	print(object@observed)

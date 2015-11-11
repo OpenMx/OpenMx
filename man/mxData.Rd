@@ -24,7 +24,7 @@
 
 \usage{
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
-          thresholds=NA, ..., sort=TRUE)
+          thresholds=NA, ..., sort=NA, primaryKey = as.character(NA))
 }
 
 \arguments{
@@ -36,7 +36,9 @@
    \item{fullWeight}{Full asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares in standard error and quasi-chi-squared calculation.}
    \item{thresholds}{Observed thresholds.  Used for weighted least squares with ordinal data.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
-   \item{sort}{Whether to sort raw data prior to use (default TRUE)}
+   \item{sort}{Whether to sort raw data prior to use (default NA)}
+   \item{primaryKey}{The column name of the primary key used to uniquely
+   identify rows (default NA)}
 }
 
 \details{
@@ -60,7 +62,7 @@ The mxData function does not currently place restrictions on the size, shape, or
 
 OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
 
-
+When a primary key is provided, sorting is disabled. Otherwise, sort defaults to TRUE.
 }
 
 \value{

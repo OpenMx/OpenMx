@@ -48,7 +48,7 @@ setMethod("initialize", "MxExpectationNormal",
 )
 
 setMethod("qualifyNames", signature("MxExpectationNormal"), 
-	function(.Object, modelname, namespace) {
+	  function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
 			modelname, namespace)
@@ -429,7 +429,8 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 
 generateDataColumns <- function(flatModel, covNames, dataName) {
 	retval <- c()
-	dataColumnNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
+	if (length(covNames) == 0) return(retval)
+	dataColumnNames <- colnames(flatModel@datasets[[dataName]]@observed)
 	for(i in 1:length(covNames)) {
 		targetName <- covNames[[i]]
 		index <- match(targetName, dataColumnNames)

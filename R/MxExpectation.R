@@ -155,10 +155,17 @@ setReplaceMethod("$", "MxBaseExpectation",
 setMethod("names", "MxBaseExpectation", slotNames)
 
 convertExpectationFunctions <- function(flatModel, model, labelsData, dependencies) {
+	# The idea is to split genericExpFunConvert into sanity checking,
+	# which often requires access to the actual objects, and
+	# converting symbolic names into numbers that are easy to deal
+	# with in the backend.
 	retval <- lapply(flatModel@expectations, function(ex) {
 		ex@container <- imxLocateIndex(flatModel, ex@container, ex@name)
 		ex@submodels <- imxLocateIndex(flatModel, ex@submodels, ex@name)
 		genericExpFunConvert(ex, flatModel, model, labelsData, dependencies)
+	})
+	retval <- lapply(retval, function(ex) {
+		genericNameToNumber(ex, flatModel, model)
 	})
 	return(retval)
 }

@@ -362,7 +362,6 @@ insertAllPathsLISREL <-  function(model, paths){
 			LISRELMeans <- NULL
 		}
 	}
-	checkPaths(model, paths)
 	
 	model <- updateLISRELMatrices(model, theMatrices)
 	if(!is.null(LISRELMeans)){
