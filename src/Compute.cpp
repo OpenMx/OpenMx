@@ -919,24 +919,18 @@ void FitContext::copyParamToModel()
 	varGroup->markDirty(state);
 }
 
-void FitContext::copyParamToModelClean()
+void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 {
 	size_t numParam = varGroup->vars.size();
 
-	if(numParam == 0) return;
-
-	omxState* os = state;
-	double *at = est;
-
 	if(OMX_DEBUG) {
 		std::string buf;
-		buf += string_snprintf("copyParamToModel: %d(%d) ",
-				       iterations, Global->computeCount);
-		buf += ("Estimates: [");
+		buf += string_snprintf("copyParamToModel: c(");
 		for(size_t k = 0; k < numParam; k++) {
-			buf += string_snprintf(" %f", at[k]);
+			buf += string_snprintf("%f", at[k]);
+			if (k < numParam-1) buf += string_snprintf(", ");
 		}
-		buf += ("]\n");
+		buf += (")\n");
 		mxLogBig(buf);
 	}
 
@@ -954,8 +948,17 @@ void FitContext::copyParamToModelClean()
 			}
 		}
 	}
+}
 
-	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, at, numParam);
+void FitContext::copyParamToModelClean()
+{
+	size_t numParam = varGroup->vars.size();
+
+	if(numParam == 0) return;
+
+	copyParamToModelInternal(varGroup, state, est);
+
+	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, est, numParam);
 
 	if (childList.size() == 0) return;
 

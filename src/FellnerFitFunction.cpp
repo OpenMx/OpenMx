@@ -132,15 +132,20 @@ namespace FellnerFitFunction {
 	};
 
 	struct state {
+		int verbose;
 		omxMatrix *smallCol;
 		std::vector<bool> latentFilter; // use to reduce the A matrix
 		bool AmatDependsOnParameters;
 		bool haveFilteredAmat;
 		Eigen::VectorXd dataVec;
+		Eigen::SparseMatrix<double>      depthTestA;
+		int AshallowDepth;
+		bool analyzedFullA;
 		Eigen::SparseMatrix<double>      fullA;
 		Eigen::SparseLU< Eigen::SparseMatrix<double>,
 				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      filteredA;
 		Eigen::SparseMatrix<double>      fullS;
 		Eigen::SparseMatrix<double>      fullCov;
@@ -156,6 +161,7 @@ namespace FellnerFitFunction {
 
 	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
 	{
+		const double signA = Global->RAMInverseOpt ? 1.0 : -1.0;
 		omxData *data = expectation->data;
 
 		int row;
@@ -191,7 +197,7 @@ namespace FellnerFitFunction {
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
-					fullA.coeffRef(lx + rx, jOffset + cx) -= val;
+					fullA.coeffRef(lx + rx, jOffset + cx) += signA * val;
 				}
 			}
 		}
@@ -202,7 +208,7 @@ namespace FellnerFitFunction {
 				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
 						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + rx, lx + cx) -= eA(rx, cx);
+						fullA.coeffRef(lx + rx, lx + cx) += signA * eA(rx, cx);
 					}
 				}
 			}
@@ -229,6 +235,16 @@ namespace FellnerFitFunction {
 		lx += ram->A->cols;
 	}
 
+	template <typename T>
+	void gentleZero(Eigen::SparseMatrix<T> &mat)
+	{
+		for (int k=0; k < mat.outerSize(); ++k) {
+			for (typename Eigen::SparseMatrix<T>::InnerIterator it(mat, k); it; ++it) {
+				it.valueRef() = 0;
+			}
+		}
+	}
+
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
@@ -243,26 +259,21 @@ namespace FellnerFitFunction {
 		Eigen::SparseMatrix<double> &fullCov    = st->fullCov;
 		Eigen::VectorXd &fullMeans              = st->fullMeans;
 
-		fullMeans.resize(st->latentFilter.size());
+		fullMeans.conservativeResize(st->latentFilter.size());
 
 		if (fullA.nonZeros() == 0) {
+			st->analyzedFullA = false;
 			fullA.resize(st->latentFilter.size(), st->latentFilter.size());
-			fullA.setIdentity();
 		} else {
-			for (int k=0; k<fullA.outerSize(); ++k) {
-				for (Eigen::SparseMatrix<double>::InnerIterator it(fullA, k); it; ++it) {
-					it.valueRef() = it.row() == it.col()? 1 : 0;
-				}
-			}
+			gentleZero(fullA);
 		}
-		if (fullS.nonZeros() == 0) {
-			fullS.resize(st->latentFilter.size(), st->latentFilter.size());
-		} else {
-			for (int k=0; k<fullS.outerSize(); ++k) {
-				for (Eigen::SparseMatrix<double>::InnerIterator it(fullS, k); it; ++it) {
-					it.valueRef() = 0;
-				}
-			}
+		fullS.conservativeResize(st->latentFilter.size(), st->latentFilter.size());
+		gentleZero(fullS);
+
+		Eigen::SparseMatrix<double> &ident = st->ident;
+		if (ident.nonZeros() == 0) {
+			ident.resize(fullA.rows(), fullA.rows());
+			ident.setIdentity();
 		}
 
 		for (int lx=0, row=0; row < data->rows; ++row) {
@@ -275,53 +286,41 @@ namespace FellnerFitFunction {
 
 		double lp = NA_REAL;
 		try {
-			if (!fullA.isCompressed()) {
-				fullA.makeCompressed();
-				st->Asolver.analyzePattern(fullA);
-			}
-			st->Asolver.factorize(fullA);
 			if (!st->haveFilteredAmat) {
 				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-
-				if (1) {
-					Eigen::SparseMatrix<double> ident;
-					ident.resize(fullA.rows(), fullA.rows());
-					ident.setIdentity();
-					Eigen::SparseMatrix<double> result = st->Asolver.solve(ident);
-					//{ Eigen::MatrixXd tmp = result; mxPrintMat("result", tmp); }
-					filteredA.resize(st->dataVec.size(), fullA.rows());
-					filteredA.setZero();
-					for (int rx=0, dx=-1; rx < fullA.rows(); ++rx) {
-						if (!st->latentFilter[rx]) continue;
-						++dx;
-						for (int cx=0; cx < fullA.cols(); ++cx) {
-							if (result.coeff(rx, cx) == 0) continue;
-							filteredA.coeffRef(dx, cx) = result.coeff(rx, cx);
-						}
+				Eigen::SparseMatrix<double> invA;
+				if (st->AshallowDepth >= 0) {
+					invA = fullA + ident;
+					for (int iter=1; iter <= st->AshallowDepth; ++iter) {
+						invA = (invA * fullA + ident).eval();
+						//{ Eigen::MatrixXd tmp = invA; mxPrintMat("invA", tmp); }
 					}
 				} else {
-					// at least 3x slower than inverting the whole matrix in one go
-					filteredA.resize(st->dataVec.size(), fullA.rows());
-					filteredA.reserve(st->dataVec.size());
-					Eigen::VectorXd a1(fullA.rows());
-					a1.setZero();
-					Eigen::VectorXd result(fullA.rows());
-					for (int ax=0; ax < fullA.rows(); ++ax) {
-						// is there a faster way to do this? TODO
-						a1[ax] = 1.0;
-						result = st->Asolver.solve(a1);
-						for (int lx=0, ox=-1; lx < fullA.rows(); ++lx) {
-							if (!st->latentFilter[lx]) continue;
-							++ox;
-							if (result[lx] == 0) continue;
-							filteredA.coeffRef(ox, ax) = result[lx];
-						}
-						a1[ax] = 0.0;
+					fullA += ident;
+					if (!st->analyzedFullA) {
+						st->analyzedFullA = true;
+						fullA.makeCompressed();
+						st->Asolver.analyzePattern(fullA);
+					}
+					st->Asolver.factorize(fullA);
+
+					invA = st->Asolver.solve(ident);
+					//{ Eigen::MatrixXd tmp = invA; mxPrintMat("invA", tmp); }
+				}
+
+				filteredA.conservativeResize(st->dataVec.size(), fullA.rows());
+				gentleZero(filteredA);
+				for (int rx=0, dx=-1; rx < fullA.rows(); ++rx) {
+					if (!st->latentFilter[rx]) continue;
+					++dx;
+					for (int cx=0; cx < fullA.cols(); ++cx) {
+						if (invA.coeff(rx, cx) == 0) continue;
+						filteredA.coeffRef(dx, cx) = invA.coeff(rx, cx);
 					}
 				}
 				filteredA.makeCompressed();
-				st->haveFilteredAmat = !st->AmatDependsOnParameters;
 				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+				st->haveFilteredAmat = !st->AmatDependsOnParameters;
 			}
 			//mxPrintMat("S", fullS);
 			//Eigen::MatrixXd fullCovDense =
@@ -340,6 +339,7 @@ namespace FellnerFitFunction {
 			//mxPrintMat("fullMeans", fullMeans);
 			Eigen::VectorXd resid = st->dataVec - filteredA * fullMeans;
 			double iqf = st->covDecomp.inv_quad_form(resid);
+			if (st->verbose >= 2) mxLog("log det %f iqf %f", lp, iqf);
 			lp += iqf;
 			lp += M_LN_2PI * st->dataVec.size();
 		} catch (const std::exception& e) {
@@ -392,7 +392,7 @@ namespace FellnerFitFunction {
 			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
 			if (it != data->rowToOffsetMap.end()) return;
 
-			if (OMX_DEBUG) {
+			if (verbose >= 2) {
 				mxLog("%s: place row %d at %d", expectation->name, frow, maxSize);
 			}
 			data->rowToOffsetMap[frow] = maxSize;
@@ -430,11 +430,47 @@ namespace FellnerFitFunction {
 			if (data->rowToOffsetMap[row] != lx) return;
 		}
 
+		if (Global->RAMInverseOpt) {
+			data->handleDefinitionVarList(expectation->currentState, row);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxRecompute(ram->A, NULL);
+		}
+
 		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
 			join &j1 = ram->joins[jx];
 			int key = omxKeyDataElement(data, row, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
 			prepOneRow(j1.ex, key, lx, dx);
+		}
+
+		if (Global->RAMInverseOpt) {
+			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+				join &j1 = ram->joins[jx];
+				int key = omxKeyDataElement(data, row, j1.foreignKey);
+				if (key == NA_INTEGER) continue;
+				int frow = j1.ex->data->lookupRowOfKey(key);
+				int jOffset = j1.ex->data->rowToOffsetMap[frow];
+				omxMatrix *betA = j1.regression;
+				omxRecompute(betA, NULL);
+				betA->markPopulatedEntries();
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+						double val = omxMatrixElement(betA, rx, cx);
+						if (val == 0.0) continue;
+						depthTestA.coeffRef(lx + rx, jOffset + cx) = 1;
+					}
+				}
+			}
+			ram->A->markPopulatedEntries();
+			EigenMatrixAdaptor eA(ram->A);
+			for (int cx=0; cx < eA.cols(); ++cx) {
+				for (int rx=0; rx < eA.rows(); ++rx) {
+					if (rx != cx && eA(rx,cx) != 0) {
+						depthTestA.coeffRef(lx + rx, lx + cx) = 1;
+					}
+				}
+			}
 		}
 
 		int jCols = expectation->dataColumns->cols;
@@ -473,6 +509,12 @@ namespace FellnerFitFunction {
 		FellnerFitFunction::state *st = new FellnerFitFunction::state;
 		oo->argStruct = st;
 
+		{
+			SEXP tmp;
+			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));
+			st->verbose = Rf_asInteger(tmp) + OMX_DEBUG;
+		}
+
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		ram->ensureTrivialF();
 		int numManifest = ram->F->rows;
@@ -491,13 +533,53 @@ namespace FellnerFitFunction {
 		}
 		//mxLog("AmatDependsOnParameters=%d", st->AmatDependsOnParameters);
 
-		//mxLog("total observations %d", totalObserved);
+		if (st->verbose >= 1) {
+			mxLog("%s: total observations %d", oo->name(), totalObserved);
+		}
 		st->latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		st->dataVec.resize(totalObserved);
+		st->depthTestA.resize(maxSize, maxSize);
 	
+		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL); // ignore freeSet
+
+		if (Global->RAMInverseOpt) {
+			Eigen::VectorXd vec(varGroup->vars.size());
+			vec.setConstant(1);
+			copyParamToModelInternal(varGroup, oo->matrix->currentState, vec.data());
+		}
+
 		for (int row=0, dx=0, lx=0; row < data->rows; ++row) {
 			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
 			st->prepOneRow(expectation, key_or_row, lx, dx);
+		}
+
+		st->AshallowDepth = -1;
+
+		if (Global->RAMInverseOpt) {
+			int maxDepth = std::min(maxSize, 30);
+			if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
+			Eigen::SparseMatrix<double> curProd = st->depthTestA;
+			for (int tx=1; tx < maxDepth; ++tx) {
+				if (st->verbose >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
+				curProd = (curProd * st->depthTestA).eval();
+				bool allZero = true;
+				for (int k=0; k < curProd.outerSize(); ++k) {
+					for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
+						if (it.value() != 0.0) {
+							allZero = false;
+							break;
+						}
+					}
+				}
+				if (allZero) {
+					st->AshallowDepth = tx;
+					break;
+				}
+			}
+			oo->matrix->currentState->setDirty();
+		}
+		if (st->verbose >= 1) {
+			mxLog("%s: RAM shallow inverse depth = %d", oo->name(), st->AshallowDepth);
 		}
 	}
 };

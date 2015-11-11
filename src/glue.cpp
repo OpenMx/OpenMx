@@ -225,6 +225,17 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				CSOLNPOpt_minIter(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
 				CSOLNPOpt_FuncPrecision(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
+				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->RAMInverseOpt);
+				//mxLog("inv opt = %s %d", nextOptionValue, Global->RAMInverseOpt);
+			} else if (matchCaseInsensitive(nextOptionName, "RAM Max Depth")) {
+				if (strEQ(nextOptionValue, "NA")) {
+					Global->RAMMaxDepth = NA_INTEGER;
+				} else {
+					Global->RAMMaxDepth = atoi(nextOptionValue);
+				}
+				//mxLog("ram max depth = %s %d", nextOptionValue, Global->RAMMaxDepth);
+			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
 			} else {
 				// ignore
 			}
@@ -391,6 +402,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
 	}
+
+	if (globalState->getDirty()) fc->copyParamToModelClean();
 
 	globalState->loadDefinitionVariables(true);
 

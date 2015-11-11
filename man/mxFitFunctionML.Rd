@@ -26,7 +26,8 @@
 }
 
 \usage{
-mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner = as.logical(NA))
+mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
+  as.logical(NA), verbose=0L)
 }
 
 \arguments{
@@ -36,7 +37,8 @@ mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner = as.logica
    of the fit function.}
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
    \item{fellner}{Whether to fully expand the covariance matrix for
-   maximum flexibility.}
+     maximum flexibility.}
+   \item{verbose}{Level of diagnostic output}
 }
 
 \details{

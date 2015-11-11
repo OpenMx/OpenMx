@@ -208,6 +208,9 @@ omxGlobal::omxGlobal()
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
 
+	RAMInverseOpt = true;
+	RAMMaxDepth = 30;
+
 	FreeVarGroup *fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_ALL);   // all variables
 	freeGroup.push_back(fvg);
@@ -299,6 +302,7 @@ void omxState::init()
 {
 	stateId = ++nextId;
 	wantStage = 0;
+	dirty = false;
 }
 
 void omxState::loadDefinitionVariables(bool start)
