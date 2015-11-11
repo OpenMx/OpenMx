@@ -491,13 +491,13 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                     if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
                         message('Confidence interval estimation generated errors\n')
                     } else {
-                        if (length(OpenMx::summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
+                        if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
                         bestfit<-cifit
                     }
                     
                 }
-                if (length(OpenMx::summary(bestfit)$npsolMessage) > 0) {
-                    warning(OpenMx::summary(bestfit)$npsolMessage)
+                if (length(summary(bestfit)$npsolMessage) > 0) {
+                    warning(summary(bestfit)$npsolMessage)
                 }
                 
                 if(iterationSummary==TRUE){

@@ -27,12 +27,13 @@ exportClassPattern("^Mx.+")
 
 # export S4 methods in the OpenMx library
 exportMethods("[","[[", "$")
-exportMethods(summary, nrow, ncol, length, names, dimnames, show, print)
+exportMethods(nrow, ncol, length, names, dimnames, show, print)
 
 # export S3 methods in the OpenMx library
 S3method(print, summary.mxmodel)
 S3method(logLik, MxModel)
 S3method(coef, MxModel)
+S3method(summary, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
