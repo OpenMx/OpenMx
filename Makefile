@@ -61,7 +61,7 @@ help:
 	@echo ""	
 	@echo "  test               run the test suite"
 	@echo "  cran-check         build OpenMx without NPSOL and run CRAN check"
-	@echo "  cran-check-strict  build OpenMx without NPSOL and run CRAN check with --as-cran"
+	@echo "  cran-check-strict  build OpenMx without NPSOL and run CRAN check --as-cran"
 	@echo ""
 	@echo "  test-failing  run the failing test collection"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
