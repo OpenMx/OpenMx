@@ -189,8 +189,9 @@ namespace FellnerFitFunction {
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-					fullA.coeffRef(lx + rx, jOffset + cx) -=
-						omxMatrixElement(betA, rx, cx);
+					double val = omxMatrixElement(betA, rx, cx);
+					if (val == 0.0) continue;
+					fullA.coeffRef(lx + rx, jOffset + cx) -= val;
 				}
 			}
 		}
