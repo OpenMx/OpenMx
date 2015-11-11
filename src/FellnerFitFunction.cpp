@@ -422,24 +422,24 @@ namespace FellnerFitFunction {
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
-		int frow;
+		int row;
 		if (!data->hasPrimaryKey()) {
-			frow = row_or_key;
+			row = row_or_key;
 		} else {
-			frow = data->lookupRowOfKey(row_or_key);
-			if (data->rowToOffsetMap[frow] != lx) return;
+			row = data->lookupRowOfKey(row_or_key);
+			if (data->rowToOffsetMap[row] != lx) return;
 		}
 
 		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
 			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, frow, j1.foreignKey);
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
 			if (key == NA_INTEGER) continue;
 			prepOneRow(j1.ex, key, lx, dx);
 		}
 
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
-			omxDataRow(expectation, frow, smallCol);
+			omxDataRow(expectation, row, smallCol);
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(smallCol, 0, col);
 				bool yes = std::isfinite(val);
