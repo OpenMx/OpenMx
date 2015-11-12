@@ -228,7 +228,8 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 					 oo->name, j1.ex->name);
 			}
 			if (!omxDataColumnIsKey(oo->data, j1.foreignKey)) {
-				Rf_error("Cannot join using non-integer type column '%s' in '%s'",
+				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
+					 "Did you forget to use mxData(..., sort=FALSE)?",
 					 omxDataColumnName(oo->data, j1.foreignKey),
 					 oo->data->name);
 			}
