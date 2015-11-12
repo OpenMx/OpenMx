@@ -26,12 +26,17 @@
 }
 
 \usage{
-mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE)
+mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner = as.logical(NA))
 }
 
 \arguments{
    \item{vector}{A logical value indicating whether the objective function result is the likelihood vector.}
-   \item{rowDiagnostics}{A logical value indicating whether the row-wise results of the objective function should be returned as an attribute of the fit function.}
+   \item{rowDiagnostics}{A logical value indicating whether the row-wise
+   results of the objective function should be returned as an attribute
+   of the fit function.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{fellner}{Whether to fully expand the covariance matrix for
+   maximum flexibility.}
 }
 
 \details{

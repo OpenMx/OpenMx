@@ -42,10 +42,11 @@ typedef struct omxData omxData;
 typedef struct omxContiguousData omxContiguousData;
 typedef struct omxThresholdColumn omxThresholdColumn;
 
-
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
 #include "omxState.h"
+
+#include <map>
 
 struct omxDefinitionVar {		 	// Definition Var
 
@@ -81,14 +82,22 @@ struct ColumnData {
 	// exactly one of these is non-null
 	double *realData;
 	int    *intData;
+	SEXP levels;       // factors only
 };
 
 class omxData {
  private:
 	SEXP rownames;
 	void addDynamicDataSource(omxExpectation *ex);
+	int primaryKey;   // column of primary key
 
  public: // move everything to private TODO
+	bool hasPrimaryKey() const { return primaryKey >= 0; };
+	int lookupRowOfKey(int key);
+	int primaryKeyOfRow(int row);
+	void omxPrintData(const char *header, int maxRows);
+	void omxPrintData(const char *header);
+
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
 	omxMatrix* dataMat;                             // do not use directly
@@ -113,6 +122,7 @@ class omxData {
  public:
 	int rows, cols;						// Matrix size 
 	int verbose;
+	std::map<int,int> rowToOffsetMap;
 
 	void loadFakeData(omxState *state, double fake);
 	bool handleDefinitionVarList(omxState *state, int row);
@@ -137,9 +147,17 @@ void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, o
 
 /* Getters 'n Setters */
 static inline bool omxDataIsSorted(omxData* data) { return data->isSorted; }
+int omxDataGetNumFactorLevels(omxData *od, int col);
 double omxDoubleDataElement(omxData *od, int row, int col);
 double *omxDoubleDataColumn(omxData *od, int col);
 int omxIntDataElement(omxData *od, int row, int col);						// Returns one data object as an integer
+
+inline int omxKeyDataElement(omxData *od, int row, int col)
+{
+	ColumnData &cd = od->rawCols[col];
+	return cd.intData[row];
+}
+
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
 omxMatrix* omxDataAcov(omxData *od);
@@ -147,6 +165,8 @@ omxMatrix* omxDataAcov(omxData *od);
 std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
+void omxDataRow(omxExpectation *ex, int row, omxMatrix* om);
+
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row
 int omxDataNumIdenticalRows(omxData *od, int row);							// Returns the number of rows identical to this one in the data set
@@ -170,6 +190,7 @@ static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
 bool omxDataColumnIsFactor(omxData *od, int col);
+bool omxDataColumnIsKey(omxData *od, int col);
 const char *omxDataColumnName(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: convert to ENUM
 	

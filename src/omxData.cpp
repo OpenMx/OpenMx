@@ -38,6 +38,7 @@ omxData::omxData() : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMa
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
+	if (dataIdx == NA_INTEGER) return NULL;
 
 	return state->dataList[dataIdx];
 }
@@ -148,7 +149,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	int numCols;
 
 	// PARSE MxData Structure
-	if(OMX_DEBUG) {mxLog("Processing Data Type.");}
+	if(OMX_DEBUG) {mxLog("Processing Data '%s'", od->name);}
 
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("type")));
 	od->_type = CHAR(STRING_ELT(dataLoc,0));
@@ -158,7 +159,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install(".isSorted")));
 	od->isSorted = Rf_asLogical(dataLoc);
 	}
-
+	{
+		ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("primaryKey")));
+		primaryKey = Rf_asInteger(dataLoc) - 1;
+	}
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObject, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {
@@ -173,21 +177,31 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 		od->rawCols.reserve(numCols);
 		for(int j = 0; j < numCols; j++) {
 			const char *colname = CHAR(STRING_ELT(colnames, j));
-			ColumnData cd = { colname, NULL, NULL };
+			ColumnData cd = { colname, NULL, NULL, NULL };
 			SEXP rcol;
 			ScopedProtect p1(rcol, VECTOR_ELT(dataLoc, j));
 			if(Rf_isFactor(rcol)) {
+				if (j == primaryKey) {
+					Rf_error("Data column '%s' is both a factor and the primary key;"
+						 " primary keys must be non-factor integers", colname);
+				}
 				if (Rf_isUnordered(rcol)) {
 					Rf_warning("Data[%d] '%s' must be an ordered factor. Please use mxFactor()",
 						j+1, colname);
 				}
-				if(OMX_DEBUG) {mxLog("Column %d is a factor.", j);}
+				if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
 				cd.intData = INTEGER(rcol);
+				cd.levels = Rf_getAttrib(rcol, R_LevelsSymbol);
 				od->numFactor++;
 			} else if (Rf_isInteger(rcol)) {
-				Rf_error("Data column '%s' is in integer format but is not an ordered factor (see ?mxFactor)", colname);
+				if (j == primaryKey) {
+					if(OMX_DEBUG) {mxLog("Column[%d] %s is the primary key", j, colname);}
+				} else {
+					if(OMX_DEBUG) {mxLog("Column[%d] %s is a foreign key", j, colname);}
+				}
+				cd.intData = INTEGER(rcol);
 			} else {
-				if(OMX_DEBUG) {mxLog("Column %d is a numeric.", j);}
+				if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
 				cd.realData = REAL(rcol);
 				od->numNumeric++;
 			}
@@ -328,11 +342,11 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObject, const char *name)
 	}
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData();
+	od->name = name;
 	dataList.push_back(od);
 	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObject);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
 	else Rf_error("Unknown data class %s", dclass);
-	od->name = name;
 	return od;
 }
 
@@ -358,6 +372,13 @@ double *omxDoubleDataColumn(omxData *od, int col)
 	ColumnData &cd = od->rawCols[col];
 	if (!cd.realData) Rf_error("Column '%s' is integer, not real", cd.name);
 	else return cd.realData;
+}
+
+int omxDataGetNumFactorLevels(omxData *od, int col)
+{
+	ColumnData &cd = od->rawCols[col];
+	if (!cd.levels) Rf_error("omxDataGetNumFactorLevels attempt on non-factor");
+	return Rf_length(cd.levels);
 }
 
 int omxIntDataElement(omxData *od, int row, int col) {
@@ -391,7 +412,34 @@ bool omxDataColumnIsFactor(omxData *od, int col)
 {
 	if(od->dataMat != NULL) return FALSE;
 	ColumnData &cd = od->rawCols[col];
-	return cd.intData;
+	return cd.intData && cd.levels;
+}
+
+bool omxDataColumnIsKey(omxData *od, int col)
+{
+	if(od->dataMat != NULL) return FALSE;
+	ColumnData &cd = od->rawCols[col];
+	return cd.intData && !cd.levels;
+}
+
+int omxData::primaryKeyOfRow(int row)
+{
+	if(dataMat != NULL) Rf_error("%s: only raw data can have a primary key", name);
+	ColumnData &cd = rawCols[primaryKey];
+	return cd.intData[row];
+}
+
+int omxData::lookupRowOfKey(int key)
+{
+	if(dataMat != NULL) Rf_error("%s: only raw data can have a primary key", name);
+	if (primaryKey < 0) Rf_error("%s: omxDataLookupRowOfKey attempted "
+					 "but no primary key specified", name);
+	ColumnData &cd = rawCols[primaryKey];
+	// dumb column scan, could be optimized with an index
+	for (int rx=0; rx < rows; ++rx) {
+		if (cd.intData[rx] == key) return rx;
+	}
+	Rf_error("%s: key %d not found in column '%s'", name, key, cd.name);
 }
 
 const char *omxDataColumnName(omxData *od, int col)
@@ -474,6 +522,13 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, col));
 		}
 	}
+}
+
+void omxDataRow(omxExpectation *ex, int row, omxMatrix* om)
+{
+	omxData *od = ex->data;
+	omxMatrix *colList = ex->dataColumns;
+	omxDataRow(od, row, colList, om);
 }
 
 int omxDataIndex(omxData *od, int row) {
@@ -739,10 +794,11 @@ SEXP findIdenticalRowsData(SEXP data, SEXP missing, SEXP defvars,
 }
 
 
-void omxPrintData(omxData *od, const char *header, int maxRows)
+void omxData::omxPrintData(const char *header, int maxRows)
 {
 	if (!header) header = "Default data";
 
+	omxData *od = this;
 	if (!od) {
 		mxLog("%s: NULL", header);
 		return;
@@ -751,6 +807,10 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 	std::string buf;
 	buf += string_snprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
 			       od->rows, od->cols);
+	if (hasPrimaryKey()) {
+		buf += string_snprintf("primaryKey %d\n", od->primaryKey);
+	}
+
 	buf += string_snprintf("Row consists of %d numeric, %d ordered factor:", od->numNumeric, od->numFactor);
 
         int upto = od->numObs;
@@ -803,9 +863,9 @@ void omxPrintData(omxData *od, const char *header, int maxRows)
 	if (od->meansMat) omxPrintMatrix(od->meansMat, "meansMat");
 }
 
-void omxPrintData(omxData *od, const char *header)
+void omxData::omxPrintData(const char *header)
 {
-        omxPrintData(od, header, -1);
+        omxPrintData(header, -1);
 }
 
 double omxDataDF(omxData *od)
@@ -867,7 +927,7 @@ static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 
 bool omxData::handleDefinitionVarList(omxState *state, int row)
 {
-	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars."); }
+	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
 	
 	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {

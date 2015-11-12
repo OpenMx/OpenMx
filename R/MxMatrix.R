@@ -758,6 +758,45 @@ generateMatrixValuesHelper <- function(mxMatrix) {
 	return(mxMatrix@values)
 }
 
+#' Resize an MxMatrix while preserving entries
+#'
+#' @param matrix the MxMatrix to resize
+#' @param dimnames desired dimnames for the new matrix
+#' @return a resized MxMatrix
+#' @examples
+#' m1 <- mxMatrix(values=1:9, nrow=3, ncol=3,
+#'                dimnames=list(paste0('r',1:3), paste0('c',1:3)))
+#' 
+#' imxGentleResize(m1, dimnames=list(paste0('r',c(1,3,5)),
+#'                                   paste0('c',c(2,4,6))))
+imxGentleResize <- function(matrix, dimnames) {
+	if (identical(dimnames(matrix), dimnames)) return(matrix)
+
+	nm <- new(class(matrix))
+	nm@name <- matrix@name
+	nm@.condenseSlots <- matrix@.condenseSlots
+	rn <- dimnames[[1]]
+	cn <- dimnames[[2]]
+	sharedRn <- intersect(rn, rownames(matrix))
+	sharedCn <- intersect(cn, colnames(matrix))
+	for (layer in c('values', 'labels', 'free', 'lbound', 'ubound')) {
+		l1 <- slot(matrix, layer)
+		if (matrix@.condenseSlots && all(dim(l1) == 1) && is.null(dimnames(l1))) {
+			nm <- l1
+		} else {
+			if (layer == 'free')        { val <- FALSE }
+			else if (layer == 'labels') { val <- as.character(NA) }
+			else if (layer == 'values') { val <- 0.0 }
+			else                        { val <- as.numeric(NA) }
+			l2 <- matrix(val, length(rn), length(cn), dimnames=dimnames)
+			l2[sharedRn, sharedCn] <- l1[sharedRn, sharedCn]
+		}
+		slot(nm, layer) <- l2
+	}
+	imxVerifyMatrix(nm)
+	return(nm)
+}
+
 displayMatrix <- function(mxMatrix) {
 	type <- class(mxMatrix)[[1]]
 	cat(type, omxQuotes(mxMatrix@name), '\n')

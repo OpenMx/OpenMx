@@ -8,6 +8,10 @@
 
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
+# UMFPACK is a fast sparse LU decomposition library
+UMFPACK_CXXFLAGS=-I/usr/include/suitesparse
+UMFPACK_LIBS=-lumfpack -lamd
+
 # Uncomment the following lines to turn on debugging output in the backend
 # DEBUG_CXXFLAGS+=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ALGEBRA             # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)

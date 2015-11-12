@@ -5,6 +5,7 @@ import(digest)
 importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
 importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var)
+importClassesFrom("Matrix", dCHMsimpl) #? TODO
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -26,12 +27,13 @@ exportClassPattern("^Mx.+")
 
 # export S4 methods in the OpenMx library
 exportMethods("[","[[", "$")
-exportMethods(summary, nrow, ncol, length, names, dimnames, show, print)
+exportMethods(nrow, ncol, length, names, dimnames, show, print)
 
 # export S3 methods in the OpenMx library
 S3method(print, summary.mxmodel)
 S3method(logLik, MxModel)
 S3method(coef, MxModel)
+S3method(summary, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
@@ -44,3 +46,4 @@ S3method(.DollarNames, MxBaseFitFunction, imxDefaultGetSlotDisplayNames)
 S3method(.DollarNames, MxInterval, imxDefaultGetSlotDisplayNames)
 S3method(.DollarNames, MxPath, imxDefaultGetSlotDisplayNames)
 S3method(.DollarNames, MxThreshold, imxDefaultGetSlotDisplayNames)
+S3method(.DollarNames, MxJoin, imxDefaultGetSlotDisplayNames)

@@ -13,9 +13,8 @@
 %   See the License for the specific language governing permissions and
 %   limitations under the License.
 
-\name{summary-MxModel}
-\alias{summary,MxModel-method}
-\alias{summary}
+\name{summary.MxModel}
+\alias{summary.MxModel}
 \alias{mxSummary}
 
 \title{Model Summary}
@@ -26,12 +25,13 @@
 
 
 \usage{
-summary(object, ...)
+\S3method{summary}{MxModel}(object, ..., verbose=FALSE)
 }
 
 \arguments{
    \item{object}{A MxModel object.}
    \item{...}{Any number of named arguments (see below).}
+   \item{verbose}{Whether to include extra diagnostic information.}
 }
 
 \details{

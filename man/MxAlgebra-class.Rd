@@ -22,6 +22,7 @@
 \alias{$<-,MxAlgebra-method}
 \alias{dimnames,MxAlgebra-method}
 \alias{dimnames<-,MxAlgebra-method}
+\alias{dimnames<-,MxAlgebra,ANY-method}
 
 \title{MxAlgebra Class}
 

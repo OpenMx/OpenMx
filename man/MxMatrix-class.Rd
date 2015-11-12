@@ -22,11 +22,15 @@
 \alias{$<-,MxMatrix-method}
 \alias{[,MxMatrix-method}
 \alias{[<-,MxMatrix-method}
+\alias{[,MxMatrix,ANY,ANY,ANY-method}
+\alias{[<-,MxMatrix,ANY,ANY,ANY-method}
 \alias{[[,MxMatrix-method}
 \alias{[[<-,MxMatrix-method}
 \alias{dim,MxMatrix-method}
 \alias{dimnames,MxMatrix-method}
 \alias{dimnames<-,MxMatrix-method}
+\alias{dimnames,MxMatrix,ANY-method}
+\alias{dimnames<-,MxMatrix,ANY-method}
 %\alias{imxCreateMatrix,MxMatrix-method}
 %\alias{imxDeparse,MxMatrix-method}
 %\alias{imxSquareMatrix,MxMatrix-method}
