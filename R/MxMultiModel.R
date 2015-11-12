@@ -213,13 +213,6 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 	if (length(model@submodels) > 0) {
 		submodel_expectations <- lapply(model@submodels, collectExpectationsHelper, namespace, defaultData)		
 		submodel_expectations <- unlist(submodel_expectations, recursive = FALSE, use.names = FALSE)
-		submodel_expectations <- lapply(submodel_expectations, function (e) {
-			e@container <- container
-			e
-		})
-		if (!is.null(expectation)) {
-			expectation@submodels <- unlist(sapply(submodel_expectations, function(e) e@name))
-		}
 	}
 	return(c(expectation, submodel_expectations))
 }

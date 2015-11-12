@@ -607,12 +607,6 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 
 displayMxExpectationRAM <- function(expectation) {
 	cat("MxExpectationRAM", omxQuotes(expectation@name), '\n')
-	if (length(expectation@container)) {
-		cat("$container :", omxQuotes(expectation@container), '\n')
-	}
-	if (length(expectation@submodels)) {
-		cat("$submodels :", omxQuotes(expectation@submodels), '\n')
-	}
 	cat("$A :", omxQuotes(expectation@A), '\n')
 	cat("$S :", omxQuotes(expectation@S), '\n')
 	cat("$F :", omxQuotes(expectation@F), '\n')

@@ -208,35 +208,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
 
-	if (ox->rObj) {
-		omxState *os = ox->currentState;
-		SEXP rObj = ox->rObj;
-		SEXP slot;
-		{ScopedProtect(slot, R_do_slot(rObj, Rf_install("container")));
-		if (Rf_length(slot) == 1) {
-			int ex = INTEGER(slot)[0];
-			ox->container = os->expectationList.at(ex);
-		}
-		}
-
-		{ScopedProtect(slot, R_do_slot(rObj, Rf_install("submodels")));
-		if (Rf_length(slot)) {
-			int numSubmodels = Rf_length(slot);
-			int *submodel = INTEGER(slot);
-			for (int ex=0; ex < numSubmodels; ex++) {
-				int sx = submodel[ex];
-				ox->submodels.push_back(omxExpectationFromIndex(sx, os));
-			}
-		}
-		}
-	}
-
 	omxExpectationProcessDataStructures(ox, ox->rObj);
-
-	int numSubmodels = (int) ox->submodels.size();
-	for (int ex=0; ex < numSubmodels; ex++) {
-		omxCompleteExpectation(ox->submodels[ex]);
-	}
 
 	ox->initFun(ox);
 

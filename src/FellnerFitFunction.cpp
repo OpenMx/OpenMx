@@ -388,6 +388,10 @@ namespace FellnerFitFunction {
 			placeOneRow(j1.ex, j1.ex->data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
 		if (data->hasPrimaryKey()) {
+			if (data->rowToOffsetMap.size() == 0) {
+				ram->ensureTrivialF();
+			}
+
 			// insert_or_assign would be nice here
 			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
 			if (it != data->rowToOffsetMap.end()) return;

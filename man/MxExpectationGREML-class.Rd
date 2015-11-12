@@ -34,8 +34,6 @@ Objects can be created by calls of the form
     \item{\code{dataColumns}:}{Object of class \code{"numeric"}.}
     \item{\code{name}:}{Object of class \code{"character"}.}
     \item{\code{data}:}{Object of class \code{"MxCharOrNumber"}.}
-    \item{\code{submodels}:}{Object of class \code{"MxOptionalCharOrNumber"}.}
-    \item{\code{container}:}{Object of class \code{"MxOptionalCharOrNumber"}.}
     \item{\code{.runDims}:}{Object of class \code{"character"}.}
   }
 }
