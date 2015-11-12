@@ -27,7 +27,7 @@ This function creates an MxExpectationRAM object.
 
 \usage{
 mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-                 threshnames = dimnames, ..., join=list())
+                 threshnames = dimnames, ..., join=list(), verbose=0L)
 }
 
 
@@ -41,6 +41,7 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
    \item{join}{A list of MxJoin objects to specify cross model relationships.}
+   \item{verbose}{integer. Level of runtime diagnostic output.}
 }
 
 \details{

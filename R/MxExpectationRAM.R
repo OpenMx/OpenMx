@@ -74,12 +74,14 @@ setClass(Class = "MxExpectationRAM",
 		ppmlData = "MxData",
 		UnfilteredExpCov = "matrix",
 	    numStats = "numeric",
-	join = "list"),
+	    join = "list",
+	    verbose = "integer"
+	),
 	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 join, data = as.integer(NA), name = 'expectation') {
+		 join, verbose, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -92,6 +94,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
 		.Object@join <- join
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
@@ -560,7 +563,7 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., join=list()) {
+	threshnames = dimnames, ..., join=list(), verbose=0L) {
 
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
@@ -602,7 +605,8 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames, join))
+	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
+		   join, as.integer(verbose)))
 }
 
 displayMxExpectationRAM <- function(expectation) {

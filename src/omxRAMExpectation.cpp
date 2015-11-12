@@ -1,18 +1,19 @@
 /*
- *  Copyright 2007-2015 The OpenMx Project
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+  Copyright 2007-2015 The OpenMx Project
+
+  This is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
@@ -61,6 +62,8 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Destroying RAM Expectation."); }
 	
 	omxRAMExpectation* argStruct = (omxRAMExpectation*)(oo->argStruct);
+
+	if (argStruct->rram) delete argStruct->rram;
 
 	omxFreeMatrix(argStruct->cov);
 
@@ -182,6 +185,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	SEXP slotValue;
 	
 	omxRAMExpectation *RAMexp = new omxRAMExpectation;
+	RAMexp->rram = 0;
 	
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallRAMExpectation;
@@ -226,6 +230,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 			join j1;
 			j1.foreignKey = Rf_asInteger(rfk) - 1;
 			j1.ex = omxExpectationFromIndex(Rf_asInteger(rex), currentState);
+			omxCompleteExpectation(j1.ex);
 			if (!strEQ(j1.ex->expType, "MxExpectationRAM")) {
 				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
 			}
@@ -273,6 +278,11 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	} else {
 	    RAMexp->means  = 	NULL;
     }
+
+	if (RAMexp->joins.size()) {
+		RAMexp->rram = new RelationalRAMExpectation::state;
+		RAMexp->rram->init(oo);
+	}
 }
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
@@ -292,3 +302,358 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* 
 	
 	return retval;
 }
+
+namespace RelationalRAMExpectation {
+
+	// verify whether sparse can deal with parameters set to exactly zero TODO
+
+	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
+	{
+		const double signA = Global->RAMInverseOpt ? 1.0 : -1.0;
+		omxData *data = expectation->data;
+
+		int row;
+		if (!data->hasPrimaryKey()) {
+			row = key_or_row;
+		} else {
+			row = data->lookupRowOfKey(key_or_row);
+			if (data->rowToOffsetMap[row] != lx) return;
+		}
+
+		data->handleDefinitionVarList(expectation->currentState, row);
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		omxRecompute(ram->A, fc);
+		omxRecompute(ram->S, fc);
+		if (ram->M) omxRecompute(ram->M, fc);
+
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			loadOneRow(j1.ex, fc, key, lx);
+		}
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			int frow = j1.ex->data->lookupRowOfKey(key);
+			int jOffset = j1.ex->data->rowToOffsetMap[frow];
+			omxMatrix *betA = j1.regression;
+			omxRecompute(betA, fc);
+			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+					double val = omxMatrixElement(betA, rx, cx);
+					if (val == 0.0) continue;
+					fullA.coeffRef(jOffset + cx, lx + rx) = signA * val;
+				}
+			}
+		}
+
+		if (!haveFilteredAmat) {
+			EigenMatrixAdaptor eA(ram->A);
+			for (int cx=0; cx < eA.cols(); ++cx) {
+				for (int rx=0; rx < eA.rows(); ++rx) {
+					if (rx != cx && eA(rx,cx) != 0) {
+						// can't use eA.block(..) -= because fullA must remain sparse
+						fullA.coeffRef(lx + cx, lx + rx) = signA * eA(rx, cx);
+					}
+				}
+			}
+		}
+
+		EigenMatrixAdaptor eS(ram->S);
+		for (int cx=0; cx < eS.cols(); ++cx) {
+			for (int rx=0; rx < eS.rows(); ++rx) {
+				if (rx >= cx && eS(rx,cx) != 0) {
+					fullS.coeffRef(lx + rx, lx + cx) = eS(rx, cx);
+				}
+			}
+		}
+
+		if (ram->M) {
+			EigenVectorAdaptor eM(ram->M);
+			for (int mx=0; mx < eM.size(); ++mx) {
+				fullMeans[lx + mx] = eM[mx];
+			}
+		} else {
+			fullMeans.segment(lx, ram->A->cols).setZero();
+		}
+
+		lx += ram->A->cols;
+	}
+
+	void state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
+	{
+		omxData *data = expectation->data;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, frow, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			placeOneRow(j1.ex, j1.ex->data->lookupRowOfKey(key), totalObserved, maxSize);
+		}
+		if (data->hasPrimaryKey()) {
+			if (data->rowToOffsetMap.size() == 0) {
+				ram->ensureTrivialF();
+			}
+
+			// insert_or_assign would be nice here
+			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
+			if (it != data->rowToOffsetMap.end()) return;
+
+			if (verbose >= 2) {
+				mxLog("%s: place row %d at %d", expectation->name, frow, maxSize);
+			}
+			data->rowToOffsetMap[frow] = maxSize;
+		}
+		int jCols = expectation->dataColumns->cols;
+		if (jCols) {
+			if (!ram->M) {
+				Rf_error("'%s' has manifest observations but '%s' has no mean model",
+					 data->name, expectation->name);
+			}
+			if (smallCol->cols < jCols) {
+				omxResizeMatrix(smallCol, 1, jCols);
+			}
+			omxDataRow(expectation, frow, smallCol);
+			for (int col=0; col < jCols; ++col) {
+				double val = omxMatrixElement(smallCol, 0, col);
+				bool yes = std::isfinite(val);
+				if (yes) ++totalObserved;
+			}
+		}
+		maxSize += ram->F->cols;
+		AmatDependsOnParameters |= ram->A->dependsOnParameters();
+	}
+
+	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx)
+	{
+		omxData *data = expectation->data;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
+		int row;
+		if (!data->hasPrimaryKey()) {
+			row = row_or_key;
+		} else {
+			row = data->lookupRowOfKey(row_or_key);
+			if (data->rowToOffsetMap[row] != lx) return;
+		}
+
+		if (Global->RAMInverseOpt) {
+			data->handleDefinitionVarList(expectation->currentState, row);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxRecompute(ram->A, NULL);
+		}
+
+		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+			join &j1 = ram->joins[jx];
+			int key = omxKeyDataElement(data, row, j1.foreignKey);
+			if (key == NA_INTEGER) continue;
+			prepOneRow(j1.ex, key, lx, dx);
+		}
+
+		if (Global->RAMInverseOpt) {
+			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
+				join &j1 = ram->joins[jx];
+				int key = omxKeyDataElement(data, row, j1.foreignKey);
+				if (key == NA_INTEGER) continue;
+				int frow = j1.ex->data->lookupRowOfKey(key);
+				int jOffset = j1.ex->data->rowToOffsetMap[frow];
+				omxMatrix *betA = j1.regression;
+				omxRecompute(betA, NULL);
+				betA->markPopulatedEntries();
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+						double val = omxMatrixElement(betA, rx, cx);
+						if (val == 0.0) continue;
+						depthTestA.coeffRef(lx + rx, jOffset + cx) = 1;
+					}
+				}
+			}
+			ram->A->markPopulatedEntries();
+			EigenMatrixAdaptor eA(ram->A);
+			for (int cx=0; cx < eA.cols(); ++cx) {
+				for (int rx=0; rx < eA.rows(); ++rx) {
+					if (rx != cx && eA(rx,cx) != 0) {
+						depthTestA.coeffRef(lx + rx, lx + cx) = 1;
+					}
+				}
+			}
+		}
+
+		int jCols = expectation->dataColumns->cols;
+		if (jCols) {
+			omxDataRow(expectation, row, smallCol);
+			for (int col=0; col < jCols; ++col) {
+				double val = omxMatrixElement(smallCol, 0, col);
+				bool yes = std::isfinite(val);
+				if (!yes) continue;
+				latentFilter[ lx + col ] = true;
+				dataVec[ dx++ ] = val;
+			}
+		}
+		nameVec.insert(nameVec.end(), ram->A->colnames.begin(), ram->A->colnames.end());
+		lx += ram->F->cols;
+	}
+
+	void state::init(omxExpectation *expectation)
+	{
+		homeEx = expectation;
+		{
+			SEXP tmp;
+			ScopedProtect p1(tmp, R_do_slot(homeEx->rObj, Rf_install("verbose")));
+			verbose = Rf_asInteger(tmp) + OMX_DEBUG;
+		}
+
+
+		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
+		ram->ensureTrivialF();
+
+		int numManifest = ram->F->rows;
+
+		AmatDependsOnParameters = ram->A->dependsOnParameters();
+		haveFilteredAmat = false;
+		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
+		omxData *data               = homeEx->data;
+
+		// don't permit reuse of our expectations by some other fit function TODO
+
+		int totalObserved = 0;
+		int maxSize = 0;
+		for (int row=0; row < data->rows; ++row) {
+			placeOneRow(homeEx, row, totalObserved, maxSize);
+		}
+		//mxLog("AmatDependsOnParameters=%d", AmatDependsOnParameters);
+
+		if (verbose >= 1) {
+			mxLog("%s: total observations %d", homeEx->name, totalObserved);
+		}
+		nameVec.reserve(maxSize);
+		latentFilter.assign(maxSize, false); // will have totalObserved true entries
+		dataVec.resize(totalObserved);
+		depthTestA.resize(maxSize, maxSize);
+
+		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL); // ignore freeSet
+
+		if (Global->RAMInverseOpt) {
+			Eigen::VectorXd vec(varGroup->vars.size());
+			vec.setConstant(1);
+			copyParamToModelInternal(varGroup, homeEx->currentState, vec.data());
+		}
+
+		for (int row=0, dx=0, lx=0; row < data->rows; ++row) {
+			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
+			prepOneRow(homeEx, key_or_row, lx, dx);
+		}
+
+		AshallowDepth = -1;
+
+		if (Global->RAMInverseOpt) {
+			int maxDepth = std::min(maxSize, 30);
+			if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
+			Eigen::SparseMatrix<double> curProd = depthTestA;
+			for (int tx=1; tx < maxDepth; ++tx) {
+				if (verbose >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
+				curProd = (curProd * depthTestA).eval();
+				bool allZero = true;
+				for (int k=0; k < curProd.outerSize(); ++k) {
+					for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
+						if (it.value() != 0.0) {
+							allZero = false;
+							break;
+						}
+					}
+				}
+				if (allZero) {
+					AshallowDepth = tx;
+					break;
+				}
+			}
+			homeEx->currentState->setDirty();
+		}
+		if (verbose >= 1) {
+			mxLog("%s: RAM shallow inverse depth = %d", homeEx->name, AshallowDepth);
+		}
+	}
+
+	state::~state()
+	{
+		omxFreeMatrix(smallCol);
+	}
+
+	void state::compute(FitContext *fc)
+	{
+		omxData *data                           = homeEx->data;
+
+		fullMeans.conservativeResize(latentFilter.size());
+
+		if (fullA.nonZeros() == 0) {
+			analyzedFullA = false;
+			fullA.resize(latentFilter.size(), latentFilter.size());
+		}
+		fullS.conservativeResize(latentFilter.size(), latentFilter.size());
+
+		if (ident.nonZeros() == 0) {
+			ident.resize(fullA.rows(), fullA.rows());
+			ident.setIdentity();
+		}
+
+		for (int lx=0, row=0; row < data->rows; ++row) {
+			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
+			loadOneRow(homeEx, fc, key_or_row, lx);
+		}
+
+		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
+		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
+
+		if (!haveFilteredAmat) {
+			// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
+			if (AshallowDepth >= 0) {
+				fullA.makeCompressed();
+				filteredA = fullA + ident;
+				for (int iter=1; iter <= AshallowDepth; ++iter) {
+					filteredA = (filteredA * fullA + ident).eval();
+					//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+				}
+			} else {
+				fullA += ident;
+				if (!analyzedFullA) {
+					analyzedFullA = true;
+					fullA.makeCompressed();
+					Asolver.analyzePattern(fullA);
+				}
+				Asolver.factorize(fullA);
+
+				filteredA = Asolver.solve(ident);
+				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+			}
+
+			// We built A transposed so we can quickly filter columns
+			// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130
+			filteredA.uncompress();
+			Eigen::SparseMatrix<double>::Index *op = filteredA.outerIndexPtr();
+			Eigen::SparseMatrix<double>::Index *nzp = filteredA.innerNonZeroPtr();
+			int dx = 0;
+			for (int cx=0; cx < fullA.cols(); ++cx) {
+				if (!latentFilter[cx]) continue;
+				op[dx] = op[cx];
+				nzp[dx] = nzp[cx];
+				++dx;
+			}
+			op[dx] = op[fullA.cols()];
+			filteredA.conservativeResize(fullA.rows(), dataVec.size());
+
+			//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+			haveFilteredAmat = !AmatDependsOnParameters;
+		}
+		//mxPrintMat("S", fullS);
+		//Eigen::MatrixXd fullCovDense =
+
+		fullCov = (filteredA.transpose() * fullS.selfadjointView<Eigen::Lower>() * filteredA);
+		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
+	}
+
+};

@@ -207,6 +207,7 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 void omxCompleteExpectation(omxExpectation *ox) {
 	
 	if(ox->isComplete) return;
+	ox->isComplete = TRUE;
 
 	omxExpectationProcessDataStructures(ox, ox->rObj);
 
@@ -241,8 +242,6 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		}
 		mxLogBig(msg);
 	}
-
-	ox->isComplete = TRUE;
 }
 
 static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
