@@ -36,7 +36,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		return(ret)
 	}
 	if(model$data$type!='raw'){
-		stop("The 'model' arugment must have raw data.")
+		stop("The 'model' argument must have raw (not summary) data.")
 	}
 	classExpect <- class(model$expectation)
 	if(!(classExpect %in% "MxExpectationLISREL") && !(classExpect %in% "MxExpectationRAM")){
