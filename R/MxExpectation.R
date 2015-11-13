@@ -35,8 +35,6 @@
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
 	   data = "MxCharOrNumber",      # filled in during flattening
-	   submodels = "MxOptionalCharOrNumber", # filled in during flattening
-	   container = "MxOptionalCharOrNumber", # filled in during flattening
 	     .runDims = "character",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
@@ -160,8 +158,6 @@ convertExpectationFunctions <- function(flatModel, model, labelsData, dependenci
 	# converting symbolic names into numbers that are easy to deal
 	# with in the backend.
 	retval <- lapply(flatModel@expectations, function(ex) {
-		ex@container <- imxLocateIndex(flatModel, ex@container, ex@name)
-		ex@submodels <- imxLocateIndex(flatModel, ex@submodels, ex@name)
 		genericExpFunConvert(ex, flatModel, model, labelsData, dependencies)
 	})
 	retval <- lapply(retval, function(ex) {

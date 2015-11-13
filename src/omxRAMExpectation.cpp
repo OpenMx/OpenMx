@@ -228,12 +228,11 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 					 oo->name, j1.ex->name);
 			}
 			if (!omxDataColumnIsKey(oo->data, j1.foreignKey)) {
-				Rf_error("Cannot join using non-key type column '%s' in '%s'",
+				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
+					 "Did you forget to use mxData(..., sort=FALSE)?",
 					 omxDataColumnName(oo->data, j1.foreignKey),
 					 oo->data->name);
 			}
-			omxRAMExpectation *ram = (omxRAMExpectation*) j1.ex->argStruct;
-			ram->ensureTrivialF();
 			j1.regression = omxNewMatrixFromSlot(rjoin, currentState, "regression");
 			if (OMX_DEBUG) {
 				mxLog("%s: join col %d against %s using regression matrix %s",

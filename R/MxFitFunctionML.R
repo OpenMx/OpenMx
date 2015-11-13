@@ -17,15 +17,17 @@
 setClass(Class = "MxFitFunctionML",
 	 contains = "MxBaseFitFunction",
 	 representation = representation(
-	     fellner = "logical"),
+	     fellner = "logical",
+	     verbose = "integer"),
 	 )
 
 setMethod("initialize", "MxFitFunctionML",
-	function(.Object, vector, rowDiagnostics, fellner, name = 'fitfunction') {
+	function(.Object, vector, rowDiagnostics, fellner, verbose, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@vector <- vector
 		.Object@rowDiagnostics <- rowDiagnostics
 		.Object@fellner <- fellner
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
@@ -151,7 +153,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)
 	})
 
-mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA)) {
+mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA), verbose=0L) {
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}
@@ -167,7 +169,7 @@ mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=a
 	if (!is.na(fellner) && fellner && (vector || rowDiagnostics)) {
 		stop("'fellner' cannot be combined with 'vector' or 'rowDiagnostics'")
 	}
-	return(new("MxFitFunctionML", vector, rowDiagnostics, fellner))
+	return(new("MxFitFunctionML", vector, rowDiagnostics, fellner, as.integer(verbose)))
 }
 
 displayMxFitFunctionML <- function(fitfunction) {
@@ -175,6 +177,7 @@ displayMxFitFunctionML <- function(fitfunction) {
 	cat("$vector :", fitfunction@vector, '\n')
 	cat("$rowDiagnostics :", fitfunction@rowDiagnostics, '\n')
 	cat("$fellner :", fitfunction@fellner, '\n')
+	cat("$fellner :", fitfunction@verbose, '\n')
 	print(fitfunction@result)
 	invisible(fitfunction)
 }

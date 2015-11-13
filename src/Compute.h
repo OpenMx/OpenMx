@@ -195,6 +195,8 @@ class FitContext {
 	static void setRFitFunction(omxFitFunction *rff);
 };
 
+void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);
+
 typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
 
 class omxCompute {

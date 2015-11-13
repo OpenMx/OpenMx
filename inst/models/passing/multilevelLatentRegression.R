@@ -54,8 +54,7 @@ benchMod <- mxModel("bench", type="RAM",
                values=1, labels="studentVar"),
         mxPath('teacherSkill', paste0('i',1:numIndicators), labels=paste0('tl', 1:numIndicators),
                values=1,free=c(FALSE, rep(TRUE,numIndicators-1))),
-        mxPath('teacherSkill', paste0('student', 1:numStudentsPerTeacher), labels="regr"),
-        mxFitFunctionML(fellner=TRUE))
+        mxPath('teacherSkill', paste0('student', 1:numStudentsPerTeacher), labels="regr"))
 
 for (sx in 1:numStudentsPerTeacher) {
   benchMod <- mxModel(benchMod,

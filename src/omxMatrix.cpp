@@ -572,6 +572,16 @@ void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small)
 	else omxPrintMatrix(source, d);
 }
 
+void omxMatrix::markPopulatedEntries()
+{
+	if (populate.size() == 0) return;
+
+	for (size_t pi = 0; pi < populate.size(); pi++) {
+		populateLocation &pl = populate[pi];
+		omxSetMatrixElement(this, pl.destRow, pl.destCol, 1.0);
+	}
+}
+
 void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 {
 	if (populate.size() == 0) return;
@@ -724,6 +734,7 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 			// F77_CALL(omxunsafedgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
 			omxDGEMM(FALSE, FALSE, oned, A, Z, oned, Ax);
 			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
+			//omxPrint(Z, "Z");
 		}
 		if(origZ != Z) { 	// Juggling has caused Ax and Z to swap
 			omxCopyMatrix(Z, Ax);

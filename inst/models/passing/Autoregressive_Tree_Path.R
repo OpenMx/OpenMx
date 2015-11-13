@@ -54,6 +54,8 @@ m1 <- mxModel("person", type="RAM",
               mxPath("person.height", "height", joinOn='motherID', labels="fromMother"),
               mxPath("person.height", "height", joinOn='fatherID', labels="fromFather"))
 
+#m1 <- mxOption(m1, "RAM Inverse Optimization", "Yes")
+
 if (0) {
   m1 <- mxRun(mxModel(m1, mxComputeOnce('fitfunction', 'fit')))
 } else {

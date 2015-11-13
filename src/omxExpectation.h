@@ -73,9 +73,6 @@ struct omxExpectation {					// An Expectation
 	omxState* currentState;
 	int expNum;
 
-	omxExpectation *container;
-	std::vector<omxExpectation *> submodels;
-
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove
 	const char *name;

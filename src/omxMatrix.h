@@ -56,6 +56,7 @@ class omxMatrix {
 	void transposePopulate();
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);
+	void markPopulatedEntries();
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)

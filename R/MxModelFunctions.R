@@ -356,6 +356,7 @@ clearModifiedSinceRunRecursive <- function(model) {
 ##' @param referant referant
 imxLocateIndex <- function(model, name, referant) {
 	if (length(name) == 0) return(name)
+#	if (length(name) > 1) browser()
 	if (is.na(name)) { return(as.integer(name)) }
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
