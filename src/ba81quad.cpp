@@ -254,7 +254,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 		cumItemOutcomes.push_back(totalOutcomes);
 		totalOutcomes += no;
 
-		int numParam = (*librpf_model[id].numParam)(ispec);
+		int numParam = (*Glibrpf_model[id].numParam)(ispec);
 		if (impliedParamRows < numParam)
 			impliedParamRows = numParam;
 	}

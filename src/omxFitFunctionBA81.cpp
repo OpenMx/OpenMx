@@ -172,7 +172,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	for (int cx=0; cx < itemParam->cols; ++cx) {
 		const double *spec = itemSpec[cx];
 		const int id = spec[RPF_ISpecID];
-		const int numParam = (*rpf_model[id].numParam)(spec);
+		const int numParam = (*Glibrpf_model[id].numParam)(spec);
 		state->paramPerItem[cx] = numParam;
 		totalParam += numParam;
 	}
@@ -198,7 +198,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			int id = spec[RPF_ISpecID];
 			const char *flavor;
 			double upper, lower;
-			(*rpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
+			(*Glibrpf_model[id].paramInfo)(spec, loc->row, &flavor, &upper, &lower);
 			if (state->paramFlavor[px] == 0) {
 				state->paramFlavor[px] = flavor;
 			} else if (strcmp(state->paramFlavor[px], flavor) != 0) {
@@ -311,7 +311,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		const int id = spec[RPF_ISpecID];
 		const int dims = spec[RPF_ISpecDims];
 		Eigen::VectorXd ptheta(dims);
-		const rpf_dLL1_t dLL1 = rpf_model[id].dLL1;
+		const rpf_dLL1_t dLL1 = Glibrpf_model[id].dLL1;
 		const int iOutcomes = estate->grp.itemOutcomes[ix];
 		const int outcomeBase = cumItemOutcomes[ix] * quad.totalQuadPoints;
 		const double *weight = estate->expected + outcomeBase;
@@ -356,7 +356,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
 			double *pad = deriv0 + ix * state->itemDerivPadSize;
-			(*rpf_model[id].dLL2)(spec, iparam, pad);
+			(*Glibrpf_model[id].dLL2)(spec, iparam, pad);
 
 			HessianBlock *hb = state->hBlocks[ix].clone();
 			hb->mat.triangularView<Eigen::Upper>().setZero();
@@ -372,7 +372,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 					mxLog("item parameters:\n");
 					const double *spec = itemSpec[item];
 					int id = spec[RPF_ISpecID];
-					int numParam = (*rpf_model[id].numParam)(spec);
+					int numParam = (*Glibrpf_model[id].numParam)(spec);
 					double *iparam = omxMatrixColumn(itemParam, item);
 					pda(iparam, numParam, 1);
 					// Perhaps bounds can be pulled in from librpf? TODO
@@ -488,9 +488,9 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 					double *iparam = omxMatrixColumn(itemParam, ix);
 					const int id = spec[RPF_ISpecID];
 					OMXZERO(itemDeriv.data(), state->itemDerivPadSize);
-					(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
+					(*Glibrpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
 							      expected.data(), itemDeriv.data());
-					(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
+					(*Glibrpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
 					for (int par = 0; par < state->paramPerItem[ix]; ++par) {
 						int to = state->itemGradMap[gradOffset + par];
@@ -577,9 +577,9 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 							for (int dx=0; dx < dims; dx++) {
 								ptheta[dx] = where[std::min(dx, maxDims-1)];
 							}
-							(*rpf_model[id].dLL1)(spec, iparam, ptheta.data(),
+							(*Glibrpf_model[id].dLL1)(spec, iparam, ptheta.data(),
 									      expected.data(), itemDeriv.data());
-							(*rpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
+							(*Glibrpf_model[id].dLL2)(spec, iparam, itemDeriv.data());
 
 							for (int par = 0; par < state->paramPerItem[ix]; ++par) {
 								int to = state->itemGradMap[gradOffset + par];
@@ -801,7 +801,7 @@ static void gradCov_finish_1pat(const double weight, const double rowWeight, con
 		double *iparam = omxMatrixColumn(itemParam, ix);
 		const int id = spec[RPF_ISpecID];
 		double *myDeriv = deriv0.data() + ix * state->itemDerivPadSize;
-		(*rpf_model[id].dLL2)(spec, iparam, myDeriv);
+		(*Glibrpf_model[id].dLL2)(spec, iparam, myDeriv);
 
 		for (int par = 0; par < state->paramPerItem[ix]; ++par) {
 			int to = state->itemGradMap[gradOffset];
@@ -917,7 +917,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 					double *iparam = omxMatrixColumn(itemParam, ix);
 					const int id = spec[RPF_ISpecID];
 					double *myDeriv = deriv0.data() + ix * state->itemDerivPadSize;
-					(*rpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
+					(*Glibrpf_model[id].dLL1)(spec, iparam, wherePrep + qx * maxDims,
 							      expected.data(), myDeriv);
 				}
 			}
@@ -999,7 +999,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 							for (int dx=0; dx < dims; dx++) {
 								ptheta[dx] = where[std::min(dx, maxDims-1)];
 							}
-							(*rpf_model[id].dLL1)(spec, iparam, ptheta.data(),
+							(*Glibrpf_model[id].dLL1)(spec, iparam, ptheta.data(),
 									      expected.data(), myDeriv);
 						}
 						++qloc;
@@ -1219,7 +1219,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	for (int ix=0; ix < numItems; ix++) {
 		const double *spec = estate->itemSpec(ix);
 		int id = spec[RPF_ISpecID];
-		if (id < 0 || id >= rpf_numModels) {
+		if (id < 0 || id >= Glibrpf_numModels) {
 			Rf_error("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
