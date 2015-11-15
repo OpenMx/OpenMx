@@ -22,6 +22,7 @@
 /DESCRIPTION
 /R/MxVersion.R
 /R/sysdata.rda
+.Rproj.user
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
 man/expm.Rd
@@ -53,6 +54,7 @@ man/imxGenerateLabels.Rd
 man/imxGenerateNamespace.Rd
 man/imxGenericModelBuilder.Rd
 man/imxGenSwift.Rd
+man/imxGentleResize.Rd
 man/imxGetSlotDisplayNames.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
@@ -129,6 +131,7 @@ man/MxExpectationXclass.Rd
 man/MxFitFunction-class.Rd
 man/MxFlatModel-class.Rd
 man/MxInterval-class.Rd
+man/mxJoin.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
@@ -157,4 +160,3 @@ man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
-.Rproj.user
