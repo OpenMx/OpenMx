@@ -40,10 +40,10 @@ require(MASS)
 
 set.seed(200)
 rs=.5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
 testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvtnorm::rmvnorm function in the MASS package.
 selVars <- c("X","Y")
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
@@ -90,17 +90,9 @@ LL <- mxEval(objective,bivSatFit6)
 # example 6: Saturated Model with Raw Data and Matrix-Style Input
 # -----------------------------------------------------------------------------
 
-Mx.EM <- matrix(c(0.03211188, -0.004889211),1,2)
-Mx.EC <- matrix(c(1.0092891, 0.4813504, 0.4813504, 0.9935366),2,2)
-Mx.LL <- 5415.772
-# Mx answers hard-coded
-# -------------------------------------
-# example Mx..2: Saturated Model with Raw Data
-# -----------------------------------------------------------------------------
-
-omxCheckCloseEnough(LL,Mx.LL,.001)
-omxCheckCloseEnough(EC,Mx.EC,.001)
-omxCheckCloseEnough(EM,Mx.EM,.001)
+omxCheckCloseEnough(LL,5407.037,.001)
+omxCheckCloseEnough(c(EC),c(1.066, 0.475, 0.475, 0.929),.001)
+omxCheckCloseEnough(c(EM),c(0.058, 0.006),.001)
 # 6: RawMat Cholesky
 # -------------------------------------
 # Compare OpenMx results to Mx results 

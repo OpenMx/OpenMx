@@ -23,12 +23,12 @@ SigmaDZ <- rbind(cbind(pmat, .5*gmat),
                  cbind(.5*gmat, pmat))
 thresh <- c(.3, .5, .3, .5)
 N <- 250
-require(MASS)
+
 
 
 fcn <- function(N, Sigma, thresh) {
   age <- round(25 + 5*rnorm(N))
-  X <- mvrnorm(N, rep(0, ncol(Sigma)), Sigma)
+  X <- mvtnorm::rmvnorm(N, rep(0, ncol(Sigma)), Sigma)
   for (i in 1:4) {
     one <- which(X[,i] > thresh[i])
     zero <- which(X[,i] <= thresh[i])
@@ -186,8 +186,8 @@ mod1Res <- mxRun(mod1)
 # definition variables and dependencies should be set to NA upon return
 omxCheckEquals(mod1Res$Age1$values, dataMZf$observed[1,'age1'])
 omxCheckEquals(mod1Res$Age2$values, dataMZf$observed[1,'age2'])
-omxCheckCloseEnough(c(mod1Res$ThMZf$values), c(0.314, -0.187), .01)
-omxCheckCloseEnough(c(mod1Res$BageTHf$values), c(0.009, 0.022), .01)
+omxCheckCloseEnough(c(mod1Res$ThMZf$values), c(0.732, 0.305), .01)
+omxCheckCloseEnough(c(mod1Res$BageTHf$values), c(-0.008, 0), .01)
 omxCheckEquals(nrow(mod1Res$data$observed), 250)
 omxCheckEquals(mod1Res$expThresMZf$result,
                mxEval(expThresMZf, mod1Res, compute=T, defvar.row = 1))

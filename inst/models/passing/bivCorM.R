@@ -17,13 +17,13 @@
 require(OpenMx)
 
 #Simulate Data
-require(MASS)
+
 set.seed(200)
 rs=.5
-xy <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+xy <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 testData <- xy
 testData <- testData[, order(apply(testData, 2, var))[2:1]] #put the data columns in order from largest to smallest variance
-# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems: to fix an inconsistency with the mvrnorm function in the MASS package.
+# Note: Users do NOT have to re-order their data columns.  This is only to make data generation the same on different operating systems.
 selVars <- c('X','Y')
 dimnames(testData) <- list(NULL, selVars)
 summary(testData)
@@ -86,13 +86,7 @@ LLs <- mxEval(objective, bivCorFitSub);
 Chi= LLs-LL;
 LRT= rbind(LL,LLs,Chi); LRT
 
-
-#Mx answers hard-coded
-Mx.EM <- matrix(c(0.03211656, -0.004883885),1,2)
-Mx.EC <- matrix(c( 1.0092853, 0.4813504, 0.4813504, 0.9935390),2,2)
-Mx.LL <- 5415.772
-
 #Compare OpenMx results to Mx results (LL: likelihood; EC: expected covariance, EM: expected means)
-omxCheckCloseEnough(LL,Mx.LL,.001)
-omxCheckCloseEnough(EC,Mx.EC,.001)
-omxCheckCloseEnough(EM,Mx.EM,.001)
+omxCheckCloseEnough(LL, 5407.036, .001)
+omxCheckCloseEnough(c(EC), c(1.0656, 0.4752, 0.4752, 0.9292), .001)
+omxCheckCloseEnough(c(EM), c(0.0582, 0.0063), .001)

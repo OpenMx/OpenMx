@@ -43,8 +43,8 @@ c2<-0.3		#Common environment variance component (c squared)
 e2<-0.2		#Specific environment variance component (e squared)
 rMZ <- a2+c2
 rDZ <- .5*a2+c2
-DataMZ <- mvrnorm (1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
-DataDZ <- mvrnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
+DataMZ <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
+DataDZ <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
 
 selVars <- c('t1','t2')
 dimnames(DataMZ) <- list(NULL,selVars)

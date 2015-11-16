@@ -13,7 +13,7 @@ var(univData)
 # Simulate bivariate data
 set.seed(200)
 rs = .5
-xy <- mvrnorm(1000, c(0, 0), matrix(c(1, rs, rs, 1), 2, 2))
+xy <- mvtnorm::rmvnorm(1000, c(0, 0), matrix(c(1, rs, rs, 1), 2, 2))
 bivData <- xy
 dimnames(bivData) <- list(NULL, c('X','Y'))
 summary(bivData)

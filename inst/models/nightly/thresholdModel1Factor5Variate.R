@@ -6,7 +6,7 @@
 
 # Step 1: load libraries
 require(OpenMx)
-require(MASS)
+
 #
 # Step 2: set up simulation parameters 
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
@@ -26,7 +26,7 @@ sigma <- loadings %*% t(loadings) + vec2diag(residuals)
 mu <- matrix(0,nrow=nVariables,ncol=1)
 # Step 3: simulate multivariate normal data
 set.seed(1234)
-continuousData <- mvrnorm(n=nSubjects,mu,sigma)
+continuousData <- mvtnorm::rmvnorm(n=nSubjects,mu,sigma)
 
 # Step 4: chop continuous variables into ordinal data 
 # with nThresholds+1 approximately equal categories, based on 1st variable
@@ -64,11 +64,11 @@ thresholdModel <- mxModel("thresholdModel",
 )
 
 summary(thresholdModelrun <- mxRun(thresholdModel))
-omxCheckCloseEnough(thresholdModelrun$output$fit, 6277.624, .1)
+omxCheckCloseEnough(thresholdModelrun$output$fit, 6282.134, .1)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
-prevSE <- c(0.033, 0.034, 0.033, 0.034, 0.035, 0.071, 0.06, 0.055,  0.055, 0.05,
-            0.048, 0.06, 0.05, 0.051, 0.059, 0.05, 0.051, 0.067,  0.057, 0.056)
+prevSE <- c(0.035, 0.035, 0.035, 0.034, 0.032, 0.06, 0.052, 0.051, 0.061,
+            0.055, 0.052, 0.057, 0.049, 0.056, 0.058, 0.05, 0.06, 0.06, 0.052,  0.055)
 omxCheckCloseEnough(c(thresholdModelrun$output$standardErrors), prevSE, .01)
 
 

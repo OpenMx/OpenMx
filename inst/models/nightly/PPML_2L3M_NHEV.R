@@ -9,7 +9,7 @@
 # with a covariance between two of the manifest variables.
 # Written by Daniel Hackett, July 2011
 require(OpenMx)
-require(MASS)
+
 
 manifests <- c('X','Y','Z')
 latents <- c('G', 'H')
@@ -17,7 +17,7 @@ latents <- c('G', 'H')
 dataCov <- rbind(c(4,3,1),c(3,4,1),c(1,1,2))
 dataMean <- c(2,1,3)
 #set.seed(42)
-#raw <- mvrnorm(n=100, mu=dataMean, Sigma=dataCov)
+#raw <- mvtnorm::rmvnorm(n=100, mu=dataMean, Sigma=dataCov)
 names(dataMean) <- manifests
 #colnames(raw) <- manifests
 colnames(dataCov) <- manifests

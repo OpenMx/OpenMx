@@ -6,7 +6,7 @@
 
 # Step 1: load libraries
 require(OpenMx)
-require(MASS)
+
 #
 # Step 2: set up simulation parameters 
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
@@ -26,7 +26,7 @@ sigma <- loadings %*% t(loadings) + vec2diag(residuals)
 mu <- matrix(0,nrow=nVariables,ncol=1)
 # Step 3: simulate multivariate normal data
 set.seed(1234)
-continuousData <- mvrnorm(n=nSubjects,mu,sigma)
+continuousData <- mvtnorm::rmvnorm(n=nSubjects,mu,sigma)
 
 # Step 4: chop continuous variables into ordinal data 
 # with nThresholds+1 approximately equal categories, based on 1st variable
@@ -95,7 +95,7 @@ rms(ml.T, quants)
 
 ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
-omxCheckWithinPercentError(wls.sum$Chi, 1.84, percent=10)
+omxCheckWithinPercentError(wls.sum$Chi, 0.653, percent=10)
 omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=15)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
@@ -146,8 +146,8 @@ cbind(omxGetParameters(trun2), omxGetParameters(wrun2))
 plot(omxGetParameters(trun2), omxGetParameters(wrun2))
 abline(a=0, b=1)
 
-rms(omxGetParameters(trun2), omxGetParameters(wrun2))
-cor(omxGetParameters(trun2), omxGetParameters(wrun2))
+omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .03)
+omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .04)
 
 
 

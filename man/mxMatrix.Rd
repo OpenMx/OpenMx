@@ -125,4 +125,20 @@ matrixFromChar <- function(inputm, name=NA) {
            dimnames=dimnames(inputm), name=name)
 }
 
+
+# Demonstrate some of the behavior of the condensed slots
+# Create a 3x3 matrix with condensed slots
+
+a <- mxMatrix('Full', 3, 3, values=1, condenseSlots=TRUE)
+a@free # at operator returns the stored 1x1 matrix
+a$free # dollar operator constructs full matrix for printing
+
+# assignment with the dollar operator
+#  de-condenses the slots to create the
+#  full 3x3 matrix
+a$free[1,1] <- TRUE
+a@free
+
+
+
 }

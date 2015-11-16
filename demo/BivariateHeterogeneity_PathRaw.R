@@ -42,13 +42,13 @@ require(MASS)
 if (0) {
 	set.seed(200)
 	rs=.5
-	xy1 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+	xy1 <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 	set.seed(200)
 	# group 1
 	# -------------------------------------
 
 	rs=.4
-	xy2 <- mvrnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
+	xy2 <- mvtnorm::rmvnorm (1000, c(0,0), matrix(c(1,rs,rs,1),2,2))
 	# group 2
 	# -------------------------------------
 
@@ -133,51 +133,17 @@ LRT
 # Fit Homnogeneity Model
 # -----------------------------------------------------------------------------
 
+omxCheckCloseEnough(LLHet, 10944.8728, .001)
+omxCheckCloseEnough(c(EC1Het), c(1.0093, 0.4813, 0.4813, 0.9935), .001)
+omxCheckCloseEnough(c(EM1Het), c(0.0321, -0.0049), .001)
+omxCheckCloseEnough(c(EC2Het), c(1.0123, 0.3799, 0.3799, 0.9957),.001)
+omxCheckCloseEnough(c(EM2Het), c(0.0334, -0.0071),.001)
 
-
-Mx.EM1Het <- matrix(c(0.03211284, -0.004889846),1,2)
-Mx.EC1Het <- matrix(c(1.0092856, 0.4813512, 0.4813512, 0.9935414),2,2)
-Mx.EM2Het <- matrix(c(0.03341992, -0.007112054),1,2)
-Mx.EC2Het <- matrix(c(1.012324, 0.3799160, 0.379916, 0.9956605),2,2)
-Mx.LLHet <- 10944.873
-# 1: Heterogeneity Model
-# -------------------------------------
-Mx.EM1Hom <- matrix(c(0.03276872, -0.0059975),1,2)
-Mx.EC1Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
-Mx.EM2Hom <- matrix(c(0.03276872, -0.0059975),1,2)
-Mx.EC2Hom <- matrix(c(1.0108055, 0.4306339, 0.4306339, 0.9946009),2,2)
-Mx.LLHom <- 10954.368
-# 2: Homogeneity Model
-# -------------------------------------
-# Mx answers hard-coded
-# -----------------------------------------------------------------------------
-
-cov <- rbind(cbind(EC1Het,EC2Het),cbind(EC1Hom,EC2Hom))
-mean <- rbind(cbind(EM1Het, EM2Het),cbind(EM1Hom,EM2Hom))
-like <- rbind(cbind(LLHet),cbind(LLHom))
-cov; mean; like
-# OpenMx summary
-# -----------------------------------------------------------------------------
-
-Mx.cov <- rbind(cbind(Mx.EC1Het,Mx.EC2Het),cbind(Mx.EC1Hom,Mx.EC2Hom))
-Mx.mean <- rbind(cbind(Mx.EM1Het, Mx.EM2Het),cbind(Mx.EM1Hom,Mx.EM2Hom))
-Mx.like <- rbind(cbind(Mx.LLHet),cbind(Mx.LLHom))
-Mx.cov; Mx.mean; Mx.like
-# old Mx summary
-# -----------------------------------------------------------------------------
-
-
-omxCheckCloseEnough(LLHet,Mx.LLHet,.001)
-omxCheckCloseEnough(EC1Het,Mx.EC1Het,.001)
-omxCheckCloseEnough(EM1Het,Mx.EM1Het,.001)
-omxCheckCloseEnough(EC2Het,Mx.EC2Het,.001)
-omxCheckCloseEnough(EM2Het,Mx.EM2Het,.001)
-
-omxCheckCloseEnough(LLHom,Mx.LLHom,.001)
-omxCheckCloseEnough(EC1Hom,Mx.EC1Hom,.001)
-omxCheckCloseEnough(EM1Hom,Mx.EM1Hom,.001)
-omxCheckCloseEnough(EC2Hom,Mx.EC2Hom,.001)
-omxCheckCloseEnough(EM2Hom,Mx.EM2Hom,.001)
+omxCheckCloseEnough(LLHom, 10954.3676,.001)
+omxCheckCloseEnough(c(EC1Hom), c(1.0108, 0.4306, 0.4306, 0.9946),.001)
+omxCheckCloseEnough(c(EM1Hom), c(0.0328, -0.006),.001)
+omxCheckCloseEnough(c(EC2Hom), c(1.0108, 0.4306, 0.4306, 0.9946),.001)
+omxCheckCloseEnough(c(EM2Hom), c(0.0328, -0.006),.001)
 # Compare OpenMx results to Mx results 
-# (LL: likelihood; EC: expected covariance, EM: expected means)
+# (LL: likelihood; expCov: expected covariance, expMean: expected means)
 # -----------------------------------------------------------------------------
