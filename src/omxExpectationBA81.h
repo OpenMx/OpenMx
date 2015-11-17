@@ -126,8 +126,8 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 	}
 }
 
-extern const struct rpf *rpf_model;
-extern int rpf_numModels;
+extern const struct rpf *Grpf_model;
+extern int Grpf_numModels;
 
 OMXINLINE static void
 gramProduct(double *vec, size_t len, double *out)

@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2015 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,13 +20,15 @@
 
 #include "omxExpectationBA81.h"
 #include "glue.h"
-#include "libifa-rpf.h"
+#include <libifa-rpf.h>
 #include "dmvnorm.h"
 #include "omxBuffer.h"
 #include "matrix.h"
 
-const struct rpf *rpf_model = NULL;
-int rpf_numModels;
+#define USE_EXTERNAL_LIBRPF 1
+
+const struct rpf *Glibrpf_model = NULL;
+int Glibrpf_numModels;
 
 void pda(const double *ar, int rows, int cols)
 {
@@ -541,18 +543,15 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	if(OMX_DEBUG) {
 		mxLog("Initializing %s.", oo->name);
 	}
-	if (!rpf_model) {
-		if (0) {
-			const int wantVersion = 3;
-			int version;
-			get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
-			(*get_librpf)(&version, &rpf_numModels, &rpf_model);
-			if (version < wantVersion) Rf_error("librpf binary API %d installed, at least %d is required",
-							 version, wantVersion);
-		} else {
-			rpf_numModels = librpf_numModels;
-			rpf_model = librpf_model;
-		}
+	if (!Glibrpf_model) {
+#if USE_EXTERNAL_LIBRPF
+		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
+		(*get_librpf)(LIBIFA_RPF_API_VERSION, &Glibrpf_numModels, &Glibrpf_model);
+#else
+		// if linking against included source code
+		Glibrpf_numModels = librpf_numModels;
+		Glibrpf_model = librpf_model;
+#endif
 	}
 	
 	BA81Expect *state = new BA81Expect;
