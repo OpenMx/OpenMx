@@ -35,7 +35,7 @@ enum GradientAlgorithm {
 // These are ordered from good to bad so we can use max() on a set
 // of inform results to obtain a bound on convergence status.
 typedef int ComputeInform;
-#define INFORM_UNINITIALIZED -1
+#define INFORM_UNINITIALIZED NA_INTEGER
 #define INFORM_CONVERGED_OPTIMUM 0
 #define INFORM_UNCONVERGED_OPTIMUM 1
 	// The final iterate satisfies the optimality conditions to the accuracy requested,
