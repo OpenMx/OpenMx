@@ -167,21 +167,13 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	}
 
 	ComputeFit(engineName, fitMatrix, want, fc);
-	if (iter == 1) {
-		refFit = fc->fit;
-		if (!std::isfinite(refFit)) {
-			fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
-			return;
-		}
-	}
 
 	double speed = std::min(priorSpeed * 1.5, 1.0);
 	Eigen::VectorXd searchDir(fc->ihessGradProd());
 	double targetImprovement = searchDir.dot(fc->grad);
 
 	if (verbose >= 5) {
-		fc->log(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
-
+		fc->log(FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
 		std::string buf;
 		buf += "searchDir: c(";
 		for (int vx=0; vx < searchDir.size(); ++vx) {
@@ -190,6 +182,14 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 		}
 		buf += ")\n";
 		mxLogBig(buf);
+	}
+
+	if (iter == 1) {
+		refFit = fc->fit;
+		if (!std::isfinite(refFit)) {
+			fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
+			return;
+		}
 	}
 
 	if (!std::isfinite(targetImprovement)) {
