@@ -51,6 +51,7 @@ setClass(Class = "MxExpectationStateSpace",
 		threshnames = "character",
 		t = "MxCharOrNumber",
 		scores = "logical",
+		AIsZero = "logical",
 		xPredicted = "matrix",
 		yPredicted = "matrix",
 		PPredicted = "matrix",
@@ -82,6 +83,7 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@thresholds <- thresholds
 		.Object@t <- t
 		.Object@scores <- scores
+		.Object@AIsZero <- FALSE
 		.Object@definitionVars <- list()
 		.Object@threshnames <- threshnames
 		return(.Object)
@@ -321,6 +323,14 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 			checkSSMNotMissing(dMatrix, 'D', omxQuotes(modelname))
 			checkSSMNotMissing(uMatrix, 'u', omxQuotes(modelname))
 		}
+		#
+		# If A is a matrix (not algebra), has all zero values, all NA labels, no free parameters
+		if("MxMatrix" %in% is(aMatrix) && all(aMatrix$values == 0) && all(is.na(aMatrix$labels)) && all(aMatrix$free == FALSE)){
+			.Object@AIsZero <- TRUE
+			# This is used in the backend for continuous time models to allow for constant slope models
+		}
+		#
+		# Do data processing
 		translatedNames <- c(dimnames(cMatrix)[[1]])
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
