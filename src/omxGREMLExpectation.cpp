@@ -85,7 +85,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
     casesToDrop_intptr = INTEGER(casesToDrop);
     oge->dropcase.assign(oge->cov->rows,0);
     for(i=0; i < Rf_length(casesToDrop); i++){
-      if(casesToDrop_intptr[i] >= oge->cov->rows){
+      if(casesToDrop_intptr[i] > oge->cov->rows){
         Rf_warning("casesToDrop vector in GREML expectation contains indices greater than the number of datapoints");
         oge->numcases2drop--; 
       }
