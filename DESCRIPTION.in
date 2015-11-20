@@ -29,7 +29,7 @@ Description: Facilitates treatment of statistical model specifications
     equations, state space, and many others.
 SystemRequirements: GNU make
 License: Apache License (== 2.0) | file LICENSE
-LinkingTo: RcppEigen, StanHeaders (>= 2.7), BH, rpf (>= 0.36)
+LinkingTo: RcppEigen, StanHeaders (>= 2.7), BH, rpf (>= 0.45)
 Depends:
 	R (>= 3.0.2),
     digest,
@@ -42,7 +42,7 @@ Suggests:
     numDeriv,
     roxygen2 (>= 3.1),
     Rmpi,
-    rpf (>= 0.36),
+    rpf (>= 0.45),
     snowfall,
     lme4
 LazyLoad: yes
