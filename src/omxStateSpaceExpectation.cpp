@@ -637,14 +637,24 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	eigenExpA = eigenExpA.exp();
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
-	/* eigenIA = eigenExpA - I*/
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
-	eigenIA = eigenExpA - I;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
-	eigenIA = eigenA.lu().solve(eigenIA);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
+	if( !(ose->flagAIsZero) ){
+		if(OMX_DEBUG) { mxLog("A is not zero, so doing full A inversion."); }
+		
+		/* eigenIA = eigenExpA - I*/
+		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
+		eigenIA = eigenExpA - I;
+		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
+		eigenIA = eigenA.lu().solve(eigenIA);
+		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
+		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+		/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
+	} else {
+		if(OMX_DEBUG) { mxLog("A is zero, so skipping inversion."); }
+		eigenIA = I*deltaT;
+		/* Note that eigenIA = integral( expm(A*tau) dtau , from=0, to=deltaT) */
+		/* When A = 0, this is I*deltaT */
+		/* When A!= 0, this is A^-1 (expm(A*deltaT) - I) */
+	}
 	
 	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
@@ -892,6 +902,12 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 		mxLog("Accessing Kalman score population option.");
 	}
 	SSMexp->returnScores = Rf_asInteger(R_do_slot(rObj, Rf_install("scores")));
+	
+	/* Fixed and Zero A matrix Flag*/
+	if(OMX_DEBUG) {
+		mxLog("Accessing flag for fixed, zero A matrix.");
+	}
+	SSMexp->flagAIsZero = Rf_asInteger(R_do_slot(rObj, Rf_install("AIsZero")));
 	
 	
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);

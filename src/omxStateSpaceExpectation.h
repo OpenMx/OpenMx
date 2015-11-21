@@ -30,6 +30,7 @@ typedef struct {
 	double oldT;
 	double deltaT;
 	int returnScores; // Whether or not to populated the row-by-row expected means, covariances, Kalman scores, and likelihoods back to R
+	int flagAIsZero; //Whether the A matrix is fixed to zero
 	
 	/* Eigen Matrix initialization */
 	Eigen::MatrixXd eigenExpA;

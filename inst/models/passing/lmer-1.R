@@ -54,7 +54,7 @@ m1$fitfunction$fellner <- TRUE
 
 m1 <- mxRun(m1)
 
-omxCheckCloseEnough(logLik(m1), logLik(fm1), 1e-8)
+omxCheckCloseEnough(logLik(m1), logLik(fm1), 1e-6)
 }
 # ------------------- all path spec
 
@@ -104,4 +104,4 @@ m2 <- mxModel(m2,
                      free=FALSE, joinOn="Subject"))
 
 m2 <- mxRun(m2)
-omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-8)
+omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-6)
