@@ -52,4 +52,11 @@ data$numObs <- 100L
 model <- mxModel(model, objective, data, mxFitFunctionML())
 
 fit <- mxRun(model)
-	
+
+primaryKey <- c(1:4, 3L)
+m1 <- mxModel("uniqueModel", type="RAM",
+              latentVars = "ign",
+              mxData(type="raw", observed=data.frame(key=primaryKey), primaryKey = "key"),
+              mxPath("one", "ign"),
+              mxPath("ign", arrows=2))
+omxCheckError(mxRun(m1), "uniqueModel.data: primary keys are not unique (examine rows with key=3)")
