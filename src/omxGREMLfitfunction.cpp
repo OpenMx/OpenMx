@@ -248,7 +248,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-			if( oge->numcases2drop ){
+			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
 				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
 			}
 			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
@@ -266,7 +266,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 					t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
 					if(t2 < 0){continue;}
-					if( oge->numcases2drop ){
+					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
 						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
