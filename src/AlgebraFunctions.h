@@ -1357,6 +1357,17 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 	corList = (double*) malloc((nElements * (nElements + 1) / 2) * sizeof(double));
 
 	omxStandardizeCovMatrix(cov, corList, weights);
+	/*if(!R_finite(omxMatrixElement(cov, 0, 0))) {
+		char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "Found correlation greater than 1.");
+		omxRaiseErrorf(errstr);
+		free(errstr);
+		free(corList);
+		free(weights);
+		free(uBounds);
+		free(lBounds);
+		return;
+	}*/
 
 	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
 	// TODO: Check with Genz: should we be using sadmvn or sadmvn?

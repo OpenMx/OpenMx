@@ -798,6 +798,13 @@ void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights) {
 	for(int i = 0; i < rows; i++) {
 		for(int j = 0; j < i; j++) {
 			corList[((i*(i-1))/2) + j] = omxMatrixElement(cov, i, j) / (weights[i] * weights[j]);
+			/*if(corList[((i*(i-1))/2) + j] > 1.0) {
+				//omxSetMatrixElement(cov, 0, 0, NA_REAL);
+				char *errstr = (char*) calloc(250, sizeof(char));
+				sprintf(errstr, "Found correlation greater than 1.");
+				omxRaiseErrorf(errstr);
+				free(errstr);
+			}*/
 		}
 	}
 }
