@@ -524,7 +524,7 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
 
 	if(om == NULL) Rf_error("Must provide an output matrix");
 
-	int numcols = om->cols;
+	int numcols = colList->cols;
 	if(od->dataMat != NULL) { // Matrix Object
 		omxMatrix* dataMat = od->dataMat;
 		for(int j = 0; j < numcols; j++) {
