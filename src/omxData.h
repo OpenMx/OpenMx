@@ -123,6 +123,7 @@ class omxData {
 	int rows, cols;						// Matrix size 
 	int verbose;
 	std::map<int,int> rowToOffsetMap;
+	std::map<int,int> primaryKeyIndex;
 
 	void loadFakeData(omxState *state, double fake);
 	bool handleDefinitionVarList(omxState *state, int row);

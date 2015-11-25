@@ -29,7 +29,8 @@
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
 
-omxData::omxData() : rownames(0), dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+omxData::omxData() : rownames(0), primaryKey(-1),
+		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     indexVector(0), identicalDefs(0), identicalMissingness(0),
 				    identicalRows(0), rows(0), cols(0),
@@ -161,7 +162,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 	{
 		ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("primaryKey")));
-		primaryKey = Rf_asInteger(dataLoc) - 1;
+		int pk = Rf_asInteger(dataLoc);
+		if (pk != NA_INTEGER) {
+			primaryKey = pk - 1;
+		}
 	}
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObject, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
@@ -327,6 +331,17 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 
 		if(Rf_length(dataLoc) == 0 || od->identicalRows[0] == R_NaInt) od->identicalRows = NULL;
 	}
+
+	if (hasPrimaryKey()) {
+		for (int rx=0; rx < rows; ++rx) {
+			int key = primaryKeyOfRow(rx);
+			std::pair< std::map<int,int>::iterator, bool> ret =
+				primaryKeyIndex.insert(std::pair<int,int>(key, rx));
+			if (!ret.second) {
+				Rf_error("%s: primary keys are not unique (examine rows with key=%d)", od->name, key);
+			}
+		}
+	}
 }
 
 omxData* omxState::omxNewDataFromMxData(SEXP dataObject, const char *name)
@@ -431,15 +446,15 @@ int omxData::primaryKeyOfRow(int row)
 
 int omxData::lookupRowOfKey(int key)
 {
-	if(dataMat != NULL) Rf_error("%s: only raw data can have a primary key", name);
-	if (primaryKey < 0) Rf_error("%s: omxDataLookupRowOfKey attempted "
-					 "but no primary key specified", name);
-	ColumnData &cd = rawCols[primaryKey];
-	// dumb column scan, could be optimized with an index
-	for (int rx=0; rx < rows; ++rx) {
-		if (cd.intData[rx] == key) return rx;
+	const std::map<int,int>::iterator it = primaryKeyIndex.find(key);
+	if (it == primaryKeyIndex.end()) {
+		if (!hasPrimaryKey()) {
+			Rf_error("%s: attempt to lookup key=%d but no primary key", name, key);
+		}
+		ColumnData &cd = rawCols[primaryKey];
+		Rf_error("%s: key %d not found in column '%s'", name, key, cd.name);
 	}
-	Rf_error("%s: key %d not found in column '%s'", name, key, cd.name);
+	return it->second;
 }
 
 const char *omxDataColumnName(omxData *od, int col)
