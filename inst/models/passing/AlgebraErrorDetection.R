@@ -74,4 +74,5 @@ mod <- mxModel("amodel", mxMatrix("Full", 4, 1, values=7, name="M"), mxMatrix("F
 omxCheckError(mxEval(M-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
 omxCheckError(mxEval(M[,1]-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M[, 1] - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
 omxCheckError(mxAlgebra(expression="minG", name="blah"), "mxAlgebra wants an unquoted expression or formula")
+omxCheckWarning(omxMnor(matrix(c(1,90,90,1),2,2), c(0, 0), c(-Inf, -Inf), c(1.282,1.282)), "Correlation with absolute value greater than one found.")
 
