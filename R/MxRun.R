@@ -408,7 +408,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
           
           if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
-            if (fit$output$minimum < lowestminsofar) { #if this is the best fit so far
+            if (fit$output$minimum < lowestminsofar && is.finite(fit$output$minimum)) { #if this is the best fit so far
                 message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
                 lastBestFitCount<-lastBestFitCount+1 
                 lowestminsofar <- fit$output$minimum
