@@ -170,7 +170,9 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     	list(covariance, means, lbound, ubound), 
     	imxLookupSymbolTable("omxMnor"), 
 		    generateOptionsList(NULL, 0, FALSE))
-
+	if(single.na(retVal)){
+		warning('Correlation with absolute value greater than one found.')
+	}
     return(as.matrix(as.numeric(retVal)))
     
 }

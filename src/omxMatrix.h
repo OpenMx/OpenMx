@@ -356,7 +356,7 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 
 void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc);
 
-void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights);
+void omxStandardizeCovMatrix(omxMatrix* cov, double* corList, double* weights, FitContext* fc);
 
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result);
 

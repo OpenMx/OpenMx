@@ -137,7 +137,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		double *weights		= ofiml->weights;
 
 		if (corList) {
-			omxStandardizeCovMatrix(cov, corList, weights);	// Calculate correlation and covariance
+			omxStandardizeCovMatrix(cov, corList, weights, fc);	// Calculate correlation and covariance
 		}
 		for(int index = 0; index < numChildren; index++) {
 			FitContext *kid = fc->childList[index];

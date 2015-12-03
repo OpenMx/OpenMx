@@ -287,7 +287,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					// These values pass through directly without modification by continuous variables
 					
 					// Calculate correlation matrix, correlation list, and weights from covariance
-					omxStandardizeCovMatrix(ordCov, corList, weights);
+					omxStandardizeCovMatrix(ordCov, corList, weights, fc);
 				}
 			} 
 			else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
@@ -474,7 +474,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				// Calculate correlation matrix, correlation list, and weights from covariance
 				if(numIdenticalDefs <=0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
 					// if(OMX_DEBUG_ROWS(row)) {omxPrint(ordCov, "Ordinal cov matrix for standardization."); } //:::DEBUG:::
-					omxStandardizeCovMatrix(ordCov, corList, weights);
+					omxStandardizeCovMatrix(ordCov, corList, weights, fc);
 				}
 				
 				omxCopyMatrix(ordRow, smallRow);
