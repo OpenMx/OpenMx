@@ -351,12 +351,9 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int numChildren = 0;
 	if (parallel) numChildren = fc->childList.size();
 
-	omxRecompute(fitMat, fc);
-	minimum = omxMatrixElement(fitMat, 0, 0);
-	if (!std::isfinite(minimum)) {
-		if (verbose >= 1) mxLog("%s: reference fit is %f; skipping", name, minimum);
-		return;
-	}
+	if (!fc->haveReferenceFit(fitMat)) return;
+
+	minimum = fc->fit;
 
 	struct hess_struct* hess_work;
 	if (numChildren < 2) {
