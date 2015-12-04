@@ -439,7 +439,15 @@ void ComputeCI::computeImpl(FitContext *mle)
 				name, numInts, fitMatrix->name(), mle->fit, ctypeName);
 	if (!numInts) return;
 
-	if (!std::isfinite(mle->fit)) Rf_error("%s: reference fit is not finite", name);
+	if (!std::isfinite(mle->fit)) {
+		if (mle->inform != INFORM_UNINITIALIZED &&
+		    mle->inform != INFORM_CONVERGED_OPTIMUM &&
+		    mle->inform != INFORM_UNCONVERGED_OPTIMUM) {
+			// some error will be reported anyway
+			return;
+		}
+		Rf_error("%s: reference fit is not finite", name);
+	}
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
 	if (mle->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->inform != INFORM_NOT_AT_OPTIMUM) {

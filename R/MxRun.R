@@ -330,7 +330,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         
         if(lastNoError==TRUE) params <- omxGetParameters(model)
         
-        if(lastBestFitCount == 0 & numdone > 0){ #if the last fit was not the best
+        if(lastBestFitCount == 0 && numdone > 0){ #if the last fit was not the best
             if(exists('bestfit')) params<-bestfit.params #if bestfit exists use this instead
             if(numdone %% 4 == 0) params<-inits #sometimes, use initial start values instead
             
@@ -408,7 +408,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
           
           if(fit$output$minimum >= lowestminsofar) lastBestFitCount<-0
             
-            if (fit$output$minimum < lowestminsofar) { #if this is the best fit so far
+            if (fit$output$minimum < lowestminsofar && is.finite(fit$output$minimum)) { #if this is the best fit so far
                 message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
                 lastBestFitCount<-lastBestFitCount+1 
                 lowestminsofar <- fit$output$minimum
@@ -472,7 +472,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
             
             if(stopflag){
                 message('\nSolution found\n')
-                if(length(bestfit$intervals)>0 & intervals==TRUE){ #only calculate confidence intervals once the best fit is established
+                if(length(bestfit$intervals)>0 && intervals==TRUE){ #only calculate confidence intervals once the best fit is established
                     
                     message("Estimating confidence intervals\n") 
                     
@@ -513,12 +513,12 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         
         
         
-        if (numdone > extraTries & stopflag==FALSE) { #added stopflag==FALSE
+        if (numdone > extraTries && stopflag==FALSE) { #added stopflag==FALSE
             message('\nRetry limit reached')
             stopflag <- TRUE
             if (exists("bestfit")) {
                 
-                if(length(bestfit$intervals)>0 & intervals==TRUE){ #calculate intervals for best fit, even though imperfect
+                if(length(bestfit$intervals)>0 && intervals==TRUE){ #calculate intervals for best fit, even though imperfect
                     message("Estimate confidence intervals for imperfect solution\n") 
                     
                     if(defaultComputePlan==TRUE) bestfit <- OpenMx::mxModel(bestfit, 
@@ -552,7 +552,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
     
     
     
-    if(bestInitsOutput & exists("bestfit")){
+    if(bestInitsOutput && exists("bestfit")){
         bestfit.params <- omxGetParameters(bestfit)
         message("\nStart values from best fit:")
         if(paste) message(paste(bestfit.params, sep=",", collapse = ",")) 
