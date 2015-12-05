@@ -163,6 +163,20 @@ class FitContext {
 	void updateParentAndFree();
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
+	bool haveReferenceFit(omxMatrix *fitMat) {
+		if (std::isfinite(fit)) return true;
+		if (inform == INFORM_UNINITIALIZED) {
+			omxRecompute(fitMat, this);
+			fit = omxMatrixElement(fitMat, 0, 0);
+			if (std::isfinite(fit)) return true;
+			inform = INFORM_STARTING_VALUES_INFEASIBLE;
+		}
+		if (inform != INFORM_CONVERGED_OPTIMUM &&
+		    inform != INFORM_UNCONVERGED_OPTIMUM) {
+			return false;
+		}
+		Rf_error("%s: reference fit is not finite", fitMat->name());
+	};
 	~FitContext();
 	
 	// deriv related
