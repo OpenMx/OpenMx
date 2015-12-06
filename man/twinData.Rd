@@ -17,29 +17,15 @@
 \alias{twinData}
 \title{Australian twin sample biometric data.}
 \description{
-Australian twin data with 3808 observations on the 12 variables including body mass index (BMI) assessed in both MZ and DZ twins.
+Australian twin data with 3,808 observations on the 12 variables including body mass index (BMI) assessed in both MZ and DZ twins.
 
-Questionnaires were mailed to 5967 pairs age 18 years and over. These data consist of completed questionnaires returned by both members of 3808 (64 percent) pairs. There are two cohort blocks in the data: a younger group (zyg 1:5), and an older group (zyg 6:10)
+Questionnaires were mailed to 5,967 pairs age 18 years and over. These data consist of completed questionnaires returned by both members of 3,808 (64 percent) pairs. There are two cohort blocks in the data: a younger group (zyg 1:5), and an older group (zyg 6:10)
  
-It is a wide dataset, with two individuals per line. Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1} and \dQuote{htwt2}), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
+It is a wide dataset, with two individuals per line. Families are identified by the variable \dQuote{fam}.
 
-fam is a family identifier. Age is entered only once, as the both twins in each pair share a common age.
+Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1} and \dQuote{htwt2}), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
 
-  \describe{
-    \item{\code{fam}}{a numeric vector}
-    \item{\code{age}}{a numeric vector}
-    \item{\code{zyg}}{a numeric vector}
-    \item{\code{part}}{a numeric vector}
-    \item{\code{wt1}}{a numeric vector}
-    \item{\code{wt2}}{a numeric vector}
-    \item{\code{ht1}}{a numeric vector}
-    \item{\code{ht2}}{a numeric vector}
-    \item{\code{htwt1}}{a numeric vector}
-    \item{\code{htwt2}}{a numeric vector}
-    \item{\code{bmi1}}{a numeric vector}
-    \item{\code{bmi2}}{a numeric vector}
-  }
-
+For convenience, zyg is broken out into separate \dQuote{zygosity} and \dQuote{cohort} factors. \dQuote{zygosity} is coded as a 5-level factor.
 }
 
 \references{
@@ -52,41 +38,55 @@ Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feindgold, L. M., & Eyse
 \format{
  A data frame with 3808 observations on the following 12 variables.
  \describe{
- \item{\code{fam}}{a numeric vector} of family IDs
- \item{\code{age}}{a numeric vector} of ages (years)
- \item{\code{zyg}}{a numeric vector} of zygosity (see below for important details)
- \item{\code{part}}{a numeric vector}
- \item{\code{wt1}}{a numeric vector} of weights in kg (twin 1)
- \item{\code{wt2}}{a numeric vector} of weights in kg (twin 2)
- \item{\code{ht1}}{a numeric vector} of heights in kg (twin 1)
- \item{\code{ht2}}{a numeric vector} of heights in kg (twin 2)
- \item{\code{htwt1}}{a numeric vector} of kg/m^2 twin 1
- \item{\code{htwt2}}{a numeric vector} of kg/m^2 twin 2
- \item{\code{bmi1}}{a numeric vector} of log BMI for twin 1
- \item{\code{bmi2}}{a numeric vector} of log BMI for twin 2
+ 	\item{\code{fam}}{The family ID}
+    \item{\code{age}}{Age in years (of both twins)}
+    \item{\code{zyg}}{Code for zygosity and cohort (see details)}
+    \item{\code{part}}{A numeric vector}
+    \item{\code{wt1}}{Weight of twin 1 (kg)}
+    \item{\code{wt2}}{Weight of twin 2 (kg)}
+    \item{\code{ht1}}{Height of twin 1 (m)}
+    \item{\code{ht2}}{Height of twin 2 (m)}
+    \item{\code{htwt1}}{Raw BMI of twin 1 (kg/m^2)}
+    \item{\code{htwt2}}{Raw BMI of twin 2 (kg/m^2)}
+    \item{\code{bmi1}}{log(BMI) of twin 1}
+    \item{\code{bmi2}}{log(BMI) of twin 2}
+    \item{\code{cohort}}{Either \dQuote{younger} or \dQuote{older}}
+    \item{\code{zygosity}}{Zygosity factor with levels: MZFF, MZMM, DZFF, DZMM, DZOS}
+    \item{\code{age1}}{Age of Twin 1}
+    \item{\code{age2}}{Age of Twin 2}
  }
 }
+
 \details{
-Zygosity is coded as follows
+\dQuote{zyg} codes twin-zygosity as follows:
 1 == MZFF (i.e MZ females)
 2 == MZMM (i.e MZ males)
 3 == DZFF
 4 == DZMM
 5 == DZOS opposite sex pairs
 
-Note: Zygosity 6:10 is the same, for an older cohort in the sample. So:
+Note: zyg 6:10 are for an older cohort in the sample. So:
 6 == MZFF (i.e MZ females)
 7 == MZMM (i.e MZ males)
 8 == DZFF
 9 == DZMM
 10 == DZOS opposite sex pairs
 
+The \dQuote{zygosity} and \dQuote{cohort} variables take care of this for you (conventions differ).
 }
 \examples{
 data(twinData)
 str(twinData)
 plot(wt1 ~ wt2, data = twinData)
-mzData <- as.matrix(subset(myTwinData, zyg == 1, c(bmi1, bmi2)))
-dzData <- as.matrix(subset(myTwinData, zyg == 3, c(bmi1, bmi2)))
+selVars = c("bmi1", "bmi2")
+mzData <- subset(twinData, zyg == 1, selVars)
+dzData <- subset(twinData, zyg == 3, selVars)
+
+# equivalently
+mzData <- subset(twinData, zygosity == "MZFF", selVars)
+
+# Disregard sex, pick older cohort
+mz <- subset(twinData, zygosity \%in\% c("MZFF","MZMM") & cohort == "older", selVars)
+
 }
 \keyword{datasets}
