@@ -40,7 +40,7 @@ For type='Regression', factor scores are computed based on a simple formula.  Th
 }
 
 \value{
-    An array with dimensions (Number of Rows of Data, Number of Latent Variables, 2).  The third dimension has the scores in the first slot and the standard errors in the second slot.  The rows are in the order of the \emph{sorted} data.
+    An array with dimensions (Number of Rows of Data, Number of Latent Variables, 2).  The third dimension has the scores in the first slot and the standard errors in the second slot.  The rows are in the order of the \emph{unsorted} data.
 }
 
 \seealso{
