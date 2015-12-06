@@ -61,6 +61,9 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		factorScoreHelperFUN <- ramFactorScoreHelper
 	}
 	nrows <- nrow(model$data$observed)
+	if(length(model$data$indexVector) == nrows){ #put data back in unsorted order
+		model@data@observed <- model$data$observed[order(model$data$indexVector), ]
+	}
 	res <- array(NA, c(nrows, nksi, 2))
 	if(any(type %in% c('ML', 'WeightedML'))){
 		model <- omxSetParameters(model, labels=names(omxGetParameters(model)), free=FALSE)
@@ -75,10 +78,10 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		work@data <- NULL
 		for(i in 1:nrows){
 			if(type[1]=='ML'){
-				fit <- mxModel(model=work, name=paste0(work@name, i, "Of", nrows), mxData(model$data$observed[i,,drop=FALSE], 'raw'))
+				fit <- mxModel(model=work, name=paste(work@name, i, "of", nrows, sep="_"), mxData(model$data$observed[i,,drop=FALSE], 'raw'))
 			} else if(type[1]=='WeightedML'){
 				work@submodels[[1]]@data <- mxData(model$data$observed[i,,drop=FALSE], 'raw')
-				fit <- mxModel(model=work, name=paste0(work@name, i, "Of", nrows))
+				fit <- mxModel(model=work, name=paste(work@name, i, "of", nrows, sep="_"))
 			}
 			fit <- mxRun(fit, silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
 			res[i,,1] <- omxGetParameters(fit) #params
