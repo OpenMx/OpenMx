@@ -328,13 +328,12 @@ namespace FellnerFitFunction {
 		try {
 			if (!st->haveFilteredAmat) {
 				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-				Eigen::SparseMatrix<double> invA;  // replace with filteredA TODO
 				if (st->AshallowDepth >= 0) {
 					fullA.makeCompressed();
-					invA = fullA + ident;
+					filteredA = fullA + ident;
 					for (int iter=1; iter <= st->AshallowDepth; ++iter) {
-						invA = (invA * fullA + ident).eval();
-						//{ Eigen::MatrixXd tmp = invA; mxPrintMat("invA", tmp); }
+						filteredA = (filteredA * fullA + ident).eval();
+						//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 					}
 				} else {
 					fullA += ident;
@@ -345,41 +344,24 @@ namespace FellnerFitFunction {
 					}
 					st->Asolver.factorize(fullA);
 
-					invA = st->Asolver.solve(ident);
-					//{ Eigen::MatrixXd tmp = invA; mxPrintMat("invA", tmp); }
+					filteredA = st->Asolver.solve(ident);
+					//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 				}
 
-				if (0) {
-					filteredA.conservativeResize(fullA.rows(), st->dataVec.size());
-					gentleZero(filteredA);
-					for (int cx=0, dx=-1; cx < fullA.cols(); ++cx) {
-						if (!st->latentFilter[cx]) continue;
-						++dx;
-						for (int rx=0; rx < fullA.rows(); ++rx) {
-							if (invA.coeff(rx, cx) == 0) continue;
-							filteredA.coeffRef(rx, dx) = invA.coeff(rx, cx);
-						}
-					}
-					filteredA.makeCompressed();
+				// We built A transposed so we can quickly filter columns
+				filteredA.uncompress();
+				Eigen::SparseMatrix<double>::Index *op = filteredA.outerIndexPtr();
+				Eigen::SparseMatrix<double>::Index *nzp = filteredA.innerNonZeroPtr();
+				int dx = 0;
+				for (int cx=0; cx < fullA.cols(); ++cx) {
+					if (!st->latentFilter[cx]) continue;
+					op[dx] = op[cx];
+					nzp[dx] = op[cx+1] - op[cx];
+					++dx;
 				}
-				//printSparse(invA);
-				if (1) {
-					// We built A transposed so we can quickly filter columns
-					invA.uncompress();
-					Eigen::SparseMatrix<double>::Index *op = invA.outerIndexPtr();
-					Eigen::SparseMatrix<double>::Index *nzp = invA.innerNonZeroPtr();
-					int dx = 0;
-					for (int cx=0; cx < fullA.cols(); ++cx) {
-						if (!st->latentFilter[cx]) continue;
-						op[dx] = op[cx];
-						nzp[dx] = op[cx+1] - op[cx];
-						++dx;
-					}
-					op[dx] = op[fullA.cols()];
-					invA.conservativeResize(fullA.rows(), st->dataVec.size());
-					filteredA = invA;
-				}
-				//printSparse(filteredA);
+				op[dx] = op[fullA.cols()];
+				filteredA.conservativeResize(fullA.rows(), st->dataVec.size());
+
 				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 				st->haveFilteredAmat = !st->AmatDependsOnParameters;
 			}
