@@ -237,7 +237,7 @@ namespace FellnerFitFunction {
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
-					fullA.coeffRef(jOffset + cx, lx + rx) += signA * val;
+					fullA.coeffRef(jOffset + cx, lx + rx) = signA * val;
 				}
 			}
 		}
@@ -248,7 +248,7 @@ namespace FellnerFitFunction {
 				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
 						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + cx, lx + rx) += signA * eA(rx, cx);
+						fullA.coeffRef(lx + cx, lx + rx) = signA * eA(rx, cx);
 					}
 				}
 			}
@@ -258,7 +258,7 @@ namespace FellnerFitFunction {
 		for (int cx=0; cx < eS.cols(); ++cx) {
 			for (int rx=0; rx < eS.rows(); ++rx) {
 				if (rx >= cx && eS(rx,cx) != 0) {
-					fullS.coeffRef(lx + rx, lx + cx) += eS(rx, cx);
+					fullS.coeffRef(lx + rx, lx + cx) = eS(rx, cx);
 				}
 			}
 		}
@@ -305,10 +305,10 @@ namespace FellnerFitFunction {
 			st->analyzedFullA = false;
 			fullA.resize(st->latentFilter.size(), st->latentFilter.size());
 		} else {
-			gentleZero(fullA);
+			//gentleZero(fullA);
 		}
 		fullS.conservativeResize(st->latentFilter.size(), st->latentFilter.size());
-		gentleZero(fullS);
+		//gentleZero(fullS);
 
 		Eigen::SparseMatrix<double> &ident = st->ident;
 		if (ident.nonZeros() == 0) {
