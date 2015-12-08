@@ -156,7 +156,47 @@ namespace FellnerFitFunction {
 		void placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	};
-	
+
+	template <typename T>
+	void printSparse(Eigen::SparseMatrixBase<T> &sm) {
+		typedef typename T::Index Index;
+		typedef typename T::Scalar Scalar;
+		typedef typename T::Storage Storage;
+		// assume column major
+		std::string buf;
+		const Index *nzp = sm.derived().innerNonZeroPtr();
+		//const Scalar *vp = sm.derived().valuePtr();
+		//const Index *iip = sm.derived().innerIndexPtr();
+		const Index *oip = sm.derived().outerIndexPtr();
+		const Storage &m_data = sm.derived().data();
+		if (!nzp) buf += "compressed ";
+		buf += string_snprintf("%dx%d\n", sm.innerSize(), sm.outerSize());
+		for (int rx=0; rx < sm.innerSize(); ++rx) {
+			for (int cx=0; cx < sm.outerSize(); ++cx) {
+				Index start = oip[cx];
+				Index end = nzp ? oip[cx] + nzp[cx] : oip[cx+1];
+				if (end <= start) {
+					buf += " ***";
+				} else {
+					const Index p = m_data.searchLowerIndex(start,end-1,rx);
+					if ((p<end) && (m_data.index(p)==rx)) {
+						double v = m_data.value(p);
+						if (v < 0) {
+							buf += string_snprintf("%2.1f", v);
+						} else {
+							buf += string_snprintf(" %2.1f", v);
+						}
+					}
+					else
+						buf += " ***";
+				}
+				if (cx < sm.outerSize() - 1) buf += " ";
+			}
+			buf += "\n";
+		}
+		mxLogBig(buf);
+	}
+
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
 	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
@@ -197,7 +237,7 @@ namespace FellnerFitFunction {
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
-					fullA.coeffRef(lx + rx, jOffset + cx) += signA * val;
+					fullA.coeffRef(jOffset + cx, lx + rx) += signA * val;
 				}
 			}
 		}
@@ -208,7 +248,7 @@ namespace FellnerFitFunction {
 				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
 						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + rx, lx + cx) += signA * eA(rx, cx);
+						fullA.coeffRef(lx + cx, lx + rx) += signA * eA(rx, cx);
 					}
 				}
 			}
@@ -288,8 +328,9 @@ namespace FellnerFitFunction {
 		try {
 			if (!st->haveFilteredAmat) {
 				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-				Eigen::SparseMatrix<double> invA;
+				Eigen::SparseMatrix<double> invA;  // replace with filteredA TODO
 				if (st->AshallowDepth >= 0) {
+					fullA.makeCompressed();
 					invA = fullA + ident;
 					for (int iter=1; iter <= st->AshallowDepth; ++iter) {
 						invA = (invA * fullA + ident).eval();
@@ -308,24 +349,44 @@ namespace FellnerFitFunction {
 					//{ Eigen::MatrixXd tmp = invA; mxPrintMat("invA", tmp); }
 				}
 
-				filteredA.conservativeResize(st->dataVec.size(), fullA.rows());
-				gentleZero(filteredA);
-				for (int rx=0, dx=-1; rx < fullA.rows(); ++rx) {
-					if (!st->latentFilter[rx]) continue;
-					++dx;
-					for (int cx=0; cx < fullA.cols(); ++cx) {
-						if (invA.coeff(rx, cx) == 0) continue;
-						filteredA.coeffRef(dx, cx) = invA.coeff(rx, cx);
+				if (0) {
+					filteredA.conservativeResize(fullA.rows(), st->dataVec.size());
+					gentleZero(filteredA);
+					for (int cx=0, dx=-1; cx < fullA.cols(); ++cx) {
+						if (!st->latentFilter[cx]) continue;
+						++dx;
+						for (int rx=0; rx < fullA.rows(); ++rx) {
+							if (invA.coeff(rx, cx) == 0) continue;
+							filteredA.coeffRef(rx, dx) = invA.coeff(rx, cx);
+						}
 					}
+					filteredA.makeCompressed();
 				}
-				filteredA.makeCompressed();
+				//printSparse(invA);
+				if (1) {
+					// We built A transposed so we can quickly filter columns
+					invA.uncompress();
+					Eigen::SparseMatrix<double>::Index *op = invA.outerIndexPtr();
+					Eigen::SparseMatrix<double>::Index *nzp = invA.innerNonZeroPtr();
+					int dx = 0;
+					for (int cx=0; cx < fullA.cols(); ++cx) {
+						if (!st->latentFilter[cx]) continue;
+						op[dx] = op[cx];
+						nzp[dx] = op[cx+1] - op[cx];
+						++dx;
+					}
+					op[dx] = op[fullA.cols()];
+					invA.conservativeResize(fullA.rows(), st->dataVec.size());
+					filteredA = invA;
+				}
+				//printSparse(filteredA);
 				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 				st->haveFilteredAmat = !st->AmatDependsOnParameters;
 			}
 			//mxPrintMat("S", fullS);
 			//Eigen::MatrixXd fullCovDense =
 			bool firstTime = fullCov.nonZeros() == 0;
-			fullCov = (filteredA * fullS.selfadjointView<Eigen::Lower>() * filteredA.transpose());
+			fullCov = (filteredA.transpose() * fullS.selfadjointView<Eigen::Lower>() * filteredA);
 			//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 
 			if (firstTime) {
@@ -337,7 +398,7 @@ namespace FellnerFitFunction {
 			lp = st->covDecomp.log_determinant();
 			//mxPrintMat("dataVec", st->dataVec);
 			//mxPrintMat("fullMeans", fullMeans);
-			Eigen::VectorXd resid = st->dataVec - filteredA * fullMeans;
+			Eigen::VectorXd resid = st->dataVec - filteredA.transpose() * fullMeans;
 			double iqf = st->covDecomp.inv_quad_form(resid);
 			if (st->verbose >= 2) mxLog("log det %f iqf %f", lp, iqf);
 			lp += iqf;
