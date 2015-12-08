@@ -108,6 +108,11 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 		std::string opt = string_snprintf("Optimality tolerance %.8g", rf.ControlTolerance);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
+	if (rf.maxMajorIterations != -1) {
+		std::string opt = string_snprintf("Major iterations %d",
+						  rf.maxMajorIterations - rf.fc->iterations);
+		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
+	}
 	if (rf.warmStart) {
 		std::string opt = string_snprintf("Warm start");
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
