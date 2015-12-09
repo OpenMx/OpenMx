@@ -356,7 +356,7 @@ namespace FellnerFitFunction {
 				for (int cx=0; cx < fullA.cols(); ++cx) {
 					if (!st->latentFilter[cx]) continue;
 					op[dx] = op[cx];
-					nzp[dx] = op[cx+1] - op[cx];
+					nzp[dx] = nzp[cx];
 					++dx;
 				}
 				op[dx] = op[fullA.cols()];
