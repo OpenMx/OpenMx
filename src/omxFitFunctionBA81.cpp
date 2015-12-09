@@ -514,6 +514,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 		}
 
 	} else {
+		Rf_error("Sandwich information matrix method is not implemented for bifactor models");
 		const int totalPrimaryPoints = quad.totalPrimaryPoints;
 		const int specificPoints = quad.quadGridSize;
 		omxBuffer<double> thrLxk(totalQuadPoints * numSpecific * numThreads);
