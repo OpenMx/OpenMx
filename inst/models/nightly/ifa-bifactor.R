@@ -127,19 +127,19 @@ se <- c(0.195, 0.275, 0.129, 0.12, 0.123, 0.083, 0.337, 0.197,  0.138, 0.157, 0.
 omxCheckCloseEnough(log(i1$output$conditionNumber), 3.3, .2)
 omxCheckCloseEnough(c(i1$output$standardErrors), se, .001)
 
-i2 <- mxModel(m1,
-              mxComputeSequence(steps=list(
-                mxComputeOnce('fitfunction', 'information', "sandwich"),
-                mxComputeStandardError(),
-                mxComputeHessianQuality())))
-i2 <- mxRun(i2, silent=TRUE)
-omxCheckCloseEnough(log(i2$output$conditionNumber), 3.6, .2)
+## i2 <- mxModel(m1,
+##               mxComputeSequence(steps=list(
+##                 mxComputeOnce('fitfunction', 'information', "sandwich"),
+##                 mxComputeStandardError(),
+##                 mxComputeHessianQuality())))
+## i2 <- mxRun(i2, silent=TRUE)
+## omxCheckCloseEnough(log(i2$output$conditionNumber), 3.6, .2)
 
-swse <- c(0.255, 0.333, 0.13, 0.133, 0.145, 0.082, 0.464, 0.291,  0.17, 0.161, 0.199, 0.12,
-          0.283, 0.259, 0.171, 0.208, 0.208,  0.152, 0.276, 0.282, 0.255, 0.14, 0.145, 0.104,
-          0.309, 0.382,  0.139, 0.128, 0.138, 0.08, 0.13, 0.141, 0.097, 0.169, 0.17, 0.113,
-          0.189, 0.156, 0.096, 0.166, 0.175, 0.095, 0.17, 0.189, 0.105,  0.171, 0.209, 0.165,
-          0.236, 0.261, 0.168, 0.171, 0.22, 0.129,  0.205, 0.206, 0.11, 0.158, 0.163, 0.103)
+## swse <- c(0.255, 0.333, 0.13, 0.133, 0.145, 0.082, 0.464, 0.291,  0.17, 0.161, 0.199, 0.12,
+##           0.283, 0.259, 0.171, 0.208, 0.208,  0.152, 0.276, 0.282, 0.255, 0.14, 0.145, 0.104,
+##           0.309, 0.382,  0.139, 0.128, 0.138, 0.08, 0.13, 0.141, 0.097, 0.169, 0.17, 0.113,
+##           0.189, 0.156, 0.096, 0.166, 0.175, 0.095, 0.17, 0.189, 0.105,  0.171, 0.209, 0.165,
+##           0.236, 0.261, 0.168, 0.171, 0.22, 0.129,  0.205, 0.206, 0.11, 0.158, 0.163, 0.103)
 
-#cat(deparse(round(i2$output$standardErrors,3)))
-omxCheckCloseEnough(c(i2$output$standardErrors), swse, .01)
+## #cat(deparse(round(i2$output$standardErrors,3)))
+## omxCheckCloseEnough(c(i2$output$standardErrors), swse, .01)
