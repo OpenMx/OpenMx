@@ -263,8 +263,7 @@ generateNormalData <- function(model, nrows){
 
 mxGenerateData <- function(model, nrows){
 	data <- genericGenerateData(model$expectation, model, nrows)
-	if (!is(data, "data.frame")) stop("Must be data.frame")
-	return(data)
+	as.data.frame(data)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
