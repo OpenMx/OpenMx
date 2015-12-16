@@ -41,6 +41,13 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 	if (!imxHasOpenMP()) {
 		packageStartupMessage("OpenMx is not compiled to take advantage of computers with multiple cores.")
 	}
+	if (!is.na(match("package:expm", search()))) {
+		packageStartupMessage(paste("** Holy cannoli! You must be a pretty advanced and awesome user.",
+					    "The expm package is loaded.",
+					    "Note that expm defines %^% as repeated matrix multiplication (matrix to a power)",
+					    "whereas OpenMx defines the same operation as",
+					    "elementwise powering of one matrix by another (Kronecker power)."))
+	}
 }
 
 #' Test thread-safe output code

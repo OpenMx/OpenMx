@@ -61,7 +61,7 @@ if (1) {
 
 plan <- mxComputeSequence(steps=list(
   mxComputeEM('expectation', 'scores',
-              mxComputeNewtonRaphson(freeSet='item'),
+              mxComputeNewtonRaphson(freeSet='item', verbose=0L),
               information="mr1991", infoArgs=list(fitfunction='fitfunction')),
   mxComputeStandardError(),
   mxComputeHessianQuality()))
@@ -92,9 +92,9 @@ omxCheckCloseEnough(c(m2$output$standardErrors), semse, .01) # similar to flexMI
 
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 19, 2)
-omxCheckCloseEnough(emstat$totalMstep, 85, 10)
+omxCheckCloseEnough(emstat$totalMstep, 73, 10)
 omxCheckCloseEnough(emstat$semProbeCount / length(semse), 3, .1)
-omxCheckCloseEnough(m2$output$evaluations, 1072, 5)
+omxCheckCloseEnough(m2$output$evaluations, 1062, 5)
 
 #print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
