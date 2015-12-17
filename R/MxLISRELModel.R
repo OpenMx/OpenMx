@@ -315,8 +315,6 @@ insertAllPathsLISREL <-  function(model, paths){
 	TY <- model[['TY']]
 	KA <- model[['KA']]
 	AL <- model[['AL']]
-#	if (is.null(A)) { A <- createMatrixA(model) }
-#	if (is.null(S)) { S <- createMatrixS(model) }
 	
 	legalVars <- c(exvars, envars, "one")
 	
@@ -354,6 +352,7 @@ insertAllPathsLISREL <-  function(model, paths){
 			}
 			LISRELMeans <- insertMeansPathLISREL(path, TX, TY, KA, AL, manifest=manivars, latent=latevars)
 			TX <- LISRELMeans[[1]]; TY <- LISRELMeans[[2]]; KA <- LISRELMeans[[3]]; AL <- LISRELMeans[[4]]
+			model <- updateLISRELMeans(model, LISRELMeans)
 		} else {
 			expanded <- expandPathConnect(path@from, path@to, path@connect)
 			path@from <- expanded$from
@@ -364,9 +363,6 @@ insertAllPathsLISREL <-  function(model, paths){
 	}
 	
 	model <- updateLISRELMatrices(model, theMatrices)
-	if(!is.null(LISRELMeans)){
-		model <- updateLISRELMeans(model, LISRELMeans)
-	}
 	
 	return(model)
 }
@@ -638,7 +634,7 @@ insertMeansPathLISREL <- function(path, TX, TY, KA, AL, manifest, latent){
 	allvalues <- path@values
 	alllabels <- path@labels
 	alllbound <- path@lbound
-	allubound <- path@ubound	
+	allubound <- path@ubound
 	if (any(allarrows != 1)) {
 		stop(paste('The means path must be a single-headed arrow\n',
 		'path from "one" to variable(s)', omxQuotes(allto)), call. = FALSE)
