@@ -1222,6 +1222,31 @@ mxComputeReportDeriv <- function(freeSet=NA_character_) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeReportExpectation",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeReportExpectation",
+	  function(.Object, freeSet) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object
+	  })
+
+##' Report expectation
+##'
+##' Copy the internal model expectations back to R.
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeReportExpectation-class
+
+mxComputeReportExpectation <- function(freeSet=NA_character_) {
+	new("MxComputeReportExpectation", freeSet)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(

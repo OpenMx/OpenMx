@@ -121,7 +121,9 @@ runHelper <- function(model, frontendStart,
 			if (options[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
 			}
-			compute <- mxComputeSequence(c(steps, RD=mxComputeReportDeriv()))
+			compute <- mxComputeSequence(c(steps,
+						       RD=mxComputeReportDeriv(),
+						       RE=mxComputeReportExpectation()))
 		}
 		compute@.persist <- FALSE
 		model@compute <- compute

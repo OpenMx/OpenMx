@@ -1562,6 +1562,12 @@ class ComputeReportDeriv : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeReportExpectation : public omxCompute {
+	typedef omxCompute super;
+ public:
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -1583,6 +1589,9 @@ static class omxCompute *newComputeHessianQuality()
 static class omxCompute *newComputeReportDeriv()
 { return new ComputeReportDeriv(); }
 
+static class omxCompute *newComputeReportExpectation()
+{ return new ComputeReportExpectation(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -1599,7 +1608,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeStandardError", &newComputeStandardError},
 	{"MxComputeHessianQuality", &newComputeHessianQuality},
 	{"MxComputeReportDeriv", &newComputeReportDeriv},
-	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval}
+	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval},
+	{"MxComputeReportExpectation", &newComputeReportExpectation}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -2806,6 +2816,29 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 		result->add("ihessian", Rihessian);
 		fc->copyDenseIHess(REAL(Rihessian));
 	}
+}
+
+void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList *result)
+{
+	std::vector< omxExpectation* > &expectationList = fc->state->expectationList;
+
+	SEXP expectations;
+	Rf_protect(expectations = Rf_allocVector(VECSXP, expectationList.size()));
+
+	for(size_t index = 0; index < expectationList.size(); index++) {
+		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
+		omxExpectation *curExpectation = expectationList[index];
+		omxExpectationRecompute(curExpectation);
+		SEXP rExpect;
+		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
+		if(curExpectation->populateAttrFun != NULL) {
+			if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }
+			curExpectation->populateAttrFun(curExpectation, rExpect);
+		}
+		SET_VECTOR_ELT(expectations, index, rExpect);
+	}
+
+	result->add("expectations", expectations);
 }
 
 // ------------------------------------------------------------

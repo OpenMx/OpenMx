@@ -45,7 +45,8 @@ plan <- mxComputeSequence(steps=list(
   mxComputeNewtonRaphson(freeSet=c("Ve"),fitfunction="fitfunction"),
   mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
   mxComputeStandardError(freeSet=c("Ve")),
-  mxComputeReportDeriv(freeSet=c("Ve"))
+  mxComputeReportDeriv(freeSet=c("Ve")),
+  mxComputeReportExpectation()
 ))
 
 testmod2 <- mxModel(

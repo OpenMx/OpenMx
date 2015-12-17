@@ -65,7 +65,10 @@ if (1) {
                 mxData(observed=data, type="raw"),
                 mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
                 mxFitFunctionML(),
-                mxComputeOnce('expectation', 'scores'))
+		mxComputeSequence(list(
+		    mxComputeOnce('expectation', 'scores'),
+		    mxComputeReportExpectation()
+		)))
   m2 <- mxRun(m2)
   omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
                       c(-6.20509, -4.8708, -3.63479, -2.5941, -1.00029), .01)

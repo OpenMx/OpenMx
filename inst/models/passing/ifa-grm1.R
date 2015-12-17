@@ -22,7 +22,10 @@ m2 <- mxModel(model="grm1", ip.mat,
               mxData(observed=data, type="raw"),
               mxExpectationBA81(ItemSpec=spec, qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
-	      mxComputeOnce('expectation', 'scores'))
+	      mxComputeSequence(list(
+		  mxComputeOnce('expectation', 'scores'),
+		  mxComputeReportExpectation()
+	      )))
 middle <- mxRun(m2)
 omxCheckCloseEnough(sum(middle$expectation$debug$patternLikelihood), -9742.31, .1)
 omxCheckCloseEnough(fivenum(middle$expectation$debug$patternLikelihood),
