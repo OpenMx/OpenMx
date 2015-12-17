@@ -42,7 +42,7 @@ For state space models (i.e. models with an \link{mxExpectationStateSpace} expec
 }
 
 \value{
-    A matrix or data.frame with nrows rows.
+    A data.frame with nrows rows.
 }
 
 

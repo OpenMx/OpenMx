@@ -242,8 +242,8 @@ generateNormalData <- function(model, nrows){
 	theThresh <- imxGetExpectationComponent(model, "thresholds")
 	data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 	colnames(data) <- colnames(theCov)
+	data <- as.data.frame(data)
 	if( prod(dim(theThresh)) != 0){
-		data <- as.data.frame(data)
 		ordvars <- colnames(theThresh)
 		for(avar in ordvars){
 			delthr <- theThresh[,avar]
@@ -263,7 +263,7 @@ generateNormalData <- function(model, nrows){
 
 mxGenerateData <- function(model, nrows){
 	data <- genericGenerateData(model$expectation, model, nrows)
-	return(data)
+	as.data.frame(data)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
