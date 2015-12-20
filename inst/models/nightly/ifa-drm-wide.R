@@ -34,7 +34,10 @@ m2 <- mxModel(model="drm1", ip.mat,
               mxData(observed=data, type="raw", sort=FALSE),
               mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
               mxFitFunctionML(),
-              mxComputeOnce('expectation', 'scores'))
+	      mxComputeSequence(list(
+		  mxComputeOnce('expectation', 'scores'),
+		  mxComputeReportExpectation()
+	      )))
 m2 <- mxRun(m2)
 
 # cat(deparse(fivenum(round(m2$expectation$debug$patternLikelihood,2))))

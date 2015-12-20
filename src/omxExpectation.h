@@ -50,7 +50,7 @@ struct omxExpectation {					// An Expectation
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
 	void (*computeFun)(omxExpectation* ox, const char *what, const char *how);
 	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
-	void (*populateAttrFun)(omxExpectation* ox, SEXP algebra);					// Add attributes to the result algebra object
+	void (*populateAttrFun)(omxExpectation* ox, SEXP expectation);
 	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);  // TODO remove
 	
 	// componentfun & mutateFun probably take encapsulation a little too seriously.

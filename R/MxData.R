@@ -271,15 +271,17 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 				  }, data@observed, colnames(data@observed))
 			  }
 		  }
-		  if (!is.na(data@primaryKey)) {
-			  pk <- match(data@primaryKey, colnames(data@observed))
-			  if (is.na(pk)) {
-				  stop(paste("Primary key", omxQuotes(data@primaryKey),
-					     "not found in", omxQuotes(data@name)))
+		  if (.hasSlot(data, 'primaryKey')) {
+			  if (!is.na(data@primaryKey)) {
+				  pk <- match(data@primaryKey, colnames(data@observed))
+				  if (is.na(pk)) {
+					  stop(paste("Primary key", omxQuotes(data@primaryKey),
+						     "not found in", omxQuotes(data@name)))
+				  }
+				  data@primaryKey <- pk
+			  } else {
+				  data@primaryKey <- 0L
 			  }
-			  data@primaryKey <- pk
-		  } else {
-			  data@primaryKey <- 0L
 		  }
 
 		  data
@@ -584,7 +586,7 @@ undoDataShare <- function(model, dataList) {
 displayMxData <- function(object) {
 	cat("MxData", omxQuotes(object@name), '\n')
 	cat("type :", omxQuotes(object@type), '\n')
-	if (!is.na(object@primaryKey)) {
+	if (.hasSlot(object, 'primaryKey') && !is.na(object@primaryKey)) {
 		cat("primary key :", omxQuotes(object@primaryKey), '\n')
 	}
 	cat("numObs :", omxQuotes(object@numObs), '\n')

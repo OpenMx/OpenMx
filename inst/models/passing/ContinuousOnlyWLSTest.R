@@ -65,7 +65,7 @@ td <- mxMatrix(name="Theta", type="Symm", ncol=8,
 	                     T),
 	dimnames=list(manvar, manvar)
 )
-diag(td@labels) <- paste("var", 1:8, sep="")
+diag(td$labels) <- paste("var", 1:8, sep="")
 selMat <- matrix(
 	  c(5,1,
 		4,2,
@@ -73,8 +73,8 @@ selMat <- matrix(
 		7,3,
 		8,4,
 		8,6), ncol=2, byrow=TRUE)
-td@labels[selMat] <- paste("cov", c(51, 42, 62, 73, 84, 86), sep="")
-td@labels[selMat[,2:1]] <- paste("cov", c(51, 42, 62, 73, 84, 86), sep="")
+td$labels[selMat] <- paste("cov", c(51, 42, 62, 73, 84, 86), sep="")
+td$labels[selMat[,2:1]] <- paste("cov", c(51, 42, 62, 73, 84, 86), sep="")
 
 ph <- mxMatrix(name="Phi", type="Symm", ncol=2, free=T, values=c(.8, .2, .8), labels=paste("phi", c(1, 12, 2), sep=""), dimnames=list(c("F1", "F2"), c("F1", "F2")))
 

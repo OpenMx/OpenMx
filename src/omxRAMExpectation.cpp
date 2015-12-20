@@ -36,7 +36,13 @@ void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 	}
 }
 
-static void omxCallRAMExpectation(omxExpectation* oo, const char *, const char *) {
+static void omxCallRAMExpectation(omxExpectation* oo, const char *what, const char *how)
+{
+	if (what || how) {
+		mxLog("RAM expectation(%s,%s)", what?what:"NULL", how?how:"NULL");
+		return;
+	}
+
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	

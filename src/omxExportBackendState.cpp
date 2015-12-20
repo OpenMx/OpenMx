@@ -30,14 +30,12 @@ void omxState::omxExportResults(MxRList *out)
 {
 	SEXP matrices;
 	SEXP algebras;
-	SEXP expectations;
 	SEXP datums;
 
 	loadDefinitionVariables(false);
 
 	Rf_protect(matrices = Rf_allocVector(VECSXP, matrixList.size()));
 	Rf_protect(algebras = Rf_allocVector(VECSXP, algebraList.size()));
-	Rf_protect(expectations = Rf_allocVector(VECSXP, expectationList.size()));
 	Rf_protect(datums = Rf_allocVector(VECSXP, dataList.size()));
 
 	SEXP nextMat, algebra;
@@ -74,19 +72,6 @@ void omxState::omxExportResults(MxRList *out)
 	}
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
 	
-	for(size_t index = 0; index < expectationList.size(); index++) {
-		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
-		omxExpectation* nextExpectation = expectationList[index];
-		omxExpectationRecompute(nextExpectation);
-		SEXP rExpect;
-		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
-		if(nextExpectation->populateAttrFun != NULL) {
-			if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }
-			nextExpectation->populateAttrFun(nextExpectation, rExpect);
-	    }
-		SET_VECTOR_ELT(expectations, index, rExpect);
-	}
-
 	for(size_t index = 0; index < dataList.size(); ++index) {
 		omxData* dat = dataList[index];
 		SEXP rData;
@@ -96,7 +81,6 @@ void omxState::omxExportResults(MxRList *out)
 
 	out->add("matrices", matrices);
 	out->add("algebras", algebras);
-	out->add("expectations", expectations);
 	out->add("data", datums);
 }
 

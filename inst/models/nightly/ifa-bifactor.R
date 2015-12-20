@@ -58,7 +58,10 @@ m1 <- mxModel(model="bifactor",
           mxData(observed=data, type="raw"),
           mxExpectationBA81(ItemSpec=items, qpoints=29, verbose=0L, debugInternal=TRUE),
 	      mxFitFunctionML(),
-	      mxComputeOnce('expectation', 'scores'))
+	      mxComputeSequence(list(
+		  mxComputeOnce('expectation', 'scores'),
+		  mxComputeReportExpectation()
+	      )))
 m1 <- mxRun(m1)
 
 omxCheckCloseEnough(sum(m1$expectation$debug$patternLikelihood), -12629.4, .1)

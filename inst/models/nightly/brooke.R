@@ -166,8 +166,8 @@ modelDZm <- mxModel( obsAge1, obsAge2, Mean, betaAm, Tdzm, inc, ThresDZm, CorDZm
 SatModel <- mxModel( "Sat", modelMZf, modelMZm, modelDZf, modelDZm, fitFunction)
 
 # my code: where the madness starts
-SatModel@submodels$MZf@matrices$Age1
-SatModel@submodels$MZf@matrices$BageTHf
+SatModel$MZf$Age1
+SatModel$MZf$BageTHf
 mxEval(MZf.BageTHf %x% MZf.Age1, SatModel, compute=T)
 mxEval(matrix(1, 1, 1) %*% MZf.Age1, SatModel, compute=T)
 

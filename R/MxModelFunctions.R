@@ -246,6 +246,7 @@ updateModelAlgebras <- function(model, flatModel, values) {
 }
 
 updateModelExpectations <- function(model, flatModel, values) {
+	if (length(values) == 0) return(model)
 	eNames <- names(flatModel@expectations)
 	if (length(eNames) != length(values)) {
 		stop(paste("This model has", length(eNames),

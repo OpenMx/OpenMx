@@ -36,7 +36,10 @@ m1 <- mxModel(model="drm1", ip.mat,
 	      mxData(observed=data, type="raw"),
               mxExpectationBA81(items, qpoints=31, debugInternal=TRUE),
               mxFitFunctionML(),
-	      mxComputeOnce('expectation', 'scores'))
+	      mxComputeSequence(list(
+		  mxComputeOnce('expectation', 'scores'),
+		  mxComputeReportExpectation()
+	      )))
 m2 <- mxRun(m1)
 omxCheckCloseEnough(sum(m2$expectation$debug$patternLikelihood), -2032.9, .1)
 omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
