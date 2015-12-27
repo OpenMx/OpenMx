@@ -60,7 +60,7 @@ namespace FellnerFitFunction {
 
      // * If you are going to factorize hundreds or more matrices with the same
      // * nonzero pattern, you may wish to spend a great deal of time finding a
-     // * good permutation.  In this case, try setting Common->nmethods to 9.
+     // * good permutation.  In this case, try setting Common->nmethods to CHOLMOD_MAXMETHODS
      // * The time spent in cholmod_analysis will be very high, but you need to
      // * call it only once. TODO
 
@@ -68,10 +68,28 @@ namespace FellnerFitFunction {
 		Cholmod() {
 			oldHandler = cholmod().error_handler;
 			cholmod().error_handler = cholmod_error;
+			cholmod().supernodal = CHOLMOD_AUTO;
+			cholmod().nmethods = CHOLMOD_MAXMETHODS;
+			if (0) {
+				cholmod().nmethods = 2;
+				cholmod().method[0].ordering = CHOLMOD_NESDIS;
+				cholmod().method[1].ordering = CHOLMOD_AMD;
+			}
 		};
 		~Cholmod() {
 			cholmod().error_handler = oldHandler;
 		};
+		void analyzePattern(const typename Base::MatrixType& matrix)
+		{
+			Base::analyzePattern(matrix);
+			cholmod_common &cm = cholmod();
+			if (OMX_DEBUG) {
+				mxLog("Cholmod: selected ordering %d lnz=%f fl=%f super=%d",
+				      cm.method[cm.selected].ordering,
+				      cm.method[cm.selected].lnz, cm.method[cm.selected].fl, factor()->is_super);
+			}
+		}
+
 		double log_determinant() const {
 			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
 			cholmod_factor *cf = factor();
