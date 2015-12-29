@@ -20,6 +20,9 @@
 #include "omxBLAS.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
+#include <Rcpp.h>
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
 
 static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
     omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
@@ -39,13 +42,15 @@ void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 
 static void omxCallRAMExpectation(omxExpectation* oo, const char *what, const char *how)
 {
-	if (what || how) {
-		mxLog("RAM expectation(%s,%s)", what?what:"NULL", how?how:"NULL");
+	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
+
+	if (what && strEQ(what, "distribution") && how && strEQ(how, "flat")) {
+		if (!oro->rram) Rf_error("%s: flat distribution not available", oo->name);
+		oro->rram->compute(NULL);
 		return;
 	}
 
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
-	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 	
 	omxRecompute(oro->A, NULL);
 	omxRecompute(oro->S, NULL);
@@ -102,7 +107,7 @@ static void refreshUnfilteredCov(omxExpectation *oo)
     eAx.block(0, 0, eAx.rows(), eAx.cols()) = eZ * eS * eZ.transpose();
 }
 
-static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
+static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
     if(OMX_DEBUG) { mxLog("Populating RAM Attributes."); }
 
     refreshUnfilteredCov(oo);
@@ -110,15 +115,23 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP algebra) {
 	omxMatrix* Ax= oro->Ax;
 	
 	{
-	SEXP expCovExt;
-	ScopedProtect p1(expCovExt, Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
-	for(int row = 0; row < Ax->rows; row++)
-		for(int col = 0; col < Ax->cols; col++)
-			REAL(expCovExt)[col * Ax->rows + row] =
-				omxMatrixElement(Ax, row, col);
-	Rf_setAttrib(algebra, Rf_install("UnfilteredExpCov"), expCovExt);
+		ProtectedSEXP expCovExt(Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
+		memcpy(REAL(expCovExt), Ax->data, sizeof(double) * Ax->rows * Ax->cols);
+		Rf_setAttrib(robj, Rf_install("UnfilteredExpCov"), expCovExt);
 	}
-	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
+	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
+
+	MxRList out;
+
+	if (oro->rram && oro->rram->fullCov.nonZeros()) {
+		out.add("covariance", Rcpp::wrap(oro->rram->fullCov));
+		SEXP m1 = Rcpp::wrap(oro->rram->fullMeans);
+		Rf_protect(m1);
+		Rf_setAttrib(m1, R_NamesSymbol, Rcpp::wrap(oro->rram->nameVec));
+		out.add("means", m1);
+	}
+
+	Rf_setAttrib(robj, Rf_install("output"), out.asR());
 }
 
 /*

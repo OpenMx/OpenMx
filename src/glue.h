@@ -22,8 +22,11 @@
 
 #include "omxState.h"
 
-#undef PROTECT_WITH_INDEX
-#undef UNPROTECT
+// Can uncomment these to ensure that they are not used in the OpenMx
+// source code.
+//
+//#undef PROTECT_WITH_INDEX
+//#undef UNPROTECT
 
 class omxManageProtectInsanity {
 	PROTECT_INDEX initialpix;

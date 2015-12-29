@@ -36,6 +36,8 @@ setClass(Class = "MxBaseExpectation",
 	 representation = representation(
 	   data = "MxCharOrNumber",      # filled in during flattening
 	     .runDims = "character",
+	     output = "list",
+	     debug = "list",
 	   "VIRTUAL"),
 	 contains = "MxBaseNamed")
 

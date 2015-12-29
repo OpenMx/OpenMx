@@ -42,6 +42,7 @@ runHelper <- function(model, frontendStart,
 		intervals, silent, suppressWarnings, 
 		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
 
+	Rcpp::Module  # ensure Rcpp is loaded
 	model <- imxPreprocessModel(model)
 	model <- eliminateObjectiveFunctions(model)
 	model <- zapExtraneousMatrices(model)
