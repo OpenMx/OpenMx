@@ -55,7 +55,7 @@ class MxRList : private MxRListBase {
 	};
 };
 
-class ScopedProtect {
+class ScopedProtect { // DEPRECATED, use ProtectedSEXP
 	PROTECT_INDEX initialpix;
  public:
 	ScopedProtect(SEXP &var, SEXP src) {
@@ -71,6 +71,29 @@ class ScopedProtect {
 		if (diff != 1) Rf_error("Depth %d != 1, ScopedProtect was nested", diff);
 		Rf_unprotect(2);
 	}
+};
+
+class ProtectedSEXP {
+	PROTECT_INDEX initialpix;
+	SEXP var;
+ public:
+	ProtectedSEXP(SEXP src) {
+		R_ProtectWithIndex(R_NilValue, &initialpix);
+		Rf_unprotect(1);
+		Rf_protect(src);
+		var = src;
+	}
+	~ProtectedSEXP() {
+		PROTECT_INDEX pix;
+		R_ProtectWithIndex(R_NilValue, &pix);
+		PROTECT_INDEX diff = pix - initialpix;
+		if (diff != 1) Rf_error("Depth %d != 1, ProtectedSEXP was nested", diff);
+		Rf_unprotect(2);
+	}
+        operator SEXP() const { return var; }
+ private:
+        ProtectedSEXP( const ProtectedSEXP& );
+        ProtectedSEXP& operator=( const ProtectedSEXP& );
 };
 
 void string_to_try_Rf_error( const std::string& str) __attribute__ ((noreturn));
