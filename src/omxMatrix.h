@@ -391,14 +391,14 @@ void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 	buf += string_snprintf("%s = %s matrix(c(    # %dx%d",
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
 
-	int first=TRUE;
+	bool first=true;
 	int rr = mat.rows();
 	int cc = mat.cols();
 	if (transpose) std::swap(rr,cc);
 	for(int j = 0; j < rr; j++) {
 		buf += "\n";
 		for(int k = 0; k < cc; k++) {
-			if (first) first=FALSE;
+			if (first) first=false;
 			else buf += ",";
 			double val;
 			if (transpose) {

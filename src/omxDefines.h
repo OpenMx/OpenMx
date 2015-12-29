@@ -31,8 +31,6 @@
 #include <string>
 
 #define MIN_ROWS_PER_THREAD 8
-#define TRUE 1
-#define FALSE 0
 
 #define OMXINLINE inline
 
