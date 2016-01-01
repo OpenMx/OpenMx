@@ -1,5 +1,5 @@
 /*
-  Copyright 2007-2015 The OpenMx Project
+  Copyright 2007-2016 The OpenMx Project
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
