@@ -50,7 +50,8 @@ populateLowerTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 setMethod("imxCreateMatrix", "LowerMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
+	  function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+		    condenseSlots, joinKey, joinModel) {
 		if (nrow != ncol) {
 			stop(paste("non-square MxMatrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -81,7 +82,8 @@ setMethod("imxCreateMatrix", "LowerMatrix",
 		else{if (is.vector(ubound)) {
 			ubound <- populateLowerTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}}
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+				      condenseSlots, joinKey, joinModel))
 	}
 )
 

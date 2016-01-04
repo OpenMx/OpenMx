@@ -396,9 +396,18 @@ void omxMatrix::loadDimnames(SEXP dimnames)
 
 void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 {
-	if(Rf_length(matStruct) <= 1) return;
+	int modelIndex = Rf_asInteger(VECTOR_ELT(matStruct, 1));
+	if (modelIndex != NA_INTEGER) {
+		joinModel = currentState->expectationList[modelIndex - 1];
+	}
 
-	const int numPopLocs = Rf_length(matStruct) - 1;
+	int fk = Rf_asInteger(VECTOR_ELT(matStruct, 2));
+	if (fk != NA_INTEGER) {
+		joinKey = fk - 1;
+	}
+
+	const int offsetToPopulationList = 3;
+	const int numPopLocs = Rf_length(matStruct) - offsetToPopulationList;
 
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", numPopLocs); }
 
@@ -407,8 +416,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 	populate.resize(numPopLocs);
 
 	for(int i = 0; i < numPopLocs; i++) {
-		SEXP subList;
-		ScopedProtect p1(subList, VECTOR_ELT(matStruct, i+1));
+		ProtectedSEXP subList(VECTOR_ELT(matStruct, i+offsetToPopulationList));
 
 		int* locations = INTEGER(subList);
 		populateLocation &pl = populate[i];

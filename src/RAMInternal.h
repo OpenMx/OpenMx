@@ -45,12 +45,6 @@ namespace RelationalRAMExpectation {
 	};
 };
 
-struct join {
-	int foreignKey;
-	struct omxExpectation *ex;
-	omxMatrix *regression;
-};
-
 struct omxRAMExpectation {
 
 	omxMatrix *cov, *means; // observed covariance and means
@@ -63,7 +57,7 @@ struct omxRAMExpectation {
 	double *work;
 	int lwork;
 
-	std::vector<join> joins;
+	std::vector< omxMatrix* > between;
 	RelationalRAMExpectation::state *rram;
 
 	void ensureTrivialF();

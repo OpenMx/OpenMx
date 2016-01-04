@@ -22,7 +22,8 @@ setMethod("imxSquareMatrix", "DiagMatrix",
 )
 
 setMethod("imxCreateMatrix", "DiagMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
+	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+		    condenseSlots, joinKey, joinModel) {
 		if (nrow != ncol) {
 			stop(paste("non-square MxMatrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -64,7 +65,8 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 		  ubound <- tmp
 		}}
     if(exists("tmp")){rm(tmp)}
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+				      condenseSlots, joinKey, joinModel))
 	}
 )
 

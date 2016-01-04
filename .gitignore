@@ -131,7 +131,6 @@ man/MxExpectationXclass.Rd
 man/MxFitFunction-class.Rd
 man/MxFlatModel-class.Rd
 man/MxInterval-class.Rd
-man/mxJoin.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd

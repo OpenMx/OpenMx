@@ -21,12 +21,11 @@ m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars 
         
         # this is the between level mapping
         mxMatrix(name="Z", nrow=1, ncol=2, values=1, labels=c('data.Days', NA),
-                 dimnames=list(c("Reaction"), c("slope", "intercept"))),
+                 dimnames=list(c("Reaction"), c("slope", "intercept")),
+                 joinKey = "Subject", joinModel = "bySubject"),
         mxFitFunctionML(fellner=FALSE))
 
-m1$expectation$join <- list(mxJoin(foreignKey="Subject",
-                                   expectation="bySubject",
-                                   regression='Z'))
+m1$expectation$between <- "Z"
 
 m1 <- mxModel(m1, mxModel(
   model="bySubject", type="RAM",
@@ -44,7 +43,8 @@ omxCheckError(mxRun(m1), "Join mapping matrix sleep.Z must have 2 rows: 'Reactio
 
 # fix map matrix
 map <- mxMatrix(name="Z", nrow=2, ncol=2, 
-                dimnames=list(c("Reaction", 'DayEffect'), c("slope", "intercept")))
+                dimnames=list(c("Reaction", 'DayEffect'), c("slope", "intercept")),
+                joinKey = "Subject", joinModel = "bySubject")
 map$labels['Reaction','slope'] <- 'data.Days'
 map$values['Reaction','intercept'] <- 1
 m1 <- mxModel(m1, map)

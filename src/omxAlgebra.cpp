@@ -241,7 +241,6 @@ void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
 
 omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	int value = 0;
-	omxMatrix* output = NULL;
 
 	if (Rf_length(matrix) == 0) return NULL;
 	if (Rf_isInteger(matrix)) {
@@ -258,13 +257,8 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 	} else {
 		Rf_error("Internal Rf_error: unknown type passed to omxMatrixLookupFromState1");
 	}		
-	if (value >= 0) {
-		output = os->algebraList[value];
-	} else {
-		output = os->matrixList[~value];
-	}
-	
-	return output;
+
+	return os->getMatrixFromIndex(value);
 }
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {

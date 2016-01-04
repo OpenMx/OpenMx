@@ -16,11 +16,34 @@
 
 generateMatrixList <- function(model) {
 	matvalues <- lapply(model@matrices, generateMatrixValuesHelper)
+	if (!length(matvalues)) return(NULL)
 	matnames  <- names(model@matrices)
 	names(matvalues) <- matnames
+	rawJoinModel <- sapply(model@matrices, function(x) x@joinModel)
+	joinModel <- match(paste0(rawJoinModel, imxSeparatorChar, 'expectation'),
+			   names(model@expectations))
+	mismatch <- !is.na(rawJoinModel) & is.na(joinModel)
+	if (any(mismatch)) {
+		matNames <- sapply(model@matrices, function(x) x@name)
+		msg <- paste("The references", omxQuotes(rawJoinModel[mismatch]), "do not exist.",
+			     "It is used by", matNames[mismatch])
+		stop(msg, call. = FALSE)
+	}
+	joinKey <- sapply(model@matrices, function(x) {
+		if (is.na(x@joinKey)) return(NA_integer_)
+		modelName <- unlist(strsplit(x@name, imxSeparatorChar, fixed = TRUE))[1]
+		dataName <- paste0(modelName, imxSeparatorChar, 'data')
+		data <- model@datasets[[ dataName ]]
+		fkCol <- match(x@joinKey, colnames(data@observed))
+		if (is.na(fkCol)) {
+			msg <- paste("Foreign key", omxQuotes(x@joinKey), "not found in ", dataName)
+			stop(msg, call. = FALSE)
+		}
+		fkCol
+	})
 	references <- generateMatrixReferences(model)
-	retval <- mapply(function(x,y) { c(list(x), y) }, 
-			matvalues, references, SIMPLIFY = FALSE)
+	retval <- mapply(function(x1,x2,x3,x4) { c(list(x1), x2, x3, x4) }, 
+			matvalues, joinModel, joinKey, references, SIMPLIFY = FALSE)
 	return(retval)
 }
 

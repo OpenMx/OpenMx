@@ -307,7 +307,8 @@ class omxState {
 	void omxExportResults(MxRList *out);
 	~omxState();
 
-	const char *matrixToName(int matnum); // matrix (2s complement) or algebra
+	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
+	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 
 	void countNonlinearConstraints(int &equality, int &inequality)
 	{

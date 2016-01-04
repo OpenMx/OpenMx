@@ -26,7 +26,8 @@
 mxMatrix(type = "Full", nrow = NA, ncol = NA, 
     free = FALSE, values = NA, labels = NA, lbound = NA, 
     ubound = NA, byrow = getOption('mxByrow'), dimnames = NA, name = NA, 
-    condenseSlots=getOption('mxCondenseMatrixSlots'))
+    condenseSlots=getOption('mxCondenseMatrixSlots'),
+    ..., joinKey=as.character(NA), joinModel=as.character(NA))
 }
 
 \arguments{
@@ -42,6 +43,12 @@ mxMatrix(type = "Full", nrow = NA, ncol = NA,
   \item{dimnames}{List. The dimnames attribute for the matrix: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.}
   \item{name}{An optional character string indicating the name of the \link{MxMatrix} object.}
   \item{condenseSlots}{Logical; defaults to value of global \link[base:options]{option} 'mxByRow'  If \code{TRUE}, then the resulting \link{MxMatrix} will "condense" its \sQuote{labels}, \sQuote{free}, \sQuote{lbound}, and \sQuote{ubound} down to 1x1 matrices if they contain only \code{FALSE} (\sQuote{free}) or \code{NA} (the other three).  If \code{FALSE}, those four matrices and the \sQuote{values} matrix will all be of equal dimensions.   }
+\item{...}{Not used.  Forces remaining arguments to be specified by
+  name.}
+\item{joinKey}{The name of the column in current model's raw data that
+  is used as a foreign key to match against the primary key in
+  joinModel's raw data.}
+\item{joinModel}{The name of the model that this matrix joins against.}
 }
 
 \details{

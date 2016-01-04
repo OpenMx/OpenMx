@@ -310,7 +310,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		bool onlyFellner = false;
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			onlyFellner = ram->joins.size();
+			onlyFellner = ram->between.size();
 		}
 		int fellner;
 		{

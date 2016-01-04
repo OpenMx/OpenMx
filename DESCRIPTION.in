@@ -36,6 +36,7 @@ Depends:
     MASS,
     methods,
     Matrix,
+    Rcpp,
     parallel
 Suggests:
     mvtnorm,

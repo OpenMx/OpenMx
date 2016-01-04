@@ -473,9 +473,12 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 
 			bMatName <- NULL
-			priorJoin <- model$expectation$join
-			sameJoinMask <- sapply(priorJoin, function(x) x$foreignKey == path@joinOn &&
-						   x$expectation == upperModelName)
+			priorBetween <- model$expectation$between
+			sameJoinMask <- sapply(priorBetween, function(x) {
+				bmat <- model[[ x ]]
+				if (is.null(bmat)) return(FALSE)
+				bmat$joinKey == path@joinOn && bmat$joinModel == upperModelName
+			})
 			if (length(sameJoinMask) && sum(sameJoinMask) > 1) {
 				stop(paste("Confusingly there is more than 1 join to", omxQuotes(upperModelName),
 					   "using foreign key", omxQuotes(path@joinOn)), call.=FALSE)
@@ -496,14 +499,11 @@ insertAllPathsRAM <- function(model, paths) {
 						   "between level mapping matrix. Tried variations on",
 						   omxQuotes(bMatNameBase)), call.=FALSE)
 				}
-				model$expectation$join =
-				    c(priorJoin, mxJoin(foreignKey=path@joinOn, expectation=upperModelName,
-							regression=bMatName))
 				model <- mxModel(model, mxMatrix(name=bMatName, nrow=nrow(A), ncol=length(upperVars),
-								 dimnames=list(rownames(A), upperVars)))
+								 dimnames=list(rownames(A), upperVars),
+								 joinKey = path@joinOn, joinModel = upperModelName))
 			} else {
-				myJoin <- priorJoin[[ which(sameJoinMask) ]]
-				bMatName <- myJoin$regression
+				bMatName <- priorBetween[ which(sameJoinMask) ]
 			}
 
 			bMat <- model[[ bMatName ]]
@@ -525,6 +525,7 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 
 			model[[ bMatName ]] <- bMat
+			model$expectation$between <- unique(c(priorBetween, bMatName))
 			next
 		}
 

@@ -233,37 +233,38 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	}
 
 	{
-		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("join")));
-		if (Rf_length(slotValue) && !oo->data) Rf_error("%s: data is required for joins", oo->name);
-		RAMexp->joins.reserve(Rf_length(slotValue));
-		for (int jx=0; jx < Rf_length(slotValue); ++jx) {
-			SEXP rjoin = VECTOR_ELT(slotValue, jx);
-			SEXP rfk; ScopedProtect p1(rfk, R_do_slot(rjoin, Rf_install("foreignKey")));
-			SEXP rex; ScopedProtect p2(rex, R_do_slot(rjoin, Rf_install("expectation")));
-			join j1;
-			j1.foreignKey = Rf_asInteger(rfk) - 1;
-			j1.ex = omxExpectationFromIndex(Rf_asInteger(rex), currentState);
-			omxCompleteExpectation(j1.ex);
-			if (!strEQ(j1.ex->expType, "MxExpectationRAM")) {
-				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
-			}
-			if (omxDataIsSorted(j1.ex->data)) {
-				Rf_error("%s join with %s but observed data is sorted",
-					 oo->name, j1.ex->name);
-			}
-			if (!omxDataColumnIsKey(oo->data, j1.foreignKey)) {
-				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
-					 "Did you forget to use mxData(..., sort=FALSE)?",
-					 omxDataColumnName(oo->data, j1.foreignKey),
-					 oo->data->name);
-			}
-			j1.regression = omxNewMatrixFromSlot(rjoin, currentState, "regression");
-			if (OMX_DEBUG) {
-				mxLog("%s: join col %d against %s using regression matrix %s",
-				      oo->name, j1.foreignKey, j1.ex->name, j1.regression->name());
-			}
+		ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
+		if (Rf_length(Rbetween)) {
+			if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
+			if (!Rf_isInteger(Rbetween)) Rf_error("%s: between must be an integer vector", oo->name);
+			RAMexp->between.reserve(Rf_length(Rbetween));
+			int *bnumber = INTEGER(Rbetween);
+			for (int jx=0; jx < Rf_length(Rbetween); ++jx) {
+				omxMatrix *bmat = currentState->getMatrixFromIndex(bnumber[jx]);
+				int foreignKey = bmat->getJoinKey();
+				omxExpectation *fex = bmat->getJoinModel();
+				omxCompleteExpectation(fex);
+				if (!strEQ(fex->expType, "MxExpectationRAM")) {
+					Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
+				}
+				if (omxDataIsSorted(fex->data)) {
+					Rf_error("%s join with %s but observed data is sorted",
+						 oo->name, fex->name);
+				}
+				if (!omxDataColumnIsKey(oo->data, foreignKey)) {
+					Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
+						 "Did you forget to use mxData(..., sort=FALSE)?",
+						 omxDataColumnName(oo->data, foreignKey),
+						 oo->data->name);
+				}
+
+				if (OMX_DEBUG) {
+					mxLog("%s: join col %d against %s using between matrix %s",
+					      oo->name, foreignKey, fex->name, bmat->name());
+				}
 				
-			RAMexp->joins.push_back(j1);
+				RAMexp->between.push_back(bmat);
+			}
 		}
 	}
 
@@ -292,7 +293,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	    RAMexp->means  = 	NULL;
     }
 
-	if (RAMexp->joins.size()) {
+	if (RAMexp->between.size()) {
 		RAMexp->rram = new RelationalRAMExpectation::state;
 		RAMexp->rram->init(oo);
 	}
@@ -339,21 +340,21 @@ namespace RelationalRAMExpectation {
 		omxRecompute(ram->S, fc);
 		if (ram->M) omxRecompute(ram->M, fc);
 
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
+		for (size_t jx=0; jx < ram->between.size(); ++jx) {
+			omxMatrix *b1 = ram->between[jx];
+			int key = omxKeyDataElement(data, row, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			loadOneRow(j1.ex, fc, key, lx);
+			loadOneRow(b1->getJoinModel(), fc, key, lx);
 		}
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
+		for (size_t jx=0; jx < ram->between.size(); ++jx) {
+			omxMatrix *betA = ram->between[jx];
+			int key = omxKeyDataElement(data, row, betA->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			int frow = j1.ex->data->lookupRowOfKey(key);
-			int jOffset = j1.ex->data->rowToOffsetMap[frow];
-			omxMatrix *betA = j1.regression;
+			omxData *data1 = betA->getJoinModel()->data;
+			int frow = data1->lookupRowOfKey(key);
+			int jOffset = data1->rowToOffsetMap[frow];
 			omxRecompute(betA, fc);
-			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
@@ -401,11 +402,12 @@ namespace RelationalRAMExpectation {
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, frow, j1.foreignKey);
+		for (size_t jx=0; jx < ram->between.size(); ++jx) {
+			omxMatrix *b1 = ram->between[jx];
+			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			placeOneRow(j1.ex, j1.ex->data->lookupRowOfKey(key), totalObserved, maxSize);
+			omxExpectation *e1 = b1->getJoinModel();
+			placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
 		if (data->hasPrimaryKey()) {
 			if (data->rowToOffsetMap.size() == 0) {
@@ -460,24 +462,24 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->A, NULL);
 		}
 
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
+		for (size_t jx=0; jx < ram->between.size(); ++jx) {
+			omxMatrix *b1 = ram->between[jx];
+			int key = omxKeyDataElement(data, row, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			prepOneRow(j1.ex, key, lx, dx);
+			prepOneRow(b1->getJoinModel(), key, lx, dx);
 		}
 
 		if (Global->RAMInverseOpt) {
-			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-				join &j1 = ram->joins[jx];
-				int key = omxKeyDataElement(data, row, j1.foreignKey);
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				omxMatrix *betA = ram->between[jx];
+				int key = omxKeyDataElement(data, row, betA->getJoinKey());
 				if (key == NA_INTEGER) continue;
-				int frow = j1.ex->data->lookupRowOfKey(key);
-				int jOffset = j1.ex->data->rowToOffsetMap[frow];
-				omxMatrix *betA = j1.regression;
+				omxData *data1 = betA->getJoinModel()->data;
+				int frow = data1->lookupRowOfKey(key);
+				int jOffset = data1->rowToOffsetMap[frow];
 				omxRecompute(betA, NULL);
 				betA->markPopulatedEntries();
-				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 						double val = omxMatrixElement(betA, rx, cx);

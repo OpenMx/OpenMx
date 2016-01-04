@@ -23,7 +23,8 @@ setMethod("imxSquareMatrix", "IdenMatrix",
 )	
 
 setMethod("imxCreateMatrix", "IdenMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
+	  function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+		    condenseSlots, joinKey, joinModel) {
 		if (!single.na(values)) {
 			warning("ignoring 'values' matrix for Identity MxMatrix construction in ",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")), 
@@ -59,7 +60,8 @@ setMethod("imxCreateMatrix", "IdenMatrix",
 		free <- matrix(FALSE, ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		lbound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		ubound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+				      condenseSlots, joinKey, joinModel))
 	}
 )
 

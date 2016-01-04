@@ -19,7 +19,8 @@ setClass(Class = "FullMatrix",
 	contains = "MxMatrix")
 
 setMethod("imxCreateMatrix", "FullMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
+	  function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+		    condenseSlots, joinKey, joinModel) {
 		if (single.na(values)) {
 			values <- 0
 		}
@@ -42,7 +43,8 @@ setMethod("imxCreateMatrix", "FullMatrix",
 		else{if (is.vector(ubound)) {
 			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
 		}}
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) )
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+				      condenseSlots, joinKey, joinModel) )
 	}
 )
 

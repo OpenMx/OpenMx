@@ -51,15 +51,21 @@ m1 <- mxModel("person", type="RAM",
               mxPath("maleEffect", "height", values=10),
               mxPath("one", "height"),
               mxPath("height", arrows=2, values=1),
-              mxMatrix(name="Z", nrow=2, ncol=2, dimnames=list(c('height', 'maleEffect'),
-                                                               c('height', 'maleEffect'))))
+              mxMatrix(name="fromMother", nrow=2, ncol=2,
+                       labels=paste0("x", 1:4),
+                       dimnames=list(c('height', 'maleEffect'),
+                                     c('height', 'maleEffect')),
+                       joinKey = "motherID", joinModel = "person"),
+              mxMatrix(name="fromFather", nrow=2, ncol=2,
+                       labels=paste0("x", 1:4),
+                       dimnames=list(c('height', 'maleEffect'),
+                                     c('height', 'maleEffect')),
+                       joinKey = "fatherID", joinModel = "person"))
 
-m1$Z$free['height', 'height'] <- TRUE
+m1$fromMother$free['height', 'height'] <- TRUE
+m1$fromFather$free['height', 'height'] <- TRUE
 
-m1$expectation$join <- list(
-  mxJoin(foreignKey = "motherID", expectation = "person", regression = "Z"),
-  mxJoin(foreignKey = "fatherID", expectation = "person", regression = "Z")
-)
+m1$expectation$between <- c("fromMother","fromFather")
 
 if (0) {
   m1 <- mxRun(mxModel(m1, mxComputeOnce('fitfunction', 'fit')))
