@@ -31,9 +31,6 @@
 #include "omxState.h"
 
 // forward declarations
-static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
-	unsigned short hasMatrixNumber, int matrixNumber);
-
 static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
 
 // For background, see
@@ -313,47 +310,34 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 }
 
 omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,
-	unsigned short hasMatrixNumber, int matrixNumber) {
-/* Populates the fields of a omxMatrix with details from an R object. */
-	if(rObject && !Rf_isMatrix(rObject) && !Rf_isVector(rObject)) { // Sanity Check
-		Rf_error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
-	}
-	return(fillMatrixHelperFunction(om, rObject, state, hasMatrixNumber, matrixNumber));
-}
-
-
-
-static omxMatrix* fillMatrixHelperFunction(omxMatrix* om, SEXP matrix, omxState* state,
-	unsigned short hasMatrixNumber, int matrixNumber) {
-
-	int* dimList;
-
-	if(OMX_DEBUG) { mxLog("Filling omxMatrix from R matrix."); }
-
+	unsigned short hasMatrixNumber, int matrixNumber)
+{
 	if (!om) Rf_error("fillMatrixHelperFunction: matrix must be allocated already");
 
-	if (matrix) {
-		if(Rf_isMatrix(matrix)) {
+	if (rObject) {
+		if(Rf_isMatrix(rObject)) {
 			SEXP matrixDims;
-			ScopedProtect p1(matrixDims, Rf_getAttrib(matrix, R_DimSymbol));
-			dimList = INTEGER(matrixDims);
+			ScopedProtect p1(matrixDims, Rf_getAttrib(rObject, R_DimSymbol));
+			int* dimList = INTEGER(matrixDims);
 			om->rows = dimList[0];
 			om->cols = dimList[1];
-		} else if (Rf_isVector(matrix)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
+		} else if (Rf_isVector(rObject)) {		// If it's a vector, assume it's a row vector. BLAS doesn't care.
 			if(OMX_DEBUG) { mxLog("Vector discovered.  Assuming rowity."); }
 			om->rows = 1;
-			om->cols = Rf_length(matrix);
+			om->cols = Rf_length(rObject);
+		} else {
+			Rf_error("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
 		}
 		if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
-		if (TYPEOF(matrix) != REALSXP) Rf_error("matrix is of type '%s'; only type double is accepted",
-							Rf_type2char(TYPEOF(matrix)));
+		if (TYPEOF(rObject) != REALSXP) Rf_error("matrix is of type '%s'; only type double is accepted",
+							Rf_type2char(TYPEOF(rObject)));
 
-		om->owner = matrix;
+		om->owner = rObject;
 		om->data = REAL(om->owner);
 
 		SEXP dimnames;
-		ScopedProtect pdn(dimnames, Rf_getAttrib(matrix, R_DimNamesSymbol));
+		ScopedProtect pdn(dimnames, Rf_getAttrib(rObject, R_DimNamesSymbol));
 		om->loadDimnames(dimnames);
 	}
 
