@@ -124,11 +124,15 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 	MxRList out;
 
 	if (oro->rram && oro->rram->fullCov.nonZeros()) {
-		out.add("covariance", Rcpp::wrap(oro->rram->fullCov));
-		SEXP m1 = Rcpp::wrap(oro->rram->fullMeans);
+		RelationalRAMExpectation::state *rram = oro->rram;
+		SEXP nameVec = Rcpp::wrap(rram->nameVec);
+		Rf_protect(nameVec);
+		SEXP m1 = Rcpp::wrap(rram->filteredA.transpose() * rram->fullMeans);
 		Rf_protect(m1);
-		Rf_setAttrib(m1, R_NamesSymbol, Rcpp::wrap(oro->rram->nameVec));
+		Rf_setAttrib(m1, R_NamesSymbol, nameVec);
 		out.add("means", m1);
+
+		out.add("covariance", Rcpp::wrap(oro->rram->fullCov));
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
@@ -507,10 +511,10 @@ namespace RelationalRAMExpectation {
 				bool yes = std::isfinite(val);
 				if (!yes) continue;
 				latentFilter[ lx + col ] = true;
+				nameVec.push_back(omxDataColumnName(expectation->data, col));
 				dataVec[ dx++ ] = val;
 			}
 		}
-		nameVec.insert(nameVec.end(), ram->A->colnames.begin(), ram->A->colnames.end());
 		lx += ram->F->cols;
 	}
 
@@ -546,8 +550,8 @@ namespace RelationalRAMExpectation {
 		if (verbose >= 1) {
 			mxLog("%s: total observations %d", homeEx->name, totalObserved);
 		}
-		nameVec.reserve(maxSize);
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
+		nameVec.reserve(totalObserved);
 		dataVec.resize(totalObserved);
 		depthTestA.resize(maxSize, maxSize);
 
