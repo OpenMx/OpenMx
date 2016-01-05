@@ -33,17 +33,22 @@ wModel <- mxModel('within', type="RAM", bModel,
                          joinOn="clusterID"),
                   mxPath(paste0('y', 1:4), arrows=2, values=1, labels=paste0("v_y", 1:4)))
 
+mle <- structure(c(0.999, 0.995, 1.017, 0.973, 0.51, 0.981, 0.948, 1.07,
+		   1.014, 0.98, 0.96, 0.924, 0.949, -0.083, -0.077, -0.045, -0.03,  0.344, 0.361),
+		 .Names = c("ly2", "ly3", "ly4", "xl1", "xl2",  "v_y1", "v_y2", "v_y3", "v_y4",
+		     "v_fw", "lb2", "lb3", "lb4",  "ym1", "ym2", "ym3", "ym4", "lw", "v_fb"))
+
 if (0) {
-  wModel <- omxSetParameters(
-    wModel, labels=names(coef(wModel)),
-    values=c(.999, .995, 1.017, .973, .51, .981, .947, 1.07, 1.014, .98,
-             .96, .924, .949, -.083, -0.077, -.045, -.03, .344, .361))
+  wModel <- omxSetParameters(wModel, labels=names(mle), values=mle)
 }
 
 if (1) {
 #  wModel <- mxRun(mxModel(wModel, mxComputeGradientDescent(verbose=2L)))
   wModel <- mxRun(wModel)
   summary(wModel)
+
+  omxCheckCloseEnough(wModel$output$fit, 13088.373, 1e-2)
+  omxCheckCloseEnough(mle, coef(wModel), 1e-2)
 } else {
   #coef(wModel)
   wModel <- mxRun(mxModel(wModel,
