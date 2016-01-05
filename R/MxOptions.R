@@ -149,7 +149,7 @@ npsolOptions <- list(
 checkpointOptions <- list(
 	"Checkpoint Directory" = ".", 
 	"Checkpoint Prefix" = "",
-	"Checkpoint Units" = "evaluations", 
+	"Checkpoint Units" = "iterations",
 	"Checkpoint Count" = 1,
         "Checkpoint Fullpath" = "",
 	"Socket Server" = "", 
