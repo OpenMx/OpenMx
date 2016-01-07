@@ -291,6 +291,53 @@ isLocalDefinitionVariable <- function(name) {
 }
 
 
+##' imxHasDefinitionVariable
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model (or its
+##' submodels) has at least one definition variable.
+##'
+##' @param model model
+imxHasDefinitionVariable <- function(model) {
+	# Check submodels for defvar
+	if(length(model$submodels) > 0){
+		for(i in 1:length(model@submodels)){
+			attempt <- sapply(model@submodels[[i]], imxHasDefinitionVariable)
+			if(any(attempt)){
+				return(TRUE)
+			}
+		}
+	}
+	
+	# Check if the model has data
+	if(length(model@data) == 0){
+		return(FALSE)
+	}
+	
+	# Check the matrices for defvar
+	if(length(model@matrices) > 0){
+		for(i in 1:length(model@matrices)){
+			attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
+			if(any(attempt)){
+				return(TRUE)
+			}
+		}
+	}
+	
+	# Check the algebras for defvar
+	if(length(model@algebras) > 0){
+		for(i in 1:length(model@algebras)){
+			attempt <- sapply(as.character(model@algebras[[i]]$formula), imxIsDefinitionVariable)
+			if(any(attempt)){
+				return(TRUE)
+			}
+		}
+	}
+	
+	# All checks find nothing, return FALSE
+	return(FALSE)
+}
+
 ##' imxIdentifier
 ##'
 ##' This is an internal function exported for those people who know

@@ -45,3 +45,21 @@ for (rep in 1:maxThreads) {
 
 likRange <- t(apply(rowLik, 1, range))
 omxCheckCloseEnough(max(abs(likRange[,1] - likRange[,2])), 0, 1e-5)
+
+#------------------------------------------------------------------------------
+# Add test for ordinal data generation with definition variables
+
+omxCheckError(mxGenerateData(fit, N-1), 'Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.')
+
+
+fakeData <- mxGenerateData(fit, N)
+fakeData$u <- u
+
+model2 <- mxModel(model, mxData(fakeData, 'raw'))
+fit2 <- mxRun(model2)
+
+omxCheckTrue(cor(coef(fit), coef(fit2)) > .99)
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+omxCheckTrue(rms(coef(fit), coef(fit2)) < .05)
+
+

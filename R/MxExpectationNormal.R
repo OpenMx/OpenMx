@@ -236,25 +236,55 @@ setMethod("genericGenerateData", signature("MxExpectationNormal"),
 })
 
 generateNormalData <- function(model, nrows){
-	#use generic functions and mvtnorm::rmvnorm() to generate data
-	theMeans <- imxGetExpectationComponent(model, "means")
-	theCov <- imxGetExpectationComponent(model, "covariance")
-	theThresh <- imxGetExpectationComponent(model, "thresholds")
-	data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
-	colnames(data) <- colnames(theCov)
-	data <- as.data.frame(data)
-	if( prod(dim(theThresh)) != 0){
-		ordvars <- colnames(theThresh)
+	# Check for definition variables
+	if(imxHasDefinitionVariable(model)){
+		if(nrows == nrow(model@data@observed)){
+			# Generate data row by row
+			theCov <- imxGetExpectationComponent(model, "covariance")
+			data <- matrix(NA, nrow=nrows, ncol=ncol(theCov))
+			colnames(data) <- colnames(theCov)
+			data <- as.data.frame(data)
+			for(i in 1:nrows){
+				theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i)
+				theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i)
+				theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i)
+				data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
+				data[i,] <- ordinalizeDataHelper(data[i,], theThresh)
+			}
+			data <- ordinalizeDataHelper(data, theThresh, cut=FALSE)
+		} else{
+			stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
+		}
+	} else{
+		#use generic functions and mvtnorm::rmvnorm() to generate data
+		theMeans <- imxGetExpectationComponent(model, "means")
+		theCov <- imxGetExpectationComponent(model, "covariance")
+		theThresh <- imxGetExpectationComponent(model, "thresholds")
+		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
+		colnames(data) <- colnames(theCov)
+		data <- as.data.frame(data)
+		data <- ordinalizeDataHelper(data, theThresh)
+	}
+	return(data)
+}
+
+ordinalizeDataHelper <- function(data, thresh, cut=TRUE){
+	if( prod(dim(thresh)) != 0){
+		ordvars <- colnames(thresh)
 		for(avar in ordvars){
-			delthr <- theThresh[,avar]
+			delthr <- thresh[,avar]
 			usethr <- !is.na(delthr)
 			delthr <- delthr[usethr]
-			if(!is.null(rownames(theThresh))){
-				levthr <- rownames(theThresh)[usethr]
+			if(!is.null(rownames(thresh))){
+				levthr <- rownames(thresh)[usethr]
 			} else {
 				levthr <- 1:(sum(usethr)+1)
 			}
-			delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
+			if(cut==TRUE){
+				delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
+			} else{
+				delvar <- data[,avar]
+			}
 			data[,avar] <- mxFactor(delvar, levels=levthr)
 		}
 	}

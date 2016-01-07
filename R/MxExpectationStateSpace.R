@@ -543,15 +543,9 @@ mxKalmanScores <- function(model, data=NA){
 	}
 	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
-	hasDefVars <- FALSE
-	for(i in 1:length(model@matrices)){
-		attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
-		attempt2 <- grep('[', model@matrices[[i]]$labels, fixed=TRUE)
-		if(any(attempt) || length(attempt2) > 0){
-			hasDefVars <- TRUE
-			break
-		}
-	}
+	
+	hasDefVars <- imxHasDefinitionVariable(model)
+	
 	X.pred <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.upda <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.pred[1,] <- x0
@@ -638,14 +632,7 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
 		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
 		
-		hasDefVars <- FALSE
-		for(i in 1:length(model@matrices)){
-			attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
-			if(any(attempt)){
-				hasDefVars <- TRUE
-				break
-			}
-		}
+		hasDefVars <- imxHasDefinitionVariable(model)
 		
 		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)

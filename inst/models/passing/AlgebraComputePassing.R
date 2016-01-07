@@ -467,3 +467,17 @@ omxCheckCloseEnough(model[['test67f']]$result, mxEval(omxSelectRowsAndCols(t(O),
 omxCheckCloseEnough(model[['test68a']]$result, mxEval(logm(A), model), .001)
 omxCheckCloseEnough(model[['test68b']]$result, mxEval(logm(B), model), .001)
 omxCheckCloseEnough(model[['test68c']]$result, mxEval(logm(I), model), .001)
+
+# Check internal function for definition variables
+m0 <- mxModel()
+omxCheckTrue(!imxHasDefinitionVariable(m0))
+m1 <- mxModel(mxMatrix('Full', 1, 1, labels='data.blah'))
+omxCheckTrue(!imxHasDefinitionVariable(m1)) # still has no data
+m2 <- mxModel(m1, mxData(matrix(0, 1, 1), 'raw'))
+omxCheckTrue(imxHasDefinitionVariable(m2))
+m3 <- mxModel(name='b', m1)
+omxCheckTrue(!imxHasDefinitionVariable(m3)) # submodel behavior
+m3 <- mxModel(name='b', m2)
+omxCheckTrue(imxHasDefinitionVariable(m3))
+m4 <- mxModel(mxAlgebra(data.x1 %x% V, name='bob'), mxData(matrix(0, 1, 1), 'raw'))
+omxCheckTrue(imxHasDefinitionVariable(m4)) # algebra
