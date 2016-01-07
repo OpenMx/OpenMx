@@ -410,6 +410,7 @@ namespace RelationalRAMExpectation {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
+			AmatDependsOnParameters |= b1->dependsOnParameters();
 			omxExpectation *e1 = b1->getJoinModel();
 			placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
@@ -545,10 +546,10 @@ namespace RelationalRAMExpectation {
 		for (int row=0; row < data->rows; ++row) {
 			placeOneRow(homeEx, row, totalObserved, maxSize);
 		}
-		//mxLog("AmatDependsOnParameters=%d", AmatDependsOnParameters);
 
 		if (verbose >= 1) {
-			mxLog("%s: total observations %d", homeEx->name, totalObserved);
+			mxLog("%s: total observations %d AmatDependsOnParameters=%d",
+			      homeEx->name, totalObserved, AmatDependsOnParameters);
 		}
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		nameVec.reserve(totalObserved);
