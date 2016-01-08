@@ -35,6 +35,8 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include <sys/types.h>
+#include <string>
+#include <errno.h>
 
 #ifdef WIN32
 
@@ -217,6 +219,11 @@ void omxRaiseErrorf(omxState *state, const char* errorMsg, ...);
 	void omxSaveCheckpoint(omxState* os, double* x, double* f, int force);	// Save out checkpoints
 void omxExamineFitOutput(omxState *state, omxMatrix *fitMatrix, int *mode);
 void omxAddMatrixToState(omxMatrix *mat);
+
+void mxLogBig(const std::string &str);   // thread-safe
+void mxLog(const char* msg, ...);   // thread-safe
+std::string string_vsnprintf(const char *fmt, va_list orig_ap);
+std::string string_snprintf(const char *fmt, ...);
 
 #endif /* _OMXSTATE_H_ */
 

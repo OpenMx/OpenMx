@@ -1,12 +1,14 @@
-options(error = utils::recover)   # uncomment for more help with debugging
+#options(error = utils::recover)   # uncomment for more help with debugging
 library(OpenMx)
 library(mvtnorm)
 library(plyr)
 
+mxOption(NULL, "Number of Threads", 1)
+
 set.seed(1)
 
-#more.noise <- 0
-more.noise <- 1
+more.noise <- 0
+#more.noise <- 1
 
 gen.data <- function(n) {
   data.cov <- matrix(c(1, .2, .2, 1), byrow=TRUE, nrow=2)
@@ -22,7 +24,7 @@ gen.data <- function(n) {
   df
 }
 
-fanout <- 20
+fanout <- 3
 
 school.data <- cbind(id=1:fanout, gen.data(fanout))
 #school.data$C <- school.data$id * 1000
@@ -76,6 +78,21 @@ teacher <- relabel(mxModel(student, name="teacher"), "tea_")
 school <- relabel(mxModel(student, name="school"), "sch_")
 student <- relabel(student, "st_")
 
+print(school.data)
+print(teacher.data)
+print(student.data)
+
+r1 <- cbind(student.data[student.data$id==1,],
+	    student.data[student.data$id==10,],
+	    student.data[student.data$id==19,])
+r1d <- r1[,colnames(r1) == "C" | colnames(r1) == "D"]
+
+a1 <- matrix(c(1,0,1,0,1,0, 0,1,0,1,0,1), ncol=2)
+q1 <- -qr.Q(qr(a1), complete=TRUE)
+q1[1:2,] <- q1[1:2,]
+as.matrix(r1d[1,]) %*% t(q1)
+round(q1 %*% a1,2)
+
 school <- mxModel(school, mxData(school.data, type="raw", primaryKey="id"))
 teacher <- mxModel(teacher,
                    mxData(teacher.data, type="raw",
@@ -88,8 +105,8 @@ student <- mxModel(student,
                           foreignKeys=list(c('teacherId', 'teacher.id'))))
 
 sonly <- mxModel(student, type="RAM", name="sonly")
-sonly <- mxRun(sonly)
-summary(sonly)
+#sonly <- mxRun(sonly)
+#summary(sonly)
 
 district <- mxModel("district",
                      type="RAM",
@@ -103,7 +120,10 @@ district <- mxModel("district",
 )
 
 district <- mxRun(district)
-district@submodels[[1]]@matrices$S@values
-district@submodels[[2]]@matrices$S@values
-district@submodels[[3]]@matrices$S@values
+
+#district@submodels[[1]]@matrices$S@values
+#district@submodels[[2]]@matrices$S@values
+#district@submodels[[3]]@matrices$S@values
+
+district@output$estimate
 

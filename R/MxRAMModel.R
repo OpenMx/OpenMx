@@ -63,7 +63,7 @@ RAMModel.imxVerifyModel <- function(model) {
 		submodels <- planMultilevelJoin(model)
 		levels <- length(submodels) - 1
 		homer <- match(paste0('H', 1:levels),
-			       sapply(district@matrices, function(m) m@name))
+			       sapply(model@matrices, function(m) m@name))
 		if (any(is.na(homer))) {
 			msg <- paste("The hierarchical RAM model", omxQuotes(model@name),
 				     "is missing path matrices",

@@ -27,6 +27,95 @@
 #include <stdarg.h>
 #include "omxState.h"
 
+void mxLogBig(const std::string &str)   // thread-safe
+{
+	ssize_t len = ssize_t(str.size());
+	if (len == 0) Rf_error("Attempt to log 0 characters with mxLogBig");
+
+	std::string fullstr;
+	fullstr = string_snprintf("[%d] ", 1);
+	fullstr += str;
+	len = ssize_t(fullstr.size());
+	
+	ssize_t wrote = 0;
+	int maxRetries = 20;
+	ssize_t got;
+	const char *outBuf = fullstr.c_str();
+#pragma omp critical(stderp)
+	{
+		while (--maxRetries > 0) {
+			got = write(2, outBuf + wrote, len - wrote);
+			if (got == -EINTR) continue;
+			if (got < 0) break;
+			wrote += got;
+			if (wrote == len) break;
+		}
+	}
+	if (wrote != len) Rf_error("mxLogBig only wrote %d/%d, errno %d", wrote, len, errno);
+
+}
+
+void mxLog(const char* msg, ...)   // thread-safe
+{
+	const int maxLen = 240;
+	char buf1[maxLen];
+	char buf2[maxLen];
+
+	va_list ap;
+	va_start(ap, msg);
+	vsnprintf(buf1, maxLen, msg, ap);
+	va_end(ap);
+
+	int len;
+	len = snprintf(buf2, maxLen, "[%d] %s\n", 1, buf1);
+
+	int maxRetries = 20;
+	ssize_t wrote = 0;
+	ssize_t got = 0;
+#pragma omp critical(stderp)
+	{
+		while (--maxRetries > 0) {
+			got = write(2, buf2 + wrote, len - wrote);
+			if (got == -EINTR) continue;
+			if (got <= 0) break;
+			wrote += got;
+			if (wrote == len) break;
+		}
+	}
+	if (got <= 0) Rf_error("mxLog(%s) failed with errno=%d", buf2, got);
+}
+
+std::string string_vsnprintf(const char *fmt, va_list orig_ap)
+{
+    int size = 100;
+    std::string str;
+    while (1) {
+        str.resize(size);
+	va_list ap;
+	va_copy(ap, orig_ap);
+        int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
+	va_end(ap);
+        if (n > -1 && n < size) {
+            str.resize(n);
+            return str;
+        }
+        if (n > -1)
+            size = n + 1;
+        else
+            size *= 2;
+    }
+    return str;
+}
+
+std::string string_snprintf(const char *fmt, ...)
+{
+	va_list ap;
+        va_start(ap, fmt);
+	std::string str = string_vsnprintf(fmt, ap);
+        va_end(ap);
+	return str;
+}
+
 /* Initialize and Destroy */
 	void omxInitState(omxState* state, omxState *parentState) {
 		state->numConstraints = 0;

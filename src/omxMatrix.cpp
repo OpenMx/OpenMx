@@ -731,7 +731,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 	omxMatrix* origZ = Z;
     double oned = 1, minusOned = -1.0;
 
-    if (numIters == 0) error("Invalid numIters passed to omxShallowInverse");
+    numIters = NA_INTEGER;
 
 	if(numIters == NA_INTEGER) {
 		int ipiv[A->rows], lwork = 4 * A->rows * A->cols, k;		// TODO: Speedups can be made by preallocating this.

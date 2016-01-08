@@ -639,15 +639,16 @@ static void omxInitRAMExpectationH(omxExpectation* oo)
 	omxExpectation *flat = NULL;
 
 	for (int px=oo->numSubmodels - 1; px > 0; px--) {
+		mxLog("-- px = %d ---------------------------------", px);
 		omxExpectation *level = oo->submodels[px];
 		if (omxDataIsLinkTable(level->data)) continue;
 
 		omxExpectation* upperE = oo->submodels[px - 1];
 		omxExpectation* lowerE = (flat? flat : level);
-		// omxPrintData(upperE->data, "upper");
-		// omxPrint(upperE->dataColumns, "upper");
-		// omxPrintData(lowerE->data, "lower");
-		// omxPrint(lowerE->dataColumns, "lower");
+		omxPrintData(upperE->data, "upper");
+		omxPrint(upperE->dataColumns, "upper");
+		omxPrintData(lowerE->data, "lower");
+		omxPrint(lowerE->dataColumns, "lower");
 
 		omxRAMExpectation *upper = (omxRAMExpectation*) upperE->argStruct;
 		omxRAMExpectation *lower = (omxRAMExpectation*) lowerE->argStruct;
@@ -671,10 +672,11 @@ static void omxInitRAMExpectationH(omxExpectation* oo)
 			omxHomerTransformRawData(upperE->data, upperE->dataColumns,
 						 lowerE->data, lowerE->dataColumns, fanout,
 						 group1D, group1C, group2D);
-			// omxPrintData(group1D, "g1");
-			// omxPrint(group1C, "g2");
-			// omxPrintData(group2D, "g2");
-			// omxPrint(lowerE->dataColumns, "g2");
+			omxPrint(RAMexp->Homer[px - 1], "between");
+			omxPrintData(group1D, "g1");
+			omxPrint(group1C, "g2");
+			omxPrintData(group2D, "g2");
+			omxPrint(lowerE->dataColumns, "g2");
 
 			flat = uniteHierarchicalMultilevel(oo, upper, lower, 1, RAMexp->Homer[px - 1], sqrt(fanout));
 			flat->data = group1D;

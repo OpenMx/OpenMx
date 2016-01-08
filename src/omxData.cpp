@@ -875,6 +875,7 @@ void omxFlattenRawData(omxData *upperD, omxMatrix *upperC,
 	}
 }
 
+// anzGroups == fanout, anzObs == # of manifest per unit
 static void multiplyWithOrthogonalTransformation(const int anzGroups, const int anzObs,
 						 const std::vector<double> &vec, std::vector<double> &erg)
 {
@@ -937,11 +938,11 @@ void omxHomerTransformRawData(omxData *upperD, omxMatrix *upperC,
 			vec[ox] = omxDoubleDataElement(flatD, rx, cx);
 		}
 
-		// for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", vec[mx]); }
-		// Rprintf("\n");
+		for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", vec[mx]); }
+		Rprintf("\n");
 		multiplyWithOrthogonalTransformation(fanout, lowerC->cols, vec, work);
-		// for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", work[mx]); }
-		// Rprintf("\n");
+		for (int mx=0; mx < numManifest; mx++) { Rprintf("%.3g ", work[mx]); }
+		Rprintf("\n");
 
 		for (int ox=0; ox < numManifest; ox++) {
 			if (ox < lowerC->cols) {
