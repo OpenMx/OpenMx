@@ -51,8 +51,8 @@ m1 <- mxModel("person", type="RAM",
               mxPath("maleEffect", "height", values=10),
               mxPath("one", "height"),
               mxPath("height", arrows=2, values=1),
-              mxPath("person.height", "height", joinOn='motherID', labels="fromMother"),
-              mxPath("person.height", "height", joinOn='fatherID', labels="fromFather"))
+              mxPath("person.height", "height", joinKey='motherID', labels="fromMother"),
+              mxPath("person.height", "height", joinKey='fatherID', labels="fromFather"))
 
 #m1 <- mxOption(m1, "RAM Inverse Optimization", "Yes")
 

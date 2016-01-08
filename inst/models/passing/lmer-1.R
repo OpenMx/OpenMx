@@ -66,7 +66,7 @@ m2 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars 
               mxPath(c("Reaction"), arrows=2, values=1))
 
 omxCheckError(mxModel(m2, mxPath('by_Subject.intercept', 'Reaction',
-                   values=1, free=FALSE, joinOn="Subject")),
+                   values=1, free=FALSE, joinKey="Subject")),
               "Nice try. You need to create an upper level RAM model called 'by_Subject' and add it as a submodel of 'sleep' before you can create paths between these models.")
 
 bySub <- mxModel(
@@ -82,26 +82,26 @@ bySub <- mxModel(
 m2 <- mxModel(m2, bySub)
 
 omxCheckError(mxModel(m2, mxPath('intercept', 'Reaction',
-                         values=1, free=FALSE, joinOn="Subject")),
+                         values=1, free=FALSE, joinKey="Subject")),
               "Between level paths must be from modelName.variableName, not 'intercept'")
 
 omxCheckError(mxModel(m2, mxPath(c('Bathtub.intercept', 'Sink.intercept'), 'Reaction',
-                                 values=1, free=FALSE, joinOn="Subject")),
+                                 values=1, free=FALSE, joinKey="Subject")),
               "Deal with one upper level model at a time, not 'Bathtub' and 'Sink'")
 
 omxCheckError(mxModel(m2, mxPath('by_Subject.intersept', 'Reaction',
-                                 values=1, free=FALSE, joinOn="Subject")),
+                                 values=1, free=FALSE, joinKey="Subject")),
               "Nice try, you need to add 'intersept' to either manifestVars or latentVars in model 'by_Subject' before you can use them in a path.")
 
 omxCheckError(mxModel(m2, mxPath('by_Subject.intercept', 'React',
-                                 values=1, free=FALSE, joinOn="Subject")),
+                                 values=1, free=FALSE, joinKey="Subject")),
               "Nice try, you need to add 'React' to either manifestVars or latentVars before you can use them in a path.")
 
 m2 <- mxModel(m2,
               mxPath('by_Subject.intercept', 'Reaction',
-                     values=1, free=FALSE, joinOn="Subject"),
+                     values=1, free=FALSE, joinKey="Subject"),
               mxPath('by_Subject.slope', 'Reaction', labels='data.Days',
-                     free=FALSE, joinOn="Subject"))
+                     free=FALSE, joinKey="Subject"))
 
 m2 <- mxRun(m2)
 omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-6)

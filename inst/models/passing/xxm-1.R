@@ -22,7 +22,7 @@ sMod <- mxModel("student", type="RAM", tMod,
                 mxPath(c("y1", "y2"), connect = "unique.pairs", arrows=2,
                        labels=paste0("theta", 1:3), values=c(1,0,1)),
                 mxPath(paste0("teacher.eta", 1:2), paste0("y",1:2),
-                       free=FALSE, values=1, joinOn = "teacher"))
+                       free=FALSE, values=1, joinKey = "teacher"))
 
 sMod <- mxRun(sMod)
 

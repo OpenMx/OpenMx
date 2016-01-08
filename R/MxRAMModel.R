@@ -427,7 +427,7 @@ insertAllPathsRAM <- function(model, paths) {
 			paths[[i]] <- path
 		}
 		
-		if (!is.na(path@joinOn)) {
+		if (!is.na(path@joinKey)) {
 			upperFrom <- strsplit(path@from, imxSeparatorChar, fixed = TRUE)
 			upperFromBadLen <- sapply(upperFrom, length) != 2
 			if (any(upperFromBadLen)) {
@@ -477,11 +477,11 @@ insertAllPathsRAM <- function(model, paths) {
 			sameJoinMask <- sapply(priorBetween, function(x) {
 				bmat <- model[[ x ]]
 				if (is.null(bmat)) return(FALSE)
-				bmat$joinKey == path@joinOn && bmat$joinModel == upperModelName
+				bmat$joinKey == path@joinKey && bmat$joinModel == upperModelName
 			})
 			if (length(sameJoinMask) && sum(sameJoinMask) > 1) {
 				stop(paste("Confusingly there is more than 1 join to", omxQuotes(upperModelName),
-					   "using foreign key", omxQuotes(path@joinOn)), call.=FALSE)
+					   "using foreign key", omxQuotes(path@joinKey)), call.=FALSE)
 			}
 			if (all(!sameJoinMask)) {
 				bMatNameBase <- paste0("from_", upperModelName)
@@ -501,7 +501,7 @@ insertAllPathsRAM <- function(model, paths) {
 				}
 				model <- mxModel(model, mxMatrix(name=bMatName, nrow=nrow(A), ncol=length(upperVars),
 								 dimnames=list(rownames(A), upperVars),
-								 joinKey = path@joinOn, joinModel = upperModelName))
+								 joinKey = path@joinKey, joinModel = upperModelName))
 			} else {
 				bMatName <- priorBetween[ which(sameJoinMask) ]
 			}

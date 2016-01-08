@@ -24,12 +24,12 @@ setClass(Class = "MxPath",
 		lbound = "numeric",
 		ubound = "numeric",
 	    connect = "character",
-	    joinOn = "character"
+	    joinKey = "character"
 ))
 
 setMethod("initialize", "MxPath",
 	function(.Object, from, to, arrows, values,
-		free, labels, lbound, ubound, connect, joinOn) {
+		free, labels, lbound, ubound, connect, joinKey) {
 		.Object@from <- from
 		.Object@to <- to
 		.Object@arrows <- arrows
@@ -39,7 +39,7 @@ setMethod("initialize", "MxPath",
 		.Object@lbound <- lbound
 		.Object@ubound <- ubound
 		.Object@connect <- connect
-		.Object@joinOn <- joinOn
+		.Object@joinKey <- joinKey
 		return(.Object)
 	}
 )
@@ -95,7 +95,7 @@ expandPathConnect <- function(from, to, connect) {
 # returns a list of paths
 generatePath <- function(from, to,
 		connect, arrows, values, free,
-		labels, lbound, ubound, joinOn) {
+		labels, lbound, ubound, joinKey) {
 
 	# save exactly what the user typed to pass to mxModel for creation
 	unalteredTo <- to
@@ -128,7 +128,7 @@ generatePath <- function(from, to,
 	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
 	
 	# create a new MxPath in the MxModel
-	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinOn))
+	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey))
 }
 
 pathCheckToAndFrom <- function(from, to){
@@ -238,7 +238,7 @@ pathCheckVector <- function(value, valname, check, type) {
 mxPath <- function(from, to = NA, 
 	connect = c("single", "all.pairs", "unique.pairs", 
 	            "all.bivariate", "unique.bivariate"), arrows = 1, 
-	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ..., joinOn=as.character(NA)) {
+	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ..., joinKey=as.character(NA)) {
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
@@ -321,12 +321,12 @@ mxPath <- function(from, to = NA,
 			stop(msg)
 		}
 	}
-	if (length(joinOn) > 1) {
-		msg <- paste("cannot only joinOn a single foreign key, not",
-			     length(joinOn))
+	if (length(joinKey) > 1) {
+		msg <- paste("cannot only joinKey a single foreign key, not",
+			     length(joinKey))
 		stop(msg)
 	}
-	if (!is.na(joinOn)) {
+	if (!is.na(joinKey)) {
 		if (any(arrows != 1)) {
 			msg <- paste("between level join mappings can only use single",
 				     "headed arrows")
@@ -350,7 +350,7 @@ mxPath <- function(from, to = NA,
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
 	generatePath(from, to, connect, arrows,
 		values, free, labels, 
-		lbound, ubound, joinOn)
+		lbound, ubound, joinKey)
 }
 
 displayPath <- function(object) {
@@ -364,7 +364,7 @@ displayPath <- function(object) {
 	cat("$lbound: ", object@lbound, '\n')
 	cat("$ubound: ", object@ubound, '\n')
     cat("$connect: ", object@connect, '\n')
-    cat("$joinOn: ", object@joinOn, '\n')
+    cat("$joinKey: ", object@joinKey, '\n')
 }
 
 setMethod("print", "MxPath", function(x,...) { displayPath(x) })

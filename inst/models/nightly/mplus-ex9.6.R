@@ -30,7 +30,7 @@ wModel <- mxModel('within', type="RAM", bModel,
                          values=1, labels=paste0("ly", 1:4)),
                   mxPath('between.fb', paste0('y', 1:4), values=1,
                          free=c(FALSE, rep(TRUE, 3)), labels=paste0("lb", 1:4),
-                         joinOn="clusterID"),
+                         joinKey="clusterID"),
                   mxPath(paste0('y', 1:4), arrows=2, values=1, labels=paste0("v_y", 1:4)))
 
 mle <- structure(c(0.999, 0.995, 1.017, 0.973, 0.51, 0.981, 0.948, 1.07,
