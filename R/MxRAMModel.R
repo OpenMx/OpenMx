@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2015 The OpenMx Project
+#   Copyright 2007-2016 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -427,7 +427,7 @@ insertAllPathsRAM <- function(model, paths) {
 			paths[[i]] <- path
 		}
 		
-		if (!is.na(path@joinOn)) {
+		if (!is.na(path@joinKey)) {
 			upperFrom <- strsplit(path@from, imxSeparatorChar, fixed = TRUE)
 			upperFromBadLen <- sapply(upperFrom, length) != 2
 			if (any(upperFromBadLen)) {
@@ -473,12 +473,15 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 
 			bMatName <- NULL
-			priorJoin <- model$expectation$join
-			sameJoinMask <- sapply(priorJoin, function(x) x$foreignKey == path@joinOn &&
-						   x$expectation == upperModelName)
+			priorBetween <- model$expectation$between
+			sameJoinMask <- sapply(priorBetween, function(x) {
+				bmat <- model[[ x ]]
+				if (is.null(bmat)) return(FALSE)
+				bmat$joinKey == path@joinKey && bmat$joinModel == upperModelName
+			})
 			if (length(sameJoinMask) && sum(sameJoinMask) > 1) {
 				stop(paste("Confusingly there is more than 1 join to", omxQuotes(upperModelName),
-					   "using foreign key", omxQuotes(path@joinOn)), call.=FALSE)
+					   "using foreign key", omxQuotes(path@joinKey)), call.=FALSE)
 			}
 			if (all(!sameJoinMask)) {
 				bMatNameBase <- paste0("from_", upperModelName)
@@ -496,14 +499,11 @@ insertAllPathsRAM <- function(model, paths) {
 						   "between level mapping matrix. Tried variations on",
 						   omxQuotes(bMatNameBase)), call.=FALSE)
 				}
-				model$expectation$join =
-				    c(priorJoin, mxJoin(foreignKey=path@joinOn, expectation=upperModelName,
-							regression=bMatName))
 				model <- mxModel(model, mxMatrix(name=bMatName, nrow=nrow(A), ncol=length(upperVars),
-								 dimnames=list(rownames(A), upperVars)))
+								 dimnames=list(rownames(A), upperVars),
+								 joinKey = path@joinKey, joinModel = upperModelName))
 			} else {
-				myJoin <- priorJoin[[ which(sameJoinMask) ]]
-				bMatName <- myJoin$regression
+				bMatName <- priorBetween[ which(sameJoinMask) ]
 			}
 
 			bMat <- model[[ bMatName ]]
@@ -525,6 +525,7 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 
 			model[[ bMatName ]] <- bMat
+			model$expectation$between <- unique(c(priorBetween, bMatName))
 			next
 		}
 

@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2015 The OpenMx Project
+ *  Copyright 2007-2016 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -310,7 +310,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		bool onlyFellner = false;
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			onlyFellner = ram->joins.size();
+			onlyFellner = ram->between.size();
 		}
 		int fellner;
 		{

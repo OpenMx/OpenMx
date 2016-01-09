@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2015 The OpenMx Project
+#   Copyright 2007-2016 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ npsolOptions <- list(
 checkpointOptions <- list(
 	"Checkpoint Directory" = ".", 
 	"Checkpoint Prefix" = "",
-	"Checkpoint Units" = "evaluations", 
+	"Checkpoint Units" = "iterations",
 	"Checkpoint Count" = 1,
         "Checkpoint Fullpath" = "",
 	"Socket Server" = "", 

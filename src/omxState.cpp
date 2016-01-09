@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2015 The OpenMx Project
+ *  Copyright 2007-2016 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -220,9 +220,9 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
-const char *omxState::matrixToName(int matnum)
+omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 {
-	return matnum<0? matrixList[~matnum]->name() : algebraList[matnum]->name();
+	return matnum<0? matrixList[~matnum] : algebraList[matnum];
 }
 
 void omxState::setWantStage(int stage)

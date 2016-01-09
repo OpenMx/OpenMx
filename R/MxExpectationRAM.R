@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2015 The OpenMx Project
+#   Copyright 2007-2016 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,50 +12,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-setClass(Class = "MxJoin",
-	representation = representation(
-	    foreignKey = "MxCharOrNumber",
-	    expectation = "MxCharOrNumber",  # rename to 'model' ? TODO
-	    regression = "MxCharOrNumber"  # rename TODO
-	))
-
-setMethod("initialize", "MxJoin",
-	function(.Object, foreignKey, expectation, regression) {
-		.Object@foreignKey <- foreignKey
-		.Object@expectation <- expectation
-		.Object@regression <- regression
-		return(.Object)
-	}
-)
-
-#' Specify a join between data
-#'
-#' The MxJoin object contains the information necessary to join two
-#' models on some key.
-#' 
-#' @aliases MxJoin-class $,MxJoin-method $<-,MxJoin-method
-#' @param foreignKey the name of the foreign key in the current model
-#' to join against the primary key in the other model
-#' @param expectation the name of the other model
-#' @param regression the name of the between level mapping matrix that
-#' specifies the regressions or factor loadings between models
-#' @return
-#' An MxJoin object
-#' @seealso \link{mxExpectationRAM}
-mxJoin <- function(foreignKey, expectation, regression) {
-	return(new("MxJoin", foreignKey, expectation, regression))
-}
-
-setMethod("$", "MxJoin", imxExtractSlot)
-
-setReplaceMethod("$", "MxJoin",
-	function(x, name, value) {
-		return(imxReplaceSlot(x, name, value, check=TRUE))
-	}
-)
-
-setMethod("names", "MxJoin", slotNames)
 
 setClass(Class = "MxExpectationRAM",
 	representation = representation(
@@ -74,12 +30,14 @@ setClass(Class = "MxExpectationRAM",
 		ppmlData = "MxData",
 		UnfilteredExpCov = "matrix",
 	    numStats = "numeric",
-	join = "list"),
+	    between = "MxOptionalCharOrNumber",
+	    verbose = "integer"
+	),
 	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 join, data = as.integer(NA), name = 'expectation') {
+		 between, verbose, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -91,16 +49,16 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
-		.Object@join <- join
+		.Object@between <- between
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
 
 setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds)
+	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds, .Object@between)
 	sources <- sources[!is.na(sources)]
-	sources <- c(sources, unlist(sapply(.Object@join, function(j1) j1@regression)))
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
 })
@@ -115,10 +73,7 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
 					     imxConvertIdentifier, modelname, namespace)
-		  .Object@join <- lapply(.Object@join, function(j1) {
-			  j1@regression <- imxConvertIdentifier(j1@regression, modelname, namespace)
-			  j1
-		  })
+		.Object@between <- imxConvertIdentifier(.Object@between, modelname, namespace)
 		return(.Object)
 })
 
@@ -150,68 +105,40 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			stop(msg, call. = FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
-		if (length(.Object@join)) {
-			.Object@join <- sapply(.Object@join, function(e2) {
-				fkCol <- match(e2@foreignKey, colnames(mxDataObject@observed))
-				if (is.na(fkCol)) {
-					msg <- paste("Foreign key", omxQuotes(e2@foreignKey),
-						      "not found in ", mxDataObject@name)
-					stop(msg, call. = FALSE)
-				}
-				e2@foreignKey <- fkCol
-
-				ename <- e2@expectation
-				parts <- strsplit(ename, imxSeparatorChar, fixed = TRUE)[[1]]
-				if (length(parts) == 2) {
-					if (parts[2] != 'expectation') {
-						msg <- paste(omxQuotes(ename), "must refer to an expectation.",
-							     "Mention of the model name is sufficient")
-						stop(msg, call. = FALSE)
-					}
-				} else if (length(parts) > 2) {
-					msg <- paste("Model expectation", omxQuotes(ename), "is in the",
-						     "wrong form. Mention of the model name is sufficient")
-					stop(msg, call. = FALSE)
-				}
-				ref <- paste(parts[1], 'expectation', sep=imxSeparatorChar)
-				exNum <- match(ref, names(flatModel@expectations))
-				if (is.na(exNum)) {
-					msg <- paste("The reference", omxQuotes(ref), "does not exist.",
-						     "It is used by", name)
-					stop(msg, call. = FALSE)
-				}
-				e2@expectation <- exNum - 1L
-				upperA <- flatModel[[ flatModel@expectations[[exNum]]$A ]]
+		if (.hasSlot(.Object, "between") && length(.Object@between)) {
+			.Object@between <- sapply(.Object@between, function(bName) {
+				zMat <- flatModel[[ bName ]]
+				expName <- paste0(zMat@joinModel, imxSeparatorChar, 'expectation')
+				upperA <- flatModel[[ flatModel@expectations[[ expName ]]$A ]]
 				lowerA <- flatModel[[ aMatrix ]]
-				zMat <- flatModel[[e2@regression]]
+
 				if (length(rownames(zMat)) != length(colnames(lowerA))) {
-					msg <- paste("Join mapping matrix", e2@regression,
+					msg <- paste("Join mapping matrix", zMat@name,
 						     "must have", length(colnames(lowerA)), "rows:",
 						     omxQuotes(colnames(lowerA)))
 					stop(msg, call. = FALSE)
 				}
 				lowerMatch <- rownames(zMat) == colnames(lowerA)
 				if (any(!lowerMatch)) {
-					msg <- paste("Join mapping matrix", e2@regression,
+					msg <- paste("Join mapping matrix", zMat@name,
 						     "needs mapping rows for",
 						     omxQuotes(colnames(lowerA)[!lowerMatch]))
 					stop(msg, call. = FALSE)
 				}
 				if (length(colnames(zMat)) != length(colnames(upperA))) {
-					msg <- paste("Join mapping matrix", e2@regression,
+					msg <- paste("Join mapping matrix", zMat@name,
 						     "must have", length(colnames(upperA)), "columns:",
 						     omxQuotes(colnames(upperA)))
 					stop(msg, call. = FALSE)
 				}
 				upperMatch <- colnames(zMat) == colnames(upperA)
 				if (any(!upperMatch)) {
-					msg <- paste("Join mapping matrix", e2@regression,
+					msg <- paste("Join mapping matrix", zMat@name,
 						     "needs mapping columns for",
 						     omxQuotes(colnames(upperA)[!upperMatch]))
 					stop(msg, call. = FALSE)
 				}
-				e2@regression <- imxLocateIndex(flatModel, e2@regression, name)
-				e2
+				imxLocateIndex(flatModel, bName, name)
 			})
 		}
 		if(!is.na(mMatrix) && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
@@ -560,7 +487,7 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., join=list()) {
+	threshnames = dimnames, ..., between=NULL, verbose=0L) {
 
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
@@ -602,7 +529,8 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames, join))
+	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
+		   between, as.integer(verbose)))
 }
 
 displayMxExpectationRAM <- function(expectation) {
@@ -625,10 +553,8 @@ displayMxExpectationRAM <- function(expectation) {
 	} else {
 		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
-	if (length(expectation@join)) {
-		for (jx in 1:length(expectation@join)) {
-			cat(paste0("$join[",jx," : ", expectation@join[jx]))
-		}
+	if (length(expectation@between)) {
+		cat("$between :", omxQuotes(expectation@between), fill=TRUE)
 	}
 	invisible(expectation)
 }

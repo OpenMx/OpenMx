@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2015 The OpenMx Project
+ *  Copyright 2007-2016 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,8 +31,6 @@
 #include <string>
 
 #define MIN_ROWS_PER_THREAD 8
-#define TRUE 1
-#define FALSE 0
 
 #define OMXINLINE inline
 

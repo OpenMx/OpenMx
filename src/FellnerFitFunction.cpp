@@ -26,15 +26,9 @@
 #include <stdexcept>
 #include <Rconfig.h>
 #include <Rmath.h>
-#include <RcppEigenCholmod.h>
-#include <RcppEigenStubs.h>
-#include <Eigen/Core>
-#include <Eigen/SparseCore>
-#include <Eigen/CholmodSupport>
-#include <Eigen/SparseLU>
-//#include <Eigen/UmfPackSupport>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
+#include <Eigen/CholmodSupport>
 
 namespace FellnerFitFunction {
 	// Based on lme4CholmodDecomposition.h from lme4
@@ -60,7 +54,7 @@ namespace FellnerFitFunction {
 
      // * If you are going to factorize hundreds or more matrices with the same
      // * nonzero pattern, you may wish to spend a great deal of time finding a
-     // * good permutation.  In this case, try setting Common->nmethods to 9.
+     // * good permutation.  In this case, try setting Common->nmethods to CHOLMOD_MAXMETHODS
      // * The time spent in cholmod_analysis will be very high, but you need to
      // * call it only once. TODO
 
@@ -68,10 +62,32 @@ namespace FellnerFitFunction {
 		Cholmod() {
 			oldHandler = cholmod().error_handler;
 			cholmod().error_handler = cholmod_error;
+			cholmod().supernodal = CHOLMOD_AUTO;
+			cholmod().nmethods = CHOLMOD_MAXMETHODS;
+			if (0) {
+				cholmod().nmethods = 2;
+				cholmod().method[0].ordering = CHOLMOD_NESDIS;
+				cholmod().method[1].ordering = CHOLMOD_AMD;
+			}
+			m_factorizationIsOk = false; // base class should take care of it TODO
 		};
 		~Cholmod() {
 			cholmod().error_handler = oldHandler;
 		};
+
+		bool analyzedPattern() const { return m_factorizationIsOk; };
+
+		void analyzePattern(const typename Base::MatrixType& matrix)
+		{
+			Base::analyzePattern(matrix);
+			cholmod_common &cm = cholmod();
+			if (OMX_DEBUG) {
+				mxLog("Cholmod: selected ordering %d lnz=%f fl=%f super=%d",
+				      cm.method[cm.selected].ordering,
+				      cm.method[cm.selected].lnz, cm.method[cm.selected].fl, factor()->is_super);
+			}
+		}
+
 		double log_determinant() const {
 			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
 			cholmod_factor *cf = factor();
@@ -133,28 +149,7 @@ namespace FellnerFitFunction {
 
 	struct state {
 		int verbose;
-		omxMatrix *smallCol;
-		std::vector<bool> latentFilter; // use to reduce the A matrix
-		bool AmatDependsOnParameters;
-		bool haveFilteredAmat;
-		Eigen::VectorXd dataVec;
-		Eigen::SparseMatrix<double>      depthTestA;
-		int AshallowDepth;
-		bool analyzedFullA;
-		Eigen::SparseMatrix<double>      fullA;
-		Eigen::SparseLU< Eigen::SparseMatrix<double>,
-				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
-		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
-		Eigen::SparseMatrix<double>      ident;
-		Eigen::SparseMatrix<double>      filteredA;
-		Eigen::SparseMatrix<double>      fullS;
-		Eigen::SparseMatrix<double>      fullCov;
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
-		Eigen::VectorXd fullMeans;
-
-		void loadOneRow(omxExpectation *expectation, FitContext *fc, int row, int &lx);
-		void placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
-		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	};
 
 	template <typename T>
@@ -197,94 +192,6 @@ namespace FellnerFitFunction {
 		mxLogBig(buf);
 	}
 
-	// verify whether sparse can deal with parameters set to exactly zero TODO
-
-	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
-	{
-		const double signA = Global->RAMInverseOpt ? 1.0 : -1.0;
-		omxData *data = expectation->data;
-
-		int row;
-		if (!data->hasPrimaryKey()) {
-			row = key_or_row;
-		} else {
-			row = data->lookupRowOfKey(key_or_row);
-			if (data->rowToOffsetMap[row] != lx) return;
-		}
-
-		data->handleDefinitionVarList(expectation->currentState, row);
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		omxRecompute(ram->A, fc);
-		omxRecompute(ram->S, fc);
-		if (ram->M) omxRecompute(ram->M, fc);
-
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
-			if (key == NA_INTEGER) continue;
-			loadOneRow(j1.ex, fc, key, lx);
-		}
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
-			if (key == NA_INTEGER) continue;
-			int frow = j1.ex->data->lookupRowOfKey(key);
-			int jOffset = j1.ex->data->rowToOffsetMap[frow];
-			omxMatrix *betA = j1.regression;
-			omxRecompute(betA, fc);
-			omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
-			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-					double val = omxMatrixElement(betA, rx, cx);
-					if (val == 0.0) continue;
-					fullA.coeffRef(jOffset + cx, lx + rx) = signA * val;
-				}
-			}
-		}
-
-		if (!haveFilteredAmat) {
-			EigenMatrixAdaptor eA(ram->A);
-			for (int cx=0; cx < eA.cols(); ++cx) {
-				for (int rx=0; rx < eA.rows(); ++rx) {
-					if (rx != cx && eA(rx,cx) != 0) {
-						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + cx, lx + rx) = signA * eA(rx, cx);
-					}
-				}
-			}
-		}
-
-		EigenMatrixAdaptor eS(ram->S);
-		for (int cx=0; cx < eS.cols(); ++cx) {
-			for (int rx=0; rx < eS.rows(); ++rx) {
-				if (rx >= cx && eS(rx,cx) != 0) {
-					fullS.coeffRef(lx + rx, lx + cx) = eS(rx, cx);
-				}
-			}
-		}
-
-		if (ram->M) {
-			EigenVectorAdaptor eM(ram->M);
-			for (int mx=0; mx < eM.size(); ++mx) {
-				fullMeans[lx + mx] = eM[mx];
-			}
-		} else {
-			fullMeans.segment(lx, ram->A->cols).setZero();
-		}
-
-		lx += ram->A->cols;
-	}
-
-	template <typename T>
-	void gentleZero(Eigen::SparseMatrix<T> &mat)
-	{
-		for (int k=0; k < mat.outerSize(); ++k) {
-			for (typename Eigen::SparseMatrix<T>::InnerIterator it(mat, k); it; ++it) {
-				it.valueRef() = 0;
-			}
-		}
-	}
-
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
@@ -292,99 +199,27 @@ namespace FellnerFitFunction {
 
 		state *st                               = (state *) oo->argStruct;
 		omxExpectation *expectation             = oo->expectation;
-		omxData *data                           = expectation->data;
-		Eigen::SparseMatrix<double> &fullA      = st->fullA;
-		Eigen::SparseMatrix<double> &filteredA  = st->filteredA;
-		Eigen::SparseMatrix<double> &fullS      = st->fullS;
-		Eigen::SparseMatrix<double> &fullCov    = st->fullCov;
-		Eigen::VectorXd &fullMeans              = st->fullMeans;
-
-		fullMeans.conservativeResize(st->latentFilter.size());
-
-		if (fullA.nonZeros() == 0) {
-			st->analyzedFullA = false;
-			fullA.resize(st->latentFilter.size(), st->latentFilter.size());
-		} else {
-			//gentleZero(fullA);
-		}
-		fullS.conservativeResize(st->latentFilter.size(), st->latentFilter.size());
-		//gentleZero(fullS);
-
-		Eigen::SparseMatrix<double> &ident = st->ident;
-		if (ident.nonZeros() == 0) {
-			ident.resize(fullA.rows(), fullA.rows());
-			ident.setIdentity();
-		}
-
-		for (int lx=0, row=0; row < data->rows; ++row) {
-			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
-			st->loadOneRow(expectation, fc, key_or_row, lx);
-		}
-
-		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
-		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		RelationalRAMExpectation::state *rram   = ram->rram;
 
 		double lp = NA_REAL;
 		try {
-			if (!st->haveFilteredAmat) {
-				// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-				if (st->AshallowDepth >= 0) {
-					fullA.makeCompressed();
-					filteredA = fullA + ident;
-					for (int iter=1; iter <= st->AshallowDepth; ++iter) {
-						filteredA = (filteredA * fullA + ident).eval();
-						//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
-					}
-				} else {
-					fullA += ident;
-					if (!st->analyzedFullA) {
-						st->analyzedFullA = true;
-						fullA.makeCompressed();
-						st->Asolver.analyzePattern(fullA);
-					}
-					st->Asolver.factorize(fullA);
+			rram->compute(fc);
 
-					filteredA = st->Asolver.solve(ident);
-					//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
-				}
-
-				// We built A transposed so we can quickly filter columns
-				filteredA.uncompress();
-				Eigen::SparseMatrix<double>::Index *op = filteredA.outerIndexPtr();
-				Eigen::SparseMatrix<double>::Index *nzp = filteredA.innerNonZeroPtr();
-				int dx = 0;
-				for (int cx=0; cx < fullA.cols(); ++cx) {
-					if (!st->latentFilter[cx]) continue;
-					op[dx] = op[cx];
-					nzp[dx] = nzp[cx];
-					++dx;
-				}
-				op[dx] = op[fullA.cols()];
-				filteredA.conservativeResize(fullA.rows(), st->dataVec.size());
-
-				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
-				st->haveFilteredAmat = !st->AmatDependsOnParameters;
-			}
-			//mxPrintMat("S", fullS);
-			//Eigen::MatrixXd fullCovDense =
-			bool firstTime = fullCov.nonZeros() == 0;
-			fullCov = (filteredA.transpose() * fullS.selfadjointView<Eigen::Lower>() * filteredA);
-			//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
-
-			if (firstTime) {
-				fullCov.makeCompressed();
-				st->covDecomp.analyzePattern(fullCov);
+			if (!st->covDecomp.analyzedPattern()) {
+				rram->fullCov.makeCompressed();
+				st->covDecomp.analyzePattern(rram->fullCov);
 			}
 
-			st->covDecomp.factorize(fullCov);
+			st->covDecomp.factorize(rram->fullCov);
 			lp = st->covDecomp.log_determinant();
 			//mxPrintMat("dataVec", st->dataVec);
 			//mxPrintMat("fullMeans", fullMeans);
-			Eigen::VectorXd resid = st->dataVec - filteredA.transpose() * fullMeans;
+			Eigen::VectorXd resid = rram->dataVec - rram->filteredA.transpose() * rram->fullMeans;
 			double iqf = st->covDecomp.inv_quad_form(resid);
 			if (st->verbose >= 2) mxLog("log det %f iqf %f", lp, iqf);
 			lp += iqf;
-			lp += M_LN_2PI * st->dataVec.size();
+			lp += M_LN_2PI * rram->dataVec.size();
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
@@ -415,123 +250,7 @@ namespace FellnerFitFunction {
 	static void destroy(omxFitFunction *oo)
 	{
 		state *st = (state*) oo->argStruct;
-		omxFreeMatrix(st->smallCol);
 		delete st;
-	}
-
-	void state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
-	{
-		omxData *data = expectation->data;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, frow, j1.foreignKey);
-			if (key == NA_INTEGER) continue;
-			placeOneRow(j1.ex, j1.ex->data->lookupRowOfKey(key), totalObserved, maxSize);
-		}
-		if (data->hasPrimaryKey()) {
-			if (data->rowToOffsetMap.size() == 0) {
-				ram->ensureTrivialF();
-			}
-
-			// insert_or_assign would be nice here
-			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
-			if (it != data->rowToOffsetMap.end()) return;
-
-			if (verbose >= 2) {
-				mxLog("%s: place row %d at %d", expectation->name, frow, maxSize);
-			}
-			data->rowToOffsetMap[frow] = maxSize;
-		}
-		int jCols = expectation->dataColumns->cols;
-		if (jCols) {
-			if (!ram->M) {
-				Rf_error("'%s' has manifest observations but '%s' has no mean model",
-					 data->name, expectation->name);
-			}
-			if (smallCol->cols < jCols) {
-				omxResizeMatrix(smallCol, 1, jCols);
-			}
-			omxDataRow(expectation, frow, smallCol);
-			for (int col=0; col < jCols; ++col) {
-				double val = omxMatrixElement(smallCol, 0, col);
-				bool yes = std::isfinite(val);
-				if (yes) ++totalObserved;
-			}
-		}
-		maxSize += ram->F->cols;
-		AmatDependsOnParameters |= ram->A->dependsOnParameters();
-	}
-
-	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx)
-	{
-		omxData *data = expectation->data;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-
-		int row;
-		if (!data->hasPrimaryKey()) {
-			row = row_or_key;
-		} else {
-			row = data->lookupRowOfKey(row_or_key);
-			if (data->rowToOffsetMap[row] != lx) return;
-		}
-
-		if (Global->RAMInverseOpt) {
-			data->handleDefinitionVarList(expectation->currentState, row);
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			omxRecompute(ram->A, NULL);
-		}
-
-		for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-			join &j1 = ram->joins[jx];
-			int key = omxKeyDataElement(data, row, j1.foreignKey);
-			if (key == NA_INTEGER) continue;
-			prepOneRow(j1.ex, key, lx, dx);
-		}
-
-		if (Global->RAMInverseOpt) {
-			for (size_t jx=0; jx < ram->joins.size(); ++jx) {
-				join &j1 = ram->joins[jx];
-				int key = omxKeyDataElement(data, row, j1.foreignKey);
-				if (key == NA_INTEGER) continue;
-				int frow = j1.ex->data->lookupRowOfKey(key);
-				int jOffset = j1.ex->data->rowToOffsetMap[frow];
-				omxMatrix *betA = j1.regression;
-				omxRecompute(betA, NULL);
-				betA->markPopulatedEntries();
-				omxRAMExpectation *ram2 = (omxRAMExpectation*) j1.ex->argStruct;
-				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-						double val = omxMatrixElement(betA, rx, cx);
-						if (val == 0.0) continue;
-						depthTestA.coeffRef(lx + rx, jOffset + cx) = 1;
-					}
-				}
-			}
-			ram->A->markPopulatedEntries();
-			EigenMatrixAdaptor eA(ram->A);
-			for (int cx=0; cx < eA.cols(); ++cx) {
-				for (int rx=0; rx < eA.rows(); ++rx) {
-					if (rx != cx && eA(rx,cx) != 0) {
-						depthTestA.coeffRef(lx + rx, lx + cx) = 1;
-					}
-				}
-			}
-		}
-
-		int jCols = expectation->dataColumns->cols;
-		if (jCols) {
-			omxDataRow(expectation, row, smallCol);
-			for (int col=0; col < jCols; ++col) {
-				double val = omxMatrixElement(smallCol, 0, col);
-				bool yes = std::isfinite(val);
-				if (!yes) continue;
-				latentFilter[ lx + col ] = true;
-				dataVec[ dx++ ] = val;
-			}
-		}
-		lx += ram->F->cols;
 	}
 
 	static void init(omxFitFunction *oo)
@@ -560,73 +279,6 @@ namespace FellnerFitFunction {
 			SEXP tmp;
 			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));
 			st->verbose = Rf_asInteger(tmp) + OMX_DEBUG;
-		}
-
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		ram->ensureTrivialF();
-		int numManifest = ram->F->rows;
-
-		st->AmatDependsOnParameters = ram->A->dependsOnParameters();
-		st->haveFilteredAmat = false;
-		st->smallCol = omxInitMatrix(1, numManifest, TRUE, oo->matrix->currentState);
-		omxData *data               = expectation->data;
-
-		// don't permit reuse of our expectations by some other fit function TODO
-
-		int totalObserved = 0;
-		int maxSize = 0;
-		for (int row=0; row < data->rows; ++row) {
-			st->placeOneRow(expectation, row, totalObserved, maxSize);
-		}
-		//mxLog("AmatDependsOnParameters=%d", st->AmatDependsOnParameters);
-
-		if (st->verbose >= 1) {
-			mxLog("%s: total observations %d", oo->name(), totalObserved);
-		}
-		st->latentFilter.assign(maxSize, false); // will have totalObserved true entries
-		st->dataVec.resize(totalObserved);
-		st->depthTestA.resize(maxSize, maxSize);
-	
-		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL); // ignore freeSet
-
-		if (Global->RAMInverseOpt) {
-			Eigen::VectorXd vec(varGroup->vars.size());
-			vec.setConstant(1);
-			copyParamToModelInternal(varGroup, oo->matrix->currentState, vec.data());
-		}
-
-		for (int row=0, dx=0, lx=0; row < data->rows; ++row) {
-			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
-			st->prepOneRow(expectation, key_or_row, lx, dx);
-		}
-
-		st->AshallowDepth = -1;
-
-		if (Global->RAMInverseOpt) {
-			int maxDepth = std::min(maxSize, 30);
-			if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
-			Eigen::SparseMatrix<double> curProd = st->depthTestA;
-			for (int tx=1; tx < maxDepth; ++tx) {
-				if (st->verbose >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
-				curProd = (curProd * st->depthTestA).eval();
-				bool allZero = true;
-				for (int k=0; k < curProd.outerSize(); ++k) {
-					for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
-						if (it.value() != 0.0) {
-							allZero = false;
-							break;
-						}
-					}
-				}
-				if (allZero) {
-					st->AshallowDepth = tx;
-					break;
-				}
-			}
-			oo->matrix->currentState->setDirty();
-		}
-		if (st->verbose >= 1) {
-			mxLog("%s: RAM shallow inverse depth = %d", oo->name(), st->AshallowDepth);
 		}
 	}
 };

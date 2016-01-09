@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2015 The OpenMx Project
+#   Copyright 2007-2016 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -54,7 +54,8 @@ populateStandTriangle <- function(input, n, default, byrow, strname) {
 }
 	
 setMethod("imxCreateMatrix", "StandMatrix",
-	function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...) {
+	  function(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+		    condenseSlots, joinKey, joinModel) {
 		if (nrow != ncol) {
 			stop(paste("non-square MxMatrix attempted in 'nrow' and 'ncol' arguments to",
 			     deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), 
@@ -85,7 +86,8 @@ setMethod("imxCreateMatrix", "StandMatrix",
     else{if (is.vector(ubound)) {
 			ubound <- populateStandTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}}
-		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name, condenseSlots, ...))
+		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
+				      condenseSlots, joinKey, joinModel))
 	}
 )
 

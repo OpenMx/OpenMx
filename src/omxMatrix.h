@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2015 The OpenMx Project
+ *  Copyright 2007-2016 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,14 +49,18 @@ struct populateLocation {
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
 	bool dependsOnParametersCache;    // Ignores free variable groups
+	int joinKey;
+	struct omxExpectation *joinModel;
  public:
-	omxMatrix() { dependsOnParametersCache = false; };
+	omxMatrix() : dependsOnParametersCache(false), joinKey(-1), joinModel(0) {};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	void transposePopulate();
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);
 	void markPopulatedEntries();
+	int getJoinKey() const { return joinKey; }
+	struct omxExpectation *getJoinModel() const { return joinModel; }
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
@@ -391,14 +395,14 @@ void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 	buf += string_snprintf("%s = %s matrix(c(    # %dx%d",
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
 
-	int first=TRUE;
+	bool first=true;
 	int rr = mat.rows();
 	int cc = mat.cols();
 	if (transpose) std::swap(rr,cc);
 	for(int j = 0; j < rr; j++) {
 		buf += "\n";
 		for(int k = 0; k < cc; k++) {
-			if (first) first=FALSE;
+			if (first) first=false;
 			else buf += ",";
 			double val;
 			if (transpose) {
