@@ -3,8 +3,24 @@
 umx 2.3.1
 --------------
 
-* To Be Updated
+Version 2.3.1 includes a number of new features
+* mxRun() now displays the number of free parameters in the MxModel
+* Multigroup WLS has been implemented.
+* OpenMx now checks whether the Hessian matrix is convex at the solution
+* mxFactorScores() is now compatible with RAM models and multigroup models.
+* coef() is now defined for MxModels, as a wrapper to omxGetParameters().
+* mxCheckIdentification() is now compatible with GREML expectation.
 
+Version 2.3.1 also includes a number of bug-fixes and performance tweaks:
+* Improvements to mxTryHard().
+* Fixes for state-space models.
+* mxGetExpected() more compatible with LISREL.
+* Better handling of start values in SLSQP.
+* Several GREML bugs fixed. In particular, it is now safe to use mxFitFunctionGREML(), and its argument dV.
+* Matrix operations in the GREML backend have been streamlined.
+* Evaluation of GREML analytic derivatives can now be parallelized.
+* Noticeable speed-ups for very large matrices.
+* The NPSOL "warm start" now works correctly.
 
 umx 2.2.6
 --------------
