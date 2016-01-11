@@ -148,7 +148,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 	if (want & (FF_COMPUTE_PARAMFLAVOR)) return;
 
 	omxExpectation* expectation = oo->expectation;
-	omxExpectationCompute(expectation, NULL);
+	omxExpectationCompute(fc, expectation, NULL);
 
 	if ((want & FF_COMPUTE_FIT) &&
 	    !(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {

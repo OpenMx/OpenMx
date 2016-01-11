@@ -56,21 +56,22 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	Free(ox);
 }
 
-void omxExpectationRecompute(omxExpectation *ox) {
+void omxExpectationRecompute(FitContext *fc, omxExpectation *ox)
+{
 	for(int i = 0; i < int(ox->thresholds.size()); i++) {
 		if (!ox->thresholds[i].matrix) continue;
-		omxRecompute(ox->thresholds[i].matrix, NULL);
+		omxRecompute(ox->thresholds[i].matrix, fc);
 	}
 
-	omxExpectationCompute(ox, NULL);
+	omxExpectationCompute(fc, ox, NULL);
 }
 
-void omxExpectationCompute(omxExpectation *ox, const char *what, const char *how)
+void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what, const char *how)
 {
 	if (!ox) return;
 
 	ox->data->recompute(); // for dynamic data
-	ox->computeFun(ox, what, how);
+	ox->computeFun(ox, fc, what, how);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)

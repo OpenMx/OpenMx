@@ -40,23 +40,23 @@ void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 	}
 }
 
-static void omxCallRAMExpectation(omxExpectation* oo, const char *what, const char *how)
+static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char *what, const char *how)
 {
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 
 	if (what && strEQ(what, "distribution") && how && strEQ(how, "flat")) {
 		if (!oro->rram) Rf_error("%s: flat distribution not available", oo->name);
-		oro->rram->compute(NULL);
+		oro->rram->compute(fc);
 		return;
 	}
 
     if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
 	
-	omxRecompute(oro->A, NULL);
-	omxRecompute(oro->S, NULL);
-	omxRecompute(oro->F, NULL);
+	omxRecompute(oro->A, fc);
+	omxRecompute(oro->S, fc);
+	omxRecompute(oro->F, fc);
 	if(oro->M != NULL)
-	    omxRecompute(oro->M, NULL);
+	    omxRecompute(oro->M, fc);
 	    
 	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
 		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);

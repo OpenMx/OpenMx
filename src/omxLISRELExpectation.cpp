@@ -22,26 +22,26 @@
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
 
-void omxCallLISRELExpectation(omxExpectation* oo, const char *, const char *) {
+void omxCallLISRELExpectation(omxExpectation* oo, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
 	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
 	
-	omxRecompute(oro->LX, NULL);
-	omxRecompute(oro->LY, NULL);
-	omxRecompute(oro->BE, NULL);
-	omxRecompute(oro->GA, NULL);
-	omxRecompute(oro->PH, NULL);
-	omxRecompute(oro->PS, NULL);
-	omxRecompute(oro->TD, NULL);
-	omxRecompute(oro->TE, NULL);
-	omxRecompute(oro->TH, NULL);
+	omxRecompute(oro->LX, fc);
+	omxRecompute(oro->LY, fc);
+	omxRecompute(oro->BE, fc);
+	omxRecompute(oro->GA, fc);
+	omxRecompute(oro->PH, fc);
+	omxRecompute(oro->PS, fc);
+	omxRecompute(oro->TD, fc);
+	omxRecompute(oro->TE, fc);
+	omxRecompute(oro->TH, fc);
 	if(oro->TX != NULL) {     // Update means?
-		omxRecompute(oro->TX, NULL);
-		omxRecompute(oro->KA, NULL);
+		omxRecompute(oro->TX, fc);
+		omxRecompute(oro->KA, fc);
 	}
 	if(oro->TY != NULL) {
-		omxRecompute(oro->TY, NULL);
-		omxRecompute(oro->AL, NULL);
+		omxRecompute(oro->TY, fc);
+		omxRecompute(oro->AL, fc);
 	}
 	
 	omxCalculateLISRELCovarianceAndMeans(oro);

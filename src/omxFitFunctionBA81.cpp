@@ -1067,7 +1067,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
-			omxExpectationCompute(oo->expectation, NULL);
+			omxExpectationCompute(fc, oo->expectation, NULL);
 			return;
 		}
 
@@ -1137,7 +1137,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 		}
 
 		if (want & FF_COMPUTE_FIT) {
-			omxExpectationCompute(oo->expectation, NULL);
+			omxExpectationCompute(fc, oo->expectation, NULL);
 
 			Eigen::ArrayXd &patternLik = estate->grp.patternLik;
 			const int numUnique = estate->getNumUnique();

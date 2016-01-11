@@ -56,7 +56,7 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
     omxFreeMatrix(owo->P);
 }
 
-static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
+static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) {
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
@@ -86,7 +86,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *) {
 
     /* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
-	omxExpectationCompute(expectation, NULL);
+	omxExpectationCompute(fc, expectation, NULL);
 
     // TODO: Flatten data only once.
 	flattenDataToVector(oCov, oMeans, oThresh, oFlat);

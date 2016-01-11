@@ -175,7 +175,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
 						omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 					}
-					omxExpectationCompute(expectation, NULL);
+					omxExpectationCompute(fc, expectation, NULL);
 				}
 			}
 			// Filter down correlation matrix and calculate thresholds.

@@ -20,13 +20,13 @@
 #include "omxDefines.h"
 #include "omxNormalExpectation.h"
 
-void omxComputeNormalExpectation(omxExpectation* ox, const char *, const char *) {
+void omxComputeNormalExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
 
-	omxRecompute(one->cov, NULL);
+	omxRecompute(one->cov, fc);
 	if(one->means != NULL)
-	    omxRecompute(one->means, NULL);
-	if (one->thresholds) omxRecompute(one->thresholds, NULL);
+	    omxRecompute(one->means, fc);
+	if (one->thresholds) omxRecompute(one->thresholds, fc);
 }
 
 void omxDestroyNormalExpectation(omxExpectation* ox) {

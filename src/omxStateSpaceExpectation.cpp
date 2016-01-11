@@ -41,16 +41,16 @@
 #include <iostream>
 
 
-void omxCallStateSpaceExpectation(omxExpectation* ox, const char *, const char *) {
+void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
-	omxRecompute(ose->A, NULL);
-	omxRecompute(ose->B, NULL);
-	omxRecompute(ose->C, NULL);
-	omxRecompute(ose->D, NULL);
-	omxRecompute(ose->Q, NULL);
-	omxRecompute(ose->R, NULL);
+	omxRecompute(ose->A, fc);
+	omxRecompute(ose->B, fc);
+	omxRecompute(ose->C, fc);
+	omxRecompute(ose->D, fc);
+	omxRecompute(ose->Q, fc);
+	omxRecompute(ose->R, fc);
 	
 	// Probably should loop through all the data here!!!
 	if(ose->t == NULL){

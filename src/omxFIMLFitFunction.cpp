@@ -112,7 +112,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	if (data->defVars.size() == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
-		omxExpectationRecompute(expectation);
+		omxExpectationRecompute(fc, expectation);
 		// MCN Also do the threshold formulae!
 		
 		for(int j=0; j < dataColumns->cols; j++) {
