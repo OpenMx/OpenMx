@@ -646,9 +646,19 @@ namespace RelationalRAMExpectation {
 					Asolver.analyzePattern(fullA);
 				}
 				Asolver.factorize(fullA);
+				if (Asolver.info() != Eigen::Success) {
+					Rf_error("%s: failed to invert flattened A matrix; %s",
+						 homeEx->name, Asolver.lastErrorMessage().c_str());
+				}
 
 				filteredA = Asolver.solve(ident);
 				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+			}
+
+			const bool doubleCheck = false;
+			Eigen::MatrixXd denseA;
+			if (doubleCheck) {
+				denseA = filteredA;
 			}
 
 			// We built A transposed so we can quickly filter columns
@@ -666,8 +676,34 @@ namespace RelationalRAMExpectation {
 			op[dx] = op[fullA.cols()];
 			filteredA.conservativeResize(fullA.rows(), dataVec.size());
 
+			if (doubleCheck) {
+				Eigen::MatrixXd denseAF;
+				denseAF.resize(fullA.rows(), dataVec.size());
+				int dx=0;
+				for (int cx=0; cx < fullA.cols(); ++cx) {
+					if (!latentFilter[cx]) continue;
+					denseAF.col(dx) = denseA.col(cx);
+					++dx;
+				}
+				if (dx != dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
+								   dx, dataVec.size());
+				Eigen::MatrixXd denseFilteredA = filteredA;
+				if ((denseAF.array() != denseFilteredA.array()).any()) {
+					for (int rx=0; rx<denseAF.rows(); ++rx) {
+						for (int cx=0; cx<denseAF.cols(); ++cx) {
+							if (denseAF.coeff(rx,cx) != denseFilteredA.coeff(rx,cx)) {
+								mxLog("[%d,%d] %f != %f",
+								      rx, cx, denseAF.coeff(rx,cx), denseFilteredA.coeff(rx,cx));
+							}
+						}
+					}
+					Rf_error("stop");
+				}
+			}
+
 			//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 			haveFilteredAmat = !AmatDependsOnParameters;
+
 		}
 		//mxPrintMat("S", fullS);
 		//Eigen::MatrixXd fullCovDense =
