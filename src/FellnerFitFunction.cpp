@@ -152,46 +152,6 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 	};
 
-	template <typename T>
-	void printSparse(Eigen::SparseMatrixBase<T> &sm) {
-		typedef typename T::Index Index;
-		typedef typename T::Scalar Scalar;
-		typedef typename T::Storage Storage;
-		// assume column major
-		std::string buf;
-		const Index *nzp = sm.derived().innerNonZeroPtr();
-		//const Scalar *vp = sm.derived().valuePtr();
-		//const Index *iip = sm.derived().innerIndexPtr();
-		const Index *oip = sm.derived().outerIndexPtr();
-		const Storage &m_data = sm.derived().data();
-		if (!nzp) buf += "compressed ";
-		buf += string_snprintf("%dx%d\n", sm.innerSize(), sm.outerSize());
-		for (int rx=0; rx < sm.innerSize(); ++rx) {
-			for (int cx=0; cx < sm.outerSize(); ++cx) {
-				Index start = oip[cx];
-				Index end = nzp ? oip[cx] + nzp[cx] : oip[cx+1];
-				if (end <= start) {
-					buf += " ***";
-				} else {
-					const Index p = m_data.searchLowerIndex(start,end-1,rx);
-					if ((p<end) && (m_data.index(p)==rx)) {
-						double v = m_data.value(p);
-						if (v < 0) {
-							buf += string_snprintf("%2.1f", v);
-						} else {
-							buf += string_snprintf(" %2.1f", v);
-						}
-					}
-					else
-						buf += " ***";
-				}
-				if (cx < sm.outerSize() - 1) buf += " ";
-			}
-			buf += "\n";
-		}
-		mxLogBig(buf);
-	}
-
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
