@@ -97,7 +97,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 		mat->nameStr = CHAR(STRING_ELT(matListNames, index));
 		matrixList.push_back(mat);
 
-		if(OMX_DEBUG) { omxPrintMatrix(mat, "Imported"); }
+		if(OMX_DEBUG) { omxPrintMatrix(mat, NULL); }
 
 		if (isErrorRaised()) return;
 	}
