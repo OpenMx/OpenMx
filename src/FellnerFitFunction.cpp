@@ -160,11 +160,11 @@ namespace FellnerFitFunction {
 		state *st                               = (state *) oo->argStruct;
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		RelationalRAMExpectation::state *rram   = ram->rram;
 
 		double lp = NA_REAL;
 		try {
-			rram->compute(fc);
+			omxExpectationCompute(fc, expectation, "distribution", "flat");
+			RelationalRAMExpectation::state *rram   = ram->rram;
 
 			if (!st->covDecomp.analyzedPattern()) {
 				rram->fullCov.makeCompressed();

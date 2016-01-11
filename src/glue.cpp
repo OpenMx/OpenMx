@@ -403,8 +403,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		Rf_error(Global->getBads());
 	}
 
-	if (globalState->getDirty()) fc->copyParamToModelClean();
-
 	globalState->loadDefinitionVariables(true);
 
 	globalState->setWantStage(FF_COMPUTE_FIT);

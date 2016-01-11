@@ -20,6 +20,7 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      depthTestA;
 		int AshallowDepth;
 		bool analyzedFullA;
+		double signA;
 		Eigen::SparseMatrix<double>      fullA;
 		Eigen::SparseLU< Eigen::SparseMatrix<double>,
 				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
@@ -40,7 +41,7 @@ namespace RelationalRAMExpectation {
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	public:
 		void compute(FitContext *fc);
-		void init(omxExpectation *expectation);
+		void init(omxExpectation *expectation, FitContext *fc);
 		~state();
 	};
 };

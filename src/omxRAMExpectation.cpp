@@ -45,13 +45,14 @@ static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 
 	if (what && strEQ(what, "distribution") && how && strEQ(how, "flat")) {
-		if (!oro->rram) Rf_error("%s: flat distribution not available", oo->name);
+		if (!oro->rram) {
+			oro->rram = new RelationalRAMExpectation::state;
+			oro->rram->init(oo, fc);
+		}
 		oro->rram->compute(fc);
 		return;
 	}
 
-    if(OMX_DEBUG) { mxLog("RAM Expectation calculating."); }
-	
 	omxRecompute(oro->A, fc);
 	omxRecompute(oro->S, fc);
 	omxRecompute(oro->F, fc);
@@ -296,11 +297,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	} else {
 	    RAMexp->means  = 	NULL;
     }
-
-	if (RAMexp->between.size()) {
-		RAMexp->rram = new RelationalRAMExpectation::state;
-		RAMexp->rram->init(oo);
-	}
 }
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
@@ -327,7 +323,6 @@ namespace RelationalRAMExpectation {
 
 	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
 	{
-		const double signA = Global->RAMInverseOpt ? 1.0 : -1.0;
 		omxData *data = expectation->data;
 
 		int row;
@@ -335,21 +330,23 @@ namespace RelationalRAMExpectation {
 			row = key_or_row;
 		} else {
 			row = data->lookupRowOfKey(key_or_row);
-			if (data->rowToOffsetMap[row] != lx) return;
 		}
 
-		data->handleDefinitionVarList(expectation->currentState, row);
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		omxRecompute(ram->A, fc);
-		omxRecompute(ram->S, fc);
-		if (ram->M) omxRecompute(ram->M, fc);
-
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, row, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
 			loadOneRow(b1->getJoinModel(), fc, key, lx);
 		}
+
+		if (data->hasPrimaryKey() && data->rowToOffsetMap[row] != lx) return;
+
+		data->handleDefinitionVarList(expectation->currentState, row);
+		omxRecompute(ram->A, fc);
+		omxRecompute(ram->S, fc);
+		if (ram->M) omxRecompute(ram->M, fc);
+
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *betA = ram->between[jx];
 			int key = omxKeyDataElement(data, row, betA->getJoinKey());
@@ -364,6 +361,7 @@ namespace RelationalRAMExpectation {
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
 					fullA.coeffRef(jOffset + cx, lx + rx) = signA * val;
+					//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
 				}
 			}
 		}
@@ -372,9 +370,14 @@ namespace RelationalRAMExpectation {
 			EigenMatrixAdaptor eA(ram->A);
 			for (int cx=0; cx < eA.cols(); ++cx) {
 				for (int rx=0; rx < eA.rows(); ++rx) {
-					if (rx != cx && eA(rx,cx) != 0) {
+					double val = eA(rx, cx);
+					if (val != 0) {
+						if (rx == cx) {
+							Rf_error("%s: nonzero diagonal entry in A matrix at %d",
+								 homeEx->name, 1+lx+cx);
+						}
 						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + cx, lx + rx) = signA * eA(rx, cx);
+						fullA.coeffRef(lx + cx, lx + rx) = signA * val;
 					}
 				}
 			}
@@ -451,22 +454,15 @@ namespace RelationalRAMExpectation {
 	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx)
 	{
 		omxData *data = expectation->data;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-
 		int row;
+
 		if (!data->hasPrimaryKey()) {
 			row = row_or_key;
 		} else {
 			row = data->lookupRowOfKey(row_or_key);
-			if (data->rowToOffsetMap[row] != lx) return;
 		}
 
-		if (Global->RAMInverseOpt) {
-			data->handleDefinitionVarList(expectation->currentState, row);
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			omxRecompute(ram->A, NULL);
-		}
-
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, row, b1->getJoinKey());
@@ -474,7 +470,13 @@ namespace RelationalRAMExpectation {
 			prepOneRow(b1->getJoinModel(), key, lx, dx);
 		}
 
+		if (data->hasPrimaryKey() && data->rowToOffsetMap[row] != lx) return;
+
 		if (Global->RAMInverseOpt) {
+			data->handleDefinitionVarList(expectation->currentState, row);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxRecompute(ram->A, NULL);
+
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *betA = ram->between[jx];
 				int key = omxKeyDataElement(data, row, betA->getJoinKey());
@@ -519,7 +521,7 @@ namespace RelationalRAMExpectation {
 		lx += ram->F->cols;
 	}
 
-	void state::init(omxExpectation *expectation)
+	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
 		homeEx = expectation;
 		{
@@ -568,6 +570,10 @@ namespace RelationalRAMExpectation {
 			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
 			prepOneRow(homeEx, key_or_row, lx, dx);
 		}
+		int lfCount = std::count(latentFilter.begin(), latentFilter.end(), true);
+		if (lfCount != totalObserved) {
+			Rf_error("lfCount %d != totalObserved %d", lfCount, totalObserved);
+		}
 
 		AshallowDepth = -1;
 
@@ -592,8 +598,9 @@ namespace RelationalRAMExpectation {
 					break;
 				}
 			}
-			homeEx->currentState->setDirty();
+			fc->copyParamToModelClean();
 		}
+		signA = AshallowDepth >= 0 ? 1.0 : -1.0;
 		if (verbose >= 1) {
 			mxLog("%s: RAM shallow inverse depth = %d", homeEx->name, AshallowDepth);
 		}
