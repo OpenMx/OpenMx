@@ -639,16 +639,16 @@ static void omxInitRAMExpectationH(omxExpectation* oo)
 	omxExpectation *flat = NULL;
 
 	for (int px=oo->numSubmodels - 1; px > 0; px--) {
-		mxLog("-- px = %d ---------------------------------", px);
+		//mxLog("-- px = %d ---------------------------------", px);
 		omxExpectation *level = oo->submodels[px];
 		if (omxDataIsLinkTable(level->data)) continue;
 
 		omxExpectation* upperE = oo->submodels[px - 1];
 		omxExpectation* lowerE = (flat? flat : level);
-		omxPrintData(upperE->data, "upper");
-		omxPrint(upperE->dataColumns, "upper");
-		omxPrintData(lowerE->data, "lower");
-		omxPrint(lowerE->dataColumns, "lower");
+		//omxPrintData(upperE->data, "upper");
+		//omxPrint(upperE->dataColumns, "upper");
+		//omxPrintData(lowerE->data, "lower");
+		//omxPrint(lowerE->dataColumns, "lower");
 
 		omxRAMExpectation *upper = (omxRAMExpectation*) upperE->argStruct;
 		omxRAMExpectation *lower = (omxRAMExpectation*) lowerE->argStruct;
@@ -672,11 +672,11 @@ static void omxInitRAMExpectationH(omxExpectation* oo)
 			omxHomerTransformRawData(upperE->data, upperE->dataColumns,
 						 lowerE->data, lowerE->dataColumns, fanout,
 						 group1D, group1C, group2D);
-			omxPrint(RAMexp->Homer[px - 1], "between");
-			omxPrintData(group1D, "g1");
-			omxPrint(group1C, "g2");
-			omxPrintData(group2D, "g2");
-			omxPrint(lowerE->dataColumns, "g2");
+			//omxPrint(RAMexp->Homer[px - 1], "between");
+			//omxPrintData(group1D, "g1");
+			//omxPrint(group1C, "g2");
+			//omxPrintData(group2D, "g2");
+			//omxPrint(lowerE->dataColumns, "g2");
 
 			flat = uniteHierarchicalMultilevel(oo, upper, lower, 1, RAMexp->Homer[px - 1], sqrt(fanout));
 			flat->data = group1D;
@@ -685,11 +685,13 @@ static void omxInitRAMExpectationH(omxExpectation* oo)
 			omxExpectation *group2 = RAMcopy(lowerE);  // probably don't need to copy? TODO
 			group2->data = group2D;
 			group2->dataColumns = omxDuplicateMatrix(lowerE->dataColumns, os);
+			group2->printFun(group2);
+
 			omxFitFunction *fit2 =
 				omxNewInternalFitFunction(os, perModelFitType, group2, NULL, NULL);
 			omxMultigroupAdd(mgFit, fit2);
 		}
-		//flat->printFun(flat);
+		flat->printFun(flat);
 	}
 
 	omxAllocateScratchArea(flat);
@@ -707,12 +709,14 @@ static void RAMprint(omxExpectation* oo)
 {
 	omxRAMExpectation *RAMexp = (omxRAMExpectation *) oo->argStruct;
 
+	mxLog("----- %p start", oo);
 	if (oo->data) omxPrintData(oo->data, "data");
 	if (oo->dataColumns) omxPrint(oo->dataColumns, "dataColumns");
 	if (RAMexp->A) omxPrint(RAMexp->A, "A");
 	if (RAMexp->S) omxPrint(RAMexp->S, "S");
 	if (RAMexp->F) omxPrint(RAMexp->F, "F");
 	if (RAMexp->M) omxPrint(RAMexp->M, "M");
+	mxLog("----- %p end", oo);
 }
 
 void omxInitRAMExpectation(omxExpectation* oo)

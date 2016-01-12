@@ -24,7 +24,7 @@ gen.data <- function(n) {
   df
 }
 
-fanout <- 3
+fanout <- 2
 
 school.data <- cbind(id=1:fanout, gen.data(fanout))
 #school.data$C <- school.data$id * 1000
@@ -82,17 +82,6 @@ print(school.data)
 print(teacher.data)
 print(student.data)
 
-r1 <- cbind(student.data[student.data$id==1,],
-	    student.data[student.data$id==10,],
-	    student.data[student.data$id==19,])
-r1d <- r1[,colnames(r1) == "C" | colnames(r1) == "D"]
-
-a1 <- matrix(c(1,0,1,0,1,0, 0,1,0,1,0,1), ncol=2)
-q1 <- -qr.Q(qr(a1), complete=TRUE)
-q1[1:2,] <- q1[1:2,]
-as.matrix(r1d[1,]) %*% t(q1)
-round(q1 %*% a1,2)
-
 school <- mxModel(school, mxData(school.data, type="raw", primaryKey="id"))
 teacher <- mxModel(teacher,
                    mxData(teacher.data, type="raw",
@@ -104,7 +93,7 @@ student <- mxModel(student,
                           primaryKey="id",
                           foreignKeys=list(c('teacherId', 'teacher.id'))))
 
-sonly <- mxModel(student, type="RAM", name="sonly")
+#sonly <- mxModel(student, type="RAM", name="sonly")
 #sonly <- mxRun(sonly)
 #summary(sonly)
 
@@ -119,11 +108,12 @@ district <- mxModel("district",
                      mxFitFunctionML()
 )
 
-district <- mxRun(district)
+district <- mxRun(district, useOptimizer=FALSE)
 
 #district@submodels[[1]]@matrices$S@values
 #district@submodels[[2]]@matrices$S@values
 #district@submodels[[3]]@matrices$S@values
 
 district@output$estimate
+district@output$minimum
 
