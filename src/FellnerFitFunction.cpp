@@ -107,9 +107,10 @@ namespace FellnerFitFunction {
 				for (size_t sx=0; sx < cf->nsuper; ++sx) {
 					int ncols = super[sx + 1] - super[sx];
 					int nrows = pi[sx + 1] - pi[sx];
-					for (int cx=px[sx]; cx < px[sx] + nrows * ncols; cx += nrows+1) {
-						logDet += log(x[cx]);
-					}
+
+					Eigen::Map<const Eigen::Array<double,1,Eigen::Dynamic>, 0, Eigen::InnerStride<> >
+						s1(x + px[sx], ncols, Eigen::InnerStride<>(nrows+1));
+					logDet += s1.real().log().sum();
 				}
 			} else {
 				// This is a simplicial factorization, which is simply stored as a
