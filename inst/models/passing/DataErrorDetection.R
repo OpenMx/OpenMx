@@ -60,3 +60,10 @@ m1 <- mxModel("uniqueModel", type="RAM",
               mxPath("one", "ign"),
               mxPath("ign", arrows=2))
 omxCheckError(mxRun(m1), "uniqueModel.data: primary keys are not unique (examine rows with key=3)")
+
+bad <- mxModel("bad", type="RAM",
+              latentVars = "ign",
+	       mxPath("one", "ign"),
+	       mxPath("ign", arrows=2),
+	       mxData(data.frame(key=1), 'raw', primaryKey="key"))
+omxCheckError(mxRun(bad), "bad.data: primary key must be an integer column in raw observed data")
