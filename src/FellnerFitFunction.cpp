@@ -28,7 +28,6 @@
 #include <Rmath.h>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
-#include <Eigen/CholmodSupport>
 
 namespace FellnerFitFunction {
 	// Based on lme4CholmodDecomposition.h from lme4
@@ -174,13 +173,14 @@ namespace FellnerFitFunction {
 
 			st->covDecomp.factorize(rram->fullCov);
 			lp = st->covDecomp.log_determinant();
-			//mxPrintMat("dataVec", st->dataVec);
-			//mxPrintMat("fullMeans", fullMeans);
+			//mxPrintMat("dataVec", rram->dataVec);
+			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid = rram->dataVec - rram->filteredA.transpose() * rram->fullMeans;
+			//mxPrintMat("resid", resid);
 			double iqf = st->covDecomp.inv_quad_form(resid);
-			if (st->verbose >= 2) mxLog("log det %f iqf %f", lp, iqf);
-			lp += iqf;
-			lp += M_LN_2PI * rram->dataVec.size();
+			double cterm = M_LN_2PI * rram->dataVec.size();
+			if (st->verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
+			lp += iqf + cterm;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}

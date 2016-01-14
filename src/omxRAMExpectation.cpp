@@ -20,9 +20,6 @@
 #include "omxBLAS.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
-#include <Rcpp.h>
-#include <Eigen/CholmodSupport>
-#include <RcppEigenWrap.h>
 
 static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
     omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
@@ -123,21 +120,22 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
 
 	MxRList out;
+	MxRList dbg;
 
 	if (oro->rram && oro->rram->fullCov.nonZeros()) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		SEXP nameVec = Rcpp::wrap(rram->nameVec);
-		Rf_protect(nameVec);
 		SEXP m1 = Rcpp::wrap(rram->filteredA.transpose() * rram->fullMeans);
 		Rf_protect(m1);
-		Rf_setAttrib(m1, R_NamesSymbol, nameVec);
-		out.add("means", m1);
-
-		out.add("covariance", Rcpp::wrap(oro->rram->fullCov));
+		Rf_setAttrib(m1, R_NamesSymbol, rram->obsNameVec);
+		out.add("mean", m1);
+		out.add("covariance", Rcpp::wrap(rram->fullCov));
+		rram->exportInternalState(dbg);
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
+	Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 }
+
 
 /*
  * omxCalculateRAMCovarianceAndMeans
@@ -409,14 +407,18 @@ namespace RelationalRAMExpectation {
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
+		struct addr a1;
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
+			if (jx==0) a1.fk1 = key;
 			AmatDependsOnParameters |= b1->dependsOnParameters();
 			omxExpectation *e1 = b1->getJoinModel();
 			placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
 		}
+
+		a1.key = frow;
 		if (data->hasPrimaryKey()) {
 			if (data->rowToOffsetMap.size() == 0) {
 				ram->ensureTrivialF();
@@ -426,11 +428,17 @@ namespace RelationalRAMExpectation {
 			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
 			if (it != data->rowToOffsetMap.end()) return;
 
-			if (verbose >= 2) {
-				mxLog("%s: place row %d at %d", expectation->name, frow, maxSize);
-			}
 			data->rowToOffsetMap[frow] = maxSize;
+			a1.key = data->primaryKeyOfRow(frow);
 		}
+
+		a1.model = data->name;
+		a1.model = a1.model.substr(0, a1.model.size() - 5); // remove ".data" suffix
+		a1.numJoins = ram->between.size();
+		a1.modelStart = maxSize;
+		a1.modelEnd = maxSize + ram->F->cols - 1;
+		a1.obsStart = totalObserved;
+
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
 			if (!ram->M) {
@@ -447,6 +455,19 @@ namespace RelationalRAMExpectation {
 				if (yes) ++totalObserved;
 			}
 		}
+
+		a1.obsEnd = totalObserved - 1;
+		layout.push_back(a1);
+		if (verbose >= 2) {
+			if (a1.obsStart <= a1.obsEnd) {
+				mxLog("place %s[%d] at %d %d obs %d %d", a1.model.c_str(),
+				      frow, a1.modelStart, a1.modelEnd, a1.obsStart, a1.obsEnd);
+			} else {
+				mxLog("place latent %s[%d] at %d %d", a1.model.c_str(),
+				      frow, a1.modelStart, a1.modelEnd);
+			}
+		}
+
 		maxSize += ram->F->cols;
 		AmatDependsOnParameters |= ram->A->dependsOnParameters();
 	}
@@ -506,17 +527,27 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		std::string modelName(expectation->data->name);
+		modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
+
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
 			omxDataRow(expectation, row, smallCol);
+			omxMatrix *colList = expectation->dataColumns;
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(smallCol, 0, col);
 				bool yes = std::isfinite(val);
 				if (!yes) continue;
 				latentFilter[ lx + col ] = true;
-				nameVec.push_back(omxDataColumnName(expectation->data, col));
+				std::string dname = modelName + omxDataColumnName(expectation->data,
+										  omxVectorElement(colList, col));
+				SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 				dataVec[ dx++ ] = val;
 			}
+		}
+		for (int vx=0; vx < ram->F->cols; ++vx) {
+			std::string dname = modelName + ram->F->colnames[vx];
+			SET_STRING_ELT(varNameVec, lx + vx, Rf_mkChar(dname.c_str()));
 		}
 		lx += ram->F->cols;
 	}
@@ -554,7 +585,8 @@ namespace RelationalRAMExpectation {
 			      homeEx->name, totalObserved, AmatDependsOnParameters);
 		}
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
-		nameVec.reserve(totalObserved);
+		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
+		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
 		dataVec.resize(totalObserved);
 		depthTestA.resize(maxSize, maxSize);
 
@@ -669,7 +701,7 @@ namespace RelationalRAMExpectation {
 			}
 
 			// We built A transposed so we can quickly filter columns
-			// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130
+			// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
 			filteredA.uncompress();
 			Eigen::SparseMatrix<double>::Index *op = filteredA.outerIndexPtr();
 			Eigen::SparseMatrix<double>::Index *nzp = filteredA.innerNonZeroPtr();
@@ -717,6 +749,60 @@ namespace RelationalRAMExpectation {
 
 		fullCov = (filteredA.transpose() * fullS.selfadjointView<Eigen::Lower>() * filteredA);
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
+	}
+
+	void state::exportInternalState(MxRList &dbg)
+	{
+		SEXP fmean = Rcpp::wrap(fullMeans);
+		dbg.add("mean", fmean);
+		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+		Eigen::SparseMatrix<double> A = signA * fullA.transpose();
+		dbg.add("A", Rcpp::wrap(A));
+		if (0) {
+			// regularize internal representation
+			Eigen::SparseMatrix<double> fAcopy = filteredA.transpose();
+			dbg.add("filteredA", Rcpp::wrap(fAcopy));
+		}
+		Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
+		dbg.add("S", Rcpp::wrap(fullSymS));
+		dbg.add("latentFilter", Rcpp::wrap(latentFilter));
+		SEXP dv = Rcpp::wrap(dataVec);
+		Rf_protect(dv);
+		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
+		dbg.add("dataVec", dv);
+
+		SEXP modelName, key, numJoins, fk1, startLoc, endLoc, obsStart, obsEnd;
+		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
+		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
+		for (size_t mx=0; mx < layout.size(); ++mx) {
+			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].model.c_str()));
+			INTEGER(key)[mx] = layout[mx].key;
+			INTEGER(numJoins)[mx] = layout[mx].numJoins;
+			INTEGER(fk1)[mx] = layout[mx].fk1;
+			INTEGER(startLoc)[mx] = 1+layout[mx].modelStart;
+			INTEGER(endLoc)[mx] = 1+layout[mx].modelEnd;
+			if (layout[mx].obsStart <= layout[mx].obsEnd) {
+				INTEGER(obsStart)[mx] = 1+layout[mx].obsStart;
+				INTEGER(obsEnd)[mx] = 1+layout[mx].obsEnd;
+			} else {
+				INTEGER(obsStart)[mx] = NA_INTEGER;
+				INTEGER(obsEnd)[mx] = NA_INTEGER;
+			}
+		}
+		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
+							  Rcpp::Named("key")=key,
+							  Rcpp::Named("numJoins")=numJoins,
+							  Rcpp::Named("fk1")=fk1,
+							  Rcpp::Named("modelStart")=startLoc,
+							  Rcpp::Named("modelEnd")=endLoc,
+							  Rcpp::Named("obsStart")=obsStart,
+							  Rcpp::Named("obsEnd")=obsEnd));
 	}
 
 };

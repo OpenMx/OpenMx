@@ -1,14 +1,26 @@
 #ifndef _RAMINTERNAL_H_
 #define _RAMINTERNAL_H_
 
-#include <RcppEigenCholmod.h>
-#include <RcppEigenStubs.h>
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
+#include <Eigen/CholmodSupport>
+#include <Rcpp.h>
+#include <RcppEigenStubs.h>
+#include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
+#include <RcppEigenCholmod.h>
 
 namespace RelationalRAMExpectation {
+	struct addr {
+		std::string model;
+		int key;
+		int numJoins;
+		int fk1;
+		int modelStart, modelEnd;  //both latent and obs
+		int obsStart, obsEnd;
+	};
+
 	class state {
 	private:
 		struct omxExpectation *homeEx;
@@ -27,9 +39,11 @@ namespace RelationalRAMExpectation {
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
+		std::vector<addr>		 layout;
 
 	public:
-		std::vector<const char *> nameVec;
+		SEXP obsNameVec;
+		SEXP varNameVec;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
 		Eigen::SparseMatrix<double>      filteredA;
@@ -43,6 +57,7 @@ namespace RelationalRAMExpectation {
 		void compute(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
 		~state();
+		void exportInternalState(MxRList &dbg);
 	};
 };
 
