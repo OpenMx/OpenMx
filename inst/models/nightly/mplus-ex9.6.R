@@ -57,6 +57,7 @@ if (1) {
                             mxComputeReportExpectation()))))
   wModel$output$fit / -2
   me <- wModel$expectation$output
-  me$means[1:4]                 # model implied means of first row
+  me$mean[1:4]                 # model implied means of first row
   me$covariance[1:4,1:4]  # covariance of first row
+  med <- wModel$expectation$debug
 }
