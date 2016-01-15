@@ -353,7 +353,7 @@ void refreshPatternLikelihood(BA81Expect *state, bool hasFreeLatent)
 }
 
 static void
-ba81compute(omxExpectation *oo, const char *what, const char *how)
+ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *how)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 

@@ -156,9 +156,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
 }
 
 
-void omxComputeGREMLExpectation(omxExpectation* ox, const char *, const char *) {
+void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
   omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
-	omxRecompute(oge->cov, NULL);
+	omxRecompute(oge->cov, fc);
   int i=0;
   oge->cholV_fail_om->data[0] = 0;
   oge->cholquadX_fail = 0;

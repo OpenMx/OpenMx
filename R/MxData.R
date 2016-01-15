@@ -175,6 +175,11 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	if (type == "raw" && missing(numObs)) {
 		numObs <- nrow(observed)
+		dups <- duplicated(colnames(observed))
+		if (any(dups)) {
+			stop(paste("Column names must be unique. Duplicated:",
+				   omxQuotes(colnames(observed)[dups])))
+		}
 	}
 	if (type == "cov") {
 		verifyCovarianceMatrix(observed)

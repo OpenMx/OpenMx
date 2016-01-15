@@ -111,7 +111,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   
   //Recompute Expectation:
   omxExpectation* expectation = oo->expectation;
-  omxExpectationCompute(expectation, NULL);
+  omxExpectationCompute(fc, expectation, NULL);
     
   omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
   

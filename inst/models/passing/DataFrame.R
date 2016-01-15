@@ -81,3 +81,5 @@ outSum <- NPSOLOutput$minimum
 
 omxCheckCloseEnough(inSum, outSum, epsilon = 10 ^ -4)
 
+df <- data.frame(foo=1, foo=2, check.names=FALSE)
+omxCheckError(mxData(df, 'raw'), "Column names must be unique. Duplicated: 'foo'")

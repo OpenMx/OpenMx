@@ -28,7 +28,6 @@
 #include <Rmath.h>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
-#include <Eigen/CholmodSupport>
 
 namespace FellnerFitFunction {
 	// Based on lme4CholmodDecomposition.h from lme4
@@ -107,9 +106,10 @@ namespace FellnerFitFunction {
 				for (size_t sx=0; sx < cf->nsuper; ++sx) {
 					int ncols = super[sx + 1] - super[sx];
 					int nrows = pi[sx + 1] - pi[sx];
-					for (int cx=px[sx]; cx < px[sx] + nrows * ncols; cx += nrows+1) {
-						logDet += log(x[cx]);
-					}
+
+					Eigen::Map<const Eigen::Array<double,1,Eigen::Dynamic>, 0, Eigen::InnerStride<> >
+						s1(x + px[sx], ncols, Eigen::InnerStride<>(nrows+1));
+					logDet += s1.real().log().sum();
 				}
 			} else {
 				// This is a simplicial factorization, which is simply stored as a
@@ -152,46 +152,6 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 	};
 
-	template <typename T>
-	void printSparse(Eigen::SparseMatrixBase<T> &sm) {
-		typedef typename T::Index Index;
-		typedef typename T::Scalar Scalar;
-		typedef typename T::Storage Storage;
-		// assume column major
-		std::string buf;
-		const Index *nzp = sm.derived().innerNonZeroPtr();
-		//const Scalar *vp = sm.derived().valuePtr();
-		//const Index *iip = sm.derived().innerIndexPtr();
-		const Index *oip = sm.derived().outerIndexPtr();
-		const Storage &m_data = sm.derived().data();
-		if (!nzp) buf += "compressed ";
-		buf += string_snprintf("%dx%d\n", sm.innerSize(), sm.outerSize());
-		for (int rx=0; rx < sm.innerSize(); ++rx) {
-			for (int cx=0; cx < sm.outerSize(); ++cx) {
-				Index start = oip[cx];
-				Index end = nzp ? oip[cx] + nzp[cx] : oip[cx+1];
-				if (end <= start) {
-					buf += " ***";
-				} else {
-					const Index p = m_data.searchLowerIndex(start,end-1,rx);
-					if ((p<end) && (m_data.index(p)==rx)) {
-						double v = m_data.value(p);
-						if (v < 0) {
-							buf += string_snprintf("%2.1f", v);
-						} else {
-							buf += string_snprintf(" %2.1f", v);
-						}
-					}
-					else
-						buf += " ***";
-				}
-				if (cx < sm.outerSize() - 1) buf += " ";
-			}
-			buf += "\n";
-		}
-		mxLogBig(buf);
-	}
-
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
@@ -200,11 +160,11 @@ namespace FellnerFitFunction {
 		state *st                               = (state *) oo->argStruct;
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		RelationalRAMExpectation::state *rram   = ram->rram;
 
 		double lp = NA_REAL;
 		try {
-			rram->compute(fc);
+			omxExpectationCompute(fc, expectation, "distribution", "flat");
+			RelationalRAMExpectation::state *rram   = ram->rram;
 
 			if (!st->covDecomp.analyzedPattern()) {
 				rram->fullCov.makeCompressed();
@@ -213,13 +173,14 @@ namespace FellnerFitFunction {
 
 			st->covDecomp.factorize(rram->fullCov);
 			lp = st->covDecomp.log_determinant();
-			//mxPrintMat("dataVec", st->dataVec);
-			//mxPrintMat("fullMeans", fullMeans);
+			//mxPrintMat("dataVec", rram->dataVec);
+			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid = rram->dataVec - rram->filteredA.transpose() * rram->fullMeans;
+			//mxPrintMat("resid", resid);
 			double iqf = st->covDecomp.inv_quad_form(resid);
-			if (st->verbose >= 2) mxLog("log det %f iqf %f", lp, iqf);
-			lp += iqf;
-			lp += M_LN_2PI * rram->dataVec.size();
+			double cterm = M_LN_2PI * rram->dataVec.size();
+			if (st->verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
+			lp += iqf + cterm;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}

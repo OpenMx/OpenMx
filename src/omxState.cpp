@@ -302,7 +302,6 @@ void omxState::init()
 {
 	stateId = ++nextId;
 	wantStage = 0;
-	dirty = false;
 }
 
 void omxState::loadDefinitionVariables(bool start)

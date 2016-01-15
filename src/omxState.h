@@ -275,13 +275,10 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage;
-	bool dirty;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	void setDirty() { dirty = true; }
-	bool getDirty() const { return dirty; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;

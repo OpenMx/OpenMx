@@ -1514,7 +1514,7 @@ class ComputeEM : public omxCompute {
 	size_t maxHistLen;
 	int semProbeCount;
 
-	void setExpectationPrediction(const char *context);
+	void setExpectationPrediction(FitContext *fc, const char *context);
 	void observedFit(FitContext *fc);
 	template <typename T1>
 	void accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel);
@@ -1964,12 +1964,12 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 	origEigenvalues = NULL;
 }
 
-void ComputeEM::setExpectationPrediction(const char *context)
+void ComputeEM::setExpectationPrediction(FitContext *fc, const char *context)
 {
 	for (size_t wx=0; wx < expectations.size(); ++wx) {
 		omxExpectation *expectation = expectations[wx];
 		if (verbose >= 4) mxLog("ComputeEM: expectation[%d] %s predict %s", (int) wx, expectation->name, context);
-		omxExpectationCompute(expectation, context);
+		omxExpectationCompute(fc, expectation, context);
 	}
 }
 
@@ -1987,7 +1987,7 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
 				1+paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
 
-	setExpectationPrediction(predict);
+	setExpectationPrediction(fc, predict);
 	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
 	fit1->compute(fc);
 	if (fc->inform > INFORM_UNCONVERGED_OPTIMUM) {
@@ -1995,7 +1995,7 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase
 		failed = true;
 	}
 	fc->inform = informSave;
-	setExpectationPrediction("nothing");
+	setExpectationPrediction(fc, "nothing");
 
 	rijWork.col(paramProbeCount[vx]) = (Est - optimum) / offset;
 
@@ -2087,7 +2087,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		++ EMcycles;
 		memcpy(&prevEst[0], fc->est, sizeof(double) * fc->numParam);
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
-		setExpectationPrediction(predict);
+		setExpectationPrediction(fc, predict);
 
 		{
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
@@ -2100,7 +2100,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			fc1->updateParentAndFree();
 		}
 
-		setExpectationPrediction("nothing");
+		setExpectationPrediction(fc, "nothing");
 		if (accel) {
 			if (!lbound.size()) {
 				// omxFitFunctionPreoptimize can change bounds
@@ -2236,7 +2236,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	int wanted = fc->wanted;
 	const int freeVars = (int) fc->varGroup->vars.size();
 
-	setExpectationPrediction(predict);
+	setExpectationPrediction(fc, predict);
 	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
@@ -2258,7 +2258,7 @@ void ComputeEM::Oakes(FitContext *fc)
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
 	}
 	fc->postInfo();
-	setExpectationPrediction("nothing");
+	setExpectationPrediction(fc, "nothing");
 
 	fc->refreshDenseHess();
 	double *hess = fc->getDenseHessUninitialized();
@@ -2398,7 +2398,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	//mxLog("rij symm");
 	//pda(rij.data(), freeVars, freeVars);
 
-	setExpectationPrediction(predict);
+	setExpectationPrediction(fc, predict);
 	int wanted = fc->wanted;
 	fc->wanted = 0;
 	fc->infoMethod = infoMethod;
@@ -2407,7 +2407,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
 	}
 	fc->postInfo();
-	setExpectationPrediction("nothing");
+	setExpectationPrediction(fc, "nothing");
 
 	Rf_protect(inputInfoMatrix = Rf_allocMatrix(REALSXP, freeVars, freeVars));
 	double *hess = REAL(inputInfoMatrix);
@@ -2694,7 +2694,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (predict.size() > 1) Rf_error("Not implemented");
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
-			omxExpectationCompute(expectation, predict[0], how);
+			omxExpectationCompute(fc, expectation, predict[0], how);
 		}
 	}
 }
@@ -2828,7 +2828,7 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 	for(size_t index = 0; index < expectationList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
 		omxExpectation *curExpectation = expectationList[index];
-		omxExpectationRecompute(curExpectation);
+		omxExpectationRecompute(fc, curExpectation);
 		SEXP rExpect;
 		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
 		if(curExpectation->populateAttrFun != NULL) {
