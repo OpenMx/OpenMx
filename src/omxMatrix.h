@@ -56,6 +56,7 @@ class omxMatrix {
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	void transposePopulate();
+	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);
 	void markPopulatedEntries();

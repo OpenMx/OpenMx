@@ -26,7 +26,8 @@
 }
 
 \usage{
-mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE)
+mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
+          joinKey=as.character(NA), joinModel=as.character(NA))
 }
 
 \arguments{
@@ -41,6 +42,10 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE)
    \item{fixed}{If TRUE, this algebra will not be recomputed
      automatically when things it depends on change. \link{mxComputeOnce}
      can be used to force it to recompute.}
+\item{joinKey}{The name of the column in current model's raw data that
+  is used as a foreign key to match against the primary key in
+  joinModel's raw data.}
+\item{joinModel}{The name of the model that this matrix joins against.}
 }
 
 \details{

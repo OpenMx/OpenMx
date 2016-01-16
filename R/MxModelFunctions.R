@@ -14,22 +14,23 @@
 #   limitations under the License.
 
 
-generateMatrixList <- function(model) {
-	matvalues <- lapply(model@matrices, generateMatrixValuesHelper)
-	if (!length(matvalues)) return(NULL)
-	matnames  <- names(model@matrices)
-	names(matvalues) <- matnames
-	rawJoinModel <- sapply(model@matrices, function(x) x@joinModel)
+extractJoinModel <- function(model, matList) {
+	if (length(matList) == 0) return(NULL)
+	rawJoinModel <- sapply(matList, function(x) x@joinModel)
 	joinModel <- match(paste0(rawJoinModel, imxSeparatorChar, 'expectation'),
 			   names(model@expectations))
 	mismatch <- !is.na(rawJoinModel) & is.na(joinModel)
 	if (any(mismatch)) {
-		matNames <- sapply(model@matrices, function(x) x@name)
+		matNames <- names(matList)
 		msg <- paste("The references", omxQuotes(rawJoinModel[mismatch]), "do not exist.",
 			     "It is used by", matNames[mismatch])
 		stop(msg, call. = FALSE)
 	}
-	joinKey <- sapply(model@matrices, function(x) {
+	joinModel
+}
+
+extractJoinKey <- function(model, matList) {
+	sapply(matList, function(x) {
 		if (is.na(x@joinKey)) return(NA_integer_)
 		modelName <- unlist(strsplit(x@name, imxSeparatorChar, fixed = TRUE))[1]
 		dataName <- paste0(modelName, imxSeparatorChar, 'data')
@@ -41,6 +42,14 @@ generateMatrixList <- function(model) {
 		}
 		fkCol
 	})
+}
+
+generateMatrixList <- function(model) {
+	matvalues <- lapply(model@matrices, generateMatrixValuesHelper)
+	if (!length(matvalues)) return(NULL)
+	names(matvalues) <- names(model@matrices)
+	joinModel <- extractJoinModel(model, model@matrices)
+	joinKey <- extractJoinKey(model, model@matrices)
 	references <- generateMatrixReferences(model)
 	retval <- mapply(function(x1,x2,x3,x4) { c(list(x1), x2, x3, x4) }, 
 			matvalues, joinModel, joinKey, references, SIMPLIFY = FALSE)
@@ -48,14 +57,16 @@ generateMatrixList <- function(model) {
 }
 
 generateAlgebraList <- function(model) {
+	joinModel <- extractJoinModel(model, model@algebras)
+	joinKey <- extractJoinKey(model, model@algebras)
 	mNames <- names(model@matrices)
 	aNames <- append(names(model@algebras), names(model@fitfunctions))	
 	mNumbers <- as.list(as.integer(-1 : (-length(mNames))))
 	aNumbers <- as.list(as.integer(0 : (length(aNames) - 1)))
 	names(mNumbers) <- mNames
 	names(aNumbers) <- aNames
-	retval <- lapply(model@algebras, generateAlgebraHelper, 
-		mNumbers, aNumbers)
+	retval <- mapply(generateAlgebraHelper, model@algebras, joinModel, joinKey,
+			 MoreArgs=list(mNumbers, aNumbers), SIMPLIFY=FALSE, USE.NAMES=FALSE)
     return(retval)
 }
 
