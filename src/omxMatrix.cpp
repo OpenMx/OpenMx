@@ -394,17 +394,22 @@ void omxMatrix::loadDimnames(SEXP dimnames)
 	}
 }
 
-void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
+void omxMatrix::setJoinInfo(SEXP Rmodel, SEXP Rkey)
 {
-	int modelIndex = Rf_asInteger(VECTOR_ELT(matStruct, 1));
+	int modelIndex = Rf_asInteger(Rmodel);
 	if (modelIndex != NA_INTEGER) {
 		joinModel = currentState->expectationList[modelIndex - 1];
 	}
 
-	int fk = Rf_asInteger(VECTOR_ELT(matStruct, 2));
+	int fk = Rf_asInteger(Rkey);
 	if (fk != NA_INTEGER) {
 		joinKey = fk - 1;
 	}
+}
+
+void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
+{
+	setJoinInfo(VECTOR_ELT(matStruct, 1), VECTOR_ELT(matStruct, 2));
 
 	const int offsetToPopulationList = 3;
 	const int numPopLocs = Rf_length(matStruct) - offsetToPopulationList;

@@ -129,7 +129,8 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			omxMatrix *amat = algebraList[index];
 			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
-			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 1));
+			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 1), VECTOR_ELT(nextAlgTuple, 2));
+			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 3));
 			std::string name = CHAR(STRING_ELT(algListNames, index));
 			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames);
 		}
