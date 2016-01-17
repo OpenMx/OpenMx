@@ -62,7 +62,7 @@ twoplModel <- mxModel(model="twoplModel", imat,
 twoplModel<-mxRun(twoplModel)
 
 ## 4933.307  
-omxCheckCloseEnough(k0Model@output$fit,twoplModel@output$fit,.0001)
+omxCheckCloseEnough(k0Model$output$fit,twoplModel$output$fit,.0001)
 
 ################################################################################
 ## k=1 is 3rd order polynomial. Test w/ priors vs. hardcoded param estimates
@@ -143,9 +143,9 @@ k1PriorModel <- mxModel(model="k1PriorModel", itemModel, gaussModelAlpha, gaussM
 k1PriorModel<-mxRun(k1PriorModel)
   
 ## log likelihood if Bayesian estimates substituted into ML fit function
-omxCheckCloseEnough(k1PriorModel@output$algebras$itemModel.fitfunction,4929.897,1e-3)
+omxCheckCloseEnough(k1PriorModel$output$algebras$itemModel.fitfunction,4929.897,1e-3)
 
-est<-k1PriorModel@output$estimate
+est<-k1PriorModel$output$estimate
 
 myEst<-c(-0.27386336, 2.69911765,-0.06118075,-3.03394846,
   -0.10517433, 0.66718611,-0.72263680,-2.99031027,
