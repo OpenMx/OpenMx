@@ -331,7 +331,7 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src)
+omxState::omxState(omxState *src, FitContext *fc)
 {
 	init();
 
@@ -356,7 +356,7 @@ omxState::omxState(omxState *src)
 		omxDuplicateAlgebra(algebraList[j], src->algebraList[j], this);
 	}
 
-	omxInitialMatrixAlgebraCompute(this, NULL); // pass in FC TODO
+	omxInitialMatrixAlgebraCompute(fc);
 
 	for(size_t j = 0; j < src->expectationList.size(); j++) {
 		// TODO: Smarter inference for which expectations to duplicate

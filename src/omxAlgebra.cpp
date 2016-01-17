@@ -100,6 +100,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 
 	if (want & FF_COMPUTE_INITIAL_FIT) {
 		bool fvDep = false;
+		bool dvDep = false;
 		for(int j = 0; j < oa->numArgs; j++) {
 			if (oa->algArgs[j]->dependsOnParameters()) {
 				if (OMX_DEBUG && !fvDep) {
@@ -109,10 +110,17 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 				}
 				fvDep = true;
 			}
+			if (oa->algArgs[j]->dependsOnDefinitionVariables()) {
+				if (OMX_DEBUG && !dvDep) {
+					mxLog("Algebra %s depends on definition variables "
+					      "because of argument[%d] %s",
+					      mat->name(), j, oa->algArgs[j]->name());
+				}
+				dvDep = true;
+			}
 		}
-		if (fvDep) {
-			mat->setDependsOnParameters();
-		}
+		if (fvDep) mat->setDependsOnParameters();
+		if (dvDep) mat->setDependsOnDefinitionVariables();
 	}
 
 	for(int j = 0; j < oa->numArgs; j++) {
