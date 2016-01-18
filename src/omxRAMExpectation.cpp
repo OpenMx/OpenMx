@@ -319,90 +319,77 @@ namespace RelationalRAMExpectation {
 
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
-	void state::loadOneRow(omxExpectation *expectation, FitContext *fc, int key_or_row, int &lx)
+	// 3rd visitor
+	void state::refreshModel(FitContext *fc)
 	{
-		omxData *data = expectation->data;
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
+			omxExpectation *expectation = a1.model;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxData *data = expectation->data;
+			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			omxRecompute(ram->A, fc);
+			omxRecompute(ram->S, fc);
+			if (ram->M) omxRecompute(ram->M, fc);
 
-		int row;
-		if (!data->hasPrimaryKey()) {
-			row = key_or_row;
-		} else {
-			row = data->lookupRowOfKey(key_or_row);
-		}
-
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		for (size_t jx=0; jx < ram->between.size(); ++jx) {
-			omxMatrix *b1 = ram->between[jx];
-			int key = omxKeyDataElement(data, row, b1->getJoinKey());
-			if (key == NA_INTEGER) continue;
-			loadOneRow(b1->getJoinModel(), fc, key, lx);
-		}
-
-		if (data->hasPrimaryKey() && data->rowToOffsetMap[row] != lx) return;
-
-		data->handleDefinitionVarList(expectation->currentState, row);
-		omxRecompute(ram->A, fc);
-		omxRecompute(ram->S, fc);
-		if (ram->M) omxRecompute(ram->M, fc);
-
-		for (size_t jx=0; jx < ram->between.size(); ++jx) {
-			omxMatrix *betA = ram->between[jx];
-			int key = omxKeyDataElement(data, row, betA->getJoinKey());
-			if (key == NA_INTEGER) continue;
-			omxData *data1 = betA->getJoinModel()->data;
-			int frow = data1->lookupRowOfKey(key);
-			int jOffset = data1->rowToOffsetMap[frow];
-			omxRecompute(betA, fc);
-			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
-			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-					double val = omxMatrixElement(betA, rx, cx);
-					if (val == 0.0) continue;
-					fullA.coeffRef(jOffset + cx, lx + rx) = signA * val;
-					//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
-				}
-			}
-		}
-
-		if (!haveFilteredAmat) {
-			EigenMatrixAdaptor eA(ram->A);
-			for (int cx=0; cx < eA.cols(); ++cx) {
-				for (int rx=0; rx < eA.rows(); ++rx) {
-					double val = eA(rx, cx);
-					if (val != 0) {
-						if (rx == cx) {
-							Rf_error("%s: nonzero diagonal entry in A matrix at %d",
-								 homeEx->name, 1+lx+cx);
-						}
-						// can't use eA.block(..) -= because fullA must remain sparse
-						fullA.coeffRef(lx + cx, lx + rx) = signA * val;
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				omxMatrix *betA = ram->between[jx];
+				int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+				if (key == NA_INTEGER) continue;
+				omxData *data1 = betA->getJoinModel()->data;
+				int frow = data1->lookupRowOfKey(key);
+				int jOffset = data1->rowToOffsetMap[frow];
+				omxRecompute(betA, fc);
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
+				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+						double val = omxMatrixElement(betA, rx, cx);
+						if (val == 0.0) continue;
+						fullA.coeffRef(jOffset + cx, a1.modelStart + rx) = signA * val;
+						//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
 					}
 				}
 			}
-		}
 
-		EigenMatrixAdaptor eS(ram->S);
-		for (int cx=0; cx < eS.cols(); ++cx) {
-			for (int rx=0; rx < eS.rows(); ++rx) {
-				if (rx >= cx && eS(rx,cx) != 0) {
-					fullS.coeffRef(lx + rx, lx + cx) = eS(rx, cx);
+			if (!haveFilteredAmat) {
+				EigenMatrixAdaptor eA(ram->A);
+				for (int cx=0; cx < eA.cols(); ++cx) {
+					for (int rx=0; rx < eA.rows(); ++rx) {
+						double val = eA(rx, cx);
+						if (val != 0) {
+							if (rx == cx) {
+								Rf_error("%s: nonzero diagonal entry in A matrix at %d",
+									 homeEx->name, 1+a1.modelStart+cx);
+							}
+							// can't use eA.block(..) -= because fullA must remain sparse
+							fullA.coeffRef(a1.modelStart + cx, a1.modelStart + rx) = signA * val;
+						}
+					}
 				}
 			}
-		}
 
-		if (ram->M) {
-			EigenVectorAdaptor eM(ram->M);
-			for (int mx=0; mx < eM.size(); ++mx) {
-				fullMeans[lx + mx] = eM[mx];
+			EigenMatrixAdaptor eS(ram->S);
+			for (int cx=0; cx < eS.cols(); ++cx) {
+				for (int rx=0; rx < eS.rows(); ++rx) {
+					if (rx >= cx && eS(rx,cx) != 0) {
+						fullS.coeffRef(a1.modelStart + rx, a1.modelStart + cx) = eS(rx, cx);
+					}
+				}
 			}
-		} else {
-			fullMeans.segment(lx, ram->A->cols).setZero();
-		}
 
-		lx += ram->A->cols;
+			if (ram->M) {
+				EigenVectorAdaptor eM(ram->M);
+				for (int mx=0; mx < eM.size(); ++mx) {
+					fullMeans[a1.modelStart + mx] = eM[mx];
+				}
+			} else {
+				fullMeans.segment(a1.modelStart, ram->A->cols).setZero();
+			}
+		}
 	}
 
-	void state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
+	// 1st visitor
+	int state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -415,9 +402,14 @@ namespace RelationalRAMExpectation {
 			if (jx==0) a1.fk1 = key;
 			AmatDependsOnParameters |= b1->dependsOnParameters();
 			omxExpectation *e1 = b1->getJoinModel();
-			placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
+			int parentPos = placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
+			std::vector<addr>::iterator low =
+				std::lower_bound(layout.begin(), layout.end(), parentPos, addr::CompareWithModelStart);
+			if (parentPos != low->modelStart) Rf_error("Parent search failed"); //impossible
+			low->numKids += 1;
 		}
 
+		a1.row = frow;
 		a1.key = frow;
 		if (data->hasPrimaryKey()) {
 			if (data->rowToOffsetMap.size() == 0) {
@@ -426,14 +418,14 @@ namespace RelationalRAMExpectation {
 
 			// insert_or_assign would be nice here
 			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
-			if (it != data->rowToOffsetMap.end()) return;
+			if (it != data->rowToOffsetMap.end()) return it->second;
 
 			data->rowToOffsetMap[frow] = maxSize;
 			a1.key = data->primaryKeyOfRow(frow);
 		}
 
-		a1.model = data->name;
-		a1.model = a1.model.substr(0, a1.model.size() - 5); // remove ".data" suffix
+		a1.model = expectation;
+		a1.numKids = 0;
 		a1.numJoins = ram->between.size();
 		a1.modelStart = maxSize;
 		a1.modelEnd = maxSize + ram->F->cols - 1;
@@ -460,18 +452,20 @@ namespace RelationalRAMExpectation {
 		layout.push_back(a1);
 		if (verbose >= 2) {
 			if (a1.obsStart <= a1.obsEnd) {
-				mxLog("place %s[%d] at %d %d obs %d %d", a1.model.c_str(),
+				mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
 				      frow, a1.modelStart, a1.modelEnd, a1.obsStart, a1.obsEnd);
 			} else {
-				mxLog("place latent %s[%d] at %d %d", a1.model.c_str(),
+				mxLog("place latent %s[%d] at %d %d", a1.modelName().c_str(),
 				      frow, a1.modelStart, a1.modelEnd);
 			}
 		}
 
 		maxSize += ram->F->cols;
 		AmatDependsOnParameters |= ram->A->dependsOnParameters();
+		return a1.modelStart;
 	}
 
+	// 2nd visitor
 	void state::prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx)
 	{
 		omxData *data = expectation->data;
@@ -602,9 +596,11 @@ namespace RelationalRAMExpectation {
 			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
 			prepOneRow(homeEx, key_or_row, lx, dx);
 		}
-		int lfCount = std::count(latentFilter.begin(), latentFilter.end(), true);
-		if (lfCount != totalObserved) {
-			Rf_error("lfCount %d != totalObserved %d", lfCount, totalObserved);
+		if (OMX_DEBUG) {
+			int lfCount = std::count(latentFilter.begin(), latentFilter.end(), true);
+			if (lfCount != totalObserved) {
+				Rf_error("lfCount %d != totalObserved %d", lfCount, totalObserved);
+			}
 		}
 
 		AshallowDepth = -1;
@@ -645,8 +641,6 @@ namespace RelationalRAMExpectation {
 
 	void state::compute(FitContext *fc)
 	{
-		omxData *data                           = homeEx->data;
-
 		fullMeans.conservativeResize(latentFilter.size());
 
 		if (fullA.nonZeros() == 0) {
@@ -660,10 +654,7 @@ namespace RelationalRAMExpectation {
 			ident.setIdentity();
 		}
 
-		for (int lx=0, row=0; row < data->rows; ++row) {
-			int key_or_row = data->hasPrimaryKey()? data->primaryKeyOfRow(row) : row;
-			loadOneRow(homeEx, fc, key_or_row, lx);
-		}
+		refreshModel(fc);
 
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
 		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
@@ -771,9 +762,10 @@ namespace RelationalRAMExpectation {
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
 
-		SEXP modelName, key, numJoins, fk1, startLoc, endLoc, obsStart, obsEnd;
+		SEXP modelName, key, numJoins, numKids, fk1, startLoc, endLoc, obsStart, obsEnd;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
@@ -781,8 +773,9 @@ namespace RelationalRAMExpectation {
 		Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
-			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].model.c_str()));
+			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(key)[mx] = layout[mx].key;
+			INTEGER(numKids)[mx] = layout[mx].numKids;
 			INTEGER(numJoins)[mx] = layout[mx].numJoins;
 			INTEGER(fk1)[mx] = layout[mx].fk1;
 			INTEGER(startLoc)[mx] = 1+layout[mx].modelStart;
@@ -797,6 +790,7 @@ namespace RelationalRAMExpectation {
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("key")=key,
+							  Rcpp::Named("numKids")=numKids,
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("modelStart")=startLoc,
