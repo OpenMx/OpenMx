@@ -59,6 +59,7 @@ class omxMatrix {
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	bool dependsOnDefinitionVariables() const { return dependsOnDefVarCache; };
+	bool hasPopulateSubstitutions() const { return populate.size(); };
 	void transposePopulate();
 	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);
