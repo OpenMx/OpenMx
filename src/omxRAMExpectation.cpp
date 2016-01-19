@@ -189,6 +189,91 @@ static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMat
 	}
 }
 
+struct IsZeroManifestCovariance {
+	typedef Eigen::Matrix<bool, Eigen::Dynamic, 1> ManifestMaskType;
+	typedef Eigen::MatrixXd::Scalar Scalar;
+	typedef Eigen::MatrixXd::Index Index;
+	bool ok;
+	ManifestMaskType manifestMask;
+
+	IsZeroManifestCovariance(ManifestMaskType manifestMask) : ok(true), manifestMask(manifestMask) {};
+	void init(const Scalar& value, Index i, Index j) { check(value,i,j); };
+	void operator() (const Scalar& value, Index i, Index j) { check(value,i,j); };
+	void check(const Scalar& value, Index i, Index j) {
+		if (i != j && value != 0.0 && (manifestMask[i] || manifestMask[j])) {
+			ok = false;
+		}
+	};
+};
+		
+template <typename T>
+static bool hasSingleVarianceParameter(omxRAMExpectation *ram, Eigen::ArrayBase<T> &manifestMask, int verbose)
+{
+	bool singleVariance = true;
+	if (!ram->S->dependsOnParameters()) return true;
+
+	// overly conservative; ignores freeset
+	int sMatrixNum = ~ram->S->matrixNumber;
+	FreeVarGroup *fvg = Global->findVarGroup(FREEVARGROUP_ALL);
+	omxFreeVar *variance = NULL;
+	for (size_t vx=0; vx < fvg->vars.size() && singleVariance; ++vx) {
+		omxFreeVar *v1 = fvg->vars[vx];
+		for (size_t lx=0; lx < v1->locations.size() && singleVariance; ++lx) {
+			omxFreeVarLocation &loc = v1->locations[lx];
+			if (loc.matrix == sMatrixNum &&
+			    manifestMask[loc.row] && manifestMask[loc.col]) {
+				if (loc.row != loc.col) {
+					singleVariance = false;
+					if (verbose >= 1) {
+						mxLog("%s: manifest covariance parameter %s between"
+						      " %d and %d -> !HEV",
+						      ram->S->name(), v1->name, loc.row, loc.col);
+					}
+				}
+				if (!variance) variance = v1;
+				if (v1 != variance) {
+					singleVariance = false;
+					if (verbose >= 1) {
+						mxLog("%s: more than 1 variance parameter (%s and %s) -> !HEV",
+						      ram->S->name(), v1->name, variance->name);
+					}
+				}
+			}
+		}
+	}
+	return singleVariance;
+}
+
+bool omxRAMExpectation::isHEV()
+{
+	if (determinedHEV) return HEV;
+	determinedHEV = true;
+	
+	if (F->rows == 0) {
+		HEV = true;   // no manifest variables
+	} else if (!S->algebra && !S->hasPopulateSubstitutions()) {
+		// This is fairly cheap, but we could compute it only if needed
+		// instead of always.
+		EigenMatrixAdaptor eF(F);
+		EigenMatrixAdaptor eS(S);
+
+		Eigen::Array<bool, Eigen::Dynamic, 1> manifestMask =
+			eF.array().colwise().maxCoeff() > 0;
+		IsZeroManifestCovariance izmc(manifestMask);
+		eS.visit(izmc);
+		if (!izmc.ok && verbose >= 1) mxLog("%s: nonzero manifest covariance -> !HEV", S->name());
+		if (izmc.ok && hasSingleVarianceParameter(this, manifestMask, verbose)) {
+			HEV = true;
+			if (verbose >= 1) mxLog("%s has homogeneous error variance", S->name());
+		}
+
+		// Also need all zero A matrix for manifests TODO
+		// Means must be fixed to zero TODO
+	}
+
+	return HEV;
+}
+
 void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
@@ -210,6 +295,9 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	oo->populateAttrFun = omxPopulateRAMAttributes;
 	oo->argStruct = (void*) RAMexp;
 	
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	RAMexp->verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
+
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
 
@@ -235,39 +323,40 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
 	}
 
-	{
-		ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
-		if (Rf_length(Rbetween)) {
-			if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
-			if (!Rf_isInteger(Rbetween)) Rf_error("%s: between must be an integer vector", oo->name);
-			RAMexp->between.reserve(Rf_length(Rbetween));
-			int *bnumber = INTEGER(Rbetween);
-			for (int jx=0; jx < Rf_length(Rbetween); ++jx) {
-				omxMatrix *bmat = currentState->getMatrixFromIndex(bnumber[jx]);
-				int foreignKey = bmat->getJoinKey();
-				omxExpectation *fex = bmat->getJoinModel();
-				omxCompleteExpectation(fex);
-				if (!strEQ(fex->expType, "MxExpectationRAM")) {
-					Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
-				}
-				if (omxDataIsSorted(fex->data)) {
-					Rf_error("%s join with %s but observed data is sorted",
-						 oo->name, fex->name);
-				}
-				if (!omxDataColumnIsKey(oo->data, foreignKey)) {
-					Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
-						 "Did you forget to use mxData(..., sort=FALSE)?",
-						 omxDataColumnName(oo->data, foreignKey),
-						 oo->data->name);
-				}
+	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install("rampart")));
+	RAMexp->rampart = Rf_asLogical(Rrampart);
 
-				if (OMX_DEBUG) {
-					mxLog("%s: join col %d against %s using between matrix %s",
-					      oo->name, foreignKey, fex->name, bmat->name());
-				}
-				
-				RAMexp->between.push_back(bmat);
+	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
+	if (Rf_length(Rbetween)) {
+		if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
+		if (!Rf_isInteger(Rbetween)) Rf_error("%s: between must be an integer vector", oo->name);
+		RAMexp->between.reserve(Rf_length(Rbetween));
+		int *bnumber = INTEGER(Rbetween);
+		for (int jx=0; jx < Rf_length(Rbetween); ++jx) {
+			omxMatrix *bmat = currentState->getMatrixFromIndex(bnumber[jx]);
+			int foreignKey = bmat->getJoinKey();
+			omxExpectation *fex = bmat->getJoinModel();
+			omxCompleteExpectation(fex);
+			if (!strEQ(fex->expType, "MxExpectationRAM")) {
+				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
 			}
+			if (omxDataIsSorted(fex->data)) {
+				Rf_error("%s join with %s but observed data is sorted",
+					 oo->name, fex->name);
+			}
+			if (!omxDataColumnIsKey(oo->data, foreignKey)) {
+				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
+					 "Did you forget to use mxData(..., sort=FALSE)?",
+					 omxDataColumnName(oo->data, foreignKey),
+					 oo->data->name);
+			}
+
+			if (OMX_DEBUG) {
+				mxLog("%s: join col %d against %s using between matrix %s",
+				      oo->name, foreignKey, fex->name, bmat->name());
+			}
+				
+			RAMexp->between.push_back(bmat);
 		}
 	}
 
@@ -332,21 +421,24 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->S, fc);
 			if (ram->M) omxRecompute(ram->M, fc);
 
-			for (size_t jx=0; jx < ram->between.size(); ++jx) {
-				omxMatrix *betA = ram->between[jx];
-				int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
-				if (key == NA_INTEGER) continue;
-				omxData *data1 = betA->getJoinModel()->data;
-				int frow = data1->lookupRowOfKey(key);
-				int jOffset = data1->rowToOffsetMap[frow];
-				omxRecompute(betA, fc);
-				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
-				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-						double val = omxMatrixElement(betA, rx, cx);
-						if (val == 0.0) continue;
-						fullA.coeffRef(jOffset + cx, a1.modelStart + rx) = signA * val;
-						//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
+			if (!a1.rampartUnlinked) {
+				for (size_t jx=0; jx < ram->between.size(); ++jx) {
+					omxMatrix *betA = ram->between[jx];
+					int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+					if (key == NA_INTEGER) continue;
+					omxData *data1 = betA->getJoinModel()->data;
+					int frow = data1->lookupRowOfKey(key);
+					int jOffset = data1->rowToOffsetMap[frow];
+					omxRecompute(betA, fc);
+					omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
+					for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+						for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+							double val = omxMatrixElement(betA, rx, cx);
+							if (val == 0.0) continue;
+							fullA.coeffRef(jOffset + cx, a1.modelStart + rx) =
+								signA * val * a1.rampartScale;
+							//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
+						}
 					}
 				}
 			}
@@ -395,6 +487,13 @@ namespace RelationalRAMExpectation {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		struct addr a1;
+		a1.HEV = ram->isHEV();
+		a1.rampartUnlinked = false;
+		a1.rampartScale = 1.0;
+		a1.parent1 = NA_INTEGER;
+		a1.fk1 = NA_INTEGER;
+		a1.chain = NA_INTEGER;  // needs to work like a linked list TODO
+		int parent1Pos = -1;
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
@@ -403,10 +502,7 @@ namespace RelationalRAMExpectation {
 			AmatDependsOnParameters |= b1->dependsOnParameters();
 			omxExpectation *e1 = b1->getJoinModel();
 			int parentPos = placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
-			std::vector<addr>::iterator low =
-				std::lower_bound(layout.begin(), layout.end(), parentPos, addr::CompareWithModelStart);
-			if (parentPos != low->modelStart) Rf_error("Parent search failed"); //impossible
-			low->numKids += 1;
+			if (jx==0) parent1Pos = parentPos;
 		}
 
 		a1.row = frow;
@@ -424,6 +520,14 @@ namespace RelationalRAMExpectation {
 			a1.key = data->primaryKeyOfRow(frow);
 		}
 
+		if (parent1Pos >= 0) {
+			std::vector<addr>::iterator low =
+				std::lower_bound(layout.begin(), layout.end(), parent1Pos, addr::CompareWithModelStart);
+			if (parent1Pos != low->modelStart) Rf_error("Parent search failed"); //impossible
+			low->numKids += 1;
+			if (!a1.HEV) low->HEV = false;
+			a1.parent1 = low - layout.begin();
+		}
 		a1.model = expectation;
 		a1.numKids = 0;
 		a1.numJoins = ram->between.size();
@@ -450,7 +554,7 @@ namespace RelationalRAMExpectation {
 
 		a1.obsEnd = totalObserved - 1;
 		layout.push_back(a1);
-		if (verbose >= 2) {
+		if (verbose() >= 2) {
 			if (a1.obsStart <= a1.obsEnd) {
 				mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
 				      frow, a1.modelStart, a1.modelEnd, a1.obsStart, a1.obsEnd);
@@ -546,15 +650,128 @@ namespace RelationalRAMExpectation {
 		lx += ram->F->cols;
 	}
 
+
+	struct RampartAddrCompare {
+		state *st;
+		RampartAddrCompare(state *st) : st(st) {};
+
+		omxExpectation *getJoinModel(const addr *a1) const {
+			omxRAMExpectation *ram = (omxRAMExpectation*) a1->model->argStruct;
+			omxMatrix *b1 = ram->between[0];
+			return b1->getJoinModel();
+		};
+
+		bool cmp1(const addr *lhs, const addr *rhs) const
+		{
+			if (lhs->model != rhs->model)
+				return strcmp(lhs->model->name, rhs->model->name) < 0;
+			if (getJoinModel(lhs) != getJoinModel(rhs))
+				return strcmp(getJoinModel(lhs)->name, getJoinModel(rhs)->name) < 0;
+			if (lhs->numObs() != rhs->numObs())
+				return lhs->numObs() < rhs->numObs();
+			if (lhs->numVars() != rhs->numVars()) Rf_error("numVars don't match"); //impossible
+			for (int lx=0; lx < lhs->numVars(); ++lx) {
+				bool p1 = st->latentFilter[ lhs->modelStart + lx ];
+				bool p2 = st->latentFilter[ rhs->modelStart + lx ];
+				if (p1 == p2) continue;
+				return int(p1) < int(p2);
+			}
+			if ((lhs->chain == NA_INTEGER) != (rhs->chain == NA_INTEGER))
+				return (lhs->chain == NA_INTEGER) < (rhs->chain == NA_INTEGER);
+			if (lhs->chain != NA_INTEGER && rhs->chain != NA_INTEGER)
+				return cmp1(&st->layout[lhs->chain], &st->layout[rhs->chain]);
+			return false;
+		}
+
+		bool operator() (const addr *lhs, const addr *rhs) const
+		{
+			bool lt = cmp1(lhs, rhs);
+			if (lt) return true;
+			if (lhs->fk1 != rhs->fk1)
+				return lhs->fk1 < rhs->fk1;
+			return false;
+		}
+	};
+
+	template <typename T1, typename T2>
+	static void oertzenRotate1(Eigen::MatrixBase<T1> &vec, Eigen::MatrixBase<T2> &erg) {
+		const int anzGroups = vec.size();
+
+		erg[0] = vec.sum() / sqrt(anzGroups);
+
+		for (int i=1; i<anzGroups; i++) {
+			double k=anzGroups-i;
+			erg[i] = vec.tail(anzGroups - i).sum() * sqrt(1.0 / (k*(k+1))) - sqrt(k / (k+1)) * vec[i-1];
+		}
+	}
+
+	template <typename T>
+	void state::oertzenRotateCompound(std::vector<T> &t1)
+	{
+		addr &specimen = layout[ t1[0] ];
+		Eigen::VectorXd obsIn(t1.size());
+		Eigen::VectorXd obsOut(t1.size());
+		for (int ox=0; ox < specimen.numObs(); ++ox) {
+			for (size_t ux=0; ux < t1.size(); ++ux) {
+				addr &a1 = layout[ t1[ux] ];
+				obsIn[ux] = dataVec[a1.obsStart + ox];
+			}
+			oertzenRotate1(obsIn, obsOut);
+			for (size_t ux=0; ux < t1.size(); ++ux) {
+				addr &a1 = layout[ t1[ux] ];
+				dataVec[a1.obsStart + ox] = obsOut[ux];
+			}
+		}
+		if (specimen.chain != NA_INTEGER) {
+			std::vector<int> t2;
+			t2.reserve(t1.size());
+			for (size_t tx=0; tx < t1.size(); ++tx) {
+				addr &a1 = layout[ t1[tx] ];
+				t2.push_back(a1.chain);
+			}
+			oertzenRotateCompound(t2);
+		}
+	}
+
+	int state::rampartRotate()
+	{
+		typedef std::map< addr*, std::vector<int>, RampartAddrCompare > RampartMap;
+		RampartMap todo(RampartAddrCompare(this));
+		int unlinked = 0;
+
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr& a1 = layout[ax];
+			if (!a1.HEV || a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
+
+			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+			omxMatrix *b1 = ram->between[0];
+			if (b1->dependsOnDefinitionVariables()) continue;
+			std::vector<int> &t1 = todo[&a1];
+			t1.push_back(int(ax));
+		}
+		for (RampartMap::iterator it = todo.begin(); it != todo.end(); ++it) {
+			std::vector<int> &t1 = it->second;
+			if (t1.size() <= 1) continue;
+			// get covariance and sort by mahalanobis distance TODO
+
+			oertzenRotateCompound(t1);
+			addr &specimen = layout[ t1[0] ];
+			specimen.rampartScale = sqrt(double(t1.size()));
+			layout[specimen.parent1].numKids -= t1.size();
+			layout[specimen.parent1].chain = t1[0];
+			for (size_t ux=1; ux < t1.size(); ++ux) {
+				addr &a1 = layout[ t1[ux] ];
+				a1.rampartUnlinked = true;
+				a1.numJoins = 0;
+			}
+			unlinked += t1.size() - 1;
+		}
+		return unlinked;
+	}
+
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
 		homeEx = expectation;
-		{
-			SEXP tmp;
-			ScopedProtect p1(tmp, R_do_slot(homeEx->rObj, Rf_install("verbose")));
-			verbose = Rf_asInteger(tmp) + OMX_DEBUG;
-		}
-
 
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
 		ram->ensureTrivialF();
@@ -574,7 +791,7 @@ namespace RelationalRAMExpectation {
 			placeOneRow(homeEx, row, totalObserved, maxSize);
 		}
 
-		if (verbose >= 1) {
+		if (verbose() >= 1) {
 			mxLog("%s: total observations %d AmatDependsOnParameters=%d",
 			      homeEx->name, totalObserved, AmatDependsOnParameters);
 		}
@@ -603,6 +820,16 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		if (ram->rampart == NA_LOGICAL || ram->rampart == 1) {
+			int unlinked = 0;
+			while (int more = rampartRotate()) {
+				unlinked += more;
+			}
+			if (verbose() >= 1) {
+				mxLog("%s: rampart unlinked %d units", homeEx->name, unlinked);
+			}
+		}
+
 		AshallowDepth = -1;
 
 		if (Global->RAMInverseOpt) {
@@ -610,7 +837,7 @@ namespace RelationalRAMExpectation {
 			if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
 			Eigen::SparseMatrix<double> curProd = depthTestA;
 			for (int tx=1; tx < maxDepth; ++tx) {
-				if (verbose >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
+				if (verbose() >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
 				curProd = (curProd * depthTestA).eval();
 				bool allZero = true;
 				for (int k=0; k < curProd.outerSize(); ++k) {
@@ -629,7 +856,7 @@ namespace RelationalRAMExpectation {
 			fc->copyParamToModelClean();
 		}
 		signA = AshallowDepth >= 0 ? 1.0 : -1.0;
-		if (verbose >= 1) {
+		if (verbose() >= 1) {
 			mxLog("%s: RAM shallow inverse depth = %d", homeEx->name, AshallowDepth);
 		}
 	}
@@ -742,6 +969,11 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
 
+	static int plusOne(int val) {
+		if (val == NA_INTEGER) return val;
+		else return val + 1;
+	}
+
 	void state::exportInternalState(MxRList &dbg)
 	{
 		SEXP fmean = Rcpp::wrap(fullMeans);
@@ -762,24 +994,29 @@ namespace RelationalRAMExpectation {
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
 
-		SEXP modelName, key, numJoins, numKids, fk1, startLoc, endLoc, obsStart, obsEnd;
+		SEXP modelName, key, numJoins, numKids, HEV, parent1, fk1, startLoc, endLoc, obsStart, obsEnd, chain;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(HEV = Rf_allocVector(LGLSXP, layout.size()));
 		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(chain = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(key)[mx] = layout[mx].key;
 			INTEGER(numKids)[mx] = layout[mx].numKids;
+			LOGICAL(HEV)[mx] = layout[mx].HEV;
 			INTEGER(numJoins)[mx] = layout[mx].numJoins;
+			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
 			INTEGER(fk1)[mx] = layout[mx].fk1;
-			INTEGER(startLoc)[mx] = 1+layout[mx].modelStart;
-			INTEGER(endLoc)[mx] = 1+layout[mx].modelEnd;
+			INTEGER(startLoc)[mx] = 1 + layout[mx].modelStart;
+			INTEGER(endLoc)[mx] = 1 + layout[mx].modelEnd;
 			if (layout[mx].obsStart <= layout[mx].obsEnd) {
 				INTEGER(obsStart)[mx] = 1+layout[mx].obsStart;
 				INTEGER(obsEnd)[mx] = 1+layout[mx].obsEnd;
@@ -787,16 +1024,20 @@ namespace RelationalRAMExpectation {
 				INTEGER(obsStart)[mx] = NA_INTEGER;
 				INTEGER(obsEnd)[mx] = NA_INTEGER;
 			}
+			INTEGER(chain)[mx] = plusOne(layout[mx].chain);
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("key")=key,
 							  Rcpp::Named("numKids")=numKids,
+							  Rcpp::Named("HEV")=HEV,
 							  Rcpp::Named("numJoins")=numJoins,
+							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("modelStart")=startLoc,
 							  Rcpp::Named("modelEnd")=endLoc,
 							  Rcpp::Named("obsStart")=obsStart,
-							  Rcpp::Named("obsEnd")=obsEnd));
+							  Rcpp::Named("obsEnd")=obsEnd,
+							  Rcpp::Named("chain")=chain));
 	}
 
 };

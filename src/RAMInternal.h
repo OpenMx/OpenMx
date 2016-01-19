@@ -14,15 +14,20 @@
 namespace RelationalRAMExpectation {
 	struct addr {
 		omxExpectation *model;
+		bool HEV;
 		int row;     // to load definition variables (never the key)
-		int numKids; // remove? TODO
+		int numKids;
 		int key;
 		int numJoins;
-		int fk1;
+		int parent1;  // first parent
+		int fk1;      // first foreign key
+		int chain;    // other addr to consider part of the same unit
 		int modelStart, modelEnd;  //both latent and obs
-		int numVars() const { return modelEnd - modelStart; }
+		int numVars() const { return 1 + modelEnd - modelStart; }
 		int obsStart, obsEnd;
-		int numObs() const { return obsEnd - obsStart; }
+		int numObs() const { return 1 + obsEnd - obsStart; }
+		bool rampartUnlinked;
+		double rampartScale;
 
 		std::string modelName() const {
 			std::string tmp = model->data->name;
@@ -35,7 +40,6 @@ namespace RelationalRAMExpectation {
 	class state {
 	private:
 		struct omxExpectation *homeEx;
-		int verbose;
 		omxMatrix *smallCol;
 		bool AmatDependsOnParameters;
 		bool haveFilteredAmat;
@@ -49,9 +53,9 @@ namespace RelationalRAMExpectation {
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
-		std::vector<addr>		 layout;
 
 	public:
+		std::vector<addr>		 layout;
 		std::vector<bool> latentFilter; // use to reduce the A matrix
 		SEXP obsNameVec;
 		SEXP varNameVec;
@@ -64,21 +68,31 @@ namespace RelationalRAMExpectation {
 		void refreshModel(FitContext *fc);
 		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
+		int rampartRotate();
+		template <typename T> void oertzenRotateCompound(std::vector<T> &t1);
 	public:
 		void compute(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
 		~state();
 		void exportInternalState(MxRList &dbg);
+		int verbose() const;
 	};
 };
 
-struct omxRAMExpectation {
+class omxRAMExpectation {
+	bool determinedHEV;
+	bool HEV;    // homogeneous error variance
+ public:
+
+	omxRAMExpectation() : determinedHEV(false), HEV(false) {};
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
 	omxMatrix *X, *Y, *Z, *Ax;
 
+	int verbose;
 	int numIters;
+	int rampart;
 	double logDetObserved;
 	double n;
 	double *work;
@@ -88,6 +102,14 @@ struct omxRAMExpectation {
 	RelationalRAMExpectation::state *rram;
 
 	void ensureTrivialF();
+	bool isHEV();
+};
+
+namespace RelationalRAMExpectation {
+	inline int state::verbose() const
+	{
+		return ((omxRAMExpectation*) homeEx->argStruct)->verbose;
+	}
 };
 
 #endif
