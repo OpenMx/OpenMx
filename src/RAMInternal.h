@@ -21,7 +21,7 @@ namespace RelationalRAMExpectation {
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
-		int chain;    // other addr to consider part of the same unit
+		std::vector<int> clump;
 		int modelStart, modelEnd;  //both latent and obs
 		int numVars() const { return 1 + modelEnd - modelStart; }
 		int obsStart, obsEnd;
@@ -53,6 +53,9 @@ namespace RelationalRAMExpectation {
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
+		std::vector<int>                 rampartUsage;
+		std::vector< std::vector<int> >  rotationPlan;
+		size_t                           maxRotationUnits;
 
 	public:
 		std::vector<addr>		 layout;
@@ -76,7 +79,38 @@ namespace RelationalRAMExpectation {
 		~state();
 		void exportInternalState(MxRList &dbg);
 		int verbose() const;
+		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
 	};
+
+	template <typename T1, typename T2>
+	void oertzenRotate1(const int anzGroups, Eigen::MatrixBase<T1> &vec, Eigen::MatrixBase<T2> &erg)
+	{
+		double partialSum = vec.sum();
+		erg[0] = partialSum / sqrt(anzGroups);
+
+		for (int i=1; i<anzGroups; i++) {
+			double k=anzGroups-i;
+			partialSum -= vec[i-1];
+			erg[i] = partialSum * sqrt(1.0 / (k*(k+1))) - sqrt(k / (k+1)) * vec[i-1];
+		}
+	}
+
+	template <typename T>
+	void state::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
+	{
+		Eigen::VectorXd obsIn(maxRotationUnits);
+		Eigen::VectorXd obsOut(maxRotationUnits);
+		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
+			const std::vector<int> &r1 = rotationPlan[rx];
+			for (size_t ox=0; ox < r1.size(); ++ox) {
+				obsIn[ox] = resid[r1[ox]];
+			}
+			oertzenRotate1(r1.size(), obsIn, obsOut);
+			for (size_t ox=0; ox < r1.size(); ++ox) {
+				resid[r1[ox]] = obsOut[ox];
+			}
+		}
+	}
 };
 
 class omxRAMExpectation {

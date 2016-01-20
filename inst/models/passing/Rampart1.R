@@ -1,3 +1,5 @@
+# This is the original test case that Timo & I wrote back in Spring 2013.
+
 #options(error = utils::recover)   # uncomment for more help with debugging
 library(OpenMx)
 library(mvtnorm)
@@ -88,13 +90,27 @@ student <- mxModel(student, teacher,
 
 #student$expectation$verbose <- 2L
 
-#student$expectation$rampart <- TRUE
+student$expectation$rampart <- 0L
 pt1 <- mxRun(mxModel(student,
 			 mxComputeSequence(list(
 			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE),
+			     mxComputeReportDeriv(),
 			     mxComputeReportExpectation()))))
 
-omxCheckCloseEnough(pt1$output$fit, 1071.74, 1e-2)
+student$expectation$rampart <- as.integer(NA)
+pt2 <- mxRun(mxModel(student,
+			 mxComputeSequence(list(
+			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE),
+			     mxComputeReportDeriv(),
+			     mxComputeReportExpectation()))))
+
+omxCheckCloseEnough(pt2$expectation$debug$rampartUsage, c((fanout-1)*fanout^2, (fanout-1)*fanout), 1)
+
+omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
+omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)
+omxCheckCloseEnough(pt1$output$hessian, pt2$output$hessian, 1e-2)
 
 student <- mxRun(student)
 omxCheckCloseEnough(student$output$fit, 1055.161, 1e-2)

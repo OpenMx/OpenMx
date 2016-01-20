@@ -176,6 +176,7 @@ namespace FellnerFitFunction {
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid = rram->dataVec - rram->filteredA.transpose() * rram->fullMeans;
+			rram->applyRotationPlan(resid);
 			//mxPrintMat("resid", resid);
 			double iqf = st->covDecomp.inv_quad_form(resid);
 			double cterm = M_LN_2PI * rram->dataVec.size();
