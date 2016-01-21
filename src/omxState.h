@@ -289,7 +289,7 @@ class omxState {
 	std::vector< omxConstraint* > conList;
 
 	omxState() { init(); };
-	omxState(omxState *src);
+	omxState(omxState *src, FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 	void omxProcessMxAlgebraEntities(SEXP algList);
@@ -297,6 +297,7 @@ class omxState {
 	void omxProcessConfidenceIntervals(SEXP intervalList);
 	void omxProcessMxExpectationEntities(SEXP expList);
 	void omxCompleteMxExpectationEntities();
+	void omxInitialMatrixAlgebraCompute(FitContext *fc);
 	void omxProcessConstraints(SEXP constraints, FitContext *fc);
 	void omxProcessMxDataEntities(SEXP data, SEXP defvars);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

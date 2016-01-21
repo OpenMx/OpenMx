@@ -13,12 +13,23 @@
 
 namespace RelationalRAMExpectation {
 	struct addr {
-		std::string model;
+		omxExpectation *model;
+		int row;     // to load definition variables (never the key)
+		int numKids; // remove? TODO
 		int key;
 		int numJoins;
 		int fk1;
 		int modelStart, modelEnd;  //both latent and obs
+		int numVars() const { return modelEnd - modelStart; }
 		int obsStart, obsEnd;
+		int numObs() const { return obsEnd - obsStart; }
+
+		std::string modelName() const {
+			std::string tmp = model->data->name;
+			tmp = tmp.substr(0, tmp.size() - 5); // remove ".data" suffix
+			return tmp;
+		};
+		static bool CompareWithModelStart(addr &i, int p1) { return i.modelStart < p1; };
 	};
 
 	class state {
@@ -26,7 +37,6 @@ namespace RelationalRAMExpectation {
 		struct omxExpectation *homeEx;
 		int verbose;
 		omxMatrix *smallCol;
-		std::vector<bool> latentFilter; // use to reduce the A matrix
 		bool AmatDependsOnParameters;
 		bool haveFilteredAmat;
 		Eigen::SparseMatrix<double>      depthTestA;
@@ -42,6 +52,7 @@ namespace RelationalRAMExpectation {
 		std::vector<addr>		 layout;
 
 	public:
+		std::vector<bool> latentFilter; // use to reduce the A matrix
 		SEXP obsNameVec;
 		SEXP varNameVec;
 		Eigen::VectorXd dataVec;
@@ -50,8 +61,8 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
-		void loadOneRow(omxExpectation *expectation, FitContext *fc, int row, int &lx);
-		void placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
+		void refreshModel(FitContext *fc);
+		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
 	public:
 		void compute(FitContext *fc);

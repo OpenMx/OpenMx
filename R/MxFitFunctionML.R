@@ -177,7 +177,7 @@ displayMxFitFunctionML <- function(fitfunction) {
 	cat("$vector :", fitfunction@vector, '\n')
 	cat("$rowDiagnostics :", fitfunction@rowDiagnostics, '\n')
 	cat("$fellner :", fitfunction@fellner, '\n')
-	cat("$fellner :", fitfunction@verbose, '\n')
+	cat("$verbose :", fitfunction@verbose, '\n')
 	print(fitfunction@result)
 	invisible(fitfunction)
 }

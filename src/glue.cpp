@@ -380,7 +380,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	omxInitialMatrixAlgebraCompute(globalState, NULL);
+	globalState->omxInitialMatrixAlgebraCompute(fc);
 	if (isErrorRaised()) {
 		Rf_error(Global->getBads());
 	}

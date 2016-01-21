@@ -48,13 +48,17 @@ struct populateLocation {
 
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
+	// Note: some overlap with FreeVarGroup::cacheDependencies
 	bool dependsOnParametersCache;    // Ignores free variable groups
+	bool dependsOnDefVarCache;
 	int joinKey;
 	struct omxExpectation *joinModel;
  public:
-	omxMatrix() : dependsOnParametersCache(false), joinKey(-1), joinModel(0) {};
+	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0) {};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
+	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
+	bool dependsOnDefinitionVariables() const { return dependsOnDefVarCache; };
 	void transposePopulate();
 	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);

@@ -601,6 +601,9 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 			if (sourceMatrix->dependsOnParameters()) {
 				setDependsOnParameters();
 			}
+			if (sourceMatrix->dependsOnDefinitionVariables()) {
+				setDependsOnDefinitionVariables();
+			}
 			if (pl.srcRow >= sourceMatrix->rows || pl.srcCol >= sourceMatrix->cols) {
 				// may not be properly dimensioned yet
 				continue;
