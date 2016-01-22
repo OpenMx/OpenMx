@@ -66,7 +66,7 @@ generateAlgebraList <- function(model) {
 	names(mNumbers) <- mNames
 	names(aNumbers) <- aNames
 	retval <- mapply(generateAlgebraHelper, model@algebras, joinModel, joinKey,
-			 MoreArgs=list(mNumbers, aNumbers), SIMPLIFY=FALSE, USE.NAMES=FALSE)
+			 MoreArgs=list(mNumbers, aNumbers), SIMPLIFY=FALSE, USE.NAMES=TRUE)
     return(retval)
 }
 

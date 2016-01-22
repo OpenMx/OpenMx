@@ -481,3 +481,6 @@ m3 <- mxModel(name='b', m2)
 omxCheckTrue(imxHasDefinitionVariable(m3))
 m4 <- mxModel(mxAlgebra(data.x1 %x% V, name='bob'), mxData(matrix(0, 1, 1), 'raw'))
 omxCheckTrue(imxHasDefinitionVariable(m4)) # algebra
+
+# ensure model$output is correctly populated
+omxCheckCloseEnough(dim(model$output$algebras[['model.test0']]), c(5,5), 1)
