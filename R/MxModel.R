@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setOldClass('package_version')
 setClass(Class = "MxModel",
 	representation = representation(
 		name = "character",
@@ -34,7 +35,8 @@ setClass(Class = "MxModel",
 		.newobjects = "logical",
 		.resetdata = "logical",
 	        .wasRun = "logical",
-	        .modifiedSinceRun = "logical"
+	    .modifiedSinceRun = "logical",
+	    .version = "package_version"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -60,6 +62,7 @@ setMethod("initialize", "MxModel",
 		.Object@.resetdata <- FALSE
 	        .Object@.wasRun <- FALSE
 	        .Object@.modifiedSinceRun <- FALSE
+		.Object@.version <- packageVersion("OpenMx")
 		.Object <- imxInitModel(.Object)
 		return(.Object)
 	}

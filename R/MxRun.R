@@ -18,6 +18,19 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
 		useOptimizer = TRUE){
 
+	if (.hasSlot(model, '.version')) {
+		mV <- model@.version
+		curV <- packageVersion('OpenMx')
+		if (curV$major != mV$major ||
+		    curV$minor != mV$minor) {
+			warning(paste0("You are using OpenMx version ", curV,
+				       " with a model created by OpenMx version ",
+				       mV, ". This may work fine (fingers crossed), but if you run into ",
+				       "trouble then please recreate your model with the ",
+				       "current version of OpenMx."))
+		}
+	}
+
 	if (is.null(intervals)) {
 		# OK
 	} else if (length(intervals) != 1 ||
