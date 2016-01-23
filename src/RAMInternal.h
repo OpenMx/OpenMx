@@ -37,6 +37,17 @@ namespace RelationalRAMExpectation {
 		static bool CompareWithModelStart(addr &i, int p1) { return i.modelStart < p1; };
 	};
 
+	struct Amatrix {
+		bool analyzed;
+		Eigen::SparseMatrix<double>      in;
+		Eigen::SparseLU< Eigen::SparseMatrix<double>,
+				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > solver;
+		Eigen::SparseMatrix<double>      out;
+		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+
+		Amatrix() : analyzed(false) {};
+	};
+
 	class state {
 	private:
 		struct omxExpectation *homeEx;
@@ -45,12 +56,7 @@ namespace RelationalRAMExpectation {
 		bool haveFilteredAmat;
 		Eigen::SparseMatrix<double>      depthTestA;
 		int AshallowDepth;
-		bool analyzedFullA;
 		double signA;
-		Eigen::SparseMatrix<double>      fullA;
-		Eigen::SparseLU< Eigen::SparseMatrix<double>,
-				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
-		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
@@ -62,12 +68,16 @@ namespace RelationalRAMExpectation {
 		std::vector<bool> latentFilter; // use to reduce the A matrix
 		SEXP obsNameVec;
 		SEXP varNameVec;
+		Amatrix regularA;
+		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
-		Eigen::SparseMatrix<double>      filteredA;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
+		void refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale);
+		void refreshUnitA(FitContext *fc, addr &a1, Amatrix &dest);
+		void invertAndFilterA(FitContext *fc, Amatrix &Amat);
 		void refreshModel(FitContext *fc);
 		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);

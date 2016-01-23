@@ -124,7 +124,7 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	if (oro->rram && oro->rram->fullCov.nonZeros()) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		SEXP m1 = Rcpp::wrap(rram->filteredA.transpose() * rram->fullMeans);
+		SEXP m1 = Rcpp::wrap(rram->regularA.out.transpose() * rram->fullMeans);
 		Rf_protect(m1);
 		Rf_setAttrib(m1, R_NamesSymbol, rram->obsNameVec);
 		out.add("mean", m1);
@@ -406,6 +406,54 @@ namespace RelationalRAMExpectation {
 
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
+	void state::refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale)
+	{
+		omxExpectation *expectation = a1.model;
+		omxData *data = expectation->data;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
+		for (size_t jx=0; jx < ram->between.size(); ++jx) {
+			omxMatrix *betA = ram->between[jx];
+			int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+			if (key == NA_INTEGER) continue;
+			omxData *data1 = betA->getJoinModel()->data;
+			int frow = data1->lookupRowOfKey(key);
+			int jOffset = data1->rowToOffsetMap[frow];
+			omxRecompute(betA, fc);
+			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
+			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+					double val = omxMatrixElement(betA, rx, cx);
+					if (val == 0.0) continue;
+					dest.in.coeffRef(jOffset + cx, a1.modelStart + rx) =
+						signA * val * scale;
+					//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
+				}
+			}
+		}
+	}
+
+	void state::refreshUnitA(FitContext *fc, addr &a1, Amatrix &dest)
+	{
+		omxExpectation *expectation = a1.model;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
+		EigenMatrixAdaptor eA(ram->A);
+		for (int cx=0; cx < eA.cols(); ++cx) {
+			for (int rx=0; rx < eA.rows(); ++rx) {
+				double val = eA(rx, cx);
+				if (val != 0) {
+					if (rx == cx) {
+						Rf_error("%s: nonzero diagonal entry in A matrix at %d",
+							 homeEx->name, 1+a1.modelStart+cx);
+					}
+					// can't use eA.block(..) -= because fullA must remain sparse
+					dest.in.coeffRef(a1.modelStart + cx, a1.modelStart + rx) = signA * val;
+				}
+			}
+		}
+	}
+
 	// 3rd visitor
 	void state::refreshModel(FitContext *fc)
 	{
@@ -417,44 +465,16 @@ namespace RelationalRAMExpectation {
 			data->handleDefinitionVarList(expectation->currentState, a1.row);
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->S, fc);
-			if (ram->M) omxRecompute(ram->M, fc);
 
-			if (!a1.rampartUnlinked) {
-				for (size_t jx=0; jx < ram->between.size(); ++jx) {
-					omxMatrix *betA = ram->between[jx];
-					int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
-					if (key == NA_INTEGER) continue;
-					omxData *data1 = betA->getJoinModel()->data;
-					int frow = data1->lookupRowOfKey(key);
-					int jOffset = data1->rowToOffsetMap[frow];
-					omxRecompute(betA, fc);
-					omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
-					for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-						for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-							double val = omxMatrixElement(betA, rx, cx);
-							if (val == 0.0) continue;
-							fullA.coeffRef(jOffset + cx, a1.modelStart + rx) =
-								signA * val * a1.rampartScale;
-							//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
-						}
-					}
-				}
+			refreshLevelTransitions(fc, a1, regularA, 1.0);
+			if (rampartUsage.size() && !a1.rampartUnlinked) {
+				refreshLevelTransitions(fc, a1, rampartA, a1.rampartScale);
 			}
 
 			if (!haveFilteredAmat) {
-				EigenMatrixAdaptor eA(ram->A);
-				for (int cx=0; cx < eA.cols(); ++cx) {
-					for (int rx=0; rx < eA.rows(); ++rx) {
-						double val = eA(rx, cx);
-						if (val != 0) {
-							if (rx == cx) {
-								Rf_error("%s: nonzero diagonal entry in A matrix at %d",
-									 homeEx->name, 1+a1.modelStart+cx);
-							}
-							// can't use eA.block(..) -= because fullA must remain sparse
-							fullA.coeffRef(a1.modelStart + cx, a1.modelStart + rx) = signA * val;
-						}
-					}
+				refreshUnitA(fc, a1, regularA);
+				if (rampartUsage.size()) {
+					refreshUnitA(fc, a1, rampartA);
 				}
 			}
 
@@ -468,6 +488,7 @@ namespace RelationalRAMExpectation {
 			}
 
 			if (ram->M) {
+				omxRecompute(ram->M, fc);
 				EigenVectorAdaptor eM(ram->M);
 				for (int mx=0; mx < eM.size(); ++mx) {
 					fullMeans[a1.modelStart + mx] = eM[mx];
@@ -883,18 +904,96 @@ namespace RelationalRAMExpectation {
 		omxFreeMatrix(smallCol);
 	}
 
+	void state::invertAndFilterA(FitContext *fc, Amatrix &Amat)
+	{
+		// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
+		if (AshallowDepth >= 0) {
+			Amat.in.makeCompressed();
+			Amat.out = Amat.in + ident;
+			for (int iter=1; iter <= AshallowDepth; ++iter) {
+				Amat.out = (Amat.out * Amat.in + ident).eval();
+				//{ Eigen::MatrixXd tmp = Amat.out; mxPrintMat("Amat.out", tmp); }
+			}
+		} else {
+			Amat.in += ident;
+			if (!Amat.analyzed) {
+				Amat.analyzed = true;
+				Amat.in.makeCompressed();
+				Amat.solver.analyzePattern(Amat.in);
+			}
+			Amat.solver.factorize(Amat.in);
+			if (Amat.solver.info() != Eigen::Success) {
+				Rf_error("%s: failed to invert flattened A matrix; %s",
+					 homeEx->name, Amat.solver.lastErrorMessage().c_str());
+			}
+
+			Amat.out = Amat.solver.solve(ident);
+			Amat.in -= ident;  // leave unchanged
+			//{ Eigen::MatrixXd tmp = Amat.out; mxPrintMat("Amat.out", tmp); }
+		}
+
+		const bool doubleCheck = true;
+		Eigen::MatrixXd denseA;
+		if (doubleCheck) {
+			denseA = Amat.out;
+		}
+
+		// We built A transposed so we can quickly filter columns
+		// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
+		Amat.out.uncompress();
+		Eigen::SparseMatrix<double>::Index *op = Amat.out.outerIndexPtr();
+		Eigen::SparseMatrix<double>::Index *nzp = Amat.out.innerNonZeroPtr();
+		int dx = 0;
+		for (int cx=0; cx < Amat.in.cols(); ++cx) {
+			if (!latentFilter[cx]) continue;
+			op[dx] = op[cx];
+			nzp[dx] = nzp[cx];
+			++dx;
+		}
+		op[dx] = op[Amat.in.cols()];
+		Amat.out.conservativeResize(Amat.in.rows(), dataVec.size());
+
+		if (doubleCheck) {
+			Eigen::MatrixXd denseAF;
+			denseAF.resize(Amat.in.rows(), dataVec.size());
+			int dx=0;
+			for (int cx=0; cx < Amat.in.cols(); ++cx) {
+				if (!latentFilter[cx]) continue;
+				denseAF.col(dx) = denseA.col(cx);
+				++dx;
+			}
+			if (dx != dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
+							   dx, dataVec.size());
+			Eigen::MatrixXd denseFilteredA = Amat.out;
+			if ((denseAF.array() != denseFilteredA.array()).any()) {
+				for (int rx=0; rx<denseAF.rows(); ++rx) {
+					for (int cx=0; cx<denseAF.cols(); ++cx) {
+						if (denseAF.coeff(rx,cx) != denseFilteredA.coeff(rx,cx)) {
+							mxLog("[%d,%d] %f != %f",
+							      rx, cx, denseAF.coeff(rx,cx), denseFilteredA.coeff(rx,cx));
+						}
+					}
+				}
+				Rf_error("stop");
+			}
+		}
+		//{ Eigen::MatrixXd tmp = Amat.out; mxPrintMat("Amat.out", tmp); }
+	}
+
 	void state::compute(FitContext *fc)
 	{
 		fullMeans.conservativeResize(latentFilter.size());
 
-		if (fullA.nonZeros() == 0) {
-			analyzedFullA = false;
-			fullA.resize(latentFilter.size(), latentFilter.size());
+		if (regularA.in.nonZeros() == 0) {
+			regularA.in.resize(latentFilter.size(), latentFilter.size());
+			if (rampartUsage.size()) {
+				rampartA.in.resize(latentFilter.size(), latentFilter.size());
+			}
 		}
 		fullS.conservativeResize(latentFilter.size(), latentFilter.size());
 
 		if (ident.nonZeros() == 0) {
-			ident.resize(fullA.rows(), fullA.rows());
+			ident.resize(regularA.in.rows(), regularA.in.rows());
 			ident.setIdentity();
 		}
 
@@ -904,85 +1003,20 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
 
 		if (!haveFilteredAmat) {
-			// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-			if (AshallowDepth >= 0) {
-				fullA.makeCompressed();
-				filteredA = fullA + ident;
-				for (int iter=1; iter <= AshallowDepth; ++iter) {
-					filteredA = (filteredA * fullA + ident).eval();
-					//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
-				}
-			} else {
-				fullA += ident;
-				if (!analyzedFullA) {
-					analyzedFullA = true;
-					fullA.makeCompressed();
-					Asolver.analyzePattern(fullA);
-				}
-				Asolver.factorize(fullA);
-				if (Asolver.info() != Eigen::Success) {
-					Rf_error("%s: failed to invert flattened A matrix; %s",
-						 homeEx->name, Asolver.lastErrorMessage().c_str());
-				}
-
-				filteredA = Asolver.solve(ident);
-				//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
+			invertAndFilterA(fc, regularA);
+			if (rampartUsage.size()) {
+				invertAndFilterA(fc, rampartA);
 			}
-
-			const bool doubleCheck = false;
-			Eigen::MatrixXd denseA;
-			if (doubleCheck) {
-				denseA = filteredA;
-			}
-
-			// We built A transposed so we can quickly filter columns
-			// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
-			filteredA.uncompress();
-			Eigen::SparseMatrix<double>::Index *op = filteredA.outerIndexPtr();
-			Eigen::SparseMatrix<double>::Index *nzp = filteredA.innerNonZeroPtr();
-			int dx = 0;
-			for (int cx=0; cx < fullA.cols(); ++cx) {
-				if (!latentFilter[cx]) continue;
-				op[dx] = op[cx];
-				nzp[dx] = nzp[cx];
-				++dx;
-			}
-			op[dx] = op[fullA.cols()];
-			filteredA.conservativeResize(fullA.rows(), dataVec.size());
-
-			if (doubleCheck) {
-				Eigen::MatrixXd denseAF;
-				denseAF.resize(fullA.rows(), dataVec.size());
-				int dx=0;
-				for (int cx=0; cx < fullA.cols(); ++cx) {
-					if (!latentFilter[cx]) continue;
-					denseAF.col(dx) = denseA.col(cx);
-					++dx;
-				}
-				if (dx != dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
-								   dx, dataVec.size());
-				Eigen::MatrixXd denseFilteredA = filteredA;
-				if ((denseAF.array() != denseFilteredA.array()).any()) {
-					for (int rx=0; rx<denseAF.rows(); ++rx) {
-						for (int cx=0; cx<denseAF.cols(); ++cx) {
-							if (denseAF.coeff(rx,cx) != denseFilteredA.coeff(rx,cx)) {
-								mxLog("[%d,%d] %f != %f",
-								      rx, cx, denseAF.coeff(rx,cx), denseFilteredA.coeff(rx,cx));
-							}
-						}
-					}
-					Rf_error("stop");
-				}
-			}
-
-			//{ Eigen::MatrixXd tmp = filteredA; mxPrintMat("filteredA", tmp); }
 			haveFilteredAmat = !AmatDependsOnParameters;
-
 		}
 		//mxPrintMat("S", fullS);
 		//Eigen::MatrixXd fullCovDense =
 
-		fullCov = (filteredA.transpose() * fullS.selfadjointView<Eigen::Lower>() * filteredA);
+		if (!rampartUsage.size()) {
+			fullCov = (regularA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * regularA.out);
+		} else {
+			fullCov = (rampartA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * rampartA.out);
+		}
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
 
@@ -996,11 +1030,16 @@ namespace RelationalRAMExpectation {
 		SEXP fmean = Rcpp::wrap(fullMeans);
 		dbg.add("mean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		Eigen::SparseMatrix<double> A = signA * fullA.transpose();
+		// output rampartA TODO
+		Eigen::SparseMatrix<double> A = signA * regularA.in.transpose();
 		dbg.add("A", Rcpp::wrap(A));
+		if (rampartUsage.size()) {
+			Eigen::SparseMatrix<double> rA = signA * rampartA.in.transpose();
+			dbg.add("rA", Rcpp::wrap(rA));
+		}
 		if (0) {
 			// regularize internal representation
-			Eigen::SparseMatrix<double> fAcopy = filteredA.transpose();
+			Eigen::SparseMatrix<double> fAcopy = regularA.out.transpose();
 			dbg.add("filteredA", Rcpp::wrap(fAcopy));
 		}
 		Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
