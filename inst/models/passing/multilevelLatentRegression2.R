@@ -111,7 +111,8 @@ ex <- rotated$expectation
 eo <- ex$output
 ed <- ex$debug
 print(ed$rampartUsage)
-print(ed$A)
+print(round(ed$A[1:20,1:20],2))
+print(round(ed$rA[1:20,1:20],2))
 print(ed$mean)
 
 #omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
