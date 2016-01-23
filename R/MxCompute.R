@@ -987,7 +987,8 @@ setClass(Class = "MxComputeNumericDeriv",
 	     iterations = "integer",
 	     verbose="integer",
 	     knownHessian="MxOptionalMatrix",
-	     checkGradient="logical"))
+	     checkGradient="logical",
+	 hessian="logical"))
 
 setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
@@ -1007,7 +1008,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 
 setMethod("initialize", "MxComputeNumericDeriv",
 	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian,
-		   checkGradient) {
+		   checkGradient, hessian) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -1018,6 +1019,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@verbose <- verbose
 		  .Object@knownHessian <- knownHessian
 		  .Object@checkGradient <- checkGradient
+		  .Object@hessian <- hessian
 		  .Object
 	  })
 
@@ -1060,6 +1062,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param verbose Level of debugging output.
 ##' @param knownHessian an optional matrix of known Hessian entries
 ##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
+##' @param hessian whether to estimate the Hessian
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
@@ -1082,7 +1085,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L,
-				  knownHessian=NULL, checkGradient=TRUE)
+				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1106,7 +1109,7 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 	}
 
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations,
-	    verbose, knownHessian, checkGradient)
+	    verbose, knownHessian, checkGradient, hessian)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="integer"),
@@ -1114,7 +1117,7 @@ setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="intege
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
 		  for (sl in c("fitfunction", "parallel", "stepSize", "iterations",
-			       "verbose", "knownHessian", 'checkGradient')) {
+			       "verbose", "knownHessian", 'checkGradient', 'hessian')) {
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {
 				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
