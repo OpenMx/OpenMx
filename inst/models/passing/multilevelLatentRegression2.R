@@ -30,13 +30,15 @@ createIndicators <- function(latentSkill, indicatorVariance) {
 	if (missing(indicatorVariance)) {
 		indicatorVariance <- rlnorm(numIndicators) / 8
 	}
-  ind <- matrix(NA, length(latentSkill), length(indicatorVariance))
-  for (ix in 1:length(latentSkill)) {
-    ind[ix,] <- sapply(indicatorVariance,
-                       function(sd) rnorm(1, mean=latentSkill[ix], sd=sd))
-  }
-  colnames(ind) <- paste0('i', 1:length(indicatorVariance))
-  as.data.frame(ind)
+	ind <- matrix(NA, length(latentSkill), length(indicatorVariance))
+	for (ix in 1:length(latentSkill)) {
+		ind[ix,] <- sapply(indicatorVariance,
+				   function(sd) rnorm(1, mean=latentSkill[ix], sd=sd))
+	}
+	# per indicator mean
+#	ind <- t(t(ind) + runif(length(indicatorVariance),min=-1,max=1))
+	colnames(ind) <- paste0('i', 1:length(indicatorVariance))
+	as.data.frame(ind)
 }
 
 districtData <- cbind(districtData, createIndicators(districtData$skill))
@@ -47,7 +49,7 @@ studentData <- cbind(studentData, createIndicators(studentData$skill))
 #studentData$i4[runif(nrow(studentData)) > .8] <- NA
 #teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
 
-mkSingleFactor <- function(latent) {
+mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
 		manifestVars = paste0('i', 1:numIndicators),
 		latentVars = c("skill",latent),
@@ -72,37 +74,35 @@ relabel <- function(m, prefix) {
   mxModel(m, name=prefix)
 }
 
-districtData$co1 <- runif(nrow(districtData))
+dMod <- mxModel(relabel(mkSingleFactor(), "district"),
+		mxData(type="raw", observed=districtData, primaryKey="districtID", sort=FALSE))
 
-dMod <- mxModel(relabel(mkSingleFactor('co1Effect'), "district"),
-		mxData(type="raw", observed=districtData, primaryKey="districtID", sort=FALSE),
-		mxPath('one', 'co1Effect', labels='data.co1', free=FALSE))
-
-schoolData$ci1 <- runif(nrow(schoolData))
-
-schMod <- mxModel(relabel(mkSingleFactor('ci1Effect'), "school"), dMod,
+schMod <- mxModel(relabel(mkSingleFactor(), "school"), dMod,
 		  mxData(type="raw", observed=schoolData, primaryKey="schoolID", sort=FALSE),
-		  mxPath('district.skill', 'skill', joinKey="districtID", values=runif(1)),
-		  mxPath('district.co1Effect', 'i2', joinKey="districtID", free=FALSE, values=1),
-		  mxPath('one', paste0('i', 1:numIndicators), values=runif(1)),
-		  mxPath('one', 'ci1Effect', labels='data.ci1', free=FALSE),
-		  mxPath('ci1Effect', 'i1', free=TRUE, values=1))
+		  mxPath('district.skill', 'skill', joinKey="districtID", values=runif(1)))
 
+tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
+		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
+		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
+
+sMod <- mxModel(relabel(singleFactor, "student"), tMod,
+		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
+		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
 
 if (1) {
-schMod$expectation$rampart <- 0L
-square <- mxRun(mxModel(schMod,
+sMod$expectation$rampart <- 0L
+square <- mxRun(mxModel(sMod,
 		      mxComputeSequence(list(
 			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE),
+			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
 			  mxComputeReportDeriv()
 		      ))))
 
-schMod$expectation$rampart <- 1L
-rotated <- mxRun(mxModel(schMod,
+sMod$expectation$rampart <- 1L
+rotated <- mxRun(mxModel(sMod,
 		      mxComputeSequence(list(
 			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE),
+			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
 			  mxComputeReportDeriv(),
 			  mxComputeReportExpectation()
 		      ))))
@@ -113,7 +113,7 @@ ed <- ex$debug
 print(ed$rampartUsage)
 print(round(ed$A[1:20,1:20],2))
 print(round(ed$rA[1:20,1:20],2))
-print(ed$mean)
+#print(ed$mean)
 
 #omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
 omxCheckCloseEnough(rotated$output$fit, square$output$fit, 1e-8)
@@ -123,14 +123,6 @@ omxCheckCloseEnough(rotated$output$hessian, square$output$hessian, 1e-1)
 }
 
 
-
-tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
-		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
-		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
-
-sMod <- mxModel(relabel(singleFactor, "student"), tMod,
-		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
-		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
 
 if (0) {
 	print(ed$layout[,c('model','key','numKids','numJoins','parent1','fk1','rampartScale')])
