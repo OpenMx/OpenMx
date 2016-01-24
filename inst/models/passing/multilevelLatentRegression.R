@@ -124,7 +124,27 @@ map$free['studentSkill', 'teacherSkill'] <- TRUE
 map$labels['studentSkill', 'teacherSkill'] <- 'regr'
 container$student$Z <- map
 
-#container$student$expectation$rampart <- TRUE
+container$student$expectation$rampart <- 0L
+pt1 <- mxRun(mxModel(container,
+			 mxComputeSequence(list(
+			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
+			     mxComputeReportDeriv(),
+			     mxComputeReportExpectation()))))
+
+container$student$expectation$rampart <- as.integer(NA)
+pt2 <- mxRun(mxModel(container,
+			 mxComputeSequence(list(
+			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
+			     mxComputeReportDeriv(),
+			     mxComputeReportExpectation()))))
+
+omxCheckCloseEnough(length(pt1$student$expectation$debug$rampartUsage), 0, .5)
+omxCheckCloseEnough(pt2$student$expectation$debug$rampartUsage, 6, .5)
+
+omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
+omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)
 
 if (1) {
   container <- mxRun(container)
