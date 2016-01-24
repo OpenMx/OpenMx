@@ -54,7 +54,7 @@ namespace RelationalRAMExpectation {
 		omxMatrix *smallCol;
 		bool AmatDependsOnParameters;
 		bool haveFilteredAmat;
-		Eigen::SparseMatrix<double>      depthTestA;
+		Amatrix testA;
 		int AshallowDepth;
 		double signA;
 		Eigen::SparseMatrix<double>      ident;
@@ -77,10 +77,10 @@ namespace RelationalRAMExpectation {
 	private:
 		void refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale);
 		void refreshUnitA(FitContext *fc, addr &a1, Amatrix &dest);
-		void invertAndFilterA(FitContext *fc, Amatrix &Amat);
+		void invertAndFilterA(Amatrix &Amat);
 		void refreshModel(FitContext *fc);
 		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
-		void prepOneRow(omxExpectation *expectation, int row_or_key, int &lx, int &dx);
+		void examineModel();
 		int rampartRotate();
 		template <typename T> void oertzenRotateCompound(std::vector<T> &t1);
 	public:
@@ -137,6 +137,7 @@ class omxRAMExpectation {
 	int verbose;
 	int numIters;
 	int rampart;
+	bool rampartEnabled() { return rampart == NA_INTEGER || rampart > 0; };
 	double logDetObserved;
 	double n;
 	double *work;
