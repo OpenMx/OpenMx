@@ -66,10 +66,10 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 setMethod("qualifyNames", signature("MxExpectationRAM"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace)
-		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace)
-		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace)
-		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace)
+		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace, TRUE)
+		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace, TRUE)
+		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace, TRUE)
+		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace, TRUE)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
 					     imxConvertIdentifier, modelname, namespace)
