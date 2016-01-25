@@ -24,7 +24,7 @@ require(nlme)
 # This script is used to test the multilevel long format
 # functionality using definition variables as indices.
 totalOccasions <- 100
-totalSubjects <- 10
+totalSubjects <- 10L
 set.seed(42) # repeatibility
 tID <- rep(1:totalSubjects, each=totalOccasions)
 trueX <- rep(rnorm(totalOccasions, mean=0, sd=2), each=totalSubjects) +
@@ -38,7 +38,7 @@ summary(tDataFrame)
 manifestVars <- c("X", "Y")
 numSubjects <- length(unique(tDataFrame$ID))
 
-
+# Estimates the sum of the random and fixed effects
 multilevelModel2 <- mxModel("Multilevel_2",
     mxMatrix("Full", nrow=numSubjects, ncol=2,
         values=c(.2,0),
@@ -85,7 +85,7 @@ multilevelModel2 <- mxModel("Multilevel_2",
 )
 
 # ----------------------------------
-# Fit the  model and examine the summary results.
+# Fit the model and examine the summary results.
 
 multilevelModel2Fit <- mxRun(multilevelModel2)
 
@@ -106,3 +106,41 @@ omxCheckCloseEnough(mean(est[1:numSubjects]),
 
 omxCheckCloseEnough(mean(est[(1:numSubjects) + (1*numSubjects)]), 
     lmeOut$coef$fixed[1], 0.001)
+
+# ----------------------------------
+# An OpenMx equivalent to the mixed model
+
+perID <- mxModel("perID", type="RAM", latentVars=c('int', 'slope'),
+		 mxData(data.frame(ID=1L:totalSubjects), "raw", primaryKey="ID"),
+		 mxPath(c('int', 'slope'),c('int', 'slope'),'unique.pairs',
+			arrows=2,values=c(1,0,1)))
+
+occa <- mxModel("occa", type="RAM", perID, manifestVars="Y", latentVars="lX",
+		mxData(tDataFrame, 'raw', sort=FALSE),
+		mxPath('Y', arrows=2, values=1),
+		mxPath('one', 'Y'),
+		mxPath('one', 'lX', labels='data.X', free=FALSE),
+		mxPath('lX', 'Y'),
+		mxPath('perID.int', 'Y', values=1, free=FALSE, joinKey='ID'),
+		mxPath('perID.slope', 'Y', labels='data.X', free=FALSE, joinKey='ID'))
+
+if (0) {
+	require(lme4)
+	lmer1 <- lmer(Y~X + (X | ID), data=tDataFrame, REML=FALSE)
+	pt1 <- occa
+	#pt1$perID$cholS$values[,] <- chol(VarCorr(lmer1)$ID)
+	pt1$perID$S$values[,] <- VarCorr(lmer1)$ID
+	pt1$A$values['Y', 'lX'] <- fixef(lmer1)['X']
+	pt1$M$values[,'Y'] <- fixef(lmer1)['(Intercept)']
+	pt1$S$values['Y', 'Y'] <- getME(lmer1, "sigma")^2
+
+	pt1 <- mxRun(mxModel(pt1, mxComputeSequence(list(
+	    mxComputeOnce('fitfunction', 'fit'),
+	    mxComputeReportExpectation()))))
+
+	omxCheckCloseEnough(logLik(pt1), logLik(lmer1), 1e-6)
+}
+
+occa <- mxRun(occa)
+# a tad better than lme, same as lmer
+omxCheckCloseEnough(occa$output$fit, -1725.954, 1e-2)
