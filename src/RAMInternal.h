@@ -90,6 +90,7 @@ namespace RelationalRAMExpectation {
 		void exportInternalState(MxRList &dbg);
 		int verbose() const;
 		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
+		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 	};
 
 	template <typename T1, typename T2>

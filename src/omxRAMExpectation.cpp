@@ -1103,7 +1103,6 @@ namespace RelationalRAMExpectation {
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("key")=key,
 							  Rcpp::Named("numKids")=numKids,
-							  Rcpp::Named("HEV")=HEV,
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
