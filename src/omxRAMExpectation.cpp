@@ -206,71 +206,6 @@ struct IsZeroManifestCovariance {
 	};
 };
 		
-template <typename T>
-static bool hasSingleVarianceParameter(omxRAMExpectation *ram, Eigen::ArrayBase<T> &manifestMask, int verbose)
-{
-	bool singleVariance = true;
-	if (!ram->S->dependsOnParameters()) return true;
-
-	// overly conservative; ignores freeset
-	int sMatrixNum = ~ram->S->matrixNumber;
-	FreeVarGroup *fvg = Global->findVarGroup(FREEVARGROUP_ALL);
-	omxFreeVar *variance = NULL;
-	for (size_t vx=0; vx < fvg->vars.size() && singleVariance; ++vx) {
-		omxFreeVar *v1 = fvg->vars[vx];
-		for (size_t lx=0; lx < v1->locations.size() && singleVariance; ++lx) {
-			omxFreeVarLocation &loc = v1->locations[lx];
-			if (loc.matrix == sMatrixNum &&
-			    manifestMask[loc.row] && manifestMask[loc.col]) {
-				if (loc.row != loc.col) {
-					singleVariance = false;
-					if (verbose >= 1) {
-						mxLog("%s: manifest covariance parameter %s between"
-						      " %d and %d -> !HEV",
-						      ram->S->name(), v1->name, loc.row, loc.col);
-					}
-				}
-				if (!variance) variance = v1;
-				if (v1 != variance) {
-					singleVariance = false;
-					if (verbose >= 1) {
-						mxLog("%s: more than 1 variance parameter (%s and %s) -> !HEV",
-						      ram->S->name(), v1->name, variance->name);
-					}
-				}
-			}
-		}
-	}
-	return singleVariance;
-}
-
-bool omxRAMExpectation::isHEV()
-{
-	if (determinedHEV) return HEV;
-	determinedHEV = true;
-	
-	if (F->rows == 0) {
-		HEV = true;   // no manifest variables
-	} else if (!S->algebra && !S->hasPopulateSubstitutions()) {
-		EigenMatrixAdaptor eF(F);
-		EigenMatrixAdaptor eS(S);
-
-		Eigen::Array<bool, Eigen::Dynamic, 1> manifestMask =
-			eF.array().colwise().maxCoeff() > 0;
-		IsZeroManifestCovariance izmc(manifestMask);
-		eS.visit(izmc);
-		if (!izmc.ok && verbose >= 1) mxLog("%s: nonzero manifest covariance -> !HEV", S->name());
-		if (izmc.ok && hasSingleVarianceParameter(this, manifestMask, verbose)) {
-			HEV = true;
-			if (verbose >= 1) mxLog("%s has homogeneous error variance", S->name());
-		}
-
-
-	}
-
-	return HEV;
-}
-
 void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
@@ -407,6 +342,7 @@ namespace RelationalRAMExpectation {
 
 	void state::refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale)
 	{
+		if (scale == 0.0) return;
 		omxExpectation *expectation = a1.model;
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -466,7 +402,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->S, fc);
 
 			refreshLevelTransitions(fc, a1, regularA, 1.0);
-			if (rampartUsage.size() && !a1.rampartUnlinked) {
+			if (rampartUsage.size()) {
 				refreshLevelTransitions(fc, a1, rampartA, a1.rampartScale);
 			}
 
@@ -505,8 +441,6 @@ namespace RelationalRAMExpectation {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		struct addr a1;
-		a1.HEV = true;
-		a1.rampartUnlinked = false;
 		a1.rampartScale = 1.0;
 		a1.parent1 = NA_INTEGER;
 		a1.fk1 = NA_INTEGER;
@@ -686,10 +620,6 @@ namespace RelationalRAMExpectation {
 				return strcmp(lhs->model->name, rhs->model->name) < 0;
 			if (lhs->numObs() != rhs->numObs())
 				return lhs->numObs() < rhs->numObs();
-
-			// It may be feasible to ignore differences in the number
-			// of latent variables. However, we do need the number
-			// of variables to match if we're going to use latentFilter.
 			if (lhs->numVars() != rhs->numVars())
 				return lhs->numVars() < rhs->numVars();
 
@@ -706,7 +636,6 @@ namespace RelationalRAMExpectation {
 			}
 			return false;
 		}
-
 	};
 
 	struct RampartTodoCompare : RampartCompareLib {
@@ -728,13 +657,15 @@ namespace RelationalRAMExpectation {
 		{
 			const addr *lhsObj = &st->layout[lhs];
 			const addr *rhsObj = &st->layout[rhs];
-			return cmp1(lhsObj, rhsObj);
+			if (cmp1(lhsObj, rhsObj)) return true;
+			return lhs < rhs;
 		}
 	};
 
 	template <typename T>
-	void state::oertzenRotateCompound(std::vector<T> &t1)
+	void state::oertzenRotate(std::vector<T> &t1)
 	{
+		// get covariance and sort by mahalanobis distance TODO
 		addr &specimen = layout[ t1[0] ];
 		for (int ox=0; ox < specimen.numObs(); ++ox) {
 			std::vector<int> tmp;
@@ -751,11 +682,11 @@ namespace RelationalRAMExpectation {
 				addr &a1 = layout[ t1[tx] ];
 				t2.push_back(a1.clump[cx]);
 			}
-			oertzenRotateCompound(t2);
+			oertzenRotate(t2);
 		}
 	}
 
-	int state::rampartRotate()
+	int state::rampartRotate(int level)
 	{
 		typedef std::map< addr*, std::vector<int>, RampartTodoCompare > RampartMap;
 		RampartMap todo(RampartTodoCompare(this));
@@ -763,7 +694,7 @@ namespace RelationalRAMExpectation {
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr& a1 = layout[ax];
-			if (!a1.HEV || a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
+			if (a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
 
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			omxMatrix *b1 = ram->between[0];
@@ -774,19 +705,41 @@ namespace RelationalRAMExpectation {
 		for (RampartMap::iterator it = todo.begin(); it != todo.end(); ++it) {
 			std::vector<int> &t1 = it->second;
 			if (t1.size() <= 1) continue;
-			// get covariance and sort by mahalanobis distance TODO
 
-			if (maxRotationUnits < t1.size())
-				maxRotationUnits = t1.size();
-			oertzenRotateCompound(t1);
-			addr &specimen = layout[ t1[0] ];
-			specimen.rampartScale = sqrt(double(t1.size()));
-			layout[specimen.parent1].numKids -= t1.size();
-			layout[specimen.parent1].clump.push_back(t1[0]);
-			for (size_t ux=1; ux < t1.size(); ++ux) {
-				addr &a1 = layout[ t1[ux] ];
-				a1.rampartUnlinked = true;
-				a1.numJoins = 0;
+			if (true) {
+				if (maxRotationUnits < t1.size())
+					maxRotationUnits = t1.size();
+				std::string buf = "rotate units";
+				oertzenRotate(t1);
+				addr &specimen = layout[ t1[0] ];
+				specimen.rampartScale = sqrt(double(t1.size()));
+				if (false) {
+				for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
+					addr &a1 = layout[ specimen.clump[cx] ];
+					double orig = a1.rampartScale*a1.rampartScale;
+					a1.rampartScale = sqrt(orig / double(t1.size())) * sqrt(orig);
+				}
+				}
+				layout[specimen.parent1].numKids -= t1.size();
+				layout[specimen.parent1].clump.push_back(t1[0]);
+				for (size_t ux=1; ux < t1.size(); ++ux) {
+					addr &a1 = layout[ t1[ux] ];
+					a1.rampartScale = 0;
+					a1.numJoins = 0;
+					buf += string_snprintf(" %d", 1+t1[ux]);
+				}
+				buf += string_snprintf(" -> %d\n", 1+t1[0]);
+				//mxLogBig(buf);
+			} else {
+				// Don't rotate, just clump units together with parent.
+				addr &specimen = layout[ t1[0] ];
+				layout[specimen.parent1].numKids -= t1.size();
+				layout[specimen.parent1].clump.insert(layout[specimen.parent1].clump.end(),
+								      t1.begin(), t1.end());
+				for (size_t ux=0; ux < t1.size(); ++ux) {
+					addr &a1 = layout[ t1[ux] ];
+					a1.numJoins = 0;
+				}
 			}
 			unlinked += t1.size() - 1;
 		}
@@ -886,10 +839,7 @@ namespace RelationalRAMExpectation {
 			for (size_t ax=0; ax < layout.size(); ++ax) {
 				addr &a1 = layout[ax];
 				omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
-				if (!ram->isHEV()) {
-					a1.HEV = false;
-					continue;
-				}
+
 				if (0) {
 					Eigen::ArrayXd sdiag = fullS.diagonal();
 					for (int cx=a1.obsStart; cx <= a1.obsEnd; ++cx) {
@@ -900,7 +850,6 @@ namespace RelationalRAMExpectation {
 							mxLog("%s contributes variance to %s",
 							      CHAR(STRING_ELT(varNameVec, vx)),
 							      CHAR(STRING_ELT(obsNameVec, cx)));
-							a1.HEV = false;
 						}
 					}
 				}
@@ -908,7 +857,8 @@ namespace RelationalRAMExpectation {
 
 			int maxIter = ram->rampart;
 			int unlinked = 0;
-			while (int more = rampartRotate()) {
+			int level = -1;
+			while (int more = rampartRotate(++level)) {
 				rampartUsage.push_back(more);
 				unlinked += more;
 				if (--maxIter == 0) break;
@@ -918,6 +868,14 @@ namespace RelationalRAMExpectation {
 			}
 		}
 		fullS.setZero();
+
+		ProtectedSEXP RscaleOverride(R_do_slot(expectation->rObj, Rf_install("scaleOverride")));
+		if (Rf_length(RscaleOverride)) {
+			double *override = REAL(RscaleOverride);
+			for (int ox=0; ox < Rf_length(RscaleOverride); ox += 2) {
+				layout[ override[ox] - 1 ].rampartScale = override[ox+1];
+			}
+		}
 	}
 
 	state::~state()
@@ -1033,6 +991,7 @@ namespace RelationalRAMExpectation {
 		} else {
 			fullCov = (rampartA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * rampartA.out);
 		}
+		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
 
@@ -1046,7 +1005,6 @@ namespace RelationalRAMExpectation {
 		SEXP fmean = Rcpp::wrap(fullMeans);
 		dbg.add("mean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		// output rampartA TODO
 		Eigen::SparseMatrix<double> A = signA * regularA.in.transpose();
 		dbg.add("A", Rcpp::wrap(A));
 		if (rampartUsage.size()) {
@@ -1066,13 +1024,13 @@ namespace RelationalRAMExpectation {
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
+		dbg.add("resid", Rcpp::wrap(resid));
 
-		SEXP modelName, key, numJoins, numKids, HEV, parent1, fk1,
+		SEXP modelName, key, numJoins, numKids, parent1, fk1,
 			startLoc, endLoc, obsStart, obsEnd, rscale;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(HEV = Rf_allocVector(LGLSXP, layout.size()));
 		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
@@ -1085,7 +1043,6 @@ namespace RelationalRAMExpectation {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(key)[mx] = layout[mx].key;
 			INTEGER(numKids)[mx] = layout[mx].numKids;
-			LOGICAL(HEV)[mx] = layout[mx].HEV;
 			INTEGER(numJoins)[mx] = layout[mx].numJoins;
 			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
 			INTEGER(fk1)[mx] = layout[mx].fk1;
@@ -1103,7 +1060,6 @@ namespace RelationalRAMExpectation {
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("key")=key,
 							  Rcpp::Named("numKids")=numKids,
-							  Rcpp::Named("HEV")=HEV,
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,

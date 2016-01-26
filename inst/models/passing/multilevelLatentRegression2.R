@@ -4,16 +4,20 @@ set.seed(1)
 
 numIndicators <- 4
 
-numDistricts <- 2
+numDistricts <- 1
 numSchools <- 2
-numTeachers <- 3
+numTeachers <- 2
 numStudents <- 4
+
+# some combinations produce NaN -- maybe investigate that
 
 genData <- function(upper, fanout, keyname) {
 	lowerData <- NULL
 	for (sx in 1:nrow(upper)) {
+#		extraFanout <- sample.int(fanout, 1)
+		extraFanout <- 0L
 		lowerData <- rbind(lowerData, data.frame(
-		    upper=upper[sx,1], skill=rnorm(fanout + sample.int(fanout, 1), mean=upper[sx, 'skill'])))
+		    upper=upper[sx,1], skill=rnorm(fanout + extraFanout, mean=upper[sx, 'skill'])))
 	}
 	colnames(lowerData)[[1]] <- colnames(upper)[[1]]
 	lowerData[[keyname]] <- 1:nrow(lowerData)
@@ -46,24 +50,21 @@ schoolData <- cbind(schoolData, createIndicators(schoolData$skill))
 teacherData <- cbind(teacherData, createIndicators(teacherData$skill))
 studentData <- cbind(studentData, createIndicators(studentData$skill))
 
-studentData$i4[runif(nrow(studentData)) > .8] <- NA
-teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
+#studentData$i4[runif(nrow(studentData)) > .8] <- NA
+#teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
 
 mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
 		manifestVars = paste0('i', 1:numIndicators),
 		latentVars = c("skill",latent),
 		mxPath('skill', arrows=2, labels="Var", values=rlnorm(1), lbound=.01),
-#		mxPath(paste0('i',1:numIndicators), arrows=2,
-#		       values=rlnorm(1), labels="Err", lbound=.01),
-		mxPath(paste0('i',1:numIndicators), arrows=2, values=1, free=FALSE),
-		mxPath("one", paste0('i',1:numIndicators), free=FALSE, values=0),
+		mxPath(paste0('i',1:numIndicators), arrows=2,
+		       values=rlnorm(1), labels="Err", lbound=.01),
+		mxPath("one", paste0('i',1:numIndicators), free=TRUE, values=rnorm(4)),
 		mxPath('skill', paste0('i',1:numIndicators),
-		       values=1, free=FALSE)
-#		mxPath('skill', paste0('i',1:numIndicators),
-#		       labels=paste0('L',1:numIndicators), lbound=0,
-#		       values=runif(numIndicators-1, .5,1.5),
-#		       free=c(FALSE, rep(TRUE,numIndicators-1)))
+		       labels=paste0('L',1:numIndicators), lbound=0,
+		       values=c(1, runif(numIndicators-1, .5,1.5)),
+		       free=c(FALSE, rep(TRUE,numIndicators-1)))
 		)
 }
 
@@ -85,75 +86,42 @@ schMod <- mxModel(relabel(mkSingleFactor(), "school"), dMod,
 		  mxData(type="raw", observed=schoolData, primaryKey="schoolID", sort=FALSE),
 		  mxPath('district.skill', 'skill', joinKey="districtID", values=runif(1)))
 
-if (1) {
-schMod$expectation$rampart <- 0L
-square <- mxRun(mxModel(schMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv()
-		      ))))
-
-schMod$expectation$rampart <- 1L
-rotated <- mxRun(mxModel(schMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv(),
-			  mxComputeReportExpectation()
-		      ))))
-
-ex <- rotated$expectation
-eo <- ex$output
-ed <- ex$debug
-print(ed$rampartUsage)
-#print(round(ed$A[1:20,1:20],2))
-#print(round(ed$rA[1:20,1:20],2))
-#print(ed$mean)
-
-#omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
-omxCheckCloseEnough(rotated$output$fit, square$output$fit, 1e-8)
-round(rotated$output$gradient - square$output$gradient, 2)
-omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-5)
-}
-
-stop("here")
-
 tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
 		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
 
 if (1) {
-tMod$expectation$rampart <- 0L
-square <- mxRun(mxModel(tMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv()
-		      ))))
+	options(width=120)
+	plan <- mxComputeSequence(list(
+	    mxComputeOnce('fitfunction', 'fit'),
+	    mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
+	    mxComputeReportDeriv(),
+	    mxComputeReportExpectation()
+	))
 
-tMod$expectation$rampart <- 1L
-rotated <- mxRun(mxModel(tMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv(),
-			  mxComputeReportExpectation()
-		      ))))
+	tMod$expectation$rampart <- 0L
+	square <- mxRun(mxModel(tMod, plan))
 
-ex <- rotated$expectation
-eo <- ex$output
-ed <- ex$debug
-print(ed$rampartUsage)
-print(round(ed$A[1:20,1:20],2))
-print(round(ed$rA[1:20,1:20],2))
-#print(ed$mean)
+	tMod$expectation$rampart <- 2L
+#	tMod$expectation$scaleOverride <- c(6, 1)
+	rotated <- mxRun(mxModel(tMod, plan))
+	
+	ex <- rotated$expectation
+	eo <- ex$output
+	ed <- ex$debug
+	print(ed$rampartUsage)
+	#print(round(ed$A[1:20,1:20],2))
+	#print(round(ed$rA[1:20,1:20],2))
+					#print(ed$mean)
 
-#omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
-omxCheckCloseEnough(rotated$output$fit, square$output$fit, 1e-8)
-round(rotated$output$gradient - square$output$gradient, 2)
-omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-5)
+					#omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
+	print(abs(rotated$output$fit - square$output$fit))
+	print(max(abs(rotated$output$gradient - square$output$gradient)))
+	print(ed$layout)
+	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-5)
 }
+
+stop("here") #---------------------------------------------------------
 
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),

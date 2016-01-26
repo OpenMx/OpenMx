@@ -14,19 +14,21 @@
 namespace RelationalRAMExpectation {
 	struct addr {
 		omxExpectation *model;
-		bool HEV;
 		int row;     // to load definition variables (never the key)
 		int numKids;
 		int key;
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
+
+		// clump names indexes into the layout for models that
+		// are considered a compound component of this model.
 		std::vector<int> clump;
+
 		int modelStart, modelEnd;  //both latent and obs
 		int numVars() const { return 1 + modelEnd - modelStart; }
 		int obsStart, obsEnd;
 		int numObs() const { return 1 + obsEnd - obsStart; }
-		bool rampartUnlinked;
 		double rampartScale;
 
 		std::string modelName() const {
@@ -72,6 +74,7 @@ namespace RelationalRAMExpectation {
 		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
+		Eigen::VectorXd resid;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
@@ -81,8 +84,8 @@ namespace RelationalRAMExpectation {
 		void refreshModel(FitContext *fc);
 		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void examineModel();
-		int rampartRotate();
-		template <typename T> void oertzenRotateCompound(std::vector<T> &t1);
+		int rampartRotate(int level);
+		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
 		void compute(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
@@ -90,6 +93,7 @@ namespace RelationalRAMExpectation {
 		void exportInternalState(MxRList &dbg);
 		int verbose() const;
 		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
+		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 	};
 
 	template <typename T1, typename T2>
@@ -108,27 +112,31 @@ namespace RelationalRAMExpectation {
 	template <typename T>
 	void state::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
 	{
+		// TODO better to rotate inplace?
 		Eigen::VectorXd obsIn(maxRotationUnits);
 		Eigen::VectorXd obsOut(maxRotationUnits);
+		//std::string buf;
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
+			//buf += "rotate";
 			const std::vector<int> &r1 = rotationPlan[rx];
 			for (size_t ox=0; ox < r1.size(); ++ox) {
 				obsIn[ox] = resid[r1[ox]];
+				//buf += string_snprintf(" %d", 1+ r1[ox]);
 			}
 			oertzenRotate1(r1.size(), obsIn, obsOut);
 			for (size_t ox=0; ox < r1.size(); ++ox) {
 				resid[r1[ox]] = obsOut[ox];
 			}
+			//buf += "\n";
 		}
+		//if (buf.size()) mxLogBig(buf);
 	}
 };
 
 class omxRAMExpectation {
-	bool determinedHEV;
-	bool HEV;    // homogeneous error variance
  public:
 
-	omxRAMExpectation() : determinedHEV(false), HEV(false) {};
+	omxRAMExpectation() {};
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
@@ -147,7 +155,6 @@ class omxRAMExpectation {
 	RelationalRAMExpectation::state *rram;
 
 	void ensureTrivialF();
-	bool isHEV();
 };
 
 namespace RelationalRAMExpectation {
