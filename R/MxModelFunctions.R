@@ -16,7 +16,7 @@
 
 extractJoinModel <- function(model, matList) {
 	if (length(matList) == 0) return(NULL)
-	rawJoinModel <- sapply(matList, function(x) x@joinModel)
+	rawJoinModel <- sapply(matList, function(x) ifelse(.hasSlot(x, 'joinModel'), x@joinModel, NA))
 	joinModel <- match(paste0(rawJoinModel, imxSeparatorChar, 'expectation'),
 			   names(model@expectations))
 	mismatch <- !is.na(rawJoinModel) & is.na(joinModel)
@@ -31,7 +31,7 @@ extractJoinModel <- function(model, matList) {
 
 extractJoinKey <- function(model, matList) {
 	sapply(matList, function(x) {
-		if (is.na(x@joinKey)) return(NA_integer_)
+		if (!.hasSlot(x, 'joinKey') || is.na(x@joinKey)) return(NA_integer_)
 		modelName <- unlist(strsplit(x@name, imxSeparatorChar, fixed = TRUE))[1]
 		dataName <- paste0(modelName, imxSeparatorChar, 'data')
 		data <- model@datasets[[ dataName ]]
