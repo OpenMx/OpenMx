@@ -32,8 +32,7 @@ setClass(Class = "MxExpectationRAM",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
 	    verbose = "integer",
-	    rampart = "integer",
-	    scaleOverride = "MxOptionalNumeric"
+	    rampart = "integer"
 	),
 	contains = "BaseExpectationNormal")
 
