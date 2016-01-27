@@ -257,9 +257,9 @@ namespace FellnerFitFunction {
 			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));
 			st->verbose = Rf_asInteger(tmp) + OMX_DEBUG;
 		}
-		ProtectedSEXP Rcr(R_do_slot(oo->rObj, Rf_install("commuteRotation")));
+		ProtectedSEXP Rcr(R_do_slot(oo->rObj, Rf_install(".commuteRotation")));
 		st->commuteRotation = Rf_asLogical(Rcr);
-		ProtectedSEXP Rwms(R_do_slot(oo->rObj, Rf_install("wrongMeanStructure")));
+		ProtectedSEXP Rwms(R_do_slot(oo->rObj, Rf_install(".wrongMeanStructure")));
 		st->wrongMeanStructure = Rf_asLogical(Rwms);
 		//mxLog("commuteRotation %d wrongMeanStructure %d", st->commuteRotation, st->wrongMeanStructure);
 	}

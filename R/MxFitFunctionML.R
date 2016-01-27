@@ -18,8 +18,8 @@ setClass(Class = "MxFitFunctionML",
 	 contains = "MxBaseFitFunction",
 	 representation = representation(
 	     fellner = "logical",
-	     commuteRotation = "logical",
-	     wrongMeanStructure = "logical",
+	     .commuteRotation = "logical",
+	     .wrongMeanStructure = "logical",
 	     verbose = "integer"),
 	 )
 
@@ -30,8 +30,8 @@ setMethod("initialize", "MxFitFunctionML",
 		.Object@rowDiagnostics <- rowDiagnostics
 		.Object@fellner <- fellner
 		.Object@verbose <- verbose
-		.Object@wrongMeanStructure <- FALSE
-		.Object@commuteRotation <- TRUE
+		.Object@.wrongMeanStructure <- FALSE
+		.Object@.commuteRotation <- TRUE
 		return(.Object)
 	}
 )

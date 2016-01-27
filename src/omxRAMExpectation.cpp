@@ -865,14 +865,6 @@ namespace RelationalRAMExpectation {
 			}
 		}
 		fullS.setZero();
-
-		ProtectedSEXP RscaleOverride(R_do_slot(expectation->rObj, Rf_install("scaleOverride")));
-		if (Rf_length(RscaleOverride)) {
-			double *override = REAL(RscaleOverride);
-			for (int ox=0; ox < Rf_length(RscaleOverride); ox += 2) {
-				layout[ override[ox] - 1 ].rampartScale = override[ox+1];
-			}
-		}
 	}
 
 	state::~state()
