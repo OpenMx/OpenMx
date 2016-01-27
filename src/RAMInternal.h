@@ -63,7 +63,6 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
-		size_t                           maxRotationUnits;
 
 	public:
 		std::vector<addr>		 layout;
@@ -96,36 +95,27 @@ namespace RelationalRAMExpectation {
 		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 	};
 
-	template <typename T1, typename T2>
-	void oertzenRotate1(const int anzGroups, Eigen::MatrixBase<T1> &vec, Eigen::MatrixBase<T2> &erg)
-	{
-		double partialSum = vec.sum();
-		erg[0] = partialSum / sqrt(anzGroups);
-
-		for (int i=1; i<anzGroups; i++) {
-			double k=anzGroups-i;
-			partialSum -= vec[i-1];
-			erg[i] = partialSum * sqrt(1.0 / (k*(k+1))) - sqrt(k / (k+1)) * vec[i-1];
-		}
-	}
-
 	template <typename T>
 	void state::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
 	{
-		// TODO better to rotate inplace?
-		Eigen::VectorXd obsIn(maxRotationUnits);
-		Eigen::VectorXd obsOut(maxRotationUnits);
 		//std::string buf;
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
 			//buf += "rotate";
-			const std::vector<int> &r1 = rotationPlan[rx];
-			for (size_t ox=0; ox < r1.size(); ++ox) {
-				obsIn[ox] = resid[r1[ox]];
-				//buf += string_snprintf(" %d", 1+ r1[ox]);
+			const std::vector<int> &om = rotationPlan[rx];
+			double partialSum = 0.0;
+			for (size_t ox=0; ox < om.size(); ++ox) {
+				partialSum += resid[om[ox]];
+				//buf += string_snprintf(" %d", 1+ om[ox]);
 			}
-			oertzenRotate1(r1.size(), obsIn, obsOut);
-			for (size_t ox=0; ox < r1.size(); ++ox) {
-				resid[r1[ox]] = obsOut[ox];
+			double prev = resid[om[0]];
+			resid[om[0]] = partialSum / sqrt(om.size());
+
+			for (size_t i=1; i < om.size(); i++) {
+				double k=om.size()-i;
+				partialSum -= prev;
+				double prevContrib = sqrt(k / (k+1)) * prev;
+				prev = resid[om[i]];
+				resid[om[i]] = partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
 			}
 			//buf += "\n";
 		}
