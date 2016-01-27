@@ -1005,7 +1005,6 @@ namespace RelationalRAMExpectation {
 		SEXP fmean = Rcpp::wrap(fullMeans);
 		dbg.add("mean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		// output rampartA TODO
 		Eigen::SparseMatrix<double> A = signA * regularA.in.transpose();
 		dbg.add("A", Rcpp::wrap(A));
 		if (rampartUsage.size()) {
@@ -1025,6 +1024,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
+		dbg.add("resid", Rcpp::wrap(resid));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1,
 			startLoc, endLoc, obsStart, obsEnd, rscale;

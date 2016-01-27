@@ -74,6 +74,7 @@ namespace RelationalRAMExpectation {
 		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
+		Eigen::VectorXd resid;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
@@ -114,7 +115,7 @@ namespace RelationalRAMExpectation {
 		// TODO better to rotate inplace?
 		Eigen::VectorXd obsIn(maxRotationUnits);
 		Eigen::VectorXd obsOut(maxRotationUnits);
-		std::string buf;
+		//std::string buf;
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
 			//buf += "rotate";
 			const std::vector<int> &r1 = rotationPlan[rx];

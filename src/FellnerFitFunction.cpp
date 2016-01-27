@@ -177,13 +177,15 @@ namespace FellnerFitFunction {
 			lp = st->covDecomp.log_determinant();
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
-			Eigen::VectorXd resid;
-			if (!rram->hasRotationPlan() || !st->commuteRotation) {
+			Eigen::VectorXd &resid = rram->resid;
+			if (st->commuteRotation) {
 				if (st->wrongMeanStructure) {
 					resid = rram->dataVec - rram->rampartA.out.transpose() * rram->fullMeans;
 				} else {
+					//mxLog("correct path");
 					resid = rram->dataVec - rram->regularA.out.transpose() * rram->fullMeans;
 				}
+				//mxPrintMat("unrotated resid", resid);
 				rram->applyRotationPlan(resid);
 			} else {
 				Eigen::VectorXd Qdata = rram->dataVec;
@@ -259,6 +261,7 @@ namespace FellnerFitFunction {
 		st->commuteRotation = Rf_asLogical(Rcr);
 		ProtectedSEXP Rwms(R_do_slot(oo->rObj, Rf_install("wrongMeanStructure")));
 		st->wrongMeanStructure = Rf_asLogical(Rwms);
+		//mxLog("commuteRotation %d wrongMeanStructure %d", st->commuteRotation, st->wrongMeanStructure);
 	}
 };
 
