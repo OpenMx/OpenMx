@@ -707,8 +707,6 @@ namespace RelationalRAMExpectation {
 			if (t1.size() <= 1) continue;
 
 			if (true) {
-				if (maxRotationUnits < t1.size())
-					maxRotationUnits = t1.size();
 				std::string buf = "rotate units";
 				oertzenRotate(t1);
 				addr &specimen = layout[ t1[0] ];
@@ -833,7 +831,6 @@ namespace RelationalRAMExpectation {
 			mxLog("%s: RAM shallow inverse depth = %d", homeEx->name, AshallowDepth);
 		}
 
-		maxRotationUnits = 0;
 		if (ram->rampartEnabled()) {
 			invertAndFilterA(testA);
 			for (size_t ax=0; ax < layout.size(); ++ax) {
