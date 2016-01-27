@@ -407,6 +407,7 @@ namespace RelationalRAMExpectation {
 
 	void state::refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale)
 	{
+		if (scale == 0.0) return;
 		omxExpectation *expectation = a1.model;
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -466,7 +467,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->S, fc);
 
 			refreshLevelTransitions(fc, a1, regularA, 1.0);
-			if (rampartUsage.size() && !a1.rampartUnlinked) {
+			if (rampartUsage.size()) {
 				refreshLevelTransitions(fc, a1, rampartA, a1.rampartScale);
 			}
 
@@ -506,7 +507,6 @@ namespace RelationalRAMExpectation {
 
 		struct addr a1;
 		a1.HEV = true;
-		a1.rampartUnlinked = false;
 		a1.rampartScale = 1.0;
 		a1.parent1 = NA_INTEGER;
 		a1.fk1 = NA_INTEGER;
@@ -686,10 +686,6 @@ namespace RelationalRAMExpectation {
 				return strcmp(lhs->model->name, rhs->model->name) < 0;
 			if (lhs->numObs() != rhs->numObs())
 				return lhs->numObs() < rhs->numObs();
-
-			// It may be feasible to ignore differences in the number
-			// of latent variables. However, we do need the number
-			// of variables to match if we're going to use latentFilter.
 			if (lhs->numVars() != rhs->numVars())
 				return lhs->numVars() < rhs->numVars();
 
@@ -706,7 +702,6 @@ namespace RelationalRAMExpectation {
 			}
 			return false;
 		}
-
 	};
 
 	struct RampartTodoCompare : RampartCompareLib {
@@ -728,13 +723,15 @@ namespace RelationalRAMExpectation {
 		{
 			const addr *lhsObj = &st->layout[lhs];
 			const addr *rhsObj = &st->layout[rhs];
-			return cmp1(lhsObj, rhsObj);
+			if (cmp1(lhsObj, rhsObj)) return true;
+			return lhs < rhs;
 		}
 	};
 
 	template <typename T>
-	void state::oertzenRotateCompound(std::vector<T> &t1)
+	void state::oertzenRotate(std::vector<T> &t1)
 	{
+		// get covariance and sort by mahalanobis distance TODO
 		addr &specimen = layout[ t1[0] ];
 		for (int ox=0; ox < specimen.numObs(); ++ox) {
 			std::vector<int> tmp;
@@ -751,11 +748,11 @@ namespace RelationalRAMExpectation {
 				addr &a1 = layout[ t1[tx] ];
 				t2.push_back(a1.clump[cx]);
 			}
-			oertzenRotateCompound(t2);
+			oertzenRotate(t2);
 		}
 	}
 
-	int state::rampartRotate()
+	int state::rampartRotate(int level)
 	{
 		typedef std::map< addr*, std::vector<int>, RampartTodoCompare > RampartMap;
 		RampartMap todo(RampartTodoCompare(this));
@@ -774,19 +771,41 @@ namespace RelationalRAMExpectation {
 		for (RampartMap::iterator it = todo.begin(); it != todo.end(); ++it) {
 			std::vector<int> &t1 = it->second;
 			if (t1.size() <= 1) continue;
-			// get covariance and sort by mahalanobis distance TODO
 
-			if (maxRotationUnits < t1.size())
-				maxRotationUnits = t1.size();
-			oertzenRotateCompound(t1);
-			addr &specimen = layout[ t1[0] ];
-			specimen.rampartScale = sqrt(double(t1.size()));
-			layout[specimen.parent1].numKids -= t1.size();
-			layout[specimen.parent1].clump.push_back(t1[0]);
-			for (size_t ux=1; ux < t1.size(); ++ux) {
-				addr &a1 = layout[ t1[ux] ];
-				a1.rampartUnlinked = true;
-				a1.numJoins = 0;
+			if (true) {
+				if (maxRotationUnits < t1.size())
+					maxRotationUnits = t1.size();
+				std::string buf = "rotate units";
+				oertzenRotate(t1);
+				addr &specimen = layout[ t1[0] ];
+				specimen.rampartScale = sqrt(double(t1.size()));
+				if (false) {
+				for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
+					addr &a1 = layout[ specimen.clump[cx] ];
+					double orig = a1.rampartScale*a1.rampartScale;
+					a1.rampartScale = sqrt(orig / double(t1.size())) * sqrt(orig);
+				}
+				}
+				layout[specimen.parent1].numKids -= t1.size();
+				layout[specimen.parent1].clump.push_back(t1[0]);
+				for (size_t ux=1; ux < t1.size(); ++ux) {
+					addr &a1 = layout[ t1[ux] ];
+					a1.rampartScale = 0;
+					a1.numJoins = 0;
+					buf += string_snprintf(" %d", 1+t1[ux]);
+				}
+				buf += string_snprintf(" -> %d\n", 1+t1[0]);
+				//mxLogBig(buf);
+			} else {
+				// Don't rotate, just clump units together with parent.
+				addr &specimen = layout[ t1[0] ];
+				layout[specimen.parent1].numKids -= t1.size();
+				layout[specimen.parent1].clump.insert(layout[specimen.parent1].clump.end(),
+								      t1.begin(), t1.end());
+				for (size_t ux=0; ux < t1.size(); ++ux) {
+					addr &a1 = layout[ t1[ux] ];
+					a1.numJoins = 0;
+				}
 			}
 			unlinked += t1.size() - 1;
 		}
@@ -908,7 +927,8 @@ namespace RelationalRAMExpectation {
 
 			int maxIter = ram->rampart;
 			int unlinked = 0;
-			while (int more = rampartRotate()) {
+			int level = -1;
+			while (int more = rampartRotate(++level)) {
 				rampartUsage.push_back(more);
 				unlinked += more;
 				if (--maxIter == 0) break;
@@ -918,6 +938,14 @@ namespace RelationalRAMExpectation {
 			}
 		}
 		fullS.setZero();
+
+		ProtectedSEXP RscaleOverride(R_do_slot(expectation->rObj, Rf_install("scaleOverride")));
+		if (Rf_length(RscaleOverride)) {
+			double *override = REAL(RscaleOverride);
+			for (int ox=0; ox < Rf_length(RscaleOverride); ox += 2) {
+				layout[ override[ox] - 1 ].rampartScale = override[ox+1];
+			}
+		}
 	}
 
 	state::~state()
@@ -1033,6 +1061,7 @@ namespace RelationalRAMExpectation {
 		} else {
 			fullCov = (rampartA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * rampartA.out);
 		}
+		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
 
