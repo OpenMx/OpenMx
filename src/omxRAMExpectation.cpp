@@ -206,71 +206,6 @@ struct IsZeroManifestCovariance {
 	};
 };
 		
-template <typename T>
-static bool hasSingleVarianceParameter(omxRAMExpectation *ram, Eigen::ArrayBase<T> &manifestMask, int verbose)
-{
-	bool singleVariance = true;
-	if (!ram->S->dependsOnParameters()) return true;
-
-	// overly conservative; ignores freeset
-	int sMatrixNum = ~ram->S->matrixNumber;
-	FreeVarGroup *fvg = Global->findVarGroup(FREEVARGROUP_ALL);
-	omxFreeVar *variance = NULL;
-	for (size_t vx=0; vx < fvg->vars.size() && singleVariance; ++vx) {
-		omxFreeVar *v1 = fvg->vars[vx];
-		for (size_t lx=0; lx < v1->locations.size() && singleVariance; ++lx) {
-			omxFreeVarLocation &loc = v1->locations[lx];
-			if (loc.matrix == sMatrixNum &&
-			    manifestMask[loc.row] && manifestMask[loc.col]) {
-				if (loc.row != loc.col) {
-					singleVariance = false;
-					if (verbose >= 1) {
-						mxLog("%s: manifest covariance parameter %s between"
-						      " %d and %d -> !HEV",
-						      ram->S->name(), v1->name, loc.row, loc.col);
-					}
-				}
-				if (!variance) variance = v1;
-				if (v1 != variance) {
-					singleVariance = false;
-					if (verbose >= 1) {
-						mxLog("%s: more than 1 variance parameter (%s and %s) -> !HEV",
-						      ram->S->name(), v1->name, variance->name);
-					}
-				}
-			}
-		}
-	}
-	return singleVariance;
-}
-
-bool omxRAMExpectation::isHEV()
-{
-	if (determinedHEV) return HEV;
-	determinedHEV = true;
-	
-	if (F->rows == 0) {
-		HEV = true;   // no manifest variables
-	} else if (!S->algebra && !S->hasPopulateSubstitutions()) {
-		EigenMatrixAdaptor eF(F);
-		EigenMatrixAdaptor eS(S);
-
-		Eigen::Array<bool, Eigen::Dynamic, 1> manifestMask =
-			eF.array().colwise().maxCoeff() > 0;
-		IsZeroManifestCovariance izmc(manifestMask);
-		eS.visit(izmc);
-		if (!izmc.ok && verbose >= 1) mxLog("%s: nonzero manifest covariance -> !HEV", S->name());
-		if (izmc.ok && hasSingleVarianceParameter(this, manifestMask, verbose)) {
-			HEV = true;
-			if (verbose >= 1) mxLog("%s has homogeneous error variance", S->name());
-		}
-
-
-	}
-
-	return HEV;
-}
-
 void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
@@ -506,7 +441,6 @@ namespace RelationalRAMExpectation {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		struct addr a1;
-		a1.HEV = true;
 		a1.rampartScale = 1.0;
 		a1.parent1 = NA_INTEGER;
 		a1.fk1 = NA_INTEGER;
@@ -760,7 +694,7 @@ namespace RelationalRAMExpectation {
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr& a1 = layout[ax];
-			if (!a1.HEV || a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
+			if (a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
 
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			omxMatrix *b1 = ram->between[0];
@@ -905,10 +839,7 @@ namespace RelationalRAMExpectation {
 			for (size_t ax=0; ax < layout.size(); ++ax) {
 				addr &a1 = layout[ax];
 				omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
-				if (!ram->isHEV()) {
-					a1.HEV = false;
-					continue;
-				}
+
 				if (0) {
 					Eigen::ArrayXd sdiag = fullS.diagonal();
 					for (int cx=a1.obsStart; cx <= a1.obsEnd; ++cx) {
@@ -919,7 +850,6 @@ namespace RelationalRAMExpectation {
 							mxLog("%s contributes variance to %s",
 							      CHAR(STRING_ELT(varNameVec, vx)),
 							      CHAR(STRING_ELT(obsNameVec, cx)));
-							a1.HEV = false;
 						}
 					}
 				}
@@ -1096,12 +1026,11 @@ namespace RelationalRAMExpectation {
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
 
-		SEXP modelName, key, numJoins, numKids, HEV, parent1, fk1,
+		SEXP modelName, key, numJoins, numKids, parent1, fk1,
 			startLoc, endLoc, obsStart, obsEnd, rscale;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(HEV = Rf_allocVector(LGLSXP, layout.size()));
 		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
@@ -1114,7 +1043,6 @@ namespace RelationalRAMExpectation {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(key)[mx] = layout[mx].key;
 			INTEGER(numKids)[mx] = layout[mx].numKids;
-			LOGICAL(HEV)[mx] = layout[mx].HEV;
 			INTEGER(numJoins)[mx] = layout[mx].numJoins;
 			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
 			INTEGER(fk1)[mx] = layout[mx].fk1;

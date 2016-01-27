@@ -14,7 +14,6 @@
 namespace RelationalRAMExpectation {
 	struct addr {
 		omxExpectation *model;
-		bool HEV;
 		int row;     // to load definition variables (never the key)
 		int numKids;
 		int key;
@@ -134,11 +133,9 @@ namespace RelationalRAMExpectation {
 };
 
 class omxRAMExpectation {
-	bool determinedHEV;
-	bool HEV;    // homogeneous error variance
  public:
 
-	omxRAMExpectation() : determinedHEV(false), HEV(false) {};
+	omxRAMExpectation() {};
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
@@ -157,7 +154,6 @@ class omxRAMExpectation {
 	RelationalRAMExpectation::state *rram;
 
 	void ensureTrivialF();
-	bool isHEV();
 };
 
 namespace RelationalRAMExpectation {
