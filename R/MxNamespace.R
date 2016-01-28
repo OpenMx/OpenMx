@@ -742,7 +742,8 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 ##' @param identifiers identifiers
 ##' @param modelname modelname
 ##' @param namespace namespace
-imxConvertIdentifier <- function(identifiers, modelname, namespace) {
+##' @param strict strict
+imxConvertIdentifier <- function(identifiers, modelname, namespace, strict=FALSE) {
 	if (length(identifiers) == 0) return(identifiers)
 	identifiers <- as.character(identifiers)
 	if (all(is.na(identifiers))) return(identifiers)
@@ -753,6 +754,9 @@ imxConvertIdentifier <- function(identifiers, modelname, namespace) {
 		} else if (isLocalDefinitionVariable(identifier)) {
 			return(imxIdentifier(modelname, identifier))
 		} else {
+			if (strict && length(unlist(strsplit(identifier, imxSeparatorChar, fixed = TRUE))) == 1) {
+				stop(paste("Identifier", omxQuotes(identifier), "refers to what?"))
+			}
 			return(identifier)
 		}
 	}, "", USE.NAMES=FALSE)
