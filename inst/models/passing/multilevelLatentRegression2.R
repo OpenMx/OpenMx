@@ -6,7 +6,7 @@ numIndicators <- 4
 
 numDistricts <- 1
 numSchools <- 2
-numTeachers <- 4
+numTeachers <- 10
 numStudents <- 5
 
 genData <- function(upper, fanout, keyname) {
@@ -88,7 +88,7 @@ tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
 		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
 
-if (0) {
+if (1) {
 	options(width=120)
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('fitfunction', 'fit'),
@@ -106,6 +106,7 @@ if (0) {
 	ex <- rotated$expectation
 	eo <- ex$output
 	ed <- ex$debug
+#	print(ed$layout)
 	print(ed$rampartUsage)
 	#print(round(ed$A[1:20,1:20],2))
 	#print(round(ed$rA[1:20,1:20],2))
@@ -114,9 +115,10 @@ if (0) {
 					#omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
 	print(abs(rotated$output$fit - square$output$fit))
 	print(max(abs(rotated$output$gradient - square$output$gradient)))
-#	print(ed$layout)
 #	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-4)
 }
+
+stop("here")
 
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),

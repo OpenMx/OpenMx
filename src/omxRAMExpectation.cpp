@@ -607,32 +607,43 @@ namespace RelationalRAMExpectation {
 			return b1->getJoinModel();
 		};
 
-		bool cmpUpper(const addr *lhs, const addr *rhs) const
+		bool cmpUpper(const addr *lhs, const addr *rhs, bool &result) const
 		{
-			if (getJoinModel(lhs) != getJoinModel(rhs))
-				return strcmp(getJoinModel(lhs)->name, getJoinModel(rhs)->name) < 0;
+			if (getJoinModel(lhs) != getJoinModel(rhs)) {
+				result = strcmp(getJoinModel(lhs)->name, getJoinModel(rhs)->name) < 0;
+				return true;
+			}
 			return false;
 		}
 
-		bool cmp1(const addr *lhs, const addr *rhs) const
+		bool cmp1(const addr *lhs, const addr *rhs, bool &result) const
 		{
-			if (lhs->model != rhs->model)
-				return strcmp(lhs->model->name, rhs->model->name) < 0;
-			if (lhs->numObs() != rhs->numObs())
-				return lhs->numObs() < rhs->numObs();
-			if (lhs->numVars() != rhs->numVars())
-				return lhs->numVars() < rhs->numVars();
-
+			if (lhs->model != rhs->model) {
+				result = strcmp(lhs->model->name, rhs->model->name) < 0;
+				return true;
+			}
+			if (lhs->numObs() != rhs->numObs()) {
+				result = lhs->numObs() < rhs->numObs();
+				return true;
+			}
+			if (lhs->numVars() != rhs->numVars()) {
+				result = lhs->numVars() < rhs->numVars();
+				return true;
+			}
 			for (int lx=0; lx < lhs->numVars(); ++lx) {
 				bool p1 = st->latentFilter[ lhs->modelStart + lx ];
 				bool p2 = st->latentFilter[ rhs->modelStart + lx ];
 				if (p1 == p2) continue;
-				return int(p1) < int(p2);
+				result = int(p1) < int(p2);
+				return true;
 			}
-			if (lhs->clump.size() != rhs->clump.size())
-				return lhs->clump.size() < rhs->clump.size();
+			if (lhs->clump.size() != rhs->clump.size()) {
+				result = lhs->clump.size() < rhs->clump.size();
+				return true;
+			}
 			for (size_t cx=0; cx < lhs->clump.size(); ++cx) {
-				return cmp1(&st->layout[lhs->clump[cx]], &st->layout[rhs->clump[cx]]);
+				if (cmp1(&st->layout[lhs->clump[cx]], &st->layout[rhs->clump[cx]], result))
+					return true;
 			}
 			return false;
 		}
@@ -643,22 +654,31 @@ namespace RelationalRAMExpectation {
 
 		bool operator() (const addr *lhs, const addr *rhs) const
 		{
-			if (cmpUpper(lhs, rhs)) return true;
+			bool result = false;
+			if (cmpUpper(lhs, rhs, result)) return result;
 			if (lhs->fk1 != rhs->fk1)
 				return lhs->fk1 < rhs->fk1;
-			return cmp1(lhs, rhs);
+			cmp1(lhs, rhs, result);
+			return result;
 		}
 	};
 
 	struct RampartClumpCompare : RampartCompareLib {
 		RampartClumpCompare(state *st) : RampartCompareLib(st) {};
 
-		bool operator() (const int lhs, const int rhs) const
-		{
+		bool clumpCmp(const int lhs, const int rhs) const {
 			const addr *lhsObj = &st->layout[lhs];
 			const addr *rhsObj = &st->layout[rhs];
-			if (cmp1(lhsObj, rhsObj)) return true;
+			bool result = false;
+			if (cmp1(lhsObj, rhsObj, result)) return result;
 			return lhs < rhs;
+		}
+
+		bool operator() (const int lhs, const int rhs) const
+		{
+			bool got = clumpCmp(lhs, rhs);
+			//mxLog("cmp %d %d -> %d", lhs, rhs, got);
+			return got;
 		}
 	};
 
@@ -838,6 +858,7 @@ namespace RelationalRAMExpectation {
 				omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 
 				if (0) {
+					// toward profiling out constant coefficients TODO
 					Eigen::ArrayXd sdiag = fullS.diagonal();
 					for (int cx=a1.obsStart; cx <= a1.obsEnd; ++cx) {
 						Eigen::VectorXd loadings = testA.out.col(cx);
@@ -854,7 +875,7 @@ namespace RelationalRAMExpectation {
 
 			int maxIter = ram->rampart;
 			int unlinked = 0;
-			int level = -1;
+			int level = -1; // mainly for debugging
 			while (int more = rampartRotate(++level)) {
 				rampartUsage.push_back(more);
 				unlinked += more;
