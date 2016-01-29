@@ -396,11 +396,11 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         
         
         if(defaultComputePlan==TRUE) model<-mxModel(model, mxComputeSequence(list(
-            mxComputeGradientDescent(verbose=verbose, gradientStepSize = gradientStepSize, 
+            GD=mxComputeGradientDescent(verbose=verbose, gradientStepSize = gradientStepSize, 
                 nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
                 maxMajorIter=3000),
-            mxComputeNumericDeriv(), mxComputeStandardError(),  
-            mxComputeReportDeriv())))
+            ND=mxComputeNumericDeriv(), SE=mxComputeStandardError(),  
+            RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
         
         if(showInits==TRUE) {
             message('Starting values:  ')
@@ -501,9 +501,10 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                             mxComputeConfidenceInterval(plan=mxComputeGradientDescent(nudgeZeroStarts=FALSE, 
                                 gradientIterations=gradientIterations, tolerance=tolerance, 
                                 maxMajorIter=3000),
-                                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')),
-                            mxComputeNumericDeriv(), mxComputeStandardError(), 
-                            mxComputeReportDeriv())))
+                                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq'))
+                            #mxComputeNumericDeriv(), mxComputeStandardError(), 
+                            #mxComputeReportDeriv())))
+                        )))
                     
                     cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
                     
@@ -511,8 +512,8 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                     if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
                         message('Confidence interval estimation generated errors\n')
                     } else {
-                        if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
-                        bestfit<-cifit
+                      if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
+                      bestfit <- THFrankenmodel(cifit,bestfit)
                     }
                     
                 }
@@ -546,16 +547,17 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                             mxComputeConfidenceInterval(plan=mxComputeGradientDescent(nudgeZeroStarts=FALSE, 
                                 gradientIterations=gradientIterations, tolerance=tolerance, 
                                 maxMajorIter=3000),
-                                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')),
-                            mxComputeNumericDeriv(), mxComputeStandardError(), 
-                            mxComputeReportDeriv())))
+                                constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq'))
+                            #mxComputeNumericDeriv(), mxComputeStandardError(), 
+                            #mxComputeReportDeriv())))
+                        )))
                     
                     cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
                     
                     if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
                         message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
                     } else {
-                        bestfit<-cifit
+                    	bestfit <- THFrankenmodel(cifit,bestfit)
                     }
                 }
                 if (length(bestfit$output$status$statusMsg) > 0) { 
@@ -585,7 +587,31 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         bestfit<-fit
     }
     
-    if(defaultComputePlan){bestfit@compute@.persist <- FALSE}
+    if( defaultComputePlan && !("try-error" %in% class(bestfit)) ){bestfit@compute@.persist <- FALSE}
     
     return(bestfit)
 }
+
+
+
+
+THFrankenmodel <- function(cifit,bestfit){
+		# 	if(defaultComputePlan){
+		# 		bestfit@compute@steps <- list(
+		# 			GD=bestfit@compute@steps[["GD"]],
+		# 			SE=bestfit@compute@steps[["SE"]],RD=bestfit@compute@steps[["RD"]],
+		# 			RE=bestfit@compute@steps[["RE"]],CI=cifit@compute@steps[[1]])
+		bestfit@compute@steps[[length(bestfit@compute@steps)+1]] <- cifit@compute@steps[[1]]
+		bestfit@output$confidenceIntervals <- cifit@output$confidenceIntervals
+		bestfit@output$confidenceIntervalCodes <- cifit@output$confidenceIntervalCodes
+		bestfit@output$timestamp <- cifit@output$timestamp
+		bestfit@output$evaluations <- bestfit@output$evaluations + cifit@output$evaluations
+		bestfit@output$frontendTime <- bestfit@output$frontendTime + cifit@output$frontendTime
+		bestfit@output$backendTime <- bestfit@output$backendTime + cifit@output$backendTime
+		bestfit@output$independentTime <- bestfit@output$independentTime + cifit@output$independentTime
+		bestfit@output$wallTime <- bestfit@output$wallTime + cifit@output$wallTime
+		bestfit@output$cpuTime <- bestfit@output$cpuTime + cifit@output$cpuTime
+		bestfit@.modifiedSinceRun <- FALSE
+		return(bestfit)
+}
+
