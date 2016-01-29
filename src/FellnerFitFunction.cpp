@@ -177,7 +177,7 @@ namespace FellnerFitFunction {
 			lp = st->covDecomp.log_determinant();
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
-			Eigen::VectorXd &resid = rram->resid;
+			Eigen::VectorXd resid;
 			if (st->commuteRotation) {
 				if (st->wrongMeanStructure) {
 					resid = rram->dataVec - rram->rampartA.out.transpose() * rram->fullMeans;

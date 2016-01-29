@@ -503,6 +503,7 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		a1.numObsCache = totalObserved - a1.obsStart;
 		a1.obsEnd = totalObserved - 1;
 		layout.push_back(a1);
 		if (verbose() >= 2) {
@@ -1043,7 +1044,6 @@ namespace RelationalRAMExpectation {
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
-		dbg.add("resid", Rcpp::wrap(resid));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1,
 			startLoc, endLoc, obsStart, obsEnd, rscale;
