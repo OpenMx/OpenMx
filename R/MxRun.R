@@ -322,6 +322,10 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
     scale = 0.25,  initialGradientStepSize = .00001, initialGradientIterations = 1,
     initialTolerance=1e-12, checkHess = TRUE, fit2beat = Inf, paste = TRUE,
     iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE){
+	
+	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
+		model@compute <- NULL
+	}
     
     defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
     
@@ -580,6 +584,8 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         message('All fit attempts resulted in errors - check starting values or model specification')
         bestfit<-fit
     }
+    
+    if(defaultComputePlan){bestfit@compute@.persist <- FALSE}
     
     return(bestfit)
 }
