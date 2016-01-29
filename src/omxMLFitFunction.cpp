@@ -137,7 +137,7 @@ struct multi_normal_deriv {
 			++xx;
 		}
 
-		return stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+		return stan::prob::multi_normal_sufficient_log<true>(omo->n, obMeans, obCov, exMeans, exCov);
 	}
 };
 
@@ -166,12 +166,14 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 				Eigen::VectorXd obMeans = obMeansAdapter;
 				EigenVectorAdaptor exMeansAdapter(omo->expectedMeans);
 				Eigen::VectorXd exMeans = exMeansAdapter;
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, obMeans, obCov, exMeans, exCov);
 			} else {
 				Eigen::VectorXd means(obCov.rows());
 				means.setZero();
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, means, obCov, means, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, means, obCov, means, exCov);
 			}
+			using stan::math::LOG_TWO_PI;
+			fit += .5 * omo->n * obCov.rows() * LOG_TWO_PI;
 		} catch (const std::exception& e) {
 			fit = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
