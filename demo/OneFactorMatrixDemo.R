@@ -47,7 +47,7 @@ factorModel <- mxModel(name ="One Factor",
     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
     mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
-    mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
+    mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500)
 )
 # Create an MxModel object
 # -----------------------------------------------------------------------------

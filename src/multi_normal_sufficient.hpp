@@ -67,13 +67,13 @@ namespace stan {
       ss = mdivide_left_ldlt(ldlt_Sigma, sampleSigma);
 
       if (include_summand<propto>::value)
-	      lp += mu.size() * LOG_TWO_PI * sampleSize;
+	      lp += mu.size() * LOG_TWO_PI;
 
       if (include_summand<propto, T_covar>::value)
-	      lp += log_determinant_ldlt(ldlt_Sigma) * (sampleSize-1);
+	      lp += log_determinant_ldlt(ldlt_Sigma);
 
       if (include_summand<propto, T_covar, T_sample>::value)
-	      lp += ss.trace() * (sampleSize-1);
+	      lp += ss.trace();
 
       if (include_summand<propto, T_covar, T_loc>::value) {
 	Eigen::Matrix<param_t, Eigen::Dynamic, 1> y_minus_mu(mu.size());
@@ -81,9 +81,9 @@ namespace stan {
 	for (int j = 0; j < mu.size(); j++)
 	  y_minus_mu(j) = mu(j) - sampleMu(j);
 
-	lp += trace_inv_quad_form_ldlt(ldlt_Sigma, y_minus_mu) * sampleSize;
+	lp += trace_inv_quad_form_ldlt(ldlt_Sigma, y_minus_mu);
       }
-      return lp * -0.5;
+      return lp * -0.5 * sampleSize;
     }
   }
 }

@@ -76,7 +76,7 @@ model2 <- mxModel(model="One Factor", type="RAM",
       mxPath(from = latents[1], to=manifests[1:5]),
       mxPath(from = manifests, arrows = 2, lbound=1e-6),
       mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
-      mxData(cov(demoOneFactor), type = "cov", numObs=500)
+      mxData(cov(demoOneFactor)*499/500, type = "cov", numObs=500)
 )
 fit2 <- mxRun(model2)
 
