@@ -28,7 +28,8 @@ namespace RelationalRAMExpectation {
 		int modelStart, modelEnd;  //both latent and obs
 		int numVars() const { return 1 + modelEnd - modelStart; }
 		int obsStart, obsEnd;
-		int numObs() const { return 1 + obsEnd - obsStart; }
+		int numObsCache;
+		int numObs() const { return numObsCache; }
 		double rampartScale;
 
 		std::string modelName() const {
@@ -50,6 +51,43 @@ namespace RelationalRAMExpectation {
 		Amatrix() : analyzed(false) {};
 	};
 
+	struct RowToOffsetMapCompare {
+		bool operator() (const std::pair<omxData*,int> &lhs, const std::pair<omxData*,int> &rhs) const
+		{
+			if (lhs.first != rhs.first)
+				return strcmp(lhs.first->name, rhs.first->name) < 0;
+			return lhs.second < rhs.second;
+		}
+	};
+
+	struct placement {
+		int aIndex;                // index into addr vector
+		int modelStart;  //both latent and obs
+		int obsStart;
+	};
+
+	struct independentGroup {
+		int numRows;
+		std::vector<placement> placements;
+		omxMatrix *smallCol;
+		bool AmatDependsOnParameters;
+		bool haveFilteredAmat;
+		Amatrix testA;
+		int AshallowDepth;
+		double signA;
+		Eigen::SparseMatrix<double>      ident;
+		Eigen::SparseMatrix<double>      fullS;
+		std::vector< std::vector<int> >  rotationPlan;
+		std::vector<bool> latentFilter; // use to reduce the A matrix
+		SEXP obsNameVec;
+		SEXP varNameVec;
+		Amatrix regularA;
+		Amatrix rampartA;
+		Eigen::VectorXd dataVec;
+		Eigen::VectorXd fullMeans;
+		Eigen::SparseMatrix<double>      fullCov;
+	};
+
 	class state {
 	private:
 		struct omxExpectation *homeEx;
@@ -63,6 +101,8 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
+		typedef std::map< std::pair<omxData*,int>, int, RowToOffsetMapCompare> RowToOffsetMapType;
+		RowToOffsetMapType               rowToOffsetMap;
 
 	public:
 		std::vector<addr>		 layout;
@@ -73,7 +113,6 @@ namespace RelationalRAMExpectation {
 		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
-		Eigen::VectorXd resid;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
@@ -124,9 +163,10 @@ namespace RelationalRAMExpectation {
 };
 
 class omxRAMExpectation {
+	bool trivialF;
  public:
 
-	omxRAMExpectation() {};
+ 	omxRAMExpectation() : trivialF(false) {};
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;

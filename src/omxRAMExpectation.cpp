@@ -28,6 +28,8 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* 
 
 void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 {
+	if (trivialF) return;
+
 	omxRecompute(F, NULL);  // should not do anything
 	EigenMatrixAdaptor eF(F);
 	Eigen::MatrixXd ident(F->rows, F->rows);
@@ -35,6 +37,7 @@ void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
 	if (ident != eF.block(0, 0, F->rows, F->rows)) {
 		Rf_error("Square part of F matrix is not trivial");
 	}
+	trivialF = true;
 }
 
 static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char *what, const char *how)
@@ -353,7 +356,7 @@ namespace RelationalRAMExpectation {
 			if (key == NA_INTEGER) continue;
 			omxData *data1 = betA->getJoinModel()->data;
 			int frow = data1->lookupRowOfKey(key);
-			int jOffset = data1->rowToOffsetMap[frow];
+			int jOffset = rowToOffsetMap[std::make_pair(data1, frow)];
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
@@ -459,15 +462,13 @@ namespace RelationalRAMExpectation {
 		a1.row = frow;
 		a1.key = frow;
 		if (data->hasPrimaryKey()) {
-			if (data->rowToOffsetMap.size() == 0) {
-				ram->ensureTrivialF();
-			}
+			ram->ensureTrivialF();
 
 			// insert_or_assign would be nice here
-			std::map<int,int>::const_iterator it = data->rowToOffsetMap.find(frow);
-			if (it != data->rowToOffsetMap.end()) return it->second;
+			RowToOffsetMapType::const_iterator it = rowToOffsetMap.find(std::make_pair(data, frow));
+			if (it != rowToOffsetMap.end()) return it->second;
 
-			data->rowToOffsetMap[frow] = maxSize;
+			rowToOffsetMap[std::make_pair(data, frow)] = maxSize;
 			a1.key = data->primaryKeyOfRow(frow);
 		}
 
@@ -502,6 +503,7 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		a1.numObsCache = totalObserved - a1.obsStart;
 		a1.obsEnd = totalObserved - 1;
 		layout.push_back(a1);
 		if (verbose() >= 2) {
@@ -540,7 +542,7 @@ namespace RelationalRAMExpectation {
 					if (key == NA_INTEGER) continue;
 					omxData *data1 = betA->getJoinModel()->data;
 					int frow = data1->lookupRowOfKey(key);
-					int jOffset = data1->rowToOffsetMap[frow];
+					int jOffset = rowToOffsetMap[std::make_pair(data1, frow)];
 					omxRecompute(betA, NULL);
 					betA->markPopulatedEntries();
 					omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
@@ -1042,7 +1044,6 @@ namespace RelationalRAMExpectation {
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
-		dbg.add("resid", Rcpp::wrap(resid));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1,
 			startLoc, endLoc, obsStart, obsEnd, rscale;
