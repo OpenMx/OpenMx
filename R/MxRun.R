@@ -396,14 +396,13 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         
         
         if(defaultComputePlan==TRUE){
-        	cplan <- list(GD=mxComputeGradientDescent(
-        		verbose=verbose, gradientStepSize = gradientStepSize, 
-        		nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
-        		maxMajorIter=3000))
-        	if(options[["Calculate Hessian"]] == "Yes"){cplan <- c(cplan,ND=mxComputeNumericDeriv())}
-        	if(options[["Standard Errors"]] == "Yes"){cplan <- c(cplan,SE=mxComputeStandardError())}
-        	cplan <- c(cplan,RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation())
-        	model <- OpenMx::mxModel(model,mxComputeSequence(list(cplan)))
+        	model <- OpenMx::mxModel(model, mxComputeSequence(list(
+        		GD=mxComputeGradientDescent(
+        			verbose=verbose, gradientStepSize = gradientStepSize, 
+        			nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
+        			maxMajorIter=3000),
+        		ND=mxComputeNumericDeriv(), SE=mxComputeStandardError(),  
+        		RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
         }
         
         if(showInits==TRUE) {
