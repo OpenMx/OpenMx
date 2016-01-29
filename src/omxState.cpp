@@ -761,3 +761,20 @@ const omxFreeVarLocation *omxFreeVar::getLocation(int matrix) const
 
 const omxFreeVarLocation *omxFreeVar::getLocation(omxMatrix *mat) const
 { return getLocation(~mat->matrixNumber); }
+
+const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(int matrix, bool &moreThanOne) const
+{
+	moreThanOne = false;
+	const omxFreeVarLocation *result = NULL;
+	for (size_t lx=0; lx < locations.size(); lx++) {
+		const omxFreeVarLocation &loc = locations[lx];
+		if (loc.matrix == matrix) {
+			if (result) { moreThanOne = true; return NULL; }
+			result = &loc;
+		}
+	}
+	return result;
+}
+
+const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const
+{ return getOnlyOneLocation(~mat->matrixNumber, moreThanOne); }

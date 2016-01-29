@@ -83,6 +83,9 @@ struct omxFreeVar {
 	// the first matching location.
 	const omxFreeVarLocation *getLocation(int matrix) const;
 	const omxFreeVarLocation *getLocation(omxMatrix *mat) const;
+
+	const omxFreeVarLocation *getOnlyOneLocation(int matrix, bool &moreThanOne) const;
+	const omxFreeVarLocation *getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const;
 };
 
 #define FREEVARGROUP_ALL      0

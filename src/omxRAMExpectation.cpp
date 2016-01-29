@@ -866,27 +866,6 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (ram->rampartEnabled()) {
-			invertAndFilterA(testA);
-			for (size_t ax=0; ax < layout.size(); ++ax) {
-				addr &a1 = layout[ax];
-				omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
-
-				if (0) {
-					// toward profiling out constant coefficients TODO
-					Eigen::ArrayXd sdiag = fullS.diagonal();
-					for (int cx=a1.obsStart; cx <= a1.obsEnd; ++cx) {
-						Eigen::VectorXd loadings = testA.out.col(cx);
-						Eigen::ArrayXd contrib = loadings.array() * sdiag;
-						for (int vx=0; vx < maxSize; ++vx) {
-							if (vx == cx || contrib[vx] == 0.0) continue;
-							mxLog("%s contributes variance to %s",
-							      CHAR(STRING_ELT(varNameVec, vx)),
-							      CHAR(STRING_ELT(obsNameVec, cx)));
-						}
-					}
-				}
-			}
-
 			int maxIter = ram->rampart;
 			int unlinked = 0;
 			int level = -1; // mainly for debugging
