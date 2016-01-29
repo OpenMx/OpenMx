@@ -395,12 +395,16 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
         
         
         
-        if(defaultComputePlan==TRUE) model<-mxModel(model, mxComputeSequence(list(
-            GD=mxComputeGradientDescent(verbose=verbose, gradientStepSize = gradientStepSize, 
-                nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
-                maxMajorIter=3000),
-            ND=mxComputeNumericDeriv(), SE=mxComputeStandardError(),  
-            RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
+        if(defaultComputePlan==TRUE){
+        	cplan <- list(GD=mxComputeGradientDescent(
+        		verbose=verbose, gradientStepSize = gradientStepSize, 
+        		nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
+        		maxMajorIter=3000))
+        	if(options[["Calculate Hessian"]] == "Yes"){cplan <- c(cplan,ND=mxComputeNumericDeriv())}
+        	if(options[["Standard Errors"]] == "Yes"){cplan <- c(cplan,SE=mxComputeStandardError())}
+        	cplan <- c(cplan,RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation())
+        	model <- OpenMx::mxModel(model,mxComputeSequence(list(cplan)))
+        }
         
         if(showInits==TRUE) {
             message('Starting values:  ')
@@ -513,7 +517,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                         message('Confidence interval estimation generated errors\n')
                     } else {
                       if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
-                      bestfit <- THFrankenmodel(cifit,bestfit)
+                      bestfit <- THFrankenmodel(cifit,bestfit,defaultComputePlan)
                     }
                     
                 }
@@ -557,7 +561,7 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
                     if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
                         message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
                     } else {
-                    	bestfit <- THFrankenmodel(cifit,bestfit)
+                    	bestfit <- THFrankenmodel(cifit,bestfit,defaultComputePlan)
                     }
                 }
                 if (length(bestfit$output$status$statusMsg) > 0) { 
@@ -595,13 +599,14 @@ mxTryHard<-function (model, extraTries = 10, greenOK = FALSE, loc = 1,
 
 
 
-THFrankenmodel <- function(cifit,bestfit){
-		# 	if(defaultComputePlan){
-		# 		bestfit@compute@steps <- list(
-		# 			GD=bestfit@compute@steps[["GD"]],
-		# 			SE=bestfit@compute@steps[["SE"]],RD=bestfit@compute@steps[["RD"]],
-		# 			RE=bestfit@compute@steps[["RE"]],CI=cifit@compute@steps[[1]])
-		bestfit@compute@steps[[length(bestfit@compute@steps)+1]] <- cifit@compute@steps[[1]]
+THFrankenmodel <- function(cifit,bestfit,defaultComputePlan){
+	if(defaultComputePlan){
+		bestfit@compute@steps <- list(
+			GD=bestfit@compute@steps[["GD"]],
+			SE=bestfit@compute@steps[["SE"]],RD=bestfit@compute@steps[["RD"]],
+			RE=bestfit@compute@steps[["RE"]],CI=cifit@compute@steps[[1]])
+	}
+	else{bestfit@compute@steps[[length(bestfit@compute@steps)+1]] <- cifit@compute@steps[[1]]}
 		bestfit@output$confidenceIntervals <- cifit@output$confidenceIntervals
 		bestfit@output$confidenceIntervalCodes <- cifit@output$confidenceIntervalCodes
 		bestfit@output$timestamp <- cifit@output$timestamp
