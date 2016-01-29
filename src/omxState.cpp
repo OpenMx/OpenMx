@@ -83,6 +83,18 @@ int FreeVarGroup::lookupVar(const char *name)
 	return -1;
 }
 
+/* might be useful?
+int FreeVarGroup::lookupVar(int id)
+{
+	std::vector<int>::iterator low =
+		std::lower_bound(vars.begin(), vars.end(), id);
+	if (low == vars.end()) return -1;
+	int got = low - vars.begin();
+	if (vars[got]->id == id) return got;
+	return -1;
+}
+*/
+
 void FreeVarGroup::cacheDependencies(omxState *os)
 {
 	size_t numMats = os->matrixList.size();

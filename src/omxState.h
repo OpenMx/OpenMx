@@ -100,6 +100,7 @@ struct FreeVarGroup {
 	int lookupVar(const char *name);  // index or -1 if not found
 	int lookupVar(int matrix, int row, int col);
 	int lookupVar(omxMatrix *matrix, int row, int col);
+	//int lookupVar(int id);
 	void cacheDependencies(omxState *os);
 	void markDirty(omxState *os);
 	void log(omxState *os);
