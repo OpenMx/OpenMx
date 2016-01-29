@@ -724,10 +724,9 @@ namespace RelationalRAMExpectation {
 		}
 		for (RampartMap::iterator it = todo.begin(); it != todo.end(); ++it) {
 			std::vector<int> &t1 = it->second;
-			if (t1.size() <= 1) continue;
 
-			if (true) {
-				std::string buf = "rotate units";
+			if (t1.size() >= 2) {
+				//std::string buf = "rotate units";
 				oertzenRotate(t1);
 				addr &specimen = layout[ t1[0] ];
 				specimen.rampartScale = sqrt(double(t1.size()));
@@ -744,9 +743,9 @@ namespace RelationalRAMExpectation {
 					addr &a1 = layout[ t1[ux] ];
 					a1.rampartScale = 0;
 					a1.numJoins = 0;
-					buf += string_snprintf(" %d", 1+t1[ux]);
+					//buf += string_snprintf(" %d", 1+t1[ux]);
 				}
-				buf += string_snprintf(" -> %d\n", 1+t1[0]);
+				//buf += string_snprintf(" -> %d\n", 1+t1[0]);
 				//mxLogBig(buf);
 			} else {
 				// Don't rotate, just clump units together with parent.
@@ -758,6 +757,7 @@ namespace RelationalRAMExpectation {
 					addr &a1 = layout[ t1[ux] ];
 					a1.numJoins = 0;
 				}
+				// not really unlinked, but layout is changed; fix reporting TODO
 			}
 			unlinked += t1.size() - 1;
 		}
@@ -765,6 +765,14 @@ namespace RelationalRAMExpectation {
 			addr& a1 = layout[ax];
 			if (a1.clump.size() <= 1) continue;
 			std::sort(a1.clump.begin(), a1.clump.end(), RampartClumpCompare(this));
+			if (false) {
+				// if Compare is screwed up then it should show up here
+				std::vector<int> dc(a1.clump);
+				std::sort(dc.begin(), dc.end(), RampartClumpCompare(this));
+				for (size_t cx=0; cx < dc.size(); ++cx) {
+					if (dc[cx] != a1.clump[cx]) Rf_error("oops");
+				}
+			}
 		}
 		return unlinked;
 	}

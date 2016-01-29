@@ -5,8 +5,8 @@ set.seed(1)
 numIndicators <- 4
 
 numDistricts <- 1
-numSchools <- 2
-numTeachers <- 10
+numSchools <- 4
+numTeachers <- 3
 numStudents <- 5
 
 genData <- function(upper, fanout, keyname) {
@@ -49,7 +49,7 @@ teacherData <- cbind(teacherData, createIndicators(teacherData$skill))
 studentData <- cbind(studentData, createIndicators(studentData$skill))
 
 studentData$i4[runif(nrow(studentData)) > .8] <- NA
-teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
+#teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
 
 mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
@@ -88,7 +88,7 @@ tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
 		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
 
-if (1) {
+if (0) {
 	options(width=120)
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('fitfunction', 'fit'),
@@ -118,63 +118,38 @@ if (1) {
 #	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-4)
 }
 
-stop("here")
-
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
 		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
 
 if (1) {
+	options(width=120)
+plan <- mxComputeSequence(list(
+    mxComputeOnce('fitfunction', 'fit'),
+    mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
+    mxComputeReportDeriv(),
+    mxComputeReportExpectation()
+))
+
 sMod$expectation$rampart <- 0L
-square <- mxRun(mxModel(sMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv()
-		      ))))
+square <- mxRun(mxModel(sMod, plan))
 
 sMod$expectation$rampart <- 4L
-rotated <- mxRun(mxModel(sMod,
-		      mxComputeSequence(list(
-			  mxComputeOnce('fitfunction', 'fit'),
-			  mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-			  mxComputeReportDeriv(),
-			  mxComputeReportExpectation()
-		      ))))
+rotated <- mxRun(mxModel(sMod, plan))
 
 ex <- rotated$expectation
 eo <- ex$output
 ed <- ex$debug
 print(ed$rampartUsage)
+#print(ed$layout)
 #print(round(ed$A[1:20,1:20],2))
 #print(round(ed$rA[1:20,1:20],2))
 #print(ed$mean)
 
 	print(abs(rotated$output$fit - square$output$fit))
 	print(max(abs(rotated$output$gradient - square$output$gradient)))
-#omxCheckCloseEnough(ed$rampartUsage, c(11064L, 317L, 198L, 2L), 1L)
-#omxCheckCloseEnough(rotated$output$fit, square$output$fit, 1e-8)
+omxCheckCloseEnough(ed$rampartUsage, c(209, 25, 5), 1L)
 #round(rotated$output$gradient - square$output$gradient, 2)
-#omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-5)
-}
-
-
-
-if (0) {
-	print(ed$layout[,c('model','key','numKids','numJoins','parent1','fk1','rampartScale')])
-	ed$S[1:16,1:16]
-	ed$A[1:16,1:16]
-	round(eo$covariance[1:12,1:12],3)
-}
-
-if (0) {
-# doesn't converge -- needs investigation TODO
-sMod$expectation$rampart <- TRUE
-#sMod <- mxRun(mxModel(sMod, mxComputeGradientDescent(engine="SD", maxMajorIter=3)),
-#	      checkpoint=TRUE)
-
-sMod <- mxRun(mxModel(sMod, mxComputeGradientDescent(maxMajorIter=150)),
-	      checkpoint=TRUE)
-summary(sMod)
-#omxCheckCloseEnough(sMod$output$fit, 20517.22, 1e-2)
+omxCheckCloseEnough(rotated$output$fit, square$output$fit, 3)
+omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 32)
 }
