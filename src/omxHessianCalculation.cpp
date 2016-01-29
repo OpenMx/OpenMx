@@ -110,11 +110,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
-	if(verbose >= 2) {mxLog("Hessian estimation: iOffset: %f.", iOffset);}
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
-		if(verbose >= 2) {mxLog("Hessian estimation: Parameter %d at refinement level %d (%f). One Step Forward.", i, k, iOffset);}
 		freeParams[i] = optima[i] + iOffset;
-
 		
 		fc->copyParamToModel();
 
@@ -136,7 +133,10 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
 		freeParams[i] = optima[i];									// Reset parameter value
 		iOffset /= v;
-		if(verbose >= 2) {mxLog("Hessian estimation: (%d, %d)--Calculating F1: %f F2: %f, Haprox: %f...", i, i, f1, f2, Haprox[k]);}
+		if(verbose >= 2) {
+			mxLog("Hessian: diag[%s] Δ%g (#%d) F1 %f F2 %f grad %f hess %f",
+			      fc->varGroup->vars[i]->name, iOffset, k, f1, f2, Gcentral[k], Haprox[k]);
+		}
 	}
 
 	for(int m = 1; m < numIter; m++) {						// Richardson Step
@@ -150,16 +150,12 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	}
 
 	if(verbose >= 2) {
-		mxLog("Hessian estimation: Populating Hessian ([%d, %d] = %d) with value %f...",
-		      i, i, i*numParams+i, Haprox[0]);
+		mxLog("Hessian: diag[%s] final grad %f hess %f", fc->varGroup->vars[i]->name, Gcentral[0], Haprox[0]);
 	}
 	gcentral[i]  = Gcentral[0];
 	gforward[i]  = Gforward[0];
 	gbackward[i] = Gbackward[0];
 	if (hessian) hessian[i*numParams + i] = Haprox[0];
-
-	if(verbose >= 2) {mxLog("Done with parameter %d.", i);}
-
 }
 
 void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)

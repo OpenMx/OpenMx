@@ -20,7 +20,7 @@ namespace stan {
 
   namespace prob {
 
-    template <typename T_sample, typename T_loc, typename T_covar>
+    template <bool propto, typename T_sample, typename T_loc, typename T_covar>
     typename boost::math::tools::promote_args<T_sample, typename scalar_type<T_loc>::type, T_covar>::type
     multi_normal_sufficient_log(const int sampleSize,
 				const Eigen::Matrix<T_sample,Eigen::Dynamic,1>& sampleMu,
@@ -38,7 +38,9 @@ namespace stan {
       using stan::math::check_positive;
       using stan::math::check_symmetric;
       using stan::math::check_ldlt_factor;
-	   
+      using stan::math::LOG_TWO_PI;
+      using stan::math::include_summand;
+
       check_size_match(function,
                        "Rows of covariance parameter", sampleSigma.rows(), 
                        "columns of covariance parameter", sampleSigma.cols());
@@ -64,20 +66,24 @@ namespace stan {
       Eigen::Matrix<param_t, Eigen::Dynamic, Eigen::Dynamic> ss;
       ss = mdivide_left_ldlt(ldlt_Sigma, sampleSigma);
 
-      lp += (ss.diagonal().sum() + log_determinant_ldlt(ldlt_Sigma)) * (sampleSize - 1);
+      if (include_summand<propto>::value)
+	      lp += mu.size() * LOG_TWO_PI;
 
-      lp_type lp_location(0.0);
-      {
+      if (include_summand<propto, T_covar>::value)
+	      lp += log_determinant_ldlt(ldlt_Sigma);
+
+      if (include_summand<propto, T_covar, T_sample>::value)
+	      lp += ss.trace();
+
+      if (include_summand<propto, T_covar, T_loc>::value) {
 	Eigen::Matrix<param_t, Eigen::Dynamic, 1> y_minus_mu(mu.size());
 
 	for (int j = 0; j < mu.size(); j++)
 	  y_minus_mu(j) = mu(j) - sampleMu(j);
 
-	lp_location = trace_inv_quad_form_ldlt(ldlt_Sigma, y_minus_mu) * sampleSize;
-	// Could avoid re-solving Sigma
-	// lp_location = quad_form(ss, y_minus_mu).diagonal().sum() * sampleSize;
+	lp += trace_inv_quad_form_ldlt(ldlt_Sigma, y_minus_mu);
       }
-      return (lp + lp_location) * -0.5;
+      return lp * -0.5 * sampleSize;
     }
   }
 }

@@ -23,7 +23,7 @@ factorModel <- mxModel("One Factor", type="RAM",
     mxCI(c("P"))
 )
 factorFit <- mxRun(factorModel, intervals=FALSE)
-omxCheckCloseEnough(factorFit$output$fit, -3648.28, .01)
+omxCheckCloseEnough(factorFit$output$fit, -3655.5916, .01)
 
 factorFitCI <- mxRun(factorFit, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)

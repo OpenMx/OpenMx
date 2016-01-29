@@ -60,10 +60,10 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
 
-	*saturated_out = (state->logDetObserved + ncols) * (state->n - 1);
+	*saturated_out = (state->logDetObserved + ncols) * state->n;
 
 	// Independence model assumes all-zero manifest covariances.
-	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
+	// (det(expected) + tr(observed * expected^-1)) * n;
 	// expected is the diagonal of the observed.  Inverse expected is 1/each diagonal value.
 	// Therefore the diagonal elements of observed * expected^-1 are each 1.
 	// So the trace of the matrix is the same as the number of columns.
@@ -76,7 +76,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	}
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 
-	*independence_out = (ncols + det) * (state->n - 1);
+	*independence_out = (ncols + det) * state->n;
 }
 
 static void addOutput(omxFitFunction *oo, MxRList *out)
@@ -137,7 +137,7 @@ struct multi_normal_deriv {
 			++xx;
 		}
 
-		return stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+		return stan::prob::multi_normal_sufficient_log<true>(omo->n, obMeans, obCov, exMeans, exCov);
 	}
 };
 
@@ -166,12 +166,14 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 				Eigen::VectorXd obMeans = obMeansAdapter;
 				EigenVectorAdaptor exMeansAdapter(omo->expectedMeans);
 				Eigen::VectorXd exMeans = exMeansAdapter;
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, obMeans, obCov, exMeans, exCov);
 			} else {
 				Eigen::VectorXd means(obCov.rows());
 				means.setZero();
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, means, obCov, means, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, means, obCov, means, exCov);
 			}
+			using stan::math::LOG_TWO_PI;
+			fit += .5 * omo->n * obCov.rows() * LOG_TWO_PI;
 		} catch (const std::exception& e) {
 			fit = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());

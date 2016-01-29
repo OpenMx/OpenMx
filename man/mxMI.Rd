@@ -75,7 +75,7 @@ factorModel <- mxModel("One Factor",
       mxPath(from=latents, arrows=2,
             free=FALSE, values=1.0),
       mxPath(from = 'one', to = manifests),
-      mxData(observed=cov(demoOneFactor), type="cov", numObs=500,
+      mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500,
              means = colMeans(demoOneFactor)))
 #No SEs for speed
 factorModel <- mxOption(factorModel, 'Standard Errors', 'No')
