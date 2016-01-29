@@ -40,13 +40,11 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
 	nlopt_opt opt = (nlopt_opt) goc->extraData;
-	FitContext *fc = goc->fc;
-	assert(n == fc->numParam);
 	int mode = 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (grad) {
-		fc->iterations += 1;
-		if (goc->maxMajorIterations != -1 && fc->iterations >= goc->maxMajorIterations) {
+		goc->recordIteration();
+		if (goc->maxMajorIterations != -1 && goc->getIteration() >= goc->maxMajorIterations) {
 			nlopt_force_stop(opt);
 		}
 	}
@@ -63,18 +61,18 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
-	if (fc->wanted & FF_COMPUTE_GRADIENT) {
-		Egrad = fc->grad;
-	} else if (fc->CI && fc->CI->varIndex >= 0) {
+	if (goc->getWanted() & FF_COMPUTE_GRADIENT) {
+		Egrad = goc->grad;
+	} else if (goc->inConfidenceIntervalProblem()) {
 		Egrad.setZero();
-		Egrad[fc->CI->varIndex] = fc->lowerBound? 1 : -1;
-		fc->grad = Egrad;
+		Egrad[ goc->getConfidenceIntervalVarIndex() ] = goc->inConfidenceIntervalLowerBound()? 1 : -1;
+		goc->grad = Egrad;
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
 		gradient_with_ref(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
 				  ff, fit, Epoint, Egrad);
-		fc->grad = Egrad;
+		goc->grad = Egrad;
 	}
 	if (goc->verbose >= 3) {
 		mxPrintMat("gradient", Egrad);
@@ -89,8 +87,7 @@ struct equality_functional {
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-		memcpy(goc.fc->est, x.derived().data(), sizeof(double) * goc.fc->numParam);
-		goc.fc->copyParamToModel();
+		goc.copyFromOptimizer(x.derived().data());
 		goc.solEqBFun();
 		result = goc.equality;
 	}
@@ -100,7 +97,6 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 {
 	context &ctx = *(context *)f_data;
 	GradientOptimizerContext &goc = ctx.goc;
-	assert(n == goc.fc->numParam);
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::VectorXd Eresult(ctx.origeq);
 	Eigen::MatrixXd jacobian(n, ctx.origeq);
@@ -159,8 +155,7 @@ struct inequality_functional {
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-		memcpy(goc.fc->est, x.derived().data(), sizeof(double) * goc.fc->numParam);
-		goc.fc->copyParamToModel();
+		goc.copyFromOptimizer(x.derived().data());
 		goc.myineqFun();
 		result = goc.inequality;
 	}
@@ -169,7 +164,6 @@ struct inequality_functional {
 static void nloptInequalityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
-	assert(n == goc->fc->numParam);
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
@@ -198,18 +192,18 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 
 };
 
-void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
+void omxInvokeNLOPT(GradientOptimizerContext &goc)
 {
+	double *est = goc.est.data();
 	goc.optName = "SLSQP";
 	goc.setupSimpleBounds();
 	goc.useGradient = true;
 
-	FitContext *fc = goc.fc;
-	int oldWanted = fc->wanted;
-	fc->wanted = 0;
-	omxState *globalState = fc->state;
+	int oldWanted = goc.getWanted();
+	goc.setWanted(0);
+	omxState *globalState = goc.getState();
     
-        nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, fc->numParam);
+        nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, goc.numFree);
 	goc.extraData = opt;
         //local_opt = nlopt_create(NLOPT_LD_SLSQP, n); // Subsidiary algorithm
         
@@ -220,9 +214,9 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
 
-	if (fc->CI) {
+	if (goc.inConfidenceIntervalProblem()) {
 		nlopt_set_xtol_rel(opt, 5e-3);
-		std::vector<double> tol(fc->numParam, std::numeric_limits<double>::epsilon());
+		std::vector<double> tol(goc.numFree, std::numeric_limits<double>::epsilon());
 		nlopt_set_xtol_abs(opt, tol.data());
 	} else {
 		// The *2 is there to roughly equate accuracy with NPSOL.
@@ -249,23 +243,24 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
                 }
 	}
         
-	int priorIterations = fc->iterations;
+	int priorIterations = goc.getIteration();
 
-	int code = nlopt_optimize(opt, est, &fc->fit);
+	double fit = 0;
+	int code = nlopt_optimize(opt, est, &fit);
 	if (ctx.eqredundent) {
 		nlopt_remove_equality_constraints(opt);
 		eq -= ctx.eqredundent;
 		std::vector<double> tol(eq, feasibilityTolerance);
 		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
 
-		code = nlopt_optimize(opt, est, &fc->fit);
+		code = nlopt_optimize(opt, est, &fit);
 	}
 
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
 
         nlopt_destroy(opt);
 
-	fc->wanted = oldWanted;
+	goc.setWanted(oldWanted);
 
 	if (code == NLOPT_INVALID_ARGS) {
 		Rf_error("NLOPT invoked with invalid arguments");
@@ -278,7 +273,7 @@ void omxInvokeNLOPT(double *est, GradientOptimizerContext &goc)
 			goc.informOut = INFORM_ITERATION_LIMIT;
 		}
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		if (fc->iterations - priorIterations <= 2) {
+		if (goc.getIteration() - priorIterations <= 2) {
 			Rf_error("%s: Failed due to singular matrix E or C in LSQ subproblem or "
 				 "rank-deficient equality constraint subproblem or "
 				 "positive directional derivative in line search", goc.optName);

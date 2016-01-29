@@ -14,4 +14,4 @@ model <- mxModel(model="con_test",
 fit <- mxRun(model)
 
 omxCheckCloseEnough(fit$output$fit, 1, 1e-4)
-omxCheckCloseEnough(c(fit$matrices$K$values), 1:4, 1e-4)
+omxCheckCloseEnough(c(fit$matrices$K$values), 1:4, 1e-3)

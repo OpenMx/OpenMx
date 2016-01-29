@@ -32,8 +32,9 @@ static int majIter = 400;
 static int minIter = 800;
 static double funcPrecision = 1.0e-7;
 
-void omxCSOLNP(double *est, GradientOptimizerContext &go)
+void omxCSOLNP(GradientOptimizerContext &go)
 {
+	double *est = go.est.data();
 	go.optName = "CSOLNP";
 	go.ControlMajorLimit = majIter;
 	go.ControlMinorLimit = minIter;

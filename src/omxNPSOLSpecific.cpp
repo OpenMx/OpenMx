@@ -66,7 +66,7 @@ static struct GradientOptimizerContext *NPSOL_GOpt;
 void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
 {
-	if (x != NPSOL_GOpt->fc->est) return;  // this is strange but necessary
+	if (x != NPSOL_GOpt->est.data()) return;  // this is strange but necessary
 	double fit = NPSOL_GOpt->recordFit(x, mode);
 	*f = fit;
 }
@@ -83,8 +83,7 @@ void F77_SUB(npsolConstraintFunction)
 	// first call to CONFUN will precede the first call to
 	// OBJFUN." Hence, we must copyParamToModel here.
 
-	NPSOL_GOpt->fc->copyParamToModel();
-
+	NPSOL_GOpt->copyFromOptimizer(x);
 	Eigen::Map< Eigen::VectorXd > cE(c, *ncnln);
 	NPSOL_GOpt->allConstraintsFun(cE);
 }
@@ -110,7 +109,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 	}
 	if (rf.maxMajorIterations != -1) {
 		std::string opt = string_snprintf("Major iterations %d",
-						  rf.maxMajorIterations - rf.fc->iterations);
+						  rf.maxMajorIterations - rf.getIteration());
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
 	if (rf.warmStart) {
@@ -123,7 +122,6 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 
 	// Will fail if we re-enter after an exception
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
-	FitContext *fc = rf.fc;
 	NPSOL_GOpt = &rf;
 
     int nclin = 0;
@@ -134,7 +132,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 	if (ncnln == 0) {
 		// ensure we never move to a worse point
 		int mode = 0;
-		double fit = rf.recordFit(fc->est, &mode);
+		double fit = rf.recordFit(rf.est.data(), &mode);
 		if (!std::isfinite(fit)) {
 			rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
 			NPSOL_GOpt = NULL;
@@ -146,7 +144,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 		}
 	}
 
-	int n = int(fc->numParam);
+	int n = rf.numFree;
  
         int nctotl = n + nlinwid + nlnwid;
  
@@ -207,7 +205,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
         All arrays must be in column-major order.
         */
  
-	fc->grad.resize(n);
+	rf.grad.resize(n);
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
@@ -215,31 +213,25 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 			rf.solLB.data(), rf.solUB.data(), (void*)F77_SUB(npsolConstraintFunction),
 			(void*) F77_SUB(npsolObjectiveFunction), &rf.informOut, &iter_out,
 			istate.data(), c.data(), cJac.data(),
-			clambda.data(), &fit, fc->grad.data(), rf.hessOut.data(), fc->est, iw.data(), &leniw, w.data(), &lenw);
+			clambda.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
+			iw.data(), &leniw, w.data(), &lenw);
 
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
 	if (rf.bestEst.size() && ncnln == 0) {
-		fc->fit = rf.bestFit;
-		memcpy(fc->est, rf.bestEst.data(), sizeof(double) * fc->numParam);
+		rf.useBestFit();
 	}
 
     NPSOL_GOpt = NULL;
 }
 
-void omxNPSOL(double *est, GradientOptimizerContext &rf)
+void omxNPSOL(GradientOptimizerContext &rf)
 {
-	FitContext *fc = rf.fc;
-	Eigen::Map< Eigen::ArrayXd > Est(est, fc->numParam);
+	double *est = rf.est.data();
+	Eigen::Map< Eigen::ArrayXd > Est(est, rf.numFree);
 	Eigen::ArrayXd startingPoint = Est;
 
-	if (rf.verbose >= 1) {
-		fc->copyParamToModel();
-		ComputeFit("NPSOL", rf.fitMatrix, FF_COMPUTE_FIT, fc);
-		mxLog("NPSOL: initial fit %f", fc->fit);
-	}
-
-	omxState *globalState = fc->state;
+	omxState *globalState = rf.getState();
 	int equality, inequality;
 	globalState->countNonlinearConstraints(equality, inequality);
 
@@ -251,15 +243,13 @@ void omxNPSOL(double *est, GradientOptimizerContext &rf)
 	int retry = 0;
 	double best = std::numeric_limits<double>::max();
 	while (++retry < maxRetries) {
-		fc->copyParamToModel();
-
 		Eigen::VectorXd cE(equality + inequality);
 		rf.allConstraintsFun(cE);
 
 		double norm = cE.norm();
 		if (rf.verbose >= 1) {
 			mxLog("NPSOL[%d]: fit %f feasibility constraints at %g (best %g)",
-			      retry, fc->fit, norm, best);
+			      retry, rf.getFit(), norm, best);
 		}
 		if (norm >= best) {
 			// NPSOL can jump off a cliff and get lost.
