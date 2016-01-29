@@ -34,9 +34,11 @@ mxGenerateData(model, nrows)
 }
 
 \details{
-This function looks inside the MxModel object to extract the model-implied means and covariance.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), and LISREL (\link{mxExpectationLISREL}) models.
+This function looks inside the MxModel object to extract the model-implied means and covariance.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
 
 Thresholds and ordinal data are implemented by generating continuous data and then using \link{cut} and \link{mxFactor} to break the continous data at the thresholds into an ordered factor.
+
+If the model has definition variables, then a data set must be included in the model object and the number of rows requested must match the number of rows in the model data.  In this case the means, covariance, and thresholds are reevaluated for each row of data, potentially creating a a different mean, covariance, and threshold structure for every generated row of data.
 
 For state space models (i.e. models with an \link{mxExpectationStateSpace} expectation), the data are generated based on the autoregressive structure of the model.  The rows of data in a state space model are not independent replicates of a stationary process.  Rather, they are the result of a latent (possibly non-stationary) autoregressive process.  For state space models different rows of data often correspond to different times.
 }
