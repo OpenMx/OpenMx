@@ -862,26 +862,12 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (ram->rampartEnabled()) {
-			invertAndFilterA(testA);
-			for (size_t ax=0; ax < layout.size(); ++ax) {
-				addr &a1 = layout[ax];
-				omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+			// free variables in M, X=1, path to single response
+			//testA.in // check no outgoing paths
 
-				if (0) {
-					// toward profiling out constant coefficients TODO
-					Eigen::ArrayXd sdiag = fullS.diagonal();
-					for (int cx=a1.obsStart; cx <= a1.obsEnd; ++cx) {
-						Eigen::VectorXd loadings = testA.out.col(cx);
-						Eigen::ArrayXd contrib = loadings.array() * sdiag;
-						for (int vx=0; vx < maxSize; ++vx) {
-							if (vx == cx || contrib[vx] == 0.0) continue;
-							mxLog("%s contributes variance to %s",
-							      CHAR(STRING_ELT(varNameVec, vx)),
-							      CHAR(STRING_ELT(obsNameVec, cx)));
-						}
-					}
-				}
-			}
+			// free latent variables in A with zero variance, X=values in M (usually a defvar)
+
+			// Y=observation of a single manifest response
 
 			int maxIter = ram->rampart;
 			int unlinked = 0;

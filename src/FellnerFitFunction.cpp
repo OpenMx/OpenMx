@@ -156,7 +156,22 @@ namespace FellnerFitFunction {
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
-		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
+			fc->profiledOut.assign(fc->numParam, false);
+
+			ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+			for (int px=0; px < Rf_length(Rprofile); ++px) {
+				const char *pname = CHAR(STRING_ELT(Rprofile, px));
+				int vx = fc->varGroup->lookupVar(pname);
+				if (vx < 0) {
+					mxLog("Parameter [%s] not found", pname);
+					continue;
+				}
+				fc->profiledOut[vx] = true;
+			}
+			return;
+		}
+
 		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
 
 		state *st                               = (state *) oo->argStruct;

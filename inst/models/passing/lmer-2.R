@@ -32,7 +32,8 @@ ortho <- mxModel(model="ortho", bySubj, type="RAM", manifestVars=c("distance"),
               mxPath("subj.intercept", "distance", values=1, free=FALSE, joinKey="Subject"),
               mxPath("subj.ageL", "distance", labels="data.age", free=FALSE, joinKey="Subject"),
               mxPath("subj.nsexL", "distance", labels="data.nsex", free=FALSE, joinKey="Subject"),
-              mxPath("subj.nsexageL", "distance", labels="data.nsexage", free=FALSE, joinKey="Subject"))
+		 mxPath("subj.nsexageL", "distance", labels="data.nsexage", free=FALSE, joinKey="Subject"),
+		 mxFitFunctionML(profileOut=c("ortho.A[1,2]")))
 
 if (1) {
   # load lme4's parameters
@@ -55,7 +56,7 @@ if (1) {
     omxCheckCloseEnough(logLik(pt1), logLik(fm1), 1e-6)
 }
 
-ortho <- mxRun(ortho)
+ortho <- mxRun(ortho, checkpoint=TRUE)
 
 # OpenMx finds a better solution
 omxCheckCloseEnough(ortho$output$fit, 436.73, 1e-2)
