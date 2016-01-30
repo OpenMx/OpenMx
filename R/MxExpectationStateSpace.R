@@ -633,6 +633,7 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
 		
 		hasDefVars <- imxHasDefinitionVariable(model)
+		continuousTime <- !single.na(model@expectation@t)
 		
 		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
@@ -644,11 +645,36 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		ty <- matrix(0, ydim, tdim)
 		
 		tx[,1] <- x0
+		oldT <- 0
 		for(i in 2:(tdim+1)){
 			if(hasDefVars){
+				A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i-1)
+				B <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i-1)
+				C <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i-1)
+				D <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i-1)
+				Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i-1)
+				R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i-1)
 				u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
+				newT <- mxEvalByName(model@expectation@t, model, compute=TRUE, defvar.row=i-1)
 			}
-			tx[,i] <- A %*% tx[,i-1] + B %*% u + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
+			if(continuousTime){
+				#browser()
+				I <- diag(1, nrow=nrow(A))
+				deltaT <- c(newT - oldT)
+				oldT <- newT
+				# If the A matrix is not all zero, do the full analytic integration
+				if(!identical(all.equal(A, matrix(0, nrow(A), ncol(A))), TRUE)){
+					expA <- OpenMx::expm(A * deltaT)
+					intA <- solve(A) %*% (expA - I)
+				} else {
+					# This is the analytic result when A equals a zero matrix
+					intA <- I*deltaT
+				}
+				xp <- expA %*% tx[,i-1] + intA %*% B %*% u
+			} else {
+				xp <- A %*% tx[,i-1] + B %*% u
+			}
+			tx[,i] <- xp + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
 			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
 		}
 		ret <- t(ty)
@@ -656,4 +682,5 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		return(ret)
 	}
 )
+
 
