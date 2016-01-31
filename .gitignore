@@ -82,6 +82,8 @@ man/imxReplaceModels.Rd
 man/imxReplaceSlot.Rd
 man/imxReservedNames.Rd
 man/imxReverseIdentifier.Rd
+man/imxRobustSE.Rd
+man/imxRowGradients.Rd
 man/imxSameType.Rd
 man/imxSeparatorChar.Rd
 man/imxSfClient.Rd
