@@ -952,17 +952,7 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 
 	for(size_t k = 0; k < numParam; k++) {
 		omxFreeVar* freeVar = varGroup->vars[k];
-		for(size_t l = 0; l < freeVar->locations.size(); l++) {
-			omxFreeVarLocation *loc = &freeVar->locations[l];
-			omxMatrix *matrix = os->matrixList[loc->matrix];
-			int row = loc->row;
-			int col = loc->col;
-			omxSetMatrixElement(matrix, row, col, at[k]);
-			if (OMX_DEBUG_MATRIX) {
-				mxLog("free var %d, matrix %s[%d, %d] = %f",
-				      (int) k, matrix->name(), row, col, at[k]);
-			}
-		}
+		freeVar->copyToState(os, at[k]);
 	}
 }
 

@@ -86,6 +86,9 @@ struct omxFreeVar {
 
 	const omxFreeVarLocation *getOnlyOneLocation(int matrix, bool &moreThanOne) const;
 	const omxFreeVarLocation *getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const;
+
+	// Warning: copyToState does not mark matrices dirty
+	void copyToState(struct omxState *os, double val);
 };
 
 #define FREEVARGROUP_ALL      0

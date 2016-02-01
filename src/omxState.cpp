@@ -778,3 +778,18 @@ const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(int matrix, bool &moreT
 
 const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const
 { return getOnlyOneLocation(~mat->matrixNumber, moreThanOne); }
+
+void omxFreeVar::copyToState(omxState *os, double val)
+{
+	for(size_t l = 0; l < locations.size(); l++) {
+		omxFreeVarLocation *loc = &locations[l];
+		omxMatrix *matrix = os->matrixList[loc->matrix];
+		int row = loc->row;
+		int col = loc->col;
+		omxSetMatrixElement(matrix, row, col, val);
+		if (OMX_DEBUG_MATRIX) {
+			mxLog("free var %s, matrix %s[%d, %d] = %f",
+			      name, matrix->name(), row, col, val);
+		}
+	}
+}
