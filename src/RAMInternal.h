@@ -110,9 +110,8 @@ namespace RelationalRAMExpectation {
 		SEXP obsNameVec;
 		SEXP varNameVec;
 		Amatrix regularA;
-		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
-		Eigen::VectorXd fullMeans;
+		Eigen::VectorXd fullMean;
 		Eigen::VectorXd expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
 
@@ -166,13 +165,21 @@ namespace RelationalRAMExpectation {
 
 class omxRAMExpectation {
 	bool trivialF;
+	int Zversion;
+	omxMatrix *_Z;
  public:
 
- 	omxRAMExpectation() : trivialF(false) {};
+ omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
+	~omxRAMExpectation() {
+		omxFreeMatrix(_Z);
+	};
+
+	omxMatrix *getZ(FitContext *fc);
+	void CalculateRAMCovarianceAndMeans();
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *X, *Y, *Z, *Ax;
+	omxMatrix *X, *Y, *Ax;
 
 	int verbose;
 	int numIters;

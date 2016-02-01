@@ -21,9 +21,6 @@
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 
-static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
-    omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
-    omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax);
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
 void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
@@ -65,8 +62,7 @@ static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char
 	if(oro->M != NULL)
 	    omxRecompute(oro->M, fc);
 	    
-	omxCalculateRAMCovarianceAndMeans(oro->A, oro->S, oro->F, oro->M, oro->cov, 
-		oro->means, oro->numIters, oro->I, oro->Z, oro->Y, oro->X, oro->Ax);
+	oro->CalculateRAMCovarianceAndMeans();
 }
 
 static void omxDestroyRAMExpectation(omxExpectation* oo) {
@@ -86,7 +82,6 @@ static void omxDestroyRAMExpectation(omxExpectation* oo) {
 	omxFreeMatrix(argStruct->I);
 	omxFreeMatrix(argStruct->X);
 	omxFreeMatrix(argStruct->Y);
-	omxFreeMatrix(argStruct->Z);
 	omxFreeMatrix(argStruct->Ax);
 	delete argStruct;
 }
@@ -98,12 +93,11 @@ static void refreshUnfilteredCov(omxExpectation *oo)
 	omxMatrix* A = oro->A;
 	omxMatrix* S = oro->S;
 	omxMatrix* Ax= oro->Ax;
-	omxMatrix* Z = oro->Z;
     
     omxRecompute(A, NULL);
     omxRecompute(S, NULL);
 	
-    omxShallowInverse(NULL, oro->numIters, A, Z, Ax, oro->I ); // Z = (I-A)^-1
+    omxMatrix* Z = oro->getZ(NULL);
 
     EigenMatrixAdaptor eZ(Z);
     EigenMatrixAdaptor eS(S);
@@ -131,7 +125,7 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	if (oro->rram && oro->rram->fullCov.nonZeros()) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		SEXP m1 = Rcpp::wrap(rram->regularA.out.transpose() * rram->fullMeans);
+		SEXP m1 = Rcpp::wrap(rram->expectedMean);
 		Rf_protect(m1);
 		Rf_setAttrib(m1, R_NamesSymbol, rram->obsNameVec);
 		out.add("mean", m1);
@@ -143,6 +137,15 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 	Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 }
 
+// reimplement inverse using eigen::sparsematrix TODO
+omxMatrix *omxRAMExpectation::getZ(FitContext *fc)
+{
+	if (Zversion != omxGetMatrixVersion(A)) {
+		omxShallowInverse(fc, numIters, A, _Z, Ax, I);
+		Zversion = omxGetMatrixVersion(A);
+	}
+	return _Z;
+}
 
 /*
  * omxCalculateRAMCovarianceAndMeans
@@ -161,38 +164,36 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-static void omxCalculateRAMCovarianceAndMeans(omxMatrix* A, omxMatrix* S, omxMatrix* F, 
-	omxMatrix* M, omxMatrix* Cov, omxMatrix* Means, int numIters, omxMatrix* I, 
-	omxMatrix* Z, omxMatrix* Y, omxMatrix* X, omxMatrix* Ax) {
-	
+void omxRAMExpectation::CalculateRAMCovarianceAndMeans()
+{
 	if (F->rows == 0) return;
 
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
-	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
+	if(Ax == NULL || I == NULL || Y == NULL || X == NULL) {
 		Rf_error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
-	if(Cov == NULL && Means == NULL) {
+	if(cov == NULL && means == NULL) {
 		return; // We're not populating anything, so why bother running the calculation?
 	}
 	
-	omxShallowInverse(NULL, numIters, A, Z, Ax, I );
+	omxMatrix *Z = getZ(NULL);
 	
 	/* Cov = FZSZ'F' */
 	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);
 
 	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
 
-	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, Cov);
+	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, cov);
 	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
 	
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....RAM: Model-implied Covariance Matrix:");}
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(cov, "....RAM: Model-implied Covariance Matrix:");}
 	
-	if(M != NULL && Means != NULL) {
-		// F77_CALL(omxunsafedgemv)(Y->majority, &(Y->rows), &(Y->cols), &oned, Y->data, &(Y->leading), M->data, &onei, &zerod, Means->data, &onei);
-		omxDGEMV(FALSE, 1.0, Y, M, 0.0, Means);
-		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....RAM: Model-implied Means Vector:");}
+	if(M != NULL && means != NULL) {
+		// F77_CALL(omxunsafedgemv)(Y->majority, &(Y->rows), &(Y->cols), &oned, Y->data, &(Y->leading), M->data, &onei, &zerod, means->data, &onei);
+		omxDGEMV(FALSE, 1.0, Y, M, 0.0, means);
+		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(means, "....RAM: Model-implied Means Vector:");}
 	}
 }
 
@@ -224,7 +225,8 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 
 	SEXP slotValue;
 	
-	omxRAMExpectation *RAMexp = new omxRAMExpectation;
+	omxMatrix *Zmat = omxInitMatrix(0, 0, TRUE, currentState);
+	omxRAMExpectation *RAMexp = new omxRAMExpectation(Zmat);
 	RAMexp->rram = 0;
 	
 	/* Set Expectation Calls and Structures */
@@ -309,7 +311,8 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
-	RAMexp->Z = 	omxInitMatrix(k, k, TRUE, currentState);
+	omxResizeMatrix(Zmat, k, k);
+
 	RAMexp->Ax = 	omxInitMatrix(k, k, TRUE, currentState);
 	RAMexp->Ax->rownames = RAMexp->S->rownames;
 	RAMexp->Ax->colnames = RAMexp->S->colnames;
@@ -408,17 +411,9 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->S, fc);
 
-			refreshLevelTransitions(fc, a1, regularA, 1.0);
-			if (rampartUsage.size()) {
-				refreshLevelTransitions(fc, a1, rampartA, a1.rampartScale);
-			}
+			refreshLevelTransitions(fc, a1, regularA, a1.rampartScale);
 
-			if (!haveFilteredAmat) {
-				refreshUnitA(fc, a1, regularA);
-				if (rampartUsage.size()) {
-					refreshUnitA(fc, a1, rampartA);
-				}
-			}
+			if (!haveFilteredAmat) refreshUnitA(fc, a1, regularA);
 
 			EigenMatrixAdaptor eS(ram->S);
 			for (int cx=0; cx < eS.cols(); ++cx) {
@@ -426,14 +421,6 @@ namespace RelationalRAMExpectation {
 					if (eS(rx,cx) != 0) {
 						fullS.coeffRef(a1.modelStart + rx, a1.modelStart + cx) = eS(rx, cx);
 					}
-				}
-			}
-
-			if (ram->M) {
-				omxRecompute(ram->M, fc);
-				EigenVectorAdaptor eM(ram->M);
-				for (int mx=0; mx < eM.size(); ++mx) {
-					fullMeans[a1.modelStart + mx] = eM[mx];
 				}
 			}
 		}
@@ -795,8 +782,6 @@ namespace RelationalRAMExpectation {
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
 		omxData *data               = homeEx->data;
 
-		// don't permit reuse of our expectations by some other fit function TODO
-
 		int totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
@@ -810,8 +795,8 @@ namespace RelationalRAMExpectation {
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
-		fullMeans.resize(maxSize);
-		fullMeans.setZero();
+		fullMean.resize(maxSize);
+		fullMean.setZero();
 		dataVec.resize(totalObserved);
 		testA.in.resize(maxSize, maxSize);
 		ident.resize(maxSize, maxSize);
@@ -966,9 +951,6 @@ namespace RelationalRAMExpectation {
 	{
 		if (regularA.in.nonZeros() == 0) {
 			regularA.in.resize(latentFilter.size(), latentFilter.size());
-			if (rampartUsage.size()) {
-				rampartA.in.resize(latentFilter.size(), latentFilter.size());
-			}
 		}
 		fullS.conservativeResize(latentFilter.size(), latentFilter.size());
 
@@ -979,19 +961,12 @@ namespace RelationalRAMExpectation {
 
 		if (!haveFilteredAmat) {
 			invertAndFilterA(regularA);
-			if (rampartUsage.size()) {
-				invertAndFilterA(rampartA);
-			}
 			haveFilteredAmat = !AmatDependsOnParameters;
 		}
 		//mxPrintMat("S", fullS);
 		//Eigen::MatrixXd fullCovDense =
 
-		if (!rampartUsage.size()) {
-			fullCov = (regularA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * regularA.out);
-		} else {
-			fullCov = (rampartA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * rampartA.out);
-		}
+		fullCov = (regularA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * regularA.out);
 		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
@@ -1010,11 +985,9 @@ namespace RelationalRAMExpectation {
 			data->handleDefinitionVarList(expectation->currentState, a1.row);
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->M, fc);
-			// reimplement inverse using eigen::sparsematrix TODO
-			omxShallowInverse(fc, ram->numIters, ram->A, ram->Z, ram->Ax, ram->I);
-			EigenMatrixAdaptor eZ(ram->Z);
+			EigenMatrixAdaptor eZ(ram->getZ(fc));
 			EigenVectorAdaptor eM(ram->M);
-			fullMeans.segment(a1.modelStart, a1.numVars()) = eZ * eM;
+			fullMean.segment(a1.modelStart, a1.numVars()) = eZ * eM;
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *betA = ram->between[jx];
@@ -1025,14 +998,14 @@ namespace RelationalRAMExpectation {
 				int jOffset = rowToOffsetMap[std::make_pair(data1, frow)];
 				omxRecompute(betA, fc);
 				EigenMatrixAdaptor eBA(betA);
-				fullMeans.segment(a1.modelStart, a1.numVars()) +=
-					eBA * fullMeans.segment(jOffset, eBA.cols());
+				fullMean.segment(a1.modelStart, a1.numVars()) +=
+					eBA * fullMean.segment(jOffset, eBA.cols());
 			}
 		}
 		int ox = 0;
 		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
 			if (!latentFilter[lx]) continue;
-			expectedMean[ox++] = fullMeans[lx];
+			expectedMean[ox++] = fullMean[lx];
 		}
 	}
 
@@ -1043,15 +1016,11 @@ namespace RelationalRAMExpectation {
 
 	void state::exportInternalState(MxRList &dbg)
 	{
-		SEXP fmean = Rcpp::wrap(fullMeans);
+		SEXP fmean = Rcpp::wrap(fullMean);
 		dbg.add("mean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
 		Eigen::SparseMatrix<double> A = signA * regularA.in.transpose();
 		dbg.add("A", Rcpp::wrap(A));
-		if (rampartUsage.size()) {
-			Eigen::SparseMatrix<double> rA = signA * rampartA.in.transpose();
-			dbg.add("rA", Rcpp::wrap(rA));
-		}
 		if (0) {
 			// regularize internal representation
 			Eigen::SparseMatrix<double> fAcopy = regularA.out.transpose();

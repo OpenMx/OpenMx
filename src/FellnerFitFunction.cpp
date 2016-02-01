@@ -153,8 +153,6 @@ namespace FellnerFitFunction {
 
 	struct state {
 		int verbose;
-		bool commuteRotation;
-		bool wrongMeanStructure;
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 
 		int numProfiledOut;
@@ -268,22 +266,8 @@ namespace FellnerFitFunction {
 			lp = covDecomp.log_determinant();
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
-			Eigen::VectorXd resid;
-			if (commuteRotation) {
-				if (wrongMeanStructure) {
-					resid = rram->dataVec - rram->rampartA.out.transpose() * rram->fullMeans;
-				} else {
-					//mxLog("correct path");
-					//rram->expectedMean = rram->regularA.out.transpose() * rram->fullMeans;
-					resid = rram->dataVec - rram->expectedMean;
-				}
-				//mxPrintMat("unrotated resid", resid);
-				rram->applyRotationPlan(resid);
-			} else {
-				Eigen::VectorXd Qdata = rram->dataVec;
-				rram->applyRotationPlan(Qdata);
-				resid = Qdata - rram->rampartA.out.transpose() * rram->fullMeans;
-			}
+			Eigen::VectorXd resid = rram->dataVec - rram->expectedMean;
+			rram->applyRotationPlan(resid);
 			//mxPrintMat("resid", resid);
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * rram->dataVec.size();
@@ -350,11 +334,6 @@ namespace FellnerFitFunction {
 			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));
 			st->verbose = Rf_asInteger(tmp) + OMX_DEBUG;
 		}
-		ProtectedSEXP Rcr(R_do_slot(oo->rObj, Rf_install(".commuteRotation")));
-		st->commuteRotation = Rf_asLogical(Rcr);
-		ProtectedSEXP Rwms(R_do_slot(oo->rObj, Rf_install(".wrongMeanStructure")));
-		st->wrongMeanStructure = Rf_asLogical(Rwms);
-		//mxLog("commuteRotation %d wrongMeanStructure %d", st->commuteRotation, st->wrongMeanStructure);
 	}
 };
 
