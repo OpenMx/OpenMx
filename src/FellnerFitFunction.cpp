@@ -156,6 +156,7 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 
 		int numProfiledOut;
+		std::vector<int> olsVarNum;
 		Eigen::MatrixXd olsDesign;
 		std::vector<int> olsPredictor;
 		std::vector<int> olsResponse;
@@ -180,6 +181,7 @@ namespace FellnerFitFunction {
 			ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
 			numProfiledOut = Rf_length(Rprofile);
 
+			olsVarNum.reserve(numProfiledOut);
 			olsDesign.resize(expectation->data->rows, numProfiledOut);
 			olsPredictor.reserve(numProfiledOut);
 			olsResponse.reserve(numProfiledOut);
@@ -193,6 +195,7 @@ namespace FellnerFitFunction {
 				}
 
 				omxFreeVar &fv = *fc->varGroup->vars[vx];
+				olsVarNum.push_back(vx);
 				bool found = false;
 				// refresh covariance TODO
 				bool moreThanOne;
@@ -238,8 +241,7 @@ namespace FellnerFitFunction {
 
 		double lp = NA_REAL;
 		try {
-			// split up covariance and mean computation TODO
-			omxExpectationCompute(fc, expectation, "distribution", "flat");
+			omxExpectationCompute(fc, expectation, "covariance", "flat");
 			RelationalRAMExpectation::state *rram   = ram->rram;
 
 			if (!covDecomp.analyzedPattern()) {
@@ -261,14 +263,18 @@ namespace FellnerFitFunction {
 				double val = olsDesign.col(px).transpose() * iV * obs;
 				val /= pvar;
 				// load into mean matrix and parameter vector TODO
+				fc->est[ olsVarNum[px] ] = val;
+				omxSetVectorElement(ram->M, olsPredictor[px], val);
 			}
 
-			lp = covDecomp.log_determinant();
+			omxExpectationCompute(fc, expectation, "mean", "flat");
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid = rram->dataVec - rram->expectedMean;
 			rram->applyRotationPlan(resid);
 			//mxPrintMat("resid", resid);
+
+			lp = covDecomp.log_determinant();
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * rram->dataVec.size();
 			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
