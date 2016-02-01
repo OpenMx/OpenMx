@@ -70,7 +70,7 @@ namespace stan {
 	      lp += mu.size() * LOG_TWO_PI * sampleSize;
 
       if (include_summand<propto, T_covar>::value)
-	      lp += log_determinant_ldlt(ldlt_Sigma) * (sampleSize-1);
+	      lp += log_determinant_ldlt(ldlt_Sigma) * sampleSize;
 
       if (include_summand<propto, T_covar, T_sample>::value)
 	      lp += ss.trace() * (sampleSize-1);

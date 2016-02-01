@@ -49,7 +49,7 @@ obj <- mxFitFunctionAlgebra("twin")
 model <- mxModel("both", twin, obj, modelMZ, modelDZ)
 modelOut <- mxRun(model)
 
-expectedACE <- c(.6, .2, .2)
+expectedACE <- c(.6, .2, .2) * 99/100
 observedACE <- c(modelOut$modelMZ.A$result, 
 	modelOut$modelMZ.C$result, modelOut$modelMZ.E$result)
 
