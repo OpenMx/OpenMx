@@ -968,6 +968,8 @@ void omxData::loadFakeData(omxState *state, double fake)
 
 bool omxDefinitionVar::loadData(omxState *state, double val)
 {
+	// We only need to check the first location because
+	// all locations will have the same value.
 	for(int l = 0; l < numLocations; l++) {
 		int matrixNumber = matrices[l];
 		int matrow = rows[l];
