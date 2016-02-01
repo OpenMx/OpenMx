@@ -585,6 +585,7 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 	if (OMX_DEBUG_ALGEBRA) {
 		mxLog("omxPopulateSubstitutions %s, %d locations", name(), (int) populate.size());
 	}
+	bool modified = false;
 	for (size_t pi = 0; pi < populate.size(); pi++) {
 		populateLocation &pl = populate[pi];
 		int index = pl.from;
@@ -612,14 +613,18 @@ void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FIT)) {
 			double value = omxMatrixElement(sourceMatrix, pl.srcRow, pl.srcCol);
-			omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
-			if (OMX_DEBUG_ALGEBRA) {
-				mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
-				      value, sourceMatrix->name(), pl.srcRow, pl.srcCol,
-				      name(), pl.destRow, pl.destCol);
+			if (omxMatrixElement(this, pl.destRow, pl.destCol) != value) {
+				omxSetMatrixElement(this, pl.destRow, pl.destCol, value);
+				modified = true;
+				if (OMX_DEBUG_ALGEBRA) {
+					mxLog("copying %.2f from %s[%d,%d] to %s[%d,%d]",
+					      value, sourceMatrix->name(), pl.srcRow, pl.srcCol,
+					      name(), pl.destRow, pl.destCol);
+				}
 			}
 		}
 	}
+	if (modified) omxMarkClean(this);
 }
 
 void omxMatrixLeadingLagging(omxMatrix *om) {
