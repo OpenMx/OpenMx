@@ -110,7 +110,7 @@ factorModel <- mxModel(model="One Factor", type="RAM",
       mxPath(from=latents, to=manifests),
       mxPath(from=manifests, arrows=2),
       mxPath(from=latents, arrows=2,free=FALSE, values=1.0),
-      mxData(cov(demoOneFactor)*499/500, type="cov",numObs=500)
+      mxData(cov(demoOneFactor), type="cov",numObs=500)
 )
 factorFit <-mxRun(factorModel)
 summary(factorFit)

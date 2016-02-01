@@ -64,7 +64,7 @@ expectVal <- c(0.4479, 0.4327, 1.1387, 0.5823, 1.5587, 1.4148)
 
 expectSE <- c(0.0555, 0.0474, 0.0721, 0.0651, 0.0987, 0.0896)
 
-expectMin <- 1854.3941
+expectMin <- 1850.685
 
 omxCheckCloseEnough(expectVal, biRegModelOut$output$estimate, 0.001)
 

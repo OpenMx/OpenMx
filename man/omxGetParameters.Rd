@@ -92,7 +92,7 @@ factorModel <- mxModel("One Factor",
     mxAlgebra(expression=A \%&\% L + U, name="R"),
     mxExpectationNormal(covariance="R", dimnames=manifestVars),
     mxFitFunctionML(),
-    mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500)
+    mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
 )
 
 # Get all free parameters

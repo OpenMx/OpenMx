@@ -35,7 +35,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 \examples{
 data(demoOneFactor)
-cov(demoOneFactor)*499/500
+cov(demoOneFactor)
 cor(demoOneFactor)
 }
 \keyword{datasets}
