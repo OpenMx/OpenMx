@@ -221,8 +221,8 @@ omxCheckEquals(mg.sum$numObs, 1000)
 #	chi-square, chi dof, chi p
 omxCheckTrue(is.na(raw.sum$Chi))
 omxCheckTrue(!is.na(raws.sum$Chi))
-omxCheckCloseEnough(cov.sum$Chi, 49.66448, epsilon=1e-3)
-omxCheckCloseEnough(covs.sum$Chi, 49.66448, epsilon=1e-3)
+omxCheckCloseEnough(cov.sum$Chi, 49.75399, epsilon=1e-3)
+omxCheckCloseEnough(covs.sum$Chi, 49.75399, epsilon=1e-3)
 
 
 # ChiDoF = df - sat.df, i.e. df = obsStat-ep, sat.df = obsStat-sat.ep, so ChiDoF = sat.ep - ep
@@ -277,11 +277,11 @@ omxCheckCloseEnough(sat.sum$informationCriteria['BIC:','par'], 9590.86, .01)
 omxCheckCloseEnough(raws.sum$informationCriteria['AIC:','par'], 9298.67, .01)
 omxCheckCloseEnough(raws.sum$informationCriteria['BIC:','par'], 9429.32, .01)
 
-omxCheckCloseEnough(cov.sum$informationCriteria['AIC:','par'], 91.66, .01)
-omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.17, .01)
+omxCheckCloseEnough(cov.sum$informationCriteria['AIC:','par'], 91.75, .01)
+omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.26, .01)
 
-omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.66, .01)
-omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.31, .01)
+omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.75, .01)
+omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.40, .01)
 
 omxCheckCloseEnough(mg.sum$informationCriteria[c(1:4,6)], c(-6936.958, -28889.347, 2063.042, 2195.552, 2109.798), .01)
 

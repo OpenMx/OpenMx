@@ -17,7 +17,7 @@ factorRaw <- mxModel(template, name="OneFactorRaw",
 		     mxData(demoOneFactor, type="raw"))
 
 factorCov <- mxModel(template, name="OneFactorCov", 
-		     mxData(observed=cov(demoOneFactor) * 499/500, means=colMeans(demoOneFactor),
+		     mxData(observed=cov(demoOneFactor), means=colMeans(demoOneFactor),
 			    type="cov", numObs=nrow(demoOneFactor)))
 
 plan <- mxComputeSequence(list(

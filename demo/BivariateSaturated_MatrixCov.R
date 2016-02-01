@@ -123,13 +123,13 @@ Chi3m <- LL3m-SL3m
 # -----------------------------------------------------------------------------
 
 
-omxCheckCloseEnough(Chi3, 0,.001)
-omxCheckCloseEnough(c(EC3),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(Chi3, -0.001, .001)
+omxCheckCloseEnough(c(EC3),c(1.065, 0.475, 0.475, 0.929),.001)
 # 3:CovMat
 # -------------------------------------
 
-omxCheckCloseEnough(Chi3m, 0,.001)
-omxCheckCloseEnough(c(EC3m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(Chi3m, -0.001, .001)
+omxCheckCloseEnough(c(EC3m),c(1.065, 0.475, 0.475, 0.929),.001)
 omxCheckCloseEnough(c(EM3m),c(0.058, 0.006),.001)
 # 3m:CovMPat 
 # -------------------------------------

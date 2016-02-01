@@ -46,18 +46,17 @@ summary(uniRegModelOut)
 #---------------------
 # check values: uniRegModelOut
 
-expectVal <- c(0.669178, 1.138707, 1.650931)
+expectVal <- c(0.66918, 1.13643, 1.64763)
 
 expectSE <-c(0.053902, 0.07209, 0.104518)
 
-expectMin <- 1312.985
-
+# cat(deparse(round(uniRegModelOut$output$estimate, 5)))
 omxCheckCloseEnough(expectVal, uniRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(uniRegModelOut$output[['standardErrors']]), 0.001)
 
-omxCheckCloseEnough(expectMin, uniRegModelOut$output$minimum, 0.001)
+omxCheckCloseEnough(1313.6145, uniRegModelOut$output$minimum, 0.001)
 
 omxCheckEquals(uniRegModelOut$output$fitUnits, "-2lnL")
 

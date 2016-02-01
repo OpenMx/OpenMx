@@ -130,13 +130,13 @@ Chi1m <- LL1m-SL1m
 # example 1m: Saturated Model with Cov Matrices & Means and Path-Style Input
 # -----------------------------------------------------------------------------
 
-omxCheckCloseEnough(Chi1, 0,.001)
-omxCheckCloseEnough(c(EC1),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(Chi1, -0.001, .001)
+omxCheckCloseEnough(c(EC1),c(1.065, 0.475, 0.475, 0.929),.001)
 # 1:CovPat
 # -------------------------------------
 
 omxCheckCloseEnough(Chi1m, 0,.001)
-omxCheckCloseEnough(c(EC1m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EC1m),c(1.065, 0.475, 0.475, 0.929),.001)
 omxCheckCloseEnough(c(EM1m),c(0.058, 0.006),.001)
 # 1m:CovMPat 
 # -------------------------------------

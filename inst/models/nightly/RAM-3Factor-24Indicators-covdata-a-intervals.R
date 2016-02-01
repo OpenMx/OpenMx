@@ -110,7 +110,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29344.82, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29350.18, .1)
 
 threeFactorCI <- omxParallelCI(threeFactorOrthogonalOut)
 

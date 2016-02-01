@@ -110,4 +110,4 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 54933.11, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 54940.0787, .1)

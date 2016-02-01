@@ -413,12 +413,12 @@ LL6 <- mxEval(fitfunction,bivSatFit6)
 
 
 omxCheckCloseEnough(Chi1, 0,.01)
-omxCheckCloseEnough(c(EC1), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
+omxCheckCloseEnough(c(EC1), c(1.0656, 0.4751, 0.4751, 0.9291),.001)
 #1:CovPat
 # -------------------------------------
 
 omxCheckCloseEnough(Chi1m, 0,.01)
-omxCheckCloseEnough(c(EC1m), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
+omxCheckCloseEnough(c(EC1m), c(1.0656, 0.4751, 0.4751, 0.9291),.001)
 omxCheckCloseEnough(c(EM1m), c(0.0582, 0.0063), .001)
 #1m:CovMPat 
 # -------------------------------------

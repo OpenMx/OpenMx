@@ -135,7 +135,10 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
 	std::vector<double> latentDist;
 	latentDist.assign(numLatents, 0.0);
-	quad.EAP(thrDweight, 1/extraData->weightSum, latentDist.data());
+	quad.EAP(thrDweight, extraData->weightSum, latentDist.data());
+	for (int d1=quad.maxAbilities; d1 < numLatents; d1++) {
+		latentDist[d1] *= extraData->weightSum / (extraData->weightSum - 1.0);
+	}
 	exportLatentDistToOMX(quad, latentDist.data(), extraData->estLatentMean, extraData->estLatentCov);
 
 	++extraData->ElatentVersion;
@@ -179,7 +182,10 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
 	std::vector<double> latentDist;
 	latentDist.assign(numLatents, 0.0);
-	quad.EAP(dist.data(), 1.0/got, latentDist.data());
+	quad.EAP(dist.data(), got, latentDist.data());
+	for (int d1=quad.maxAbilities; d1 < numLatents; d1++) {
+		latentDist[d1] *= got / (got - 1.0);
+	}
 	exportLatentDistToOMX(quad, latentDist.data(), meanMat, covMat);
 }
 
@@ -361,6 +367,12 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
 			omxCopyMatrix(state->_latentMeanOut, state->estLatentMean);
 			omxCopyMatrix(state->_latentCovOut, state->estLatentCov);
+
+			double sampleSizeAdj = (state->weightSum - 1.0) / state->weightSum;
+			int covSize = state->_latentCovOut->rows * state->_latentCovOut->cols;
+			for (int cx=0; cx < covSize; ++cx) {
+				state->_latentCovOut->data[cx] *= sampleSizeAdj;
+			}
 			return;
 		}
 

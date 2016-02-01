@@ -39,5 +39,4 @@ model <- mxModel(A, D, expectedCov, objective, observedCov, mxFitFunctionML())
 
 model <- mxRun(model)
 
-omxCheckCloseEnough(model$output$estimate, c(1.0954, .7303, .7667),
-	0.001)
+omxCheckCloseEnough(model$output$estimate, c(1.0917, .7278, .7615), 0.001)
