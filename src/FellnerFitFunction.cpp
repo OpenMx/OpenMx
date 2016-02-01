@@ -174,16 +174,16 @@ namespace FellnerFitFunction {
 	{
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		omxExpectationCompute(fc, expectation, "nothing", "flat");
+		RelationalRAMExpectation::state *rram = ram->rram;
 		omxData *data               = expectation->data;
 		fc->profiledOut.assign(fc->numParam, false);
 
 		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
 		numProfiledOut = Rf_length(Rprofile);
-		if (numProfiledOut && ram->F->rows != 1)
-			Rf_error("Multivariate profiling of constant coefficients is not implemented");
 
 		olsVarNum.reserve(numProfiledOut);
-		olsDesign.resize(data->rows, numProfiledOut);
+		olsDesign.resize(rram->dataVec.size(), numProfiledOut);
 
 		for (int px=0; px < numProfiledOut; ++px) {
 			const char *pname = CHAR(STRING_ELT(Rprofile, px));
@@ -206,10 +206,10 @@ namespace FellnerFitFunction {
 					continue;
 				}
 				found = true;
-				//int vnum = loc->row + loc->col;
+				int vnum = loc->row + loc->col;
 				// Should ensure the loading is fixed and not a defvar TODO
 				// Should ensure zero variance & no cross-level links TODO
-				olsDesign.col(px).setConstant(1.0);
+				olsDesign.col(px) = (rram->dataColumn.array() == vnum).cast<double>();
 			}
 			loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
 			if (loc) {
@@ -224,10 +224,13 @@ namespace FellnerFitFunction {
 				int rnum;
 				eA.col(vnum).array().abs().maxCoeff(&rnum);
 				// ensure only 1 nonzero in column TODO
-				// NOTE: Order here needs to match expectation covariance order
-				for (int rx=0; rx < data->rows; ++rx) {
-					data->handleDefinitionVarList(ram->M->currentState, rx);
-					olsDesign(rx, px) = omxVectorElement(ram->M, vnum);
+				for (size_t ax=0; ax < rram->layout.size(); ++ax) {
+					RelationalRAMExpectation::addr &a1 = rram->layout[ax];
+					if (a1.model != expectation) continue;
+					data->handleDefinitionVarList(ram->M->currentState, a1.row);
+					double weight = omxVectorElement(ram->M, vnum);
+					olsDesign.col(px).segment(a1.obsStart, a1.numObs()) =
+						weight * (rram->dataColumn.segment(a1.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
 			if (!found) Rf_error("oops");
@@ -265,7 +268,6 @@ namespace FellnerFitFunction {
 
 			double remlAdj = 0.0;
 			if (numProfiledOut) {
-				omxData *data = expectation->data;
 				Eigen::MatrixXd constCov = olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
 				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
 				cholConstCov.compute(constCov);
@@ -274,13 +276,11 @@ namespace FellnerFitFunction {
 				}
 				remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
 
-				int Ycol = omxVectorElement(expectation->dataColumns, 0);
-				Eigen::Map< Eigen::VectorXd > obs(omxDoubleDataColumn(data, Ycol), data->rows);
 				Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
 				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
 				Eigen::VectorXd param =
 					(cholConstPrec.selfadjointView<Eigen::Lower>() *
-					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * obs);
+					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * rram->dataVec);
 
 				for (int px=0; px < numProfiledOut; ++px) {
 					fc->est[ olsVarNum[px] ] = param[px];

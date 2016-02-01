@@ -578,7 +578,9 @@ namespace RelationalRAMExpectation {
 					std::string dname = modelName + omxDataColumnName(expectation->data,
 											  omxVectorElement(colList, col));
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
-					dataVec[ dx++ ] = val;
+					dataVec[ dx ] = val;
+					if (expectation == homeEx) dataColumn[ dx ] = col;
+					dx += 1;
 				}
 			}
 			for (int vx=0; vx < ram->F->cols; ++vx) {
@@ -798,6 +800,8 @@ namespace RelationalRAMExpectation {
 		fullMean.resize(maxSize);
 		fullMean.setZero();
 		dataVec.resize(totalObserved);
+		dataColumn.resize(totalObserved);
+		dataColumn.setConstant(-1);
 		testA.in.resize(maxSize, maxSize);
 		ident.resize(maxSize, maxSize);
 		ident.setIdentity();

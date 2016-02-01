@@ -110,6 +110,7 @@ namespace RelationalRAMExpectation {
 		SEXP obsNameVec;
 		SEXP varNameVec;
 		Amatrix regularA;
+		Eigen::ArrayXi dataColumn;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMean;
 		Eigen::VectorXd expectedMean;
