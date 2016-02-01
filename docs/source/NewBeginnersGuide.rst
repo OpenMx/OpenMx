@@ -622,7 +622,7 @@ We will start with an example using summary data, so we are specifying a covaria
 
 .. code-block:: r
 
-    exampleDataCov <- mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500)
+    exampleDataCov <- mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
     
 We can view what *exampleDataCov* looks like for OpenMx.
 
@@ -653,7 +653,7 @@ Some models may include predictions for the mean(s).  We could add an additional
 
 .. code-block:: r
 
-    exampleDataCovMeans <- mxData(observed=cov(demoOneFactor)*499/500, 
+    exampleDataCovMeans <- mxData(observed=cov(demoOneFactor), 
                                   means=colMeans(demoOneFactor), type="cov", numObs=500)
     
 The output for *exampleDataCovMeans* would have the following extra lines.
@@ -999,7 +999,7 @@ We can also specify all the arguments directly within the ``mxModel()`` function
         mxPath(from=latents, to=manifests),
         mxPath(from=manifests, arrows=2),
         mxPath(from=latents, arrows=2, free=FALSE, values=1.0), 
-        mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500)
+        mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
     )
         
     factorFit1 <- mxRun(factorModel1)
@@ -1044,7 +1044,7 @@ Alternatively, we can write the script in the **classical** style and specify  a
                             + resVariances, name="expCov"),
         mxExpectationNormal(covariance="expCov", dimnames=names(demoOneFactor)),
         mxFitFunctionML(),
-        mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500)
+        mxData(observed=cov(demoOneFactor), type="cov", numObs=500)
     )
         
     factorFit2 <- mxRun(factorModel2)

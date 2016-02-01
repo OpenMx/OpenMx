@@ -60,10 +60,10 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
 
-	*saturated_out = (state->logDetObserved + ncols) * state->n;
+	*saturated_out = (state->logDetObserved + ncols) * (state->n - 1);
 
 	// Independence model assumes all-zero manifest covariances.
-	// (det(expected) + tr(observed * expected^-1)) * n;
+	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
 	// expected is the diagonal of the observed.  Inverse expected is 1/each diagonal value.
 	// Therefore the diagonal elements of observed * expected^-1 are each 1.
 	// So the trace of the matrix is the same as the number of columns.
@@ -76,7 +76,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	}
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 
-	*independence_out = (ncols + det) * state->n;
+	*independence_out = (ncols + det) * (state->n - 1);
 }
 
 static void addOutput(omxFitFunction *oo, MxRList *out)

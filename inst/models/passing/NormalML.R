@@ -25,7 +25,7 @@ for (retry in 1:2) {
   if (retry == 2) n2 <- mxModel(n2, plan)
   n2Fit <- mxRun(n2)
   
-  omxCheckCloseEnough(n2Fit$output$fit, 83.2452, .01)
+  omxCheckCloseEnough(n2Fit$output$fit, 80.866, .01)
   omxCheckCloseEnough(n2Fit$cov$values, dataCov, 1e-4)
   omxCheckCloseEnough(c(n2Fit$mean$values), dataMeans, 1e-4)
   omxCheckCloseEnough(log(n2Fit$output$conditionNumber), 1.63, .2)

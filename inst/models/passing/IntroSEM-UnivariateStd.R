@@ -50,12 +50,14 @@ expectVal <- c(0.669178, 1.138707, 1.650931)
 
 expectSE <-c(0.053902, 0.07209, 0.104518)
 
+expectMin <- 1312.985
+
 omxCheckCloseEnough(expectVal, uniRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(uniRegModelOut$output[['standardErrors']]), 0.001)
 
-omxCheckCloseEnough(1315.6165, uniRegModelOut$output$minimum, 0.001)
+omxCheckCloseEnough(expectMin, uniRegModelOut$output$minimum, 0.001)
 
 omxCheckEquals(uniRegModelOut$output$fitUnits, "-2lnL")
 
