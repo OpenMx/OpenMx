@@ -204,7 +204,7 @@ liModel <- mxModel(model="LISREL Factor Model",
 	mxExpectationLISREL(LX="LambdaX", PH="Phi",
 		TD="ThetaDelta", TX="TauX", KA="Kappa"),
 	mxFitFunctionML(),
-	mxData(cov(demoOneFactor)*499/500, "cov",
+	mxData(cov(demoOneFactor), "cov",
 		means=colMeans(demoOneFactor), numObs=nrow(demoOneFactor))
 )
 
