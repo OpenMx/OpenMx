@@ -28,6 +28,7 @@
 #include <Rmath.h>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
+#include <Eigen/Cholesky>
 
 namespace FellnerFitFunction {
 	// Based on lme4CholmodDecomposition.h from lme4
@@ -156,12 +157,11 @@ namespace FellnerFitFunction {
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 
 		int numProfiledOut;
-		std::vector<int> olsVarNum;
-		Eigen::MatrixXd olsDesign;
-		std::vector<int> olsPredictor;
-		std::vector<int> olsResponse;
+		std::vector<int> olsVarNum;     // index into fc->est
+		Eigen::MatrixXd olsDesign;      // a.k.a "X"
 
 		void compute(omxFitFunction *oo, int want, FitContext *fc);
+		void setupProfiledParam(omxFitFunction *oo, FitContext *fc);
 	};
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
@@ -170,70 +170,79 @@ namespace FellnerFitFunction {
 		st->compute(oo, want, fc);
 	}
 
+	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
+	{
+		omxExpectation *expectation             = oo->expectation;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		omxData *data               = expectation->data;
+		fc->profiledOut.assign(fc->numParam, false);
+
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+		numProfiledOut = Rf_length(Rprofile);
+		if (numProfiledOut && ram->F->rows != 1)
+			Rf_error("Multivariate profiling of constant coefficients is not implemented");
+
+		olsVarNum.reserve(numProfiledOut);
+		olsDesign.resize(data->rows, numProfiledOut);
+
+		for (int px=0; px < numProfiledOut; ++px) {
+			const char *pname = CHAR(STRING_ELT(Rprofile, px));
+			int vx = fc->varGroup->lookupVar(pname);
+			if (vx < 0) {
+				mxLog("Parameter [%s] not found", pname);
+				continue;
+			}
+
+			omxFreeVar &fv = *fc->varGroup->vars[vx];
+			olsVarNum.push_back(vx);
+			bool found = false;
+			bool moreThanOne;
+			const omxFreeVarLocation *loc =
+				fv.getOnlyOneLocation(ram->M, moreThanOne);
+			if (loc) {
+				if (moreThanOne) {
+					mxLog("Parameter [%s] appears in more than one spot in %s",
+					      pname, ram->M->name());
+					continue;
+				}
+				found = true;
+				//int vnum = loc->row + loc->col;
+				// Should ensure the loading is fixed and not a defvar TODO
+				// Should ensure zero variance & no cross-level links TODO
+				olsDesign.col(px).setConstant(1.0);
+			}
+			loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
+			if (loc) {
+				if (moreThanOne) {
+					mxLog("Parameter [%s] appears in more than one spot in %s",
+					      pname, ram->A->name());
+					continue;
+				}
+				found = true;
+				int vnum = loc->col;
+				EigenMatrixAdaptor eA(ram->A);
+				int rnum;
+				eA.col(vnum).array().abs().maxCoeff(&rnum);
+				// ensure only 1 nonzero in column TODO
+				// NOTE: Order here needs to match expectation covariance order
+				for (int rx=0; rx < data->rows; ++rx) {
+					data->handleDefinitionVarList(ram->M->currentState, rx);
+					olsDesign(rx, px) = omxVectorElement(ram->M, vnum);
+				}
+			}
+			if (!found) Rf_error("oops");
+
+			fc->profiledOut[vx] = true;
+		}
+	}
+
 	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
-			fc->profiledOut.assign(fc->numParam, false);
-
-			ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
-			numProfiledOut = Rf_length(Rprofile);
-
-			olsVarNum.reserve(numProfiledOut);
-			olsDesign.resize(expectation->data->rows, numProfiledOut);
-			olsPredictor.reserve(numProfiledOut);
-			olsResponse.reserve(numProfiledOut);
-
-			for (int px=0; px < numProfiledOut; ++px) {
-				const char *pname = CHAR(STRING_ELT(Rprofile, px));
-				int vx = fc->varGroup->lookupVar(pname);
-				if (vx < 0) {
-					mxLog("Parameter [%s] not found", pname);
-					continue;
-				}
-
-				omxFreeVar &fv = *fc->varGroup->vars[vx];
-				olsVarNum.push_back(vx);
-				bool found = false;
-				// refresh covariance TODO
-				bool moreThanOne;
-				const omxFreeVarLocation *loc =
-					fv.getOnlyOneLocation(ram->M, moreThanOne);
-				if (loc) {
-					if (moreThanOne) {
-						mxLog("Parameter [%s] appears in more than one spot in %s",
-						      pname, ram->M->name());
-						continue;
-					}
-					found = true;
-					int vnum = loc->row + loc->col;
-					olsPredictor.push_back(vnum);
-					// Should ensure the loading is fixed and not a defvar TODO
-					// Should ensure zero variance & no cross-level links TODO
-					EigenMatrixAdaptor eA(ram->A);
-					int rnum;
-					double loading = eA.col(vnum).array().abs().maxCoeff(&rnum);
-					olsDesign.col(px).setConstant(loading);
-					olsResponse.push_back(rnum);
-				}
-				loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
-				if (loc) {
-					if (moreThanOne) {
-						mxLog("Parameter [%s] appears in more than one spot in %s",
-						      pname, ram->A->name());
-						continue;
-					}
-					Rf_error("Not implemented");
-				}
-				if (!found) Rf_error("oops");
-				// free variables in M, X=1, path to single response
-				// free latent variables in A with zero variance, X=values in M (usually a defvar)
-				// Y=observation of a single manifest response
-
-				fc->profiledOut[vx] = true;
-			}
+			setupProfiledParam(oo, fc);
 			return;
 		}
 
@@ -254,17 +263,29 @@ namespace FellnerFitFunction {
 			Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
 							 rram->fullCov.rows(), rram->fullCov.rows());
 
-			for (int px=0; px < numProfiledOut; ++px) {
+			double remlAdj = 0.0;
+			if (numProfiledOut) {
 				omxData *data = expectation->data;
-				// need to filter out only 1 manifest if more than 1 prior to solving TODO
-				double pvar = olsDesign.col(px).transpose() * iV * olsDesign.col(px);
-				// need to map to the correct column TODO
-				Eigen::Map< Eigen::VectorXd > obs(omxDoubleDataColumn(data, olsResponse[px]), data->rows);
-				double val = olsDesign.col(px).transpose() * iV * obs;
-				val /= pvar;
-				// load into mean matrix and parameter vector TODO
-				fc->est[ olsVarNum[px] ] = val;
-				omxSetVectorElement(ram->M, olsPredictor[px], val);
+				Eigen::MatrixXd constCov = olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
+				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
+				cholConstCov.compute(constCov);
+				if(cholConstCov.info() != Eigen::Success){
+					throw std::exception();
+				}
+				remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
+
+				int Ycol = omxVectorElement(expectation->dataColumns, 0);
+				Eigen::Map< Eigen::VectorXd > obs(omxDoubleDataColumn(data, Ycol), data->rows);
+				Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
+				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
+				Eigen::VectorXd param =
+					(cholConstPrec.selfadjointView<Eigen::Lower>() *
+					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * obs);
+
+				for (int px=0; px < numProfiledOut; ++px) {
+					fc->est[ olsVarNum[px] ] = param[px];
+					fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
+				}
 			}
 
 			omxExpectationCompute(fc, expectation, "mean", "flat");
@@ -276,9 +297,9 @@ namespace FellnerFitFunction {
 
 			lp = covDecomp.log_determinant();
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * rram->dataVec.size();
-			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
-			lp += iqf + cterm;
+			double cterm = M_LN_2PI * (rram->dataVec.size() - numProfiledOut);
+			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", lp, iqf, cterm, remlAdj);
+			lp += iqf + cterm + remlAdj;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}

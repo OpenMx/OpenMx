@@ -33,7 +33,6 @@ ortho <- mxModel(model="ortho", bySubj, type="RAM", manifestVars=c("distance"),
               mxPath("subj.ageL", "distance", labels="data.age", free=FALSE, joinKey="Subject"),
               mxPath("subj.nsexL", "distance", labels="data.nsex", free=FALSE, joinKey="Subject"),
 		 mxPath("subj.nsexageL", "distance", labels="data.nsexage", free=FALSE, joinKey="Subject"))
-#		 mxFitFunctionML(profileOut=c("ortho.A[1,2]")))
 
 if (1) {
   # load lme4's parameters
@@ -56,7 +55,39 @@ if (1) {
     omxCheckCloseEnough(logLik(pt1), logLik(fm1), 1e-6)
 }
 
-ortho <- mxRun(ortho, checkpoint=TRUE)
+orthoFit <- mxRun(ortho)
 
 # OpenMx finds a better solution
-omxCheckCloseEnough(ortho$output$fit, 436.73, 1e-2)
+omxCheckCloseEnough(orthoFit$output$fit, 436.73, 1e-2)
+
+# ------------------------------
+
+fm2 <- lmer(distance ~ age + (age|Subject) + (0+nsex|Subject) +
+                (0 + nsexage|Subject), data=Orthodont, REML=TRUE)
+
+ortho$fitfunction$profileOut <- c("ortho.A[1,2]", "ortho.M[1,1]")
+
+if (1) {
+  # load lme4's parameters
+    p1 <- ortho
+    p1$subj$S$values[c('intercept', 'ageL'),c('intercept', 'ageL')] <-
+        VarCorr(fm2)$Subject
+    p1$subj$S$values[c('nsexL'),c('nsexL')] <-
+        VarCorr(fm2)$Subject.1
+    p1$subj$S$values[c('nsexageL'),c('nsexageL')] <-
+        VarCorr(fm2)$Subject.2
+
+    p1$A$values['distance','ageL'] <- fixef(fm2)['age']
+    p1$M$values[,'distance'] <- fixef(fm2)['(Intercept)']
+    p1$S$values['distance','distance'] <- getME(fm2, "sigma")^2
+
+    pt1 <- mxRun(mxModel(p1, mxComputeSequence(list(
+        mxComputeOnce('fitfunction', 'fit'),
+        mxComputeReportExpectation()))))
+
+    omxCheckCloseEnough(logLik(pt1), logLik(fm2), 1e-6)
+}
+
+orthoFit <- mxRun(ortho)
+
+omxCheckCloseEnough(orthoFit$output$fit, 440.43, .01)
