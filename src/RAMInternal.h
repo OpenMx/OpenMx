@@ -113,6 +113,7 @@ namespace RelationalRAMExpectation {
 		Amatrix rampartA;
 		Eigen::VectorXd dataVec;
 		Eigen::VectorXd fullMeans;
+		Eigen::VectorXd expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
@@ -125,7 +126,8 @@ namespace RelationalRAMExpectation {
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
-		void compute(FitContext *fc);
+		void computeCov(FitContext *fc);
+		void computeMean(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
 		~state();
 		void exportInternalState(MxRList &dbg);

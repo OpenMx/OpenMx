@@ -183,7 +183,8 @@ namespace FellnerFitFunction {
 					resid = rram->dataVec - rram->rampartA.out.transpose() * rram->fullMeans;
 				} else {
 					//mxLog("correct path");
-					resid = rram->dataVec - rram->regularA.out.transpose() * rram->fullMeans;
+					//rram->expectedMean = rram->regularA.out.transpose() * rram->fullMeans;
+					resid = rram->dataVec - rram->expectedMean;
 				}
 				//mxPrintMat("unrotated resid", resid);
 				rram->applyRotationPlan(resid);

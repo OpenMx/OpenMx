@@ -44,12 +44,18 @@ static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char
 {
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
 
-	if (what && strEQ(what, "distribution") && how && strEQ(how, "flat")) {
+	if (what && how && strEQ(how, "flat")) {
+		bool wantCov = false;
+		bool wantMean = false;
+		if (strEQ(what, "distribution")) { wantCov = true; wantMean = true; }
+		if (strEQ(what, "covariance")) wantCov = true;
+		if (strEQ(what, "mean")) wantMean = true;
 		if (!oro->rram) {
 			oro->rram = new RelationalRAMExpectation::state;
 			oro->rram->init(oo, fc);
 		}
-		oro->rram->compute(fc);
+		if (wantCov)  oro->rram->computeCov(fc);
+		if (wantMean) oro->rram->computeMean(fc);
 		return;
 	}
 
@@ -93,13 +99,11 @@ static void refreshUnfilteredCov(omxExpectation *oo)
 	omxMatrix* S = oro->S;
 	omxMatrix* Ax= oro->Ax;
 	omxMatrix* Z = oro->Z;
-	omxMatrix* I = oro->I;
-    int numIters = oro->numIters;
     
     omxRecompute(A, NULL);
     omxRecompute(S, NULL);
 	
-    omxShallowInverse(NULL, numIters, A, Z, Ax, I ); // Z = (I-A)^-1
+    omxShallowInverse(NULL, oro->numIters, A, Z, Ax, oro->I ); // Z = (I-A)^-1
 
     EigenMatrixAdaptor eZ(Z);
     EigenMatrixAdaptor eS(S);
@@ -431,8 +435,6 @@ namespace RelationalRAMExpectation {
 				for (int mx=0; mx < eM.size(); ++mx) {
 					fullMeans[a1.modelStart + mx] = eM[mx];
 				}
-			} else {
-				fullMeans.segment(a1.modelStart, ram->A->cols).setZero();
 			}
 		}
 	}
@@ -808,6 +810,8 @@ namespace RelationalRAMExpectation {
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
+		fullMeans.resize(maxSize);
+		fullMeans.setZero();
 		dataVec.resize(totalObserved);
 		testA.in.resize(maxSize, maxSize);
 		ident.resize(maxSize, maxSize);
@@ -979,10 +983,8 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = Amat.out; mxPrintMat("Amat.out", tmp); }
 	}
 
-	void state::compute(FitContext *fc)
+	void state::computeCov(FitContext *fc)
 	{
-		fullMeans.conservativeResize(latentFilter.size());
-
 		if (regularA.in.nonZeros() == 0) {
 			regularA.in.resize(latentFilter.size(), latentFilter.size());
 			if (rampartUsage.size()) {
@@ -1013,6 +1015,46 @@ namespace RelationalRAMExpectation {
 		}
 		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
+	}
+
+	void state::computeMean(FitContext *fc)
+	{
+		expectedMean.conservativeResize(dataVec.size());
+
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
+			omxExpectation *expectation = a1.model;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			if (!ram->M) continue;
+
+			omxData *data = expectation->data;
+			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			omxRecompute(ram->A, fc);
+			omxRecompute(ram->M, fc);
+			// reimplement inverse using eigen::sparsematrix TODO
+			omxShallowInverse(fc, ram->numIters, ram->A, ram->Z, ram->Ax, ram->I);
+			EigenMatrixAdaptor eZ(ram->Z);
+			EigenVectorAdaptor eM(ram->M);
+			fullMeans.segment(a1.modelStart, a1.numVars()) = eZ * eM;
+
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				omxMatrix *betA = ram->between[jx];
+				int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+				if (key == NA_INTEGER) continue;
+				omxData *data1 = betA->getJoinModel()->data;
+				int frow = data1->lookupRowOfKey(key);
+				int jOffset = rowToOffsetMap[std::make_pair(data1, frow)];
+				omxRecompute(betA, fc);
+				EigenMatrixAdaptor eBA(betA);
+				fullMeans.segment(a1.modelStart, a1.numVars()) +=
+					eBA * fullMeans.segment(jOffset, eBA.cols());
+			}
+		}
+		int ox = 0;
+		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
+			if (!latentFilter[lx]) continue;
+			expectedMean[ox++] = fullMeans[lx];
+		}
 	}
 
 	static int plusOne(int val) {
