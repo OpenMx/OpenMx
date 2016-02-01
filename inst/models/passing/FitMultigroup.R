@@ -63,19 +63,19 @@ if (1) {
 	obj <- mxFitFunctionMultigroup(paste("model", 1:2, sep=""))
 	model <- mxModel("both", obj, model1, model2)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, 99/100*c(1, 2), 0.001)
 }
 if (1) {
 	obj <- mxFitFunctionMultigroup("both.alg")
 	model <- mxModel("both", obj, model1, model2, alg)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, 99/100*c(1, 2), 0.001)
 }
 if (1) {
 	obj <- mxFitFunctionAlgebra("alg")
 	model <- mxModel("both", obj, model1, model2, alg)
         model.est <- mxRun(model, suppressWarnings = TRUE)
-        omxCheckCloseEnough(model.est$output$estimate, c(1, 2), 0.001)
+        omxCheckCloseEnough(model.est$output$estimate, 99/100*c(1, 2), 0.001)
 }
 if (1) {
 	obj <- mxFitFunctionMultigroup(c("uniRegModelRaw", paste("model", 1:2, sep="")))

@@ -45,7 +45,7 @@ if (0) {
   options(digits = 12)
   print(factorPathFit$output$fit)
 }
-omxCheckCloseEnough(factorPathFit$output$fit, -3648.2805, 1e-3)
+omxCheckCloseEnough(factorPathFit$output$fit, -3660.59669, 1e-3)
 if (0) {
   max(abs(matrixFitPar$Estimate[1:5] - zpath$Std.Value[1:5]))
 }
