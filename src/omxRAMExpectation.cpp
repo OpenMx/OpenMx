@@ -862,13 +862,6 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (ram->rampartEnabled()) {
-			// free variables in M, X=1, path to single response
-			//testA.in // check no outgoing paths
-
-			// free latent variables in A with zero variance, X=values in M (usually a defvar)
-
-			// Y=observation of a single manifest response
-
 			int maxIter = ram->rampart;
 			int unlinked = 0;
 			int level = -1; // mainly for debugging

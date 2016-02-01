@@ -35,6 +35,7 @@ namespace FellnerFitFunction {
 	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {
 	private:
 		Eigen::MatrixXd ident;
+		cholmod_dense* x_cd;
 
 	protected:
 		typedef Eigen::CholmodDecomposition<_MatrixType, _UpLo> Base;
@@ -58,7 +59,7 @@ namespace FellnerFitFunction {
      // * call it only once. TODO
 
 	public:
-		Cholmod() {
+		Cholmod() : x_cd(NULL) {
 			oldHandler = cholmod().error_handler;
 			cholmod().error_handler = cholmod_error;
 			cholmod().supernodal = CHOLMOD_AUTO;
@@ -71,6 +72,7 @@ namespace FellnerFitFunction {
 			m_factorizationIsOk = false; // base class should take care of it TODO
 		};
 		~Cholmod() {
+			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
 			cholmod().error_handler = oldHandler;
 		};
 
@@ -78,6 +80,9 @@ namespace FellnerFitFunction {
 
 		void analyzePattern(const typename Base::MatrixType& matrix)
 		{
+			if (ident.rows() != matrix.rows()) {
+				ident.setIdentity(matrix.rows(), matrix.rows());
+			}
 			Base::analyzePattern(matrix);
 			cholmod_common &cm = cholmod();
 			if (OMX_DEBUG) {
@@ -131,19 +136,18 @@ namespace FellnerFitFunction {
 			return logDet;
 		};
 
-		template<typename MB>
-		double inv_quad_form(const Eigen::MatrixBase<MB> &vec) {
+		double *getInverseData() const
+		{
+			return (double*) x_cd->x;
+		}
+
+		void refreshInverse()
+		{
 			eigen_assert(m_factorizationIsOk && "The decomposition is not in a valid state for solving, you must first call either compute() or symbolic()/numeric()");
-			if (ident.rows() != vec.rows()) {
-				ident.setIdentity(vec.rows(), vec.rows());
-			}
 			cholmod_dense b_cd(viewAsCholmod(ident));
-			cholmod_dense* x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
+			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
+			x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
 			if(!x_cd) throw std::runtime_error("cholmod_solve failed");
-			Eigen::Map< Eigen::MatrixXd > iA((double*) x_cd->x, vec.rows(), vec.rows());
-			double ans = vec.transpose() * iA.selfadjointView<Eigen::Lower>() * vec;
-			cholmod_free_dense(&x_cd, &cholmod());
-			return ans;
 		};
 	};
 
@@ -152,21 +156,81 @@ namespace FellnerFitFunction {
 		bool commuteRotation;
 		bool wrongMeanStructure;
 		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
+
+		int numProfiledOut;
+		Eigen::MatrixXd olsDesign;
+		std::vector<int> olsPredictor;
+		std::vector<int> olsResponse;
+
+		void compute(omxFitFunction *oo, int want, FitContext *fc);
 	};
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
+		state *st = (state *) oo->argStruct;
+		st->compute(oo, want, fc);
+	}
+
+	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
+	{
+		omxExpectation *expectation             = oo->expectation;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
 			fc->profiledOut.assign(fc->numParam, false);
 
 			ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
-			for (int px=0; px < Rf_length(Rprofile); ++px) {
+			numProfiledOut = Rf_length(Rprofile);
+
+			olsDesign.resize(expectation->data->rows, numProfiledOut);
+			olsPredictor.reserve(numProfiledOut);
+			olsResponse.reserve(numProfiledOut);
+
+			for (int px=0; px < numProfiledOut; ++px) {
 				const char *pname = CHAR(STRING_ELT(Rprofile, px));
 				int vx = fc->varGroup->lookupVar(pname);
 				if (vx < 0) {
 					mxLog("Parameter [%s] not found", pname);
 					continue;
 				}
+
+				omxFreeVar &fv = *fc->varGroup->vars[vx];
+				bool found = false;
+				// refresh covariance TODO
+				bool moreThanOne;
+				const omxFreeVarLocation *loc =
+					fv.getOnlyOneLocation(ram->M, moreThanOne);
+				if (loc) {
+					if (moreThanOne) {
+						mxLog("Parameter [%s] appears in more than one spot in %s",
+						      pname, ram->M->name());
+						continue;
+					}
+					found = true;
+					int vnum = loc->row + loc->col;
+					olsPredictor.push_back(vnum);
+					// Should ensure the loading is fixed and not a defvar TODO
+					// Should ensure zero variance & no cross-level links TODO
+					EigenMatrixAdaptor eA(ram->A);
+					int rnum;
+					double loading = eA.col(vnum).array().abs().maxCoeff(&rnum);
+					olsDesign.col(px).setConstant(loading);
+					olsResponse.push_back(rnum);
+				}
+				loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
+				if (loc) {
+					if (moreThanOne) {
+						mxLog("Parameter [%s] appears in more than one spot in %s",
+						      pname, ram->A->name());
+						continue;
+					}
+					Rf_error("Not implemented");
+				}
+				if (!found) Rf_error("oops");
+				// free variables in M, X=1, path to single response
+				// free latent variables in A with zero variance, X=values in M (usually a defvar)
+				// Y=observation of a single manifest response
+
 				fc->profiledOut[vx] = true;
 			}
 			return;
@@ -174,27 +238,39 @@ namespace FellnerFitFunction {
 
 		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
 
-		state *st                               = (state *) oo->argStruct;
-		omxExpectation *expectation             = oo->expectation;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-
 		double lp = NA_REAL;
 		try {
+			// split up covariance and mean computation TODO
 			omxExpectationCompute(fc, expectation, "distribution", "flat");
 			RelationalRAMExpectation::state *rram   = ram->rram;
 
-			if (!st->covDecomp.analyzedPattern()) {
+			if (!covDecomp.analyzedPattern()) {
 				rram->fullCov.makeCompressed();
-				st->covDecomp.analyzePattern(rram->fullCov);
+				covDecomp.analyzePattern(rram->fullCov);
 			}
 
-			st->covDecomp.factorize(rram->fullCov);
-			lp = st->covDecomp.log_determinant();
+			covDecomp.factorize(rram->fullCov);
+			covDecomp.refreshInverse();
+			Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
+							 rram->fullCov.rows(), rram->fullCov.rows());
+
+			for (int px=0; px < numProfiledOut; ++px) {
+				omxData *data = expectation->data;
+				// need to filter out only 1 manifest if more than 1 prior to solving TODO
+				double pvar = olsDesign.col(px).transpose() * iV * olsDesign.col(px);
+				// need to map to the correct column TODO
+				Eigen::Map< Eigen::VectorXd > obs(omxDoubleDataColumn(data, olsResponse[px]), data->rows);
+				double val = olsDesign.col(px).transpose() * iV * obs;
+				val /= pvar;
+				// load into mean matrix and parameter vector TODO
+			}
+
+			lp = covDecomp.log_determinant();
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid;
-			if (st->commuteRotation) {
-				if (st->wrongMeanStructure) {
+			if (commuteRotation) {
+				if (wrongMeanStructure) {
 					resid = rram->dataVec - rram->rampartA.out.transpose() * rram->fullMeans;
 				} else {
 					//mxLog("correct path");
@@ -208,9 +284,9 @@ namespace FellnerFitFunction {
 				resid = Qdata - rram->rampartA.out.transpose() * rram->fullMeans;
 			}
 			//mxPrintMat("resid", resid);
-			double iqf = st->covDecomp.inv_quad_form(resid);
+			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * rram->dataVec.size();
-			if (st->verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
+			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
 			lp += iqf + cterm;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
@@ -267,6 +343,7 @@ namespace FellnerFitFunction {
 		FellnerFitFunction::state *st = new FellnerFitFunction::state;
 		oo->argStruct = st;
 
+		st->numProfiledOut = 0;
 		{
 			SEXP tmp;
 			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));
