@@ -37,30 +37,6 @@ namespace RelationalRAMExpectation {
 		};
 	};
 
-	class Amatrix {
-	private:
-		class state &st;
-		bool analyzed;
-		int AshallowDepth;
-		double signA;
-		Eigen::SparseMatrix<double>      ident;
-	public:
-		// could store coeff extraction plan in addr TODO
-		Eigen::SparseMatrix<double>      in;
-		Eigen::SparseLU< Eigen::SparseMatrix<double>,
-				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > solver;
-		Eigen::SparseMatrix<double>      out;
-		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
-
-		Amatrix(class state &st) : st(st), analyzed(false), AshallowDepth(-1), signA(-1) {};
-		void resize(int dim);
-		void determineShallowDepth(FitContext *fc);
-		void refreshUnitA(FitContext *fc, struct placement &pl);
-		int verbose() const;
-		void invertAndFilterA();
-		Eigen::SparseMatrix<double> getInputMatrix() const;
-	};
-
 	struct RowToLayoutMapCompare {
 		bool operator() (const std::pair<omxData*,int> &lhs, const std::pair<omxData*,int> &rhs) const
 		{
@@ -76,67 +52,83 @@ namespace RelationalRAMExpectation {
 		int obsStart;
 	};
 
-	struct independentGroup {
-		int numRows;
-		std::vector<placement> placements;
-		omxMatrix *smallCol;
+	class independentGroup {
+	private:
+		class state &st;
+		bool analyzed;
+		int AshallowDepth;
 		double signA;
-		Eigen::SparseMatrix<double>      fullS;
-		std::vector< std::vector<int> >  rotationPlan;
-		std::vector<bool> latentFilter; // use to reduce the A matrix
-		SEXP obsNameVec;
-		SEXP varNameVec;
-		Amatrix regularA;
-		Amatrix rampartA;
-		Eigen::VectorXd dataVec;
-		Eigen::VectorXd fullMeans;
+		Eigen::SparseMatrix<double>      ident;
+	public:
+		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
+		RowToPlacementMapType            rowToPlacementMap;
+		std::vector<placement>           placements;
+		SEXP                             obsNameVec;
+		SEXP                             varNameVec;
+		// make dataColumn optional TODO
+		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
+		Eigen::VectorXd                  dataVec;
+		Eigen::VectorXd                  fullMean;
+		Eigen::VectorXd                  expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
+		Eigen::SparseMatrix<double>      fullS;
+		std::vector<bool>                latentFilter; // use to reduce the A matrix
+		std::vector< std::vector<int> >  rotationPlan;
+
+		// could store coeff extraction plan in addr TODO
+		Eigen::SparseMatrix<double>      fullA;
+		Eigen::SparseLU< Eigen::SparseMatrix<double>,
+				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
+		Eigen::SparseMatrix<double>      IAF;
+		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+
+		independentGroup(class state &st)
+			: st(st), analyzed(false), AshallowDepth(-1), signA(-1) {};
+		void prep(int maxSize, int totalObserved, FitContext *fc);
+		void refreshModel(FitContext *fc);
+		void determineShallowDepth(FitContext *fc);
+		void refreshUnitA(FitContext *fc, int px);
+		int verbose() const;
+		void invertAndFilterA();
+		Eigen::SparseMatrix<double> getInputMatrix() const;
+		void computeMean(FitContext *fc);
+		void computeCov(FitContext *fc);
+		void exportInternalState(MxRList &out, MxRList &dbg);
+		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
 	};
 
 	class state {
 	private:
-		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
-		std::vector< std::vector<int> >  rotationPlan;
 
 	public:
 		struct omxExpectation *homeEx;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addr>		 layout;
-		omxMatrix *smallCol;
-		// below move to independentGroup TODO
-		std::vector<placement>           placements;
-		std::vector<bool>                latentFilter; // use to reduce the A matrix
-		SEXP                             obsNameVec;
-		SEXP                             varNameVec;
-		Amatrix                          regularA;
-		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
-		Eigen::VectorXd                  dataVec;
-		Eigen::VectorXd                  fullMean;
-		Eigen::VectorXd                  expectedMean;
-		Eigen::SparseMatrix<double>      fullCov;
+		omxMatrix                       *smallCol;
+		std::vector< std::vector<int> >  rotationPlan;
+		independentGroup                 group;
 
 	private:
 		void refreshModel(FitContext *fc);
 		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
-		void planModelEval(int maxSize, int totalObserved);
+		void planModelEval(int maxSize, int totalObserved, FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
-		state() : regularA(*this) {};
+		state() : group(*this) {};
 		~state();
 		void computeCov(FitContext *fc);
 		void computeMean(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
-		void exportInternalState(MxRList &dbg);
 		int verbose() const;
-		template <typename T> void applyRotationPlan(std::vector<placement> &place, Eigen::MatrixBase<T> &resid) const;
 		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
+		void exportInternalState(MxRList &dbg);
 	};
 
 	template <typename T>
-	void state::applyRotationPlan(std::vector<placement> &place, Eigen::MatrixBase<T> &resid) const
+	void independentGroup::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
 	{
 		// maybe faster to do all observations in parallel
 		// to allow more possibility of instruction reordering TODO
@@ -145,22 +137,22 @@ namespace RelationalRAMExpectation {
 			//buf += "rotate";
 			const std::vector<int> &units = rotationPlan[rx];
 
-			const addr &specimen = layout[ place[ units[0] ].aIndex ];
+			const addr &specimen = st.layout[ placements[ units[0] ].aIndex ];
 			for (int ox=0; ox < specimen.numObs(); ++ox) {
 				double partialSum = 0.0;
 				for (size_t ux=0; ux < units.size(); ++ux) {
-					partialSum += resid[ place[units[ux]].obsStart + ox ];
+					partialSum += resid[ placements[units[ux]].obsStart + ox ];
 					//buf += string_snprintf(" %d", 1+ units[ux]);
 				}
-				double prev = resid[ place[units[0]].obsStart + ox ];
-				resid[ place[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
+				double prev = resid[ placements[units[0]].obsStart + ox ];
+				resid[ placements[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
 
 				for (size_t i=1; i < units.size(); i++) {
 					double k=units.size()-i;
 					partialSum -= prev;
 					double prevContrib = sqrt(k / (k+1)) * prev;
-					prev = resid[ place[units[i]].obsStart + ox ];
-					resid[ place[units[i]].obsStart + ox ] =
+					prev = resid[ placements[units[i]].obsStart + ox ];
+					resid[ placements[units[i]].obsStart + ox ] =
 						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
 				}
 			}
@@ -209,7 +201,7 @@ namespace RelationalRAMExpectation {
 		return ((omxRAMExpectation*) homeEx->argStruct)->verbose;
 	}
 
-	inline int Amatrix::verbose() const { return st.verbose(); };
+	inline int independentGroup::verbose() const { return st.verbose(); };
 };
 
 #endif

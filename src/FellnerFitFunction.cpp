@@ -176,6 +176,7 @@ namespace FellnerFitFunction {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
 		RelationalRAMExpectation::state *rram = ram->rram;
+		RelationalRAMExpectation::independentGroup &ig = rram->group;
 		omxData *data               = expectation->data;
 		fc->profiledOut.assign(fc->numParam, false);
 
@@ -183,7 +184,7 @@ namespace FellnerFitFunction {
 		numProfiledOut = Rf_length(Rprofile);
 
 		olsVarNum.reserve(numProfiledOut);
-		olsDesign.resize(rram->dataVec.size(), numProfiledOut);
+		olsDesign.resize(ig.dataVec.size(), numProfiledOut);
 
 		for (int px=0; px < numProfiledOut; ++px) {
 			const char *pname = CHAR(STRING_ELT(Rprofile, px));
@@ -209,7 +210,7 @@ namespace FellnerFitFunction {
 				int vnum = loc->row + loc->col;
 				// Should ensure the loading is fixed and not a defvar TODO
 				// Should ensure zero variance & no cross-level links TODO
-				olsDesign.col(px) = (rram->dataColumn.array() == vnum).cast<double>();
+				olsDesign.col(px) = (ig.dataColumn.array() == vnum).cast<double>();
 			}
 			loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
 			if (loc) {
@@ -224,14 +225,14 @@ namespace FellnerFitFunction {
 				int rnum;
 				eA.col(vnum).array().abs().maxCoeff(&rnum);
 				// ensure only 1 nonzero in column TODO
-				for (size_t ax=0; ax < rram->placements.size(); ++ax) {
-					RelationalRAMExpectation::placement &pl = rram->placements[ax];
+				for (size_t ax=0; ax < ig.placements.size(); ++ax) {
+					RelationalRAMExpectation::placement &pl = ig.placements[ax];
 					RelationalRAMExpectation::addr &a1 = rram->layout[ pl.aIndex ];
 					if (a1.model != expectation) continue;
 					data->handleDefinitionVarList(ram->M->currentState, a1.row);
 					double weight = omxVectorElement(ram->M, vnum);
 					olsDesign.col(px).segment(pl.obsStart, a1.numObs()) =
-						weight * (rram->dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
+						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
 			if (!found) Rf_error("oops");
@@ -256,16 +257,17 @@ namespace FellnerFitFunction {
 		try {
 			omxExpectationCompute(fc, expectation, "covariance", "flat");
 			RelationalRAMExpectation::state *rram   = ram->rram;
+			RelationalRAMExpectation::independentGroup &ig = rram->group;
 
 			if (!covDecomp.analyzedPattern()) {
-				rram->fullCov.makeCompressed();
-				covDecomp.analyzePattern(rram->fullCov);
+				ig.fullCov.makeCompressed();
+				covDecomp.analyzePattern(ig.fullCov);
 			}
 
-			covDecomp.factorize(rram->fullCov);
+			covDecomp.factorize(ig.fullCov);
 			covDecomp.refreshInverse();
 			Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
-							 rram->fullCov.rows(), rram->fullCov.rows());
+							 ig.fullCov.rows(), ig.fullCov.rows());
 
 			double remlAdj = 0.0;
 			if (numProfiledOut) {
@@ -282,7 +284,7 @@ namespace FellnerFitFunction {
 				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
 				Eigen::VectorXd param =
 					(cholConstPrec.selfadjointView<Eigen::Lower>() *
-					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * rram->dataVec);
+					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
 
 				for (int px=0; px < numProfiledOut; ++px) {
 					fc->est[ olsVarNum[px] ] = param[px];
@@ -291,15 +293,15 @@ namespace FellnerFitFunction {
 			}
 
 			omxExpectationCompute(fc, expectation, "mean", "flat");
-			//mxPrintMat("dataVec", rram->dataVec);
-			//mxPrintMat("fullMeans", rram->fullMeans);
-			Eigen::VectorXd resid = rram->dataVec - rram->expectedMean;
-			rram->applyRotationPlan(rram->placements, resid);
+			//mxPrintMat("dataVec", ig.dataVec);
+			//mxPrintMat("fullMeans", ig.fullMeans);
+			Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
+			ig.applyRotationPlan(resid);
 			//mxPrintMat("resid", resid);
 
 			lp = covDecomp.log_determinant();
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * (rram->dataVec.size() - numProfiledOut);
+			double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
 			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", lp, iqf, cterm, remlAdj);
 			lp += iqf + cterm + remlAdj;
 		} catch (const std::exception& e) {

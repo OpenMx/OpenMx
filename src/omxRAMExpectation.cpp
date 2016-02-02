@@ -125,16 +125,9 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		if (oro->rram->expectedMean.size()) {
-			SEXP m1 = Rcpp::wrap(rram->expectedMean);
-			Rf_protect(m1);
-			Rf_setAttrib(m1, R_NamesSymbol, rram->obsNameVec);
-			out.add("mean", m1);
-		}
-		if (oro->rram->fullCov.nonZeros()) {
-			out.add("covariance", Rcpp::wrap(rram->fullCov));
-		}
+		RelationalRAMExpectation::independentGroup &ig = rram->group;
 		rram->exportInternalState(dbg);
+		ig.exportInternalState(out, dbg);
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
@@ -360,8 +353,9 @@ namespace RelationalRAMExpectation {
 
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
-	void Amatrix::refreshUnitA(FitContext *fc, placement &pl)
+	void independentGroup::refreshUnitA(FitContext *fc, int px)
 	{
+		struct placement &pl = placements[px];
 		addr &a1 = st.layout[pl.aIndex];
 		omxExpectation *expectation = a1.model;
 		omxData *data = expectation->data;
@@ -377,7 +371,7 @@ namespace RelationalRAMExpectation {
 							 st.homeEx->name, 1+pl.modelStart+cx);
 					}
 					// can't use eA.block(..) -= because fullA must remain sparse
-					in.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = signA * val;
+					fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = signA * val;
 				}
 			}
 		}
@@ -391,29 +385,25 @@ namespace RelationalRAMExpectation {
 			if (key == NA_INTEGER) continue;
 			omxData *data1 = betA->getJoinModel()->data;
 			int frow = data1->lookupRowOfKey(key);
-			// replace with group specific map TODO
-			placement &p2 = st.placements[ st.rowToLayoutMap[std::make_pair(data1, frow)] ];
-			int jOffset = p2.modelStart;
+			placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
-					in.coeffRef(jOffset + cx, pl.modelStart + rx) =
+					fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) =
 						signA * val * scale;
-					//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
 				}
 			}
 		}
 	}
 
-	// 3rd visitor
-	void state::refreshModel(FitContext *fc)
+	void independentGroup::refreshModel(FitContext *fc)
 	{
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = layout[pl.aIndex];
+			addr &a1 = st.layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
@@ -421,7 +411,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->S, fc);
 
-			regularA.refreshUnitA(fc, pl);
+			refreshUnitA(fc, ax);
 
 			EigenMatrixAdaptor eS(ram->S);
 			for (int cx=0; cx < eS.cols(); ++cx) {
@@ -432,6 +422,12 @@ namespace RelationalRAMExpectation {
 				}
 			}
 		}
+	}
+
+	// 3rd visitor
+	void state::refreshModel(FitContext *fc)
+	{
+		group.refreshModel(fc);
 	}
 
 	// 1st visitor
@@ -502,14 +498,7 @@ namespace RelationalRAMExpectation {
 		return layout.size()-1;
 	}
 
-	void Amatrix::resize(int dim)
-	{
-		in.resize(dim, dim);
-		ident.resize(dim, dim);
-		ident.setIdentity();
-	}
-
-	void Amatrix::determineShallowDepth(FitContext *fc)
+	void independentGroup::determineShallowDepth(FitContext *fc)
 	{
 		if (!Global->RAMInverseOpt) return;
 
@@ -517,8 +506,8 @@ namespace RelationalRAMExpectation {
 		vec.setConstant(1);
 		copyParamToModelInternal(fc->varGroup, st.homeEx->currentState, vec.data());
 
-		for (size_t ax=0; ax < st.placements.size(); ++ax) {
-			placement &pl = st.placements[ax];
+		for (size_t ax=0; ax < placements.size(); ++ax) {
+			placement &pl = placements[ax];
 			addr &a1 = st.layout[ax];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -533,8 +522,7 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				// replace with per-group layout map TODO
-				placement &p2 = st.placements[ st.rowToLayoutMap[std::make_pair(data1, frow)] ];
+				placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
 				omxRecompute(betA, NULL);
 				betA->markPopulatedEntries();
 				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
@@ -542,7 +530,7 @@ namespace RelationalRAMExpectation {
 					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 						double val = omxMatrixElement(betA, rx, cx);
 						if (val == 0.0) continue;
-						in.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
+						fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
 					}
 				}
 			}
@@ -551,18 +539,18 @@ namespace RelationalRAMExpectation {
 			for (int cx=0; cx < eA.cols(); ++cx) {
 				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
-						in.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = 1;
+						fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = 1;
 					}
 				}
 			}
 		}
 
-		int maxDepth = std::min(in.cols(), 30);
+		int maxDepth = std::min(fullA.cols(), 30);
 		if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
-		Eigen::SparseMatrix<double> curProd = in;
+		Eigen::SparseMatrix<double> curProd = fullA;
 		for (int tx=1; tx < maxDepth; ++tx) {
 			if (verbose() >= 3) { Eigen::MatrixXd tmp = curProd; mxPrintMat("curProd", tmp); }
-			curProd = (curProd * in.transpose()).eval();
+			curProd = (curProd * fullA.transpose()).eval();
 			bool allZero = true;
 			for (int k=0; k < curProd.outerSize(); ++k) {
 				for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
@@ -577,7 +565,7 @@ namespace RelationalRAMExpectation {
 				break;
 			}
 		}
-		in.setZero();
+		fullA.setZero();
 		fc->copyParamToModelClean();
 
 		if (AshallowDepth >= 0) signA = 1.0;
@@ -587,16 +575,9 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 2nd visitor
-	void state::planModelEval(int maxSize, int totalObserved)
+	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
 	{
-		placements.reserve(layout.size());
-
-		latentFilter.assign(maxSize, false); // will have totalObserved true entries
-		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
-		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
-		dataVec.resize(totalObserved);
-		dataColumn.resize(totalObserved);
-		dataColumn.setConstant(-1);
+		group.placements.reserve(layout.size());
 
 		int dx = 0, mx = 0;
 		for (size_t ax=0; ax < layout.size(); ++ax) {
@@ -606,9 +587,38 @@ namespace RelationalRAMExpectation {
 			pl.aIndex = ax;
 			pl.modelStart = mx;
 			pl.obsStart = dx;
-			placements.push_back(pl);
+			group.placements.push_back(pl);
+			mx += a1.numVars();
+			dx += a1.numObs();
+		}
+
+		group.prep(maxSize, totalObserved, fc);
+
+		rotationPlan.clear();
+	}
+
+	void independentGroup::prep(int maxSize, int totalObserved, FitContext *fc)
+	{
+		ident.resize(maxSize, maxSize);
+		ident.setIdentity();
+		fullA.resize(maxSize, maxSize);
+		latentFilter.assign(maxSize, false); // will have totalObserved true entries
+		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
+		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
+		dataVec.resize(totalObserved);
+		dataColumn.resize(totalObserved);
+		dataColumn.setConstant(-1);
+		fullMean.resize(maxSize);
+		fullMean.setZero();
+		fullS.conservativeResize(maxSize, maxSize);
+
+		int dx=0;
+		for (size_t ax=0; ax < placements.size(); ++ax) {
+			placement &pl = placements[ax];
+			addr &a1 = st.layout[ pl.aIndex ];
+			// also build index TODO
 			if (verbose() >= 2) {
-				int modelEnd = mx + a1.numVars() - 1;
+				int modelEnd = pl.modelStart + a1.numVars() - 1;
 				if (a1.numObs()) {
 					mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
 					      a1.row, pl.modelStart, modelEnd, pl.obsStart, pl.obsStart + a1.numObs() - 1);
@@ -618,26 +628,28 @@ namespace RelationalRAMExpectation {
 				}
 			}
 
-			omxExpectation *expectation = a1.model;
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxData *data = a1.model->data;
+			rowToPlacementMap[ std::make_pair(data, a1.row) ] = ax;
 
-			std::string modelName(expectation->data->name);
+			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+
+			std::string modelName(data->name);
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
-			int jCols = expectation->dataColumns->cols;
+			int jCols = a1.model->dataColumns->cols;
 			if (jCols) {
-				omxDataRow(expectation, a1.row, smallCol);
-				omxMatrix *colList = expectation->dataColumns;
+				omxDataRow(a1.model, a1.row, st.smallCol);
+				omxMatrix *colList = a1.model->dataColumns;
 				for (int col=0; col < jCols; ++col) {
-					double val = omxMatrixElement(smallCol, 0, col);
+					double val = omxMatrixElement(st.smallCol, 0, col);
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
 					latentFilter[ pl.modelStart + col ] = true;
-					std::string dname = modelName + omxDataColumnName(expectation->data,
-											  omxVectorElement(colList, col));
+					std::string dname =
+						modelName + omxDataColumnName(data, omxVectorElement(colList, col));
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
-					if (expectation == homeEx) dataColumn[ dx ] = col;
+					if (a1.model == st.homeEx) dataColumn[ dx ] = col;
 					dx += 1;
 				}
 			}
@@ -645,8 +657,12 @@ namespace RelationalRAMExpectation {
 				std::string dname = modelName + ram->F->colnames[vx];
 				SET_STRING_ELT(varNameVec, pl.modelStart + vx, Rf_mkChar(dname.c_str()));
 			}
-			mx += a1.numVars();
 		}
+
+		determineShallowDepth(fc);
+
+		// need to remap in opposite direction of aIndex TODO
+		rotationPlan = st.rotationPlan;
 	}
 
 	struct RampartCompareLib {
@@ -856,6 +872,7 @@ namespace RelationalRAMExpectation {
 		for (int row=0; row < data->rows; ++row) {
 			flattenOneRow(homeEx, row, totalObserved, maxSize);
 		}
+		rowToLayoutMap.clear();
 
 		if (verbose() >= 1) {
 			mxLog("%s: total observations %d", homeEx->name, totalObserved);
@@ -875,13 +892,7 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		planModelEval(maxSize, totalObserved);
-
-		fullMean.resize(maxSize);
-		fullMean.setZero();
-		fullS.conservativeResize(maxSize, maxSize);
-		regularA.resize(maxSize);
-		regularA.determineShallowDepth(fc);
+		planModelEval(maxSize, totalObserved, fc);
 	}
 
 	state::~state()
@@ -889,67 +900,67 @@ namespace RelationalRAMExpectation {
 		omxFreeMatrix(smallCol);
 	}
 
-	void Amatrix::invertAndFilterA()
+	void independentGroup::invertAndFilterA()
 	{
 		// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
 		if (AshallowDepth >= 0) {
-			in.makeCompressed();
-			out = in + ident;
+			fullA.makeCompressed();
+			IAF = fullA + ident;
 			for (int iter=1; iter <= AshallowDepth; ++iter) {
-				out = (out * in + ident).eval();
+				IAF = (IAF * fullA + ident).eval();
 				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 			}
 		} else {
-			in += ident;
+			fullA += ident;
 			if (!analyzed) {
 				analyzed = true;
-				in.makeCompressed();
-				solver.analyzePattern(in);
+				fullA.makeCompressed();
+				Asolver.analyzePattern(fullA);
 			}
-			solver.factorize(in);
-			if (solver.info() != Eigen::Success) {
+			Asolver.factorize(fullA);
+			if (Asolver.info() != Eigen::Success) {
 				Rf_error("%s: failed to invert flattened A matrix; %s",
-					 st.homeEx->name, solver.lastErrorMessage().c_str());
+					 st.homeEx->name, Asolver.lastErrorMessage().c_str());
 			}
 
-			out = solver.solve(ident);
-			in -= ident;  // leave unchanged
+			IAF = Asolver.solve(ident);
+			fullA -= ident;  // leave unchanged
 			//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 		}
 
 		const bool doubleCheck = true;
 		Eigen::MatrixXd denseA;
 		if (doubleCheck) {
-			denseA = out;
+			denseA = IAF;
 		}
 
 		// We built A transposed so we can quickly filter columns
 		// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
-		out.uncompress();
-		Eigen::SparseMatrix<double>::Index *op = out.outerIndexPtr();
-		Eigen::SparseMatrix<double>::Index *nzp = out.innerNonZeroPtr();
+		IAF.uncompress();
+		Eigen::SparseMatrix<double>::Index *op = IAF.outerIndexPtr();
+		Eigen::SparseMatrix<double>::Index *nzp = IAF.innerNonZeroPtr();
 		int dx = 0;
-		for (int cx=0; cx < in.cols(); ++cx) {
-			if (!st.latentFilter[cx]) continue;
+		for (int cx=0; cx < fullA.cols(); ++cx) {
+			if (!latentFilter[cx]) continue;
 			op[dx] = op[cx];
 			nzp[dx] = nzp[cx];
 			++dx;
 		}
-		op[dx] = op[in.cols()];
-		out.conservativeResize(in.rows(), st.dataVec.size());
+		op[dx] = op[fullA.cols()];
+		IAF.conservativeResize(fullA.rows(), dataVec.size());
 
 		if (doubleCheck) {
 			Eigen::MatrixXd denseAF;
-			denseAF.resize(in.rows(), st.dataVec.size());
+			denseAF.resize(fullA.rows(), dataVec.size());
 			int dx=0;
-			for (int cx=0; cx < in.cols(); ++cx) {
-				if (!st.latentFilter[cx]) continue;
+			for (int cx=0; cx < fullA.cols(); ++cx) {
+				if (!latentFilter[cx]) continue;
 				denseAF.col(dx) = denseA.col(cx);
 				++dx;
 			}
-			if (dx != st.dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
-							   dx, st.dataVec.size());
-			Eigen::MatrixXd denseFilteredA = out;
+			if (dx != dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
+							   dx, dataVec.size());
+			Eigen::MatrixXd denseFilteredA = IAF;
 			if ((denseAF.array() != denseFilteredA.array()).any()) {
 				for (int rx=0; rx<denseAF.rows(); ++rx) {
 					for (int cx=0; cx<denseAF.cols(); ++cx) {
@@ -965,10 +976,10 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 	}
 
-	void state::computeCov(FitContext *fc)
+	void independentGroup::computeCov(FitContext *fc)
 	{
-		if (regularA.in.nonZeros() == 0) {
-			regularA.in.resize(latentFilter.size(), latentFilter.size());
+		if (fullA.nonZeros() == 0) {
+			fullA.resize(latentFilter.size(), latentFilter.size());
 		}
 		fullS.conservativeResize(latentFilter.size(), latentFilter.size());
 
@@ -977,23 +988,28 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
 		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
 
-		regularA.invertAndFilterA();
+		invertAndFilterA();
 
 		//mxPrintMat("S", fullS);
 		//Eigen::MatrixXd fullCovDense =
 
-		fullCov = (regularA.out.transpose() * fullS.selfadjointView<Eigen::Lower>() * regularA.out);
+		fullCov = (IAF.transpose() * fullS.selfadjointView<Eigen::Lower>() * IAF);
 		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
 	}
 
-	void state::computeMean(FitContext *fc)
+	void state::computeCov(FitContext *fc)
+	{
+		group.computeCov(fc);
+	}
+
+	void independentGroup::computeMean(FitContext *fc)
 	{
 		expectedMean.conservativeResize(dataVec.size());
 
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = layout[pl.aIndex];
+			addr &a1 = st.layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			if (!ram->M) continue;
@@ -1012,8 +1028,7 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				// replace with per-group layout map TODO
-				placement &p2 = placements[ rowToLayoutMap[std::make_pair(data1, frow)] ];
+				placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
 				omxRecompute(betA, fc);
 				EigenMatrixAdaptor eBA(betA);
 				fullMean.segment(pl.modelStart, a1.numVars()) +=
@@ -1027,36 +1042,55 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
+	void state::computeMean(FitContext *fc)
+	{
+		group.computeMean(fc);
+	}
+
 	static int plusOne(int val) {
 		if (val == NA_INTEGER) return val;
 		else return val + 1;
 	}
 
-	Eigen::SparseMatrix<double> Amatrix::getInputMatrix() const
+	Eigen::SparseMatrix<double> independentGroup::getInputMatrix() const
 	{
-		return signA * in.transpose();
+		return signA * fullA.transpose();
 	}
 
-	void state::exportInternalState(MxRList &dbg)
+	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
+		if (expectedMean.size()) {
+			SEXP m1 = Rcpp::wrap(expectedMean);
+			Rf_protect(m1);
+			Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
+			out.add("mean", m1);
+		}
+		if (fullCov.nonZeros()) {
+			out.add("covariance", Rcpp::wrap(fullCov));
+		}
+
 		SEXP fmean = Rcpp::wrap(fullMean);
 		dbg.add("mean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		Eigen::SparseMatrix<double> A = regularA.getInputMatrix();
+		Eigen::SparseMatrix<double> A = getInputMatrix();
 		dbg.add("A", Rcpp::wrap(A));
 		if (0) {
 			// regularize internal representation
-			Eigen::SparseMatrix<double> fAcopy = regularA.out.transpose();
+			Eigen::SparseMatrix<double> fAcopy = IAF.transpose();
 			dbg.add("filteredA", Rcpp::wrap(fAcopy));
 		}
 		Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
-		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("S", Rcpp::wrap(fullSymS));
 		dbg.add("latentFilter", Rcpp::wrap(latentFilter));
 		SEXP dv = Rcpp::wrap(dataVec);
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
+	}
+
+	void state::exportInternalState(MxRList &dbg)
+	{
+		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale;
 		//SEXP startLoc, endLoc, obsStart, obsEnd;
