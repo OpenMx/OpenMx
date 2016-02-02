@@ -360,8 +360,9 @@ namespace RelationalRAMExpectation {
 
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
-	void Amatrix::refreshUnitA(FitContext *fc, addr &a1)
+	void Amatrix::refreshUnitA(FitContext *fc, placement &pl)
 	{
+		addr &a1 = st.layout[pl.aIndex];
 		omxExpectation *expectation = a1.model;
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -373,10 +374,10 @@ namespace RelationalRAMExpectation {
 				if (val != 0) {
 					if (rx == cx) {
 						Rf_error("%s: nonzero diagonal entry in A matrix at %d",
-							 st.homeEx->name, 1+a1.modelStart+cx);
+							 st.homeEx->name, 1+pl.modelStart+cx);
 					}
 					// can't use eA.block(..) -= because fullA must remain sparse
-					in.coeffRef(a1.modelStart + cx, a1.modelStart + rx) = signA * val;
+					in.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = signA * val;
 				}
 			}
 		}
@@ -390,14 +391,16 @@ namespace RelationalRAMExpectation {
 			if (key == NA_INTEGER) continue;
 			omxData *data1 = betA->getJoinModel()->data;
 			int frow = data1->lookupRowOfKey(key);
-			int jOffset = st.rowToOffsetMap[std::make_pair(data1, frow)];
+			// replace with group specific map TODO
+			placement &p2 = st.placements[ st.rowToLayoutMap[std::make_pair(data1, frow)] ];
+			int jOffset = p2.modelStart;
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
 				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 					double val = omxMatrixElement(betA, rx, cx);
 					if (val == 0.0) continue;
-					in.coeffRef(jOffset + cx, a1.modelStart + rx) =
+					in.coeffRef(jOffset + cx, pl.modelStart + rx) =
 						signA * val * scale;
 					//mxLog("A(%d,%d) = %f", jOffset + cx, lx + rx, val);
 				}
@@ -408,8 +411,9 @@ namespace RelationalRAMExpectation {
 	// 3rd visitor
 	void state::refreshModel(FitContext *fc)
 	{
-		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr &a1 = layout[ax];
+		for (size_t ax=0; ax < placements.size(); ++ax) {
+			placement &pl = placements[ax];
+			addr &a1 = layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
@@ -417,13 +421,13 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->S, fc);
 
-			regularA.refreshUnitA(fc, a1);
+			regularA.refreshUnitA(fc, pl);
 
 			EigenMatrixAdaptor eS(ram->S);
 			for (int cx=0; cx < eS.cols(); ++cx) {
 				for (int rx=cx; rx < eS.rows(); ++rx) {
 					if (eS(rx,cx) != 0) {
-						fullS.coeffRef(a1.modelStart + rx, a1.modelStart + cx) = eS(rx, cx);
+						fullS.coeffRef(pl.modelStart + rx, pl.modelStart + cx) = eS(rx, cx);
 					}
 				}
 			}
@@ -431,7 +435,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 1st visitor
-	int state::placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
+	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -447,7 +451,7 @@ namespace RelationalRAMExpectation {
 			if (key == NA_INTEGER) continue;
 			if (jx==0) a1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
-			int parentPos = placeOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
+			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
 			if (jx==0) parent1Pos = parentPos;
 		}
 
@@ -457,25 +461,22 @@ namespace RelationalRAMExpectation {
 			ram->ensureTrivialF();
 
 			// insert_or_assign would be nice here
-			RowToOffsetMapType::const_iterator it = rowToOffsetMap.find(std::make_pair(data, frow));
-			if (it != rowToOffsetMap.end()) return it->second;
+			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
+			if (it != rowToLayoutMap.end()) return it->second;
 
-			rowToOffsetMap[std::make_pair(data, frow)] = maxSize;
+			rowToLayoutMap[ std::make_pair(data, frow) ] = layout.size();
 			a1.key = data->primaryKeyOfRow(frow);
 		}
 
 		if (parent1Pos >= 0) {
-			std::vector<addr>::iterator low =
-				std::lower_bound(layout.begin(), layout.end(), parent1Pos, addr::CompareWithModelStart);
-			if (parent1Pos != low->modelStart) Rf_error("Parent search failed"); //impossible
-			low->numKids += 1;
-			a1.parent1 = low - layout.begin();
+			addr &pop = layout[parent1Pos];
+			pop.numKids += 1;
+			a1.parent1 = parent1Pos;
 		}
 		a1.model = expectation;
 		a1.numKids = 0;
 		a1.numJoins = ram->between.size();
-		a1.modelStart = maxSize;
-		a1.obsStart = totalObserved;
+		int obsStart = totalObserved;
 
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
@@ -494,21 +495,11 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		a1.numObsCache = totalObserved - a1.obsStart;
+		a1.numObsCache = totalObserved - obsStart;
 		layout.push_back(a1);
-		if (verbose() >= 2) {
-			int modelEnd = a1.modelStart + a1.numVars() - 1;
-			if (a1.numObs()) {
-				mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
-				      frow, a1.modelStart, modelEnd, a1.obsStart, a1.obsStart + a1.numObs() - 1);
-			} else {
-				mxLog("place latent %s[%d] at %d %d", a1.modelName().c_str(),
-				      frow, a1.modelStart, modelEnd);
-			}
-		}
 
 		maxSize += ram->F->cols;
-		return a1.modelStart;
+		return layout.size()-1;
 	}
 
 	void Amatrix::resize(int dim)
@@ -522,7 +513,12 @@ namespace RelationalRAMExpectation {
 	{
 		if (!Global->RAMInverseOpt) return;
 
-		for (size_t ax=0; ax < st.layout.size(); ++ax) {
+		Eigen::VectorXd vec(fc->varGroup->vars.size());
+		vec.setConstant(1);
+		copyParamToModelInternal(fc->varGroup, st.homeEx->currentState, vec.data());
+
+		for (size_t ax=0; ax < st.placements.size(); ++ax) {
+			placement &pl = st.placements[ax];
 			addr &a1 = st.layout[ax];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -537,7 +533,8 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				int jOffset = st.rowToOffsetMap[std::make_pair(data1, frow)];
+				// replace with per-group layout map TODO
+				placement &p2 = st.placements[ st.rowToLayoutMap[std::make_pair(data1, frow)] ];
 				omxRecompute(betA, NULL);
 				betA->markPopulatedEntries();
 				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
@@ -545,7 +542,7 @@ namespace RelationalRAMExpectation {
 					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 						double val = omxMatrixElement(betA, rx, cx);
 						if (val == 0.0) continue;
-						in.coeffRef(jOffset + cx, a1.modelStart + rx) = 1;
+						in.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
 					}
 				}
 			}
@@ -554,7 +551,7 @@ namespace RelationalRAMExpectation {
 			for (int cx=0; cx < eA.cols(); ++cx) {
 				for (int rx=0; rx < eA.rows(); ++rx) {
 					if (rx != cx && eA(rx,cx) != 0) {
-						in.coeffRef(a1.modelStart + cx, a1.modelStart + rx) = 1;
+						in.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = 1;
 					}
 				}
 			}
@@ -590,11 +587,37 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 2nd visitor
-	void state::examineModel()
+	void state::planModelEval(int maxSize, int totalObserved)
 	{
-		int dx = 0;
+		placements.reserve(layout.size());
+
+		latentFilter.assign(maxSize, false); // will have totalObserved true entries
+		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
+		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
+		dataVec.resize(totalObserved);
+		dataColumn.resize(totalObserved);
+		dataColumn.setConstant(-1);
+
+		int dx = 0, mx = 0;
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
+
+			placement pl;
+			pl.aIndex = ax;
+			pl.modelStart = mx;
+			pl.obsStart = dx;
+			placements.push_back(pl);
+			if (verbose() >= 2) {
+				int modelEnd = mx + a1.numVars() - 1;
+				if (a1.numObs()) {
+					mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
+					      a1.row, pl.modelStart, modelEnd, pl.obsStart, pl.obsStart + a1.numObs() - 1);
+				} else {
+					mxLog("place latent %s[%d] at %d %d", a1.modelName().c_str(),
+					      a1.row, pl.modelStart, modelEnd);
+				}
+			}
+
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
@@ -609,7 +632,7 @@ namespace RelationalRAMExpectation {
 					double val = omxMatrixElement(smallCol, 0, col);
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
-					latentFilter[ a1.modelStart + col ] = true;
+					latentFilter[ pl.modelStart + col ] = true;
 					std::string dname = modelName + omxDataColumnName(expectation->data,
 											  omxVectorElement(colList, col));
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
@@ -620,8 +643,9 @@ namespace RelationalRAMExpectation {
 			}
 			for (int vx=0; vx < ram->F->cols; ++vx) {
 				std::string dname = modelName + ram->F->colnames[vx];
-				SET_STRING_ELT(varNameVec, a1.modelStart + vx, Rf_mkChar(dname.c_str()));
+				SET_STRING_ELT(varNameVec, pl.modelStart + vx, Rf_mkChar(dname.c_str()));
 			}
+			mx += a1.numVars();
 		}
 	}
 
@@ -634,6 +658,19 @@ namespace RelationalRAMExpectation {
 			omxMatrix *b1 = ram->between[0];
 			return b1->getJoinModel();
 		};
+
+		// actually stores !missingness
+		template <typename T>
+		void getMissingnessPattern(const addr *a1, std::vector<T> &out) const
+		{
+			omxDataRow(a1->model, a1->row, st->smallCol);
+			int jCols = a1->model->dataColumns->cols;
+			out.reserve(jCols);
+			for (int col=0; col < jCols; ++col) {
+				double val = omxMatrixElement(st->smallCol, 0, col);
+				out.push_back(std::isfinite(val));
+			}
+		}
 
 		bool cmpUpper(const addr *lhs, const addr *rhs, bool &result) const
 		{
@@ -650,19 +687,23 @@ namespace RelationalRAMExpectation {
 				result = strcmp(lhs->model->name, rhs->model->name) < 0;
 				return true;
 			}
-			if (lhs->numObs() != rhs->numObs()) {
-				result = lhs->numObs() < rhs->numObs();
-				return true;
-			}
 			if (lhs->numVars() != rhs->numVars()) {
 				result = lhs->numVars() < rhs->numVars();
 				return true;
 			}
-			for (int lx=0; lx < lhs->numVars(); ++lx) {
-				bool p1 = st->latentFilter[ lhs->modelStart + lx ];
-				bool p2 = st->latentFilter[ rhs->modelStart + lx ];
-				if (p1 == p2) continue;
-				result = int(p1) < int(p2);
+
+			std::vector<bool> lmp;
+			getMissingnessPattern(lhs, lmp);
+			std::vector<bool> rmp;
+			getMissingnessPattern(rhs, rmp);
+
+			if (lmp.size() != rmp.size()) {
+				result = lmp.size() < rmp.size();
+				return true;
+			}
+			for (size_t lx=0; lx < lmp.size(); ++lx) {
+				if (lmp[lx] == rmp[lx]) continue;
+				result = int(lmp[lx]) < int(rmp[lx]);
 				return true;
 			}
 			if (lhs->clump.size() != rhs->clump.size()) {
@@ -808,46 +849,17 @@ namespace RelationalRAMExpectation {
 		int numManifest = ram->F->rows;
 
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
-		omxData *data               = homeEx->data;
+		omxData *data = homeEx->data;
 
 		int totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
-			placeOneRow(homeEx, row, totalObserved, maxSize);
+			flattenOneRow(homeEx, row, totalObserved, maxSize);
 		}
 
 		if (verbose() >= 1) {
 			mxLog("%s: total observations %d", homeEx->name, totalObserved);
 		}
-		latentFilter.assign(maxSize, false); // will have totalObserved true entries
-		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
-		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
-		fullMean.resize(maxSize);
-		fullMean.setZero();
-		dataVec.resize(totalObserved);
-		dataColumn.resize(totalObserved);
-		dataColumn.setConstant(-1);
-
-		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL); // ignore freeSet
-
-		if (Global->RAMInverseOpt) {
-			Eigen::VectorXd vec(varGroup->vars.size());
-			vec.setConstant(1);
-			copyParamToModelInternal(varGroup, homeEx->currentState, vec.data());
-		}
-
-		fullS.conservativeResize(maxSize, maxSize);
-		examineModel();
-
-		if (OMX_DEBUG) {
-			int lfCount = std::count(latentFilter.begin(), latentFilter.end(), true);
-			if (lfCount != totalObserved) {
-				Rf_error("lfCount %d != totalObserved %d", lfCount, totalObserved);
-			}
-		}
-
-		regularA.resize(maxSize);
-		regularA.determineShallowDepth(fc);
 
 		if (ram->rampartEnabled()) {
 			int maxIter = ram->rampart;
@@ -862,7 +874,14 @@ namespace RelationalRAMExpectation {
 				mxLog("%s: rampart unlinked %d units", homeEx->name, unlinked);
 			}
 		}
-		fullS.setZero();
+
+		planModelEval(maxSize, totalObserved);
+
+		fullMean.resize(maxSize);
+		fullMean.setZero();
+		fullS.conservativeResize(maxSize, maxSize);
+		regularA.resize(maxSize);
+		regularA.determineShallowDepth(fc);
 	}
 
 	state::~state()
@@ -972,8 +991,9 @@ namespace RelationalRAMExpectation {
 	{
 		expectedMean.conservativeResize(dataVec.size());
 
-		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr &a1 = layout[ax];
+		for (size_t ax=0; ax < placements.size(); ++ax) {
+			placement &pl = placements[ax];
+			addr &a1 = layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			if (!ram->M) continue;
@@ -984,7 +1004,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->M, fc);
 			EigenMatrixAdaptor eZ(ram->getZ(fc));
 			EigenVectorAdaptor eM(ram->M);
-			fullMean.segment(a1.modelStart, a1.numVars()) = eZ * eM;
+			fullMean.segment(pl.modelStart, a1.numVars()) = eZ * eM;
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *betA = ram->between[jx];
@@ -992,11 +1012,12 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				int jOffset = rowToOffsetMap[std::make_pair(data1, frow)];
+				// replace with per-group layout map TODO
+				placement &p2 = placements[ rowToLayoutMap[std::make_pair(data1, frow)] ];
 				omxRecompute(betA, fc);
 				EigenMatrixAdaptor eBA(betA);
-				fullMean.segment(a1.modelStart, a1.numVars()) +=
-					eBA * fullMean.segment(jOffset, eBA.cols());
+				fullMean.segment(pl.modelStart, a1.numVars()) +=
+					eBA * fullMean.segment(p2.modelStart, eBA.cols());
 			}
 		}
 		int ox = 0;
@@ -1037,8 +1058,8 @@ namespace RelationalRAMExpectation {
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
 
-		SEXP modelName, key, numJoins, numKids, parent1, fk1,
-			startLoc, endLoc, obsStart, obsEnd, rscale;
+		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale;
+		//SEXP startLoc, endLoc, obsStart, obsEnd;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
@@ -1046,10 +1067,10 @@ namespace RelationalRAMExpectation {
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
-		Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
+		//Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
+		//Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
+		//Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
+		//Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(key)[mx] = layout[mx].key;
@@ -1058,6 +1079,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
 			INTEGER(fk1)[mx] = layout[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
+			/*
 			INTEGER(startLoc)[mx] = 1 + layout[mx].modelStart;
 			INTEGER(endLoc)[mx] = layout[mx].modelStart + layout[mx].numVars();
 			if (layout[mx].numObs()) {
@@ -1067,6 +1089,7 @@ namespace RelationalRAMExpectation {
 				INTEGER(obsStart)[mx] = NA_INTEGER;
 				INTEGER(obsEnd)[mx] = NA_INTEGER;
 			}
+			*/
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("key")=key,
@@ -1074,11 +1097,11 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
-							  Rcpp::Named("rampartScale")=rscale,
-							  Rcpp::Named("modelStart")=startLoc,
-							  Rcpp::Named("modelEnd")=endLoc,
-							  Rcpp::Named("obsStart")=obsStart,
-							  Rcpp::Named("obsEnd")=obsEnd));
+							  Rcpp::Named("rampartScale")=rscale));
+							  //Rcpp::Named("modelStart")=startLoc,
+							  //Rcpp::Named("modelEnd")=endLoc,
+							  //Rcpp::Named("obsStart")=obsStart,
+							  //Rcpp::Named("obsEnd")=obsEnd));
 	}
 
 };

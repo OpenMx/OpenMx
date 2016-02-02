@@ -224,13 +224,14 @@ namespace FellnerFitFunction {
 				int rnum;
 				eA.col(vnum).array().abs().maxCoeff(&rnum);
 				// ensure only 1 nonzero in column TODO
-				for (size_t ax=0; ax < rram->layout.size(); ++ax) {
-					RelationalRAMExpectation::addr &a1 = rram->layout[ax];
+				for (size_t ax=0; ax < rram->placements.size(); ++ax) {
+					RelationalRAMExpectation::placement &pl = rram->placements[ax];
+					RelationalRAMExpectation::addr &a1 = rram->layout[ pl.aIndex ];
 					if (a1.model != expectation) continue;
 					data->handleDefinitionVarList(ram->M->currentState, a1.row);
 					double weight = omxVectorElement(ram->M, vnum);
-					olsDesign.col(px).segment(a1.obsStart, a1.numObs()) =
-						weight * (rram->dataColumn.segment(a1.obsStart, a1.numObs()) == rnum).cast<double>();
+					olsDesign.col(px).segment(pl.obsStart, a1.numObs()) =
+						weight * (rram->dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
 			if (!found) Rf_error("oops");
@@ -293,7 +294,7 @@ namespace FellnerFitFunction {
 			//mxPrintMat("dataVec", rram->dataVec);
 			//mxPrintMat("fullMeans", rram->fullMeans);
 			Eigen::VectorXd resid = rram->dataVec - rram->expectedMean;
-			rram->applyRotationPlan(resid);
+			rram->applyRotationPlan(rram->placements, resid);
 			//mxPrintMat("resid", resid);
 
 			lp = covDecomp.log_determinant();

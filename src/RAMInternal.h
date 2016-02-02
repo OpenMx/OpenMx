@@ -21,14 +21,11 @@ namespace RelationalRAMExpectation {
 		int parent1;  // first parent
 		int fk1;      // first foreign key
 
-		// clump names indexes into the layout for models that
+		// clump indexes into the layout for models that
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 
-		// split here, below move to placement object TODO
-		int modelStart;  //both latent and obs
 		int numVars() const;
-		int obsStart;
 		int numObsCache;
 		int numObs() const { return numObsCache; }
 		double rampartScale;
@@ -38,7 +35,6 @@ namespace RelationalRAMExpectation {
 			tmp = tmp.substr(0, tmp.size() - 5); // remove ".data" suffix
 			return tmp;
 		};
-		static bool CompareWithModelStart(addr &i, int p1) { return i.modelStart < p1; };
 	};
 
 	class Amatrix {
@@ -59,13 +55,13 @@ namespace RelationalRAMExpectation {
 		Amatrix(class state &st) : st(st), analyzed(false), AshallowDepth(-1), signA(-1) {};
 		void resize(int dim);
 		void determineShallowDepth(FitContext *fc);
-		void refreshUnitA(FitContext *fc, addr &a1);
+		void refreshUnitA(FitContext *fc, struct placement &pl);
 		int verbose() const;
 		void invertAndFilterA();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
 	};
 
-	struct RowToOffsetMapCompare {
+	struct RowToLayoutMapCompare {
 		bool operator() (const std::pair<omxData*,int> &lhs, const std::pair<omxData*,int> &rhs) const
 		{
 			if (lhs.first != rhs.first)
@@ -75,8 +71,8 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct placement {
-		int aIndex;                // index into addr vector
-		int modelStart;  //both latent and obs
+		int aIndex;      // index into addr vector
+		int modelStart;  // both latent and obs
 		int obsStart;
 	};
 
@@ -99,16 +95,16 @@ namespace RelationalRAMExpectation {
 
 	class state {
 	private:
-		omxMatrix *smallCol;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
 
 	public:
 		struct omxExpectation *homeEx;
-		typedef std::map< std::pair<omxData*,int>, int, RowToOffsetMapCompare> RowToOffsetMapType;
-		RowToOffsetMapType               rowToOffsetMap;
+		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
+		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addr>		 layout;
+		omxMatrix *smallCol;
 		// below move to independentGroup TODO
 		std::vector<placement>           placements;
 		std::vector<bool>                latentFilter; // use to reduce the A matrix
@@ -123,8 +119,8 @@ namespace RelationalRAMExpectation {
 
 	private:
 		void refreshModel(FitContext *fc);
-		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
-		void examineModel();
+		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
+		void planModelEval(int maxSize, int totalObserved);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
@@ -135,12 +131,12 @@ namespace RelationalRAMExpectation {
 		void init(omxExpectation *expectation, FitContext *fc);
 		void exportInternalState(MxRList &dbg);
 		int verbose() const;
-		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
+		template <typename T> void applyRotationPlan(std::vector<placement> &place, Eigen::MatrixBase<T> &resid) const;
 		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 	};
 
 	template <typename T>
-	void state::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
+	void state::applyRotationPlan(std::vector<placement> &place, Eigen::MatrixBase<T> &resid) const
 	{
 		// maybe faster to do all observations in parallel
 		// to allow more possibility of instruction reordering TODO
@@ -148,22 +144,23 @@ namespace RelationalRAMExpectation {
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
 			//buf += "rotate";
 			const std::vector<int> &units = rotationPlan[rx];
-			const addr &specimen = layout[ units[0] ];
+
+			const addr &specimen = layout[ place[ units[0] ].aIndex ];
 			for (int ox=0; ox < specimen.numObs(); ++ox) {
 				double partialSum = 0.0;
 				for (size_t ux=0; ux < units.size(); ++ux) {
-					partialSum += resid[ layout[units[ux]].obsStart + ox ];
+					partialSum += resid[ place[units[ux]].obsStart + ox ];
 					//buf += string_snprintf(" %d", 1+ units[ux]);
 				}
-				double prev = resid[ layout[units[0]].obsStart + ox ];
-				resid[ layout[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
+				double prev = resid[ place[units[0]].obsStart + ox ];
+				resid[ place[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
 
 				for (size_t i=1; i < units.size(); i++) {
 					double k=units.size()-i;
 					partialSum -= prev;
 					double prevContrib = sqrt(k / (k+1)) * prev;
-					prev = resid[ layout[units[i]].obsStart + ox ];
-					resid[ layout[units[i]].obsStart + ox ] =
+					prev = resid[ place[units[i]].obsStart + ox ];
+					resid[ place[units[i]].obsStart + ox ] =
 						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
 				}
 			}
