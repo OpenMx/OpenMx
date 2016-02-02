@@ -348,6 +348,12 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* 
 
 namespace RelationalRAMExpectation {
 
+	int addr::numVars() const
+	{
+		omxRAMExpectation *ram = (omxRAMExpectation*) model->argStruct;
+		return ram->F->cols;
+	}
+
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
 	void state::refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale)
@@ -472,7 +478,6 @@ namespace RelationalRAMExpectation {
 		a1.numKids = 0;
 		a1.numJoins = ram->between.size();
 		a1.modelStart = maxSize;
-		a1.modelEnd = maxSize + ram->F->cols - 1;
 		a1.obsStart = totalObserved;
 
 		int jCols = expectation->dataColumns->cols;
@@ -493,15 +498,15 @@ namespace RelationalRAMExpectation {
 		}
 
 		a1.numObsCache = totalObserved - a1.obsStart;
-		a1.obsEnd = totalObserved - 1;
 		layout.push_back(a1);
 		if (verbose() >= 2) {
-			if (a1.obsStart <= a1.obsEnd) {
+			int modelEnd = a1.modelStart + a1.numVars() - 1;
+			if (a1.numObs()) {
 				mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
-				      frow, a1.modelStart, a1.modelEnd, a1.obsStart, a1.obsEnd);
+				      frow, a1.modelStart, modelEnd, a1.obsStart, a1.obsStart + a1.numObs() - 1);
 			} else {
 				mxLog("place latent %s[%d] at %d %d", a1.modelName().c_str(),
-				      frow, a1.modelStart, a1.modelEnd);
+				      frow, a1.modelStart, modelEnd);
 			}
 		}
 
@@ -1061,10 +1066,10 @@ namespace RelationalRAMExpectation {
 			INTEGER(fk1)[mx] = layout[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
 			INTEGER(startLoc)[mx] = 1 + layout[mx].modelStart;
-			INTEGER(endLoc)[mx] = 1 + layout[mx].modelEnd;
-			if (layout[mx].obsStart <= layout[mx].obsEnd) {
+			INTEGER(endLoc)[mx] = layout[mx].modelStart + layout[mx].numVars();
+			if (layout[mx].numObs()) {
 				INTEGER(obsStart)[mx] = 1+layout[mx].obsStart;
-				INTEGER(obsEnd)[mx] = 1+layout[mx].obsEnd;
+				INTEGER(obsEnd)[mx] = layout[mx].obsStart+layout[mx].numObs();
 			} else {
 				INTEGER(obsStart)[mx] = NA_INTEGER;
 				INTEGER(obsEnd)[mx] = NA_INTEGER;

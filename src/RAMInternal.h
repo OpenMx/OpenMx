@@ -25,9 +25,9 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 
-		int modelStart, modelEnd;  //both latent and obs
-		int numVars() const { return 1 + modelEnd - modelStart; }
-		int obsStart, obsEnd;
+		int modelStart;  //both latent and obs
+		int numVars() const;
+		int obsStart;
 		int numObsCache;
 		int numObs() const { return numObsCache; }
 		double rampartScale;
