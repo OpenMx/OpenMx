@@ -70,9 +70,9 @@ singleFactor <- mkSingleFactor(NULL)
 			
 relabel <- function(m, prefix) {
   for (mat in c("A","S")) {
-    lab <- m@matrices[[mat]]@labels
+    lab <- m[[mat]]$labels
     lab[!is.na(lab)] <- paste0(prefix, lab[!is.na(lab)])
-    m@matrices[[mat]]@labels <- lab
+    m[[mat]]$labels <- lab
   }
   mxModel(m, name=prefix)
 }

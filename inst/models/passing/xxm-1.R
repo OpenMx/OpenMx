@@ -34,12 +34,17 @@ if (0) {
 
 	str(dist$expectation$output)
 	str(dist$expectation$debug)
+	eo = dist$expectation$output
+	ed = dist$expectation$debug
+
+	ed$layout
 	dist$expectation$output$covariance[1:10,1:10]
 	dist$expectation$output$covariance[120:130,120:130]
 	eigen(dist$expectation$output$covariance)$val
 
-	dist$expectation$debug$A[1:10,1:10]
+	round(dist$expectation$debug$A[1:20,1:20], 2)
 	dist$expectation$debug$S[1:10,1:10]
+
 }
 
 sMod <- mxRun(sMod)

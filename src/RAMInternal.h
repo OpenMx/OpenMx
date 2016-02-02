@@ -15,8 +15,8 @@ namespace RelationalRAMExpectation {
 	struct addr {
 		omxExpectation *model;
 		int row;     // to load definition variables (never the key)
-		int numKids;
 		int key;
+		int numKids;
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
@@ -25,6 +25,7 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 
+		// split here, below move to placement object TODO
 		int modelStart;  //both latent and obs
 		int numVars() const;
 		int obsStart;
@@ -40,15 +41,28 @@ namespace RelationalRAMExpectation {
 		static bool CompareWithModelStart(addr &i, int p1) { return i.modelStart < p1; };
 	};
 
-	struct Amatrix {
+	class Amatrix {
+	private:
+		class state &st;
 		bool analyzed;
+		int AshallowDepth;
+		double signA;
+		Eigen::SparseMatrix<double>      ident;
+	public:
+		// could store coeff extraction plan in addr TODO
 		Eigen::SparseMatrix<double>      in;
 		Eigen::SparseLU< Eigen::SparseMatrix<double>,
 				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > solver;
 		Eigen::SparseMatrix<double>      out;
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 
-		Amatrix() : analyzed(false) {};
+		Amatrix(class state &st) : st(st), analyzed(false), AshallowDepth(-1), signA(-1) {};
+		void resize(int dim);
+		void determineShallowDepth(FitContext *fc);
+		void refreshUnitA(FitContext *fc, addr &a1);
+		int verbose() const;
+		void invertAndFilterA();
+		Eigen::SparseMatrix<double> getInputMatrix() const;
 	};
 
 	struct RowToOffsetMapCompare {
@@ -70,12 +84,7 @@ namespace RelationalRAMExpectation {
 		int numRows;
 		std::vector<placement> placements;
 		omxMatrix *smallCol;
-		bool AmatDependsOnParameters;
-		bool haveFilteredAmat;
-		Amatrix testA;
-		int AshallowDepth;
 		double signA;
-		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector< std::vector<int> >  rotationPlan;
 		std::vector<bool> latentFilter; // use to reduce the A matrix
@@ -90,46 +99,40 @@ namespace RelationalRAMExpectation {
 
 	class state {
 	private:
-		struct omxExpectation *homeEx;
 		omxMatrix *smallCol;
-		bool AmatDependsOnParameters;
-		bool haveFilteredAmat;
-		Amatrix testA;
-		int AshallowDepth;
-		double signA;
-		Eigen::SparseMatrix<double>      ident;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
-		typedef std::map< std::pair<omxData*,int>, int, RowToOffsetMapCompare> RowToOffsetMapType;
-		RowToOffsetMapType               rowToOffsetMap;
 
 	public:
+		struct omxExpectation *homeEx;
+		typedef std::map< std::pair<omxData*,int>, int, RowToOffsetMapCompare> RowToOffsetMapType;
+		RowToOffsetMapType               rowToOffsetMap;
 		std::vector<addr>		 layout;
-		std::vector<bool> latentFilter; // use to reduce the A matrix
-		SEXP obsNameVec;
-		SEXP varNameVec;
-		Amatrix regularA;
-		Eigen::ArrayXi dataColumn;
-		Eigen::VectorXd dataVec;
-		Eigen::VectorXd fullMean;
-		Eigen::VectorXd expectedMean;
+		// below move to independentGroup TODO
+		std::vector<placement>           placements;
+		std::vector<bool>                latentFilter; // use to reduce the A matrix
+		SEXP                             obsNameVec;
+		SEXP                             varNameVec;
+		Amatrix                          regularA;
+		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
+		Eigen::VectorXd                  dataVec;
+		Eigen::VectorXd                  fullMean;
+		Eigen::VectorXd                  expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
 
 	private:
-		void refreshLevelTransitions(FitContext *fc, addr &a1, Amatrix &dest, double scale);
-		void refreshUnitA(FitContext *fc, addr &a1, Amatrix &dest);
-		void invertAndFilterA(Amatrix &Amat);
 		void refreshModel(FitContext *fc);
 		int placeOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
 		void examineModel();
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
+		state() : regularA(*this) {};
+		~state();
 		void computeCov(FitContext *fc);
 		void computeMean(FitContext *fc);
 		void init(omxExpectation *expectation, FitContext *fc);
-		~state();
 		void exportInternalState(MxRList &dbg);
 		int verbose() const;
 		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
@@ -202,6 +205,8 @@ namespace RelationalRAMExpectation {
 	{
 		return ((omxRAMExpectation*) homeEx->argStruct)->verbose;
 	}
+
+	inline int Amatrix::verbose() const { return st.verbose(); };
 };
 
 #endif
