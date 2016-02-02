@@ -142,24 +142,30 @@ namespace RelationalRAMExpectation {
 	template <typename T>
 	void state::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
 	{
+		// maybe faster to do all observations in parallel
+		// to allow more possibility of instruction reordering TODO
 		//std::string buf;
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
 			//buf += "rotate";
-			const std::vector<int> &om = rotationPlan[rx];
-			double partialSum = 0.0;
-			for (size_t ox=0; ox < om.size(); ++ox) {
-				partialSum += resid[om[ox]];
-				//buf += string_snprintf(" %d", 1+ om[ox]);
-			}
-			double prev = resid[om[0]];
-			resid[om[0]] = partialSum / sqrt(om.size());
+			const std::vector<int> &units = rotationPlan[rx];
+			const addr &specimen = layout[ units[0] ];
+			for (int ox=0; ox < specimen.numObs(); ++ox) {
+				double partialSum = 0.0;
+				for (size_t ux=0; ux < units.size(); ++ux) {
+					partialSum += resid[ layout[units[ux]].obsStart + ox ];
+					//buf += string_snprintf(" %d", 1+ units[ux]);
+				}
+				double prev = resid[ layout[units[0]].obsStart + ox ];
+				resid[ layout[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
 
-			for (size_t i=1; i < om.size(); i++) {
-				double k=om.size()-i;
-				partialSum -= prev;
-				double prevContrib = sqrt(k / (k+1)) * prev;
-				prev = resid[om[i]];
-				resid[om[i]] = partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
+				for (size_t i=1; i < units.size(); i++) {
+					double k=units.size()-i;
+					partialSum -= prev;
+					double prevContrib = sqrt(k / (k+1)) * prev;
+					prev = resid[ layout[units[i]].obsStart + ox ];
+					resid[ layout[units[i]].obsStart + ox ] =
+						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
+				}
 			}
 			//buf += "\n";
 		}

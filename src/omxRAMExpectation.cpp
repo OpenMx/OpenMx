@@ -714,15 +714,8 @@ namespace RelationalRAMExpectation {
 	void state::oertzenRotate(std::vector<T> &t1)
 	{
 		// get covariance and sort by mahalanobis distance TODO
+		rotationPlan.push_back(t1);
 		addr &specimen = layout[ t1[0] ];
-		for (int ox=0; ox < specimen.numObs(); ++ox) {
-			std::vector<int> tmp;
-			for (size_t ux=0; ux < t1.size(); ++ux) {
-				addr &a1 = layout[ t1[ux] ];
-				tmp.push_back(a1.obsStart + ox);
-			}
-			rotationPlan.push_back(tmp);
-		}
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
 			t2.reserve(t1.size());
