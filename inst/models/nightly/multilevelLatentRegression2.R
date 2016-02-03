@@ -144,7 +144,11 @@ print(ed$rampartUsage)
 #print(ed$layout)
 #print(round(ed$A[1:20,1:20],2))
 #print(round(ed$rA[1:20,1:20],2))
-#print(ed$mean)
+#	cat(deparse(round(eo$mean,3)))
+#	cat(deparse(round(ed$dataVec,3)))
+
+#	round(abs(eo$mean - expectedMean1),3)
+#	round(abs(ed$dataVec - dataVec1),3)
 
 	print(abs(rotated$output$fit - square$output$fit))
 	print(max(abs(rotated$output$gradient - square$output$gradient)))

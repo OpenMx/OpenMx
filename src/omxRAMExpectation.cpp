@@ -669,7 +669,6 @@ namespace RelationalRAMExpectation {
 				dx += a1.numObs();
 			}
 
-			ig->rotationPlan = rotationPlan;
 			ig->prep(maxSize, totalObserved, fc);
 			group.push_back(ig);
 			return;
@@ -757,6 +756,7 @@ namespace RelationalRAMExpectation {
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
+		expectedMean.resize(totalObserved);
 		dataVec.resize(totalObserved);
 		dataColumn.resize(totalObserved);
 		dataColumn.setConstant(-1);
@@ -768,8 +768,11 @@ namespace RelationalRAMExpectation {
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[ pl.aIndex ];
+			a1.ig = this;
+			a1.igIndex = ax;
 
 			if (verbose() >= 2) {
+				// useless diagnostic?
 				int modelEnd = pl.modelStart + a1.numVars() - 1;
 				if (a1.numObs()) {
 					mxLog("place %s[%d] at %d %d obs %d %d", a1.modelName().c_str(),
@@ -812,8 +815,6 @@ namespace RelationalRAMExpectation {
 		}
 
 		determineShallowDepth(fc);
-
-		applyRotationPlan(dataVec);
 	}
 
 	struct RampartCompareLib {
@@ -1007,6 +1008,56 @@ namespace RelationalRAMExpectation {
 		return unlinked;
 	}
 
+	template <bool model>
+	struct UnitAccessor {
+		state &st;
+		UnitAccessor(state *st) : st(*st) {};
+
+		// split into coeff & coeffRef versions TODO
+		double &operator() (const int unit, const int obs)
+		{
+			addr &ad = st.layout[unit];
+			independentGroup &ig = *ad.ig;
+			int obsStart = ig.placements[ad.igIndex].obsStart;
+			return (model? ig.expectedMean : ig.dataVec).coeffRef(obsStart + obs);
+		};
+	};
+
+	template <typename T>
+	void state::applyRotationPlan(T accessor)
+	{
+		// maybe faster to do all observations in parallel
+		// to allow more possibility of instruction reordering TODO
+		//std::string buf;
+		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
+			//buf += "rotate";
+			const std::vector<int> &units = rotationPlan[rx];
+
+			const addr &specimen = layout[units[0]];
+			for (int ox=0; ox < specimen.numObs(); ++ox) {
+				double partialSum = 0.0;
+				for (size_t ux=0; ux < units.size(); ++ux) {
+					partialSum += accessor(units[ux], ox);
+					//buf += string_snprintf(" %d", 1+ units[ux]);
+				}
+
+				double prev = accessor(units[0], ox);
+				accessor(units[0], ox) = partialSum / sqrt(units.size());
+
+				for (size_t i=1; i < units.size(); i++) {
+					double k=units.size()-i;
+					partialSum -= prev;
+					double prevContrib = sqrt(k / (k+1)) * prev;
+					prev = accessor(units[i], ox);
+					accessor(units[i], ox) =
+						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
+				}
+			}
+			//buf += "\n";
+		}
+		//if (buf.size()) mxLogBig(buf);
+	}
+
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
 		homeEx = expectation;
@@ -1045,7 +1096,8 @@ namespace RelationalRAMExpectation {
 
 		planModelEval(maxSize, totalObserved, fc);
 
-		rotationPlan.clear();
+		applyRotationPlan(UnitAccessor<false>(this));
+
 		rowToLayoutMap.clear();
 	}
 
@@ -1165,8 +1217,6 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::computeMean(FitContext *fc)
 	{
-		expectedMean.conservativeResize(dataVec.size());
-
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[pl.aIndex];
@@ -1207,6 +1257,7 @@ namespace RelationalRAMExpectation {
 		for (size_t gx=0; gx < group.size(); ++gx) {
 			group[gx]->computeMean(fc);
 		}
+		applyRotationPlan(UnitAccessor<true>(this));
 	}
 
 	static int plusOne(int val) {

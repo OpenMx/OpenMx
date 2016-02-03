@@ -28,6 +28,8 @@ namespace RelationalRAMExpectation {
 		bool clumped;
 		int group;
 		int copy;
+		struct independentGroup *ig;
+		int igIndex;
 
 		int numVars() const;
 		int numObsCache;
@@ -77,7 +79,6 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullCov;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // use to reduce the A matrix
-		std::vector< std::vector<int> >  rotationPlan;
 
 		// could store coeff extraction plan in addr TODO
 		Eigen::SparseMatrix<double>      fullA;
@@ -98,13 +99,13 @@ namespace RelationalRAMExpectation {
 		void computeMean(FitContext *fc);
 		void computeCov(FitContext *fc);
 		void exportInternalState(MxRList &out, MxRList &dbg);
-		template <typename T> void applyRotationPlan(Eigen::MatrixBase<T> &resid) const;
 	};
 
 	class state {
 	private:
 		std::vector<int>                 rampartUsage;
 		Eigen::MatrixXf                  macroA;
+		std::vector< std::vector<int> >  rotationPlan;
 
 	public:
 		struct omxExpectation *homeEx;
@@ -112,7 +113,6 @@ namespace RelationalRAMExpectation {
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addr>		 layout;
 		omxMatrix                       *smallCol;
-		std::vector< std::vector<int> >  rotationPlan;
 		std::vector<independentGroup*>   group;
 
 	private:
@@ -120,6 +120,7 @@ namespace RelationalRAMExpectation {
 		void planModelEval(int maxSize, int totalObserved, FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
+		template <typename T> void applyRotationPlan(T accessor);
 	public:
 		~state();
 		void computeCov(FitContext *fc);
@@ -129,40 +130,6 @@ namespace RelationalRAMExpectation {
 		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 		void exportInternalState(MxRList &dbg);
 	};
-
-	template <typename T>
-	void independentGroup::applyRotationPlan(Eigen::MatrixBase<T> &resid) const
-	{
-		// maybe faster to do all observations in parallel
-		// to allow more possibility of instruction reordering TODO
-		//std::string buf;
-		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
-			//buf += "rotate";
-			const std::vector<int> &units = rotationPlan[rx];
-
-			const addr &specimen = st.layout[ placements[ units[0] ].aIndex ];
-			for (int ox=0; ox < specimen.numObs(); ++ox) {
-				double partialSum = 0.0;
-				for (size_t ux=0; ux < units.size(); ++ux) {
-					partialSum += resid[ placements[units[ux]].obsStart + ox ];
-					//buf += string_snprintf(" %d", 1+ units[ux]);
-				}
-				double prev = resid[ placements[units[0]].obsStart + ox ];
-				resid[ placements[units[0]].obsStart + ox ] = partialSum / sqrt(units.size());
-
-				for (size_t i=1; i < units.size(); i++) {
-					double k=units.size()-i;
-					partialSum -= prev;
-					double prevContrib = sqrt(k / (k+1)) * prev;
-					prev = resid[ placements[units[i]].obsStart + ox ];
-					resid[ placements[units[i]].obsStart + ox ] =
-						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
-				}
-			}
-			//buf += "\n";
-		}
-		//if (buf.size()) mxLogBig(buf);
-	}
 };
 
 class omxRAMExpectation {

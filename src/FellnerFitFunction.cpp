@@ -307,7 +307,7 @@ namespace FellnerFitFunction {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
 				//mxPrintMat("dataVec", ig.dataVec);
 				//mxPrintMat("fullMeans", ig.fullMeans);
-				ig.applyRotationPlan(ig.expectedMean);
+				//ig.applyRotationPlan(ig.expectedMean);
 				//mxPrintMat("expectedMean", ig.expectedMean);
 
 				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
