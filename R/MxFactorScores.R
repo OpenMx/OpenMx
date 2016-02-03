@@ -146,15 +146,19 @@ ramFactorScoreHelper <- function(model){
 	fullMean <- mxEvalByName(model$expectation$M, model, compute=TRUE)
 	scoreStart <- fullMean
 	scoreStart[!OFmat$is.manifest] <- 0
+	basVal <- fullMean
+	basVal[OFmat$is.manifest] <- 0
+	basNam <- paste0("Base", model$expectation$M)
 	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", dimnames(Fmat)[[2]]))
-	scoreMean <- mxAlgebraFromString(paste("Score -", model$expectation$M), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
+	basMean <- mxMatrix("Full", 1, tdim, values=basVal, free=FALSE, name=basNam)
+	scoreMean <- mxAlgebraFromString(paste("Score -", basNam), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
 	newExpect <- mxExpectationRAM(A=model$expectation$A, S=model$expectation$S, F=model$expectation$F, M="ScoreMinusM", thresholds=model$expectation$thresholds)
 	oppF <- mxMatrix('Full', nrow=tdim-mdim, ncol=tdim, values=OFmat$OF, name='oppositeF')
 	imat <- mxMatrix('Iden', tdim, tdim, name='IdentityMatrix')
 	imaInv <- mxAlgebraFromString(paste("solve(IdentityMatrix - ", model$expectation$A, ")"), name='IdentityMinusAInverse')
 	lcov <- mxAlgebraFromString(paste("oppositeF %*% IdentityMinusAInverse %*% ", model$expectation$S, " %*% t(IdentityMinusAInverse) %*% t(oppositeF)"), name='TheLatentRAMCovariance')
 	newWeight <- mxAlgebraFromString(paste0("log(det(TheLatentRAMCovariance)) + ( (ScoreMinusM %*% t(oppositeF)) %&% TheLatentRAMCovariance ) + ", ldim, "*log(2*3.1415926535)"), name="weight")
-	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newMean, scoreMean, newExpect, oppF, imat, imaInv, lcov, newWeight)
+	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newMean, scoreMean, basMean, newExpect, oppF, imat, imaInv, lcov, newWeight)
 	return(work)
 }
 
