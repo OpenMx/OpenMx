@@ -20,6 +20,7 @@
 #include "omxBLAS.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
+#include <Eigen/LU>
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
@@ -431,24 +432,30 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 1st visitor
-	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
+	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize, int level)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		struct addr a1;
+		a1.group = 0;
+		a1.copy = 0;
+		a1.level = level;
+		a1.clumped = false;
 		a1.rampartScale = 1.0;
 		a1.parent1 = NA_INTEGER;
 		a1.fk1 = NA_INTEGER;
+		a1.numJoins = 0;
 		int parent1Pos = -1;
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			if (jx==0) a1.fk1 = key;
+			a1.numJoins += 1;
+			if (a1.numJoins == 1) a1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
-			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
-			if (jx==0) parent1Pos = parentPos;
+			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize, level+1);
+			if (a1.numJoins == 1) parent1Pos = parentPos;
 		}
 
 		a1.row = frow;
@@ -471,7 +478,6 @@ namespace RelationalRAMExpectation {
 		}
 		a1.model = expectation;
 		a1.numKids = 0;
-		a1.numJoins = ram->between.size();
 		int obsStart = totalObserved;
 
 		int jCols = expectation->dataColumns->cols;
@@ -574,11 +580,145 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
+	struct CompareLib {
+		state &st;
+		CompareLib(state *st) : st(*st) {};
+
+		// actually stores !missingness
+		template <typename T>
+		void getMissingnessPattern(const addr &a1, std::vector<T> &out) const
+		{
+			omxDataRow(a1.model, a1.row, st.smallCol);
+			int jCols = a1.model->dataColumns->cols;
+			out.reserve(jCols);
+			for (int col=0; col < jCols; ++col) {
+				double val = omxMatrixElement(st.smallCol, 0, col);
+				out.push_back(std::isfinite(val));
+			}
+		}
+
+		bool compareModelAndMissingness(addr &la, addr &ra, bool &mismatch) const
+		{
+			mismatch = true;
+			if (la.model != ra.model)
+				return strcmp(la.model->name, ra.model->name) < 0;
+
+			if (la.numVars() != ra.numVars())
+				return la.numVars() < ra.numVars();
+
+			std::vector<bool> lmp;
+			getMissingnessPattern(la, lmp);
+			std::vector<bool> rmp;
+			getMissingnessPattern(ra, rmp);
+
+			if (lmp.size() != rmp.size())
+				return lmp.size() < rmp.size();
+
+			for (size_t lx=0; lx < lmp.size(); ++lx) {
+				if (lmp[lx] == rmp[lx]) continue;
+				return int(lmp[lx]) < int(rmp[lx]);
+			}
+			mismatch = false;
+			return false;
+		}
+	};
+
+	struct WithinClumpCompare : CompareLib {
+		WithinClumpCompare(state *st) : CompareLib(st) {};
+
+		bool operator() (const int lhs, const int rhs) const
+		{
+			addr &la = st.layout[lhs];
+			addr &ra = st.layout[rhs];
+
+			if (la.level != ra.level)
+				return la.level < ra.level;
+
+			bool mismatch;
+			return compareModelAndMissingness(la, ra, mismatch);
+		}
+	};
+
+	struct CompatibleGroupCompare : CompareLib {
+		CompatibleGroupCompare(state *st) : CompareLib(st) {};
+
+		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
+		{
+			if (lhs.size() != rhs.size()) return lhs.size() < rhs.size();
+			for (size_t ux=0; ux < lhs.size(); ++ux) {
+				addr &la = st.layout[lhs[ux]];
+				addr &ra = st.layout[rhs[ux]];
+				bool mismatch;
+				bool got = compareModelAndMissingness(la, ra, mismatch);
+				if (mismatch) return got;
+				// defvars TODO
+			}
+			return false;
+		}
+	};
+
 	// 2nd visitor
 	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
 	{
+		typedef std::map< std::vector<int>,
+				  std::set<std::vector<int> >,
+				  CompatibleGroupCompare> CompatibleGroupMapType;
+
+		macroA.resize(layout.size(), layout.size());
+		macroA.setIdentity();
 		group.placements.reserve(layout.size());
 
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
+			if (a1.rampartScale == 0.0) continue;
+			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				omxMatrix *b1 = ram->between[jx];
+				int key = omxKeyDataElement(a1.model->data, a1.row, b1->getJoinKey());
+				if (key == NA_INTEGER) continue;
+				omxExpectation *e1 = b1->getJoinModel();
+				int row = e1->data->lookupRowOfKey(key);
+				RowToLayoutMapType::const_iterator it =
+					rowToLayoutMap.find(std::make_pair(e1->data, row));
+				if (it == rowToLayoutMap.end())
+					Rf_error("Cannot find row %d in %s", row, e1->data->name);
+				macroA(it->second, ax) = -1;
+			}
+		}
+
+		Eigen::FullPivLU<Eigen::MatrixXf> lu(macroA);
+		Eigen::MatrixXf macroAi = lu.inverse();
+
+		CompatibleGroupMapType cgm(this);
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
+			if (a1.numJoins) continue;
+			int clumpSize = (macroAi.row(ax).array() != 0).count();
+			std::vector<int> clump;
+			clump.reserve(clumpSize);
+			for (size_t mx=0; mx < layout.size(); ++mx) {
+				if (macroAi(ax, mx)) clump.push_back(mx);
+			}
+			std::sort(clump.begin(), clump.end(), WithinClumpCompare(this));
+			cgm[ clump ].insert(clump);
+		}
+
+		int groupNum = 1;
+		for (CompatibleGroupMapType::iterator it = cgm.begin();
+		     it != cgm.end(); ++it, ++groupNum) {
+			int copyNum = 1;
+			for (std::set<std::vector<int> >::iterator px = it->second.begin();
+			     px != it->second.end(); ++px, ++copyNum) {
+				const std::vector<int> &clump = *px;
+				for (size_t cx=0; cx < clump.size(); ++cx) {
+					addr &a1 = layout[ clump[cx] ];
+					if (a1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
+					a1.group = groupNum;
+					a1.copy = copyNum;
+				}
+			}
+		}
+ 
 		int dx = 0, mx = 0;
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
@@ -593,6 +733,13 @@ namespace RelationalRAMExpectation {
 		}
 
 		group.prep(maxSize, totalObserved, fc);
+
+		// after rampart then models are either clumped or independent?
+
+		// numJoins == 0
+		// whole clump:
+		//   no defvars or defvars match
+		//   missingness matches
 
 		rotationPlan.clear();
 	}
@@ -792,7 +939,7 @@ namespace RelationalRAMExpectation {
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr& a1 = layout[ax];
-			if (a1.numKids != 0 || a1.numJoins != 1 || a1.rampartScale != 1.0) continue;
+			if (a1.numKids != 0 || a1.numJoins != 1 || a1.clumped || a1.rampartScale != 1.0) continue;
 
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			omxMatrix *b1 = ram->between[0];
@@ -813,6 +960,7 @@ namespace RelationalRAMExpectation {
 					addr &a1 = layout[ specimen.clump[cx] ];
 					double orig = a1.rampartScale*a1.rampartScale;
 					a1.rampartScale = sqrt(orig / double(t1.size())) * sqrt(orig);
+					a1.clumped = true;
 				}
 				}
 				layout[specimen.parent1].numKids -= t1.size();
@@ -833,10 +981,10 @@ namespace RelationalRAMExpectation {
 								      t1.begin(), t1.end());
 				for (size_t ux=0; ux < t1.size(); ++ux) {
 					addr &a1 = layout[ t1[ux] ];
-					a1.numJoins = 0;
+					a1.clumped = true;
 				}
-				// not really unlinked, but layout is changed; fix reporting TODO
 			}
+			// not really unlinked in clumped case, but layout is changed; fix reporting TODO
 			unlinked += t1.size() - 1;
 		}
 		for (size_t ax=0; ax < layout.size(); ++ax) {
@@ -870,9 +1018,8 @@ namespace RelationalRAMExpectation {
 		int totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
-			flattenOneRow(homeEx, row, totalObserved, maxSize);
+			flattenOneRow(homeEx, row, totalObserved, maxSize, 1);
 		}
-		rowToLayoutMap.clear();
 
 		if (verbose() >= 1) {
 			mxLog("%s: total observations %d", homeEx->name, totalObserved);
@@ -893,6 +1040,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		planModelEval(maxSize, totalObserved, fc);
+		rowToLayoutMap.clear();
 	}
 
 	state::~state()
@@ -1091,8 +1239,9 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
+		dbg.add("macroA", Rcpp::wrap(macroA));
 
-		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale;
+		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		//SEXP startLoc, endLoc, obsStart, obsEnd;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
@@ -1101,6 +1250,8 @@ namespace RelationalRAMExpectation {
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
+		Rf_protect(group = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(copy = Rf_allocVector(INTSXP, layout.size()));
 		//Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
 		//Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
 		//Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
@@ -1113,6 +1264,8 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
 			INTEGER(fk1)[mx] = layout[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
+			INTEGER(group)[mx] = layout[mx].group? layout[mx].group : NA_INTEGER;
+			INTEGER(copy)[mx] = layout[mx].copy? layout[mx].copy : NA_INTEGER;
 			/*
 			INTEGER(startLoc)[mx] = 1 + layout[mx].modelStart;
 			INTEGER(endLoc)[mx] = layout[mx].modelStart + layout[mx].numVars();
@@ -1131,7 +1284,9 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
-							  Rcpp::Named("rampartScale")=rscale));
+							  Rcpp::Named("rampartScale")=rscale,
+							  Rcpp::Named("group")=group,
+							  Rcpp::Named("copy")=copy));
 							  //Rcpp::Named("modelStart")=startLoc,
 							  //Rcpp::Named("modelEnd")=endLoc,
 							  //Rcpp::Named("obsStart")=obsStart,

@@ -146,10 +146,12 @@ print(ed$rampartUsage)
 #print(round(ed$rA[1:20,1:20],2))
 #print(ed$mean)
 
+	colSums((solve(diag(nrow(ed$macroA))-ed$macroA) != 0)[ed$layout$numJoins == 0,])
+
 	print(abs(rotated$output$fit - square$output$fit))
 	print(max(abs(rotated$output$gradient - square$output$gradient)))
 omxCheckCloseEnough(ed$rampartUsage, c(209, 25, 5), 1L)
 #round(rotated$output$gradient - square$output$gradient, 2)
 omxCheckCloseEnough(rotated$output$fit, square$output$fit, 3)
-omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 32)
+	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 32)
 }

@@ -14,8 +14,9 @@
 namespace RelationalRAMExpectation {
 	struct addr {
 		omxExpectation *model;
-		int row;     // to load definition variables (never the key)
+		int row;      // to load definition variables (never the key)
 		int key;
+		int level;    // _a_ distance from the lowest level (can be more than one distance)
 		int numKids;
 		int numJoins;
 		int parent1;  // first parent
@@ -24,6 +25,9 @@ namespace RelationalRAMExpectation {
 		// clump indexes into the layout for models that
 		// are considered a compound component of this model.
 		std::vector<int> clump;
+		bool clumped;
+		int group;
+		int copy;
 
 		int numVars() const;
 		int numObsCache;
@@ -100,6 +104,7 @@ namespace RelationalRAMExpectation {
 	class state {
 	private:
 		std::vector<int>                 rampartUsage;
+		Eigen::MatrixXf                  macroA;
 
 	public:
 		struct omxExpectation *homeEx;
@@ -112,7 +117,7 @@ namespace RelationalRAMExpectation {
 
 	private:
 		void refreshModel(FitContext *fc);
-		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
+		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize, int level);
 		void planModelEval(int maxSize, int totalObserved, FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
