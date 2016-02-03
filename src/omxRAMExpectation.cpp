@@ -126,7 +126,8 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		RelationalRAMExpectation::independentGroup &ig = rram->group;
+		// ought to output all groups TODO
+		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
 		rram->exportInternalState(dbg);
 		ig.exportInternalState(out, dbg);
 	}
@@ -425,12 +426,6 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
-	// 3rd visitor
-	void state::refreshModel(FitContext *fc)
-	{
-		group.refreshModel(fc);
-	}
-
 	// 1st visitor
 	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize, int level)
 	{
@@ -660,13 +655,32 @@ namespace RelationalRAMExpectation {
 	// 2nd visitor
 	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
 	{
+		if (true) {
+			independentGroup *ig = new independentGroup(this);
+			int dx = 0, mx = 0;
+			for (size_t ax=0; ax < layout.size(); ++ax) {
+				addr &a1 = layout[ax];
+				placement pl;
+				pl.aIndex = ax;
+				pl.modelStart = mx;
+				pl.obsStart = dx;
+				ig->placements.push_back(pl);
+				mx += a1.numVars();
+				dx += a1.numObs();
+			}
+
+			ig->rotationPlan = rotationPlan;
+			ig->prep(maxSize, totalObserved, fc);
+			group.push_back(ig);
+			return;
+		}
+
 		typedef std::map< std::vector<int>,
 				  std::set<std::vector<int> >,
 				  CompatibleGroupCompare> CompatibleGroupMapType;
 
 		macroA.resize(layout.size(), layout.size());
 		macroA.setIdentity();
-		group.placements.reserve(layout.size());
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
@@ -703,6 +717,8 @@ namespace RelationalRAMExpectation {
 			cgm[ clump ].insert(clump);
 		}
 
+		group.reserve(cgm.size());
+
 		int groupNum = 1;
 		for (CompatibleGroupMapType::iterator it = cgm.begin();
 		     it != cgm.end(); ++it, ++groupNum) {
@@ -710,38 +726,27 @@ namespace RelationalRAMExpectation {
 			for (std::set<std::vector<int> >::iterator px = it->second.begin();
 			     px != it->second.end(); ++px, ++copyNum) {
 				const std::vector<int> &clump = *px;
+				independentGroup *ig = new independentGroup(this);
+				ig->placements.reserve(layout.size());
+				int dx = 0, mx = 0;
 				for (size_t cx=0; cx < clump.size(); ++cx) {
 					addr &a1 = layout[ clump[cx] ];
 					if (a1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
 					a1.group = groupNum;
 					a1.copy = copyNum;
+
+					placement pl;
+					pl.aIndex = clump[cx];
+					pl.modelStart = mx;
+					pl.obsStart = dx;
+					ig->placements.push_back(pl);
+					mx += a1.numVars();
+					dx += a1.numObs();
 				}
+				ig->prep(mx, dx, fc);
+				group.push_back(ig);
 			}
 		}
- 
-		int dx = 0, mx = 0;
-		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr &a1 = layout[ax];
-
-			placement pl;
-			pl.aIndex = ax;
-			pl.modelStart = mx;
-			pl.obsStart = dx;
-			group.placements.push_back(pl);
-			mx += a1.numVars();
-			dx += a1.numObs();
-		}
-
-		group.prep(maxSize, totalObserved, fc);
-
-		// after rampart then models are either clumped or independent?
-
-		// numJoins == 0
-		// whole clump:
-		//   no defvars or defvars match
-		//   missingness matches
-
-		rotationPlan.clear();
 	}
 
 	void independentGroup::prep(int maxSize, int totalObserved, FitContext *fc)
@@ -763,7 +768,7 @@ namespace RelationalRAMExpectation {
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[ pl.aIndex ];
-			// also build index TODO
+
 			if (verbose() >= 2) {
 				int modelEnd = pl.modelStart + a1.numVars() - 1;
 				if (a1.numObs()) {
@@ -808,8 +813,7 @@ namespace RelationalRAMExpectation {
 
 		determineShallowDepth(fc);
 
-		// need to remap in opposite direction of aIndex TODO
-		rotationPlan = st.rotationPlan;
+		applyRotationPlan(dataVec);
 	}
 
 	struct RampartCompareLib {
@@ -1040,11 +1044,17 @@ namespace RelationalRAMExpectation {
 		}
 
 		planModelEval(maxSize, totalObserved, fc);
+
+		rotationPlan.clear();
 		rowToLayoutMap.clear();
 	}
 
 	state::~state()
 	{
+		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
+			delete *it;
+		}
+  
 		omxFreeMatrix(smallCol);
 	}
 
@@ -1148,7 +1158,9 @@ namespace RelationalRAMExpectation {
 
 	void state::computeCov(FitContext *fc)
 	{
-		group.computeCov(fc);
+		for (size_t gx=0; gx < group.size(); ++gx) {
+			group[gx]->computeCov(fc);
+		}
 	}
 
 	void independentGroup::computeMean(FitContext *fc)
@@ -1192,7 +1204,9 @@ namespace RelationalRAMExpectation {
 
 	void state::computeMean(FitContext *fc)
 	{
-		group.computeMean(fc);
+		for (size_t gx=0; gx < group.size(); ++gx) {
+			group[gx]->computeMean(fc);
+		}
 	}
 
 	static int plusOne(int val) {

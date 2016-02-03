@@ -86,8 +86,8 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      IAF;
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 
-		independentGroup(class state &st)
-			: st(st), analyzed(false), AshallowDepth(-1), signA(-1) {};
+		independentGroup(class state *st)
+			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1) {};
 		void prep(int maxSize, int totalObserved, FitContext *fc);
 		void refreshModel(FitContext *fc);
 		void determineShallowDepth(FitContext *fc);
@@ -113,16 +113,14 @@ namespace RelationalRAMExpectation {
 		std::vector<addr>		 layout;
 		omxMatrix                       *smallCol;
 		std::vector< std::vector<int> >  rotationPlan;
-		independentGroup                 group;
+		std::vector<independentGroup*>   group;
 
 	private:
-		void refreshModel(FitContext *fc);
 		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize, int level);
 		void planModelEval(int maxSize, int totalObserved, FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 	public:
-		state() : group(*this) {};
 		~state();
 		void computeCov(FitContext *fc);
 		void computeMean(FitContext *fc);

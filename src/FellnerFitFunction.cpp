@@ -176,7 +176,11 @@ namespace FellnerFitFunction {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
 		RelationalRAMExpectation::state *rram = ram->rram;
-		RelationalRAMExpectation::independentGroup &ig = rram->group;
+		if (rram->group.size() > 1) {
+			Rf_error("Cannot profile out parameters when problem is split into independent groups");
+		}
+
+		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
 		omxData *data               = expectation->data;
 		fc->profiledOut.assign(fc->numParam, false);
 
@@ -253,61 +257,75 @@ namespace FellnerFitFunction {
 
 		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
 
-		double lp = NA_REAL;
+		double lpOut = NA_REAL;
 		try {
+			double lp = 0.0;
 			omxExpectationCompute(fc, expectation, "covariance", "flat");
-			RelationalRAMExpectation::state *rram   = ram->rram;
-			RelationalRAMExpectation::independentGroup &ig = rram->group;
-
-			if (!covDecomp.analyzedPattern()) {
-				ig.fullCov.makeCompressed();
-				covDecomp.analyzePattern(ig.fullCov);
-			}
-
-			covDecomp.factorize(ig.fullCov);
-			covDecomp.refreshInverse();
-			Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
-							 ig.fullCov.rows(), ig.fullCov.rows());
 
 			double remlAdj = 0.0;
-			if (numProfiledOut) {
-				Eigen::MatrixXd constCov = olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
-				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
-				cholConstCov.compute(constCov);
-				if(cholConstCov.info() != Eigen::Success){
-					// ought to report error detail TODO
-					throw std::exception();
+			RelationalRAMExpectation::state *rram   = ram->rram;
+			for (size_t gx=0; gx < rram->group.size(); ++gx) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+
+				if (!covDecomp.analyzedPattern()) {
+					ig.fullCov.makeCompressed();
+					covDecomp.analyzePattern(ig.fullCov);
 				}
-				remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
 
-				Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
-				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
-				Eigen::VectorXd param =
-					(cholConstPrec.selfadjointView<Eigen::Lower>() *
-					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
+				covDecomp.factorize(ig.fullCov);
+				covDecomp.refreshInverse();
+				Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
+								 ig.fullCov.rows(), ig.fullCov.rows());
 
-				for (int px=0; px < numProfiledOut; ++px) {
-					fc->est[ olsVarNum[px] ] = param[px];
-					fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
+				if (numProfiledOut) {
+					Eigen::MatrixXd constCov =
+						olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
+					Eigen::LLT< Eigen::MatrixXd > cholConstCov;
+					cholConstCov.compute(constCov);
+					if(cholConstCov.info() != Eigen::Success){
+						// ought to report error detail TODO
+						throw std::exception();
+					}
+					remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
+
+					Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
+					Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
+					Eigen::VectorXd param =
+						(cholConstPrec.selfadjointView<Eigen::Lower>() *
+						 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
+
+					for (int px=0; px < numProfiledOut; ++px) {
+						fc->est[ olsVarNum[px] ] = param[px];
+						fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
+					}
 				}
 			}
 
 			omxExpectationCompute(fc, expectation, "mean", "flat");
-			//mxPrintMat("dataVec", ig.dataVec);
-			//mxPrintMat("fullMeans", ig.fullMeans);
-			Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
-			ig.applyRotationPlan(resid);
-			//mxPrintMat("resid", resid);
 
-			lp = covDecomp.log_determinant();
-			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
-			if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", lp, iqf, cterm, remlAdj);
-			lp += iqf + cterm + remlAdj;
+			for (size_t gx=0; gx < rram->group.size(); ++gx) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+				//mxPrintMat("dataVec", ig.dataVec);
+				//mxPrintMat("fullMeans", ig.fullMeans);
+				ig.applyRotationPlan(ig.expectedMean);
+				//mxPrintMat("expectedMean", ig.expectedMean);
+
+				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
+				//mxPrintMat("resid", resid);
+
+				lp += covDecomp.log_determinant();
+				Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
+								 ig.fullCov.rows(), ig.fullCov.rows());
+				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
+				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", lp, iqf, cterm, remlAdj);
+				lp += iqf + cterm + remlAdj;
+			}
+			lpOut = lp;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
-		oo->matrix->data[0] = lp;
+		oo->matrix->data[0] = lpOut;
 	}
 
 	static void popAttr(omxFitFunction *oo, SEXP algebra)
