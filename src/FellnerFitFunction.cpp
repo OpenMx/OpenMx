@@ -28,163 +28,195 @@
 #include <Rmath.h>
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
+#include <Eigen/Cholesky>
 
 namespace FellnerFitFunction {
-	// Based on lme4CholmodDecomposition.h from lme4
-	template<typename _MatrixType, int _UpLo = Eigen::Lower>
-	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {
-	private:
-		Eigen::MatrixXd ident;
-
-	protected:
-		typedef Eigen::CholmodDecomposition<_MatrixType, _UpLo> Base;
-		using Base::m_factorizationIsOk;
-		typedef void (*cholmod_error_type)(int status, const char *file, int line, const char *message);
-
-	        cholmod_factor* factor() const { return Base::m_cholmodFactor; }
-		cholmod_common& cholmod() const {
-			return const_cast<Cholmod<_MatrixType, _UpLo>*>(this)->Base::cholmod();
-		}
-
-		cholmod_error_type oldHandler;
-		static void cholmod_error(int status, const char *file, int line, const char *message) {
-			throw std::runtime_error(message);
-		}
-
-     // * If you are going to factorize hundreds or more matrices with the same
-     // * nonzero pattern, you may wish to spend a great deal of time finding a
-     // * good permutation.  In this case, try setting Common->nmethods to CHOLMOD_MAXMETHODS
-     // * The time spent in cholmod_analysis will be very high, but you need to
-     // * call it only once. TODO
-
-	public:
-		Cholmod() {
-			oldHandler = cholmod().error_handler;
-			cholmod().error_handler = cholmod_error;
-			cholmod().supernodal = CHOLMOD_AUTO;
-			cholmod().nmethods = CHOLMOD_MAXMETHODS;
-			if (0) {
-				cholmod().nmethods = 2;
-				cholmod().method[0].ordering = CHOLMOD_NESDIS;
-				cholmod().method[1].ordering = CHOLMOD_AMD;
-			}
-			m_factorizationIsOk = false; // base class should take care of it TODO
-		};
-		~Cholmod() {
-			cholmod().error_handler = oldHandler;
-		};
-
-		bool analyzedPattern() const { return m_factorizationIsOk; };
-
-		void analyzePattern(const typename Base::MatrixType& matrix)
-		{
-			Base::analyzePattern(matrix);
-			cholmod_common &cm = cholmod();
-			if (OMX_DEBUG) {
-				mxLog("Cholmod: selected ordering %d lnz=%f fl=%f super=%d",
-				      cm.method[cm.selected].ordering,
-				      cm.method[cm.selected].lnz, cm.method[cm.selected].fl, factor()->is_super);
-			}
-		}
-
-		double log_determinant() const {
-			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
-			cholmod_factor *cf = factor();
-			if (cf->xtype == CHOLMOD_PATTERN) Rf_error("Cannot extract diagonal from symbolic factor");
-			double logDet = 0;
-			double *x = (double*) cf->x;
-			if (cf->is_super) {
-				// This is a supernodal factorization, which is stored as a bunch
-				// of dense, lower-triangular, column-major arrays packed into the
-				// x vector. This is not documented in the CHOLMOD user-guide, or
-				// anywhere else as far as I can tell; I got the details from
-				// CVXOPT's C/cholmod.c.
-
-				int *super = (int*) cf->super;
-				int *pi = (int*) cf->pi;
-				int *px = (int*) cf->px;
-				for (size_t sx=0; sx < cf->nsuper; ++sx) {
-					int ncols = super[sx + 1] - super[sx];
-					int nrows = pi[sx + 1] - pi[sx];
-
-					Eigen::Map<const Eigen::Array<double,1,Eigen::Dynamic>, 0, Eigen::InnerStride<> >
-						s1(x + px[sx], ncols, Eigen::InnerStride<>(nrows+1));
-					logDet += s1.real().log().sum();
-				}
-			} else {
-				// This is a simplicial factorization, which is simply stored as a
-				// sparse CSC matrix in x, p, i. We want the diagonal, which is
-				// just the first entry in each column; p gives the offsets in x to
-				// the beginning of each column.
-				//
-				// The ->p array actually has n+1 entries, but only the first n
-				// entries actually point to real columns (the last entry is a
-				// sentinel)
-				int *p = (int*) cf->p;
-				for (size_t ex=0; ex < cf->n; ++ex) {
-					logDet += log( x[p[ex]] );
-				}
-			}
-			if (cf->is_ll) {
-				logDet *= 2.0;
-			}
-			return logDet;
-		};
-
-		template<typename MB>
-		double inv_quad_form(const Eigen::MatrixBase<MB> &vec) {
-			eigen_assert(m_factorizationIsOk && "The decomposition is not in a valid state for solving, you must first call either compute() or symbolic()/numeric()");
-			if (ident.rows() != vec.rows()) {
-				ident.setIdentity(vec.rows(), vec.rows());
-			}
-			cholmod_dense b_cd(viewAsCholmod(ident));
-			cholmod_dense* x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
-			if(!x_cd) throw std::runtime_error("cholmod_solve failed");
-			Eigen::Map< Eigen::MatrixXd > iA((double*) x_cd->x, vec.rows(), vec.rows());
-			double ans = vec.transpose() * iA.selfadjointView<Eigen::Lower>() * vec;
-			cholmod_free_dense(&x_cd, &cholmod());
-			return ans;
-		};
-	};
-
 	struct state {
 		int verbose;
-		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
+
+		int numProfiledOut;
+		std::vector<int> olsVarNum;     // index into fc->est
+		Eigen::MatrixXd olsDesign;      // a.k.a "X"
+
+		void compute(omxFitFunction *oo, int want, FitContext *fc);
+		void setupProfiledParam(omxFitFunction *oo, FitContext *fc);
 	};
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
-		if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
-		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
+		state *st = (state *) oo->argStruct;
+		st->compute(oo, want, fc);
+	}
 
-		state *st                               = (state *) oo->argStruct;
+	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
+	{
+		if (numProfiledOut == 0) return;
+
+		omxExpectation *expectation             = oo->expectation;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		ram->forceSingleGroup = true;
+		omxExpectationCompute(fc, expectation, "nothing", "flat");
+		
+		RelationalRAMExpectation::state *rram = ram->rram;
+		if (rram->group.size() > 1) {
+			Rf_error("Cannot profile out parameters when problem is split into independent groups");
+		}
+
+		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
+		omxData *data               = expectation->data;
+		fc->profiledOut.assign(fc->numParam, false);
+
+		olsVarNum.reserve(numProfiledOut);
+		olsDesign.resize(ig.dataVec.size(), numProfiledOut);
+
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+		for (int px=0; px < numProfiledOut; ++px) {
+			const char *pname = CHAR(STRING_ELT(Rprofile, px));
+			int vx = fc->varGroup->lookupVar(pname);
+			if (vx < 0) {
+				mxLog("Parameter [%s] not found", pname);
+				continue;
+			}
+
+			omxFreeVar &fv = *fc->varGroup->vars[vx];
+			olsVarNum.push_back(vx);
+			bool found = false;
+			bool moreThanOne;
+			const omxFreeVarLocation *loc =
+				fv.getOnlyOneLocation(ram->M, moreThanOne);
+			if (loc) {
+				if (moreThanOne) {
+					mxLog("Parameter [%s] appears in more than one spot in %s",
+					      pname, ram->M->name());
+					continue;
+				}
+				found = true;
+				int vnum = loc->row + loc->col;
+				// Should ensure the loading is fixed and not a defvar TODO
+				// Should ensure zero variance & no cross-level links TODO
+				olsDesign.col(px) = (ig.dataColumn.array() == vnum).cast<double>();
+			}
+			loc = fv.getOnlyOneLocation(ram->A, moreThanOne);
+			if (loc) {
+				if (moreThanOne) {
+					mxLog("Parameter [%s] appears in more than one spot in %s",
+					      pname, ram->A->name());
+					continue;
+				}
+				found = true;
+				int vnum = loc->col;
+				EigenMatrixAdaptor eA(ram->A);
+				int rnum;
+				eA.col(vnum).array().abs().maxCoeff(&rnum);
+				// ensure only 1 nonzero in column TODO
+				for (size_t ax=0; ax < ig.placements.size(); ++ax) {
+					RelationalRAMExpectation::placement &pl = ig.placements[ax];
+					RelationalRAMExpectation::addr &a1 = rram->layout[ pl.aIndex ];
+					if (a1.model != expectation) continue;
+					data->handleDefinitionVarList(ram->M->currentState, a1.row);
+					double weight = omxVectorElement(ram->M, vnum);
+					olsDesign.col(px).segment(pl.obsStart, a1.numObs()) =
+						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
+				}
+			}
+			if (!found) Rf_error("oops");
+
+			fc->profiledOut[vx] = true;
+		}
+	}
+
+	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
+	{
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
-		double lp = NA_REAL;
-		try {
-			omxExpectationCompute(fc, expectation, "distribution", "flat");
-			RelationalRAMExpectation::state *rram   = ram->rram;
+		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
+			setupProfiledParam(oo, fc);
+			return;
+		}
 
-			if (!st->covDecomp.analyzedPattern()) {
-				rram->fullCov.makeCompressed();
-				st->covDecomp.analyzePattern(rram->fullCov);
+		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
+
+		double lpOut = NA_REAL;
+		try {
+			double lp = 0.0;
+			omxExpectationCompute(fc, expectation, "covariance", "flat");
+
+			double remlAdj = 0.0;
+			RelationalRAMExpectation::state *rram   = ram->rram;
+			for (size_t gx=0; gx < rram->group.size(); ++gx) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+				if (0 == ig.dataVec.size()) continue;
+
+				if (!ig.covDecomp.analyzedPattern()) {
+					ig.fullCov.makeCompressed();
+					ig.covDecomp.analyzePattern(ig.fullCov);
+				}
+
+				ig.covDecomp.factorize(ig.fullCov);
+				ig.covDecomp.refreshInverse();
 			}
 
-			st->covDecomp.factorize(rram->fullCov);
-			lp = st->covDecomp.log_determinant();
-			//mxPrintMat("dataVec", rram->dataVec);
-			//mxPrintMat("fullMeans", rram->fullMeans);
-			Eigen::VectorXd resid = rram->dataVec - rram->filteredA.transpose() * rram->fullMeans;
-			//mxPrintMat("resid", resid);
-			double iqf = st->covDecomp.inv_quad_form(resid);
-			double cterm = M_LN_2PI * rram->dataVec.size();
-			if (st->verbose >= 2) mxLog("log det %f iqf %f cterm %f", lp, iqf, cterm);
-			lp += iqf + cterm;
+			if (numProfiledOut) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
+				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
+								 ig.fullCov.rows(), ig.fullCov.rows());
+				Eigen::MatrixXd constCov =
+					olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
+				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
+				cholConstCov.compute(constCov);
+				if(cholConstCov.info() != Eigen::Success){
+					// ought to report error detail TODO
+					throw std::exception();
+				}
+				remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
+
+				Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
+				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
+				Eigen::VectorXd param =
+					(cholConstPrec.selfadjointView<Eigen::Lower>() *
+					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
+
+				for (int px=0; px < numProfiledOut; ++px) {
+					fc->est[ olsVarNum[px] ] = param[px];
+					fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
+				}
+			}
+
+			omxExpectationCompute(fc, expectation, "mean", "flat");
+
+			for (size_t gx=0; gx < rram->group.size(); ++gx) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+				if (0 == ig.dataVec.size()) continue;
+
+				//mxPrintMat("dataVec", ig.dataVec);
+				//mxPrintMat("fullMeans", ig.fullMeans);
+				//ig.applyRotationPlan(ig.expectedMean);
+				//mxPrintMat("expectedMean", ig.expectedMean);
+
+				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
+				//mxPrintMat("resid", resid);
+
+				int clumps = ig.placements.size() / ig.clumpSize;
+
+				double logDet = clumps * ig.covDecomp.log_determinant();
+				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
+								 ig.fullCov.rows(), ig.fullCov.rows());
+				double iqf = 0.0;
+				for (int cx=0; cx < clumps; ++cx) {
+					iqf += (resid.segment(cx*ig.clumpObs, ig.clumpObs).transpose() *
+						iV.selfadjointView<Eigen::Lower>() *
+						resid.segment(cx*ig.clumpObs, ig.clumpObs));
+				}
+				double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
+				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", logDet, iqf, cterm, remlAdj);
+				lp += logDet + iqf + cterm + remlAdj;
+			}
+			lpOut = lp;
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}
-		oo->matrix->data[0] = lp;
+		oo->matrix->data[0] = lpOut;
 	}
 
 	static void popAttr(omxFitFunction *oo, SEXP algebra)
@@ -235,6 +267,9 @@ namespace FellnerFitFunction {
 		oo->populateAttrFun = FellnerFitFunction::popAttr;
 		FellnerFitFunction::state *st = new FellnerFitFunction::state;
 		oo->argStruct = st;
+
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+		st->numProfiledOut = Rf_length(Rprofile);
 
 		{
 			SEXP tmp;

@@ -47,8 +47,8 @@ benchMod <- mxModel("bench", type="RAM",
         latentVars = c("teacherSkill", paste0('student', 1:numStudentsPerTeacher)),
         mxPath(c(paste0('i',1:numIndicators), colnames(flatData)), arrows=2,
                values=1, labels="err"),
-        mxPath("one", paste0('i',1:numIndicators), labels=paste0('tm', 1:numIndicators)),
-        mxPath("one", colnames(flatData), labels=paste0('sm', kronecker(rep(1,3), 1:3))),
+        mxPath("one", paste0('i',1:numIndicators), values=0, free=FALSE),
+        mxPath("one", colnames(flatData), values=0, free=FALSE),
         mxPath("teacherSkill", arrows=2, values=1, labels="teacherVar"),
         mxPath(paste0('student', 1:numStudentsPerTeacher), arrows=2,
                values=1, labels="studentVar"),
@@ -64,18 +64,11 @@ for (sx in 1:numStudentsPerTeacher) {
 }
 
 if (1) {
-  #cat(deparse(round(coef(benchFit), 3)))
-  p1 <- structure(c(1.003, 2.059, 1.118, 1.009, 0.988, 0.02, 0.175, 0.574,  -0.391, -0.423, -0.442, 0.06, 0.074, 0.081),
-            .Names = c("tl2",  "tl3", "regr", "sl2", "sl3", "err", "teacherVar", "studentVar",  "tm1", "tm2", "tm3", "sm1", "sm2", "sm3"))
-  benchMod <- omxSetParameters(benchMod, names(p1), values=p1)
-}
-
-if (1) {
-  benchFit <- mxRun(benchMod)  # 13.90182
+  benchFit <- mxRun(benchMod)
 } else {
   benchFit <- mxRun(mxModel(benchMod, mxComputeOnce('fitfunction', 'fit')))
 }
-#summary(benchFit)  # 13.90182
+#summary(benchFit)  # 21.18316
 
 # --------------------------------------
 
@@ -87,8 +80,7 @@ tMod <- mxModel("teacher", type="RAM",
                 mxPath('teacherSkill', arrows=2, labels="teacherVar", values=1),
                 mxPath(paste0('i',1:numIndicators), arrows=2,
                        values=1, labels="err"),
-                mxPath("one", paste0('i',1:numIndicators),
-                       labels=paste0('tm',1:numIndicators)),
+                mxPath("one", paste0('i',1:numIndicators), values=0, free=FALSE),
                 mxPath('teacherSkill', paste0('i',1:numIndicators),
                        labels=paste0('tl',1:numIndicators),
                        values=1,free=c(FALSE, rep(TRUE,numIndicators-1))))
@@ -100,8 +92,7 @@ sMod <- mxModel("student", type="RAM",
                 mxPath("studentSkill", arrows=2, labels="studentVar", values=1),
                 mxPath(paste0('i',1:numIndicators), arrows=2,
                        values=1, labels="err"),
-                mxPath("one", paste0('i',1:numIndicators),
-                       labels=paste0('sm',1:numIndicators)),
+                mxPath("one", paste0('i',1:numIndicators), values=0, free=FALSE),
                 mxPath('studentSkill', paste0('i',1:numIndicators),
                        labels=paste0('sl',1:numIndicators),
                        values=1,free=c(FALSE, rep(TRUE,numIndicators-1))),
@@ -115,7 +106,6 @@ sMod$expectation$between <- "Z"
 
 container <- mxModel("container", tMod, sMod,
                      mxFitFunctionMultigroup(c('student')))
-container <- omxSetParameters(container, names(p1), values=p1)
 
 omxCheckError(mxRun(container), "Join mapping matrix student.Z must have 4 rows: 'i1', 'i2', 'i3', and 'studentSkill'")
 
@@ -134,12 +124,43 @@ map$free['studentSkill', 'teacherSkill'] <- TRUE
 map$labels['studentSkill', 'teacherSkill'] <- 'regr'
 container$student$Z <- map
 
+container$student$expectation$.rampart <- 0L
+pt1 <- mxRun(mxModel(container,
+			 mxComputeSequence(list(
+			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
+			     mxComputeReportDeriv(),
+			     mxComputeReportExpectation()))))
+
+container$student$expectation$.rampart <- as.integer(NA)
+pt2 <- mxRun(mxModel(container,
+			 mxComputeSequence(list(
+			     mxComputeOnce('fitfunction', 'fit'),
+			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
+			     mxComputeReportDeriv(),
+			     mxComputeReportExpectation()))))
+
+omxCheckCloseEnough(length(pt1$student$expectation$debug$rampartUsage), 0, .5)
+omxCheckCloseEnough(pt2$student$expectation$debug$rampartUsage, 6, .5)
+
+omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
+omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)
+
 if (1) {
   container <- mxRun(container)
 #  summary(container)
 } else {
   cFit <- mxRun(mxModel(container, mxComputeOnce('fitfunction', 'fit')))
   print(cFit$output$fit)
+}
+
+if (0) {
+ex = container$student$expectation
+eo = ex$output
+ed = ex$debug
+ed$layout
+round(ed$A[1:16,1:16],3)
+round(ed$S[1:16,1:16],3)
 }
 
 omxCheckCloseEnough(logLik(container), logLik(benchFit), 1e-8)

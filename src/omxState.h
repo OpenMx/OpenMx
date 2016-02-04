@@ -83,6 +83,12 @@ struct omxFreeVar {
 	// the first matching location.
 	const omxFreeVarLocation *getLocation(int matrix) const;
 	const omxFreeVarLocation *getLocation(omxMatrix *mat) const;
+
+	const omxFreeVarLocation *getOnlyOneLocation(int matrix, bool &moreThanOne) const;
+	const omxFreeVarLocation *getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const;
+
+	// Warning: copyToState does not mark matrices dirty
+	void copyToState(struct omxState *os, double val);
 };
 
 #define FREEVARGROUP_ALL      0
@@ -100,6 +106,7 @@ struct FreeVarGroup {
 	int lookupVar(const char *name);  // index or -1 if not found
 	int lookupVar(int matrix, int row, int col);
 	int lookupVar(omxMatrix *matrix, int row, int col);
+	//int lookupVar(int id);
 	void cacheDependencies(omxState *os);
 	void markDirty(omxState *os);
 	void log(omxState *os);
