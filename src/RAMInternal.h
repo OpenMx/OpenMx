@@ -243,6 +243,7 @@ namespace RelationalRAMExpectation {
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 		template <typename T> void applyRotationPlan(T accessor);
+		template <typename T> void appendClump(int ax, std::vector<T> &clump);
 	public:
 		~state();
 		void computeCov(FitContext *fc);

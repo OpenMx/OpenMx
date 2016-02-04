@@ -628,19 +628,6 @@ namespace RelationalRAMExpectation {
 		}
 	};
 
-	struct WithinClumpCompare : CompareLib {
-		WithinClumpCompare(state *st) : CompareLib(st) {};
-
-		bool operator() (const int lhs, const int rhs) const
-		{
-			addr &la = st.layout[lhs];
-			addr &ra = st.layout[rhs];
-
-			bool mismatch;
-			return compareModelAndMissingness(la, ra, mismatch);
-		}
-	};
-
 	struct CompatibleGroupCompare : CompareLib {
 		CompatibleGroupCompare(state *st) : CompareLib(st) {};
 
@@ -658,6 +645,16 @@ namespace RelationalRAMExpectation {
 			return false;
 		}
 	};
+
+	template <typename T>
+	void state::appendClump(int ax, std::vector<T> &clump)
+	{
+		clump.push_back(ax);
+		addr &a1 = layout[ax];
+		for (size_t cx = 0; cx < a1.clump.size(); ++cx) {
+			appendClump(a1.clump[cx], clump);
+		}
+	}
 
 	// 2nd visitor
 	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
@@ -710,19 +707,41 @@ namespace RelationalRAMExpectation {
 		Eigen::FullPivLU<Eigen::MatrixXf> lu(macroA);
 		Eigen::MatrixXf macroAi = lu.inverse();
 
+		// macroAi gives the complete dependency information,
+		// but we already have partial dependency information
+		// from Rampart clumping. We need to preserve the
+		// Rampart clumping order when we determine the
+		// grouping. Otherwise we can get more groups (and
+		// fewer copies) than necessary.
+
 		CompatibleGroupMapType cgm(this);
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
 			if (a1.numJoins) continue;
 			int clumpSize = (macroAi.row(ax).array() != 0).count();
-			// Need to be smarter here. Unclumped addr need to be adjacent
-			// to their clumped components. Only added unclumped entries. TODO
+			std::set<int> unsortedClump;
+			for (size_t mx=0; mx < layout.size(); ++mx) {
+				if (macroAi(ax, mx)) unsortedClump.insert(mx);
+			}
 			std::vector<int> clump;
 			clump.reserve(clumpSize);
-			for (size_t mx=0; mx < layout.size(); ++mx) {
-				if (macroAi(ax, mx)) clump.push_back(mx);
+			while (unsortedClump.size()) {
+				bool movedSome = false;
+				for (std::set<int>::iterator it=unsortedClump.begin(); it!=unsortedClump.end(); ++it) {
+					addr &a1 = layout[*it];
+					if (a1.clumped) continue;
+					int beforeSize = clump.size();
+					appendClump(*it, clump);
+					for (size_t cx=beforeSize; cx < clump.size(); ++cx) {
+						unsortedClump.erase(clump[cx]);
+					}
+					movedSome = true;
+					break;
+				}
+				if (!movedSome) break;
 			}
-			//std::stable_sort(clump.begin(), clump.end(), WithinClumpCompare(this));
+			// Not sure if order matters here TODO
+			clump.insert(clump.end(), unsortedClump.begin(), unsortedClump.end());
 			cgm[ clump ].insert(clump);
 		}
 
@@ -958,6 +977,7 @@ namespace RelationalRAMExpectation {
 
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			omxMatrix *b1 = ram->between[0];
+			// Could divide into groups with the same defvars? Too-automagical? TODO
 			if (b1->dependsOnDefinitionVariables()) continue;
 			std::vector<int> &t1 = todo[&a1];
 			t1.push_back(int(ax));

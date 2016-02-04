@@ -82,14 +82,14 @@ plan <- mxComputeSequence(list(
 ))
 
 wModel$expectation$rampart <- 0L
-wModel$expectation$.forceSingleGroup <- TRUE
 square <- mxRun(mxModel(wModel, plan))
 
-wModel$expectation$.forceSingleGroup <- FALSE
+wModel$expectation$rampart <- NA
 rotated <- mxRun(mxModel(wModel, plan))
 
 	ed = rotated$expectation$debug
-	ed$layout
+	ed$rampartUsage
+	head(ed$layout)
 	str(ed$detail$g01)
 	str(ed)
 
