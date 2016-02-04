@@ -126,10 +126,18 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		// ought to output all groups TODO
-		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
+		std::vector<std::string> names;
+		names.resize(rram->group.size());
+		MxRList glst;
+		for (size_t gx=0; gx < rram->group.size(); ++gx) {
+			RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+			names[gx] = string_snprintf("g%02d", int(1+gx));
+			MxRList info;
+			ig.exportInternalState(info, info);
+			glst.add(names[gx].c_str(), info.asR());
+		}
+		dbg.add("detail", glst.asR());
 		rram->exportInternalState(dbg);
-		ig.exportInternalState(out, dbg);
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
@@ -237,6 +245,9 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	RAMexp->verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
+
+	ProtectedSEXP RsingleGroup(R_do_slot(rObj, Rf_install(".forceSingleGroup")));
+	RAMexp->forceSingleGroup = Rf_asLogical(RsingleGroup);
 
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
@@ -427,7 +438,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 1st visitor
-	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize, int level)
+	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -435,7 +446,6 @@ namespace RelationalRAMExpectation {
 		struct addr a1;
 		a1.group = 0;
 		a1.copy = 0;
-		a1.level = level;
 		a1.clumped = false;
 		a1.rampartScale = 1.0;
 		a1.parent1 = NA_INTEGER;
@@ -449,7 +459,7 @@ namespace RelationalRAMExpectation {
 			a1.numJoins += 1;
 			if (a1.numJoins == 1) a1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
-			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize, level+1);
+			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
 			if (a1.numJoins == 1) parent1Pos = parentPos;
 		}
 
@@ -626,9 +636,6 @@ namespace RelationalRAMExpectation {
 			addr &la = st.layout[lhs];
 			addr &ra = st.layout[rhs];
 
-			if (la.level != ra.level)
-				return la.level < ra.level;
-
 			bool mismatch;
 			return compareModelAndMissingness(la, ra, mismatch);
 		}
@@ -655,7 +662,8 @@ namespace RelationalRAMExpectation {
 	// 2nd visitor
 	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
 	{
-		if (true) {
+		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
+		if (ram->forceSingleGroup) {
 			independentGroup *ig = new independentGroup(this);
 			int dx = 0, mx = 0;
 			for (size_t ax=0; ax < layout.size(); ++ax) {
@@ -712,7 +720,7 @@ namespace RelationalRAMExpectation {
 			for (size_t mx=0; mx < layout.size(); ++mx) {
 				if (macroAi(ax, mx)) clump.push_back(mx);
 			}
-			std::sort(clump.begin(), clump.end(), WithinClumpCompare(this));
+			//std::stable_sort(clump.begin(), clump.end(), WithinClumpCompare(this));
 			cgm[ clump ].insert(clump);
 		}
 
@@ -721,13 +729,13 @@ namespace RelationalRAMExpectation {
 		int groupNum = 1;
 		for (CompatibleGroupMapType::iterator it = cgm.begin();
 		     it != cgm.end(); ++it, ++groupNum) {
+			independentGroup *ig = new independentGroup(this);
+			ig->placements.reserve(it->second.size());
+			int dx = 0, mx = 0;
 			int copyNum = 1;
 			for (std::set<std::vector<int> >::iterator px = it->second.begin();
 			     px != it->second.end(); ++px, ++copyNum) {
 				const std::vector<int> &clump = *px;
-				independentGroup *ig = new independentGroup(this);
-				ig->placements.reserve(layout.size());
-				int dx = 0, mx = 0;
 				for (size_t cx=0; cx < clump.size(); ++cx) {
 					addr &a1 = layout[ clump[cx] ];
 					if (a1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
@@ -742,9 +750,9 @@ namespace RelationalRAMExpectation {
 					mx += a1.numVars();
 					dx += a1.numObs();
 				}
-				ig->prep(mx, dx, fc);
-				group.push_back(ig);
 			}
+			ig->prep(mx, dx, fc);
+			group.push_back(ig);
 		}
 	}
 
@@ -1012,6 +1020,7 @@ namespace RelationalRAMExpectation {
 	struct UnitAccessor {
 		state &st;
 		UnitAccessor(state *st) : st(*st) {};
+		bool isModel() const { return model; };
 
 		// split into coeff & coeffRef versions TODO
 		double &operator() (const int unit, const int obs)
@@ -1028,21 +1037,27 @@ namespace RelationalRAMExpectation {
 	{
 		// maybe faster to do all observations in parallel
 		// to allow more possibility of instruction reordering TODO
-		//std::string buf;
+		const bool debug = false;
+		std::string buf;
 		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
-			//buf += "rotate";
+			if (debug) {
+				buf += string_snprintf("rotate<model=%d> step[%d]",
+						       accessor.isModel(), int(rx));
+			}
 			const std::vector<int> &units = rotationPlan[rx];
 
 			const addr &specimen = layout[units[0]];
 			for (int ox=0; ox < specimen.numObs(); ++ox) {
+				if (debug) buf += string_snprintf(" obs[%d]", ox);
 				double partialSum = 0.0;
 				for (size_t ux=0; ux < units.size(); ++ux) {
 					partialSum += accessor(units[ux], ox);
-					//buf += string_snprintf(" %d", 1+ units[ux]);
+					if (debug) buf += string_snprintf(" %d", int(1+ units[ux]));
 				}
 
 				double prev = accessor(units[0], ox);
 				accessor(units[0], ox) = partialSum / sqrt(units.size());
+				if (debug) buf += string_snprintf(" %f", partialSum);
 
 				for (size_t i=1; i < units.size(); i++) {
 					double k=units.size()-i;
@@ -1053,9 +1068,9 @@ namespace RelationalRAMExpectation {
 						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
 				}
 			}
-			//buf += "\n";
+			if (debug) buf += "\n";
 		}
-		//if (buf.size()) mxLogBig(buf);
+		if (debug && buf.size()) mxLogBig(buf);
 	}
 
 	void state::init(omxExpectation *expectation, FitContext *fc)
@@ -1073,7 +1088,7 @@ namespace RelationalRAMExpectation {
 		int totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
-			flattenOneRow(homeEx, row, totalObserved, maxSize, 1);
+			flattenOneRow(homeEx, row, totalObserved, maxSize);
 		}
 
 		if (verbose() >= 1) {
@@ -1094,11 +1109,10 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		//expectedMean.resize(totalObserved); //debug
 		planModelEval(maxSize, totalObserved, fc);
 
 		applyRotationPlan(UnitAccessor<false>(this));
-
-		rowToLayoutMap.clear();
 	}
 
 	state::~state()
@@ -1215,11 +1229,23 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
-	void independentGroup::computeMean(FitContext *fc)
+	void independentGroup::filterFullMean()
 	{
-		for (size_t ax=0; ax < placements.size(); ++ax) {
-			placement &pl = placements[ax];
-			addr &a1 = st.layout[pl.aIndex];
+		int ox = 0;
+		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
+			if (!latentFilter[lx]) continue;
+			expectedMean[ox++] = fullMean[lx];
+		}
+	}
+
+	void state::computeMean(FitContext *fc)
+	{
+		// maybe there is a way to use macroA to sort by dependency
+		// so this loop can be parallelized
+
+		// can detect whether all units within an independent group are self contained
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			if (!ram->M) continue;
@@ -1230,7 +1256,8 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->M, fc);
 			EigenMatrixAdaptor eZ(ram->getZ(fc));
 			EigenVectorAdaptor eM(ram->M);
-			fullMean.segment(pl.modelStart, a1.numVars()) = eZ * eM;
+			int a1Start = a1.ig->placements[a1.igIndex].modelStart;
+			a1.ig->fullMean.segment(a1Start, a1.numVars()) = eZ * eM;
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *betA = ram->between[jx];
@@ -1238,25 +1265,30 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
+				size_t a2Offset = rowToLayoutMap[std::make_pair(data1, frow)];
+				if (ax < a2Offset) Rf_error("Not in topological order");
+				addr &a2 = layout[a2Offset];
 				omxRecompute(betA, fc);
 				EigenMatrixAdaptor eBA(betA);
-				fullMean.segment(pl.modelStart, a1.numVars()) +=
-					eBA * fullMean.segment(p2.modelStart, eBA.cols());
+				a1.ig->fullMean.segment(a1Start, a1.numVars()) +=
+					eBA * a2.ig->fullMean.segment(a2.ig->placements[a2.igIndex].modelStart, eBA.cols());
 			}
 		}
-		int ox = 0;
-		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
-			if (!latentFilter[lx]) continue;
-			expectedMean[ox++] = fullMean[lx];
-		}
-	}
 
-	void state::computeMean(FitContext *fc)
-	{
 		for (size_t gx=0; gx < group.size(); ++gx) {
-			group[gx]->computeMean(fc);
+			group[gx]->filterFullMean();
 		}
+
+		if (false) {
+			int ox=0;
+			for (size_t ax=0; ax < layout.size(); ++ax) {
+				addr &a1 = layout[ax];
+				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
+				expectedMean.segment(ox, a1.numObs()) =
+					a1.ig->expectedMean.segment(a1Start, a1.numObs());
+			}
+		}
+
 		applyRotationPlan(UnitAccessor<true>(this));
 	}
 
@@ -1283,7 +1315,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		SEXP fmean = Rcpp::wrap(fullMean);
-		dbg.add("mean", fmean);
+		dbg.add("fullMean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
 		Eigen::SparseMatrix<double> A = getInputMatrix();
 		dbg.add("A", Rcpp::wrap(A));
@@ -1299,6 +1331,13 @@ namespace RelationalRAMExpectation {
 		Rf_protect(dv);
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
+
+		SEXP aIndex;
+		Rf_protect(aIndex = Rf_allocVector(INTSXP, placements.size()));
+		for (size_t mx=0; mx < placements.size(); ++mx) {
+			INTEGER(aIndex)[mx] = placements[mx].aIndex;
+		}
+		dbg.add("aIndex", aIndex);
 	}
 
 	void state::exportInternalState(MxRList &dbg)

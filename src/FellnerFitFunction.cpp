@@ -31,130 +31,8 @@
 #include <Eigen/Cholesky>
 
 namespace FellnerFitFunction {
-	// Based on lme4CholmodDecomposition.h from lme4
-	template<typename _MatrixType, int _UpLo = Eigen::Lower>
-	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {
-	private:
-		Eigen::MatrixXd ident;
-		cholmod_dense* x_cd;
-
-	protected:
-		typedef Eigen::CholmodDecomposition<_MatrixType, _UpLo> Base;
-		using Base::m_factorizationIsOk;
-		typedef void (*cholmod_error_type)(int status, const char *file, int line, const char *message);
-
-	        cholmod_factor* factor() const { return Base::m_cholmodFactor; }
-		cholmod_common& cholmod() const {
-			return const_cast<Cholmod<_MatrixType, _UpLo>*>(this)->Base::cholmod();
-		}
-
-		cholmod_error_type oldHandler;
-		static void cholmod_error(int status, const char *file, int line, const char *message) {
-			throw std::runtime_error(message);
-		}
-
-     // * If you are going to factorize hundreds or more matrices with the same
-     // * nonzero pattern, you may wish to spend a great deal of time finding a
-     // * good permutation.  In this case, try setting Common->nmethods to CHOLMOD_MAXMETHODS
-     // * The time spent in cholmod_analysis will be very high, but you need to
-     // * call it only once. TODO
-
-	public:
-		Cholmod() : x_cd(NULL) {
-			oldHandler = cholmod().error_handler;
-			cholmod().error_handler = cholmod_error;
-			cholmod().supernodal = CHOLMOD_AUTO;
-			cholmod().nmethods = CHOLMOD_MAXMETHODS;
-			if (0) {
-				cholmod().nmethods = 2;
-				cholmod().method[0].ordering = CHOLMOD_NESDIS;
-				cholmod().method[1].ordering = CHOLMOD_AMD;
-			}
-			m_factorizationIsOk = false; // base class should take care of it TODO
-		};
-		~Cholmod() {
-			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
-			cholmod().error_handler = oldHandler;
-		};
-
-		bool analyzedPattern() const { return m_factorizationIsOk; };
-
-		void analyzePattern(const typename Base::MatrixType& matrix)
-		{
-			if (ident.rows() != matrix.rows()) {
-				ident.setIdentity(matrix.rows(), matrix.rows());
-			}
-			Base::analyzePattern(matrix);
-			cholmod_common &cm = cholmod();
-			if (OMX_DEBUG) {
-				mxLog("Cholmod: selected ordering %d lnz=%f fl=%f super=%d",
-				      cm.method[cm.selected].ordering,
-				      cm.method[cm.selected].lnz, cm.method[cm.selected].fl, factor()->is_super);
-			}
-		}
-
-		double log_determinant() const {
-			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
-			cholmod_factor *cf = factor();
-			if (cf->xtype == CHOLMOD_PATTERN) Rf_error("Cannot extract diagonal from symbolic factor");
-			double logDet = 0;
-			double *x = (double*) cf->x;
-			if (cf->is_super) {
-				// This is a supernodal factorization, which is stored as a bunch
-				// of dense, lower-triangular, column-major arrays packed into the
-				// x vector. This is not documented in the CHOLMOD user-guide, or
-				// anywhere else as far as I can tell; I got the details from
-				// CVXOPT's C/cholmod.c.
-
-				int *super = (int*) cf->super;
-				int *pi = (int*) cf->pi;
-				int *px = (int*) cf->px;
-				for (size_t sx=0; sx < cf->nsuper; ++sx) {
-					int ncols = super[sx + 1] - super[sx];
-					int nrows = pi[sx + 1] - pi[sx];
-
-					Eigen::Map<const Eigen::Array<double,1,Eigen::Dynamic>, 0, Eigen::InnerStride<> >
-						s1(x + px[sx], ncols, Eigen::InnerStride<>(nrows+1));
-					logDet += s1.real().log().sum();
-				}
-			} else {
-				// This is a simplicial factorization, which is simply stored as a
-				// sparse CSC matrix in x, p, i. We want the diagonal, which is
-				// just the first entry in each column; p gives the offsets in x to
-				// the beginning of each column.
-				//
-				// The ->p array actually has n+1 entries, but only the first n
-				// entries actually point to real columns (the last entry is a
-				// sentinel)
-				int *p = (int*) cf->p;
-				for (size_t ex=0; ex < cf->n; ++ex) {
-					logDet += log( x[p[ex]] );
-				}
-			}
-			if (cf->is_ll) {
-				logDet *= 2.0;
-			}
-			return logDet;
-		};
-
-		double *getInverseData() const
-		{
-			return (double*) x_cd->x;
-		}
-
-		void refreshInverse()
-		{
-			eigen_assert(m_factorizationIsOk && "The decomposition is not in a valid state for solving, you must first call either compute() or symbolic()/numeric()");
-			cholmod_dense b_cd(viewAsCholmod(ident));
-			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
-			x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
-			if(!x_cd) throw std::runtime_error("cholmod_solve failed");
-		};
-	};
-
 	struct state {
 		int verbose;
-		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 
 		int numProfiledOut;
 		std::vector<int> olsVarNum;     // index into fc->est
@@ -175,6 +53,11 @@ namespace FellnerFitFunction {
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
+
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+		numProfiledOut = Rf_length(Rprofile);
+		if (numProfiledOut == 0) return;
+		
 		RelationalRAMExpectation::state *rram = ram->rram;
 		if (rram->group.size() > 1) {
 			Rf_error("Cannot profile out parameters when problem is split into independent groups");
@@ -183,9 +66,6 @@ namespace FellnerFitFunction {
 		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
 		omxData *data               = expectation->data;
 		fc->profiledOut.assign(fc->numParam, false);
-
-		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
-		numProfiledOut = Rf_length(Rprofile);
 
 		olsVarNum.reserve(numProfiledOut);
 		olsDesign.resize(ig.dataVec.size(), numProfiledOut);
@@ -267,14 +147,14 @@ namespace FellnerFitFunction {
 			for (size_t gx=0; gx < rram->group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
 
-				if (!covDecomp.analyzedPattern()) {
+				if (!ig.covDecomp.analyzedPattern()) {
 					ig.fullCov.makeCompressed();
-					covDecomp.analyzePattern(ig.fullCov);
+					ig.covDecomp.analyzePattern(ig.fullCov);
 				}
 
-				covDecomp.factorize(ig.fullCov);
-				covDecomp.refreshInverse();
-				Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
+				ig.covDecomp.factorize(ig.fullCov);
+				ig.covDecomp.refreshInverse();
+				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
 								 ig.fullCov.rows(), ig.fullCov.rows());
 
 				if (numProfiledOut) {
@@ -313,13 +193,13 @@ namespace FellnerFitFunction {
 				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
 				//mxPrintMat("resid", resid);
 
-				lp += covDecomp.log_determinant();
-				Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
+				double logDet = ig.covDecomp.log_determinant();
+				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
 								 ig.fullCov.rows(), ig.fullCov.rows());
 				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
-				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", lp, iqf, cterm, remlAdj);
-				lp += iqf + cterm + remlAdj;
+				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", logDet, iqf, cterm, remlAdj);
+				lp += logDet + iqf + cterm + remlAdj;
 			}
 			lpOut = lp;
 		} catch (const std::exception& e) {

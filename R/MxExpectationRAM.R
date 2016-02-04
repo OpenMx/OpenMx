@@ -32,7 +32,8 @@ setClass(Class = "MxExpectationRAM",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
 	    verbose = "integer",
-	    rampart = "integer"
+	    rampart = "integer",
+	    .forceSingleGroup = "logical"
 	),
 	contains = "BaseExpectationNormal")
 
@@ -53,6 +54,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@between <- between
 		.Object@verbose <- verbose
 		.Object@rampart <- rampart
+		.Object@.forceSingleGroup <- FALSE
 		return(.Object)
 	}
 )
