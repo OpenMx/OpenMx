@@ -50,13 +50,12 @@ namespace FellnerFitFunction {
 
 	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
 	{
+		if (numProfiledOut == 0) return;
+
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		ram->forceSingleGroup = true;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
-
-		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
-		numProfiledOut = Rf_length(Rprofile);
-		if (numProfiledOut == 0) return;
 		
 		RelationalRAMExpectation::state *rram = ram->rram;
 		if (rram->group.size() > 1) {
@@ -70,6 +69,7 @@ namespace FellnerFitFunction {
 		olsVarNum.reserve(numProfiledOut);
 		olsDesign.resize(ig.dataVec.size(), numProfiledOut);
 
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
 		for (int px=0; px < numProfiledOut; ++px) {
 			const char *pname = CHAR(STRING_ELT(Rprofile, px));
 			int vx = fc->varGroup->lookupVar(pname);
@@ -155,30 +155,31 @@ namespace FellnerFitFunction {
 
 				ig.covDecomp.factorize(ig.fullCov);
 				ig.covDecomp.refreshInverse();
+			}
+
+			if (numProfiledOut) {
+				RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
 				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
 								 ig.fullCov.rows(), ig.fullCov.rows());
+				Eigen::MatrixXd constCov =
+					olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
+				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
+				cholConstCov.compute(constCov);
+				if(cholConstCov.info() != Eigen::Success){
+					// ought to report error detail TODO
+					throw std::exception();
+				}
+				remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
 
-				if (numProfiledOut) {
-					Eigen::MatrixXd constCov =
-						olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
-					Eigen::LLT< Eigen::MatrixXd > cholConstCov;
-					cholConstCov.compute(constCov);
-					if(cholConstCov.info() != Eigen::Success){
-						// ought to report error detail TODO
-						throw std::exception();
-					}
-					remlAdj = 2*Eigen::MatrixXd(cholConstCov.matrixL()).diagonal().array().log().sum();
+				Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
+				Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
+				Eigen::VectorXd param =
+					(cholConstPrec.selfadjointView<Eigen::Lower>() *
+					 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
 
-					Eigen::MatrixXd ident = Eigen::MatrixXd::Identity(numProfiledOut, numProfiledOut);
-					Eigen::MatrixXd cholConstPrec = cholConstCov.solve(ident).triangularView<Eigen::Lower>();
-					Eigen::VectorXd param =
-						(cholConstPrec.selfadjointView<Eigen::Lower>() *
-						 olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * ig.dataVec);
-
-					for (int px=0; px < numProfiledOut; ++px) {
-						fc->est[ olsVarNum[px] ] = param[px];
-						fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
-					}
+				for (int px=0; px < numProfiledOut; ++px) {
+					fc->est[ olsVarNum[px] ] = param[px];
+					fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
 				}
 			}
 
@@ -196,10 +197,17 @@ namespace FellnerFitFunction {
 				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
 				//mxPrintMat("resid", resid);
 
-				double logDet = ig.covDecomp.log_determinant();
+				int clumps = ig.placements.size() / ig.clumpSize;
+
+				double logDet = clumps * ig.covDecomp.log_determinant();
 				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
 								 ig.fullCov.rows(), ig.fullCov.rows());
-				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				double iqf = 0.0;
+				for (int cx=0; cx < clumps; ++cx) {
+					iqf += (resid.segment(cx*ig.clumpObs, ig.clumpObs).transpose() *
+						iV.selfadjointView<Eigen::Lower>() *
+						resid.segment(cx*ig.clumpObs, ig.clumpObs));
+				}
 				double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
 				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", logDet, iqf, cterm, remlAdj);
 				lp += logDet + iqf + cterm + remlAdj;
@@ -260,7 +268,9 @@ namespace FellnerFitFunction {
 		FellnerFitFunction::state *st = new FellnerFitFunction::state;
 		oo->argStruct = st;
 
-		st->numProfiledOut = 0;
+		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
+		st->numProfiledOut = Rf_length(Rprofile);
+
 		{
 			SEXP tmp;
 			ScopedProtect p1(tmp, R_do_slot(oo->rObj, Rf_install("verbose")));

@@ -39,13 +39,18 @@ mle <- structure(c(0.999, 0.995, 1.017, 0.973, 0.51, 0.981, 0.948, 1.07,
 		 .Names = c("ly2", "ly3", "ly4", "xl1", "xl2",  "v_y1", "v_y2", "v_y3", "v_y4",
 		     "v_fw", "lb2", "lb3", "lb4",  "ym1", "ym2", "ym3", "ym4", "lw", "v_fb"))
 
-if (0) {
-  wModel <- omxSetParameters(wModel, labels=names(mle), values=mle)
+if (1) {
+	pt1 <- omxSetParameters(wModel, labels=names(mle), values=mle)
+	pt1$expectation$.forceSingleGroup <- TRUE
+	pt1$expectation$rampart <- 0L
+	pt1 <- mxRun(mxModel(pt1, mxComputeOnce('fitfunction', 'fit')))
+	
+	omxCheckCloseEnough(pt1$output$fit, 13088.373, 1e-2)
 }
 
-if (1) {
+if (0) {
 #  wModel <- mxRun(mxModel(wModel, mxComputeGradientDescent(verbose=2L)))
-  wModel <- mxRun(wModel, checkpoint=TRUE)
+  wModel <- mxRun(wModel)
   summary(wModel)
 
   omxCheckCloseEnough(wModel$output$fit, 13088.373, 1e-2)
@@ -73,36 +78,4 @@ if (1) {
 	print(ed$rampartUsage)
 	print(abs(rotated$output$fit - square$output$fit))
 	print(max(abs(rotated$output$gradient - square$output$gradient)))
-	ed$layout
-
-	round(ed$A[1:37,1:37],2)
-	round(ed$rA[1:37,1:37],2)
-	round(ed$S[1:37,1:37],2)
-
-	# ------------- try transformation by hand
-	
-	oertzenRotate1R <- function(vec) {
-		partialSum = sum(vec)
-		anzGroups <- length(vec)
-		erg <- rep(NA, length(vec))
-		erg[1] = partialSum / sqrt(anzGroups);
-
-		for (i in 1:(anzGroups-1)) {
-			k=anzGroups-i
-			partialSum = partialSum - vec[i]
-			erg[1+i] = partialSum * sqrt(1.0 / (k*(k+1))) - sqrt(k / (k+1)) * vec[i];
-		}
-		erg
-	}
-
-	sx = square$expectation
-	rx = rotated$expectation
-
-	round(sx$debug$A,2)
-	round(rx$debug$rA,2)
-
-	mu <- (solve(diag(nrow(rx$debug$A)) - rx$debug$A) %*% rx$debug$mean)[rx$debug$latentFilter]
-	mu - rx$output$mean # OK
-	apply(matrix(rx$debug$dataVec - mu, 4, 4, byrow=TRUE), 2, oertzenRotate1R)
-	rx$debug$resid
 }

@@ -185,10 +185,16 @@ namespace RelationalRAMExpectation {
 		int AshallowDepth;
 		double signA;
 		Eigen::SparseMatrix<double>      ident;
+
+		void refreshModel(FitContext *fc);
+		void refreshUnitA(FitContext *fc, int px);
+		void invertAndFilterA();
 	public:
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
 		RowToPlacementMapType            rowToPlacementMap;
 		std::vector<placement>           placements;
+		const int                        clumpSize;
+		int                              clumpVars, clumpObs;
 		SEXP                             obsNameVec;
 		SEXP                             varNameVec;
 		// make dataColumn optional TODO
@@ -208,15 +214,13 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      IAF;
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 
-		independentGroup(class state *st)
-			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1) {};
+		independentGroup(class state *st, int size, int clumpSize)
+			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1), clumpSize(clumpSize)
+		{ placements.reserve(size); };
 		void prep(int maxSize, int totalObserved, FitContext *fc);
-		void refreshModel(FitContext *fc);
 		void determineShallowDepth(FitContext *fc);
-		void refreshUnitA(FitContext *fc, int px);
 		int verbose() const;
 		void filterFullMean();
-		void invertAndFilterA();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
 		void computeCov(FitContext *fc);
 		void exportInternalState(MxRList &out, MxRList &dbg);

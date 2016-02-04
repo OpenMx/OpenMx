@@ -128,15 +128,13 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 		RelationalRAMExpectation::state *rram = oro->rram;
 		std::vector<std::string> names;
 		names.resize(rram->group.size());
-		MxRList glst;
 		for (size_t gx=0; gx < rram->group.size(); ++gx) {
 			RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
 			names[gx] = string_snprintf("g%02d", int(1+gx));
 			MxRList info;
 			ig.exportInternalState(info, info);
-			glst.add(names[gx].c_str(), info.asR());
+			dbg.add(names[gx].c_str(), info.asR());
 		}
-		dbg.add("detail", glst.asR());
 		rram->exportInternalState(dbg);
 	}
 
@@ -414,7 +412,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::refreshModel(FitContext *fc)
 	{
-		for (size_t ax=0; ax < placements.size(); ++ax) {
+		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
@@ -517,7 +515,7 @@ namespace RelationalRAMExpectation {
 		vec.setConstant(1);
 		copyParamToModelInternal(fc->varGroup, st.homeEx->currentState, vec.data());
 
-		for (size_t ax=0; ax < placements.size(); ++ax) {
+		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[ax];
 			omxExpectation *expectation = a1.model;
@@ -626,6 +624,23 @@ namespace RelationalRAMExpectation {
 			mismatch = false;
 			return false;
 		}
+
+		bool compareDefVars(addr &la, addr &ra, bool &mismatch) const
+		{
+			mismatch = true;
+
+			omxData *data = la.model->data;  // both la & ra have same data
+			for (size_t k=0; k < data->defVars.size(); ++k) {
+				int col = data->defVars[k].column;
+				double lv = omxDoubleDataElement(data, la.row, col);
+				double rv = omxDoubleDataElement(data, ra.row, col);
+				if (lv == rv) continue;
+				return lv < rv;
+			}
+
+			mismatch = false;
+			return false;
+		}
 	};
 
 	struct CompatibleGroupCompare : CompareLib {
@@ -639,6 +654,8 @@ namespace RelationalRAMExpectation {
 				addr &ra = st.layout[rhs[ux]];
 				bool mismatch;
 				bool got = compareModelAndMissingness(la, ra, mismatch);
+				if (mismatch) return got;
+				got = compareDefVars(la, ra, mismatch);
 				if (mismatch) return got;
 				// defvars TODO
 			}
@@ -661,7 +678,7 @@ namespace RelationalRAMExpectation {
 	{
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
 		if (ram->forceSingleGroup) {
-			independentGroup *ig = new independentGroup(this);
+			independentGroup *ig = new independentGroup(this, layout.size(), layout.size());
 			int dx = 0, mx = 0;
 			for (size_t ax=0; ax < layout.size(); ++ax) {
 				addr &a1 = layout[ax];
@@ -750,8 +767,8 @@ namespace RelationalRAMExpectation {
 		int groupNum = 1;
 		for (CompatibleGroupMapType::iterator it = cgm.begin();
 		     it != cgm.end(); ++it, ++groupNum) {
-			independentGroup *ig = new independentGroup(this);
-			ig->placements.reserve(it->second.size());
+			independentGroup *ig = new independentGroup(this, it->second.size(),
+								    it->second.begin()->size());
 			int dx = 0, mx = 0;
 			int copyNum = 1;
 			for (std::set<std::vector<int> >::iterator px = it->second.begin();
@@ -779,8 +796,6 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::prep(int maxSize, int totalObserved, FitContext *fc)
 	{
-		ident.resize(maxSize, maxSize);
-		ident.setIdentity();
 		fullA.resize(maxSize, maxSize);
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
@@ -791,7 +806,13 @@ namespace RelationalRAMExpectation {
 		dataColumn.setConstant(-1);
 		fullMean.resize(maxSize);
 		fullMean.setZero();
-		fullS.conservativeResize(maxSize, maxSize);
+
+		{
+			placement &end = placements[clumpSize-1];
+			addr &a1 = st.layout[ end.aIndex ];
+			clumpVars = end.modelStart + a1.numVars();
+			clumpObs = end.obsStart + a1.numObs();
+		}
 
 		int dx=0;
 		for (size_t ax=0; ax < placements.size(); ++ax) {
@@ -1193,19 +1214,19 @@ namespace RelationalRAMExpectation {
 			++dx;
 		}
 		op[dx] = op[fullA.cols()];
-		IAF.conservativeResize(fullA.rows(), dataVec.size());
+		IAF.conservativeResize(fullA.rows(), clumpObs);
 
 		if (doubleCheck) {
 			Eigen::MatrixXd denseAF;
-			denseAF.resize(fullA.rows(), dataVec.size());
+			denseAF.resize(fullA.rows(), clumpObs);
 			int dx=0;
 			for (int cx=0; cx < fullA.cols(); ++cx) {
 				if (!latentFilter[cx]) continue;
 				denseAF.col(dx) = denseA.col(cx);
 				++dx;
 			}
-			if (dx != dataVec.size()) Rf_error("latentFilter has wrong count %d != %d",
-							   dx, dataVec.size());
+			if (dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+							   dx, clumpObs);
 			Eigen::MatrixXd denseFilteredA = IAF;
 			if ((denseAF.array() != denseFilteredA.array()).any()) {
 				for (int rx=0; rx<denseAF.rows(); ++rx) {
@@ -1227,9 +1248,11 @@ namespace RelationalRAMExpectation {
 		if (0 == dataVec.size()) return;
 
 		if (fullA.nonZeros() == 0) {
-			fullA.resize(latentFilter.size(), latentFilter.size());
+			fullA.resize(clumpVars, clumpVars);
+			ident.resize(clumpVars, clumpVars);
+			ident.setIdentity();
 		}
-		fullS.conservativeResize(latentFilter.size(), latentFilter.size());
+		fullS.conservativeResize(clumpVars, clumpVars);
 
 		refreshModel(fc);
 
