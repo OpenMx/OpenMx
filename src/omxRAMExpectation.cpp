@@ -715,6 +715,8 @@ namespace RelationalRAMExpectation {
 			addr &a1 = layout[ax];
 			if (a1.numJoins) continue;
 			int clumpSize = (macroAi.row(ax).array() != 0).count();
+			// Need to be smarter here. Unclumped addr need to be adjacent
+			// to their clumped components. Only added unclumped entries. TODO
 			std::vector<int> clump;
 			clump.reserve(clumpSize);
 			for (size_t mx=0; mx < layout.size(); ++mx) {
@@ -1202,6 +1204,8 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::computeCov(FitContext *fc)
 	{
+		if (0 == dataVec.size()) return;
+
 		if (fullA.nonZeros() == 0) {
 			fullA.resize(latentFilter.size(), latentFilter.size());
 		}
@@ -1231,6 +1235,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::filterFullMean()
 	{
+		if (0 == dataVec.size()) return;
 		int ox = 0;
 		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
 			if (!latentFilter[lx]) continue;

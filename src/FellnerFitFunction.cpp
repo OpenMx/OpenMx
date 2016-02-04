@@ -146,6 +146,7 @@ namespace FellnerFitFunction {
 			RelationalRAMExpectation::state *rram   = ram->rram;
 			for (size_t gx=0; gx < rram->group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+				if (0 == ig.dataVec.size()) continue;
 
 				if (!ig.covDecomp.analyzedPattern()) {
 					ig.fullCov.makeCompressed();
@@ -185,6 +186,8 @@ namespace FellnerFitFunction {
 
 			for (size_t gx=0; gx < rram->group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
+				if (0 == ig.dataVec.size()) continue;
+
 				//mxPrintMat("dataVec", ig.dataVec);
 				//mxPrintMat("fullMeans", ig.fullMeans);
 				//ig.applyRotationPlan(ig.expectedMean);

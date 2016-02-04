@@ -72,9 +72,36 @@ wModel <- mxModel('within', type="RAM", bModel,
                          labels='data.relsqrt', joinKey="famID"))
 
 
+if (0) {
+	options(width=120)
+plan <- mxComputeSequence(list(
+    mxComputeOnce('fitfunction', 'fit'),
+    mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
+    mxComputeReportDeriv(),
+    mxComputeReportExpectation()
+))
+
+wModel$expectation$rampart <- 0L
+wModel$expectation$.forceSingleGroup <- TRUE
+square <- mxRun(mxModel(wModel, plan))
+
+wModel$expectation$.forceSingleGroup <- FALSE
+rotated <- mxRun(mxModel(wModel, plan))
+
+	ed = rotated$expectation$debug
+	ed$layout
+	str(ed$detail$g01)
+	str(ed)
+
+	print(abs(rotated$output$fit - square$output$fit))
+	print(max(abs(rotated$output$gradient - square$output$gradient)))
+}
+
 #------------------------------------------------------------------------------
 # Run 'em
-wRun <- mxRun(wModel)
+wModel$expectation$rampart <- 0L
+wModel$expectation$.forceSingleGroup <- TRUE
+wRun <- mxRun(wModel, checkpoint=TRUE)
 
 
 #------------------------------------------------------------------------------
