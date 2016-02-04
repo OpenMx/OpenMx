@@ -32,14 +32,14 @@ setClass(Class = "MxExpectationRAM",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
 	    verbose = "integer",
-	    rampart = "integer",
+	    .rampart = "integer",
 	    .forceSingleGroup = "logical"
 	),
 	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 between, verbose, rampart, data = as.integer(NA), name = 'expectation') {
+		 between, verbose, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -53,7 +53,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@UnfilteredExpCov <- matrix()
 		.Object@between <- between
 		.Object@verbose <- verbose
-		.Object@rampart <- rampart
+		.Object@.rampart <- as.integer(NA)
 		.Object@.forceSingleGroup <- FALSE
 		return(.Object)
 	}
@@ -492,7 +492,7 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., between=NULL, verbose=0L, rampart=as.integer(NA)) {
+	threshnames = dimnames, ..., between=NULL, verbose=0L) {
 
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
@@ -535,7 +535,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	}
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
-		   between, as.integer(verbose), as.integer(rampart)))
+		   between, as.integer(verbose)))
 }
 
 displayMxExpectationRAM <- function(expectation) {

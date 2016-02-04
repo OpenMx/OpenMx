@@ -272,7 +272,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
 	}
 
-	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install("rampart")));
+	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install(".rampart")));
 	RAMexp->rampart = Rf_asInteger(Rrampart);
 
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
@@ -657,7 +657,6 @@ namespace RelationalRAMExpectation {
 				if (mismatch) return got;
 				got = compareDefVars(la, ra, mismatch);
 				if (mismatch) return got;
-				// defvars TODO
 			}
 			return false;
 		}

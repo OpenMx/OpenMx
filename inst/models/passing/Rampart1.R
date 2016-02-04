@@ -90,7 +90,7 @@ student <- mxModel(student, teacher,
 
 #student$expectation$verbose <- 1L
 
-student$expectation$rampart <- 0L
+student$expectation$.rampart <- 0L
 pt1 <- mxRun(mxModel(student,
 			 mxComputeSequence(list(
 			     mxComputeOnce('fitfunction', 'fit'),
@@ -98,7 +98,7 @@ pt1 <- mxRun(mxModel(student,
 			     mxComputeReportDeriv(),
 			     mxComputeReportExpectation()))))
 
-student$expectation$rampart <- as.integer(NA)
+student$expectation$.rampart <- as.integer(NA)
 pt2 <- mxRun(mxModel(student,
 			 mxComputeSequence(list(
 			     mxComputeOnce('fitfunction', 'fit'),

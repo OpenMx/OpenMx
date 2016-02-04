@@ -4,7 +4,7 @@ set.seed(1)
 
 numIndicators <- 4
 
-numDistricts <- 1
+numDistricts <- 5
 numSchools <- 4
 numTeachers <- 3
 numStudents <- 5
@@ -97,10 +97,10 @@ if (0) {
 	    mxComputeReportExpectation()
 	))
 
-	tMod$expectation$rampart <- 0L
+	tMod$expectation$.rampart <- 0L
 	square <- mxRun(mxModel(tMod, plan))
 
-	tMod$expectation$rampart <- 2L
+	tMod$expectation$.rampart <- 2L
 	rotated <- mxRun(mxModel(tMod, plan))
 	
 	ex <- rotated$expectation
@@ -122,38 +122,28 @@ sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
 		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
 
-if (1) {
-	options(width=120)
-plan <- mxComputeSequence(list(
-    mxComputeOnce('fitfunction', 'fit'),
-    mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
-    mxComputeReportDeriv(),
-    mxComputeReportExpectation()
-))
+fit1 <- mxRun(sMod)
+summary(fit1)
 
-sMod$expectation$rampart <- 0L
-square <- mxRun(mxModel(sMod, plan))
+omxCheckCloseEnough(fit1$output$fit, 17212.46, .01)
+omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .005)
+omxCheckCloseEnough(fit1$expectation$debug$rampartUsage, c(902, 97, 21), 1L)
 
-sMod$expectation$rampart <- 4L
-rotated <- mxRun(mxModel(sMod, plan))
+if (1) { # this takes about 1.5 hours
+	#options(width=120)
+	plan <- mxComputeSequence(list(
+	    mxComputeOnce('fitfunction', 'fit'),
+	    mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, verbose=0L),
+	    mxComputeReportDeriv(),
+	    mxComputeReportExpectation()
+	))
 
-ex <- rotated$expectation
-eo <- ex$output
-ed <- ex$debug
-print(ed$rampartUsage)
-#print(ed$layout)
-#print(round(ed$A[1:20,1:20],2))
-#print(round(ed$rA[1:20,1:20],2))
-#	cat(deparse(round(eo$mean,3)))
-#	cat(deparse(round(ed$dataVec,3)))
+	slow <- omxSetParameters(sMod, labels=names(coef(fit1)), values=coef(fit1))
+	slow$expectation$.rampart <- 0L
+	slowFit <- mxRun(mxModel(slow, plan))
 
-#	round(abs(eo$mean - expectedMean1),3)
-#	round(abs(ed$dataVec - dataVec1),3)
-
-	print(abs(rotated$output$fit - square$output$fit))
-	print(max(abs(rotated$output$gradient - square$output$gradient)))
-omxCheckCloseEnough(ed$rampartUsage, c(209, 25, 5), 1L)
-#round(rotated$output$gradient - square$output$gradient, 2)
-omxCheckCloseEnough(rotated$output$fit, square$output$fit, 3)
-	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 32)
+	omxCheckTrue(all(eigen(slowFit$output$hessian)$val > 0))
+	omxCheckCloseEnough(slowFit$output$fit, fit1$output$fit, 65)
+	omxCheckCloseEnough(max(abs(slowFit$output$gradient)), 0, 60)
+	omxCheckCloseEnough(max(abs(slowFit$output$hessian %*% solve(fit1$output$hessian))), 0, 1.5)
 }

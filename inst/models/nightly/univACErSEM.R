@@ -157,7 +157,7 @@ if (0) {
 	wModel$expectation$.forceSingleGroup = TRUE
 
 	wModel2 <- omxSetParameters(wModel2, labels=names(coef(wModel)), values=coef(wModel))
-	wModel2$expectation$rampart = 0L
+	wModel2$expectation$.rampart = 0L
 	wModel2$expectation$.forceSingleGroup = TRUE
 
 	fit1 <- mxRun(mxModel(wModel, plan))

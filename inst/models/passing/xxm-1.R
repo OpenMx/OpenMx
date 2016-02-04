@@ -29,7 +29,7 @@ sMod <- mxModel("student", type="RAM", tMod,
 
 if (0) {
 	# Does multigroup work without rampart? Why not? TODO
-	#sMod$expectation$rampart <- 0L
+	#sMod$expectation$.rampart <- 0L
 	#sMod$expectation$.forceSingleGroup <- TRUE
 	dist <- mxRun(mxModel(sMod,
 			      mxComputeSequence(list(
