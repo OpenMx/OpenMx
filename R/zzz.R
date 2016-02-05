@@ -72,9 +72,9 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' to calculate the expectations for the model. Models need a fit function. Several of these are built-in (e.g., \link{mxFitFunctionML} )
 #' OpenMx also allows user-defined fit functions for purposes not covered by the built-in functions. (e.g., \link{mxFitFunctionR} or \link{mxFitFunctionAlgebra}).
 #' 
-#' Once built, the resulting mxModel can be run (i.e., optimized) using \link{mxRun}. This returns the fitted model.
+#' Once built, the resulting mxModel can be run (i.e., optimized) using  \code{\link{mxRun}}. This returns the fitted model.
 #' 
-#' You can see the resulting parameter estimates, algebra evaluation etc using summary(yourModel)
+#' You can see the resulting parameter estimates, algebra evaluation etc using \code{\link[=summary.MxModel]{summary}}(yourModel)
 #' 
 #' The user's manual is online (see reference below), but functions \link{mxRun}, \link{mxModel}, \link{mxMatrix}
 #' all have working examples to get you started as well.
@@ -91,14 +91,22 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' 
 #' To cite package 'OpenMx' in publications use:
 #' 
+#' Michael C. Neale, Michael D. Hunter, Joshua N. Pritikin, Mahsa Zahery, Timothy R. Brick Robert M.
+#' Kickpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (in press).
+#' OpenMx 2.0: Extended structural equation and statistical modeling. \emph{Psychometrika}. 
+#' DOI: 10.1007/s11336-014-9435-8
+#' 
 #' Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick,
-#' Jeffrey Spies, Ryne Estabrook, Sarah Kenny, Timothy C. Bates, Paras Mehta, and John Fox. (2011) OpenMx: An
-#' Open Source Extended Structural Equation Modeling Framework. Psychometrika.
+#' Jeffrey Spies, Ryne Estabrook, Sarah Kenny, Timothy C. Bates, Paras Mehta, and John Fox. (2011)
+#' OpenMx: An Open Source Extended Structural Equation Modeling Framework. 
+#' \emph{Psychometrika}, 306-317. DOI:10.1007/s11336-010-9200-6
 #' 
 #' Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick, Ryne
 #' Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C.
-#' Hackett, Julian Karch and Andreas M. Brandmaier. (2014) OpenMx 2 User Guide.
-#' 
+#' Hackett, Julian Karch, Andreas M. Brandmaier, Joshua N. Pritikin, Mahsa Zahery, Robert M. Kirkpatrick, 
+#' Yang Wang, and Charles Driver. (2016) OpenMx 2 User Guide. 
+#' http://openmx.psyc.virginia.edu/docs/OpenMx/latest/OpenMxUserGuide.pdf
+#'
 #' @references The OpenMx User's guide can be found at \url{http://openmx.psyc.virginia.edu/documentation}
 #'
 #' @examples
