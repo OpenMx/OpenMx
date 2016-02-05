@@ -307,24 +307,41 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	omxData* dataMat = oo->expectation->data;
 
+	ProtectedSEXP Rfellner(R_do_slot(oo->rObj, Rf_install("fellner")));
+	int wantRowwiseLikelihood = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
+
+	bool fellnerPossible = (strEQ(omxDataType(dataMat), "raw") && expectation->numOrdinal == 0 &&
+				strEQ(oo->expectation->expType, "MxExpectationRAM") && !wantRowwiseLikelihood);
+
+	if (Rf_asLogical(Rfellner) == 1 && !fellnerPossible) {
+		Rf_error("%s: fellner requires raw data (have %s), "
+			 "all continuous indicators (%d are ordinal), "
+			 "MxExpectationRAM (have %s), and no row-wise likelihoods (want %d)",
+			 oo->name(), dataMat->getType(), expectation->numOrdinal,
+			 wantRowwiseLikelihood, expectation->name);
+	}
+
 	if (strEQ(omxDataType(dataMat), "raw")) {
-		SEXP rObj = oo->rObj;
-		bool onlyFellner = false;
+		int useFellner = Rf_asLogical(Rfellner);
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			onlyFellner = ram->between.size();
+			if (ram->between.size()) {
+				if (useFellner == 0) {
+					Rf_error("%s: fellner=TRUE is required for %s",
+						 oo->name(), expectation->name);
+				}
+				useFellner = 1;
+			}
 		}
-		int fellner;
-		{
-			SEXP tmp;
-			ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("fellner")));
-			fellner = Rf_asLogical(tmp);
-		}
-		if (fellner == NA_LOGICAL && onlyFellner) fellner = 1;
-		if (onlyFellner && fellner == 0) Rf_error("%s: fellner=TRUE is required for %s",
-							  oo->name(), expectation->name);
+
+		// Cannot enable unconditionally because performance
+		// suffers with models that make heavy use of defvars
+		// such as continuous time models.
+		//
+		//if (useFellner == NA_LOGICAL && fellnerPossible) useFellner = 1;
+
 		const char *to;
-		if (fellner == 1) {
+		if (useFellner == 1) {
 			to = "imxFitFunctionFellner";
 		} else {
 			to = "imxFitFunctionFIML";

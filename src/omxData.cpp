@@ -463,7 +463,7 @@ int omxData::lookupRowOfKey(int key)
 
 const char *omxDataColumnName(omxData *od, int col)
 {
-	if(od->dataMat != NULL) return 0;
+	if(od->dataMat) return od->dataMat->colnames[col];
 	ColumnData &cd = od->rawCols[col];
 	return cd.name;
 }

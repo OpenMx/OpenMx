@@ -287,6 +287,8 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 			omxMatrix *bmat = currentState->getMatrixFromIndex(bnumber[jx]);
 			int foreignKey = bmat->getJoinKey();
 			omxExpectation *fex = bmat->getJoinModel();
+			if (!fex) Rf_error("%s: level transition matrix '%s' does not reference the upper level model",
+					   oo->name, bmat->name());
 			omxCompleteExpectation(fex);
 			if (!strEQ(fex->expType, "MxExpectationRAM")) {
 				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);

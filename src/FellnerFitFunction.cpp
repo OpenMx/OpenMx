@@ -257,11 +257,6 @@ namespace FellnerFitFunction {
 			Rf_error("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 		}
 
-		// prohibit ordinal for now TODO
-		if (expectation->numOrdinal != 0) {
-			Rf_error("%s cannot handle ordinal data yet", oo->fitType);
-		}
-
 		oo->computeFun = FellnerFitFunction::compute;
 		oo->destructFun = FellnerFitFunction::destroy;
 		oo->populateAttrFun = FellnerFitFunction::popAttr;
