@@ -20,7 +20,9 @@
 #include "omxBLAS.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
-#include <Eigen/LU>
+//#include <Eigen/LU>
+#include <boost/graph/transitive_closure.hpp>
+//#include <boost/graph/graph_utility.hpp> //for print_graph
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
@@ -699,10 +701,11 @@ namespace RelationalRAMExpectation {
 				  std::set<std::vector<int> >,
 				  CompatibleGroupCompare> CompatibleGroupMapType;
 
-		macroA.resize(layout.size(), layout.size());
-		macroA.setIdentity();
+		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> DepGraphType;
+		DepGraphType macroDep;
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
+			add_vertex(macroDep);
 			addr &a1 = layout[ax];
 			if (a1.rampartScale == 0.0) continue;
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
@@ -716,28 +719,35 @@ namespace RelationalRAMExpectation {
 					rowToLayoutMap.find(std::make_pair(e1->data, row));
 				if (it == rowToLayoutMap.end())
 					Rf_error("Cannot find row %d in %s", row, e1->data->name);
-				macroA(it->second, ax) = -1;
+				boost::add_edge(ax, it->second, macroDep);
 			}
 		}
 
-		Eigen::FullPivLU<Eigen::MatrixXf> lu(macroA);
-		Eigen::MatrixXf macroAi = lu.inverse();
+		//boost::print_graph(macroDep);
+		DepGraphType macroDepTC;
+		boost::transitive_closure(macroDep, macroDepTC);
 
-		// macroAi gives the complete dependency information,
+		//boost::print_graph(macroDepTC);
+
+		// macroDepTC gives the complete dependency information,
 		// but we already have partial dependency information
 		// from Rampart clumping. We need to preserve the
 		// Rampart clumping order when we determine the
 		// grouping. Otherwise we can get more groups (and
-		// fewer copies) than necessary.
+		// fewer copies) than ideal.
 
 		CompatibleGroupMapType cgm(this);
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
 			if (a1.numJoins) continue;
-			int clumpSize = (macroAi.row(ax).array() != 0).count();
+			DepGraphType::vertex_descriptor addrVx = boost::vertex(ax, macroDepTC);
+			int clumpSize = 1+boost::out_degree(addrVx, macroDepTC);
 			std::set<int> unsortedClump;
-			for (size_t mx=0; mx < layout.size(); ++mx) {
-				if (macroAi(ax, mx)) unsortedClump.insert(mx);
+			unsortedClump.insert(ax);
+			DepGraphType::in_edge_iterator inedgeIt, inedgeEnd;
+			tie(inedgeIt, inedgeEnd) = boost::in_edges(addrVx, macroDepTC);
+			for(; inedgeIt != inedgeEnd; ++inedgeIt) { 
+				unsortedClump.insert(boost::source(*inedgeIt, macroDepTC));
 			}
 			std::vector<int> clump;
 			clump.reserve(clumpSize);
@@ -1287,7 +1297,7 @@ namespace RelationalRAMExpectation {
 
 	void state::computeMean(FitContext *fc)
 	{
-		// maybe there is a way to use macroA to sort by dependency
+		// maybe there is a way to sort by dependency
 		// so this loop can be parallelized
 
 		// can detect whether all units within an independent group are self contained
@@ -1390,7 +1400,6 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
-		dbg.add("macroA", Rcpp::wrap(macroA));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		//SEXP startLoc, endLoc, obsStart, obsEnd;

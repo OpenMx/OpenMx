@@ -229,7 +229,6 @@ namespace RelationalRAMExpectation {
 	class state {
 	private:
 		std::vector<int>                 rampartUsage;
-		Eigen::MatrixXf                  macroA;
 		std::vector< std::vector<int> >  rotationPlan;
 		Eigen::VectorXd                  expectedMean;  //debug
 
