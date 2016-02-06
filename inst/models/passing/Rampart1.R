@@ -107,6 +107,12 @@ pt2 <- mxRun(mxModel(student,
 			     mxComputeReportExpectation()))))
 
 omxCheckCloseEnough(pt2$expectation$debug$rampartUsage, c((fanout-1)*fanout^2, (fanout-1)*fanout), 1)
+omxCheckCloseEnough(pt2$expectation$debug$numGroups, 3)
+
+if (0) {
+	layout <- pt2$expectation$debug$layout
+	head(layout[layout$group==3, ],n=20)
+}
 
 omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
 omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)

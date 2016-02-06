@@ -146,6 +146,7 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
+		int region;
 		int group;
 		int copy;
 		struct independentGroup *ig;
@@ -229,7 +230,6 @@ namespace RelationalRAMExpectation {
 	class state {
 	private:
 		std::vector<int>                 rampartUsage;
-		Eigen::MatrixXf                  macroA;
 		std::vector< std::vector<int> >  rotationPlan;
 		Eigen::VectorXd                  expectedMean;  //debug
 

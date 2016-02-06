@@ -235,7 +235,7 @@ setMethod("initialize", "MxComputeOnce",
 ##'     mxMatrix(type="Diag", nrow=5, ncol=5, free=TRUE, values=1, name="U"),
 ##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
 ##'     mxFitFunctionML(),mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
-##'     mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500),
+##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'     mxComputeOnce('fitfunction', 'fit'))
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit$output$fit  # 972.15
@@ -378,7 +378,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##'     mxAlgebra(expression=A %*% L %*% t(A) + U, name="R"),
 ##'   mxExpectationNormal(covariance="R", dimnames=names(demoOneFactor)),
 ##'   mxFitFunctionML(),
-##'     mxData(observed=cov(demoOneFactor)*499/500, type="cov", numObs=500),
+##'     mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
 ##'      mxComputeSequence(steps=list(
 ##'      mxComputeGradientDescent(),
 ##'      mxComputeNumericDeriv(),
@@ -1075,7 +1075,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' 	mxAlgebra(A %*% L %*% t(A) + U, name = "R"),
 ##' 	mxExpectationNormal(covariance = "R", dimnames = names(demoOneFactor)), 
 ##' 	mxFitFunctionML(), 
-##' 	mxData(cov(demoOneFactor)*499/500, type = "cov", numObs = 500), 
+##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500), 
 ##' 	mxComputeSequence(
 ##' 		list(mxComputeNumericDeriv(), mxComputeReportDeriv())
 ##' 	)

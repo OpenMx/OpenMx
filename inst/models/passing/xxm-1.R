@@ -65,4 +65,5 @@ if (0) {
 sMod <- mxRun(sMod)
 
 omxCheckCloseEnough(sMod$output$fit, 445.4331, .01)
-
+omxCheckCloseEnough(sMod$expectation$debug$numGroups, 2)
+omxCheckCloseEnough(sMod$expectation$debug$rampartUsage, 50)

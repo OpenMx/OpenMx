@@ -356,7 +356,7 @@ removeAllIntervals <- function(model) {
 ##'                       mxPath(from=latents, to=manifests),
 ##'                       mxPath(from=manifests, arrows=2),
 ##'                       mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-##'                       mxData(observed=cov(demoOneFactor)*499/500, type="cov",
+##'                       mxData(observed=cov(demoOneFactor), type="cov",
 ##'                       numObs=500),
 ##'      # add confidence intervals for free params in A and S matrices
 ##'                       mxCI(c('A', 'S')))
