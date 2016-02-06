@@ -39,7 +39,7 @@ r2 <- mxFactorScores(factorRun, 'Regression')
 r3 <- mxFactorScores(factorRun, 'WeightedML')
 
 
-omxCheckCloseEnough(cor(r1[,,1], r2[,,1]), 1)
+omxCheckCloseEnough(cor(r1[,,1], r2[,,1]), 1, 1e-10)
 
 
 #pdf('plotFactorScores.pdf')
@@ -166,8 +166,8 @@ omxCheckError(rr2 <- mxFactorScores(factorRamRun, 'Regression'), "Regression fac
 rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
 
 
-omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
-omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
+omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1, 1e-10)
+omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1, 1e-10)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
