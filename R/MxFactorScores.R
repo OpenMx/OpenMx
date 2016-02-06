@@ -176,29 +176,38 @@ RAMrfs <- function(model,res){
 		continublockflag <- ifelse(i<dim(res)[1],TRUE,FALSE)
 		manvars.curr <- manvars[ !is.na(dat[i,manvars]) ]
 		while(continublockflag){
-			#We need to be sure that the missingness pattern is the same, and that if there are definition variables,
-			#that their values are equal:
-			if(all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) && 
-				 ( !length(defvars) || all(dat[j,defvars]==dat[(j+1),defvars]) )
+			#To include a subsequent row in the current block of rows, 
+			#we need to be sure that its missingness pattern is the same, and that if there are definition variables,
+			#that their values in the subsequent row are equal to those in the previous rows:
+			if(
+				j<dim(res)[1] &&
+				all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) && 
+				( !length(defvars) || all(dat[j,defvars]==dat[(j+1),defvars]) )
 			){j <- j+1}
 			else{continublockflag <- FALSE}
 		}
-		obsmeans <- t(sapply(c(i:j),mxGetExpected,model=model,component="means"))[,which(!is.na(dat[i,manvars]))]
-		dat.curr <- as.matrix(dat[i:j,manvars.curr])
-		if(i==j){ #Annoying...
-			obsmeans <- matrix(obsmeans,nrow=1)
-			dat.curr <- matrix(dat.curr,nrow=1)
-		}
+		#obsmeans <- t(sapply(c(i:j),mxGetExpected,model=model,component="means"))[,which(!is.na(dat[i,manvars]))]
+		#latmeans <- t(sapply(c(i:j),function(x){mxEval(expression=M,model=model,compute=T,defvar.row=x)}))[,latvars]
 		unfilt <- solve(I-mxEval(A,model,T,defvar.row=i))%*%mxEval(S,model,T,defvar.row=i)%*%
 			t(solve(I-mxEval(A,model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		res[i:j,,1] <- (dat.curr - obsmeans) %*%
-			(solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars])
-		indeterminateVariance <- unfilt[latvars,latvars] - 
-			(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
-			 	unfilt[manvars.curr,latvars])
-		res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
-		
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEval(M,model,T,defvar.row=i)[,latvars],nrow=1)
+		if(all(is.na(dat[i,manvars]))){
+			res[i:j,,1] <- latmeans
+			res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
+		}
+		else{
+			obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% 
+				matrix(mxGetExpected(model,"means",defvar.row=i)[,which(!is.na(dat[i,manvars]))],nrow=1)
+			dat.curr <- as.matrix(dat[i:j,manvars.curr])
+			if(i==j){dat.curr <- matrix(dat.curr,nrow=1)} #<--Annoying...
+			res[i:j,,1] <- ( (dat.curr - obsmeans) %*%
+											 	(solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars]) ) + latmeans
+			indeterminateVariance <- unfilt[latvars,latvars] - 
+				(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
+				 	unfilt[manvars.curr,latvars])
+			res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
+		}
 		i <- j+1
 		j <- i
 	}
