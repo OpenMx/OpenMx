@@ -1221,7 +1221,7 @@ namespace RelationalRAMExpectation {
 			//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 		}
 
-		const bool doubleCheck = true;
+		const bool doubleCheck = false;
 		Eigen::MatrixXd denseA;
 		if (doubleCheck) {
 			denseA = IAF;
