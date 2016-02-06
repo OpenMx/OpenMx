@@ -27,7 +27,7 @@
 
 \usage{
 mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
-  as.logical(NA), verbose=0L)
+  as.logical(NA), verbose=0L, profileOut=c())
 }
 
 \arguments{
@@ -39,6 +39,8 @@ mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
    \item{fellner}{Whether to fully expand the covariance matrix for
      maximum flexibility.}
    \item{verbose}{Level of diagnostic output}
+   \item{profileOut}{Character vector naming constant coefficients to
+   profile out of the likelihood (sometimes known as REML)}
 }
 
 \details{
