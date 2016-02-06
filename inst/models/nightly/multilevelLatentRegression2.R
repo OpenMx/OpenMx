@@ -88,6 +88,10 @@ tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=teacherData, primaryKey="teacherID", sort=FALSE),
 		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
 
+sMod <- mxModel(relabel(singleFactor, "student"), tMod,
+		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
+		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
+
 if (0) {
 	options(width=120)
 	plan <- mxComputeSequence(list(
@@ -97,17 +101,20 @@ if (0) {
 	    mxComputeReportExpectation()
 	))
 
-	tMod$expectation$.rampart <- 0L
-	square <- mxRun(mxModel(tMod, plan))
+	sMod$expectation$.rampart <- 0L
+	square <- mxRun(mxModel(sMod, plan))
 
-	tMod$expectation$.rampart <- 2L
-	rotated <- mxRun(mxModel(tMod, plan))
+	sMod$expectation$.rampart <- 2L
+	rotated <- mxRun(mxModel(sMod, plan))
 	
 	ex <- rotated$expectation
 	eo <- ex$output
 	ed <- ex$debug
-#	print(ed$layout)
+	print(ed$layout)
 	print(ed$rampartUsage)
+	print(ed$numGroups)
+	table(ed$layout$group)
+	head(ed$layout[ed$layout$group == 8, ], n=20)
 	#print(round(ed$A[1:20,1:20],2))
 	#print(round(ed$rA[1:20,1:20],2))
 					#print(ed$mean)
@@ -118,18 +125,15 @@ if (0) {
 #	omxCheckCloseEnough(rotated$output$gradient, square$output$gradient, 1e-4)
 }
 
-sMod <- mxModel(relabel(singleFactor, "student"), tMod,
-		  mxData(type="raw", observed=studentData, primaryKey="studentID", sort=FALSE),
-		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
-
 fit1 <- mxRun(sMod)
 summary(fit1)
 
 omxCheckCloseEnough(fit1$output$fit, 17212.46, .01)
 omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .005)
 omxCheckCloseEnough(fit1$expectation$debug$rampartUsage, c(902, 97, 21), 1L)
+omxCheckCloseEnough(fit1$expectation$debug$numGroups, 8, .5)
 
-if (1) { # this takes about 1.5 hours
+if (0) { # this takes about 1.5 hours
 	#options(width=120)
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('fitfunction', 'fit'),

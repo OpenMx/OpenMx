@@ -21,8 +21,6 @@
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 //#include <Eigen/LU>
-#include <boost/graph/transitive_closure.hpp>
-//#include <boost/graph/graph_utility.hpp> //for print_graph
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
@@ -503,6 +501,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		a1.numObsCache = totalObserved - obsStart;
+		a1.region = -1;
 		layout.push_back(a1);
 
 		maxSize += ram->F->cols;
@@ -697,17 +696,21 @@ namespace RelationalRAMExpectation {
 			return;
 		}
 
-		typedef std::map< std::vector<int>,
-				  std::set<std::vector<int> >,
-				  CompatibleGroupCompare> CompatibleGroupMapType;
+		if (verbose() >= 2) {
+			mxLog("%s: analyzing unit dependencies", homeEx->name);
+		}
 
-		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS> DepGraphType;
-		DepGraphType macroDep;
+		typedef std::vector< std::set<int> > ConnectedType;
+		ConnectedType connected;
 
-		for (size_t ax=0; ax < layout.size(); ++ax) {
-			add_vertex(macroDep);
+		for (int ax=int(layout.size())-1; ax >= 0; --ax) {
 			addr &a1 = layout[ax];
-			if (a1.rampartScale == 0.0) continue;
+			if (a1.rampartScale == 0.0 || !ram->between.size()) continue;
+			if (a1.region == -1) {
+				a1.region = connected.size();
+				connected.resize(connected.size() + 1);
+				connected[a1.region].insert(ax);
+			}
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *b1 = ram->between[jx];
@@ -719,38 +722,45 @@ namespace RelationalRAMExpectation {
 					rowToLayoutMap.find(std::make_pair(e1->data, row));
 				if (it == rowToLayoutMap.end())
 					Rf_error("Cannot find row %d in %s", row, e1->data->name);
-				boost::add_edge(ax, it->second, macroDep);
+				addr &a2 = layout[it->second];
+				if (a2.region == -1) {
+					a2.region = a1.region;
+					connected[a1.region].insert(it->second);
+				} else {
+					if (a2.region > a1.region) std::swap(a2.region, a1.region);
+					if (a2.region != a1.region) {
+						connected[a2.region].insert(connected[a1.region].begin(),
+									    connected[a1.region].end());
+						connected[a1.region].clear();
+						a1.region = a2.region;
+					}
+				}
 			}
 		}
 
-		//boost::print_graph(macroDep);
-		DepGraphType macroDepTC;
-		boost::transitive_closure(macroDep, macroDepTC);
-
-		//boost::print_graph(macroDepTC);
-
-		// macroDepTC gives the complete dependency information,
+		// connected gives the complete dependency information,
 		// but we already have partial dependency information
 		// from Rampart clumping. We need to preserve the
 		// Rampart clumping order when we determine the
 		// grouping. Otherwise we can get more groups (and
 		// fewer copies) than ideal.
 
+		typedef std::map< std::vector<int>,
+				  std::set<std::vector<int> >,
+				  CompatibleGroupCompare> CompatibleGroupMapType;
 		CompatibleGroupMapType cgm(this);
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
-			if (a1.numJoins) continue;
-			DepGraphType::vertex_descriptor addrVx = boost::vertex(ax, macroDepTC);
-			int clumpSize = 1+boost::out_degree(addrVx, macroDepTC);
-			std::set<int> unsortedClump;
-			unsortedClump.insert(ax);
-			DepGraphType::in_edge_iterator inedgeIt, inedgeEnd;
-			tie(inedgeIt, inedgeEnd) = boost::in_edges(addrVx, macroDepTC);
-			for(; inedgeIt != inedgeEnd; ++inedgeIt) { 
-				unsortedClump.insert(boost::source(*inedgeIt, macroDepTC));
+			if (a1.region == -1) {
+				std::vector<int> clump;
+				clump.push_back(ax);
+				cgm[ clump ].insert(clump);
+				continue;
 			}
+			std::set<int> &unsortedClump = connected[a1.region];
+			if (!unsortedClump.size()) continue;  //already done
 			std::vector<int> clump;
-			clump.reserve(clumpSize);
+			clump.reserve(unsortedClump.size());
 			while (unsortedClump.size()) {
 				bool movedSome = false;
 				for (std::set<int>::iterator it=unsortedClump.begin(); it!=unsortedClump.end(); ++it) {
@@ -771,6 +781,9 @@ namespace RelationalRAMExpectation {
 			cgm[ clump ].insert(clump);
 		}
 
+		if (verbose() >= 2) {
+			mxLog("%s: will create %d independent groups", homeEx->name, int(cgm.size()));
+		}
 		group.reserve(cgm.size());
 
 		int groupNum = 1;
@@ -805,6 +818,10 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::prep(int maxSize, int totalObserved, FitContext *fc)
 	{
+		if (verbose() >= 2) {
+			mxLog("%s: create independentGroup[%d] maxSize=%d totalObserved=%d",
+			      st.homeEx->name, (int)st.group.size(), maxSize, totalObserved);
+		}
 		fullA.resize(maxSize, maxSize);
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
@@ -830,7 +847,7 @@ namespace RelationalRAMExpectation {
 			a1.ig = this;
 			a1.igIndex = ax;
 
-			if (verbose() >= 2) {
+			if (verbose() >= 3) {
 				// useless diagnostic?
 				int modelEnd = pl.modelStart + a1.numVars() - 1;
 				if (a1.numObs()) {
@@ -1400,6 +1417,7 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
+		dbg.add("numGroups", Rcpp::wrap(group.size()));
 
 		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		//SEXP startLoc, endLoc, obsStart, obsEnd;

@@ -146,6 +146,7 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
+		int region;
 		int group;
 		int copy;
 		struct independentGroup *ig;
