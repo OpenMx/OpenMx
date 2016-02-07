@@ -133,10 +133,13 @@
 	};
 
 namespace RelationalRAMExpectation {
-	struct addr {
-		omxExpectation *model;
-		int row;      // to load definition variables (never the key)
-		int key;
+
+	// addrSetup and addr are conceptual the same object. They are
+	// split up because we need the information in addr on an
+	// ongoing basis. addrSetup could be discarded after initial
+	// analysis of the data.
+
+	struct addrSetup {
 		int numKids;
 		int numJoins;
 		int parent1;  // first parent
@@ -149,6 +152,11 @@ namespace RelationalRAMExpectation {
 		int region;
 		int group;
 		int copy;
+	};
+
+	struct addr {
+		omxExpectation *model;
+		int row;                 // to load definition variables (never the key)
 		struct independentGroup *ig;
 		int igIndex;
 
@@ -237,6 +245,7 @@ namespace RelationalRAMExpectation {
 		struct omxExpectation *homeEx;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
 		RowToLayoutMapType               rowToLayoutMap;
+		std::vector<addrSetup>		 layoutSetup;
 		std::vector<addr>		 layout;
 		omxMatrix                       *smallCol;
 		std::vector<independentGroup*>   group;

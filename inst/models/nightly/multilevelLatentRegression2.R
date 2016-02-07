@@ -107,6 +107,7 @@ if (0) {
 	sMod$expectation$.rampart <- 2L
 	rotated <- mxRun(mxModel(sMod, plan))
 	
+	ex <- square$expectation
 	ex <- rotated$expectation
 	eo <- ex$output
 	ed <- ex$debug
@@ -114,7 +115,7 @@ if (0) {
 	print(ed$rampartUsage)
 	print(ed$numGroups)
 	table(ed$layout$group)
-	head(ed$layout[ed$layout$group == 8, ], n=20)
+	head(ed$layout[ed$layout$group == 1, ], n=20)
 	#print(round(ed$A[1:20,1:20],2))
 	#print(round(ed$rA[1:20,1:20],2))
 					#print(ed$mean)
@@ -130,14 +131,32 @@ summary(fit1)
 
 omxCheckCloseEnough(fit1$output$fit, 17212.46, .01)
 omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .005)
-omxCheckCloseEnough(fit1$expectation$debug$rampartUsage, c(902, 97, 21), 1L)
-omxCheckCloseEnough(fit1$expectation$debug$numGroups, 8, .5)
+ed <- fit1$expectation$debug
+omxCheckCloseEnough(ed$rampartUsage, c(902, 97, 21))
+omxCheckCloseEnough(ed$numGroups, 8L)
+omxCheckCloseEnough(sapply(unique(ed$layout$group),
+			   function(x) length(unique(ed$layout[ed$layout$group==x, 'copy']))),
+		    c(1L, 805L, 97L, 94L, 15L, 4L, 6L, 3L))
+
+plan <- mxComputeSequence(list(
+    mxComputeOnce('expectation', 'distribution', 'flat'),
+    mxComputeReportExpectation()
+))
+slow <- sMod
+slow$expectation$.rampart <- 0L
+slowEx <- mxRun(mxModel(slow, plan))
+ed <- slowEx$expectation$debug
+omxCheckTrue(length(ed$rampartUsage)==0)
+# each (entire) district is an independent unit
+omxCheckCloseEnough(sapply(unique(ed$layout$group),
+			   function(x) length(unique(ed$layout[ed$layout$group==x, 'copy']))),
+		    rep(1L,5))
 
 if (0) { # this takes about 1.5 hours
 	#options(width=120)
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('fitfunction', 'fit'),
-	    mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, verbose=0L),
+	    mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, verbose=2L),
 	    mxComputeReportDeriv(),
 	    mxComputeReportExpectation()
 	))

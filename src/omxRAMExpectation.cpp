@@ -442,27 +442,28 @@ namespace RelationalRAMExpectation {
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 		struct addr a1;
-		a1.group = 0;
-		a1.copy = 0;
-		a1.clumped = false;
+		struct addrSetup as1;
+		as1.group = 0;
+		as1.copy = 0;
+		as1.clumped = false;
 		a1.rampartScale = 1.0;
-		a1.parent1 = NA_INTEGER;
-		a1.fk1 = NA_INTEGER;
-		a1.numJoins = 0;
+		as1.parent1 = NA_INTEGER;
+		as1.fk1 = NA_INTEGER;
+		as1.numJoins = 0;
 		int parent1Pos = -1;
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			a1.numJoins += 1;
-			if (a1.numJoins == 1) a1.fk1 = key;
+			as1.numJoins += 1;
+			if (as1.numJoins == 1) as1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
 			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
-			if (a1.numJoins == 1) parent1Pos = parentPos;
+			if (as1.numJoins == 1) parent1Pos = parentPos;
 		}
 
 		a1.row = frow;
-		a1.key = frow;
+		//as1.key = frow;
 		if (data->hasPrimaryKey()) {
 			ram->ensureTrivialF();
 
@@ -471,16 +472,16 @@ namespace RelationalRAMExpectation {
 			if (it != rowToLayoutMap.end()) return it->second;
 
 			rowToLayoutMap[ std::make_pair(data, frow) ] = layout.size();
-			a1.key = data->primaryKeyOfRow(frow);
+			//a1.key = data->primaryKeyOfRow(frow);
 		}
 
 		if (parent1Pos >= 0) {
-			addr &pop = layout[parent1Pos];
+			addrSetup &pop = layoutSetup[parent1Pos];
 			pop.numKids += 1;
-			a1.parent1 = parent1Pos;
+			as1.parent1 = parent1Pos;
 		}
 		a1.model = expectation;
-		a1.numKids = 0;
+		as1.numKids = 0;
 		int obsStart = totalObserved;
 
 		int jCols = expectation->dataColumns->cols;
@@ -501,8 +502,9 @@ namespace RelationalRAMExpectation {
 		}
 
 		a1.numObsCache = totalObserved - obsStart;
-		a1.region = -1;
+		as1.region = -1;
 		layout.push_back(a1);
+		layoutSetup.push_back(as1);
 
 		maxSize += ram->F->cols;
 		return layout.size()-1;
@@ -667,7 +669,7 @@ namespace RelationalRAMExpectation {
 	void state::appendClump(int ax, std::vector<T> &clump)
 	{
 		clump.push_back(ax);
-		addr &a1 = layout[ax];
+		addrSetup &a1 = layoutSetup[ax];
 		for (size_t cx = 0; cx < a1.clump.size(); ++cx) {
 			appendClump(a1.clump[cx], clump);
 		}
@@ -705,11 +707,12 @@ namespace RelationalRAMExpectation {
 
 		for (int ax=int(layout.size())-1; ax >= 0; --ax) {
 			addr &a1 = layout[ax];
+			addrSetup &as1 = layoutSetup[ax];
 			if (a1.rampartScale == 0.0 || !ram->between.size()) continue;
-			if (a1.region == -1) {
-				a1.region = connected.size();
+			if (as1.region == -1) {
+				as1.region = connected.size();
 				connected.resize(connected.size() + 1);
-				connected[a1.region].insert(ax);
+				connected[as1.region].insert(ax);
 			}
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -722,17 +725,17 @@ namespace RelationalRAMExpectation {
 					rowToLayoutMap.find(std::make_pair(e1->data, row));
 				if (it == rowToLayoutMap.end())
 					Rf_error("Cannot find row %d in %s", row, e1->data->name);
-				addr &a2 = layout[it->second];
-				if (a2.region == -1) {
-					a2.region = a1.region;
-					connected[a1.region].insert(it->second);
+				addrSetup &as2 = layoutSetup[it->second];
+				if (as2.region == -1) {
+					as2.region = as1.region;
+					connected[as1.region].insert(it->second);
 				} else {
-					if (a2.region > a1.region) std::swap(a2.region, a1.region);
-					if (a2.region != a1.region) {
-						connected[a2.region].insert(connected[a1.region].begin(),
-									    connected[a1.region].end());
-						connected[a1.region].clear();
-						a1.region = a2.region;
+					if (as2.region > as1.region) std::swap(as2.region, as1.region);
+					if (as2.region != as1.region) {
+						connected[as2.region].insert(connected[as1.region].begin(),
+									    connected[as1.region].end());
+						connected[as1.region].clear();
+						as1.region = as2.region;
 					}
 				}
 			}
@@ -750,22 +753,22 @@ namespace RelationalRAMExpectation {
 				  CompatibleGroupCompare> CompatibleGroupMapType;
 		CompatibleGroupMapType cgm(this);
 		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr &a1 = layout[ax];
-			if (a1.region == -1) {
+			addrSetup &as1 = layoutSetup[ax];
+			if (as1.region == -1) {
 				std::vector<int> clump;
 				clump.push_back(ax);
 				cgm[ clump ].insert(clump);
 				continue;
 			}
-			std::set<int> &unsortedClump = connected[a1.region];
+			std::set<int> &unsortedClump = connected[as1.region];
 			if (!unsortedClump.size()) continue;  //already done
 			std::vector<int> clump;
 			clump.reserve(unsortedClump.size());
 			while (unsortedClump.size()) {
 				bool movedSome = false;
 				for (std::set<int>::iterator it=unsortedClump.begin(); it!=unsortedClump.end(); ++it) {
-					addr &a1 = layout[*it];
-					if (a1.clumped) continue;
+					addrSetup &as2 = layoutSetup[*it];
+					if (as2.clumped) continue;
 					int beforeSize = clump.size();
 					appendClump(*it, clump);
 					for (size_t cx=beforeSize; cx < clump.size(); ++cx) {
@@ -798,9 +801,10 @@ namespace RelationalRAMExpectation {
 				const std::vector<int> &clump = *px;
 				for (size_t cx=0; cx < clump.size(); ++cx) {
 					addr &a1 = layout[ clump[cx] ];
-					if (a1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-					a1.group = groupNum;
-					a1.copy = copyNum;
+					addrSetup &as1 = layoutSetup[ clump[cx] ];
+					if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
+					as1.group = groupNum;
+					as1.copy = copyNum;
 
 					placement pl;
 					pl.aIndex = clump[cx];
@@ -950,12 +954,15 @@ namespace RelationalRAMExpectation {
 				result = int(lmp[lx]) < int(rmp[lx]);
 				return true;
 			}
-			if (lhs->clump.size() != rhs->clump.size()) {
-				result = lhs->clump.size() < rhs->clump.size();
+
+			const addrSetup *lhss = &st->layoutSetup[lhs - &st->layout[0]];
+			const addrSetup *rhss = &st->layoutSetup[rhs - &st->layout[0]];
+			if (lhss->clump.size() != rhss->clump.size()) {
+				result = lhss->clump.size() < rhss->clump.size();
 				return true;
 			}
-			for (size_t cx=0; cx < lhs->clump.size(); ++cx) {
-				if (cmp1(&st->layout[lhs->clump[cx]], &st->layout[rhs->clump[cx]], result))
+			for (size_t cx=0; cx < lhss->clump.size(); ++cx) {
+				if (cmp1(&st->layout[lhss->clump[cx]], &st->layout[rhss->clump[cx]], result))
 					return true;
 			}
 			return false;
@@ -969,8 +976,12 @@ namespace RelationalRAMExpectation {
 		{
 			bool result = false;
 			if (cmpUpper(lhs, rhs, result)) return result;
-			if (lhs->fk1 != rhs->fk1)
-				return lhs->fk1 < rhs->fk1;
+
+			const addrSetup *lhss = &st->layoutSetup[lhs - &st->layout[0]];
+			const addrSetup *rhss = &st->layoutSetup[rhs - &st->layout[0]];
+
+			if (lhss->fk1 != rhss->fk1)
+				return lhss->fk1 < rhss->fk1;
 			cmp1(lhs, rhs, result);
 			return result;
 		}
@@ -1000,12 +1011,12 @@ namespace RelationalRAMExpectation {
 	{
 		// get covariance and sort by mahalanobis distance TODO
 		rotationPlan.push_back(t1);
-		addr &specimen = layout[ t1[0] ];
+		addrSetup &specimen = layoutSetup[ t1[0] ];
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
 			t2.reserve(t1.size());
 			for (size_t tx=0; tx < t1.size(); ++tx) {
-				addr &a1 = layout[ t1[tx] ];
+				addrSetup &a1 = layoutSetup[ t1[tx] ];
 				t2.push_back(a1.clump[cx]);
 			}
 			oertzenRotate(t2);
@@ -1019,8 +1030,9 @@ namespace RelationalRAMExpectation {
 		int unlinked = 0;
 
 		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr& a1 = layout[ax];
-			if (a1.numKids != 0 || a1.numJoins != 1 || a1.clumped || a1.rampartScale != 1.0) continue;
+			addr &a1 = layout[ax];
+			addrSetup &as1 = layoutSetup[ax];
+			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped || a1.rampartScale != 1.0) continue;
 
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			omxMatrix *b1 = ram->between[0];
@@ -1037,40 +1049,31 @@ namespace RelationalRAMExpectation {
 				oertzenRotate(t1);
 				addr &specimen = layout[ t1[0] ];
 				specimen.rampartScale = sqrt(double(t1.size()));
-				if (false) {
-				for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
-					addr &a1 = layout[ specimen.clump[cx] ];
-					double orig = a1.rampartScale*a1.rampartScale;
-					a1.rampartScale = sqrt(orig / double(t1.size())) * sqrt(orig);
-					a1.clumped = true;
-				}
-				}
-				layout[specimen.parent1].numKids -= t1.size();
-				layout[specimen.parent1].clump.push_back(t1[0]);
+				int parent1 = layoutSetup[ t1[0] ].parent1;
+				layoutSetup[parent1].numKids -= t1.size();
+				layoutSetup[parent1].clump.push_back(t1[0]);
 				for (size_t ux=1; ux < t1.size(); ++ux) {
-					addr &a1 = layout[ t1[ux] ];
-					a1.rampartScale = 0;
-					a1.numJoins = 0;
+					layout[ t1[ux] ].rampartScale = 0;
+					layoutSetup[ t1[ux] ].numJoins = 0;
 					//buf += string_snprintf(" %d", 1+t1[ux]);
 				}
 				//buf += string_snprintf(" -> %d\n", 1+t1[0]);
 				//mxLogBig(buf);
 			} else {
 				// Don't rotate, just clump units together with parent.
-				addr &specimen = layout[ t1[0] ];
-				layout[specimen.parent1].numKids -= t1.size();
-				layout[specimen.parent1].clump.insert(layout[specimen.parent1].clump.end(),
-								      t1.begin(), t1.end());
+				int parent1 = layoutSetup[ t1[0] ].parent1;
+				layoutSetup[parent1].numKids -= t1.size();
+				layoutSetup[parent1].clump.insert(layoutSetup[parent1].clump.end(),
+								  t1.begin(), t1.end());
 				for (size_t ux=0; ux < t1.size(); ++ux) {
-					addr &a1 = layout[ t1[ux] ];
-					a1.clumped = true;
+					layoutSetup[ t1[ux] ].clumped = true;
 				}
 			}
 			// not really unlinked in clumped case, but layout is changed; fix reporting TODO
 			unlinked += t1.size() - 1;
 		}
 		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr& a1 = layout[ax];
+			addrSetup &a1 = layoutSetup[ax];
 			if (a1.clump.size() <= 1) continue;
 			std::sort(a1.clump.begin(), a1.clump.end(), RampartClumpCompare(this));
 			if (false) {
@@ -1419,10 +1422,9 @@ namespace RelationalRAMExpectation {
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("numGroups", Rcpp::wrap(group.size()));
 
-		SEXP modelName, key, numJoins, numKids, parent1, fk1, rscale, group, copy;
-		//SEXP startLoc, endLoc, obsStart, obsEnd;
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
-		Rf_protect(key = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numJoins = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
@@ -1430,34 +1432,19 @@ namespace RelationalRAMExpectation {
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
 		Rf_protect(group = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(copy = Rf_allocVector(INTSXP, layout.size()));
-		//Rf_protect(startLoc = Rf_allocVector(INTSXP, layout.size()));
-		//Rf_protect(endLoc = Rf_allocVector(INTSXP, layout.size()));
-		//Rf_protect(obsStart = Rf_allocVector(INTSXP, layout.size()));
-		//Rf_protect(obsEnd = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
-			INTEGER(key)[mx] = layout[mx].key;
-			INTEGER(numKids)[mx] = layout[mx].numKids;
-			INTEGER(numJoins)[mx] = layout[mx].numJoins;
-			INTEGER(parent1)[mx] = plusOne(layout[mx].parent1);
-			INTEGER(fk1)[mx] = layout[mx].fk1;
+			INTEGER(row)[mx] = layout[mx].row;
+			INTEGER(numKids)[mx] = layoutSetup[mx].numKids;
+			INTEGER(numJoins)[mx] = layoutSetup[mx].numJoins;
+			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
+			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(group)[mx] = layout[mx].group? layout[mx].group : NA_INTEGER;
-			INTEGER(copy)[mx] = layout[mx].copy? layout[mx].copy : NA_INTEGER;
-			/*
-			INTEGER(startLoc)[mx] = 1 + layout[mx].modelStart;
-			INTEGER(endLoc)[mx] = layout[mx].modelStart + layout[mx].numVars();
-			if (layout[mx].numObs()) {
-				INTEGER(obsStart)[mx] = 1+layout[mx].obsStart;
-				INTEGER(obsEnd)[mx] = layout[mx].obsStart+layout[mx].numObs();
-			} else {
-				INTEGER(obsStart)[mx] = NA_INTEGER;
-				INTEGER(obsEnd)[mx] = NA_INTEGER;
-			}
-			*/
+			INTEGER(group)[mx] = layoutSetup[mx].group? layoutSetup[mx].group : NA_INTEGER;
+			INTEGER(copy)[mx] = layoutSetup[mx].copy? layoutSetup[mx].copy : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
-							  Rcpp::Named("key")=key,
+							  Rcpp::Named("row")=row,
 							  Rcpp::Named("numKids")=numKids,
 							  Rcpp::Named("numJoins")=numJoins,
 							  Rcpp::Named("parent1")=parent1,
@@ -1465,10 +1452,6 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("rampartScale")=rscale,
 							  Rcpp::Named("group")=group,
 							  Rcpp::Named("copy")=copy));
-							  //Rcpp::Named("modelStart")=startLoc,
-							  //Rcpp::Named("modelEnd")=endLoc,
-							  //Rcpp::Named("obsStart")=obsStart,
-							  //Rcpp::Named("obsEnd")=obsEnd));
 	}
 
 };
