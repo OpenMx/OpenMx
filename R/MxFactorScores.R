@@ -167,7 +167,6 @@ RAMrfs <- function(model,res){
 	i <- j <- 1
 	manvars <- model@manifestVars
 	latvars <- model@latentVars
-	#allvars <- c(manvars,latvars)
 	defvars <- findIntramodelDefVars(model)
 	relevantDataCols <- c(manvars,defvars)
 	dat <- model@data@observed
@@ -186,12 +185,10 @@ RAMrfs <- function(model,res){
 			){j <- j+1}
 			else{continublockflag <- FALSE}
 		}
-		#obsmeans <- t(sapply(c(i:j),mxGetExpected,model=model,component="means"))[,which(!is.na(dat[i,manvars]))]
-		#latmeans <- t(sapply(c(i:j),function(x){mxEval(expression=M,model=model,compute=T,defvar.row=x)}))[,latvars]
-		unfilt <- solve(I-mxEval(A,model,T,defvar.row=i))%*%mxEval(S,model,T,defvar.row=i)%*%
-			t(solve(I-mxEval(A,model,T,defvar.row=i)))
+		unfilt <- solve(I-mxEvalByName("A",model,T,defvar.row=i))%*%mxEvalByName("S",model,T,defvar.row=i)%*%
+			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEval(M,model,T,defvar.row=i)[,latvars],nrow=1)
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],nrow=1)
 		if(all(is.na(dat[i,manvars]))){
 			res[i:j,,1] <- latmeans
 			res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
