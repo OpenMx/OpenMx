@@ -208,7 +208,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_NPSOL:{
 #if HAS_NPSOL
 		omxNPSOL(rf);
-		rf.copyFromOptimizer(fc->est);
+		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		if (rf.hessOut.size() && fitMatrix->currentState->conList.size() == 0) {
 			if (!hessChol) {
