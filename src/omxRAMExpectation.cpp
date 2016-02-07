@@ -123,14 +123,16 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 
 	MxRList out;
 	MxRList dbg;
+	std::vector<std::string> names;
 
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		std::vector<std::string> names;
 		names.resize(rram->group.size());
+		int digits = ceilf(log10f(rram->group.size()));
+		std::string fmt = string_snprintf("g%%0%dd", digits);
 		for (size_t gx=0; gx < rram->group.size(); ++gx) {
 			RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
-			names[gx] = string_snprintf("g%02d", int(1+gx));
+			names[gx] = string_snprintf(fmt.c_str(), int(1+gx));
 			MxRList info;
 			ig.exportInternalState(info, info);
 			dbg.add(names[gx].c_str(), info.asR());
