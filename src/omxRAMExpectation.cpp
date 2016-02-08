@@ -522,7 +522,7 @@ namespace RelationalRAMExpectation {
 
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = st.layout[ax];
+			addr &a1 = st.layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
@@ -785,6 +785,8 @@ namespace RelationalRAMExpectation {
 			clump.insert(clump.end(), unsortedClump.begin(), unsortedClump.end());
 			cgm[ clump ].insert(clump);
 		}
+
+		// if lots of copies==1 then we need a different strategy TODO
 
 		if (verbose() >= 2) {
 			mxLog("%s: will create %d independent groups", homeEx->name, int(cgm.size()));
