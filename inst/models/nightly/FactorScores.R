@@ -60,6 +60,17 @@ omxCheckCloseEnough(coef(lmS), c(0, .5), 0.01)
 omxCheckCloseEnough(coef(lmR), c(0, 1), 0.03)
 
 
+#Test warning about no SEs:
+#factorRun <- mxOption(factorRun,"Standard Errors","No")
+mxOption(NULL,"Standard Errors","No")
+omxCheckWarning(
+	mxFactorScores(factorRun,"ML"),
+	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+omxCheckWarning(
+	mxFactorScores(factorRun,"WeightedML"),
+	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+mxOption(NULL,"Standard Errors","Yes")
+
 
 
 #TODO compare standard errors

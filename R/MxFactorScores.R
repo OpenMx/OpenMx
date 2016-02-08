@@ -85,7 +85,12 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 			}
 			fit <- mxRun(fit, silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
 			res[i,,1] <- omxGetParameters(fit) #params
-			res[i,,2] <- fit$output$standardErrors #SEs
+			if(length(fit$output$standardErrors)){res[i,,2] <- fit$output$standardErrors} #SEs
+			else if(i==1){
+				warning(
+					paste("factor-score standard errors not available from MxModel '",model$name,"' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)",
+								sep=""))
+			}
 		}
 	} else if(type=='Regression'){
 		if(!single.na(model$expectation$thresholds)){
