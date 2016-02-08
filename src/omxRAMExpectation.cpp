@@ -440,7 +440,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 1st visitor
-	int state::flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize)
+	int state::flattenOneRow(omxExpectation *expectation, int frow, int &maxSize)
 	{
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -462,7 +462,7 @@ namespace RelationalRAMExpectation {
 			as1.numJoins += 1;
 			if (as1.numJoins == 1) as1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
-			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), totalObserved, maxSize);
+			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), maxSize);
 			if (as1.numJoins == 1) parent1Pos = parentPos;
 		}
 
@@ -680,7 +680,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	// 2nd visitor
-	void state::planModelEval(int maxSize, int totalObserved, FitContext *fc)
+	void state::planModelEval(int maxSize, FitContext *fc)
 	{
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
 		if (ram->forceSingleGroup) {
@@ -1135,7 +1135,7 @@ namespace RelationalRAMExpectation {
 
 				double prev = accessor(units[0], ox);
 				accessor(units[0], ox) = partialSum / sqrt(units.size());
-				if (debug) buf += string_snprintf(" %f", partialSum);
+				if (debug) buf += string_snprintf(": %f", accessor(units[0], ox));
 
 				for (size_t i=1; i < units.size(); i++) {
 					double k=units.size()-i;
@@ -1144,6 +1144,7 @@ namespace RelationalRAMExpectation {
 					prev = accessor(units[i], ox);
 					accessor(units[i], ox) =
 						partialSum * sqrt(1.0 / (k*(k+1))) - prevContrib;
+					if (debug) buf += string_snprintf(" %f", accessor(units[i], ox));
 				}
 			}
 			if (debug) buf += "\n";
@@ -1163,10 +1164,10 @@ namespace RelationalRAMExpectation {
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
 		omxData *data = homeEx->data;
 
-		int totalObserved = 0;
+		totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
-			flattenOneRow(homeEx, row, totalObserved, maxSize);
+			flattenOneRow(homeEx, row, maxSize);
 		}
 
 		if (verbose() >= 1) {
@@ -1187,8 +1188,7 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		//expectedMean.resize(totalObserved); //debug
-		planModelEval(maxSize, totalObserved, fc);
+		planModelEval(maxSize, fc);
 
 		applyRotationPlan(UnitAccessor<false>(this));
 	}
@@ -1278,7 +1278,7 @@ namespace RelationalRAMExpectation {
 		//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 	}
 
-	void independentGroup::computeCov(FitContext *fc)
+	void independentGroup::computeCov1(FitContext *fc)
 	{
 		if (0 == dataVec.size()) return;
 
@@ -1290,7 +1290,10 @@ namespace RelationalRAMExpectation {
 		fullS.conservativeResize(clumpVars, clumpVars);
 
 		refreshModel(fc);
+	}
 
+	void independentGroup::computeCov2()
+	{
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
 		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
 
@@ -1298,6 +1301,10 @@ namespace RelationalRAMExpectation {
 
 		//mxPrintMat("S", fullS);
 		//Eigen::MatrixXd fullCovDense =
+
+		// IAF tends to be very sparse so we want to do this quadratic
+		// product using sparse matrices. However, the result is typically
+		// fairly dense.
 
 		fullCov = (IAF.transpose() * fullS.selfadjointView<Eigen::Lower>() * IAF);
 		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
@@ -1307,7 +1314,9 @@ namespace RelationalRAMExpectation {
 	void state::computeCov(FitContext *fc)
 	{
 		for (size_t gx=0; gx < group.size(); ++gx) {
-			group[gx]->computeCov(fc);
+			independentGroup *ig = group[gx];
+			ig->computeCov1(fc);
+			ig->computeCov2();
 		}
 	}
 
@@ -1363,6 +1372,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (false) {
+			Eigen::VectorXd expectedMean(totalObserved);
 			int ox=0;
 			for (size_t ax=0; ax < layout.size(); ++ax) {
 				addr &a1 = layout[ax];

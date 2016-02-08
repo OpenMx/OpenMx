@@ -38,6 +38,7 @@ namespace FellnerFitFunction {
 		std::vector<int> olsVarNum;     // index into fc->est
 		Eigen::MatrixXd olsDesign;      // a.k.a "X"
 
+		int computeCov(RelationalRAMExpectation::independentGroup &ig);
 		void compute(omxFitFunction *oo, int want, FitContext *fc);
 		void setupProfiledParam(omxFitFunction *oo, FitContext *fc);
 	};
@@ -50,13 +51,14 @@ namespace FellnerFitFunction {
 
 	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
 	{
-		if (numProfiledOut == 0) return;
-
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-		ram->forceSingleGroup = true;
+
+		if (numProfiledOut) ram->forceSingleGroup = true;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
 		
+		if (numProfiledOut == 0) return;
+
 		RelationalRAMExpectation::state *rram = ram->rram;
 		if (rram->group.size() > 1) {
 			Rf_error("Cannot profile out parameters when problem is split into independent groups");
@@ -125,6 +127,30 @@ namespace FellnerFitFunction {
 		}
 	}
 
+	int state::computeCov(RelationalRAMExpectation::independentGroup &ig)
+	{
+		if (0 == ig.dataVec.size()) return 0;
+
+		ig.computeCov2();
+
+		/*
+		if (!ig.analyzedCov) {
+			ig.fullCov.makeCompressed();
+			ig.covDecomp.analyzePattern(ig.fullCov);
+			ig.analyzedCov = true;
+		}
+		ig.covDecomp.factorize(ig.fullCov);
+		*/
+
+		Eigen::MatrixXd denseCov = ig.fullCov;
+		ig.covDecomp.compute(denseCov);
+
+		if (ig.covDecomp.info() != Eigen::Success || !(ig.covDecomp.vectorD().array() > 0.0).all()) return 1;
+
+		ig.covDecomp.refreshInverse();
+		return 0;
+	}
+
 	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		omxExpectation *expectation             = oo->expectation;
@@ -132,6 +158,12 @@ namespace FellnerFitFunction {
 
 		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
 			setupProfiledParam(oo, fc);
+
+			RelationalRAMExpectation::state *rram   = ram->rram;
+			if (verbose >= 1) {
+				mxLog("%s: %d groups, parallel = %d", oo->name(),
+				      int(rram->group.size()), int(rram->group.size()) > 2*Global->numThreads);
+			}
 			return;
 		}
 
@@ -139,28 +171,38 @@ namespace FellnerFitFunction {
 
 		double lpOut = NA_REAL;
 		try {
-			double lp = 0.0;
-			omxExpectationCompute(fc, expectation, "covariance", "flat");
+			if (!ram->rram) {
+				// possible to skip FF_COMPUTE_PREOPTIMIZE (e.g. omxCompute)
+				omxExpectationCompute(fc, expectation, "nothing", "flat");
+			}
 
-			double remlAdj = 0.0;
 			RelationalRAMExpectation::state *rram   = ram->rram;
+			double lp = 0.0;
 			for (size_t gx=0; gx < rram->group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
 				if (0 == ig.dataVec.size()) continue;
-
-				if (!ig.covDecomp.analyzedPattern()) {
-					ig.fullCov.makeCompressed();
-					ig.covDecomp.analyzePattern(ig.fullCov);
-				}
-
-				ig.covDecomp.factorize(ig.fullCov);
-				ig.covDecomp.refreshInverse();
+				ig.computeCov1(fc);
 			}
 
+			int covFailed = 0;
+			if (int(rram->group.size()) > 2*Global->numThreads) {
+#pragma omp parallel for num_threads(Global->numThreads) reduction(+:covFailed)
+				for (size_t gx=0; gx < rram->group.size(); ++gx) {
+					covFailed += computeCov(*rram->group[gx]);
+				}
+			} else {
+				for (size_t gx=0; gx < rram->group.size(); ++gx) {
+					covFailed += computeCov(*rram->group[gx]);
+				}
+			}
+			if (covFailed) {
+				throw std::runtime_error("Cholesky decomposition failed");
+			}
+
+			double remlAdj = 0.0;
 			if (numProfiledOut) {
 				RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
-				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
-								 ig.fullCov.rows(), ig.fullCov.rows());
+				const Eigen::MatrixXd &iV = ig.covDecomp.getInverse();
 				Eigen::MatrixXd constCov =
 					olsDesign.transpose() * iV.selfadjointView<Eigen::Lower>() * olsDesign;
 				Eigen::LLT< Eigen::MatrixXd > cholConstCov;
@@ -181,6 +223,7 @@ namespace FellnerFitFunction {
 					fc->est[ olsVarNum[px] ] = param[px];
 					fc->varGroup->vars[ olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
 				}
+				lp += remlAdj - M_LN_2PI * numProfiledOut;
 			}
 
 			omxExpectationCompute(fc, expectation, "mean", "flat");
@@ -200,17 +243,20 @@ namespace FellnerFitFunction {
 				int clumps = ig.placements.size() / ig.clumpSize;
 
 				double logDet = clumps * ig.covDecomp.log_determinant();
-				Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
-								 ig.fullCov.rows(), ig.fullCov.rows());
+				const Eigen::MatrixXd &iV = ig.covDecomp.getInverse();
+				// Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
+				// 				 ig.fullCov.rows(), ig.fullCov.rows());
 				double iqf = 0.0;
+				// OpenMP seems counterproductive here
+				//#pragma omp parallel for num_threads(Global->numThreads) reduction(+:iqf)
 				for (int cx=0; cx < clumps; ++cx) {
 					iqf += (resid.segment(cx*ig.clumpObs, ig.clumpObs).transpose() *
 						iV.selfadjointView<Eigen::Lower>() *
 						resid.segment(cx*ig.clumpObs, ig.clumpObs));
 				}
-				double cterm = M_LN_2PI * (ig.dataVec.size() - numProfiledOut);
-				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f remlAdj %f", logDet, iqf, cterm, remlAdj);
-				lp += logDet + iqf + cterm + remlAdj;
+				double cterm = M_LN_2PI * ig.dataVec.size();
+				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", logDet, iqf, cterm);
+				lp += logDet + iqf + cterm;
 			}
 			lpOut = lp;
 		} catch (const std::exception& e) {

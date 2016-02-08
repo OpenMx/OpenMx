@@ -4,13 +4,70 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
+#include <Eigen/Cholesky>
+//#include <Eigen/SparseCholesky>
 #include <Eigen/CholmodSupport>
 #include <Rcpp.h>
-#include <RcppEigenStubs.h>
+//#include <RcppEigenStubs.h>
 #include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
-#include <RcppEigenCholmod.h>
+//#include <RcppEigenCholmod.h>
 
+template<typename _MatrixType, int _UpLo = Eigen::Lower>
+class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
+ private:
+	Eigen::MatrixXd ident;
+	Eigen::MatrixXd inverse;
+
+ public:
+	typedef Eigen::LDLT<_MatrixType, _UpLo> Base;
+
+	double log_determinant() const {
+		typename Base::Scalar detL = Base::vectorD().array().log().sum();
+		return detL;
+	}
+
+	void refreshInverse()
+	{
+		if (ident.rows() != Base::m_matrix.rows()) {
+			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
+		}
+
+		inverse = Base::solve(ident);
+	};
+
+	const Eigen::MatrixXd &getInverse() const { return inverse; };
+};
+
+/*
+template<typename _MatrixType, int _UpLo = Eigen::Lower>
+class SimpCholesky : public Eigen::SimplicialLDLT<_MatrixType, _UpLo> {
+ private:
+	Eigen::MatrixXd ident;
+	Eigen::MatrixXd inverse;
+
+ public:
+	typedef Eigen::SimplicialLDLT<_MatrixType, _UpLo> Base;
+	
+	double log_determinant() const {
+		typename Base::Scalar detL = Base::vectorD().array().log().sum();
+		return detL;
+	}
+
+	void refreshInverse()
+	{
+		if (ident.rows() != Base::m_matrix.rows()) {
+			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
+		}
+
+		inverse = Base::solve(ident);
+	};
+
+ 	const Eigen::MatrixXd &getInverse() const { return inverse; };
+};
+*/
+
+/*
 	// Based on lme4CholmodDecomposition.h from lme4
 	template<typename _MatrixType, int _UpLo = Eigen::Lower>
 	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {
@@ -30,7 +87,8 @@
 
 		cholmod_error_type oldHandler;
 		static void cholmod_error(int status, const char *file, int line, const char *message) {
-			throw std::runtime_error(message);
+			// cannot throw exception here because we might be in an OpenMP section
+			failed = true;
 		}
 
      // * If you are going to factorize hundreds or more matrices with the same
@@ -40,6 +98,8 @@
      // * call it only once. TODO
 
 	public:
+		static int failed;
+
 		Cholmod() : x_cd(NULL) {
 			oldHandler = cholmod().error_handler;
 			cholmod().error_handler = cholmod_error;
@@ -50,14 +110,11 @@
 				cholmod().method[0].ordering = CHOLMOD_NESDIS;
 				cholmod().method[1].ordering = CHOLMOD_AMD;
 			}
-			m_factorizationIsOk = false; // base class should take care of it TODO
 		};
 		~Cholmod() {
 			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
 			cholmod().error_handler = oldHandler;
 		};
-
-		bool analyzedPattern() const { return m_factorizationIsOk; };
 
 		void analyzePattern(const typename Base::MatrixType& matrix)
 		{
@@ -128,9 +185,10 @@
 			cholmod_dense b_cd(viewAsCholmod(ident));
 			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
 			x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
-			if(!x_cd) throw std::runtime_error("cholmod_solve failed");
+			if(!x_cd) throw std::runtime_error("cholmod_solve failed"); // impossibe?
 		};
 	};
+*/
 
 namespace RelationalRAMExpectation {
 
@@ -212,7 +270,9 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  fullMean;
 		Eigen::VectorXd                  expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
-		Cholmod< Eigen::SparseMatrix<double> > covDecomp;
+		bool                             analyzedCov;
+		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
+		SimpCholesky< Eigen::MatrixXd >  covDecomp;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // use to reduce the A matrix
 
@@ -224,14 +284,16 @@ namespace RelationalRAMExpectation {
 		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
 
 		independentGroup(class state *st, int size, int clumpSize)
-			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1), clumpSize(clumpSize)
+			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1), clumpSize(clumpSize),
+			analyzedCov(false)
 		{ placements.reserve(size); };
 		void prep(int maxSize, int totalObserved, FitContext *fc);
 		void determineShallowDepth(FitContext *fc);
 		int verbose() const;
 		void filterFullMean();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
-		void computeCov(FitContext *fc);
+		void computeCov1(FitContext *fc);
+		void computeCov2();
 		void exportInternalState(MxRList &out, MxRList &dbg);
 	};
 
@@ -239,7 +301,7 @@ namespace RelationalRAMExpectation {
 	private:
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
-		Eigen::VectorXd                  expectedMean;  //debug
+		int                              totalObserved;
 
 	public:
 		struct omxExpectation *homeEx;
@@ -251,8 +313,8 @@ namespace RelationalRAMExpectation {
 		std::vector<independentGroup*>   group;
 
 	private:
-		int flattenOneRow(omxExpectation *expectation, int frow, int &totalObserved, int &maxSize);
-		void planModelEval(int maxSize, int totalObserved, FitContext *fc);
+		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
+		void planModelEval(int maxSize, FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 		template <typename T> void applyRotationPlan(T accessor);
