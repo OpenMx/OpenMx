@@ -1429,7 +1429,7 @@ namespace RelationalRAMExpectation {
 		SEXP aIndex;
 		Rf_protect(aIndex = Rf_allocVector(INTSXP, placements.size()));
 		for (size_t mx=0; mx < placements.size(); ++mx) {
-			INTEGER(aIndex)[mx] = placements[mx].aIndex;
+			INTEGER(aIndex)[mx] = 1+placements[mx].aIndex;
 		}
 		dbg.add("aIndex", aIndex);
 	}
