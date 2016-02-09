@@ -130,7 +130,7 @@ fit1 <- mxRun(sMod)
 summary(fit1)
 
 omxCheckCloseEnough(fit1$output$fit, 17212.46, .01)
-omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .005)
+omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .01)
 ed <- fit1$expectation$debug
 omxCheckCloseEnough(ed$rampartUsage, c(902, 97, 21))
 omxCheckCloseEnough(ed$numGroups, 8L)
