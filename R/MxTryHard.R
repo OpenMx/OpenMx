@@ -250,9 +250,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
 					}
 					bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals)
-				}
-			}
-		} #end while loop
+	}}}} #end while loop
 	
 	
 	if(bestInitsOutput && exists("bestfit")){
