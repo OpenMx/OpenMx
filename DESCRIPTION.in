@@ -148,6 +148,6 @@ Collate:
     'MxFactorScores.R'
     'MxRobustSE.R'
     'MxAvailableOptimizers.R'
-    'mxTryHard.R'
+    'MxTryHard.R'
     'zzz.R'
 Version: @VERSION@
