@@ -157,6 +157,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 void omxComputeGD::computeImpl(FitContext *fc)
 {
 	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
+	if (isErrorRaised()) return;
 
 	size_t numParam = fc->varGroup->vars.size();
 	if (fc->profiledOut.size()) {

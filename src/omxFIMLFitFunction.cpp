@@ -79,30 +79,30 @@ void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
 
 static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 {
+	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
+
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	// TODO: Current implementation does not implement speedups for sorting.
 	// TODO: Current implementation may fail on all-continuous-missing or all-ordinal-missing rows.
 	
-	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & (FF_COMPUTE_PREOPTIMIZE)) {
+		omxMatrix *means	= ofiml->means;
+		omxExpectation* expectation = off->expectation;
+		if (!means) complainAboutMissingMeans(expectation);
+		return;
+	}
 
     if(OMX_DEBUG) { 
 	    mxLog("Beginning Joint FIML Evaluation.");
     }
 	int returnRowLikelihoods = 0;
 
-	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 	omxMatrix* fitMatrix  = off->matrix;
 	int numChildren = (int) fc->childList.size();
 
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
-	if (!means) {
-		omxRaiseErrorf("%s: raw data observed but no expected means "
-			       "vector was provided. Add something like mxPath(from = 'one',"
-			       " to = manifests) to your model.", off->name());
-		return;
-	}
 	omxData* data           = ofiml->data;                            //  read-only
 	omxMatrix *dataColumns	= ofiml->dataColumns;
 

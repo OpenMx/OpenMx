@@ -294,3 +294,11 @@ void omxExpectationPrint(omxExpectation* ox, char* d) {
 		mxLog("(Expectation, type %s) ", (ox->expType==NULL?"Untyped":ox->expType));
 	}
 }
+
+void complainAboutMissingMeans(omxExpectation *off)
+{
+	omxRaiseErrorf("%s: raw data observed but no expected means "
+		       "vector was provided. Add something like mxPath(from = 'one',"
+		       " to = manifests) to your model.", off->name);
+}
+

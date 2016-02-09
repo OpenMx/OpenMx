@@ -491,8 +491,8 @@ namespace RelationalRAMExpectation {
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
 			if (!ram->M) {
-				Rf_error("'%s' has manifest observations but '%s' has no mean model",
-					 data->name, expectation->name);
+				complainAboutMissingMeans(expectation);
+				return 0;
 			}
 			if (smallCol->cols < jCols) {
 				omxResizeMatrix(smallCol, 1, jCols);
@@ -1168,6 +1168,7 @@ namespace RelationalRAMExpectation {
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
 			flattenOneRow(homeEx, row, maxSize);
+			if (isErrorRaised()) return;
 		}
 
 		if (verbose() >= 1) {
