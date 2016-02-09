@@ -24,13 +24,18 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	
 	#Initialize stuff:
 	jitterDistrib <- match.call()$jitterDistrib[1]
-	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors")
-	if("Calculate Hessian" %in%  names(model@options)){relevantOptions[[1]] <- model@options$"Calculate Hessian"}
-	if("Standard Errors" %in%  names(model@options)){relevantOptions[[2]] <- model@options$"Standard Errors"}
 	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
 		model@compute <- NULL
 	}
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
+	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors")
+	if("Calculate Hessian" %in%  names(model@options)){relevantOptions[[1]] <- model@options$"Calculate Hessian"}
+	if("Standard Errors" %in%  names(model@options)){relevantOptions[[2]] <- model@options$"Standard Errors"}
+	#If the options call for SEs and/or Hessian, there is no custom compute plan, and the Hessian will not be checked
+	#every fit attempt, then computing SEs and/or Hessian can be put off until the MLE is obtained:
+	SElater <- ifelse( (!checkHess && relevantOptions$"Standard Errors"=="Yes" && defaultComputePlan), TRUE, FALSE )
+	Hesslater <- ifelse( (!checkHess && relevantOptions$"Calculate Hessian"=="Yes" && defaultComputePlan), TRUE, FALSE )
+	doIntervals <- ifelse ( (length(model@intervals) && intervals), TRUE, FALSE )
 	lastNoError<-TRUE
 	generalTolerance <- 1e-5 #used for hessian check and lowest min check
 	gradientStepSize <- initialGradientStepSize
@@ -40,7 +45,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	stopflag <- FALSE #should the iterative optimization process stop
 	numdone <- 0
 	lowestminsofar<-Inf 
-	cifit <- sefit <- NULL
+	finalfit<- NULL
 	inits<-omxGetParameters(model) 
 	
 	
@@ -79,7 +84,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(lastBestFitCount == 5) gradientStepSize <- gradientStepSize *.1
 				if(lastBestFitCount  > 0) tolerance<-tolerance * .001 
 				if(lastBestFitCount  > 0) gradientIterations<-gradientIterations+2
-				# if(lastBestFitCount  %in% seq(4,100,4)) gradientIterations<-gradientIterations-1
 				if(lastBestFitCount > 2) model <- omxSetParameters(
 					model, labels = names(bestfit.params), 
 					values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/10) + 
@@ -106,7 +110,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			model <- OpenMx::mxModel(
 				model,
 				mxComputeSequence(c( steps,RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
-			rm(steps)
 		}
 		if(showInits==TRUE) {
 			message('Starting values:  ')
@@ -175,42 +178,29 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			
 			if(stopflag){
 				message('\nSolution found\n')
-				if( !checkHess && 
-						(relevantOptions$"Calculate Hessian"=="Yes" || relevantOptions$"Standard Errors"=="Yes") ){
-					message("Computing standard errors and/or explicitly-calculated Hessian\n")
-					steps <- list()
-					if(relevantOptions$"Calculate Hessian"=="Yes"){steps <- c(steps,ND=mxComputeNumericDeriv())}
-					if(relevantOptions$"Standard Errors"=="Yes"){
-						steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
-					}
-					steps <- c(steps,RD=mxComputeReportDeriv())
-					bestfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
-					sefit <- suppressWarnings(try(mxRun(bestfit, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
-					rm(steps)
-					if(class(sefit) == "try-error" || sefit$output$status$status== -1) {
-						message('Errors during SE/Hessian computation\n')
-					} else {
-						if (length(summary(sefit)$npsolMessage) > 0) message('Warning messages generated from SE/Hessian refit\n')
-					}
-				}
-				if(length(bestfit$intervals)>0 && intervals==TRUE){ #only calculate confidence intervals once the best fit is established
-					message("Estimating confidence intervals\n") 
-					if(defaultComputePlan==TRUE) bestfit <- OpenMx::mxModel(
-						bestfit, 
-						mxComputeSequence(list(
-							CI=mxComputeConfidenceInterval(
+				if(any(Hesslater,SElater,doIntervals)){
+					message("Running final fit, for Hessian and/or standard errors and/or confidence intervals\n")
+					if(defaultComputePlan){
+						steps <- list()
+						if(doIntervals){
+							steps <- c(steps,CI=mxComputeConfidenceInterval(
 								plan=mxComputeGradientDescent(
 									nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
 									maxMajorIter=3000),
-								constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq'))
-							#mxComputeNumericDeriv(), mxComputeStandardError(), 
-							#mxComputeReportDeriv())))
-						)))
-					cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
-					if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-						message('Confidence interval estimation generated errors\n')
+								constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')))
+						}
+						if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
+						if(SElater){
+							steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
+						}
+						steps <- c(steps,RD=mxComputeReportDeriv())
+						bestfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
+					}
+					finalfit <- suppressWarnings(try(mxRun(bestfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
+					if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
+						message('Errors during final fit for Hessian/SEs/CIs\n')
 					} else {
-						if (length(summary(cifit)$npsolMessage) > 0) message('Warning messages generated from confidence interval refit\n')
+						if (length(summary(finalfit)$npsolMessage) > 0) message('Warning messages generated from final fit for final fit for Hessian/SEs/CIs\n')
 					}
 				}
 				if (length(summary(bestfit)$npsolMessage) > 0) {
@@ -220,7 +210,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 					message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
 				}
-				bestfit <- THFrankenmodel(cifit,sefit,bestfit,defaultComputePlan)
+				bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals)
 			}
 		} #end 'if fit not an error' section
 		
@@ -229,54 +219,40 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			message('\nRetry limit reached')
 			stopflag <- TRUE
 			if (exists("bestfit")) {
-				if( !checkHess && 
-						(relevantOptions$"Calculate Hessian"=="Yes" || relevantOptions$"Standard Errors"=="Yes") ){
-					message("Computing SEs and/or Hessian for imperfect solution\n")
-					steps <- list()
-					if(relevantOptions$"Calculate Hessian"=="Yes"){steps <- c(steps,ND=mxComputeNumericDeriv())}
-					if(relevantOptions$"Standard Errors"=="Yes"){
-						steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
-					}
-					steps <- c(steps,RD=mxComputeReportDeriv())
-					bestfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
-					sefit <- suppressWarnings(try(mxRun(bestfit, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
-					rm(steps)
-					if(class(sefit) == "try-error" || sefit$output$status$status== -1) {
-						message('Errors during SE/Hessian computation; returning fit without them\n')
-					}
-				}
-				if(length(bestfit$intervals)>0 && intervals==TRUE){ #calculate intervals for best fit, even though imperfect
-					message("Estimating confidence intervals for imperfect solution\n") 
-					if(defaultComputePlan==TRUE) bestfit <- OpenMx::mxModel(
-						bestfit, 
-						mxComputeSequence(list(
-							mxComputeConfidenceInterval(
+				if(any(Hesslater,SElater,doIntervals)){
+					message("Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution\n")
+					if(defaultComputePlan){
+						steps <- list()
+						if(doIntervals){
+							steps <- c(steps,CI=mxComputeConfidenceInterval(
 								plan=mxComputeGradientDescent(
-									nudgeZeroStarts=FALSE, 
-									gradientIterations=gradientIterations, tolerance=tolerance, 
+									nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
 									maxMajorIter=3000),
-								constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq'))
-							#mxComputeNumericDeriv(), mxComputeStandardError(), 
-							#mxComputeReportDeriv())))
-						)))
-					
-					cifit<-suppressWarnings(try(mxRun(bestfit,intervals=TRUE,suppressWarnings=T,silent=T)))
-					if(class(cifit) == "try-error" || cifit$output$status$status== -1) {
-						message('Confidence interval estimation generated errors, returning fit without confidence intervals\n')
+								constraintType=ifelse(mxOption(NULL, "Default optimizer") == 'NPSOL','none','ineq')))
+						}
+						if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
+						if(SElater){
+							steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
+						}
+						steps <- c(steps,RD=mxComputeReportDeriv())
+						bestfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
 					}
+					finalfit <- suppressWarnings(try(mxRun(bestfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
+					if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
+						message('Errors occurred during final fit for Hessian/SEs/CIs; returning best fit as-is\n')
+					}
+					if (length(bestfit$output$status$statusMsg) > 0) { 
+						warning(bestfit$output$status$statusMsg)
+					}
+					if(bestfit$output$status$code==6) message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
+					if(iterationSummary==TRUE){
+						message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
+						message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
+					}
+					bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals)
 				}
-				if (length(bestfit$output$status$statusMsg) > 0) { 
-					warning(bestfit$output$status$statusMsg)
-				}
-				if(bestfit$output$status$code==6) message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
-				if(iterationSummary==TRUE){
-					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-					message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
-				}
-				bestfit <- THFrankenmodel(cifit,sefit,bestfit,defaultComputePlan)
 			}
-		}
-	} #end while loop
+		} #end while loop
 	
 	
 	if(bestInitsOutput && exists("bestfit")){
@@ -319,77 +295,45 @@ imxrunif <- function(dsn, n, loc, scale){
 
 
 
-THFrankenmodel <- function(cifit,sefit,bestfit,defaultComputePlan){
-	if(is.null(cifit) && is.null(sefit)){return(bestfit)}
-	if(!is.null(cifit) && is.null(sefit)){
-		if(defaultComputePlan){
-			bestfit@compute@steps <- list(
-				GD=bestfit@compute@steps[["GD"]],ND=bestfit@compute@steps[["ND"]],
-				SE=bestfit@compute@steps[["SE"]],RD=bestfit@compute@steps[["RD"]],
-				RE=bestfit@compute@steps[["RE"]],CI=cifit@compute@steps[[1]])
-		}
-		else{bestfit@compute@steps[[length(bestfit@compute@steps)+1]] <- cifit@compute@steps[[1]]}
-		bestfit@output$confidenceIntervals <- cifit@output$confidenceIntervals
-		bestfit@output$confidenceIntervalCodes <- cifit@output$confidenceIntervalCodes
-		bestfit@output$timestamp <- cifit@output$timestamp
-		bestfit@output$evaluations <- bestfit@output$evaluations + cifit@output$evaluations
-		bestfit@output$frontendTime <- bestfit@output$frontendTime + cifit@output$frontendTime
-		bestfit@output$backendTime <- bestfit@output$backendTime + cifit@output$backendTime
-		bestfit@output$independentTime <- bestfit@output$independentTime + cifit@output$independentTime
-		bestfit@output$wallTime <- bestfit@output$wallTime + cifit@output$wallTime
-		bestfit@output$cpuTime <- bestfit@output$cpuTime + cifit@output$cpuTime
-		bestfit@.modifiedSinceRun <- FALSE
-		return(bestfit)
+THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals){
+	if( is.null(finalfit) || !any(Hesslater,SElater,doIntervals) || ("try-error" %in% class(finalfit)) || 
+			finalfit$output$status$status== -1 ){return(bestfit)}
+	if(defaultComputePlan){
+		steps <- list(GD=bestfit@compute@steps[["GD"]])
+		if(doIntervals){steps <- c(steps,CI=finalfit@compute@steps[["CI"]])}
+		if(Hesslater){steps <- c(steps,ND=finalfit@compute@steps[["ND"]])}
+		if(SElater){steps <- 	c(steps,SE=finalfit@compute@steps[["SE"]],HQ=finalfit@compute@steps[["HQ"]])}
+		if(Hesslater || SElater){steps <- c(steps,finalfit@compute@steps[["RD"]])}
+		else{steps <- c(steps,bestfit@compute@steps[["RD"]])}
+		steps <- c(steps,bestfit@compute@steps[["RE"]])
+		bestfit@compute@steps <- steps
 	}
-	if(is.null(cifit) && !is.null(sefit)){
-		if(defaultComputePlan){
-			bestfit@compute@steps <- list(
-				GD=bestfit@compute@steps[["GD"]],ND=sefit@compute@steps[["ND"]],
-				SE=sefit@compute@steps[["SE"]],HQ=sefit@compute@steps[["HQ"]],
-				RD=sefit@compute@steps[["RD"]],RE=bestfit@compute@steps[["RE"]])
-		}
-		else{bestfit@compute@steps <- c(bestfit@compute@steps, sefit@compute@steps)}
-		bestfit@output$calculatedHessian <- sefit@output$calculatedHessian
-		bestfit@output$hessian <- sefit@output$hessian
-		bestfit@output$standardErrors <- sefit@output$standardErrors
-		bestfit@output$infoDefinite <- sefit@output$infoDefinite
-		bestfit@output$conditionNumber <- sefit@output$conditionNumber
-		bestfit@output$timestamp <- sefit@output$timestamp
-		bestfit@output$evaluations <- bestfit@output$evaluations + sefit@output$evaluations
-		bestfit@output$frontendTime <- bestfit@output$frontendTime + sefit@output$frontendTime
-		bestfit@output$backendTime <- bestfit@output$backendTime + sefit@output$backendTime
-		bestfit@output$independentTime <- bestfit@output$independentTime + sefit@output$independentTime
-		bestfit@output$wallTime <- bestfit@output$wallTime + sefit@output$wallTime
-		bestfit@output$cpuTime <- bestfit@output$cpuTime + sefit@output$cpuTime
-		bestfit@.modifiedSinceRun <- FALSE
-		return(bestfit)
+	else{
+		if( doIntervals && ("MxComputeConfidenceInterval" %in% unlist(lapply(bestfit@compute@steps,class))) &&
+			 ("MxComputeConfidenceInterval" %in% unlist(lapply(finalfit@compute@steps,class))) ){
+			f <- which("MxComputeConfidenceInterval"==unlist(lapply(finalfit@compute@steps,class)))
+			t <- which("MxComputeConfidenceInterval"==unlist(lapply(bestfit@compute@steps,class)))
+			bestfit@compute@steps[t] <- finalfit@compute@steps[f]
+		}}
+	bestfit@output$timestamp <- finalfit@output$timestamp
+	if(doIntervals){
+		bestfit@output$confidenceIntervals <- finalfit@output$confidenceIntervals
+		bestfit@output$confidenceIntervalCodes <- finalfit@output$confidenceIntervalCodes
 	}
-	if(!is.null(cifit) && !is.null(sefit)){
-		if(defaultComputePlan){
-		bestfit@compute@steps <- list(
-			GD=bestfit@compute@steps[["GD"]],ND=sefit@compute@steps[["ND"]],
-			SE=sefit@compute@steps[["SE"]],HQ=sefit@compute@steps[["HQ"]],
-			RD=sefit@compute@steps[["RD"]],RE=bestfit@compute@steps[["RE"]],CI=cifit@compute@steps[[1]])
-		}
-		else{bestfit@compute@steps <- c(bestfit@compute@steps, sefit@compute@steps, cifit@compute@steps}
-		bestfit@output$confidenceIntervals <- cifit@output$confidenceIntervals
-		bestfit@output$confidenceIntervalCodes <- cifit@output$confidenceIntervalCodes
-		bestfit@output$calculatedHessian <- sefit@output$calculatedHessian
-		bestfit@output$hessian <- sefit@output$hessian
-		bestfit@output$standardErrors <- sefit@output$standardErrors
-		bestfit@output$infoDefinite <- sefit@output$infoDefinite
-		bestfit@output$conditionNumber <- sefit@output$conditionNumber
-		bestfit@output$timestamp <- cifit@output$timestamp
-		bestfit@output$evaluations <- bestfit@output$evaluations + sefit@output$evaluations + cifit@output$evaluations
-		bestfit@output$frontendTime <- bestfit@output$frontendTime + sefit@output$frontendTime + 
-			cifit@output$frontendTime
-		bestfit@output$backendTime <- bestfit@output$backendTime + sefit@output$backendTime + cifit@output$backendTime
-		bestfit@output$independentTime <- bestfit@output$independentTime + sefit@output$independentTime + 
-			cifit@output$independentTime
-		bestfit@output$wallTime <- bestfit@output$wallTime + sefit@output$wallTime + cifit@output$wallTime
-		bestfit@output$cpuTime <- bestfit@output$cpuTime + sefit@output$cpuTime + cifit@output$cpuTime
-		bestfit@.modifiedSinceRun <- FALSE
-		return(bestfit)
+	if(Hesslater || SElater){
+		bestfit@output$calculatedHessian <- finalfit@output$calculatedHessian
+		bestfit@output$hessian <- finalfit@output$hessian
+		bestfit@output$standardErrors <- finalfit@output$standardErrors
+		bestfit@output$infoDefinite <- finalfit@output$infoDefinite
+		bestfit@output$conditionNumber <- finalfit@output$conditionNumber
 	}
+	bestfit@output$evaluations <- bestfit@output$evaluations + finalfit@output$evaluations
+	bestfit@output$frontendTime <- bestfit@output$frontendTime + finalfit@output$frontendTime
+	bestfit@output$backendTime <- bestfit@output$backendTime + finalfit@output$backendTime
+	bestfit@output$independentTime <- bestfit@output$independentTime + finalfit@output$independentTime
+	bestfit@output$wallTime <- bestfit@output$wallTime + finalfit@output$wallTime
+	bestfit@output$cpuTime <- bestfit@output$cpuTime + finalfit@output$cpuTime
+	bestfit@.modifiedSinceRun <- FALSE
+	return(bestfit)
 }
 
