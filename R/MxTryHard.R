@@ -46,7 +46,12 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	numdone <- 0
 	lowestminsofar<-Inf 
 	finalfit<- NULL
-	inits<-omxGetParameters(model) 
+	inits<-omxGetParameters(model)
+	parlbounds <- omxGetParameters(model=model,fetch="lbound")
+	parlbounds[is.na(parlbounds)] <- -Inf
+	parubounds <- omxGetParameters(model=model,fetch="ubound")
+	parubounds[is.na(parubounds)] <- Inf
+	
 	
 	
 	#Begin main loop.
@@ -62,8 +67,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			#which will only be happening when finetuneGradient is TRUE.
 			model <- omxSetParameters(
 				model, labels = names(params), 
-				values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale) + 
-					imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale)
+				#values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale) + 
+				#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale)
+				values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,scale=scale)
 			)
 			if(finetuneGradient){
 				gradientStepSize <- initialGradientStepSize
@@ -86,16 +92,20 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(lastBestFitCount  > 0) gradientIterations<-gradientIterations+2
 				if(lastBestFitCount > 2) model <- omxSetParameters(
 					model, labels = names(bestfit.params), 
-					values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/10) + 
-						imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/10)
+					#values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/10) + 
+					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/10)
+					values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
+													 scale=scale/10)
 				)
 			}
 			else{
 				model <- omxSetParameters(
 					model, labels = names(bestfit.params), 
-					values = params * 
-						imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/ifelse(finetuneGradient,10,1)) + 
-						imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/ifelse(finetuneGradient,10,1))
+					#values = params * 
+					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/ifelse(finetuneGradient,10,1)) + 
+					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/ifelse(finetuneGradient,10,1))
+					values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
+													 scale=scale/ifelse(finetuneGradient,10,1))
 				)
 			}
 		}#end if last fit was best section
@@ -277,7 +287,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 
 ##' imxJiggle
 ##' 
-##' Wrapper to random-number generators.
+##' Jiggle parameter values, subject to box constraints.
+##' For internal use by mxTryHard().
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##' @param dsn Character string naming the family of distribution to be used.
@@ -286,11 +297,21 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 ##' @param scale Numeric vector of scale parameters (see source code).
 ##' @aliases
 ##' imxJiggle
-imxJiggle <- function(dsn, n, loc, scale){
+imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 	if( !(dsn %in% c("rnorm","runif","rcauchy")) ){stop("unrecognized value for argument 'dsn'")}
-	if(dsn=="rnorm"){return(rnorm(n=n,mean=loc,sd=scale))}
-	if(dsn=="runif"){return(runif(n=n,min=loc-scale,max=loc+scale))}
-	if(dsn=="rcauchy"){return(rcauchy(n=n,location=loc,scale=scale))}
+	n <- length(params)
+	if(dsn=="rnorm"){
+		out <- params * rnorm(n=n,mean=loc,sd=scale)) + rnorm(n=n,mean=0,sd=scale)
+	}
+	if(dsn=="runif"){
+		out <- params * runif(n=n,min=loc-scale,max=loc+scale) + runif(n=n,min=0-scale,max=scale)
+	}
+	if(dsn=="rcauchy"){
+		out <- params * rcauchy(n=n,location=loc,scale=scale) + rcauchy(n=n,location=0,scale=scale)
+	}
+	if(any(out<lbounds)){out[out<lbounds] <- lbounds[out<lbounds]}
+	if(any(out>ubounds)){out[out>ubounds] <- ubounds[out>ubounds]}
+	return(out)
 }
 
 
