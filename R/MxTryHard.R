@@ -318,7 +318,7 @@ imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 	if( !(dsn %in% c("rnorm","runif","rcauchy")) ){stop("unrecognized value for argument 'dsn'")}
 	n <- length(params)
 	if(dsn=="rnorm"){
-		out <- params * rnorm(n=n,mean=loc,sd=scale)) + rnorm(n=n,mean=0,sd=scale)
+		out <- params * rnorm(n=n,mean=loc,sd=scale) + rnorm(n=n,mean=0,sd=scale)
 	}
 	if(dsn=="runif"){
 		out <- params * runif(n=n,min=loc-scale,max=loc+scale) + runif(n=n,min=0-scale,max=scale)
