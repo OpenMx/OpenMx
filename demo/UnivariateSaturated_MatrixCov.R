@@ -117,14 +117,14 @@ Chi3m <- LL3m-SL3m
 
 
 
-Mx.EC1 <-  1.062112
+Mx.EC1 <-  1.06104
 Mx.LL1 <- -1.474434e-17
 # example Mx..1: Saturated Model with 
 # Cov Matrices
 # -------------------------------------
 
 Mx.EM1m <- 0.01680509
-Mx.EC1m <- 1.062112
+Mx.EC1m <- 1.06104
 Mx.LL1m <- -1.108815e-13
 # example Mx..1m: Saturated Model with 
 # Cov Matrices & Means

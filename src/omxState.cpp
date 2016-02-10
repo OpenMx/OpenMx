@@ -83,6 +83,18 @@ int FreeVarGroup::lookupVar(const char *name)
 	return -1;
 }
 
+/* might be useful?
+int FreeVarGroup::lookupVar(int id)
+{
+	std::vector<int>::iterator low =
+		std::lower_bound(vars.begin(), vars.end(), id);
+	if (low == vars.end()) return -1;
+	int got = low - vars.begin();
+	if (vars[got]->id == id) return got;
+	return -1;
+}
+*/
+
 void FreeVarGroup::cacheDependencies(omxState *os)
 {
 	size_t numMats = os->matrixList.size();
@@ -749,3 +761,35 @@ const omxFreeVarLocation *omxFreeVar::getLocation(int matrix) const
 
 const omxFreeVarLocation *omxFreeVar::getLocation(omxMatrix *mat) const
 { return getLocation(~mat->matrixNumber); }
+
+const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(int matrix, bool &moreThanOne) const
+{
+	moreThanOne = false;
+	const omxFreeVarLocation *result = NULL;
+	for (size_t lx=0; lx < locations.size(); lx++) {
+		const omxFreeVarLocation &loc = locations[lx];
+		if (loc.matrix == matrix) {
+			if (result) { moreThanOne = true; return NULL; }
+			result = &loc;
+		}
+	}
+	return result;
+}
+
+const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const
+{ return getOnlyOneLocation(~mat->matrixNumber, moreThanOne); }
+
+void omxFreeVar::copyToState(omxState *os, double val)
+{
+	for(size_t l = 0; l < locations.size(); l++) {
+		omxFreeVarLocation *loc = &locations[l];
+		omxMatrix *matrix = os->matrixList[loc->matrix];
+		int row = loc->row;
+		int col = loc->col;
+		omxSetMatrixElement(matrix, row, col, val);
+		if (OMX_DEBUG_MATRIX) {
+			mxLog("free var %s, matrix %s[%d, %d] = %f",
+			      name, matrix->name(), row, col, val);
+		}
+	}
+}

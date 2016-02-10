@@ -57,7 +57,18 @@ m1 <- mxModel("person", type="RAM",
 #m1 <- mxOption(m1, "RAM Inverse Optimization", "Yes")
 
 if (0) {
-  m1 <- mxRun(mxModel(m1, mxComputeOnce('fitfunction', 'fit')))
+	plan <- mxComputeSequence(list(
+	    mxComputeOnce('fitfunction', 'fit'),
+	    mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE, iterations=2),
+	    mxComputeReportDeriv(),
+	    mxComputeReportExpectation()
+	))
+	m1 <- mxRun(mxModel(m1, plan))
+
+	eo = m1$expectation$output
+	ed = m1$expectation$debug
+	(solve(diag(nrow(ed$macroA))-ed$macroA) != 0)[ed$layout$numJoins == 0,,drop=FALSE]
+	
 } else {
   m1 <- mxRun(m1)
   summary(m1)

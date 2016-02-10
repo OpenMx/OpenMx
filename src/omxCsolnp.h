@@ -21,9 +21,9 @@
 #include "Compute.h"
 #include <Eigen/Core>
 
-void solnp(double *solPars, GradientOptimizerContext &fit);
+void solnp(double *est, GradientOptimizerContext &fit);
 
-void omxCSOLNP(double *est, GradientOptimizerContext &go);
+void omxCSOLNP(GradientOptimizerContext &go);
 
 void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
                      FreeVarGroup *freeVarGroup, int verbose, double *hessOut,

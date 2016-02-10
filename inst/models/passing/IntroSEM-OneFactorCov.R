@@ -62,22 +62,21 @@ summary(oneFactorCov1Out)
 # ----------------------------------
 # check for correct values
 
-expectVal <- c(0.684642, 0.325146, 0.108976, 0.474884, 0.602408, 
-1.121763, 1.260595, 0.648042, 0.719448, 0.353503, 0.176546, 0.193924, 
-0.801478, 0.634327, 0.368364, 0.340919, 0.234507, 0.856124)
+expectVal <- c(0.68396, 0.32482, 0.10887, 0.47441, 0.60181, 1.12064,
+1.25934, 0.64739, 0.71873, 0.3528, 0.17619, 0.19354, 0.79988, 0.63306,
+0.36763, 0.34024, 0.23404, 0.85441)
 
 expectSE <- c(0.035244, 0.022431, 0.020808, 0.044662, 0.042295, 0.045789, 
 0.048931, 0.03064, 0.049368, 0.02492, 0.01197, 0.01234, 0.052165, 
 0.042853, 0.032175, 0.034939, 0.017353, 0.057948)
 
-expectMin <- 1442.06
-
+# cat(deparse(round(oneFactorCov1Out$output$estimate, 5)))
 omxCheckCloseEnough(expectVal, oneFactorCov1Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(oneFactorCov1Out$output[['standardErrors']]), 0.001)
 
-omxCheckCloseEnough(expectMin, oneFactorCov1Out$output$minimum, 0.001)
+omxCheckCloseEnough(1435.94, oneFactorCov1Out$output$minimum, 0.001)
 
 
 # ----------------------------------
@@ -137,21 +136,20 @@ summary(oneFactorCov2Out)
 # ----------------------------------
 # check for correct values
 
-expectVal <- c(0.474913, 0.159172, 0.693623, 0.879886, 1.638463, 
-1.841243, 0.946539, 1.050837, 0.353502, 0.176546, 0.193924, 0.801478, 
-0.634326, 0.368364, 0.34092, 0.234507, 0.856124, 0.468737)
+expectVal <- c(0.47491, 0.15917, 0.69363, 0.87989, 1.63847, 1.84125,
+0.94654, 1.05084, 0.3528, 0.17619, 0.19354, 0.79988, 0.63306, 0.36763,
+0.34024, 0.23404, 0.85441, 0.4678)
 
 expectSE <- c(0.035182, 0.030686, 0.067917, 0.066228, 0.078835, 0.085033, 
 0.051178, 0.077348, 0.02492, 0.01197, 0.01234, 0.052166, 0.042854, 
 0.032175, 0.034939, 0.017353, 0.057948, 0.048261)
 
-expectMin <- 1442.06
-
+# cat(deparse(round(oneFactorCov2Out$output$estimate, 5)))
 omxCheckCloseEnough(expectVal, oneFactorCov2Out$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(oneFactorCov2Out$output[['standardErrors']]), 0.001)
 
-omxCheckCloseEnough(expectMin, oneFactorCov2Out$output$minimum, 0.001)
+omxCheckCloseEnough(1435.9409, oneFactorCov2Out$output$minimum, 0.001)
 
 

@@ -60,7 +60,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
 
-	*saturated_out = (state->logDetObserved + ncols) * (state->n - 1);
+	*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
 
 	// Independence model assumes all-zero manifest covariances.
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
@@ -76,7 +76,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	}
 	if(OMX_DEBUG) { omxPrint(cov, "Observed:"); }
 
-	*independence_out = (ncols + det) * (state->n - 1);
+	*independence_out = ncols * (state->n - 1) + det * state->n;
 }
 
 static void addOutput(omxFitFunction *oo, MxRList *out)
@@ -137,7 +137,7 @@ struct multi_normal_deriv {
 			++xx;
 		}
 
-		return stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+		return stan::prob::multi_normal_sufficient_log<true>(omo->n, obMeans, obCov, exMeans, exCov);
 	}
 };
 
@@ -166,12 +166,14 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 				Eigen::VectorXd obMeans = obMeansAdapter;
 				EigenVectorAdaptor exMeansAdapter(omo->expectedMeans);
 				Eigen::VectorXd exMeans = exMeansAdapter;
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, obMeans, obCov, exMeans, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, obMeans, obCov, exMeans, exCov);
 			} else {
 				Eigen::VectorXd means(obCov.rows());
 				means.setZero();
-				fit = stan::prob::multi_normal_sufficient_log(omo->n, means, obCov, means, exCov);
+				fit = stan::prob::multi_normal_sufficient_log<false>(omo->n, means, obCov, means, exCov);
 			}
+			using stan::math::LOG_TWO_PI;
+			fit += .5 * omo->n * obCov.rows() * LOG_TWO_PI;
 		} catch (const std::exception& e) {
 			fit = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
@@ -305,24 +307,41 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	omxData* dataMat = oo->expectation->data;
 
+	ProtectedSEXP Rfellner(R_do_slot(oo->rObj, Rf_install("fellner")));
+	int wantRowwiseLikelihood = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
+
+	bool fellnerPossible = (strEQ(omxDataType(dataMat), "raw") && expectation->numOrdinal == 0 &&
+				strEQ(oo->expectation->expType, "MxExpectationRAM") && !wantRowwiseLikelihood);
+
+	if (Rf_asLogical(Rfellner) == 1 && !fellnerPossible) {
+		Rf_error("%s: fellner requires raw data (have %s), "
+			 "all continuous indicators (%d are ordinal), "
+			 "MxExpectationRAM (have %s), and no row-wise likelihoods (want %d)",
+			 oo->name(), dataMat->getType(), expectation->numOrdinal,
+			 wantRowwiseLikelihood, expectation->name);
+	}
+
 	if (strEQ(omxDataType(dataMat), "raw")) {
-		SEXP rObj = oo->rObj;
-		bool onlyFellner = false;
+		int useFellner = Rf_asLogical(Rfellner);
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			onlyFellner = ram->between.size();
+			if (ram->between.size()) {
+				if (useFellner == 0) {
+					Rf_error("%s: fellner=TRUE is required for %s",
+						 oo->name(), expectation->name);
+				}
+				useFellner = 1;
+			}
 		}
-		int fellner;
-		{
-			SEXP tmp;
-			ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("fellner")));
-			fellner = Rf_asLogical(tmp);
-		}
-		if (fellner == NA_LOGICAL && onlyFellner) fellner = 1;
-		if (onlyFellner && fellner == 0) Rf_error("%s: fellner=TRUE is required for %s",
-							  oo->name(), expectation->name);
+
+		// Cannot enable unconditionally because performance
+		// suffers with models that make heavy use of defvars
+		// such as continuous time models.
+		//
+		//if (useFellner == NA_LOGICAL && fellnerPossible) useFellner = 1;
+
 		const char *to;
-		if (fellner == 1) {
+		if (useFellner == 1) {
 			to = "imxFitFunctionFellner";
 		} else {
 			to = "imxFitFunctionFIML";

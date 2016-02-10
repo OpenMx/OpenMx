@@ -132,13 +132,13 @@ Chi5m <- LL5m-SL5m
 # -----------------------------------------------------------------------------
 
 
-omxCheckCloseEnough(Chi5,0,.001)
-omxCheckCloseEnough(c(EC5),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(Chi5,-0.001,.001)
+omxCheckCloseEnough(c(EC5),c(1.065, 0.475, 0.475, 0.929),.001)
 # 5:CovMat Cholesky
 # -------------------------------------
 
-omxCheckCloseEnough(Chi5m,0,.001)
-omxCheckCloseEnough(c(EC5m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(Chi5m,-0.001,.001)
+omxCheckCloseEnough(c(EC5m),c(1.065, 0.475, 0.475, 0.929),.001)
 omxCheckCloseEnough(c(EM5m),c(0.058, 0.006),.001)
 # 5m:CovMPat Cholesky
 # -------------------------------------

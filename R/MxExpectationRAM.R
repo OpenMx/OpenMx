@@ -31,7 +31,9 @@ setClass(Class = "MxExpectationRAM",
 		UnfilteredExpCov = "matrix",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
-	    verbose = "integer"
+	    verbose = "integer",
+	    .rampart = "integer",
+	    .forceSingleGroup = "logical"
 	),
 	contains = "BaseExpectationNormal")
 
@@ -51,6 +53,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@UnfilteredExpCov <- matrix()
 		.Object@between <- between
 		.Object@verbose <- verbose
+		.Object@.rampart <- as.integer(NA)
+		.Object@.forceSingleGroup <- FALSE
 		return(.Object)
 	}
 )

@@ -913,6 +913,22 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	omxMarkDirty(oo->matrix);
 }
 
+void FitContext::ensureParamWithinBox(bool nudge)
+{
+	for (size_t px = 0; px < varGroup->vars.size(); ++px) {
+		omxFreeVar *fv = varGroup->vars[px];
+		if (nudge && est[px] == 0.0) {
+			est[px] += 0.1;
+		}
+		if (fv->lbound > est[px]) {
+			est[px] = fv->lbound + 1.0e-6;
+		}
+		if (fv->ubound < est[px]) {
+			est[px] = fv->ubound - 1.0e-6;
+		}
+        }
+}
+
 void FitContext::copyParamToModel()
 {
 	copyParamToModelClean();
@@ -936,17 +952,7 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 
 	for(size_t k = 0; k < numParam; k++) {
 		omxFreeVar* freeVar = varGroup->vars[k];
-		for(size_t l = 0; l < freeVar->locations.size(); l++) {
-			omxFreeVarLocation *loc = &freeVar->locations[l];
-			omxMatrix *matrix = os->matrixList[loc->matrix];
-			int row = loc->row;
-			int col = loc->col;
-			omxSetMatrixElement(matrix, row, col, at[k]);
-			if (OMX_DEBUG_MATRIX) {
-				mxLog("free var %d, matrix %s[%d, %d] = %f",
-				      (int) k, matrix->name(), row, col, at[k]);
-			}
-		}
+		freeVar->copyToState(os, at[k]);
 	}
 }
 
@@ -2846,23 +2852,26 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 void GradientOptimizerContext::copyBounds()
 {
 	FreeVarGroup *varGroup = fc->varGroup;
-	for(int index = 0; index < int(fc->numParam); index++) {
-		solLB[index] = varGroup->vars[index]->lbound;
-		solUB[index] = varGroup->vars[index]->ubound;
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		solLB[px] = varGroup->vars[vx]->lbound;
+		solUB[px] = varGroup->vars[vx]->ubound;
+		++px;
 	}
 }
 
 void GradientOptimizerContext::setupSimpleBounds()
 {
-	solLB.resize(fc->numParam);
-	solUB.resize(fc->numParam);
+	solLB.resize(numFree);
+	solUB.resize(numFree);
 	copyBounds();
 }
 
 void GradientOptimizerContext::setupIneqConstraintBounds()
 {
-	solLB.resize(fc->numParam);
-	solUB.resize(fc->numParam);
+	solLB.resize(numFree);
+	solUB.resize(numFree);
 	copyBounds();
 
 	omxState *globalState = fc->state;
@@ -2874,9 +2883,8 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 
 void GradientOptimizerContext::setupAllBounds()
 {
-	FreeVarGroup *freeVarGroup = fc->varGroup;
 	omxState *globalState = fc->state;
-	int n = (int) freeVarGroup->vars.size();
+	int n = (int) numFree;
 
 	// treat all constraints as non-linear
 	int eqn, nineqn;
@@ -2919,11 +2927,20 @@ void GradientOptimizerContext::reset()
 	bestFit = std::numeric_limits<double>::max();
 }
 
-GradientOptimizerContext::GradientOptimizerContext(int verbose)
-	: verbose(verbose)
+GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
+	: fc(fc), verbose(verbose)
 {
+	if (fc->profiledOut.size() == 0) {
+		fc->profiledOut.assign(fc->numParam, false);
+		numFree = fc->numParam;
+	} else {
+		numFree = 0;
+		for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+			if (fc->profiledOut[vx]) continue;
+			++numFree;
+		}
+	}
 	optName = "?";
-	fc = NULL;
 	fitMatrix = NULL;
 	ControlMajorLimit = 0;
 	ControlMinorLimit = 0;
@@ -2934,6 +2951,8 @@ GradientOptimizerContext::GradientOptimizerContext(int verbose)
 	warmStart = false;
 	ineqType = omxConstraint::LESS_THAN;
 	avoidRedundentEvals = false;
+	est.resize(numFree);
+	copyToOptimizer(est.data());
 	reset();
 }
 
@@ -2948,6 +2967,62 @@ double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 	return fit;
 }
 
+bool GradientOptimizerContext::inConfidenceIntervalProblem() const
+{
+	return fc->CI && fc->CI->varIndex >= 0;
+}
+
+int GradientOptimizerContext::getConfidenceIntervalVarIndex() const
+{
+	return fc->CI->varIndex;
+}
+
+void GradientOptimizerContext::copyToOptimizer(double *myPars)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		myPars[px] = fc->est[vx];
+		++px;
+	}
+}
+
+void GradientOptimizerContext::useBestFit()
+{
+	fc->fit = bestFit;
+	est = bestEst;
+	// restore gradient too? TODO
+}
+
+void GradientOptimizerContext::copyFromOptimizer(double *myPars)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		fc->est[vx] = myPars[px];
+		++px;
+	}
+	fc->copyParamToModel();
+}
+
+void GradientOptimizerContext::finish()
+{
+	if (grad.size()) {
+		fc->grad.resize(fc->numParam);
+		fc->grad.setConstant(nan("unset"));
+	}
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		fc->est[vx] = est[px];
+		if (grad.size()) {
+			fc->grad[vx] = grad[px];
+		}
+		++px;
+	}
+	fc->copyParamToModel();
+}
+
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
@@ -2958,8 +3033,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 
 	if (*mode == 1) fc->iterations += 1;
-	if (fc->est != myPars) memcpy(fc->est, myPars, sizeof(double) * fc->numParam);
-	fc->copyParamToModel();
+	copyFromOptimizer(myPars);
 
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
@@ -2977,6 +3051,13 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		if (avoidRedundentEvals) {
 			prevPoint = Est;
 			prevMode = *mode;
+		}
+		if (want & FF_COMPUTE_GRADIENT) {
+			int px=0;
+			for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+				if (fc->profiledOut[vx]) continue;
+				grad[px++] = fc->grad[vx];
+			}
 		}
 	}
 

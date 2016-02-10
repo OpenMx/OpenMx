@@ -413,12 +413,12 @@ LL6 <- mxEval(fitfunction,bivSatFit6)
 
 
 omxCheckCloseEnough(Chi1, 0,.01)
-omxCheckCloseEnough(c(EC1), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
+omxCheckCloseEnough(c(EC1), c(1.0656, 0.4751, 0.4751, 0.9291),.001)
 #1:CovPat
 # -------------------------------------
 
 omxCheckCloseEnough(Chi1m, 0,.01)
-omxCheckCloseEnough(c(EC1m), c(1.0667, 0.4757, 0.4757, 0.9301),.001)
+omxCheckCloseEnough(c(EC1m), c(1.0656, 0.4751, 0.4751, 0.9291),.001)
 omxCheckCloseEnough(c(EM1m), c(0.0582, 0.0063), .001)
 #1m:CovMPat 
 # -------------------------------------
@@ -436,12 +436,12 @@ omxCheckCloseEnough(c(EM2s), c(0.0582, 0.0063),.001)
 # -------------------------------------
 
 omxCheckCloseEnough(Chi3, 0,.01)
-omxCheckCloseEnough(c(EC3),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EC3),c(1.0656, 0.4752, 0.4752, 0.9292),.001)
 #3:CovMat
 # -------------------------------------
 
 omxCheckCloseEnough(Chi3m,0,.01)
-omxCheckCloseEnough(c(EC3m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EC3m),c(1.0656, 0.4752, 0.4752, 0.9292),.001)
 omxCheckCloseEnough(c(EM3m),c(0.058, 0.006),.001)
 #3m:CovMPat 
 # -------------------------------------
@@ -453,12 +453,12 @@ omxCheckCloseEnough(c(EM4),c(0.058, 0.006),.001)
 # -------------------------------------
 
 omxCheckCloseEnough(Chi5,0,.01)
-omxCheckCloseEnough(c(EC5),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EC5),c(1.0656, 0.4752, 0.4752, 0.9292),.001)
 #5:CovMat Cholesky
 # -------------------------------------
 
 omxCheckCloseEnough(Chi5m,0,.01)
-omxCheckCloseEnough(c(EC5m),c(1.067, 0.476, 0.476, 0.93),.001)
+omxCheckCloseEnough(c(EC5m),c(1.0656, 0.4752, 0.4752, 0.9292),.001)
 omxCheckCloseEnough(c(EM5m),c(0.058, 0.006),.001)
 #5m:CovMPat Cholesky
 # -------------------------------------

@@ -41,7 +41,7 @@ obj <- mxFitFunctionAlgebra("alg")
 model <- mxModel("both", alg, obj, model1, model2)
 model <- mxRun(model, suppressWarnings = TRUE)
 
-omxCheckCloseEnough(model$output$estimate, c(1, 2), 0.001)
+omxCheckCloseEnough(model$output$estimate, .99 * c(1, 2), 0.001)
 
 # Also use the multigroup fit function
 mft <- mxFitFunctionMultigroup(c("model1", "model2"))

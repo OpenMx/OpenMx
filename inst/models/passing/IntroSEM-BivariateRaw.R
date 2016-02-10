@@ -48,8 +48,7 @@ biRegModelRaw <- mxModel("FIML Bivariate Regression of y on x1 and x2",
     )
 
 omxCheckError(mxRun(biRegModelRaw, suppressWarnings=TRUE),
-"The job for model 'FIML Bivariate Regression of y on x1 and x2' exited abnormally with the error message: 1:FIML Bivariate Regression of y on x1 and x2.fitfunction: raw data observed but no expected means vector was provided. Add something like mxPath(from = 'one', to = manifests) to your model.
-2:FIML Bivariate Regression of y on x1 and x2.fitfunction: raw data observed but no expected means vector was provided. Add something like mxPath(from = 'one', to = manifests) to your model.")
+"The job for model 'FIML Bivariate Regression of y on x1 and x2' exited abnormally with the error message: FIML Bivariate Regression of y on x1 and x2.expectation: raw data observed but no expected means vector was provided. Add something like mxPath(from = 'one', to = manifests) to your model.")
 
 biRegModelRaw <- mxModel(
   biRegModelRaw,

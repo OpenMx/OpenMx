@@ -145,5 +145,6 @@ Collate:
     'MxExpectationGREML.R'
     'MxMI.R'
     'MxFactorScores.R'
+    'MxRobustSE.R'
     'MxAvailableOptimizers.R'
     'zzz.R'

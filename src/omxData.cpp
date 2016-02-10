@@ -463,7 +463,7 @@ int omxData::lookupRowOfKey(int key)
 
 const char *omxDataColumnName(omxData *od, int col)
 {
-	if(od->dataMat != NULL) return 0;
+	if(od->dataMat) return od->dataMat->colnames[col];
 	ColumnData &cd = od->rawCols[col];
 	return cd.name;
 }
@@ -968,6 +968,8 @@ void omxData::loadFakeData(omxState *state, double fake)
 
 bool omxDefinitionVar::loadData(omxState *state, double val)
 {
+	// We only need to check the first location because
+	// all locations will have the same value.
 	for(int l = 0; l < numLocations; l++) {
 		int matrixNumber = matrices[l];
 		int matrow = rows[l];

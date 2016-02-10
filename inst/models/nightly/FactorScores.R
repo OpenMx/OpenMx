@@ -60,6 +60,17 @@ omxCheckCloseEnough(coef(lmS), c(0, .5), 0.01)
 omxCheckCloseEnough(coef(lmR), c(0, 1), 0.03)
 
 
+#Test warning about no SEs:
+#factorRun <- mxOption(factorRun,"Standard Errors","No")
+mxOption(NULL,"Standard Errors","No")
+omxCheckWarning(
+	mxFactorScores(factorRun,"ML"),
+	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+omxCheckWarning(
+	mxFactorScores(factorRun,"WeightedML"),
+	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+mxOption(NULL,"Standard Errors","Yes")
+
 
 
 #TODO compare standard errors
@@ -162,16 +173,18 @@ factorModel <- mxModel("OneFactor",
 summary(factorRamRun <- mxRun(factorModel))
 
 rr1 <- mxFactorScores(factorRamRun, 'ML')
-omxCheckError(rr2 <- mxFactorScores(factorRamRun, 'Regression'), "Regression factor scores are only possible for LISREL expectations.")
+rr2 <- mxFactorScores(factorRamRun, 'Regression')
 rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
 
 
 omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
+omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1)
 omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
 omxCheckCloseEnough(rms(rr1[,,1], r1[,,1]), 0, .1)
+omxCheckCloseEnough(rms(rr2[,,1], r2[,,1]), 0, .1)
 omxCheckCloseEnough(rms(rr3[,,1], r3[,,1]), 0, .1)
 
 
@@ -188,7 +201,32 @@ twoGroup <- mxModel(model='multipleGroup', factorModel, factorModel2,
 twoGroupRun <- mxRun(twoGroup)
 
 tg1 <- mxFactorScores(twoGroupRun, 'ML')
+tg2 <- mxFactorScores(model=twoGroupRun,"Regression")
 
 omxCheckCloseEnough(rms(tg1[[1]], rr1), 0, .001)
 omxCheckCloseEnough(rms(tg1[[2]], rr1), 0, .01)
+omxCheckCloseEnough(rms(tg2[[1]], rr2), 0, .001)
+omxCheckCloseEnough(rms(tg2[[2]], rr2), 0, .01)
+
+
+#-------------------------------------------------------------------
+#Ensure regression RAM scoring does not fail in the presence of missing data:
+demoOneFactor.miss <- as.matrix(demoOneFactor)
+demoOneFactor.miss[sample(1:2500,size=100,replace=F)] <- NA
+demoOneFactor.miss[100,] <- NA
+factorModel.miss <- mxModel("OneFactor",
+											 type="RAM",
+											 manifestVars = manifests,
+											 latentVars = latents,
+											 mxPath(from=latents, to=manifests),
+											 mxPath(from=manifests, arrows=2),
+											 mxPath(from=latents, arrows=2,
+											 			 free=FALSE, values=1.0),
+											 mxPath(from='one', to=manifests),
+											 mxData(observed=demoOneFactor.miss, type="raw"))
+factorRamRun.miss <- mxRun(factorModel.miss)
+regs <- mxFactorScores(model=factorRamRun.miss,"Regression")
+omxCheckEquals(regs[100,1,1],0)
+omxCheckEquals(regs[100,1,2],1)
+omxCheckTrue(cor(regs[,,1], rr2[,,1]) > 0.95)
 

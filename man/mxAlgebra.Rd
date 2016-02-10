@@ -72,7 +72,7 @@ Operators
 \item{\code{*}}{Elementwise product}
 \item{\code{/}}{Elementwise division}
 \item{\code{\%x\%}}{Kronecker product}
-\item{\code{\%&\%}}{Quadratic product}
+\item{\code{\%&\%}}{Quadratic product: pre- and post-multiply B by A and its transpose t(A), i.e: A \code{\%&\%} B ==  A \code{\%*\%} B \code{\%*\%} t(A)}
 }
 
 Functions

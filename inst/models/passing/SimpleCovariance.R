@@ -47,7 +47,7 @@ model <- mxModel(model, objective, data, mxFitFunctionML())
 # Run the job
 modelOut <- mxRun(model)
 
-expectedParameters <- c(0.5099, 0.7764, 0.2892)
+expectedParameters <- c(0.5099, 0.7686, 0.2863)
 
 omxCheckCloseEnough(expectedParameters, 
 	modelOut$output$estimate, 

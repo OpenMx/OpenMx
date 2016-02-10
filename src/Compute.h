@@ -130,6 +130,7 @@ class FitContext {
 	double fit;
 	int fitUnits;
 	double *est;
+	std::vector<bool> profiledOut;
 	std::vector<const char*> flavor;
 	Eigen::VectorXd grad;
 	int infoDefinite;
@@ -154,6 +155,7 @@ class FitContext {
 	void createChildren();
 	void destroyChildren();
 	void allocStderrs();
+	void ensureParamWithinBox(bool nudge);
 	void copyParamToModel();
 	void copyParamToModelClean();
 	double *take(int want);
@@ -246,15 +248,20 @@ class GradientOptimizerContext {
  private:
 	void copyBounds();
 
+	// We need to hide this from the optimizer because
+	// some parameters might be profiled out and should
+	// not be subject to optimization.
+	FitContext *fc;
+
  public:
 	const int verbose;
+	int numFree;          // how many parameters are not profiled out
 	const char *optName;  // filled in by the optimizer
 	bool feasible;
 	bool avoidRedundentEvals;
 	Eigen::VectorXd prevPoint;
 	int prevMode;
 	void *extraData;
-	FitContext *fc;
 	omxMatrix *fitMatrix;
 	int maxMajorIterations;
 
@@ -280,14 +287,16 @@ class GradientOptimizerContext {
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.
 	double bestFit;
+	Eigen::VectorXd est;    //like fc->est but omitting profiled out params
 	Eigen::VectorXd bestEst;
+	Eigen::VectorXd grad;
 
 	// output
 	int informOut;
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
-	GradientOptimizerContext(int verbose);
+	GradientOptimizerContext(FitContext *fc, int verbose);
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
@@ -300,6 +309,19 @@ class GradientOptimizerContext {
 	void myineqFun();
 	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
+	void useBestFit();
+	void copyToOptimizer(double *myPars);
+	void copyFromOptimizer(double *myPars);
+	void finish();
+	double getFit() const { return fc->fit; };
+	void recordIteration() { fc->iterations += 1; };
+	int getIteration() const { return fc->iterations; };
+	int getWanted() const { return fc->wanted; };
+	void setWanted(int nw) { fc->wanted = nw; };
+	bool inConfidenceIntervalProblem() const;
+	int getConfidenceIntervalVarIndex() const;
+	bool inConfidenceIntervalLowerBound() const { return fc->lowerBound; };
+	omxState *getState() const { return fc->state; };
 };
 
 template <typename T1>

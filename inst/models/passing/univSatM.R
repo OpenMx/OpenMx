@@ -238,12 +238,12 @@ LL4 <- mxEval(objective, univSatFit4);
 
 #Mx answers hard-coded
 #example Mx..1: Saturated Model with Cov Matrices
-Mx.EC1 <-  1.062112
+Mx.EC1 <-  1.06104
 Mx.LL1 <- -1.474434e-17
 
 #example Mx..1m: Saturated Model with Cov Matrices & Means
 Mx.EM1m <- 0.01680509
-Mx.EC1m <- 1.062112
+Mx.EC1m <- 1.06104
 Mx.LL1m <- -1.108815e-13
 
 Mx.EM2 <- 0.01680516

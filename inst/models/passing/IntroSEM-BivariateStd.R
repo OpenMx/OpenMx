@@ -52,7 +52,7 @@ biRegModelOut <- mxRun(biRegModel, suppressWarnings=TRUE)
 biRegModelOut$compute$steps[["GD"]]$engine <- 'XYZ'
 
 brmSum <- summary(biRegModelOut)
-omxCheckCloseEnough(brmSum$CFI, 1, 1e-6)
+omxCheckCloseEnough(brmSum$CFI, 1, 1e-5)
 omxCheckCloseEnough(brmSum$TLI, 1, 1e-6)
 omxCheckCloseEnough(brmSum$RMSEA, 0, 1e-6)
 omxCheckTrue(all(is.na(brmSum$RMSEACI)))
@@ -60,18 +60,17 @@ omxCheckTrue(all(is.na(brmSum$RMSEACI)))
 # ----------------------------------
 # check for correct values
 
-expectVal <- c(0.4479, 0.4327, 1.1387, 0.5823, 1.5587, 1.4148)
+expectVal <- c(0.44791, 0.43271, 1.13643, 0.58111, 1.5556, 1.41199 )
 
 expectSE <- c(0.0555, 0.0474, 0.0721, 0.0651, 0.0987, 0.0896)
 
-expectMin <- 1850.685
-
+# cat(deparse(round(biRegModelOut$output$estimate, 5)))
 omxCheckCloseEnough(expectVal, biRegModelOut$output$estimate, 0.001)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(biRegModelOut$output[['standardErrors']]), 0.001)
 
-omxCheckCloseEnough(expectMin, biRegModelOut$output$minimum, 0.001)
+omxCheckCloseEnough(1851.391, biRegModelOut$output$minimum, 0.001)
 
 omxCheckEquals(brmSum$optimizerEngine, mxOption(NULL, "Default optimizer"))
 
