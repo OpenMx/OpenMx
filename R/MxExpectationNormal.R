@@ -291,9 +291,87 @@ ordinalizeDataHelper <- function(data, thresh, cut=TRUE){
 	return(data)
 }
 
-mxGenerateData <- function(model, nrows){
-	data <- genericGenerateData(model$expectation, model, nrows)
-	as.data.frame(data)
+generateRelationalData <- function(model, returnModel) {
+	plan <- mxComputeSequence(list(
+	    mxComputeOnce('expectation', 'distribution', 'flat'),
+	    mxComputeReportExpectation()
+	))
+
+	modelE <- mxModel(model, plan)
+	modelE$expectation$.rampart <- 0L
+	modelE <- mxRun(modelE, silent=TRUE)
+	dataEnv <- new.env()
+	for (dName in names(modelE@runstate$datalist)) {
+		modelName <- substr(dName, 1, nchar(dName)-5)  # remove .data
+		assign(modelName, modelE@runstate$datalist[[ dName ]]@observed, envir=dataEnv)
+	}
+	ed <- modelE$expectation$debug
+	layout <- ed$layout
+	fmt <- paste0('g%0', ceiling(log10(ed$numGroups)), 'd')
+	for (gx in 1:ed$numGroups) {
+		groupName <- sprintf(fmt, gx)
+		numCopies <- length(unique(layout[layout$group == gx, 'copy']))
+		cxLength <- length(ed[[groupName]]$mean) / numCopies
+		groupTodo <- ed$layout[ed[[groupName]]$layout[,'aIndex'],]
+		for (cx in 1:numCopies) {
+			todo <- groupTodo[groupTodo$copy == cx,]
+			repl1 <- mvtnorm::rmvnorm(1, ed[[groupName]]$mean[seq(1+(cx-1)*cxLength, cx*cxLength)],
+						  sigma=as.matrix(ed[[groupName]]$covariance))
+			dx <- 1
+			for (tx in 1:nrow(todo)) {
+				modelName <- as.character(todo[tx,'model'])
+				if (modelName == modelE$name) {
+					submodel <- modelE
+				} else {
+					submodel <- modelE[[modelName]]
+				}
+				row <- todo[tx,'row']
+				manifests <- rownames(submodel$F)
+				beforeData <- dataEnv[[modelName]][row, manifests]
+				notMissing <- !is.na(beforeData)
+				if (sum(notMissing) > 0) {
+					afterData <- repl1[seq(dx, dx+sum(notMissing) - 1)]
+					dataEnv[[modelName]][row, manifests[notMissing] ] <- afterData
+					dx <- dx + sum(notMissing)
+				}
+			}
+		}
+	}
+	if (!returnModel) {
+		ret <- list()
+		for (n in names(dataEnv)) {
+			ret[[n]] <- dataEnv[[n]]
+		}
+		ret
+	} else {
+		for (modelName in names(dataEnv)) {
+			if (modelName == model$name) {
+				model@data@observed <- dataEnv[[modelName]]
+			} else {
+				model[[modelName]]@data@observed <- dataEnv[[modelName]]
+			}
+		}
+		model
+	}
+}
+
+mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE) {
+	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
+	if (!fellner) {
+		if (missing(nrows)) nrows <- nrow(model@data@observed)
+		data <- genericGenerateData(model$expectation, model, nrows)
+		if (returnModel) {
+			model@data@observed <- as.data.frame(data)
+			model
+		} else {
+			as.data.frame(data)
+		}
+	} else {
+		if (!missing(nrows)) {
+			stop("Specification of the number of rows is not supported for relational models")
+		}
+		generateRelationalData(model, returnModel)
+	}
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
