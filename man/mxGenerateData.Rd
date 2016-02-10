@@ -24,13 +24,15 @@ This function creates a randomly sampled data set based on the model.
 }
 
 \usage{
-mxGenerateData(model, nrows)
+mxGenerateData(model, nrows, returnModel=FALSE)
 }
 
 
 \arguments{
    \item{model}{An MxModel object upon which the data are generated.}
    \item{nrows}{Numeric. The number of rows of data to generate.}
+   \item{returnModel}{Logical. Return data.frames if FALSE or model
+   populated with new data if TRUE.}
 }
 
 \details{
@@ -44,7 +46,8 @@ For state space models (i.e. models with an \link{mxExpectationStateSpace} or \l
 }
 
 \value{
-    A data.frame with nrows rows.
+    A data.frame, list of data.frames, or model populated with the new data
+    (depending on the \code{returnModel} parameter).
 }
 
 
