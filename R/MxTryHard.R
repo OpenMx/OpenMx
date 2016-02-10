@@ -291,8 +291,10 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 ##' For internal use by mxTryHard().
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
+##' @param params Numeric vector of current free parameter values.
+##' @param lbounds Numeric vector of lower bounds on parameters.
+##' @param ubounds Numeric vector of upper bounds on parameters.
 ##' @param dsn Character string naming the family of distribution to be used.
-##' @param n Non-negative integer number of random draws to generate.
 ##' @param loc Numeric vector of location parameters (medians).
 ##' @param scale Numeric vector of scale parameters (see source code).
 ##' @aliases
