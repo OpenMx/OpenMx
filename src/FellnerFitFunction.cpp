@@ -33,7 +33,7 @@
 namespace FellnerFitFunction {
 	struct state {
 		int verbose;
-
+		int parallel;
 		int numProfiledOut;
 		std::vector<int> olsVarNum;     // index into fc->est
 		Eigen::MatrixXd olsDesign;      // a.k.a "X"
@@ -41,6 +41,7 @@ namespace FellnerFitFunction {
 		int computeCov(RelationalRAMExpectation::independentGroup &ig);
 		void compute(omxFitFunction *oo, int want, FitContext *fc);
 		void setupProfiledParam(omxFitFunction *oo, FitContext *fc);
+		bool parallelEnabled(omxFitFunction *oo);
 	};
 
 	static void compute(omxFitFunction *oo, int want, FitContext *fc)
@@ -151,6 +152,17 @@ namespace FellnerFitFunction {
 		return 0;
 	}
 
+	bool state::parallelEnabled(omxFitFunction *oo)
+	{
+		if (parallel == NA_INTEGER) {
+			omxExpectation *expectation             = oo->expectation;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			RelationalRAMExpectation::state *rram   = ram->rram;
+			return int(rram->group.size()) > 2*Global->numThreads;
+		}
+		return parallel;
+	}
+
 	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		omxExpectation *expectation             = oo->expectation;
@@ -162,7 +174,7 @@ namespace FellnerFitFunction {
 			RelationalRAMExpectation::state *rram   = ram->rram;
 			if (verbose >= 1) {
 				mxLog("%s: %d groups, parallel = %d", oo->name(),
-				      int(rram->group.size()), int(rram->group.size()) > 2*Global->numThreads);
+				      int(rram->group.size()), parallelEnabled(oo));
 			}
 			return;
 		}
@@ -185,7 +197,7 @@ namespace FellnerFitFunction {
 			}
 
 			int covFailed = 0;
-			if (int(rram->group.size()) > 2*Global->numThreads) {
+			if (parallelEnabled(oo)) {
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:covFailed)
 				for (size_t gx=0; gx < rram->group.size(); ++gx) {
 					covFailed += computeCov(*rram->group[gx]);
@@ -308,6 +320,9 @@ namespace FellnerFitFunction {
 		oo->populateAttrFun = FellnerFitFunction::popAttr;
 		FellnerFitFunction::state *st = new FellnerFitFunction::state;
 		oo->argStruct = st;
+
+		ProtectedSEXP Rparallel(R_do_slot(oo->rObj, Rf_install("parallel")));
+		st->parallel = Rf_asLogical(Rparallel);
 
 		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
 		st->numProfiledOut = Rf_length(Rprofile);
