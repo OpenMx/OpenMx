@@ -13,17 +13,27 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#TODO:
+#1.  Does the function need an argument to tell it that status Red is OK (as may unavoidably be so with ordinal-
+#threshold analyses?)
+#2.  Need special-purpose wrapper functions.
+#3.  Need more input checking?
+#4.  Maybe 
+
 mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
 											scale = 0.25,  initialGradientStepSize = .00001, 
 											initialGradientIterations = as.integer(options()$mxOption$'Gradient iterations'),
 											initialTolerance=as.numeric(options()$mxOption$'Optimality tolerance'), 
 											checkHess = TRUE, fit2beat = Inf, paste = TRUE,
 											iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
-											finetuneGradient=TRUE, jitterDistrib=c("rnorm","runif","rcauchy"), exhaustive=FALSE
+											finetuneGradient=TRUE, jitterDistrib=c("rnorm","runif","rcauchy"), exhaustive=FALSE,
+											maxMajorIter=3000
 ){
 	
-	#Initialize stuff:
+	#Initialize stuff & check inputs:
 	jitterDistrib <- match.arg(jitterDistrib)
+	if( !("MxModel" %in% class(model)) ){stop("argument 'model' must be an object of class 'MxModel'")}
+	if(initialTolerance<0){stop("value for argument 'initialTolerance' cannot be negative")}
 	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
 		model@compute <- NULL
 	}
@@ -36,6 +46,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	#every fit attempt, then computing SEs and/or Hessian can be put off until the MLE is obtained:
 	SElater <- ifelse( (!checkHess && relevantOptions[[2]]=="Yes" && defaultComputePlan), TRUE, FALSE )
 	Hesslater <- ifelse( (!checkHess && relevantOptions[[1]]=="Yes" && defaultComputePlan), TRUE, FALSE )
+	if(SElater && !Hesslater){
+		warning('the "Standard Errors" option is enabled and the "Calculate Hessian" option is disabled, which may result in poor-accuracy standard errors')
+	}
 	doIntervals <- ifelse ( (length(model@intervals) && intervals), TRUE, FALSE )
 	lastNoError<-TRUE
 	generalTolerance <- 1e-5 #used for hessian check and lowest min check
@@ -49,6 +62,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	lowestminsofar<-Inf 
 	finalfit<- NULL
 	inits<-omxGetParameters(model)
+	if(is.na(maxMajorIter)){maxMajorIter <- max(1000, (3*length(inits)) + (10*length(model@constraints)))}
 	parlbounds <- omxGetParameters(model=model,fetch="lbound")
 	parlbounds[is.na(parlbounds)] <- -Inf
 	parubounds <- omxGetParameters(model=model,fetch="ubound")
@@ -65,7 +79,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		if(lastBestFitCount == 0 && numdone > 0){ #if the last fit was not the best
 			if(exists('bestfit')) params <- bestfit.params #if bestfit exists use this instead
 			if(numdone %% 4 == 0 && finetuneGradient) params <- inits #sometimes, use initial start values instead
-			#^^^No reason to re-use start values unless optimization-control parameters have been changed,
+			#^^^Not much reason to re-use initial start values unless optimization-control parameters have been changed,
 			#which will only be happening when finetuneGradient is TRUE.
 			model <- omxSetParameters(
 				model, labels = names(params), 
@@ -96,7 +110,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					model, labels = names(bestfit.params), 
 					#values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/10) + 
 					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/10)
-					values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
+					values=imxJiggle(params=bestfit.params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
 													 scale=scale/10)
 				)
 			}
@@ -106,7 +120,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					#values = params * 
 					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/ifelse(finetuneGradient,10,1)) + 
 					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/ifelse(finetuneGradient,10,1))
-					values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
+					values=imxJiggle(params=bestfit.params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
 													 scale=scale/ifelse(finetuneGradient,10,1))
 				)
 			}
@@ -117,7 +131,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			steps <- list(GD=mxComputeGradientDescent(
 				verbose=verbose, gradientStepSize = gradientStepSize, 
 				nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
-				maxMajorIter=3000))
+				maxMajorIter=maxMajorIter))
 			if(checkHess){steps <- c(steps,ND=mxComputeNumericDeriv(),SE=mxComputeStandardError())}
 			model <- OpenMx::mxModel(
 				model,
@@ -130,6 +144,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
 		numdone <- numdone + 1
 		
+		
 		#If fit resulted in error:
 		if( class(fit) == "try-error" || !is.finite(fit$output$minimum) || fit$output$status$status== -1){
 			#^^^is.finite() returns FALSE for Inf, -Inf, NA, and NaN
@@ -141,14 +156,14 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		
 		#If fit did NOT result in error:
 		if(class(fit) != "try-error" && is.finite(fit$output$minimum) && fit$output$status$status != -1){ 
-			if(fit$output$minimum >= lowestminsofar + generalTolerance){
+			if(fit$output$minimum >= lowestminsofar){
 				lastBestFitCount <- 0
-				lastNoError<-TRUE
-				message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
-			}
-			if(fit$output$minimum >= lowestminsofar){lastBestFitCount<-0} #<--Not sure what this line is for...?
+				if(fit$output$minimum >= lowestminsofar + generalTolerance){
+					lastNoError<-TRUE
+					message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
+			}}
 			#Current fit will become bestfit if (1) its fitvalue is strictly less than lowestminsofar, or
-			#(2) its fitvalue exceeds lowestminsofar by no more than tolerance AND it satisfies the criteria for 
+			#(2) its fitvalue is no greater than lowestminsofar (within tolerance) AND it satisfies the criteria for 
 			#an acceptable result (i.e., goodflag gets set to TRUE):
 			if(fit$output$minimum < lowestminsofar){ #<--If this is the best fit so far
 				message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
@@ -213,7 +228,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					steps <- c(steps,CI=mxComputeConfidenceInterval(
 						plan=mxComputeGradientDescent(
 							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
-							maxMajorIter=3000),
+							maxMajorIter=maxMajorIter),
 						constraintType=ifelse(relevantOptions[[3]] == 'NPSOL','none','ineq')))
 				}
 				if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
@@ -254,7 +269,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						steps <- c(steps,CI=mxComputeConfidenceInterval(
 							plan=mxComputeGradientDescent(
 								nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
-								maxMajorIter=3000),
+								maxMajorIter=maxMajorIter),
 							constraintType=ifelse(relevantOptions[[3]] == 'NPSOL','none','ineq')))
 					}
 					if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
@@ -316,6 +331,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 ##' imxJiggle
 imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 	if( !(dsn %in% c("rnorm","runif","rcauchy")) ){stop("unrecognized value for argument 'dsn'")}
+	loc <- as.numeric(loc[1])
+	scale <- as.numeric(scale[1])
+	if(scale<0){stop("negative value for argument 'scale'")}
 	n <- length(params)
 	if(dsn=="rnorm"){
 		out <- params * rnorm(n=n,mean=loc,sd=scale) + rnorm(n=n,mean=0,sd=scale)
