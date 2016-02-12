@@ -392,7 +392,7 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 
 #Wrapper function to imitate original implementation of mxTryHard()--attempts to find good start values:
 mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv=c("prev","best"), ...){
-	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,jitterDistrib=jitterDistrib,
+	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,
 									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,...))
 }
 
@@ -402,7 +402,7 @@ mxTryHardSSCT <- function(model, initialGradientStepSize = .00001, initialGradie
 													initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
 	return(mxTryHard(model=model,initialGradientStepSize==initialGradientStepSize,
 									 initialGradientIterations=initialGradientIterations,
-									 initialTolerance=initalTolerance,jitterDistrib=jitterDistrib,...))
+									 initialTolerance=initialTolerance,jitterDistrib=jitterDistrib,...))
 }
 
 
@@ -418,8 +418,7 @@ mxTryHardWideSearch <- function(model, finetuneGradient=FALSE, jitterDistrib="rc
 #Wrapper function tailored toward ordinal-threshold analyses (not too sure about this function...): 
 mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneGradient=FALSE, exhaustive=TRUE,
 	OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
-	return(mxTryHard(model=model,finetuneGradient==finetuneGradient,
-									 jitterDistrib=jitterDistrib,
-									 exhaustive=exhaustive,wtgcsv=wtgcsv,...))
+	return(mxTryHard(model=model,greenOK=greenOK,checkHess=checkHess,finetuneGradient=finetuneGradient,
+									 exhaustive=exhaustive,OKstatuscodes=OKstatuscodes,wtgcsv=wtgcsv,...))
 }
 	

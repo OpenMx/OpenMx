@@ -1,5 +1,9 @@
 \name{mxTryHard}
 \alias{mxTryHard}
+\alias{mxTryHardOrig}
+\alias{mxTryHardSSCT}
+\alias{mxTryHardWideSearch}
+\alias{mxTryHardOrdinal}
 
 \title{Make multiple attempts to run a model}
 
