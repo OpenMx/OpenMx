@@ -14,11 +14,8 @@
 #   limitations under the License.
 
 #TODO:
-#1.  Does the function need an argument to tell it that status Red is OK (as may unavoidably be so with ordinal-
-#threshold analyses?)
-#2.  Need special-purpose wrapper functions.
-#3.  Need more input checking?
-#4.  Maybe 
+#Need more input checking?  For instance, initialGradientIterations should be a positive integer, right?
+#How can mxTryHard() be improved for ordinal-threshold analyses?
 
 mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
 											scale = 0.25,  initialGradientStepSize = .00001, 
@@ -26,12 +23,15 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 											initialTolerance=as.numeric(options()$mxOption$'Optimality tolerance'), 
 											checkHess = TRUE, fit2beat = Inf, paste = TRUE,
 											iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
-											finetuneGradient=TRUE, jitterDistrib=c("rnorm","runif","rcauchy"), exhaustive=FALSE,
-											maxMajorIter=3000
+											finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
+											maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial")
 ){
 	
 	#Initialize stuff & check inputs:
 	jitterDistrib <- match.arg(jitterDistrib)
+	wtgcsv <- match.arg(wtgcsv,c("prev","best","initial"),several.ok=T)
+	if(missing(OKstatuscodes)){OKstatuscodes <- as.integer(c(0,as.logical(greenOK[1])))}
+	else if( !(0 %in% OKstatuscodes) ){OKstatuscodes <- c(OKstatuscodes,0)}
 	if( !("MxModel" %in% class(model)) ){stop("argument 'model' must be an object of class 'MxModel'")}
 	if(initialTolerance<0){stop("value for argument 'initialTolerance' cannot be negative")}
 	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
@@ -50,7 +50,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		warning('the "Standard Errors" option is enabled and the "Calculate Hessian" option is disabled, which may result in poor-accuracy standard errors')
 	}
 	doIntervals <- ifelse ( (length(model@intervals) && intervals), TRUE, FALSE )
-	lastNoError<-TRUE
+	lastNoError<-FALSE
 	generalTolerance <- 1e-5 #used for hessian check and lowest min check
 	gradientStepSize <- initialGradientStepSize
 	tolerance <- initialTolerance
@@ -61,7 +61,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	numdone <- 0
 	lowestminsofar<-Inf 
 	finalfit<- NULL
-	inits<-omxGetParameters(model)
+	inits <- omxGetParameters(model)
+	params <- inits
 	if(is.na(maxMajorIter)){maxMajorIter <- max(1000, (3*length(inits)) + (10*length(model@constraints)))}
 	parlbounds <- omxGetParameters(model=model,fetch="lbound")
 	parlbounds[is.na(parlbounds)] <- -Inf
@@ -69,22 +70,19 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	parubounds[is.na(parubounds)] <- Inf
 	
 	
-	
 	#Begin main 'while' loop.
 	while (!stopflag) {
+		
 		message(paste0('\nBegin fit attempt ', numdone+1, ' of at maximum ', extraTries +1, ' tries'))
-		if(lastNoError==TRUE) params <- omxGetParameters(model)
+		if(lastNoError && ("prev" %in% wtgcsv)){params <- omxGetParameters(fit)}
 		
 		
 		if(lastBestFitCount == 0 && numdone > 0){ #if the last fit was not the best
-			if(exists('bestfit')) params <- bestfit.params #if bestfit exists use this instead
-			if(numdone %% 4 == 0 && finetuneGradient) params <- inits #sometimes, use initial start values instead
-			#^^^Not much reason to re-use initial start values unless optimization-control parameters have been changed,
-			#which will only be happening when finetuneGradient is TRUE.
+			if(exists('bestfit') && ("best" %in% wtgcsv)){params <- bestfit.params} #if bestfit exists use this instead
+			#sometimes, use initial start values instead:
+			if(numdone %% 4 == 0 && ("initial" %in% wtgcsv)){params <- inits}
 			model <- omxSetParameters(
 				model, labels = names(params), 
-				#values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale) + 
-				#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale)
 				values=imxJiggle(params=params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,scale=scale)
 			)
 			if(finetuneGradient){
@@ -96,9 +94,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		
 		
 		if(lastBestFitCount > 0){ #if the last fit was the best so far
-			if(exists('bestfit')) {
-				params <- bestfit.params      
-				model <- bestfit
+			if(exists('bestfit')){
+				if("best" %in% wtgcsv){params <- bestfit.params}
+				model <- bestfit #<--Necessary?
 			}
 			if(defaultComputePlan==TRUE && finetuneGradient){
 				if(lastBestFitCount == 2) gradientStepSize <- gradientStepSize *.1
@@ -108,8 +106,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(lastBestFitCount  > 0) gradientIterations<-gradientIterations+2
 				if(lastBestFitCount > 2) model <- omxSetParameters(
 					model, labels = names(bestfit.params), 
-					#values = params * imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/10) + 
-					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/10)
 					values=imxJiggle(params=bestfit.params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
 													 scale=scale/10)
 				)
@@ -117,9 +113,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			else{
 				model <- omxSetParameters(
 					model, labels = names(bestfit.params), 
-					#values = params * 
-					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=loc,scale=scale/ifelse(finetuneGradient,10,1)) + 
-					#	imxJiggle(dsn=jitterDistrib,n=length(params),loc=0,scale=scale/ifelse(finetuneGradient,10,1))
 					values=imxJiggle(params=bestfit.params,lbounds=parlbounds,ubounds=parubounds,dsn=jitterDistrib,loc=loc,
 													 scale=scale/ifelse(finetuneGradient,10,1))
 				)
@@ -155,11 +148,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		
 		
 		#If fit did NOT result in error:
-		if(class(fit) != "try-error" && is.finite(fit$output$minimum) && fit$output$status$status != -1){ 
+		if(class(fit) != "try-error" && is.finite(fit$output$minimum) && fit$output$status$status != -1){
+			lastNoError <- TRUE
 			if(fit$output$minimum >= lowestminsofar){
 				lastBestFitCount <- 0
 				if(fit$output$minimum >= lowestminsofar + generalTolerance){
-					lastNoError<-TRUE
 					message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
 			}}
 			#Current fit will become bestfit if (1) its fitvalue is strictly less than lowestminsofar, or
@@ -169,25 +162,20 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				message(paste0('\n Lowest minimum so far:  ',fit$output$minimum) )
 				lastBestFitCount<-lastBestFitCount+1 
 				lowestminsofar <- fit$output$minimum
-				lastNoError<-TRUE
 				bestfit <- fit
 				bestfit.params <- omxGetParameters(bestfit)
 			}
 			if(fit$output$minimum <= lowestminsofar + generalTolerance){
 				###########goodflag checks
 				goodflag <- TRUE
-				if(fit$output$status[[1]] > greenOK){
+				if( !(fit$output$status[[1]] %in% OKstatuscodes) ){
 					goodflag <- FALSE
-					message(paste0('\n OpenMx status code ', fit$output$status[[1]], ' greater than ', as.numeric(greenOK)))
+					message(paste0('\n OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', OKstatuscodes))
 				}
 				if(fit$output$minimum > fit2beat) {
 					message(paste0('\n Fit value of ', fit$output$minimum, ' greater than fit2beat of ', fit2beat))
 					goodflag <- FALSE
 				}
-				#if(fit$output$minimum > lowestminsofar + generalTolerance){
-				#	message(paste0('\n Fit value of ', fit$output$minimum, ' greater than best so far of ', lowestminsofar))
-				#	stopflag<-FALSE
-				#}
 				if(checkHess==TRUE) {
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
 					if(class(hessEigenval)=='try-error') {
@@ -211,6 +199,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				message(paste0("-2LL = ", fit$output$Minus2LogLikelihood))
 			}
 		} #end 'if fit did not result in error' section
+		
 		if(numdone > extraTries){
 			message('\nRetry limit reached')
 			stopflag <- TRUE
@@ -286,7 +275,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if (length(bestfit$output$status$statusMsg) > 0) { 
 					warning(bestfit$output$status$statusMsg)
 				}
-				if(bestfit$output$status$code==6) message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
+				if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
+					message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
+				}
 				if(iterationSummary==TRUE){
 					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 					message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
@@ -398,3 +389,37 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 	return(bestfit)
 }
 
+
+#Wrapper function to imitate original implementation of mxTryHard()--attempts to find good start values:
+mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv=c("prev","best"), ...){
+	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,jitterDistrib=jitterDistrib,
+									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,...))
+}
+
+
+#Wrapper function faithful to Charlie Driver's SSCT-oriented changes:
+mxTryHardSSCT <- function(model, initialGradientStepSize = .00001, initialGradientIterations = 1,
+													initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
+	return(mxTryHard(model=model,initialGradientStepSize==initialGradientStepSize,
+									 initialGradientIterations=initialGradientIterations,
+									 initialTolerance=initalTolerance,jitterDistrib=jitterDistrib,...))
+}
+
+
+#Wrapper function that uses mxTryHard() to try to search a wide region of the parameter space:
+mxTryHardWideSearch <- function(model, finetuneGradient=FALSE, jitterDistrib="rcauchy", exhaustive=TRUE,
+	wtgcsv="prev", ...){
+	return(mxTryHard(model=model,finetuneGradient==finetuneGradient,
+									 jitterDistrib=jitterDistrib,
+									 exhaustive=exhaustive,wtgcsv=wtgcsv,...))
+}
+
+
+#Wrapper function tailored toward ordinal-threshold analyses (not too sure about this function...): 
+mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneGradient=FALSE, exhaustive=TRUE,
+	OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
+	return(mxTryHard(model=model,finetuneGradient==finetuneGradient,
+									 jitterDistrib=jitterDistrib,
+									 exhaustive=exhaustive,wtgcsv=wtgcsv,...))
+}
+	

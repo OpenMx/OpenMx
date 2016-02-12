@@ -14,26 +14,52 @@ initialGradientIterations = as.integer(options()$mxOption$'Gradient iterations')
 initialTolerance=as.numeric(options()$mxOption$'Optimality tolerance'), 
 checkHess = TRUE, fit2beat = Inf, paste = TRUE,	iterationSummary=FALSE, 
 bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
-finetuneGradient=TRUE, jitterDistrib=c("rnorm","runif","rcauchy"), exhaustive=FALSE)
+finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
+maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"))
+
+mxTryHardOrig(model, finetuneGradient=FALSE, maxMajorIter=NA, 
+wtgcsv=c("prev","best"), ...)
+
+mxTryHardSSCT(model, initialGradientStepSize = .00001, 
+initialGradientIterations = 1,
+initialTolerance=1e-12,	jitterDistrib="rnorm", ...)
+
+mxTryHardWideSearch(model, finetuneGradient=FALSE, jitterDistrib="rcauchy", 
+exhaustive=TRUE, wtgcsv="prev", ...)
+
+mxTryHardOrdinal(model, greenOK = TRUE,	checkHess = FALSE, 
+finetuneGradient=FALSE, exhaustive=TRUE,
+OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...)
 }
 
 \arguments{
   \item{model}{The model to be run; object of class \code{\link{MxModel}}.}
   \item{extraTries}{The number of attempts to run the model \emph{in addition to the first}.  In effect, is the maximum number of attempts \code{mxTryHard()} will make, since the function will stop once an acceptable solution is reached.  Defaults to 10, in which case a maximum of 11 total attempts will be made.}
-  \item{greenOK}{Logical; is a solution with Mx status GREEN (npsolstatus=1) acceptable?  Defaults to \code{FALSE}.}
-  \item{loc, scale}{Numeric. The location and scale parameters of the distribution from which random values are drawn to perturb start values between attempts.  The location parameter is the distribution's median; the scale parameter is described below, under \code{jitterDistrib}.  Start values are first multiplied by random draws from a distribution with the provided \code{loc} and \code{scale}, then added to random draws with the same \code{scale} but with \code{loc=0}.} %the half-width of the rectangle (that is, the absolute difference between the median and the extrema).  Defaults to a uniform distribution on the interval (0.75, 1.25).}
-  \item{initialGradientStepSize, initialGradientIterations, initialTolerance}{Numeric.  Optimization parameters passed to \code{\link{mxComputeGradientDescent}}.}
+  \item{greenOK}{Logical; is a solution with Mx status GREEN (optimizer status code 1) acceptable?  Defaults to \code{FALSE}.}
+  \item{loc, scale}{Numeric. The location and scale parameters of the distribution from which random values are drawn to perturb start values between attempts.  The location parameter is the distribution's median; the scale parameter is described below, under \code{jitterDistrib}.  Start values are first multiplied by random draws from a distribution with the provided \code{loc} and \code{scale}, then added to random draws with the same \code{scale} but with a median of zero.}
+  \item{initialGradientStepSize, initialGradientIterations, initialTolerance}{Numeric.  Optimization-control parameters passed to \code{\link{mxComputeGradientDescent}} if \code{model} is using the default compute plan.}
   \item{checkHess}{Logical; is a positive-definite Hessian a requirement for an acceptable solution?  Defaults to \code{TRUE}.}
   \item{fit2beat}{Numeric upper limit to the fitfunction value that an acceptable solution may have.  Useful if a nested submodel of \code{model} has already been fitted, since \code{model}, with its additional free parameters, should not yield a fitfunction value any greater than that of the submodel.}
   \item{paste}{Logical.  If \code{TRUE} (default), start values for the returned fitted model are printed to console as a comma-separated string.  This is useful if the user wants to copy-paste these values into an \R script, say, in an \code{\link{omxSetParameters}()} statement. If \code{FALSE}, the vector of start values is printed as-is.  Note that this vector, from \code{\link{omxGetParameters}()}, has names corresponding to the free parameters; these names are not displayed when \code{paste=TRUE}.}
   \item{iterationSummary}{Logical. If \code{TRUE}, displays parameter estimates and fit values for every fit attempt. Defaults to \code{FALSE}.}
   \item{bestInitsOutput}{Logical. If \code{TRUE}, outputs starting values that resulted in best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.}
   \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt. Defaults to \code{FALSE}.}
-  \item{verbose}{Passed to \code{\link{mxComputeGradientDescent}()} to specify level of output to console during optimization.}
+  \item{verbose}{If \code{model} is using the default compute plan, is passed to \code{\link{mxComputeGradientDescent}()} to specify level of output to console during optimization.}
   \item{intervals}{Logical. If TRUE, OpenMx will estimate any specified confidence intervals.}
-  \item{finetuneGradient}{Logical.  If \code{TRUE} (default), then as repeated fit attempts appear to be improving, \code{mxTryHard()} will adjust optimization-control parameters and argument \code{scale} to "fine-tune" its convergence toward an acceptable solution.  \code{finetuneGradient=FALSE} is recommended for analyses involving thresholds.}
-  \item{jitterDistrib}{Character string naming which random-number distribution--either \link[stats:rnorm]{normal (Gaussian)}, \link[stats:runif]{uniform (rectangular)}, or \link[stats:rcauchy]{Cauchy}--to be used to perturb start values.  For the normal distribution, \code{scale} is its standard deviation; for the uniform, scale is the distance from its median to either support limit (i.e., half the width of the rectangle); and for the Cauchy, \code{scale} is one-half its interquartile range.}
-  \item{exhaustive}{Logical.  If \code{FALSE}, \code{mxTryHard()} stops making additional attempts once it reaches an acceptable solution.  If \code{TRUE}, the function instead continues until it reaches its maximum number of attempts per \code{extraTries}, and returns the best solution it found.}
+  \item{finetuneGradient}{Logical.  If \code{TRUE} (default), then as repeated fit attempts appear to be improving, \code{mxTryHard()} will adjust optimization-control parameters and argument \code{scale} to "fine-tune" its convergence toward an optimal solution.  \code{finetuneGradient=FALSE} is recommended for analyses involving thresholds.}
+  \item{jitterDistrib}{Character string naming which random-number distribution--either \link[stats:runif]{uniform (rectangular)}, \link[stats:rnorm]{normal (Gaussian)}, or \link[stats:rcauchy]{Cauchy}--to be used to perturb start values.  For the uniform distribution, \code{scale} is the absolute difference between its median and extrema (i.e., half the width of the rectangle); for the normal distribution, \code{scale} is its standard deviation; and for the Cauchy, \code{scale} is one-half its interquartile range.  Defaults to the uniform distribution.}
+  \item{exhaustive}{Logical.  If \code{FALSE} (default), \code{mxTryHard()} stops making additional attempts once it reaches an acceptable solution.  If \code{TRUE}, the function instead continues until it reaches its maximum number of attempts (as per \code{extraTries}), and returns the best solution it found.}
+  \item{maxMajorIter}{Integer; passed to \code{\link{mxComputeGradientDescent}}.  Defaults to 3000, which was the internally hardcoded value \code{mxTryHard()} used in at least one prior version of OpenMx.  Value of \code{NA} is permitted, in which case mxTryHard() will calculate a value via the on-load default formula for the "Major iterations" \link[mxOption]{option}.}
+  \item{OKstatuscodes}{Optional integer vector containing optimizer status codes that an acceptable solution is permitted to have.  \code{mxTryHard()} always considers a status code of 0 to be acceptable, this argument notwithstanding. By default, \code{mxTryHard()} will consider status code 0 acceptable, and, if \code{greenOK=TRUE}, status code 1 as well.  If a value is supplied for \code{OKstatuscodes} that conflicts with \code{greenOK}, \code{OKstatuscodes} controls.}
+  \item{wtgcsv}{Character vector.  "Where to get current start values."  See below, under "Details."}
+  \item{...}{Additional arguments to be passed to \code{mxTryHard()}.}
+}
+
+
+\details{
+\code{mxTryHardOrig()}, \code{mxTryHardSSCT()}, \code{mxTryHardWideSearch()}, and \code{mxTryHardOrdinal()} are wrapper functions to the main workhorse function \code{mxTryHard()}.  Each wrapper function has default values for certain argument that are tailored toward a specific purpose.
+
+Argument \code{wtgcsv} dictates where \code{mxTryHard()} is permitted to find free-parameter values, at the start of each fit attempt after the first, before randomly perturbing them to create the current fit attempt's start values.  If \code{"prev"} is included, then \code{mxTryHard()} is permitted to use the parameter estimates of the most recent non-error fit attempt.  If \code{"best"} is included, then \code{mxTryHard()} is permitted to use the parameter estimates at the best solution so far.  If \code{"initial"} is included, then \code{mxTryHard()} is permitted to use the initial start values in \code{model}, as provided by the user.  The default is to permit all three, in which case \code{mxTryHard()} is written to use the best solution's values if available, and otherwise to use the most recent solution's values,  but to periodically revert to the initial values if recent fit attempts have not improved on the best solution.
 }
 
 
