@@ -33,7 +33,7 @@ OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...)
 }
 
 \arguments{
-  \item{model}{The model to be run; object of class \code{\link{MxModel}}.}
+  \item{model}{The MxModel to be run.}
   \item{extraTries}{The number of attempts to run the model \emph{in addition to the first}.  In effect, is the maximum number of attempts \code{mxTryHard()} will make, since the function will stop once an acceptable solution is reached.  Defaults to 10, in which case a maximum of 11 total attempts will be made.}
   \item{greenOK}{Logical; is a solution with Mx status GREEN (optimizer status code 1) acceptable?  Defaults to \code{FALSE}.}
   \item{loc, scale}{Numeric. The location and scale parameters of the distribution from which random values are drawn to perturb start values between attempts.  The location parameter is the distribution's median; the scale parameter is described below, under \code{jitterDistrib}.  Start values are first multiplied by random draws from a distribution with the provided \code{loc} and \code{scale}, then added to random draws with the same \code{scale} but with a median of zero.}
