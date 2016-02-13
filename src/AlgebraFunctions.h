@@ -1071,6 +1071,51 @@ static void omxElementTanh(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 }
 
+static void omxElementArcCosine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = acos(data[j]);
+	}
+	
+}
+
+static void omxElementArcSine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = asin(data[j]);
+	}
+	
+}
+
+static void omxElementArcTangent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = atan(data[j]);
+	}
+	
+}
+
 static void omxElementExponent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];

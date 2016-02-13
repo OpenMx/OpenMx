@@ -65,3 +65,6 @@
 63		"Matrix Exponential"				"expm"	1			"omxExponential"
 64    "Standard-normal quantile"  "p2z" 1 "omxElementPtoZ"
 65    "Log-gamma" "lgamma"  1 "omxElementLgamma"
+66		"Arcsine" "asin" 1 "omxElementArcSine"
+67		"Arccosine" "acos" 1 "omxElementArcCosine"
+68		"Arctangent" "atan" 1 "omxElementArcTangent"
