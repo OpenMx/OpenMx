@@ -85,16 +85,20 @@ Functions
 \item{\code{det}}{Determinant}
 \item{\code{tr}}{Trace}
 \item{\code{sum}}{Sum}
+\item{\code{mean}}{Arithmetic mean}
 \item{\code{prod}}{Product}
 \item{\code{max}}{Maximum}
 \item{\code{min}}{Min}
 \item{\code{abs}}{Absolute value}
 \item{\code{sin}}{Sine}
 \item{\code{sinh}}{Hyperbolic sine}
+\item{\code{asin}}{Arcsine}
 \item{\code{cos}}{Cosine}
 \item{\code{cosh}}{Hyperbolic cosine}
+\item{\code{acos}}{Arccosine}
 \item{\code{tan}}{Tangent}
 \item{\code{tanh}}{Hyperbolic tangent}
+\item{\code{atan}}{Arctangent}
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}
@@ -120,6 +124,9 @@ Functions
 \item{\code{\link[=omxLogical]{omxGreaterThan}}}{Perform binary greater on two matrices}
 \item{\code{\link[=omxLogical]{omxLessThan}}}{Perform binary less than on two matrices}
 \item{\code{\link[=omxLogical]{omxApproxEquals}}}{Perform binary equals to (within a specified epsilon) on two matrices}
+\item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectRows}}}{Filter rows from a matrix}
+\item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectCols}}}{Filter columns from a matrix}
+\item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectRowsAndCols}}}{Filter rows and columns from a matrix}
 }}
 
 \value{
