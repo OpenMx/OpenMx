@@ -445,49 +445,51 @@ namespace RelationalRAMExpectation {
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
+		if (data->hasPrimaryKey()) {
+			// insert_or_assign would be nice here
+			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
+			if (it != rowToLayoutMap.end()) return it->second;
+
+			ram->ensureTrivialF();
+		}
+
 		struct addr a1;
 		struct addrSetup as1;
 		as1.group = 0;
 		as1.copy = 0;
 		as1.clumped = false;
-		a1.rampartScale = 1.0;
 		as1.parent1 = NA_INTEGER;
 		as1.fk1 = NA_INTEGER;
 		as1.numJoins = 0;
-		int parent1Pos = -1;
+		as1.numKids = 0;
+		a1.rampartScale = 1.0;
+		a1.row = frow;
+		a1.model = expectation;
+		//as1.key = frow;
+
+		std::vector<int> parents;
+		parents.reserve(ram->between.size());
+
 		for (size_t jx=0; jx < ram->between.size(); ++jx) {
 			omxMatrix *b1 = ram->between[jx];
 			int key = omxKeyDataElement(data, frow, b1->getJoinKey());
 			if (key == NA_INTEGER) continue;
-			as1.numJoins += 1;
-			if (as1.numJoins == 1) as1.fk1 = key;
 			omxExpectation *e1 = b1->getJoinModel();
 			int parentPos = flattenOneRow(e1, e1->data->lookupRowOfKey(key), maxSize);
-			if (as1.numJoins == 1) parent1Pos = parentPos;
+			if (jx == 0) {
+				as1.fk1 = key;
+				as1.parent1 = parentPos;
+			}
+			parents.push_back(parentPos);
 		}
 
-		a1.row = frow;
-		//as1.key = frow;
-		if (data->hasPrimaryKey()) {
-			ram->ensureTrivialF();
-
-			// insert_or_assign would be nice here
-			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
-			if (it != rowToLayoutMap.end()) return it->second;
-
-			rowToLayoutMap[ std::make_pair(data, frow) ] = layout.size();
-			//a1.key = data->primaryKeyOfRow(frow);
-		}
-
-		if (parent1Pos >= 0) {
-			addrSetup &pop = layoutSetup[parent1Pos];
+		for (size_t jx=0; jx < parents.size(); ++jx) {
+			addrSetup &pop = layoutSetup[ parents[jx] ];
 			pop.numKids += 1;
-			as1.parent1 = parent1Pos;
+			as1.numJoins += 1;
 		}
-		a1.model = expectation;
-		as1.numKids = 0;
-		int obsStart = totalObserved;
 
+		int obsStart = totalObserved;
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
 			if (!ram->M) {
@@ -509,6 +511,11 @@ namespace RelationalRAMExpectation {
 		as1.region = -1;
 		layout.push_back(a1);
 		layoutSetup.push_back(as1);
+
+		if (data->hasPrimaryKey()) {
+			rowToLayoutMap[ std::make_pair(data, frow) ] = layout.size() - 1;
+			//a1.key = data->primaryKeyOfRow(frow);
+		}
 
 		maxSize += ram->F->cols;
 		return layout.size()-1;
@@ -1426,12 +1433,18 @@ namespace RelationalRAMExpectation {
 		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 		dbg.add("dataVec", dv);
 
-		SEXP aIndex;
+		SEXP aIndex, modelStart, obsStart;
 		Rf_protect(aIndex = Rf_allocVector(INTSXP, placements.size()));
+		Rf_protect(modelStart = Rf_allocVector(INTSXP, placements.size()));
+		Rf_protect(obsStart = Rf_allocVector(INTSXP, placements.size()));
 		for (size_t mx=0; mx < placements.size(); ++mx) {
-			INTEGER(aIndex)[mx] = 1+placements[mx].aIndex;
+			INTEGER(aIndex)[mx] = 1 + placements[mx].aIndex;
+			INTEGER(modelStart)[mx] = 1 + placements[mx].modelStart;
+			INTEGER(obsStart)[mx] = 1 + placements[mx].obsStart;
 		}
-		dbg.add("aIndex", aIndex);
+		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("aIndex")=aIndex,
+							  Rcpp::Named("modelStart")=modelStart,
+							  Rcpp::Named("obsStart")=obsStart));
 	}
 
 	void state::exportInternalState(MxRList &dbg)
@@ -1451,7 +1464,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(copy = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
-			INTEGER(row)[mx] = layout[mx].row;
+			INTEGER(row)[mx] = 1+layout[mx].row;
 			INTEGER(numKids)[mx] = layoutSetup[mx].numKids;
 			INTEGER(numJoins)[mx] = layoutSetup[mx].numJoins;
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
