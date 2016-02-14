@@ -252,6 +252,11 @@ model <- mxModel(model, mxAlgebra(omxSelectRowsAndCols(t(O),t(N)%x%5), name='tes
 model <- mxModel(model, mxAlgebra(logm(A), name = 'test68a'))
 model <- mxModel(model, mxAlgebra(logm(B), name = 'test68b'))
 model <- mxModel(model, mxAlgebra(logm(I), name = 'test68c'))
+model <- mxModel(model, mxAlgebra(asin(A),name="test69a"))
+model <- mxModel(model, mxAlgebra(acos(A),name="test69b"))
+model <- mxModel(model, mxAlgebra(atan(A),name="test69c"))
+model <- mxModel(model, mxAlgebra(lgamma(A),name="test70"))
+model <- mxModel(model, mxAlgebra(p2z(A),name="test71"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -467,6 +472,11 @@ omxCheckCloseEnough(model[['test67f']]$result, mxEval(omxSelectRowsAndCols(t(O),
 omxCheckCloseEnough(model[['test68a']]$result, mxEval(logm(A), model), .001)
 omxCheckCloseEnough(model[['test68b']]$result, mxEval(logm(B), model), .001)
 omxCheckCloseEnough(model[['test68c']]$result, mxEval(logm(I), model), .001)
+omxCheckCloseEnough(model[['test69a']]$result, asin(A$values), .001)
+omxCheckCloseEnough(model[['test69b']]$result, acos(A$values), .001)
+omxCheckCloseEnough(model[['test69c']]$result, atan(A$values), .001)
+omxCheckCloseEnough(model[['test70']]$result, lgamma(A$values), .001)
+omxCheckCloseEnough(model[['test71']]$result, qnorm(p=(A$values)), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()
