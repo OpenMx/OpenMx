@@ -849,6 +849,10 @@ namespace RelationalRAMExpectation {
 		dataColumn.setConstant(-1);
 		fullMean.resize(maxSize);
 		fullMean.setZero();
+		if (0) {
+			rawFullMean.resize(maxSize);
+			rawFullMean.setZero();
+		}
 
 		{
 			placement &end = placements[clumpSize-1];
@@ -1348,16 +1352,20 @@ namespace RelationalRAMExpectation {
 			addr &a1 = layout[ax];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			if (!ram->M) continue;
 
 			omxData *data = expectation->data;
 			data->handleDefinitionVarList(expectation->currentState, a1.row);
-			omxRecompute(ram->A, fc);
-			omxRecompute(ram->M, fc);
-			EigenMatrixAdaptor eZ(ram->getZ(fc));
-			EigenVectorAdaptor eM(ram->M);
 			int a1Start = a1.ig->placements[a1.igIndex].modelStart;
-			a1.ig->fullMean.segment(a1Start, a1.numVars()) = eZ * eM;
+			if (ram->M) {
+				omxRecompute(ram->M, fc);
+				EigenVectorAdaptor eM(ram->M);
+				a1.ig->fullMean.segment(a1Start, a1.numVars()) = eM;
+				if (0) {
+					a1.ig->rawFullMean.segment(a1Start, a1.numVars()) = eM;
+				}
+			} else {
+				a1.ig->fullMean.segment(a1Start, a1.numVars()).setZero();
+			}
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *betA = ram->between[jx];
@@ -1373,6 +1381,12 @@ namespace RelationalRAMExpectation {
 				a1.ig->fullMean.segment(a1Start, a1.numVars()) +=
 					eBA * a2.ig->fullMean.segment(a2.ig->placements[a2.igIndex].modelStart, eBA.cols());
 			}
+
+			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			omxRecompute(ram->A, fc);
+			EigenMatrixAdaptor eZ(ram->getZ(fc));
+			a1.ig->fullMean.segment(a1Start, a1.numVars()) =
+				eZ * a1.ig->fullMean.segment(a1Start, a1.numVars());
 		}
 
 		for (size_t gx=0; gx < group.size(); ++gx) {
@@ -1418,6 +1432,11 @@ namespace RelationalRAMExpectation {
 		SEXP fmean = Rcpp::wrap(fullMean);
 		dbg.add("fullMean", fmean);
 		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+		if (0) {
+			fmean = Rcpp::wrap(rawFullMean);
+			dbg.add("rawFullMean", fmean);
+			Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+		}
 		Eigen::SparseMatrix<double> A = getInputMatrix();
 		dbg.add("A", Rcpp::wrap(A));
 		if (0) {
