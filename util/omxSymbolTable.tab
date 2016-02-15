@@ -68,3 +68,6 @@
 66		"Arcsine" "asin" 1 "omxElementArcSine"
 67		"Arccosine" "acos" 1 "omxElementArcCosine"
 68		"Arctangent" "atan" 1 "omxElementArcTangent"
+69		"Inverse Hyperbolic Sine" "asinh" 1 "omxElementAsinh"
+70		"Inverse Hyperbolic Cosine" "acosh" 1 "omxElementAcosh"
+71		"Inverse Hyperbolic Tangent" "atanh" 1 "omxElementAtanh"
