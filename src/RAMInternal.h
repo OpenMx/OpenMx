@@ -268,6 +268,7 @@ namespace RelationalRAMExpectation {
 		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
 		Eigen::VectorXd                  dataVec;
 		Eigen::VectorXd                  fullMean;
+		Eigen::VectorXd                  rawFullMean;
 		Eigen::VectorXd                  expectedMean;
 		Eigen::SparseMatrix<double>      fullCov;
 		bool                             analyzedCov;
