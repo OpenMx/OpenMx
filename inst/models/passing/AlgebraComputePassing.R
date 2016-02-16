@@ -257,6 +257,9 @@ model <- mxModel(model, mxAlgebra(acos(A),name="test69b"))
 model <- mxModel(model, mxAlgebra(atan(A),name="test69c"))
 model <- mxModel(model, mxAlgebra(lgamma(A),name="test70"))
 model <- mxModel(model, mxAlgebra(p2z(A),name="test71"))
+model <- mxModel(model, mxAlgebra(asinh(A),name="test72a"))
+model <- mxModel(model, mxAlgebra(acosh(D),name="test72b"))
+model <- mxModel(model, mxAlgebra(atanh(A),name="test72c"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -477,6 +480,9 @@ omxCheckCloseEnough(model[['test69b']]$result, acos(A$values), .001)
 omxCheckCloseEnough(model[['test69c']]$result, atan(A$values), .001)
 omxCheckCloseEnough(model[['test70']]$result, lgamma(A$values), .001)
 omxCheckCloseEnough(model[['test71']]$result, qnorm(p=(A$values)), .001)
+omxCheckCloseEnough(model[['test72a']]$result, asinh(A$values), .001)
+omxCheckCloseEnough(model[['test72b']]$result, acosh(D$values), .001)
+omxCheckCloseEnough(model[['test72c']]$result, atanh(A$values), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()

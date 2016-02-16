@@ -93,12 +93,15 @@ Functions
 \item{\code{sin}}{Sine}
 \item{\code{sinh}}{Hyperbolic sine}
 \item{\code{asin}}{Arcsine}
+\item{\code{asinh}}{Inverse hyperbolic sine}
 \item{\code{cos}}{Cosine}
 \item{\code{cosh}}{Hyperbolic cosine}
 \item{\code{acos}}{Arccosine}
+\item{\code{acosh}}{Inverse hyperbolic cosine}
 \item{\code{tan}}{Tangent}
 \item{\code{tanh}}{Hyperbolic tangent}
 \item{\code{atan}}{Arctangent}
+\item{\code{atanh}}{Inverse hyperbolic tangent}
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}

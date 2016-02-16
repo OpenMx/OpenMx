@@ -1116,6 +1116,51 @@ static void omxElementArcTangent(FitContext *fc, omxMatrix** matList, int numArg
 	
 }
 
+static void omxElementAsinh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = asinh(data[j]);
+	}
+	
+}
+
+static void omxElementAcosh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = acosh(data[j]);
+	}
+	
+}
+
+static void omxElementAtanh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = atanh(data[j]);
+	}
+	
+}
+
 static void omxElementExponent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
