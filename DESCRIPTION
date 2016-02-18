@@ -147,4 +147,5 @@ Collate:
     'MxFactorScores.R'
     'MxRobustSE.R'
     'MxAvailableOptimizers.R'
+    'MxTryHard.R'
     'zzz.R'
