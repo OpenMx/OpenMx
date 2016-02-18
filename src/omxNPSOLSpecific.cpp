@@ -205,7 +205,6 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
         All arrays must be in column-major order.
         */
  
-	rf.grad.resize(n);
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored

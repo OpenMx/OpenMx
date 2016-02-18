@@ -40,10 +40,9 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
 	nlopt_opt opt = (nlopt_opt) goc->extraData;
-	int mode = 0;
+	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (grad) {
-		goc->recordIteration();
 		if (goc->maxMajorIterations != -1 && goc->getIteration() >= goc->maxMajorIterations) {
 			nlopt_force_stop(opt);
 		}
@@ -197,7 +196,6 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	double *est = goc.est.data();
 	goc.optName = "SLSQP";
 	goc.setupSimpleBounds();
-	goc.useGradient = true;
 
 	int oldWanted = goc.getWanted();
 	goc.setWanted(0);

@@ -2952,6 +2952,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
 	ineqType = omxConstraint::LESS_THAN;
 	avoidRedundentEvals = false;
 	est.resize(numFree);
+	grad.resize(numFree);
 	copyToOptimizer(est.data());
 	reset();
 }
@@ -3007,17 +3008,14 @@ void GradientOptimizerContext::copyFromOptimizer(double *myPars)
 
 void GradientOptimizerContext::finish()
 {
-	if (grad.size()) {
-		fc->grad.resize(fc->numParam);
-		fc->grad.setConstant(nan("unset"));
-	}
+	fc->grad.resize(fc->numParam);
+	fc->grad.setConstant(nan("unset"));
+
 	int px=0;
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
 		if (fc->profiledOut[vx]) continue;
 		fc->est[vx] = est[px];
-		if (grad.size()) {
-			fc->grad[vx] = grad[px];
-		}
+		fc->grad[vx] = grad[px];
 		++px;
 	}
 	fc->copyParamToModel();

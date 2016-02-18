@@ -314,7 +314,6 @@ class GradientOptimizerContext {
 	void copyFromOptimizer(double *myPars);
 	void finish();
 	double getFit() const { return fc->fit; };
-	void recordIteration() { fc->iterations += 1; };
 	int getIteration() const { return fc->iterations; };
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
