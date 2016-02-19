@@ -342,15 +342,16 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' OpenMx offers the choice of three optimizers: SLSQP, CSOLNP, and NPSOL.
 ##'
 ##' One of the most important options for SLSQP is
-##' \code{gradientAlgo}. By default, the \code{forward} method is
-##' used. This method requires \code{gradientIterations} function
-##' evaluations per parameter per gradient.  This method often works
-##' well enough but can result in imprecise gradient estimations that
-##' may not allow SLSQP to fully optimize a given model. If code red
-##' is reported then you are encouraged to try the \code{central}
-##' method. The \code{central} method requires 2 times
-##' \code{gradientIterations} function evaluations per parameter per
-##' gradient, but it can be much more accurate.
+##' \code{gradientAlgo}. By default, ##' the \code{central} method 
+##' is used.  This method requires 2 times 
+##' \code{gradientIterations} function evaluations per parameter 
+##' per gradient.  The \code{central} method can be much more accurate 
+##' than the \code{forward} method, which requires 
+##' \code{gradientIterations} function evaluations per parameter per 
+##' gradient.  The \code{forward} method is faster, and often works
+##' well enough, but can result in imprecise gradient estimations that
+##' may not allow SLSQP to fully optimize a given model, possibly 
+##' resulting in code RED (status code 5 or 6).
 ##' 
 ##' Currently, only SLSQP uses arguments \code{gradientIterations} 
 ##' and \code{gradientAlgo}.  CSOLNP always uses the \code{forward} 
