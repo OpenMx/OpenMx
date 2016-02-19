@@ -27,7 +27,7 @@ Description: Facilitates treatment of statistical model specifications
     distribution, categorical threshold, modern test theory, differential
     equations, state space, and many others.
 SystemRequirements: GNU make
-License: Apache License (== 2.0) | file LICENSE
+License: GPL (>= 3)
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.7), BH, rpf (>= 0.45)
 Depends:
 	R (>= 3.0.2),
@@ -147,4 +147,5 @@ Collate:
     'MxFactorScores.R'
     'MxRobustSE.R'
     'MxAvailableOptimizers.R'
+    'MxTryHard.R'
     'zzz.R'

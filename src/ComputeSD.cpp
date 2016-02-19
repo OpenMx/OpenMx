@@ -42,7 +42,6 @@ void omxSD(GradientOptimizerContext &rf)
     Eigen::VectorXd majorEst = currEst;
 
     while(++iter < maxIter && !isErrorRaised()) {
-	    rf.recordIteration();
 	    gradient_with_ref(rf.gradientAlgo, rf.gradientIterations, rf.gradientStepSize,
 			      ff, refFit, majorEst, rf.grad);
 
