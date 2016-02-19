@@ -51,6 +51,10 @@ To see the defaults, use \code{getOption('mxOptions')}.
 Before the model is submitted to the back-end, all keys and values are converted into
 strings using the \link{as.character} function.
 
+The \dQuote{Default optimizer} option can only be set globally (i.e., with \code{model=NULL}), and not specifically to a given MxModel.
+
+Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.
+
 
 The maximum number of major iterations (the option  \dQuote{Major iterations}) 
 for optimization for NPSOL  can be specified either by using a 
@@ -71,6 +75,8 @@ Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violatio
 Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
 Gradient algorithm \tab see list \tab finite difference method, either 'forward' or 'central'. \cr
 Gradient iterations \tab 1:4 \tab the number of Richardson extrapolation iterations\cr
+Analytic Gradients \tab [Yes | No] \tab should the optimizer use analytic gradients (if available)?\cr
+loglikelihoodScale \tab \var{i} \tab factor by which the loglikelihood is scaled. \cr
 }
 
 
@@ -82,13 +88,22 @@ Print level           \tab \var{i} \tab the value of \var{i} controls the amount
 Minor print level     \tab \var{i} \tab the value of \var{i} controls the amount of printout produced by the minor iterations \cr
 Print file            \tab \var{i} \tab for \var{i} > 0 a full log is sent to the file with logical unit number \var{i}. \cr
 Summary file          \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
-Function precision    \tab \var{r} \tab a measure of accuracy with which \var{f} and \var{c} can be computed. \cr
+Function precision    \tab \var{r} \tab a measure of accuracy with which the fitfunction and constraint functions can be computed. \cr
 Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
 Major iterations      \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
 Verify level          \tab [-1:3 | Yes | No]     \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r}    \tab controls the accuracy with which a step is taken. \cr
 Derivative level      \tab [0-3]      \tab see NPSOL manual. \cr
 Hessian               \tab [Yes | No] \tab return the Hessian (Yes) or the transformed Hessian (No). \cr
+Step Limit            \tab \var{r} \tab maximum change in free parameters at first step of linesearch. \cr
+}
+
+CSOLNP-specific options
+
+\tabular{rcl}{
+Major iteration_CSOLNP \tab \var{i} \tab maximum number of major iterations. \cr
+Minor iteration_CSOLNP \tab \var{i} \tab maximum number of minor iterations. \cr
+Function precision_CSOLNP \tab \var{i} \tab a measure of accuracy with which the fitfunction and constraint functions can be computed. \cr
 }
 
 Checkpointing options
