@@ -1469,7 +1469,7 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
-		dbg.add("numGroups", Rcpp::wrap(group.size()));
+		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
 		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
