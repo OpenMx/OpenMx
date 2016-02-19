@@ -17,6 +17,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{MxModel-class}
+\alias{MxModel}
 \alias{$,MxModel-method}
 \alias{$<-,MxModel-method}
 \alias{[[,MxModel-method}
