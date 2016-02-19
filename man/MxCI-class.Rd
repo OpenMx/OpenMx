@@ -15,6 +15,7 @@
 
 \name{MxCI-class}
 \alias{MxCI}
+\alias{MxInterval}
 
 \title{MxCI Class}
 
