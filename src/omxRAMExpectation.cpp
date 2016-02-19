@@ -448,8 +448,13 @@ namespace RelationalRAMExpectation {
 		if (data->hasPrimaryKey()) {
 			// insert_or_assign would be nice here
 			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
-			if (it != rowToLayoutMap.end()) return it->second;
+			if (it != rowToLayoutMap.end()) {
+				if (it->second < 0) Rf_error("%s cycle detected: '%s' row %d joins against itself",
+							     homeEx->name, data->name, 1+frow);
+				return it->second;
+			}
 
+			rowToLayoutMap[ std::make_pair(data, frow) ] = -1;
 			ram->ensureTrivialF();
 		}
 
