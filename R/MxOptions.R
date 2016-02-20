@@ -167,7 +167,6 @@ otherOptions <- list(
 	"UsePPML" = "No",
 	"Allow Unlabeled" = FALSE,
     "loglikelihoodScale" = -2.0,
-    "Debug Protect Stack" = 0,
     "mvnMaxPointsA" = 0,
     "mvnMaxPointsB" = 0,
     "mvnMaxPointsC" = 5000,

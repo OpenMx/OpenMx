@@ -398,7 +398,7 @@ mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv
 
 
 #Wrapper function faithful to Charlie Driver's SSCT-oriented changes:
-mxTryHardSSCT <- function(model, initialGradientStepSize = .00001, initialGradientIterations = 1,
+mxTryHardctsem <- function(model, initialGradientStepSize = .00001, initialGradientIterations = 1,
 													initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
 	return(mxTryHard(model=model,initialGradientStepSize==initialGradientStepSize,
 									 initialGradientIterations=initialGradientIterations,

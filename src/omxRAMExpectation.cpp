@@ -448,8 +448,13 @@ namespace RelationalRAMExpectation {
 		if (data->hasPrimaryKey()) {
 			// insert_or_assign would be nice here
 			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
-			if (it != rowToLayoutMap.end()) return it->second;
+			if (it != rowToLayoutMap.end()) {
+				if (it->second < 0) Rf_error("%s cycle detected: '%s' row %d joins against itself",
+							     homeEx->name, data->name, 1+frow);
+				return it->second;
+			}
 
+			rowToLayoutMap[ std::make_pair(data, frow) ] = -1;
 			ram->ensureTrivialF();
 		}
 
@@ -1469,7 +1474,7 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
-		dbg.add("numGroups", Rcpp::wrap(group.size()));
+		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
 		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, group, copy;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));

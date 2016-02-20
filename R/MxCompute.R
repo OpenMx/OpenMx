@@ -337,22 +337,31 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' Optimize parameters using a gradient descent optimizer
 ##'
 ##' This optimizer does not require analytic derivatives of the fit
-##' function. The open-source version of OpenMx offers 2 choices,
-##' SLSQP (from the NLOPT collection) and CSOLNP.  The proprietary version of
+##' function. The fully open-source CRAN version of OpenMx offers 2 choices,
+##' SLSQP (from the NLOPT collection) and CSOLNP.  The OpenMx Team's version of
 ##' OpenMx offers the choice of three optimizers: SLSQP, CSOLNP, and NPSOL.
 ##'
 ##' One of the most important options for SLSQP is
-##' \code{gradientAlgo}. By default, the \code{forward} method is
-##' used. This method requires \code{gradientIterations} function
-##' evaluations per parameter per gradient.  This method often works
-##' well enough but can result in imprecise gradient estimations that
-##' may not allow SLSQP to fully optimize a given model. If code red
-##' is reported then you are encouraged to try the \code{central}
-##' method. The \code{central} method requires 2 times
-##' \code{gradientIterations} function evaluations per parameter per
-##' gradient, but it can be much more accurate.
+##' \code{gradientAlgo}. By default, ##' the \code{central} method 
+##' is used.  This method requires 2 times 
+##' \code{gradientIterations} function evaluations per parameter 
+##' per gradient.  The \code{central} method can be much more accurate 
+##' than the \code{forward} method, which requires 
+##' \code{gradientIterations} function evaluations per parameter per 
+##' gradient.  The \code{forward} method is faster, and often works
+##' well enough, but can result in imprecise gradient estimations that
+##' may not allow SLSQP to fully optimize a given model, possibly 
+##' resulting in code RED (status code 5 or 6).
+##' 
+##' Currently, only SLSQP uses arguments \code{gradientIterations} 
+##' and \code{gradientAlgo}.  CSOLNP always uses the \code{forward} 
+##' method; NPSOL usually uses the \code{forward} method, but 
+##' adaptively switches to \code{central} under certain circumstances.
+##' 
+##' Currently, only SLSQP and NPSOL can use analytic gradients, 
+##' and only NPSOL uses \code{warmStart}.
 ##'
-##' @param freeSet names of matrices containing free variables
+##' @param freeSet names of matrices containing free parameters.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param engine specific 'NPSOL', 'SLSQP', or 'CSOLNP'
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
