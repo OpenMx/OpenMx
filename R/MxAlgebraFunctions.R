@@ -354,6 +354,25 @@ vechs2full <- function(x) {
 p2z <- function(x){
   return(qnorm(x))
 }
+logp2z <- function(x){
+	return(qnorm(p=x,log.p=TRUE))
+}
+lgamma1p <- function(x){
+	x <- as.matrix(x)
+	retVal <- .Call(callAlgebra, list(x), imxLookupSymbolTable("lgamma1p"), 
+									generateOptionsList(NULL, 0, FALSE))
+	return(retVal)
+}
+
+omxdbeta <- function(x,a,b,give_log){
+	x <- as.matrix(x)
+	a <- as.matrix(a)
+	b <- as.matrix(b)
+	give_log <- as.matrix(give_log)
+	retval <- .Call(callAlgebra, list(x,a,b,give_log), imxLookupSymbolTable("omxdbeta"), 
+									generateOptionsList(NULL, 0, FALSE))
+	return(retval)
+}
 
 ##' A C implementation of dmvnorm
 ##'

@@ -1219,6 +1219,20 @@ static void omxElementPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	}
 }
 
+static void omxElementLogPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_qnorm5(data[j], 0, 1, 1, 1);
+	}
+}
+
 static void omxElementLgamma(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
@@ -1230,6 +1244,54 @@ static void omxElementLgamma(FitContext *fc, omxMatrix** matList, int numArgs, o
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = Rf_lgammafn(data[j]);
+	}
+}
+
+static void omxElementLgamma1p(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_lgamma1p(data[j]);
+	}
+}
+
+static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *a = matList[1];
+	omxMatrix *b = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(a);
+	omxEnsureColumnMajor(b);
+	omxEnsureColumnMajor(give_log);
+	
+	/*Conformability checks:*/
+	if(inMat->cols != a->cols || inMat->cols != b->cols || inMat->cols != give_log->cols || a->cols != b->cols ||
+	a->cols != give_log->cols || b->cols != give_log->cols || 
+	inMat->rows != a->rows || inMat->rows != b->rows || inMat->rows != give_log->rows || a->rows != b->rows ||
+	a->rows != give_log->rows || b->rows != give_log->rows){
+		char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "arguments to 'dbeta' must have the same number of rows and the same number of columns");
+		omxRaiseError(errstr);
+		free(errstr);
+		return;
+	}
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_dbeta(data[j],a->data[j],b->data[j],int(give_log->data[j] != 0));
 	}
 }
 

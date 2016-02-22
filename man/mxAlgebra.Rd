@@ -16,8 +16,11 @@
 \name{mxAlgebra}
 \alias{mxAlgebra}
 \alias{p2z}
+\alias{logp2z}
+\alias{lgamma1p}
 \alias{\%&\%}
 \alias{\%^\%}
+\alias{omxdbeta}
 
 \title{Create MxAlgebra Object}
 
@@ -106,7 +109,10 @@ Functions
 \item{\code{log}}{Natural Logarithm}
 \item{\code{sqrt}}{Square root}
 \item{\code{p2z}}{\emph{Standard}-normal quantile}
+\item{\code{logp2z}}{\emph{Standard}-normal quantile from log probabilities}
 \item{\code{lgamma}}{Log-gamma function}
+\item{\code{lgamma1p}}{Compute log(gamma(x+1)) accurately for small x}
+\item{\code{omxdbeta}}{Beta distribution}
 \item{\code{\link{eigenval}}}{Eigenvalues of a square matrix. Usage: eigenval(x); eigenvec(x); ieigenval(x); ieigenvec(x)}
 \item{\code{\link{rvectorize}}}{Vectorize by row}
 \item{\code{\link{cvectorize}}}{Vectorize by column}
