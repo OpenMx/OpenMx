@@ -1271,15 +1271,14 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(a);
 	omxEnsureColumnMajor(b);
-	omxEnsureColumnMajor(give_log);
+	
+	int give_log_arg = (int)(give_log->data[j] != 0);
 	
 	/*Conformability checks:*/
-	if(inMat->cols != a->cols || inMat->cols != b->cols || inMat->cols != give_log->cols || a->cols != b->cols ||
-	a->cols != give_log->cols || b->cols != give_log->cols || 
-	inMat->rows != a->rows || inMat->rows != b->rows || inMat->rows != give_log->rows || a->rows != b->rows ||
-	a->rows != give_log->rows || b->rows != give_log->rows){
+	if(inMat->cols != a->cols || inMat->cols != b->cols ||  a->cols != b->cols || 
+	inMat->rows != a->rows || inMat->rows != b->rows || a->rows != b->rows){
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "arguments to 'dbeta' must have the same number of rows and the same number of columns");
+		sprintf(errstr, "first three arguments to 'omxdbeta' must have the same number of rows and the same number of columns");
 		omxRaiseError(errstr);
 		free(errstr);
 		return;
@@ -1291,7 +1290,7 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
-		data[j] = Rf_dbeta(data[j],a->data[j],b->data[j],int(give_log->data[j] != 0));
+		data[j] = Rf_dbeta(data[j],a->data[j],b->data[j],give_log_arg);
 	}
 }
 
