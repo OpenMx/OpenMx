@@ -374,6 +374,17 @@ omxdbeta <- function(x,a,b,give_log){
 	return(retval)
 }
 
+omxpbeta <- function(x,a,b,lower_tail,give_log){
+	x <- as.matrix(x)
+	a <- as.matrix(a)
+	b <- as.matrix(b)
+	give_log <- as.matrix(give_log)
+	lower_tail <- as.matrix(lower_tail)
+	retval <- .Call(callAlgebra, list(x,a,b,lower_tail,give_log), imxLookupSymbolTable("omxpbeta"), 
+									generateOptionsList(NULL, 0, FALSE))
+	return(retval)
+}
+
 ##' A C implementation of dmvnorm
 ##'
 ##' This API is visible to permit testing. Please do not use.

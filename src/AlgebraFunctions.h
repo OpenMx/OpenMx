@@ -1272,7 +1272,7 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxEnsureColumnMajor(a);
 	omxEnsureColumnMajor(b);
 	
-	int give_log_arg = (int)(give_log->data[j] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
 	
 	/*Conformability checks:*/
 	if(inMat->cols != a->cols || inMat->cols != b->cols ||  a->cols != b->cols || 
@@ -1291,6 +1291,41 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = Rf_dbeta(data[j],a->data[j],b->data[j],give_log_arg);
+	}
+}
+
+static void omxElementPbeta(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *a = matList[1];
+	omxMatrix *b = matList[2];
+	omxMatrix *lower_tail = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(a);
+	omxEnsureColumnMajor(b);
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	/*Conformability checks:*/
+	if(inMat->cols != a->cols || inMat->cols != b->cols ||  a->cols != b->cols || 
+	inMat->rows != a->rows || inMat->rows != b->rows || a->rows != b->rows){
+		char *errstr = (char*) calloc(250, sizeof(char));
+		sprintf(errstr, "first three arguments to 'omxpbeta' must have the same number of rows and the same number of columns");
+		omxRaiseError(errstr);
+		free(errstr);
+		return;
+	}
+	
+	int max = inMat->cols * inMat->rows;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		data[j] = Rf_pbeta(data[j],a->data[j],b->data[j],lower_tail_arg,give_log_arg);
 	}
 }
 
