@@ -490,7 +490,7 @@ omxCheckCloseEnough(model[['test73']]$result, lgamma(A$values+1), .001)
 omxCheckCloseEnough(model[['test74']]$result, qnorm(log(A$values),log.p=T), .001)
 omxCheckCloseEnough(model[['test74']]$result, mxEval(logp2z(log(A)),model,T), .001)
 omxCheckCloseEnough(model[['test75']]$result, dbeta(x=A$values,shape1=A$values,shape2=A$values,log=T), .001)
-omxCheckCloseEnough(model[['test75']]$result, omxdbeta(x=A$values,a=A$values,b=A$values,give_log=A$values), .001)
+omxCheckCloseEnough(model[['test75']]$result, mxEval(omxdbeta(A,A,A,A),model,T), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()
