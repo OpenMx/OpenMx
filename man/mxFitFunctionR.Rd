@@ -60,6 +60,16 @@ tryCatch while experimenting.
 Returns an MxFitFunctionR object. 
 }
 
+\seealso{
+Other fit functions:
+\code{\link{mxFitFunctionMultigroup}}, \code{\link{mxFitFunctionML}}, 
+\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionAlgebra}}, 
+\code{\link{mxFitFunctionGREML}}, 
+\code{\link{mxFitFunctionRow}}
+
+More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }
