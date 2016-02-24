@@ -139,10 +139,10 @@ Functions
 There are also several multiargument functions usable in MxAlgebras, which apply themselves elementwise to the matrix provided as their first argument.  These functions have slightly different usage from their \R counterparts.  Their result is always a matrix with the same dimensions as that provided for their first argument.  Values must be provided for ALL arguments of these functions, in order.  Provide zeroes as logical values of \code{FALSE}, and non-zero numerical values as logical values of \code{TRUE}.  For most of these functions, OpenMx cycles over values of arguments other than the first, by column (i.e., in column-major order), to the length of the first argument.  Notable exceptions are the \code{log}, \code{log.p}, and \code{lower.tail} arguments to probability-distribution-related functions, for which only the [1,1] element is used.  It is recommended that all arguments after the first be either (1) scalars, or (2) matrices with the same dimensions as the first argument.
 \tabular{ccl}{
 Function \tab Arguments \tab Notes \cr
-\link[stats:dbeta]{\code{dbeta}} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
-\link[stats:pbeta]{\code{pbeta}} \tab \code{x,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
-\link[base:Bessel]{\code{besselJ} & \code{besselY}} \tab \code{x,nu} \tab  \cr
-\link[base:Bessel]{\code{besselI} & \code{besselK}} \tab \code{x,nu,expon.scaled} \tab Note that OpenMx \emph{does} cycle over the elements of \code{expon.scaled}. \cr
+\code{dbeta} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
+\code{pbeta} \tab \code{x,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
+\code{besselJ} & \code{besselY} \tab \code{x,nu} \tab  \cr
+\code{besselI} & \code{besselK} \tab \code{x,nu,expon.scaled} \tab Note that OpenMx \emph{does} cycle over the elements of \code{expon.scaled}. \cr
 }
 }
 
