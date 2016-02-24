@@ -1,5 +1,6 @@
 .RData
 .Rhistory
+.Rapp.history 
 *.o
 *.so
 *.old
