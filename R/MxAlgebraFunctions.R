@@ -364,26 +364,26 @@ lgamma1p <- function(x){
 	return(retVal)
 }
 
-omxdbeta <- function(x,a,b,give_log){
-	x <- as.matrix(x)
-	a <- as.matrix(a)
-	b <- as.matrix(b)
-	give_log <- as.matrix(give_log)
-	retval <- .Call(callAlgebra, list(x,a,b,give_log), imxLookupSymbolTable("omxdbeta"), 
-									generateOptionsList(NULL, 0, FALSE))
-	return(retval)
-}
-
-omxpbeta <- function(x,a,b,lower_tail,give_log){
-	x <- as.matrix(x)
-	a <- as.matrix(a)
-	b <- as.matrix(b)
-	give_log <- as.matrix(give_log)
-	lower_tail <- as.matrix(lower_tail)
-	retval <- .Call(callAlgebra, list(x,a,b,lower_tail,give_log), imxLookupSymbolTable("omxpbeta"), 
-									generateOptionsList(NULL, 0, FALSE))
-	return(retval)
-}
+# omxdbeta <- function(x,a,b,give_log){
+# 	x <- as.matrix(x)
+# 	a <- as.matrix(a)
+# 	b <- as.matrix(b)
+# 	give_log <- as.matrix(give_log)
+# 	retval <- .Call(callAlgebra, list(x,a,b,give_log), imxLookupSymbolTable("omxdbeta"), 
+# 									generateOptionsList(NULL, 0, FALSE))
+# 	return(retval)
+# }
+# 
+# omxpbeta <- function(x,a,b,lower_tail,give_log){
+# 	x <- as.matrix(x)
+# 	a <- as.matrix(a)
+# 	b <- as.matrix(b)
+# 	give_log <- as.matrix(give_log)
+# 	lower_tail <- as.matrix(lower_tail)
+# 	retval <- .Call(callAlgebra, list(x,a,b,lower_tail,give_log), imxLookupSymbolTable("omxpbeta"), 
+# 									generateOptionsList(NULL, 0, FALSE))
+# 	return(retval)
+# }
 
 ##' A C implementation of dmvnorm
 ##'
