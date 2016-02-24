@@ -72,7 +72,14 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{mxAlgebra} to create an algebra suitable as a reference function to be minimized. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+Other fit functions:
+\code{\link{mxFitFunctionMultigroup}}, \code{\link{mxFitFunctionML}}, 
+\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionGREML}}, 
+\code{\link{mxFitFunctionR}}, \code{\link{mxFitFunctionRow}}
+
+To create an algebra suitable as a reference function to be minimized see: \link{mxAlgebra}
+
+More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{

@@ -58,6 +58,15 @@ The \sQuote{filteredDataRow} is populated in a row-by-row fashion with all the n
 Returns a new MxFitFunctionRow object. Only one MxFitFunction object should be included in each model.  There is no need for an MxExpectation object when using mxFitFunctionRow.
 }
 
+\seealso{
+Other fit functions:
+\code{\link{mxFitFunctionMultigroup}}, \code{\link{mxFitFunctionML}}, 
+\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionAlgebra}}, 
+\code{\link{mxFitFunctionGREML}}, \code{\link{mxFitFunctionR}} 
+
+More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
 }

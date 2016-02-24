@@ -71,3 +71,7 @@
 69		"Inverse Hyperbolic Sine" "asinh" 1 "omxElementAsinh"
 70		"Inverse Hyperbolic Cosine" "acosh" 1 "omxElementAcosh"
 71		"Inverse Hyperbolic Tangent" "atanh" 1 "omxElementAtanh"
+72		"Log-gamma x+1 For Small x" "lgamma1p" 1 "omxElementLgamma1p"
+73    "Std-normal quantile from log(p)"  "logp2z" 1 "omxElementLogPtoZ"
+74    "Beta PDF"  "omxdbeta" 4 "omxElementDbeta"
+75    "Beta CDF"  "omxpbeta" 5 "omxElementPbeta"

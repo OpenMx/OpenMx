@@ -260,6 +260,10 @@ model <- mxModel(model, mxAlgebra(p2z(A),name="test71"))
 model <- mxModel(model, mxAlgebra(asinh(A),name="test72a"))
 model <- mxModel(model, mxAlgebra(acosh(D),name="test72b"))
 model <- mxModel(model, mxAlgebra(atanh(A),name="test72c"))
+model <- mxModel(model, mxAlgebra(lgamma1p(A),name="test73"))
+model <- mxModel(model, mxAlgebra(logp2z(log(A)),name="test74"))
+model <- mxModel(model, mxAlgebra(omxdbeta(A,A,A,A),name="test75"))
+model <- mxModel(model, mxAlgebra(omxpbeta(A,A,A,A,A),name="test76"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -483,6 +487,14 @@ omxCheckCloseEnough(model[['test71']]$result, qnorm(p=(A$values)), .001)
 omxCheckCloseEnough(model[['test72a']]$result, asinh(A$values), .001)
 omxCheckCloseEnough(model[['test72b']]$result, acosh(D$values), .001)
 omxCheckCloseEnough(model[['test72c']]$result, atanh(A$values), .001)
+omxCheckCloseEnough(model[['test73']]$result, lgamma(A$values+1), .001)
+omxCheckCloseEnough(model[['test74']]$result, qnorm(log(A$values),log.p=T), .001)
+omxCheckCloseEnough(model[['test74']]$result, mxEval(logp2z(log(A)),model,T), .001)
+omxCheckCloseEnough(model[['test75']]$result, dbeta(x=A$values,shape1=A$values,shape2=A$values,log=T), .001)
+omxCheckCloseEnough(model[['test75']]$result, mxEval(omxdbeta(A,A,A,A),model,T), .001)
+omxCheckCloseEnough(model[['test76']]$result, pbeta(q=A$values,shape1=A$values,shape2=A$values,lower.tail=T,log.p=T),
+										.001)
+omxCheckCloseEnough(model[['test76']]$result, mxEval(omxpbeta(A,A,A,A,A),model,T), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()

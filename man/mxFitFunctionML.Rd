@@ -61,7 +61,15 @@ The results of the optimization can be reported using the \link{summary} functio
 Returns a new MxFitFunctionML object. One and only one MxFitFunctionML object should be included in each model along  with an associated \link{mxExpectationNormal} or \link{mxExpectationRAM} object.
 }
 
-\seealso{\link{mxFitFunctionMultigroup} for multiple group models and \link{mxFitFunctionAlgebra} for user-defined fit functions.}
+\seealso{
+Other fit functions:
+\code{\link{mxFitFunctionMultigroup}},  
+\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionAlgebra}}, 
+\code{\link{mxFitFunctionGREML}}, \code{\link{mxFitFunctionR}}, 
+\code{\link{mxFitFunctionRow}}
+
+More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
