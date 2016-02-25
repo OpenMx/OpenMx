@@ -1266,31 +1266,31 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *inMat = matList[0];
 	omxMatrix *a = matList[1];
 	omxMatrix *b = matList[2];
-	omxMatrix *give_log = matList[3];
+	omxMatrix *ncp = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
 	
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(a);
 	omxEnsureColumnMajor(b);
+	omxEnsureColumnMajor(ncp);
 	
-	int give_log_arg = (int)(give_log->data[0] != 0);
-	
-	/*Conformability checks:*/
-	if(inMat->cols != a->cols || inMat->cols != b->cols ||  a->cols != b->cols || 
-	inMat->rows != a->rows || inMat->rows != b->rows || a->rows != b->rows){
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "first three arguments to 'omxdbeta' must have the same number of rows and the same number of columns");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
-	
-	int max = inMat->cols * inMat->rows;
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int aDataSize = a->rows * a->cols;
+	int bDataSize = b->rows * b->cols;
+	int ncpDataSize = ncp->rows * ncp->cols;
 	
 	omxCopyMatrix(result, inMat);
 	
 	double* data = result->data;
-	for(int j = 0; j < max; j++) {
-		data[j] = Rf_dbeta(data[j],a->data[j],b->data[j],give_log_arg);
+	for(int j = 0; j < inMatDataSize; j++) {
+		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
+			data[j] = Rf_dbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],give_log_arg);
+		}
+		else{
+			data[j] = Rf_dnbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],ncp->data[j%ncpDataSize],give_log_arg);
+		}
 	}
 }
 
@@ -1299,33 +1299,120 @@ static void omxElementPbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *inMat = matList[0];
 	omxMatrix *a = matList[1];
 	omxMatrix *b = matList[2];
-	omxMatrix *lower_tail = matList[3];
-	omxMatrix *give_log = matList[4];
-	
-	omxEnsureColumnMajor(inMat);
-	omxEnsureColumnMajor(a);
-	omxEnsureColumnMajor(b);
+	omxMatrix *ncp = matList[3];
+	omxMatrix *lower_tail = matList[4];
+	omxMatrix *give_log = matList[5];
 	
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
 	
-	/*Conformability checks:*/
-	if(inMat->cols != a->cols || inMat->cols != b->cols ||  a->cols != b->cols || 
-	inMat->rows != a->rows || inMat->rows != b->rows || a->rows != b->rows){
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "first three arguments to 'omxpbeta' must have the same number of rows and the same number of columns");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(a);
+	omxEnsureColumnMajor(b);
+	omxEnsureColumnMajor(ncp);
 	
-	int max = inMat->cols * inMat->rows;
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int aDataSize = a->rows * a->cols;
+	int bDataSize = b->rows * b->cols;
+	int ncpDataSize = ncp->rows * ncp->cols;
 	
 	omxCopyMatrix(result, inMat);
 	
 	double* data = result->data;
-	for(int j = 0; j < max; j++) {
-		data[j] = Rf_pbeta(data[j],a->data[j],b->data[j],lower_tail_arg,give_log_arg);
+	for(int j = 0; j < inMatDataSize; j++) {
+		//data[j] = Rf_pbeta(data[j],a->data[j],b->data[j],lower_tail_arg,give_log_arg);
+		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
+			data[j] = Rf_pbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],lower_tail_arg,give_log_arg);
+		}
+		else{
+			data[j] = Rf_pnbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],ncp->data[j%ncpDataSize],lower_tail_arg,give_log_arg);
+		}
+	}
+}
+
+static void omxElementBesselI(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *nu = matList[1];
+	omxMatrix *expo = matList[2];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(nu);
+	omxEnsureColumnMajor(expo);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nuDataSize = nu->rows * nu->cols;
+	int expoDataSize = expo->rows * expo->cols;
+	double expocurr;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		expocurr = (expo->data[j%expoDataSize] != 0) ? 2 : 1;
+		data[j] = Rf_bessel_i(data[j],nu->data[j%nuDataSize],expocurr);
+	}
+}
+
+static void omxElementBesselJ(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *nu = matList[1];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(nu);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nuDataSize = nu->rows * nu->cols;
+
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_bessel_j(data[j],nu->data[j%nuDataSize]);
+	}
+}
+
+static void omxElementBesselK(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *nu = matList[1];
+	omxMatrix *expo = matList[2];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(nu);
+	omxEnsureColumnMajor(expo);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nuDataSize = nu->rows * nu->cols;
+	int expoDataSize = expo->rows * expo->cols;
+	double expocurr;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		expocurr = (expo->data[j%expoDataSize] != 0) ? 2 : 1;
+		data[j] = Rf_bessel_k(data[j],nu->data[j%nuDataSize],expocurr);
+	}
+}
+
+static void omxElementBesselY(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *nu = matList[1];
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(nu);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nuDataSize = nu->rows * nu->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_bessel_y(data[j],nu->data[j%nuDataSize]);
 	}
 }
 
