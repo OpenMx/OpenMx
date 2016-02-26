@@ -132,3 +132,14 @@ if (0) {
 	ed$layout
 }
 
+got <- mxGenerateData(student)
+omxCheckEquals(names(got), c("school", "teacher", "student"))
+omxCheckEquals(colnames(got[['school']]), colnames(student$school$data$observed))
+omxCheckTrue(all(got[['school']]$C != student$school$data$observed$C))
+
+omxCheckError(mxGenerateData(student, 10, returnModel=TRUE),
+	      "Specification of the number of rows is not supported for relational models")
+
+got <- mxGenerateData(student, returnModel=TRUE)
+omxCheckTrue(is(got, "MxModel"))
+omxCheckTrue(all(got$school$data$observed$C != student$school$data$observed$C))
