@@ -1,4 +1,30 @@
 
+umx 2.5.1
+--------------
+
+New features include:
+* Regression factor-score estimates are now available for RAM path models via mxFactorScores().
+* mxGenerateData() can now generate data conditional on definition variables.
+* SLSQP is now capable of using an analytic gradient during optimization.
+* Substantial improvements in mxTryHard() and new specialist helpers:
+  * mxTryHardOrig()
+  * mxTryHardSSCT()
+  * mxTryHardWideSearch()
+  * mxTryHardOrdinal()
+* A new function, imxRobustSE(), which calculates robust standard errors for parameter estimates, from the "sandwich estimator."
+* Some functions have been newly made usable in MxAlgebras: the inverse trigonometric functions, the inverse hyperbolic functions, logp2z() (standard-normal quantile function from log probabilities), lgamma1p() (accurate lgamma(x+1) for small x), the Bessel functions, dbeta(), and pbeta(). The latter two are prototypes for making the 'd' and 'p' probability-distribution functions from the 'stats' package usable in MxAlgebras.
+
+Bug fixes and performance tweaks include:
+* Two GREML-related bugs have been repaired.
+* LISREL path models now handle means correctly.
+* mxFactorScores() now returns factor scores in original (not sorted) order.
+* Factor-score estimates on factors with nonzero means now work.
+* mxFactorScores() with type="ML" or type="WeightedML" now works
+* Several help pages have been updated, clarified, and made more complete.
+* NPSOL consistently respects the value of the "Major iterations" option.
+* Newton-Raphson optimizer performs better at parameter bounds.
+* mxGenerateData() works with continuous-time state-space models.
+
 
 umx 2.3.1
 --------------
