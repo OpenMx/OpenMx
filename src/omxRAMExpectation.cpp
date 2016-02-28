@@ -1150,7 +1150,7 @@ namespace RelationalRAMExpectation {
 				}
 
 				double prev = accessor(units[0], ox);
-				accessor(units[0], ox) = partialSum / sqrt(units.size());
+				accessor(units[0], ox) = partialSum / sqrt(double(units.size()));
 				if (debug) buf += string_snprintf(": %f", accessor(units[0], ox));
 
 				for (size_t i=1; i < units.size(); i++) {
