@@ -948,10 +948,18 @@ namespace RelationalRAMExpectation {
 				result = strcmp(getJoinModel(lhs)->name, getJoinModel(rhs)->name) < 0;
 				return true;
 			}
+
+			omxRAMExpectation *ram = (omxRAMExpectation*) lhs->model->argStruct;
+			omxMatrix *b1 = ram->between[0];
+
+			bool mismatch;
+			result = lhs->model->data->CompareDefVarInMatrix(lhs->row, rhs->row, b1, mismatch);
+			if (mismatch) return true;
+
 			return false;
 		}
 
-		bool cmp1(const addr *lhs, const addr *rhs, bool &result) const
+		bool cmpRecursive(const addr *lhs, const addr *rhs, bool &result) const
 		{
 			if (lhs->model != rhs->model) {
 				result = strcmp(lhs->model->name, rhs->model->name) < 0;
@@ -984,7 +992,7 @@ namespace RelationalRAMExpectation {
 				return true;
 			}
 			for (size_t cx=0; cx < lhss->clump.size(); ++cx) {
-				if (cmp1(&st->layout[lhss->clump[cx]], &st->layout[rhss->clump[cx]], result))
+				if (cmpRecursive(&st->layout[lhss->clump[cx]], &st->layout[rhss->clump[cx]], result))
 					return true;
 			}
 			return false;
@@ -1004,7 +1012,7 @@ namespace RelationalRAMExpectation {
 
 			if (lhss->fk1 != rhss->fk1)
 				return lhss->fk1 < rhss->fk1;
-			cmp1(lhs, rhs, result);
+			cmpRecursive(lhs, rhs, result);
 			return result;
 		}
 	};
@@ -1016,7 +1024,7 @@ namespace RelationalRAMExpectation {
 			const addr *lhsObj = &st->layout[lhs];
 			const addr *rhsObj = &st->layout[rhs];
 			bool result = false;
-			if (cmp1(lhsObj, rhsObj, result)) return result;
+			if (cmpRecursive(lhsObj, rhsObj, result)) return result;
 			return lhs < rhs;
 		}
 
@@ -1055,11 +1063,6 @@ namespace RelationalRAMExpectation {
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped || a1.rampartScale != 1.0) continue;
-
-			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
-			omxMatrix *b1 = ram->between[0];
-			// Could divide into groups with the same defvars? Too-automagical? TODO
-			if (b1->dependsOnDefinitionVariables()) continue;
 			std::vector<int> &t1 = todo[&a1];
 			t1.push_back(int(ax));
 		}

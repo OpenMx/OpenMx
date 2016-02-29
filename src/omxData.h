@@ -127,6 +127,7 @@ class omxData {
 	void loadFakeData(omxState *state, double fake);
 	bool handleDefinitionVarList(omxState *state, int row);
 	bool hasDefinitionVariables() { return defVars.size() != 0; };
+	bool CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mismatch);
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
