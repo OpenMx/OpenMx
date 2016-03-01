@@ -720,8 +720,14 @@ namespace RelationalRAMExpectation {
 
 		typedef std::vector< std::set<int> > ConnectedType;
 		ConnectedType connected;
+		bool ConnectedRegionDiagnostics = verbose() >= 3;
 
 		for (int ax=int(layout.size())-1; ax >= 0; --ax) {
+			if (ConnectedRegionDiagnostics) {
+				Eigen::VectorXi regionMap(layout.size());
+				for (size_t rx=0; rx < layout.size(); ++rx) regionMap[rx] = layoutSetup[rx].region;
+				mxPrintMat("region", regionMap);
+			}
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (a1.rampartScale == 0.0 || !ram->between.size()) continue;
@@ -729,6 +735,9 @@ namespace RelationalRAMExpectation {
 				as1.region = connected.size();
 				connected.resize(connected.size() + 1);
 				connected[as1.region].insert(ax);
+				if (ConnectedRegionDiagnostics) {
+					mxLog("assign %d to region %d", ax, as1.region);
+				}
 			}
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -745,13 +754,26 @@ namespace RelationalRAMExpectation {
 				if (as2.region == -1) {
 					as2.region = as1.region;
 					connected[as1.region].insert(it->second);
+					if (ConnectedRegionDiagnostics) {
+						mxLog("add %d to region %d", it->second, as1.region);
+					}
 				} else {
 					if (as2.region > as1.region) std::swap(as2.region, as1.region);
+					// as1 > as2
 					if (as2.region != as1.region) {
-						connected[as2.region].insert(connected[as1.region].begin(),
-									    connected[as1.region].end());
-						connected[as1.region].clear();
-						as1.region = as2.region;
+						if (ConnectedRegionDiagnostics) {
+							mxLog("merge region %d (%d elem) to region %d (%d elem)",
+							      as1.region, (int)connected[as1.region].size(),
+							      as2.region, (int)connected[as2.region].size());
+						}
+						// merge to as2
+						std::set<int> &as1set = connected[as1.region];
+						std::set<int> &as2set = connected[as2.region];
+						for (std::set<int>::iterator it = as1set.begin(); it != as1set.end(); ++it) {
+							layoutSetup[*it].region = as2.region;
+							as2set.insert(*it);
+						}
+						as1set.clear();
 					}
 				}
 			}
