@@ -720,8 +720,14 @@ namespace RelationalRAMExpectation {
 
 		typedef std::vector< std::set<int> > ConnectedType;
 		ConnectedType connected;
+		bool ConnectedRegionDiagnostics = verbose() >= 3;
 
 		for (int ax=int(layout.size())-1; ax >= 0; --ax) {
+			if (ConnectedRegionDiagnostics) {
+				Eigen::VectorXi regionMap(layout.size());
+				for (size_t rx=0; rx < layout.size(); ++rx) regionMap[rx] = layoutSetup[rx].region;
+				mxPrintMat("region", regionMap);
+			}
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (a1.rampartScale == 0.0 || !ram->between.size()) continue;
@@ -729,6 +735,9 @@ namespace RelationalRAMExpectation {
 				as1.region = connected.size();
 				connected.resize(connected.size() + 1);
 				connected[as1.region].insert(ax);
+				if (ConnectedRegionDiagnostics) {
+					mxLog("assign %d to region %d", ax, as1.region);
+				}
 			}
 			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -745,13 +754,26 @@ namespace RelationalRAMExpectation {
 				if (as2.region == -1) {
 					as2.region = as1.region;
 					connected[as1.region].insert(it->second);
+					if (ConnectedRegionDiagnostics) {
+						mxLog("add %d to region %d", it->second, as1.region);
+					}
 				} else {
 					if (as2.region > as1.region) std::swap(as2.region, as1.region);
+					// as1 > as2
 					if (as2.region != as1.region) {
-						connected[as2.region].insert(connected[as1.region].begin(),
-									    connected[as1.region].end());
-						connected[as1.region].clear();
-						as1.region = as2.region;
+						if (ConnectedRegionDiagnostics) {
+							mxLog("merge region %d (%d elem) to region %d (%d elem)",
+							      as1.region, (int)connected[as1.region].size(),
+							      as2.region, (int)connected[as2.region].size());
+						}
+						// merge to as2
+						std::set<int> &as1set = connected[as1.region];
+						std::set<int> &as2set = connected[as2.region];
+						for (std::set<int>::iterator it = as1set.begin(); it != as1set.end(); ++it) {
+							layoutSetup[*it].region = as2.region;
+							as2set.insert(*it);
+						}
+						as1set.clear();
 					}
 				}
 			}
@@ -948,10 +970,18 @@ namespace RelationalRAMExpectation {
 				result = strcmp(getJoinModel(lhs)->name, getJoinModel(rhs)->name) < 0;
 				return true;
 			}
+
+			omxRAMExpectation *ram = (omxRAMExpectation*) lhs->model->argStruct;
+			omxMatrix *b1 = ram->between[0];
+
+			bool mismatch;
+			result = lhs->model->data->CompareDefVarInMatrix(lhs->row, rhs->row, b1, mismatch);
+			if (mismatch) return true;
+
 			return false;
 		}
 
-		bool cmp1(const addr *lhs, const addr *rhs, bool &result) const
+		bool cmpRecursive(const addr *lhs, const addr *rhs, bool &result) const
 		{
 			if (lhs->model != rhs->model) {
 				result = strcmp(lhs->model->name, rhs->model->name) < 0;
@@ -984,7 +1014,7 @@ namespace RelationalRAMExpectation {
 				return true;
 			}
 			for (size_t cx=0; cx < lhss->clump.size(); ++cx) {
-				if (cmp1(&st->layout[lhss->clump[cx]], &st->layout[rhss->clump[cx]], result))
+				if (cmpRecursive(&st->layout[lhss->clump[cx]], &st->layout[rhss->clump[cx]], result))
 					return true;
 			}
 			return false;
@@ -1004,7 +1034,7 @@ namespace RelationalRAMExpectation {
 
 			if (lhss->fk1 != rhss->fk1)
 				return lhss->fk1 < rhss->fk1;
-			cmp1(lhs, rhs, result);
+			cmpRecursive(lhs, rhs, result);
 			return result;
 		}
 	};
@@ -1016,7 +1046,7 @@ namespace RelationalRAMExpectation {
 			const addr *lhsObj = &st->layout[lhs];
 			const addr *rhsObj = &st->layout[rhs];
 			bool result = false;
-			if (cmp1(lhsObj, rhsObj, result)) return result;
+			if (cmpRecursive(lhsObj, rhsObj, result)) return result;
 			return lhs < rhs;
 		}
 
@@ -1055,11 +1085,6 @@ namespace RelationalRAMExpectation {
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped || a1.rampartScale != 1.0) continue;
-
-			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
-			omxMatrix *b1 = ram->between[0];
-			// Could divide into groups with the same defvars? Too-automagical? TODO
-			if (b1->dependsOnDefinitionVariables()) continue;
 			std::vector<int> &t1 = todo[&a1];
 			t1.push_back(int(ax));
 		}
@@ -1150,7 +1175,7 @@ namespace RelationalRAMExpectation {
 				}
 
 				double prev = accessor(units[0], ox);
-				accessor(units[0], ox) = partialSum / sqrt(units.size());
+				accessor(units[0], ox) = partialSum / sqrt(double(units.size()));
 				if (debug) buf += string_snprintf(": %f", accessor(units[0], ox));
 
 				for (size_t i=1; i < units.size(); i++) {
