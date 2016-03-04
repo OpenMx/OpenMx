@@ -27,15 +27,18 @@ fanout <- 5
 
 school.data <- cbind(id=1:fanout, gen.data(fanout))
 #school.data$C <- school.data$id * 1000
-teacher.data <- cbind(schoolId=1:fanout, id=seq(1,fanout^2), gen.data(fanout^2))
+teacher.data <- cbind(schoolId=1:fanout, id=seq(1,fanout^2),
+		      gen.data(fanout^2))
 #teacher.data$C <- teacher.data$id * 100
-student.data <- cbind(teacherId=seq(1,fanout^2), id=seq(1,fanout^3), gen.data(fanout^3))
+student.data <- cbind(teacherId=seq(1,fanout^2),
+		      id=seq(1,fanout^3), gen.data(fanout^3))
 
 stack.data <- function(key, upper, lower) {
 	for (pk in upper$id) {
 		mask <- lower[[key]] == pk
 		for (col in c('C','D')) {
-			lower[mask, col] <- lower[mask, col] + upper[upper$id == pk, 'C']
+			lower[mask, col] <-
+				lower[mask, col] + upper[upper$id == pk, 'C']
 		}
 	}
 	lower
@@ -45,23 +48,25 @@ student.data <- stack.data("teacherId", teacher.data, student.data)
 
 manifests<-c("C","D")
 latents<-c("A","B")
-student <- mxModel("student",
-                 type="RAM",
-                 manifestVars = manifests,
-                 latentVars = latents,
-                 mxPath(from="A",to=c("C","D"), free=c(FALSE,FALSE), value=c(1,1) , arrows=1,
-                        label=c("A_TO_C","A_TO_D") ),
-                 mxPath(from="B",to=c("C","D"), free=c(FALSE,FALSE), value=c(1,-1) ,
-                        arrows=1, label=c("B_TO_C","B_TO_D") ),
-                 mxPath(from="A",to=c("A","B"), free=c(TRUE,TRUE), value=c(1,0) , arrows=2,
-                        label=c("VAR_A","COV_A_B") ),
-                 mxPath(from="B",to=c("B"), free=c(TRUE), value=c(1) , arrows=2,
-                        label=c("VAR_B") ),
-                 mxPath(from="C",to=c("C"), free=as.logical(more.noise), value=more.noise, arrows=2,
-                        label=c("VAR_C") ),
-                 mxPath(from="D",to=c("D"), free=as.logical(more.noise), value=more.noise, arrows=2,
-                        label=c("VAR_D") ),
-                   mxPath(from="one", to=c(manifests, latents), value=0, free=FALSE)
+student <- mxModel(
+    "student", type="RAM",
+    manifestVars = manifests,
+    latentVars = latents,
+    mxPath(from="A",to=c("C","D"), free=c(FALSE,FALSE),
+	   value=c(1,1), arrows=1,
+	   label=c("A_TO_C","A_TO_D") ),
+    mxPath(from="B",to=c("C","D"), free=c(FALSE,FALSE), value=c(1,-1) ,
+	   arrows=1, label=c("B_TO_C","B_TO_D") ),
+    mxPath(from="A",to=c("A","B"), free=c(TRUE,TRUE),
+	   value=c(1,0), arrows=2,
+	   label=c("VAR_A","COV_A_B") ),
+    mxPath(from="B",to=c("B"), free=c(TRUE), value=c(1) , arrows=2,
+	   label=c("VAR_B") ),
+    mxPath(from="C",to=c("C"), free=as.logical(more.noise),
+	   value=more.noise, arrows=2, label=c("VAR_C") ),
+    mxPath(from="D",to=c("D"), free=as.logical(more.noise),
+	   value=more.noise, arrows=2, label=c("VAR_D") ),
+    mxPath(from="one", to=c(manifests, latents), value=0, free=FALSE)
 );
 
 relabel <- function(m, prefix) {
@@ -77,36 +82,44 @@ teacher <- relabel(mxModel(student, name="teacher"), "tea_")
 school <- relabel(mxModel(student, name="school"), "sch_")
 student <- relabel(student, "st_")
 
-school <- mxModel(school,
-		  mxData(school.data, type="raw", primaryKey="id", sort=FALSE))
+school <- mxModel(
+    school,
+    mxData(school.data, type="raw", primaryKey="id", sort=FALSE))
 
-teacher <- mxModel(teacher, school,
-                   mxData(teacher.data, type="raw", primaryKey="id", sort=FALSE),
-		   mxPath('school.C', 'A', free=FALSE, value=1, joinKey="schoolId"))
+teacher <- mxModel(
+    teacher, school,
+    mxData(teacher.data, type="raw", primaryKey="id", sort=FALSE),
+    mxPath('school.C', 'A', free=FALSE, value=1, joinKey="schoolId"))
 
-student <- mxModel(student, teacher,
-                   mxData(student.data, type="raw", primaryKey="id", sort=FALSE),
-		   mxPath('teacher.C', 'A', free=FALSE, value=1, joinKey="teacherId"))
+student <- mxModel(
+    student, teacher,
+    mxData(student.data, type="raw", primaryKey="id", sort=FALSE),
+    mxPath('teacher.C', 'A', free=FALSE, value=1, joinKey="teacherId"))
 
 #student$expectation$verbose <- 1L
 
 student$expectation$.rampart <- 0L
-pt1 <- mxRun(mxModel(student,
-			 mxComputeSequence(list(
-			     mxComputeOnce('fitfunction', 'fit'),
-			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
-			     mxComputeReportDeriv(),
-			     mxComputeReportExpectation()))))
+pt1 <- mxRun(mxModel(
+    student,
+    mxComputeSequence(list(
+	mxComputeOnce('fitfunction', 'fit'),
+	mxComputeNumericDeriv(checkGradient=FALSE,
+			      iterations=2, hessian=FALSE),
+	mxComputeReportDeriv(),
+	mxComputeReportExpectation()))))
 
 student$expectation$.rampart <- as.integer(NA)
-pt2 <- mxRun(mxModel(student,
-			 mxComputeSequence(list(
-			     mxComputeOnce('fitfunction', 'fit'),
-			     mxComputeNumericDeriv(checkGradient=FALSE, iterations=2, hessian=FALSE),
-			     mxComputeReportDeriv(),
-			     mxComputeReportExpectation()))))
+pt2 <- mxRun(mxModel(
+    student,
+    mxComputeSequence(list(
+	mxComputeOnce('fitfunction', 'fit'),
+	mxComputeNumericDeriv(checkGradient=FALSE,
+			      iterations=2, hessian=FALSE),
+	mxComputeReportDeriv(),
+	mxComputeReportExpectation()))))
 
-omxCheckCloseEnough(pt2$expectation$debug$rampartUsage, c((fanout-1)*fanout^2, (fanout-1)*fanout), 1)
+omxCheckCloseEnough(pt2$expectation$debug$rampartUsage,
+		    c((fanout-1)*fanout^2, (fanout-1)*fanout), 1)
 omxCheckCloseEnough(pt2$expectation$debug$numGroups, 3)
 
 if (0) {
@@ -134,11 +147,13 @@ if (0) {
 
 got <- mxGenerateData(student)
 omxCheckEquals(names(got), c("school", "teacher", "student"))
-omxCheckEquals(colnames(got[['school']]), colnames(student$school$data$observed))
+omxCheckEquals(colnames(got[['school']]),
+	       colnames(student$school$data$observed))
 omxCheckTrue(all(got[['school']]$C != student$school$data$observed$C))
 
 omxCheckError(mxGenerateData(student, 10, returnModel=TRUE),
-	      "Specification of the number of rows is not supported for relational models")
+	      paste("Specification of the number of rows",
+		    "is not supported for relational models"))
 
 got <- mxGenerateData(student, returnModel=TRUE)
 omxCheckTrue(is(got, "MxModel"))

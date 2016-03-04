@@ -78,7 +78,8 @@ totalVars <- 2
 
 maxP <- 0
 for (tID in theIDs) {
-    tLen <- length(SimUniRandomIntFrame$ID[SimUniRandomIntFrame$ID==tID])
+    tmask <- SimUniRandomIntFrame$ID==tID
+    tLen <- length(SimUniRandomIntFrame$ID[tmask])
     if (tLen > maxP) 
         maxP <- tLen
 }
@@ -108,7 +109,8 @@ latentNames <- c("b0i")
 # ----------------------------------
 # Build the OpenMx wide model.
 
-OpenMxModelUniRandomIntModel1 <- mxModel("OpenMxModelUniRandomIntModel1",
+OpenMxModelUniRandomIntModel1 <-
+  mxModel("OpenMxModelUniRandomIntModel1",
 	type="RAM", 
 	manifestVars=manifestNames,
     latentVars=latentNames,
@@ -148,7 +150,8 @@ omxCheckCloseEnough(sd(c(lmeOut$coefficients$random$ID)),
 		    mxEval(sqrt(vb0i), model=omxFit), 0.001)
 
 if (0) {
-  omxCheckCloseEnough(lmeOut$coefficients$fixed, fixef(lmerOut), 1e-4)
+	omxCheckCloseEnough(lmeOut$coefficients$fixed,
+			    fixef(lmerOut), 1e-4)
   omxCheckCloseEnough(lmeOut$sigma, sigma(lmerOut), 1e-4)
   omxCheckCloseEnough(c(lmeOut$coefficients$random$ID),
 		      ranef(lmerOut)$ID[[1]], 1e-4)
