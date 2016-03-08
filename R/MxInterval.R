@@ -219,13 +219,13 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 	} else {
 		for (entityName in names(flatModel@matrices)) {
 			entity <- flatModel[[entityName]]
-			free <- entity$free
-			rows <- nrow(entity)
-			cols <- ncol(entity)
+			free <- entity@free
+			rows <- nrow(free)
+			cols <- ncol(free)
 			for(i in 1:rows) {
 				for(j in 1:cols) {
 					if (free[i, j]) next
-					label <- entity$labels[i,j]
+					label <- entity@labels[i,j]
 					if (is.na(label) || label != reference) next
 					entityNumber <- imxLocateIndex(flatModel, entityName, 
 								       paste("confidence interval", reference))
