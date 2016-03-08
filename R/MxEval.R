@@ -382,6 +382,7 @@ retainLabel <- function(label, existing) {
 
 generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	labels <- matrix@labels
+	if (is.null(labels)) return(labelsData)
 	test <- !is.na(labels)
 	select <- labels[test]
 	rows <- row(labels)[test]

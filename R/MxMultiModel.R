@@ -45,7 +45,9 @@ getAllIndependents <- function(model) {
 }
 
 freezeMatrix <- function(mxMatrix) {
-  mxMatrix@free[mxMatrix@free] <- FALSE
+	if (!is.null(mxMatrix@free)) {
+		mxMatrix@free[mxMatrix@free] <- FALSE
+	}
 	return(mxMatrix)
 }
 

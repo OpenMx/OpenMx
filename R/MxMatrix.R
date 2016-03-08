@@ -43,11 +43,11 @@ single.false <- function(a) {
 }
 
 is.condenseSlots <- function(matrix){
-  return( class(try(matrix@.condenseSlots,silent=T))!="try-error" && matrix@.condenseSlots[1] )
+	.hasSlot(matrix, '.condenseSlots') && matrix@.condenseSlots[1]
 }
 
 verifySquare <- function(.Object) {
-	if (nrow(.Object@labels) != ncol(.Object@labels)) { 
+	if (!is.null(.Object@labels) && nrow(.Object@labels) != ncol(.Object@labels)) { 
 		stop(paste("'labels' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
@@ -55,7 +55,7 @@ verifySquare <- function(.Object) {
 		stop(paste("'values' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
-	if (nrow(.Object@free) != ncol(.Object@free)) { 
+	if (!is.null(.Object@free) && nrow(.Object@free) != ncol(.Object@free)) { 
 		stop(paste("'free' matrix of MxMatrix", 
 				omxQuotes(.Object@name), "is not square"), call.=FALSE)
 	}
@@ -159,8 +159,8 @@ setGeneric("imxCreateMatrix",
 setClass(Class = "MxMatrix",
 	representation = representation(
 	  name = "character", 
-    values = "matrix", labels = "matrix", free = "matrix", 
-    lbound = "matrix", ubound = "matrix",
+    values = "matrix", labels = "MxOptionalMatrix", free = "MxOptionalMatrix", 
+    lbound = "MxOptionalMatrix", ubound = "MxOptionalMatrix",
 		.squareBrackets = "matrix", .persist = "logical", .condenseSlots="logical",
 	    display = "character", dependencies = "integer",
 	    joinModel = "MxCharOrNumber",
@@ -172,17 +172,17 @@ setMethod("imxCreateMatrix", "MxMatrix",
 		    condenseSlots, joinKey, joinModel) {
 	  .Object@.condenseSlots <- condenseSlots
     .Object <- populateMatrixSlot(.Object, "values", values, nrow, ncol)
-    if(condenseSlots && all.false(free) && all.na(labels)){
-      .Object <- populateMatrixSlot(.Object, "free", FALSE, 1, 1)
-      .Object <- populateMatrixSlot(.Object, "labels", as.character(NA), 1, 1)
+    if(is.null(free) && is.null(labels)) {
+	    .Object@free <- NULL
+	    .Object@labels <- NULL
     }
     else{
       .Object <- populateMatrixSlot(.Object, "free", free, nrow, ncol)
       .Object <- populateMatrixSlot(.Object, "labels", labels, nrow, ncol)  
     }
-		if(condenseSlots && all.na(lbound)){.Object <- populateMatrixSlot(.Object, "lbound", as.numeric(NA), 1, 1)}
+	  if(is.null(lbound)){ .Object@lbound <- NULL }
     else{.Object <- populateMatrixSlot(.Object, "lbound", lbound, nrow, ncol)}
-    if(condenseSlots && all.na(ubound)){.Object <- populateMatrixSlot(.Object, "ubound", as.numeric(NA), 1, 1)}
+    if(is.null(ubound)) { .Object@ubound <- NULL }
     else{.Object <- populateMatrixSlot(.Object, "ubound", ubound, nrow, ncol)}
 		.Object@name <- name
 	  .Object@.persist <- TRUE
@@ -213,10 +213,11 @@ populateMatrixSlot <- function(object, slotName, vals, nr, nc, repop=FALSE) {
   dnSave <- dimnames(object)
 	slot(object, slotName) <- suppressWarnings(matrix(vals, nr, nc))
   #We care if 'free' or 'labels' has been repopulated in a way causing them have different dimensions:
-  if( repop && !identical(dim(object@free),dim(object@labels)) ){
-    if(single.false(object@free)){object@free <- matrix(FALSE,nrow(object),ncol(object))}
-    if(single.na(object@labels)){object@labels <- matrix(as.character(NA),nrow(object),ncol(object))}
-    imxVerifyMatrix(object)
+  if (repop) {
+	  if (is.null(slot(object, slotName))) {
+		  slot(object, slotName) <- matrix(getDefaultOfSlot(slotName), nrow(object), ncol(object))
+	  }
+	  imxVerifyMatrix(object)
   }
   dimnames(object) <- dnSave
 	return(object)
@@ -225,27 +226,34 @@ populateMatrixSlot <- function(object, slotName, vals, nr, nc, repop=FALSE) {
 
 ##' Condense/decondense slots of an MxMatrix
 ##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
+##' This function harmonizes the slot values with whatever .condenseSlots is set to.
 ##'
 ##' @param object of class MxMatrix
 ##' @aliases
 ##' imxConDecMatrixSlots,MxMatrix-method
 imxConDecMatrixSlots <- function(object){ #<--This function assumes that the 4 condensible slots have been populated.
   if(!is.condenseSlots(object)){
-    if(all.false(object@free)){object@free <- matrix(FALSE,nrow(object),ncol(object),dimnames=dimnames(object))}
-    if(all.na(object@labels)){object@labels <- matrix(as.character(NA),nrow(object),ncol(object),dimnames=dimnames(object))}
-    if(all.na(object@lbound)){object@lbound <- matrix(as.numeric(NA),nrow(object),ncol(object),dimnames=dimnames(object))}
-    if(all.na(object@ubound)){object@ubound <- matrix(as.numeric(NA),nrow(object),ncol(object),dimnames=dimnames(object))}
-    return(object)
+	  if(is.null(object@free) || all.false(object@free)) {
+		  object@free <- matrix(FALSE,nrow(object),ncol(object),dimnames=dimnames(object))
+	  }
+	  if(is.null(object@labels) || all.na(object@labels)){
+		  object@labels <- matrix(as.character(NA),nrow(object),ncol(object),dimnames=dimnames(object))
+	  }
+	  if(is.null(object@lbound) || all.na(object@lbound)){
+		  object@lbound <- matrix(as.numeric(NA),nrow(object),ncol(object),dimnames=dimnames(object))
+	  }
+	  if(is.null(object@ubound) || all.na(object@ubound)){
+		  object@ubound <- matrix(as.numeric(NA),nrow(object),ncol(object),dimnames=dimnames(object))
+	  }
+	  return(object)
   }
   else{
     if(all.false(object@free) && all.na(object@labels)){
-      object@labels <- matrix(as.character(NA),1,1)
-      object@free <- matrix(FALSE,1,1)
+      object@labels <- NULL
+      object@free <- NULL
     }
-    if(all.na(object@lbound)){object@lbound <- matrix(as.numeric(NA),1,1)}
-    if(all.na(object@ubound)){object@ubound <- matrix(as.numeric(NA),1,1)}
+    if(all.na(object@lbound)){object@lbound <- NULL }
+    if(all.na(object@ubound)){object@ubound <- NULL }
     return(object)
   }
 }
@@ -253,34 +261,35 @@ imxConDecMatrixSlots <- function(object){ #<--This function assumes that the 4 c
 
 setMethod("imxVerifyMatrix", "MxMatrix",
 	function(.Object) {
-	  if( (!is.condenseSlots(.Object) || !all.na(.Object@labels)) && !all(dim(.Object@labels) == dim(.Object@values)) ){
+	  if (!is.null(.Object@labels) && !all.na(.Object@labels) && !all(dim(.Object@labels) == dim(.Object@values)) ){
 	    stop(paste("'labels' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) || !all.false(.Object@free)) && !all(dim(.Object@free) == dim(.Object@values))){
+	  if (!is.null(.Object@free) && !all.false(.Object@free) && !all(dim(.Object@free) == dim(.Object@values))){
 	    stop(paste("'values' and 'free' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) || !all.na(.Object@lbound)) && !all(dim(.Object@lbound) == dim(.Object@values)) ){
+	  if (!is.null(.Object@lbound) && !all.na(.Object@lbound) && !all(dim(.Object@lbound) == dim(.Object@values))) {
 	    stop(paste("'lbound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if( (!is.condenseSlots(.Object) || !all.na(.Object@ubound)) && !all(dim(.Object@ubound) == dim(.Object@values)) ){
+	  if (!is.null(.Object@ubound) && !all.na(.Object@ubound) && !all(dim(.Object@ubound) == dim(.Object@values))) {
 	    stop(paste("'ubound' and 'values' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
-	  if (!all(dim(.Object@labels) == dim(.Object@free))) { #<--Dims of labels and free should always match
+	  if (!is.null(.Object@labels) && !is.null(.Object@free) &&
+	      !all(dim(.Object@labels) == dim(.Object@free))) { #<--Dims of labels and free should always match
 	    stop(paste("'labels' and 'free' matrices of", 
 	               omxQuotes(.Object@name), 
 	               "have different dimensions"), call.=FALSE)
 	  }
 		select <- .Object@.squareBrackets
 		if(length(select)>0){
-      subs <- .Object$labels[select] 
+			subs <- .Object$labels[select]
 		  lapply(subs, verifySquareBracket, .Object@name)
 		}
 		if (imxSquareMatrix(.Object)) {
@@ -329,31 +338,29 @@ setMethod("[", "MxMatrix",
 			name <- x@name
 		}
 		values <- as.matrix(x@values[i, j, drop = drop])
-    if(is.condenseSlots(x) && all.na(x@labels) && all.false(x@free)){
-      labels <- matrix(as.character(NA),1,1)
-      free <- matrix(FALSE,1,1)
-    }
-    else{
-      #Use $ here...?:
-      labels <- as.matrix(x@labels[i, j, drop = drop])
-      free <- as.matrix(x@free[i, j, drop = drop])
-    }
-		if(is.condenseSlots(x) && all.na(x@lbound)){lbound <- matrix(NA,1,1)}
-    else{lbound <- as.matrix(x@lbound[i, j, drop = drop])}
-    if(is.condenseSlots(x) && all.na(x@ubound)){ubound <- matrix(NA,1,1)}
-    else{ubound <- as.matrix(x@ubound[i, j, drop = drop])}
+		if(is.null(x@labels) && is.null(x@free)){
+			labels <- NULL
+			free <- NULL
+		}
+		else{
+			labels <- as.matrix(x@labels[i, j, drop = drop])
+			free <- as.matrix(x@free[i, j, drop = drop])
+		}
+		if(is.null(x@lbound)){lbound <- NULL }
+		else{lbound <- as.matrix(x@lbound[i, j, drop = drop])}
+		if(is.null(x@ubound)){ubound <- NULL }
+		else{ubound <- as.matrix(x@ubound[i, j, drop = drop])}
 		type <- substr(class(x)[[1]],1,nchar(class(x)[[1]])-6)
 		nrow <- nrow(values)
 		ncol <- ncol(values)
 		dnames <- dimnames(values)
 		newMatrix <- tryCatch(suppressWarnings(
-			mxMatrix(type, nrow, ncol, free, values, labels, 
-				lbound, ubound, FALSE, dnames, name, condenseSlots=is.condenseSlots(x))),
-				error = function(e) mxMatrix("Full",
-					nrow, ncol, free, values, labels,
-					lbound, ubound, FALSE, dnames, name, condenseSlots=is.condenseSlots(x))) 
-		#newMatrix <- imxConDecMatrixSlots(newMatrix)
-    return(newMatrix)
+		    mxMatrix(type, nrow, ncol, free, values, labels, 
+			     lbound, ubound, FALSE, dnames, name, condenseSlots=is.condenseSlots(x))),
+				      error = function(e) mxMatrix("Full",
+					  nrow, ncol, free, values, labels,
+					  lbound, ubound, FALSE, dnames, name, condenseSlots=is.condenseSlots(x)))
+		return(newMatrix)
 	}
 )
 
@@ -370,18 +377,18 @@ setReplaceMethod("[", "MxMatrix",
       x@ubound[i,j] <- value@ubound
     }
     else{
-      if( single.false(x@free) && single.na(x@labels) ){
-        x@free <- value@free
-        x@labels <- value@labels
+      if( is.null(x@free) && is.null(x@labels) ){
+        x@free <- NULL
+        x@labels <- NULL
       }
       else{
         x@free[i,j] <- value@free
         x@labels[i,j] <- value@labels
       }
-      if(single.na(x@lbound)){x@lbound <- value@lbound}
+      if (is.null(x@lbound)) { x@lbound <- value@lbound }
       else{x@lbound[i,j] <- value@lbound}
-  		if(single.na(x@ubound)){x@ubound <- value@ubound}
-  		else{x@ubound[i,j] <- value@ubound}
+      if(is.null(x@ubound)){ x@ubound <- value@ubound }
+      else{x@ubound[i,j] <- value@ubound}
     }
     x <- imxConDecMatrixSlots(x)
 		return(x)
@@ -419,15 +426,24 @@ setReplaceMethod("dimnames", "MxMatrix",
 	}
 )
 
+getDefaultOfSlot <- function(slotName) {
+	if (slotName == "free") {
+		FALSE
+	} else if (slotName == "labels") {
+		as.character(NA)
+	} else {
+		as.numeric(NA)
+	}
+}
+
 .mxMatGetLayer <- function(x,name) {
-  if(!is.condenseSlots(x)){return(imxExtractSlot(x,name))}
   if (!.hasSlot(x, name)) {
     return(NULL)
   }
-  if( (name %in% c("free","labels","lbound","ubound")) ){
-    return(slot(object=populateMatrixSlot(object=x,slotName=name,vals=slot(x,name),
-                                            nr=nrow(x),nc=ncol(x)),name=name))
-    }
+  if (is.null(slot(x, name)) && name %in% c("free","labels","lbound","ubound")) {
+	  return(slot(object=populateMatrixSlot(object=x,slotName=name,vals=getDefaultOfSlot(name),
+			  nr=nrow(x),nc=ncol(x)),name=name))
+  }
   return(slot(x,name))
 }
 
@@ -582,22 +598,22 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
-	if (!is.logical(free)) {
+	if (!is.null(free) && !is.logical(free)) {
 		stop(paste("'free' argument to mxMatrix function",
 			"must be of logical type in", 
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
-	if (!is.character(labels)) {
+	if (!is.null(labels) && !is.character(labels)) {
 		stop(paste("'labels' argument to mxMatrix function",
 			"must be of character type in", 
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
-	if (!is.numeric(lbound)) {
+	if (!is.null(lbound) && !is.numeric(lbound)) {
 		stop(paste("'lbound' argument to mxMatrix function",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
-	if (!is.numeric(ubound)) {
+	if (!is.null(ubound) && !is.numeric(ubound)) {
 		stop(paste("'ubound' argument to mxMatrix function",
 			"must be of numeric type in", 
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
@@ -608,7 +624,7 @@ matrixCheckErrors <- function(type, values, free, labels, lbound, ubound, nrow, 
 	             deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
 	}
 	lapply(labels, imxVerifyReference, -2)
-	if(any(is.na(free))) {
+	if(!is.null(free) && any(is.na(free))) {
 		stop(paste("'free' argument to mxMatrix function",
 			"cannot contain an NA in",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))), call. = FALSE)
@@ -634,8 +650,6 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 
 	free <- mxMatrix@free
 	labels <- mxMatrix@labels
-	lbound <- mxMatrix@lbound
-	ubound <- mxMatrix@ubound
 	isSymmetric <- imxSymmetricMatrix(mxMatrix)
 
 	group <- c(0L)
@@ -654,11 +668,23 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 	} else {
 		select <- free
 	}
-	parameterNames <- labels[select]
-	rows <- row(labels)[select]
-	cols <- col(labels)[select]
-	lbound <- lbound[select]
-	ubound <- ubound[select]
+	if (is.null(labels)) {
+		parameterNames <- NA
+	} else {
+		parameterNames <- labels[select]
+	}
+	rows <- row(free)[select]
+	cols <- col(free)[select]
+	if (is.null(mxMatrix@lbound)) {
+		lbound <- rep(as.numeric(NA), length(select))
+	} else {
+		lbound <- mxMatrix@lbound[select]
+	}
+	if (is.null(mxMatrix@ubound)) {
+		ubound <- rep(as.numeric(NA), length(select))
+	} else {
+		ubound <- mxMatrix@ubound[select]
+	}
 	for(i in 1:length(parameterNames)) {
 		parameterName <- parameterNames[i]
 		row <- rows[i] - 1L
@@ -713,7 +739,11 @@ matchDefinitionVariable <- function(parameterName) {
 # remaining entries of the sublist: c(matrix number, row, column)
 matrixDefinitions <- function(flatModel, mxMatrix, result, matrixNumber) {
 	labels <- mxMatrix@labels
-	select <- !is.na(labels) & !mxMatrix@free
+	if (is.null(labels)) return(result)
+	select <- !is.na(labels)
+	if (!is.null(mxMatrix@free)) {
+		select <- select & !mxMatrix@free
+	}
 	if (all(select == FALSE)) {
 		return(result)
 	}
@@ -793,7 +823,7 @@ imxGentleResize <- function(matrix, dimnames) {
 	sharedCn <- intersect(cn, colnames(matrix))
 	for (layer in c('values', 'labels', 'free', 'lbound', 'ubound')) {
 		l1 <- slot(matrix, layer)
-		if (matrix@.condenseSlots && all(dim(l1) == 1) && is.null(dimnames(l1))) {
+		if (matrix@.condenseSlots && is.null(l1)) {
 			nm <- l1
 		} else {
 			if (layer == 'free')        { val <- FALSE }
@@ -813,33 +843,39 @@ displayMatrix <- function(mxMatrix) {
 	type <- class(mxMatrix)[[1]]
 	cat(type, omxQuotes(mxMatrix@name), '\n')
 	cat("\n")
-	nolabels <- all(is.na(mxMatrix@labels))
-	if(nolabels == FALSE) {
-		cat("$labels\n")
-		print(mxMatrix@labels)
-		cat("\n")
-	} else {
-		cat("$labels: No labels assigned.\n\n")
+	hasLabels <- FALSE
+	if (!is.null(mxMatrix@labels)) {
+		nolabels <- all(is.na(mxMatrix@labels))
+		if(nolabels == FALSE) {
+			cat("$labels\n")
+			print(mxMatrix@labels)
+			cat("\n")
+			hasLabels <- TRUE
+		}
 	}
+	if (!hasLabels) cat("$labels: No labels assigned.\n\n")
 	cat("$values\n")
 	print(mxMatrix@values)
 	cat("\n")
-	noFree <- all(mxMatrix@free == FALSE)
-	if(noFree == FALSE) {
-		cat("$free\n")
-		print(mxMatrix@free)
-		cat("\n")
-	} else {
-		cat("$free: No free parameters.\n\n")
+	hasFree <- FALSE
+	if (!is.null(mxMatrix@free)) {
+		noFree <- all(mxMatrix@free == FALSE)
+		if(noFree == FALSE) {
+			cat("$free\n")
+			print(mxMatrix@free)
+			cat("\n")
+			hasFree <- TRUE
+		}
 	}
-	if(!all(is.na(mxMatrix@lbound))) {
+	if (!hasFree) cat("$free: No free parameters.\n\n")
+	if (!is.null(mxMatrix@lbound) && !all(is.na(mxMatrix@lbound))) {
 		cat("$lbound\n")
 		print(mxMatrix@lbound)
 		cat("\n")
 	} else {
 		cat("$lbound: No lower bounds assigned.\n\n")
 	}
-	if(!all(is.na(mxMatrix@ubound))) {
+	if (!is.null(mxMatrix@ubound) && !all(is.na(mxMatrix@ubound))) {
 		cat("$ubound\n")
 		print(mxMatrix@ubound)
 		cat("\n")

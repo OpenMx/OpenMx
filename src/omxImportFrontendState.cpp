@@ -334,12 +334,20 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		Rf_protect(nextVar = VECTOR_ELT(varList, fx));
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
-		fv->lbound = REAL(nextLoc)[0];
+		if (Rf_length(nextLoc)) {
+			fv->lbound = REAL(nextLoc)[0];
+		} else {
+			fv->lbound = NA_REAL;
+		}
 		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
 		if (fv->lbound == 0.0) fv->lbound = 0.0;
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
-		fv->ubound = REAL(nextLoc)[0];
+		if (Rf_length(nextLoc)) {
+			fv->ubound = REAL(nextLoc)[0];
+		} else {
+			fv->ubound = NA_REAL;
+		}
 		if (ISNA(fv->ubound)) fv->ubound = INF;
 		if (fv->ubound == 0.0) fv->ubound = -0.0;
 

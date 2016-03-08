@@ -24,7 +24,11 @@ splitSubstitution <- function(input) {
 }
 
 findSquareBrackets <- function(aMatrix) {
-	aMatrix@.squareBrackets <- apply(aMatrix@labels, c(1,2), hasSquareBrackets)
+	if (is.null(aMatrix@labels)) {
+		aMatrix@.squareBrackets[,] <- FALSE
+	} else {
+		aMatrix@.squareBrackets <- apply(aMatrix@labels, c(1,2), hasSquareBrackets)
+	}
 	return(aMatrix)
 }
 
@@ -67,6 +71,7 @@ generateMatrixReferences <- function(model) {
 		matrix <- model@matrices[[i]]
 		name <- matrix@name
 		labels <- matrix@labels
+		if (is.null(labels)) next
 		select <- matrix@.squareBrackets
 		rows <- row(labels)[select]
 		cols <- col(labels)[select]

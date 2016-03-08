@@ -317,7 +317,8 @@ imxHasDefinitionVariable <- function(model) {
 	# Check the matrices for defvar
 	if(length(model@matrices) > 0){
 		for(i in 1:length(model@matrices)){
-			attempt <- sapply(model@matrices[[i]]$labels, imxIsDefinitionVariable)
+			if (is.null(model@matrices[[i]]@labels)) next
+			attempt <- sapply(model@matrices[[i]]@labels, imxIsDefinitionVariable)
 			if(any(attempt)){
 				return(TRUE)
 			}
@@ -474,10 +475,11 @@ generateLocalNamespace <- function(model) {
 
 namespaceGetParameters <- function(model) {
 	parameters <- sapply(model@matrices, function(x) {
-			labels <- x@labels
-			labels <- unique(labels[!is.na(labels) & x@free])
-			return(labels)
-		})
+		if (is.null(x@labels)) return(c())
+		labels <- x@labels
+		labels <- unique(labels[!is.na(labels) & x@free])
+		return(labels)
+	})
 	parameters <- unlist(parameters)
 	names(parameters) <- NULL
 	return(parameters)
@@ -485,14 +487,15 @@ namespaceGetParameters <- function(model) {
 
 namespaceGetValues <- function(model) {
 	values <- sapply(model@matrices, function(x) {
-			labels <- x@labels
-			labels <- unique(labels[!is.na(labels) & !x@free])
-			defVars <- sapply(labels, imxIsDefinitionVariable)
-			labels <- labels[!defVars]
-			subs <- sapply(labels, hasSquareBrackets)
-			labels <- labels[!subs]
-			return(labels)
-		})
+		if (is.null(x@labels)) return(c())
+		labels <- x@labels
+		labels <- unique(labels[!is.na(labels) & !x@free])
+		defVars <- sapply(labels, imxIsDefinitionVariable)
+		labels <- labels[!defVars]
+		subs <- sapply(labels, hasSquareBrackets)
+		labels <- labels[!subs]
+		return(labels)
+	})
 	values <- unlist(values)
 	names(values) <- NULL
 	return(values)
@@ -715,6 +718,7 @@ checkNamespaceConstraint <- function(constraint, model, namespace) {
 
 checkNamespaceMatrix <- function(matrix, model, namespace) {
 	labels <- matrix@labels
+	if (is.null(labels)) return()
 	notNAlabels <- labels[!is.na(labels) & matrix@free]
 	lapply(notNAlabels, function(x) { checkNamespaceIdentifier(x, model, matrix@name, namespace) })
 }
@@ -809,6 +813,7 @@ qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
 	matrix@name <- imxIdentifier(modelname, matrix@name)
 	free <- matrix@free
 	labels <- matrix@labels
+	if (is.null(free) || is.null(labels)) return(matrix)
 	select <- (!free) & (!is.na(labels))
 	if (any(select)) {
 		refNames <- labels[select]

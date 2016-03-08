@@ -647,29 +647,29 @@ insertMeansPathLISREL <- function(path, TX, TY, KA, AL, manifest, latent){
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
 		if(to %in% mexog){ #Update TX
-			TX@free[to, 1] <- nextfree
+			TX$free[to, 1] <- nextfree
 			TX@values[to, 1] <- nextvalue
-			TX@labels[to, 1] <- nextlabel
-			TX@ubound[to, 1] <- nextubound
-			TX@lbound[to, 1] <- nextlbound
+			TX$labels[to, 1] <- nextlabel
+			TX$ubound[to, 1] <- nextubound
+			TX$lbound[to, 1] <- nextlbound
 		} else if (to %in% mendo){ #Update TY
-			TY@free[to, 1] <- nextfree
+			TY$free[to, 1] <- nextfree
 			TY@values[to, 1] <- nextvalue
-			TY@labels[to, 1] <- nextlabel
-			TY@ubound[to, 1] <- nextubound
-			TY@lbound[to, 1] <- nextlbound
+			TY$labels[to, 1] <- nextlabel
+			TY$ubound[to, 1] <- nextubound
+			TY$lbound[to, 1] <- nextlbound
 		} else if (to %in% lexog){ #Update KA
-			KA@free[to, 1] <- nextfree
+			KA$free[to, 1] <- nextfree
 			KA@values[to, 1] <- nextvalue
-			KA@labels[to, 1] <- nextlabel
-			KA@ubound[to, 1] <- nextubound
-			KA@lbound[to, 1] <- nextlbound
+			KA$labels[to, 1] <- nextlabel
+			KA$ubound[to, 1] <- nextubound
+			KA$lbound[to, 1] <- nextlbound
 		} else if (to %in% lendo){ #Update AL
-			AL@free[to, 1] <- nextfree
+			AL$free[to, 1] <- nextfree
 			AL@values[to, 1] <- nextvalue
-			AL@labels[to, 1] <- nextlabel
-			AL@ubound[to, 1] <- nextubound
-			AL@lbound[to, 1] <- nextlbound
+			AL$labels[to, 1] <- nextlabel
+			AL$ubound[to, 1] <- nextubound
+			AL$lbound[to, 1] <- nextlbound
 		} else {
 			stop("I can't figure out where to put the means paths.")
 		}

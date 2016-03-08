@@ -325,12 +325,16 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 }
 
 getParametersHelper <- function(amatrix, modelname, selection, fetch) {
+	free <- amatrix@free
+	if (is.null(free)) free <- FALSE
+	labels <- amatrix@labels
+	if (is.null(labels)) labels <- rep(NA, prod(dim(amatrix)))
 	if (single.na(selection)) {
-		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
+		select <- free | !is.na(labels)
 	} else if (selection) {
-		select <- amatrix@free
+		select <- free
 	} else {
-		select <- !amatrix@free & !apply(amatrix@labels, c(1,2), is.na)
+		select <- !free & !is.na(labels)
 	}
 	if (all(!select)) {
 		return(numeric())
@@ -339,10 +343,10 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 		triangle <- upper.tri(select, diag=TRUE)
 		select <- select & triangle
 	} 
-	theNames <- amatrix@labels[select]
+	theNames <- labels[select]
 	if (any(is.na(theNames))) {
-		rows <- row(amatrix@labels)[select]
-		cols <- col(amatrix@labels)[select]
+		rows <- row(free)[select]
+		cols <- col(free)[select]
 		for(i in 1:length(theNames)) {
 			if (is.na(theNames[[i]])) {
 				theNames[[i]] <- paste(modelname, ".", amatrix@name, 
@@ -350,14 +354,26 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 			}
 		}
 	}
-	if (fetch == "values") {
+	    if (fetch == "values") {
 		theValues <- amatrix@values[select]
 	} else if (fetch == "lbound") {
-		theValues <- amatrix@lbound[select]
+		if (is.null(amatrix@lbound)) {
+			theValues <- rep(NA, length(select))
+		} else {
+			theValues <- amatrix@lbound[select]
+		}
 	} else if (fetch == "ubound") {
-		theValues <- amatrix@ubound[select]
+		if (is.null(amatrix@ubound)) {
+			theValues <- rep(NA, length(select))
+		} else {
+			theValues <- amatrix@ubound[select]
+		}
 	} else if (fetch == "free") {
-		theValues <- amatrix@free[select]
+		if (is.null(amatrix@free)) {
+			theValues <- rep(FALSE, length(select))
+		} else {
+			theValues <- amatrix@free[select]
+		}
 	}
 	names(theValues) <- theNames
 	return(theValues[!duplicated(theNames)])
@@ -365,11 +381,12 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 
 setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
 	labels <- amatrix@labels
+	if (is.null(labels)) return(amatrix)
 	locations <- which(labels %in% names)
 	indices <- match(labels[locations], names)
 	if (!is.null(free)) {
 		index2 <- ((indices - 1) %% length(free)) + 1
-		amatrix@free[locations] <- as.logical(free[index2])
+		amatrix$free[locations] <- as.logical(free[index2])
 	}
 	if (!is.null(values)) {
 		index2 <- ((indices - 1) %% length(values)) + 1
@@ -377,15 +394,15 @@ setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound,
 	}
 	if (!is.null(newlabels)) {
 		index2 <- ((indices - 1) %% length(newlabels)) + 1
-		amatrix@labels[locations] <- as.character(newlabels[index2])
+		amatrix$labels[locations] <- as.character(newlabels[index2])
 	}
 	if (!is.null(lbound)) {
 		index2 <- ((indices - 1) %% length(lbound)) + 1
-		amatrix@lbound[locations] <- as.numeric(lbound[index2])
+		amatrix$lbound[locations] <- as.numeric(lbound[index2])
 	}
 	if (!is.null(ubound)) {
 		index2 <- ((indices - 1) %% length(ubound)) + 1
-		amatrix@ubound[locations] <- as.numeric(ubound[index2])
+		amatrix$ubound[locations] <- as.numeric(ubound[index2])
 	}
 	return(amatrix)
 }
@@ -405,7 +422,7 @@ setSquareBracketsHelper <- function(model, squarebrackets, labels,
 			isSymmetric <- imxSymmetricMatrix(amatrix)
 			if (!is.null(free)) {
 				index2 <- ((nextbracket - 1) %% length(free)) + 1
-				amatrix@free[row,col] <- as.logical(free[index2])
+				amatrix$free[row,col] <- as.logical(free[index2])
 				if (isSymmetric) {
 					amatrix@free[col,row] <- as.logical(free[index2])
 				}
@@ -419,23 +436,23 @@ setSquareBracketsHelper <- function(model, squarebrackets, labels,
 			}
 			if (!is.null(newlabels)) {
 				index2 <- ((nextbracket - 1) %% length(newlabels)) + 1
-				amatrix@labels[row,col] <- as.character(newlabels[index2])
+				amatrix$labels[row,col] <- as.character(newlabels[index2])
 				if (isSymmetric) {
-					amatrix@labels[col,row] <- as.character(newlabels[index2])
+					amatrix$labels[col,row] <- as.character(newlabels[index2])
 				}
 			}
 			if (!is.null(lbound)) {
 				index2 <- ((nextbracket - 1) %% length(lbound)) + 1
-				amatrix@lbound[row,col] <- as.numeric(lbound[index2])
+				amatrix$lbound[row,col] <- as.numeric(lbound[index2])
 				if (isSymmetric) {
-					amatrix@lbound[col,row] <- as.numeric(lbound[index2])
+					amatrix$lbound[col,row] <- as.numeric(lbound[index2])
 				}
 			}
 			if (!is.null(ubound)) {
 				index2 <- ((nextbracket - 1) %% length(ubound)) + 1
-				amatrix@ubound[row,col] <- as.numeric(ubound[index2])
+				amatrix$ubound[row,col] <- as.numeric(ubound[index2])
 				if (isSymmetric) {
-					amatrix@ubound[col,row] <- as.numeric(ubound[index2])
+					amatrix$ubound[col,row] <- as.numeric(ubound[index2])
 				}
 			}
 			model[[matrixname]] <- amatrix

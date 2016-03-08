@@ -108,7 +108,9 @@ renameModelOutput <- function(output, oldname, newname) {
 }
 
 renameMatrix <- function(matrix, oldname, newname) {
-	matrix@labels <- apply(matrix@labels, c(1,2), renameReference, oldname, newname)
+	if (!is.null(matrix@labels)) {
+		matrix@labels <- apply(matrix@labels, c(1,2), renameReference, oldname, newname)
+	}
 	return(matrix)
 }
 

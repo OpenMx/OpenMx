@@ -130,141 +130,156 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 		fixedVars, bounds, varlocations, modelname, datasets) {
 	labels <- matrix@labels
 	free <- matrix@free
+	if (is.null(labels) || is.null(free)) {
+		return(list(startVals, freeVars, fixedVars, bounds, varlocations))
+	}
+
 	values <- matrix@values
 	lbounds <- matrix@lbound
 	ubounds <- matrix@ubound
 	select <- !is.na(labels)
 	free <- free[select]
 	values <- values[select]
-	lbounds <- lbounds[select]
-	ubounds <- ubounds[select]
+	if (is.null(lbounds)) {
+		lbounds <- rep(NA, length(select))
+	} else {
+		lbounds <- lbounds[select]
+	}
+	if (is.null(ubounds)) {
+		ubounds <- rep(NA, length(select))
+	} else {
+		ubounds <- ubounds[select]
+	}
 	rows <- row(labels)[select]
 	cols <- col(labels)[select]
 	labels <- labels[select]
-	if(length(labels) > 0) {
-		for(i in 1:length(labels)) {
-			label <- labels[[i]]
-			isFree <- free[[i]]
-			value <- values[[i]]
-			lbound <- lbounds[[i]]
-			ubound <- ubounds[[i]]
-			row <- rows[[i]]
-			col <- cols[[i]]
-			if (imxIsDefinitionVariable(label)) {
-				if (isFree) {
-					stop(paste("The definition variable", omxQuotes(label),
-						"has been assigned to a free parameter",
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
-				}
-				result <- strsplit(label, '.', fixed=TRUE)[[1]]
-				if(length(result) != 3) {
-					stop("Internal error: definition variable does not have three pieces", call. = FALSE)
-				}
-				dataname <- paste(result[[1]], '.', result[[2]], sep = '')
-				targetdata <- datasets[[dataname]]
-				if (is.null(targetdata)) {
-					stop(paste("The definition variable", omxQuotes(label),
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
-						"refers to a data set that does not exist"), call. = FALSE)
-				}
-				targetNames <- dimnames(targetdata@observed)
-				if (is.null(targetNames) || is.null(targetNames[[2]])) {
-					stop(paste("The definition variable", omxQuotes(label),
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
-						"refers to a data set that does not contain column names"), call. = FALSE)	
-				}
-				if (!(result[[3]] %in% targetNames[[2]])) {
-					stop(paste("The definition variable", omxQuotes(label),
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
-						"refers to a data set that does not contain",
-						"a column with name", omxQuotes(result[[3]])), call. = FALSE)	
-				}
-			} else if (isFree) {
-				if (hasSquareBrackets(label)) {
-					stop(paste("The label with square brackets",
-						"has been assigned to a free parameter",
-						"in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
-						"at row", row, "and column", col), call. = FALSE)
-				} else if (label %in% fixedVars) {
-					stop(paste("The label", omxQuotes(label),
-						"has been assigned to a free parameter",
-						"and a fixed value!"), call. = FALSE)
-				} else if (label %in% freeVars && !is.na(value) && length(startVals[[label]]) &&
-					   startVals[[label]] != value) {
-					loc <- varlocations[[label]]
-					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple starting values!",
-						"See matrix",
-						omxQuotes(simplifyName(matrix@name, modelname)), 
-						"at location", 
-						rowColToString(row, col),
-						"and matrix", 
-						omxQuotes(simplifyName(loc[[1]], modelname)), 
-						"at location", 
-						rowColToString(loc[[2]], loc[[3]]), 
-						"If you want to randomly select one of these values, call",
-						"model <- omxAssignFirstParameters(model) before running again."), call. = FALSE)
-				} else if (label %in% freeVars && 
-								!identicalNA(lbound, bounds[[label]][[1]])) {
-					loc <- varlocations[[label]]
-					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple lower bounds!",
-						"See matrix",
-						omxQuotes(simplifyName(matrix@name, modelname)), 
-						"at location", 
-						rowColToString(row, col),
-						"and matrix", 
-						omxQuotes(simplifyName(loc[[1]], modelname)), 
-						"at location", 
-						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
-				} else if (label %in% freeVars && 
-								!identicalNA(ubound, bounds[[label]][[2]])) {
-					loc <- varlocations[[label]]
-					stop(paste("The free parameter", omxQuotes(label),
-						"has been assigned multiple upper bounds!",
-						"See matrix",
-						omxQuotes(simplifyName(matrix@name, modelname)), 
-						"at location", 
-						rowColToString(row, col),
-						"and matrix", 
-						omxQuotes(simplifyName(loc[[1]], modelname)), 
-						"at location", 
-						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
-				} else {
-					if (!is.na(value)) startVals[[label]] <- value
-					freeVars <- union(freeVars, label)
-					bounds[[label]] <- c(lbound, ubound)
-				}
+
+	if (length(labels) == 0) {
+		return(list(startVals, freeVars, fixedVars, bounds, varlocations))
+	}
+
+	for(i in 1:length(labels)) {
+		label <- labels[[i]]
+		isFree <- free[[i]]
+		value <- values[[i]]
+		lbound <- lbounds[[i]]
+		ubound <- ubounds[[i]]
+		row <- rows[[i]]
+		col <- cols[[i]]
+		if (imxIsDefinitionVariable(label)) {
+			if (isFree) {
+				stop(paste("The definition variable", omxQuotes(label),
+					   "has been assigned to a free parameter",
+					   "in matrix", omxQuotes(simplifyName(matrix@name, modelname))), call. = FALSE)
+			}
+			result <- strsplit(label, '.', fixed=TRUE)[[1]]
+			if(length(result) != 3) {
+				stop("Internal error: definition variable does not have three pieces", call. = FALSE)
+			}
+			dataname <- paste(result[[1]], '.', result[[2]], sep = '')
+			targetdata <- datasets[[dataname]]
+			if (is.null(targetdata)) {
+				stop(paste("The definition variable", omxQuotes(label),
+					   "in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+					   "refers to a data set that does not exist"), call. = FALSE)
+			}
+			targetNames <- dimnames(targetdata@observed)
+			if (is.null(targetNames) || is.null(targetNames[[2]])) {
+				stop(paste("The definition variable", omxQuotes(label),
+					   "in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+					   "refers to a data set that does not contain column names"), call. = FALSE)	
+			}
+			if (!(result[[3]] %in% targetNames[[2]])) {
+				stop(paste("The definition variable", omxQuotes(label),
+					   "in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+					   "refers to a data set that does not contain",
+					   "a column with name", omxQuotes(result[[3]])), call. = FALSE)	
+			}
+		} else if (isFree) {
+			if (hasSquareBrackets(label)) {
+				stop(paste("The label with square brackets",
+					   "has been assigned to a free parameter",
+					   "in matrix", omxQuotes(simplifyName(matrix@name, modelname)),
+					   "at row", row, "and column", col), call. = FALSE)
+			} else if (label %in% fixedVars) {
+				stop(paste("The label", omxQuotes(label),
+					   "has been assigned to a free parameter",
+					   "and a fixed value!"), call. = FALSE)
+			} else if (label %in% freeVars && !is.na(value) && length(startVals[[label]]) &&
+				   startVals[[label]] != value) {
+				loc <- varlocations[[label]]
+				stop(paste("The free parameter", omxQuotes(label),
+					   "has been assigned multiple starting values!",
+					   "See matrix",
+					   omxQuotes(simplifyName(matrix@name, modelname)), 
+					   "at location", 
+					   rowColToString(row, col),
+					   "and matrix", 
+					   omxQuotes(simplifyName(loc[[1]], modelname)), 
+					   "at location", 
+					   rowColToString(loc[[2]], loc[[3]]), 
+					   "If you want to randomly select one of these values, call",
+					   "model <- omxAssignFirstParameters(model) before running again."), call. = FALSE)
+			} else if (label %in% freeVars && 
+				   !identicalNA(lbound, bounds[[label]][[1]])) {
+				loc <- varlocations[[label]]
+				stop(paste("The free parameter", omxQuotes(label),
+					   "has been assigned multiple lower bounds!",
+					   "See matrix",
+					   omxQuotes(simplifyName(matrix@name, modelname)), 
+					   "at location", 
+					   rowColToString(row, col),
+					   "and matrix", 
+					   omxQuotes(simplifyName(loc[[1]], modelname)), 
+					   "at location", 
+					   rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
+			} else if (label %in% freeVars && 
+				   !identicalNA(ubound, bounds[[label]][[2]])) {
+				loc <- varlocations[[label]]
+				stop(paste("The free parameter", omxQuotes(label),
+					   "has been assigned multiple upper bounds!",
+					   "See matrix",
+					   omxQuotes(simplifyName(matrix@name, modelname)), 
+					   "at location", 
+					   rowColToString(row, col),
+					   "and matrix", 
+					   omxQuotes(simplifyName(loc[[1]], modelname)), 
+					   "at location", 
+					   rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
 			} else {
-				if (hasSquareBrackets(label)) {
-				} else if (label %in% freeVars) {
-					stop(paste("The label", omxQuotes(label),
-						"has been assigned to a fixed value",
-						"and a free parameter!"), call. = FALSE)
-				} else if (label %in% fixedVars && !is.na(value) && length(startVals[[label]]) &&
-					   startVals[[label]] != value) {
-					loc <- varlocations[[label]]
-					stop(paste("The fixed variable", omxQuotes(label),
-						"has been assigned multiple starting values!",
-						"See matrix",
-						omxQuotes(simplifyName(matrix@name, modelname)), 
-						"at location", 
-						rowColToString(row, col),
-						"and matrix", 
-						omxQuotes(simplifyName(loc[[1]], modelname)), 
-						"at location", 
-						rowColToString(loc[[2]], loc[[3]]),
-						"If you want to randomly select one of these values, call",
-						"model <- omxAssignFirstParameters(model)",
-						"before running again."), call. = FALSE)
-				} else {
-					if (!is.na(value)) startVals[[label]] <- value
-					fixedVars <- union(fixedVars, label)
-				}
+				if (!is.na(value)) startVals[[label]] <- value
+				freeVars <- union(freeVars, label)
+				bounds[[label]] <- c(lbound, ubound)
 			}
-			if(is.null(varlocations[[label]])) {
-				varlocations[[label]] <- c(matrix@name, row, col)
+		} else {
+			if (hasSquareBrackets(label)) {
+			} else if (label %in% freeVars) {
+				stop(paste("The label", omxQuotes(label),
+					   "has been assigned to a fixed value",
+					   "and a free parameter!"), call. = FALSE)
+			} else if (label %in% fixedVars && !is.na(value) && length(startVals[[label]]) &&
+				   startVals[[label]] != value) {
+				loc <- varlocations[[label]]
+				stop(paste("The fixed variable", omxQuotes(label),
+					   "has been assigned multiple starting values!",
+					   "See matrix",
+					   omxQuotes(simplifyName(matrix@name, modelname)), 
+					   "at location", 
+					   rowColToString(row, col),
+					   "and matrix", 
+					   omxQuotes(simplifyName(loc[[1]], modelname)), 
+					   "at location", 
+					   rowColToString(loc[[2]], loc[[3]]),
+					   "If you want to randomly select one of these values, call",
+					   "model <- omxAssignFirstParameters(model)",
+					   "before running again."), call. = FALSE)
+			} else {
+				if (!is.na(value)) startVals[[label]] <- value
+				fixedVars <- union(fixedVars, label)
 			}
+		}
+		if(is.null(varlocations[[label]])) {
+			varlocations[[label]] <- c(matrix@name, row, col)
 		}
 	}
 	return(list(startVals, freeVars, fixedVars, bounds, varlocations))

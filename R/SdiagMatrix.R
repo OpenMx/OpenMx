@@ -28,6 +28,7 @@ setMethod("imxSquareMatrix", "SdiagMatrix",
 
 populateSdiagTriangle <- function(input, n, default, byrow, strname) {
 	len <- length(input)
+	if (len == 0) return(matrix(default, n, n))
 	if (len == n * n) {
 		output <- matrix(input, n, n, byrow)
 	} else if (len == n * (n - 1) / 2 || len == 1) {
@@ -64,8 +65,8 @@ setMethod("imxCreateMatrix", "SdiagMatrix",
 			values <- populateSdiagTriangle(values, nrow, 0, byrow, 'values')
 		}
 		if(condenseSlots && all.false(free) && all.na(labels)){
-		  labels <- as.character(NA)
-		  free <- FALSE
+		  labels <- NULL
+		  free <- NULL
 		}
 		else{
       if (is.vector(labels)) {
@@ -74,11 +75,11 @@ setMethod("imxCreateMatrix", "SdiagMatrix",
 		  if (is.vector(free)) {
 			  free <- populateSdiagTriangle(free, nrow, FALSE, byrow, 'free')
 		}}
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && all.na(lbound)){lbound <- NULL }
 		else{if (is.vector(lbound)) {
 			lbound <- populateSdiagTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}}
-    if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+    if(condenseSlots && all.na(ubound)){ubound <- NULL }
 		else{if (is.vector(ubound)) {
 			ubound <- populateSdiagTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}}
@@ -101,25 +102,25 @@ setMethod("imxVerifyMatrix", "SdiagMatrix",
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (any(free) && !all(free[upper.tri(free, TRUE)] == FALSE)) {
+		if (!is.null(free) && any(free) && !all(free[upper.tri(free, TRUE)] == FALSE)) {
 			stop(paste("upper triangle or diagonal of 'free' matrix in Subdiagonal MxMatrix", omxQuotes(.Object@name), 
 				"is not all fixed in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(labels) && !all(is.na(labels[upper.tri(labels, TRUE)]))) {
+		if (!is.null(labels) && !all.na(labels) && !all(is.na(labels[upper.tri(values, TRUE)]))) {
 			stop(paste("upper triangle or diagonal of 'labels' matrix in Subdiagonal MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(lbound) && !all(is.na(lbound[upper.tri(labels, TRUE)]))) {
+		if (!is.null(lbound) && !all.na(lbound) && !all(is.na(lbound[upper.tri(values, TRUE)]))) {
 			stop(paste("upper triangle or diagonal of 'lbound' matrix in Subdiagonal MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(ubound) && !all(is.na(ubound[upper.tri(labels, TRUE)]))) {
+		if (!is.null(ubound) && !all.na(ubound) && !all(is.na(ubound[upper.tri(values, TRUE)]))) {
 			stop(paste("upper triangle or diagonal of 'ubound' matrix in Subdiagonal MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),

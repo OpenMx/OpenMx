@@ -38,8 +38,8 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 			values <- tmp
 		}
 		if(condenseSlots && all.na(labels) && all.false(free)){
-      labels <- as.character(NA)
-		  free <- FALSE
+      labels <- NULL
+		  free <- NULL
 		}
     else{
       if(is.vector(labels)) {
@@ -52,13 +52,13 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 		  diag(tmp) <- free
 		  free <- tmp
 		}}
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && all.na(lbound)){lbound <- NULL }
 		else{if(is.vector(lbound)) {
 		  tmp <- matrix(as.numeric(NA), nrow, ncol)
 		  diag(tmp) <- lbound
 		  lbound <- tmp
 		}}
-    if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+    if(condenseSlots && all.na(ubound)){ubound <- NULL }
 		else{if(is.vector(ubound)) {
 		  tmp <- matrix(as.numeric(NA), nrow, ncol)
 		  diag(tmp) <- ubound
@@ -80,7 +80,7 @@ setMethod("imxVerifyMatrix", "DiagMatrix",
 			call. = FALSE) }
     rm(values)
 		free <- .Object@free
-		if(any(free) && any(free[row(free) != col(free)])) {
+		if(!is.null(free) && any(free) && any(free[row(free) != col(free)])) {
 			{ stop(paste("'free' matrix of", .Object@name, "has TRUE on non-diagonal in",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 			call. = FALSE) }

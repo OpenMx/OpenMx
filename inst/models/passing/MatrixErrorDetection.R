@@ -482,10 +482,10 @@ omxCheckError(
 
 Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, name="Fu", condenseSlots = T,
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))
-Fu@free <- matrix(T,2,3)
+Fu@free <- matrix(T,2,2)
 omxCheckError(
   mxRun(mxModel("asdf",Fu)),
-  "'labels' and 'free' matrices of 'Fu' have different dimensions")
+  "'values' and 'free' matrices of 'Fu' have different dimensions")
 
 Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, name="Fu", condenseSlots = T,
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))
@@ -497,11 +497,8 @@ omxCheckError(
 Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, name="Fu", condenseSlots = T,
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))
 Fu@.condenseSlots <- FALSE
-omxCheckError(
-  mxRun(mxModel("asdf",Fu)),
-  "'labels' and 'values' matrices of 'Fu' have different dimensions")
 Fu <- imxConDecMatrixSlots(Fu)
-mxRun(mxModel("asdf",Fu)) #<--Should NOT produce an error
+omxCheckEquals(dim(Fu@lbound), dim(Fu@values))
 
 Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, name="Fu", condenseSlots = T,
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))

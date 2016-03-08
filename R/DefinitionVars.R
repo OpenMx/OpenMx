@@ -55,6 +55,7 @@ populateDefInitialValues <- function(flatModel) {
 
 populateDefVarMatrix <- function(matrix, model, defvar.row = 1) {
 	labels <- matrix@labels
+	if (is.null(labels)) return(matrix)
 	notNA <- !is.na(labels)
 	if (!any(notNA)) { return(matrix) }
 	rows <- row(labels)[notNA]

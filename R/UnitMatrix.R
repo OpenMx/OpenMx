@@ -46,11 +46,17 @@ setMethod("imxCreateMatrix", "UnitMatrix",
 			        deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
                                 call. = FALSE)
 		}
-		labels <- matrix(as.character(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
 		values <- matrix(1, nrow, ncol)
-		free <- matrix(FALSE, ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
-		lbound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
-		ubound <- matrix(as.numeric(NA), ifelse(condenseSlots,1,nrow), ifelse(condenseSlots,1,ncol))
+		labels <- NULL
+		free <- NULL
+		lbound <- NULL
+		ubound <- NULL
+		if (!condenseSlots) {
+			labels <- matrix(as.character(NA), nrow, ncol)
+			free <- matrix(FALSE, nrow, ncol)
+			lbound <- matrix(as.numeric(NA), nrow, ncol)
+			ubound <- matrix(as.numeric(NA), nrow, ncol)
+		}
 		return(callNextMethod(.Object, labels, values, free, lbound, ubound, nrow, ncol, byrow, name,
 				      condenseSlots, joinKey, joinModel))
 	}
@@ -59,7 +65,7 @@ setMethod("imxCreateMatrix", "UnitMatrix",
 setMethod("imxVerifyMatrix", "UnitMatrix",
 	function(.Object) {
 		callNextMethod(.Object)		
-		if(!all(.Object@free == FALSE)) { 
+		if(!is.null(.Object@free) && !all(.Object@free == FALSE)) { 
 			stop(paste("'free' matrix of Unit MxMatrix", 
 				omxQuotes(.Object@name), "has a free parameter in "), 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix")),
