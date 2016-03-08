@@ -5,6 +5,7 @@
 *.so
 *.old
 *.bak
+*.dll
 /build
 /config.log
 /config.status
