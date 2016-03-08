@@ -674,8 +674,17 @@ namespace RelationalRAMExpectation {
 				bool mismatch;
 				bool got = compareModelAndMissingness(la, ra, mismatch);
 				if (mismatch) return got;
-				got = compareDefVars(la, ra, mismatch);
-				if (mismatch) return got;
+
+				omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
+				if (ram->S->algebra) {
+					got = compareDefVars(la, ra, mismatch);
+					if (mismatch) return got;
+				} else {
+					if (!st.ignoreDefVarsHack) {
+						got = compareDefVars(la, ra, mismatch);
+						if (mismatch) return got;
+					}
+				}
 			}
 			return false;
 		}
@@ -1204,6 +1213,13 @@ namespace RelationalRAMExpectation {
 
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
 		omxData *data = homeEx->data;
+
+		{ ProtectedSEXP Rdvhack(R_do_slot(expectation->rObj, Rf_install(".ignoreDefVarsHack")));
+		  ignoreDefVarsHack = Rf_asLogical(Rdvhack);
+		  if (ignoreDefVarsHack && verbose()) {
+			  mxLog("%s: ignoreDefVarsHack activated", homeEx->name);
+		  }
+		}
 
 		totalObserved = 0;
 		int maxSize = 0;

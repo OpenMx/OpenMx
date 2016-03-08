@@ -1,7 +1,8 @@
 library(OpenMx)
 library(mvtnorm)
 
-set.seed(3)
+#set.seed(1)  # $\theta_1$
+set.seed(3)   # $\theta_2$
 
 numIndicators <- 5
 
@@ -14,7 +15,8 @@ genStructure <- function(upper, fanout, keyname) {
 	for (sx in 1:nrow(upper)) {
 		extraFanout <- sample.int(fanout, 1)
 		lowerData <- rbind(lowerData, data.frame(
-		    upper=upper[sx,1], skill=rnorm(fanout + extraFanout, mean=upper[sx, 'skill'])))
+		    upper=upper[sx,1], skill=rnorm(fanout + extraFanout,
+					   mean=upper[sx, 'skill'])))
 	}
 	colnames(lowerData)[[1]] <- colnames(upper)[[1]]
 	lowerData[[keyname]] <- 1:nrow(lowerData)
@@ -24,9 +26,12 @@ genStructure <- function(upper, fanout, keyname) {
 
 dataEnv <- new.env()
 
-assign("schoolData", data.frame(schoolID=1:numSchools, skill=rnorm(numSchools)), envir=dataEnv)
-assign("teacherData", genStructure(dataEnv$schoolData, numTeachers, 'teacherID'), envir=dataEnv)
-assign("studentData", genStructure(dataEnv$teacherData, numStudents, 'studentID'), envir=dataEnv)
+assign("schoolData", data.frame(schoolID=1:numSchools,
+				skill=rnorm(numSchools)), envir=dataEnv)
+assign("teacherData", genStructure(dataEnv$schoolData,
+				   numTeachers, 'teacherID'), envir=dataEnv)
+assign("studentData", genStructure(dataEnv$teacherData,
+				   numStudents, 'studentID'), envir=dataEnv)
 
 createIndicators <- function(latentSkill, indicatorMean, indicatorVariance) {
     if (missing(indicatorMean)) {
@@ -37,8 +42,9 @@ createIndicators <- function(latentSkill, indicatorMean, indicatorVariance) {
     }
     ind <- matrix(NA, length(latentSkill), length(indicatorVariance))
     for (ix in 1:length(latentSkill)) {
-        ind[ix,] <- sapply(indicatorVariance,
-                           function(sd) rnorm(1, mean=latentSkill[ix], sd=sd))
+	    ind[ix,] <- sapply(
+		indicatorVariance,
+		function(sd) rnorm(1, mean=latentSkill[ix], sd=sd))
     }
     ind <- t(t(ind) + indicatorMean)
     colnames(ind) <- paste0('i', 1:length(indicatorVariance))
@@ -46,7 +52,8 @@ createIndicators <- function(latentSkill, indicatorMean, indicatorVariance) {
 }
 
 for (tbl in paste0(c('school', 'teacher', 'student'), 'Data')) {
-    dataEnv[[tbl]] <- cbind(dataEnv[[tbl]], createIndicators(dataEnv[[tbl]]$skill))
+    dataEnv[[tbl]] <- cbind(dataEnv[[tbl]],
+			    createIndicators(dataEnv[[tbl]]$skill))
 }
 
 dataEnv$studentData$i1[runif(nrow(dataEnv$studentData)) > .8] <- NA
@@ -56,10 +63,12 @@ mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
 		manifestVars = paste0('i', 1:numIndicators),
 		latentVars = c("skill",latent),
-		mxPath('skill', arrows=2, labels="Var", values=rlnorm(1), lbound=.01),
+		mxPath('skill', arrows=2, labels="Var",
+		       values=rlnorm(1), lbound=.01),
 		mxPath(paste0('i',1:numIndicators), arrows=2,
 		       values=rlnorm(1), labels="Err", lbound=.01),
-		mxPath("one", paste0('i',1:numIndicators), free=TRUE, values=rnorm(4)),
+		mxPath("one", paste0('i',1:numIndicators),
+		       free=TRUE, values=rnorm(4)),
 		mxPath('skill', paste0('i',1:numIndicators),
 		       labels=paste0('L',1:numIndicators), lbound=0,
 		       values=c(1, runif(numIndicators-1, .5,1.5)),
@@ -79,17 +88,23 @@ relabel <- function(m, prefix) {
 }
 
 schMod <- mxModel(relabel(mkSingleFactor(), "school"),
-		  mxData(type="raw", observed=dataEnv$schoolData, primaryKey="schoolID", sort=FALSE))
+		  mxData(type="raw", observed=dataEnv$schoolData,
+			 primaryKey="schoolID", sort=FALSE))
 
 tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
-		  mxData(type="raw", observed=dataEnv$teacherData, primaryKey="teacherID", sort=FALSE),
-		  mxPath('school.skill', 'skill', joinKey="schoolID", values=runif(1)))
+		  mxData(type="raw", observed=dataEnv$teacherData,
+			 primaryKey="teacherID", sort=FALSE),
+		  mxPath('school.skill', 'skill',
+			 joinKey="schoolID", values=runif(1)))
 
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
-		  mxData(type="raw", observed=dataEnv$studentData, primaryKey="studentID", sort=FALSE),
-		  mxPath('teacher.skill', 'skill', joinKey="teacherID", values=runif(1)))
+		mxData(type="raw", observed=dataEnv$studentData,
+		       primaryKey="studentID", sort=FALSE),
+		  mxPath('teacher.skill', 'skill',
+			 joinKey="teacherID", values=runif(1)))
 
-interest <- c('wallTime', 'infoDefinite', 'conditionNumber', 'fit', 'timestamp')
+interest <- c('wallTime', 'infoDefinite',
+	      'conditionNumber', 'fit', 'timestamp')
 
 if (1) {
     result <- expand.grid(rampart=c(TRUE,FALSE), rep=1:200, gradient=NA)
@@ -111,7 +126,8 @@ for (rrow in 1:nrow(result)) {
 #    if (!result[rrow, 'rampart']) next
 
     if (result[rrow, 'rampart']==FALSE &&
-        !result[result$rep == result[rrow, 'rep'] & result$rampart==TRUE, 'infoDefinite']) {
+        !result[result$rep == result[rrow, 'rep'] &
+		    result$rampart==TRUE, 'infoDefinite']) {
         print("skip")
         next
     }
@@ -137,20 +153,32 @@ for (rrow in 1:nrow(result)) {
 sum(!is.na(result[result$rampart==TRUE, 'conditionNumber']))
 sum(!is.na(result[result$rampart==FALSE, 'conditionNumber']))
 
-cnMask <- (result$conditionNumber < median(result$conditionNumber, na.rm=TRUE) + 5 * mad(result$conditionNumber, na.rm=TRUE))
+cnMask <- (result$conditionNumber <
+	       median(result$conditionNumber, na.rm=TRUE) +
+		   5 * mad(result$conditionNumber, na.rm=TRUE))
 bothOkay <- cnMask[result$rampart==TRUE] & cnMask[result$rampart==FALSE]
 length(which(bothOkay))
 
 good <- result[result$rep %in% which(bothOkay),]
 good[,c("rep",'rampart', "conditionNumber", 'gradient')]
-cor(good[good$rampart==TRUE,"conditionNumber"], good[good$rampart==FALSE,"conditionNumber"])
-cor(good[good$rampart==TRUE,"fit"], good[good$rampart==FALSE,"fit"])
-summary <- c(rMean=norm(colMeans(good[good$rampart==TRUE, names(coef(sMod))]) - coef(sMod), "2"),
-             fMean=norm(colMeans(good[good$rampart==FALSE, names(coef(sMod))]) - coef(sMod), "2"),
-             rVar=norm(apply(good[good$rampart==TRUE, names(coef(sMod))], 2, var), "2"),
-             fVar=norm(apply(good[good$rampart==FALSE, names(coef(sMod))], 2, var), "2"))
+
+cor(good[good$rampart==TRUE,"conditionNumber"],
+    good[good$rampart==FALSE,"conditionNumber"])
+cor(good[good$rampart==TRUE,"fit"],
+    good[good$rampart==FALSE,"fit"])
+
+summary <- c(rMean=norm(colMeans(good[good$rampart==TRUE,
+		 names(coef(sMod))]) - coef(sMod), "2"),
+             fMean=norm(colMeans(good[good$rampart==FALSE,
+		 names(coef(sMod))]) - coef(sMod), "2"),
+             rVar=norm(apply(good[good$rampart==TRUE,
+		 names(coef(sMod))], 2, var), "2"),
+             fVar=norm(apply(good[good$rampart==FALSE,
+		 names(coef(sMod))], 2, var), "2"))
 print(summary)
 
-library(ggplot2)
-ggplot(good) + geom_histogram(aes(wallTime)) + facet_wrap(~rampart, scales="free_x")
-
+if (0) {
+	library(ggplot2)
+	ggplot(good) + geom_histogram(aes(wallTime)) +
+	    facet_wrap(~rampart, scales="free_x")
+}
