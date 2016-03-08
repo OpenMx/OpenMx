@@ -152,7 +152,6 @@ makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
 
 generateIntervalListHelper <- function(interval, flatModel, modelname, 
 			parameters, labelsData) {
-
 	reference <- interval@reference
 					# length(reference)==1 because of expandSingleInterval
 	pindex <- match(reference, names(parameters))
@@ -220,13 +219,13 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 	} else {
 		for (entityName in names(flatModel@matrices)) {
 			entity <- flatModel[[entityName]]
-			free <- entity@free
+			free <- entity$free
 			rows <- nrow(entity)
 			cols <- ncol(entity)
 			for(i in 1:rows) {
 				for(j in 1:cols) {
 					if (free[i, j]) next
-					label <- entity@labels[i,j]
+					label <- entity$labels[i,j]
 					if (is.na(label) || label != reference) next
 					entityNumber <- imxLocateIndex(flatModel, entityName, 
 								       paste("confidence interval", reference))
