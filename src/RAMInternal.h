@@ -312,6 +312,7 @@ namespace RelationalRAMExpectation {
 		std::vector<addr>		 layout;
 		omxMatrix                       *smallCol;
 		std::vector<independentGroup*>   group;
+		bool                             ignoreDefVarsHack;
 
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);

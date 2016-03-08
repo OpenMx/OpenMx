@@ -152,7 +152,6 @@ makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
 
 generateIntervalListHelper <- function(interval, flatModel, modelname, 
 			parameters, labelsData) {
-
 	reference <- interval@reference
 					# length(reference)==1 because of expandSingleInterval
 	pindex <- match(reference, names(parameters))
@@ -221,8 +220,8 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		for (entityName in names(flatModel@matrices)) {
 			entity <- flatModel[[entityName]]
 			free <- entity@free
-			rows <- nrow(entity)
-			cols <- ncol(entity)
+			rows <- nrow(free)
+			cols <- ncol(free)
 			for(i in 1:rows) {
 				for(j in 1:cols) {
 					if (free[i, j]) next
