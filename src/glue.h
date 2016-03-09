@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _NPSOLWRAP_H
-#define _NPSOLWRAP_H
+#ifndef _GLUE_H
+#define _GLUE_H
 
 #include <exception>
 #include <string>
@@ -107,4 +107,8 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols);
 
 void markAsDataFrame(SEXP list);
 
-#endif // #define _NPSOLWRAP_H
+#ifndef M_LN_2PI
+#define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */
+#endif
+
+#endif // #define _GLUE_H
