@@ -275,7 +275,7 @@ namespace RelationalRAMExpectation {
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		SimpCholesky< Eigen::MatrixXd >  covDecomp;
 		Eigen::SparseMatrix<double>      fullS;
-		std::vector<bool>                latentFilter; // use to reduce the A matrix
+		std::vector<bool>                latentFilter; // false when latent or missing
 
 		// could store coeff extraction plan in addr TODO
 		Eigen::SparseMatrix<double>      fullA;
@@ -302,7 +302,6 @@ namespace RelationalRAMExpectation {
 	private:
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
-		int                              totalObserved;
 
 	public:
 		struct omxExpectation *homeEx;
@@ -337,6 +336,8 @@ class omxRAMExpectation {
 	int Zversion;
 	omxMatrix *_Z;
  public:
+	std::vector<bool> latentFilter; // false when latent
+	Eigen::VectorXi dataCols; // composition of F permutation and expectation->dataColumns
 
  omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
 	~omxRAMExpectation() {
@@ -363,7 +364,7 @@ class omxRAMExpectation {
 	RelationalRAMExpectation::state *rram;
 	bool forceSingleGroup;
 
-	void ensureTrivialF();
+	void studyF(omxMatrix *dc);
 };
 
 namespace RelationalRAMExpectation {

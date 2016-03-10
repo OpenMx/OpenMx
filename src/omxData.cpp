@@ -522,32 +522,10 @@ void omxContiguousDataRow(omxData *od, int row, int start, int len, omxMatrix* o
 	memcpy(dest, source, sizeof(double) * len);
 }
 
-void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om) {
-
-	if(colList == NULL || row >= od->rows) Rf_error("Invalid row or colList");
-
-	if(om == NULL) Rf_error("Must provide an output matrix");
-
-	int numcols = colList->cols;
-	if(od->dataMat != NULL) { // Matrix Object
-		omxMatrix* dataMat = od->dataMat;
-		for(int j = 0; j < numcols; j++) {
-			omxSetMatrixElement(om, 0, j, omxMatrixElement(dataMat, row, 
-								       omxVectorElement(colList, j)));
-		}
-	} else {		// Data Frame object
-		for(int j = 0; j < numcols; j++) {
-			int col = omxVectorElement(colList, j);
-			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, col));
-		}
-	}
-}
-
-void omxDataRow(omxExpectation *ex, int row, omxMatrix* om)
+void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om)
 {
-	omxData *od = ex->data;
-	omxMatrix *colList = ex->dataColumns;
-	omxDataRow(od, row, colList, om);
+	EigenVectorAdaptor ecl(colList);
+	omxDataRow(od, row, ecl, om);
 }
 
 int omxDataIndex(omxData *od, int row) {
