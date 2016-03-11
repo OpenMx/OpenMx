@@ -922,10 +922,8 @@ static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 	}
 }
 
-bool omxData::handleDefinitionVarList(omxState *state, int row)
+bool omxData::loadDefVars(omxState *state, int row)
 {
-	if(OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
-	
 	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {
 		double newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
@@ -934,6 +932,7 @@ bool omxData::handleDefinitionVarList(omxState *state, int row)
 		}
 		changed |= defVars[k].loadData(state, newDefVar);
 	}
+	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
 	return changed;
 }
 

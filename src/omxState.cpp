@@ -331,6 +331,7 @@ void omxState::loadDefinitionVariables(bool start)
 				continue;
 			}
 		} else {
+			// find row=0 in the unsorted data
 			int obs = omxDataNumObs(e1);
 			for (int dx=0; dx < obs; ++dx) {
 				if (omxDataIndex(e1, dx) == 0) {
@@ -339,7 +340,7 @@ void omxState::loadDefinitionVariables(bool start)
 				}
 			}
 		}
-		e1->handleDefinitionVarList(this, row);
+		e1->loadDefVars(this, row);
 	}
 }
 

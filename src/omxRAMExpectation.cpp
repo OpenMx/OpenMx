@@ -431,8 +431,7 @@ namespace RelationalRAMExpectation {
 			addr &a1 = st.layout[pl.aIndex];
 			omxExpectation *expectation = a1.model;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
-			omxData *data = expectation->data;
-			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
 			omxRecompute(ram->S, fc);
 
@@ -549,7 +548,7 @@ namespace RelationalRAMExpectation {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
 
-			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, NULL);
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -1402,7 +1401,7 @@ namespace RelationalRAMExpectation {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 			omxData *data = expectation->data;
-			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			expectation->loadDefVars(a1.row);
 			int a1Start = a1.ig->placements[a1.igIndex].modelStart;
 			if (ram->M) {
 				omxRecompute(ram->M, fc);
@@ -1430,7 +1429,7 @@ namespace RelationalRAMExpectation {
 					eBA * a2.ig->fullMean.segment(a2.ig->placements[a2.igIndex].modelStart, eBA.cols());
 			}
 
-			data->handleDefinitionVarList(expectation->currentState, a1.row);
+			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
 			EigenMatrixAdaptor eZ(ram->getZ(fc));
 			a1.ig->fullMean.segment(a1Start, a1.numVars()) =
