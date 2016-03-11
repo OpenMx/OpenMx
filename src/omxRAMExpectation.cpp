@@ -191,23 +191,6 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans()
 	}
 }
 
-struct IsZeroManifestCovariance {
-	typedef Eigen::Matrix<bool, Eigen::Dynamic, 1> ManifestMaskType;
-	typedef Eigen::MatrixXd::Scalar Scalar;
-	typedef Eigen::MatrixXd::Index Index;
-	bool ok;
-	ManifestMaskType manifestMask;
-
-	IsZeroManifestCovariance(ManifestMaskType manifestMask) : ok(true), manifestMask(manifestMask) {};
-	void init(const Scalar& value, Index i, Index j) { check(value,i,j); };
-	void operator() (const Scalar& value, Index i, Index j) { check(value,i,j); };
-	void check(const Scalar& value, Index i, Index j) {
-		if (i != j && value != 0.0 && (manifestMask[i] || manifestMask[j])) {
-			ok = false;
-		}
-	};
-};
-		
 void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
