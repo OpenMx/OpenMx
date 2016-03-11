@@ -943,7 +943,7 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 		std::string buf;
 		buf += string_snprintf("copyParamToModel: c(");
 		for(size_t k = 0; k < numParam; k++) {
-			buf += string_snprintf("%f", at[k]);
+			buf += string_snprintf("%g", at[k]);
 			if (k < numParam-1) buf += string_snprintf(", ");
 		}
 		buf += (")\n");
