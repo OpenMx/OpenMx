@@ -24,20 +24,6 @@
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
-void omxRAMExpectation::ensureTrivialF() // move to R side? TODO
-{
-	if (trivialF) return;
-
-	omxRecompute(F, NULL);  // should not do anything
-	EigenMatrixAdaptor eF(F);
-	Eigen::MatrixXd ident(F->rows, F->rows);
-	ident.setIdentity();
-	if (ident != eF.block(0, 0, F->rows, F->rows)) {
-		Rf_error("Square part of F matrix is not trivial");
-	}
-	trivialF = true;
-}
-
 static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char *what, const char *how)
 {
 	omxRAMExpectation* oro = (omxRAMExpectation*)(oo->argStruct);
@@ -338,6 +324,24 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	} else {
 	    RAMexp->means  = 	NULL;
     }
+
+	RAMexp->studyF(oo->dataColumns);
+}
+
+void omxRAMExpectation::studyF(omxMatrix *dataColumns)
+{
+	EigenMatrixAdaptor eF(F);
+	latentFilter.assign(eF.cols(), false);
+	dataCols.resize(eF.rows());
+	if (!eF.rows() || !dataColumns->cols) return;
+	for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
+		int dest;
+		double isManifest = eF.col(cx).maxCoeff(&dest);
+		latentFilter[cx] = isManifest;
+		if (isManifest) {
+			dataCols[dx++] = omxVectorElement(dataColumns, dest);
+		}
+	}
 }
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
@@ -359,6 +363,12 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* 
 }
 
 namespace RelationalRAMExpectation {
+
+	void omxDataRow(omxExpectation *model, int frow, omxMatrix *smallCol)
+	{
+		omxRAMExpectation *ram = (omxRAMExpectation*) model->argStruct;
+		omxDataRow(model->data, frow, ram->dataCols, smallCol);
+	}
 
 	int addr::numVars() const
 	{
@@ -455,7 +465,6 @@ namespace RelationalRAMExpectation {
 			}
 
 			rowToLayoutMap[ std::make_pair(data, frow) ] = -1;
-			ram->ensureTrivialF();
 		}
 
 		struct addr a1;
@@ -494,7 +503,7 @@ namespace RelationalRAMExpectation {
 			as1.numJoins += 1;
 		}
 
-		int obsStart = totalObserved;
+		a1.numObsCache = 0;
 		int jCols = expectation->dataColumns->cols;
 		if (jCols) {
 			if (!ram->M) {
@@ -508,11 +517,10 @@ namespace RelationalRAMExpectation {
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(smallCol, 0, col);
 				bool yes = std::isfinite(val);
-				if (yes) ++totalObserved;
+				if (yes) ++a1.numObsCache;
 			}
 		}
 
-		a1.numObsCache = totalObserved - obsStart;
 		as1.region = -1;
 		layout.push_back(a1);
 		layoutSetup.push_back(as1);
@@ -718,7 +726,7 @@ namespace RelationalRAMExpectation {
 				dx += a1.numObs();
 			}
 
-			ig->prep(maxSize, totalObserved, fc);
+			ig->prep(maxSize, dx, fc);
 			group.push_back(ig);
 			return;
 		}
@@ -924,21 +932,21 @@ namespace RelationalRAMExpectation {
 			std::string modelName(data->name);
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
-			int jCols = a1.model->dataColumns->cols;
-			if (jCols) {
+			if (a1.model->dataColumns->cols) {
 				omxDataRow(a1.model, a1.row, st.smallCol);
-				omxMatrix *colList = a1.model->dataColumns;
-				for (int col=0; col < jCols; ++col) {
-					double val = omxMatrixElement(st.smallCol, 0, col);
+				for (int col=0, d1=0; col < ram->F->cols; ++col) {
+					if (!ram->latentFilter[col]) continue;
+					double val = omxMatrixElement(st.smallCol, 0, d1);
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
 					latentFilter[ pl.modelStart + col ] = true;
 					std::string dname =
-						modelName + omxDataColumnName(data, omxVectorElement(colList, col));
+						modelName + omxDataColumnName(data, ram->dataCols[d1]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
-					if (a1.model == st.homeEx) dataColumn[ dx ] = col;
+					if (a1.model == st.homeEx) dataColumn[ dx ] = d1;
 					dx += 1;
+					d1 += 1;
 				}
 			}
 			for (int vx=0; vx < ram->F->cols; ++vx) {
@@ -1207,7 +1215,6 @@ namespace RelationalRAMExpectation {
 		homeEx = expectation;
 
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
-		ram->ensureTrivialF();
 
 		int numManifest = ram->F->rows;
 
@@ -1221,15 +1228,10 @@ namespace RelationalRAMExpectation {
 		  }
 		}
 
-		totalObserved = 0;
 		int maxSize = 0;
 		for (int row=0; row < data->rows; ++row) {
 			flattenOneRow(homeEx, row, maxSize);
 			if (isErrorRaised()) return;
-		}
-
-		if (verbose() >= 1) {
-			mxLog("%s: total observations %d", homeEx->name, totalObserved);
 		}
 
 		if (ram->rampartEnabled()) {
@@ -1440,6 +1442,10 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (false) {
+			size_t totalObserved = 0;
+			for (size_t gx=0; gx < group.size(); ++gx) {
+				totalObserved += group[gx]->dataVec.size();
+			}
 			Eigen::VectorXd expectedMean(totalObserved);
 			int ox=0;
 			for (size_t ax=0; ax < layout.size(); ++ax) {
