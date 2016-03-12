@@ -436,6 +436,7 @@ namespace RelationalRAMExpectation {
 	// 1st visitor
 	int state::flattenOneRow(omxExpectation *expectation, int frow, int &maxSize)
 	{
+		allEx.insert(expectation);
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
@@ -521,10 +522,6 @@ namespace RelationalRAMExpectation {
 	void independentGroup::determineShallowDepth(FitContext *fc)
 	{
 		if (!Global->RAMInverseOpt) return;
-
-		Eigen::VectorXd vec(fc->varGroup->vars.size());
-		vec.setConstant(1);
-		copyParamToModelInternal(fc->varGroup, st.homeEx->currentState, vec.data());
 
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
@@ -620,8 +617,10 @@ namespace RelationalRAMExpectation {
 		{
 			mismatch = true;
 
+			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
 			omxData *data = la.model->data;  // both la & ra have same data
 			for (size_t k=0; k < data->defVars.size(); ++k) {
+				if (ram->ignoreDefVar[k]) continue;
 				int col = data->defVars[k].column;
 				double lv = omxDoubleDataElement(data, la.row, col);
 				double rv = omxDoubleDataElement(data, ra.row, col);
@@ -647,16 +646,8 @@ namespace RelationalRAMExpectation {
 				bool got = compareModelAndMissingness(la, ra, mismatch);
 				if (mismatch) return got;
 
-				omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
-				if (ram->S->algebra) {
-					got = compareDefVars(la, ra, mismatch);
-					if (mismatch) return got;
-				} else {
-					if (!st.ignoreDefVarsHack) {
-						got = compareDefVars(la, ra, mismatch);
-						if (mismatch) return got;
-					}
-				}
+				got = compareDefVars(la, ra, mismatch);
+				if (mismatch) return got;
 			}
 			return false;
 		}
@@ -669,6 +660,110 @@ namespace RelationalRAMExpectation {
 		addrSetup &a1 = layoutSetup[ax];
 		for (size_t cx = 0; cx < a1.clump.size(); ++cx) {
 			appendClump(a1.clump[cx], clump);
+		}
+	}
+
+	template <typename T>
+	void state::propagateDefVar(omxRAMExpectation *to, Eigen::MatrixBase<T> &transition,
+				    omxRAMExpectation *from, bool within)
+	{
+		to->hasVariance += (transition * from->hasVariance).array().abs().matrix();
+		for (int rx=0; rx < transition.rows(); ++rx) {
+			for (int cx=0; cx < transition.cols(); ++cx) {
+				if (within && rx == cx) continue;
+				if (transition(rx,cx) == 0) continue;
+				dvScoreboardSetType &dv2 = from->dvScoreboard[cx];
+
+				bool notIgnoreable = from->hasVariance[cx] && !within;
+				if (verbose() >= 1) {
+					for (dvScoreboardSetType::iterator it = dv2.begin();
+					     it != dv2.end(); ++it) {
+						omxExpectation *ex3 = it->first;
+						omxRAMExpectation *ram3 = (omxRAMExpectation*) ex3->argStruct;
+						omxDefinitionVar &dv = ex3->data->defVars[ it->second ];
+						mxLog("%s at %s[%d,%d] goes from %s to %s => %d",
+						      omxDataColumnName(ex3->data, dv.column),
+						      ram3->M->name(), 1+dv.row, 1+dv.col,
+						      from->S->rownames[cx], to->S->rownames[rx],
+						      notIgnoreable);
+					}
+				}
+				
+				if (notIgnoreable) {
+					for (dvScoreboardSetType::iterator it = dv2.begin();
+					     it != dv2.end(); ++it) {
+						omxExpectation *ex3 = it->first;
+						omxRAMExpectation *ram3 = (omxRAMExpectation*) ex3->argStruct;
+						ram3->ignoreDefVar[ it->second ] = false;
+					}
+				} else {
+					dvScoreboardSetType &dv1 = to->dvScoreboard[rx];
+					dv1.insert(dv2.begin(), dv2.end());
+				}
+			}
+		}
+	}
+
+	void state::identifyZeroVarPred(FitContext *fc)
+	{
+		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
+			omxRAMExpectation *ram = (omxRAMExpectation*) (*it)->argStruct;
+			omxData *data = (*it)->data;
+			data->loadFakeData((*it)->currentState, 1.0);
+			ram->S->markPopulatedEntries();
+			omxRecompute(ram->S, fc);
+			EigenMatrixAdaptor eS(ram->S);
+			ram->hasVariance = eS.diagonal().array().abs().matrix();
+			ram->dvScoreboard.resize(eS.rows());
+		}
+
+		std::set<omxExpectation*> checkedEx;
+		for (size_t ax=0; ax < layout.size(); ++ax) {
+			addr &a1 = layout[ax];
+			omxExpectation *expectation = a1.model;
+			omxData *data = expectation->data;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+
+			if (ram->M) {
+				int mNum = ~ram->M->matrixNumber;
+				for (size_t k=0; k < data->defVars.size(); ++k) {
+					omxDefinitionVar &dv = data->defVars[k];
+					if (dv.matrix != mNum || ram->hasVariance[ dv.col ]) {
+						continue;
+					}
+					ram->dvScoreboard[dv.col].insert(std::make_pair(expectation, k));
+					ram->ignoreDefVar[k] = true; // tentative
+					if (verbose() >= 1) {
+						mxLog("consider def var %s at %s[%d,%d]",
+						      omxDataColumnName(data, dv.column),
+						      ram->M->name(), 1+dv.row, 1+dv.col);
+					}
+				}
+			}
+
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				omxMatrix *betA = ram->between[jx];
+				int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+				if (key == NA_INTEGER) continue;
+				omxExpectation *ex2 = betA->getJoinModel();
+				omxRAMExpectation *ram2 = (omxRAMExpectation*) ex2->argStruct;
+				omxRecompute(betA, fc);
+				EigenMatrixAdaptor eBA(betA);
+				propagateDefVar(ram, eBA, ram2, false);
+			}
+
+			ram->A->markPopulatedEntries();
+			omxRecompute(ram->A, fc);
+			EigenMatrixAdaptor Zmat(ram->getZ(fc));
+			propagateDefVar(ram, Zmat, ram, true);
+
+			checkedEx.insert(expectation);
+			if (checkedEx.size() == allEx.size()) break;
+		}
+
+		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
+			omxRAMExpectation *ram = (omxRAMExpectation*) (*it)->argStruct;
+			ram->dvScoreboard.clear();
 		}
 	}
 
@@ -1183,17 +1278,18 @@ namespace RelationalRAMExpectation {
 		int numManifest = ram->F->rows;
 
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
-		omxData *data = homeEx->data;
 
-		{ ProtectedSEXP Rdvhack(R_do_slot(expectation->rObj, Rf_install(".ignoreDefVarsHack")));
-		  ignoreDefVarsHack = Rf_asLogical(Rdvhack);
-		  if (ignoreDefVarsHack && verbose()) {
-			  mxLog("%s: ignoreDefVarsHack activated", homeEx->name);
-		  }
+		{
+			ProtectedSEXP Rdvhack(R_do_slot(expectation->rObj, Rf_install(".identifyZeroVarPred")));
+			doIdentifyZeroVarPred = Rf_asLogical(Rdvhack);
+			if (verbose()) {
+				mxLog("%s: identifyZeroVarPred=%d", homeEx->name, doIdentifyZeroVarPred);
+			}
 		}
 
 		int maxSize = 0;
-		for (int row=0; row < data->rows; ++row) {
+		int homeDataRows = homeEx->data->rows;
+		for (int row=0; row < homeDataRows; ++row) {
 			flattenOneRow(homeEx, row, maxSize);
 			if (isErrorRaised()) return;
 		}
@@ -1212,7 +1308,20 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		Eigen::VectorXd vec(fc->varGroup->vars.size());
+		vec.setConstant(1);
+		copyParamToModelInternal(fc->varGroup, homeEx->currentState, vec.data());
+
+		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
+			omxRAMExpectation *ram = (omxRAMExpectation*) (*it)->argStruct;
+			ram->ignoreDefVar.assign((*it)->data->defVars.size(), false);
+		}
+
+		if (doIdentifyZeroVarPred) identifyZeroVarPred(fc);
+
 		planModelEval(maxSize, fc);
+
+		fc->copyParamToModelClean();
 
 		applyRotationPlan(UnitAccessor<false>(this));
 	}

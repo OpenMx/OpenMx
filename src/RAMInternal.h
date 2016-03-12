@@ -80,7 +80,6 @@ template <typename T1> void AsymTool<T1>::determineShallowDepth(FitContext *fc)
 		}
 	}
 	fullA.setZero();
-	fc->copyParamToModelClean();
 
 	if (AshallowDepth >= 0) signA = 1.0;
 	hasDeterminedDepth = true;
@@ -346,6 +345,8 @@ class SimpCholesky : public Eigen::SimplicialLDLT<_MatrixType, _UpLo> {
 	};
 */
 
+class omxRAMExpectation;
+
 namespace RelationalRAMExpectation {
 
 	// addrSetup and addr are conceptual the same object. They are
@@ -453,21 +454,26 @@ namespace RelationalRAMExpectation {
 
 	public:
 		struct omxExpectation *homeEx;
+		std::set<struct omxExpectation *> allEx;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addrSetup>		 layoutSetup;
 		std::vector<addr>		 layout;
 		omxMatrix                       *smallCol;
 		std::vector<independentGroup*>   group;
-		bool                             ignoreDefVarsHack;
+		bool                             doIdentifyZeroVarPred;
 
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
 		void planModelEval(int maxSize, FitContext *fc);
+		void identifyZeroVarPred(FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1);
 		template <typename T> void applyRotationPlan(T accessor);
 		template <typename T> void appendClump(int ax, std::vector<T> &clump);
+		template <typename T> void propagateDefVar(omxRAMExpectation *ram,
+							   Eigen::MatrixBase<T> &transition,
+							   omxRAMExpectation *ram2, bool within);
 	public:
 		~state();
 		void computeCov(FitContext *fc);
@@ -479,13 +485,20 @@ namespace RelationalRAMExpectation {
 	};
 };
 
+typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
+
 class omxRAMExpectation {
 	bool trivialF;
 	int Zversion;
 	omxMatrix *_Z;
  public:
+	std::vector< dvScoreboardSetType > dvScoreboard;
+	Eigen::VectorXd hasVariance;
+	std::vector<bool> ignoreDefVar;
 	std::vector<bool> latentFilter; // false when latent
-	Eigen::VectorXi dataCols; // composition of F permutation and expectation->dataColumns
+
+	// composition of F permutation and expectation->dataColumns
+	Eigen::VectorXi dataCols;
 
  	omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
 	~omxRAMExpectation() {
