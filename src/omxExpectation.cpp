@@ -302,3 +302,17 @@ void complainAboutMissingMeans(omxExpectation *off)
 		       " to = manifests) to your model.", off->name);
 }
 
+bool omxExpectation::loadDefVars(int row)
+{
+	bool changed = false;
+	for (int k=0; k < int(data->defVars.size()); ++k) {
+		omxDefinitionVar &dv = data->defVars[k];
+		double newDefVar = omxDoubleDataElement(data, row, dv.column);
+		if(ISNA(newDefVar)) {
+			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
+		}
+		changed |= dv.loadData(currentState, newDefVar);
+	}
+	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("%s: loading definition vars for row %d", name, row); }
+	return changed;
+}

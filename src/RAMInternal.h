@@ -13,6 +13,162 @@
 //#include <Eigen/UmfPackSupport>
 //#include <RcppEigenCholmod.h>
 
+template <typename T1>
+class AsymTool {
+	int AshallowDepth;
+	double signA;
+	std::vector<T1> &latentFilter;
+	Eigen::SparseMatrix<double>      ident;
+	bool analyzed;
+	bool hasDeterminedDepth;
+	Eigen::SparseLU< Eigen::SparseMatrix<double>,
+		Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
+	//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+	int clumpObs;
+	bool filtered;
+	int invertCount;
+	int filterCount;
+ public:
+	bool determinedDepth() const { return hasDeterminedDepth; };
+	bool isFiltered() const { return filtered; };
+	int getDepth() const { return AshallowDepth; };
+	double getSign() const { return signA; };
+	int getInvertCount() const { return invertCount; };
+	int getFilterCount() const { return filterCount; };
+
+	Eigen::SparseMatrix<double> fullA;
+	Eigen::SparseMatrix<double> IAF;
+
+	AsymTool(std::vector<T1> &latentFilter) :
+	AshallowDepth(-1), signA(-1.0), latentFilter(latentFilter), analyzed(false), hasDeterminedDepth(false),
+		invertCount(0), filterCount(0) {};
+	void resize(int clumpVars, int _clumpObs)
+	{
+		fullA.resize(clumpVars, clumpVars);
+		ident.resize(clumpVars, clumpVars);
+		ident.setIdentity();
+		clumpObs = _clumpObs;
+	};
+	void determineShallowDepth(FitContext *fc);
+	void invert();
+	void filter();
+};
+
+template <typename T1> void AsymTool<T1>::determineShallowDepth(FitContext *fc)
+{
+	int maxDepth = std::min(fullA.cols(), 30);
+	if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
+	Eigen::SparseMatrix<double> curProd = fullA;
+	for (int tx=1; tx <= maxDepth; ++tx) {
+		if (false) {
+			Eigen::MatrixXd tmp = curProd;
+			mxPrintMat("curProd", tmp);
+		}
+		curProd = (curProd * fullA.transpose()).eval();
+		bool allZero = true;
+		for (int k=0; k < curProd.outerSize(); ++k) {
+			for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
+				if (it.value() != 0.0) {
+					allZero = false;
+					break;
+				}
+			}
+		}
+		if (allZero) {
+			AshallowDepth = tx - 1;
+			break;
+		}
+	}
+	fullA.setZero();
+	fc->copyParamToModelClean();
+
+	if (AshallowDepth >= 0) signA = 1.0;
+	hasDeterminedDepth = true;
+}
+
+template <typename T1> void AsymTool<T1>::invert()
+{
+	// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
+	if (AshallowDepth >= 0) {
+		fullA.makeCompressed();
+		IAF = fullA + ident;
+		for (int iter=1; iter <= AshallowDepth; ++iter) {
+			IAF = (IAF * fullA + ident).eval();
+			//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+		}
+	} else {
+		fullA += ident;
+		if (!analyzed) {
+			analyzed = true;
+			fullA.makeCompressed();
+			Asolver.analyzePattern(fullA);
+		}
+		Asolver.factorize(fullA);
+		if (Asolver.info() != Eigen::Success) {
+			Rf_error("Failed to invert flattened A matrix; %s",
+				 Asolver.lastErrorMessage().c_str());
+		}
+
+		IAF = Asolver.solve(ident);
+		fullA -= ident;  // leave unchanged
+		//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+	}
+	filtered = false;
+	++invertCount;
+}
+
+template <typename T1> void AsymTool<T1>::filter()
+{
+	const bool doubleCheck = false;
+	Eigen::MatrixXd denseA;
+	if (doubleCheck) {
+		denseA = IAF;
+	}
+
+	// We built A transposed so we can quickly filter columns
+	// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
+	IAF.uncompress();
+	Eigen::SparseMatrix<double>::Index *op = IAF.outerIndexPtr();
+	Eigen::SparseMatrix<double>::Index *nzp = IAF.innerNonZeroPtr();
+	int dx = 0;
+	for (int cx=0; cx < fullA.cols(); ++cx) {
+		if (!latentFilter[cx]) continue;
+		op[dx] = op[cx];
+		nzp[dx] = nzp[cx];
+		++dx;
+	}
+	op[dx] = op[fullA.cols()];
+	IAF.conservativeResize(fullA.rows(), clumpObs);
+
+	if (doubleCheck) {
+		Eigen::MatrixXd denseAF;
+		denseAF.resize(fullA.rows(), clumpObs);
+		int dx=0;
+		for (int cx=0; cx < fullA.cols(); ++cx) {
+			if (!latentFilter[cx]) continue;
+			denseAF.col(dx) = denseA.col(cx);
+			++dx;
+		}
+		if (dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+					     dx, clumpObs);
+		Eigen::MatrixXd denseFilteredA = IAF;
+		if ((denseAF.array() != denseFilteredA.array()).any()) {
+			for (int rx=0; rx<denseAF.rows(); ++rx) {
+				for (int cx=0; cx<denseAF.cols(); ++cx) {
+					if (denseAF.coeff(rx,cx) != denseFilteredA.coeff(rx,cx)) {
+						mxLog("[%d,%d] %f != %f",
+						      rx, cx, denseAF.coeff(rx,cx), denseFilteredA.coeff(rx,cx));
+					}
+				}
+			}
+			Rf_error("stop");
+		}
+	}
+	filtered = true;
+	++filterCount;
+	//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+}
+
 template<typename _MatrixType, int _UpLo = Eigen::Lower>
 class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
  private:
@@ -248,10 +404,6 @@ namespace RelationalRAMExpectation {
 	class independentGroup {
 	private:
 		class state &st;
-		bool analyzed;
-		int AshallowDepth;
-		double signA;
-		Eigen::SparseMatrix<double>      ident;
 
 		void refreshModel(FitContext *fc);
 		void refreshUnitA(FitContext *fc, int px);
@@ -278,15 +430,11 @@ namespace RelationalRAMExpectation {
 		std::vector<bool>                latentFilter; // false when latent or missing
 
 		// could store coeff extraction plan in addr TODO
-		Eigen::SparseMatrix<double>      fullA;
-		Eigen::SparseLU< Eigen::SparseMatrix<double>,
-				 Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
-		Eigen::SparseMatrix<double>      IAF;
-		//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
+		AsymTool<bool>          asymT;
 
 		independentGroup(class state *st, int size, int clumpSize)
-			: st(*st), analyzed(false), AshallowDepth(-1), signA(-1), clumpSize(clumpSize),
-			analyzedCov(false)
+			: st(*st), clumpSize(clumpSize),
+			analyzedCov(false), asymT(latentFilter)
 		{ placements.reserve(size); };
 		void prep(int maxSize, int totalObserved, FitContext *fc);
 		void determineShallowDepth(FitContext *fc);
@@ -339,7 +487,7 @@ class omxRAMExpectation {
 	std::vector<bool> latentFilter; // false when latent
 	Eigen::VectorXi dataCols; // composition of F permutation and expectation->dataColumns
 
- omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
+ 	omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
 	~omxRAMExpectation() {
 		omxFreeMatrix(_Z);
 	};
@@ -374,6 +522,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	inline int independentGroup::verbose() const { return st.verbose(); };
+
 };
 
 #endif

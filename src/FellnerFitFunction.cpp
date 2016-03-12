@@ -66,7 +66,6 @@ namespace FellnerFitFunction {
 		}
 
 		RelationalRAMExpectation::independentGroup &ig = *rram->group[0];
-		omxData *data               = expectation->data;
 		fc->profiledOut.assign(fc->numParam, false);
 
 		olsVarNum.reserve(numProfiledOut);
@@ -116,7 +115,7 @@ namespace FellnerFitFunction {
 					RelationalRAMExpectation::placement &pl = ig.placements[ax];
 					RelationalRAMExpectation::addr &a1 = rram->layout[ pl.aIndex ];
 					if (a1.model != expectation) continue;
-					data->handleDefinitionVarList(ram->M->currentState, a1.row);
+					expectation->loadDefVars(a1.row);
 					double weight = omxVectorElement(ram->M, vnum);
 					olsDesign.col(px).segment(pl.obsStart, a1.numObs()) =
 						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
