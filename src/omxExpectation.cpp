@@ -231,10 +231,8 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		for (int dx=0; dx < int(od->defVars.size()); ++dx) {
 			omxDefinitionVar &dv = od->defVars[dx];
 			msg += string_snprintf("[%d] column '%s' ->", dx, omxDataColumnName(od, dv.column));
-			for (int lx=0; lx < dv.numLocations; ++lx) {
-				msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv.matrices[lx]),
-						       dv.rows[lx], dv.cols[lx]);
-			}
+			msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv.matrix),
+					       dv.row, dv.col);
 			msg += "\n  dirty:";
 			for (int mx=0; mx < dv.numDeps; ++mx) {
 				msg += string_snprintf(" %s", state->matrixToName(dv.deps[mx]));
