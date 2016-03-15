@@ -87,7 +87,7 @@ omxCheckError(mxModel(m2, mxPath('intercept', 'Reaction',
 
 omxCheckError(mxModel(m2, mxPath(c('Bathtub.intercept', 'Sink.intercept'), 'Reaction',
                                  values=1, free=FALSE, joinKey="Subject")),
-              "Deal with one upper level model at a time, not 'Bathtub' and 'Sink'")
+              "Nice try. You need to create an upper level RAM model called 'Bathtub' and add it as a submodel of 'sleep' before you can create paths between these models.")
 
 omxCheckError(mxModel(m2, mxPath('by_Subject.intersept', 'Reaction',
                                  values=1, free=FALSE, joinKey="Subject")),
