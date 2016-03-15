@@ -949,12 +949,10 @@ bool omxData::CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mi
 	mismatch = true;
 	for (int dx=0; dx < int(defVars.size()); ++dx) {
 		omxDefinitionVar &dv = defVars[dx];
-		for(int l = 0; l < dv.numLocations; l++) {
-			if (dv.matrices[l] != mnum) continue;
-			double lval = omxDoubleDataElement(this, lrow, dv.column);
-			double rval = omxDoubleDataElement(this, rrow, dv.column);
-			if (lval != rval) return lval < rval;
-		}
+		if (dv.matrix != mnum) continue;
+		double lval = omxDoubleDataElement(this, lrow, dv.column);
+		double rval = omxDoubleDataElement(this, rrow, dv.column);
+		if (lval != rval) return lval < rval;
 	}
 	mismatch = false;
 	return false;
@@ -962,19 +960,12 @@ bool omxData::CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mi
 
 bool omxDefinitionVar::loadData(omxState *state, double val)
 {
-	// We only need to check the first location because
-	// all locations will have the same value.
-	for(int l = 0; l < numLocations; l++) {
-		int matrixNumber = matrices[l];
-		int matrow = rows[l];
-		int matcol = cols[l];
-		omxMatrix *matrix = state->matrixList[matrixNumber];
-		if (val == omxMatrixElement(matrix, matrow, matcol)) return false;
-		omxSetMatrixElement(matrix, matrow, matcol, val);
-		if (OMX_DEBUG) {
-			mxLog("Load data %f into %s[%d,%d], state[%d]",
-			      val, matrix->name(), matrow, matcol, state->getId());
-		}
+	omxMatrix *mat = state->matrixList[matrix];
+	if (val == omxMatrixElement(mat, row, col)) return false;
+	omxSetMatrixElement(mat, row, col, val);
+	if (OMX_DEBUG) {
+		mxLog("Load data %f into %s[%d,%d], state[%d]",
+		      val, mat->name(), row, col, state->getId());
 	}
 	markDefVarDependencies(state, this);
 	return true;

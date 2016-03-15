@@ -48,13 +48,10 @@ typedef struct omxThresholdColumn omxThresholdColumn;
 
 #include <map>
 
-struct omxDefinitionVar {		 	// Definition Var
-
-	int column;		// Where it comes from
-	int numLocations;		// Num locations
-	int* rows;				// row positions
-	int* cols;				// column positions
-	int* matrices;			// matrix numbers
+struct omxDefinitionVar {
+	int column;		// in data
+	int row, col;           // in matrix
+	int matrix;		// matrix number
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
 
