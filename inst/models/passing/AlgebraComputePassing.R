@@ -282,17 +282,16 @@ model <- mxModel(model, mxAlgebra(dpois(D,D,D),name="test80b"))
 model <- mxModel(model, mxAlgebra(ppois(D,D,D,D),name="test81a"))
 model <- mxModel(model, mxAlgebra(ppois(D,D,1,0),name="test81b"))
 model <- mxModel(model, mxAlgebra(ppois(D,D,0,0),name="test81c"))
-model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,0),name="test82a"))
-model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,C),name="test82b"))
-model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,C,0),name="test83a"))
-model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,1,0),name="test83b"))
-model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,0,0),name="test83b"))
-
-model <- mxModel(model, mxAlgebra(dnbinom_mu(D,D,C,0),name="test84a"))
-model <- mxModel(model, mxAlgebra(dnbinom_mu(D,D,C,C),name="test84b"))
-model <- mxModel(model, mxAlgebra(pnbinom_mu(D,D,C,C,0),name="test85a"))
-model <- mxModel(model, mxAlgebra(pnbinom_mu(D,D,C,1,0),name="test85b"))
-model <- mxModel(model, mxAlgebra(pnbinom_mu(D,D,C,0,0),name="test85b"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,-1,0),name="test82a"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,-1,C),name="test82b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,C,0),name="test83a"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,1,0),name="test83b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,0,1),name="test83c"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,-1,C,0),name="test84a"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,-1,C,C),name="test84b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,C,0),name="test85a"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,1,0),name="test85b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,0,1),name="test85c"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -542,14 +541,22 @@ omxCheckCloseEnough(model[['test80b']]$result, dpois(D$values,D$values,TRUE), .0
 omxCheckCloseEnough(model[['test81a']]$result, ppois(D$values,D$values,TRUE,TRUE), .001)
 omxCheckCloseEnough(model[['test81b']]$result, ppois(D$values,D$values,TRUE,FALSE), .001)
 omxCheckCloseEnough(model[['test81c']]$result, ppois(D$values,D$values,FALSE,FALSE), .001)
-omxCheckCloseEnough(model[['test82a']]$result, dnbinom(x=D$values,size=D$values,prob=C$values,log=FALSE), .001)
-omxCheckCloseEnough(model[['test82b']]$result, dnbinom(x=D$values,size=D$values,prob=C$values,log=TRUE), .001)
-omxCheckCloseEnough(model[['test83a']]$result, pnbinom(q=D$values,size=D$values,prob=C$values,lower.tail=TRUE,
+omxCheckCloseEnough(model[['test82a']]$result, dnbinom(x=D$values,size=D$values,prob=C$values[1:10],log=FALSE), .001)
+omxCheckCloseEnough(model[['test82b']]$result, dnbinom(x=D$values,size=D$values,prob=C$values[1:10],log=TRUE), .001)
+omxCheckCloseEnough(model[['test83a']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=TRUE,
 																											 log.p=FALSE), .001)
-omxCheckCloseEnough(model[['test83b']]$result, pnbinom(q=D$values,size=D$values,prob=C$values,lower.tail=TRUE,
+omxCheckCloseEnough(model[['test83b']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=TRUE,
 																											 log.p=FALSE), .001)
-omxCheckCloseEnough(model[['test83c']]$result, pnbinom(q=D$values,size=D$values,prob=C$values,lower.tail=FALSE,
+omxCheckCloseEnough(model[['test83c']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=FALSE,
+																											 log.p=TRUE), .001)
+omxCheckCloseEnough(model[['test84a']]$result, dnbinom(x=D$values,size=D$values,mu=C$values[1:10],log=FALSE), .001)
+omxCheckCloseEnough(model[['test84b']]$result, dnbinom(x=D$values,size=D$values,mu=C$values[1:10],log=TRUE), .001)
+omxCheckCloseEnough(model[['test85a']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=TRUE,
 																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test85b']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=TRUE,
+																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test85c']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=FALSE,
+																											 log.p=TRUE), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()

@@ -1380,23 +1380,49 @@ static void omxElementDnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *inMat = matList[0];
 	omxMatrix *size = matList[1];
 	omxMatrix *prob = matList[2];
-	omxMatrix *give_log = matList[3];
+	omxMatrix *mu = matList[3];
+	omxMatrix *give_log = matList[4];
 	
 	int give_log_arg = (int)(give_log->data[0] != 0);
 	
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(size);
 	omxEnsureColumnMajor(prob);
+	omxEnsureColumnMajor(mu);
 	
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int sizeDataSize = size->rows * size->cols;
 	int probDataSize = prob->rows * prob->cols;
+	int muDataSize = mu->rows * mu->cols;
+	int isSizeNeg=0, isProbNeg=0, isMuNeg=0, jumpVal=0;
 	
 	omxCopyMatrix(result, inMat);
 	
 	double* data = result->data;
+	double sizecurr=0, probcurr=0, mucurr=0;
+	
 	for(int j = 0; j < inMatDataSize; j++) {
-		data[j] = Rf_dnbinom(data[j],size->data[j%sizeDataSize],prob->data[j%probDataSize],give_log_arg);
+		sizecurr = size->data[j%sizeDataSize];
+		probcurr = prob->data[j%probDataSize];
+		mucurr = mu->data[j%muDataSize];
+		isSizeNeg = (Rf_sign(sizecurr) == -1) ? 1L : 0L ;
+		isProbNeg = (Rf_sign(probcurr) == -1) ? 3L : 0L ;
+		isMuNeg = (Rf_sign(mucurr) == -1) ? 5L : 0L ;
+		jumpVal = isSizeNeg + isProbNeg + isMuNeg;
+		switch(jumpVal){
+		case 1:
+			data[j] = Rf_dnbinom(data[j],mucurr*probcurr/(1-probcurr),probcurr,give_log_arg);
+			break;
+		case 3:
+			data[j] = Rf_dnbinom_mu(data[j],sizecurr,mucurr,give_log_arg);
+			break;
+		case 5:
+			data[j] = Rf_dnbinom(data[j],sizecurr,probcurr,give_log_arg);
+			break;
+		default:
+			Rf_warning("exactly one of arguments 'size', 'prob', and 'mu' must be negative (and therefore ignored)\n");
+			data[j] = Rf_dnbinom(data[j],sizecurr,probcurr,give_log_arg); //let the R API handle bad inputs
+		}
 	}
 }
 
@@ -1405,8 +1431,9 @@ static void omxElementPnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *inMat = matList[0];
 	omxMatrix *size = matList[1];
 	omxMatrix *prob = matList[2];
-	omxMatrix *lower_tail = matList[3];
-	omxMatrix *give_log = matList[4];
+	omxMatrix *mu = matList[3];
+	omxMatrix *lower_tail = matList[4];
+	omxMatrix *give_log = matList[5];
 	
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
@@ -1414,68 +1441,41 @@ static void omxElementPnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(size);
 	omxEnsureColumnMajor(prob);
+	omxEnsureColumnMajor(mu);
 	
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int sizeDataSize = size->rows * size->cols;
 	int probDataSize = prob->rows * prob->cols;
-	
-	omxCopyMatrix(result, inMat);
-	
-	double* data = result->data;
-	for(int j = 0; j < inMatDataSize; j++) {
-		data[j] = Rf_pnbinom(data[j],size->data[j%sizeDataSize],prob->data[j%probDataSize],lower_tail_arg,give_log_arg);
-	}
-}
-
-static void omxElementDnbinommu(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
-{
-	omxMatrix *inMat = matList[0];
-	omxMatrix *size = matList[1];
-	omxMatrix *mu = matList[2];
-	omxMatrix *give_log = matList[3];
-	
-	int give_log_arg = (int)(give_log->data[0] != 0);
-	
-	omxEnsureColumnMajor(inMat);
-	omxEnsureColumnMajor(size);
-	omxEnsureColumnMajor(mu);
-	
-	int inMatDataSize = inMat->rows * inMat->cols;
-	int sizeDataSize = size->rows * size->cols;
 	int muDataSize = mu->rows * mu->cols;
+	int isSizeNeg=0, isProbNeg=0, isMuNeg=0, jumpVal=0;
 	
 	omxCopyMatrix(result, inMat);
 	
 	double* data = result->data;
+	double sizecurr=0, probcurr=0, mucurr=0;
+	
 	for(int j = 0; j < inMatDataSize; j++) {
-		data[j] = Rf_dnbinom_mu(data[j],size->data[j%sizeDataSize],mu->data[j%muDataSize],give_log_arg);
-	}
-}
-
-static void omxElementPnbinommu(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
-{
-	omxMatrix *inMat = matList[0];
-	omxMatrix *size = matList[1];
-	omxMatrix *mu = matList[2];
-	omxMatrix *lower_tail = matList[3];
-	omxMatrix *give_log = matList[4];
-	
-	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
-	int give_log_arg = (int)(give_log->data[0] != 0);
-	
-	omxEnsureColumnMajor(inMat);
-	omxEnsureColumnMajor(size);
-	omxEnsureColumnMajor(mu);
-	
-	int inMatDataSize = inMat->rows * inMat->cols;
-	int sizeDataSize = size->rows * size->cols;
-	int muDataSize = mu->rows * mu->cols;
-	
-	omxCopyMatrix(result, inMat);
-	
-	double* data = result->data;
-	for(int j = 0; j < inMatDataSize; j++) {
-		data[j] = Rf_pnbinom_mu(data[j],size->data[j%sizeDataSize],mu->data[j%muDataSize],lower_tail_arg,give_log_arg);
+		sizecurr = size->data[j%sizeDataSize];
+		probcurr = prob->data[j%probDataSize];
+		mucurr = mu->data[j%muDataSize];
+		isSizeNeg = (Rf_sign(sizecurr) == -1) ? 1L : 0L ;
+		isProbNeg = (Rf_sign(probcurr) == -1) ? 3L : 0L ;
+		isMuNeg = (Rf_sign(mucurr) == -1) ? 5L : 0L ;
+		jumpVal = isSizeNeg + isProbNeg + isMuNeg;
+		switch(jumpVal){
+		case 1:
+			data[j] = Rf_pnbinom(data[j],mucurr*probcurr/(1-probcurr),probcurr,lower_tail_arg,give_log_arg);
+			break;
+		case 3:
+			data[j] = Rf_pnbinom_mu(data[j],sizecurr,mucurr,lower_tail_arg,give_log_arg);
+			break;
+		case 5:
+			data[j] = Rf_pnbinom(data[j],sizecurr,probcurr,lower_tail_arg,give_log_arg);
+			break;
+		default:
+			Rf_warning("exactly one of arguments 'size', 'prob', and 'mu' must be negative (and therefore ignored)\n");
+			data[j] = Rf_pnbinom(data[j],sizecurr,probcurr,lower_tail_arg,give_log_arg); //let the R API handle bad inputs
+		}
 	}
 }
 

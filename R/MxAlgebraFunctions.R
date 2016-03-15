@@ -363,27 +363,6 @@ lgamma1p <- function(x){
 									generateOptionsList(NULL, 0, FALSE))
 	return(retVal)
 }
-dnbinom_mu <- function(x,size,mu,log){
-	#return(dnbinom(x=x,size=size,mu=mu,log=log))
-	x <- as.matrix(x)
-	size <- as.matrix(size)
-	mu <- as.matrix(mu)
-	log <- as.matrix(as.double(log[1]))
-	retVal <- .Call(callAlgebra, list(x,size,mu,log), imxLookupSymbolTable("dnbinom_mu"),
-									generateOptionsList(NULL, 0, FALSE))
-	return(retVal)
-}
-pnbinom_mu <- function(q,size,mu,lower.tail,log.p){
-	#return(pnbinom(q=q,size=size,mu=mu,lower.tail=lower.tail,log.p=log.p))
-	q <- as.matrix(q)
-	size <- as.matrix(size)
-	mu <- as.matrix(mu)
-	lower.tail <- as.matrix(as.double(lower.tail[1]))
-	log.p <- as.matrix(as.double(log.p[1]))
-	retVal <- .Call(callAlgebra, list(q,size,mu,lower.tail,log.p), imxLookupSymbolTable("pnbinom_mu"),
-									generateOptionsList(NULL, 0, FALSE))
-	return(retVal)
-}
 
 ##' A C implementation of dmvnorm
 ##'
