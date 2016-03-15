@@ -1320,13 +1320,162 @@ static void omxElementPbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
-		//data[j] = Rf_pbeta(data[j],a->data[j],b->data[j],lower_tail_arg,give_log_arg);
 		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
 			data[j] = Rf_pbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],lower_tail_arg,give_log_arg);
 		}
 		else{
 			data[j] = Rf_pnbeta(data[j],a->data[j%aDataSize],b->data[j%bDataSize],ncp->data[j%ncpDataSize],lower_tail_arg,give_log_arg);
 		}
+	}
+}
+
+static void omxElementDpois(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *lambda = matList[1];
+	omxMatrix *give_log = matList[2];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(lambda);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int lambdaDataSize = lambda->rows * lambda->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_dpois(data[j],lambda->data[j%lambdaDataSize],give_log_arg);
+	}
+}
+
+static void omxElementPpois(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *lambda = matList[1];
+	omxMatrix *lower_tail = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(lambda);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int lambdaDataSize = lambda->rows * lambda->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_ppois(data[j],lambda->data[j%lambdaDataSize],lower_tail_arg,give_log_arg);
+	}
+}
+
+static void omxElementDnbinom(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *size = matList[1];
+	omxMatrix *prob = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(size);
+	omxEnsureColumnMajor(prob);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int sizeDataSize = size->rows * size->cols;
+	int probDataSize = prob->rows * prob->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_dnbinom(data[j],size->data[j%sizeDataSize],prob->data[j%probDataSize],give_log_arg);
+	}
+}
+
+static void omxElementPnbinom(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *size = matList[1];
+	omxMatrix *prob = matList[2];
+	omxMatrix *lower_tail = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(size);
+	omxEnsureColumnMajor(prob);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int sizeDataSize = size->rows * size->cols;
+	int probDataSize = prob->rows * prob->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_pnbinom(data[j],size->data[j%sizeDataSize],prob->data[j%probDataSize],lower_tail_arg,give_log_arg);
+	}
+}
+
+static void omxElementDnbinommu(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *size = matList[1];
+	omxMatrix *mu = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(size);
+	omxEnsureColumnMajor(mu);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int sizeDataSize = size->rows * size->cols;
+	int muDataSize = mu->rows * mu->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_dnbinom_mu(data[j],size->data[j%sizeDataSize],mu->data[j%muDataSize],give_log_arg);
+	}
+}
+
+static void omxElementPnbinommu(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *size = matList[1];
+	omxMatrix *mu = matList[2];
+	omxMatrix *lower_tail = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(size);
+	omxEnsureColumnMajor(mu);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int sizeDataSize = size->rows * size->cols;
+	int muDataSize = mu->rows * mu->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_pnbinom_mu(data[j],size->data[j%sizeDataSize],mu->data[j%muDataSize],lower_tail_arg,give_log_arg);
 	}
 }
 

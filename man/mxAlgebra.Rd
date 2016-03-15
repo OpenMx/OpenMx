@@ -140,9 +140,15 @@ There are also several multiargument functions usable in MxAlgebras, which apply
 \tabular{ccl}{
 Function \tab Arguments \tab Notes \cr
 \code{dbeta} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
-\code{pbeta} \tab \code{x,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
+\code{pbeta} \tab \code{q,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
 \code{besselJ} & \code{besselY} \tab \code{x,nu} \tab  \cr
 \code{besselI} & \code{besselK} \tab \code{x,nu,expon.scaled} \tab Note that OpenMx \emph{does} cycle over the elements of \code{expon.scaled}. \cr
+\code{dpois} \tab \code{x,lambda,log} \tab  \cr
+\code{ppois} \tab \code{q,lambda,lower.tail,log} \tab  \cr
+\code{dnbinom} \tab \code{x,size,prob,log} \tab  \cr
+\code{pnbinom} \tab \code{q,size,prob,lower.tail,log} \tab  \cr
+\code{dnbinom_mu} \tab \code{x,size,mu,log} \tab  \cr
+\code{pnbinom_mu} \tab \code{q,size,mu,lower.tail,log} \tab  \cr
 }
 }
 
