@@ -169,7 +169,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			// Handle Definition Variables.
 			if((numDefs && numIdenticalDefs <= 0) || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
-				bool numVarsFilled = data->handleDefinitionVarList(localobj->matrix->currentState, row);
+				bool numVarsFilled = expectation->loadDefVars(row);
 				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
 					if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
 						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }

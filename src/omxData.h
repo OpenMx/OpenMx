@@ -48,13 +48,10 @@ typedef struct omxThresholdColumn omxThresholdColumn;
 
 #include <map>
 
-struct omxDefinitionVar {		 	// Definition Var
-
-	int column;		// Where it comes from
-	int numLocations;		// Num locations
-	int* rows;				// row positions
-	int* cols;				// column positions
-	int* matrices;			// matrix numbers
+struct omxDefinitionVar {
+	int column;		// in data
+	int row, col;           // in matrix
+	int matrix;		// matrix number
 	int  numDeps;           // number of algebra/matrix dependencies
 	int* deps;              // indices of algebra/matrix dependencies
 
@@ -125,9 +122,9 @@ class omxData {
 	std::map<int,int> primaryKeyIndex;
 
 	void loadFakeData(omxState *state, double fake);
-	bool handleDefinitionVarList(omxState *state, int row);
 	bool hasDefinitionVariables() { return defVars.size() != 0; };
 	bool CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mismatch);
+	bool loadDefVars(omxState *state, int row); // prefer omxExpectation member fn
 
 	// Used when the expectation provides the observed data (DataDynamic)
 	std::vector<struct omxExpectation *> expectation;   // weak pointers
@@ -166,7 +163,26 @@ omxMatrix* omxDataAcov(omxData *od);
 std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
-void omxDataRow(omxExpectation *ex, int row, omxMatrix* om);
+
+template <typename T>
+void omxDataRow(omxData *od, int row, Eigen::MatrixBase<T> &colList, omxMatrix* om)
+{
+	if (row >= od->rows) Rf_error("Invalid row");
+
+	if(om == NULL) Rf_error("Must provide an output matrix");
+
+	int numcols = colList.size();
+	if(od->dataMat != NULL) {
+		omxMatrix* dataMat = od->dataMat;
+		for(int j = 0; j < numcols; j++) {
+			omxSetMatrixElement(om, 0, j, omxMatrixElement(dataMat, row, colList[j]));
+		}
+	} else {
+		for(int j = 0; j < numcols; j++) {
+			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, colList[j]));
+		}
+	}
+};
 
 void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 int omxDataIndex(omxData *od, int row);										// Returns the unsorted (original) index of the current row

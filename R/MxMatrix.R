@@ -697,12 +697,6 @@ generateParameterListHelper <- function(mxMatrix, result, matrixNumber, freeVarG
 
 matchDefinitionVariable <- function(parameterName) {
 	# definition variables are of the form paste(modelname,"data",colname, sep=".")
-
-	if (hasSquareBrackets(parameterName)) {
-		components <- splitSubstitution(parameterName)
-		return(grep(".data.", components[2:3], fixed=TRUE, value=TRUE))
-	}
-
 	return(grep(".data.", parameterName, fixed=TRUE, value=TRUE))
 }
 
@@ -726,42 +720,39 @@ matrixDefinitions <- function(flatModel, mxMatrix, result, matrixNumber) {
 
 		row <- rows[px] - 1L
 		col <- cols[px] - 1L
-		for(i in 1:length(defVariables)) {
-			defVariable <- defVariables[[i]]
-			if (!is.null(result[[defVariable]])) {
-				original <- result[[defVariable]]
-				original[[length(original) + 1]] <- c(matrixNumber, row, col)
-				result[[defVariable]] <- original
-			} else {
-				components <- unlist(strsplit(defVariable, imxSeparatorChar, fixed = TRUE))
-				dataname <- paste(components[1:2], collapse=".")
-				dataNumber <- match(dataname, names(flatModel@datasets))
-				if (is.na(dataNumber)) {
-					stop(paste("Dataset", omxQuotes(dataname), "not found.",
-						   "Referred to by definition variable",
-						   omxQuotes(defVariable), "in matrix", omxQuotes(mxMatrix@name)))
-				}
-				mxdata <- flatModel@datasets[[dataNumber]]
-				if (!.hasSlot(mxdata, 'observed')) {
-					stop(paste("Definition variable", omxQuotes(defVariable),
-						   "in matrix", omxQuotes(mxMatrix@name),
-						   "refers to", omxQuotes(dataname),
-						   "but this mxData has no observed data"))
-				}
-				observed <- mxdata@observed
-				columnNumber <- match(components[3], colnames(observed))
-				if (is.na(columnNumber)) {
-					stop(paste("Definition variable", omxQuotes(defVariable),
-						   "in matrix", omxQuotes(mxMatrix@name),
-						   "refers to column", omxQuotes(components[3]),
-						   "but this column is not found"))
-				}
-				result[[defVariable]] <- list(dataNumber - 1L, columnNumber - 1L,
-							      c(matrixNumber, row, col))
+		defVariable <- defVariables[[1]]
+		if (!is.null(result[[defVariable]])) {
+			original <- result[[defVariable]]
+			result[[ length(result) + 1L ]] <- c(original[1:2], matrixNumber, row, col)
+		} else {
+			components <- unlist(strsplit(defVariable, imxSeparatorChar, fixed = TRUE))
+			dataname <- paste(components[1:2], collapse=".")
+			dataNumber <- match(dataname, names(flatModel@datasets))
+			if (is.na(dataNumber)) {
+				stop(paste("Dataset", omxQuotes(dataname), "not found.",
+					   "Referred to by definition variable",
+					   omxQuotes(defVariable), "in matrix", omxQuotes(mxMatrix@name)))
 			}
+			mxdata <- flatModel@datasets[[dataNumber]]
+			if (!.hasSlot(mxdata, 'observed')) {
+				stop(paste("Definition variable", omxQuotes(defVariable),
+					   "in matrix", omxQuotes(mxMatrix@name),
+					   "refers to", omxQuotes(dataname),
+					   "but this mxData has no observed data"))
+			}
+			observed <- mxdata@observed
+			columnNumber <- match(components[3], colnames(observed))
+			if (is.na(columnNumber)) {
+				stop(paste("Definition variable", omxQuotes(defVariable),
+					   "in matrix", omxQuotes(mxMatrix@name),
+					   "refers to column", omxQuotes(components[3]),
+					   "but this column is not found"))
+			}
+			result[[defVariable]] <- list(dataNumber - 1L, columnNumber - 1L,
+						      matrixNumber, row, col)
 		}
 	}
-	return(result)
+	result
 }
 
 generateMatrixValuesHelper <- function(mxMatrix) {

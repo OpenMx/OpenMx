@@ -85,7 +85,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
 		mxLogSetCurrentRow(row);
 
-		data->handleDefinitionVarList(localobj->matrix->currentState, row);
+		data->loadDefVars(localobj->matrix->currentState, row);
 
         // Populate data row
 		if (isContiguous) {

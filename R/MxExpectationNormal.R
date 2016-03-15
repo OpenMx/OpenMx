@@ -361,8 +361,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE) {
 		if (missing(nrows)) nrows <- nrow(model@data@observed)
 		data <- genericGenerateData(model$expectation, model, nrows)
 		if (returnModel) {
-			model@data@observed <- as.data.frame(data)
-			model
+			mxModel(model, mxData(as.data.frame(data), "raw"))
 		} else {
 			as.data.frame(data)
 		}

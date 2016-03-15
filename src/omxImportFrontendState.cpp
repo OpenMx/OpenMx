@@ -47,37 +47,22 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
 		omxDefinitionVar dvar;
 		
-		SEXP dataSource, columnSource, depsSource; 
-		int numDeps;
-
 		SEXP itemList;
 		ScopedProtect p1(itemList, VECTOR_ELT(defvars, nextDef));
-		ScopedProtect p2(dataSource, VECTOR_ELT(itemList, 0));
-		omxData *od = dataList[ INTEGER(dataSource)[0] ];
-		ScopedProtect p3(columnSource, VECTOR_ELT(itemList, 1));
-		if(OMX_DEBUG) {
-			mxLog("Data column number is %d.", INTEGER(columnSource)[0]);
-		}
-		dvar.column = INTEGER(columnSource)[0];
-		ScopedProtect p4(depsSource, VECTOR_ELT(itemList, 2));
-		numDeps = LENGTH(depsSource);
+		int *ilist = INTEGER(itemList);
+		omxData *od = dataList[ ilist[0] ];
+		dvar.column = ilist[1];
+		dvar.matrix = ilist[2];
+		dvar.row = ilist[3];
+		dvar.col = ilist[4];
+
+		int numDeps = Rf_length(itemList) - 5;
 		dvar.numDeps = numDeps;
 		dvar.deps = (int*) R_alloc(numDeps, sizeof(int));
 		for(int i = 0; i < numDeps; i++) {
-			dvar.deps[i] = INTEGER(depsSource)[i];
+			dvar.deps[i] = ilist[5+i];
 		}
 
-		dvar.numLocations = Rf_length(itemList) - 3;
-		dvar.matrices = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		dvar.rows = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		dvar.cols = (int *) R_alloc(Rf_length(itemList) - 3, sizeof(int));
-		for(int index = 3; index < Rf_length(itemList); index++) {
-			SEXP nextItem;
-			ScopedProtect pi(nextItem, VECTOR_ELT(itemList, index));
-			dvar.matrices[index-3] = INTEGER(nextItem)[0];
-			dvar.rows[index-3] = INTEGER(nextItem)[1];
-			dvar.cols[index-3] = INTEGER(nextItem)[2];
-		}
 		od->defVars.push_back(dvar);
 	}
 }
@@ -218,11 +203,9 @@ void omxState::omxInitialMatrixAlgebraCompute(FitContext *fc)
 		std::vector<omxDefinitionVar> &defVars = dataList[dx]->defVars;
 		for (size_t vx=0; vx < defVars.size(); ++vx) {
 			omxDefinitionVar &dv = defVars[vx];
-			for (int l = 0; l < dv.numLocations; l++) {
-				int matrixNumber = dv.matrices[l];
-				omxMatrix *matrix = matrixList[matrixNumber];
-				matrix->setDependsOnDefinitionVariables();
-			}
+			int matrixNumber = dv.matrix;
+			omxMatrix *matrix = matrixList[matrixNumber];
+			matrix->setDependsOnDefinitionVariables();
 		}
 	}
 

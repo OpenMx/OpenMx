@@ -43,9 +43,9 @@
 #include "omxState.h"
 
 /* Expectation structure itself */
-struct omxExpectation {					// An Expectation
-
-	/* Fields unique to Expectation Functions */
+class omxExpectation {					// An Expectation
+	int defVarRow;
+ public:
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
 	void (*computeFun)(omxExpectation* ox, FitContext *fc, const char *what, const char *how);
@@ -63,7 +63,10 @@ struct omxExpectation {					// An Expectation
 	void* argStruct;															// Arguments needed for Expectation function
         const char* expType;   // pointer to a static string, no need to allocate or free
 
-	omxData* data;																// Not sure if this is appropriate, but the expectation passes the actual data object
+	omxData* data;
+	bool loadDefVars(int row);
+	int getDefVarRow() const { return defVarRow; };
+
 	omxMatrix* dataColumns;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0

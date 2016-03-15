@@ -34,7 +34,8 @@ setClass(Class = "MxExpectationRAM",
 	    verbose = "integer",
 	    .rampart = "integer",
 	    .forceSingleGroup = "logical",
-	    .ignoreDefVarsHack = "logical"
+	    .ignoreDefVarsHack = "logical", #remove TODO
+	    .identifyZeroVarPred = "logical"
 	),
 	contains = "BaseExpectationNormal")
 
@@ -56,7 +57,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@verbose <- verbose
 		.Object@.rampart <- as.integer(NA)
 		.Object@.forceSingleGroup <- FALSE
-		.Object@.ignoreDefVarsHack <- FALSE
+		.Object@.ignoreDefVarsHack <- FALSE  # remove TODO
+		.Object@.identifyZeroVarPred <- TRUE
 		return(.Object)
 	}
 )

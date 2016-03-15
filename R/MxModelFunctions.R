@@ -150,29 +150,12 @@ generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
 }
 
 definitionDependencyList <- function(pList, defVarName, flatModel, dependencies) {
-	if (length(pList) == 2) {
-		retval <- list(pList[[1]], pList[[2]], integer())
-		return(retval)
-	}
-	locations <- pList[3:length(pList)]
-	deps <- lapply(locations, findDependencies, flatModel, dependencies)
-	depnames <- Reduce(union, deps, character())
+	depnames <- findDependencies(pList[3], flatModel, dependencies)
 	depnames <- Filter(Negate(isExpectation), depnames)
-	if (0) {
-		# too many false positives, leave disabled for now
-		dataModel <- strsplit(defVarName, imxSeparatorChar, fixed = TRUE)[[1]][1]
-		outsider <- !grepl(paste("^", dataModel, "\\.", sep=""), depnames, perl=TRUE)
-		if (any(outsider)) {
-			warning(paste(omxQuotes(depnames[outsider]),
-				      "depend on definition variable",
-				      omxQuotes(defVarName), "which is defined in a different model.",
-				      "This can result in undefined behavior."))
-		}
-	}
 	depnumbers <- sapply(depnames, doLocateIndex, flatModel, flatModel@name, USE.NAMES=FALSE)
 	depnumbers <- as.integer(depnumbers)
-	retval <- list(pList[[1]], pList[[2]], depnumbers)
-	return(append(retval, locations))
+	retval <- c(unlist(pList), depnumbers)
+	retval
 }
 
 generateDefinitionList <- function(flatModel, dependencies) {
@@ -185,11 +168,8 @@ generateDefinitionList <- function(flatModel, dependencies) {
 	}
 	result <- mapply(definitionDependencyList, result, names(result),
 			 MoreArgs=list(flatModel, dependencies), SIMPLIFY=FALSE, USE.NAMES = TRUE)
-	# data number
-	# column number
+	# data number, column number, matrix, row, col,
 	# integer vector of dependencies (doLocateIndex coded)
-	# (matrix row col) triples
-	# ...
 	return(result)
 }
 

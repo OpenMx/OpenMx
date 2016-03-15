@@ -231,10 +231,8 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		for (int dx=0; dx < int(od->defVars.size()); ++dx) {
 			omxDefinitionVar &dv = od->defVars[dx];
 			msg += string_snprintf("[%d] column '%s' ->", dx, omxDataColumnName(od, dv.column));
-			for (int lx=0; lx < dv.numLocations; ++lx) {
-				msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv.matrices[lx]),
-						       dv.rows[lx], dv.cols[lx]);
-			}
+			msg += string_snprintf(" %s[%d,%d]", state->matrixToName(~dv.matrix),
+					       dv.row, dv.col);
 			msg += "\n  dirty:";
 			for (int mx=0; mx < dv.numDeps; ++mx) {
 				msg += string_snprintf(" %s", state->matrixToName(dv.deps[mx]));
@@ -302,3 +300,17 @@ void complainAboutMissingMeans(omxExpectation *off)
 		       " to = manifests) to your model.", off->name);
 }
 
+bool omxExpectation::loadDefVars(int row)
+{
+	bool changed = false;
+	for (int k=0; k < int(data->defVars.size()); ++k) {
+		omxDefinitionVar &dv = data->defVars[k];
+		double newDefVar = omxDoubleDataElement(data, row, dv.column);
+		if(ISNA(newDefVar)) {
+			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
+		}
+		changed |= dv.loadData(currentState, newDefVar);
+	}
+	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("%s: loading definition vars for row %d", name, row); }
+	return changed;
+}
