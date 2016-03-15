@@ -76,4 +76,8 @@ if (0) {
 
 omxCheckCloseEnough(m1$output$fit, 280.489, 1e-2)
 # cat(deparse(round(coef(m1),3)))
-omxCheckCloseEnough(coef(m1), c(13.864, 21.644, 0.502, 0.474, -3.747), 1e-2)
+
+#cat(deparse(round(coef(m1), 3)))
+mle <- structure(c(13.864, 21.644, 0.502, 0.474, -3.747),
+          .Names = c("person.A[1,2]",  "person.S[1,1]", "fromMother", "fromFather", "person.M[1,1]"))
+omxCheckCloseEnough(coef(m1), mle, 1e-2)
