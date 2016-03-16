@@ -140,9 +140,13 @@ There are also several multiargument functions usable in MxAlgebras, which apply
 \tabular{ccl}{
 Function \tab Arguments \tab Notes \cr
 \code{dbeta} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
-\code{pbeta} \tab \code{x,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
-\code{besselJ} & \code{besselY} \tab \code{x,nu} \tab  \cr
+\code{pbeta} \tab \code{q,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
 \code{besselI} & \code{besselK} \tab \code{x,nu,expon.scaled} \tab Note that OpenMx \emph{does} cycle over the elements of \code{expon.scaled}. \cr
+\code{besselJ} & \code{besselY} \tab \code{x,nu} \tab  \cr
+\code{dnbinom} \tab \code{x,size,prob,mu,log} \tab Exactly one of arguments \code{size}, \code{prob}, and \code{mu} should be negative, and therefore ignored.  Otherwise, \code{mu} is ignored, possibly with a warning, and the values of \code{size} and \code{prob} are used, irrespective of whether they are in the parameter space.  If only \code{prob} is negative, the algorithm for the alternative \code{size}-\code{mu} parameterization is used.  If \code{size} is negative, a value for size is calculated as \code{mu*prob/(1-prob)}, and the algorithm for the \code{size}-\code{prob} parameterization is used (note that this approach is ill-advised when \code{prob} is very close to 0 or 1).\cr
+\code{pnbinom} \tab \code{q,size,prob,mu,lower.tail,log.p} \tab Arguments are handled as with \code{dnbinom()}.\cr
+\code{dpois} \tab \code{x,lambda,log} \tab  \cr
+\code{ppois} \tab \code{q,lambda,lower.tail,log.p} \tab  \cr
 }
 }
 

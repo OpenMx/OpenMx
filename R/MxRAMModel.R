@@ -408,13 +408,8 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 }
 
 insertAllPathsRAM <- function(model, paths) {
-	A <- model[['A']]
-	S <- model[['S']]
-	M <- model[['M']]
-	if (is.null(A)) { A <- createMatrixA(model) }
-	if (is.null(S)) { S <- createMatrixS(model) }
-	
-	legalVars <- c(model@latentVars, model@manifestVars, "one")
+	if (is.null(model[['A']])) { model[['A']] <- createMatrixA(model) }
+	if (is.null(model[['S']])) { model[['S']] <- createMatrixS(model) }
 	
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
@@ -422,153 +417,23 @@ insertAllPathsRAM <- function(model, paths) {
 		missingvalues <- is.na(path@values)
 		path@values[missingvalues] <- 0
 		
+		if ("one" %in% path@from && is.null(model[['M']])) {
+			model[['M']] <- createMatrixM(model) 
+			if(expectationIsMissingMeans(model)) {
+				model@expectation@M <- "M"
+			}
+		}
+
 		if (single.na(path@to)) {
 			path@to <- path@from
-			paths[[i]] <- path
 		}
 		
-		if (!is.na(path@joinKey)) {
-			upperFrom <- strsplit(path@from, imxSeparatorChar, fixed = TRUE)
-			upperFromBadLen <- sapply(upperFrom, length) != 2
-			if (any(upperFromBadLen)) {
-				msg <- paste("Between level paths must be from",
-					     "modelName.variableName, not",
-					     omxQuotes(path@from[upperFromBadLen]))
-				stop(msg, call.=FALSE)
-			}
-			fromUpperModels <- sapply(upperFrom, function(v) v[1])
-			if (length(unique(fromUpperModels)) > 1) {
-				msg <- paste("Deal with one upper level model at a time, not",
-					     omxQuotes(unique(fromUpperModels)))
-				stop(msg, call.=FALSE)
-			}
-			fromUpperVars <- sapply(upperFrom, function(v) v[2])
+		expanded <- expandPathConnect(path@from, path@to, path@connect)
+		path@from <- expanded$from
+		path@to   <- expanded$to
 
-			upperModelName <- fromUpperModels[1]
-			upperModel <- model[[upperModelName]]
-			if (is.null(upperModel)) {
-				msg <- paste("Nice try. You need to create an upper level RAM",
-				      "model called", omxQuotes(upperModelName),
-				      "and add it as a submodel of", omxQuotes(model@name),
-				      "before you can create paths between these models.")
-				stop(msg, call.=FALSE)
-			}
-
-			upperVars <- c(upperModel@manifestVars, upperModel@latentVars)
-			upperVarExist <- fromUpperVars %in% upperVars
-			if (!all(upperVarExist)) {
-				stop(paste("Nice try, you need to add",
-					   omxQuotes(fromUpperVars[!upperVarExist]),
-					   "to either manifestVars or latentVars in model",
-					   omxQuotes(upperModelName),
-					   "before you can use them in a path."), call. = FALSE)
-			}
-
-			lowerVarExist <- path@to %in% rownames(A)
-			if (!all(lowerVarExist)) {
-				stop(paste("Nice try, you need to add",
-					   omxQuotes(path@to[!lowerVarExist]),
-					   "to either manifestVars or latentVars before you",
-					   "can use them in a path."), call. = FALSE)
-			}
-
-			bMatName <- NULL
-			priorBetween <- model$expectation$between
-			sameJoinMask <- sapply(priorBetween, function(x) {
-				bmat <- model[[ x ]]
-				if (is.null(bmat)) return(FALSE)
-				bmat$joinKey == path@joinKey && bmat$joinModel == upperModelName
-			})
-			if (length(sameJoinMask) && sum(sameJoinMask) > 1) {
-				stop(paste("Confusingly there is more than 1 join to", omxQuotes(upperModelName),
-					   "using foreign key", omxQuotes(path@joinKey)), call.=FALSE)
-			}
-			if (all(!sameJoinMask)) {
-				bMatNameBase <- paste0("from_", upperModelName)
-				bMatName <- bMatNameBase
-				found <- FALSE
-				for (try in 1:9) {
-					if (is.null( model[[ bMatName ]] )) {
-						found = TRUE
-						break
-					}
-					bMatName <- paste0(bMatNameBase, try)
-				}
-				if (!found) {
-					stop(paste("Failed to invent an unused name for the",
-						   "between level mapping matrix. Tried variations on",
-						   omxQuotes(bMatNameBase)), call.=FALSE)
-				}
-				model <- mxModel(model, mxMatrix(name=bMatName, nrow=nrow(A), ncol=length(upperVars),
-								 dimnames=list(rownames(A), upperVars),
-								 joinKey = path@joinKey, joinModel = upperModelName))
-			} else {
-				bMatName <- priorBetween[ which(sameJoinMask) ]
-			}
-
-			bMat <- model[[ bMatName ]]
-			bMat <- imxGentleResize(bMat, list(rownames(A), upperVars))
-
-			expanded <- expandPathConnect(fromUpperVars, path@to, path@connect)
-			allfrom <- expanded$from
-			allto   <- expanded$to
-
-			maxlength <- max(length(path@from), length(path@to)) - 1L
-			for(i in 0:maxlength) {
-				from <- allfrom[[i %% length(allfrom) + 1L]]
-				to <- allto[[i %% length(allto) + 1L]]
-				bMat$values[to, from] <- path@values[[i %% length(path@values) + 1L]]
-				bMat$free  [to, from] <- path@free  [[i %% length(path@free)   + 1L]]
-				bMat$labels[to, from] <- path@labels[[i %% length(path@labels) + 1L]]
-				bMat$ubound[to, from] <- path@ubound[[i %% length(path@ubound) + 1L]]
-				bMat$lbound[to, from] <- path@lbound[[i %% length(path@lbound) + 1L]]
-			}
-
-			model[[ bMatName ]] <- bMat
-			model$expectation$between <- unique(c(priorBetween, bMatName))
-			next
-		}
-
-		allFromTo <- unique(c(path@from, path@to))
-		varExist <- allFromTo %in% legalVars 
-		if(!all(varExist)) {
-			missingVars <- allFromTo[!varExist]
-			stop(paste("Nice try, you need to add", 
-				omxQuotes(missingVars), 
-				"to either manifestVars or latentVars before you",
-				"can use them in a path."), call. = FALSE)
-		}
-		
-		if (length(path@from) == 1 && (path@from == "one")) {
-			if (is.null(M)) {
-				M <- createMatrixM(model) 
-				if(expectationIsMissingMeans(model)) {
-					model@expectation@M <- "M"
-				}
-			}
-			M <- insertMeansPathRAM(path, M)
-		} else {
-			if (length(intersect(path@from, "one"))) {
-				# This really ought to work, but it doesn't.
-				msg <- paste("Cannot create path from 'one' and other nodes simultaneously.",
-					     "Create paths from 'one' and then separately from",
-					     omxQuotes(setdiff(path@from, "one")))
-				stop(msg, call.=FALSE)
-			}
-			expanded <- expandPathConnect(path@from, path@to, path@connect)
-			path@from <- expanded$from
-			path@to   <- expanded$to
-			retval <- insertPathRAM(path, A, S)
-			A <- retval[[1]]
-			S <- retval[[2]]	
-		}
+		model <- insertPathRAM(path, model)
 	}
-	model[['A']] <- A
-	model[['S']] <- S
-	if (!is.null(M)) {
-		model[['M']] <- M
-	}
-	
 	return(model)
 }
 
@@ -607,7 +472,7 @@ removeAllPathsRAM <- function(model, paths) {
 }
 
 
-insertPathRAM <- function(path, A, S) {
+insertPathRAM <- function(path, model) {
 	allfrom <- path@from
 	allto <- path@to
 	allarrows <- path@arrows
@@ -616,7 +481,11 @@ insertPathRAM <- function(path, A, S) {
 	alllabels <- path@labels
 	alllbound <- path@lbound
 	allubound <- path@ubound
+	alljoinKey <- path@joinKey
 	maxlength <- max(length(allfrom), length(allto))
+	A <- model[['A']]
+	S <- model[['S']]
+	M <- model[['M']]
 	A_free <- A@free
 	A_values <- A@values
 	A_labels <- A@labels
@@ -627,6 +496,9 @@ insertPathRAM <- function(path, A, S) {
 	S_labels <- S@labels
 	S_lbound <- S@lbound
 	S_ubound <- S@ubound
+
+	legalVars <- c(colnames(A), "one")
+		
 	for(i in 0:(maxlength - 1)) {
 		from <- allfrom[[i %% length(allfrom) + 1]]
 		to <- allto[[i %% length(allto) + 1]]
@@ -635,7 +507,120 @@ insertPathRAM <- function(path, A, S) {
 		nextfree <- allfree[[i %% length(allfree) + 1]]
 		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
 		nextubound <- allubound[[i %% length(allubound) + 1]]
-		nextlbound <- alllbound[[i %% length(alllbound) + 1]]		
+		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
+		nextjoinKey <- alljoinKey[[i %% length(alljoinKey) + 1]]
+
+		if (!is.na(nextjoinKey)) {
+			upperFrom <- strsplit(from, imxSeparatorChar, fixed = TRUE)
+			upperFromBadLen <- sapply(upperFrom, length) != 2
+			if (any(upperFromBadLen)) {
+				msg <- paste("Between level paths must be from",
+					     "modelName.variableName, not",
+					     omxQuotes(from[upperFromBadLen]))
+				stop(msg, call.=FALSE)
+			}
+			fromUpperModel <- upperFrom[[1]][1]
+			fromUpperVar <- upperFrom[[1]][2]
+
+			upperModelName <- fromUpperModel[1]
+			upperModel <- model[[upperModelName]]
+			if (is.null(upperModel)) {
+				msg <- paste("Nice try. You need to create an upper level RAM",
+				      "model called", omxQuotes(upperModelName),
+				      "and add it as a submodel of", omxQuotes(model@name),
+				      "before you can create paths between these models.")
+				stop(msg, call.=FALSE)
+			}
+
+			upperVars <- c(upperModel@manifestVars, upperModel@latentVars)
+			upperVarExist <- fromUpperVar %in% upperVars
+			if (!all(upperVarExist)) {
+				stop(paste("Nice try, you need to add",
+					   omxQuotes(fromUpperVar[!upperVarExist]),
+					   "to either manifestVars or latentVars in model",
+					   omxQuotes(upperModelName),
+					   "before you can use them in a path."), call. = FALSE)
+			}
+
+			lowerVarExist <- to %in% rownames(A)
+			if (!all(lowerVarExist)) {
+				stop(paste("Nice try, you need to add",
+					   omxQuotes(to[!lowerVarExist]),
+					   "to either manifestVars or latentVars before you",
+					   "can use them in a path."), call. = FALSE)
+			}
+
+			bMatName <- NULL
+			priorBetween <- model$expectation$between
+			sameJoinMask <- sapply(priorBetween, function(x) {
+				bmat <- model[[ x ]]
+				if (is.null(bmat)) return(FALSE)
+				bmat$joinKey == nextjoinKey && bmat$joinModel == upperModelName
+			})
+			if (length(sameJoinMask) && sum(sameJoinMask) > 1) {
+				stop(paste("Confusingly there is more than 1 join to", omxQuotes(upperModelName),
+					   "using foreign key", omxQuotes(path@joinKey)), call.=FALSE)
+			}
+			if (all(!sameJoinMask)) {
+				bMatNameBase <- paste0("from_", upperModelName)
+				bMatName <- bMatNameBase
+				found <- FALSE
+				for (try in 1:9) {
+					if (is.null( model[[ bMatName ]] )) {
+						found = TRUE
+						break
+					}
+					bMatName <- paste0(bMatNameBase, try)
+				}
+				if (!found) {
+					stop(paste("Failed to invent an unused name for the",
+						   "between level mapping matrix. Tried variations on",
+						   omxQuotes(bMatNameBase)), call.=FALSE)
+				}
+				model <- mxModel(model, mxMatrix(name=bMatName, nrow=nrow(A), ncol=length(upperVars),
+								 dimnames=list(rownames(A), upperVars),
+								 joinKey = nextjoinKey, joinModel = upperModelName))
+			} else {
+				bMatName <- priorBetween[ which(sameJoinMask) ]
+			}
+
+			bMat <- model[[ bMatName ]]
+			bMat <- imxGentleResize(bMat, list(rownames(A), upperVars))
+
+			bMat$values[to, fromUpperVar] <- nextvalue
+			bMat$free  [to, fromUpperVar] <- nextfree
+			bMat$labels[to, fromUpperVar] <- nextlabel
+			bMat$ubound[to, fromUpperVar] <- nextubound
+			bMat$lbound[to, fromUpperVar] <- nextlbound
+
+			model[[ bMatName ]] <- bMat
+			model$expectation$between <- unique(c(priorBetween, bMatName))
+			next
+		}
+
+		allFromTo <- unique(c(from, to))
+		varExist <- allFromTo %in% legalVars 
+		if(!all(varExist)) {
+			missingVars <- allFromTo[!varExist]
+			stop(paste("Nice try, you need to add", 
+				   omxQuotes(missingVars), 
+				   "to either manifestVars or latentVars before you",
+				   "can use them in a path."), call. = FALSE)
+		}
+
+		if (from == 'one') {
+			if (arrows != 1) {
+				stop(paste('The means path must be a single-headed arrow\n',
+					   'path from "one" to', omxQuotes(to)), call. = FALSE)
+			}
+			M@free[1, to] <- nextfree
+			M@values[1, to] <- nextvalue
+			M@labels[1, to] <- nextlabel
+			M@ubound[1, to] <- nextubound
+			M@lbound[1, to] <- nextlbound
+			next
+		}
+
 		if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
@@ -667,9 +652,9 @@ insertPathRAM <- function(path, A, S) {
 			A_free[to, from] <- FALSE
 		} else {
 			stop(paste("Unknown arrow type", arrows, 
-					"with source", omxQuotes(from), 
-				"and sink", omxQuotes(to)),
-				call. = FALSE)
+				   "with source", omxQuotes(from), 
+				   "and sink", omxQuotes(to)),
+			     call. = FALSE)
 		}
 	}
 	A@free <- A_free
@@ -682,7 +667,10 @@ insertPathRAM <- function(path, A, S) {
 	S@labels <-	S_labels 
 	S@lbound <- S_lbound 
 	S@ubound <- S_ubound 
-	return(list(A, S))
+	model[['A']] <- A
+	model[['S']] <- S
+	if (!is.null(M)) model[['M']] <- M
+	model
 }
 
 removeMeansPathRAM <- function(path, M) {
@@ -695,34 +683,6 @@ removeMeansPathRAM <- function(path, M) {
 		M@free[1, to] <- FALSE
 		M@values[1, to] <- 0
 		M@labels[1, to] <- as.character(NA)
-	}
-	return(M)
-}
-
-insertMeansPathRAM <- function(path, M) {
-	allto     <- path@to
-	allarrows <- path@arrows
-	allfree   <- path@free
-	allvalues <- path@values
-	alllabels <- path@labels
-	alllbound <- path@lbound
-	allubound <- path@ubound	
-	if (any(allarrows != 1)) {
-		stop(paste('The means path must be a single-headed arrow\n',
-		'path from "one" to variable(s)', omxQuotes(allto)), call. = FALSE)
-	}
-	for(i in 0:(length(allto) - 1)) {
-		to <- allto[[i %% length(allto) + 1]]
-		nextvalue  <- allvalues[[i %% length(allvalues) + 1]]
-		nextfree   <- allfree[[i %% length(allfree) + 1]]
-		nextlabel  <- alllabels[[i %% length(alllabels) + 1]]
-		nextubound <- allubound[[i %% length(allubound) + 1]]
-		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
-		M@free[1, to] <- nextfree
-		M@values[1, to] <- nextvalue
-		M@labels[1, to] <- nextlabel
-		M@ubound[1, to] <- nextubound
-		M@lbound[1, to] <- nextlbound
 	}
 	return(M)
 }

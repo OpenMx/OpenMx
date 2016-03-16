@@ -79,3 +79,7 @@
 77    "Bessel F. of 1st Kind" "besselJ" 2 "omxElementBesselJ"
 78    "Modified Bessel F. of 3rd Kind" "besselK" 3 "omxElementBesselK"
 79    "Bessel F. of 2nd Kind" "besselY" 2 "omxElementBesselY"
+80    "Poisson PMF"  "dpois"  3 "omxElementDpois"
+81    "Poisson CDF"  "ppois"  4 "omxElementPpois"
+82    "Negative-Binomial PMF"  "dnbinom"  5  "omxElementDnbinom"
+83    "Negative-Binomial CDF"  "pnbinom"  6  "omxElementPnbinom"

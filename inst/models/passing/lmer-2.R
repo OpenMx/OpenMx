@@ -35,12 +35,9 @@ ortho <- mxModel(
     mxPath("distance", arrows=2, values=1),
     mxPath("subj.intercept", "distance", values=1, free=FALSE,
 	   joinKey="Subject"),
-    mxPath("subj.ageL", "distance", labels="data.age", free=FALSE,
-	   joinKey="Subject"),
-    mxPath("subj.nsexL", "distance", labels="data.nsex",
-	   free=FALSE, joinKey="Subject"),
-    mxPath("subj.nsexageL", "distance", labels="data.nsexage",
-	   free=FALSE, joinKey="Subject"))
+    mxPath(paste0("subj.", c("ageL", "nsexL", "nsexageL")), "distance",
+           labels=paste0("data.", c("age", "nsex", "nsexage")),
+           free=FALSE, joinKey="Subject"))
 
 if (1) {
   # load lme4's parameters

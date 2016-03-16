@@ -24,7 +24,9 @@ C <- mxMatrix(values = runif(30), nrow = 6, ncol = 5, name = 'C')
 D <- mxMatrix(values = 1:10, nrow = 2, ncol = 5, name = 'D')
 E <- mxMatrix(values = 1:10, nrow = 5, ncol = 2, name = 'E')
 G <- mxMatrix(values = c(0, -1, 1, -1), nrow=2, ncol=2, name='G')
-H <- mxMatrix(values = c(-9.0912244, 11.1561436, 12.9500773, -0.8400564, -5.2556798, -1.3265166, -4.8423977, -14.4462163, -15.3022383, 17.1928667, -2.4835399, -18.1943775, 2.8587299, 18.6432244, -13.5789122, -2.2622090), nrow=4, ncol=4, name='H')
+H <- mxMatrix(values = c(-9.0912244, 11.1561436, 12.9500773, -0.8400564, -5.2556798, -1.3265166, -4.8423977, 
+												 -14.4462163, -15.3022383, 17.1928667, -2.4835399, -18.1943775, 2.8587299, 18.6432244,
+												 -13.5789122, -2.2622090), nrow=4, ncol=4, name='H')
 # For Mnor
 I <- mxMatrix("Iden", nrow = 5, ncol = 5, name="I")
 L <- mxMatrix("Full", nrow=1, ncol=3, values=c(0,0,-Inf), free=F, name="L")
@@ -134,7 +136,6 @@ model <- mxModel(model, mxAlgebra(A[-1:-3, -2], name = 'test30v'))
 model <- mxModel(model, mxAlgebra(A[-2:-4,3], name = 'test30w'))
 model <- mxModel(model, mxAlgebra(A[3, -2:-4], name = 'test30x'))
 model <- mxModel(model, mxAlgebra(A[cbind('a','b','c'), cbind('v','z')], name = 'test30y'))
-
 model <- mxModel(model, mxAlgebra(vech(D), name = 'test31a'))
 model <- mxModel(model, mxAlgebra(vech(E), name = 'test31b'))
 model <- mxModel(model, mxAlgebra(vechs(D), name = 'test32a'))
@@ -276,6 +277,21 @@ model <- mxModel(model, mxAlgebra(besselK(A,A,A),name="test78a"))
 model <- mxModel(model, mxAlgebra(besselK(C,D,0),name="test78b"))
 model <- mxModel(model, mxAlgebra(besselY(A,A),name="test79a"))
 model <- mxModel(model, mxAlgebra(besselY(C,D),name="test79b"))
+model <- mxModel(model, mxAlgebra(dpois(D,D,0),name="test80a"))
+model <- mxModel(model, mxAlgebra(dpois(D,D,D),name="test80b"))
+model <- mxModel(model, mxAlgebra(ppois(D,D,D,D),name="test81a"))
+model <- mxModel(model, mxAlgebra(ppois(D,D,1,0),name="test81b"))
+model <- mxModel(model, mxAlgebra(ppois(D,D,0,0),name="test81c"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,-1,0),name="test82a"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,C,-1,C),name="test82b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,C,0),name="test83a"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,1,0),name="test83b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,C,-1,0,1),name="test83c"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,-1,C,0),name="test84a"))
+model <- mxModel(model, mxAlgebra(dnbinom(D,D,-1,C,C),name="test84b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,C,0),name="test85a"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,1,0),name="test85b"))
+model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,0,1),name="test85c"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -520,6 +536,27 @@ omxCheckCloseEnough(model[['test78a']]$result, besselK(A$values,A$values,A$value
 omxCheckCloseEnough(model[['test78b']]$result, besselK(C$values,D$values,0), .001)
 omxCheckCloseEnough(model[['test79a']]$result, besselY(A$values,A$values), .001)
 omxCheckCloseEnough(model[['test79b']]$result, besselY(C$values,D$values), .001)
+omxCheckCloseEnough(model[['test80a']]$result, dpois(D$values,D$values), .001)
+omxCheckCloseEnough(model[['test80b']]$result, dpois(D$values,D$values,TRUE), .001)
+omxCheckCloseEnough(model[['test81a']]$result, ppois(D$values,D$values,TRUE,TRUE), .001)
+omxCheckCloseEnough(model[['test81b']]$result, ppois(D$values,D$values,TRUE,FALSE), .001)
+omxCheckCloseEnough(model[['test81c']]$result, ppois(D$values,D$values,FALSE,FALSE), .001)
+omxCheckCloseEnough(model[['test82a']]$result, dnbinom(x=D$values,size=D$values,prob=C$values[1:10],log=FALSE), .001)
+omxCheckCloseEnough(model[['test82b']]$result, dnbinom(x=D$values,size=D$values,prob=C$values[1:10],log=TRUE), .001)
+omxCheckCloseEnough(model[['test83a']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=TRUE,
+																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test83b']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=TRUE,
+																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test83c']]$result, pnbinom(q=D$values,size=D$values,prob=C$values[1:10],lower.tail=FALSE,
+																											 log.p=TRUE), .001)
+omxCheckCloseEnough(model[['test84a']]$result, dnbinom(x=D$values,size=D$values,mu=C$values[1:10],log=FALSE), .001)
+omxCheckCloseEnough(model[['test84b']]$result, dnbinom(x=D$values,size=D$values,mu=C$values[1:10],log=TRUE), .001)
+omxCheckCloseEnough(model[['test85a']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=TRUE,
+																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test85b']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=TRUE,
+																											 log.p=FALSE), .001)
+omxCheckCloseEnough(model[['test85c']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=FALSE,
+																											 log.p=TRUE), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()
