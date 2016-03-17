@@ -120,7 +120,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
-  if( oge->numcases2drop ){
+  if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
     dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
@@ -173,7 +173,7 @@ void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *
   quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
-  if( oge->numcases2drop ){
+  if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
     dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
