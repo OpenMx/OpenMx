@@ -8,14 +8,17 @@ Create MxFitFunctionGREML Object
 This function creates a new \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
-mxFitFunctionGREML(dV=character(0))
+mxFitFunctionGREML(dV=character(0), Aug=character(0), dAug=character(0))
 }
 
 \arguments{
   \item{dV}{Vector of character strings; defaults to a character vector of length zero.  If a value of non-zero length is provided, it must be a \emph{named} character vector.  This vector's names must be the labels of free parameters in the model.  The vector's elements (i.e., the character strings themselves) must be the names of \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s), each of which equals the first partial derivative of the 'V' matrix with respect to the corresponding free parameter.}
+  \item{Aug}{Character string; defaults to a character vector of length zero.  Any elements after the first are ignored.  The string should name a 1x1 \code{\link{MxMatrix}} or an \code{\link{MxAlgebra}} that evaluates to a 1x1 matrix.  The named object will be used as an "augmentation" to the GREML fitfunction--specifically, the [1,1] value of the object named by \code{Aug} will be added to the GREML fitfunction value at each function evaluation during optimization.  The augmentation can be used to regularize estimation with a prior likelihood, or to use penalty functions to approximate constraints.}
+  \item{AugGrad}{Character string; defaults to a character vector of length zero.  Any elements after the first are ignored.  The string should name a \code{\link{MxMatrix}} or an \code{\link{MxAlgebra}} that evaluates to the gradient of \code{Aug} with respect to free parameters.  The gradient can be either a column or row vector, and its column or row names, respectively, must identify the free parameter corresponding to each element.  Ignored unless both \code{dV} and \code{Aug} have nonzero length.}
+  \item{AugHess}{Character string; defaults to a character vector of length zero.  Any elements after the first are ignored.  The string should name a \code{\link{MxMatrix}} or an \code{\link{MxAlgebra}} that evaluates to the Hessian of \code{Aug} with respect to free parameters.  The dimnames of the Hessian matrix must identify the pair of free parameters corresponding to each element.  Ignored unless both \code{dV} and \code{Aug} have nonzero length.}
 }
 \details{
-Making effective use of argument \code{dV} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' and (2) the model contains no \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
+Making effective use of arguments \code{dV}, \code{AugGrad}, and \code{AugHess} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' and (2) the model contains no \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
 }
 \value{
 Returns a new object of class \code{\link{MxFitFunctionGREML}}.

@@ -34,6 +34,9 @@ struct omxGREMLFitState {
   FreeVarGroup *varGroup;
 	std::vector<int> gradMap;
   void buildParamMap(FreeVarGroup *newVarGroup);
+  omxMatrix *Aug, *AugGrad, *AugHess;
+  std::vector<int> dAugMap;
+  double pullAugVal(int thing, int row, int col);
 }; 
 
 
@@ -41,7 +44,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   SEXP rObj = oo->rObj;
-  SEXP dV, dVnames;
+  SEXP dV, dVnames, Aug, AugGrad, AugHess;
   int i=0;
   
   oo->units = FIT_UNITS_MINUS2LL;
@@ -72,8 +75,20 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
+  newObj->Aug = NULL;
+  newObj->AugGrad = NULL;
+  newObj->AugHess = NULL;
   
-  //Derivatives:
+  //Augmentation:
+  {
+  ScopedProtect p1(Aug, R_do_slot(rObj, Rf_install("Aug")));
+  if(Rf_length(Aug)){
+  	int* Augint = INTEGER(Aug);
+  	newObj->Aug = omxMatrixLookupFromState1(Augint[0], currentState);
+  }
+  }
+  
+  //Derivatives of V:
   {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
   ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
   newObj->dVlength = Rf_length(dV);  
@@ -102,7 +117,31 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     for(i=0; i < newObj->dVlength; i++){
       if( (newObj->dV[i]->rows != newObj->cov->rows) || (newObj->dV[i]->cols != newObj->cov->cols) ){
         Rf_error("all derivatives of V must have the same dimensions as V");
-}}}}
+	}}}
+  
+  //Augmentation derivatives:
+	if(newObj->dVlength && newObj->Aug){
+	//^^^Ignore derivatives of Aug unless Aug itself and objective derivatives are supplied.	
+		ScopedProtect p1(AugGrad, R_do_slot(rObj, Rf_install("AugGrad")));
+		ScopedProtect p2(AugHess, R_do_slot(rObj, Rf_install("AugHess")));
+		if(!Rf_length(AugGrad)){
+			if(Rf_length(AugHess)){
+				Rf_error("if argument 'AugHess' has nonzero length, then argument 'AugGrad' must as well");
+			}
+			else{
+				Rf_error("if arguments 'dV' and 'Aug' have nonzero length, then 'AugGrad' must as well");
+		}}
+		else{
+			int* AugGradint = INTEGER(AugGrad);
+			newObj->AugGrad = omxMatrixLookupFromState1(AugGradint[0], currentState);
+			if(Rf_length(AugHess)){
+				int* AugHessint = INTEGER(AugHess);
+				newObj->AugHess = omxMatrixLookupFromState1(AugHessint[0], currentState);
+			}
+			else{oo->hessianAvailable = false;}
+		}
+	}
+}
 
 
 
@@ -165,8 +204,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       Py = P.selfadjointView<Eigen::Lower>() * Eigy;
       ytPy = (Eigy.transpose() * Py)(0,0);
       if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
-      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy);
-      gff->nll = oo->matrix->data[0]; 
+      oo->matrix->data[0] = gff->REMLcorrection + 
+      	Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0,0,0);
+      gff->nll = oo->matrix->data[0];
+      mxLog("augmentation is %3.3f",gff->pullAugVal(0,0,0));
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
       //Declare locals:
@@ -236,7 +277,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Begin looping thru free parameters:
 #pragma omp parallel num_threads(nThreadz)
 {
-		int i=0, j=0, t1=0, t2=0;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0;
 		Eigen::MatrixXd PdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
@@ -247,6 +288,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 		for(i=istart; i < iend; i++){
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
+			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
 			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
 				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
@@ -257,20 +299,24 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			PdV_dtheta1 = PdV_dtheta1 * dV_dtheta1.selfadjointView<Eigen::Lower>();
 			for(j=i; j < gff->dVlength; j++){
 				if(j==i){
-					gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0));
+					gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0)) + 
+						Scale*gff->pullAugVal(1,a1,0);
 					fc->grad(t1) += gff->gradient(t1);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * Py)(0,0);
+						gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * Py)(0,0) + 
+							Scale*gff->pullAugVal(2,a1,a1);
 					}
 				}
 				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 					t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
 					if(t2 < 0){continue;}
+					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
 						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0);
+					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 					gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
 				}}}}
 }
@@ -327,26 +373,65 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
 
 void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 {
-  if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
-  varGroup = newVarGroup;
-  std::vector< omxMatrix* > dV_temp = dV;
-  std::vector< const char* > dVnames_temp = dVnames;
-	gradMap.resize(dVlength);
-	int gx=0;
-	for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
-		for (int nx=0; nx < dVlength; ++nx) {
-			if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
-				gradMap[gx] = vx;
-				dV[gx] = dV_temp[nx];
-				dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
-				++gx;
-				break;
+	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
+	varGroup = newVarGroup;
+	if(dVlength){
+		std::vector< omxMatrix* > dV_temp = dV;
+		std::vector< const char* > dVnames_temp = dVnames;
+		gradMap.resize(dVlength);
+		dAugMap.resize(dVlength);
+		int gx=0;
+		for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
+			for (int nx=0; nx < dVlength; ++nx) {
+				if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
+					gradMap[gx] = vx;
+					dV[gx] = dV_temp[nx];
+					dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
+					dAugMap[gx] = nx;
+					++gx;
+					break;
+				}
 			}
 		}
+		if (gx != dVlength) Rf_error("Problem in dVnames mapping");
+		
+		if(AugGrad){
+			int ngradelem = std::max(AugGrad->rows, AugGrad->cols);
+			if(ngradelem != dVlength){
+				Rf_error("matrix referenced by 'AugGrad' must have same number of elements as argument 'dV'");
+			}
+			if(AugHess){
+				if (AugHess->rows != AugHess->cols) {
+					Rf_error("matrix referenced by 'AugHess' must be square (instead of %dx%d)",
+              AugHess->rows, AugHess->cols);
+				}
+				if(AugHess->rows != ngradelem){
+					Rf_error("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+              ngradelem, AugHess->rows, AugHess->cols);
+			}}
+		}
 	}
-	if (gx != dVlength) Rf_error("Problem in dVnames mapping");
 }
 
+
+double omxGREMLFitState::pullAugVal(int thing, int row, int col){
+	switch(thing){
+	case 0:
+		if(Aug){return(Aug->data[0]);}
+		else{return(0);}
+		break;
+	case 1:
+		if(AugGrad){return(AugGrad->data[row+col]);} //<--Remember that at least one of 'row' and 'col' should be 0.
+		else{return(0);}
+		break;
+	case 2:
+		if(AugHess){return(omxMatrixElement(AugHess,row,col));}
+		else{return(0);}
+		break;
+	default:
+		return(0);
+	}
+}
 
 
 omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os) {
