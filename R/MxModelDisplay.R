@@ -74,6 +74,16 @@ displayModel <- function(model, expand = FALSE) {
 	cat("$algebras :", omxQuotes(names(model@algebras)), '\n')
 	cat("$constraints :", omxQuotes(names(model@constraints)), '\n')
 	cat("$intervals :", omxQuotes(names(model@intervals)), '\n')
+
+	# latentVars and manifestVars should really be considered
+	# an implementation detail of RAM and LISREL type models with paths.
+	# We currently do not return anything when an attempt
+	# is made to access these slots using $ notation.
+	# The proper thing to do is probably to ignore the @ slots
+	# and extract the variable information from the RAM F matrix dimnames
+	# or equivalent LISREL matrix because the slots are only
+	# used by mxPath. Matrix constructed models do not use the @ slots.
+
 	if (length(model@latentVars) == 0) {
 		cat("$latentVars : none\n")
 	} else if (is.character(model@latentVars)) {
