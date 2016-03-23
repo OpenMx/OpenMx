@@ -66,10 +66,10 @@ setMethod("genericFitRename", signature("MxFitFunctionGREML"),
             }
           	if(length(.Object@Aug)){.Object@Aug <- renameReference(.Object@Aug[1], oldname, newname)}
           	if(length(.Object@AugGrad)){
-          		.Object@AugGrad <- sapply(.Object@AugGrad[1], renameReference, oldname, newname)
+          		.Object@AugGrad <- renameReference(.Object@AugGrad[1], oldname, newname)
           	}
           	if(length(.Object@AugHess)){
-          		.Object@AugHess <- sapply(.Object@AugHess[1], renameReference, oldname, newname)
+          		.Object@AugHess <- renameReference(.Object@AugHess[1], oldname, newname)
           	}
             return(.Object)
           })

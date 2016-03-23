@@ -1,4 +1,4 @@
-require(OpenMx,lib.loc=.libPaths()[2])
+require(OpenMx)
 options(mxCondenseMatrixSlots=TRUE)  
 require(mvtnorm)
 
@@ -20,6 +20,7 @@ x <- rnorm(100)
 dat <- cbind(y,x)
 colnames(dat) <- c("y","x")
 
+#Baseline model:
 testmod <- mxModel(
 	"GREMLtest",
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
@@ -36,6 +37,7 @@ testmod <- mxModel(
 )
 testrun <- mxRun(testmod)
 
+#Pointless augmentation that adds a constant to the fitfunction:
 testmod2 <- mxModel(
 	"GREMLtest",
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
@@ -54,6 +56,7 @@ testmod2 <- mxModel(
 testrun2 <- mxRun(testmod2)
 omxCheckCloseEnough(a=testrun2$output$fit - testrun$output$fit, b=1.28, epsilon=1e-9)
 
+#Baseline model using N-R:
 testmod3 <- mxModel(
 	"GREMLtest",
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
@@ -77,6 +80,7 @@ testmod3 <- mxModel(
 )
 testrun3 <- mxRun(testmod3)
 
+#Add augmentation that should nudge free parameters toward summing to 1.0:
 testmod4 <- mxModel(
 	"GREMLtest",
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
@@ -96,33 +100,17 @@ testmod4 <- mxModel(
 	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
 	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxAlgebra( 1.5*(Va1+Va2+Ve-1)^2, name="aug"),
-	mxAlgebra( 1.5%x%rbind(
+	mxAlgebra( 3%x%(Va1+Va2+Ve-1)^2, name="aug"),
+	mxAlgebra( 3%x%rbind(
 		2*Va1 + 2*Va2 + 2*Ve - 2,
 		2*Va1 + 2*Va2 + 2*Ve - 2,
 		2*Va1 + 2*Va2 + 2*Ve - 2), name="daug1"),
-	mxMatrix(type="Full",nrow=3,ncol=3,free=F,values=3,name="daug2"),
+	mxMatrix(type="Full",nrow=3,ncol=3,free=F,values=6,name="daug2"),
 	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),Aug="aug",AugGrad="daug1",AugHess="daug2")
 )
 testrun4 <- mxRun(testmod4)
-omxCheckCloseEnough(a=mean(testrun4$output$hessian - testrun3$output$hessian), b=6, epsilon=1e-4)
-
-
-
-testmod5 <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxAlgebra( 100000*(Va1+Va2+Ve-1)^2, name="aug"),
-	mxFitFunctionGREML(Aug="aug")
-)
-testrun5 <- mxRun(testmod5)
+#Check for constant added to Hessian:
+omxCheckCloseEnough(a=mean(testrun4$output$hessian - testrun3$output$hessian), b=12, epsilon=1e-3)
+#The difference between 1.0 and the sum of the parameters should be smaller for model #4:
+omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
 

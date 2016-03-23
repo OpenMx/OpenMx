@@ -75,7 +75,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
-  newObj->Aug = NULL;
   newObj->AugGrad = NULL;
   newObj->AugHess = NULL;
   
@@ -86,10 +85,12 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   	int* Augint = INTEGER(Aug);
   	newObj->Aug = omxMatrixLookupFromState1(Augint[0], currentState);
   }
+  else{newObj->Aug = NULL;}
   }
   
   //Derivatives of V:
-  {ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
+  {
+  ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
   ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
   newObj->dVlength = Rf_length(dV);  
   newObj->dV.resize(newObj->dVlength);
@@ -205,9 +206,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       ytPy = (Eigy.transpose() * Py)(0,0);
       if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
       oo->matrix->data[0] = gff->REMLcorrection + 
-      	Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0,0,0);
+      	Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
       gff->nll = oo->matrix->data[0];
-      mxLog("augmentation is %3.3f",gff->pullAugVal(0,0,0));
+      if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
     }
     else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
       //Declare locals:
@@ -415,22 +416,19 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 
 double omxGREMLFitState::pullAugVal(int thing, int row, int col){
+	double val=0;
 	switch(thing){
 	case 0:
-		if(Aug){return(Aug->data[0]);}
-		else{return(0);}
+		if(Aug){val = Aug->data[0];}
 		break;
 	case 1:
-		if(AugGrad){return(AugGrad->data[row+col]);} //<--Remember that at least one of 'row' and 'col' should be 0.
-		else{return(0);}
+		if(AugGrad){val = AugGrad->data[row+col];} //<--Remember that at least one of 'row' and 'col' should be 0.
 		break;
 	case 2:
-		if(AugHess){return(omxMatrixElement(AugHess,row,col));}
-		else{return(0);}
+		if(AugHess){val = omxMatrixElement(AugHess,row,col);}
 		break;
-	default:
-		return(0);
 	}
+	return(val);
 }
 
 
