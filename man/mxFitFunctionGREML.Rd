@@ -20,7 +20,7 @@ mxFitFunctionGREML(dV=character(0), Aug=character(0), dAug=character(0))
 \details{
 Making effective use of arguments \code{dV}, \code{AugGrad}, and \code{AugHess} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  These loglikelihood derivatives will be valid as long as (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' and (2) the model contains no \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
 
-Argument \code{Aug} is intended to allow users to provide penalty functions or prior likelihoods in order to approximate constraints or to regularize optimization.
+Argument \code{Aug} is intended to allow users to provide penalty functions or prior likelihoods in order to approximate constraints or to regularize optimization.  The user is warned that careless use of this augmentation feature may undermine the validity of his/her statistical inferences.
 }
 \value{
 Returns a new object of class \code{\link{MxFitFunctionGREML}}.

@@ -37,6 +37,7 @@ struct omxGREMLFitState {
   omxMatrix *Aug, *AugGrad, *AugHess;
   std::vector<int> dAugMap;
   double pullAugVal(int thing, int row, int col);
+  void recomputeAug(FitContext *fc);
 }; 
 
 
@@ -160,6 +161,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   if(fc && gff->varGroup != fc->varGroup){
     gff->buildParamMap(fc->varGroup);
 	}
+  
+  gff->recomputeAug(fc);
   
   //Declare local variables used in more than one scope in this function:
   const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
@@ -429,6 +432,13 @@ double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 		break;
 	}
 	return(val);
+}
+
+
+void omxGREMLFitState::recomputeAug(FitContext *fc){
+	if(Aug){omxRecompute(Aug, fc);}
+	if(AugGrad){omxRecompute(AugGrad, fc);} 
+	if(AugHess){omxRecompute(AugHess, fc);}
 }
 
 

@@ -109,8 +109,6 @@ testmod4 <- mxModel(
 	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),Aug="aug",AugGrad="daug1",AugHess="daug2")
 )
 testrun4 <- mxRun(testmod4)
-#Check for constant added to Hessian:
-omxCheckCloseEnough(a=mean(testrun4$output$hessian - testrun3$output$hessian), b=12, epsilon=1e-3)
 #The difference between 1.0 and the sum of the parameters should be smaller for model #4:
 omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
 
