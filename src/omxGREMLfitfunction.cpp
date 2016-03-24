@@ -37,7 +37,7 @@ struct omxGREMLFitState {
   omxMatrix *Aug, *AugGrad, *AugHess;
   std::vector<int> dAugMap;
   double pullAugVal(int thing, int row, int col);
-  void recomputeAug(FitContext *fc);
+  void recomputeAug(int thing, FitContext *fc);
 }; 
 
 
@@ -162,7 +162,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     gff->buildParamMap(fc->varGroup);
 	}
   
-  gff->recomputeAug(fc);
+  gff->recomputeAug(0, fc);
   
   //Declare local variables used in more than one scope in this function:
   const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
@@ -265,6 +265,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
   if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
     //This part requires GREML expectation:
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+  	
+  	gff->recomputeAug(1, fc);
     
     //Declare local variables for this scope:
     int nThreadz = Global->numThreads;
@@ -276,6 +278,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
       hb->vars.resize(gff->dVlength);
       hb->mat.resize(gff->dVlength, gff->dVlength);
+      gff->recomputeAug(2, fc);
     }
     
     //Begin looping thru free parameters:
@@ -435,10 +438,18 @@ double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 }
 
 
-void omxGREMLFitState::recomputeAug(FitContext *fc){
-	if(Aug){omxRecompute(Aug, fc);}
-	if(AugGrad){omxRecompute(AugGrad, fc);} 
-	if(AugHess){omxRecompute(AugHess, fc);}
+void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
+	switch(thing){
+	case 0:
+		if(Aug){omxRecompute(Aug, fc);}
+		break;
+	case 1:
+		if(AugGrad){omxRecompute(AugGrad, fc);} 
+		break;
+	case 2:
+		if(AugHess){omxRecompute(AugHess, fc);}
+		break;
+	}
 }
 
 
