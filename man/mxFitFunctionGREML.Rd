@@ -8,7 +8,7 @@ Create MxFitFunctionGREML Object
 This function creates a new \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
-mxFitFunctionGREML(dV=character(0), Aug=character(0), dAug=character(0))
+mxFitFunctionGREML(dV=character(0), Aug=character(0), AugGrad=character(0), AugHess=character(0))
 }
 
 \arguments{
