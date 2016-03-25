@@ -49,16 +49,20 @@ mkModel <- function(shuffle, fellner) {
 set.seed(1)
 ta1 <- mxGenerateData(mkModel(FALSE, FALSE), nrow=25, returnModel=TRUE)
 
-fit1 <- mxRun(mxModel(mkModel(TRUE, TRUE), ta1$data))
-fit2 <- mxRun(mxModel(mkModel(FALSE, TRUE), ta1$data))
+for (useFellner in c(TRUE,FALSE)) {
+	fit1 <- mxRun(mxModel(mkModel(TRUE, useFellner), ta1$data))
+	fit2 <- mxRun(mxModel(mkModel(FALSE, useFellner), ta1$data))
 
-omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-8)
+	omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-8)
 
-omxCheckEquals(names(fit1$expectation$debug$g1$fullMean[1:ncol(fit1$F)]),
-               paste0('tangle.', colnames(fit1$F)))
+	if (useFellner) {
+		omxCheckEquals(names(fit1$expectation$debug$g1$fullMean[1:ncol(fit1$F)]),
+			       paste0('tangle.', colnames(fit1$F)))
 
-omxCheckTrue(length(rle(fit1$expectation$debug$g1$latentFilter)$lengths) !=
-               length(rle(fit2$expectation$debug$g1$latentFilter)$lengths))
+		omxCheckTrue(length(rle(fit1$expectation$debug$g1$latentFilter)$lengths) !=
+				 length(rle(fit2$expectation$debug$g1$latentFilter)$lengths))
+	}
+}
 
 if (0) {
   # F does two things:

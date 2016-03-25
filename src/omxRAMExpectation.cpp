@@ -998,20 +998,24 @@ namespace RelationalRAMExpectation {
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
 			if (a1.model->dataColumns->cols) {
+				int prevDx = dx;
 				omxDataRow(a1.model, a1.row, st.smallCol);
-				for (int col=0, d1=0; col < ram->F->cols; ++col) {
-					if (!ram->latentFilter[col]) continue;
-					double val = omxMatrixElement(st.smallCol, 0, d1);
+				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
+					if (!ram->latentFilter[vx]) continue;
+					int col = ncol++;
+					double val = omxMatrixElement(st.smallCol, 0, col);
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
-					latentFilter[ pl.modelStart + col ] = true;
+					latentFilter[ pl.modelStart + vx ] = true;
 					std::string dname =
-						modelName + omxDataColumnName(data, ram->dataCols[d1]);
+						modelName + omxDataColumnName(data, ram->dataCols[col]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
-					if (a1.model == st.homeEx) dataColumn[ dx ] = d1;
+					if (a1.model == st.homeEx) dataColumn[ dx ] = col;
 					dx += 1;
-					d1 += 1;
+				}
+				if (a1.numObs() != dx - prevDx) {
+					Rf_error("numObs() %d != %d", a1.numObs(), dx - prevDx);
 				}
 			}
 			for (int vx=0; vx < ram->F->cols; ++vx) {

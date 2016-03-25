@@ -139,6 +139,10 @@ template <typename T1> void AsymTool<T1>::filter()
 	op[dx] = op[fullA.cols()];
 	IAF.conservativeResize(fullA.rows(), clumpObs);
 
+	// I've screwed this up 3-4 times, better check it!
+	if (OMX_DEBUG && dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+						  dx, clumpObs);
+
 	if (doubleCheck) {
 		Eigen::MatrixXd denseAF;
 		denseAF.resize(fullA.rows(), clumpObs);
@@ -150,6 +154,17 @@ template <typename T1> void AsymTool<T1>::filter()
 		}
 		if (dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
 					     dx, clumpObs);
+
+		// ensure inner iterator works
+		for (int k=0; k< IAF.outerSize(); ++k) {
+			for (Eigen::SparseMatrix<double>::InnerIterator it(IAF, k); it; ++it) {
+				if (denseAF.coeff(it.row(), it.col()) != it.value()) {
+					mxLog("[%d,%d] %f != %f",
+					      it.row(), it.col(), denseAF.coeff(it.row(), it.col()), it.value());
+				}
+			}
+		}
+
 		Eigen::MatrixXd denseFilteredA = IAF;
 		if ((denseAF.array() != denseFilteredA.array()).any()) {
 			for (int rx=0; rx<denseAF.rows(); ++rx) {
