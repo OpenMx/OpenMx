@@ -18,18 +18,25 @@ setClass(Class = "MxFitFunctionGREML",
            dV = "MxCharOrNumber",
            dVnames = "character",
            MLfit = "numeric",
-           numObs = "integer"),
+           numObs = "integer",
+           Aug = "MxCharOrNumber",
+           AugGrad = "MxCharOrNumber",
+           AugHess = "MxCharOrNumber"),
          contains = "MxBaseFitFunction")
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L) {
+          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L, Aug=character(0),
+          				 AugGrad=character(0), AugHess=character(0)) {
             .Object@name <- name
             .Object@dV <- dV
             .Object@dVnames <- as.character(names(dV))
             .Object@MLfit <- MLfit
             .Object@vector <- vector
             .Object@numObs <- numObs
+            .Object@Aug <- Aug
+            .Object@AugGrad <- AugGrad
+            .Object@AugHess <- AugHess
             return(.Object)
           }
 )
@@ -42,6 +49,13 @@ setMethod("qualifyNames", signature("MxFitFunctionGREML"),
               .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
               .Object@dVnames <- names(.Object@dV)
             }
+            if(length(.Object@Aug)){.Object@Aug <- imxConvertIdentifier(.Object@Aug[1],modelname,namespace)}
+            if(length(.Object@AugGrad)){
+            	.Object@AugGrad <- imxConvertIdentifier(.Object@AugGrad[1],modelname,namespace)
+            }
+            if(length(.Object@AugHess)){
+            	.Object@AugHess <- imxConvertIdentifier(.Object@AugHess[1],modelname,namespace)
+            }
             return(.Object)
           })
 
@@ -50,6 +64,13 @@ setMethod("genericFitRename", signature("MxFitFunctionGREML"),
             if(length(.Object@dV)){
               .Object@dV <- sapply(.Object@dV, renameReference, oldname, newname)
             }
+          	if(length(.Object@Aug)){.Object@Aug <- renameReference(.Object@Aug[1], oldname, newname)}
+          	if(length(.Object@AugGrad)){
+          		.Object@AugGrad <- renameReference(.Object@AugGrad[1], oldname, newname)
+          	}
+          	if(length(.Object@AugHess)){
+          		.Object@AugHess <- renameReference(.Object@AugHess[1], oldname, newname)
+          	}
             return(.Object)
           })
 
@@ -81,6 +102,13 @@ setMethod("genericFitFunConvert", "MxFitFunctionGREML",
             if(length(.Object@dV)){
               .Object@dV <- sapply(.Object@dV, imxLocateIndex, model=flatModel, referant=name)
             }
+            if(length(.Object@Aug)){.Object@Aug <- imxLocateIndex(.Object@Aug[1], model=flatModel, referant=name)}
+            if(length(.Object@AugGrad)){
+            	.Object@AugGrad <- imxLocateIndex(.Object@AugGrad[1], model=flatModel, referant=name)
+            }
+            if(length(.Object@AugHess)){
+            	.Object@AugHess <- imxLocateIndex(.Object@AugHess[1], model=flatModel, referant=name)
+            }
             return(.Object)
           })
 
@@ -94,6 +122,6 @@ setMethod("generateReferenceModels", "MxFitFunctionGREML",
 					})
 
 
-mxFitFunctionGREML <- function(dV=character(0)){
-  return(new("MxFitFunctionGREML",dV=dV))
+mxFitFunctionGREML <- function(dV=character(0), Aug=character(0), AugGrad=character(0), AugHess=character(0)){
+  return(new("MxFitFunctionGREML",dV=dV,Aug=Aug,AugGrad=AugGrad,AugHess=AugHess))
 }
