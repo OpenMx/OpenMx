@@ -395,7 +395,9 @@ namespace RelationalRAMExpectation {
 			if (key == NA_INTEGER) continue;
 			omxData *data1 = betA->getJoinModel()->data;
 			int frow = data1->lookupRowOfKey(key);
-			placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
+			RowToPlacementMapType::iterator plIndex =
+				rowToPlacementMap.find(std::make_pair(data1, frow));
+			placement &p2 = placements[ plIndex->second ];
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
@@ -533,26 +535,31 @@ namespace RelationalRAMExpectation {
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
 
-			//if (a1.rampartScale == 0.0) continue; TODO
-
-			for (size_t jx=0; jx < ram->between.size(); ++jx) {
-				omxMatrix *betA = ram->between[jx];
-				int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
-				if (key == NA_INTEGER) continue;
-				omxData *data1 = betA->getJoinModel()->data;
-				int frow = data1->lookupRowOfKey(key);
-				placement &p2 = placements[ rowToPlacementMap[std::make_pair(data1, frow)] ];
-				omxRecompute(betA, fc);
-				betA->markPopulatedEntries();
-				omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
-				for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-						double val = omxMatrixElement(betA, rx, cx);
-						if (val == 0.0) continue;
-						asymT.fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
+			if (a1.rampartScale != 0.0) {
+				for (size_t jx=0; jx < ram->between.size(); ++jx) {
+					omxMatrix *betA = ram->between[jx];
+					int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
+					if (key == NA_INTEGER) continue;
+					omxData *data1 = betA->getJoinModel()->data;
+					int frow = data1->lookupRowOfKey(key);
+					RowToPlacementMapType::iterator plIndex =
+						rowToPlacementMap.find(std::make_pair(data1, frow));
+					if (plIndex == rowToPlacementMap.end()) Rf_error("Cannot find row %d in %s",
+											 frow, data1->name);
+					placement &p2 = placements[ plIndex->second ];
+					omxRecompute(betA, fc);
+					betA->markPopulatedEntries();
+					omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
+					for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
+						for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
+							double val = omxMatrixElement(betA, rx, cx);
+							if (val == 0.0) continue;
+							asymT.fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
+						}
 					}
 				}
 			}
+
 			ram->A->markPopulatedEntries();
 			EigenMatrixAdaptor eA(ram->A);
 			for (int cx=0; cx < eA.cols(); ++cx) {
