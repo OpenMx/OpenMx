@@ -122,18 +122,6 @@ setMethod("imxVerifyModel", "MxRAMModel",
 	  })
 
 
-setReplaceMethod("[[", "MxRAMModel",
-	function(x, i, j, value) {
-		return(replaceMethodRAM(x, i, value))
-	}
-)
-
-setReplaceMethod("$", "MxRAMModel",
-	function(x, name, value) {
-		return(replaceMethodRAM(x, name, value))
-	}
-)
-
 # Helper functions used by the generic functions
 
 variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, remove) {
@@ -886,21 +874,3 @@ addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, mod
 	newmatrix <- matrix(values, 1, length(model@manifestVars) + length(model@latentVars))
 	return(newmatrix)
 }
-
-replaceMethodRAM <- function(model, index, value) {
-	pair <- imxReverseIdentifier(model, index)
-	namespace <- pair[[1]]
-	name <- pair[[2]]
-	if (namespace == model@name && name == "data") {
-		model@data <- value
-		# model@expectation is likely MxExpectationRAM, but it could
-		# have been replaced with something else.
-		if (requireMeansVector(value) && is(model@expectation, "MxExpectationRAM")) {
-			model@expectation@M <- "M"
-		}
-	} else {
-		model <- imxReplaceMethod(model, index, value)
-	}
-	return(model)
-}
-
