@@ -17,6 +17,7 @@
 #include "omxFitFunction.h"
 #include "omxGREMLfitfunction.h"
 #include "omxGREMLExpectation.h"
+#include "omxMatrix.h"
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
@@ -27,6 +28,8 @@ struct omxGREMLFitState {
   omxMatrix *y, *X, *cov, *invcov, *means;
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
+  std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
+  void dVupdate(FitContext *fc);
   int dVlength, usingGREMLExpectation;
   double nll, REMLcorrection;
   Eigen::VectorXd gradient;
@@ -95,6 +98,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
   newObj->dVlength = Rf_length(dV);  
   newObj->dV.resize(newObj->dVlength);
+  newObj->indyAlg.resize(newObj->dVlength);
   newObj->dVnames.resize(newObj->dVlength);
 	if(newObj->dVlength){
     if(!newObj->usingGREMLExpectation){
@@ -266,6 +270,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //This part requires GREML expectation:
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
   	
+  	//Recompute derivatives:
+  	gff->dVupdate(fc);
   	gff->recomputeAug(1, fc);
     
     //Declare local variables for this scope:
@@ -298,7 +304,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
 			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
+				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->indyAlg[i]);
 			}
 			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 			//PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
@@ -319,7 +325,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 					if(t2 < 0){continue;}
 					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
+						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->indyAlg[j]);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
 					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
@@ -395,6 +401,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dV[gx] = dV_temp[nx];
 					dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
 					dAugMap[gx] = nx;
+					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
 					++gx;
 					break;
 				}
@@ -449,6 +456,22 @@ void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
 	case 2:
 		if(AugHess){omxRecompute(AugHess, fc);}
 		break;
+	}
+}
+
+
+void omxGREMLFitState::dVupdate(FitContext *fc){
+	for(int i=0; i < dVlength; i++){
+		if(OMX_DEBUG){
+			mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
+			mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
+		}
+		if( !(dV[i]->hasMatrixNumber && omxMatrixIsClean(dV[i])) ){
+			if(OMX_DEBUG){
+				mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+			}
+			omxRecompute(dV[i], fc);
+		}
 	}
 }
 
