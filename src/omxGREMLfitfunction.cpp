@@ -18,6 +18,7 @@
 #include "omxGREMLfitfunction.h"
 #include "omxGREMLExpectation.h"
 #include "omxMatrix.h"
+#include "omxAlgebra.h"
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
@@ -87,7 +88,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   ScopedProtect p1(Aug, R_do_slot(rObj, Rf_install("Aug")));
   if(Rf_length(Aug)){
   	int* Augint = INTEGER(Aug);
-  	newObj->Aug = omxMatrixLookupFromState1(Augint[0], currentState);
+  	newObj->Aug = omxMatrixLookupFromStateByNumber(Augint[0], currentState);
   }
   else{newObj->Aug = NULL;}
   }
@@ -108,7 +109,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
 		int* dVint = INTEGER(dV);
     for(i=0; i < newObj->dVlength; i++){
-      newObj->dV[i] = omxMatrixLookupFromState1(dVint[i], currentState);
+      newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
       SEXP elem;
       {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
 			newObj->dVnames[i] = CHAR(elem);}
@@ -139,10 +140,10 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
 		}}
 		else{
 			int* AugGradint = INTEGER(AugGrad);
-			newObj->AugGrad = omxMatrixLookupFromState1(AugGradint[0], currentState);
+			newObj->AugGrad = omxMatrixLookupFromStateByNumber(AugGradint[0], currentState);
 			if(Rf_length(AugHess)){
 				int* AugHessint = INTEGER(AugHess);
-				newObj->AugHess = omxMatrixLookupFromState1(AugHessint[0], currentState);
+				newObj->AugHess = omxMatrixLookupFromStateByNumber(AugHessint[0], currentState);
 			}
 			else{oo->hessianAvailable = false;}
 		}
@@ -476,16 +477,4 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 	}
 }
 
-
-omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os) {
-  omxMatrix* output = NULL;
-	if(matrix == NA_INTEGER){return NULL;}
-	if (matrix >= 0) {
-		output = os->algebraList[matrix];
-	} 
-  else {
-		output = os->matrixList[~matrix];
-	}
-	return output;
-}
 
