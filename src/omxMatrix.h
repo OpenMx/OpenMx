@@ -167,6 +167,8 @@ void setVectorError(int index, int numrow, int numcol);
 void matrixElementError(int row, int col, int numrow, int numcol);
 void vectorElementError(int index, int numrow, int numcol);
 
+bool omxNeedsUpdate(omxMatrix *matrix);
+
 OMXINLINE static bool omxMatrixIsDirty(omxMatrix *om) { return om->cleanVersion != om->version; }
 OMXINLINE static bool omxMatrixIsClean(omxMatrix *om) { return om->cleanVersion == om->version; }
 OMXINLINE static int omxGetMatrixVersion(omxMatrix *om) { return om->version; }

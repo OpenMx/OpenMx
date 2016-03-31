@@ -466,7 +466,8 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 			mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
 			mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
 		}
-		if( !(dV[i]->hasMatrixNumber && omxMatrixIsClean(dV[i])) ){
+		//TODO: Recompute if needs update and if NOT a parameter-independent algebra:
+		if( omxNeedsUpdate(dV[i]) ){
 			if(OMX_DEBUG){
 				mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
 			}
