@@ -30,6 +30,6 @@ void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *
 void omxDestroyGREMLExpectation(omxExpectation* ox);
 void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra);
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop, 
-	int symmetric);
+	int symmetric, int isIndyAlg);
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* component);
 
