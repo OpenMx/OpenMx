@@ -54,6 +54,7 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
 void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames);
 	omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
+	omxMatrix* omxMatrixLookupFromStateByNumber(int matrix, omxState* os); //Look up extant omxMatrix by its matrix number
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
 
 /* Other Functions */

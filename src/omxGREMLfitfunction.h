@@ -22,4 +22,3 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc);
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra);
 
-omxMatrix* omxMatrixLookupFromState1(int matrix, omxState* os);

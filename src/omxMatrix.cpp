@@ -634,7 +634,7 @@ void omxMatrixLeadingLagging(omxMatrix *om) {
 	om->lagging = (om->colMajor?om->cols:om->rows);
 }
 
-static bool omxNeedsUpdate(omxMatrix *matrix)
+bool omxNeedsUpdate(omxMatrix *matrix)
 {
 	bool yes;
 	if (matrix->hasMatrixNumber && omxMatrixIsClean(matrix)) {
