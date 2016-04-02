@@ -19,23 +19,24 @@ bySubj <- mxModel(
     latentVars = c('intercept', paste0(c("age", 'nsex', "nsexage"), "L")),
     mxData(data.frame(Subject=unique(Orthodont$Subject)),
 	   type="raw", primaryKey="Subject"),
-    mxPath(c('intercept', 'ageL'), c('intercept', 'ageL'),
+    mxPath(from=c('intercept', 'ageL'), to=c('intercept', 'ageL'),
 	   arrows=2, "unique.pairs", values=c(1,.1,1),
 	   labels=c('subjInt', 'subjIntAge', 'subjAge')),
-    mxPath(c('nsexL', 'nsexageL'), arrows=2, values=1))
+    mxPath(from=c('nsexL', 'nsexageL'), arrows=2, values=1))
 
 ortho <- mxModel(
     model="ortho", bySubj, type="RAM", manifestVars=c("distance"),
     latentVars = c("ageL"),
     mxData(type="raw", observed=Orthodont[,c('distance', 'age',
 			   'Subject', 'nsex', "nsexage")], sort = FALSE),
-    mxPath(c("one"), "distance"),
-    mxPath(c("one"), "ageL", free=FALSE, labels="data.age"),
-    mxPath("ageL", "distance"),
-    mxPath("distance", arrows=2, values=1),
-    mxPath("subj.intercept", "distance", values=1, free=FALSE,
+    mxPath(from=c("one"), to="distance"),
+    mxPath(from=c("one"), to="ageL", free=FALSE, labels="data.age"),
+    mxPath(from="ageL", to="distance"),
+    mxPath(from="distance", arrows=2, values=1),
+    mxPath(from="subj.intercept", to="distance", values=1, free=FALSE,
 	   joinKey="Subject"),
-    mxPath(paste0("subj.", c("ageL", "nsexL", "nsexageL")), "distance",
+    mxPath(from=paste0("subj.", c("ageL", "nsexL", "nsexageL")),
+	   to="distance",
            labels=paste0("data.", c("age", "nsex", "nsexage")),
            free=FALSE, joinKey="Subject"))
 
