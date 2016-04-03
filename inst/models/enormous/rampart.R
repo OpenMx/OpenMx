@@ -63,13 +63,13 @@ mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
 		manifestVars = paste0('i', 1:numIndicators),
 		latentVars = c("skill",latent),
-		mxPath('skill', arrows=2, labels="Var",
+		mxPath(from='skill', arrows=2, labels="Var",
 		       values=rlnorm(1), lbound=.01),
-		mxPath(paste0('i',1:numIndicators), arrows=2,
+		mxPath(from=paste0('i',1:numIndicators), arrows=2,
 		       values=rlnorm(1), labels="Err", lbound=.01),
-		mxPath("one", paste0('i',1:numIndicators),
+		mxPath(from="one", to=paste0('i',1:numIndicators),
 		       free=TRUE, values=rnorm(4)),
-		mxPath('skill', paste0('i',1:numIndicators),
+		mxPath(from='skill', to=paste0('i',1:numIndicators),
 		       labels=paste0('L',1:numIndicators), lbound=0,
 		       values=c(1, runif(numIndicators-1, .5,1.5)),
 		       free=c(FALSE, rep(TRUE,numIndicators-1)))
@@ -94,13 +94,13 @@ schMod <- mxModel(relabel(mkSingleFactor(), "school"),
 tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=dataEnv$teacherData,
 			 primaryKey="teacherID", sort=FALSE),
-		  mxPath('school.skill', 'skill',
+		  mxPath(from='school.skill', to='skill',
 			 joinKey="schoolID", values=runif(1)))
 
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		mxData(type="raw", observed=dataEnv$studentData,
 		       primaryKey="studentID", sort=FALSE),
-		  mxPath('teacher.skill', 'skill',
+		  mxPath(from='teacher.skill', to='skill',
 			 joinKey="teacherID", values=runif(1)))
 
 interest <- c('wallTime', 'infoDefinite',
