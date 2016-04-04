@@ -461,6 +461,7 @@ namespace RelationalRAMExpectation {
 		as1.clumped = false;
 		as1.parent1 = NA_INTEGER;
 		as1.fk1 = NA_INTEGER;
+		as1.rotationLeader = false;
 		as1.numJoins = 0;
 		as1.numKids = 0;
 		a1.rampartScale = 1.0;
@@ -620,6 +621,23 @@ namespace RelationalRAMExpectation {
 			return false;
 		}
 
+		bool compareAllDefVars(const addr &la, const addr &ra, bool &mismatch) const
+		{
+			mismatch = true;
+
+			omxData *data = la.model->data;  // both la & ra have same data
+			for (size_t k=0; k < data->defVars.size(); ++k) {
+				int col = data->defVars[k].column;
+				double lv = omxDoubleDataElement(data, la.row, col);
+				double rv = omxDoubleDataElement(data, ra.row, col);
+				if (lv == rv) continue;
+				return lv < rv;
+			}
+
+			mismatch = false;
+			return false;
+		}
+
 		bool compareDefVars(addr &la, addr &ra, bool &mismatch) const
 		{
 			mismatch = true;
@@ -640,8 +658,8 @@ namespace RelationalRAMExpectation {
 		}
 	};
 
-	struct CompatibleGroupCompare : CompareLib {
-		CompatibleGroupCompare(state *st) : CompareLib(st) {};
+	struct CompatibleCovCompare : CompareLib {
+		CompatibleCovCompare(state *st) : CompareLib(st) {};
 
 		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
 		{
@@ -654,6 +672,56 @@ namespace RelationalRAMExpectation {
 				if (mismatch) return got;
 
 				got = compareDefVars(la, ra, mismatch);
+				if (mismatch) return got;
+			}
+			return false;
+		}
+	};
+
+	struct CompatibleMeanCompare : CompareLib {
+		CompatibleMeanCompare(state *st) : CompareLib(st) {};
+
+		addr *joinedWith(const addr &la, int jx) const
+		{
+			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
+			omxData *data = la.model->data;
+			omxMatrix *betA = ram->between[jx];
+			int key = omxKeyDataElement(data, la.row, betA->getJoinKey());
+			if (key == NA_INTEGER) return 0;
+			omxData *data1 = betA->getJoinModel()->data;
+			omxExpectation *e1 = betA->getJoinModel();
+			int row = data1->lookupRowOfKey(key);
+			state::RowToLayoutMapType::const_iterator it =
+				st.rowToLayoutMap.find(std::make_pair(e1->data, row));
+			if (it == st.rowToLayoutMap.end())
+				Rf_error("Cannot find row %d in %s", row, e1->data->name);
+			return &st.layout[it->second];
+		}
+
+		bool compareDeep(const addr &la, const addr &ra, bool &mismatch) const
+		{
+			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
+			for (size_t jx=0; jx < ram->between.size(); ++jx) {
+				addr *lp = joinedWith(la, jx);
+				addr *rp = joinedWith(ra, jx);
+				if (!lp && !rp) continue;
+				bool got = compareDeep(*lp, *rp, mismatch);
+				if (mismatch) return got;
+			}
+
+			bool got = compareAllDefVars(la, ra, mismatch);
+			if (mismatch) return got;
+
+			return false;
+		}
+
+		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
+		{
+			bool mismatch = false;
+			for (size_t ux=0; ux < lhs.size(); ++ux) {
+				addr &la = st.layout[lhs[ux]];
+				addr &ra = st.layout[rhs[ux]];
+				bool got = compareDeep(la, ra, mismatch);
 				if (mismatch) return got;
 			}
 			return false;
@@ -774,25 +842,30 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
+	template <typename T>
+	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum, int &copyNum)
+	{
+		for (std::set<std::vector<int> >::iterator px = toPlace.begin();
+		     px != toPlace.end(); ++px, ++copyNum) {
+			const std::vector<int> &clump = *px;
+			for (size_t cx=0; cx < clump.size(); ++cx) {
+				addrSetup &as1 = layoutSetup[ clump[cx] ];
+				if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
+				as1.group = groupNum;
+				as1.copy = copyNum;
+				ig->place(clump[cx]);
+			}
+		}
+	}
+
 	// 2nd visitor
 	void state::planModelEval(int maxSize, FitContext *fc)
 	{
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
 		if (ram->forceSingleGroup) {
 			independentGroup *ig = new independentGroup(this, layout.size(), layout.size());
-			int dx = 0, mx = 0;
-			for (size_t ax=0; ax < layout.size(); ++ax) {
-				addr &a1 = layout[ax];
-				placement pl;
-				pl.aIndex = ax;
-				pl.modelStart = mx;
-				pl.obsStart = dx;
-				ig->placements.push_back(pl);
-				mx += a1.numVars();
-				dx += a1.numObs();
-			}
-
-			ig->prep(maxSize, dx, fc);
+			for (size_t ax=0; ax < layout.size(); ++ax) ig->place(ax);
+			ig->prep(fc);
 			group.push_back(ig);
 			return;
 		}
@@ -871,8 +944,8 @@ namespace RelationalRAMExpectation {
 
 		typedef std::map< std::vector<int>,
 				  std::set<std::vector<int> >,
-				  CompatibleGroupCompare> CompatibleGroupMapType;
-		CompatibleGroupMapType cgm(this);
+				  CompatibleCovCompare> CompatibleCovMapType;
+		CompatibleCovMapType cgm(this);
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addrSetup &as1 = layoutSetup[ax];
 			if (as1.region == -1) {
@@ -913,38 +986,93 @@ namespace RelationalRAMExpectation {
 		group.reserve(cgm.size());
 
 		int groupNum = 1;
-		for (CompatibleGroupMapType::iterator it = cgm.begin();
+		for (CompatibleCovMapType::iterator it = cgm.begin();
 		     it != cgm.end(); ++it, ++groupNum) {
 			independentGroup *ig = new independentGroup(this, it->second.size(),
 								    it->second.begin()->size());
-			int dx = 0, mx = 0;
 			int copyNum = 1;
-			for (std::set<std::vector<int> >::iterator px = it->second.begin();
-			     px != it->second.end(); ++px, ++copyNum) {
-				const std::vector<int> &clump = *px;
-				for (size_t cx=0; cx < clump.size(); ++cx) {
-					addr &a1 = layout[ clump[cx] ];
-					addrSetup &as1 = layoutSetup[ clump[cx] ];
-					if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-					as1.group = groupNum;
-					as1.copy = copyNum;
 
-					placement pl;
-					pl.aIndex = clump[cx];
-					pl.modelStart = mx;
-					pl.obsStart = dx;
-					ig->placements.push_back(pl);
-					mx += a1.numVars();
-					dx += a1.numObs();
+			typedef std::map< std::vector<int>,
+					  std::set<std::vector<int> >,
+					  CompatibleMeanCompare> CompatibleMeanMapType;
+			CompatibleMeanMapType cmm(this);
+			for (std::set<std::vector<int> >::iterator px = it->second.begin();
+			     px != it->second.end(); ++px) {
+				const std::vector<int> &clump = *px;
+				// Hm, it is probably impossible for a group of clumps
+				// that have identical covariance to include both clumps that
+				// are leaders and not leaders.
+				bool leader=false;
+				for (size_t cx=0; cx < clump.size(); ++cx) {
+					leader |= layoutSetup[ clump[cx] ].rotationLeader;
+				}
+				if (leader) {
+					for (size_t cx=0; cx < clump.size(); ++cx) {
+						addrSetup &as1 = layoutSetup[ clump[cx] ];
+						if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
+						as1.group = groupNum;
+						as1.copy = copyNum;
+						ig->place(clump[cx]);
+					}
+					copyNum += 1;
+				} else {
+					cmm[ clump ].insert(clump);
 				}
 			}
-			ig->prep(mx, dx, fc);
+
+			int ssCount = 0;
+			for (CompatibleMeanMapType::iterator mit = cmm.begin();
+			     mit != cmm.end(); ++mit) {
+				if (mit->second.size() > 1) {
+					++ssCount;
+					continue;
+				}
+				placeSet(mit->second, ig, groupNum, copyNum);
+			}
+			ig->sufficientSets.resize(ssCount);
+			int ssIndex = 0;
+			for (CompatibleMeanMapType::iterator mit = cmm.begin();
+			     mit != cmm.end(); ++mit, ++ssIndex) {
+				if (mit->second.size() == 1) continue;
+				int from = ig->placements.size();
+				placeSet(mit->second, ig, groupNum, copyNum);
+				//mxLog("group %d same mean %d -> %d clumpsize %d",
+				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
+				ig->sufficientSets[ssIndex].start = from;
+				ig->sufficientSets[ssIndex].length = (ig->placements.size() - from) / ig->clumpSize;
+			}
+			ig->prep(fc);
 			group.push_back(ig);
 		}
 	}
 
-	void independentGroup::prep(int maxSize, int totalObserved, FitContext *fc)
+	void independentGroup::place(int ax)
 	{
+		int mx = 0;
+		int dx = 0;
+		if (placements.size()) {
+			placement &prev = placements[ placements.size()-1 ];
+			addr &a1 = st.layout[ prev.aIndex ];
+			mx = prev.modelStart + a1.numVars();
+			dx = prev.obsStart + a1.numObs();
+		}
+		placement pl;
+		pl.aIndex = ax;
+		pl.modelStart = mx;
+		pl.obsStart = dx;
+		placements.push_back(pl);
+	}
+
+	void independentGroup::prep(FitContext *fc)
+	{
+		int totalObserved = 0;
+		int maxSize = 0;
+		if (placements.size()) {
+			placement &prev = placements[ placements.size()-1 ];
+			addr &a1 = st.layout[ prev.aIndex ];
+			totalObserved = prev.obsStart + a1.numObs();
+			maxSize = prev.modelStart + a1.numVars();
+		}
 		if (verbose() >= 2) {
 			mxLog("%s: create independentGroup[%d] maxSize=%d totalObserved=%d",
 			      st.homeEx->name, (int)st.group.size(), maxSize, totalObserved);
@@ -952,7 +1080,7 @@ namespace RelationalRAMExpectation {
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
-		expectedMean.resize(totalObserved);
+		expectedVec.resize(totalObserved);
 		dataVec.resize(totalObserved);
 		dataColumn.resize(totalObserved);
 		dataColumn.setConstant(-1);
@@ -1151,6 +1279,7 @@ namespace RelationalRAMExpectation {
 		// get covariance and sort by mahalanobis distance TODO
 		rotationPlan.push_back(t1);
 		addrSetup &specimen = layoutSetup[ t1[0] ];
+		specimen.rotationLeader = true;
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
 			t2.reserve(t1.size());
@@ -1234,7 +1363,7 @@ namespace RelationalRAMExpectation {
 			addr &ad = st.layout[unit];
 			independentGroup &ig = *ad.ig;
 			int obsStart = ig.placements[ad.igIndex].obsStart;
-			return (model? ig.expectedMean : ig.dataVec).coeffRef(obsStart + obs);
+			return (model? ig.expectedVec : ig.dataVec).coeffRef(obsStart + obs);
 		};
 	};
 
@@ -1278,6 +1407,27 @@ namespace RelationalRAMExpectation {
 			if (debug) buf += "\n";
 		}
 		if (debug && buf.size()) mxLogBig(buf);
+	}
+
+	template <typename T1, typename T2, typename T3>
+	void computeMeanCov(const Eigen::MatrixBase<T1> &dataVec, int stride,
+			    Eigen::MatrixBase<T2> &meanOut, Eigen::MatrixBase<T3> &covOut)
+	{
+		if (stride == 0) return;
+		int units = dataVec.size() / stride;
+		meanOut.derived().resize(stride);
+		meanOut.setZero();
+		covOut.derived().resize(stride, stride);
+		covOut.setZero();
+		// read the data only once to minimize memory thrashing
+		for (int ux=0; ux < units; ++ux) {
+			meanOut += dataVec.segment(ux * stride, stride);
+			covOut += (dataVec.segment(ux * stride, stride) *
+				   dataVec.segment(ux * stride, stride).transpose());
+		}
+		meanOut /= units;
+		covOut -= units * meanOut * meanOut.transpose();
+		covOut /= units-1;
 	}
 
 	void state::init(omxExpectation *expectation, FitContext *fc)
@@ -1335,6 +1485,10 @@ namespace RelationalRAMExpectation {
 		fc->copyParamToModelClean();
 
 		applyRotationPlan(UnitAccessor<false>(this));
+
+		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
+			(*it)->finalizeData();
+		}
 	}
 
 	state::~state()
@@ -1344,6 +1498,16 @@ namespace RelationalRAMExpectation {
 		}
   
 		omxFreeMatrix(smallCol);
+	}
+
+	void independentGroup::finalizeData()
+	{
+		for (int sx=0; sx < int(sufficientSets.size()); ++sx) {
+			RelationalRAMExpectation::sufficientSet &ss = sufficientSets[sx];
+			placement &first = placements[ss.start];
+			computeMeanCov(dataVec.segment(first.obsStart, ss.length * clumpObs),
+				       clumpObs, ss.dataMean, ss.dataCov);
+		}
 	}
 
 	void independentGroup::computeCov1(FitContext *fc)
@@ -1390,7 +1554,7 @@ namespace RelationalRAMExpectation {
 		int ox = 0;
 		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
 			if (!latentFilter[lx]) continue;
-			expectedMean[ox++] = fullMean[lx];
+			expectedVec[ox++] = fullMean[lx];
 		}
 	}
 
@@ -1450,13 +1614,13 @@ namespace RelationalRAMExpectation {
 			for (size_t gx=0; gx < group.size(); ++gx) {
 				totalObserved += group[gx]->dataVec.size();
 			}
-			Eigen::VectorXd expectedMean(totalObserved);
+			Eigen::VectorXd expectedVec(totalObserved);
 			int ox=0;
 			for (size_t ax=0; ax < layout.size(); ++ax) {
 				addr &a1 = layout[ax];
 				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
-				expectedMean.segment(ox, a1.numObs()) =
-					a1.ig->expectedMean.segment(a1Start, a1.numObs());
+				expectedVec.segment(ox, a1.numObs()) =
+					a1.ig->expectedVec.segment(a1Start, a1.numObs());
 			}
 		}
 
@@ -1475,8 +1639,8 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
-		if (expectedMean.size()) {
-			SEXP m1 = Rcpp::wrap(expectedMean);
+		if (expectedVec.size()) {
+			SEXP m1 = Rcpp::wrap(expectedVec);
 			Rf_protect(m1);
 			Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
 			out.add("mean", m1);

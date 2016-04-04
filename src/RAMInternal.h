@@ -374,6 +374,7 @@ namespace RelationalRAMExpectation {
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
+		bool rotationLeader;
 
 		// clump indexes into the layout for models that
 		// are considered a compound component of this model.
@@ -417,6 +418,13 @@ namespace RelationalRAMExpectation {
 		int obsStart;
 	};
 
+	struct sufficientSet {
+		int                              start;   // index into placements
+		int                              length;  // # of clumpSize units
+		Eigen::MatrixXd                  dataCov;
+		Eigen::VectorXd                  dataMean;
+	};
+
 	class independentGroup {
 	private:
 		class state &st;
@@ -430,6 +438,7 @@ namespace RelationalRAMExpectation {
 		std::vector<placement>           placements;
 		const int                        clumpSize;
 		int                              clumpVars, clumpObs;
+		std::vector<sufficientSet>       sufficientSets;
 		SEXP                             obsNameVec;
 		SEXP                             varNameVec;
 		// make dataColumn optional TODO
@@ -437,7 +446,7 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  dataVec;
 		Eigen::VectorXd                  fullMean;
 		Eigen::VectorXd                  rawFullMean;
-		Eigen::VectorXd                  expectedMean;
+		Eigen::VectorXd                  expectedVec;
 		Eigen::SparseMatrix<double>      fullCov;
 		bool                             analyzedCov;
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
@@ -452,10 +461,19 @@ namespace RelationalRAMExpectation {
 			: st(*st), clumpSize(clumpSize),
 			analyzedCov(false), asymT(latentFilter)
 		{ placements.reserve(size); };
-		void prep(int maxSize, int totalObserved, FitContext *fc);
+		int numLooseClumps() const {
+			int loose = placements.size() / clumpSize;
+			if (sufficientSets.size()) {
+				loose = sufficientSets[0].start / clumpSize;
+			}
+			return loose;
+		};
+		void place(int ax);
+		void prep(FitContext *fc);
 		void determineShallowDepth(FitContext *fc);
 		int verbose() const;
 		void filterFullMean();
+		void finalizeData();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
 		void computeCov1(FitContext *fc);
 		void computeCov2();
@@ -480,6 +498,8 @@ namespace RelationalRAMExpectation {
 
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
+		template <typename T>
+		void placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum, int &copyNum);
 		void planModelEval(int maxSize, FitContext *fc);
 		void identifyZeroVarPred(FitContext *fc);
 		int rampartRotate(int level);

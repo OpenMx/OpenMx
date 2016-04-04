@@ -245,29 +245,42 @@ namespace FellnerFitFunction {
 
 				//mxPrintMat("dataVec", ig.dataVec);
 				//mxPrintMat("fullMeans", ig.fullMeans);
-				//ig.applyRotationPlan(ig.expectedMean);
-				//mxPrintMat("expectedMean", ig.expectedMean);
+				//ig.applyRotationPlan(ig.expectedVec);
+				//mxPrintMat("expectedVec", ig.expectedVec);
 
-				Eigen::VectorXd resid = ig.dataVec - ig.expectedMean;
-				//mxPrintMat("resid", resid);
-
-				int clumps = ig.placements.size() / ig.clumpSize;
-
-				double logDet = clumps * ig.covDecomp.log_determinant();
 				const Eigen::MatrixXd &iV = ig.covDecomp.getInverse();
+				int clumps = ig.numLooseClumps();
+				if (clumps) {
+					int residLen = clumps * ig.clumpObs;
+					Eigen::VectorXd resid =
+						ig.dataVec.segment(0,residLen) - ig.expectedVec.segment(0,residLen);
+					//mxPrintMat("resid", resid);
+
+					double logDet = clumps * ig.covDecomp.log_determinant();
 				// Eigen::Map< Eigen::MatrixXd > iV(ig.covDecomp.getInverseData(),
 				// 				 ig.fullCov.rows(), ig.fullCov.rows());
-				double iqf = 0.0;
+					double iqf = 0.0;
 				// OpenMP seems counterproductive here
 				//#pragma omp parallel for num_threads(Global->numThreads) reduction(+:iqf)
-				for (int cx=0; cx < clumps; ++cx) {
-					iqf += (resid.segment(cx*ig.clumpObs, ig.clumpObs).transpose() *
-						iV.selfadjointView<Eigen::Lower>() *
-						resid.segment(cx*ig.clumpObs, ig.clumpObs));
+					for (int cx=0; cx < clumps; ++cx) {
+						iqf += (resid.segment(cx*ig.clumpObs, ig.clumpObs).transpose() *
+							iV.selfadjointView<Eigen::Lower>() *
+							resid.segment(cx*ig.clumpObs, ig.clumpObs));
+					}
+					double cterm = M_LN_2PI * ig.dataVec.size();
+					if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", logDet, iqf, cterm);
+					lp += logDet + iqf + cterm;
 				}
-				double cterm = M_LN_2PI * ig.dataVec.size();
-				if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", logDet, iqf, cterm);
-				lp += logDet + iqf + cterm;
+				for (int sx=0; sx < (int)ig.sufficientSets.size(); ++sx) {
+					RelationalRAMExpectation::sufficientSet &ss = ig.sufficientSets[sx];
+					Eigen::VectorXd resid =
+						ss.dataMean - ig.expectedVec.segment(ss.start * ig.clumpObs, ig.clumpObs);
+					double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+					double tr1 = (iV.selfadjointView<Eigen::Lower>() * ss.dataCov).trace();
+					double logDet = ig.covDecomp.log_determinant();
+					double cterm = M_LN_2PI * ig.clumpObs;
+					lp += ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
+				}
 			}
 			lpOut = lp;
 		} catch (const std::exception& e) {
