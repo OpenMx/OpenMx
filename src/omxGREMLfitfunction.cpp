@@ -408,7 +408,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 				}
 			}
 		}
-		if (gx != dVlength) Rf_error("Problem in dVnames mapping");
+		if (gx != dVlength) Rf_error("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
+		if( gx < int(varGroup->vars.size()) ){Rf_error("At least one free parameter has no corresponding element in 'dV'");}
 		
 		if(AugGrad){
 			int ngradelem = std::max(AugGrad->rows, AugGrad->cols);
