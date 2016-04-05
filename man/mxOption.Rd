@@ -65,8 +65,6 @@ parameters and the number of constraints, and return a numeric value as output.
 OpenMx options
 
 \tabular{rcl}{
-Number of Threads \tab \var{i}          \tab the number of processor cores to use. Use \code{\link[parallel]{detectCores}}()
- to find how many are available. \cr
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
 Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
 Default optimizer \tab [NPSOL | SLSQP | CSOLNP] \tab the gradient-descent optimizer to use \cr

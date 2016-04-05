@@ -1,4 +1,7 @@
 require(OpenMx)
+options(mxCondenseMatrixSlots=TRUE)
+mxOption(NULL,"Analytic Gradients","Yes")
+require(mvtnorm)
 
 omxCheckError(mxExpectationGREML(V=1),
               "argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
@@ -105,17 +108,7 @@ testmod <- mxModel(
 )
 omxCheckError(mxRefModels(testmod),
 							"reference models for GREML expectation not implemented")
-testmod <- mxModel(
-	"GREMLtest",
-	mxData(observed=dat, type="raw", sort=F),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
-	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
-	mxAlgebra(I %x% Ve,name="V"),
-	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
-	mxFitFunctionML()
-)
-omxCheckError(mxRefModels(testmod),
-							"reference models for GREML expectation not implemented")
+
 
 
 testmod <- mxModel(
@@ -143,4 +136,156 @@ testmod <- mxModel(
 )
 omxCheckError(mxRun(testmod),
 	"Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient")
+
+
+set.seed(476)
+A1 <- matrix(0,100,100)  
+A1[lower.tri(A1)] <- runif(4950, -0.025, 0.025)
+A1 <- A1 + t(A1)
+diag(A1) <- runif(100,0.95,1.05)
+A2 <- matrix(0,100,100)  
+A2[lower.tri(A2)] <- runif(4950, -0.025, 0.025)
+A2 <- A2 + t(A2)
+diag(A2) <- runif(100,0.95,1.05)
+y <- t(rmvnorm(1,sigma=A1*0.25)+rmvnorm(1,sigma=A2*0.25))  
+y <- y + rnorm(100,sd=sqrt(0.5))
+x <- rnorm(100) 
+dat3 <- cbind(y,x)
+rm(x,y)
+colnames(dat3) <- c("y","x")
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
+	mxMatrix(type="Zero",nrow=1,ncol=1,name="Zilch"),
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug",AugHess="Zilch")
+)
+omxCheckError(
+	mxRun(testmod),
+	"if argument 'AugHess' has nonzero length, then argument 'AugGrad' must as well")
+
+
+testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug")
+omxCheckError(
+	mxRun(testmod),
+	"if arguments 'dV' and 'Aug' have nonzero length, then 'AugGrad' must as well")
+
+
+testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2",va3="I"))
+omxCheckError(
+	mxRun(testmod),
+	"Problem in dVnames mapping")
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+		mxComputeNewtonRaphson(fitfunction="fitfunction"),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeStandardError(),
+		mxComputeReportDeriv(),
+		mxComputeReportExpectation()
+	)),
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"At least one free parameter has no corresponding element in 'dV'")
+
+
+testmod$compute <- mxComputeDefault()
+omxCheckError(
+	mxRun(testmod),
+	"At least one free parameter has no corresponding element in 'dV'")
+
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+		mxComputeNewtonRaphson(fitfunction="fitfunction"),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeStandardError(),
+		mxComputeReportDeriv(),
+		mxComputeReportExpectation()
+	)),
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2",va3="I"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"Problem in dVnames mapping")
+
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+		mxComputeNewtonRaphson(fitfunction="fitfunction"),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeStandardError(),
+		mxComputeReportDeriv(),
+		mxComputeReportExpectation()
+	)),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=2.1,name="aug"),
+	mxMatrix(type="Zero",nrow=2,ncol=1,free=F,name="ag"),
+	mxMatrix(type="Zero",nrow=3,ncol=3,free=F,name="ah"),
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug",AugGrad="ag",AugHess="ah")
+)
+omxCheckError(
+	mxRun(testmod),
+	"matrix referenced by 'AugGrad' must have same number of elements as argument 'dV'")
+
+
+
+testmod$ag <- mxMatrix(type="Zero",nrow=3,ncol=1,free=F,name="ag")
+testmod$ah <- mxMatrix(type="Zero",nrow=2,ncol=3,free=F,name="ah")
+omxCheckError(
+	mxRun(testmod),
+	"matrix referenced by 'AugHess' must be square (instead of 2x3)")
+
+
+
+testmod$ah <- mxMatrix(type="Zero",nrow=2,ncol=2,free=F,name="ah")
+omxCheckError(
+	mxRun(testmod),
+	"Augmentation derivatives non-conformable (gradient is size 3 and Hessian is 2x2)")
 
