@@ -51,7 +51,7 @@ testmod2 <- mxModel(
 	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
 	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
-	mxFitFunctionGREML(Aug="aug")
+	mxFitFunctionGREML(aug="aug")
 )
 testrun2 <- mxRun(testmod2)
 omxCheckCloseEnough(a=testrun2$output$fit - testrun$output$fit, b=1.28, epsilon=1e-9)
@@ -106,7 +106,7 @@ testmod4 <- mxModel(
 		2*Va1 + 2*Va2 + 2*Ve - 2,
 		2*Va1 + 2*Va2 + 2*Ve - 2), name="daug1"),
 	mxMatrix(type="Full",nrow=3,ncol=3,free=F,values=6,name="daug2"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),Aug="aug",AugGrad="daug1",AugHess="daug2")
+	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),aug="aug",augGrad="daug1",augHess="daug2")
 )
 testrun4 <- mxRun(testmod4)
 #The difference between 1.0 and the sum of the parameters should be smaller for model #4:

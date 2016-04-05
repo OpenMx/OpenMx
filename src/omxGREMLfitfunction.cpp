@@ -38,7 +38,7 @@ struct omxGREMLFitState {
   FreeVarGroup *varGroup;
 	std::vector<int> gradMap;
   void buildParamMap(FreeVarGroup *newVarGroup);
-  omxMatrix *Aug, *AugGrad, *AugHess;
+  omxMatrix *aug, *augGrad, *augHess;
   std::vector<int> dAugMap;
   double pullAugVal(int thing, int row, int col);
   void recomputeAug(int thing, FitContext *fc);
@@ -49,7 +49,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   SEXP rObj = oo->rObj;
-  SEXP dV, dVnames, Aug, AugGrad, AugHess;
+  SEXP dV, dVnames, aug, augGrad, augHess;
   int i=0;
   
   oo->units = FIT_UNITS_MINUS2LL;
@@ -80,17 +80,17 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
-  newObj->AugGrad = NULL;
-  newObj->AugHess = NULL;
+  newObj->augGrad = NULL;
+  newObj->augHess = NULL;
   
   //Augmentation:
   {
-  ScopedProtect p1(Aug, R_do_slot(rObj, Rf_install("Aug")));
-  if(Rf_length(Aug)){
-  	int* Augint = INTEGER(Aug);
-  	newObj->Aug = omxMatrixLookupFromStateByNumber(Augint[0], currentState);
+  ScopedProtect p1(aug, R_do_slot(rObj, Rf_install("aug")));
+  if(Rf_length(aug)){
+  	int* augint = INTEGER(aug);
+  	newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
   }
-  else{newObj->Aug = NULL;}
+  else{newObj->aug = NULL;}
   }
   
   //Derivatives of V:
@@ -127,23 +127,23 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
 	}}}
   
   //Augmentation derivatives:
-	if(newObj->dVlength && newObj->Aug){
-	//^^^Ignore derivatives of Aug unless Aug itself and objective derivatives are supplied.	
-		ScopedProtect p1(AugGrad, R_do_slot(rObj, Rf_install("AugGrad")));
-		ScopedProtect p2(AugHess, R_do_slot(rObj, Rf_install("AugHess")));
-		if(!Rf_length(AugGrad)){
-			if(Rf_length(AugHess)){
-				Rf_error("if argument 'AugHess' has nonzero length, then argument 'AugGrad' must as well");
+	if(newObj->dVlength && newObj->aug){
+	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied.	
+		ScopedProtect p1(augGrad, R_do_slot(rObj, Rf_install("augGrad")));
+		ScopedProtect p2(augHess, R_do_slot(rObj, Rf_install("augHess")));
+		if(!Rf_length(augGrad)){
+			if(Rf_length(augHess)){
+				Rf_error("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
 			}
 			else{
-				Rf_error("if arguments 'dV' and 'Aug' have nonzero length, then 'AugGrad' must as well");
+				Rf_error("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
 		}}
 		else{
-			int* AugGradint = INTEGER(AugGrad);
-			newObj->AugGrad = omxMatrixLookupFromStateByNumber(AugGradint[0], currentState);
-			if(Rf_length(AugHess)){
-				int* AugHessint = INTEGER(AugHess);
-				newObj->AugHess = omxMatrixLookupFromStateByNumber(AugHessint[0], currentState);
+			int* augGradint = INTEGER(augGrad);
+			newObj->augGrad = omxMatrixLookupFromStateByNumber(augGradint[0], currentState);
+			if(Rf_length(augHess)){
+				int* augHessint = INTEGER(augHess);
+				newObj->augHess = omxMatrixLookupFromStateByNumber(augHessint[0], currentState);
 			}
 			else{oo->hessianAvailable = false;}
 		}
@@ -411,19 +411,19 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		if (gx != dVlength) Rf_error("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
 		if( gx < int(varGroup->vars.size()) ){Rf_error("At least one free parameter has no corresponding element in 'dV'");}
 		
-		if(AugGrad){
-			int ngradelem = std::max(AugGrad->rows, AugGrad->cols);
+		if(augGrad){
+			int ngradelem = std::max(augGrad->rows, augGrad->cols);
 			if(ngradelem != dVlength){
-				Rf_error("matrix referenced by 'AugGrad' must have same number of elements as argument 'dV'");
+				Rf_error("matrix referenced by 'augGrad' must have same number of elements as argument 'dV'");
 			}
-			if(AugHess){
-				if (AugHess->rows != AugHess->cols) {
-					Rf_error("matrix referenced by 'AugHess' must be square (instead of %dx%d)",
-              AugHess->rows, AugHess->cols);
+			if(augHess){
+				if (augHess->rows != augHess->cols) {
+					Rf_error("matrix referenced by 'augHess' must be square (instead of %dx%d)",
+              augHess->rows, augHess->cols);
 				}
-				if(AugHess->rows != ngradelem){
+				if(augHess->rows != ngradelem){
 					Rf_error("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
-              ngradelem, AugHess->rows, AugHess->cols);
+              ngradelem, augHess->rows, augHess->cols);
 			}}
 		}
 	}
@@ -434,13 +434,13 @@ double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 	double val=0;
 	switch(thing){
 	case 0:
-		if(Aug){val = Aug->data[0];}
+		if(aug){val = aug->data[0];}
 		break;
 	case 1:
-		if(AugGrad){val = AugGrad->data[row+col];} //<--Remember that at least one of 'row' and 'col' should be 0.
+		if(augGrad){val = augGrad->data[row+col];} //<--Remember that at least one of 'row' and 'col' should be 0.
 		break;
 	case 2:
-		if(AugHess){val = omxMatrixElement(AugHess,row,col);}
+		if(augHess){val = omxMatrixElement(augHess,row,col);}
 		break;
 	}
 	return(val);
@@ -450,13 +450,13 @@ double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
 	switch(thing){
 	case 0:
-		if(Aug){omxRecompute(Aug, fc);}
+		if(aug){omxRecompute(aug, fc);}
 		break;
 	case 1:
-		if(AugGrad){omxRecompute(AugGrad, fc);} 
+		if(augGrad){omxRecompute(augGrad, fc);} 
 		break;
 	case 2:
-		if(AugHess){omxRecompute(AugHess, fc);}
+		if(augHess){omxRecompute(augHess, fc);}
 		break;
 	}
 }
