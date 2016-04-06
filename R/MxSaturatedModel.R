@@ -64,7 +64,11 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		}
 		if(!any(ordinalCols)){
 			sampcov <- cov(obsdata, use="pairwise.complete.obs")
-			startcov <- t(chol(sampcov))
+			startcov <- try(t(chol(sampcov)))
+			# if the cholesky fails, just use the diagonal elements
+			if(class(startcov) %in% "try-error"){
+				startcov <- t(chol(diag(diag(sampcov), nrow=nrow(sampcov))))
+			}
 			startcov <- startcov[lower.tri(startcov, TRUE)]
 			indepcov <- diag(sampcov)
 			startmea <- colMeans(obsdata, na.rm=TRUE)
