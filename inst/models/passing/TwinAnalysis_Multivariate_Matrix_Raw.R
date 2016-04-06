@@ -48,9 +48,10 @@ expDZMeans = expMZMeans;
 expDZMeans$name="expMeanDZ"; 
 
 # Matrices for path coefficients
-aMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="a") # Additive genetic path coefficient
-cMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="c") # Common environmental path coefficient
-eMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="e") # Unique environmental path coefficient
+lb <- matrix(NA, nVar, nVar); diag(lb) <- 0
+aMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="a") # Additive genetic path coefficient
+cMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="c") # Common environmental path coefficient
+eMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="e") # Unique environmental path coefficient
 
 # Make the mz group: define variance as square of path coefficients, define algebra of twin covariance, 
 # import mz data, and set objective to model the covariance and means observed in these data
@@ -106,7 +107,7 @@ c   = mxEval(mz.c, fit);
 e   = mxEval(mz.e, fit);
 
 # Calc standardised variance components
-var = matrix(0,nVar,nVar);  diag(var)=diag(Vtot);  # variances on the diagonal, 0's elsewhere.
+var = diag(diag(Vtot), nrow=nrow(Vtot));  # variances on the diagonal, 0's elsewhere.
 SD    <- solve(sqrt(var))   # Inverse (solve) of diagonal matrix of standard deviations: \sqrt(var)~ in oldMx-speak
 
 # standardized _path_ coefficients ready to be stacked together
