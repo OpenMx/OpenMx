@@ -415,7 +415,11 @@ insertAllPathsRAM <- function(model, paths) {
 		}
 
 		if (single.na(path@to)) {
-			path@to <- path@from
+			# convert model.var -> var
+			path@to <- sapply(path@from, function(x) {
+				pieces <- strsplit(x, imxSeparatorChar, fixed = TRUE)[[1]]
+				ifelse(length(pieces) == 2, pieces[2], pieces[1])
+			}, USE.NAMES = FALSE)
 		}
 		
 		expanded <- expandPathConnect(path@from, path@to, path@connect)
