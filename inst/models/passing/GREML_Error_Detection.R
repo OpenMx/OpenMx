@@ -167,17 +167,17 @@ testmod <- mxModel(
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
 	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
 	mxMatrix(type="Zero",nrow=1,ncol=1,name="Zilch"),
-	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug",AugHess="Zilch")
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),aug="aug",augHess="Zilch")
 )
 omxCheckError(
 	mxRun(testmod),
-	"if argument 'AugHess' has nonzero length, then argument 'AugGrad' must as well")
+	"if argument 'augHess' has nonzero length, then argument 'augGrad' must as well")
 
 
-testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug")
+testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),aug="aug")
 omxCheckError(
 	mxRun(testmod),
-	"if arguments 'dV' and 'Aug' have nonzero length, then 'AugGrad' must as well")
+	"if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well")
 
 
 testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2",va3="I"))
@@ -268,11 +268,11 @@ testmod <- mxModel(
 	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=2.1,name="aug"),
 	mxMatrix(type="Zero",nrow=2,ncol=1,free=F,name="ag"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,free=F,name="ah"),
-	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),Aug="aug",AugGrad="ag",AugHess="ah")
+	mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2"),aug="aug",augGrad="ag",augHess="ah")
 )
 omxCheckError(
 	mxRun(testmod),
-	"matrix referenced by 'AugGrad' must have same number of elements as argument 'dV'")
+	"matrix referenced by 'augGrad' must have same number of elements as argument 'dV'")
 
 
 
@@ -280,7 +280,7 @@ testmod$ag <- mxMatrix(type="Zero",nrow=3,ncol=1,free=F,name="ag")
 testmod$ah <- mxMatrix(type="Zero",nrow=2,ncol=3,free=F,name="ah")
 omxCheckError(
 	mxRun(testmod),
-	"matrix referenced by 'AugHess' must be square (instead of 2x3)")
+	"matrix referenced by 'augHess' must be square (instead of 2x3)")
 
 
 
