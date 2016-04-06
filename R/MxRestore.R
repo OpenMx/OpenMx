@@ -35,9 +35,11 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL
 		stop("'model' argument must be a MxModel object")
 	}
 	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
+	if (strict && chkpt.prefix == "") {
+		chkpt.prefix <- model$name
+	}
 	pattern <- paste("^\\Q", chkpt.prefix, "\\E.*(\\.omx)$", sep = '')
 	chkpt.files <- list.files(chkpt.directory, full.names = FALSE)
-	matchIndex <- match(paste(model$name, 'omx', sep="."), chkpt.files)
 	chkpt.files <- grep(pattern, chkpt.files, perl=TRUE, value=TRUE)
 	if (strict) {
 		if (length(chkpt.files) > 1) {
@@ -52,6 +54,7 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL
 			return(model)
 		}
 		# Move the most likely match to the end so those estimates take precedence.
+		matchIndex <- match(paste(model$name, 'omx', sep="."), chkpt.files)
 		chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
 	}
 	if (length(chkpt.files) > 1 && !is.null(line)) {
