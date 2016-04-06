@@ -111,3 +111,24 @@ displayConstraint <- function(object) {
 
 setMethod("print", "MxConstraint", function(x,...) { displayConstraint(x) })
 setMethod("show", "MxConstraint", function(object) { displayConstraint(object) })
+
+##' imxHasConstraint
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model (or its
+##' submodels) has at least one MxConstraint.
+##'
+##' @param model model
+imxHasConstraint <- function(model) {
+	if(length(model$constraints) > 0 ){
+		return(TRUE)
+	}
+	# Check submodels for constraints
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxHasConstraint)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	return(FALSE)
+}

@@ -194,6 +194,9 @@ mxCheckIdentification <- function(model, details=TRUE){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
 		stop(msg, call.=FALSE)
 	}
+	if(imxHasConstraint(model)){
+		stop("Whoa Nelly.  I found an MxConstraint in your model.  I just cannot work under these conditions. I will be in my trailer until you reparameterize your model without using mxConstraint().")
+	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- omxManifestModelByParameterJacobian(model)
