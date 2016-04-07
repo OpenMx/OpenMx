@@ -48,9 +48,10 @@ expDZMeans = expMZMeans;
 expDZMeans$name="expMeanDZ"; 
 
 # Matrices for path coefficients
-aMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="a") # Additive genetic path coefficient
-cMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="c") # Common environmental path coefficient
-eMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, name="e") # Unique environmental path coefficient
+lb <- matrix(NA, nVar, nVar); diag(lb) <- 0
+aMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="a") # Additive genetic path coefficient
+cMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="c") # Common environmental path coefficient
+eMatrix = mxMatrix("Lower", nrow=nVar, ncol=nVar, free=TRUE, values=.5, lbound=lb, name="e") # Unique environmental path coefficient
 
 # Make the mz group: define variance as square of path coefficients, define algebra of twin covariance, 
 # import mz data, and set objective to model the covariance and means observed in these data
@@ -85,8 +86,7 @@ dzGroup <- mxModel("dz",
 
 # Combine the mz and dz groups in a supermodel which can have as its objective maximising the likelihood ofboth groups simultaneously.
 model = mxModel("ACE", mzGroup, dzGroup,
-	mxAlgebra(mz.objective + dz.objective, name="twin"), 
-	mxFitFunctionAlgebra("twin")
+	mxFitFunctionMultigroup(c('mz', 'dz'))
 )
 
 #Run ACE model
@@ -106,7 +106,7 @@ c   = mxEval(mz.c, fit);
 e   = mxEval(mz.e, fit);
 
 # Calc standardised variance components
-var = matrix(0,nVar,nVar);  diag(var)=diag(Vtot);  # variances on the diagonal, 0's elsewhere.
+var = diag(diag(Vtot), nrow=nrow(Vtot));  # variances on the diagonal, 0's elsewhere.
 SD    <- solve(sqrt(var))   # Inverse (solve) of diagonal matrix of standard deviations: \sqrt(var)~ in oldMx-speak
 
 # standardized _path_ coefficients ready to be stacked together
@@ -122,7 +122,7 @@ print(ACEest);
 # bmi1 -0.030 0.883  0  0 -0.145 0.445
 
 # Get the fit, and print along with standardised ACE
-LL_ACE = mxEval(objective, fit); print(LL_ACE)
+LL_ACE = mxEval(fitfunction, fit); print(LL_ACE)
 
 #           [,1]
 # [1,] -1500.460
