@@ -26,10 +26,11 @@
 struct omxGREMLFitState { 
   //TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
   //and could therefore be cut
-  omxMatrix *y, *X, *cov, *invcov, *means;
+  omxMatrix *y, *X, *cov, *invcov, *means, origVdim_om;
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
+  std::vector<int> origdVdim;
   void dVupdate(FitContext *fc);
   void dVupdate_final();
   int dVlength, usingGREMLExpectation;
@@ -78,6 +79,8 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->invcov = omxGetExpectationComponent(expectation, "invcov");
   newObj->X = omxGetExpectationComponent(expectation, "X");
   newObj->means = omxGetExpectationComponent(expectation, "means");
+  newObj->origVdim_om = omxGetExpectationComponent(expectation, "origVdim_om");
+  int origVdim = int(newObj->origVdim_om->data[0]);
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
@@ -102,6 +105,7 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->dV.resize(newObj->dVlength);
   newObj->indyAlg.resize(newObj->dVlength);
   newObj->dVnames.resize(newObj->dVlength);
+  newObj->origdVdim.resize(newObj->dVlength);
 	if(newObj->dVlength){
     if(!newObj->usingGREMLExpectation){
       //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
@@ -123,9 +127,14 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     oo->hessianAvailable = true;
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
     for(i=0; i < newObj->dVlength; i++){
-      if( (newObj->dV[i]->rows != newObj->cov->rows) || (newObj->dV[i]->cols != newObj->cov->cols) ){
+    	//each dV must have same dimensions as V, either before or after V has been downsized:
+      if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
+          ((newObj->dV[i]->rows == origVdim)&&(newObj->dV[i]->cols == origVdim)) ){
+      	newObj->origdVdim[i] = newObj->dV[i]->rows;
+      }
+      else{
         Rf_error("all derivatives of V must have the same dimensions as V");
-	}}}
+  }}}
   
   //Augmentation derivatives:
 	if(newObj->dVlength && newObj->aug){
@@ -306,7 +315,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
 			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
+				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
 			}
 			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 			//PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
@@ -327,7 +336,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 					if(t2 < 0){continue;}
 					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
+						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
 					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
@@ -394,6 +403,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	if(dVlength){
 		std::vector< omxMatrix* > dV_temp = dV;
 		std::vector< const char* > dVnames_temp = dVnames;
+		std::vector<int> origdVdim_temp = origdVdim;
 		gradMap.resize(dVlength);
 		dAugMap.resize(dVlength);
 		int gx=0;
@@ -403,6 +413,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					gradMap[gx] = vx;
 					dV[gx] = dV_temp[nx];
 					dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
+					origdVdim[gx] = origdVdim_temp[nx];
 					dAugMap[gx] = nx;
 					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
 					++gx;

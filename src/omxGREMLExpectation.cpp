@@ -73,6 +73,9 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   oge->cholV_fail_om->data[0] = 0;
   //quadXinv:
   oge->quadXinv.setZero(oge->X->cols, oge->X->cols);
+  //original dimensions of V:
+  oge->origVdim_om = omxInitMatrix(1, 1, 1, currentState);
+  oge->origVdim_om->data[0] = double(oge->cov->rows);
 
 
   //Deal with missing data:
@@ -122,7 +125,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, int(oge->origVdim_om->data[0]));
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   //invcov:
@@ -175,7 +178,7 @@ void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, int(oge->origVdim_om->data[0]));
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
@@ -222,6 +225,7 @@ void omxDestroyGREMLExpectation(omxExpectation* ox) {
   omxFreeMatrix(argStruct->invcov);
   omxFreeMatrix(argStruct->logdetV_om);
   omxFreeMatrix(argStruct->cholV_fail_om);
+  omxFreeMatrix(argStruct->origVdim_om);
 }
 
 
@@ -297,7 +301,10 @@ omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* compo
 	} 
   else if(strEQ("X", component)) {
 		retval = oge->X;
-	} 
+	}
+  else if(strEQ("origVdim_om", component)) {
+  	retval = oge->origVdim_om;
+  }
   
 	if (retval) omxRecompute(retval, NULL);
 	
@@ -328,7 +335,7 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 
 
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop,
-	int symmetric){
+	int symmetric, int origDim){
   
   if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
   
