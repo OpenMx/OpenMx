@@ -136,7 +136,7 @@ setReplaceMethod("[[", "MxLISRELModel",
 
 setReplaceMethod("$", "MxLISRELModel",
 	function(x, name, value) {
-		stop("Not implemented")
+		replaceMethodLISREL(model=x, index=name, value=value)
 	}
 )
 
