@@ -125,6 +125,8 @@ setMethod("imxVerifyModel", "MxRAMModel",
 # Helper functions used by the generic functions
 
 variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, remove) {
+	manifestVars <- unlist(manifestVars)
+	latentVars <- unlist(latentVars)
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
