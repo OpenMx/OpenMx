@@ -193,7 +193,7 @@ setReplaceMethod("[[", "MxModel",
 # These are slots that are intended to be directly viewable by the user.
 # Included separately so that they are the same between the $ and names() operators.
 publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars") # accessible via model$
-visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals", "manifestVars", "latentVars") # tab-completeable via model$
+visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
 	function(x, name) {
@@ -220,7 +220,7 @@ setMethod("names", "MxModel",
 		submodels <- names(x@submodels)
 		locals <- generateLocalNames(x)
 		slots <- imxGetSlotDisplayNames(x, slotList=visibleMxModelSlots)
-		output <- c(submodels, locals, slots)
+		output <- c(submodels, locals, "manifestVars", "latentVars", slots)
 		output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
 		return(grep(pattern, output, value=TRUE))
 	}
