@@ -192,7 +192,7 @@ setReplaceMethod("[[", "MxModel",
 
 # These are slots that are intended to be directly viewable by the user.
 # Included separately so that they are the same between the $ and names() operators.
-publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals")
+publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars")
 visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
@@ -233,7 +233,7 @@ setReplaceMethod("$", "MxModel",
 		if(name == "name") {
 			stop("You cannot directly set the name of a model.  To rename the model, use model<-mxModel(model, name=\"NewName\").")
 		}
-		if(name %in% c("matrices", "algebras", "submodels")) {
+		if(name %in% c("matrices", "algebras", "submodels", "manifestVars", "latentVars")) {
 			stop(paste("You cannot directly set the", name,
 				   "of a model.  To set objects in the model, use the mxModel() function."))
 		}

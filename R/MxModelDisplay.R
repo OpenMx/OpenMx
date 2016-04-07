@@ -84,7 +84,7 @@ displayModel <- function(model, expand = FALSE) {
 	# or equivalent LISREL matrix because the slots are only
 	# used by mxPath. Matrix constructed models do not use the @ slots.
 
-	if (length(model@latentVars) == 0) {
+	if (length(model@latentVars) == 0 || imxTypeName(model) %in% "default") {
 		cat("$latentVars : none\n")
 	} else if (is.character(model@latentVars)) {
 		cat("$latentVars :", omxQuotes(model@latentVars), '\n')
@@ -92,7 +92,7 @@ displayModel <- function(model, expand = FALSE) {
 		cat("$latentVars :\n")
 		print(format(model@latentVars))
 	}
-	if (length(model@manifestVars) == 0) {
+	if (length(model@manifestVars) == 0 || imxTypeName(model) %in% "default") {
 		cat("$manifestVars : none\n")
 	} else if (is.character(model@manifestVars)) {
 		cat("$manifestVars :", omxQuotes(model@manifestVars), '\n')
