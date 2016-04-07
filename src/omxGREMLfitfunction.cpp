@@ -484,14 +484,14 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 void omxGREMLFitState::dVupdate_final(){
 	for(int i=0; i < dVlength; i++){
 		if(indyAlg[i]){
-			//if(OMX_DEBUG){
+			if(OMX_DEBUG){
 				mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
 				mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
-			//}
+			}
 			if( omxNeedsUpdate(dV[i]) ){
-				//if(OMX_DEBUG){
+				if(OMX_DEBUG){
 					mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
-				//}
+				}
 				omxRecompute(dV[i], NULL);
 			}
 		}
