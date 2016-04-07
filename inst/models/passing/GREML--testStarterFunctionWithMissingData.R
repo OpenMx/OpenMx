@@ -26,6 +26,7 @@ omxCheckCloseEnough(testrun$expectation$b,
                     mean(dat[-testrun$expectation$casesToDrop,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun$expectation$bcov,
                     var(dat[-testrun$expectation$casesToDrop,1])/98,epsilon=10^-5)
+omxCheckEquals(dim(testrun$V$result),c(100,100))
 
 testrunsumm <- summary(testrun)
 omxCheckEquals(testrunsumm$numObs,1)
@@ -68,6 +69,7 @@ omxCheckCloseEnough(testrun2$expectation$b,
 omxCheckCloseEnough(testrun2$expectation$bcov,
                     var(dat[-testrun2$expectation$casesToDrop,1])/98,epsilon=10^-5)
 omxCheckCloseEnough(testrun2$output$standardErrors[1],sqrt((2*testrun2$output$estimate^2)/98),epsilon=10^-3)
+omxCheckEquals(dim(testrun2$V$result),c(100,100))
 
 testrun2summ <- summary(testrun2)
 omxCheckEquals(testrun2summ$numObs,1)
@@ -133,3 +135,4 @@ omxCheckCloseEnough(testrun4$expectation$b,
                     mean(dat[-c(42,57),1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun4$expectation$bcov,
                     var(dat[-c(42,57),1])/98,epsilon=10^-5)
+omxCheckEquals(dim(testrun4$V$result),c(98,98))

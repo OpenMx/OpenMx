@@ -122,7 +122,7 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, 0);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   //invcov:
@@ -175,7 +175,7 @@ void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, 0);
+    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1);
   }
   else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
@@ -328,7 +328,7 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col)
 
 
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop,
-	int symmetric, int isIndyAlg){
+	int symmetric){
   
   if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
   
@@ -385,10 +385,9 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std:
       nextCol++;
     }
     em = Eigen::Map< Eigen::MatrixXd >(om->data, om->rows, om->cols);
-    //if( !isIndyAlg ){omxMarkDirty(om);}
-    if(1){omxMarkDirty(om);} //<--Need to mark it dirty so that it gets recalculated back to original dimensions.
-    //^^^TODO: Algebras that do not depend upon free parameters need not get marked dirty here;
-    //they can be downsized and left that way until optimization is complete.
+    if(1){omxMarkDirty(om);} //<--Need to mark it dirty so that it eventually gets recalculated back to original dimensions.
+    //^^^Algebras that do not depend upon free parameters, and upon which V does not depend, will not be
+    //recalculated back to full size until optimization is complete (the GREML fitfunction is smart about that).
   }
   if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }

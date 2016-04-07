@@ -31,6 +31,7 @@ struct omxGREMLFitState {
   std::vector< const char* > dVnames;
   std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
   void dVupdate(FitContext *fc);
+  void dVupdate_final();
   int dVlength, usingGREMLExpectation;
   double nll, REMLcorrection;
   Eigen::VectorXd gradient;
@@ -305,7 +306,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
 			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->indyAlg[i]);
+				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1);
 			}
 			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 			//PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
@@ -326,7 +327,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 					if(t2 < 0){continue;}
 					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->indyAlg[j]);
+						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
 					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
@@ -359,6 +360,8 @@ void omxDestroyGREMLFitFunction(omxFitFunction *oo){
 
 
 static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
+	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct;
+	gff->dVupdate_final();
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
   SEXP rObj = oo->rObj;
   SEXP nval, mlfitval;
@@ -375,7 +378,6 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   negative numObs into the pre-backend fitfunction that summary() looks at...*/
 	}
 	
-	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct;
 	{
 	//ScopedProtect p1(mlfitval, R_do_slot(rObj, Rf_install("MLfit")));
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
@@ -468,12 +470,30 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 			mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
 			mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
 		}
-		//TODO: Recompute if needs update and if NOT a parameter-independent algebra:
-		if( omxNeedsUpdate(dV[i]) ){
+		//Recompute if needs update and if NOT a parameter-independent algebra:
+		if( omxNeedsUpdate(dV[i]) && !(indyAlg[i]) ){
 			if(OMX_DEBUG){
 				mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
 			}
 			omxRecompute(dV[i], fc);
+		}
+	}
+}
+
+
+void omxGREMLFitState::dVupdate_final(){
+	for(int i=0; i < dVlength; i++){
+		if(indyAlg[i]){
+			//if(OMX_DEBUG){
+				mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
+				mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
+			//}
+			if( omxNeedsUpdate(dV[i]) ){
+				//if(OMX_DEBUG){
+					mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+				//}
+				omxRecompute(dV[i], NULL);
+			}
 		}
 	}
 }

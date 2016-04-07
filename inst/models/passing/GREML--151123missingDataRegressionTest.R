@@ -29,7 +29,7 @@ testmod <- mxModel(
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
 	mxData(observed = dat, type="raw", sort=FALSE),
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	plan <- mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -42,6 +42,7 @@ testmod <- mxModel(
 	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
 )
 testrun <- mxRun(testmod) #<--Should run without error.
+omxCheckEquals(dim(testrun$V$result),c(100,100))
 
 dat[,1] <- y
 dat[90:99,1] <- NA
@@ -53,7 +54,7 @@ testmod2 <- mxModel(
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
 	mxData(observed = dat, type="raw", sort=FALSE),
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	plan <- mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -70,8 +71,10 @@ testmod2 <- mxModel(
 	mxFitFunctionGREML(dV=c(va1="dV_dva1",va2="dV_dva2",ve="I"))
 )
 testrun2 <- mxRun(testmod2) #<--Should run without error.
-
-
+omxCheckEquals(dim(testrun2$I$result),c(100,100))
+omxCheckEquals(dim(testrun2$dV_dva1$result),c(100,100))
+omxCheckEquals(dim(testrun2$dV_dva2$result),c(100,100))
+omxCheckEquals(dim(testrun2$V$result),c(100,100))
 
 
 
