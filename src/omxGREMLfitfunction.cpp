@@ -26,7 +26,7 @@
 struct omxGREMLFitState { 
   //TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
   //and could therefore be cut
-  omxMatrix *y, *X, *cov, *invcov, *means, origVdim_om;
+  omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
   std::vector< omxMatrix* > dV;
   std::vector< const char* > dVnames;
   std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases

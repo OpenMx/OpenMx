@@ -15,7 +15,7 @@
  */
  
  typedef struct {
-  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, origVdim_om;
+  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
   omxData *y, *data2;
   int alwaysComputeMeans, numcases2drop, cholquadX_fail;
   std::vector< int > dropcase;
