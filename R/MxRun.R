@@ -29,6 +29,13 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 				       "trouble then please recreate your model with the ",
 				       "current version of OpenMx."))
 		}
+	} else {
+		curV <- packageVersion('OpenMx')
+		warning(paste0("You are using OpenMx version ", curV,
+			       " with a model created by an old version of OpenMx. ",
+			       "This may work fine (fingers crossed), but if you run into ",
+			       "trouble then please recreate your model with the ",
+			       "current version of OpenMx."))
 	}
 
 	if (is.null(intervals)) {
