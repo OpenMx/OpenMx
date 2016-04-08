@@ -275,7 +275,7 @@ runHelper <- function(model, frontendStart,
 	}
 	if (model@output$status$code < 5 && !is.null(model@output[['infoDefinite']]) &&
 	    !is.na(model@output[['infoDefinite']]) && !model@output[['infoDefinite']]) {
-		model@output$status$code <- 5
+		model@output$status$code <- 5   # INFORM_NOT_CONVEX
 	}
 
 	# Currently runstate preserves the pre-backend state of the model.
