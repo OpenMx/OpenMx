@@ -78,4 +78,65 @@ omxCheckEquals(dim(testrun2$V$result),c(100,100))
 
 
 
+#As of commit 384faf7, it should be possible to frontend-downsize derivatives of V that are both MxAlgebras
+#and don't depend upon parameters, and things should still work:
+testmod3 <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+		mxComputeNewtonRaphson(fitfunction="fitfunction"),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeStandardError(),
+		mxComputeReportDeriv()
+	)),
+	#The two GRMs right below are dependencies of V, so they need to be 100x100:
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uni"),
+	#Derivatives of V:
+	mxMatrix("Symm",nrow=90,free=F,values=A1[c(1:89,100),c(1:89,100)],name="dV_dva1"),
+	mxAlgebra(A2%x%1,name="dV_dva2"),
+	mxAlgebra(vec2diag(Uni[1:90,1]), name="dV_dve"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + vec2diag(Uni%x%Ve), name="V"),
+	mxFitFunctionGREML(dV=c(va1="dV_dva1",va2="dV_dva2",ve="dV_dve"))
+)
+testrun3 <- mxRun(testmod3)
+#The important thing is that everything come back with the dimensions the user has said they should be:
+omxCheckEquals(dim(testrun3$V$result),c(100,100))
+omxCheckEquals(dim(testrun3$dV_dva1$values),c(90,90))
+omxCheckEquals(dim(testrun3$dV_dva2$result),c(100,100))
+omxCheckEquals(dim(testrun3$dV_dve$result),c(90,90))
+
+
+
+#For a simple model like this, it should also be possible to frontend-downsize everything, if you call
+#the data-handler before runtime and plan accordingly:
+gremldat <- mxGREMLDataHandler(data=dat,yvars="y",Xvars="x")
+testmod4 <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = gremldat$yX, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",dataset.is.yX=TRUE), #<--Note we don't provide any casesToDropFromV.
+	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+		mxComputeNewtonRaphson(fitfunction="fitfunction"),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeStandardError(),
+		mxComputeReportDeriv()
+	)),
+	mxMatrix("Symm",nrow=90,free=F,values=A1[c(1:89,100),c(1:89,100)],name="A1"),
+	mxMatrix("Symm",nrow=90,free=F,values=A2[c(1:89,100),c(1:89,100)],name="A2"),
+	mxMatrix("Iden",nrow=90,name="I"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + I%x%Ve, name="V"),
+	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+)
+testrun4 <- mxRun(testmod4) #<--Should run without error.
+
 

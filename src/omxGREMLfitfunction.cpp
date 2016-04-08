@@ -80,7 +80,6 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
   newObj->X = omxGetExpectationComponent(expectation, "X");
   newObj->means = omxGetExpectationComponent(expectation, "means");
   newObj->origVdim_om = omxGetExpectationComponent(expectation, "origVdim_om");
-  int origVdim = int(newObj->origVdim_om->data[0]);
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->varGroup = NULL;
@@ -127,9 +126,11 @@ void omxInitGREMLFitFunction(omxFitFunction *oo){
     oo->hessianAvailable = true;
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
     for(i=0; i < newObj->dVlength; i++){
-    	//each dV must have same dimensions as V, either before or after V has been downsized:
+    	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the 
+    	dimension of V (implying downsizing due to missing observations):*/
       if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
-          ((newObj->dV[i]->rows == origVdim)&&(newObj->dV[i]->cols == origVdim)) ){
+          ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
+          	(newObj->dV[i]->cols == newObj->y->cols)) ){
       	newObj->origdVdim[i] = newObj->dV[i]->rows;
       }
       else{
