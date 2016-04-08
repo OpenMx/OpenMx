@@ -88,9 +88,6 @@ class omxMatrix {
 	unsigned cleanVersion;
 	unsigned version;
 
-	int originalRows; //deprecated
-	int originalCols; //deprecated
-
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
