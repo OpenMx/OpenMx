@@ -105,3 +105,6 @@ m2 <- mxModel(m2,
 
 m2 <- mxRun(m2)
 omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-6)
+
+m2$expectation$between <- c(m2$expectation$between, "whatever")
+omxCheckError(mxRun(m2), "Level transition matrix 'whatever' listed in 'sleep.expectation' is not found")
