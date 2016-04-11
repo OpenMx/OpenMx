@@ -321,11 +321,7 @@ static double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origD
            row + 1, col + 1, origDim, origDim, om->name());
 		return (NA_REAL);
 	}
-	//if(om->colMajor) {
 	index = col * origDim + row; //<--om should always be column-major by this point.
-	/*} else {
-		index = row * om->originalCols + col;
-	}*/
 	return om->data[index];
 }
 
@@ -340,9 +336,6 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std:
   
   omxEnsureColumnMajor(om);
 
-  //om->originalRows = om->rows;
-  //om->originalCols = om->cols;
-  
   if(om->algebra == NULL){ //i.e., if omxMatrix is from a frontend MxMatrix
   
     em.setZero(om->rows - num2drop, om->cols - num2drop);
