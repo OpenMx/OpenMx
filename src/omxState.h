@@ -306,7 +306,7 @@ class omxState {
 	void omxProcessMxDataEntities(SEXP data, SEXP defvars);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
-	void omxExportResults(MxRList *out);
+	void omxExportResults(MxRList *out, FitContext *fc);
 	~omxState();
 
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra

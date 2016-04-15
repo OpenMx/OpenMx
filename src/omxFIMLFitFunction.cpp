@@ -99,7 +99,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	int returnRowLikelihoods = 0;
 
 	omxMatrix* fitMatrix  = off->matrix;
-	int numChildren = (int) fc->childList.size();
+	int numChildren = fc? fc->childList.size() : 0;
 
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;

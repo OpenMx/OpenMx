@@ -125,7 +125,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
-	int numChildren = fc->childList.size();
+	int numChildren = fc? fc->childList.size() : 0;
 
     omxMatrix *reduceAlgebra;
 	omxData *data;
