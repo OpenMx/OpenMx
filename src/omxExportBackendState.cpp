@@ -46,8 +46,6 @@ void omxState::omxExportResults(MxRList *out)
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
-	setWantStage(FF_COMPUTE_INITIAL_FIT);
-
 	for(size_t index = 0; index < algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
 		omxMatrix* nextAlgebra = algebraList[index];
