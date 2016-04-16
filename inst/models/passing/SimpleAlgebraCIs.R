@@ -25,16 +25,9 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, -3660.596, .01)
 
-factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxComputeGradientDescent())), suppressWarnings = TRUE)
+factorFitCI <- mxRun(factorFit, intervals=TRUE, suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
-
-omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))
-omxCheckCloseEnough(factorFit$output$fit, factorFitCI$output$fit, 0)
-omxCheckCloseEnough(mxEval(Z, factorFit), mxEval(Z, factorFitCI))
-omxCheckCloseEnough(mxEval(C, factorFit), mxEval(C, factorFitCI))
-omxCheckCloseEnough(mxEval(P, factorFit), mxEval(P, factorFitCI))
-omxCheckCloseEnough(mxEval(objective, factorFit)[1,1], mxEval(objective, factorFitCI)[1,1])
 
 if (0) {
   options(digits=12)
