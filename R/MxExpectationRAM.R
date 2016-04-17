@@ -116,6 +116,11 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if (.hasSlot(.Object, "between") && length(.Object@between)) {
 			.Object@between <- sapply(.Object@between, function(bName) {
 				zMat <- flatModel[[ bName ]]
+				if (is.null(zMat)) {
+					msg <- paste("Level transition matrix", omxQuotes(bName),
+						     "listed in", omxQuotes(name), "is not found")
+					stop(msg, call. = FALSE)
+				}
 				expName <- paste0(zMat@joinModel, imxSeparatorChar, 'expectation')
 				upperA <- flatModel[[ flatModel@expectations[[ expName ]]$A ]]
 				lowerA <- flatModel[[ aMatrix ]]
