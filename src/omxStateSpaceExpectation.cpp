@@ -31,7 +31,6 @@
 **********************************************************/
 
 #include "omxExpectation.h"
-#include "omxBLAS.h"
 #include "omxFIMLFitFunction.h"
 #include "omxStateSpaceExpectation.h"
 #include <Eigen/Core>

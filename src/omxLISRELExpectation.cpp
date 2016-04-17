@@ -15,7 +15,6 @@
  */
 
 #include "omxExpectation.h"
-#include "omxBLAS.h"
 #include "omxFIMLFitFunction.h"
 #include "omxLISRELExpectation.h"
 

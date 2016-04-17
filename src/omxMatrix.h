@@ -36,7 +36,6 @@
 
 #include "omxDefines.h"
 #include <Eigen/Core>
-#include "omxBLAS.h"
 
 struct populateLocation {
 	int from;
@@ -110,6 +109,24 @@ class omxMatrix {
 	}
 };
 
+void omxEnsureColumnMajor(omxMatrix *mat);
+
+inline double *omxMatrixDataColumnMajor(omxMatrix *mat)
+{
+	omxEnsureColumnMajor(mat);
+	return mat->data;
+}
+
+struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
+	EigenMatrixAdaptor(omxMatrix *mat) :
+	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
+};
+
+struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
+	EigenVectorAdaptor(omxMatrix *mat) :
+	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
+};
+
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.
 // If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState* os);
@@ -141,7 +158,6 @@ void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 	omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState *state,
 		unsigned short hasMatrixNumber, int matrixNumber); 								// Populate an omxMatrix from an R object
 	void omxTransposeMatrix(omxMatrix *mat);												// Transpose a matrix in place.
-void omxEnsureColumnMajor(omxMatrix *mat);
 	void omxToggleRowColumnMajor(omxMatrix *mat);										// Transform row-major into col-major and vice versa 
 
 /* Function wrappers that switch based on inclusion of algebras */
@@ -260,40 +276,68 @@ static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
 }
 
 
-static OMXINLINE void omxDGEMM(bool transposeA, bool transposeB,		// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
-	int nrow = (transposeA?a->cols:a->rows);
-	int nmid = (transposeA?a->rows:a->cols);
-	int ncol = (transposeB?b->rows:b->cols);
 
-	int transa = !(transposeA ^ bool(a->colMajor));
-	int transb = !(transposeB ^ bool(b->colMajor));
-	F77_CALL(omxunsafedgemm)(&transa, &transb,
-							&(nrow), &(ncol), &(nmid),
-							&alpha, a->data, &(a->leading), 
-							b->data, &(b->leading),
-				 &beta, result->data, &(result->leading));
+	EigenMatrixAdaptor eA(a);
+	EigenMatrixAdaptor eB(b);
+	EigenMatrixAdaptor eResult(result);
+	Eigen::MatrixXd ccopy;
 
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	if (beta) {
+		ccopy = eResult * beta;
+	}
+	if (!transposeA && !transposeB) {
+		eResult.derived() = alpha * eA * eB;
+	} else if (transposeA && !transposeB) {
+		eResult.derived() = alpha * eA.transpose() * eB;
+	} else if (!transposeA && transposeB) {
+		eResult.derived() = alpha * eA * eB.transpose();
+	} else {
+		eResult.derived() = alpha * eA.transpose() * eB.transpose();
+	}
+	if (beta) {
+		eResult.derived() += ccopy;
+	}
+	if (!result->colMajor) {
+		result->colMajor = true;
+		omxToggleRowColumnMajor(result);
+	}
 }
 
-static OMXINLINE void omxDGEMV(bool transposeMat, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
+static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix*result) {							// where B is treated as a vector
-	int onei = 1;
-	int nrows = mat->rows;
-	int ncols = mat->cols;
-	if(OMX_DEBUG_MATRIX) {
-		int nVecEl = vec->rows * vec->cols;
-		// mxLog("DGEMV: %c, %d, %d, %f, 0x%x, %d, 0x%x, %d, 0x%x, %d\n", *(transposeMat?mat->minority:mat->majority), (nrows), (ncols), 
-        	// alpha, mat->data, (mat->leading), vec->data, onei, beta, result->data, onei); //:::DEBUG:::
-		if((transposeMat && nrows != nVecEl) || (!transposeMat && ncols != nVecEl)) {
-			Rf_error("Mismatch in vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", (transposeMat?"transposed":""), mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+	EigenMatrixAdaptor eMat(mat);
+	EigenVectorAdaptor eVec(vec);
+	EigenMatrixAdaptor eResult(result);
+	Eigen::VectorXd vcopy;
+
+	if (beta) {
+		vcopy = eResult * beta;
+	}
+	if (eResult.cols() == eMat.rows()) {
+		if (eMat.cols() != eVec.rows() || transpose) {
+			eResult.derived() = (alpha * eMat.transpose() * eVec).transpose();
+		} else {
+			eResult.derived() = (alpha * eMat * eVec).transpose();
+		}
+		if (beta) {
+			eResult.derived() += vcopy.transpose();
+		}
+	} else {
+		if (eMat.cols() != eVec.rows() || transpose) {
+			eResult.derived() = alpha * eMat.transpose() * eVec;
+		} else {
+			eResult.derived() = alpha * eMat * eVec;
+		}
+		if (beta) {
+			eResult.derived() += vcopy;
 		}
 	}
-	int trans = !(transposeMat ^ bool(mat->colMajor));
-	F77_CALL(omxunsafedgemv)(&trans, &(nrows), &(ncols), 
-	        &alpha, mat->data, &(mat->leading), vec->data, &onei, &beta, result->data, &onei);
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	if (!result->colMajor) {
+		result->colMajor = true;
+		omxToggleRowColumnMajor(result);
+	}
 }
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C
@@ -375,22 +419,6 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 void expm_eigen(int n, double *rz, double *out);
 void logm_eigen(int n, double *rz, double *out);
-
-inline double *omxMatrixDataColumnMajor(omxMatrix *mat)
-{
-	omxEnsureColumnMajor(mat);
-	return mat->data;
-}
-
-struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
-	EigenMatrixAdaptor(omxMatrix *mat) :
-	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
-};
-
-struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
-	EigenVectorAdaptor(omxMatrix *mat) :
-	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
-};
 
 template <typename T>
 void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)

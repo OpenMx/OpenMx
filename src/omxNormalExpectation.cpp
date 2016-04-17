@@ -16,7 +16,6 @@
 
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
-#include "omxBLAS.h"
 #include "omxDefines.h"
 #include "omxNormalExpectation.h"
 
