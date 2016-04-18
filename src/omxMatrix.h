@@ -275,6 +275,21 @@ static OMXINLINE double omxUnsafeVectorElement(omxMatrix *om, int index) {
 	return om->data[index];
 }
 
+// In the process of debugging some other problem, I noticed that
+// DDEBUGMX_ALGEBRA causes models/passing/SimpleAlgebraCIs.R to fail.
+//
+// I used GIT to bisect the problem. It seems b1e8136b758c838 broke
+// DDEBUGMX_ALGEBRA. In this commit, I changed the Fortran argument
+// passing from character to integer at request of some CRAN maintainers.
+// However, the change also appears to have broken something subtle in
+// Fortran/C communication.
+//
+// I am really not sure how to identify the underlying issue.
+//
+// Acting on the belief that it's better to have correct code than fast
+// code, I decided to replace omxBLAS.f with equivalent Eigen code.
+// omxBLAS was (supposedly) fast because it omitted the code to
+// properly handle NaN (in some cases).
 
 static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int transposeB,		// result <- alpha * A %*% B + beta * C
 				double alpha, omxMatrix* a, omxMatrix *b, double beta, omxMatrix* result) {
