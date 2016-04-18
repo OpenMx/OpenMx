@@ -162,8 +162,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		parallelism = data->rows;
 	}
 
-	FIMLSingleIterationType singleIter = ofiml->SingleIterFn;
-
 	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
@@ -174,13 +172,13 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			if (i == parallelism - 1) {
-				failed |= singleIter(kid, childFit, off, stride * i, data->rows - stride * i);
+				failed |= omxFIMLSingleIterationJoint(kid, childFit, off, stride * i, data->rows - stride * i);
 			} else {
-				failed |= singleIter(kid, childFit, off, stride * i, stride);
+				failed |= omxFIMLSingleIterationJoint(kid, childFit, off, stride * i, stride);
 			}
 		}
 	} else {
-		failed |= singleIter(fc, off, off, 0, data->rows);
+		failed |= omxFIMLSingleIterationJoint(fc, off, off, 0, data->rows);
 	}
 	if (failed) {
 		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
@@ -247,8 +245,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->corList = NULL;
     newObj->weights = NULL;
 	
-    newObj->SingleIterFn = omxFIMLSingleIterationJoint;
-
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
 
@@ -310,10 +306,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
     off->argStruct = (void*)newObj;
-
-    //if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
-	//    newObj->SingleIterFn = omxFIMLSingleIteration;  // remove this TODO
-    //}
 
     if(numOrdinal > 0 && numContinuous <= 0) {
         if(OMX_DEBUG) {
