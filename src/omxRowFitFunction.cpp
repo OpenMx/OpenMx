@@ -286,6 +286,8 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 
 	oo->computeFun = omxCallRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
+	oo->canDuplicate = true;
+	oo->openmpUser = true;
 
 	oo->argStruct = (void*) newObj;
 }

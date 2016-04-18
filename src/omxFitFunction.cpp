@@ -179,7 +179,6 @@ void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc)
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;
-	R_CheckUserInterrupt();
 
 #pragma omp atomic
 	++Global->computeCount; // could avoid lock by keeping in FitContext

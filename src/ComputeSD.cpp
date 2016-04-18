@@ -8,10 +8,9 @@ struct fit_functional {
 
 	fit_functional(GradientOptimizerContext &goc) : goc(goc) {};
 
-	template <typename T1>
-	double operator()(Eigen::MatrixBase<T1>& x) const {
+	double operator()(double *x, int thrId) const {
 		int mode = 0;
-		return goc.solFun(x.derived().data(), &mode);
+		return goc.solFun(x, &mode);
 	}
 };
 
@@ -42,7 +41,7 @@ void omxSD(GradientOptimizerContext &rf)
     Eigen::VectorXd majorEst = currEst;
 
     while(++iter < maxIter && !isErrorRaised()) {
-	    gradient_with_ref(rf.gradientAlgo, rf.gradientIterations, rf.gradientStepSize,
+	    gradient_with_ref(rf.gradientAlgo, 1, rf.gradientIterations, rf.gradientStepSize,
 			      ff, refFit, majorEst, rf.grad);
 
 	    if (rf.verbose >= 3) mxPrintMat("grad", rf.grad);

@@ -254,6 +254,7 @@ void omxInitAlgebraFitFunction(omxFitFunction* off)
 	off->computeFun = omxCallAlgebraFitFunction;
 	off->destructFun = omxDestroyAlgebraFitFunction;
 	off->setVarGroup = setVarGroup;
+	off->canDuplicate = true;
 	
 	off->argStruct = (void*) aff;
 }

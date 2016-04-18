@@ -67,6 +67,7 @@ void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
 {
 	if (x != NPSOL_GOpt->est.data()) return;  // this is strange but necessary
+	R_CheckUserInterrupt();
 	double fit = NPSOL_GOpt->recordFit(x, mode);
 	*f = fit;
 }

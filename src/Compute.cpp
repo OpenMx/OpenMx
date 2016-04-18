@@ -669,6 +669,7 @@ void FitContext::init()
 	CI = NULL;
 	targetFit = nan("uninit");
 	lowerBound = false;
+	openmpUser = false;
 
 	hess.resize(numParam, numParam);
 	ihess.resize(numParam, numParam);
@@ -747,11 +748,15 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	if (d1 != dvars) Rf_error("Parent free parameter group (id=%d) is not a superset of %d",
 			       src->id[0], dest->id[0]);
 
+
 	wanted = parent->wanted;
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
+
+	// confidence interval stuff
 	CI = parent->CI;
+	compositeCIFunction = parent->compositeCIFunction;
 	targetFit = parent->targetFit;
 	lowerBound = parent->lowerBound;
 }
@@ -967,7 +972,7 @@ void FitContext::copyParamToModelClean()
 
 	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, est, numParam);
 
-	if (childList.size() == 0) return;
+	if (childList.size() == 0 || !openmpUser) return;
 
 	for(size_t i = 0; i < childList.size(); i++) {
 		memcpy(childList[i]->est, est, sizeof(double) * numParam);
@@ -1068,17 +1073,33 @@ void FitContext::postInfo()
 
 void FitContext::createChildren()
 {
-	if (Global->numThreads <= 1) return;
+	if (Global->numThreads <= 1) {
+		if (OMX_DEBUG) mxLog("FitContext::createChildren: max threads set to 1");
+		return;
+	}
+	if (childList.size()) return;
 
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
-		if (!state->expectationList[j]->canDuplicate) return;
+		if (!state->expectationList[j]->canDuplicate) {
+			if (OMX_DEBUG) {
+				mxLog("FitContext::createChildren: %s cannot be duplicated",
+				      state->expectationList[j]->name);
+			}
+			return;
+		}
 	}
 	for(size_t j = 0; j < state->algebraList.size(); j++) {
 		omxFitFunction *ff = state->algebraList[j]->fitFunction;
-		if (ff && !ff->canDuplicate) return;
+		if (!ff) continue;
+		if (!ff->canDuplicate) {
+			if (OMX_DEBUG) {
+				mxLog("FitContext::createChildren: %s cannot be duplicated",
+				      state->algebraList[j]->name());
+			}
+			return;
+		}
+		openmpUser |= ff->openmpUser;
 	}
-
-	if (childList.size()) return;
 
 	if (OMX_DEBUG) mxLog("Create %d FitContext for parallel processing", Global->numThreads);
 
@@ -2950,6 +2971,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
+	numOptimizerThreads = (fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1;
 	reset();
 }
 
@@ -2991,15 +3013,15 @@ void GradientOptimizerContext::useBestFit()
 	// restore gradient too? TODO
 }
 
-void GradientOptimizerContext::copyFromOptimizer(double *myPars)
+void GradientOptimizerContext::copyFromOptimizer(double *myPars, FitContext *fc2)
 {
 	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		fc->est[vx] = myPars[px];
+	for (size_t vx=0; vx < fc2->profiledOut.size(); ++vx) {
+		if (fc2->profiledOut[vx]) continue;
+		fc2->est[vx] = myPars[px];
 		++px;
 	}
-	fc->copyParamToModel();
+	fc2->copyParamToModel();
 }
 
 void GradientOptimizerContext::finish()
@@ -3017,6 +3039,22 @@ void GradientOptimizerContext::finish()
 	fc->copyParamToModel();
 }
 
+double GradientOptimizerContext::evalFit(double *myPars, int thrId, int *mode)
+{
+	FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+	Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+	copyFromOptimizer(myPars, fc2);
+	int want = FF_COMPUTE_FIT;
+	ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
+	if (fc2->outsideFeasibleSet() || isErrorRaised()) {
+		*mode = -1;
+	}
+	if (verbose >= 3) {
+		mxLog("fit %f (mode %d)", fc2->fit, *mode);
+	}
+	return fc2->fit;
+}
+
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
@@ -3027,7 +3065,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 
 	if (*mode == 1) fc->iterations += 1;
-	copyFromOptimizer(myPars);
+	copyFromOptimizer(myPars, fc);
 
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
