@@ -327,11 +327,16 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 	EigenMatrixAdaptor eResult(result);
 	Eigen::VectorXd vcopy;
 
+	//mxLog("%dx%d = %dx%d * %d (t=%d)", eResult.rows(), eResult.cols(),
+	//eMat.rows(), eMat.cols(), eVec.rows(), transpose);
+
 	if (beta) {
 		vcopy = eResult * beta;
 	}
-	if (eResult.cols() == eMat.rows()) {
-		if (eMat.cols() != eVec.rows() || transpose) {
+	int rows = transpose? eMat.cols() : eMat.rows();
+	int cols = transpose? eMat.rows() : eMat.cols();
+	if (eResult.cols() == rows) {
+		if (cols != eVec.rows()) {
 			eResult.derived() = (alpha * eMat.transpose() * eVec).transpose();
 		} else {
 			eResult.derived() = (alpha * eMat * eVec).transpose();
@@ -340,7 +345,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 			eResult.derived() += vcopy.transpose();
 		}
 	} else {
-		if (eMat.cols() != eVec.rows() || transpose) {
+		if (cols != eVec.rows()) {
 			eResult.derived() = alpha * eMat.transpose() * eVec;
 		} else {
 			eResult.derived() = alpha * eMat * eVec;
