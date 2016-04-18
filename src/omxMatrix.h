@@ -334,9 +334,8 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 		vcopy = eResult * beta;
 	}
 	int rows = transpose? eMat.cols() : eMat.rows();
-	int cols = transpose? eMat.rows() : eMat.cols();
 	if (eResult.cols() == rows) {
-		if (cols != eVec.rows()) {
+		if (transpose) {
 			eResult.derived() = (alpha * eMat.transpose() * eVec).transpose();
 		} else {
 			eResult.derived() = (alpha * eMat * eVec).transpose();
@@ -345,7 +344,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 			eResult.derived() += vcopy.transpose();
 		}
 	} else {
-		if (cols == eVec.rows() && transpose) {
+		if (transpose) {
 			eResult.derived() = alpha * eMat.transpose() * eVec;
 		} else {
 			eResult.derived() = alpha * eMat * eVec;
