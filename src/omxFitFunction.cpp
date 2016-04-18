@@ -371,8 +371,9 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 
 	omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 	const double fit = totalLogLikelihood(fitMat);
-	omxRecompute(CI->matrix, fc);
-	double CIElement = omxMatrixElement(CI->matrix, CI->row, CI->col);
+	omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
+	omxRecompute(ciMatrix, fc);
+	double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
 	omxResizeMatrix(fitMat, 1, 1);
 
 	if (!std::isfinite(fit) || !std::isfinite(CIElement)) {

@@ -425,7 +425,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		return;
 	}
 
-	Global->unpackConfidenceIntervals();
+	Global->unpackConfidenceIntervals(mle->state);
 
 	// Not strictly necessary, but makes it easier to run
 	// mxComputeConfidenceInterval alone without other compute
@@ -492,10 +492,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 		omxConfidenceInterval *currentCI = Global->intervalList[i];
 
-		std::string &matName = currentCI->matrix->nameStr;
+		omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
+		std::string &matName = ciMatrix->nameStr;
 
 		if (useInequality || useEquality) {
-			currentCI->varIndex = freeVarGroup->lookupVar(currentCI->matrix, currentCI->row, currentCI->col);
+			currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
 		}
 
 		for (int lower=0; lower <= 1; ++lower) {
@@ -524,8 +525,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 			if (useInequality) mle->state->conList.pop_back();
 			if (useEquality)   mle->state->conList.pop_back();
 
-			omxRecompute(currentCI->matrix, &fc);
-			double val = omxMatrixElement(currentCI->matrix, currentCI->row, currentCI->col);
+			omxRecompute(ciMatrix, &fc);
+			double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 			// We check the fit again so we can report it
 			// in the detail data.frame.
@@ -574,8 +575,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
 		omxConfidenceInterval *oCI = Global->intervalList[j];
-		omxRecompute(oCI->matrix, mle);
-		interval(j, 1) = omxMatrixElement(oCI->matrix, oCI->row, oCI->col);
+		omxMatrix *ciMat = oCI->getMatrix(fitMatrix->currentState);
+		omxRecompute(ciMat, mle);
+		interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
 		if (1) {
 			interval(j, 0) = std::min(oCI->min, interval(j, 1));
 			interval(j, 2) = std::max(oCI->max, interval(j, 1));

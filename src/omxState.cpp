@@ -243,11 +243,16 @@ void omxState::setWantStage(int stage)
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
 
+omxMatrix *omxConfidenceInterval::getMatrix(omxState *st) const
+{
+	return st->getMatrixFromIndex(matrixNumber);
+}
+
 struct ciCmp {
 	bool operator() (const omxConfidenceInterval* x, const omxConfidenceInterval* y) const
 	{
-		if (x->matrix->matrixNumber != y->matrix->matrixNumber) {
-			return x->matrix->matrixNumber < y->matrix->matrixNumber;
+		if (x->matrixNumber != y->matrixNumber) {
+			return x->matrixNumber < y->matrixNumber;
 		} else if (x->row != y->row) {
 			return x->row < y->row;
 		} else {
@@ -256,7 +261,7 @@ struct ciCmp {
 	}
 };
 
-void omxGlobal::unpackConfidenceIntervals()
+void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 {
 	if (unpackedConfidenceIntervals) return;
 	unpackedConfidenceIntervals = true;
@@ -275,7 +280,7 @@ void omxGlobal::unpackConfidenceIntervals()
 			}
 			continue;
 		}
-		omxMatrix *mat = ci->matrix;
+		omxMatrix *mat = ci->getMatrix(currentState);
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				omxConfidenceInterval *cell = new omxConfidenceInterval(*ci);

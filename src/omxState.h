@@ -191,7 +191,7 @@ class omxCheckpoint {
 
 struct omxConfidenceInterval {		// For Confidence interval request
 	std::string name;
-	omxMatrix* matrix;				// The matrix
+	int matrixNumber;
 	int row, col;					// Location of element to calculate
 	int varIndex;
 	double ubound;					// Fit-space upper boundary
@@ -202,6 +202,7 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	int uCode;						// Optimizer code at upper bound
 	omxConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
+	omxMatrix *getMatrix(omxState *st) const;
 };
 
 // omxGlobal is for state that is read-only during parallel sections.
@@ -234,7 +235,7 @@ class omxGlobal {
 	int maxStackDepth;
 
 	std::vector< omxConfidenceInterval* > intervalList;
-	void unpackConfidenceIntervals();
+	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 
 	int computeCount; // protected by openmp atomic

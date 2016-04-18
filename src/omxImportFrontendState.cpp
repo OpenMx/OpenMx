@@ -368,7 +368,6 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 
 omxConfidenceInterval::omxConfidenceInterval()
 {
-	matrix = 0;
 	row = -1;
 	col = -1;
 	varIndex = -1;
@@ -399,7 +398,7 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP intervalList, omxState *curre
 		Rf_protect(nextVar = VECTOR_ELT(intervalList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
-		oCI->matrix = omxMatrixLookupFromState1( nextVar, currentState);	// Expects an R object
+		oCI->matrixNumber = Rf_asInteger(nextVar);
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
 		oCI->lbound = intervalInfo[3];
