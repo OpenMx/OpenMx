@@ -80,7 +80,9 @@ ssNoMissParam <- summary(ssRun)$parameters[, c(5, 6)]
 ssMissParam <- summary(ssMissRun)$parameters[, c(5, 6)]
 
 # Check if missing data estimates are close to complete data ones
-omxCheckCloseEnough(ssNoMissParam, ssMissParam, epsilon=0.01)
+for(i in 1:nrow(ssNoMissParam)){
+omxCheckCloseEnough(ssNoMissParam[i,], ssMissParam[i,], epsilon=0.012)
+}
 
 # Note: Even though the data columns are in different orders
 #  the parameter estimates are the same because the dimnames of C
