@@ -110,7 +110,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxExpectation* expectation = off->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
-	if (data->defVars.size() == 0 && !strEQ(expectation->expType, "MxExpectationStateSpace")) {
+	if (data->defVars.size() == 0 && !ofiml->isStateSpace) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(fc, expectation);
 		// MCN Also do the threshold formulae!
@@ -156,7 +156,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
-	int parallelism = (numChildren == 0) ? 1 : numChildren;
+	int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 
 	if (parallelism > data->rows) {
 		parallelism = data->rows;
@@ -205,30 +205,26 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Initializing FIML fit function function.");
 	}
 	off->canDuplicate = TRUE;
-	off->openmpUser = true;
-	SEXP rObj = off->rObj;
 
-	int numOrdinal = 0, numContinuous = 0;
-	omxMatrix *cov, *means;
-
-	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	omxExpectation* expectation = off->expectation;
 	if(expectation == NULL) {
 		omxRaiseError("FIML cannot fit without model expectations.");
 		return;
 	}
 
-	cov = omxGetExpectationComponent(expectation, "cov");
+	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
+	newObj->isStateSpace = strEQ(expectation->expType, "MxExpectationStateSpace");
+	off->openmpUser = !newObj->isStateSpace;
+
+	int numOrdinal = 0, numContinuous = 0;
+
+	omxMatrix *cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
 		omxRaiseError("No covariance expectation in FIML evaluation.");
 		return;
 	}
 
-	means = omxGetExpectationComponent(expectation, "means");
-	
-	if(OMX_DEBUG) {
-		mxLog("FIML Initialization Completed.");
-	}
+	omxMatrix *means = omxGetExpectationComponent(expectation, "means");
 	
     newObj->cov = cov;
     newObj->means = means;
@@ -256,6 +252,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
 	}
+	SEXP rObj = off->rObj;
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);

@@ -33,6 +33,7 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 typedef struct omxFIMLFitFunction {
 
 	/* Parts of the R  MxFIMLFitFunction Object */
+	bool isStateSpace;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
