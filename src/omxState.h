@@ -170,10 +170,8 @@ class omxCheckpoint {
 	time_t lastCheckpoint;	// FIXME: Cannot update at sub-second times.
 	int lastIterations;
 	int lastEvaluation;
-	bool fitPending;
 
 	void omxWriteCheckpointHeader();
-	void _prefit(FitContext *fc, double *est, bool force, const char *context);
 
  public:
 	omxCheckpointType type;
@@ -184,8 +182,7 @@ class omxCheckpoint {
 
 	omxCheckpoint();
 	void message(FitContext *fc, double *est, const char *msg);
-	void prefit(const char *callerName, FitContext *fc, double *est, bool force);
-	void postfit(FitContext *fc);
+	void postfit(const char *callerName, FitContext *fc, double *est, bool force);
 	~omxCheckpoint();
 };
 
@@ -260,8 +257,7 @@ class omxGlobal {
 	void deduplicateVarGroups();
 	const char *getBads();
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
-	void checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force);
-	void checkpointPostfit(FitContext *fc);
+	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
 	double getGradientThreshold(double fit) { return std::max(fabs(fit) * gradientTolerance, .01); }
 
 	void cacheDependencies(omxState *os) {
@@ -330,9 +326,6 @@ class omxState {
 		}
 	};
 };
-
-/* Initialize and Destroy */
-omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
 inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED

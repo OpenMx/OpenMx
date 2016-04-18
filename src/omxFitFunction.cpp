@@ -191,7 +191,6 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (OMX_DEBUG) {
 			mxLog("%s: starting evaluation %d, want %d", fitMat->name(), evaluation, want);
 		}
-		Global->checkpointPrefit(callerName, fc, fc->est, false);
 	}
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
@@ -206,7 +205,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();
 		}
-		Global->checkpointPostfit(fc);
+		Global->checkpointPostfit(callerName, fc, fc->est, false);
 		if (OMX_DEBUG) {
 			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name(), evaluation, fc->fit);
 		}

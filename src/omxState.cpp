@@ -629,17 +629,10 @@ void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, 
 	}
 }
 
-void omxGlobal::checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force)
+void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force)
 {
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->prefit(callerName, fc, est, force);
-	}
-}
-
-void omxGlobal::checkpointPostfit(FitContext *fc)
-{
-	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->postfit(fc);
+		checkpointList[i]->postfit(callerName, fc, est, force);
 	}
 }
 
@@ -670,7 +663,7 @@ void UserConstraint::refresh(FitContext *fc)
 }
 
 omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),
-				 lastEvaluation(0), fitPending(false),
+				 lastEvaluation(0),
 				 timePerCheckpoint(0), iterPerCheckpoint(0), evalsPerCheckpoint(0), file(NULL)
 {}
 
@@ -700,11 +693,10 @@ void omxCheckpoint::omxWriteCheckpointHeader()
  
 void omxCheckpoint::message(FitContext *fc, double *est, const char *msg)
 {
-	_prefit(fc, est, true, msg);
-	postfit(fc);
+	postfit(msg, fc, est, true);
 }
 
-void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char *context)
+void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bool force)
 {
 	const int timeBufSize = 32;
 	char timeBuf[timeBufSize];
@@ -718,42 +710,31 @@ void omxCheckpoint::_prefit(FitContext *fc, double *est, bool force, const char 
 	}
 	if (!doit) return;
 
-	omxWriteCheckpointHeader();
+#pragma omp critical
+	{
+		omxWriteCheckpointHeader();
 
-	std::vector< omxFreeVar* > &vars = fc->varGroup->vars;
-	struct tm *nowTime = localtime(&now);
-	strftime(timeBuf, timeBufSize, "%b %d %Y %I:%M:%S %p", nowTime);
-	fprintf(file, "%s\t%d\t%d\t%d\t%s", context, int(vars.size()), lastEvaluation, lastIterations, timeBuf);
+		std::vector< omxFreeVar* > &vars = fc->varGroup->vars;
+		struct tm *nowTime = localtime(&now);
+		strftime(timeBuf, timeBufSize, "%b %d %Y %I:%M:%S %p", nowTime);
+		fprintf(file, "%s\t%d\t%d\t%d\t%s", context, int(vars.size()), lastEvaluation, lastIterations, timeBuf);
 
-	size_t lx=0;
-	size_t numParam = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
-	for (size_t px=0; px < numParam; ++px) {
-		if (lx < vars.size() && vars[lx]->id == (int)px) {
-			fprintf(file, "\t%.10g", est[lx]);
-			++lx;
-		} else {
-			fprintf(file, "\tNA");
+		size_t lx=0;
+		size_t numParam = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
+		for (size_t px=0; px < numParam; ++px) {
+			if (lx < vars.size() && vars[lx]->id == (int)px) {
+				fprintf(file, "\t%.10g", est[lx]);
+				++lx;
+			} else {
+				fprintf(file, "\tNA");
+			}
 		}
+		fprintf(file, "\t%.10g\n", fc->fit);
+		fflush(file);
+		lastCheckpoint = now;
+		lastIterations = fc->iterations;
+		lastEvaluation = Global->computeCount;
 	}
-	fflush(file);
-	if (fitPending) Rf_error("Checkpoint not reentrant");
-	fitPending = true;
-	lastCheckpoint = now;
-	lastIterations = fc->iterations;
-	lastEvaluation = Global->computeCount;
-}
-
-void omxCheckpoint::prefit(const char *callerName, FitContext *fc, double *est, bool force)
-{
-	_prefit(fc, est, force, callerName);
-}
-
-void omxCheckpoint::postfit(FitContext *fc)
-{
-	if (!fitPending) return;
-	fprintf(file, "\t%.10g\n", fc->fit);
-	fflush(file);
-	fitPending = false;
 }
 
 const omxFreeVarLocation *omxFreeVar::getLocation(int matrix) const
