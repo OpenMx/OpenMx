@@ -549,7 +549,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	/* x = x + K r */
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space Check Residual: r"); }
-	omxDGEMV(false, 1.0, smallK, smallr, 1.0, x); // x = K r + x
+	omxDGEMV(true, 1.0, smallK, smallr, 1.0, x); // x = K r + x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = K r + x"); }
 	
 	/* P = (I - K C) P */

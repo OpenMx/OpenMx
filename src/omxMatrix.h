@@ -345,7 +345,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 			eResult.derived() += vcopy.transpose();
 		}
 	} else {
-		if (cols != eVec.rows()) {
+		if (cols == eVec.rows() && transpose) {
 			eResult.derived() = alpha * eMat.transpose() * eVec;
 		} else {
 			eResult.derived() = alpha * eMat * eVec;
