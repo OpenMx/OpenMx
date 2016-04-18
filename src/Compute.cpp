@@ -700,7 +700,6 @@ void FitContext::allocStderrs()
 {
 	if (stderrs) return;
 
-	size_t numParam = varGroup->vars.size();
 	stderrs = new double[numParam];
 
 	for (size_t px=0; px < numParam; ++px) {
@@ -713,9 +712,9 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 	parent = NULL;
 	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 	init();
+	profiledOut.assign(numParam, false);
 
 	state = _state;
-	size_t numParam = varGroup->vars.size();
 	if (startingValues.size() != numParam) {
 		Rf_error("Got %d starting values for %d parameters",
 		      startingValues.size(), numParam);
@@ -735,12 +734,14 @@ FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
 	size_t dvars = varGroup->vars.size();
 	if (dvars == 0) return;
 	mapToParent.resize(dvars);
+	profiledOut.resize(numParam);
 
 	size_t d1 = 0;
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 		if (src->vars[s1] != dest->vars[d1]) continue;
 		mapToParent[d1] = s1;
 		est[d1] = parent->est[s1];
+		profiledOut[d1] = parent->profiledOut[s1];
 		if (++d1 == dvars) break;
 	}
 	if (d1 != dvars) Rf_error("Parent free parameter group (id=%d) is not a superset of %d",
@@ -2930,15 +2931,10 @@ void GradientOptimizerContext::reset()
 GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
 	: fc(fc), verbose(verbose)
 {
-	if (fc->profiledOut.size() == 0) {
-		fc->profiledOut.assign(fc->numParam, false);
-		numFree = fc->numParam;
-	} else {
-		numFree = 0;
-		for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-			if (fc->profiledOut[vx]) continue;
-			++numFree;
-		}
+	numFree = 0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		++numFree;
 	}
 	optName = "?";
 	fitMatrix = NULL;
