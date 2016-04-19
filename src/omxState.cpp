@@ -495,6 +495,24 @@ static const int mxLogCurrentRow = -1;
 void mxLogSetCurrentRow(int row) {}
 #endif
 
+static ssize_t mxLogWriteSynchronous(const char *outBuf, int len)
+{
+	int maxRetries = 20;
+	ssize_t wrote = 0;
+	ssize_t got;
+#pragma omp critical
+	{
+		while (--maxRetries > 0) {
+			got = write(2, outBuf + wrote, len - wrote);
+			if (got == -EINTR) continue;
+			if (got < 0) break;
+			wrote += got;
+			if (wrote == len) break;
+		}
+	}
+	return wrote;
+}
+
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
@@ -509,22 +527,9 @@ void mxLogBig(const std::string &str)   // thread-safe
 	fullstr += str;
 	len = ssize_t(fullstr.size());
 	
-	ssize_t wrote = 0;
-	int maxRetries = 20;
-	ssize_t got;
 	const char *outBuf = fullstr.c_str();
-#pragma omp critical(stderp)
-	{
-		while (--maxRetries > 0) {
-			got = write(2, outBuf + wrote, len - wrote);
-			if (got == -EINTR) continue;
-			if (got < 0) break;
-			wrote += got;
-			if (wrote == len) break;
-		}
-	}
+	ssize_t wrote = mxLogWriteSynchronous(outBuf, len);
 	if (wrote != len) Rf_error("mxLogBig only wrote %d/%d, errno %d", wrote, len, errno);
-
 }
 
 void mxLog(const char* msg, ...)   // thread-safe
@@ -545,20 +550,8 @@ void mxLog(const char* msg, ...)   // thread-safe
 		len = snprintf(buf2, maxLen, "[%d@%d] %s\n", omx_absolute_thread_num(), mxLogCurrentRow, buf1);
 	}
 
-	int maxRetries = 20;
-	ssize_t wrote = 0;
-	ssize_t got = 0;
-#pragma omp critical(stderp)
-	{
-		while (--maxRetries > 0) {
-			got = write(2, buf2 + wrote, len - wrote);
-			if (got == -EINTR) continue;
-			if (got <= 0) break;
-			wrote += got;
-			if (wrote == len) break;
-		}
-	}
-	if (got <= 0) Rf_error("mxLog(%s) failed with errno=%d", buf2, got);
+	ssize_t wrote = mxLogWriteSynchronous(buf2, len);
+	if (wrote != len) Rf_error("mxLog only wrote %d/%d, errno=%d", wrote, len, errno);
 }
 
 void _omxRaiseError()
