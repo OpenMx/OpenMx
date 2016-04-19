@@ -214,7 +214,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->isStateSpace = strEQ(expectation->expType, "MxExpectationStateSpace");
-	off->openmpUser = !newObj->isStateSpace;
 
 	int numOrdinal = 0, numContinuous = 0;
 
