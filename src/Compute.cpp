@@ -1071,6 +1071,11 @@ void FitContext::postInfo()
 	}
 }
 
+bool FitContext::isClone() const
+{
+	return state->isClone();
+}
+
 void FitContext::createChildren()
 {
 	if (Global->numThreads <= 1) {
@@ -1098,10 +1103,15 @@ void FitContext::createChildren()
 			}
 			return;
 		}
+		if (ff->openmpUser) {
+			if (OMX_DEBUG) mxLog("FitContext::createChildren: %s is an OpenMP user",
+					     state->algebraList[j]->name());
+		}
 		openmpUser |= ff->openmpUser;
 	}
 
-	if (OMX_DEBUG) mxLog("Create %d FitContext for parallel processing", Global->numThreads);
+	if (OMX_DEBUG) mxLog("FitContext::createChildren: create %d FitContext for parallel processing; OpenMP user=%d",
+			     Global->numThreads, openmpUser);
 
 	int numThreads = Global->numThreads;
 
@@ -1116,7 +1126,7 @@ void FitContext::createChildren()
 		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
 	}
 
-	if (OMX_DEBUG) mxLog("Done creating %d omxState", Global->numThreads);
+	if (OMX_DEBUG) mxLog("FitContext::createChildren: done creating %d omxState", Global->numThreads);
 }
 
 void FitContext::destroyChildren()

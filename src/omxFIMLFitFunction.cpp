@@ -90,6 +90,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		omxMatrix *means	= ofiml->means;
 		omxExpectation* expectation = off->expectation;
 		if (!means) complainAboutMissingMeans(expectation);
+		off->openmpUser = !ofiml->isStateSpace;
 		return;
 	}
 
@@ -151,7 +152,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			}
 		}
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
-		if(OMX_DEBUG) { omxPrintMatrix(means, "Means"); }
+		if(OMX_DEBUG) { if (means) omxPrintMatrix(means, "Means"); }
     }
 
 	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);

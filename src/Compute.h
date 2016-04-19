@@ -124,6 +124,8 @@ class FitContext {
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
+	omxState *getParentState() const { return parent->state; };
+	bool isClone() const;
 	size_t numParam;               // change to int type TODO
 	std::vector<int> mapToParent;
 	double mac;

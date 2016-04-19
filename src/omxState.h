@@ -279,10 +279,12 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage;
+	bool clone;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
+	bool isClone() const { return clone; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -292,7 +294,7 @@ class omxState {
 	// not copied to sub-states
 	std::vector< omxConstraint* > conList;
 
-	omxState() { init(); };
+	omxState() { init(); clone = false; };
 	omxState(omxState *src, FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
@@ -310,6 +312,7 @@ class omxState {
 	~omxState();
 
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
+	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return getMatrixFromIndex(mat->matrixNumber); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 
 	void countNonlinearConstraints(int &equality, int &inequality)

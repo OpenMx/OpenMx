@@ -32,6 +32,11 @@ class AsymTool {
 	bool determinedDepth() const { return hasDeterminedDepth; };
 	bool isFiltered() const { return filtered; };
 	int getDepth() const { return AshallowDepth; };
+	void setDepth(int depth) {
+		AshallowDepth = depth;
+		hasDeterminedDepth = true;
+		if (depth >= 0) signA = 1.0;
+	};
 	double getSign() const { return signA; };
 	int getInvertCount() const { return invertCount; };
 	int getFilterCount() const { return filterCount; };
@@ -385,8 +390,10 @@ namespace RelationalRAMExpectation {
 		int copy;
 	};
 
-	struct addr {
-		omxExpectation *model;
+	class addr {
+	private:
+		omxExpectation *model;  // read-only
+	public:
 		int row;                 // to load definition variables (never the key)
 		struct independentGroup *ig;
 		int igIndex;
@@ -396,11 +403,27 @@ namespace RelationalRAMExpectation {
 		int numObs() const { return numObsCache; }
 		double rampartScale;
 
-		std::string modelName() const {
+		std::string modelName() {
 			std::string tmp = model->data->name;
 			tmp = tmp.substr(0, tmp.size() - 5); // remove ".data" suffix
 			return tmp;
 		};
+		void setModel(omxExpectation *ex) { model=ex; };
+		omxExpectation *getModel(FitContext *fc) {
+			return omxExpectationFromIndex(model->expNum, fc->state);
+		};
+		int getExpNum() const { return model->expNum; };
+		omxData *getData() const { return model->data; };
+		std::vector<bool> &getIgnoreDefVar();
+		omxRAMExpectation *getRAMExpectation(FitContext *fc) {
+			return (omxRAMExpectation*) getModel(fc)->argStruct;
+		};
+		omxRAMExpectation *getRAMExpectationReadOnly() const {
+			// NOTE: not per-thread!
+			return (omxRAMExpectation*) model->argStruct;
+		};
+		omxMatrix *getDataColumns() const { return model->dataColumns; };
+		void dataRow(omxMatrix *out) const;
 	};
 
 	struct RowToLayoutMapCompare {
@@ -433,6 +456,7 @@ namespace RelationalRAMExpectation {
 		void refreshUnitA(FitContext *fc, int px);
 		void invertAndFilterA();
 	public:
+		int arrayIndex;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
 		RowToPlacementMapType            rowToPlacementMap;
 		std::vector<placement>           placements;
@@ -461,10 +485,12 @@ namespace RelationalRAMExpectation {
 			: st(*st), clumpSize(clumpSize),
 			analyzedCov(false), asymT(latentFilter)
 		{ placements.reserve(size); };
-		int numLooseClumps() const {
-			int loose = placements.size() / clumpSize;
-			if (sufficientSets.size()) {
-				loose = sufficientSets[0].start / clumpSize;
+		independentGroup(independentGroup *ig);
+		int numLooseClumps() {
+			independentGroup &par = getParent();
+			int loose = par.placements.size() / clumpSize;
+			if (par.sufficientSets.size()) {
+				loose = par.sufficientSets[0].start / clumpSize;
 			}
 			return loose;
 		};
@@ -478,10 +504,12 @@ namespace RelationalRAMExpectation {
 		void computeCov1(FitContext *fc);
 		void computeCov2();
 		void exportInternalState(MxRList &out, MxRList &dbg);
+		independentGroup &getParent();
 	};
 
 	class state {
 	private:
+		state *parent;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
 
@@ -517,6 +545,7 @@ namespace RelationalRAMExpectation {
 		int verbose() const;
 		bool hasRotationPlan() const { return rotationPlan.size() != 0; }
 		void exportInternalState(MxRList &dbg);
+		state &getParent() { return *parent; };
 	};
 };
 

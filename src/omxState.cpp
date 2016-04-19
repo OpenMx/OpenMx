@@ -352,6 +352,7 @@ void omxState::loadDefinitionVariables(bool start)
 omxState::omxState(omxState *src, FitContext *fc)
 {
 	init();
+	clone = true;
 
 	dataList			= src->dataList;
 		
@@ -372,6 +373,11 @@ omxState::omxState(omxState *src, FitContext *fc)
 
 	for(size_t j = 0; j < algebraList.size(); j++) {
 		omxDuplicateAlgebra(algebraList[j], src->algebraList[j], this);
+	}
+
+	for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
+		// TODO: Smarter inference for which matrices to duplicate
+		matrixList[mx]->copyAttr(src->matrixList[mx]);
 	}
 
 	omxInitialMatrixAlgebraCompute(fc);

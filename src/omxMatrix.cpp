@@ -205,6 +205,14 @@ omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
     return newMat;    
 }
 
+void omxMatrix::copyAttr(omxMatrix *src)
+{
+	joinKey = src->joinKey;
+	if (src->joinModel) {
+		joinModel = omxExpectationFromIndex(src->joinModel->expNum, currentState);
+	}
+}
+
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 {
 	// Always Recompute() before you Resize().

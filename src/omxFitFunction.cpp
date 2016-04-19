@@ -181,7 +181,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	bool doFit = want & FF_COMPUTE_FIT;
 
 #pragma omp atomic
-	++Global->computeCount; // could avoid lock by keeping in FitContext
+	++Global->computeCount; // could avoid lock by keeping in FitContext TODO
 
 	// old version of openmp can't do this as part of the atomic instruction
 	int evaluation = Global->computeCount;
@@ -206,7 +206,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		}
 		Global->checkpointPostfit(callerName, fc, fc->est, false);
 		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name(), evaluation, fc->fit);
+			mxLog("%s: completed evaluation %d, fit=%.12g", fitMat->name(), evaluation, fc->fit);
 		}
 	}
 }

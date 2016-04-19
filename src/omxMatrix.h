@@ -107,6 +107,7 @@ class omxMatrix {
 		if (fitFunction) what = "fitfunction";
 		return what;
 	}
+	void copyAttr(omxMatrix *src);
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);

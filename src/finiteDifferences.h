@@ -119,6 +119,7 @@ template <typename T1, typename T2, typename T3, typename T4, typename T5>
 void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &point,
 		  int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut)
 {
+	// TODO evaluate jacobian in parallel
 	for (int px=0; px < int(point.size()); ++px) {
 		double offset = std::max(fabs(point[px] * eps), eps);
 		Eigen::MatrixXd Gaprox(ref.size(), numIter);
