@@ -29,10 +29,9 @@ struct fit_functional {
 
 	fit_functional(GradientOptimizerContext &goc) : goc(goc) {};
 
-	template <typename T1>
-	double operator()(Eigen::MatrixBase<T1>& x) const {
+	double operator()(double *x, int thrId) const {
 		int mode = 0;
-		return goc.solFun(x.derived().data(), &mode);
+		return goc.evalFit(x, thrId, &mode);
 	}
 };
 
@@ -43,6 +42,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (grad) {
+		R_CheckUserInterrupt();
 		if (goc->maxMajorIterations != -1 && goc->getIteration() >= goc->maxMajorIterations) {
 			nlopt_force_stop(opt);
 		}
@@ -69,7 +69,8 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
 		fit_functional ff(*goc);
-		gradient_with_ref(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+		gradient_with_ref(goc->gradientAlgo, goc->numOptimizerThreads,
+				  goc->gradientIterations, goc->gradientStepSize,
 				  ff, fit, Epoint, Egrad);
 		goc->grad = Egrad;
 	}

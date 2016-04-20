@@ -179,10 +179,9 @@ void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc)
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;
-	R_CheckUserInterrupt();
 
 #pragma omp atomic
-	++Global->computeCount; // could avoid lock by keeping in FitContext
+	++Global->computeCount; // could avoid lock by keeping in FitContext TODO
 
 	// old version of openmp can't do this as part of the atomic instruction
 	int evaluation = Global->computeCount;
@@ -191,7 +190,6 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (OMX_DEBUG) {
 			mxLog("%s: starting evaluation %d, want %d", fitMat->name(), evaluation, want);
 		}
-		Global->checkpointPrefit(callerName, fc, fc->est, false);
 	}
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
@@ -206,9 +204,9 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();
 		}
-		Global->checkpointPostfit(fc);
+		Global->checkpointPostfit(callerName, fc, fc->est, false);
 		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation %d, fit=%f", fitMat->name(), evaluation, fc->fit);
+			mxLog("%s: completed evaluation %d, fit=%.12g", fitMat->name(), evaluation, fc->fit);
 		}
 	}
 }
@@ -371,8 +369,9 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 
 	omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 	const double fit = totalLogLikelihood(fitMat);
-	omxRecompute(CI->matrix, fc);
-	double CIElement = omxMatrixElement(CI->matrix, CI->row, CI->col);
+	omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
+	omxRecompute(ciMatrix, fc);
+	double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
 	omxResizeMatrix(fitMat, 1, 1);
 
 	if (!std::isfinite(fit) || !std::isfinite(CIElement)) {

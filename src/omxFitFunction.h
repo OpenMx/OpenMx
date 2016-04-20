@@ -91,6 +91,7 @@ struct omxFitFunction {					// A fit function
 	bool hessianAvailable;
 	FitStatisticUnits units;
 	bool canDuplicate;
+	bool openmpUser; // can decide this in preoptimize
 
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }

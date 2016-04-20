@@ -26,7 +26,7 @@
 #include "glue.h"
 #include "omxExportBackendState.h"
 
-void omxState::omxExportResults(MxRList *out)
+void omxState::omxExportResults(MxRList *out, FitContext *fc)
 {
 	SEXP matrices;
 	SEXP algebras;
@@ -46,7 +46,7 @@ void omxState::omxExportResults(MxRList *out)
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
-	setWantStage(FF_COMPUTE_INITIAL_FIT);
+	setWantStage(FF_COMPUTE_FIT | FF_COMPUTE_FINAL_FIT);
 
 	for(size_t index = 0; index < algebraList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation and Copy of Algebra %d.", (int) index); }
@@ -55,7 +55,7 @@ void omxState::omxExportResults(MxRList *out)
 		// but the fitfunction does not depend on those algebra
 		// then they need to be recomputed based on the final
 		// estimates.
-		omxRecompute(nextAlgebra, NULL);
+		if (!isErrorRaised()) omxRecompute(nextAlgebra, fc);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;

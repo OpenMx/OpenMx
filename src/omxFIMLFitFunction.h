@@ -20,15 +20,6 @@
 
 #include "omxFitFunction.h"
 
-typedef bool (*FIMLSingleIterationType)(FitContext *fc, omxFitFunction *localobj,
-	omxFitFunction *sharedobj, int rowbegin, int rowcount);
-
-bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
-	omxFitFunction *sharedobj, int rowbegin, int rowcount);
-
-bool omxFIMLSingleIteration(FitContext *fc, omxFitFunction *localobj,
-	omxFitFunction *sharedobj, int rowbegin, int rowcount);
-
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
 	double Mahalanobis;		// Square root of Mahalanobis distance Q = (row - means) %*% solve(sigma) %*% (row - means)
@@ -42,6 +33,7 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 typedef struct omxFIMLFitFunction {
 
 	/* Parts of the R  MxFIMLFitFunction Object */
+	bool isStateSpace;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
@@ -86,8 +78,6 @@ typedef struct omxFIMLFitFunction {
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions
 
-	FIMLSingleIterationType SingleIterFn;
-
 } omxFIMLFitFunction;
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
@@ -95,5 +85,7 @@ void omxDestroyFIMLFitFunction(omxFitFunction *oo);
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
+bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFitFunction *sharedobj,
+				 int rowbegin, int rowcount);
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */

@@ -1053,7 +1053,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
-	if (want & FF_COMPUTE_INITIAL_FIT) return;
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FINAL_FIT)) return;
 
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		buildItemParamMap(oo, fc);

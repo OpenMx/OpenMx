@@ -125,7 +125,7 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
-	int numChildren = fc->childList.size();
+	int numChildren = fc? fc->childList.size() : 0;
 
     omxMatrix *reduceAlgebra;
 	omxData *data;
@@ -286,6 +286,8 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 
 	oo->computeFun = omxCallRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;
+	oo->canDuplicate = true;
+	oo->openmpUser = true;
 
 	oo->argStruct = (void*) newObj;
 }

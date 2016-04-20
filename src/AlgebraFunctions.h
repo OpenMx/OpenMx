@@ -32,7 +32,6 @@
 #include <Rmath.h>
 #include "omxMatrix.h"
 #include "merge.h"
-#include "omxBLAS.h"
 #include "omxSadmvnWrapper.h"
 #include "matrix.h"
 #include "omxState.h"

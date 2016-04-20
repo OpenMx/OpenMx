@@ -17,7 +17,6 @@
 
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
-#include "omxBLAS.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 //#include <Eigen/LU>
@@ -212,6 +211,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	oo->componentFun = omxGetRAMExpectationComponent;
 	oo->populateAttrFun = omxPopulateRAMAttributes;
 	oo->argStruct = (void*) RAMexp;
+	oo->canDuplicate = true;
 	
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	RAMexp->verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
@@ -363,11 +363,17 @@ namespace RelationalRAMExpectation {
 
 	// verify whether sparse can deal with parameters set to exactly zero TODO
 
+	independentGroup &independentGroup::getParent()
+	{
+		return *st.getParent().group[arrayIndex];
+	}
+
 	void independentGroup::refreshUnitA(FitContext *fc, int px)
 	{
-		struct placement &pl = placements[px];
-		addr &a1 = st.layout[pl.aIndex];
-		omxExpectation *expectation = a1.model;
+		independentGroup &par = getParent();
+		struct placement &pl = par.placements[px];
+		addr &a1 = par.st.layout[pl.aIndex];
+		omxExpectation *expectation = a1.getModel(fc);
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
@@ -396,8 +402,8 @@ namespace RelationalRAMExpectation {
 			omxData *data1 = betA->getJoinModel()->data;
 			int frow = data1->lookupRowOfKey(key);
 			RowToPlacementMapType::iterator plIndex =
-				rowToPlacementMap.find(std::make_pair(data1, frow));
-			placement &p2 = placements[ plIndex->second ];
+				par.rowToPlacementMap.find(std::make_pair(data1, frow));
+			placement &p2 = par.placements[ plIndex->second ];
 			omxRecompute(betA, fc);
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel()->argStruct;
 			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
@@ -413,10 +419,11 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::refreshModel(FitContext *fc)
 	{
+		independentGroup &par = getParent();
 		for (int ax=0; ax < clumpSize; ++ax) {
-			placement &pl = placements[ax];
-			addr &a1 = st.layout[pl.aIndex];
-			omxExpectation *expectation = a1.model;
+			placement &pl = par.placements[ax];
+			addr &a1 = par.st.layout[pl.aIndex];
+			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
@@ -466,7 +473,7 @@ namespace RelationalRAMExpectation {
 		as1.numKids = 0;
 		a1.rampartScale = 1.0;
 		a1.row = frow;
-		a1.model = expectation;
+		a1.setModel(expectation);
 		//as1.key = frow;
 
 		std::vector<int> parents;
@@ -529,7 +536,7 @@ namespace RelationalRAMExpectation {
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[pl.aIndex];
-			omxExpectation *expectation = a1.model;
+			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
 
@@ -579,16 +586,27 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
+	std::vector<bool> &addr::getIgnoreDefVar()
+	{
+		omxRAMExpectation *ram = (omxRAMExpectation*) model->argStruct;
+		return ram->ignoreDefVar;
+	}
+
+	void addr::dataRow(omxMatrix *out) const
+	{
+		omxDataRow(model, row, out);
+	}
+
 	struct CompareLib {
 		state &st;
-		CompareLib(state *st) : st(*st) {};
+		CompareLib(state *st) : st(st->getParent()) {};
 
 		// actually stores !missingness
 		template <typename T>
 		void getMissingnessPattern(const addr &a1, std::vector<T> &out) const
 		{
-			omxDataRow(a1.model, a1.row, st.smallCol);
-			int jCols = a1.model->dataColumns->cols;
+			a1.dataRow(st.smallCol);
+			int jCols = a1.getDataColumns()->cols;
 			out.reserve(jCols);
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(st.smallCol, 0, col);
@@ -599,8 +617,8 @@ namespace RelationalRAMExpectation {
 		bool compareModelAndMissingness(addr &la, addr &ra, bool &mismatch) const
 		{
 			mismatch = true;
-			if (la.model != ra.model)
-				return strcmp(la.model->name, ra.model->name) < 0;
+			if (la.getExpNum() != ra.getExpNum())
+				return la.getExpNum() < ra.getExpNum();
 
 			if (la.numVars() != ra.numVars())
 				return la.numVars() < ra.numVars();
@@ -625,7 +643,7 @@ namespace RelationalRAMExpectation {
 		{
 			mismatch = true;
 
-			omxData *data = la.model->data;  // both la & ra have same data
+			omxData *data = la.getData();  // both la & ra have same data
 			for (size_t k=0; k < data->defVars.size(); ++k) {
 				int col = data->defVars[k].column;
 				double lv = omxDoubleDataElement(data, la.row, col);
@@ -642,10 +660,10 @@ namespace RelationalRAMExpectation {
 		{
 			mismatch = true;
 
-			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
-			omxData *data = la.model->data;  // both la & ra have same data
+			std::vector<bool> &ignoreDefVar = la.getIgnoreDefVar();
+			omxData *data = la.getData();  // both la & ra have same data
 			for (size_t k=0; k < data->defVars.size(); ++k) {
-				if (ram->ignoreDefVar[k]) continue;
+				if (ignoreDefVar[k]) continue;
 				int col = data->defVars[k].column;
 				double lv = omxDoubleDataElement(data, la.row, col);
 				double rv = omxDoubleDataElement(data, ra.row, col);
@@ -683,8 +701,8 @@ namespace RelationalRAMExpectation {
 
 		addr *joinedWith(const addr &la, int jx) const
 		{
-			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
-			omxData *data = la.model->data;
+			omxRAMExpectation *ram = la.getRAMExpectationReadOnly();
+			omxData *data = la.getData();
 			omxMatrix *betA = ram->between[jx];
 			int key = omxKeyDataElement(data, la.row, betA->getJoinKey());
 			if (key == NA_INTEGER) return 0;
@@ -700,7 +718,7 @@ namespace RelationalRAMExpectation {
 
 		bool compareDeep(const addr &la, const addr &ra, bool &mismatch) const
 		{
-			omxRAMExpectation *ram = (omxRAMExpectation*) la.model->argStruct;
+			omxRAMExpectation *ram = la.getRAMExpectationReadOnly();
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				addr *lp = joinedWith(la, jx);
 				addr *rp = joinedWith(ra, jx);
@@ -795,7 +813,7 @@ namespace RelationalRAMExpectation {
 		std::set<omxExpectation*> checkedEx;
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
-			omxExpectation *expectation = a1.model;
+			omxExpectation *expectation = a1.getModel(fc);
 			omxData *data = expectation->data;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
@@ -895,10 +913,10 @@ namespace RelationalRAMExpectation {
 					mxLog("assign %d to region %d", ax, as1.region);
 				}
 			}
-			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+			omxRAMExpectation *ram = (omxRAMExpectation*) a1.getModel(fc)->argStruct;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
 				omxMatrix *b1 = ram->between[jx];
-				int key = omxKeyDataElement(a1.model->data, a1.row, b1->getJoinKey());
+				int key = omxKeyDataElement(a1.getData(), a1.row, b1->getJoinKey());
 				if (key == NA_INTEGER) continue;
 				omxExpectation *e1 = b1->getJoinModel();
 				int row = e1->data->lookupRowOfKey(key);
@@ -1063,6 +1081,21 @@ namespace RelationalRAMExpectation {
 		placements.push_back(pl);
 	}
 
+	independentGroup::independentGroup(independentGroup *ig)
+		: st(ig->st), clumpSize(ig->clumpSize),
+		  analyzedCov(false), asymT(ig->latentFilter)
+	{
+		arrayIndex = ig->arrayIndex;
+		obsNameVec = 0;
+		varNameVec = 0;
+		expectedVec.resize(ig->expectedVec.size());
+		fullMean.resize(ig->fullMean.size());
+		clumpVars = ig->clumpVars;
+		clumpObs = ig->clumpObs;
+		asymT.resize(clumpVars, clumpObs);
+		asymT.setDepth(ig->asymT.getDepth());
+	}
+
 	void independentGroup::prep(FitContext *fc)
 	{
 		int totalObserved = 0;
@@ -1117,17 +1150,17 @@ namespace RelationalRAMExpectation {
 				}
 			}
 
-			omxData *data = a1.model->data;
+			omxData *data = a1.getData();
 			rowToPlacementMap[ std::make_pair(data, a1.row) ] = ax;
 
-			omxRAMExpectation *ram = (omxRAMExpectation*) a1.model->argStruct;
+			omxRAMExpectation *ram = a1.getRAMExpectation(fc);
 
 			std::string modelName(data->name);
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
-			if (a1.model->dataColumns->cols) {
+			if (a1.getDataColumns()->cols) {
 				int prevDx = dx;
-				omxDataRow(a1.model, a1.row, st.smallCol);
+				a1.dataRow(st.smallCol);
 				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
 					if (!ram->latentFilter[vx]) continue;
 					int col = ncol++;
@@ -1139,7 +1172,7 @@ namespace RelationalRAMExpectation {
 						modelName + omxDataColumnName(data, ram->dataCols[col]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
-					if (a1.model == st.homeEx) dataColumn[ dx ] = col;
+					if (a1.getExpNum() == st.homeEx->expNum) dataColumn[ dx ] = col;
 					dx += 1;
 				}
 				if (a1.numObs() != dx - prevDx) {
@@ -1161,7 +1194,7 @@ namespace RelationalRAMExpectation {
 		RampartCompareLib(state *st) : st(st) {};
 
 		omxExpectation *getJoinModel(const addr *a1) const {
-			omxRAMExpectation *ram = (omxRAMExpectation*) a1->model->argStruct;
+			omxRAMExpectation *ram = a1->getRAMExpectationReadOnly();
 			omxMatrix *b1 = ram->between[0];
 			return b1->getJoinModel();
 		};
@@ -1170,8 +1203,8 @@ namespace RelationalRAMExpectation {
 		template <typename T>
 		void getMissingnessPattern(const addr *a1, std::vector<T> &out) const
 		{
-			omxDataRow(a1->model, a1->row, st->smallCol);
-			int jCols = a1->model->dataColumns->cols;
+			a1->dataRow(st->smallCol);
+			int jCols = a1->getDataColumns()->cols;
 			out.reserve(jCols);
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(st->smallCol, 0, col);
@@ -1186,11 +1219,11 @@ namespace RelationalRAMExpectation {
 				return true;
 			}
 
-			omxRAMExpectation *ram = (omxRAMExpectation*) lhs->model->argStruct;
+			omxRAMExpectation *ram = lhs->getRAMExpectationReadOnly();
 			omxMatrix *b1 = ram->between[0];
 
 			bool mismatch;
-			result = lhs->model->data->CompareDefVarInMatrix(lhs->row, rhs->row, b1, mismatch);
+			result = lhs->getData()->CompareDefVarInMatrix(lhs->row, rhs->row, b1, mismatch);
 			if (mismatch) return true;
 
 			return false;
@@ -1198,8 +1231,8 @@ namespace RelationalRAMExpectation {
 
 		bool cmpRecursive(const addr *lhs, const addr *rhs, bool &result) const
 		{
-			if (lhs->model != rhs->model) {
-				result = strcmp(lhs->model->name, rhs->model->name) < 0;
+			if (lhs->getExpNum() != rhs->getExpNum()) {
+				result = lhs->getExpNum() < rhs->getExpNum();
 				return true;
 			}
 			if (lhs->numVars() != rhs->numVars()) {
@@ -1360,10 +1393,11 @@ namespace RelationalRAMExpectation {
 		// split into coeff & coeffRef versions TODO
 		double &operator() (const int unit, const int obs)
 		{
-			addr &ad = st.layout[unit];
+			addr &ad = st.getParent().layout[unit];
 			independentGroup &ig = *ad.ig;
+			independentGroup &tig = *st.group[ad.ig->arrayIndex];
 			int obsStart = ig.placements[ad.igIndex].obsStart;
-			return (model? ig.expectedVec : ig.dataVec).coeffRef(obsStart + obs);
+			return (model? tig.expectedVec : ig.dataVec).coeffRef(obsStart + obs);
 		};
 	};
 
@@ -1432,13 +1466,24 @@ namespace RelationalRAMExpectation {
 
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
+		parent = this;
 		homeEx = expectation;
 
 		omxRAMExpectation *ram = (omxRAMExpectation*) homeEx->argStruct;
-
 		int numManifest = ram->F->rows;
-
 		smallCol = omxInitMatrix(1, numManifest, TRUE, homeEx->currentState);
+
+		if (fc->isClone()) {
+			omxExpectation *phomeEx = omxExpectationFromIndex(homeEx->expNum, fc->getParentState());
+			omxRAMExpectation *pram = (omxRAMExpectation*) phomeEx->argStruct;
+			parent = pram->rram;
+			group.reserve(parent->group.size());
+			for (size_t gx=0; gx < parent->group.size(); ++gx) {
+				independentGroup *ig = parent->group[gx];
+				group.push_back(new independentGroup(ig));
+			}
+			return;
+		}
 
 		{
 			ProtectedSEXP Rdvhack(R_do_slot(expectation->rObj, Rf_install(".identifyZeroVarPred")));
@@ -1484,6 +1529,10 @@ namespace RelationalRAMExpectation {
 
 		fc->copyParamToModelClean();
 
+		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
+			(*it)->arrayIndex = it - group.begin();
+		}
+
 		applyRotationPlan(UnitAccessor<false>(this));
 
 		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
@@ -1512,7 +1561,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::computeCov1(FitContext *fc)
 	{
-		if (0 == dataVec.size()) return;
+		if (0 == getParent().dataVec.size()) return;
 
 		fullS.conservativeResize(clumpVars, clumpVars);
 
@@ -1550,10 +1599,11 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::filterFullMean()
 	{
-		if (0 == dataVec.size()) return;
+		independentGroup &pig = getParent();
+		if (0 == pig.dataVec.size()) return;
 		int ox = 0;
-		for (size_t lx=0; lx < latentFilter.size(); ++lx) {
-			if (!latentFilter[lx]) continue;
+		for (size_t lx=0; lx < pig.latentFilter.size(); ++lx) {
+			if (!pig.latentFilter[lx]) continue;
 			expectedVec[ox++] = fullMean[lx];
 		}
 	}
@@ -1563,24 +1613,27 @@ namespace RelationalRAMExpectation {
 		// maybe there is a way to sort by dependency
 		// so this loop can be parallelized
 
+		state &pst = getParent();
+
 		// can detect whether all units within an independent group are self contained
-		for (size_t ax=0; ax < layout.size(); ++ax) {
-			addr &a1 = layout[ax];
-			omxExpectation *expectation = a1.model;
+		for (size_t ax=0; ax < pst.layout.size(); ++ax) {
+			addr &a1 = pst.layout[ax];
+			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
 			omxData *data = expectation->data;
 			expectation->loadDefVars(a1.row);
 			int a1Start = a1.ig->placements[a1.igIndex].modelStart;
+			independentGroup &tig1 = *group[a1.ig->arrayIndex];
 			if (ram->M) {
 				omxRecompute(ram->M, fc);
 				EigenVectorAdaptor eM(ram->M);
-				a1.ig->fullMean.segment(a1Start, a1.numVars()) = eM;
+				tig1.fullMean.segment(a1Start, a1.numVars()) = eM;
 				if (0) {
-					a1.ig->rawFullMean.segment(a1Start, a1.numVars()) = eM;
+					tig1.rawFullMean.segment(a1Start, a1.numVars()) = eM;
 				}
 			} else {
-				a1.ig->fullMean.segment(a1Start, a1.numVars()).setZero();
+				tig1.fullMean.segment(a1Start, a1.numVars()).setZero();
 			}
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -1589,20 +1642,21 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				size_t a2Offset = rowToLayoutMap[std::make_pair(data1, frow)];
+				size_t a2Offset = pst.rowToLayoutMap[std::make_pair(data1, frow)];
 				if (ax < a2Offset) Rf_error("Not in topological order");
-				addr &a2 = layout[a2Offset];
+				addr &a2 = pst.layout[a2Offset];
+				independentGroup &tig2 = *group[a2.ig->arrayIndex];
 				omxRecompute(betA, fc);
 				EigenMatrixAdaptor eBA(betA);
-				a1.ig->fullMean.segment(a1Start, a1.numVars()) +=
-					eBA * a2.ig->fullMean.segment(a2.ig->placements[a2.igIndex].modelStart, eBA.cols());
+				tig1.fullMean.segment(a1Start, a1.numVars()) +=
+					eBA * tig2.fullMean.segment(a2.ig->placements[a2.igIndex].modelStart, eBA.cols());
 			}
 
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
 			EigenMatrixAdaptor eZ(ram->getZ(fc));
-			a1.ig->fullMean.segment(a1Start, a1.numVars()) =
-				eZ * a1.ig->fullMean.segment(a1Start, a1.numVars());
+			tig1.fullMean.segment(a1Start, a1.numVars()) =
+				eZ * tig1.fullMean.segment(a1Start, a1.numVars());
 		}
 
 		for (size_t gx=0; gx < group.size(); ++gx) {
@@ -1616,15 +1670,15 @@ namespace RelationalRAMExpectation {
 			}
 			Eigen::VectorXd expectedVec(totalObserved);
 			int ox=0;
-			for (size_t ax=0; ax < layout.size(); ++ax) {
-				addr &a1 = layout[ax];
+			for (size_t ax=0; ax < pst.layout.size(); ++ax) {
+				addr &a1 = pst.layout[ax];
 				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
 				expectedVec.segment(ox, a1.numObs()) =
 					a1.ig->expectedVec.segment(a1Start, a1.numObs());
 			}
 		}
 
-		applyRotationPlan(UnitAccessor<true>(this));
+		pst.applyRotationPlan(UnitAccessor<true>(this));
 	}
 
 	static int plusOne(int val) {

@@ -35,6 +35,7 @@ Depends:
     digest,
     MASS,
     methods,
+    Matrix,
     Rcpp,
     parallel
 Suggests:
@@ -42,7 +43,6 @@ Suggests:
     numDeriv,
     roxygen2 (>= 3.1),
     Rmpi,
-    Matrix,
     rpf (>= 0.45),
     snowfall,
     lme4

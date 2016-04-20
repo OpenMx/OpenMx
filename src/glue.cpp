@@ -443,7 +443,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	MxRList result;
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	globalState->omxExportResults(&result);
+	globalState->omxExportResults(&result, fc);
 
 	if (topCompute && !isErrorRaised()) {
 		LocalComputeResult cResult;

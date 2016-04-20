@@ -19,8 +19,7 @@ setClass(Class = "MxFitFunctionML",
 	 representation = representation(
 	     fellner = "logical",
 	     verbose = "integer",
-	     profileOut="MxOptionalChar",
-	     parallel = "logical"),
+	     profileOut="MxOptionalChar"),
 	 )
 
 setMethod("initialize", "MxFitFunctionML",
@@ -31,7 +30,6 @@ setMethod("initialize", "MxFitFunctionML",
 		.Object@fellner <- fellner
 		.Object@verbose <- verbose
 		.Object@profileOut <- profileOut
-		.Object@parallel <- as.logical(NA)
 		return(.Object)
 	}
 )

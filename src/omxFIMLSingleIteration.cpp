@@ -165,13 +165,13 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 		// set the y attribute of the state space expectation to smallRow.
 		
 		if(numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || 
-			firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {  // If we're keeping covariance from the previous row, do not populate 
+		   firstRow || ofo->isStateSpace) {  // If we're keeping covariance from the previous row, do not populate 
 			// Handle Definition Variables.
-			if((numDefs && numIdenticalDefs <= 0) || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+			if((numDefs && numIdenticalDefs <= 0) || firstRow || ofo->isStateSpace) {
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				bool numVarsFilled = expectation->loadDefVars(row);
-				if (numVarsFilled || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
-					if(row == 0 && !strcmp(expectation->expType, "MxExpectationStateSpace") ) {
+				if (numVarsFilled || firstRow || ofo->isStateSpace) {
+					if(row == 0 && ofo->isStateSpace) {
 						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
 						omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
 					}
@@ -290,15 +290,15 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					omxStandardizeCovMatrix(ordCov, corList, weights, fc);
 				}
 			} 
-			else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+			else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || ofo->isStateSpace) {
 				
 				/* Reset and Resample rows if necessary. */
 				// First Cov and Means (if they've changed)
-				if( numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow || !strcmp(expectation->expType, "MxExpectationStateSpace")) {
+				if( numIdenticalDefs <= 0 || numIdenticalContinuousMissingness <= 0 || firstRow || ofo->isStateSpace) {
 					if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to recompute inverse cov for standard models"); }
 					
 					/* If it's a state space expectation, extract the inverse rather than recompute it */
-					if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
+					if(ofo->isStateSpace) {
 						smallMeans = omxGetExpectationComponent(expectation, "means");
 						omxRemoveElements(smallMeans, contRemove.data());
 						if(OMX_DEBUG_ROWS(row)) { mxLog("Beginning to extract inverse cov for state space models"); }

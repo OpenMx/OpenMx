@@ -25,9 +25,16 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, -3660.596, .01)
 
-factorFitCI <- mxRun(factorFit, intervals=TRUE, suppressWarnings = TRUE)
+factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxComputeGradientDescent())), suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
+
+omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))
+omxCheckCloseEnough(factorFit$output$fit, factorFitCI$output$fit, 0)
+omxCheckCloseEnough(mxEval(Z, factorFit), mxEval(Z, factorFitCI))
+omxCheckCloseEnough(mxEval(C, factorFit), mxEval(C, factorFitCI))
+omxCheckCloseEnough(mxEval(P, factorFit), mxEval(P, factorFitCI))
+omxCheckCloseEnough(mxEval(objective, factorFit)[1,1], mxEval(objective, factorFitCI)[1,1])
 
 if (0) {
   options(digits=12)
@@ -39,11 +46,18 @@ ci <- factorFitCI$output$confidenceIntervals
 #print(ci)
 #cat(deparse(round(ci[,'ubound'],4)))
 omxCheckCloseEnough(ci[,'estimate'], c(0.4456, 0.5401, 0.6116, 0.7302, 0.8187), .001)
-omxCheckCloseEnough(ci[,'lbound'], c(0.406, 0.485, 0.553, 0.6872, 0.769), .03)
-omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.778, 0.8723), .06)
+
+lbound <- c(0.406, 0.485, 0.553, 0.6872, 0.769)
+ubound <- c(0.4747, 0.5754, 0.6516, 0.778, 0.8723)
+
+omxCheckCloseEnough(ci[,'lbound'], lbound, .03)
+
+if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
+	# NPSOL needs to get slightly closer to the MLE to nail all of these
+	omxCheckCloseEnough(ci[,'ubound'], ubound, .06)
+}
 
 factorParallel <- omxParallelCI(factorFit)
-omxCheckCloseEnough(factorParallel$output$confidenceIntervals,
-	factorFitCI$output$confidenceIntervals, 0.001)
-
-# TODO : Compare to old Mx values.
+pci <- factorParallel$output$confidenceIntervals
+omxCheckCloseEnough(pci[,'lbound'], lbound, .03)
+omxCheckCloseEnough(pci[,'ubound'], ubound, .06)

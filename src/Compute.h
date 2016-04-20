@@ -124,6 +124,8 @@ class FitContext {
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
+	omxState *getParentState() const { return parent->state; };
+	bool isClone() const;
 	size_t numParam;               // change to int type TODO
 	std::vector<int> mapToParent;
 	double mac;
@@ -152,6 +154,7 @@ class FitContext {
 
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
+	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
 	void createChildren();
 	void destroyChildren();
 	void allocStderrs();
@@ -263,6 +266,7 @@ class GradientOptimizerContext {
 	int prevMode;
 	void *extraData;
 	omxMatrix *fitMatrix;
+	int numOptimizerThreads;
 	int maxMajorIterations;
 
 	int ControlMajorLimit;
@@ -304,6 +308,7 @@ class GradientOptimizerContext {
 	void setupAllBounds();             // NPSOL style
 
 	double solFun(double *myPars, int* mode);
+	double evalFit(double *myPars, int thrId, int *mode);
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
@@ -311,7 +316,8 @@ class GradientOptimizerContext {
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
-	void copyFromOptimizer(double *myPars);
+	void copyFromOptimizer(double *myPars, FitContext *fc2);
+	void copyFromOptimizer(double *myPars) { copyFromOptimizer(myPars, fc); };
 	void finish();
 	double getFit() const { return fc->fit; };
 	int getIteration() const { return fc->iterations; };

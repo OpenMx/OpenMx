@@ -360,6 +360,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	MLFitState *newObj = new MLFitState;
 	oo->argStruct = (void*)newObj;
 	oo->populateAttrFun = omxPopulateMLAttributes;
+	oo->canDuplicate = true;
 
 	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataCovariance(dataMat);

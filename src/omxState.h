@@ -170,10 +170,8 @@ class omxCheckpoint {
 	time_t lastCheckpoint;	// FIXME: Cannot update at sub-second times.
 	int lastIterations;
 	int lastEvaluation;
-	bool fitPending;
 
 	void omxWriteCheckpointHeader();
-	void _prefit(FitContext *fc, double *est, bool force, const char *context);
 
  public:
 	omxCheckpointType type;
@@ -184,14 +182,13 @@ class omxCheckpoint {
 
 	omxCheckpoint();
 	void message(FitContext *fc, double *est, const char *msg);
-	void prefit(const char *callerName, FitContext *fc, double *est, bool force);
-	void postfit(FitContext *fc);
+	void postfit(const char *callerName, FitContext *fc, double *est, bool force);
 	~omxCheckpoint();
 };
 
 struct omxConfidenceInterval {		// For Confidence interval request
 	std::string name;
-	omxMatrix* matrix;				// The matrix
+	int matrixNumber;
 	int row, col;					// Location of element to calculate
 	int varIndex;
 	double ubound;					// Fit-space upper boundary
@@ -202,6 +199,7 @@ struct omxConfidenceInterval {		// For Confidence interval request
 	int uCode;						// Optimizer code at upper bound
 	omxConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
+	omxMatrix *getMatrix(omxState *st) const;
 };
 
 // omxGlobal is for state that is read-only during parallel sections.
@@ -234,7 +232,7 @@ class omxGlobal {
 	int maxStackDepth;
 
 	std::vector< omxConfidenceInterval* > intervalList;
-	void unpackConfidenceIntervals();
+	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 
 	int computeCount; // protected by openmp atomic
@@ -259,8 +257,7 @@ class omxGlobal {
 	void deduplicateVarGroups();
 	const char *getBads();
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
-	void checkpointPrefit(const char *callerName, FitContext *fc, double *est, bool force);
-	void checkpointPostfit(FitContext *fc);
+	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
 	double getGradientThreshold(double fit) { return std::max(fabs(fit) * gradientTolerance, .01); }
 
 	void cacheDependencies(omxState *os) {
@@ -282,10 +279,12 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage;
+	bool clone;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
+	bool isClone() const { return clone; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -295,7 +294,7 @@ class omxState {
 	// not copied to sub-states
 	std::vector< omxConstraint* > conList;
 
-	omxState() { init(); };
+	omxState() { init(); clone = false; };
 	omxState(omxState *src, FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
@@ -309,10 +308,11 @@ class omxState {
 	void omxProcessMxDataEntities(SEXP data, SEXP defvars);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
-	void omxExportResults(MxRList *out);
+	void omxExportResults(MxRList *out, FitContext *fc);
 	~omxState();
 
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
+	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return getMatrixFromIndex(mat->matrixNumber); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 
 	void countNonlinearConstraints(int &equality, int &inequality)
@@ -329,9 +329,6 @@ class omxState {
 		}
 	};
 };
-
-/* Initialize and Destroy */
-omxMatrix* omxLookupDuplicateElement(omxState* os, omxMatrix* element);
 
 inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
