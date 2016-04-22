@@ -211,7 +211,6 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	llScale = -2.0;
 	debugProtectStack = OMX_DEBUG;
-	computeCount = 0;
 	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
@@ -700,11 +699,12 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bo
 	const int timeBufSize = 32;
 	char timeBuf[timeBufSize];
 	time_t now = time(NULL); // avoid checking unless we need it
+	int curEval = fc->getComputeCount();
 
 	bool doit = force;
 	if ((timePerCheckpoint && timePerCheckpoint <= now - lastCheckpoint) ||
 	    (iterPerCheckpoint && iterPerCheckpoint <= fc->iterations - lastIterations) ||
-	    (evalsPerCheckpoint && evalsPerCheckpoint <= Global->computeCount - lastEvaluation)) {
+	    (evalsPerCheckpoint && evalsPerCheckpoint <= curEval - lastEvaluation)) {
 		doit = true;
 	}
 	if (!doit) return;
@@ -732,7 +732,7 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bo
 		fflush(file);
 		lastCheckpoint = now;
 		lastIterations = fc->iterations;
-		lastEvaluation = Global->computeCount;
+		lastEvaluation = curEval;
 	}
 }
 

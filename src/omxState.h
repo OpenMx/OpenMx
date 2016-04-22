@@ -235,8 +235,6 @@ class omxGlobal {
 	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 
-	int computeCount; // protected by openmp atomic
-
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
 	bool boundsUpdated;

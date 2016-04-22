@@ -175,7 +175,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren();
 
-	int beforeEval = Global->computeCount;
+	int beforeEval = fc->getComputeCount();
 
 	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g",
 				name, engineName, engine, gradientAlgoName, optimalityTolerance);
@@ -258,13 +258,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	fc->inform = rf.informOut;
-	if (fc->inform <= 0 && Global->computeCount - beforeEval == 1) {
+	if (fc->inform <= 0 && fc->getComputeCount() - beforeEval == 1) {
 		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
 	}
 
 	if (verbose >= 1) {
 		mxLog("%s: engine %s done, iter=%d inform=%d",
-		      name, engineName, Global->computeCount - beforeEval, fc->inform);
+		      name, engineName, fc->getComputeCount() - beforeEval, fc->inform);
 	}
 
 	// Optimizers can terminate with inconsistent fit and parameters
