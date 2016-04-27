@@ -1,0 +1,9 @@
+Background:
+
+http://www.softwarefreedom.org/resources/2007/gpl-non-gpl-collaboration.html
+
+Project policy:
+
+We use a "file-by-file" method of copyright inventory. The comment
+block at the top of a source file declares which license covers that
+particular source file.

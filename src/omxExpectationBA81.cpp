@@ -24,6 +24,7 @@
 #include "dmvnorm.h"
 #include "omxBuffer.h"
 #include "matrix.h"
+#include "npsolswitch.h"
 
 #define USE_EXTERNAL_LIBRPF 1
 
@@ -552,6 +553,9 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	SEXP rObj = oo->rObj;
 	SEXP tmp;
 	
+	if (HAS_NPSOL) {
+		Rf_error("IFA models are not available in this version of OpenMx");
+	}
 	if(OMX_DEBUG) {
 		mxLog("Initializing %s.", oo->name);
 	}

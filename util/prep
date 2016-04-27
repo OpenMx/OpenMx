@@ -7,9 +7,11 @@ flavor=$1
 case "$flavor" in
   npsol)
     echo "* NPSOL build selected"
+    LICENSE='Apache License (== 2.0)'
     ;;
   cran)
     echo "* CRAN build selected"
+    LICENSE='GPL (>= 3)'
     ;;
   *)
     echo "$0: build flavor '$flavor' unrecognized (try 'npsol' or 'cran')"
@@ -22,7 +24,7 @@ AUTHORS=$(cat DESCRIPTION.in | perl -0pe 's,\n\s+, ,sg' |grep '^Author' | cut -d
 DATE=$(git log -n 1 --date=short --format=%cd)
 YEAR=$(echo $DATE | cut -d '-' -f 1)
 
-cat DESCRIPTION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$DATE/" > DESCRIPTION
+cat DESCRIPTION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$DATE/" -e "s/@LICENSE@/$LICENSE/" > DESCRIPTION
 cat inst/CITATION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@YEAR@/$YEAR/" -e "s/@AUTHORS@/$AUTHORS/" > inst/CITATION
 
 mxV=R/MxVersion.R

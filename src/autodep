@@ -80,7 +80,7 @@ omxExpectationBA81.o: Makevars.in omxExpectationBA81.cpp omxExpectationBA81.h \
  omxExpectation.h omxDefines.h omxMatrix.h \
   omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h Compute.h \
- glue.h ba81quad.h  dmvnorm.h omxBuffer.h matrix.h
+ glue.h ba81quad.h  dmvnorm.h omxBuffer.h matrix.h npsolswitch.h
 omxExportBackendState.o: Makevars.in omxExportBackendState.cpp omxDefines.h \
  omxState.h omxMatrix.h \
   omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
@@ -137,7 +137,7 @@ omxMLFitFunction.o: Makevars.in omxMLFitFunction.cpp omxDefines.h \
  multi_normal_sufficient.hpp omxExpectation.h omxMatrix.h  \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h \
  omxData.h Compute.h \
- glue.h omxFIMLFitFunction.h omxRAMExpectation.h omxBuffer.h matrix.h RAMInternal.h
+ glue.h omxFIMLFitFunction.h omxRAMExpectation.h omxBuffer.h matrix.h RAMInternal.h npsolswitch.h
 omxMatrix.o: Makevars.in omxMatrix.cpp omxMatrix.h omxDefines.h \
   matrix.h \
  omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
