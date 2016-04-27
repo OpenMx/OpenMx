@@ -32,7 +32,6 @@
 #include "RAMInternal.h"
 #include "omxBuffer.h"
 #include "matrix.h"
-#include "npsolswitch.h"
 
 static const double MIN_VARIANCE = 1e-6;
 
@@ -343,9 +342,6 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 		const char *to;
 		if (useFellner == 1) {
-			if (HAS_NPSOL) {
-				Rf_error("Relational operators are not available in this version of OpenMx");
-			}
 			to = "imxFitFunctionFellner";
 		} else {
 			to = "imxFitFunctionFIML";

@@ -11,7 +11,7 @@ case "$flavor" in
     ;;
   cran)
     echo "* CRAN build selected"
-    LICENSE='GPL (>= 3)'
+    LICENSE='Apache License (== 2.0)'
     ;;
   *)
     echo "$0: build flavor '$flavor' unrecognized (try 'npsol' or 'cran')"
