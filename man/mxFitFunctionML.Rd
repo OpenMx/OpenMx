@@ -27,7 +27,7 @@
 
 \usage{
 mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
-  as.logical(NA), verbose=0L, profileOut=c())
+  as.logical(NA), verbose=0L, profileOut=c(), rowwiseParallel=as.logical(NA))
 }
 
 \arguments{
@@ -40,7 +40,9 @@ mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
      maximum flexibility.}
    \item{verbose}{Level of diagnostic output}
    \item{profileOut}{Character vector naming constant coefficients to
-   profile out of the likelihood (sometimes known as REML)}
+     profile out of the likelihood (sometimes known as REML)}
+   \item{rowwiseParallel}{For raw data only, whether to use OpenMP to parallelize the
+   evaluation of rows}
 }
 
 \details{

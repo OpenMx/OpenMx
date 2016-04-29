@@ -19,17 +19,21 @@ setClass(Class = "MxFitFunctionML",
 	 representation = representation(
 	     fellner = "logical",
 	     verbose = "integer",
-	     profileOut="MxOptionalChar"),
+	     profileOut="MxOptionalChar",
+	     rowwiseParallel="logical"
+	 ),
 	 )
 
 setMethod("initialize", "MxFitFunctionML",
-	function(.Object, vector, rowDiagnostics, fellner, verbose, profileOut, name = 'fitfunction') {
+	  function(.Object, vector, rowDiagnostics, fellner, verbose, profileOut,
+		   rowwiseParallel, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@vector <- vector
 		.Object@rowDiagnostics <- rowDiagnostics
 		.Object@fellner <- fellner
 		.Object@verbose <- verbose
 		.Object@profileOut <- profileOut
+		.Object@rowwiseParallel <- rowwiseParallel
 		return(.Object)
 	}
 )
@@ -156,7 +160,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 	})
 
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),
-			    verbose=0L, profileOut=c()) {
+			    verbose=0L, profileOut=c(), rowwiseParallel=as.logical(NA)) {
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}
@@ -173,7 +177,7 @@ mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=a
 		stop("'fellner' cannot be combined with 'vector' or 'rowDiagnostics'")
 	}
 	return(new("MxFitFunctionML", vector, rowDiagnostics, fellner,
-		   as.integer(verbose), as.character(profileOut)))
+		   as.integer(verbose), as.character(profileOut), rowwiseParallel))
 }
 
 displayMxFitFunctionML <- function(fitfunction) {
@@ -182,6 +186,7 @@ displayMxFitFunctionML <- function(fitfunction) {
 	cat("$rowDiagnostics :", fitfunction@rowDiagnostics, '\n')
 	cat("$fellner :", fitfunction@fellner, '\n')
 	cat("$verbose :", fitfunction@verbose, '\n')
+	cat("$rowwiseParallel :", fitfunction@rowwiseParallel, '\n')
 	print(fitfunction@result)
 	invisible(fitfunction)
 }
