@@ -315,10 +315,7 @@ static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int
 	if (beta) {
 		eResult.derived() += ccopy;
 	}
-	if (!result->colMajor) {
-		result->colMajor = true;
-		omxToggleRowColumnMajor(result);
-	}
+	result->colMajor = true;
 }
 
 static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
@@ -354,10 +351,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 			eResult.derived() += vcopy;
 		}
 	}
-	if (!result->colMajor) {
-		result->colMajor = true;
-		omxToggleRowColumnMajor(result);
-	}
+	result->colMajor = true;
 }
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C

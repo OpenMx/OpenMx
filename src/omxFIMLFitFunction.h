@@ -34,6 +34,7 @@ typedef struct omxFIMLFitFunction {
 
 	/* Parts of the R  MxFIMLFitFunction Object */
 	bool isStateSpace;
+	int rowwiseParallel;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data

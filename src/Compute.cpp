@@ -670,6 +670,7 @@ void FitContext::init()
 	targetFit = nan("uninit");
 	lowerBound = false;
 	openmpUser = false;
+	computeCount = 0;
 
 	hess.resize(numParam, numParam);
 	ihess.resize(numParam, numParam);
@@ -774,6 +775,8 @@ void FitContext::updateParent()
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
 	parent->iterations = iterations;
+	parent->computeCount += computeCount;
+	computeCount = 0;
 
 	// rewrite using mapToParent TODO
 
@@ -794,6 +797,19 @@ void FitContext::updateParent()
 	
 	// pda(est, 1, svars);
 	// pda(parent->est, 1, dvars);
+}
+
+int FitContext::getComputeCount()
+{
+	if (isClone()) {
+		return parent->getComputeCount();
+	} else {
+		int cc = computeCount;
+		for (size_t cx=0; cx < childList.size(); ++cx) {
+			cc += childList[cx]->computeCount;
+		}
+		return cc;
+	}
 }
 
 void FitContext::updateParentAndFree()

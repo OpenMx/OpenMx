@@ -90,7 +90,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		omxMatrix *means	= ofiml->means;
 		omxExpectation* expectation = off->expectation;
 		if (!means) complainAboutMissingMeans(expectation);
-		off->openmpUser = !ofiml->isStateSpace;
+		off->openmpUser = !ofiml->isStateSpace && ofiml->rowwiseParallel != 0;
 		return;
 	}
 
@@ -253,6 +253,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Accessing row likelihood option.");
 	}
 	SEXP rObj = off->rObj;
+	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
