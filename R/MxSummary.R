@@ -158,6 +158,11 @@ computeFValue <- function(datalist, likelihood, chi) {
 
 computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 				 independence, indDoF, saturated=0, satDoF=0) {
+	if (!is.na(independence) && !is.na(likelihood) && independence < likelihood) {
+		warning(paste("Your model fits worse than the independence model.",
+			      "Fit statistics may be incorrect.",
+			      "You may be using the wrong independence model."))
+	}
 	CFI <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
 	TLI <- 1
 	rmseaSquared <- 0
