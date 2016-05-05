@@ -316,6 +316,7 @@ static OMXINLINE void omxDGEMM(unsigned short int transposeA, unsigned short int
 		eResult.derived() += ccopy;
 	}
 	result->colMajor = true;
+	omxMatrixLeadingLagging(result);
 }
 
 static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// result <- alpha * A %*% B + beta * C
@@ -352,6 +353,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 		}
 	}
 	result->colMajor = true;
+	omxMatrixLeadingLagging(result);
 }
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C

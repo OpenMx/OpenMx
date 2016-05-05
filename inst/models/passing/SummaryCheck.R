@@ -102,6 +102,12 @@ omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactor`))[1], 5)
 omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactorLess`))[1], 4)
 # the saturated model for OneFactorLess should be only on the variables used x2:x5, not all the variables x1:x5.
 
+refStats <- lapply(mg.sat, function(model) {
+	list(model$output$Minus2LogLikelihood, summary(model)$degreesOfFreedom)
+})
+refStats$Independence[[1]] <- mg.fit$output$fit - 100
+ign <- omxCheckWarning(summary(mg.fit, refModels=refStats),
+		"Your model fits worse than the independence model. Fit statistics may be incorrect. You may be using the wrong independence model.")
 
 #------------------------------------------------------------------------------
 # Specify a multiple group cov model
