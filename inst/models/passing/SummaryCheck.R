@@ -107,7 +107,7 @@ refStats <- lapply(mg.sat, function(model) {
 })
 refStats$Independence[[1]] <- mg.fit$output$fit - 100
 ign <- omxCheckWarning(summary(mg.fit, refModels=refStats),
-		"Your model fits worse than the independence model. Fit statistics may be incorrect. You may be using the wrong independence model.")
+		"Your model may be mis-specified (and fit worse than an independence model), or you may be using the wrong independence model, see ?mxRefModels")
 
 #------------------------------------------------------------------------------
 # Specify a multiple group cov model
