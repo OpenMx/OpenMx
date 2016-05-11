@@ -79,7 +79,7 @@ It is also important to remember that specifying thresholds is not sufficient to
 
 Thresholds may also be expressed in matrix form. This is described in more detail in the matrix version of this chapter.
 
-Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). While users may employ this method using ``mxAlgebra`` as it suits them, OpenMx does not require this technique. Simply specifying a thresholds matrix is typically sufficient to keep thresholds in proper order.
+Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). Users should still employ this method using ``mxAlgebra`` for more complex models, as during optimization, thresholds may otherwise get out of proper order, causing optimization to stop.
 
 Including Thresholds in Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
