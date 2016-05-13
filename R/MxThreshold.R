@@ -132,7 +132,7 @@ splitThresholds <- function(variables, nThresh, free, values, labels, lbound, ub
   # That is, where the wrapping of an input vector doesn't mesh with the threshold count
   for(i in 1:nVars) {
     idx <- thresholdCheckLengths(nThresh[i], starts, free, values, labels, lbound, ubound, variables[i])
-    thresholds[i] <- new("MxThreshold", variables[i], nThresh[i], thresholdSubset(free, idx[1,]), 
+    thresholds[[i]] <- new("MxThreshold", variables[i], nThresh[i], thresholdSubset(free, idx[1,]), 
                          as.numeric(thresholdSubset(values, idx[2,])), 
                          as.character(thresholdSubset(labels, idx[3,])), 
                          as.numeric(thresholdSubset(lbound, idx[4,])), 
