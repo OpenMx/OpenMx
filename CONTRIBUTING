@@ -7,3 +7,7 @@ Project policy:
 We use a "file-by-file" method of copyright inventory. The comment
 block at the top of a source file declares which license covers that
 particular source file.
+
+All contributions are expected to be licensed Apache 2.0.
+
+Contributions are Apache 2.0 by default.
