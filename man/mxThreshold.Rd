@@ -24,7 +24,7 @@
 \title{Create List of Thresholds}
 
 \description{
-   This function creates a list of thresholds.
+   This function creates a list of thresholds which mxModel can use to set up a thresholds matrix for a RAM model.
 }
 
 \usage{
@@ -70,7 +70,13 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
+  \code{\link[umx]{umxThresholdMatrix}} 
   \code{demo("mxThreshold")}
+  \link{mxPath} for comparable specification of paths. \link{mxMatrix} for a matrix-based approach to thresholds specification; \link{mxModel} for the container in which mxThresholds are embedded. More information about the OpenMx package may be found \link[=OpenMx]{here}.
+}
 
-\link{mxPath} for comparable specification of paths. \link{mxMatrix} for a matrix-based approach to thresholds specification; \link{mxModel} for the container in which mxThresholds are embedded. More information about the OpenMx package may be found \link[=OpenMx]{here}.
+\examples{
+library(OpenMx)
+# threshold objects for three variables: 2 binary, and one ordinal.
+mxThreshold(vars = c("z1", "z2", "z3"), nThresh = c(1,1,2), free = TRUE, values = c(-1, 0, -.5, 1.2) )
 }
