@@ -47,14 +47,14 @@ class omxManageProtectInsanity {
 	}
 };
 
-typedef std::vector< std::pair<const char *, SEXP> > MxRListBase;
+typedef std::vector< std::pair<SEXP, SEXP> > MxRListBase;
 class MxRList : private MxRListBase {
  public:
 	size_t size() const { return MxRListBase::size(); }
 	SEXP asR();
 	void add(const char *key, SEXP val) {
 		Rf_protect(val);
-		push_back(std::make_pair(key, val));
+		push_back(std::make_pair(Rf_mkChar(key), val));
 	};
 };
 
