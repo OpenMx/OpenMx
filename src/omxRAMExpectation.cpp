@@ -108,20 +108,8 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 	MxRList out;
 	MxRList dbg;
 
-	std::vector<std::string> names;
-
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
-		names.resize(rram->group.size());
-		int digits = ceilf(log10f(rram->group.size()));
-		std::string fmt = string_snprintf("g%%0%dd", digits);
-		for (size_t gx=0; gx < rram->group.size(); ++gx) {
-			RelationalRAMExpectation::independentGroup &ig = *rram->group[gx];
-			names[gx] = string_snprintf(fmt.c_str(), int(1+gx));
-			MxRList info;
-			ig.exportInternalState(info, info);
-			dbg.add(names[gx].c_str(), info.asR());
-		}
 		rram->exportInternalState(dbg);
 	}
 
@@ -1737,6 +1725,21 @@ namespace RelationalRAMExpectation {
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("aIndex")=aIndex,
 							  Rcpp::Named("modelStart")=modelStart,
 							  Rcpp::Named("obsStart")=obsStart));
+
+		dbg.add("numSufficientSets", Rcpp::wrap(int(sufficientSets.size())));
+
+		int digits = ceilf(log10f(sufficientSets.size()));
+		std::string fmt = string_snprintf("ss%%0%dd", digits);
+		for (size_t gx=0; gx < sufficientSets.size(); ++gx) {
+			sufficientSet &ss = sufficientSets[gx];
+			MxRList info;
+			info.add("start", Rcpp::wrap(1 + ss.start));
+			info.add("length", Rcpp::wrap(ss.length));
+			info.add("mean", Rcpp::wrap(ss.dataMean));
+			info.add("covariance", Rcpp::wrap(ss.dataCov));
+			std::string name = string_snprintf(fmt.c_str(), int(1+gx));
+			dbg.add(name.c_str(), info.asR());
+		}
 	}
 
 	void state::exportInternalState(MxRList &dbg)
@@ -1744,7 +1747,7 @@ namespace RelationalRAMExpectation {
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
-		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, group, copy;
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, ugroup, copy;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
@@ -1752,7 +1755,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
-		Rf_protect(group = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(ugroup = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(copy = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
@@ -1762,7 +1765,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(group)[mx] = layoutSetup[mx].group? layoutSetup[mx].group : NA_INTEGER;
+			INTEGER(ugroup)[mx] = layoutSetup[mx].group? layoutSetup[mx].group : NA_INTEGER;
 			INTEGER(copy)[mx] = layoutSetup[mx].copy? layoutSetup[mx].copy : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
@@ -1772,8 +1775,18 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("rampartScale")=rscale,
-							  Rcpp::Named("group")=group,
+							  Rcpp::Named("group")=ugroup,
 							  Rcpp::Named("copy")=copy));
+
+		int digits = ceilf(log10f(group.size()));
+		std::string fmt = string_snprintf("g%%0%dd", digits);
+		for (size_t gx=0; gx < group.size(); ++gx) {
+			independentGroup &ig = *group[gx];
+			MxRList info;
+			ig.exportInternalState(info, info);
+			std::string name = string_snprintf(fmt.c_str(), int(1+gx));
+			dbg.add(name.c_str(), info.asR());
+		}
 	}
 
 };
