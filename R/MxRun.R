@@ -273,7 +273,8 @@ runHelper <- function(model, frontendStart,
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
 	}
-	if (model@output$status$code < 5 && !is.null(model@output[['infoDefinite']]) &&
+	if (!is.na(model@output$status$code) &&
+	    model@output$status$code < 5 && !is.null(model@output[['infoDefinite']]) &&
 	    !is.na(model@output[['infoDefinite']]) && !model@output[['infoDefinite']]) {
 		model@output$status$code <- 5   # INFORM_NOT_CONVEX
 	}
