@@ -74,7 +74,7 @@ It is also important to remember that specifying a threshold matrix is not suffi
 
 While thresholds can't be expressed as paths between variables like other parts of the model, OpenMx supports a path-like interface called ``mxThreshold`` as of version 2.0. This function is described in more detail in the ordinal data version of this chapter and the ``mxThreshold`` help file.
 
-Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). While users may employ this method using ``mxAlgebra`` as it suits them, OpenMx does not require this technique. Simply specifying a thresholds matrix is typically sufficient to keep thresholds in proper order.
+Users of original or ''classic'' Mx may recall specifying thresholds not in absolute terms, but as deviations. This method estimated the difference between each threshold for a variable and the previous one, which ensured that thresholds were in the correct order (i.e., that the second threshold for a variable was not lower than the first). Users should still employ this method using ``mxAlgebra`` for more complex models, as during optimization, thresholds may otherwise get out of proper order, causing optimization to stop.
 	
 Including Thresholds in Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

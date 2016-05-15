@@ -1,5 +1,17 @@
 
-umx 2.5.1
+umx 2.6.0 
+--------------
+### May 2016 R 3.3.0 "Supposedly Educational" release
+
+#### New features include:
+* mxFitFunctionML gains an option to parallel-ize gradient- rather than row-computation.
+ * Can decrease run-times by 50% for some models!
+
+#### Bug fixes and performance tweaks include:
+* 
+
+
+umx 2.5.2
 --------------
 
 New features include:
