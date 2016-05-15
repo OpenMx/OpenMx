@@ -119,6 +119,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	Infin			= ofo->Infin;
 	omxExpectation* expectation = localobj->expectation;
+	omxMatrix *thresholdsMat = expectation->thresholdsMat;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 	
 	Eigen::VectorXi ordRemove(cov->cols);
@@ -218,11 +219,11 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				      dataColumns->cols - numOrdinal, dataColumns->cols - numContinuous, dataColumns->cols);
 			}
 
+			if (thresholdsMat) omxRecompute(thresholdsMat, fc);
 			for(int j=0; j < dataColumns->cols; j++) {
 				int var = omxVectorElement(dataColumns, j);
 				if(!omxDataColumnIsFactor(data, var) || j >= int(thresholdCols.size()) || thresholdCols[j].numThresholds == 0) continue;
-				omxRecompute(thresholdCols[j].matrix, fc); // Only one of these--save time by only doing this once
-				checkIncreasing(thresholdCols[j].matrix, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
+				checkIncreasing(thresholdsMat, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
 			}
 			
 			}
@@ -498,14 +499,14 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					else offset = omxVectorElement(ordMeans, count);
 					double weight = weights[count];
 					if(value == 0) { 									// Lowest threshold = -Inf
-					lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, 0, thresholdCols[j].column) - offset) / weight;
+					lThresh[count] = (omxMatrixElement(thresholdsMat, 0, thresholdCols[j].column) - offset) / weight;
 					uThresh[count] = lThresh[count];
 					Infin[count] = 0;
 					} 
 					else {
-						lThresh[count] = (omxMatrixElement(thresholdCols[j].matrix, value-1, thresholdCols[j].column) - offset) / weight;
+						lThresh[count] = (omxMatrixElement(thresholdsMat, value-1, thresholdCols[j].column) - offset) / weight;
 						if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
-						double tmp = (omxMatrixElement(thresholdCols[j].matrix, value, thresholdCols[j].column) - offset) / weight;
+						double tmp = (omxMatrixElement(thresholdsMat, value, thresholdCols[j].column) - offset) / weight;
 						uThresh[count] = tmp;
 						Infin[count] = 2;
 						} 
@@ -525,8 +526,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 						if (0) {
 							// This diagnostic triggers an omxMatrixElement by models/passing/JointFIMLTest.R
 							mxLog("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.",
-							omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
-							omxMatrixElement(thresholdCols[j].matrix, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
+							omxMatrixElement(thresholdsMat, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
+							omxMatrixElement(thresholdsMat, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
 							weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
 						}
 					}

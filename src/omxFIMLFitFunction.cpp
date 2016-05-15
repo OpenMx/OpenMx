@@ -116,12 +116,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		omxExpectationRecompute(fc, expectation);
 		// MCN Also do the threshold formulae!
 		
+		omxMatrix* nextMatrix = expectation->thresholdsMat;
+		if (nextMatrix) omxRecompute(nextMatrix, fc);
 		for(int j=0; j < dataColumns->cols; j++) {
 			int var = omxVectorElement(dataColumns, j);
 			if (!omxDataColumnIsFactor(data, var)) continue;
 			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
-				omxMatrix* nextMatrix = thresholdCols[j].matrix;
-				omxRecompute(nextMatrix, fc);
 				checkIncreasing(nextMatrix, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
 				for(int index = 0; index < numChildren; index++) {
 					FitContext *kid = fc->childList[index];

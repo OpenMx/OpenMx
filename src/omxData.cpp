@@ -265,6 +265,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("thresholds")));
 	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	if (!strEQ(od->obsThresholdsMat->getType(), "matrix")) {
+		Rf_error("Observed thresholds must be constant");
+	}
 	}
 
 	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
@@ -288,7 +291,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 
 		for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
 			omxThresholdColumn tc;
-			tc.matrix = od->obsThresholdsMat;
 			tc.column = columns[i];
 			tc.numThresholds = levels[i];
 			od->thresholdCols.push_back(tc);

@@ -65,13 +65,11 @@ struct omxContiguousData {
 };
 
 struct omxThresholdColumn {
-
-	omxMatrix* matrix;		// Which Matrix/Algebra it comes from
 	int column;				// Which column has the thresholds
 	int numThresholds;		// And how many thresholds
 
 	// for continuous variables, this structure is preserved all zero
-	omxThresholdColumn() : matrix(0), column(0), numThresholds(0) {};
+	omxThresholdColumn() : column(0), numThresholds(0) {};
 };
 
 struct ColumnData {
