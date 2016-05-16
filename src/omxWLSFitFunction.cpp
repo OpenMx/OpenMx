@@ -16,7 +16,7 @@
 
 #include "omxWLSFitFunction.h"
 
-void flattenDataToVector(omxMatrix* cov, omxMatrix* means,
+void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *obsThresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {
     // TODO: vectorize data flattening
     // if(OMX_DEBUG) { mxLog("Flattening out data vectors: cov 0x%x, mean 0x%x, thresh 0x%x[n=%d] ==> 0x%x", 
@@ -38,7 +38,7 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means,
     for(int j = 0; j < int(thresholds.size()); j++) {
             omxThresholdColumn* thresh = &thresholds[j];
             for(int k = 0; k < thresh->numThresholds; k++) {
-                omxSetVectorElement(vector, nextLoc, omxMatrixElement(thresh->matrix, k, thresh->column));
+                omxSetVectorElement(vector, nextLoc, omxMatrixElement(obsThresholdMat, k, thresh->column));
                 nextLoc++;
             }
     }
@@ -88,9 +88,11 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
 
+	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
+
     // TODO: Flatten data only once.
-	flattenDataToVector(oCov, oMeans, oThresh, oFlat);
-	flattenDataToVector(eCov, eMeans, eThresh, eFlat);
+	flattenDataToVector(oCov, oMeans, obsThresholdsMat, oThresh, oFlat);
+	flattenDataToVector(eCov, eMeans, expectation->thresholdsMat, eThresh, eFlat);
 
 	omxCopyMatrix(B, oFlat);
 
@@ -284,8 +286,10 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 
-    flattenDataToVector(newObj->observedCov, newObj->observedMeans, oThresh, newObj->observedFlattened);
-    flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, eThresh, newObj->expectedFlattened);
+	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
+	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
+	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
+			    eThresh, newObj->expectedFlattened);
 
     //oo->argStruct = (void*)newObj; //MDH: move this earlier?
 

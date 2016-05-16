@@ -68,6 +68,7 @@ class omxExpectation {					// An Expectation
 	int getDefVarRow() const { return defVarRow; };
 
 	omxMatrix* dataColumns;
+	omxMatrix *thresholdsMat;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0
 	
