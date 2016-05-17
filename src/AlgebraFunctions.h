@@ -1770,21 +1770,14 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 
 	int nElements = (cov->cols > 1) ? cov->cols : cov->rows;
 	double *lBounds, *uBounds;
-	double *weights;
-	double *corList;
+	Eigen::VectorXd weights;
+	Eigen::VectorXd corList;
 	lBounds = (double*) malloc(nElements * sizeof(double));
 	uBounds = (double*) malloc(nElements * sizeof(double));
-	weights = (double*) malloc(nElements * sizeof(double));
-	corList = (double*) malloc((nElements * (nElements + 1) / 2) * sizeof(double));
 
 	omxStandardizeCovMatrix(cov, corList, weights, fc);
+
 	if(!R_finite(omxMatrixElement(cov, 0, 0))) {
-		/*char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Found correlation greater than 1.");
-		omxRaiseErrorf(errstr);
-		free(errstr);*/
-		free(corList);
-		free(weights);
 		free(uBounds);
 		free(lBounds);
 		omxSetMatrixElement(result, 0, 0, NA_REAL);
@@ -1822,8 +1815,6 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 			sprintf(errstr, "Thresholds are not strictly increasing: %3.3f >= %3.3f.", lBounds[i], uBounds[i]);
 			omxRaiseError(errstr);
 			free(errstr);
-			free(corList);
-			free(weights);
 			free(uBounds);
 			free(lBounds);
 			return;
@@ -1843,7 +1834,7 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 	double absEps = Global->absEps;
 	double relEps = Global->relEps;
 	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin.data(), corList, 
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin.data(), corList.data(),
 		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
@@ -1853,15 +1844,11 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(errstr);
 		free(errstr);
-		free(corList);
-		free(weights);
 		free(uBounds);
 		free(lBounds);
 		return;
 	}
 
-	free(corList);
-	free(weights);
 	free(uBounds);
 	free(lBounds);
 
@@ -1942,10 +1929,10 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 	/* Conformance checks: */
 	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1);
 
-	double *weights = (double*) malloc(nCols * sizeof(double));
-	double *corList = (double*) malloc((nCols * (nCols + 1) / 2) * sizeof(double));
+	Eigen::VectorXd weights;
+	Eigen::VectorXd corList;
 
-	omxStandardizeCovMatrix(cov, &(*corList), &(*weights), fc);
+	omxStandardizeCovMatrix(cov, corList, weights, fc);
 
 	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
 	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
@@ -1992,7 +1979,7 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 	double absEps = Global->absEps;
 	double relEps = Global->relEps;
 	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList, 
+	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList.data(), 
 		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
@@ -2036,7 +2023,7 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 
 		}
 
-		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList,
+		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList.data(),
 			&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
 
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
@@ -2056,8 +2043,6 @@ AllIntCleanup:
 	free(Infin);
 	free(lBounds);
 	free(uBounds);
-	free(weights);
-	free(corList);
 	free(thresholdMats);
 	free(numThresholds);
 	free(matNums);

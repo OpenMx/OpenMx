@@ -87,7 +87,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	omxMatrix *ordMeans, *ordCov, *ordRow, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxData* data;
-	double *lThresh, *uThresh, *corList, *weights;
+	double *lThresh, *uThresh;
 	int *Infin;
 	
 	// Locals, for readability.  Compiler should cut through this.
@@ -109,8 +109,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	dataColumns	= ofo->dataColumns;
 	int numDefs = data->defVars.size();
 	
-	corList 	= ofo->corList;
-	weights		= ofo->weights;
 	lThresh		= ofo->lThresh;
 	uThresh		= ofo->uThresh;
 	returnRowLikelihoods = ofo->returnRowLikelihoods;
@@ -288,7 +286,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					// These values pass through directly without modification by continuous variables
 					
 					// Calculate correlation matrix, correlation list, and weights from covariance
-					omxStandardizeCovMatrix(ordCov, corList, weights, fc);
+					omxStandardizeCovMatrix(ordCov, ofo->corList, ofo->weights, fc);
 				}
 			} 
 			else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || ofo->isStateSpace) {
@@ -475,7 +473,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				// Calculate correlation matrix, correlation list, and weights from covariance
 				if(numIdenticalDefs <=0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
 					// if(OMX_DEBUG_ROWS(row)) {omxPrint(ordCov, "Ordinal cov matrix for standardization."); } //:::DEBUG:::
-					omxStandardizeCovMatrix(ordCov, corList, weights, fc);
+					omxStandardizeCovMatrix(ordCov, ofo->corList, ofo->weights, fc);
 				}
 				
 				omxCopyMatrix(ordRow, smallRow);
@@ -497,7 +495,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					double offset;
 					if(means == NULL) offset = 0;
 					else offset = omxVectorElement(ordMeans, count);
-					double weight = weights[count];
+					double weight = ofo->weights[count];
 					if(value == 0) { 									// Lowest threshold = -Inf
 					lThresh[count] = (omxMatrixElement(thresholdsMat, 0, thresholdCols[j].column) - offset) / weight;
 					uThresh[count] = lThresh[count];
@@ -534,7 +532,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					count++;
 				}
 				
-				omxSadmvnWrapper(localobj, cov, ordCov, corList, lThresh, uThresh, Infin, &likelihood, &inform);
+				omxSadmvnWrapper(ordCov, ofo->corList.data(), lThresh, uThresh, Infin, &likelihood, &inform);
 				
 				if(inform == 2) {
 					if(!returnRowLikelihoods) {

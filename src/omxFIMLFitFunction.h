@@ -57,7 +57,7 @@ typedef struct omxFIMLFitFunction {
 		
 	/* Structures for FIMLOrdinalFitFunction Objects */
 	omxMatrix* cor;				// To calculate correlation matrix from covariance
-	double* weights;			// Covariance weights to shift parameter estimates
+	Eigen::VectorXd weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
 	
 	/* Structures for JointFIMLFitFunction */
@@ -72,7 +72,7 @@ typedef struct omxFIMLFitFunction {
 	/* Argument space for SADMVN function */
 	double* lThresh;			// Specific list of lower thresholds
 	double* uThresh;			// Specific list of upper thresholds
-	double* corList;			// SADMVN-specific list of correlations
+	Eigen::VectorXd corList;			// SADMVN-specific list of correlations
 	double* smallCor;			// Reduced SADMVN-specific list of correlations
 	int* Infin;					// Which thresholds to use
 	int maxPts;					// From MxOptions (?)

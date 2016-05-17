@@ -29,7 +29,7 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 }
 #endif
 
-void omxSadmvnWrapper(omxFitFunction *oo, omxMatrix *cov, omxMatrix *ordCov, 
+void omxSadmvnWrapper(omxMatrix *ordCov, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 
 #endif 
