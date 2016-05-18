@@ -97,8 +97,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
     if(OMX_DEBUG) { 
 	    mxLog("Beginning Joint FIML Evaluation.");
     }
-	int returnRowLikelihoods = 0;
-
 	omxMatrix* fitMatrix  = off->matrix;
 	int numChildren = fc? fc->childList.size() : 0;
 
@@ -107,8 +105,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxData* data           = ofiml->data;                            //  read-only
 	omxMatrix *dataColumns	= ofiml->dataColumns;
 
-	returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
+	int returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
 	omxExpectation* expectation = off->expectation;
+	int numOrdinal = expectation->numOrdinal;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	if (data->defVars.size() == 0 && !ofiml->isStateSpace) {
@@ -134,11 +133,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			}
 		}
 
-		double *corList 	= ofiml->corList;
-		double *weights		= ofiml->weights;
-
-		if (corList) {
-			omxStandardizeCovMatrix(cov, corList, weights, fc);	// Calculate correlation and covariance
+		if (numOrdinal) {
+			omxStandardizeCovMatrix(cov, ofiml->corList, ofiml->weights, fc);
 		}
 		for(int index = 0; index < numChildren; index++) {
 			FitContext *kid = fc->childList[index];
@@ -146,14 +142,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
 			omxCopyMatrix(childOfiml->cov, cov);
 			omxCopyMatrix(childOfiml->means, means);
-			if (corList) {
-				memcpy(childOfiml->weights, weights, sizeof(double) * cov->rows);
-				memcpy(childOfiml->corList, corList, sizeof(double) * (cov->rows * (cov->rows - 1)) / 2);
-			}
+			childOfiml->weights = ofiml->weights;
+			childOfiml->corList = ofiml->corList;
 		}
 		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
 		if(OMX_DEBUG) { if (means) omxPrintMatrix(means, "Means"); }
-    }
+	}
 
 	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
     
@@ -238,8 +232,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->reduceCov  = NULL;
     
     off->computeFun = CallFIMLFitFunction;
-    newObj->corList = NULL;
-    newObj->weights = NULL;
 	
 	off->destructFun = omxDestroyFIMLFitFunction;
 	off->populateAttrFun = omxPopulateFIMLAttributes;
@@ -309,8 +301,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
         if(OMX_DEBUG) {
             mxLog("Ordinal Data detected.  Using Ordinal FIML.");
         }
-        newObj->weights = (double*) R_alloc(covCols, sizeof(double));
-        newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->smallCor = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
@@ -319,12 +309,10 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
             mxLog("Ordinal and Continuous Data detected.  Using Joint Ordinal/Continuous FIML.");
         }
 
-        newObj->weights = (double*) R_alloc(covCols, sizeof(double));
         newObj->ordContCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
-        newObj->corList = (double*) R_alloc(covCols * (covCols + 1) / 2, sizeof(double));
         newObj->lThresh = (double*) R_alloc(covCols, sizeof(double));
         newObj->uThresh = (double*) R_alloc(covCols, sizeof(double));
     }
