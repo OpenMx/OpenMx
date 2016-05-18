@@ -20,7 +20,7 @@
 #include "omxFIMLFitFunction.h"
 #include "omxSadmvnWrapper.h"
 
-void omxSadmvnWrapper(omxMatrix *ordCov, 
+void omxSadmvnWrapper(int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform) {
     // SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
    	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
@@ -40,8 +40,7 @@ void omxSadmvnWrapper(omxMatrix *ordCov,
    	double Error;
 	double absEps = Global->absEps;
 	double relEps = Global->relEps;
-	int MaxPts = Global->maxptsa + Global->maxptsb * ordCov->rows + Global->maxptsc * ordCov->rows * ordCov->rows;
-	int numVars = ordCov->rows;
+	int MaxPts = Global->maxptsa + Global->maxptsb * numVars + Global->maxptsc * numVars * numVars;
 	int fortranThreadId = omx_absolute_thread_num() + 1;
    	/* FOR DEBUGGING PURPOSES */
     /*	numVars = 2;
@@ -61,13 +60,12 @@ void omxSadmvnWrapper(omxMatrix *ordCov,
    		strcpy(infinCodes[1], "[lower, INF)");
    		strcpy(infinCodes[2], "[lower, upper]");
    		mxLog("Input to sadmvn is (%d rows):", numVars); //:::DEBUG:::
-		omxPrint(ordCov, "Ordinal Correlation Matrix"); //:::DEBUG:::
 		for(int i = 0; i < numVars; i++) {
 			mxLog("Row %d: %f, %f, %d(%s)", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
 		}
 
-		mxLog("Cor: (Lower %d x %d):", ordCov->rows, ordCov->cols); //:::DEBUG:::
-		for(int i = 0; i < ordCov->rows*(ordCov->rows-1)/2; i++) {
+		mxLog("Cor: (Lower %d x %d):", numVars, numVars); //:::DEBUG:::
+		for(int i = 0; i < numVars*(numVars-1)/2; i++) {
 			// mxLog("Row %d of Cor: ", i);
 			// for(int j = 0; j < i; j++)
 			mxLog(" %f", corList[i]); // (i*(i-1)/2) + j]);
