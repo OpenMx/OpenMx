@@ -166,3 +166,6 @@ man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+m1.omx
+testModel.omx
+Rplots.pdf

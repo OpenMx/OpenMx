@@ -532,7 +532,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					count++;
 				}
 				
-				omxSadmvnWrapper(ordCov, ofo->corList.data(), lThresh, uThresh, Infin, &likelihood, &inform);
+				omxSadmvnWrapper(ordCov->rows, ofo->corList.data(), lThresh, uThresh, Infin, &likelihood, &inform);
 				
 				if(inform == 2) {
 					if(!returnRowLikelihoods) {

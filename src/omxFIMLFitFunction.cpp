@@ -18,7 +18,6 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
-#include "omxSadmvnWrapper.h"
 
 /* FIML Function body */
 void omxDestroyFIMLFitFunction(omxFitFunction *off) {
