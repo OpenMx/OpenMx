@@ -1320,7 +1320,7 @@ namespace RelationalRAMExpectation {
 		for (size_t ax=0; ax < layout.size(); ++ax) {
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
-			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped || a1.rampartScale != 1.0) continue;
+			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped) continue;
 			std::vector<int> &t1 = todo[&a1];
 			t1.push_back(int(ax));
 		}
@@ -1334,7 +1334,7 @@ namespace RelationalRAMExpectation {
 				specimen.rampartScale = sqrt(double(t1.size()));
 				int parent1 = layoutSetup[ t1[0] ].parent1;
 				layoutSetup[parent1].numKids -= t1.size();
-				layoutSetup[parent1].clump.push_back(t1[0]);
+				clumpWith(parent1, t1[0]);
 				for (size_t ux=1; ux < t1.size(); ++ux) {
 					layout[ t1[ux] ].rampartScale = 0;
 					layoutSetup[ t1[ux] ].numJoins = 0;
@@ -1346,10 +1346,8 @@ namespace RelationalRAMExpectation {
 				// Don't rotate, just clump units together with parent.
 				int parent1 = layoutSetup[ t1[0] ].parent1;
 				layoutSetup[parent1].numKids -= t1.size();
-				layoutSetup[parent1].clump.insert(layoutSetup[parent1].clump.end(),
-								  t1.begin(), t1.end());
 				for (size_t ux=0; ux < t1.size(); ++ux) {
-					layoutSetup[ t1[ux] ].clumped = true;
+					clumpWith(parent1, t1[ux]);
 				}
 			}
 			// not really unlinked in clumped case, but layout is changed; fix reporting TODO
