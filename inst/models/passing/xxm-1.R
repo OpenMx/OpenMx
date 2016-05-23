@@ -25,6 +25,29 @@ sMod <- mxModel("student", type="RAM", tMod,
                 mxPath(paste0("teacher.eta", 1:2), paste0("y",1:2),
                        free=FALSE, values=.98, joinKey = "teacher"))
 
+if (1) {
+	dist <- mxRun(mxModel(sMod,
+			      mxComputeSequence(list(
+				  mxComputeOnce('fitfunction', 'fit'),
+				  mxComputeReportExpectation()))))
+
+	ed <- dist$expectation$debug
+	omxCheckEquals(ed$numGroups, 2L)
+
+	g1 <- ed$g1
+	omxCheckEquals(dim(g1$covariance), c(2,2))
+	omxCheckCloseEnough(as.matrix(g1$covariance), diag(c(1.1, 1.2)), 1e-3)
+	omxCheckCloseEnough(g1$mean, rep(0, 100), 1e-9)
+	omxCheckEquals(g1$numSufficientSets, 1L)
+
+	g2 <- ed$g2
+	omxCheckEquals(g2$numSufficientSets, 0L)
+	omxCheckCloseEnough(as.matrix(g2$covariance), diag(c(1.42, 1.55)), 1e-2)
+	omxCheckCloseEnough(g2$mean, rep(c(-1.085, 0.318), 25), 1e-2)
+
+	omxCheckCloseEnough(dist$output$fit, 484.2459, 1e-2)
+}
+
 #sMod$expectation$verbose <- 2L
 
 if (0) {
