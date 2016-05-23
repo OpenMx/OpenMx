@@ -25,9 +25,9 @@
 /R/MxVersion.R
 /R/sysdata.rda
 .Rproj.user
-/m1.omx
-/testModel.omx
-/Rplots.pdf
+/inst/models/passing/m1.omx
+/inst/models/passing/testModel.omx
+/inst/models/passing/Rplots.pdf
 /models
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
