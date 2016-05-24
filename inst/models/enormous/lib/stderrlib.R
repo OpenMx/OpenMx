@@ -186,8 +186,6 @@ summarizeDetail <- function(detail, maxCondNum=NA) {
 }
 
 testPhase <- function(modelGen, reps = 500, verbose=TRUE, methods=c('agile', 'meat')) {
-  methods <- setdiff(methods, "oakes")
-  
   rec <- c('cputime', 'emcycles', 'probes', 'condnum', 'hNorm', 'rdNorm')
   detail <- array(NA, dim=c(length(rec), length(methods), reps),
                   dimnames=list(rec, methods, NULL))
