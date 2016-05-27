@@ -520,6 +520,13 @@ namespace RelationalRAMExpectation {
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addrSetup>		 layoutSetup;
 		std::vector<addr>		 layout;
+
+		void clumpWith(int upper, int lower) {
+			if (layoutSetup[lower].clumped) Rf_error("%d is already clumped", lower);
+			layoutSetup[upper].clump.push_back(lower);
+			layoutSetup[lower].clumped = true;
+		};
+
 		omxMatrix                       *smallCol;
 		std::vector<independentGroup*>   group;
 		bool                             doIdentifyZeroVarPred;
