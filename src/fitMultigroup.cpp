@@ -120,6 +120,7 @@ void initFitMultigroup(omxFitFunction *oo)
 	oo->units = FIT_UNITS_UNINITIALIZED;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
+	oo->canDuplicate = true;
 
 	omxState *os = oo->matrix->currentState;
 
