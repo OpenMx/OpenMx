@@ -385,7 +385,6 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
-		int region;
 		int group;
 		int copy;
 	};
@@ -422,6 +421,7 @@ namespace RelationalRAMExpectation {
 			// NOTE: not per-thread!
 			return (omxRAMExpectation*) model->argStruct;
 		};
+		std::vector< omxMatrix* > &getBetween() const;
 		omxMatrix *getDataColumns() const { return model->dataColumns; };
 		void dataRow(omxMatrix *out) const;
 	};
@@ -514,6 +514,7 @@ namespace RelationalRAMExpectation {
 		std::vector< std::vector<int> >  rotationPlan;
 
 	public:
+		typedef std::vector< std::set<int> > ConnectedType;
 		struct omxExpectation *homeEx;
 		std::set<struct omxExpectation *> allEx;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
@@ -544,6 +545,7 @@ namespace RelationalRAMExpectation {
 		template <typename T> void propagateDefVar(omxRAMExpectation *ram,
 							   Eigen::MatrixBase<T> &transition,
 							   omxRAMExpectation *ram2, bool within);
+		void computeConnected(std::vector<int> &region, ConnectedType &connected);
 	public:
 		~state();
 		void computeCov(FitContext *fc);
