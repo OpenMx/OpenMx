@@ -428,7 +428,7 @@ namespace RelationalRAMExpectation {
 	{
 		independentGroup &par = getParent();
 		struct placement &pl = par.placements[px];
-		addr &a1 = par.st.layout[pl.aIndex];
+		addr &a1 = par.st.layout[ par.gMap[px] ];
 		omxExpectation *expectation = a1.getModel(fc);
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -478,7 +478,7 @@ namespace RelationalRAMExpectation {
 		independentGroup &par = getParent();
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
-			addr &a1 = par.st.layout[pl.aIndex];
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
 			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			expectation->loadDefVars(a1.row);
@@ -590,7 +590,7 @@ namespace RelationalRAMExpectation {
 
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = st.layout[pl.aIndex];
+			addr &a1 = st.layout[ gMap[ax] ];
 			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
@@ -1066,16 +1066,17 @@ namespace RelationalRAMExpectation {
 		int mx = 0;
 		int dx = 0;
 		if (placements.size()) {
-			placement &prev = placements[ placements.size()-1 ];
-			addr &a1 = st.layout[ prev.aIndex ];
+			int last = placements.size()-1;
+			placement &prev = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			mx = prev.modelStart + a1.numVars();
 			dx = prev.obsStart + a1.numObs();
 		}
 		placement pl;
-		pl.aIndex = ax;
 		pl.modelStart = mx;
 		pl.obsStart = dx;
 		placements.push_back(pl);
+		gMap.push_back(ax);
 	}
 
 	independentGroup::independentGroup(independentGroup *ig)
@@ -1098,8 +1099,9 @@ namespace RelationalRAMExpectation {
 		int totalObserved = 0;
 		int maxSize = 0;
 		if (placements.size()) {
-			placement &prev = placements[ placements.size()-1 ];
-			addr &a1 = st.layout[ prev.aIndex ];
+			int last = placements.size()-1;
+			placement &prev = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			totalObserved = prev.obsStart + a1.numObs();
 			maxSize = prev.modelStart + a1.numVars();
 		}
@@ -1122,8 +1124,9 @@ namespace RelationalRAMExpectation {
 		}
 
 		{
-			placement &end = placements[clumpSize-1];
-			addr &a1 = st.layout[ end.aIndex ];
+			int last = clumpSize-1;
+			placement &end = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			clumpVars = end.modelStart + a1.numVars();
 			clumpObs = end.obsStart + a1.numObs();
 		}
@@ -1131,7 +1134,7 @@ namespace RelationalRAMExpectation {
 		int dx=0;
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = st.layout[ pl.aIndex ];
+			addr &a1 = st.layout[ gMap[ax] ];
 			a1.ig = this;
 			a1.igIndex = ax;
 
@@ -1726,7 +1729,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(modelStart = Rf_allocVector(INTSXP, placements.size()));
 		Rf_protect(obsStart = Rf_allocVector(INTSXP, placements.size()));
 		for (size_t mx=0; mx < placements.size(); ++mx) {
-			INTEGER(aIndex)[mx] = 1 + placements[mx].aIndex;
+			INTEGER(aIndex)[mx] = 1 + gMap[mx];
 			INTEGER(modelStart)[mx] = 1 + placements[mx].modelStart;
 			INTEGER(obsStart)[mx] = 1 + placements[mx].obsStart;
 		}

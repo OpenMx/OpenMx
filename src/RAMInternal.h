@@ -436,7 +436,6 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct placement {
-		int aIndex;      // index into addr vector
 		int modelStart;  // both latent and obs
 		int obsStart;
 	};
@@ -459,6 +458,7 @@ namespace RelationalRAMExpectation {
 		int arrayIndex;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
 		RowToPlacementMapType            rowToPlacementMap;
+		std::vector<int>                 gMap;  // vector of indexes into layout
 		std::vector<placement>           placements;
 		const int                        clumpSize;
 		int                              clumpVars, clumpObs;
