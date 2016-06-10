@@ -386,7 +386,6 @@ namespace RelationalRAMExpectation {
 		std::vector<int> clump;
 		bool clumped;
 		int group;
-		int copy;
 	};
 
 	class addr {
@@ -535,7 +534,7 @@ namespace RelationalRAMExpectation {
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
 		template <typename T>
-		void placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum, int &copyNum);
+		void placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum);
 		void planModelEval(int maxSize, FitContext *fc);
 		void identifyZeroVarPred(FitContext *fc);
 		int rampartRotate(int level);
