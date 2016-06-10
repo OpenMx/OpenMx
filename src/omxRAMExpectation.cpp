@@ -519,8 +519,8 @@ namespace RelationalRAMExpectation {
 
 		struct addr a1;
 		struct addrSetup as1;
-		as1.group = 0;
 		as1.clumped = false;
+		a1.ig = 0;
 		as1.parent1 = NA_INTEGER;
 		as1.fk1 = NA_INTEGER;
 		as1.rotationLeader = false;
@@ -915,15 +915,12 @@ namespace RelationalRAMExpectation {
 	}
 
 	template <typename T>
-	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum)
+	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig)
 	{
 		for (std::set<std::vector<int> >::iterator px = toPlace.begin();
 		     px != toPlace.end(); ++px) {
 			const std::vector<int> &clump = *px;
 			for (size_t cx=0; cx < clump.size(); ++cx) {
-				addrSetup &as1 = layoutSetup[ clump[cx] ];
-				if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-				as1.group = groupNum;
 				ig->place(clump[cx]);
 			}
 		}
@@ -998,9 +995,8 @@ namespace RelationalRAMExpectation {
 		}
 		group.reserve(cgm.size());
 
-		int groupNum = 1;
 		for (CompatibleCovMapType::iterator it = cgm.begin();
-		     it != cgm.end(); ++it, ++groupNum) {
+		     it != cgm.end(); ++it) {
 			independentGroup *ig = new independentGroup(this, it->second.size(),
 								    it->second.begin()->size());
 			typedef std::map< std::vector<int>,
@@ -1019,9 +1015,6 @@ namespace RelationalRAMExpectation {
 				}
 				if (leader) {
 					for (size_t cx=0; cx < clump.size(); ++cx) {
-						addrSetup &as1 = layoutSetup[ clump[cx] ];
-						if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-						as1.group = groupNum;
 						ig->place(clump[cx]);
 					}
 				} else {
@@ -1036,7 +1029,7 @@ namespace RelationalRAMExpectation {
 					++ssCount;
 					continue;
 				}
-				placeSet(mit->second, ig, groupNum);
+				placeSet(mit->second, ig);
 			}
 			ig->sufficientSets.resize(ssCount);
 			int ssIndex = 0;
@@ -1044,7 +1037,7 @@ namespace RelationalRAMExpectation {
 			     mit != cmm.end(); ++mit, ++ssIndex) {
 				if (mit->second.size() == 1) continue;
 				int from = ig->placements.size();
-				placeSet(mit->second, ig, groupNum);
+				placeSet(mit->second, ig);
 				//mxLog("group %d same mean %d -> %d clumpsize %d",
 				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
 				ig->sufficientSets[ssIndex].start = from;
@@ -1057,6 +1050,10 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::place(int ax)
 	{
+		if (st.layout[ax].ig) {
+			Rf_error("Unit[%d] already assigned; this is a bug", ax);
+		}
+		st.layout[ax].ig = this;
 		int mx = 0;
 		int dx = 0;
 		if (placements.size()) {
@@ -1129,7 +1126,6 @@ namespace RelationalRAMExpectation {
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
 			addr &a1 = st.layout[ gMap[ax] ];
-			a1.ig = this;
 			a1.igIndex = ax;
 
 			if (verbose() >= 3) {
@@ -1770,7 +1766,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(ugroup)[mx] = layoutSetup[mx].group? layoutSetup[mx].group : NA_INTEGER;
+			INTEGER(ugroup)[mx] = layout[mx].ig? 1+layout[mx].ig->arrayIndex : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("row")=row,

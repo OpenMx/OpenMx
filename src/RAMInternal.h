@@ -385,7 +385,6 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
-		int group;
 	};
 
 	class addr {
@@ -534,7 +533,7 @@ namespace RelationalRAMExpectation {
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
 		template <typename T>
-		void placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum);
+		void placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig);
 		void planModelEval(int maxSize, FitContext *fc);
 		void identifyZeroVarPred(FitContext *fc);
 		int rampartRotate(int level);
