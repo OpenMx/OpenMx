@@ -559,6 +559,30 @@ void mxLog(const char* msg, ...)   // thread-safe
 	if (wrote != len) Rf_error("mxLog only wrote %d/%d, errno=%d", wrote, len, errno);
 }
 
+void diagParallel(int verbose, const char* msg, ...)
+{
+	if (!verbose && !Global->parallelDiag) return;
+
+	const int maxLen = 240;
+	char buf1[maxLen];
+
+	va_list ap;
+	va_start(ap, msg);
+	vsnprintf(buf1, maxLen, msg, ap);
+	va_end(ap);
+
+	if (verbose) {
+		mxLog("%s", buf1);
+	} else if (Global->parallelDiag) {
+		ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 2));
+		SETCAR(theCall, Rf_install("message"));
+		ProtectedSEXP Rmsg(Rf_allocVector(STRSXP, 1));
+		SET_STRING_ELT(Rmsg, 0, Rf_mkChar(buf1));
+		SETCADR(theCall, Rmsg);
+		Rf_eval(theCall, R_GlobalEnv);
+	}
+}
+
 void _omxRaiseError()
 {
 	// keep for debugger breakpoints

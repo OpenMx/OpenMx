@@ -75,6 +75,8 @@ Gradient algorithm \tab see list \tab finite difference method, either 'forward'
 Gradient iterations \tab 1:4 \tab the number of Richardson extrapolation iterations\cr
 Analytic Gradients \tab [Yes | No] \tab should the optimizer use analytic gradients (if available)?\cr
 loglikelihoodScale \tab \var{i} \tab factor by which the loglikelihood is scaled. \cr
+Parallel diagnostics \tab [Yes | No] \tab whether to issue diagnostic
+messages about use of multiple threads \cr
 }
 
 

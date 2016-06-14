@@ -209,6 +209,7 @@ class omxGlobal {
 
  public:
 	int numThreads;
+	int parallelDiag;
 	int analyticGradients;
 	double llScale;
 	int debugProtectStack;
@@ -333,6 +334,8 @@ void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 
 std::string string_vsnprintf(const char *fmt, va_list ap);
+
+void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
 #endif /* _OMXSTATE_H_ */
 

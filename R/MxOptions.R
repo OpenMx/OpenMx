@@ -174,7 +174,8 @@ otherOptions <- list(
     "mvnRelEps" = 0,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = "central",
-    "Gradient iterations" = 1L
+    "Gradient iterations" = 1L,
+    "Parallel diagnostics" = "No"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

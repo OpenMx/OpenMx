@@ -1095,17 +1095,15 @@ bool FitContext::isClone() const
 void FitContext::createChildren()
 {
 	if (Global->numThreads <= 1) {
-		if (OMX_DEBUG) mxLog("FitContext::createChildren: max threads set to 1");
+		diagParallel(OMX_DEBUG, "FitContext::createChildren: max threads set to 1");
 		return;
 	}
 	if (childList.size()) return;
 
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
 		if (!state->expectationList[j]->canDuplicate) {
-			if (OMX_DEBUG) {
-				mxLog("FitContext::createChildren: %s cannot be duplicated",
-				      state->expectationList[j]->name);
-			}
+			diagParallel(OMX_DEBUG, "FitContext::createChildren: %s cannot be duplicated",
+				     state->expectationList[j]->name);
 			return;
 		}
 	}
@@ -1113,21 +1111,19 @@ void FitContext::createChildren()
 		omxFitFunction *ff = state->algebraList[j]->fitFunction;
 		if (!ff) continue;
 		if (!ff->canDuplicate) {
-			if (OMX_DEBUG) {
-				mxLog("FitContext::createChildren: %s cannot be duplicated",
-				      state->algebraList[j]->name());
-			}
+			diagParallel(OMX_DEBUG, "FitContext::createChildren: %s cannot be duplicated",
+				     state->algebraList[j]->name());
 			return;
 		}
 		if (ff->openmpUser) {
-			if (OMX_DEBUG) mxLog("FitContext::createChildren: %s is an OpenMP user",
-					     state->algebraList[j]->name());
+			diagParallel(OMX_DEBUG, "FitContext::createChildren: %s is an OpenMP user",
+				     state->algebraList[j]->name());
 		}
 		openmpUser |= ff->openmpUser;
 	}
 
-	if (OMX_DEBUG) mxLog("FitContext::createChildren: create %d FitContext for parallel processing; OpenMP user=%d",
-			     Global->numThreads, openmpUser);
+	diagParallel(OMX_DEBUG, "FitContext::createChildren: create %d FitContext for parallel processing; OpenMP user=%d",
+		     Global->numThreads, openmpUser);
 
 	int numThreads = Global->numThreads;
 
