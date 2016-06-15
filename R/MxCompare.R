@@ -113,9 +113,17 @@ collectStatistics <- function(refSummary, otherSummary) {
 		otherSummary$degreesOfFreedom,
 		otherSummary$AIC.Mx,
 		otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
-		otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, 
-		pchisq(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
-			otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom, lower.tail=FALSE))
+		otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom,
+		NA)
 	names(otherStats) <- c("base", "comparison", "ep", "minus2LL", "df", "AIC", "diffLL", "diffdf", "p")
+	if (otherStats[['diffdf']] < 1) {
+		msg <- paste("Model", omxQuotes(refSummary$modelName), "has more degrees of freedom than",
+			     otherSummary$modelName, "which means that either the models need to be",
+			     "compared in the oppposite order or the models are not nested and should not be",
+			     "compared with the likelihood ratio test")
+		warning(msg)
+	} else {
+		otherStats[['p']] <- pchisq(otherStats[['diffLL']], otherStats[['diffdf']], lower.tail=FALSE)
+	}
 	return(otherStats)
 }
