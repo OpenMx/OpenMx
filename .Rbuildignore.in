@@ -2,6 +2,7 @@
 ^Makefile
 ^build
 ^support
+^CONTRIBUTING$
 .gitignore
 .gitattributes
 ^inst/npsol
