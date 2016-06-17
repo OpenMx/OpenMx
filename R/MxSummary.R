@@ -526,6 +526,9 @@ print.summary.mxmodel <- function(x,...) {
 			cat("condition number of the information matrix: ", x$conditionNumber, "\n")
 		}
 	}
+	if (x$verbose==TRUE && !is.null(x$maxAbsGradient)) {
+		cat("maximum absolute gradient: ", x$maxAbsGradient, " (",names(x$maxAbsGradient),")\n")
+	}
 	#
 	# Chi-square goodness of fit test
 	if(x$verbose==TRUE || !is.na(x$Chi)){
@@ -806,6 +809,10 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite
 	retval$conditionNumber <- model@output$conditionNumber
+	if (length(model@output$gradient)) {
+		agrad <- abs(model@output$gradient)
+		retval$maxAbsGradient <- agrad[ order(-agrad)[1] ]
+	}
 	retval <- boundsMet(model, retval)
 	retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
 	retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
