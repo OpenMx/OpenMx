@@ -12,7 +12,6 @@
 #include <stan/math/prim/mat/fun/trace_inv_quad_form_ldlt.hpp>
 #include <stan/math/prim/mat/fun/log_determinant_ldlt.hpp>
 #include <stan/math/prim/scal/meta/return_type.hpp>
-#include <stan/math/prim/scal/meta/VectorViewMvt.hpp>
 #include <stan/math/prim/scal/meta/max_size_mvt.hpp>
 #include <stan/math/prim/scal/meta/include_summand.hpp>
 
