@@ -25,13 +25,8 @@ enum expectation_type {
 	EXPECTATION_OBSERVED,  // regular
 };
 
-template <typename CovType>
-struct BA81EstepBase {
-	void addRow1(class ifaGroup *state, int px, double *Qweight, double *out);
-};
-
-template <typename T, typename CovType>
-struct BA81Estep : BA81EstepBase<CovType> {
+template <typename T>
+struct BA81Estep {
 	std::vector<double> thrExpected;
 
 	void begin(class ifaGroup *state, T extraData);
@@ -140,7 +135,7 @@ gramProduct(double *vec, size_t len, double *out)
 	}
 }
 
-void ba81SetupQuadrature(omxExpectation* oo);
+void ba81RefreshQuadrature(omxExpectation* oo);
 
 void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat);

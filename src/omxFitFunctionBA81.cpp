@@ -269,6 +269,49 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
+template <bool do_deriv>
+struct ba81mstepEval {
+	const bool do_fit;
+	const int ix;
+	const double *spec;
+	const int id;
+	const rpf_dLL1_t dLL1;
+	const int iOutcomes;
+	const ba81NormalQuad &quad;
+	const int outcomeBase;
+	const double *weight;
+	const double *oProb;
+	const double *iparam;
+	double &ll;
+	double *myDeriv;
+	ba81mstepEval(bool do_fit, int ix, const double *spec, BA81Expect *estate,
+		      double &ll, double *myDeriv) :
+		do_fit(do_fit), ix(ix), spec(spec),
+		id(spec[RPF_ISpecID]), dLL1(Glibrpf_model[id].dLL1),
+		iOutcomes(estate->grp.itemOutcomes[ix]),
+		quad(estate->getQuad()),
+		outcomeBase(estate->grp.cumItemOutcomes[ix] * quad.totalQuadPoints),
+		weight(estate->expected + outcomeBase),
+		oProb(estate->grp.outcomeProb + outcomeBase),
+		iparam(omxMatrixColumn(estate->itemParam, ix)),
+		ll(ll), myDeriv(myDeriv)
+	{};
+	bool wantAbscissa() { return do_deriv; };
+	void operator()(double *abscissa)
+	{
+		if (do_fit) {
+			for (int ox=0; ox < iOutcomes; ox++) {
+				ll += weight[ox] * oProb[ox];
+			}
+		}
+		if (do_deriv) {
+			(*dLL1)(spec, iparam, abscissa, weight, myDeriv);
+		}
+		weight += iOutcomes;
+		oProb += iOutcomes;
+	};
+};
+
 static double
 ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 {
@@ -277,10 +320,8 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->grp.spec;
-        std::vector<int> &cumItemOutcomes = estate->grp.cumItemOutcomes;
 	ba81NormalQuad &quad = estate->getQuad();
-	const int maxDims = quad.maxDims;
-	const size_t numItems = itemSpec.size();
+	const int numItems = (int) itemSpec.size();
 	const int do_fit = want & FF_COMPUTE_FIT;
 	const int do_deriv = want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 
@@ -300,44 +341,22 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
-	double *wherePrep = quad.wherePrep.data();
 
 	double ll = 0;
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
-	for (size_t ix=0; ix < numItems; ix++) {
-		const int thrId = omx_absolute_thread_num();
-		const double *spec = itemSpec[ix];
-		const int id = spec[RPF_ISpecID];
-		const int dims = spec[RPF_ISpecDims];
-		Eigen::VectorXd ptheta(dims);
-		const rpf_dLL1_t dLL1 = Glibrpf_model[id].dLL1;
-		const int iOutcomes = estate->grp.itemOutcomes[ix];
-		const int outcomeBase = cumItemOutcomes[ix] * quad.totalQuadPoints;
-		const double *weight = estate->expected + outcomeBase;
-                const double *oProb = estate->grp.outcomeProb + outcomeBase;
-		const double *iparam = omxMatrixColumn(itemParam, ix);
+	for (int ix=0; ix < numItems; ix++) {
+		int thrId = omx_absolute_thread_num();
 		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
-
-		for (int qx=0; qx < quad.totalQuadPoints; qx++) {
-			if (do_fit) {
-				for (int ox=0; ox < iOutcomes; ox++) {
-					ll += weight[ox] * oProb[ox];
-				}
-			}
-			if (do_deriv) {
-				double *where = wherePrep + qx * maxDims;
-				for (int dx=0; dx < dims; dx++) {
-					ptheta[dx] = where[std::min(dx, maxDims-1)];
-				}
-
-				(*dLL1)(spec, iparam, ptheta.data(), weight, myDeriv);
-			}
-			weight += iOutcomes;
-			oProb += iOutcomes;
+		if (!do_deriv) {
+			ba81mstepEval<false> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
+			quad.foreach(op);
+		} else {
+			ba81mstepEval<true> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
+			quad.foreach(op);
 		}
 	}
 
-	size_t excluded = 0;
+	int excluded = 0;
 
 	if (do_deriv) {
 		double *deriv0 = thrDeriv.data();
@@ -350,7 +369,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 		int numFreeParams = int(state->numFreeParam);
 		int ox=-1;
-		for (size_t ix=0; ix < numItems; ix++) {
+		for (int ix=0; ix < numItems; ix++) {
 			const double *spec = itemSpec[ix];
 			int id = spec[RPF_ISpecID];
 			double *iparam = omxMatrixColumn(itemParam, ix);
@@ -411,6 +430,7 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
 
 static void sandwich(omxFitFunction *oo, FitContext *fc)
 {
+	/*
 	const double abScale = fabs(Global->llScale);
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
@@ -550,6 +570,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 			}
 		}
 	}
+	*/
 }
 
 static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove? TODO
@@ -558,7 +579,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	ba81NormalQuad &quad = estate->getQuad();
-	int maxAbilities = quad.maxAbilities;
+	int maxAbilities = quad.abilities;
 	omxMatrix *estMean = estate->estLatentMean;
 	omxMatrix *estCov = estate->estLatentCov;
 
@@ -581,6 +602,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove
 	}
 }
 
+/*
 static void mapLatentDeriv(BA81FitState *state, BA81Expect *estate, double piece,
 			   double *derivCoef, double *derivOut)
 {
@@ -948,6 +970,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		}
 	}
 }
+*/
 
 static void
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
@@ -980,7 +1003,7 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				omxRaiseErrorf("%s: no free parameters", oo->name());
 				return;
 			}
-			ba81SetupQuadrature(oo->expectation);
+			ba81RefreshQuadrature(oo->expectation);
 
 			if (fc->infoMethod == INFO_METHOD_HESSIAN) {
 				ba81ComputeEMFit(oo, FF_COMPUTE_HESSIAN, fc);
@@ -1010,11 +1033,11 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 				omxRaiseErrorf("%s: no free parameters", oo->name());
 				return;
 			}
-			ba81SetupQuadrature(oo->expectation);
+			ba81RefreshQuadrature(oo->expectation);
 
 			if (want & FF_COMPUTE_GRADIENT ||
 			    (want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_MEAT)) {
-				gradCov(oo, fc);
+				//gradCov(oo, fc);
 			} else {
 				if (state->freeLatents) {
 					omxRaiseErrorf("Information matrix approximation method %d is not available",

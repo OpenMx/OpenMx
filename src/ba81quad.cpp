@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2014 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2014, 2016 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
 */
 
 #include "ba81quad.h"
-#include "dmvnorm.h"
 
 static inline void gramProduct(double *vec, size_t len, double *out)
 {
@@ -29,186 +28,35 @@ static inline void gramProduct(double *vec, size_t len, double *out)
 	}
 }
 
-ba81NormalQuad::ba81NormalQuad() :
-	quadGridSize(0), maxDims(-1), primaryDims(-1), numSpecific(-1),
-	maxAbilities(-1)
+ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig), abilities(-1)
 {
 	setOne(1);
+	layers.resize(1, layer(this));
 }
 
-void ba81NormalQuad::pointToWhere(const int *quad, double *where, int upto)
+void ba81NormalQuad::layer::setZeroAbilities()
 {
-	for (int dx=0; dx < upto; dx++) {
-		where[dx] = Qpoint[quad[dx]];
-	}
-}
-
-void ba81NormalQuad::decodeLocation(int qx, const int dims, int *quad)
-{
-	for (int dx=dims-1; dx >= 0; --dx) {
-		quad[dx] = qx % quadGridSize;
-		qx = qx / quadGridSize;
-	}
-}
-
-void ba81NormalQuad::setup0()
-{
-	quadGridSize = 1;
 	numSpecific = 0;
 	primaryDims = 0;
 	maxDims = 1;
-	maxAbilities = 0;
+	abilities = 0;
 	totalQuadPoints = 1;
 	totalPrimaryPoints = 1;
 	weightTableSize = 1;
-	Qpoint.clear();
-	Qpoint.reserve(1);
-	Qpoint.push_back(0);
+	// Qpoint.clear();  // remove? TODO
+	// Qpoint.reserve(1);
+	// Qpoint.push_back(0);
 	priQarea.clear();
-	priQarea.push_back(One);
+	priQarea.push_back(quad->One);
 	wherePrep.clear();
 	wherePrep.push_back(0);
 }
 
-void ba81NormalQuad::setup(double Qwidth, int Qpoints, double *means,
-			   Eigen::MatrixXd &priCov, Eigen::VectorXd &sVar)
-{
-	quadGridSize = Qpoints;
-	numSpecific = sVar.rows() * sVar.cols();
-	primaryDims = priCov.rows();
-	maxDims = primaryDims + (numSpecific? 1 : 0);
-	maxAbilities = primaryDims + numSpecific;
-
-	if (maxAbilities == 0) {
-		setup0();
-		return;
-	}
-
-	totalQuadPoints = 1;
-	for (int dx=0; dx < maxDims; dx++) {
-		totalQuadPoints *= quadGridSize;
-	}
-
-	if (int(Qpoint.size()) != quadGridSize) {
-		Qpoint.clear();
-		Qpoint.reserve(quadGridSize);
-		double qgs = quadGridSize-1;
-		for (int px=0; px < quadGridSize; ++px) {
-			Qpoint.push_back(px * 2 * Qwidth / qgs - Qwidth);
-		}
-	}
-
-	std::vector<double> tmpWherePrep(totalQuadPoints * maxDims);
-
-	Eigen::VectorXi quad(maxDims);
-	for (int qx=0; qx < totalQuadPoints; qx++) {
-		double *wh = tmpWherePrep.data() + qx * maxDims;
-		decodeLocation(qx, maxDims, quad.data());
-		pointToWhere(quad.data(), wh, maxDims);
-	}
-
-	totalPrimaryPoints = totalQuadPoints;
-	weightTableSize = totalQuadPoints;
-
-	if (numSpecific) {
-		totalPrimaryPoints /= quadGridSize;
-		speQarea.resize(quadGridSize * numSpecific);
-		weightTableSize *= numSpecific;
-	}
-
-	std::vector<double> tmpPriQarea;
-	tmpPriQarea.reserve(totalPrimaryPoints);
-	{
-		Eigen::VectorXd where(primaryDims);
-		for (int qx=0; qx < totalPrimaryPoints; qx++) {
-			decodeLocation(qx, primaryDims, quad.data());
-			pointToWhere(quad.data(), where.data(), primaryDims);
-			double den = exp(dmvnorm(primaryDims, where.data(), means, priCov.data()));
-			tmpPriQarea.push_back(den);
-		}
-	}
-
-	priQarea.clear();
-	priQarea.reserve(totalPrimaryPoints);
-
-	double totalArea = 0;
-	for (int qx=0; qx < totalPrimaryPoints; qx++) {
-		double den = tmpPriQarea[qx];
-		priQarea.push_back(den);
-		//double prevTotalArea = totalArea;
-		totalArea += den;
-		// if (totalArea == prevTotalArea) {
-		// 	mxLog("%.4g / %.4g = %.4g", den, totalArea, den / totalArea);
-		// }
-	}
-
-	for (int qx=0; qx < totalPrimaryPoints; qx++) {
-		priQarea[qx] *= One;
-		priQarea[qx] /= totalArea;
-		//mxLog("%.5g,", priQarea[qx]);
-	}
-
-	for (int sgroup=0; sgroup < numSpecific; sgroup++) {
-		totalArea = 0;
-		double mean = means[primaryDims + sgroup];
-		double var = sVar(sgroup);
-		for (int qx=0; qx < quadGridSize; qx++) {
-			double den = exp(dmvnorm(1, &Qpoint[qx], &mean, &var));
-			speQarea[sIndex(sgroup, qx)] = den;
-			totalArea += den;
-		}
-		for (int qx=0; qx < quadGridSize; qx++) {
-			speQarea[sIndex(sgroup, qx)] /= totalArea;
-		}
-	}
-	//pda(speQarea.data(), numSpecific, quadGridSize);
-
-	for (int sx=0; sx < int(speQarea.size()); ++sx) {
-		speQarea[sx] *= One;
-	}
-	//pda(speQarea.data(), numSpecific, quadGridSize);
-
-	wherePrep.clear();
-	wherePrep.reserve(totalQuadPoints * maxDims);
-
-	if (numSpecific == 0) {
-		for (int qx=0; qx < totalPrimaryPoints; qx++) {
-			int sortq = qx * maxDims;
-			for (int dx=0; dx < maxDims; ++dx) {
-				wherePrep.push_back(tmpWherePrep[sortq + dx]);
-			}
-		}
-	} else {
-		for (int qx=0; qx < totalPrimaryPoints; ++qx) {
-			int sortq = qx * quadGridSize;
-			for (int sx=0; sx < quadGridSize; ++sx) {
-				int base = (sortq + sx) * maxDims;
-				for (int dx=0; dx < maxDims; ++dx) {
-					wherePrep.push_back(tmpWherePrep[base + dx]);
-				}
-			}
-		}
-	}
-
-	// recompute whereGram because the order might have changed
-	whereGram.resize(triangleLoc1(maxDims), totalQuadPoints);
-
-	for (int qx=0; qx < totalQuadPoints; qx++) {
-		double *wh = wherePrep.data() + qx * maxDims;
-		gramProduct(wh, maxDims, &whereGram.coeffRef(0, qx));
-	}
-}
-
-ifaGroup::ifaGroup(int cores, bool _twotier) : Rdata(NULL),
-		numThreads(cores), qwidth(6.0), qpoints(49),
-		twotier(_twotier),
-		maxAbilities(0),
-		numSpecific(0),
-		mean(0),
-					       cov(0), dataRowNames(0),
-	    weightColumnName(0), rowWeight(0),
-					       minItemsPerScore(NA_INTEGER),
-					       outcomeProb(0), excludedPatterns(-1)
+ifaGroup::ifaGroup(int cores, bool _twotier) :
+	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
+	twotier(_twotier), maxAbilities(0), mean(0), cov(0), dataRowNames(0),
+	weightColumnName(0), rowWeight(0), minItemsPerScore(NA_INTEGER),
+	outcomeProb(0), excludedPatterns(-1)
 {}
 
 // The idea here is to avoid denormalized values if they are
@@ -242,13 +90,17 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 	impliedParamRows = 0;
 	totalOutcomes = 0;
-	maxItemDims = 0;
+	itemDims = -1;
 	for (int cx = 0; cx < numItems(); cx++) {
 		const double *ispec = spec[cx];
 		int id = ispec[RPF_ISpecID];
 		int dims = ispec[RPF_ISpecDims];
-		if (maxItemDims < dims)
-			maxItemDims = dims;
+		if (itemDims == -1) {
+			itemDims = dims;
+		} else if (dims != itemDims) {
+			Rf_error("All items must have the same number of factors (%d != %d)",
+				 itemDims, dims);
+		}
 		int no = ispec[RPF_ISpecOutcomes];
 		itemOutcomes.push_back(no);
 		cumItemOutcomes.push_back(totalOutcomes);
@@ -289,16 +141,16 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 void ifaGroup::learnMaxAbilities()
 {
 	maxAbilities = 0;
-	Eigen::ArrayXi loadings(maxItemDims);
+	Eigen::ArrayXi loadings(itemDims);
 	loadings.setZero();
 	for (int cx = 0; cx < numItems(); cx++) {
-		for (int dx=0; dx < maxItemDims; ++dx) {
+		for (int dx=0; dx < itemDims; ++dx) {
 			if (getItemParam(cx)[dx] != 0) loadings[dx] += 1;
 		}
 	}
 	maxAbilities = (loadings != 0).count();
-	if (maxItemDims != maxAbilities) {
-		for (int lx=0; lx < maxItemDims; ++lx) {
+	if (itemDims != maxAbilities) {
+		for (int lx=0; lx < itemDims; ++lx) {
 			if (loadings[lx] == 0) Rf_error("Factor %d does not load on any items", 1+lx);
 		}
 	}
@@ -388,12 +240,12 @@ void ifaGroup::import(SEXP Rlist)
 	if (maxAbilities < (int) factorNames.size())
 		factorNames.resize(maxAbilities);
 
-	if (!factorNames.size()) {
+	if (int(factorNames.size()) < maxAbilities) {
 		factorNames.reserve(maxAbilities);
 		const int SMALLBUF = 10;
 		char buf[SMALLBUF];
-		for (int sx=0; sx < maxAbilities; ++sx) {
-			snprintf(buf, SMALLBUF, "s%d", sx+1);
+		while (int(factorNames.size()) < maxAbilities) {
+			snprintf(buf, SMALLBUF, "s%d", int(factorNames.size()) + 1);
 			factorNames.push_back(CHAR(Rf_mkChar(buf)));
 		}
 	}
@@ -486,25 +338,24 @@ void ifaGroup::import(SEXP Rlist)
 		for (int rx=0; rx < dataRows; ++rx) rowMap.push_back(rx);
 	}
 
-	detectTwoTier();
-	sanityCheck();
+	Eigen::Map< Eigen::ArrayXXd > Eparam(param, paramRows, numItems());
+	Eigen::Map< Eigen::VectorXd > meanVec(mean, maxAbilities);
+	Eigen::Map< Eigen::MatrixXd > covMat(cov, maxAbilities, maxAbilities);
+
+	quad.setStructure(qwidth, qpoints, Eparam, meanVec, covMat);
 
 	if (paramRows < impliedParamRows) {
 		Rf_error("At least %d rows are required in the item parameter matrix, only %d found",
 			 impliedParamRows, paramRows);
 	}
-
-	Eigen::Map<Eigen::MatrixXd> fullCov(cov, maxAbilities, maxAbilities);
-	int dense = maxAbilities - numSpecific;
-	Eigen::MatrixXd priCov = fullCov.block(0, 0, dense, dense);
-	Eigen::VectorXd sVar = fullCov.diagonal().tail(numSpecific);
-
-	quad.setup(qwidth, qpoints, mean, priCov, sVar);
+	
+	quad.refresh(meanVec, covMat);
 }
 
 void ifaGroup::setLatentDistribution(int dims, double *_mean, double *_cov)
 {
 	maxAbilities = dims;
+
 	if (maxAbilities < 0) Rf_error("maxAbilities must be non-negative");
 
 	if (!mean) {
@@ -523,53 +374,141 @@ void ifaGroup::setLatentDistribution(int dims, double *_mean, double *_cov)
 	}
 }
 
-void ifaGroup::detectTwoTier()
+template <typename T1, typename T2, typename T3>
+void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
+				  Eigen::ArrayBase<T1> &param,
+				  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
 {
-	int mlen = maxAbilities;
+	width = Qwidth;
+	gridSize = Qpoints;
 
-	if (!twotier || mlen < 3) return;
+	if (int(Qpoint.size()) != gridSize) {
+		Qpoint.clear();
+		Qpoint.reserve(gridSize);
+		double qgs = gridSize-1;
+		for (int px=0; px < gridSize; ++px) {
+			Qpoint.push_back(px * 2 * width / qgs - width);
+		}
+	}
+
+	// split into independent layers TODO
+	layers.clear();
+	layers.resize(1, layer(this));
+
+	abilities = mean.cols();
+
+	if (0 == mean.cols()) {
+		gridSize = 1;
+		layers[0].setZeroAbilities();
+	} else {
+		// subset param, mean, cov, etc
+		layers[0].setStructure(param, mean, cov);
+	}
+
+	totalQuadPoints = 0;
+	weightTableSize = 0;
+	int offset = 0;
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].abilitiesOffset = offset;
+		offset += layers[lx].abilities;
+		totalQuadPoints += layers[lx].totalQuadPoints;
+		weightTableSize += layers[lx].weightTableSize;
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
+					 Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
+{
+	std::vector<double> &Qpoint = quad->Qpoint;
+
+	numSpecific = 0;
+	
+	if (quad->ig.twotier) detectTwoTier(param, mean, cov);
+
+	primaryDims = cov.cols() - numSpecific;
+	maxDims = primaryDims + (numSpecific? 1 : 0);
+	abilities = primaryDims + numSpecific;
+
+	totalQuadPoints = 1;
+	for (int dx=0; dx < maxDims; dx++) {
+		totalQuadPoints *= quad->gridSize;
+	}
+
+	totalPrimaryPoints = totalQuadPoints;
+	weightTableSize = totalQuadPoints;
+
+	if (numSpecific) {
+		totalPrimaryPoints /= quad->gridSize;
+		weightTableSize *= numSpecific;
+	}
+
+	wherePrep.clear();
+	wherePrep.reserve(totalQuadPoints * maxDims);
+
+	Eigen::VectorXi abscissa(maxDims);
+	for (int qx=0; qx < totalQuadPoints; qx++) {
+		decodeLocation(qx, quad->gridSize, abscissa);
+		for (int dx=0; dx < maxDims; dx++) {
+			wherePrep.push_back(Qpoint[abscissa[dx]]);
+		}
+	}
+
+	whereGram.resize(triangleLoc1(maxDims), totalQuadPoints);
+
+	for (int qx=0; qx < totalQuadPoints; qx++) {
+		double *wh = wherePrep.data() + qx * maxDims;
+		gramProduct(wh, maxDims, &whereGram.coeffRef(0, qx));
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
+					  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
+{
+	if (mean.cols() < 3) return;
 
 	std::vector<int> orthogonal;
-	if (mlen >= 3) {
-		Eigen::Map<Eigen::MatrixXd> Ecov(cov, mlen, mlen);
-		Eigen::Matrix<Eigen::DenseIndex, Eigen::Dynamic, 1> numCov((Ecov.array() != 0.0).matrix().colwise().count());
-		std::vector<int> candidate;
-		for (int fx=0; fx < numCov.rows(); ++fx) {
-			if (numCov(fx) == 1) candidate.push_back(fx);
-		}
-		if (candidate.size() > 1) {
-			std::vector<bool> mask(numItems());
-			for (int cx=candidate.size() - 1; cx >= 0; --cx) {
-				std::vector<bool> loading(numItems());
-				for (int ix=0; ix < numItems(); ++ix) {
-					loading[ix] = param[ix * paramRows + candidate[cx]] != 0;
-				}
-				std::vector<bool> overlap(loading.size());
+
+	Eigen::Matrix<Eigen::DenseIndex, Eigen::Dynamic, 1>
+		numCov((cov.array() != 0.0).matrix().colwise().count());
+	std::vector<int> candidate;
+	for (int fx=0; fx < numCov.rows(); ++fx) {
+		if (numCov(fx) == 1) candidate.push_back(fx);
+	}
+	if (candidate.size() > 1) {
+		std::vector<bool> mask(param.cols());
+		for (int cx=candidate.size() - 1; cx >= 0; --cx) {
+			std::vector<bool> loading(param.cols());
+			for (int ix=0; ix < param.cols(); ++ix) {
+				loading[ix] = param(candidate[cx], ix) != 0;
+			}
+			std::vector<bool> overlap(loading.size());
+			std::transform(loading.begin(), loading.end(),
+				       mask.begin(), overlap.begin(),
+				       std::logical_and<bool>());
+			if (std::find(overlap.begin(), overlap.end(), true) == overlap.end()) {
 				std::transform(loading.begin(), loading.end(),
-					       mask.begin(), overlap.begin(),
-					       std::logical_and<bool>());
-				if (std::find(overlap.begin(), overlap.end(), true) == overlap.end()) {
-					std::transform(loading.begin(), loading.end(),
-						       mask.begin(), mask.begin(),
-						       std::logical_or<bool>());
-					orthogonal.push_back(candidate[cx]);
-				}
+					       mask.begin(), mask.begin(),
+					       std::logical_or<bool>());
+				orthogonal.push_back(candidate[cx]);
 			}
 		}
-		std::reverse(orthogonal.begin(), orthogonal.end());
 	}
+	std::reverse(orthogonal.begin(), orthogonal.end());
+
 	if (orthogonal.size() == 1) orthogonal.clear();
-	if (orthogonal.size() && orthogonal[0] != mlen - int(orthogonal.size())) {
-		Rf_error("Independent factors must be given after dense factors");
+	if (orthogonal.size() && orthogonal[0] != mean.cols() - int(orthogonal.size())) {
+		Rf_error("Independent specific factors must be given after general dense factors");
 	}
 
 	numSpecific = orthogonal.size();
 
 	if (numSpecific) {
-		Sgroup.assign(numItems(), 0);
-		for (int ix=0; ix < numItems(); ix++) {
-			for (int dx=orthogonal[0]; dx < maxAbilities; ++dx) {
-				if (param[ix * paramRows + dx] != 0) {
+		Sgroup.assign(param.cols(), 0);
+		for (int ix=0; ix < param.cols(); ix++) {
+			for (int dx=orthogonal[0]; dx < abilities; ++dx) {
+				if (param(dx, ix) != 0) {
 					Sgroup[ix] = dx - orthogonal[0];
 					continue;
 				}
@@ -630,8 +569,33 @@ void ifaGroup::buildRowSkip()
 	}
 }
 
-void ifaGroup::sanityCheck() // remove TODO
+void ba81NormalQuad::layer::allocBuffers(int numThreads)
 {
+	if (!numSpecific) return;
+
+	this->numThreads = numThreads;
+	thrEi.resize(totalPrimaryPoints, numThreads);
+	thrEis.resize(totalPrimaryPoints * numSpecific, numThreads);
+}
+
+void ba81NormalQuad::layer::releaseBuffers()
+{
+	thrEi.resize(0,0);
+	thrEis.resize(0,0);
+}
+
+void ba81NormalQuad::allocBuffers(int numThreads)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].allocBuffers(numThreads);
+	}
+}
+
+void ba81NormalQuad::releaseBuffers()
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].releaseBuffers();
+	}
 }
 
 void ifaGroup::setGridFineness(double width, int points)
