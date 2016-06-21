@@ -218,7 +218,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						plan=mxComputeGradientDescent(
 							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
 							maxMajorIter=maxMajorIter),
-						constraintType=ifelse(relevantOptions[[3]] == 'NPSOL','none','ineq')))
+						constraintType=ifelse(relevantOptions[[3]] == 'SLSQP','ineq','none')))
 				}
 				if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
 				if(SElater){
@@ -259,7 +259,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 							plan=mxComputeGradientDescent(
 								nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
 								maxMajorIter=maxMajorIter),
-							constraintType=ifelse(relevantOptions[[3]] == 'NPSOL','none','ineq')))
+							constraintType=ifelse(relevantOptions[[3]] == 'SLSQP','ineq','none')))
 					}
 					if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
 					if(SElater){
