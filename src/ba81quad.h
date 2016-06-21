@@ -26,6 +26,17 @@
 extern const struct rpf *Glibrpf_model;
 extern int Glibrpf_numModels;
 
+inline void gramProduct(double *vec, size_t len, double *out)
+{
+	int cell = 0;
+	for (size_t v1=0; v1 < len; ++v1) {
+		for (size_t v2=0; v2 <= v1; ++v2) {
+			out[cell] = vec[v1] * vec[v2];
+			++cell;
+		}
+	}
+}
+
 class ba81NormalQuad {
  private:
 	template <typename T1>
@@ -35,7 +46,21 @@ class ba81NormalQuad {
 	int gridSize;
 	std::vector<double> Qpoint;           // gridSize
 
-	struct layer {
+	class layer {
+	private:
+		template <typename T1, typename T2, typename T3, typename T4>
+		void calcDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov,
+				   Eigen::MatrixBase<T3> &icov, Eigen::MatrixBase<T4> &where, int qx);
+		template <typename T1, typename T2, typename T4>
+		void calcDerivCoef1(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov,
+				    Eigen::MatrixBase<T4> &where, int qx, int sgroup);
+		template <typename T2>
+		void mapLatentDeriv(double piece, int qx, Eigen::ArrayBase<T2> &derivOut);
+		template <typename T2>
+		void mapLatentDerivS(int sgroup, double piece, int qx, int curGroup,
+				     Eigen::ArrayBase<T2> &derivOut);
+	public:
+
 		class ba81NormalQuad *quad;
 
 		int abilitiesOffset;                  // index into the global abilities vector
@@ -58,6 +83,10 @@ class ba81NormalQuad {
 		Eigen::ArrayXXd thrEi;
 		Eigen::ArrayXXd thrEis;
 
+		// Mislevy (1984) deriv stuff
+		Eigen::ArrayXXd derivCoef;            // deriv * totalQuadPoints
+		// need to dealloc derivCoef TODO
+
 		layer(class ba81NormalQuad *quad)
 		: quad(quad), maxDims(-1), numSpecific(-1), primaryDims(-1) {};
 		inline int sIndex(int sx, int qx) { // remove? TODO
@@ -67,12 +96,12 @@ class ba81NormalQuad {
 		};
 		template <typename T1>
 		inline void mapDenseSpace(double piece, const double *where,
-					  const double *whereGram, Eigen::MatrixBase<T1> &latentDist);
+					  const double *whereGram, Eigen::ArrayBase<T1> &latentDist);
 		template <typename T1>
 		inline void mapSpecificSpace(int sgroup, double piece, const double *where,
-					     const double *whereGram, Eigen::MatrixBase<T1> &latentDist);
+					     const double *whereGram, Eigen::ArrayBase<T1> &latentDist);
 		template <typename T1>
-		inline void finalizeLatentDist(const double sampleSize, Eigen::MatrixBase<T1> &scorePad);
+		inline void finalizeLatentDist(const double sampleSize, Eigen::ArrayBase<T1> &scorePad);
 
 		void allocBuffers(int numThreads, bool wantSummary);
 		void releaseBuffers();
@@ -88,9 +117,21 @@ class ba81NormalQuad {
 		inline void refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> &cov);
 		inline void addTo(int thrId, int ix, double *out);
 		template <typename T1, typename T2>
-		inline void foreach(Eigen::MatrixBase<T1> &abscissa, T2 op);
+		inline void foreach(Eigen::MatrixBase<T1> &abscissa, T2 &op);
 		inline void weightBy(int thrId, double weight);
 		inline void weightByAndSummarize(int thrId, double weight);
+		template <typename T1, typename T2>
+		void cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
+		template <typename T1>
+		void pointToGlobalAbscissa(int qx, Eigen::MatrixBase<T1> &abscissa);
+		template <typename T1>
+		void pointToLocalAbscissa(int qx, Eigen::MatrixBase<T1> &abscissa);
+		template <typename T, typename T1, typename T2>
+		void computeRowDeriv(int thrId, Eigen::MatrixBase<T2> &abscissa, T &op,
+				     bool freeLatents, Eigen::ArrayBase<T1> &latentGradOut);
+		template <typename T1, typename T2>
+		void addMeanCovLocalToGlobal(Eigen::ArrayBase<T1> &local,
+					     Eigen::ArrayBase<T2> &glob);
 	};
 
 	double One, ReciprocalOfOne;
@@ -98,8 +139,12 @@ class ba81NormalQuad {
 
  public:
 	struct ifaGroup &ig;            // should be optimized out
+
+	// Maybe an abstraction violation to expose weightTableSize, totalQuadPoints
 	int totalQuadPoints;            // sum of per-layer totalQuadPoints
 	int weightTableSize;            // sum of per-layer weightTableSize
+
+	bool hasBifactorStructure;
 	int abilities;                  // sum of per-layer abilities
 
 	ba81NormalQuad(struct ifaGroup *ig);
@@ -109,15 +154,16 @@ class ba81NormalQuad {
 	inline void refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> &cov);
 	inline double getReciprocalOfOne() const { return ReciprocalOfOne; };
 
-	// scorePad does not need to be initialized to zero
-	inline void EAP(double *thrDweight, double sampleSize, double *scorePad);
+	template <typename T1>
+	void EAP(double *thrDweight, const double sampleSize,  // use Dweight from quad? TODO
+		 Eigen::ArrayBase<T1> &scorePad);
 
 	inline void cacheOutcomeProb(const double *ispec, double *iparam,
 				     rpf_prob_t prob_fn, double *qProb);
 	void allocBuffers(int numThreads, bool wantSummary);
 	void releaseBuffers();
 	inline double computePatternLik(int thrId, int row);
-	inline void prepLatentDist(int thrId);
+	inline void prepLatentDist(int thrId);  // a.k.a. cai2010part2
 	template <typename T1, typename T2, typename T3>
 	void setStructure(double Qwidth, int Qpoints,
 			  Eigen::ArrayBase<T1> &param,
@@ -125,10 +171,232 @@ class ba81NormalQuad {
 	inline void addTo(int thrId, int ix, double *out);
 	bool isAllocated() { return Qpoint.size(); };
 	template <typename T>
-	void foreach(T op);
+	void foreach(T &op);
 	inline void weightBy(int thrId, double weight);
 	inline void weightByAndSummarize(int thrId, double weight);
+	template <typename T1, typename T2>
+	void cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
+	template <typename T, typename T1>
+	void computeRowDeriv(int thrId, T &op, bool freeLatents, Eigen::ArrayBase<T1> &latentGrad);
+	template <typename T>
+	void computeRowDeriv(int thrId, T &op);
 };
+
+template <typename T1, typename T2, typename T3, typename T4>
+void ba81NormalQuad::layer::calcDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov,
+		   Eigen::MatrixBase<T3> &icov, Eigen::MatrixBase<T4> &where, int qx)
+{
+	const int pDims = numSpecific? maxDims - 1 : maxDims;
+	const char R='R';
+	const char L='L';
+	const char U='U';
+	const double alpha = 1;
+	const double beta = 0;
+	const int one = 1;
+
+	std::vector<double> whereDiff(pDims);
+	std::vector<double> whereGram(triangleLoc1(pDims));
+	for (int d1=0; d1 < pDims; ++d1) {
+		whereDiff[d1] = where[d1] - meanVec[d1];
+	}
+	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
+
+	F77_CALL(dsymv)(&U, &pDims, &alpha, icov.derived().data(), &pDims, whereDiff.data(), &one,
+			&beta, &derivCoef.coeffRef(0,qx), &one);
+
+	std::vector<double> covGrad1(pDims * pDims);
+	std::vector<double> covGrad2(pDims * pDims);
+
+	int cx=0;
+	for (int d1=0; d1 < pDims; ++d1) {
+		for (int d2=0; d2 <= d1; ++d2) {
+			covGrad1[d2 * pDims + d1] = cov(d2,d1) - whereGram[cx];
+			++cx;
+		}
+	}
+
+	F77_CALL(dsymm)(&R, &L, &pDims, &pDims, &alpha, covGrad1.data(), &pDims, icov.derived().data(),
+			&pDims, &beta, covGrad2.data(), &pDims);
+	F77_CALL(dsymm)(&R, &L, &pDims, &pDims, &alpha, icov.derived().data(), &pDims, covGrad2.data(),
+			&pDims, &beta, covGrad1.data(), &pDims);
+
+	for (int d1=0; d1 < pDims; ++d1) {
+		covGrad1[d1 * pDims + d1] *= 0.5;
+	}
+
+	cx = pDims;
+	for (int d1=0; d1 < pDims; ++d1) {
+		int cell = d1 * pDims;
+		for (int d2=0; d2 <= d1; ++d2) {
+			derivCoef(cx,qx) = -covGrad1[cell + d2];
+			++cx;
+		}
+	}
+}
+
+template <typename T1, typename T2, typename T4>
+void ba81NormalQuad::layer::calcDerivCoef1(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov,
+					   Eigen::MatrixBase<T4> &where, int qx, int curGroup)
+{
+	int primaryDeriv = primaryDims + triangleLoc1(primaryDims);
+	int base = primaryDeriv + curGroup*2;
+	const int specific = maxDims - 1 + curGroup;
+	double svar = cov(specific, specific);
+	double whereDiff = where[maxDims-1] - meanVec[specific];
+	derivCoef(base, qx) = whereDiff / svar;
+	derivCoef(base+1, qx) = -(svar - whereDiff * whereDiff) / (2 * svar * svar);
+}
+
+template <typename T1>
+int ba81quad_InvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, const char uplo)
+{
+	if (mat.rows() != mat.cols()) Rf_error("Not square");
+	int size = mat.rows();
+	int info;
+	F77_CALL(dpotrf)(&uplo, &size, mat.derived().data(), &size, &info);
+	if (info < 0) Rf_error("Arg %d is invalid", -info);
+	if (info > 0) return info;
+    
+	F77_CALL(dpotri)(&uplo, &size, mat.derived().data(), &size, &info);
+	if (info < 0) Rf_error("Arg %d is invalid", -info);
+	return info;
+}
+
+template <typename T1, typename T2>
+void ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
+{
+	Eigen::MatrixXd icov = cov;
+	int info = ba81quad_InvertSymmetricPosDef(icov, 'U');
+	if (info) {
+		// report error TODO
+		//omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->name());
+		return;
+	}
+	icov.triangularView<Eigen::Lower>() = icov.transpose().triangularView<Eigen::Lower>();
+	
+	Eigen::VectorXd abscissa(maxDims);
+	if (numSpecific == 0) {
+		derivCoef.resize(abilities + triangleLoc1(abilities), totalQuadPoints);
+		for (int qx=0; qx < totalQuadPoints; qx++) {
+			pointToLocalAbscissa(qx, abscissa);
+			calcDerivCoef(meanVec, cov, icov, abscissa, qx);
+		}
+	} else {
+		derivCoef.resize(primaryDims + triangleLoc1(primaryDims) + 2 * numSpecific, totalQuadPoints);
+		for (int qx=0; qx < totalQuadPoints; qx++) {
+			pointToLocalAbscissa(qx, abscissa);
+			calcDerivCoef(meanVec, cov, icov, abscissa, qx);
+			for (int curGroup=0; curGroup < numSpecific; ++curGroup) {
+				calcDerivCoef1(meanVec, cov, abscissa, qx, curGroup);
+			}
+		}
+	}
+}
+
+template <typename T1, typename T2>
+void ba81NormalQuad::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
+{
+	int offset=0;
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		int la = layers[lx].abilities;
+		Eigen::VectorXd meanVec1 = meanVec.segment(offset, la);
+		Eigen::MatrixXd cov1 = cov.block(offset, offset, la, la);
+		layers[lx].cacheDerivCoef(meanVec1, cov1);
+		offset += la;
+	}
+}
+
+template <typename T2>
+void ba81NormalQuad::layer::mapLatentDeriv(double piece, int qx, Eigen::ArrayBase<T2> &derivOut)
+{
+	int cx = 0;
+	for (int d1=0; d1 < primaryDims; ++d1) {
+		double amt1 = piece * derivCoef(d1, qx);
+		derivOut[d1] += amt1;
+		for (int d2=0; d2 <= d1; ++d2) {
+			int to = abilities + cx;
+			double amt2 = piece * derivCoef(primaryDims + cx, qx);
+			derivOut[to] += amt2;
+			++cx;
+		}
+	}
+}
+
+template <typename T2>
+void ba81NormalQuad::layer::mapLatentDerivS(int sgroup, double piece, int qx, int curGroup,
+					    Eigen::ArrayBase<T2> &derivOut)
+{
+	const int priDerivCoef = primaryDims + triangleLoc1(primaryDims);
+	int base = priDerivCoef + 2 * curGroup;
+	
+	int sdim = primaryDims + sgroup;
+	double amt3 = piece * derivCoef(base, qx);
+	derivOut[sdim] += amt3;
+
+	double amt4 = piece * derivCoef(base+1, qx);
+	int to = abilities + triangleLoc0(sdim);
+	derivOut[to] += amt4;
+}
+
+template <typename T, typename T1, typename T2>
+void ba81NormalQuad::layer::computeRowDeriv(int thrId, Eigen::MatrixBase<T2> &abscissa, T &op,
+					    bool freeLatents, Eigen::ArrayBase<T1> &latentGradOut)
+{
+	abscissa.setZero();
+	const int numLatents = abilities + triangleLoc1(abilities);
+	Eigen::ArrayXd latentGrad(numLatents);
+	latentGrad.setZero();
+	const int specificPoints = quad->gridSize;
+
+	for (int qx=0; qx < totalQuadPoints; qx++) {
+		pointToGlobalAbscissa(qx, abscissa);
+		op.beginQuadPoint(thrId);
+		for (int ix=0; ix < op.getNumItems(); ++ix) {
+			op(thrId, abscissa, Qweight(qx, thrId), ix);
+		}
+		op.endQuadPoint(thrId);
+	}
+		
+	if (!freeLatents) return;
+
+	if (numSpecific == 0) {
+		for (int qx=0; qx < totalQuadPoints; qx++) {
+			double tmp = Qweight(qx, thrId);
+			mapLatentDeriv(tmp, qx, latentGrad);
+		}
+	} else {
+		for (int qloc=0, eisloc=0, qx=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+			for (int sx=0; sx < specificPoints; sx++) {
+				mapLatentDeriv(Qweight(qloc, thrId), qx, latentGrad);
+
+				for (int curGroup=0; curGroup < numSpecific; curGroup++) {
+					double tmp = Qweight(qloc, thrId);
+					mapLatentDerivS(curGroup, tmp, qx, curGroup, latentGrad);
+					++qloc;
+				}
+				++qx;
+			}
+		}
+	}
+	addMeanCovLocalToGlobal(latentGrad, latentGradOut);
+}
+
+template <typename T, typename T1>
+void ba81NormalQuad::computeRowDeriv(int thrId, T &op, bool freeLatents, Eigen::ArrayBase<T1> &latentGrad)
+{
+	Eigen::VectorXd abscissa;
+	abscissa.resize(abilities);
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].computeRowDeriv(thrId, abscissa, op, freeLatents, latentGrad);
+	}
+}
+
+template <typename T>
+void ba81NormalQuad::computeRowDeriv(int thrId, T &op)
+{
+	Eigen::ArrayXd placeholder;
+	computeRowDeriv(thrId, op, false, placeholder);
+}
 
 template <typename T1>
 void ba81NormalQuad::decodeLocation(int qx, int base, Eigen::MatrixBase<T1> &out)
@@ -139,28 +407,45 @@ void ba81NormalQuad::decodeLocation(int qx, int base, Eigen::MatrixBase<T1> &out
 	}
 }
 
-template <typename T1, typename T2>
-void ba81NormalQuad::layer::foreach(Eigen::MatrixBase<T1> &abscissa, T2 op)
+template <typename T1>
+void ba81NormalQuad::layer::pointToGlobalAbscissa(int qx, Eigen::MatrixBase<T1> &abscissa)
 {
 	std::vector<double> &Qpoint = quad->Qpoint;
+	decodeLocation(qx, quad->gridSize, abscissa);
+	for (int dx=0; dx < maxDims; dx++) {
+		abscissa[abilitiesOffset + dx] = Qpoint[abscissa[dx]];
+	}
+}
+
+template <typename T1>
+void ba81NormalQuad::layer::pointToLocalAbscissa(int qx, Eigen::MatrixBase<T1> &abscissa)
+{
+	std::vector<double> &Qpoint = quad->Qpoint;
+	decodeLocation(qx, quad->gridSize, abscissa);
+	for (int dx=0; dx < maxDims; dx++) {
+		abscissa[dx] = Qpoint[abscissa[dx]];
+	}
+}
+
+template <typename T1, typename T2>
+void ba81NormalQuad::layer::foreach(Eigen::MatrixBase<T1> &abscissa, T2 &op)
+{
+	if (op.wantAbscissa()) abscissa.setZero();
+
 	for (int qx=0; qx < totalQuadPoints; ++qx) {
 		if (op.wantAbscissa()) {
-			decodeLocation(qx, quad->gridSize, abscissa);
-			for (int dx=0; dx < maxDims; dx++) {
-				abscissa[abilitiesOffset + dx] = Qpoint[abscissa[dx]];
-			}
+			pointToGlobalAbscissa(qx, abscissa);
 		}
 		op(abscissa.derived().data());
 	}
 }
 
 template <typename T>
-void ba81NormalQuad::foreach(T op)
+void ba81NormalQuad::foreach(T &op)
 {
 	Eigen::VectorXd abscissa;
 	if (op.wantAbscissa()) {
 		abscissa.resize(abilities);
-		abscissa.setZero();
 	}
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].foreach(abscissa, op);
@@ -169,12 +454,11 @@ void ba81NormalQuad::foreach(T op)
 
 template <typename T1>
 void ba81NormalQuad::layer::mapDenseSpace(double piece, const double *where,
-					  const double *whereGram, Eigen::MatrixBase<T1> &latentDist)
+					  const double *whereGram, Eigen::ArrayBase<T1> &latentDist)
 {
-	const int pmax = primaryDims;
 	int gx = 0;
 	int cx = abilities;
-	for (int d1=0; d1 < pmax; d1++) {
+	for (int d1=0; d1 < primaryDims; d1++) {
 		double piece_w1 = piece * where[d1];
 		latentDist[d1] += piece_w1;
 		for (int d2=0; d2 <= d1; d2++) {
@@ -187,21 +471,19 @@ void ba81NormalQuad::layer::mapDenseSpace(double piece, const double *where,
 
 template <typename T1>
 void ba81NormalQuad::layer::mapSpecificSpace(int sgroup, double piece, const double *where,
-					     const double *whereGram, Eigen::MatrixBase<T1> &latentDist)
+					     const double *whereGram, Eigen::ArrayBase<T1> &latentDist)
 {
-	const int pmax = primaryDims;
-
-	int sdim = pmax + sgroup;
-	double piece_w1 = piece * where[pmax];
+	int sdim = primaryDims + sgroup;
+	double piece_w1 = piece * where[primaryDims];
 	latentDist[sdim] += piece_w1;
 
-	double piece_var = piece * whereGram[triangleLoc0(pmax)];
+	double piece_var = piece * whereGram[triangleLoc0(primaryDims)];
 	int to = abilities + triangleLoc0(sdim);
 	latentDist[to] += piece_var;
 }
 
 template <typename T1>
-void ba81NormalQuad::layer::finalizeLatentDist(const double sampleSize, Eigen::MatrixBase<T1> &scorePad)
+void ba81NormalQuad::layer::finalizeLatentDist(const double sampleSize, Eigen::ArrayBase<T1> &scorePad)
 {
 	const int padSize = abilities + triangleLoc1(abilities);
 	for (int d1=0; d1 < padSize; d1++) {
@@ -224,14 +506,30 @@ void ba81NormalQuad::layer::finalizeLatentDist(const double sampleSize, Eigen::M
 	}
 }
 
-void ba81NormalQuad::EAP(double *thrDweight, const double sampleSize, double *scorePad)
+template <typename T1, typename T2>
+void ba81NormalQuad::layer::addMeanCovLocalToGlobal(Eigen::ArrayBase<T1> &local,
+						    Eigen::ArrayBase<T2> &glob)
+{
+	int cx = abilities;
+	for (int a1=0; a1 < abilities; ++a1) {
+		glob[abilitiesOffset + a1] += local[a1];
+		for (int a2=0; a2 < abilities; ++a2) {
+			glob[quad->abilities + triangleLoc1(abilitiesOffset+a1) +
+			     abilitiesOffset + a2] += local[cx];
+		}
+	}
+}
+
+template <typename T1>
+void ba81NormalQuad::EAP(double *thrDweight, const double sampleSize,
+			 Eigen::ArrayBase<T1> &scorePad)
 {
 	int weightTableStart = 0;
 	int offset=0;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layer &l1 = layers[lx];
 		double *layerDweight = thrDweight + weightTableStart;
-		Eigen::VectorXd layerPad(l1.abilities + triangleLoc1(l1.abilities));
+		Eigen::ArrayXd layerPad(l1.abilities + triangleLoc1(l1.abilities));
 		layerPad.setZero();
 		if (l1.numSpecific == 0) {
 			for (int qx=0; qx < l1.totalQuadPoints; ++qx) {
@@ -253,14 +551,7 @@ void ba81NormalQuad::EAP(double *thrDweight, const double sampleSize, double *sc
 
 		l1.finalizeLatentDist(sampleSize, layerPad);
 
-		// copy layerPad to scorePad
-		int cx = l1.abilities;
-		for (int a1=0; a1 < l1.abilities; ++a1) {
-			scorePad[offset + a1] = layerPad[a1];
-			for (int a2=0; a2 < l1.abilities; ++a2) {
-				scorePad[abilities + triangleLoc1(offset+a1) + offset+a2] = layerPad[cx];
-			}
-		}
+		l1.addMeanCovLocalToGlobal(layerPad, scorePad);
 
 		offset += l1.abilities;
 		weightTableStart += l1.weightTableSize;
@@ -284,6 +575,7 @@ class ifaGroup {
 	std::vector<const char*> itemNames;
 	std::vector<int> itemOutcomes;
 	std::vector<int> cumItemOutcomes;
+	int maxOutcomes;
 	int totalOutcomes;
 
 	// latent distribution
@@ -331,9 +623,6 @@ class ifaGroup {
 	inline const int *dataColumn(int col) { return dataColumns[col]; };
 	void buildRowSkip();
 	inline void ba81OutcomeProb(double *param, bool wantLog);
-	inline void ba81LikelihoodSlow2(const int px, double *out);
-	inline void cai2010EiEis(const int px, double *lxk, double *Eis, double *Ei);
-	inline void cai2010part2(double *Qweight, double *Eis, double *Ei);
 };
 
 void ba81NormalQuad::cacheOutcomeProb(const double *ispec, double *iparam,

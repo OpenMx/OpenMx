@@ -112,9 +112,9 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 
 	ba81NormalQuad &quad = grp->quad;
 	int numLatents = quad.abilities + triangleLoc1(quad.abilities);
-	std::vector<double> latentDist;
-	latentDist.assign(numLatents, 0.0);
-	quad.EAP(thrDweight, extraData->weightSum, latentDist.data());
+	Eigen::ArrayXd latentDist(numLatents);
+	latentDist.setZero();
+	quad.EAP(thrDweight, extraData->weightSum, latentDist);
 	for (int d1=quad.abilities; d1 < numLatents; d1++) {
 		latentDist[d1] *= extraData->weightSum / (extraData->weightSum - 1.0);
 	}
@@ -159,9 +159,9 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 	}
 
 	int numLatents = quad.abilities + triangleLoc1(quad.abilities);
-	std::vector<double> latentDist;
-	latentDist.assign(numLatents, 0.0);
-	quad.EAP(dist.data(), got, latentDist.data());
+	Eigen::ArrayXd latentDist(numLatents);
+	latentDist.setZero();
+	quad.EAP(dist.data(), got, latentDist);
 	for (int d1=quad.abilities; d1 < numLatents; d1++) {
 		latentDist[d1] *= got / (got - 1.0);
 	}

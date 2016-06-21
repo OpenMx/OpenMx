@@ -123,18 +123,6 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 extern const struct rpf *Grpf_model;
 extern int Grpf_numModels;
 
-OMXINLINE static void
-gramProduct(double *vec, size_t len, double *out)
-{
-	int cell = 0;
-	for (size_t v1=0; v1 < len; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
-			out[cell] = vec[v1] * vec[v2];
-			++cell;
-		}
-	}
-}
-
 void ba81RefreshQuadrature(omxExpectation* oo);
 
 void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,

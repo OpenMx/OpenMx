@@ -17,17 +17,6 @@
 
 #include "ba81quad.h"
 
-static inline void gramProduct(double *vec, size_t len, double *out)
-{
-	int cell = 0;
-	for (size_t v1=0; v1 < len; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
-			out[cell] = vec[v1] * vec[v2];
-			++cell;
-		}
-	}
-}
-
 ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig), abilities(-1)
 {
 	setOne(1);
@@ -72,6 +61,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 	impliedParamRows = 0;
 	totalOutcomes = 0;
+	maxOutcomes = 0;
 	itemDims = -1;
 	for (int cx = 0; cx < numItems(); cx++) {
 		const double *ispec = spec[cx];
@@ -86,6 +76,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 		int no = ispec[RPF_ISpecOutcomes];
 		itemOutcomes.push_back(no);
 		cumItemOutcomes.push_back(totalOutcomes);
+		maxOutcomes = std::max(maxOutcomes, no);
 		totalOutcomes += no;
 
 		int numParam = (*Glibrpf_model[id].numParam)(ispec);
@@ -361,6 +352,7 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 				  Eigen::ArrayBase<T1> &param,
 				  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
 {
+	hasBifactorStructure = false;
 	width = Qwidth;
 	gridSize = Qpoints;
 
@@ -404,7 +396,7 @@ template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 					 Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
 {
-	if (abilities == 0) {
+	if (mean.size() == 0) {
 		numSpecific = 0;
 		primaryDims = 0;
 		maxDims = 1;
@@ -422,6 +414,7 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 	numSpecific = 0;
 	
 	if (quad->ig.twotier) detectTwoTier(param, mean, cov);
+	if (numSpecific) quad->hasBifactorStructure = true;
 
 	primaryDims = cov.cols() - numSpecific;
 	maxDims = primaryDims + (numSpecific? 1 : 0);
