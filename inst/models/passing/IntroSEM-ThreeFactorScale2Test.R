@@ -101,7 +101,9 @@ threeFactorObliqueRaw1 <- mxModel(threeFactorOrthoRaw1,
     )
 
 threeFactorObliqueRaw1Out <- mxRun(threeFactorObliqueRaw1, suppressWarnings=TRUE)
-omxCheckTrue(any(summary(threeFactorObliqueRaw1Out)[['seSuspect']]))
+if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
+        omxCheckTrue(any(summary(threeFactorObliqueRaw1Out)[['seSuspect']]))
+}
 
 summary(threeFactorObliqueRaw1Out)
 
