@@ -57,33 +57,18 @@ void pia(const int *ar, int rows, int cols)
 
 template <typename T>
 void BA81LatentFixed<T>::normalizeWeights(class ifaGroup *grp, T extraData,
-					  int px, double *Qweight, double patternLik1, int thrId)
+					  int px, double patternLik1, int thrId)
 {
 	double weight = grp->rowWeight[px] / patternLik1;
-	int pts = grp->quad.weightTableSize;
-	for (int qx=0; qx < pts; ++qx) {
-		Qweight[qx] *= weight;
-	}
-}
-
-template <typename T>
-void BA81LatentSummary<T>::begin(class ifaGroup *state, T extraData)
-{
-	extraData->thrDweight.assign(state->quad.weightTableSize * Global->numThreads, 0.0);
+	grp->quad.weightBy(thrId, weight);
 }
 
 template <typename T>
 void BA81LatentSummary<T>::normalizeWeights(class ifaGroup *grp, T extraData,
-					    int px, double *Qweight, double patternLik1, int thrId)
+					    int px, double patternLik1, int thrId)
 {
 	double weight = grp->rowWeight[px] / patternLik1;
-	int pts = grp->quad.weightTableSize;
-	double *Dweight = extraData->thrDweight.data() + pts * thrId;
-	for (int qx=0; qx < pts; ++qx) {
-		double tmp = Qweight[qx] * weight;
-		Dweight[qx] += tmp;
-		Qweight[qx] = tmp;
-	}
+	grp->quad.weightByAndSummarize(thrId, weight);
 }
 
 static void exportLatentDistToOMX(ba81NormalQuad &quad, double *latentDist1, omxMatrix *meanOut, omxMatrix *covOut)
@@ -191,7 +176,7 @@ void BA81Estep<T>::begin(ifaGroup *state, T extraData)
 }
 
 template <typename T>
-void BA81Estep<T>::addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId)
+void BA81Estep<T>::addRow(class ifaGroup *state, T extraData, int px, int thrId)
 {
 	double *out = thrExpected.data() + thrId * state->totalOutcomes * state->quad.totalQuadPoints;
 	std::vector<int> &rowMap = state->rowMap;
@@ -202,7 +187,7 @@ void BA81Estep<T>::addRow(class ifaGroup *state, T extraData, int px, double *Qw
 	for (int ix=0; ix < state->numItems(); ++ix) {
 		int pick = state->dataColumns[ix][rowMap[px]];
 		if (pick != NA_INTEGER) {
-			quad.addTo(Qweight, ix, out+pick-1);
+			quad.addTo(thrId, ix, out+pick-1);
 		}
 		out += itemOutcomes[ix] * totalQuadPoints;
 	}
@@ -243,7 +228,6 @@ void ba81RefreshQuadrature(omxExpectation* oo)
 	ba81NormalQuad &quad = state->getQuad();
 
 	int maxAbilities = state->grp.maxAbilities;
-	if (maxAbilities == 0) return;
 
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd fullCov;

@@ -30,23 +30,23 @@ struct BA81Estep {
 	std::vector<double> thrExpected;
 
 	void begin(class ifaGroup *state, T extraData);
-	void addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId);
+	void addRow(class ifaGroup *state, T extraData, int px, int thrId);
 	void recordTable(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
 };
 
 template <typename T>
 struct BA81LatentFixed {
-	void begin(class ifaGroup *state, T extraData) {}
-	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrid);
+	bool wantSummary() { return false; };
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double weight, int thrid);
 	void end(class ifaGroup *state, T extraData) {};
 	bool hasEnd() { return false; }
 };
 
 template <typename T>
 struct BA81LatentSummary {
-	void begin(class ifaGroup *state, T extraData);
-	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrId);
+	bool wantSummary() { return true; };
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double weight, int thrId);
 	void end(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
 };

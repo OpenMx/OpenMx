@@ -46,6 +46,8 @@ class ba81NormalQuad {
 		std::vector<double> priQarea;         // totalPrimaryPoints
 		std::vector<double> wherePrep;        // totalQuadPoints * maxDims; better to recompute instead of cache? TODO
 		Eigen::MatrixXd whereGram;            // triangleLoc1(maxDims) x totalQuadPoints
+		Eigen::ArrayXXd Qweight;              // weightTableSize * numThreads (for 1 response pattern)
+		Eigen::ArrayXXd Dweight;              // weightTableSize * numThreads (for entire dataset)
 
 		// Cai (2010) dimension reduction
 		int numSpecific;
@@ -53,7 +55,6 @@ class ba81NormalQuad {
 		int totalPrimaryPoints;               // totalQuadPoints except for specific dim
 		std::vector<int> Sgroup;              // item's specific group 0..numSpecific-1
 		std::vector<double> speQarea;         // gridSize * numSpecific
-		int numThreads;
 		Eigen::ArrayXXd thrEi;
 		Eigen::ArrayXXd thrEis;
 
@@ -73,11 +74,10 @@ class ba81NormalQuad {
 		template <typename T1>
 		inline void finalizeLatentDist(const double sampleSize, Eigen::MatrixBase<T1> &scorePad);
 
-		void allocBuffers(int numThreads);
+		void allocBuffers(int numThreads, bool wantSummary);
 		void releaseBuffers();
-		inline double computePatternLik(int thrId, double *oProb, int row, double *out);
-		inline void prepLatentDist(int thrId, double *Qweight);
-		void setZeroAbilities();
+		inline double computePatternLik(int thrId, double *oProb, int row);
+		inline void prepLatentDist(int thrId);
 		template <typename T1, typename T2, typename T3>
 		void detectTwoTier(Eigen::ArrayBase<T1> &param,
 				   Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov);
@@ -86,9 +86,11 @@ class ba81NormalQuad {
 				  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov);
 		template <typename T1, typename T2>
 		inline void refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> &cov);
-		inline void addTo(double *Qweight, int ix, double *out);
+		inline void addTo(int thrId, int ix, double *out);
 		template <typename T1, typename T2>
 		inline void foreach(Eigen::MatrixBase<T1> &abscissa, T2 op);
+		inline void weightBy(int thrId, double weight);
+		inline void weightByAndSummarize(int thrId, double weight);
 	};
 
 	double One, ReciprocalOfOne;
@@ -112,18 +114,20 @@ class ba81NormalQuad {
 
 	inline void cacheOutcomeProb(const double *ispec, double *iparam,
 				     rpf_prob_t prob_fn, double *qProb);
-	void allocBuffers(int numThreads);
+	void allocBuffers(int numThreads, bool wantSummary);
 	void releaseBuffers();
-	inline double computePatternLik(int thrId, int row, double *Qweight);
-	inline void prepLatentDist(int thrId, double *Qweight);
+	inline double computePatternLik(int thrId, int row);
+	inline void prepLatentDist(int thrId);
 	template <typename T1, typename T2, typename T3>
 	void setStructure(double Qwidth, int Qpoints,
 			  Eigen::ArrayBase<T1> &param,
 			  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov);
-	inline void addTo(double *Qweight, int ix, double *out);
+	inline void addTo(int thrId, int ix, double *out);
 	bool isAllocated() { return Qpoint.size(); };
 	template <typename T>
 	void foreach(T op);
+	inline void weightBy(int thrId, double weight);
+	inline void weightByAndSummarize(int thrId, double weight);
 };
 
 template <typename T1>
@@ -370,34 +374,9 @@ void ifaGroup::ba81OutcomeProb(double *param, bool wantLog)
 	}
 }
 
-void ba81NormalQuad::layer::prepLatentDist(int thrId, double *Qweight)
+double ba81NormalQuad::layer::computePatternLik(int thrId, double *oProb, int row)
 {
-	if (0 == numSpecific) return;
-
-	double *Ei = &thrEi.coeffRef(0, thrId);
-	double *Eis = &thrEis.coeffRef(0, thrId);
-
-	const int specificPoints = quad->gridSize;
-
-	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
-		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
-			Eis[qloc] = Ei[qx] / Eis[qloc];
-			++qloc;
-		}
-	}
-
-	for (int qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
-		for (int sx=0; sx < specificPoints; sx++) {
-			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-				Qweight[qloc] *= Eis[eisloc + Sgroup];
-				++qloc;
-			}
-		}
-	}
-}
-
-double ba81NormalQuad::layer::computePatternLik(int thrId, double *oProb, int row, double *out)
-{
+	double *out = &Qweight.coeffRef(0, thrId);
 	struct ifaGroup &ig = quad->ig;
 
 	double patternLik = 0.0;
@@ -476,40 +455,62 @@ double ba81NormalQuad::layer::computePatternLik(int thrId, double *oProb, int ro
 	return patternLik;
 }
 
-double ba81NormalQuad::computePatternLik(int thrId, int row, double *Qweight)
+double ba81NormalQuad::computePatternLik(int thrId, int row)
 {
 	double patternLik = 1.0;
-	int offset = 0;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layer &l1 = layers[lx];
-		patternLik *= l1.computePatternLik(thrId, ig.outcomeProb, row, Qweight + offset);
-		offset += l1.weightTableSize * ig.numThreads;
+		patternLik *= l1.computePatternLik(thrId, ig.outcomeProb, row);
 	}
 	return patternLik;
 }
 
-void ba81NormalQuad::prepLatentDist(int thrId, double *Qweight)
+void ba81NormalQuad::layer::prepLatentDist(int thrId)
 {
-	int offset = 0;
-	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layer &l1 = layers[lx];
-		l1.prepLatentDist(thrId, Qweight + offset);
-		offset += l1.weightTableSize * ig.numThreads;
+	if (0 == numSpecific) return;
+
+	double *Ei = &thrEi.coeffRef(0, thrId);
+	double *Eis = &thrEis.coeffRef(0, thrId);
+
+	const int specificPoints = quad->gridSize;
+
+	for (int qx=0, qloc = 0; qx < totalPrimaryPoints; qx++) {
+		for (int sgroup=0; sgroup < numSpecific; ++sgroup) {
+			Eis[qloc] = Ei[qx] / Eis[qloc];
+			++qloc;
+		}
+	}
+
+	for (int qloc=0, eisloc=0; eisloc < totalPrimaryPoints * numSpecific; eisloc += numSpecific) {
+		for (int sx=0; sx < specificPoints; sx++) {
+			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
+				Qweight(qloc, thrId) *= Eis[eisloc + Sgroup];
+				++qloc;
+			}
+		}
 	}
 }
 
-void ba81NormalQuad::layer::addTo(double *Qweight, int ix, double *out)
+void ba81NormalQuad::prepLatentDist(int thrId)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		l1.prepLatentDist(thrId);
+	}
+}
+
+void ba81NormalQuad::layer::addTo(int thrId, int ix, double *out)
 {
 	std::vector<int> &itemOutcomes = quad->ig.itemOutcomes;
 
 	if (numSpecific == 0) {
 		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			*out += Qweight[qx];
+			*out += Qweight(qx, thrId);
 			out += itemOutcomes[ix];
 		}
 	} else {
 		int igroup = Sgroup[ix];
-		double *Qw = Qweight;
+		double *Qw = &Qweight.coeffRef(0, thrId);
 		for (int qx=0; qx < totalQuadPoints; ++qx) {
 			*out += Qw[igroup];
 			out += itemOutcomes[ix];
@@ -518,17 +519,46 @@ void ba81NormalQuad::layer::addTo(double *Qweight, int ix, double *out)
 	}
 }
 
-void ba81NormalQuad::addTo(double *Qweight, int ix, double *out)
+void ba81NormalQuad::addTo(int thrId, int ix, double *out)
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layers[lx].addTo(Qweight, ix, out);
+		layers[lx].addTo(thrId, ix, out);
+	}
+}
+
+void ba81NormalQuad::layer::weightByAndSummarize(int thrId, double weight)
+{
+	for (int qx=0; qx < weightTableSize; ++qx) {
+		Qweight(qx, thrId) *= weight;
+		Dweight(qx, thrId) += Qweight(qx, thrId);
+	}
+}
+
+void ba81NormalQuad::weightByAndSummarize(int thrId, double weight)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].weightByAndSummarize(thrId, weight);
+	}
+}
+
+void ba81NormalQuad::layer::weightBy(int thrId, double weight)
+{
+	for (int qx=0; qx < weightTableSize; ++qx) {
+		Qweight(qx, thrId) *= weight;
+	}
+}
+
+void ba81NormalQuad::weightBy(int thrId, double weight)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].weightBy(thrId, weight);
 	}
 }
 
 template <typename T>
 struct BA81OmitEstep {
 	void begin(class ifaGroup *state, T extraData) {};
-	void addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId) {};
+	void addRow(class ifaGroup *state, T extraData, int px, int thrId) {};
 	void recordTable(class ifaGroup *state, T extraData) {};
 	bool hasEnd() { return false; }
 };
@@ -552,17 +582,14 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 	ba81NormalQuad &quad = state->getQuad();
 	const int numUnique = state->getNumUnique();
 	const int numThreads = state->numThreads;
-	Eigen::VectorXd thrQweight;
-	thrQweight.resize(quad.weightTableSize * numThreads);
 	state->excludedPatterns = 0;
 	state->patternLik.resize(numUnique);
 	Eigen::ArrayXd &patternLik = state->patternLik;
 	std::vector<bool> &rowSkip = state->rowSkip;
 
 	EstepPolicy<T>::begin(state, extraData);
-	LatentPolicy<T>::begin(state, extraData);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers(numThreads, LatentPolicy<T>::wantSummary());
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -572,8 +599,7 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 		}
 
 		int thrId = omp_get_thread_num();
-		double *Qweight = thrQweight.data() + quad.weightTableSize * thrId;
-		double patternLik1 = state->quad.computePatternLik(thrId, state->rowMap[px], Qweight);
+		double patternLik1 = state->quad.computePatternLik(thrId, state->rowMap[px]);
 
 		if (!ifaGroup::validPatternLik(patternLik1)) {
 #pragma omp atomic
@@ -586,10 +612,10 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 
 		if (!EstepPolicy<T>::hasEnd() && !LatentPolicy<T>::hasEnd()) continue;
 
-		state->quad.prepLatentDist(thrId, Qweight);
+		state->quad.prepLatentDist(thrId);
 
-		LatentPolicy<T>::normalizeWeights(state, extraData, px, Qweight, patternLik1, thrId);
-		EstepPolicy<T>::addRow(state, extraData, px, Qweight, thrId);
+		LatentPolicy<T>::normalizeWeights(state, extraData, px, patternLik1, thrId);
+		EstepPolicy<T>::addRow(state, extraData, px, thrId);
 	}
 
 	if (EstepPolicy<T>::hasEnd() && LatentPolicy<T>::hasEnd()) {
@@ -639,6 +665,12 @@ void ba81NormalQuad::refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> 
 template <typename T1, typename T2>
 void ba81NormalQuad::layer::refresh(Eigen::MatrixBase<T2> &meanVec, Eigen::MatrixBase<T1> &cov)
 {
+	if (abilities == 0) {
+		priQarea.clear();
+		priQarea.push_back(quad->One);
+		return;
+	}
+
 	std::vector<double> &Qpoint = quad->Qpoint;
 
 	Eigen::VectorXi abscissa(primaryDims);

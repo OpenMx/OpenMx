@@ -34,24 +34,6 @@ ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig), abilities(-1)
 	layers.resize(1, layer(this));
 }
 
-void ba81NormalQuad::layer::setZeroAbilities()
-{
-	numSpecific = 0;
-	primaryDims = 0;
-	maxDims = 1;
-	abilities = 0;
-	totalQuadPoints = 1;
-	totalPrimaryPoints = 1;
-	weightTableSize = 1;
-	// Qpoint.clear();  // remove? TODO
-	// Qpoint.reserve(1);
-	// Qpoint.push_back(0);
-	priQarea.clear();
-	priQarea.push_back(quad->One);
-	wherePrep.clear();
-	wherePrep.push_back(0);
-}
-
 ifaGroup::ifaGroup(int cores, bool _twotier) :
 	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
 	twotier(_twotier), maxAbilities(0), mean(0), cov(0), dataRowNames(0),
@@ -397,13 +379,15 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 
 	abilities = mean.cols();
 
-	if (0 == mean.cols()) {
+	if (!abilities) {
+		// Qpoint.clear();  // remove? TODO
+		// Qpoint.reserve(1);
+		// Qpoint.push_back(0);
 		gridSize = 1;
-		layers[0].setZeroAbilities();
-	} else {
-		// subset param, mean, cov, etc
-		layers[0].setStructure(param, mean, cov);
 	}
+
+	// subset param, mean, cov, etc
+	layers[0].setStructure(param, mean, cov);
 
 	totalQuadPoints = 0;
 	weightTableSize = 0;
@@ -420,6 +404,19 @@ template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 					 Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
 {
+	if (abilities == 0) {
+		numSpecific = 0;
+		primaryDims = 0;
+		maxDims = 1;
+		abilities = 0;
+		totalQuadPoints = 1;
+		totalPrimaryPoints = 1;
+		weightTableSize = 1;
+		wherePrep.clear();
+		wherePrep.push_back(0);
+		return;
+	}
+
 	std::vector<double> &Qpoint = quad->Qpoint;
 
 	numSpecific = 0;
@@ -569,26 +566,30 @@ void ifaGroup::buildRowSkip()
 	}
 }
 
-void ba81NormalQuad::layer::allocBuffers(int numThreads)
+void ba81NormalQuad::layer::allocBuffers(int numThreads, bool wantSummary)
 {
+	Qweight.resize(weightTableSize, numThreads);
+	if (wantSummary) Dweight.resize(weightTableSize, numThreads);
+
 	if (!numSpecific) return;
 
-	this->numThreads = numThreads;
 	thrEi.resize(totalPrimaryPoints, numThreads);
 	thrEis.resize(totalPrimaryPoints * numSpecific, numThreads);
 }
 
-void ba81NormalQuad::layer::releaseBuffers()
-{
-	thrEi.resize(0,0);
-	thrEis.resize(0,0);
-}
-
-void ba81NormalQuad::allocBuffers(int numThreads)
+void ba81NormalQuad::allocBuffers(int numThreads, bool wantSummary)
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layers[lx].allocBuffers(numThreads);
+		layers[lx].allocBuffers(numThreads, wantSummary);
 	}
+}
+
+void ba81NormalQuad::layer::releaseBuffers()
+{
+	Qweight.resize(0,0);
+	Dweight.resize(0,0);
+	thrEi.resize(0,0);
+	thrEis.resize(0,0);
 }
 
 void ba81NormalQuad::releaseBuffers()
