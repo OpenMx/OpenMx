@@ -130,7 +130,7 @@ threeLatentOrthogonal <- mxModel("threeLatentOrthogonal",
 
 threeLatentNoModerator <- mxModel(threeLatentOrthogonal,
     mxPath(from=c("F1","F2"),to="F3",
-           arrows=1, lbound=0,
+           arrows=1, lbound=0, ubound = 1,
            free=TRUE, values=.2, labels=c("b11", "b12")),
     mxPath(from="F1",to="F2",
            arrows=2, 
