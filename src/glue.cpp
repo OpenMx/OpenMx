@@ -199,6 +199,8 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 					*numThreads = 1;
 				}
 #endif
+			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
+				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->parallelDiag);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsA")) {
 				Global->maxptsa = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsB")) {

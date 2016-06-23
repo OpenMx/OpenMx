@@ -34,8 +34,14 @@ count <- function(marg,state) {
 model <- mxModel(name="count",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(count, 1))
-model <- omxCheckWarning(mxRun(model, silent=TRUE),
+if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
+        model <- omxCheckWarning(mxRun(model, silent=TRUE),
                          "In model 'count' Optimizer returned a non-zero status code 5. The Hessian at the solution does not appear to be convex (Mx status RED).")
+} else {
+        model <- omxCheckWarning(mxRun(model, silent=TRUE),
+                         "In model 'count' Optimizer returned a non-zero status code 6. The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)")
+}
+
 omxCheckTrue(counter > 1)
 
 ###

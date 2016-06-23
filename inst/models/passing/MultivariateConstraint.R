@@ -28,7 +28,7 @@ s <- mxMatrix("Symm", free = TRUE,
 		"c12", "v2", "c23", 
 		"c13", "c23", "v3"), nrow = 3),
 	dimnames = list(varNames, varNames),
-	name = "s")
+	name = "s", lbound = -100, ubound = 100)
 	
 c <- mxMatrix("Full", free = FALSE, values = 0.4, nrow = 3, ncol=3, name= "c")
 	

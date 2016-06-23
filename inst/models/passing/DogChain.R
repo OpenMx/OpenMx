@@ -8,7 +8,11 @@ m1 <- mxModel("dogChain",
 m1 <- mxRun(m1)
 omxCheckCloseEnough(m1$dog$values, -4, 1e-4)
 omxCheckCloseEnough(m1$link$values[,1], rep(-1, 4), 1e-4) 
-omxCheckCloseEnough(m1$output$evaluations, 0, 260)
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+        omxCheckCloseEnough(m1$output$evaluations, 0, 282)
+} else {
+	omxCheckCloseEnough(m1$output$evaluations, 0, 260)
+}
 
 m2 <- mxModel("bentDogChain",
               mxMatrix(name="link", nrow=4, ncol=1, free=TRUE, lbound=-1, values=.1),
@@ -19,4 +23,8 @@ m2 <- mxModel("bentDogChain",
 m2 <- mxRun(m2)
 omxCheckCloseEnough(m1$dog$values, -4, 1e-4)
 omxCheckCloseEnough(m1$link$values[,1], rep(-1, 4), 1e-4) 
-omxCheckCloseEnough(m1$output$evaluations, 0, 100)
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+        omxCheckCloseEnough(m1$output$evaluations, 0, 281)
+} else {
+	omxCheckCloseEnough(m1$output$evaluations, 0, 100)
+}

@@ -21,11 +21,13 @@ model <- mxOption(model,"Checkpoint Count",1)
 
 fit1 <- mxRun(model, silent=TRUE)
 
+if (mxOption(NULL, 'Default optimizer') != "SLSQP") {ctype = 'none'} else {ctype = 'ineq'}
+
 cimodel <- mxModel(fit1,
                    mxCI("var1", type="lower"),
                    mxCI("cov12", type="upper"),
                    mxCI("m1", type="both"),
-                   mxComputeConfidenceInterval(verbose=0,plan=mxComputeGradientDescent(verbose=0)))
+                   mxComputeConfidenceInterval(verbose=0,plan=mxComputeGradientDescent(verbose=0), constraintType = ctype))
 
 fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)

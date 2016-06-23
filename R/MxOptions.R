@@ -174,7 +174,8 @@ otherOptions <- list(
     "mvnRelEps" = 0,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = "central",
-    "Gradient iterations" = 1L
+    "Gradient iterations" = 1L,
+    "Parallel diagnostics" = "No"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
@@ -222,6 +223,10 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 			} else {
 				detect <- omxDetectCores()
 				if(is.na(detect)) detect <- 1L
+				# Due to demand by CRAN maintainers, we default to 2 cores
+				# when OMP_NUM_THREADS is not set. This seems like a bad
+				# policy to the OpenMx team, but we have no choice.
+				else detect <- 2L
 				options[["Number of Threads"]] <- detect 
 			}
 		}

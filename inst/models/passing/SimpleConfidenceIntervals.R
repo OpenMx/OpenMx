@@ -38,7 +38,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6, lbound=.1,
+			values=.6, lbound=.1, ubound=1,
 			label="a", 
 			name="X"
 		), 
@@ -47,7 +47,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=sqrt(.6), lbound=sqrt(.1),
+			values=sqrt(.6), lbound=sqrt(.1), ubound=1,
 			label="c", 
 			name="Y"
 		),
@@ -56,7 +56,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6, lbound=.1,
+			values=.6, lbound=.1, ubound=1,
 			label="e", 
 			name="Z"
 		),
@@ -78,7 +78,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=2, 
 			free=TRUE, 
-			values= 20,
+			values= 20, lbound=0, ubound=30,
 			label="mean", 
 			name="expMean"
 		),
@@ -192,14 +192,20 @@ runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
 ci <- twinACEFit$output$confidenceIntervals
 #cat(deparse(round(ci[,'ubound'],4)))
 omxCheckCloseEnough(ci[-2,'lbound'], c(0.4697, 0.1567), .005)
-omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
+
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+        omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .04)
+} else {
+        omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
+}
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .02)
 
-if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
+if (mxOption(NULL, 'Default optimizer') == "SLSQP") {
   omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
 }
+
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)

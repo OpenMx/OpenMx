@@ -428,7 +428,7 @@ namespace RelationalRAMExpectation {
 	{
 		independentGroup &par = getParent();
 		struct placement &pl = par.placements[px];
-		addr &a1 = par.st.layout[pl.aIndex];
+		addr &a1 = par.st.layout[ par.gMap[px] ];
 		omxExpectation *expectation = a1.getModel(fc);
 		omxData *data = expectation->data;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
@@ -478,7 +478,7 @@ namespace RelationalRAMExpectation {
 		independentGroup &par = getParent();
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
-			addr &a1 = par.st.layout[pl.aIndex];
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
 			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			expectation->loadDefVars(a1.row);
@@ -519,9 +519,8 @@ namespace RelationalRAMExpectation {
 
 		struct addr a1;
 		struct addrSetup as1;
-		as1.group = 0;
-		as1.copy = 0;
 		as1.clumped = false;
+		a1.ig = 0;
 		as1.parent1 = NA_INTEGER;
 		as1.fk1 = NA_INTEGER;
 		as1.rotationLeader = false;
@@ -590,7 +589,7 @@ namespace RelationalRAMExpectation {
 
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = st.layout[pl.aIndex];
+			addr &a1 = st.layout[ gMap[ax] ];
 			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 			omxData *data = expectation->data;
@@ -916,16 +915,12 @@ namespace RelationalRAMExpectation {
 	}
 
 	template <typename T>
-	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig, int groupNum, int &copyNum)
+	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig)
 	{
 		for (std::set<std::vector<int> >::iterator px = toPlace.begin();
-		     px != toPlace.end(); ++px, ++copyNum) {
+		     px != toPlace.end(); ++px) {
 			const std::vector<int> &clump = *px;
 			for (size_t cx=0; cx < clump.size(); ++cx) {
-				addrSetup &as1 = layoutSetup[ clump[cx] ];
-				if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-				as1.group = groupNum;
-				as1.copy = copyNum;
 				ig->place(clump[cx]);
 			}
 		}
@@ -1000,13 +995,10 @@ namespace RelationalRAMExpectation {
 		}
 		group.reserve(cgm.size());
 
-		int groupNum = 1;
 		for (CompatibleCovMapType::iterator it = cgm.begin();
-		     it != cgm.end(); ++it, ++groupNum) {
+		     it != cgm.end(); ++it) {
 			independentGroup *ig = new independentGroup(this, it->second.size(),
 								    it->second.begin()->size());
-			int copyNum = 1;
-
 			typedef std::map< std::vector<int>,
 					  std::set<std::vector<int> >,
 					  CompatibleMeanCompare> CompatibleMeanMapType;
@@ -1023,13 +1015,8 @@ namespace RelationalRAMExpectation {
 				}
 				if (leader) {
 					for (size_t cx=0; cx < clump.size(); ++cx) {
-						addrSetup &as1 = layoutSetup[ clump[cx] ];
-						if (as1.group) Rf_error("Unit[%d] already assigned a group; this is a bug", clump[cx]);
-						as1.group = groupNum;
-						as1.copy = copyNum;
 						ig->place(clump[cx]);
 					}
-					copyNum += 1;
 				} else {
 					cmm[ clump ].insert(clump);
 				}
@@ -1042,7 +1029,7 @@ namespace RelationalRAMExpectation {
 					++ssCount;
 					continue;
 				}
-				placeSet(mit->second, ig, groupNum, copyNum);
+				placeSet(mit->second, ig);
 			}
 			ig->sufficientSets.resize(ssCount);
 			int ssIndex = 0;
@@ -1050,7 +1037,7 @@ namespace RelationalRAMExpectation {
 			     mit != cmm.end(); ++mit, ++ssIndex) {
 				if (mit->second.size() == 1) continue;
 				int from = ig->placements.size();
-				placeSet(mit->second, ig, groupNum, copyNum);
+				placeSet(mit->second, ig);
 				//mxLog("group %d same mean %d -> %d clumpsize %d",
 				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
 				ig->sufficientSets[ssIndex].start = from;
@@ -1063,19 +1050,24 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::place(int ax)
 	{
+		if (st.layout[ax].ig) {
+			Rf_error("Unit[%d] already assigned; this is a bug", ax);
+		}
+		st.layout[ax].ig = this;
 		int mx = 0;
 		int dx = 0;
 		if (placements.size()) {
-			placement &prev = placements[ placements.size()-1 ];
-			addr &a1 = st.layout[ prev.aIndex ];
+			int last = placements.size()-1;
+			placement &prev = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			mx = prev.modelStart + a1.numVars();
 			dx = prev.obsStart + a1.numObs();
 		}
 		placement pl;
-		pl.aIndex = ax;
 		pl.modelStart = mx;
 		pl.obsStart = dx;
 		placements.push_back(pl);
+		gMap.push_back(ax);
 	}
 
 	independentGroup::independentGroup(independentGroup *ig)
@@ -1098,8 +1090,9 @@ namespace RelationalRAMExpectation {
 		int totalObserved = 0;
 		int maxSize = 0;
 		if (placements.size()) {
-			placement &prev = placements[ placements.size()-1 ];
-			addr &a1 = st.layout[ prev.aIndex ];
+			int last = placements.size()-1;
+			placement &prev = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			totalObserved = prev.obsStart + a1.numObs();
 			maxSize = prev.modelStart + a1.numVars();
 		}
@@ -1122,8 +1115,9 @@ namespace RelationalRAMExpectation {
 		}
 
 		{
-			placement &end = placements[clumpSize-1];
-			addr &a1 = st.layout[ end.aIndex ];
+			int last = clumpSize-1;
+			placement &end = placements[last];
+			addr &a1 = st.layout[ gMap[last] ];
 			clumpVars = end.modelStart + a1.numVars();
 			clumpObs = end.obsStart + a1.numObs();
 		}
@@ -1131,8 +1125,7 @@ namespace RelationalRAMExpectation {
 		int dx=0;
 		for (size_t ax=0; ax < placements.size(); ++ax) {
 			placement &pl = placements[ax];
-			addr &a1 = st.layout[ pl.aIndex ];
-			a1.ig = this;
+			addr &a1 = st.layout[ gMap[ax] ];
 			a1.igIndex = ax;
 
 			if (verbose() >= 3) {
@@ -1688,6 +1681,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
+		dbg.add("clumpSize", Rf_ScalarInteger(clumpSize));
 		if (expectedVec.size()) {
 			SEXP m1 = Rcpp::wrap(expectedVec);
 			Rf_protect(m1);
@@ -1726,7 +1720,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(modelStart = Rf_allocVector(INTSXP, placements.size()));
 		Rf_protect(obsStart = Rf_allocVector(INTSXP, placements.size()));
 		for (size_t mx=0; mx < placements.size(); ++mx) {
-			INTEGER(aIndex)[mx] = 1 + placements[mx].aIndex;
+			INTEGER(aIndex)[mx] = 1 + gMap[mx];
 			INTEGER(modelStart)[mx] = 1 + placements[mx].modelStart;
 			INTEGER(obsStart)[mx] = 1 + placements[mx].obsStart;
 		}
@@ -1755,7 +1749,7 @@ namespace RelationalRAMExpectation {
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
-		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, ugroup, copy;
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, ugroup;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
@@ -1764,7 +1758,6 @@ namespace RelationalRAMExpectation {
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
 		Rf_protect(ugroup = Rf_allocVector(INTSXP, layout.size()));
-		Rf_protect(copy = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
 			INTEGER(row)[mx] = 1+layout[mx].row;
@@ -1773,8 +1766,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(ugroup)[mx] = layoutSetup[mx].group? layoutSetup[mx].group : NA_INTEGER;
-			INTEGER(copy)[mx] = layoutSetup[mx].copy? layoutSetup[mx].copy : NA_INTEGER;
+			INTEGER(ugroup)[mx] = layout[mx].ig? 1+layout[mx].ig->arrayIndex : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
 							  Rcpp::Named("row")=row,
@@ -1783,8 +1775,7 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("rampartScale")=rscale,
-							  Rcpp::Named("group")=ugroup,
-							  Rcpp::Named("copy")=copy));
+							  Rcpp::Named("group")=ugroup));
 
 		int digits = ceilf(log10f(group.size()));
 		std::string fmt = string_snprintf("g%%0%dd", digits);

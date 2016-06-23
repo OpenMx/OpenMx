@@ -62,6 +62,14 @@ raw.fit <- mxRun(raw)
 
 sat.fit <- mxRefModels(raw, run=TRUE)
 
+cmp <- mxCompare(sat.fit[['Saturated']], raw.fit)
+omxCheckCloseEnough(cmp$diffLL[2], 49.764, 1e-2)
+omxCheckCloseEnough(cmp$diffdf[2], 34)
+omxCheckCloseEnough(cmp$p[2], 0.03961044, 1e-3)
+
+cmp <- omxCheckWarning(mxCompare(raw.fit, sat.fit[['Saturated']]),
+		       "Model 'Raw Test Model to Check MxSummary' has more degrees of freedom than Saturated Raw Test Model to Check MxSummary which means that either the models need to be compared in the oppposite order or the models are not nested and should not be compared with the likelihood ratio test")
+omxCheckTrue(is.na(cmp$p[2]))
 
 #------------------------------------------------------------------------------
 # Specify a multiple group model

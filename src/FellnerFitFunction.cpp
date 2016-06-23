@@ -110,7 +110,7 @@ namespace FellnerFitFunction {
 				// ensure only 1 nonzero in column TODO
 				for (size_t ax=0; ax < ig.placements.size(); ++ax) {
 					RelationalRAMExpectation::placement &pl = ig.placements[ax];
-					RelationalRAMExpectation::addr &a1 = rram.layout[ pl.aIndex ];
+					RelationalRAMExpectation::addr &a1 = rram.layout[ ig.gMap[ax] ];
 					if (a1.getExpNum() != expectation->expNum) continue;
 					expectation->loadDefVars(a1.row);
 					double weight = omxVectorElement(ram->M, vnum);

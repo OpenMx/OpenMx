@@ -151,7 +151,7 @@ omxCheckCloseEnough(ed$rampartUsage, c(902, 97, 21))
 omxCheckCloseEnough(ed$numGroups, 8L)
 omxCheckCloseEnough(
     sapply(unique(ed$layout$group),
-	   function(x) length(unique(ed$layout[ed$layout$group==x, 'copy']))),
+	   function(x) nrow(ed$layout[ed$layout$group==x,]) %/% ed[[paste0('g',x)]]$clumpSize),
     c(1L, 805L, 97L, 94L, 15L, 4L, 6L, 3L))
 
 plan <- mxComputeSequence(list(
@@ -164,9 +164,9 @@ slowEx <- mxRun(mxModel(slow, plan))
 ed <- slowEx$expectation$debug
 omxCheckTrue(length(ed$rampartUsage)==0)
 # each (entire) district is an independent unit
-omxCheckCloseEnough(sapply(
-    unique(ed$layout$group),
-    function(x) length(unique(ed$layout[ed$layout$group==x, 'copy']))),
+omxCheckCloseEnough(
+    sapply(unique(ed$layout$group),
+	   function(x) nrow(ed$layout[ed$layout$group==x,]) %/% ed[[paste0('g',x)]]$clumpSize),
 		    rep(1L,5))
 
 if (0) { # this takes about 1.5 hours

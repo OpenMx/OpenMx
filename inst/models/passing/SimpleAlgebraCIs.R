@@ -25,7 +25,9 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, -3660.596, .01)
 
-factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxComputeGradientDescent())), suppressWarnings = TRUE)
+if (mxOption(NULL, 'Default optimizer') != "SLSQP") {ctype = 'none'} else {ctype = 'ineq'}
+
+factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxComputeGradientDescent(), constraintType = ctype)), suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
 
@@ -50,7 +52,7 @@ omxCheckCloseEnough(ci[,'estimate'], c(0.4456, 0.5401, 0.6116, 0.7302, 0.8187), 
 lbound <- c(0.406, 0.485, 0.553, 0.6872, 0.769)
 ubound <- c(0.4747, 0.5754, 0.6516, 0.778, 0.8723)
 
-omxCheckCloseEnough(ci[,'lbound'], lbound, .03)
+omxCheckCloseEnough(ci[,'lbound'], lbound, .06)
 
 if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
 	# NPSOL needs to get slightly closer to the MLE to nail all of these
@@ -59,5 +61,5 @@ if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
 
 factorParallel <- omxParallelCI(factorFit)
 pci <- factorParallel$output$confidenceIntervals
-omxCheckCloseEnough(pci[,'lbound'], lbound, .03)
+omxCheckCloseEnough(pci[,'lbound'], lbound, .06)
 omxCheckCloseEnough(pci[,'ubound'], ubound, .06)
