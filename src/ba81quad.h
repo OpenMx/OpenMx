@@ -20,6 +20,8 @@
 
 #include "glue.h"
 #include <Eigen/Core>
+#include <Eigen/Cholesky>
+#include <Eigen/Eigenvalues> 
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
 
@@ -949,7 +951,19 @@ void ba81NormalQuad::refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> 
 	}
 }
 
-#include "matrix.h" // TODO replace with Eigen stuff
+template <typename T1>
+void ba81quad_InplaceForcePosDef(Eigen::MatrixBase<T1> &cov)
+{
+	const double tooSmallEV = 1e-6;
+
+	Eigen::LDLT<T1> ldlt(cov);
+	if (ldlt.info() == Eigen::Success && (ldlt.vectorD().array() > tooSmallEV).all()) return;
+
+	// We will rarely need to do the full decomposition
+	Eigen::SelfAdjointEigenSolver<T1> esol(cov);
+	Eigen::VectorXd ev = esol.eigenvalues().array().max(tooSmallEV).matrix();
+	cov.derived() = esol.eigenvectors() * ev * esol.eigenvectors().transpose();
+}
 
 template <typename T1, typename T2>
 void ba81NormalQuad::layer::refresh(Eigen::MatrixBase<T2> &meanVec, Eigen::MatrixBase<T1> &cov)
@@ -966,8 +980,7 @@ void ba81NormalQuad::layer::refresh(Eigen::MatrixBase<T2> &meanVec, Eigen::Matri
 		cov(0, 0) = std::max(cov(0, 0), MIN_VARIANCE);
 	} else {
 		Eigen::MatrixXd priCov = cov.topLeftCorner(primaryDims, primaryDims);
-		// faster to check positive definite first and then eigen decomp? TODO
-		InplaceForcePosSemiDef(priCov, 0, 0);
+		ba81quad_InplaceForcePosDef(priCov);
 		cov.topLeftCorner(primaryDims, primaryDims) = priCov;
 	}
 
