@@ -70,8 +70,6 @@ class ba81NormalQuad {
 		int weightTableSize;                  // dense: totalQuadPoints; 2tier: totalQuadPoints * numSpecific
 		Eigen::ArrayXd outcomeProbX;           // outcomes (within item) * totalQuadPoints * item
 		std::vector<double> priQarea;         // totalPrimaryPoints
-		std::vector<double> wherePrep;        // totalQuadPoints * maxDims; better to recompute instead of cache? TODO
-		Eigen::MatrixXd whereGram;            // triangleLoc1(maxDims) x totalQuadPoints
 		Eigen::ArrayXXd Qweight;              // weightTableSize * numThreads (for 1 response pattern)
 		Eigen::ArrayXXd Dweight;              // weightTableSize * numThreads (for entire dataset)
 
@@ -556,19 +554,25 @@ void ba81NormalQuad::layer::EAP(const double sampleSize,
 {
 	Eigen::ArrayXd layerPad(abilities + triangleLoc1(abilities));
 	layerPad.setZero();
+	Eigen::VectorXi abx(abilities);
+	Eigen::VectorXd abscissa(abilities);
+	Eigen::VectorXd whereGram(triangleLoc1(maxDims));
 	if (numSpecific == 0) {
 		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			mapDenseSpace(Dweight(qx,0), &wherePrep[qx * maxDims],
-					 &whereGram.coeffRef(0, qx), layerPad);
+			pointToLocalAbscissa(qx, abx, abscissa);
+			gramProduct(abscissa.data(), maxDims, whereGram.data());
+			mapDenseSpace(Dweight(qx,0), abscissa.data(),
+				      whereGram.data(), layerPad);
 		}
 	} else {
 		int qloc=0;
 		for (int qx=0; qx < totalQuadPoints; qx++) {
-			const double *whPrep = &wherePrep[qx * maxDims];
-			const double *whGram = &whereGram.coeffRef(0, qx);
-			mapDenseSpace(Dweight(qloc,0), whPrep, whGram, layerPad);
+			pointToLocalAbscissa(qx, abx, abscissa);
+			gramProduct(abscissa.data(), maxDims, whereGram.data());
+			mapDenseSpace(Dweight(qloc,0), abscissa.data(), whereGram.data(), layerPad);
 			for (int Sgroup=0; Sgroup < numSpecific; Sgroup++) {
-				mapSpecificSpace(Sgroup, Dweight(qloc,0), whPrep, whGram, layerPad);
+				mapSpecificSpace(Sgroup, Dweight(qloc,0), abscissa.data(),
+						 whereGram.data(), layerPad);
 				++qloc;
 			}
 		}

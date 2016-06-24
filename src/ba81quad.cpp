@@ -477,12 +477,8 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 		totalQuadPoints = 1;
 		totalPrimaryPoints = 1;
 		weightTableSize = 1;
-		wherePrep.clear();
-		wherePrep.push_back(0);
 		return;
 	}
-
-	std::vector<double> &Qpoint = quad->Qpoint;
 
 	numSpecific = 0;
 	
@@ -504,24 +500,6 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 	if (numSpecific) {
 		totalPrimaryPoints /= quad->gridSize;
 		weightTableSize *= numSpecific;
-	}
-
-	wherePrep.clear();
-	wherePrep.reserve(totalQuadPoints * maxDims);
-
-	Eigen::VectorXi abscissa(maxDims);
-	for (int qx=0; qx < totalQuadPoints; qx++) {
-		decodeLocation(qx, quad->gridSize, abscissa, maxDims);
-		for (int dx=0; dx < maxDims; dx++) {
-			wherePrep.push_back(Qpoint[abscissa[dx]]);
-		}
-	}
-
-	whereGram.resize(triangleLoc1(maxDims), totalQuadPoints);
-
-	for (int qx=0; qx < totalQuadPoints; qx++) {
-		double *wh = wherePrep.data() + qx * maxDims;
-		gramProduct(wh, maxDims, &whereGram.coeffRef(0, qx));
 	}
 }
 
