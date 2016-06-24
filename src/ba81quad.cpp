@@ -677,3 +677,40 @@ void ifaGroup::setGridFineness(double width, int points)
 	if (std::isfinite(width)) qwidth = width;
 	if (points != NA_INTEGER) qpoints = points;
 }
+
+void ba81NormalQuad::prepExpectedTable()
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		for (int tx=1; tx < l1.expected.cols(); ++tx) {
+			l1.expected.col(0) += l1.expected.col(tx);
+		}
+	}
+}
+
+void ba81NormalQuad::allocEstep(int numThreads)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		l1.expected.resize(ig.totalOutcomes * totalQuadPoints, numThreads);
+		l1.expected.setZero();
+	}
+}
+
+double ba81NormalQuad::mstepFit()
+{
+	double ll = 0;
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		ll += layers[lx].outcomeProbX.transpose().matrix() * layers[lx].expected.col(0).matrix();
+	}
+	return ll;
+}
+
+void ba81NormalQuad::releaseEstep()
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		l1.expected.resize(0,0);
+	}
+}
+

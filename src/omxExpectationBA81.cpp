@@ -145,48 +145,21 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 }
 
 template <typename T>
-void BA81Estep<T>::begin(ifaGroup *state, T extraData)
+void BA81Estep<T>::begin(ifaGroup *state)
 {
-	ba81NormalQuad &quad = state->quad;
-	thrExpected.assign(state->totalOutcomes * quad.totalQuadPoints * Global->numThreads, 0.0);
+	state->quad.allocEstep(Global->numThreads);
 }
 
 template <typename T>
-void BA81Estep<T>::addRow(class ifaGroup *state, T extraData, int px, int thrId)
+void BA81Estep<T>::addRow(class ifaGroup *state, int mpx, int thrId)
 {
-	double *out = thrExpected.data() + thrId * state->totalOutcomes * state->quad.totalQuadPoints;
-	std::vector<int> &rowMap = state->rowMap;
-	std::vector<int> &itemOutcomes = state->itemOutcomes;
-	ba81NormalQuad &quad = state->getQuad();
-	const int totalQuadPoints = quad.totalQuadPoints;
-
-	for (int ix=0; ix < state->numItems(); ++ix) {
-		int pick = state->dataColumns[ix][rowMap[px]];
-		if (pick != NA_INTEGER) {
-			quad.addTo(thrId, ix, out+pick-1);
-		}
-		out += itemOutcomes[ix] * totalQuadPoints;
-	}
+	state->quad.addToExpected(thrId, mpx);
 }
 
 template <typename T>
-void BA81Estep<T>::recordTable(class ifaGroup *state, T extraData)
+void BA81Estep<T>::recordTable(class ifaGroup *state)
 {
-	const int numThreads = Global->numThreads;
-	ba81NormalQuad &quad = state->getQuad();
-	const int expectedSize = quad.totalQuadPoints * state->totalOutcomes;
-	double *e1 = thrExpected.data();
-
-	extraData->expected = Realloc(extraData->expected, state->totalOutcomes * quad.totalQuadPoints, double);
-	memcpy(extraData->expected, e1, sizeof(double) * expectedSize);
-	e1 += expectedSize;
-
-	for (int tx=1; tx < numThreads; ++tx) {
-		for (int ex=0; ex < expectedSize; ++ex) {
-			extraData->expected[ex] += *e1;
-			++e1;
-		}
-	}
+	state->quad.prepExpectedTable();
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -293,7 +266,7 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
 				engine.ba81Estep1(&state->grp, state);
 			}
 		} else {
-			Free(state->expected);
+			state->grp.quad.releaseEstep();
 			refreshPatternLikelihood(state, oo->dynamicDataSource);
 		}
 		if (oo->dynamicDataSource && state->verbose >= 2) {
@@ -335,9 +308,7 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	const int numUnique = state->getNumUnique();
 
 	const double LogLargest = state->LogLargestDouble;
-	int totalOutcomes = state->totalOutcomes();
 	SEXP Rlik;
-	SEXP Rexpected;
 
 	if (state->grp.patternLik.size() != numUnique) {
 		refreshPatternLikelihood(state, oo->dynamicDataSource);
@@ -354,9 +325,11 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	MxRList dbg;
 	dbg.add("patternLikelihood", Rlik);
 
-	if (state->expected) {
-		Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.totalQuadPoints * totalOutcomes));
-		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * quad.totalQuadPoints);
+	if (quad.getEstepTableSize(0)) {
+		SEXP Rexpected;
+		Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.getEstepTableSize(0)));
+		Eigen::Map< Eigen::ArrayXd > box(REAL(Rexpected), quad.getEstepTableSize(0));
+		quad.exportEstepTable(0, box);
 		dbg.add("em.expected", Rexpected);
 	}
 
@@ -382,7 +355,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	omxFreeMatrix(state->estLatentMean);
 	omxFreeMatrix(state->estLatentCov);
-	Free(state->expected);
 	delete state;
 }
 
@@ -448,7 +420,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	state->estLatentMean = NULL;
 	state->estLatentCov = NULL;
-	state->expected = NULL;
 	state->type = EXPECTATION_OBSERVED;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;

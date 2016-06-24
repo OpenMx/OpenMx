@@ -70,7 +70,8 @@ class ba81NormalQuad {
 		int maxDims;                          // integration dimension after dimension reduction
 		int totalQuadPoints;                  // gridSize ^ maxDims
 		int weightTableSize;                  // dense: totalQuadPoints; 2tier: totalQuadPoints * numSpecific
-		Eigen::ArrayXd outcomeProbX;           // outcomes (within item) * totalQuadPoints * item
+		Eigen::ArrayXd outcomeProbX;          // outcomes (within item) * totalQuadPoints * item
+		Eigen::ArrayXXd expected;             // outcomes (within item) * totalQuadPoints * item * numThreads
 		std::vector<double> priQarea;         // totalPrimaryPoints
 		Eigen::ArrayXXd Qweight;              // weightTableSize * numThreads (for 1 response pattern)
 		Eigen::ArrayXXd Dweight;              // weightTableSize * numThreads (for entire dataset)
@@ -117,7 +118,7 @@ class ba81NormalQuad {
 				  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov);
 		template <typename T1, typename T2>
 		inline void refresh(Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T1> &cov);
-		inline void addTo(int thrId, int ix, double *out);
+		inline void addToExpected(int thrId, int px);
 		template <typename T1, typename T2, typename T3>
 		void mstepIter(int ix, Eigen::MatrixBase<T1> &abx,
 			       Eigen::MatrixBase<T2> &abscissa, T3 &op);
@@ -185,7 +186,7 @@ class ba81NormalQuad {
 	void setStructure(double Qwidth, int Qpoints,
 			  Eigen::ArrayBase<T1> &param,
 			  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov);
-	inline void addTo(int thrId, int ix, double *out);
+	inline void addToExpected(int thrId, int px);
 	bool isAllocated() { return Qpoint.size(); };
 	template <typename T>
 	void mstepIter(int ix, T &op);
@@ -202,6 +203,13 @@ class ba81NormalQuad {
 	void addSummary(ba81NormalQuad &quad);
 	void cacheOutcomeProb(double *param, bool wantLog);
 	void releaseDerivCoefCache();
+	void allocEstep(int numThreads);
+	void releaseEstep();
+	void prepExpectedTable();
+	int getEstepTableSize(int lx) { return layers[lx].expected.rows(); };
+	template <typename T1>
+	void exportEstepTable(int lx, Eigen::ArrayBase<T1> &out);
+	double mstepFit();
 };
 
 template <typename T1, typename T2, typename T3, typename T4>
@@ -808,30 +816,43 @@ void ba81NormalQuad::prepLatentDist(int thrId)
 	}
 }
 
-void ba81NormalQuad::layer::addTo(int thrId, int ix, double *out)
+void ba81NormalQuad::layer::addToExpected(int thrId, int px)
 {
 	std::vector<int> &itemOutcomes = quad->ig.itemOutcomes;
+	double *out = &expected.coeffRef(0, thrId);
 
-	if (numSpecific == 0) {
-		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			*out += Qweight(qx, thrId);
-			out += itemOutcomes[ix];
+	for (int ix=0; ix < quad->ig.numItems(); ++ix) {
+		int outcomes = itemOutcomes[ix];
+		int pick = quad->ig.dataColumns[ix][px];
+		if (pick == NA_INTEGER) {
+			out += outcomes * totalQuadPoints;
+			continue;
 		}
-	} else {
-		int igroup = Sgroup[ix];
-		double *Qw = &Qweight.coeffRef(0, thrId);
-		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			*out += Qw[igroup];
-			out += itemOutcomes[ix];
-			Qw += numSpecific;
+		pick -= 1;
+		double *lastQw = &Qweight.coeffRef(0, thrId) + Qweight.rows();
+		if (numSpecific == 0) {
+			double *Qw = &Qweight.coeffRef(0, thrId);
+			while (Qw < lastQw) {
+				out[pick] += *Qw;
+				out += outcomes;
+				++Qw;
+			}
+		} else {
+			int igroup = Sgroup[ix];
+			double *Qw = &Qweight.coeffRef(igroup, thrId);
+			while (Qw < lastQw) {
+				out[pick] += *Qw;
+				out += outcomes;
+				Qw += numSpecific;
+			}
 		}
 	}
 }
 
-void ba81NormalQuad::addTo(int thrId, int ix, double *out)
+void ba81NormalQuad::addToExpected(int thrId, int px)
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layers[lx].addTo(thrId, ix, out);
+		layers[lx].addToExpected(thrId, px);
 	}
 }
 
@@ -866,9 +887,9 @@ void ba81NormalQuad::weightBy(int thrId, double weight)
 
 template <typename T>
 struct BA81OmitEstep {
-	void begin(class ifaGroup *state, T extraData) {};
-	void addRow(class ifaGroup *state, T extraData, int px, int thrId) {};
-	void recordTable(class ifaGroup *state, T extraData) {};
+	void begin(class ifaGroup *state) {};
+	void addRow(class ifaGroup *state, int px, int thrId) {};
+	void recordTable(class ifaGroup *state) {};
 	bool hasEnd() { return false; }
 };
 
@@ -896,7 +917,7 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 	Eigen::ArrayXd &patternLik = state->patternLik;
 	std::vector<bool> &rowSkip = state->rowSkip;
 
-	EstepPolicy<T>::begin(state, extraData);
+	EstepPolicy<T>::begin(state);
 
 	quad.allocBuffers(numThreads);
 	if (LatentPolicy<T>::wantSummary()) quad.allocSummary(numThreads);
@@ -909,7 +930,8 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 		}
 
 		int thrId = omp_get_thread_num();
-		double patternLik1 = state->quad.computePatternLik(thrId, state->rowMap[px]);
+		int mpx = state->rowMap[px];
+		double patternLik1 = state->quad.computePatternLik(thrId, mpx);
 
 		if (!ifaGroup::validPatternLik(patternLik1)) {
 #pragma omp atomic
@@ -925,18 +947,18 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 		state->quad.prepLatentDist(thrId);
 
 		LatentPolicy<T>::normalizeWeights(state, extraData, px, patternLik1, thrId);
-		EstepPolicy<T>::addRow(state, extraData, px, thrId);
+		EstepPolicy<T>::addRow(state, mpx, thrId);
 	}
 
 	if (EstepPolicy<T>::hasEnd() && LatentPolicy<T>::hasEnd()) {
 #pragma omp parallel sections
 		{
-			{ EstepPolicy<T>::recordTable(state, extraData); }
+			{ EstepPolicy<T>::recordTable(state); }
 #pragma omp section
 			{ LatentPolicy<T>::end(state, extraData); }
 		}
 	} else {
-		EstepPolicy<T>::recordTable(state, extraData);
+		EstepPolicy<T>::recordTable(state);
 		LatentPolicy<T>::end(state, extraData);
 	}
 
@@ -1056,17 +1078,17 @@ template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::layer::mstepIter(int ix, Eigen::MatrixBase<T1> &abx,
 				      Eigen::MatrixBase<T2> &abscissa, T3 &op)
 {
-	if (op.wantAbscissa()) abscissa.setZero();
-
-	double *curOutcome = &outcomeProbX.coeffRef(quad->ig.cumItemOutcomes[ix] * totalQuadPoints);
+	abscissa.setZero();
+	int offset = quad->ig.cumItemOutcomes[ix] * totalQuadPoints;
+	double *curOutcome = &outcomeProbX.coeffRef(offset);
+	double *iexp = &expected.coeffRef(offset, 0);
 	int outcomes = quad->ig.itemOutcomes[ix];
 
 	for (int qx=0; qx < totalQuadPoints; ++qx) {
-		if (op.wantAbscissa()) {
-			pointToGlobalAbscissa(qx, abx, abscissa);
-		}
-		op(abscissa.derived().data(), curOutcome);
+		pointToGlobalAbscissa(qx, abx, abscissa);
+		op(abscissa.derived().data(), curOutcome, iexp);
 		curOutcome += outcomes;
+		iexp += outcomes;
 	}
 }
 
@@ -1075,13 +1097,17 @@ void ba81NormalQuad::mstepIter(int ix, T &op)
 {
 	Eigen::VectorXi abx;
 	Eigen::VectorXd abscissa;
-	if (op.wantAbscissa()) {
-		abx.resize(abscissaDim());
-		abscissa.resize(abscissaDim());
-	}
+	abx.resize(abscissaDim());
+	abscissa.resize(abscissaDim());
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].mstepIter(ix, abx, abscissa, op);
 	}
+}
+
+template <typename T1>
+void ba81NormalQuad::exportEstepTable(int lx, Eigen::ArrayBase<T1> &out)
+{
+	out.derived() = layers[lx].expected.col(0);
 }
 
 #endif

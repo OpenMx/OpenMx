@@ -269,46 +269,23 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 	//pia(state->paramMap.data(), state->itemDerivPadSize, itemParam->cols);
 }
 
-template <bool do_deriv>
 struct ba81mstepEval {
-	const bool do_fit;
 	const int ix;
 	const double *spec;
 	const int id;
 	const rpf_dLL1_t dLL1;
-	const int iOutcomes;
-	const ba81NormalQuad &quad;
-	const int outcomeStart;
-	const int outcomeBase;
-	const double *weight;
 	const double *iparam;
-	double &ll;
 	double *myDeriv;
-	ba81mstepEval(bool do_fit, int ix, const double *spec, BA81Expect *estate,
-		      double &ll, double *myDeriv) :
-		do_fit(do_fit), ix(ix), spec(spec),
+	ba81mstepEval(int ix, const double *spec, BA81Expect *estate,
+		      double *myDeriv) :
+		ix(ix), spec(spec),
 		id(spec[RPF_ISpecID]), dLL1(Glibrpf_model[id].dLL1),
-		iOutcomes(estate->grp.itemOutcomes[ix]),
-		quad(estate->getQuad()),
-		outcomeStart(estate->grp.cumItemOutcomes[ix]),
-		outcomeBase(outcomeStart * quad.totalQuadPoints),
-		weight(estate->expected + outcomeBase),
 		iparam(omxMatrixColumn(estate->itemParam, ix)),
-		ll(ll), myDeriv(myDeriv)
+		myDeriv(myDeriv)
 	{};
-	bool wantAbscissa() { return do_deriv; };
-	void operator()(double *abscissa, double *outcomeCol)
+	void operator()(double *abscissa, double *outcomeCol, double *iexp)
 	{
-		if (do_fit) {
-			for (int ox=0; ox < iOutcomes; ox++) {
-				// quicker to do the whole vector at once? TODO
-				ll += weight[ox] * outcomeCol[ox];
-			}
-		}
-		if (do_deriv) {
-			(*dLL1)(spec, iparam, abscissa, weight, myDeriv);
-		}
-		weight += iOutcomes;
+		(*dLL1)(spec, iparam, abscissa, iexp, myDeriv);
 	};
 };
 
@@ -337,21 +314,22 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->name(), do_fit, do_deriv);
 
-	if (do_fit) estate->grp.quad.cacheOutcomeProb(itemParam->data, TRUE);
+	if (do_fit) quad.cacheOutcomeProb(itemParam->data, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
-	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
+	std::vector<double> thrDeriv;
 
 	double ll = 0;
-#pragma omp parallel for num_threads(Global->numThreads) reduction(+:ll)
-	for (int ix=0; ix < numItems; ix++) {
-		int thrId = omx_absolute_thread_num();
-		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
-		if (!do_deriv) {
-			ba81mstepEval<false> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
-			quad.mstepIter(ix, op);
-		} else {
-			ba81mstepEval<true> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
+	if (do_fit) ll = quad.mstepFit();
+
+	if (do_deriv) {
+		thrDeriv.resize(thrDerivSize * Global->numThreads);
+
+#pragma omp parallel for num_threads(Global->numThreads)
+		for (int ix=0; ix < numItems; ix++) {
+			int thrId = omx_absolute_thread_num();
+			double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
+			ba81mstepEval op(ix, itemSpec[ix], estate, myDeriv);
 			quad.mstepIter(ix, op);
 		}
 	}

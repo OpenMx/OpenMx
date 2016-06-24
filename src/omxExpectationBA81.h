@@ -27,11 +27,9 @@ enum expectation_type {
 
 template <typename T>
 struct BA81Estep {
-	std::vector<double> thrExpected;
-
-	void begin(class ifaGroup *state, T extraData);
-	void addRow(class ifaGroup *state, T extraData, int px, int thrId);
-	void recordTable(class ifaGroup *state, T extraData);
+	void begin(ifaGroup *state);
+	void addRow(class ifaGroup *state, int px, int thrId);
+	void recordTable(class ifaGroup *state);
 	bool hasEnd() { return true; }
 };
 
@@ -75,7 +73,6 @@ class BA81Expect {
 	omxMatrix *itemParam;
 	double *EitemParam;
 	double SmallestPatternLik;
-	double *expected;                     // totalOutcomes * totalQuadPoints (E-step table)
 	bool expectedUsed;
 	int ElatentVersion;
 
