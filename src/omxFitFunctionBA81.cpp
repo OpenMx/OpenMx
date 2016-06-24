@@ -92,7 +92,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
-	int maxAbilities = estate->grp.maxAbilities;
+	int maxAbilities = estate->grp.itemDims;
 
 	if (state->haveLatentMap == fc->varGroup->id[0]) return;
 	if (estate->verbose >= 1) mxLog("%s: rebuild latent parameter map for var group %d",
@@ -126,7 +126,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 					latentMap[cell] = px;
 
 					if (a1 == a2 && fv->lbound == NEG_INF) {
-						fv->lbound = BA81_MIN_VARIANCE;  // variance must be positive
+						fv->lbound = estate->grp.quad.MIN_VARIANCE;  // variance must be positive
 						Global->boundsUpdated = true;
 						if (fc->est[px] < fv->lbound) {
 							Rf_error("Starting value for variance %s is not positive", fv->name);
@@ -278,9 +278,9 @@ struct ba81mstepEval {
 	const rpf_dLL1_t dLL1;
 	const int iOutcomes;
 	const ba81NormalQuad &quad;
+	const int outcomeStart;
 	const int outcomeBase;
 	const double *weight;
-	const double *oProb;
 	const double *iparam;
 	double &ll;
 	double *myDeriv;
@@ -290,25 +290,25 @@ struct ba81mstepEval {
 		id(spec[RPF_ISpecID]), dLL1(Glibrpf_model[id].dLL1),
 		iOutcomes(estate->grp.itemOutcomes[ix]),
 		quad(estate->getQuad()),
-		outcomeBase(estate->grp.cumItemOutcomes[ix] * quad.totalQuadPoints),
+		outcomeStart(estate->grp.cumItemOutcomes[ix]),
+		outcomeBase(outcomeStart * quad.totalQuadPoints),
 		weight(estate->expected + outcomeBase),
-		oProb(estate->grp.outcomeProb + outcomeBase),
 		iparam(omxMatrixColumn(estate->itemParam, ix)),
 		ll(ll), myDeriv(myDeriv)
 	{};
 	bool wantAbscissa() { return do_deriv; };
-	void operator()(double *abscissa)
+	void operator()(double *abscissa, double *outcomeCol)
 	{
 		if (do_fit) {
 			for (int ox=0; ox < iOutcomes; ox++) {
-				ll += weight[ox] * oProb[ox];
+				// quicker to do the whole vector at once? TODO
+				ll += weight[ox] * outcomeCol[ox];
 			}
 		}
 		if (do_deriv) {
 			(*dLL1)(spec, iparam, abscissa, weight, myDeriv);
 		}
 		weight += iOutcomes;
-		oProb += iOutcomes;
 	};
 };
 
@@ -337,7 +337,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 	if (estate->verbose >= 3) mxLog("%s: complete data fit(want fit=%d deriv=%d)", oo->name(), do_fit, do_deriv);
 
-	if (do_fit) estate->grp.ba81OutcomeProb(itemParam->data, TRUE);
+	if (do_fit) estate->grp.quad.cacheOutcomeProb(itemParam->data, TRUE);
 
 	const int thrDerivSize = itemParam->cols * state->itemDerivPadSize;
 	std::vector<double> thrDeriv(thrDerivSize * Global->numThreads);
@@ -349,10 +349,10 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 		double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
 		if (!do_deriv) {
 			ba81mstepEval<false> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
-			quad.foreach(op);
+			quad.mstepIter(ix, op);
 		} else {
 			ba81mstepEval<true> op(do_fit, ix, itemSpec[ix], estate, ll, myDeriv);
-			quad.foreach(op);
+			quad.mstepIter(ix, op);
 		}
 	}
 
@@ -535,7 +535,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->name());
 
 	omxMatrix *itemParam = estate->itemParam;
-	estate->grp.ba81OutcomeProb(itemParam->data, FALSE);
+	estate->grp.quad.cacheOutcomeProb(itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
 	const int numUnique = estate->getNumUnique();
@@ -551,7 +551,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 	ba81sandwichOp op(numThreads, estate, numParam, state, itemParam, abScale);
 
-	quad.allocBuffers(numThreads, false);
+	quad.allocBuffers(numThreads);
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -615,7 +615,7 @@ static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove
 	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
 	ba81NormalQuad &quad = estate->getQuad();
-	int maxAbilities = quad.abilities;
+	int maxAbilities = quad.abilities();
 	omxMatrix *estMean = estate->estLatentMean;
 	omxMatrix *estCov = estate->estLatentCov;
 
@@ -693,32 +693,33 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->name());
 
 	omxMatrix *itemParam = estate->itemParam;
-	estate->grp.ba81OutcomeProb(itemParam->data, FALSE);
+	estate->grp.quad.cacheOutcomeProb(itemParam->data, FALSE);
 
 	const int numThreads = Global->numThreads;
 	const int numUnique = estate->getNumUnique();
 	ba81NormalQuad &quad = estate->getQuad();
 	double *rowWeight = estate->grp.rowWeight;
 	std::vector<bool> &rowSkip = estate->grp.rowSkip;
-	const int numLatents = quad.abilities + triangleLoc1(quad.abilities);
 	const int itemDerivSize = itemParam->cols * state->itemDerivPadSize;
 	const size_t numParam = fc->varGroup->vars.size();
 	std::vector<double> thrGrad(numThreads * numParam);
 	std::vector<double> thrMeat(numThreads * numParam * numParam);
 
+	int numLatents = 0;
 	bool freeLatents = state->freeLatents;
 	if (freeLatents) {
 		Eigen::VectorXd meanVec;
 		Eigen::MatrixXd srcMat;
 		estate->getLatentDistribution(fc, meanVec, srcMat);
 		quad.cacheDerivCoef(meanVec, srcMat);
+		numLatents = quad.abilities() + triangleLoc1(quad.abilities());
 	}
 
 	ba81gradCovOp op(state->freeItemParams? estate->numItems() : 0,
 			 estate, state->itemDerivPadSize, itemParam,
 			 numThreads, itemDerivSize);
 
-	quad.allocBuffers(numThreads, false);
+	quad.allocBuffers(numThreads);
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {

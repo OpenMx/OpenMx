@@ -17,17 +17,97 @@
 
 #include "ba81quad.h"
 
-ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig), abilities(-1)
+const double ba81NormalQuad::MIN_VARIANCE = 0.01;
+
+ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig)
 {
 	setOne(1);
 	layers.resize(1, layer(this));
 }
 
+ba81NormalQuad::ba81NormalQuad(ba81NormalQuad &quad) : ig(quad.ig)
+{
+	setOne(quad.One);
+	layers.resize(quad.layers.size(), layer(this));
+	width = quad.width;
+	gridSize = quad.gridSize;
+	Qpoint = quad.Qpoint;
+	hasBifactorStructure = quad.hasBifactorStructure;
+	for (size_t lx=0; lx < quad.layers.size(); ++lx) {
+		layers[lx].copyStructure(quad.layers[lx]);
+	}
+}
+
+int ba81NormalQuad::abilities()
+{
+	int sum=0;
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		sum += l1.abilities;
+	}
+	return sum;
+}
+
+void ba81NormalQuad::layer::copyStructure(ba81NormalQuad::layer &orig)
+{
+	abilitiesOffset = orig.abilitiesOffset;
+	abilities = orig.abilities;
+	maxDims = orig.maxDims;
+	totalQuadPoints = orig.totalQuadPoints;
+	weightTableSize = orig.weightTableSize;
+	numSpecific = orig.numSpecific;
+	primaryDims = orig.primaryDims;
+	totalPrimaryPoints = orig.totalPrimaryPoints;
+}
+
+// Depends on item parameters, but not latent distribution
+void ba81NormalQuad::cacheOutcomeProb(double *param, bool wantLog)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layer &l1 = layers[lx];
+		l1.outcomeProbX.resize(ig.totalOutcomes * l1.totalQuadPoints);
+	}
+
+#pragma omp parallel for num_threads(ig.numThreads)
+	for (int ix=0; ix < ig.numItems(); ix++) {
+		const double *ispec = ig.spec[ix];
+		int id = ispec[RPF_ISpecID];
+		double *iparam = param + ig.paramRows * ix;
+		rpf_prob_t prob_fn = wantLog? Glibrpf_model[id].logprob : Glibrpf_model[id].prob;
+
+		Eigen::VectorXi abx(abscissaDim());
+		Eigen::VectorXd abscissa(abscissaDim());
+
+		for (size_t lx=0; lx < layers.size(); ++lx) {
+			layer &l1 = layers[lx];
+			l1.cacheOutcomeProb(ispec, iparam, prob_fn, ix, abx, abscissa);
+		}
+	}
+	// for (size_t lx=0; lx < layers.size(); ++lx) {
+	// 	layer &l1 = layers[lx];
+	// 	mxPrintMat("op", l1.outcomeProbX);
+	// }
+}
+
+void ba81NormalQuad::layer::addSummary(ba81NormalQuad::layer &l1)
+{
+	Dweight.col(0) += l1.Dweight.col(0);
+}
+
+void ba81NormalQuad::addSummary(ba81NormalQuad &quad)
+{
+	allocSummary(1);
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].prepSummary();
+		layers[lx].addSummary(quad.layers[lx]);
+	}
+}
+
 ifaGroup::ifaGroup(int cores, bool _twotier) :
 	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
-	twotier(_twotier), maxAbilities(0), mean(0), cov(0), dataRowNames(0),
+	twotier(_twotier), mean(0), cov(0), dataRowNames(0),
 	weightColumnName(0), rowWeight(0), minItemsPerScore(NA_INTEGER),
-	outcomeProb(0), excludedPatterns(-1)
+	excludedPatterns(-1)
 {}
 
 // The idea here is to avoid denormalized values if they are
@@ -40,7 +120,6 @@ const double ifaGroup::SmallestPatternLik = 1e16 * std::numeric_limits<double>::
 
 ifaGroup::~ifaGroup()
 {
-	Free(outcomeProb);
 }
 
 void ifaGroup::importSpec(SEXP slotValue)
@@ -113,7 +192,7 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 
 void ifaGroup::learnMaxAbilities()
 {
-	maxAbilities = 0;
+	int maxAbilities = 0;
 	Eigen::ArrayXi loadings(itemDims);
 	loadings.setZero();
 	for (int cx = 0; cx < numItems(); cx++) {
@@ -210,14 +289,14 @@ void ifaGroup::import(SEXP Rlist)
 
 	learnMaxAbilities();
 
-	if (maxAbilities < (int) factorNames.size())
-		factorNames.resize(maxAbilities);
+	if (itemDims < (int) factorNames.size())
+		factorNames.resize(itemDims);
 
-	if (int(factorNames.size()) < maxAbilities) {
-		factorNames.reserve(maxAbilities);
+	if (int(factorNames.size()) < itemDims) {
+		factorNames.reserve(itemDims);
 		const int SMALLBUF = 10;
 		char buf[SMALLBUF];
-		while (int(factorNames.size()) < maxAbilities) {
+		while (int(factorNames.size()) < itemDims) {
 			snprintf(buf, SMALLBUF, "s%d", int(factorNames.size()) + 1);
 			factorNames.push_back(CHAR(Rf_mkChar(buf)));
 		}
@@ -227,12 +306,12 @@ void ifaGroup::import(SEXP Rlist)
 		if (Rf_isMatrix(Rmean)) {
 			int nrow, ncol;
 			getMatrixDims(Rmean, &nrow, &ncol);
-			if (!(nrow * ncol == maxAbilities && (nrow==1 || ncol==1))) {
-				Rf_error("mean must be a column or row matrix of length %d", maxAbilities);
+			if (!(nrow * ncol == itemDims && (nrow==1 || ncol==1))) {
+				Rf_error("mean must be a column or row matrix of length %d", itemDims);
 			}
 		} else {
-			if (Rf_length(Rmean) != maxAbilities) {
-				Rf_error("mean must be a vector of length %d", maxAbilities);
+			if (Rf_length(Rmean) != itemDims) {
+				Rf_error("mean must be a vector of length %d", itemDims);
 			}
 		}
 
@@ -243,19 +322,19 @@ void ifaGroup::import(SEXP Rlist)
 		if (Rf_isMatrix(Rcov)) {
 			int nrow, ncol;
 			getMatrixDims(Rcov, &nrow, &ncol);
-			if (nrow != maxAbilities || ncol != maxAbilities) {
-				Rf_error("cov must be %dx%d matrix", maxAbilities, maxAbilities);
+			if (nrow != itemDims || ncol != itemDims) {
+				Rf_error("cov must be %dx%d matrix", itemDims, itemDims);
 			}
 		} else {
 			if (Rf_length(Rcov) != 1) {
-				Rf_error("cov must be %dx%d matrix", maxAbilities, maxAbilities);
+				Rf_error("cov must be %dx%d matrix", itemDims, itemDims);
 			}
 		}
 
 		verifyFactorNames(Rcov, "cov");
 	}
 
-	setLatentDistribution(maxAbilities, mean, cov);
+	setLatentDistribution(mean, cov);
 
 	setMinItemsPerScore(mips);
 
@@ -312,8 +391,8 @@ void ifaGroup::import(SEXP Rlist)
 	}
 
 	Eigen::Map< Eigen::ArrayXXd > Eparam(param, paramRows, numItems());
-	Eigen::Map< Eigen::VectorXd > meanVec(mean, maxAbilities);
-	Eigen::Map< Eigen::MatrixXd > covMat(cov, maxAbilities, maxAbilities);
+	Eigen::Map< Eigen::VectorXd > meanVec(mean, itemDims);
+	Eigen::Map< Eigen::MatrixXd > covMat(cov, itemDims, itemDims);
 
 	quad.setStructure(qwidth, qpoints, Eparam, meanVec, covMat);
 
@@ -325,22 +404,18 @@ void ifaGroup::import(SEXP Rlist)
 	quad.refresh(meanVec, covMat);
 }
 
-void ifaGroup::setLatentDistribution(int dims, double *_mean, double *_cov)
+void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
 {
-	maxAbilities = dims;
-
-	if (maxAbilities < 0) Rf_error("maxAbilities must be non-negative");
-
 	if (!mean) {
-		mean = (double *) R_alloc(maxAbilities, sizeof(double));
-		memset(mean, 0, maxAbilities * sizeof(double));
+		mean = (double *) R_alloc(itemDims, sizeof(double));
+		memset(mean, 0, itemDims * sizeof(double));
 	} else {
 		mean = _mean;
 	}
 
 	if (!cov) {
-		cov = (double *) R_alloc(maxAbilities * maxAbilities, sizeof(double));
-		Eigen::Map< Eigen::MatrixXd > covMat(cov, maxAbilities, maxAbilities);
+		cov = (double *) R_alloc(itemDims * itemDims, sizeof(double));
+		Eigen::Map< Eigen::MatrixXd > covMat(cov, itemDims, itemDims);
 		covMat.setIdentity();
 	} else {
 		cov = _cov;
@@ -369,9 +444,9 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 	layers.clear();
 	layers.resize(1, layer(this));
 
-	abilities = mean.cols();
+	int dim = mean.rows();
 
-	if (!abilities) {
+	if (!dim) {
 		// Qpoint.clear();  // remove? TODO
 		// Qpoint.reserve(1);
 		// Qpoint.push_back(0);
@@ -382,13 +457,11 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 	layers[0].setStructure(param, mean, cov);
 
 	totalQuadPoints = 0;
-	weightTableSize = 0;
 	int offset = 0;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].abilitiesOffset = offset;
 		offset += layers[lx].abilities;
 		totalQuadPoints += layers[lx].totalQuadPoints;
-		weightTableSize += layers[lx].weightTableSize;
 	}
 }
 
@@ -438,7 +511,7 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 
 	Eigen::VectorXi abscissa(maxDims);
 	for (int qx=0; qx < totalQuadPoints; qx++) {
-		decodeLocation(qx, quad->gridSize, abscissa);
+		decodeLocation(qx, quad->gridSize, abscissa, maxDims);
 		for (int dx=0; dx < maxDims; dx++) {
 			wherePrep.push_back(Qpoint[abscissa[dx]]);
 		}
@@ -456,7 +529,7 @@ template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 					  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
 {
-	if (mean.cols() < 3) return;
+	if (mean.rows() < 3) return;
 
 	std::vector<int> orthogonal;
 
@@ -488,7 +561,7 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 	std::reverse(orthogonal.begin(), orthogonal.end());
 
 	if (orthogonal.size() == 1) orthogonal.clear();
-	if (orthogonal.size() && orthogonal[0] != mean.cols() - int(orthogonal.size())) {
+	if (orthogonal.size() && orthogonal[0] != mean.rows() - int(orthogonal.size())) {
 		Rf_error("Independent specific factors must be given after general dense factors");
 	}
 
@@ -497,13 +570,15 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 	if (numSpecific) {
 		Sgroup.assign(param.cols(), 0);
 		for (int ix=0; ix < param.cols(); ix++) {
-			for (int dx=orthogonal[0]; dx < abilities; ++dx) {
+			for (int dx=orthogonal[0]; dx < mean.rows(); ++dx) {
 				if (param(dx, ix) != 0) {
 					Sgroup[ix] = dx - orthogonal[0];
 					continue;
 				}
 			}
 		}
+		//Eigen::Map< Eigen::ArrayXi > foo(Sgroup.data(), param.cols());
+		//mxPrintMat("sgroup", foo);
 	}
 }
 
@@ -520,14 +595,14 @@ void ifaGroup::buildRowSkip()
 {
 	rowSkip.assign(rowMap.size(), false);
 
-	if (maxAbilities == 0) return;
+	if (itemDims == 0) return;
 
 	// Rows with no information about an ability will obtain the
 	// prior distribution as an ability estimate. This will
 	// throw off multigroup latent distribution estimates.
 	for (size_t rx=0; rx < rowMap.size(); rx++) {
 		bool hasNA = false;
-		std::vector<int> contribution(maxAbilities);
+		std::vector<int> contribution(itemDims);
 		for (int ix=0; ix < numItems(); ix++) {
 			int pick = dataColumn(ix)[ rowMap[rx] ];
 			if (pick == NA_INTEGER) {
@@ -547,7 +622,7 @@ void ifaGroup::buildRowSkip()
 		if (minItemsPerScore == NA_INTEGER) {
 			Rf_error("You have missing data. You must set minItemsPerScore");
 		}
-		for (int ax=0; ax < maxAbilities; ++ax) {
+		for (int ax=0; ax < itemDims; ++ax) {
 			if (contribution[ax] < minItemsPerScore) {
 				// We could compute the other scores, but estimation of the
 				// latent distribution is in the hot code path. We can reconsider
@@ -559,10 +634,37 @@ void ifaGroup::buildRowSkip()
 	}
 }
 
-void ba81NormalQuad::layer::allocBuffers(int numThreads, bool wantSummary)
+void ba81NormalQuad::layer::allocSummary(int numThreads)
+{
+	Dweight.resize(weightTableSize, numThreads);
+	Dweight.setZero();
+}
+
+void ba81NormalQuad::allocSummary(int numThreads)
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].allocSummary(numThreads);
+	}
+	DweightToThread0 = false;
+}
+
+void ba81NormalQuad::layer::prepSummary()
+{
+	for (int tx=1; tx < Dweight.cols(); ++tx) Dweight.col(0) += Dweight.col(tx);
+}
+
+void ba81NormalQuad::prepSummary()
+{
+	if (DweightToThread0) return;
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].prepSummary();
+	}
+	DweightToThread0 = true;
+}
+
+void ba81NormalQuad::layer::allocBuffers(int numThreads)
 {
 	Qweight.resize(weightTableSize, numThreads);
-	if (wantSummary) Dweight.resize(weightTableSize, numThreads);
 
 	if (!numSpecific) return;
 
@@ -570,17 +672,16 @@ void ba81NormalQuad::layer::allocBuffers(int numThreads, bool wantSummary)
 	thrEis.resize(totalPrimaryPoints * numSpecific, numThreads);
 }
 
-void ba81NormalQuad::allocBuffers(int numThreads, bool wantSummary)
+void ba81NormalQuad::allocBuffers(int numThreads)
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layers[lx].allocBuffers(numThreads, wantSummary);
+		layers[lx].allocBuffers(numThreads);
 	}
 }
 
 void ba81NormalQuad::layer::releaseBuffers()
 {
 	Qweight.resize(0,0);
-	Dweight.resize(0,0);
 	thrEi.resize(0,0);
 	thrEis.resize(0,0);
 }

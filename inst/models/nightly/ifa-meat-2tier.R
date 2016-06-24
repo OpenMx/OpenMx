@@ -117,4 +117,5 @@ for (seed in 1:trials) {
   diff[seed,] <- aGrad - deriv
 }
 #round(apply(abs(diff), 2, median),2)
-omxCheckCloseEnough(apply(abs(diff), 2, median), rep(0,dim(diff)[2]), 6.5)
+print(max(apply(abs(diff), 2, median)))
+omxCheckCloseEnough(apply(abs(diff), 2, median), rep(0,dim(diff)[2]), 6.1)

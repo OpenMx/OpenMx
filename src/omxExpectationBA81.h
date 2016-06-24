@@ -67,8 +67,6 @@ class BA81Expect {
 	// data characteristics
 	omxData *data;
 	double weightSum;                // sum of rowWeight
-	// aggregate distribution of data in quadrature
-	std::vector<double> thrDweight;  // quad.weightTableSize * numThreads
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
@@ -103,20 +101,21 @@ class BA81Expect {
 template <typename Tmean, typename Tcov>
 void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov)
 {
-	mean.derived().resize(grp.maxAbilities);
+	int dim = grp.quad.abilities();
+	mean.derived().resize(dim);
 	if (!_latentMeanOut) {
 		mean.setZero();
 	} else {
 		omxRecompute(_latentMeanOut, fc);
-		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * grp.maxAbilities);
+		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * dim);
 	}
 	
-	cov.derived().resize(grp.maxAbilities, grp.maxAbilities);
+	cov.derived().resize(dim, dim);
 	if (!_latentCovOut) {
 		cov.setIdentity();
 	} else {
 		omxRecompute(_latentCovOut, fc);
-		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * grp.maxAbilities * grp.maxAbilities);
+		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * dim * dim);
 	}
 }
 
@@ -127,7 +126,5 @@ void ba81RefreshQuadrature(omxExpectation* oo);
 
 void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat);
-
-static const double BA81_MIN_VARIANCE = .01;
 
 #endif
