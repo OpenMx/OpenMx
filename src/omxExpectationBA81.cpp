@@ -631,9 +631,6 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 					     Eparam, meanVec, covMat);
 	}
 
-	// TODO: Items with zero loadings can be replaced with equivalent items
-	// with fewer factors. This would speed up calculation of derivatives.
-
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("minItemsPerScore")));
 	state->grp.setMinItemsPerScore(Rf_asInteger(tmp));
 	}

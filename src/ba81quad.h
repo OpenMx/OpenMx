@@ -84,13 +84,12 @@ class ba81NormalQuad {
 
 		// Mislevy (1984) deriv stuff
 		Eigen::ArrayXXd derivCoef;            // deriv * totalQuadPoints
-		// need to dealloc derivCoef TODO
 
 		layer(class ba81NormalQuad *quad)
 			: quad(quad), abilitiesOffset(-1), abilities(-1), maxDims(-1),
 			totalQuadPoints(-1), weightTableSize(-1),
 			numSpecific(-1), primaryDims(-1), totalPrimaryPoints(-1) {};
-		inline int sIndex(int sx, int qx) { // remove? TODO
+		inline int sIndex(int sx, int qx) {
 			//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
 			//if (qx < 0 || qx >= state->gridSize) Rf_error("Out of domain");
 			return qx * numSpecific + sx;
@@ -123,7 +122,7 @@ class ba81NormalQuad {
 		inline void weightBy(int thrId, double weight);
 		inline void weightByAndSummarize(int thrId, double weight);
 		template <typename T1, typename T2>
-		void cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
+		int cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
 		template <typename T1, typename T2>
 		void pointToGlobalAbscissa(int qx, Eigen::MatrixBase<T1> &abx,
 					   Eigen::MatrixBase<T2> &abscissa);
@@ -191,7 +190,7 @@ class ba81NormalQuad {
 	inline void weightBy(int thrId, double weight);
 	inline void weightByAndSummarize(int thrId, double weight);
 	template <typename T1, typename T2>
-	void cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
+	int cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov);
 	template <typename T, typename T1>
 	void computeRowDeriv(int thrId, T &op, bool freeLatents, Eigen::ArrayBase<T1> &latentGrad);
 	template <typename T>
@@ -200,6 +199,7 @@ class ba81NormalQuad {
 	void allocSummary(int numThreads);
 	void addSummary(ba81NormalQuad &quad);
 	void cacheOutcomeProb(double *param, bool wantLog);
+	void releaseDerivCoefCache();
 };
 
 template <typename T1, typename T2, typename T3, typename T4>
@@ -283,16 +283,12 @@ int ba81quad_InvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, const char uplo)
 }
 
 template <typename T1, typename T2>
-void ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
+int ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
 {
 	Eigen::MatrixXd priCov = cov.topLeftCorner(primaryDims, primaryDims);
 	Eigen::MatrixXd icov = priCov;
 	int info = ba81quad_InvertSymmetricPosDef(icov, 'U');
-	if (info) {
-		// report error TODO
-		//omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->name());
-		return;
-	}
+	if (info) return info;
 	icov.triangularView<Eigen::Lower>() = icov.transpose().triangularView<Eigen::Lower>();
 	
 	Eigen::VectorXi abx(abilities);
@@ -313,19 +309,22 @@ void ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen
 			}
 		}
 	}
+	return 0;
 }
 
 template <typename T1, typename T2>
-void ba81NormalQuad::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
+int ba81NormalQuad::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen::MatrixBase<T2> &cov)
 {
 	int offset=0;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		int la = layers[lx].abilities;
 		Eigen::VectorXd meanVec1 = meanVec.segment(offset, la);
 		Eigen::MatrixXd cov1 = cov.block(offset, offset, la, la);
-		layers[lx].cacheDerivCoef(meanVec1, cov1);
+		int info = layers[lx].cacheDerivCoef(meanVec1, cov1);
+		if (info) return info;
 		offset += la;
 	}
+	return 0;
 }
 
 template <typename T2>

@@ -562,7 +562,11 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 		double patternLik1 =
 			quad.computePatternLik(thrId, estate->grp.rowMap[px]);
 
-		// if (!validPatternLik(state, patternLik1))  complain
+		if (!ifaGroup::validPatternLik(patternLik1)) {
+			omxRaiseErrorf("%s: pattern %d has an invalid probability %g",
+				       oo->name(), estate->grp.rowMap[px], patternLik1);
+			continue;
+		}
 
 		op.px[thrId] = px;
 		op.patternLik1[thrId] = 1 / patternLik1;
@@ -711,7 +715,11 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		Eigen::VectorXd meanVec;
 		Eigen::MatrixXd srcMat;
 		estate->getLatentDistribution(fc, meanVec, srcMat);
-		quad.cacheDerivCoef(meanVec, srcMat);
+		int info = quad.cacheDerivCoef(meanVec, srcMat);
+		if (info) {
+			omxRaiseErrorf("%s: latent covariance matrix is not positive definite", oo->name());
+			return;
+		}
 		numLatents = quad.abilities() + triangleLoc1(quad.abilities());
 	}
 
@@ -732,7 +740,11 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		double patternLik1 =
 			quad.computePatternLik(thrId, estate->grp.rowMap[px]);
 
-		// if (!validPatternLik(state, patternLik1))  complain, TODO
+		if (!ifaGroup::validPatternLik(patternLik1)) {
+			omxRaiseErrorf("%s: pattern %d has an invalid probability %g",
+			 	       oo->name(), estate->grp.rowMap[px], patternLik1);
+			continue;
+		}
 
 		quad.prepLatentDist(thrId);
 
@@ -771,6 +783,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	}
 
 	quad.releaseBuffers();
+	quad.releaseDerivCoefCache();
 
 	for (int tx=1; tx < numThreads; ++tx) {
 		double *th = thrGrad.data() + tx * numParam;

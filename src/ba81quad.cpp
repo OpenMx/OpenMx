@@ -445,13 +445,7 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 	layers.resize(1, layer(this));
 
 	int dim = mean.rows();
-
-	if (!dim) {
-		// Qpoint.clear();  // remove? TODO
-		// Qpoint.reserve(1);
-		// Qpoint.push_back(0);
-		gridSize = 1;
-	}
+	if (!dim) gridSize = 1;
 
 	// subset param, mean, cov, etc
 	layers[0].setStructure(param, mean, cov);
@@ -668,6 +662,13 @@ void ba81NormalQuad::releaseBuffers()
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].releaseBuffers();
+	}
+}
+
+void ba81NormalQuad::releaseDerivCoefCache()
+{
+	for (size_t lx=0; lx < layers.size(); ++lx) {
+		layers[lx].derivCoef.resize(0,0);
 	}
 }
 
