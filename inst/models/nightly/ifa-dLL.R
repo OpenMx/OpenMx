@@ -163,8 +163,8 @@ if (1) {  # enable to examine the RMSE by item model
 #     print(max(diff.hess))
     # The poor accuracy here is probably due to numDeriv, not the
     # math for analytic derivs.
-    omxCheckTrue(all(diff.grad < 1e-5))
-    omxCheckTrue(all(diff.hess < 1e-3))
+    omxCheckCloseEnough(diff.grad, rep(0,length(diff.grad)), 1e-5)
+    omxCheckCloseEnough(c(diff.hess), rep(0,length(diff.hess)), 1e-3)
   }
 }
 

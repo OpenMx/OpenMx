@@ -25,33 +25,28 @@ enum expectation_type {
 	EXPECTATION_OBSERVED,  // regular
 };
 
-template <typename CovType>
-struct BA81EstepBase {
-	void addRow1(class ifaGroup *state, int px, double *Qweight, double *out);
-};
-
-template <typename T, typename CovType>
-struct BA81Estep : BA81EstepBase<CovType> {
+template <typename T>
+struct BA81Estep {
 	std::vector<double> thrExpected;
 
 	void begin(class ifaGroup *state, T extraData);
-	void addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId);
+	void addRow(class ifaGroup *state, T extraData, int px, int thrId);
 	void recordTable(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
 };
 
 template <typename T>
 struct BA81LatentFixed {
-	void begin(class ifaGroup *state, T extraData) {}
-	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrid);
+	bool wantSummary() { return false; };
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double weight, int thrid);
 	void end(class ifaGroup *state, T extraData) {};
 	bool hasEnd() { return false; }
 };
 
 template <typename T>
 struct BA81LatentSummary {
-	void begin(class ifaGroup *state, T extraData);
-	void normalizeWeights(class ifaGroup *state, T extraData, int px, double *Qweight, double weight, int thrId);
+	bool wantSummary() { return true; };
+	void normalizeWeights(class ifaGroup *state, T extraData, int px, double weight, int thrId);
 	void end(class ifaGroup *state, T extraData);
 	bool hasEnd() { return true; }
 };
@@ -72,8 +67,6 @@ class BA81Expect {
 	// data characteristics
 	omxData *data;
 	double weightSum;                // sum of rowWeight
-	// aggregate distribution of data in quadrature
-	std::vector<double> thrDweight;  // quad.weightTableSize * numThreads
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }
@@ -108,43 +101,30 @@ class BA81Expect {
 template <typename Tmean, typename Tcov>
 void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov)
 {
-	mean.derived().resize(grp.maxAbilities);
+	int dim = grp.quad.abilities();
+	mean.derived().resize(dim);
 	if (!_latentMeanOut) {
 		mean.setZero();
 	} else {
 		omxRecompute(_latentMeanOut, fc);
-		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * grp.maxAbilities);
+		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * dim);
 	}
 	
-	cov.derived().resize(grp.maxAbilities, grp.maxAbilities);
+	cov.derived().resize(dim, dim);
 	if (!_latentCovOut) {
 		cov.setIdentity();
 	} else {
 		omxRecompute(_latentCovOut, fc);
-		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * grp.maxAbilities * grp.maxAbilities);
+		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * dim * dim);
 	}
 }
 
 extern const struct rpf *Grpf_model;
 extern int Grpf_numModels;
 
-OMXINLINE static void
-gramProduct(double *vec, size_t len, double *out)
-{
-	int cell = 0;
-	for (size_t v1=0; v1 < len; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
-			out[cell] = vec[v1] * vec[v2];
-			++cell;
-		}
-	}
-}
-
-void ba81SetupQuadrature(omxExpectation* oo);
+void ba81RefreshQuadrature(omxExpectation* oo);
 
 void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat);
-
-static const double BA81_MIN_VARIANCE = .01;
 
 #endif
