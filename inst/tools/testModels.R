@@ -101,7 +101,6 @@ errorRecover <- function(script, opt, index) {
 optimizers <- c('SLSQP')
 if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
 #if (any(args == 'nightly'))  optimizers <- c(optimizers, 'SD')
-optimizers <- c(optimizers, 'CSOLNP')
 
 for (opt in optimizers) {
 	errors[[opt]] <- list()
