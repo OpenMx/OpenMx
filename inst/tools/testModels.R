@@ -102,7 +102,6 @@ optimizers <- c('SLSQP')
 if (!any(args == 'gctorture') && imxHasNPSOL()) optimizers <- c(optimizers, 'NPSOL')
 #if (any(args == 'nightly'))  optimizers <- c(optimizers, 'SD')
 
-
 for (opt in optimizers) {
 	errors[[opt]] <- list()
 	warnRec[[opt]] <- list()

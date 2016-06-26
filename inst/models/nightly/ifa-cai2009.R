@@ -39,7 +39,7 @@ mk.model <- function(name, data, latent.free) {
   dims <- (1 + numItems/4)
   numPersons <- dim(data)[1]
   spec <- list()
-  spec[1:numItems] <- rpf.grm(factors = dims)
+  spec[1:numItems] <- list(rpf.grm(factors = dims))
   
   ip.mat <- mxMatrix(name="item", nrow=dims+1, ncol=numItems,
                      values=c(1.4,rep(0,dims-1),0), free=FALSE)

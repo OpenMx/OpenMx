@@ -121,7 +121,7 @@ void omxData::connectDynamicData(omxState *currentState)
 		numObs = weightSum;
 		if (!refE) return;
 
-		int dims = refBA81->grp.maxAbilities;
+		int dims = refBA81->grp.quad.abilities();
 		dataMat = omxNewIdentityMatrix(dims, currentState);
 		meansMat = omxInitMatrix(dims, 1, TRUE, currentState);
 		for (int mx=0; mx < dims; ++mx) omxSetVectorElement(meansMat, mx, 0);

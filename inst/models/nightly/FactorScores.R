@@ -129,6 +129,7 @@ lis <- mxModel("thresholdModel",
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
             mxFitFunctionML(),mxExpectationLISREL(LX='L', TX='M', PH='P', TD='E', KA='K', thresholds="thresholdMatrix")
 )
+lis$thresholdDeviations$ubound <- 1
 
 # Generate data based on model
 ordinalData <- mxGenerateData(lis, nSubjects)

@@ -57,39 +57,23 @@ void pia(const int *ar, int rows, int cols)
 
 template <typename T>
 void BA81LatentFixed<T>::normalizeWeights(class ifaGroup *grp, T extraData,
-					  int px, double *Qweight, double patternLik1, int thrId)
+					  int px, double patternLik1, int thrId)
 {
 	double weight = grp->rowWeight[px] / patternLik1;
-	int pts = grp->quad.weightTableSize;
-	for (int qx=0; qx < pts; ++qx) {
-		Qweight[qx] *= weight;
-	}
-}
-
-template <typename T>
-void BA81LatentSummary<T>::begin(class ifaGroup *state, T extraData)
-{
-	extraData->thrDweight.assign(state->quad.weightTableSize * Global->numThreads, 0.0);
+	grp->quad.weightBy(thrId, weight);
 }
 
 template <typename T>
 void BA81LatentSummary<T>::normalizeWeights(class ifaGroup *grp, T extraData,
-					    int px, double *Qweight, double patternLik1, int thrId)
+					    int px, double patternLik1, int thrId)
 {
 	double weight = grp->rowWeight[px] / patternLik1;
-	int pts = grp->quad.weightTableSize;
-	double *Dweight = extraData->thrDweight.data() + pts * thrId;
-	for (int qx=0; qx < pts; ++qx) {
-		double tmp = Qweight[qx] * weight;
-		Dweight[qx] += tmp;
-		Qweight[qx] = tmp;
-	}
+	grp->quad.weightByAndSummarize(thrId, weight);
 }
 
 static void exportLatentDistToOMX(ba81NormalQuad &quad, double *latentDist1, omxMatrix *meanOut, omxMatrix *covOut)
 {
-	const int maxAbilities = quad.maxAbilities;
-	const int primaryDims = quad.primaryDims;
+	const int maxAbilities = quad.abilities();
 
 	if (meanOut) {
 		for (int d1=0; d1 < maxAbilities; d1++) {
@@ -98,7 +82,7 @@ static void exportLatentDistToOMX(ba81NormalQuad &quad, double *latentDist1, omx
 	}
 
 	if (covOut) {
-		for (int d1=0; d1 < primaryDims; d1++) {
+		for (int d1=0; d1 < maxAbilities; d1++) {
 			int cx = maxAbilities + triangleLoc1(d1);
 			for (int d2=0; d2 <= d1; d2++) {
 				double cov = latentDist1[cx];
@@ -107,35 +91,18 @@ static void exportLatentDistToOMX(ba81NormalQuad &quad, double *latentDist1, omx
 				++cx;
 			}
 		}
-		for (int d1=primaryDims; d1 < maxAbilities; d1++) {
-			int loc = maxAbilities + triangleLoc0(d1);
-			omxSetMatrixElement(covOut, d1, d1, latentDist1[loc]);
-		}
 	}
 }
 
 template <typename T>
 void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 {
-	int pts = grp->quad.weightTableSize;
-	double *thrDweight = extraData->thrDweight.data();
-
-	for (int tx=1; tx < Global->numThreads; ++tx) {
-		double *Dweight = thrDweight + pts * tx;
-		double *dest = thrDweight;
-		for (int qx=0; qx < pts; ++qx) {
-			dest[qx] += Dweight[qx];
-		}
-	}
-
-	// could shrink thrDweight since thr=0 has all the info
-
 	ba81NormalQuad &quad = grp->quad;
-	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
-	std::vector<double> latentDist;
-	latentDist.assign(numLatents, 0.0);
-	quad.EAP(thrDweight, extraData->weightSum, latentDist.data());
-	for (int d1=quad.maxAbilities; d1 < numLatents; d1++) {
+	int dim = quad.abilities();
+	int numLatents = dim + triangleLoc1(dim);
+	Eigen::ArrayXd latentDist(numLatents);
+	quad.EAP(extraData->weightSum, latentDist);
+	for (int d1=quad.abilities(); d1 < numLatents; d1++) {
 		latentDist[d1] *= extraData->weightSum / (extraData->weightSum - 1.0);
 	}
 	exportLatentDistToOMX(quad, latentDist.data(), extraData->estLatentMean, extraData->estLatentCov);
@@ -146,12 +113,6 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat)
 {
-	BA81Expect *exemplar = (BA81Expect *) expectation[0]->argStruct;
-	ba81NormalQuad &quad = exemplar->getQuad();
-	int pts = quad.weightTableSize;
-	Eigen::ArrayXd dist(pts);
-	dist.setZero();
-
 	int allVer = 0;
 	for (size_t ex=0; ex < expectation.size(); ++ex) {
 		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
@@ -160,116 +121,45 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 	if (*version == allVer) return;
 	*version = allVer;
 
+	BA81Expect *exemplar = (BA81Expect *) expectation[0]->argStruct;
+	ba81NormalQuad &quad = exemplar->getQuad();
+	ba81NormalQuad combined(quad);
+
 	int got = 0;
 	for (size_t ex=0; ex < expectation.size(); ++ex) {
 		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
-		if (ba81->thrDweight.size() == 0) continue;
-		double weight = 1/ba81->weightSum;
-		for (int qx = 0; qx < pts; ++qx) {
-			dist[qx] += weight * ba81->thrDweight[qx];
-		}
+		// double weight = 1/ba81->weightSum; ?
+		combined.addSummary(ba81->grp.quad);
 		++got;
 	}
 	if (got == 0) return;
 
-	if (got != (int) expectation.size()) {
-		// maybe OK?
-		Rf_error("ba81AggregateDistributions: %d/%d expectations ready",
-			 got, (int) expectation.size());
-	}
-
-	int numLatents = quad.maxAbilities + triangleLoc1(quad.maxAbilities);
-	std::vector<double> latentDist;
-	latentDist.assign(numLatents, 0.0);
-	quad.EAP(dist.data(), got, latentDist.data());
-	for (int d1=quad.maxAbilities; d1 < numLatents; d1++) {
+	int dim = quad.abilities();
+	int numLatents = dim + triangleLoc1(dim);
+	Eigen::ArrayXd latentDist(numLatents);
+	combined.EAP(got, latentDist);
+	for (int d1=quad.abilities(); d1 < numLatents; d1++) {
 		latentDist[d1] *= got / (got - 1.0);
 	}
 	exportLatentDistToOMX(quad, latentDist.data(), meanMat, covMat);
 }
 
-template <typename T, typename CovType>
-void BA81Estep<T, CovType>::begin(ifaGroup *state, T extraData)
+template <typename T>
+void BA81Estep<T>::begin(ifaGroup *state)
 {
-	ba81NormalQuad &quad = state->quad;
-	thrExpected.assign(state->totalOutcomes * quad.totalQuadPoints * Global->numThreads, 0.0);
+	state->quad.allocEstep(Global->numThreads);
 }
 
-template <typename T, typename CovType>
-void BA81Estep<T, CovType>::addRow(class ifaGroup *state, T extraData, int px, double *Qweight, int thrId)
+template <typename T>
+void BA81Estep<T>::addRow(class ifaGroup *state, int mpx, int thrId)
 {
-	double *out = thrExpected.data() + thrId * state->totalOutcomes * state->quad.totalQuadPoints;
-	BA81EstepBase<CovType>::addRow1(state, px, Qweight, out);
+	state->quad.addToExpected(thrId, mpx);
 }
 
-template<>
-void BA81EstepBase<BA81Dense>::addRow1(class ifaGroup *grp, int px, double *Qweight, double *out)
+template <typename T>
+void BA81Estep<T>::recordTable(class ifaGroup *state)
 {
-	std::vector<int> &rowMap = grp->rowMap;
-	std::vector<int> &itemOutcomes = grp->itemOutcomes;
-	ba81NormalQuad &quad = grp->getQuad();
-	const int totalQuadPoints = quad.totalQuadPoints;
-
-	for (int ix=0; ix < grp->numItems(); ++ix) {
-		int pick = grp->dataColumns[ix][rowMap[px]];
-		if (pick == NA_INTEGER) {
-			out += itemOutcomes[ix] * totalQuadPoints;
-			continue;
-		}
-		pick -= 1;
-
-		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			out[pick] += Qweight[qx];
-			out += itemOutcomes[ix];
-		}
-	}
-}
-
-template<>
-void BA81EstepBase<BA81TwoTier>::addRow1(class ifaGroup *grp, int px, double *Qweight, double *out)
-{
-	std::vector<int> &rowMap = grp->rowMap;
-	std::vector<int> &itemOutcomes = grp->itemOutcomes;
-	ba81NormalQuad &quad = grp->getQuad();
-	const int numSpecific = quad.numSpecific;
-	const int totalQuadPoints = quad.totalQuadPoints;
-
-	for (int ix=0; ix < grp->numItems(); ++ix) {
-		int pick = grp->dataColumns[ix][rowMap[px]];
-		if (pick == NA_INTEGER) {
-			out += itemOutcomes[ix] * totalQuadPoints;
-			continue;
-		}
-		pick -= 1;
-
-		int Sgroup = grp->Sgroup[ix];
-		double *Qw = Qweight;
-		for (int qx=0; qx < totalQuadPoints; ++qx) {
-			out[pick] += Qw[Sgroup];
-			out += itemOutcomes[ix];
-			Qw += numSpecific;
-		}
-	}
-}
-
-template <typename T, typename CovType>
-void BA81Estep<T, CovType>::recordTable(class ifaGroup *state, T extraData)
-{
-	const int numThreads = Global->numThreads;
-	ba81NormalQuad &quad = state->getQuad();
-	const int expectedSize = quad.totalQuadPoints * state->totalOutcomes;
-	double *e1 = thrExpected.data();
-
-	extraData->expected = Realloc(extraData->expected, state->totalOutcomes * quad.totalQuadPoints, double);
-	memcpy(extraData->expected, e1, sizeof(double) * expectedSize);
-	e1 += expectedSize;
-
-	for (int tx=1; tx < numThreads; ++tx) {
-		for (int ex=0; ex < expectedSize; ++ex) {
-			extraData->expected[ex] += *e1;
-			++e1;
-		}
-	}
+	state->quad.prepExpectedTable();
 }
 
 static int getLatentVersion(BA81Expect *state)
@@ -281,79 +171,35 @@ static int getLatentVersion(BA81Expect *state)
 }
 
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
-void ba81SetupQuadrature(omxExpectation* oo)
+void ba81RefreshQuadrature(omxExpectation* oo)
 {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	ba81NormalQuad &quad = state->getQuad();
-	bool latentClean = state->latentParamVersion == getLatentVersion(state);
-	if (quad.Qpoint.size() == 0 && latentClean) return;
-
-	int maxAbilities = state->grp.maxAbilities;
-	if (maxAbilities == 0) {
-		quad.setup0();
-		state->latentParamVersion = getLatentVersion(state);
-		return;
-	}
 
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd fullCov;
 	state->getLatentDistribution(NULL, mean, fullCov);
 
 	if (state->verbose >= 1) {
-		mxLog("%s: set up quadrature", oo->name);
+		mxLog("%s: refresh quadrature", oo->name);
 		if (state->verbose >= 2) {
-			pda(mean.data(), 1, maxAbilities);
-			pda(fullCov.data(), maxAbilities, maxAbilities);
+			int dim = mean.rows();
+			pda(mean.data(), 1, dim);
+			pda(fullCov.data(), dim, dim);
 		}
 	}
 
-	int numSpecific = state->grp.numSpecific;
-	int priDims = maxAbilities - state->grp.numSpecific;
-	Eigen::MatrixXd cov = fullCov.topLeftCorner(priDims, priDims);
-	Eigen::VectorXd sVar(numSpecific);
-
-	// This is required because the EM acceleration can push the
-	// covariance matrix to be slightly non-pd when predictors
-	// are highly correlated.
-	if (priDims == 1) {
-		if (cov(0,0) < BA81_MIN_VARIANCE) cov(0,0) = BA81_MIN_VARIANCE;
-	} else {
-		Matrix mat(cov.data(), priDims, priDims);
-		InplaceForcePosSemiDef(mat, NULL, NULL);
-	}
-
-	for (int sx=0; sx < numSpecific; ++sx) {
-		int loc = priDims + sx;
-		double tmp = fullCov(loc, loc);
-		if (tmp < BA81_MIN_VARIANCE) tmp = BA81_MIN_VARIANCE;
-		sVar(sx) = tmp;
-	}
-
-	quad.setup(state->grp.qwidth, state->grp.qpoints, mean.data(), cov, sVar);
-
-	state->latentParamVersion = getLatentVersion(state);
+	quad.refresh(mean, fullCov);
 }
 
 void refreshPatternLikelihood(BA81Expect *state, bool hasFreeLatent)
 {
-	ba81NormalQuad &quad = state->getQuad();
-
 	if (hasFreeLatent) {
-		if (quad.numSpecific == 0) {
-			BA81Engine<typeof(state), BA81Dense, BA81LatentSummary, BA81OmitEstep> engine;
-			engine.ba81Estep1(&state->grp, state);
-		} else {
-			BA81Engine<typeof(state), BA81TwoTier, BA81LatentSummary, BA81OmitEstep> engine;
-			engine.ba81Estep1(&state->grp, state);
-		}
+		BA81Engine<typeof(state), BA81LatentSummary, BA81OmitEstep> engine;
+		engine.ba81Estep1(&state->grp, state);
 	} else {
-		if (quad.numSpecific == 0) {
-			BA81Engine<typeof(state), BA81Dense, BA81LatentFixed, BA81OmitEstep> engine;
-			engine.ba81Estep1(&state->grp, state);
-		} else {
-			BA81Engine<typeof(state), BA81TwoTier, BA81LatentFixed, BA81OmitEstep> engine;
-			engine.ba81Estep1(&state->grp, state);
-		}
+		BA81Engine<typeof(state), BA81LatentFixed, BA81OmitEstep> engine;
+		engine.ba81Estep1(&state->grp, state);
 	}
 }
 
@@ -398,48 +244,40 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
 
 	if (state->verbose >= 1) {
 		mxLog("%s: Qinit %d itemClean %d latentClean %d (1=clean) expectedUsed=%d",
-		      oo->name, quad.Qpoint.size() != 0, itemClean, latentClean, state->expectedUsed);
+		      oo->name, (int)quad.isAllocated(), itemClean, latentClean, state->expectedUsed);
 	}
 
-	if (!latentClean) ba81SetupQuadrature(oo);
+	if (!latentClean) {
+		ba81RefreshQuadrature(oo);
+		state->latentParamVersion = getLatentVersion(state);
+	}
 
 	if (!itemClean) {
 		double *param = state->EitemParam? state->EitemParam : state->itemParam->data;
-		state->grp.ba81OutcomeProb(param, FALSE);
+		state->grp.quad.cacheOutcomeProb(param, FALSE);
 
 		bool estep = state->expectedUsed;
 		if (estep) {
-			if (quad.numSpecific == 0) {
-				if (oo->dynamicDataSource) {
-					BA81Engine<typeof(state), BA81Dense, BA81LatentSummary, BA81Estep> engine;
-					engine.ba81Estep1(&state->grp, state);
-				} else {
-					BA81Engine<typeof(state), BA81Dense, BA81LatentFixed, BA81Estep> engine;
-					engine.ba81Estep1(&state->grp, state);
-				}
+			if (oo->dynamicDataSource) {
+				BA81Engine<typeof(state), BA81LatentSummary, BA81Estep> engine;
+				engine.ba81Estep1(&state->grp, state);
 			} else {
-				if (oo->dynamicDataSource) {
-					BA81Engine<typeof(state), BA81TwoTier, BA81LatentSummary, BA81Estep> engine;
-					engine.ba81Estep1(&state->grp, state);
-				} else {
-					BA81Engine<typeof(state), BA81TwoTier, BA81LatentFixed, BA81Estep> engine;
-					engine.ba81Estep1(&state->grp, state);
-				}
+				BA81Engine<typeof(state), BA81LatentFixed, BA81Estep> engine;
+				engine.ba81Estep1(&state->grp, state);
 			}
 		} else {
-			Free(state->expected);
+			state->grp.quad.releaseEstep();
 			refreshPatternLikelihood(state, oo->dynamicDataSource);
 		}
 		if (oo->dynamicDataSource && state->verbose >= 2) {
-			mxLog("%s: empirical distribution:", state->name);
+			mxLog("%s: empirical distribution mean and cov:", state->name);
 			omxPrint(state->estLatentMean, "mean");
 			omxPrint(state->estLatentCov, "cov");
 		}
 		if (state->verbose >= 1) {
 			const int numUnique = state->getNumUnique();
-			mxLog("%s: estep<%s, %s, %s> %d/%d rows excluded",
+			mxLog("%s: estep<%s, %s> %d/%d rows excluded",
 			      state->name,
-			      (quad.numSpecific == 0? "dense":"twotier"),
 			      (estep && oo->dynamicDataSource? "summary":"fixed"),
 			      (estep? "estep":"omitEstep"),
 			      state->grp.excludedPatterns, numUnique);
@@ -466,13 +304,11 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	if (!state->debugInternal) return;
 
 	ba81NormalQuad &quad = state->getQuad();
-	int maxAbilities = quad.maxAbilities;
+	int maxAbilities = quad.abilities();
 	const int numUnique = state->getNumUnique();
 
 	const double LogLargest = state->LogLargestDouble;
-	int totalOutcomes = state->totalOutcomes();
 	SEXP Rlik;
-	SEXP Rexpected;
 
 	if (state->grp.patternLik.size() != numUnique) {
 		refreshPatternLikelihood(state, oo->dynamicDataSource);
@@ -489,9 +325,11 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	MxRList dbg;
 	dbg.add("patternLikelihood", Rlik);
 
-	if (state->expected) {
-		Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.totalQuadPoints * totalOutcomes));
-		memcpy(REAL(Rexpected), state->expected, sizeof(double) * totalOutcomes * quad.totalQuadPoints);
+	if (quad.getEstepTableSize(0)) {
+		SEXP Rexpected;
+		Rf_protect(Rexpected = Rf_allocVector(REALSXP, quad.getEstepTableSize(0)));
+		Eigen::Map< Eigen::ArrayXd > box(REAL(Rexpected), quad.getEstepTableSize(0));
+		quad.exportEstepTable(0, box);
 		dbg.add("em.expected", Rexpected);
 	}
 
@@ -517,7 +355,6 @@ static void ba81Destroy(omxExpectation *oo) {
 	BA81Expect *state = (BA81Expect *) oo->argStruct;
 	omxFreeMatrix(state->estLatentMean);
 	omxFreeMatrix(state->estLatentCov);
-	Free(state->expected);
 	delete state;
 }
 
@@ -569,16 +406,20 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	// These two constants should be as identical as possible
 	state->name = oo->name;
-	state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
-	state->LargestDouble = exp(state->LogLargestDouble);
-	ba81NormalQuad &quad = state->getQuad();
-	quad.setOne(state->LargestDouble);
+	if (0) {
+		state->LogLargestDouble = 0.0;
+		state->LargestDouble = 1.0;
+	} else {
+		state->LogLargestDouble = log(std::numeric_limits<double>::max()) - 1;
+		state->LargestDouble = exp(state->LogLargestDouble);
+		ba81NormalQuad &quad = state->getQuad();
+		quad.setOne(state->LargestDouble);
+	}
 
 	state->expectedUsed = false;
 
 	state->estLatentMean = NULL;
 	state->estLatentCov = NULL;
-	state->expected = NULL;
 	state->type = EXPECTATION_OBSERVED;
 	state->itemParam = NULL;
 	state->EitemParam = NULL;
@@ -634,7 +475,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	// for algebra item param, will need to defer until later?
 	state->grp.learnMaxAbilities();
 
-	int maxAbilities = state->grp.maxAbilities;
+	int maxAbilities = state->grp.itemDims;
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("EstepItem")));
 	if (!Rf_isNull(tmp)) {
@@ -750,25 +591,20 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 			 state->_latentCovOut->name(), maxAbilities, maxAbilities);
 	}
 
-	state->grp.setLatentDistribution(maxAbilities,
-					 state->_latentMeanOut? state->_latentMeanOut->data : NULL,
+	state->grp.setLatentDistribution(state->_latentMeanOut? state->_latentMeanOut->data : NULL,
 					 state->_latentCovOut? state->_latentCovOut->data : NULL);
-	state->grp.detectTwoTier();
 
-	if (state->verbose >= 1 && state->grp.numSpecific) {
-		mxLog("%s: Two-tier structure detected; "
-		      "%d abilities reduced to %d dimensions",
-		      oo->name, maxAbilities, maxAbilities - state->grp.numSpecific + 1);
+	{
+		EigenArrayAdaptor Eparam(state->itemParam);
+		Eigen::Map< Eigen::VectorXd > meanVec(state->grp.mean, maxAbilities);
+		Eigen::Map< Eigen::MatrixXd > covMat(state->grp.cov, maxAbilities, maxAbilities);
+		state->grp.quad.setStructure(state->grp.qwidth, state->grp.qpoints,
+					     Eparam, meanVec, covMat);
 	}
-
-	// TODO: Items with zero loadings can be replaced with equivalent items
-	// with fewer factors. This would speed up calculation of derivatives.
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("minItemsPerScore")));
 	state->grp.setMinItemsPerScore(Rf_asInteger(tmp));
 	}
-
-	state->grp.sanityCheck();
 
 	state->grp.buildRowSkip();
 
@@ -794,8 +630,7 @@ const char *BA81Expect::getLatentIncompatible(BA81Expect *other)
 	// NOTE: grp.quad not initialized yet
 	// make method of ifaGroup ?
 	if (grp.itemOutcomes != other->grp.itemOutcomes) return "items";
-	if (grp.maxAbilities != other->grp.maxAbilities) return "number of factors";
-	if (grp.numSpecific != other->grp.numSpecific) return "number of specific factors";
+	if (grp.itemDims != other->grp.itemDims) return "number of factors";
 	if (grp.qpoints != other->grp.qpoints) return "qpoints";
 	if (grp.qwidth != other->grp.qwidth) return "qwidth";
 	return 0;
