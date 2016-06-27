@@ -200,7 +200,7 @@ memorytest:
 
 autodep:
 	@echo "WARNING: These dependencies are not exact because they don't consider #defined CPP macros."
-	cd src && gcc -MM *.cpp *.c | perl -pe 's,\S+/\S+,,' | perl -pe 's,^\s*\\\n,,' | perl -pe 's,:,: Makevars.in,' > autodep
+	cd src && gcc   -MM *.cpp *.c | perl -pe 's,\S*/R/include/\S*,,' | perl -pe 's,\S+/\S+,,' | perl -pe 's,^\s*\\\n,,' |perl -pe 's,:,: Makevars.in,' > autodep
 
 clean:
 	mkdir -p build

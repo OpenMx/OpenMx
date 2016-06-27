@@ -476,6 +476,12 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->grp.learnMaxAbilities();
 
 	int maxAbilities = state->grp.itemDims;
+	state->grp.setFactorNames(state->itemParam->rownames);
+
+	{
+		ProtectedSEXP tmp(R_do_slot(rObj, Rf_install(".detectIndependence")));
+		state->grp.detectIndependence = Rf_asLogical(tmp);
+	}
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("EstepItem")));
 	if (!Rf_isNull(tmp)) {

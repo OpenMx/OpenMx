@@ -28,7 +28,8 @@ setClass(Class = "MxExpectationBA81",
 	   dims = "character",
 	   verbose = "integer",
 	     minItemsPerScore = "integer",
-	     weightColumn = "MxCharOrNumber"),
+	     weightColumn = "MxCharOrNumber",
+	 .detectIndependence = "logical"),
          contains = "MxBaseExpectation")
 
 setMethod("initialize", "MxExpectationBA81",
@@ -48,6 +49,7 @@ setMethod("initialize", "MxExpectationBA81",
 	    .Object@debugInternal <- debugInternal
 	    .Object@minItemsPerScore <- minItemsPerScore
 	    .Object@weightColumn <- weightColumn
+	    .Object@.detectIndependence <- TRUE
             return(.Object)
           }
 )
