@@ -147,15 +147,100 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
+##' Used in conjuction with \link{mxFitFunctionML}, this expectation
+##' models ordinal data with a modest number of latent dimensions.
+##' Currently, only a multivariate Normal latent distribution is
+##' supported.  An equal-interval quadrature is used to integrate over
+##' the latent distribution.  When all items use the graded response
+##' model and items are assumed conditionally independent then item
+##' factor analysis is equivalent to a factor model.
+##' 
+##' The conditional likelihood of response \eqn{x_{ij}}{x[i,j]} to
+##' item \eqn{j} from person \eqn{i} with item parameters
+##' \eqn{\xi_j}{\xi[j]} and latent ability \eqn{\theta_i}{\theta[i]} is
+##'
+##' \deqn{L(x_i|\xi,\theta_i) = \prod_j \mathrm{Pr}(\mathrm{pick}=x_{ij} | \xi_j,\theta_i).}{%
+##' L(x[i]|\xi,\theta[i]) = \prod_j Pr(pick=x[i,j] | \xi[j],\theta[i]).}
+##'
+##' Items are assumed conditionally independent.
+##' That is, the outcome of one item is assumpted to not influence
+##' another item after controlling for \eqn{\xi} and \eqn{\theta_i}{\theta[i]}.
+##' The unconditional likelihood is obtained by integrating over
+##' the latent distribution \eqn{\theta_i}{\theta[i]},
+##'
+##' \deqn{L(x_i|\xi) = \int L(x_i|\xi, \theta_i) L(\theta_i) \mathrm{d}\theta_i.}{%
+##' L(x[i]|\xi) = \int L(x[i]|\xi, \theta[i]) L(\theta[i]) d \theta[i].}
+##'
+##' With an assumption that examinees are independently and identically distributed,
+##' we can sum the individual log likelihoods,
+##'
+##' \deqn{\mathcal{L}=\sum_i \log L(x_i | \xi).}{%
+##' L=\sum_i \log L(x[i] | \xi).}
+##'
+##' Response models \eqn{\mathrm{Pr}(\mathrm{pick}=x_{ij} |
+##' \xi_j,\theta_i)}{Pr(pick=x[i,j] | \xi[j],\theta[i])}
+##' are not implemented in OpenMx, but are imported
+##' from the \href{http://cran.r-project.org/package=rpf}{RPF}
+##' package. You must pass a list of models obtained from the RPF
+##' package in the `ItemSpec' argument. All item models must use the
+##' same number of latent factors although some of these factor
+##' loadings can be constrained to zero in the item parameter matrix.
+##' The `item' matrix contains item parameters with one item per
+##' column in the same order at ItemSpec.
+##'
+##' The `qpoints' and `qwidth' argument control the fineness and
+##' width, respectively, of the equal-interval quadrature grid.  The
+##' integer `qpoints' is the number of points per dimension. The
+##' quadrature extends from negative qwidth to positive qwidth for
+##' each dimension. Since the latent distribution defaults to standard
+##' Normal, qwidth can be regarded as a value in Z-score units.
+##'
+##' The optional `mean' and `cov' arguments permit modeling of the
+##' latent distribution in multigroup models (in a single group, the
+##' latent distribution must be fixed). A separate latent covariance
+##' model is used in combination with mxExpectationBA81. The point
+##' mass distribution contained in the quadrature is converted into a
+##' multivariate Normal distribution by
+##' \link{mxDataDynamic}. Typically \link{mxExpectationNormal} is used
+##' to fit a multivariate Normal model to these data. Some intricate
+##' programming is required.  Examples are given in the manual.
+##' mxExpectationBA81 uses a sample size of \eqn{N} for the covariance
+##' matrix. This differs from \link{mxExpectationNormal} which uses a
+##' sample size of \eqn{N-1}.
+##'
+##' The `verbose' argument enables diagnostics that are mainly of
+##' interest to developers.
+##'
 ##' When a two-tier covariance matrix is recognized, this expectation
 ##' automatically enables analytic dimension reduction (Cai, 2010).
 ##' 
-##' The standard Normal distribution of the quadrature acts like a
-##' prior distribution for difficulty. It is not necessary to impose
-##' any additional Bayesian prior on difficulty estimates (Baker &
-##' Kim, 2004, p. 196).
+##' The optional `weightColumn' argument names a column in
+##' \link{mxData} that contains the per-row weights. For data with
+##' many repeated response patterns, model evaluation time can be
+##' reduced. An easy way to transform your data into this form is to
+##' use \link[rpf]{compressDataFrame}.  By default, each row is given
+##' unit weight. Non-integer weights are supported except for
+##' \link[rpf]{EAPscores}.
 ##'
-##' TODO: Add note on the sample size of the covariance matrix.
+##' mxExpectationBA81 requires \link{mxComputeEM}. During a typical
+##' optimization run, latent abilities are assumed for examinees
+##' during the E-step.  These examinee scores are implied by the
+##' previous iteration's parameter vector. This can be overridden
+##' using the `EstepItem' argument.  This is mainly of use to
+##' developers for checking item parameter derivatives.
+##'
+##' Common univariate priors are available from
+##' \link[ifaTools]{univariatePrior}.  The standard Normal
+##' distribution of the quadrature acts like a prior distribution for
+##' difficulty. It is not necessary to impose any additional Bayesian
+##' prior on difficulty estimates (Baker & Kim, 2004, p. 196).
+##'
+##' Many estimators are available for standard errors. Oakes is
+##' recommended (see \link{mxComputeEM}).  Also available are
+##' Supplement EM (\link{mxComputeEM}), Richardson extrapolation
+##' (\link{mxComputeNumericDeriv}), likelihood-based confidence
+##' intervals (\link{mxCI}), and the covariance of the rowwise
+##' gradients.
 ##'
 ##' @aliases MxExpectationBA81-class show,MxExpectationBA81-method print,MxExpectationBA81-method
 ##' @param ItemSpec a single item model (to replicate) or a list of

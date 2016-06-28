@@ -910,8 +910,8 @@ setMethod("initialize", "MxComputeEM",
 ##' missing data to create a completed data model.
 ##'
 ##' The EM algorithm does not produce a parameter covariance matrix
-##' for standard errors. S-EM, an implementation of Meng & Rubin
-##' (1991), is included.
+##' for standard errors. The Oakes (1999) direct method and S-EM, an
+##' implementation of Meng & Rubin (1991), are included.
 ##'
 ##' Ramsay (1975) was recommended in Bock, Gibbons, & Muraki (1988).
 ##'
@@ -942,6 +942,10 @@ setMethod("initialize", "MxComputeEM",
 ##' Meng, X.-L. & Rubin, D. B. (1991). Using EM to obtain asymptotic variance-covariance
 ##' matrices: The SEM algorithm. \emph{Journal of the American Statistical Association,
 ##' 86} (416), 899-909.
+##'
+##' Oakes, D. (1999). Direct calculation of the information matrix via
+##' the EM algorithm.  \emph{Journal of the Royal Statistical Society:
+##' Series B (Statistical Methodology), 61}(2), 479-482.
 ##' 
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40} (3), 337-360.
