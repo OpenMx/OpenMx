@@ -25,7 +25,6 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 	int *numIdenticalContinuousMissingness,
 	int *numIdenticalOrdinalMissingness, 
 	int *numIdenticalContinuousRows,
-	int *numIdenticalOrdinalRows,
 	omxData *data, int numDefs, int numIdentical) {
 
 	int rowVal = *row;
@@ -38,15 +37,12 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 		omxDataNumIdenticalOrdinalMissingness(data, rowVal);
 	if(*numIdenticalContinuousRows <= 0) *numIdenticalContinuousRows = 
 		omxDataNumIdenticalContinuousRows(data, rowVal);
-	if(*numIdenticalOrdinalRows <= 0) *numIdenticalOrdinalRows = 
-		omxDataNumIdenticalOrdinalRows(data, rowVal);
 
 	*row += numIdentical;
 	*numIdenticalDefs -= numIdentical;
 	*numIdenticalContinuousMissingness -= numIdentical;
 	*numIdenticalContinuousRows -= numIdentical;
 	*numIdenticalOrdinalMissingness -= numIdentical;
-	*numIdenticalOrdinalRows -= numIdentical;
 }
 
 
@@ -78,7 +74,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	double Q = 0.0;
 	int returnRowLikelihoods = 0;
-	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0, numIdenticalOrdinalRows = 0,
+	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0,
 		numIdenticalContinuousMissingness = 0, numIdenticalContinuousRows = 0;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
@@ -148,10 +144,10 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 		omxDataRow(data, row, dataColumns, smallRow);                               // Populate data row
 		
 		if(OMX_DEBUG_ROWS(row)) {
-			mxLog("Identicality check. Is %sfirst row of data. Total: %d rows identical, %d identical definition vars, %d identical missingness patterns. Continuous: %d rows, %d missingness patterns; Ordinal: %d rows, %d missingness patterns.", 
+			mxLog("Identicality check. Is %sfirst row of data. Total: %d rows identical, %d identical definition vars, %d identical missingness patterns. Continuous: %d rows, %d missingness patterns; Ordinal: %d missingness patterns.", 
 			(firstRow?"":"not "), numIdentical, numIdenticalDefs, omxDataNumIdenticalRows(data, row), 
 			numIdenticalContinuousRows, numIdenticalContinuousMissingness, 
-			numIdenticalOrdinalRows, numIdenticalOrdinalMissingness);
+			      numIdenticalOrdinalMissingness);
 		}
 		if(!strcmp(expectation->expType, "MxExpectationStateSpace")) {
 			omxSetExpectationComponent(expectation, localobj, "y", smallRow);
@@ -241,7 +237,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				&numIdenticalContinuousMissingness,
 				&numIdenticalOrdinalMissingness, 
 				&numIdenticalContinuousRows,
-				&numIdenticalOrdinalRows,
 				data, numDefs, numIdentical);
 				continue;
 			}
@@ -269,7 +264,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				// All continuous missingness.  Populate some stuff.
 				Q = 0.0;
 				determinant = 0.0;
-				if(numIdenticalDefs <= 0 || numIdenticalOrdinalRows <= 0 || firstRow) {
+				if(numIdenticalDefs <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
 					// Recalculate Ordinal covariance matrix
 					omxCopyMatrix(ordCov, cov);
 					omxRemoveRowsAndColumns(ordCov, ordRemove.data(), ordRemove.data());
@@ -352,7 +347,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 							&numIdenticalContinuousMissingness,
 							&numIdenticalOrdinalMissingness, 
 							&numIdenticalContinuousRows,
-							&numIdenticalOrdinalRows,
 							data, numDefs, numIdentical);
 							continue;
 						}
@@ -383,7 +377,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 						&numIdenticalContinuousMissingness,
 						&numIdenticalOrdinalMissingness, 
 						&numIdenticalContinuousRows,
-						&numIdenticalOrdinalRows,
 						data, numDefs, numIdentical);
 						continue;
 					}
@@ -492,7 +485,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					&numIdenticalContinuousMissingness,
 					&numIdenticalOrdinalMissingness, 
 					&numIdenticalContinuousRows,
-					&numIdenticalOrdinalRows,
 					data, numDefs, numIdentical);
 					continue;
 				}
@@ -533,7 +525,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			&numIdenticalContinuousMissingness,
 			&numIdenticalOrdinalMissingness, 
 			&numIdenticalContinuousRows,
-			&numIdenticalOrdinalRows,
 			data, numDefs, numIdentical);
 			continue;
 			
