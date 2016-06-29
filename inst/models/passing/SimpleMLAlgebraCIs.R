@@ -30,7 +30,11 @@ factorSummCI <- summary(factorFitCI)
 ( ci <- factorFitCI$output$confidenceIntervals )
 #cat(deparse(round(ci[,'lbound'], 4)))
 omxCheckCloseEnough(ci[,'estimate'], c(0.4455, 0.54, 0.6115, 0.7302, 0.8186), 1e-3)
-omxCheckCloseEnough(ci[,'lbound'], c(0.4174, 0.5082, 0.5755, 0.6872, 0.7704), 3e-2)
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+	omxCheckCloseEnough(ci[,'lbound'], c(0.4174, 0.5082, 0.5755, 0.6872, 0.7704), 3e-2)
+} else {
+	omxCheckCloseEnough(ci[,'lbound'], c(0.4174, 0.5082, 0.5755, 0.6872, 0.7704), 2e-2)
+}
 if (mxOption(NULL, "Default optimizer") != "NPSOL") {
   omxCheckCloseEnough(ci[,'ubound'], c(0.4747, 0.5754, 0.6516, 0.7781, 0.8723), 4e-2)
 }

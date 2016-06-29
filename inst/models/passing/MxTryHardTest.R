@@ -1,5 +1,10 @@
 require(OpenMx)
 
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+	# Currently takes much too long
+	stop("SKIP")
+}
+
 if (mxOption(NULL, "Default optimizer") == "SLSQP") {
 	mxOption(NULL, "Optimality tolerance", "6e-10")
 }
