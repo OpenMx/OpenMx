@@ -167,6 +167,7 @@ otherOptions <- list(
 	"UsePPML" = "No",
 	"Allow Unlabeled" = FALSE,
     "loglikelihoodScale" = -2.0,
+    "maxOrdinalPerBlock" = 20,
     "mvnMaxPointsA" = 0,
     "mvnMaxPointsB" = 0,
     "mvnMaxPointsC" = 5000,

@@ -63,8 +63,29 @@ namespace UndirectedGraph {
 		void log()
 		{
 			if (!verbose) return;
+			mxLog("subgraph count = %d", subgraphs);
 			Eigen::Map< Eigen::VectorXi > regionMap(region.data(), region.size());
 			mxPrintMat("region", regionMap);
+			for (int cx=0; cx < (int) connected.size(); ++cx) {
+				if (!connected[cx].size()) continue;
+				std::set<int> &as1set = connected[cx];
+				std::string str = string_snprintf("group %d:", cx);
+				for (std::set<int>::iterator it2 = as1set.begin(); it2 != as1set.end(); ++it2) {
+					str += string_snprintf(" %d", *it2);
+				}
+				str += "\n";
+				mxLogBig(str);
+			}
+		}
+
+		int getSizeIfConnected(int ax, int bx)
+		{
+			if (region[ax] == -1 && region[bx] == -1) return 2;
+			if (region[ax] == region[bx]) return connected[ region[ax] ].size();
+			if (region[ax] == -1) return connected[ region[bx] ].size() + 1;
+			if (region[bx] == -1) return connected[ region[ax] ].size() + 1;
+			return (connected[ region[ax] ].size() +
+				connected[ region[bx] ].size());
 		}
 
 		void connect(int ax, int bx)
@@ -73,6 +94,7 @@ namespace UndirectedGraph {
 			if (region[ax] == -1) preconnect(ax);
 			if (region[ax] == region[bx]) return; //already connected
 			subgraphs -= 1;
+			//if (subgraphs < 1) Rf_error("problem");
 			if (region[bx] == -1) {
 				region[bx] = region[ax];
 				connected[ region[ax] ].insert(bx);
@@ -80,24 +102,27 @@ namespace UndirectedGraph {
 					mxLog("add %d to region %d", bx, region[ax]);
 				}
 			} else {
-				if (region[bx] > region[ax]) std::swap(region[bx], region[ax]);
+				int rax = region[ax];
+				int rbx = region[bx];
+				if (rbx > rax) std::swap(rbx, rax);
 				// as1 > as2
-				if (region[bx] != region[ax]) {
+				if (rbx != rax) {
+					// merge to as2
 					if (verbose) {
 						mxLog("merge region %d (%d elem) to region %d (%d elem)",
-						      region[ax], (int)connected[region[ax]].size(),
-						      region[bx], (int)connected[region[bx]].size());
+						      rax, (int)connected[rax].size(),
+						      rbx, (int)connected[rbx].size());
 					}
-					// merge to as2
-					std::set<int> &as1set = connected[region[ax]];
-					std::set<int> &as2set = connected[region[bx]];
+					std::set<int> &as1set = connected[rax];
+					std::set<int> &as2set = connected[rbx];
 					for (std::set<int>::iterator it2 = as1set.begin(); it2 != as1set.end(); ++it2) {
-						region[*it2] = region[bx];
+						region[*it2] = rbx;
 						as2set.insert(*it2);
 					}
 					as1set.clear();
 				}
 			}
+			if (verbose) log();
 		}
 
 		int numSubgraphs() const { return subgraphs; }

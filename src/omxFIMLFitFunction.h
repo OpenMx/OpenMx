@@ -56,11 +56,6 @@ typedef struct omxFIMLFitFunction {
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
 		
-	/* Structures for FIMLOrdinalFitFunction Objects */
-	omxMatrix* cor;				// To calculate correlation matrix from covariance
-	Eigen::VectorXd weights;			// Covariance weights to shift parameter estimates
-	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
-	
 	OrdinalLikelihood ol;
 
 	/* Structures for JointFIMLFitFunction */
@@ -72,11 +67,6 @@ typedef struct omxFIMLFitFunction {
     omxMatrix* reduceCov;       // Memory reserved for computations
     
 	/* Argument space for SADMVN function */
-	double* lThresh;			// Specific list of lower thresholds
-	double* uThresh;			// Specific list of upper thresholds
-	Eigen::VectorXd corList;			// SADMVN-specific list of correlations
-	double* smallCor;			// Reduced SADMVN-specific list of correlations
-	int* Infin;					// Which thresholds to use
 	int maxPts;					// From MxOptions (?)
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions

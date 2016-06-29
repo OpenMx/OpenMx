@@ -129,6 +129,8 @@ RAM Max Depth            \tab \var{i}    \tab the maximum depth to be used when 
 Multivariate normal integration parameters
 
 \tabular{rcl}{
+maxOrdinalPerBlock \tab \var{i} \tab maximum number of ordinal variables
+to evaluate together \cr
 mvnMaxPointsA \tab \var{i} \tab base number of integration points \cr
 mvnMaxPointsB \tab \var{i} \tab number of integration points per row \cr
 mvnMaxPointsC \tab \var{i} \tab number of integration points per rows^2 \cr

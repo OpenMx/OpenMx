@@ -221,6 +221,7 @@ class omxGlobal {
 	bool intervals;
 	double gradientTolerance;
 
+	int maxOrdinalPerBlock;
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;

@@ -19,6 +19,7 @@
 #define _OMXSADMVNWRAPPER_H
 
 #include "omxData.h"
+#include "Connectedness.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -33,6 +34,8 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 
 void omxSadmvnWrapper(int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
+
+using namespace UndirectedGraph;
 
 class OrdinalLikelihood {
  private:
@@ -61,12 +64,14 @@ class OrdinalLikelihood {
 			corList.resize(triangleLoc1(varMap.size() - 1));
 			for(int rx = 1, dr=0; rx < corIn.rows(); rx++) {
 				if (!varMask[rx]) continue;
+				bool any=false;
 				for(int cx = 0, dc=0; cx < rx; cx++) {
 					if (!varMask[cx]) continue;
 					corList[triangleLoc1(dr) + dc] = corIn(rx, cx);
 					dc += 1;
+					any = true;
 				}
-				dr += 1;
+				if (any) dr += 1;
 			}
 		}
 
@@ -98,8 +103,6 @@ class OrdinalLikelihood {
 
 	OrdinalLikelihood()
 	{
-		blocks.resize(1);
-		blocks[0].ol = this;
 		dataColumns = 0;
 		data = 0;
 		thresholdMat = 0;
@@ -115,10 +118,18 @@ class OrdinalLikelihood {
 		this->colInfoPtr = &colInfo;
 	};
 
+	struct CorCmp {
+		Eigen::MatrixXd &cor;
+		CorCmp(Eigen::MatrixXd *cor) : cor(*cor) {};
+		bool operator()(int i, int j) { return fabs(cor.data()[i]) > fabs(cor.data()[j]); };
+	};
+
 	template <typename T1>
 	void setCovariance(Eigen::MatrixBase<T1> &cov, FitContext *fc)
 	{
 		stddev = cov.diagonal().array().sqrt();
+
+		std::vector<int> cells;
 		cor.resize(cov.rows(), cov.cols());
 		for(int i = 1; i < cov.rows(); i++) {
 			for(int j = 0; j < i; j++) {
@@ -132,13 +143,46 @@ class OrdinalLikelihood {
 					}
 				}
 				cor(i,j) = val;
+				cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
 			}
 		}
 
-		// analyze covariances and split into blocks TODO
-		std::vector<bool> &mask = blocks[0].varMask;
-		mask.assign(cov.cols(), true);
-		blocks[0].setCorrelation(cor);
+		std::sort(cells.begin(), cells.end(), CorCmp(&cor));
+		//Eigen::VectorXd ec(cells.size());
+		//for (int ex=0; ex < ec.size(); ex++) ec[ex] = cor.data()[cells[ex]];
+		//mxPrintMat("ec", ec);
+
+		std::vector<int> region;
+		Connectedness::SubgraphType subgraph;
+		Connectedness cc(region, subgraph, stddev.size(), false);
+		for (int cx=0; cx < (int)cells.size(); ++cx) {
+			int offset = cells[cx];
+			int col = offset / cor.rows();
+			int row = offset % cor.rows();
+			if (cc.getSizeIfConnected(row, col) <= Global->maxOrdinalPerBlock) {
+				cc.connect(row, col);
+			}
+		}
+
+		//mxLog("split %d vars into %d blocks", stddev.size(), cc.numSubgraphs());
+		blocks.clear();
+		blocks.resize(cc.numSubgraphs());
+		int bx = 0;
+		for (int rx=0; rx < (int)region.size(); ++rx) {
+			std::set<int> members;
+			if (region[rx] == -1) members.insert(rx);
+			else std::swap(members, subgraph[ region[rx] ]);
+			if (0 == members.size()) continue;
+
+			blocks[bx].ol = this;
+			std::vector<bool> &mask = blocks[bx].varMask;
+			mask.assign(cov.cols(), false);
+			for (std::set<int>::iterator it=members.begin(); it!=members.end(); ++it) {
+				mask[*it] = true;
+			}
+			blocks[bx].setCorrelation(cor);
+			bx += 1;
+		}
 	}
 
 	template <typename T1>
@@ -163,28 +207,29 @@ class OrdinalLikelihood {
 template <typename T1>
 double OrdinalLikelihood::block::likelihood(int row, Eigen::ArrayBase<T1> &ordIndices)
 {
-	// varMask TODO
 	std::vector< omxThresholdColumn > &colInfo = *ol->colInfoPtr;
 	EigenMatrixAdaptor tMat(ol->thresholdMat);
-	for (int ox=0; ox < ordIndices.size(); ++ox) {
+	for (int ox=0, vx=0; ox < ordIndices.size(); ++ox) {
+		if (!varMask[ox]) continue;
 		int j = ordIndices[ox];
 		int var = omxVectorElement(ol->dataColumns, j);
 		int pick = omxIntDataElement(ol->data, row, var) - 1;
 		double sd = ol->stddev[ox];
 		int tcol = colInfo[j].column;
 		if (pick == 0) {
-			lThresh[ox] = NA_REAL;
-			uThresh[ox] = (tMat(pick, tcol) - mean[ox]) / sd;
-			Infin[ox] = 0;
+			lThresh[vx] = NA_REAL;
+			uThresh[vx] = (tMat(pick, tcol) - mean[vx]) / sd;
+			Infin[vx] = 0;
 		} else if (pick == colInfo[j].numThresholds) {
-			lThresh[ox] = (tMat(pick-1, tcol) - mean[ox]) / sd;
-			uThresh[ox] = NA_REAL;
-			Infin[ox] = 1;
+			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
+			uThresh[vx] = NA_REAL;
+			Infin[vx] = 1;
 		} else {
-			lThresh[ox] = (tMat(pick-1, tcol) - mean[ox]) / sd;
-			uThresh[ox] = (tMat(pick, tcol) - mean[ox]) / sd;
-			Infin[ox] = 2;
+			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
+			uThresh[vx] = (tMat(pick, tcol) - mean[vx]) / sd;
+			Infin[vx] = 2;
 		}
+		vx += 1;
 	}
 	int inform;
 	double ordLik;
