@@ -19,6 +19,7 @@
 #define _OMXFIMLFITFUNCTION_H_
 
 #include "omxFitFunction.h"
+#include "omxSadmvnWrapper.h"
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
@@ -60,9 +61,10 @@ typedef struct omxFIMLFitFunction {
 	Eigen::VectorXd weights;			// Covariance weights to shift parameter estimates
 	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
 	
+	OrdinalLikelihood ol;
+
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
-	omxMatrix* ordRow;		    // Memory reserved for ordinal data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
 	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    
     omxMatrix* ordContCov;      // Memory reserved for ordinal/continuous covariance

@@ -27,7 +27,6 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	omxFreeMatrix(argStruct->smallMeans);
 	omxFreeMatrix(argStruct->ordMeans);
 	omxFreeMatrix(argStruct->contRow);
-	omxFreeMatrix(argStruct->ordRow);
 	omxFreeMatrix(argStruct->ordCov);
 	omxFreeMatrix(argStruct->ordContCov);
 	omxFreeMatrix(argStruct->halfCov);
@@ -224,7 +223,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     newObj->smallMeans = NULL;
     newObj->ordMeans   = NULL;
     newObj->contRow    = NULL;
-    newObj->ordRow     = NULL;
     newObj->ordCov     = NULL;
     newObj->ordContCov = NULL;
     newObj->halfCov    = NULL;
@@ -290,8 +288,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
     omxCopyMatrix(newObj->contRow, newObj->smallRow );
     newObj->ordCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
     omxCopyMatrix(newObj->ordCov, newObj->cov);
-    newObj->ordRow = omxInitMatrix(covCols, 1, TRUE, off->matrix->currentState);
-    omxCopyMatrix(newObj->ordRow, newObj->smallRow );
     newObj->Infin = (int*) R_alloc(covCols, sizeof(int));
 
     off->argStruct = (void*)newObj;

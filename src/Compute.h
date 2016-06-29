@@ -408,7 +408,7 @@ void omxStandardizeCovMatrix(Eigen::MatrixBase<T1> &cov, Eigen::MatrixBase<T2> &
 					cov(0, 0) = NA_REAL;  // Signal disaster
 				}
 			}
-			corList[((i*(i-1))/2) + j] = val;
+			corList[triangleLoc1(i-1) + j] = val;
 		}
 	}
 }

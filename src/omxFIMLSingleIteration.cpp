@@ -19,7 +19,6 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
-#include "omxSadmvnWrapper.h"
 
 
 void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs, 
@@ -84,11 +83,9 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
 	omxMatrix *rowLikelihoods, *rowLogLikelihoods;
-	omxMatrix *ordMeans, *ordCov, *ordRow, *contRow;
+	omxMatrix *ordMeans, *ordCov, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxData* data;
-	double *lThresh, *uThresh;
-	int *Infin;
 	
 	// Locals, for readability.  Compiler should cut through this.
 	cov 		= ofo->cov;
@@ -98,7 +95,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	smallMeans	= ofo->smallMeans;
 	ordMeans    = ofo->ordMeans;
 	ordCov      = ofo->ordCov;
-	ordRow      = ofo->ordRow;
 	contRow     = ofo->contRow;
 	halfCov     = ofo->halfCov;
 	reduceCov   = ofo->reduceCov;
@@ -109,16 +105,17 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	dataColumns	= ofo->dataColumns;
 	int numDefs = data->defVars.size();
 	
-	lThresh		= ofo->lThresh;
-	uThresh		= ofo->uThresh;
 	returnRowLikelihoods = ofo->returnRowLikelihoods;
 	rowLikelihoods = shared_ofo->rowLikelihoods;		// write-only
 	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 	
-	Infin			= ofo->Infin;
 	omxExpectation* expectation = localobj->expectation;
 	omxMatrix *thresholdsMat = expectation->thresholdsMat;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
+
+	OrdinalLikelihood &ol = ofo->ol;
+	ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
+	Eigen::ArrayXi ordBuffer(dataColumns->cols);
 	
 	Eigen::VectorXi ordRemove(cov->cols);
 	Eigen::VectorXi contRemove(cov->cols);
@@ -128,7 +125,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	double oned = 1.0, zerod = 0.0, minusoned = -1.0;
 	int onei = 1;
 	double likelihood;
-	int inform;
 	
 	bool firstRow = true;
 	int row = rowbegin;
@@ -188,7 +184,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				if(std::isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
 					ordRemove[j] = 1;
 					contRemove[j] = 1;
-					Infin[j] = -1;
 					if(OMX_DEBUG_ROWS(row)) { 
 						mxLog("Row %d, column %d, value %d.  NA.", row, j, value);
 					}
@@ -278,15 +273,16 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 					// Recalculate Ordinal covariance matrix
 					omxCopyMatrix(ordCov, cov);
 					omxRemoveRowsAndColumns(ordCov, ordRemove.data(), ordRemove.data());
+
+					EigenMatrixAdaptor EordCov(ordCov);
+					ol.setCovariance(EordCov, fc);
 					
 					// Recalculate ordinal fs
 					omxCopyMatrix(ordMeans, means);
 					omxRemoveElements(ordMeans, ordRemove.data()); 	    // Reduce the row to just ordinal.
 					
-					// These values pass through directly without modification by continuous variables
-					
-					// Calculate correlation matrix, correlation list, and weights from covariance
-					omxStandardizeCovMatrix(ordCov, ofo->corList, ofo->weights, fc);
+					EigenVectorAdaptor EordMeans(ordMeans);
+					ol.setMean(EordMeans);
 				}
 			} 
 			else if( numIdenticalDefs <= 0 || numIdenticalContinuousRows <= 0 || firstRow || ofo->isStateSpace) {
@@ -403,7 +399,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
 				Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
 				
-				if(numOrdinal > 0) {
+				if(numOrdinal > 0) { // also check numIdenticalDefs?
 					
 					// Precalculate Ordinal things that change with continuous changes
 					// Reserve: 1) Inverse continuous covariance (smallCov)
@@ -454,13 +450,16 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 						// FIXME: This assumes that ordCov and reducCov have the same row/column majority.
 						int vlen = reduceCov->rows * reduceCov->cols;
 						F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov) %*% cont/ord
-						
+						EigenMatrixAdaptor EordCov(ordCov);
+						ol.setCovariance(EordCov, fc);
 					}
 					
 					// Projected means must be recalculated if the continuous variables change at all.
 					omxCopyMatrix(ordMeans, means);
 					omxRemoveElements(ordMeans, ordRemove.data()); 	    // Reduce the row to just ordinal.
 					F77_CALL(dgemv)((smallCov->minority), &(halfCov->rows), &(halfCov->cols), &oned, halfCov->data, &(halfCov->leading), contRow->data, &onei, &oned, ordMeans->data, &onei);                      // ordMeans += halfCov %*% contRow
+					EigenVectorAdaptor EordMeans(ordMeans);
+					ol.setMean(EordMeans);
 				}
 				
 			} // End of continuous likelihood values calculation
@@ -469,78 +468,22 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			likelihood = 1;
 			} 
 			else {  
-				// There are ordinal vars, and not everything is identical, so we're recalculating
-				// Calculate correlation matrix, correlation list, and weights from covariance
-				if(numIdenticalDefs <=0 || numIdenticalContinuousMissingness <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
-					// if(OMX_DEBUG_ROWS(row)) {omxPrint(ordCov, "Ordinal cov matrix for standardization."); } //:::DEBUG:::
-					omxStandardizeCovMatrix(ordCov, ofo->corList, ofo->weights, fc);
-				}
-				
-				omxCopyMatrix(ordRow, smallRow);
-				omxRemoveElements(ordRow, ordRemove.data()); 	    // Reduce the row to just ordinal.
-				
-				// omxPrint(ordMeans, "Ordinal Projected Means"); //:::DEBUG:::
-				// omxPrint(ordRow, "Filtered Ordinal Row"); //:::DEBUG:::
-				
-				
-				// Inspect elements, reweight, and set to 
-				int count = 0;
+				int ox=0;
 				for(int j = 0; j < dataColumns->cols; j++) {
 					if(ordRemove[j]) continue;         // NA or non-ordinal
-					int var = omxVectorElement(dataColumns, j);
-					int value = omxIntDataElement(data, row, var); //  TODO: Compare with extraction from dataRow.
-					// mxLog("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
-					value--;		// Correct for C indexing: value is now the index of the upper bound.
-					// mxLog("Row %d, Column %d, value %d+1\n", row, j, value); // :::DEBUG:::
-					double offset;
-					if(means == NULL) offset = 0;
-					else offset = omxVectorElement(ordMeans, count);
-					double weight = ofo->weights[count];
-					if(value == 0) { 									// Lowest threshold = -Inf
-					lThresh[count] = (omxMatrixElement(thresholdsMat, 0, thresholdCols[j].column) - offset) / weight;
-					uThresh[count] = lThresh[count];
-					Infin[count] = 0;
-					} 
-					else {
-						lThresh[count] = (omxMatrixElement(thresholdsMat, value-1, thresholdCols[j].column) - offset) / weight;
-						if(thresholdCols[j].numThresholds > value) {	// Highest threshold = Inf
-						double tmp = (omxMatrixElement(thresholdsMat, value, thresholdCols[j].column) - offset) / weight;
-						uThresh[count] = tmp;
-						Infin[count] = 2;
-						} 
-						else {
-							uThresh[count] = NA_INTEGER; // NA is a special to indicate +Inf
-							Infin[count] = 1;
-						}
-					}
-					
-					if(uThresh[count] == NA_INTEGER || std::isnan(uThresh[count])) { // for matrix-style specification.
-					uThresh[count] = lThresh[count];
-					Infin[count] = 1;
-					}
-					if(OMX_DEBUG) { 
-						mxLog("Row %d, column %d.  Thresholds for data column %d and threshold column %d are %f -> %f. (Infin=%d).  Offset is %f and weight is %f",
-						row, count, j, value, lThresh[count], uThresh[count], Infin[count], offset, weight);
-						if (0) {
-							// This diagnostic triggers an omxMatrixElement by models/passing/JointFIMLTest.R
-							mxLog("       Thresholds were %f -> %f, scaled by weight %f and shifted by mean %f and total offset %f.",
-							omxMatrixElement(thresholdsMat, (Infin[count]==0?0:value-1), thresholdCols[j].column), 
-							omxMatrixElement(thresholdsMat, (Infin[count]==1?value-1:value), thresholdCols[j].column), 
-							weight, (means==NULL?0:omxVectorElement(ordMeans, count)), offset);
-						}
-					}
-					count++;
+					ordBuffer[ox] = j;
+					ox += 1;
 				}
 				
-				omxSadmvnWrapper(ordCov->rows, ofo->corList.data(), lThresh, uThresh, Infin, &likelihood, &inform);
-				
-				if(inform == 2) {
+				Eigen::Map< Eigen::ArrayXi > ordRow(ordBuffer.data(), ox);
+				likelihood = ol.likelihood(row, ordRow);
+
+				if (likelihood == 0.0) {
 					if(!returnRowLikelihoods) {
 						if (fc) fc->recordIterationError("Improper value detected by integration routine in data row %d: Most likely the maximum number of ordinal variables (20) has been exceeded.  \n Also check that expected covariance matrix is not positive-definite", omxDataIndex(data, row));
 						return TRUE;
 					}
 					for(int nid = 0; nid < numIdentical; nid++) {
-						if (returnRowLikelihoods)
 						omxSetMatrixElement(sharedobj->matrix, omxDataIndex(data, row+nid), 0, 0.0);
 						omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, row+nid), 0, 0.0);
 					}
