@@ -48,6 +48,7 @@ class ba81NormalQuad {
 	int gridSize;
 	std::vector<double> Qpoint;           // gridSize
 
+	// Currently, there is always only one layer.
 	class layer {
 	private:
 		template <typename T1, typename T2, typename T3, typename T4>
