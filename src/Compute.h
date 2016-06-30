@@ -387,38 +387,4 @@ void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 	mxLogBig(buf);
 }
 
-template <typename T1, typename T2, typename T3>
-void omxStandardizeCovMatrix(Eigen::MatrixBase<T1> &cov, Eigen::MatrixBase<T2> &corList,
-			     Eigen::MatrixBase<T3> &stddev, FitContext *fc)
-{
-	int rows = cov.rows();
-
-	corList.derived().resize(triangleLoc1(rows));
-
-	stddev.derived() = cov.diagonal().array().sqrt();
-
-	for(int i = 1; i < rows; i++) {
-		for(int j = 0; j < i; j++) {
-			double val = cov(i, j) / (stddev[i] * stddev[j]);
-			if (fabs(val) > 1.0) {
-				if (fc) {
-					fc->recordIterationError("Found correlation with absolute value"
-								 " greater than 1 (r=%.2f)", val);
-				} else {
-					cov(0, 0) = NA_REAL;  // Signal disaster
-				}
-			}
-			corList[triangleLoc1(i-1) + j] = val;
-		}
-	}
-}
-
-template <typename T2, typename T3>
-void omxStandardizeCovMatrix(omxMatrix *cov, Eigen::MatrixBase<T2> &corList,
-			     Eigen::MatrixBase<T3> &stddev, FitContext *fc)
-{
-	EigenMatrixAdaptor eCov(cov);
-	omxStandardizeCovMatrix(eCov, corList, stddev, fc);
-}
-
 #endif

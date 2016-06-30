@@ -73,6 +73,7 @@ class OrdinalLikelihood {
 				}
 				if (any) dr += 1;
 			}
+			//mxPrintMat("curList", corList);
 		}
 
 		template <typename T1>
@@ -87,6 +88,8 @@ class OrdinalLikelihood {
 
 		template <typename T1>
 		double likelihood(int row, Eigen::ArrayBase<T1> &ordIndices);
+		template <typename T1, typename T2>
+		double likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound);
 	};
 
 	Eigen::ArrayXd stddev;
@@ -139,11 +142,15 @@ class OrdinalLikelihood {
 						fc->recordIterationError("Found correlation with absolute value"
 									 " greater than 1 (r=%.2f)", val);
 					} else {
-						val = NA_REAL;  // Signal disaster
+						// Signal disaster
+						cov(0,0) = NA_REAL;
+						val = NA_REAL;
 					}
 				}
 				cor(i,j) = val;
-				cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
+				if (val != 0.0) {
+					cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
+				}
 			}
 		}
 
@@ -202,7 +209,48 @@ class OrdinalLikelihood {
 		}
 		return lk;
 	};
+
+	template <typename T1, typename T2>
+	double likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound)
+	{
+		double lk = 1.0;
+		for (int bx=0; bx < int(blocks.size()); ++bx) {
+			double l1 = blocks[bx].likelihood(lbound, ubound);
+			//mxLog("%g %g", lk, l1);
+			lk *= l1;
+		}
+		return lk;
+	};
 };
+
+template <typename T1, typename T2>
+double OrdinalLikelihood::block::likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound)
+{
+	for (int ox=0, vx=0; ox < (int)varMask.size(); ++ox) {
+		if (!varMask[ox]) continue;
+		double sd = ol->stddev[ox];
+		uThresh[vx] = (ubound[ox] - mean[vx]) / sd;
+		lThresh[vx] = (lbound[ox] - mean[vx]) / sd;
+		Infin[vx] = 2;
+		if (!R_finite(lThresh[vx])) {
+			Infin[vx] -= 2;
+		}
+		if (!R_finite(uThresh[vx])) {
+			Infin[vx] -= 1;
+		}
+		vx += 1;
+	}
+	int inform;
+	double ordLik;
+	omxSadmvnWrapper(mean.size(), corList.data(),
+			 lThresh.data(), uThresh.data(),
+			 Infin.data(), &ordLik, &inform);
+	// if inform == 1, retry? TODO
+	if (inform == 2) {
+		return 0.0;
+	}
+	return ordLik;
+}
 
 template <typename T1>
 double OrdinalLikelihood::block::likelihood(int row, Eigen::ArrayBase<T1> &ordIndices)

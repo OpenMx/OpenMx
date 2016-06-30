@@ -202,7 +202,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->isStateSpace = strEQ(expectation->expType, "MxExpectationStateSpace");
 
-	int numOrdinal = 0, numContinuous = 0;
+	int numOrdinal = 0;
 
 	omxMatrix *cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
@@ -257,7 +257,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Accessing Threshold matrix.");
 	}
 	numOrdinal = off->expectation->numOrdinal;
-	numContinuous = newObj->dataColumns->cols - numOrdinal;
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
 	

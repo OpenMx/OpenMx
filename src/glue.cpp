@@ -203,6 +203,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->parallelDiag);
 			} else if(matchCaseInsensitive(nextOptionName, "maxOrdinalPerBlock")) {
 				Global->maxOrdinalPerBlock = atoi(nextOptionValue);
+				if (Global->maxOrdinalPerBlock < 1) Rf_error("maxOrdinalPerBlock must be strictly positive");
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsA")) {
 				Global->maxptsa = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsB")) {
