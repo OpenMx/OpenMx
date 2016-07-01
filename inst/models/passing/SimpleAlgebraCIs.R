@@ -52,11 +52,7 @@ omxCheckCloseEnough(ci[,'estimate'], c(0.4456, 0.5401, 0.6116, 0.7302, 0.8187), 
 lbound <- c(0.406, 0.485, 0.553, 0.6872, 0.769)
 ubound <- c(0.4747, 0.5754, 0.6516, 0.778, 0.8723)
 
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-	omxCheckCloseEnough(ci[,'lbound'], lbound, .06)
-} else {
-	omxCheckCloseEnough(ci[,'lbound'], lbound, .03)
-}
+omxCheckCloseEnough(ci[,'lbound'], lbound, .06)
 
 if (mxOption(NULL, 'Default optimizer') != "NPSOL") {
 	# NPSOL needs to get slightly closer to the MLE to nail all of these

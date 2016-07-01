@@ -147,10 +147,7 @@ plot(omxGetParameters(trun2), omxGetParameters(wrun2))
 abline(a=0, b=1)
 
 omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .03)
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-	omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .05)
-} else {
-	omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .04)
+omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .05)
 }
 
 
