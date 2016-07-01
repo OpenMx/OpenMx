@@ -254,6 +254,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 				Rf_error("%s join with %s but observed data is sorted",
 					 oo->name, fex->name);
 			}
+			omxDataKeysCompatible(fex->data, oo->data, foreignKey);
 			if (!omxDataColumnIsKey(oo->data, foreignKey)) {
 				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
 					 "Did you forget to use mxData(..., sort=FALSE)?",

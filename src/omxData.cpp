@@ -181,18 +181,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 		od->rawCols.reserve(numCols);
 		for(int j = 0; j < numCols; j++) {
 			const char *colname = CHAR(STRING_ELT(colnames, j));
-			ColumnData cd = { colname, NULL, NULL, NULL };
+			ColumnData cd = { colname, COLUMNDATA_INVALID, NULL, NULL, NULL };
 			SEXP rcol;
 			ScopedProtect p1(rcol, VECTOR_ELT(dataLoc, j));
 			if(Rf_isFactor(rcol)) {
-				if (j == primaryKey) {
-					Rf_error("Data column '%s' is both a factor and the primary key;"
-						 " primary keys must be non-factor integers", colname);
-				}
-				if (Rf_isUnordered(rcol)) {
-					Rf_warning("Data[%d] '%s' must be an ordered factor. Please use mxFactor()",
-						j+1, colname);
-				}
+				cd.type = Rf_isUnordered(rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
 				if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
 				cd.intData = INTEGER(rcol);
 				cd.levels = Rf_getAttrib(rcol, R_LevelsSymbol);
@@ -204,9 +197,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 					if(OMX_DEBUG) {mxLog("Column[%d] %s is a foreign key", j, colname);}
 				}
 				cd.intData = INTEGER(rcol);
+				cd.type = COLUMNDATA_INTEGER;
 			} else {
 				if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
 				cd.realData = REAL(rcol);
+				cd.type = COLUMNDATA_NUMERIC;
 				od->numNumeric++;
 			}
 			od->rawCols.push_back(cd);
@@ -440,7 +435,27 @@ bool omxDataColumnIsKey(omxData *od, int col)
 {
 	if(od->dataMat != NULL) return FALSE;
 	ColumnData &cd = od->rawCols[col];
-	return cd.intData && !cd.levels;
+	return cd.intData != 0;
+}
+
+void omxData::assertColumnIsData(int col)
+{
+	if (dataMat) return;
+	ColumnData &cd = rawCols[col];
+	switch (cd.type) {
+	case COLUMNDATA_ORDERED_FACTOR:
+	case COLUMNDATA_NUMERIC:
+		return;
+	case COLUMNDATA_UNORDERED_FACTOR:
+		Rf_warning("In data '%s', column '%s' must be an ordered factor. Please use mxFactor()",
+			   name, cd.name);
+		return;
+	case COLUMNDATA_INTEGER:
+		Rf_error("In data '%s', column '%s' must be an ordered factor. Please use mxFactor()",
+			 name, cd.name);
+	default:
+		Rf_error("In data '%s', column '%s' is an unknown data type", name, cd.name);
+	}
 }
 
 int omxData::primaryKeyOfRow(int row)
@@ -468,6 +483,32 @@ const char *omxDataColumnName(omxData *od, int col)
 	if(od->dataMat) return od->dataMat->colnames[col];
 	ColumnData &cd = od->rawCols[col];
 	return cd.name;
+}
+
+void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey)
+{
+	ColumnData &ucd = upper->rawCols[upper->primaryKey];
+	ColumnData &lcd = lower->rawCols[foreignKey];
+	if (ucd.type != lcd.type) {
+		Rf_error("Primary key '%s' in %s is not the same type"
+			 " as foreign key '%s' in %s",
+			 ucd.name, upper->name, lcd.name, lower->name);
+	}
+	if (ucd.type == COLUMNDATA_ORDERED_FACTOR || ucd.type == COLUMNDATA_UNORDERED_FACTOR) {
+		if (Rf_length(ucd.levels) != Rf_length(lcd.levels)) {
+			Rf_error("Primary key '%s' in %s has a different number of factor"
+				 " levels compared to foreign key '%s' in %s",
+				 ucd.name, upper->name, lcd.name, lower->name);
+		}
+		for (int lx=0; lx < Rf_length(ucd.levels); ++lx) {
+			const char *ul = CHAR(STRING_ELT(ucd.levels, lx));
+			const char *ll = CHAR(STRING_ELT(lcd.levels, lx));
+			if (strEQ(ul, ll)) continue;
+			Rf_error("Primary key '%s' in %s has different factor levels ('%s' != '%s')"
+				 " compared to foreign key '%s' in %s",
+				 ucd.name, upper->name, ul, ll, lcd.name, lower->name);
+		}
+	}
 }
 
 omxMatrix* omxDataMeans(omxData *od)

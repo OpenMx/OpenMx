@@ -72,8 +72,17 @@ struct omxThresholdColumn {
 	omxThresholdColumn() : column(0), numThresholds(0) {};
 };
 
+enum ColumnDataType {
+	COLUMNDATA_INVALID,
+	COLUMNDATA_ORDERED_FACTOR,
+	COLUMNDATA_UNORDERED_FACTOR,
+	COLUMNDATA_INTEGER,
+	COLUMNDATA_NUMERIC
+};
+
 struct ColumnData {
 	const char *name;
+	ColumnDataType type;
 	// exactly one of these is non-null
 	double *realData;
 	int    *intData;
@@ -92,6 +101,7 @@ class omxData {
 	int primaryKeyOfRow(int row);
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
+	void assertColumnIsData(int col);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
@@ -133,6 +143,7 @@ class omxData {
 	SEXP getRowNames();
 	void connectDynamicData(omxState *currentState);
 	void recompute();
+	friend void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
