@@ -68,7 +68,9 @@ OpenMx options
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
 Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
 Default optimizer \tab [NPSOL | SLSQP | CSOLNP] \tab the gradient-descent optimizer to use \cr
-Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used for optimization.  This is how parallelism works. Default value of 0 uses \code{detectCores() - 1}. \cr
+Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used
+for optimization. Default value is taken from the environment variable
+OMP_NUM_THREADS or, if that is not set, 2. \cr
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
 Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
 Gradient algorithm \tab see list \tab finite difference method, either 'forward' or 'central'. \cr
