@@ -499,10 +499,10 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 
 		layers[lx].itemsMask.assign(param.cols(), false);
 		layers[lx].abilitiesMask.assign(mean.rows(), false);
-		for (std::set<int>::iterator it=members.begin(); it!=members.end(); ++it) {
-			layers[lx].itemsMask[*it] = true;
+		for (auto it : members) {
+			layers[lx].itemsMask[it] = true;
 			for (int ax=0; ax < mean.rows(); ++ax) {
-				if (fabs(totalCov(*it, param.cols() + ax)) < 1e-7) continue;
+				if (fabs(totalCov(it, param.cols() + ax)) < 1e-7) continue;
 				layers[lx].abilitiesMask[ax] = true;
 			}
 		}

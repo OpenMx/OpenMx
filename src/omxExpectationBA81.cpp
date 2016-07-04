@@ -195,10 +195,10 @@ void ba81RefreshQuadrature(omxExpectation* oo)
 void refreshPatternLikelihood(BA81Expect *state, bool hasFreeLatent)
 {
 	if (hasFreeLatent) {
-		BA81Engine<typeof(state), BA81LatentSummary, BA81OmitEstep> engine;
+		BA81Engine<BA81Expect*, BA81LatentSummary, BA81OmitEstep> engine;
 		engine.ba81Estep1(&state->grp, state);
 	} else {
-		BA81Engine<typeof(state), BA81LatentFixed, BA81OmitEstep> engine;
+		BA81Engine<BA81Expect*, BA81LatentFixed, BA81OmitEstep> engine;
 		engine.ba81Estep1(&state->grp, state);
 	}
 }
@@ -259,10 +259,10 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
 		bool estep = state->expectedUsed;
 		if (estep) {
 			if (oo->dynamicDataSource) {
-				BA81Engine<typeof(state), BA81LatentSummary, BA81Estep> engine;
+				BA81Engine<BA81Expect*, BA81LatentSummary, BA81Estep> engine;
 				engine.ba81Estep1(&state->grp, state);
 			} else {
-				BA81Engine<typeof(state), BA81LatentFixed, BA81Estep> engine;
+				BA81Engine<BA81Expect*, BA81LatentFixed, BA81Estep> engine;
 				engine.ba81Estep1(&state->grp, state);
 			}
 		} else {
