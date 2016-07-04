@@ -66,4 +66,4 @@ bad <- mxModel("bad", type="RAM",
 	       mxPath("one", "ign"),
 	       mxPath("ign", arrows=2),
 	       mxData(data.frame(key=1), 'raw', primaryKey="key"))
-omxCheckError(mxRun(bad), "bad.data: primary key must be an integer column in raw observed data")
+omxCheckError(mxRun(bad), "bad.data: primary key must be an integer or factor column in raw observed data")

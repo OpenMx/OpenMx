@@ -222,7 +222,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 
 	if (primaryKey != -1 && !(od->rawCols.size() && od->rawCols[primaryKey].intData)) {
-		Rf_error("%s: primary key must be an integer column in raw observed data", od->name);
+		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
