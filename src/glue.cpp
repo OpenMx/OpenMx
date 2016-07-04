@@ -154,8 +154,20 @@ SEXP MxRList::asR()
 }
 
 static void
-friendlyStringToLogical(const char *key, const char *str, int *out)
+friendlyStringToLogical(const char *key, SEXP rawValue, int *out)
 {
+	if (TYPEOF(rawValue) == LGLSXP) {
+		*out = Rf_asLogical(rawValue);
+		return;
+	}
+
+	const char *str = CHAR(Rf_asChar(rawValue));
+	if (TYPEOF(rawValue) != STRSXP) {
+		Rf_warning("Not sure how to interpret '%s' (type %s) for mxOption '%s'",
+			   str, Rf_type2char(TYPEOF(rawValue)), key);
+		return;
+	}
+
 	int understood = FALSE;
 	int newVal;
 	if (matchCaseInsensitive(str, "Yes")) {
@@ -184,13 +196,14 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 		Rf_protect(optionNames = Rf_getAttrib(options, R_NamesSymbol));
 		for(int i = 0; i < numOptions; i++) {
 			const char *nextOptionName = CHAR(STRING_ELT(optionNames, i));
-			const char *nextOptionValue = CHAR(Rf_asChar(VECTOR_ELT(options, i)));
+			SEXP rawValue = VECTOR_ELT(options, i);
+			const char *nextOptionValue = CHAR(Rf_asChar(rawValue));
 			if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, analyticGradients);
+				friendlyStringToLogical(nextOptionName, rawValue, analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
 				Global->llScale = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "debug protect stack")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->debugProtectStack);
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->debugProtectStack);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 #ifdef _OPENMP
 				*numThreads = atoi(nextOptionValue);
@@ -200,7 +213,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				}
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->parallelDiag);
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);
 			} else if(matchCaseInsensitive(nextOptionName, "maxOrdinalPerBlock")) {
 				Global->maxOrdinalPerBlock = atoi(nextOptionValue);
 				if (Global->maxOrdinalPerBlock < 1) Rf_error("maxOrdinalPerBlock must be strictly positive");
@@ -231,7 +244,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
 				CSOLNPOpt_FuncPrecision(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
-				friendlyStringToLogical(nextOptionName, nextOptionValue, &Global->RAMInverseOpt);
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->RAMInverseOpt);
 				//mxLog("inv opt = %s %d", nextOptionValue, Global->RAMInverseOpt);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Max Depth")) {
 				if (strEQ(nextOptionValue, "NA")) {
