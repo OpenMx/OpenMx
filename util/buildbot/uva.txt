@@ -1,0 +1,99 @@
+Here are some notes about how to diagnose congestion on the Rivanna
+cluster at UVa.
+
+[root@udc-ba33-37:~] scontrol show jobid=765630
+JobId=765630 JobName=test-openmx2
+   UserId=jnp3bc(432545) GroupId=users(100)
+   Priority=1 Nice=0 Account=hdlab_computing QOS=normal
+   JobState=PENDING Reason=Priority Dependency=(null)
+   Requeue=0 Restarts=0 BatchFlag=0 Reboot=0 ExitCode=0:0
+   RunTime=00:00:00 TimeLimit=18:00:00 TimeMin=N/A
+   SubmitTime=2016-06-30T07:50:22 EligibleTime=2016-06-30T07:50:22
+   StartTime=2016-07-05T11:11:13 EndTime=Unknown
+   PreemptTime=None SuspendTime=None SecsPreSuspend=0
+   Partition=economy AllocNode:Sid=udc-ba33-37:131357
+   ReqNodeList=(null) ExcNodeList=(null)
+   NodeList=(null)
+   NumNodes=1 NumCPUs=8 CPUs/Task=8 ReqB:S:C:T=0:0:*:*
+   Socks/Node=* NtasksPerN:B:S:C=0:0:*:1 CoreSpec=*
+   MinCPUsNode=8 MinMemoryNode=8G MinTmpDiskNode=0
+   Features=(null) Gres=(null) Reservation=(null)
+   Shared=OK Contiguous=0 Licenses=(null) Network=(null)
+   Command=/home/jnp3bc/bin/test-openmx2
+   WorkDir=/nv/blue/jnp3bc/buildbot/4/joshua/build
+
+So the job needs 8 cores and 8-GB for 18 hours, and is queued because there
+are higher priority jobs. What other jobs are queued?
+
+1(1) 4:00:00 (DependencyNeverSatisfied)(0.00000002258457)
+1(1) 4:00:00 (DependencyNeverSatisfied)(0.00000002258457)
+1(1) 4:00:00 (DependencyNeverSatisfied)(0.00000002258457)
+1(1) 4:00:00 (DependencyNeverSatisfied)(0.00000002258457)
+1(1) 4:00:00 (Dependency)(0.00000002258457)
+16(2) 6-16:00:00 (Resources)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+16(2) 6-16:00:00 (Priority)(0.00000000069849)
+8(1) 18:00:00 (Priority)(0.00000000023283) < YOURS
+8(1) 18:00:00 (Priority)(0.00000000023283) < YOURS
+28(4) 1-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+8(1) 18:00:00 (Priority)(0.00000000023283) < YOURS
+8(1) 18:00:00 (Priority)(0.00000000023283) < YOURS
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+2(1) 3-00:00:00 (Priority)(0.00000000023283)
+
+The top one that's yours will be the first one to start, but it will not start
+until there are idle resources available for it to start AND everything with a
+higher priority won't be impacted by it starting.
+
+Next, how many economy queue nodes have free cores:
+
+[root@udc-ba33-37:~] sinfo -p economy -o%all | cut -d\| -f 21,34 | sort | uniq
+-c | egrep "idle|mixed"
+      1 11/1/0/12 |mixed
+     10 3/13/0/16 |mixed
+      1 7/9/0/16 |mixed
+
+It might look like there are 11 potential nodes that could run your job, but
+this ignores memory usage and it ignores that other jobs might be "holding"
+idle resources because they expect to get everything that they need within
+18hrs.
+
+You can play around with that sinfo command to identify host names and then
+use scontrol to check memory usage and dive into other details. Here's quick
+example:
+
+[root@udc-ba33-37:~] scontrol show node=udc-aw38-14-r
+NodeName=udc-aw38-14-r Arch=x86_64 CoresPerSocket=1
+   CPUAlloc=3 CPUErr=0 CPUTot=16 CPULoad=0.00 Features=(null)
+   Gres=(null)
+   NodeAddr=udc-aw38-14-r NodeHostName=udc-aw38-14-r Version=14.11
+   OS=Linux RealMemory=15000 AllocMem=12288 Sockets=16 Boards=1
+   State=MIXED ThreadsPerCore=1 TmpDisk=0 Weight=1
+   BootTime=2016-05-09T14:14:46 SlurmdStartTime=2016-06-24T10:39:04
+   CurrentWatts=0 LowestJoules=0 ConsumedJoules=0
+   ExtSensorsJoules=n/s ExtSensorsWatts=0 ExtSensorsTemp=n/s
+
+
+...your jobs are asking for 8000MB, but that node only has ~2800 MB of RAM
+that hasn't been allocated to the jobs running on it.
