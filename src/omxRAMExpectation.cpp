@@ -791,7 +791,7 @@ namespace RelationalRAMExpectation {
 						omxExpectation *ex3 = it->first;
 						omxRAMExpectation *ram3 = (omxRAMExpectation*) ex3->argStruct;
 						omxDefinitionVar &dv = ex3->data->defVars[ it->second ];
-						mxLog("%s at %s[%d,%d] goes from %s to %s => %d",
+						mxLog("%s at %s[%d,%d] goes from %s to %s => %d (0=no cov effect)",
 						      omxDataColumnName(ex3->data, dv.column),
 						      ram3->M->name(), 1+dv.row, 1+dv.col,
 						      from->S->rownames[cx], to->S->rownames[rx],
