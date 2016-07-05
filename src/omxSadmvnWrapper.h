@@ -86,8 +86,7 @@ class OrdinalLikelihood {
 			}
 		}
 
-		template <typename T1>
-		double likelihood(int row, Eigen::ArrayBase<T1> &ordIndices);
+		inline double likelihood(int row);
 		template <typename T1, typename T2>
 		double likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound);
 	};
@@ -99,6 +98,7 @@ class OrdinalLikelihood {
 	omxData *data;
 	omxMatrix *thresholdMat;
 	std::vector< omxThresholdColumn > *colInfoPtr;
+	Eigen::ArrayXi ordColumns;
  public:
 	std::vector<int> itemToThresholdCol;
 	omxMatrix *thresholdsMat;
@@ -201,11 +201,16 @@ class OrdinalLikelihood {
 	};
 
 	template <typename T1>
-	double likelihood(int row, Eigen::ArrayBase<T1> &indices)
+	void setColumns(Eigen::ArrayBase<T1> &colIn)
+	{
+		ordColumns = colIn;
+	};
+
+	inline double likelihood(int row)
 	{
 		double lk = 1.0;
 		for (int bx=0; bx < int(blocks.size()); ++bx) {
-			lk *= blocks[bx].likelihood(row, indices);  // log space instead?
+			lk *= blocks[bx].likelihood(row);  // log space instead?
 		}
 		return lk;
 	};
@@ -252,15 +257,15 @@ double OrdinalLikelihood::block::likelihood(Eigen::MatrixBase<T1> &lbound, Eigen
 	return ordLik;
 }
 
-template <typename T1>
-double OrdinalLikelihood::block::likelihood(int row, Eigen::ArrayBase<T1> &ordIndices)
+double OrdinalLikelihood::block::likelihood(int row)
 {
 	std::vector< omxThresholdColumn > &colInfo = *ol->colInfoPtr;
+	Eigen::ArrayXi &ordColumns = ol->ordColumns;
 	EigenMatrixAdaptor tMat(ol->thresholdMat);
-	for (int ox=0, vx=0; ox < ordIndices.size(); ++ox) {
+	for (int ox=0, vx=0; ox < ordColumns.size(); ++ox) {
 		if (!varMask[ox]) continue;
-		int j = ordIndices[ox];
-		int var = ol->dataColumns[j];
+		int j = ordColumns[ox];
+		int var = omxVectorElement(ol->dataColumns, j);
 		int pick = omxIntDataElement(ol->data, row, var) - 1;
 		double sd = ol->stddev[ox];
 		int tcol = colInfo[j].column;

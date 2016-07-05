@@ -259,6 +259,15 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 					EigenMatrixAdaptor EordCov(ordCov);
 					ol.setCovariance(EordCov, fc);
 					
+					int ox=0;
+					for(int j = 0; j < dataColumns->cols; j++) {
+						if(ordRemove[j]) continue;         // NA or non-ordinal
+						ordBuffer[ox] = j;
+						ox += 1;
+					}
+					Eigen::Map< Eigen::ArrayXi > ordColumns(ordBuffer.data(), ox);
+					ol.setColumns(ordColumns);
+
 					// Recalculate ordinal fs
 					omxCopyMatrix(ordMeans, means);
 					omxRemoveElements(ordMeans, ordRemove.data()); 	    // Reduce the row to just ordinal.
@@ -422,8 +431,18 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 						// FIXME: This assumes that ordCov and reducCov have the same row/column majority.
 						int vlen = reduceCov->rows * reduceCov->cols;
 						F77_CALL(daxpy)(&vlen, &minusoned, reduceCov->data, &onei, ordCov->data, &onei); // ordCov <- (ordCov - reduceCov) %*% cont/ord
+
 						EigenMatrixAdaptor EordCov(ordCov);
 						ol.setCovariance(EordCov, fc);
+
+						int ox=0;
+						for(int j = 0; j < dataColumns->cols; j++) {
+							if(ordRemove[j]) continue;         // NA or non-ordinal
+							ordBuffer[ox] = j;
+							ox += 1;
+						}
+						Eigen::Map< Eigen::ArrayXi > ordColumns(ordBuffer.data(), ox);
+						ol.setColumns(ordColumns);
 					}
 					
 					// Projected means must be recalculated if the continuous variables change at all.
@@ -440,15 +459,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 			likelihood = 1;
 			} 
 			else {  
-				int ox=0;
-				for(int j = 0; j < dataColumns.size(); j++) {
-					if(ordRemove[j]) continue;         // NA or non-ordinal
-					ordBuffer[ox] = j;
-					ox += 1;
-				}
-				
-				Eigen::Map< Eigen::ArrayXi > ordRow(ordBuffer.data(), ox);
-				likelihood = ol.likelihood(indexVector[row], ordRow);
+				likelihood = ol.likelihood(row);
 
 				if (likelihood == 0.0) {
 					if (fc) fc->recordIterationError("Improper value detected by integration routine "
