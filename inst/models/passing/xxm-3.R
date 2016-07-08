@@ -13,14 +13,14 @@ batch <- mxModel(
     'batch', type="RAM",
     latentVars = c('batch'),
     mxData(data.frame(batch=unique(Pastes$batch)), 'raw', primaryKey='batch'),
-    mxPath('batch', arrows=2))
+    mxPath('batch', arrows=2, values=1))
 
 sample <- mxModel(
     'sample', type="RAM", batch,
     latentVars = c('sample'),
     mxData(as.data.frame(Pastes[!duplicated(Pastes$sample), c('batch','sample')]),
            'raw', primaryKey='sample'),
-    mxPath('sample', arrows=2),
+    mxPath('sample', arrows=2, values=1),
     mxPath('batch.batch', 'sample', values=1, free=FALSE, joinKey='batch'))
 
 strength <- mxModel(
