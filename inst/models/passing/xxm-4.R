@@ -10,13 +10,13 @@ plateModel <- mxModel(
     'plateModel', type="RAM",
     latentVars = c('plate'),
     mxData(data.frame(plate=unique(Penicillin$plate)), 'raw', primaryKey='plate'),
-    mxPath('plate', arrows=2))
+    mxPath('plate', arrows=2, values=1))
 
 sampleModel <- mxModel(
     'sampleModel', type="RAM",
     latentVars = c('sample'),
     mxData(data.frame(sample=unique(Penicillin$sample)), 'raw', primaryKey='sample'),
-    mxPath('sample', arrows=2))
+    mxPath('sample', arrows=2, values=1))
 
 diameterModel <- mxModel(
     'diameterModel', type="RAM", plateModel, sampleModel,
