@@ -11,7 +11,7 @@ batch <- mxModel(
     'batch', type="RAM",
     latentVars = c('batch'),
     mxData(data.frame(batch=unique(Dyestuff$Batch)), 'raw', primaryKey='batch'),
-    mxPath('batch', arrows=2))
+    mxPath('batch', arrows=2, values=1, ubound=10000))
 
 yield <- mxModel(
     'yield', type='RAM', batch,
