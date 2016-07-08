@@ -62,7 +62,7 @@ m2 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars 
               mxData(type="raw", observed=sleepstudy, sort = FALSE),
               mxPath(c("one"), "Reaction"),
               mxPath(c("one"), "DayEffect", free=FALSE, labels="data.Days"),
-              mxPath("DayEffect", "Reaction"),
+              mxPath("DayEffect", "Reaction", values=1),
               mxPath(c("Reaction"), arrows=2, values=1))
 
 omxCheckError(mxModel(m2, mxPath('by_Subject.intercept', 'Reaction',
