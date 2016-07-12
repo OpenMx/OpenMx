@@ -23,31 +23,8 @@
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
 
-struct omxGREMLFitState { 
-  //TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
-  //and could therefore be cut
-  omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
-  std::vector< omxMatrix* > dV;
-  std::vector< const char* > dVnames;
-  std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
-  std::vector<int> origdVdim;
-  void dVupdate(FitContext *fc);
-  void dVupdate_final();
-  int dVlength, usingGREMLExpectation;
-  double nll, REMLcorrection;
-  Eigen::VectorXd gradient;
-  Eigen::MatrixXd avgInfo; //the Average Information matrix
-  FreeVarGroup *varGroup;
-	std::vector<int> gradMap;
-  void buildParamMap(FreeVarGroup *newVarGroup);
-  omxMatrix *aug, *augGrad, *augHess;
-  std::vector<int> dAugMap;
-  double pullAugVal(int thing, int row, int col);
-  void recomputeAug(int thing, FitContext *fc);
-}; 
 
-
-void omxInitGREMLFitFunction(omxFitFunction *oo){
+ void omxInitGREMLFitFunction(omxFitFunction *oo){
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   SEXP rObj = oo->rObj;
