@@ -22,6 +22,7 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
+#include <Rmath.h>
 
 
  void omxInitGREMLFitFunction(omxFitFunction *oo){
@@ -59,6 +60,7 @@
   newObj->origVdim_om = omxGetExpectationComponent(expectation, "origVdim_om");
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
+  newObj->parallelDerivScheme = 0;
   newObj->varGroup = NULL;
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
@@ -102,6 +104,8 @@
     newObj->gradient.setZero(newObj->dVlength,1);
     oo->hessianAvailable = true;
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
+    newObj->rowbins.resize(Global->numThreads);
+    newObj->AIMelembins.resize(Global->numThreads);
     for(i=0; i < newObj->dVlength; i++){
     	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the 
     	dimension of V (implying downsizing due to missing observations):*/
@@ -137,6 +141,7 @@
 		}
 	}
 }
+
 
 
 
@@ -265,6 +270,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     
     //Declare local variables for this scope:
     int nThreadz = Global->numThreads;
+    int wantHess = 0;
     
     fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
     
@@ -274,7 +280,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
       hb->vars.resize(gff->dVlength);
       hb->mat.resize(gff->dVlength, gff->dVlength);
       gff->recomputeAug(2, fc);
+      wantHess = 1;
     }
+    
+    if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
     
     //Begin looping thru free parameters:
 #pragma omp parallel num_threads(nThreadz)
@@ -425,6 +434,113 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	}
 }
 
+
+void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
+	//Note: AIM = Average Information Matrix (Hessian)
+	if(wantHess==0 || nThreadz<2){
+		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
+		return;
+	}
+	if(nThreadz <= dVlength){
+		parallelDerivScheme = 2; //Divvy up AIM rows among the threads.
+	}
+	/*Under the AIM-row-binning scheme, each thread will calculate the gradient element and the row
+	of the AIM (starting with its diagonal element) for each of its parameters.*/
+	
+	//Stuff for row binning:
+	int rownums[dVlength], i, j, minbin;
+	Eigen::VectorXi rowbinsums(nThreadz);
+	rowbinsums.setZero(nThreadz);
+	for(i=dVlength; i>0; i--){rownums[dVlength-i] = i;}
+	
+	//Greedy partitioning algorithm to bin rows of the AIM:
+	for(i=0; i<dVlength; i++){
+		minbin=0;
+		for(j=1; j<nThreadz; j++){
+			if(rowbinsums(j) < rowbinsums(j-1)){minbin=j;}
+		}
+		rowbins[minbin].conservativeResize(rowbins[minbin].size() + 1);
+		rowbins[minbin](rowbins[minbin].size()) = rownums[i]-1; //C array indexing starts at 0, not 1.
+		rowbinsums(minbin) += rownums[i];
+	}
+	
+	if(parallelDerivScheme==2){return;}
+	
+	/*Alternately, we could partition the elements ("cells") of the upper triangle of the AIM among the 
+	threads.  The elements are 	numbered sequentially, starting with the upper left element, 
+	moving across each row, and starting again at the diagonal element of the next row.  Under
+	this scheme, the elements of the AI matrix are divided among the threads as evenly as possible.*/
+	
+	//Stuff for AIM cell binning:
+	int numcells = dVlength*(dVlength+1)/2;
+	int targ = int(trunc(numcells/nThreadz));
+	targ = (targ<1) ? 1 : targ;
+	int remainder = numcells % nThreadz;
+	int jlim, cellnum=0;
+	
+	//Bin AIM elements:
+	for(i=0; i<nThreadz && cellnum<numcells; i++){
+		jlim = targ;
+		if(remainder){
+			jlim++;
+			remainder--;
+		}
+		AIMelembins[i].resize(jlim);
+		for(j=0; j<jlim && cellnum<numcells; j++){
+			AIMelembins[i](j) = cellnum;
+			cellnum++;
+		}
+	}
+	
+	//Stuff for assessing slowest thread under row-binning scheme:
+	double N = double(Vrows);
+	/*The computational cost of computing a diagonal element includes the upfront cost of 
+	computing PdV_dtheta, and the cost of computing the gradient element:*/
+	double diagcost = 2*R_pow_di(N,3) + 6*R_pow_di(N,2) + 5*N;
+	double offdiagcost = 6*R_pow_di(N,2) + 2*N;
+	/*workbins will hold the total number of operations each thread will carry out to do
+	matrix arithmetic:*/
+	Eigen::VectorXd workbins(nThreadz);
+	workbins.setZero(nThreadz);
+	for(i=0; i<nThreadz; i++){
+		for(j=0; j<rowbins[i].size(); j++){
+			workbins[i] += diagcost + (rowbins[i](j)-1)*offdiagcost;
+		}
+	}
+	double rowRLS = workbins.maxCoeff();
+	
+	//Stuff for assessing slowest thread under cell-binning scheme:
+	double inicost = 2*R_pow_di(N,3);
+	/*^^^When the thread starts its work, and whenever it moves to a new row of 
+	the AIM, it computes dV_dtheta.*/
+	/*Thread computes a gradient element whenever it computes a diagonal element
+	of the AIM:*/
+	diagcost = 6*R_pow_di(N,2) + 5*N;
+	workbins.setConstant(nThreadz, inicost);
+	int r=0, c=0;
+	for(i=0; i<nThreadz; i++){
+		for(j=0; j<AIMelembins[i].size(); j++){
+			if(r==c){ //If we're at a diagonal element.
+				//Add initial cost if we just moved to a new row:
+				if(j>0){workbins(i) += inicost;}
+				workbins(i) += diagcost;
+			}
+			else{workbins(i) += offdiagcost;}
+			c++;
+			/*If we're at the end of the row, then we move to the next one,
+			and start at its diagonal element:*/
+			if(c>=dVlength){
+				r++;
+				c = r;
+			}
+		}
+	}
+	double cellRLS = workbins.maxCoeff();
+	
+	parallelDerivScheme = (rowRLS<cellRLS) ? 2 : 3;
+	return;
+}
+ 
 
 double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 	double val=0;

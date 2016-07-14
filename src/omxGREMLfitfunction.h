@@ -24,13 +24,15 @@ struct omxGREMLFitState {
 	std::vector<int> origdVdim;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, usingGREMLExpectation;
+	int dVlength, usingGREMLExpectation, parallelDerivScheme;
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd avgInfo; //the Average Information matrix
 	FreeVarGroup *varGroup;
 	std::vector<int> gradMap;
 	void buildParamMap(FreeVarGroup *newVarGroup);
+	std::vector< Eigen::VectorXi > rowbins, AIMelembins;
+	void planParallelDerivs(int nThreadz, int wantHess, int Vrows);
 	omxMatrix *aug, *augGrad, *augHess;
 	std::vector<int> dAugMap;
 	double pullAugVal(int thing, int row, int col);
