@@ -288,9 +288,10 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Begin looping thru free parameters:
 #pragma omp parallel num_threads(nThreadz)
 {
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, k=0;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
 		Eigen::MatrixXd ytPdV_dtheta1;
-		Eigen::VectorXd diagPdV_dtheta1;
+		double tr=0;
+		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
 		int threadID = omx_absolute_thread_num();
@@ -309,10 +310,17 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 			for(j=i; j < gff->dVlength; j++){
 				if(j==i){
-					for(k=0; k < gff->cov->rows; k++){
-						diagPdV_dtheta1(k) = P.selfadjointView<Eigen::Lower>().row(k) * dV_dtheta1.selfadjointView<Eigen::Lower>().col(k);
+					/*Need trace of P*dV_dtheta for gradient element...
+					Frustratingly, the selfadjointView has no row or column accessor function among its members.
+					But the trace of a product of two square symmetric matrices is the sum of the elements of
+					their elementwise product.*/
+					//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
+					for(c=0; c < gff->cov->rows; c++){
+						for(r=c; r < gff->cov->rows; r++){
+							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
+						}
 					}
-					gff->gradient(t1) = Scale*0.5*(diagPdV_dtheta1.sum() - (ytPdV_dtheta1 * Py)(0,0)) + 
+					gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
 						Scale*gff->pullAugVal(1,a1,0);
 					fc->grad(t1) += gff->gradient(t1);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -503,7 +511,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	2*N^2 + N to efficiently calculate trace of PdV_dtheta
 	2*N to finish gradient element
 	(2*N^2) + 2*N for diagonal element:*/
-	double diagcost = 6*R_pow_di(N,2) + 5*N;
+	double diagcost = 5.5*R_pow_di(N,2) + 4.5*N;
 	double offdiagcost = 4*R_pow_di(N,2) + 2*N;
 	/*workbins will hold the total number of operations each thread will carry out to do
 	matrix arithmetic:*/
@@ -511,7 +519,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	workbins.setZero(nThreadz);
 	for(i=0; i<nThreadz; i++){
 		for(j=0; j<rowbins[i].size(); j++){
-			workbins[i] += diagcost + (rowbins[i](j)-1)*offdiagcost;
+			workbins[i] += diagcost + (rowbins[i](j))*offdiagcost;
 		}
 	}
 	double rowslowest = workbins.maxCoeff();
@@ -522,7 +530,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	the AIM, it computes ytPdV_dtheta.*/
 	/*Thread computes a gradient element whenever it computes a diagonal element
 	of the AIM:*/
-	diagcost = 4*R_pow_di(N,2) + 5*N;
+	diagcost = 3.5*R_pow_di(N,2) + 4.5*N;
 	workbins.setConstant(nThreadz, inicost);
 	int r=0, c=0;
 	for(i=0; i<nThreadz; i++){
@@ -542,9 +550,9 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			}
 		}
 	}
-	double cellRLS = workbins.maxCoeff();
+	double cellslowest = workbins.maxCoeff();
 	
-	parallelDerivScheme = (rowRLS<cellRLS) ? 2 : 3;
+	parallelDerivScheme = (rowslowest<cellslowest) ? 2 : 3;
 	return;
 }
  
