@@ -1003,7 +1003,7 @@ namespace RelationalRAMExpectation {
 				placeSet(mit->second, ig);
 				//mxLog("group %d same mean %d -> %d clumpsize %d",
 				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
-				ig->sufficientSets[ssIndex].start = from;
+				ig->sufficientSets[ssIndex].start = from / ig->clumpSize;
 				ig->sufficientSets[ssIndex].length = (ig->placements.size() - from) / ig->clumpSize;
 			}
 			ig->prep(fc);

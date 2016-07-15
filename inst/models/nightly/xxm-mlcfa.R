@@ -6,6 +6,8 @@ options(width=120)
 got <- suppressWarnings(try(load("models/nightly/data/mlcfa.xxm.RData")))
 if (is(got, "try-error")) load("data/mlcfa.xxm.RData")
 
+#write.csv(mlcfa.student, file="/tmp/mlcfa.csv", row.names=FALSE)
+
 indicators <- colnames(mlcfa.student)[3:6]
 
 teacherModel <- mxModel(
@@ -29,12 +31,19 @@ studentModel <- mxModel(
   mxPath('one', indicators))
 
 studentModel <- mxRun(studentModel)
-studentModel$output$fit
+summary(studentModel)
+
+omxCheckCloseEnough(studentModel$output$fit, 16587.68, 1e-2)
+
+if(0) {
+  layout <- studentModel$expectation$debug$layout
+  head(layout[layout$group==2,],n=20)
+}
 
 f1 <- studentModel
 f1$expectation$.rampart <- 0L
 f1 <- mxRun(mxModel(f1, mxComputeOnce('fitfunction', 'fit')))
-f1$output$fit
+omxCheckCloseEnough(f1$output$fit, 14974.72, 1e-2)
 
 f2 <- omxSetParameters(studentModel, labels=names(coef(studentModel)),
                  values=c(0.8838, 1.0983, 0.7628,   # student loadings
@@ -46,8 +55,8 @@ f2 <- omxSetParameters(studentModel, labels=names(coef(studentModel)),
 
 f2$expectation$.rampart <- 1L
 f2 <- mxRun(mxModel(f2, mxComputeOnce('fitfunction', 'fit')))
-f2$output$fit
+omxCheckCloseEnough(f2$output$fit, 67457.32, 1e-2)
 
 f2$expectation$.rampart <- 0L
 f2 <- mxRun(mxModel(f2, mxComputeOnce('fitfunction', 'fit')))
-f2$output$fit
+omxCheckCloseEnough(f2$output$fit, 14463.33, 1e-2)
