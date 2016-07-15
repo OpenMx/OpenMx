@@ -289,8 +289,8 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 #pragma omp parallel num_threads(nThreadz)
 {
 		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
-		Eigen::MatrixXd ytPdV_dtheta1;
 		double tr=0;
+		Eigen::MatrixXd ytPdV_dtheta1;
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
@@ -299,6 +299,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 		int iend = (threadID+1) * gff->dVlength / nThreadz;
 		if(threadID == nThreadz-1){iend = gff->dVlength;}
 		for(i=istart; i < iend; i++){
+			tr=0;
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
 			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
