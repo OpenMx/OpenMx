@@ -461,7 +461,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			if(rowbinsums(j) < rowbinsums(j-1)){minbin=j;}
 		}
 		rowbins[minbin].conservativeResize(rowbins[minbin].size() + 1);
-		rowbins[minbin](rowbins[minbin].size()) = rownums[i]-1; //C array indexing starts at 0, not 1.
+		rowbins[minbin](rowbins[minbin].size()-1) = rownums[i]-1; //C array indexing starts at 0, not 1.
 		rowbinsums(minbin) += rownums[i];
 	}
 	
