@@ -288,8 +288,9 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
     //Begin looping thru free parameters:
 #pragma omp parallel num_threads(nThreadz)
 {
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0;
-		Eigen::MatrixXd PdV_dtheta1;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, k=0;
+		Eigen::MatrixXd ytPdV_dtheta1;
+		Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
 		int threadID = omx_absolute_thread_num();
@@ -305,16 +306,17 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
 			}
 			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-			//PdV_dtheta1 = P.selfadjointView<Eigen::Lower>() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-			PdV_dtheta1 = P.selfadjointView<Eigen::Lower>();
-			PdV_dtheta1 = PdV_dtheta1 * dV_dtheta1.selfadjointView<Eigen::Lower>();
+			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 			for(j=i; j < gff->dVlength; j++){
 				if(j==i){
-					gff->gradient(t1) = Scale*0.5*(PdV_dtheta1.trace() - (Eigy.transpose() * PdV_dtheta1 * Py)(0,0)) + 
+					for(k=0; k < gff->cov->rows; k++){
+						diagPdV_dtheta1(k) = P.selfadjointView<Eigen::Lower>().row(k) * dV_dtheta1.selfadjointView<Eigen::Lower>().col(k);
+					}
+					gff->gradient(t1) = Scale*0.5*(diagPdV_dtheta1.sum() - (ytPdV_dtheta1 * Py)(0,0)) + 
 						Scale*gff->pullAugVal(1,a1,0);
 					fc->grad(t1) += gff->gradient(t1);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						gff->avgInfo(t1,t1) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * PdV_dtheta1 * Py)(0,0) + 
+						gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
 							Scale*gff->pullAugVal(2,a1,a1);
 					}
 				}
@@ -326,7 +328,7 @@ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
 						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-					gff->avgInfo(t1,t2) = Scale*0.5*(Eigy.transpose() * PdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+					gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
 						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 					gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
 				}}}}
@@ -496,9 +498,13 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	//Stuff for assessing slowest thread under row-binning scheme:
 	double N = double(Vrows);
 	/*The computational cost of computing a diagonal element includes the upfront cost of 
-	computing PdV_dtheta, and the cost of computing the gradient element:*/
-	double diagcost = 2*R_pow_di(N,3) + 6*R_pow_di(N,2) + 5*N;
-	double offdiagcost = 6*R_pow_di(N,2) + 2*N;
+	computing ytPdV_dtheta, and the cost of computing the gradient element.
+	2*N^2 for ytPdV_dtheta
+	2*N^2 + N to efficiently calculate trace of PdV_dtheta
+	2*N to finish gradient element
+	(2*N^2) + 2*N for diagonal element:*/
+	double diagcost = 6*R_pow_di(N,2) + 5*N;
+	double offdiagcost = 4*R_pow_di(N,2) + 2*N;
 	/*workbins will hold the total number of operations each thread will carry out to do
 	matrix arithmetic:*/
 	Eigen::VectorXd workbins(nThreadz);
@@ -508,15 +514,15 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			workbins[i] += diagcost + (rowbins[i](j)-1)*offdiagcost;
 		}
 	}
-	double rowRLS = workbins.maxCoeff();
+	double rowslowest = workbins.maxCoeff();
 	
 	//Stuff for assessing slowest thread under cell-binning scheme:
-	double inicost = 2*R_pow_di(N,3);
+	double inicost = 2*R_pow_di(N,2);
 	/*^^^When the thread starts its work, and whenever it moves to a new row of 
-	the AIM, it computes dV_dtheta.*/
+	the AIM, it computes ytPdV_dtheta.*/
 	/*Thread computes a gradient element whenever it computes a diagonal element
 	of the AIM:*/
-	diagcost = 6*R_pow_di(N,2) + 5*N;
+	diagcost = 4*R_pow_di(N,2) + 5*N;
 	workbins.setConstant(nThreadz, inicost);
 	int r=0, c=0;
 	for(i=0; i<nThreadz; i++){
