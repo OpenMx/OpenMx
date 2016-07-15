@@ -811,7 +811,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 }
             }// end while(go >= tol)
             
-            if (minit >= 10){
+            if (verbose >= 3 && minit >= 10){
                 mxLog("The linearized problem has no feasible solution. The problem may not be feasible.");
             }
             
