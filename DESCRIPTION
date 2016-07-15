@@ -17,7 +17,9 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Massachusetts Institute of Technology", role="cph"),
     person("S. G.", "Johnson", role="cph"),
     person("Association for Computing Machinery", role="cph"),
-    person("Dieter", "Kraft", role="cph"))
+    person("Dieter", "Kraft", role="cph"),
+    person("Stefan", "Wilhelm", role="cph"),
+    person("Manjunath B G", role="cph"))
 URL: http://openmx.psyc.virginia.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.psyc.virginia.edu/forums
 Description: Facilitates treatment of statistical model specifications

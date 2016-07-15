@@ -226,4 +226,119 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) loc
 static inline int omp_get_thread_num() { return 0; }
 #endif
 
+#include <Eigen/Core>
+
+// Refactor as a single split function that pulls out all 3 parts
+// of the covariance matrix in one iteration through the elements?
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void subsetNormalDist(const Eigen::MatrixBase<T1> &gmean, const Eigen::MatrixBase<T2> &gcov,
+		      T5 includeTest, int resultSize,
+		      Eigen::MatrixBase<T3> &mean, Eigen::MatrixBase<T4> &cov)
+{
+	mean.derived().resize(resultSize);
+	cov.derived().resize(resultSize, resultSize);
+
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		mean[cx] = gmean[gcx];
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (!includeTest(grx)) continue;
+			cov(rx,cx) = gcov(grx, gcx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
+// Refactor as a single split function that pulls out all 3 parts
+// of the covariance matrix in one iteration through the elements?
+template <typename T2, typename T4, typename T5>
+void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
+		      T5 includeTest, int resultSize,
+		      Eigen::MatrixBase<T4> &cov)
+{
+	cov.derived().resize(resultSize, resultSize);
+
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (!includeTest(grx)) continue;
+			cov(rx,cx) = gcov(grx, gcx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
+template <typename T2, typename T4, typename T5>
+void upperRightCovariance(const Eigen::MatrixBase<T2> &gcov, T5 includeTest,
+			  Eigen::MatrixBase<T4> &cov)
+{
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (includeTest(grx)) continue;
+			cov(rx,cx) = gcov(grx, gcx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
+template <typename T2, typename T4, typename T5>
+void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
+		      T5 includeTest, const Eigen::MatrixBase<T4> &cov)
+{
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (!includeTest(grx)) continue;
+			gcov(grx, gcx) = cov(rx,cx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
+template <typename T2, typename T4, typename T5>
+void upperRightCovarianceStore(Eigen::MatrixBase<T2> &gcov, T5 includeTest,
+			       const Eigen::MatrixBase<T4> &cov)
+{
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (includeTest(grx)) continue;
+			gcov(grx, gcx) = cov(rx,cx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
+template<typename _MatrixType, int _UpLo = Eigen::Lower>
+class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
+ private:
+	Eigen::MatrixXd ident;
+	Eigen::MatrixXd inverse;
+
+ public:
+	typedef Eigen::LDLT<_MatrixType, _UpLo> Base;
+
+	double log_determinant() const {
+		typename Base::Scalar detL = Base::vectorD().array().log().sum();
+		return detL;
+	}
+
+	void refreshInverse()
+	{
+		if (ident.rows() != Base::m_matrix.rows()) {
+			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
+		}
+
+		inverse = Base::solve(ident);
+	};
+
+	const Eigen::MatrixXd &getInverse() const { return inverse; };
+};
+
 #endif /* _OMXDEFINES_H_ */

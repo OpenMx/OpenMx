@@ -20,6 +20,12 @@
 
 #include "omxData.h"
 #include "Connectedness.h"
+#include <limits>
+#include <Rcpp.h>
+#include <Eigen/CholmodSupport>
+#include <Eigen/Cholesky>
+#include <RcppEigenWrap.h>
+#include "matrix.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -32,12 +38,14 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 }
 #endif
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxSadmvnWrapper(int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 
 using namespace UndirectedGraph;
 
-class OrdinalLikelihood {
+class OrdinalLikelihood { // rename to mvn cdf ? TODO
  private:
 	struct block {
 		OrdinalLikelihood *ol;
@@ -49,8 +57,8 @@ class OrdinalLikelihood {
 		std::vector<bool> varMask;
 		std::vector<int> varMap;
 
-		template <typename T1>
-		void setCorrelation(Eigen::MatrixBase<T1> &corIn)
+		template <typename T2>
+		void setCorrelation(Eigen::MatrixBase<T2> &corIn)
 		{
 			varMap.clear();
 			for (int vx=0; vx < (int) varMask.size(); ++vx) {
@@ -76,6 +84,11 @@ class OrdinalLikelihood {
 			//mxPrintMat("curList", corList);
 		}
 
+		void setZeroMean() {
+			mean.resize(varMap.size());
+			mean.setZero();
+		}
+
 		template <typename T1>
 		void setMean(Eigen::MatrixBase<T1> &meanIn)
 		{
@@ -86,9 +99,10 @@ class OrdinalLikelihood {
 			}
 		}
 
+		inline void loadRow(int row);
 		inline double likelihood(int row);
 		template <typename T1, typename T2>
-		double likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound);
+		double likelihood(const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound);
 	};
 
 	Eigen::ArrayXd stddev;
@@ -112,45 +126,55 @@ class OrdinalLikelihood {
 	}
 
 	template <typename T>
-	void attach(const Eigen::MatrixBase<T> &dc, omxData *data, omxMatrix *tMat,
+	void attach(const Eigen::MatrixBase<T> &dc, omxData *_data, omxMatrix *tMat,
 		    std::vector< omxThresholdColumn > &colInfo)
 	{
 		dataColumns = dc;
-		this->data = data;
+		this->data = _data;
 		this->thresholdMat = tMat;
 		this->colInfoPtr = &colInfo;
 	};
 
 	struct CorCmp {
 		Eigen::MatrixXd &cor;
-		CorCmp(Eigen::MatrixXd *cor) : cor(*cor) {};
+		CorCmp(Eigen::MatrixXd *_cor) : cor(*_cor) {};
 		bool operator()(int i, int j) { return fabs(cor.data()[i]) > fabs(cor.data()[j]); };
 	};
 
 	template <typename T1>
 	void setCovariance(Eigen::MatrixBase<T1> &cov, FitContext *fc)
 	{
-		stddev = cov.diagonal().array().sqrt();
+		setCovarianceUnsafe(cov);
 
-		std::vector<int> cells;
-		cor.resize(cov.rows(), cov.cols());
 		for(int i = 1; i < cov.rows(); i++) {
 			for(int j = 0; j < i; j++) {
-				double val = cov(i, j) / (stddev[i] * stddev[j]);
-				if (fabs(val) > 1.0) {
-					if (fc) {
-						fc->recordIterationError("Found correlation with absolute value"
-									 " greater than 1 (r=%.2f)", val);
-					} else {
-						// Signal disaster
-						cov(0,0) = NA_REAL;
-						val = NA_REAL;
-					}
+				double val = cor(i,j);
+				if (fabs(val) <= 1.0) continue;
+				if (fc) {
+					fc->recordIterationError("Found correlation with absolute value"
+								 " greater than 1 (r=%.2f)", val);
+				} else {
+					cov(0,0) = NA_REAL; // Signal disaster
 				}
-				cor(i,j) = val;
-				if (val != 0.0) {
-					cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
-				}
+			}
+		}
+	}
+
+	void setStandardNormal(int dims)
+	{
+		stddev.resize(dims);
+		stddev.setConstant(1.0);
+		cor.setIdentity(dims, dims);
+		setupCorrelation();
+	}
+
+	void setupCorrelation()
+	{
+		std::vector<int> cells;
+		for(int i = 1; i < cor.rows(); i++) {
+			for(int j = 0; j < i; j++) {
+				if (cor(i,j) == 0.0) continue;
+				cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
 			}
 		}
 
@@ -183,12 +207,44 @@ class OrdinalLikelihood {
 
 			blocks[bx].ol = this;
 			std::vector<bool> &mask = blocks[bx].varMask;
-			mask.assign(cov.cols(), false);
+			mask.assign(cor.cols(), false);
 			for (std::set<int>::iterator it=members.begin(); it!=members.end(); ++it) {
 				mask[*it] = true;
 			}
 			blocks[bx].setCorrelation(cor);
 			bx += 1;
+		}
+	}
+
+	// only considers lower triangle
+	template <typename T1>
+	void setCorrelation(const Eigen::MatrixBase<T1> &corIn)
+	{
+		stddev.resize(corIn.rows());
+		stddev.setConstant(1.0);
+		cor = corIn;
+		setupCorrelation();
+	}
+
+	// only considers lower triangle
+	template <typename T1>
+	void setCovarianceUnsafe(const Eigen::MatrixBase<T1> &cov)
+	{
+		stddev = cov.diagonal().array().sqrt();
+
+		cor.resize(cov.rows(), cov.cols());
+		for(int i = 1; i < cov.rows(); i++) {
+			for(int j = 0; j < i; j++) {
+				cor(i,j) = cov(i, j) / (stddev[i] * stddev[j]);
+			}
+		}
+
+		setupCorrelation();
+	}
+
+	void setZeroMean() {
+		for (int bx=0; bx < (int)blocks.size(); ++bx) {
+			blocks[bx].setZeroMean();
 		}
 	}
 
@@ -216,7 +272,7 @@ class OrdinalLikelihood {
 	};
 
 	template <typename T1, typename T2>
-	double likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound)
+	double likelihood(const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound)
 	{
 		double lk = 1.0;
 		for (int bx=0; bx < int(blocks.size()); ++bx) {
@@ -229,7 +285,8 @@ class OrdinalLikelihood {
 };
 
 template <typename T1, typename T2>
-double OrdinalLikelihood::block::likelihood(Eigen::MatrixBase<T1> &lbound, Eigen::MatrixBase<T2> &ubound)
+double OrdinalLikelihood::block::likelihood(const Eigen::MatrixBase<T1> &lbound,
+					    const Eigen::MatrixBase<T2> &ubound)
 {
 	for (int ox=0, vx=0; ox < (int)varMask.size(); ++ox) {
 		if (!varMask[ox]) continue;
@@ -257,7 +314,7 @@ double OrdinalLikelihood::block::likelihood(Eigen::MatrixBase<T1> &lbound, Eigen
 	return ordLik;
 }
 
-double OrdinalLikelihood::block::likelihood(int row)
+void OrdinalLikelihood::block::loadRow(int row)
 {
 	std::vector< omxThresholdColumn > &colInfo = *ol->colInfoPtr;
 	Eigen::ArrayXi &ordColumns = ol->ordColumns;
@@ -265,17 +322,17 @@ double OrdinalLikelihood::block::likelihood(int row)
 	for (int ox=0, vx=0; ox < ordColumns.size(); ++ox) {
 		if (!varMask[ox]) continue;
 		int j = ordColumns[ox];
-		int var = omxVectorElement(ol->dataColumns, j);
+		int var = ol->dataColumns[j];
 		int pick = omxIntDataElement(ol->data, row, var) - 1;
 		double sd = ol->stddev[ox];
 		int tcol = colInfo[j].column;
 		if (pick == 0) {
-			lThresh[vx] = NA_REAL;
+			lThresh[vx] = -std::numeric_limits<double>::infinity();
 			uThresh[vx] = (tMat(pick, tcol) - mean[vx]) / sd;
 			Infin[vx] = 0;
 		} else if (pick == colInfo[j].numThresholds) {
 			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
-			uThresh[vx] = NA_REAL;
+			uThresh[vx] = std::numeric_limits<double>::infinity();
 			Infin[vx] = 1;
 		} else {
 			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
@@ -284,16 +341,388 @@ double OrdinalLikelihood::block::likelihood(int row)
 		}
 		vx += 1;
 	}
+}
+
+double OrdinalLikelihood::block::likelihood(int row)
+{
+	loadRow(row);
 	int inform;
 	double ordLik;
 	omxSadmvnWrapper(varMap.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	// if inform == 1, retry? TODO
+	if (inform == 1) mxLog("Sadmvn error larger than epsilon");
 	if (inform == 2) {
 		return 0.0;
 	}
 	return ordLik;
+}
+
+/*
+# Dichtefunktion und Verteilung einer multivariate truncated normal
+#
+# Problem ist die Bestimmung der Randverteilung einer Variablen.
+#
+# 1. Im bivariaten Fall kann explizit eine Formel angegeben werden (vgl. Arnold (1993))
+# 2. Im multivariaten Fall kann ein Integral angegeben werden (vgl. Horrace (2005))
+# 3. Bestimmung der Dichtefunktion über das Integral möglich?
+# 4. Kann die Verteilungsfunktion pmvnorm() helfen? Kann man dann nach einer Variablen differenzieren?
+
+# Literatur:
+#
+# Genz, A. (1992). Numerical computation of multivariate normal probabilities. Journal of Computational and Graphical Statistics, 1, 141-150
+# Genz, A. (1993). Comparison of methods for the computation of multivariate normal probabilities. Computing Science and Statistics, 25, 400-405
+# Horrace (2005).
+# Jack Cartinhour (1990): One-dimensional marginal density functions of a truncated multivariate normal density function
+# Communications in Statistics - Theory and Methods, Volume 19, Issue 1 1990 , pages 197 - 203
+
+# Dichtefunktion für Randdichte f(xn) einer Truncated Multivariate Normal Distribution,
+# vgl. Jack Cartinhour (1990) "One-dimensional marginal density functions of a truncated multivariate normal density function"
+*/
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
+			const Eigen::MatrixBase<T2> &sigma,
+			const Eigen::MatrixBase<T3> &lower, const Eigen::MatrixBase<T4> &upper,
+			Eigen::MatrixBase<T5> &density)
+{
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+
+	for (int dx=0; dx < xn.size(); dx++) {
+		if (!(lower[nn] <= xn[dx] && xn[dx] <= upper[nn])) Rf_error("xn out of range");
+	}
+
+	if (sigma.rows() == 1) {
+		double sd = sqrt(sigma(0,0));
+		if (!std::isfinite(prob)) {
+			prob = Rf_pnorm5(upper[0], 0, sd, true, false) - Rf_pnorm5(lower[0], 0, sd, true, false);
+		}
+		for (int dx=0; dx < xn.size(); dx++) {
+			density[dx] = Rf_dnorm4(xn[dx], 0, sd, false) / prob;
+		}
+		return;
+	}
+
+	MatrixXd AA = sigma;
+	if (InvertSymmetricPosDef(AA, 'L')) Rf_error("Non-positive definite");
+	
+	MatrixXd A_1;
+	struct subset1 {
+		int nn;
+		subset1(int _nn) : nn(_nn) {};
+		bool operator()(int rr) { return rr != nn; };
+	} op1(nn);
+
+	subsetCovariance(AA, op1, sigma.cols()-1, A_1);
+	if (InvertSymmetricPosDef(A_1, 'L')) Rf_error("Non-positive definite");
+
+	double c_nn = 1.0/sigma(nn, nn);
+	VectorXd cc(sigma.rows()-1);
+	for (int rx=0, dx=0; rx < sigma.rows(); ++rx) {
+		if (rx != nn) cc[dx++] = sigma(rx, nn);
+	}
+
+	OrdinalLikelihood ol;
+	if (!std::isfinite(prob)) {
+		ol.setCovarianceUnsafe(sigma);
+		ol.setZeroMean();
+		prob = ol.likelihood(lower, upper);
+	}
+
+	ol.setCovarianceUnsafe(A_1);
+	for (int dx=0; dx < 2; dx++) {
+		if (fabs(xn[dx]) == std::numeric_limits<double>::infinity()) {
+			density[dx] = 0;
+			continue;
+		}
+		VectorXd lower_n(sigma.rows() - 1);
+		VectorXd upper_n(sigma.rows() - 1);
+		for (int rx=0, tx=0; rx < sigma.rows(); ++rx) {
+			if (rx == nn) continue;
+			lower_n[tx] = lower[rx];
+			upper_n[tx] = upper[rx];
+			++tx;
+		}
+		VectorXd mu = xn[dx] * cc.array() * c_nn;
+		ol.setMean(mu);
+		density[dx] = exp(-0.5*xn[dx]*xn[dx]*c_nn) * ol.likelihood(lower_n, upper_n);
+	}
+
+	density.array() /= prob * sqrt(M_2PI * sigma(nn, nn));
+}
+
+/*
+# Computation of the bivariate marginal density F_{q,r}(x_q, x_r) (q != r)
+# of truncated multivariate normal distribution 
+# following the works of Tallis (1961), Leppard and Tallis (1989)
+#
+# References:
+# Tallis (1961): 
+#   "The Moment Generating Function of the Truncated Multi-normal Distribution"
+# Leppard and Tallis (1989): 
+#   "Evaluation of the Mean and Covariance of the Truncated Multinormal"
+# Manjunath B G and Stefan Wilhelm (2009): 
+#   "Moments Calculation for the Doubly Truncated Multivariate Normal Distribution"
+#
+# (n-2) Integral, d.h. zweidimensionale Randdichte in Dimension q und r, 
+# da (n-2) Dimensionen rausintegriert werden.
+# vgl. Tallis (1961), S.224 und Code Leppard (1989), S.550
+#
+# f(xq=b[q], xr=b[r])
+#
+# Attention: Function is not vectorized at the moment!
+# Idee: Vektorisieren xq, xr --> die Integration Bounds sind immer verschieden,
+#       pmvnorm() kann nicht vektorisiert werden. Sonst spart man schon ein bisschen Overhead.
+# Der eigentliche bottleneck ist aber pmvnorm().
+# Gibt es Unterschiede bzgl. der verschiedenen Algorithmen GenzBretz() vs. Miwa()?
+# pmvnorm(corr=) kann ich verwenden
+ */
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
+			 int qq, int rr,
+			 const Eigen::MatrixBase<T3> &sigma,
+			 const Eigen::MatrixBase<T4> &lower, const Eigen::MatrixBase<T5> &upper,
+			 Eigen::MatrixBase<T6> &density)
+{
+	using Eigen::VectorXd;
+	using Eigen::Vector4d;
+	using Eigen::MatrixXd;
+	using Eigen::DiagonalMatrix;
+
+	if (sigma.rows() < 2) Rf_error("Dimension must be >= 2");
+
+	for (int dx=0; dx < xq.size(); dx++) {
+		if (!(lower[qq] <= xq[dx] && xq[dx] <= upper[qq])) Rf_error("xq[%d] out of range", dx);
+	}
+	for (int dx=0; dx < xr.size(); dx++) {
+		if (!(lower[rr] <= xr[dx] && xr[dx] <= upper[rr])) Rf_error("xr[%d] out of range", dx);
+	}
+
+	OrdinalLikelihood ol;
+	if (!std::isfinite(alpha)) {
+		ol.setCovarianceUnsafe(sigma);
+		ol.setZeroMean();
+		alpha = ol.likelihood(lower, upper);
+	}
+	
+	struct subset1 {
+		int qq, rr;
+		bool flip;
+		subset1(int _qq, int _rr) : qq(_qq), rr(_rr), flip(false) {};
+		bool operator()(int nn) { return (rr == nn || qq == nn) ^ flip; };
+	} op1(qq, rr);
+
+	MatrixXd qrSigma;
+	subsetCovariance(sigma, op1, 2, qrSigma);
+	SimpCholesky< Eigen::MatrixXd > covDecomp;
+	covDecomp.compute(qrSigma);
+	covDecomp.refreshInverse();
+	for (int dx=0; dx < density.size(); dx++) {
+		VectorXd loc(2);
+		if (fabs(xq[dx]) == std::numeric_limits<double>::infinity() ||
+		    fabs(xr[dx]) == std::numeric_limits<double>::infinity()) {
+			density[dx] = 0.0;
+			continue;
+		}
+		loc[0] = xq[dx];
+		loc[1] = xr[dx];
+		double dist = loc.transpose() * covDecomp.getInverse() * loc;
+		density[dx] = exp(-0.5 * (M_LN_2PI * 2 + covDecomp.log_determinant() + dist)) / alpha;
+	}
+
+	if (sigma.rows() == 2) return;
+
+	VectorXd SD = sigma.diagonal().array().sqrt();
+	VectorXd lowerStd = lower.array() / SD.array();
+	VectorXd upperStd = upper.array() / SD.array();
+	Vector4d xqStd = xq.array() / SD[qq];
+	Vector4d xrStd = xr.array() / SD[rr];
+	VectorXd iSDcoef = 1.0/SD.array();
+	DiagonalMatrix<double, Eigen::Dynamic> iSD(iSDcoef);
+	MatrixXd RR = iSD * sigma * iSD;
+	MatrixXd RINV = RR;
+	if (InvertSymmetricPosDef(RINV, 'L')) Rf_error("Non-positive definite");
+	MatrixXd WW;
+	op1.flip = true;
+	subsetCovariance(RINV, op1, RINV.cols()-2, WW);
+	if (InvertSymmetricPosDef(WW, 'L')) Rf_error("Non-positive definite");
+	MatrixXd RQR(WW.rows(), WW.cols());
+	for (int cx=0; cx < WW.cols(); ++cx) {
+		for (int rx=cx; rx < WW.rows(); ++rx) {
+			RQR(rx,cx) = WW(rx,cx) / sqrt(WW(rx,rx) * WW(cx,cx));
+		}
+	}
+	Eigen::Matrix<bool, Eigen::Dynamic, 1> isInf =
+		(xqStd.array().abs() == std::numeric_limits<double>::infinity() ||
+		 xrStd.array().abs() == std::numeric_limits<double>::infinity());
+	MatrixXd AQR(xq.size(), WW.rows());
+	MatrixXd BQR(xq.size(), WW.rows());
+	for (int ii=0, m2=0; ii < RR.rows(); ++ii) {
+		if (ii == qq || ii == rr) continue;
+		double BSQR = (RR(qq, ii) - RR(qq, rr) * RR(rr, ii)) / (1 - RR(qq, rr)*RR(qq, rr));
+		double BSRQ = (RR(rr, ii) - RR(qq, rr) * RR(qq, ii)) / (1 - RR(qq, rr)*RR(qq, rr));
+		double RSRQ = (1 - RR(ii, qq)*RR(ii, qq)) * (1 - RR(qq, rr)*RR(qq, rr));
+		// partial correlation coefficient R[r,i] given q
+		RSRQ = (RR(ii, rr) - RR(ii, qq) * RR(qq, rr)) / sqrt(RSRQ);
+
+		double denom = sqrt((1 - RR(ii, qq)*RR(ii, qq)) * (1 - RSRQ*RSRQ));
+		
+		// lower integration bound
+		AQR.col(m2) = ((lowerStd[ii] - BSQR * xqStd.array() - BSRQ * xrStd.array()) / denom);
+		
+		// upper integration bound
+		BQR.col(m2) = ((upperStd[ii] - BSQR * xqStd.array() - BSRQ * xrStd.array()) / denom);
+
+		for (int rx=0; rx < isInf.size(); ++rx) {
+			if (!isInf[rx]) continue;
+			AQR(rx,m2) = -std::numeric_limits<double>::infinity();
+			BQR(rx,m2) = std::numeric_limits<double>::infinity();
+		}
+
+		m2 += 1;
+	}
+	
+	for (int ii=0; ii < xq.size(); ++ii) {
+		if (RQR.rows() == 1) {
+			ol.setStandardNormal(1);
+		} else {
+			ol.setCorrelation(RQR);
+		}
+		ol.setZeroMean();
+		double prob = ol.likelihood(AQR.row(ii), BQR.row(ii));
+		density[ii] *= prob;
+	}
+}
+
+// Translated from tmvtnorm 1.4-10
+
+// split Aitken (1934) out so we can handle continuous missing data without recomputing ordinal TODO
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
+	       const Eigen::MatrixBase<T2> &fullLower, const Eigen::MatrixBase<T3> &fullUpper,
+	       Eigen::MatrixBase<T4> &tmeanOut, Eigen::MatrixBase<T5> &tcovOut)
+{
+	using Eigen::Vector2d;
+	using Eigen::Vector4d;
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+	using Eigen::Matrix;
+
+	Matrix<bool, Eigen::Dynamic, 1> idx =
+		(fullLower.array() != -std::numeric_limits<double>::infinity() ||
+		 fullUpper.array() != std::numeric_limits<double>::infinity());
+
+	int kk = idx.count(); //number of truncated variables
+
+	struct subset {
+		Matrix<bool, Eigen::Dynamic, 1> &idx;
+		bool flip;
+		subset(Matrix<bool, Eigen::Dynamic, 1> &_idx) : idx(_idx) {};
+		bool operator()(int nn) { return idx[nn] ^ flip; };
+	} op(idx);
+
+	MatrixXd V11;
+	MatrixXd V12(kk, idx.size() - kk);
+	MatrixXd V22;
+
+	op.flip = false;
+	subsetCovariance(sigma, op, kk, V11);
+	op.flip = true;
+	upperRightCovariance(sigma, op, V12);
+	subsetCovariance(sigma, op, idx.size() - kk, V22);
+
+	VectorXd lower(kk);
+	VectorXd upper(kk);
+	for (int xx=0, kx=0; xx < idx.size(); ++xx) {
+		if (!idx[xx]) continue;
+		lower[kx] = fullLower[xx];
+		upper[kx] = fullUpper[xx];
+		kx += 1;
+	}
+
+	Vector2d marginalBounds;
+	Vector2d marginalOut;
+	VectorXd F_a(kk);
+	VectorXd F_b(kk);
+	for (int qq=0; qq < kk; ++qq) {
+		marginalBounds[0] = lower[qq];
+		marginalBounds[1] = upper[qq];
+		_dtmvnorm_marginal(prob, marginalBounds, qq, V11, lower, upper, marginalOut);
+		F_a[qq] = marginalOut[0];
+		F_b[qq] = marginalOut[1];
+	}
+	VectorXd xi = V11 * (F_a - F_b);
+
+	MatrixXd F2(kk,kk);
+	F2.diagonal().setZero();
+	Vector4d xq;
+	Vector4d xr;
+	Vector4d marginal2Out;
+	for (int qq=0; qq < kk-1; ++qq) {          //col
+		for (int ss=qq+1; ss < kk; ++ss) { //row
+			xq << lower[qq], upper[qq], lower[qq], upper[qq];
+			xr << lower[ss], lower[ss], upper[ss], upper[ss];
+			_dtmvnorm_marginal2(prob, xq, xr, qq, ss, V11, lower, upper, marginal2Out);
+			F2(qq,ss) = (marginal2Out[0] - marginal2Out[1]) - (marginal2Out[2] - marginal2Out[3]);
+		}
+	}
+	F2 = F2.selfadjointView<Eigen::Upper>();
+	
+	F_a.array() *= lower.array();
+	F_b.array() *= upper.array();
+	for (int kx=0; kx < kk; ++kx) {
+		if (!std::isfinite(F_a[kx])) F_a[kx] = 0.0;
+		if (!std::isfinite(F_b[kx])) F_b[kx] = 0.0;
+	};
+	VectorXd F_ab = (F_a - F_b).array() / V11.diagonal().array();
+
+	MatrixXd U11(kk,kk);
+	for (int ii =0; ii < kk; ++ii) {          //col
+		for (int jj =ii; jj < kk; ++jj) { //row
+			double sum = 0.0;
+			for (int sr=0; sr < kk; ++sr) {  //aka qq
+				sum += V11(ii,sr) * V11(jj,sr) * F_ab[sr];
+				if (jj != sr) {
+					double sum2 = 0.0;
+					for (int sc=0; sc < kk; ++sc) {
+						double tt = V11(jj,sc) - V11(sr,sc) * V11(jj,sr) / V11(sr,sr);
+						sum2 += tt * F2(sr,sc);
+					}
+					sum2 *= V11(ii,sr);
+					sum += sum2;
+				}
+			}
+			U11(ii,jj) = V11(ii,jj) + sum;
+		}
+	}
+	U11 -= xi * xi.transpose();
+	U11 = U11.selfadjointView<Eigen::Upper>();
+
+	MatrixXd invV11 = V11;
+	if (InvertSymmetricPosDef(invV11, 'L')) Rf_error("Non-positive definite");
+	invV11 = invV11.selfadjointView<Eigen::Lower>();
+
+	// Aitken (1934) "Note on Slection from a Multivariate Normal Population"
+	// Or Johnson/Kotz (1972), p.70
+	VectorXd mu2 = xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12;
+	tmeanOut.derived().resize(idx.size());
+	for (int xx=0, x1=0, x2=0; xx < idx.size(); ++xx) {
+		tmeanOut[xx] = idx[xx]? xi[x1++] : mu2[x2++];
+	}
+	tcovOut.derived().resize(idx.size(), idx.size());
+	op.flip = false;
+	subsetCovarianceStore(tcovOut, op, U11);
+	op.flip = true;
+	MatrixXd tmp = U11.selfadjointView<Eigen::Lower>() * (invV11.selfadjointView<Eigen::Lower>() * V12);
+	upperRightCovarianceStore(tcovOut, op, tmp);
+	tmp = (V22 - V12.transpose() * (invV11 -
+					invV11.selfadjointView<Eigen::Lower>() * U11 *
+					invV11.selfadjointView<Eigen::Lower>()) * V12);
+	subsetCovarianceStore(tcovOut, op, tmp);
+
+	tcovOut = tcovOut.template selfadjointView<Eigen::Upper>();
 }
 
 #endif 

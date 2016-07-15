@@ -35,6 +35,7 @@ struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	bool isStateSpace;
 	int rowwiseParallel;
+	int condOnOrdinal;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
@@ -77,5 +78,7 @@ void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				 omxMatrix* output,
 				 int rowbegin, int rowcount);
+bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off);
+
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */
