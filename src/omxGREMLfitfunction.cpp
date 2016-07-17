@@ -452,9 +452,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
-	if(nThreadz <= dVlength){
-		parallelDerivScheme = 2; //Divvy up AIM rows among the threads.
-	}
+
 	/*Under the AIM-row-binning scheme, each thread will calculate the gradient element and the row
 	of the AIM (starting with its diagonal element) for each of its parameters.*/
 	
@@ -475,8 +473,6 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		rowbins[minbin](rowbins[minbin].size()-1) = rownums[i]-1; //C array indexing starts at 0, not 1.
 		rowbinsums(minbin) += rownums[i];
 	}
-	
-	if(parallelDerivScheme==2){return;}
 	
 	/*Alternately, we could partition the elements ("cells") of the upper triangle of the AIM among the 
 	threads.  The elements are 	numbered sequentially, starting with the upper left element, 
