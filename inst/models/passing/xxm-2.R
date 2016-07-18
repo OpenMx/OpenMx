@@ -26,4 +26,4 @@ yield <- mxRun(yield)
 omxCheckCloseEnough(yield$output$fit, 327.3271, 1e-2)
 
 (fm01 <- lmer(Yield ~ 1 + (1 | Batch), REML = FALSE, Dyestuff))
-omxCheckCloseEnough(logLik(fm01), logLik(yield), 1e-4)
+omxCheckCloseEnough(logLik(fm01), logLik(yield), 5e-3)

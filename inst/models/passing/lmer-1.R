@@ -37,6 +37,7 @@ m1 <- mxModel(m1, mxModel(
   mxPath(c("intercept", "slope"), arrows=2, values=1),
   mxPath("intercept", "slope", arrows=2, values=.25, labels="cov1")))
 
+m1$bySubject.S[1,1]$ubound <- 100
 m1$bySubject$fitfunction <- NULL
 
 omxCheckError(mxRun(m1), "Join mapping matrix sleep.Z must have 2 rows: 'Reaction' and 'DayEffect'")
