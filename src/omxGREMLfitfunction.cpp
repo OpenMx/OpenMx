@@ -145,217 +145,341 @@
 
 
 
-void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
-  if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
-  
-  //Recompute Expectation:
-  omxExpectation* expectation = oo->expectation;
-  omxExpectationCompute(fc, expectation, NULL);
-    
-  omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
-  
-  //Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup
-  //(not necessary for most compute plans):
-  if(fc && gff->varGroup != fc->varGroup){
-    gff->buildParamMap(fc->varGroup);
-	}
-  
-  gff->recomputeAug(0, fc);
-  
-  //Declare local variables used in more than one scope in this function:
-  const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
-  const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
-  int i;
-  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(gff->y), gff->y->cols, 1);
-  Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
-  EigenMatrixAdaptor EigX(gff->X);
-  Eigen::MatrixXd P, Py;
-  P.setZero(gff->invcov->rows, gff->invcov->cols);
-  double logdetV=0, logdetquadX=0, ytPy=0;
-  
-  if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-    if(gff->usingGREMLExpectation){
-      omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
-      
-      //Check that factorizations of V and the quadratic form in X succeeded:
-      if(oge->cholV_fail_om->data[0]){
-        oo->matrix->data[0] = NA_REAL;
-        if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
-        return;
-      }
-      if(oge->cholquadX_fail){
-        oo->matrix->data[0] = NA_REAL;
-        if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
-        return;
-      }
-      
-      //Log determinant of V:
-      logdetV = oge->logdetV_om->data[0];
-      
-      //Log determinant of quadX:
-      for(i=0; i < gff->X->cols; i++){
-        logdetquadX += log(oge->cholquadX_vectorD[i]);
-      }
-      logdetquadX *= 2;
-      gff->REMLcorrection = Scale*0.5*logdetquadX;
-      
-      //Finish computing fit (negative loglikelihood):
-      P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
-        (Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
-          (EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
-      Py = P.selfadjointView<Eigen::Lower>() * Eigy;
-      ytPy = (Eigy.transpose() * Py)(0,0);
-      if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
-      oo->matrix->data[0] = gff->REMLcorrection + 
-      	Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
-      gff->nll = oo->matrix->data[0];
-      if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
-    }
-    else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
-      //Declare locals:
-      EigenMatrixAdaptor yhat(gff->means);
-      EigenMatrixAdaptor EigV(gff->cov);
-      double logdetV=0, logdetquadX=0;
-      Eigen::MatrixXd Vinv, quadX;
-      Eigen::LLT< Eigen::MatrixXd > cholV(gff->cov->rows);
-      Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
-      Eigen::VectorXd cholV_vectorD, cholquadX_vectorD;
-      
-      //Cholesky factorization of V:
-      cholV.compute(EigV);
-      if(cholV.info() != Eigen::Success){
-        omxRaiseErrorf("expected covariance matrix is non-positive-definite");
-        oo->matrix->data[0] = NA_REAL;
-        return;
-      }
-      //Log determinant of V:
-      cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
-      for(i=0; i < gff->X->rows; i++){
-        logdetV += log(cholV_vectorD[i]);
-      }
-      logdetV *= 2;
-      
-      Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-      
-      quadX = EigX.transpose() * Vinv * EigX; //<--Quadratic form in X
-      
-      cholquadX.compute(quadX); //<--Cholesky factorization of quadX
-      if(cholquadX.info() != Eigen::Success){
-        omxRaiseErrorf("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
-        oo->matrix->data[0] = NA_REAL;
-        return;
-      }
-      cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-      for(i=0; i < gff->X->cols; i++){
-        logdetquadX += log(cholquadX_vectorD[i]);
-      }
-      logdetquadX *= 2;
-      gff->REMLcorrection = Scale*0.5*logdetquadX;
-      
-      //Finish computing fit:
-      oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + 
-        ( Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
-      gff->nll = oo->matrix->data[0]; 
-      return;
-    }
-  }
-  
-  if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-    //This part requires GREML expectation:
-    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
-  	
-  	//Recompute derivatives:
-  	gff->dVupdate(fc);
-  	gff->recomputeAug(1, fc);
-    
-    //Declare local variables for this scope:
-    int nThreadz = Global->numThreads;
-    int wantHess = 0;
-    
-    fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
-    
-    //Set up new HessianBlock:
-    HessianBlock *hb = new HessianBlock;
-    if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-      hb->vars.resize(gff->dVlength);
-      hb->mat.resize(gff->dVlength, gff->dVlength);
-      gff->recomputeAug(2, fc);
-      wantHess = 1;
-    }
-    
-    if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
-    
-    //Begin looping thru free parameters:
+ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
+ 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+ 	
+ 	//Recompute Expectation:
+ 	omxExpectation* expectation = oo->expectation;
+ 	omxExpectationCompute(fc, expectation, NULL);
+ 	
+ 	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
+ 	
+ 	//Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup
+ 	//(not necessary for most compute plans):
+ 	if(fc && gff->varGroup != fc->varGroup){
+ 		gff->buildParamMap(fc->varGroup);
+ 	}
+ 	
+ 	gff->recomputeAug(0, fc);
+ 	
+ 	//Declare local variables used in more than one scope in this function:
+ 	const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
+ 	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
+ 	int i;
+ 	Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(gff->y), gff->y->cols, 1);
+ 	Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
+ 	EigenMatrixAdaptor EigX(gff->X);
+ 	Eigen::MatrixXd P, Py;
+ 	P.setZero(gff->invcov->rows, gff->invcov->cols);
+ 	double logdetV=0, logdetquadX=0, ytPy=0;
+ 	
+ 	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 		if(gff->usingGREMLExpectation){
+ 			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 			
+ 			//Check that factorizations of V and the quadratic form in X succeeded:
+ 			if(oge->cholV_fail_om->data[0]){
+ 				oo->matrix->data[0] = NA_REAL;
+ 				if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
+ 				return;
+ 			}
+ 			if(oge->cholquadX_fail){
+ 				oo->matrix->data[0] = NA_REAL;
+ 				if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
+ 				return;
+ 			}
+ 			
+ 			//Log determinant of V:
+ 			logdetV = oge->logdetV_om->data[0];
+ 			
+ 			//Log determinant of quadX:
+ 			for(i=0; i < gff->X->cols; i++){
+ 				logdetquadX += log(oge->cholquadX_vectorD[i]);
+ 			}
+ 			logdetquadX *= 2;
+ 			gff->REMLcorrection = Scale*0.5*logdetquadX;
+ 			
+ 			//Finish computing fit (negative loglikelihood):
+ 			P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
+ 				(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
+ 				(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
+ 			Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+ 			ytPy = (Eigy.transpose() * Py)(0,0);
+ 			if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+ 			oo->matrix->data[0] = gff->REMLcorrection + 
+ 				Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
+ 			gff->nll = oo->matrix->data[0];
+ 			if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
+ 		}
+ 		else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
+ 			//Declare locals:
+ 			EigenMatrixAdaptor yhat(gff->means);
+ 			EigenMatrixAdaptor EigV(gff->cov);
+ 			double logdetV=0, logdetquadX=0;
+ 			Eigen::MatrixXd Vinv, quadX;
+ 			Eigen::LLT< Eigen::MatrixXd > cholV(gff->cov->rows);
+ 			Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
+ 			Eigen::VectorXd cholV_vectorD, cholquadX_vectorD;
+ 			
+ 			//Cholesky factorization of V:
+ 			cholV.compute(EigV);
+ 			if(cholV.info() != Eigen::Success){
+ 				omxRaiseErrorf("expected covariance matrix is non-positive-definite");
+ 				oo->matrix->data[0] = NA_REAL;
+ 				return;
+ 			}
+ 			//Log determinant of V:
+ 			cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
+ 			for(i=0; i < gff->X->rows; i++){
+ 				logdetV += log(cholV_vectorD[i]);
+ 			}
+ 			logdetV *= 2;
+ 			
+ 			Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+ 			
+ 			quadX = EigX.transpose() * Vinv * EigX; //<--Quadratic form in X
+ 			
+ 			cholquadX.compute(quadX); //<--Cholesky factorization of quadX
+ 			if(cholquadX.info() != Eigen::Success){
+ 				omxRaiseErrorf("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
+ 				oo->matrix->data[0] = NA_REAL;
+ 				return;
+ 			}
+ 			cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
+ 			for(i=0; i < gff->X->cols; i++){
+ 				logdetquadX += log(cholquadX_vectorD[i]);
+ 			}
+ 			logdetquadX *= 2;
+ 			gff->REMLcorrection = Scale*0.5*logdetquadX;
+ 			
+ 			//Finish computing fit:
+ 			oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + 
+ 				( Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
+ 			gff->nll = oo->matrix->data[0]; 
+ 			return;
+ 		}
+ 	}
+ 	
+ 	if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 		//This part requires GREML expectation:
+ 		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 		
+ 		//Recompute derivatives:
+ 		gff->dVupdate(fc);
+ 		gff->recomputeAug(1, fc);
+ 		
+ 		//Declare local variables for this scope:
+ 		int nThreadz = Global->numThreads;
+ 		int wantHess = 0;
+ 		
+ 		fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
+ 		
+ 		//Set up new HessianBlock:
+ 		HessianBlock *hb = new HessianBlock;
+ 		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 			hb->vars.resize(gff->dVlength);
+ 			hb->mat.resize(gff->dVlength, gff->dVlength);
+ 			gff->recomputeAug(2, fc);
+ 			wantHess = 1;
+ 		}
+ 		
+ 		if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
+ 		
+ 		switch(gff->parallelDerivScheme){
+ 		case 2:
 #pragma omp parallel num_threads(nThreadz)
 {
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
-		double tr=0;
-		Eigen::MatrixXd ytPdV_dtheta1;
-		//Eigen::VectorXd diagPdV_dtheta1;
-		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
-		int threadID = omx_absolute_thread_num();
-		int istart = threadID * gff->dVlength / nThreadz;
-		int iend = (threadID+1) * gff->dVlength / nThreadz;
-		if(threadID == nThreadz-1){iend = gff->dVlength;}
-		for(i=istart; i < iend; i++){
-			tr=0;
-			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
-			if(t1 < 0){continue;}
-			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
-			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
-			}
-			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-			for(j=i; j < gff->dVlength; j++){
-				if(j==i){
-					/*Need trace of P*dV_dtheta for gradient element...
-					Frustratingly, the selfadjointView has no row or column accessor function among its members.
-					But the trace of a product of two square symmetric matrices is the sum of the elements of
-					their elementwise product.*/
-					//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
-					for(c=0; c < gff->cov->rows; c++){
-						for(r=c; r < gff->cov->rows; r++){
-							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
-						}
-					}
-					gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
-						Scale*gff->pullAugVal(1,a1,0);
-					fc->grad(t1) += gff->gradient(t1);
-					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
-							Scale*gff->pullAugVal(2,a1,a1);
+	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
+	double tr=0;
+	Eigen::MatrixXd ytPdV_dtheta1;
+	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+	int threadID = omx_absolute_thread_num();
+	int istart = 0;
+	int iend = gff->rowbins[threadID].size();
+	for(i=istart; i < iend; i++){
+		tr=0;
+		hrn = gff->rowbins[threadID](i); //Current row number of the AIM.
+		if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
+		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter t1.
+		//if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
+		if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
+			dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
+		}
+		else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
+		ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+		for(hcn=hrn; hcn < gff->dVlength; hcn++){
+			if(hcn==hrn){
+				/*Need trace of P*dV_dtheta for gradient element...
+				Frustratingly, the selfadjointView has no row or column accessor function among its members.
+				But the trace of a product of two square symmetric matrices is the sum of the elements of
+				their elementwise product.*/
+				//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
+				for(c=0; c < gff->cov->rows; c++){
+					for(r=c; r < gff->cov->rows; r++){
+						tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
 					}
 				}
-				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-					t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
-					if(t2 < 0){continue;}
-					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
-					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
+				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+					Scale*gff->pullAugVal(1,a1,0);
+				fc->grad(hrn) += gff->gradient(hrn);
+				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+						Scale*gff->pullAugVal(2,a1,a1);
+				}
+			}
+			//I think it can be assumed at this point that the Hessian is wanted?:
+			else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+				if(gff->gradMap[hcn] < 0){continue;}
+				a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter j.
+				if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
+					dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
+				}
+				else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
+				gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+					dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+				gff->avgInfo(hcn,hrn) = gff->avgInfo(hrn,hcn);
+			}}}}
+}
+ 			break;
+ 		case 3:
+#pragma omp parallel num_threads(nThreadz)
+{
+	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
+	double tr=0;
+	Eigen::MatrixXd ytPdV_dtheta1;
+	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+	int threadID = omx_absolute_thread_num();
+	int iend = gff->AIMelembins[threadID].size();
+	int inielem = gff->AIMelembins[threadID](0);
+	while(inielem > 0){
+		hcn++;
+		inielem--;
+		if(hcn > gff->dVlength){
+			hrn++;
+			hcn=hrn;
+		}
+	}
+	while(i < iend){
+		if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
+		tr=0;
+		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
+		if(hrn==hcn || i==0){
+			if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
+				dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
+			}
+			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
+			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+		}
+		if(hrn==hcn){
+			for(c=0; c < gff->cov->rows; c++){
+				for(r=c; r < gff->cov->rows; r++){
+					tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
+				}
+			}
+			gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+				Scale*gff->pullAugVal(1,a1,0);
+			fc->grad(hrn) += gff->gradient(hrn);
+			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+				gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+					Scale*gff->pullAugVal(2,a1,a1);
+			}
+		}
+		else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+			if(gff->gradMap[hcn] < 0){continue;}
+			a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
+			if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
+				dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
+			}
+			else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
+			gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+				dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+			gff->avgInfo(hcn,hrn) = gff->avgInfo(hrn,hcn);
+		}}
+		hcn++;
+		i++;
+		if(hcn > gff->dVlength){
+			hrn++;
+			hcn=hrn;
+		}}
+}
+ 			break;
+ 		default:
+#pragma omp parallel num_threads(nThreadz)
+{
+	int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
+	double tr=0;
+	Eigen::MatrixXd ytPdV_dtheta1;
+	//Eigen::VectorXd diagPdV_dtheta1;
+	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
+	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+	//TODO: Make sure this code is robust to the case of more threads than free parameters:
+	int threadID = omx_absolute_thread_num();
+	int istart = threadID * gff->dVlength / nThreadz;
+	int iend = (threadID+1) * gff->dVlength / nThreadz;
+	if(threadID == nThreadz-1){iend = gff->dVlength;}
+	for(i=istart; i < iend; i++){
+		tr=0;
+		t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
+		if(t1 < 0){continue;}
+		a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
+		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
+		if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
+			dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
+		}
+		else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
+		ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+		for(j=i; j < gff->dVlength; j++){
+			if(j==i){
+				/*Need trace of P*dV_dtheta for gradient element...
+				Frustratingly, the selfadjointView has no row or column accessor function among its members.
+				But the trace of a product of two square symmetric matrices is the sum of the elements of
+				their elementwise product.*/
+				//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
+				for(c=0; c < gff->cov->rows; c++){
+					for(r=c; r < gff->cov->rows; r++){
+						tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
 					}
-					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-					gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
-						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
-					gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
-				}}}}
+				}
+				gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+					Scale*gff->pullAugVal(1,a1,0);
+				fc->grad(t1) += gff->gradient(t1);
+				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+					gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+						Scale*gff->pullAugVal(2,a1,a1);
+				}
+			}
+			else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+				t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
+				if(t2 < 0){continue;}
+				a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
+				if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
+					dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
+				}
+				else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
+				gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+					dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+				gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+			}}}}
 }
-    //Assign upper triangle elements of avgInfo to the HessianBlock:
-    if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-      for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
-		    for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
-				  	hb->mat(d2,d1) = gff->avgInfo(h2,h1);
-				    ++d2;
-        }
-			  ++d1;	
-		  }
-		  fc->queue(hb);
-  }}
-  return;
-}
-
+ 			break;
+ 		}
+ 			//Assign upper triangle elements of avgInfo to the HessianBlock:
+ 			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 				for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
+ 					for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
+ 						hb->mat(d2,d1) = gff->avgInfo(h2,h1);
+ 						++d2;
+ 					}
+ 					++d1;	
+ 				}
+ 				fc->queue(hb);
+ 			}
+ 	}
+ 	return;
+ }
+ 
 
 
 void omxDestroyGREMLFitFunction(omxFitFunction *oo){
@@ -505,7 +629,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	/*The computational cost of computing a diagonal element includes the upfront cost of 
 	computing ytPdV_dtheta, and the cost of computing the gradient element.
 	2*N^2 for ytPdV_dtheta
-	2*N^2 + N to efficiently calculate trace of PdV_dtheta
+	1.5*N^2 + 0.5*N to efficiently calculate trace of PdV_dtheta
 	2*N to finish gradient element
 	(2*N^2) + 2*N for diagonal element:*/
 	double diagcost = 5.5*R_pow_di(N,2) + 4.5*N;
@@ -549,7 +673,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	}
 	double cellslowest = workbins.maxCoeff();
 	
-	parallelDerivScheme = (rowslowest<cellslowest) ? 2 : 3;
+	parallelDerivScheme = (rowslowest<=cellslowest) ? 2 : 3;
 	return;
 }
  
