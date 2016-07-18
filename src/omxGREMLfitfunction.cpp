@@ -302,7 +302,7 @@
 		hrn = gff->rowbins[threadID](i); //Current row number of the AIM.
 		if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
 		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter t1.
-		//if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
+		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = hrn;}
 		if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
 			dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
 		}
@@ -365,6 +365,7 @@
 		if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
 		tr=0;
 		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
+		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = hrn;}
 		if(hrn==hcn || i==0){
 			if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
 				dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
