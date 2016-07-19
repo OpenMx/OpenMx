@@ -292,8 +292,8 @@
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
 	double tr=0;
 	Eigen::MatrixXd ytPdV_dtheta1;
-	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
+	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
 	int threadID = omx_absolute_thread_num();
 	int istart = 0;
 	int iend = gff->rowbins[threadID].size();
@@ -301,7 +301,7 @@
 		tr=0;
 		hrn = gff->rowbins[threadID](i); //Current row number of the AIM.
 		if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
-		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter t1.
+		a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = hrn;}
 		if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
 			dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
@@ -331,7 +331,7 @@
 			//I think it can be assumed at this point that the Hessian is wanted?:
 			else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 				if(gff->gradMap[hcn] < 0){continue;}
-				a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter j.
+				a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 				if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
 					dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
 				}
@@ -348,8 +348,8 @@
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
 	double tr=0;
 	Eigen::MatrixXd ytPdV_dtheta1;
-	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
+	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
 	int threadID = omx_absolute_thread_num();
 	int iend = gff->AIMelembins[threadID].size();
 	int inielem = gff->AIMelembins[threadID](0);
@@ -400,7 +400,7 @@
 		}}
 		hcn++;
 		i++;
-		if(hcn > gff->dVlength){
+		if(hcn == gff->dVlength){
 			hrn++;
 			hcn=hrn;
 		}}
