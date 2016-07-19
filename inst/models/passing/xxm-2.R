@@ -32,4 +32,5 @@ omxCheckCloseEnough(logLik(fm01), logLik(yield), 5e-3)
 lVars <- as.data.frame(VarCorr(fm01))[, 'vcov']
 lEst <- c(lVars[2], fixef(fm01), lVars[1])
 oEst <- coef(yield)
-omxCheckCloseEnough(oEst, lEst, 0.1)
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+omxCheckCloseEnough(rms(oEst, lEst), 0, 3)
