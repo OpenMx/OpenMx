@@ -402,12 +402,16 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
 	varGroup = newVarGroup;
 	if(dVlength){
+		/*The pointers to the derivatives of V, their names, and their original dimensions get temporariliy 
+		copied here:*/
 		std::vector< omxMatrix* > dV_temp = dV;
 		std::vector< const char* > dVnames_temp = dVnames;
 		std::vector<int> origdVdim_temp = origdVdim;
 		gradMap.resize(dVlength);
 		dAugMap.resize(dVlength);
 		int gx=0;
+		/*If there are no problems, then every time vx gets incremented, it should become equal to the current 
+		value of gx*/
 		for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
 			for (int nx=0; nx < dVlength; ++nx) {
 				if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
@@ -421,7 +425,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					break;
 				}
 			}
-		}
+		}/*By the end of the loop, the member objects of the omxGREMLFitState (dV, dVnames, etc.) should have their
+		elements arranged to match the order in which the free parameters appear in the freeVarGroup*/
 		if (gx != dVlength) Rf_error("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
 		if( gx < int(varGroup->vars.size()) ){Rf_error("At least one free parameter has no corresponding element in 'dV'");}
 		
