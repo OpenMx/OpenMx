@@ -345,14 +345,14 @@
  		case 3:
 #pragma omp parallel num_threads(nThreadz)
 {
-	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
+	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0;
 	double tr=0;
 	Eigen::MatrixXd ytPdV_dtheta1;
 	Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
 	Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
 	int threadID = omx_absolute_thread_num();
 	int iend = gff->AIMelembins[threadID].size();
-	int inielem = gff->AIMelembins[threadID](0);
+	if(iend){inielem = gff->AIMelembins[threadID](0);}
 	while(inielem > 0){
 		hcn++;
 		inielem--;
