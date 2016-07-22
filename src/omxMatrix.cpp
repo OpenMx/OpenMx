@@ -29,6 +29,7 @@
 #include "matrix.h"
 #include "unsupported/Eigen/MatrixFunctions"
 #include "omxState.h"
+#include <limits>
 
 // forward declarations
 static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
@@ -770,30 +771,21 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 
 void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
 {
-	double previous = - INFINITY;
-	double current;
 	int threshCrossCount = 0;
 	if(count > om->rows) {
-		count = om->rows;
+		Rf_error("Too many thresholds (%d) requested from %dx%d thresholds matrix (in column %d)",
+			 count, om->rows, om->cols, column);
 	}
-	for(int j = 0; j < count; j++ ) {
-		current = omxMatrixElement(om, j, column);
-		if(std::isnan(current) || current == NA_INTEGER) {
-			continue;
-		}
-		if(j == 0) {
-			continue;
-		}
-		previous = omxMatrixElement(om, j-1, column);
-		if(std::isnan(previous) || previous == NA_INTEGER) {
-			continue;
-		}
-		if(current <= previous) {
+	for(int j = 1; j < count; j++ ) {
+		double lower = omxMatrixElement(om, j-1, column);
+		double upper = omxMatrixElement(om, j, column);
+		if (upper - lower < sqrt(std::numeric_limits<double>::epsilon()) * (fabs(lower) + fabs(upper))) {
 			threshCrossCount++;
 		}
 	}
 	if(threshCrossCount > 0) {
-		fc->recordIterationError("Found %d thresholds out of order in column %d.", threshCrossCount, column+1);
+		fc->recordIterationError("Found %d thresholds too close together in column %d.",
+					 threshCrossCount, column+1);
 	}
 }
 

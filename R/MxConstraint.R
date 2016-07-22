@@ -34,6 +34,11 @@ setMethod("initialize", "MxConstraint",
 	}
 )
 
+mxConstraintFromString <- function(exprString, name = NA,...) {
+	eval(substitute(mxConstraint(tExp, name=name, ...),
+			list(tExp = parse(text=exprString)[[1]])))
+}
+
 mxConstraint <- function(expression, name = NA,...) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
