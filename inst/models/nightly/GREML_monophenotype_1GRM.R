@@ -60,7 +60,8 @@ plan <- mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
 		constraintType=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL","none","ineq")
 	),
 	mxComputeStandardError(),
-	mxComputeReportDeriv()
+	mxComputeReportDeriv(),
+	mxComputeReportExpectation()
 ))
 
 #The MxData object.  N.B. use of 'sort=FALSE' is CRITICALLY IMPORTANT, because the rows and columns of dataset
@@ -138,7 +139,8 @@ testmod2 <- mxModel(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
-		mxComputeReportDeriv()
+		mxComputeReportDeriv(),
+		mxComputeReportExpectation()
 	))
 )
 
@@ -170,7 +172,8 @@ plan3 <- mxComputeSequence(freeSet = c("H2","Vp"),steps=list(
 		constraintType=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL","none","ineq")
 	),
 	mxComputeStandardError(),
-	mxComputeReportDeriv()
+	mxComputeReportDeriv(),
+	mxComputeReportExpectation()
 ))
 
 testmod3 <- mxModel(

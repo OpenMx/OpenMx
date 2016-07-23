@@ -595,6 +595,13 @@ insertPathRAM <- function(path, model) {
 		allFromTo <- unique(c(from, to))
 		varExist <- allFromTo %in% legalVars 
 		if(!all(varExist)) {
+			fromComponents <- length(strsplit(from, imxSeparatorChar, fixed = TRUE)[[1]])
+			if (fromComponents == 2) {
+				stop(paste0("In model ", omxQuotes(model@name),
+					   ", you tried to add a path from ", omxQuotes(from),
+					   ". Did you forget joinKey?"))
+			}
+
 			missingVars <- allFromTo[!varExist]
 			stop(paste("Nice try, you need to add", 
 				   omxQuotes(missingVars), 

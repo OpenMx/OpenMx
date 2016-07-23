@@ -43,15 +43,15 @@ int ba81NormalQuad::abilities()
 	int sum=0;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layer &l1 = layers[lx];
-		sum += l1.abilities;
+		sum += l1.numAbil();
 	}
 	return sum;
 }
 
 void ba81NormalQuad::layer::copyStructure(ba81NormalQuad::layer &orig)
 {
-	abilitiesOffset = orig.abilitiesOffset;
-	abilities = orig.abilities;
+	abilitiesMask = orig.abilitiesMask;
+	abilitiesMap = orig.abilitiesMap;
 	maxDims = orig.maxDims;
 	totalQuadPoints = orig.totalQuadPoints;
 	weightTableSize = orig.weightTableSize;
@@ -105,6 +105,7 @@ void ba81NormalQuad::addSummary(ba81NormalQuad &quad)
 
 ifaGroup::ifaGroup(int cores, bool _twotier) :
 	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
+	detectIndependence(true),
 	twotier(_twotier), mean(0), cov(0), dataRowNames(0),
 	weightColumnName(0), rowWeight(0), minItemsPerScore(NA_INTEGER),
 	excludedPatterns(-1)
@@ -136,7 +137,6 @@ void ifaGroup::importSpec(SEXP slotValue)
 
 	dataColumns.reserve(spec.size());
 	itemOutcomes.reserve(spec.size());
-	cumItemOutcomes.reserve(spec.size());
 
 	impliedParamRows = 0;
 	totalOutcomes = 0;
@@ -154,7 +154,6 @@ void ifaGroup::importSpec(SEXP slotValue)
 		}
 		int no = ispec[RPF_ISpecOutcomes];
 		itemOutcomes.push_back(no);
-		cumItemOutcomes.push_back(totalOutcomes);
 		maxOutcomes = std::max(maxOutcomes, no);
 		totalOutcomes += no;
 
@@ -422,6 +421,11 @@ void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
 	}
 }
 
+#include "matrix.h"
+
+#include "Connectedness.h"
+using namespace UndirectedGraph;
+
 template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 				  Eigen::ArrayBase<T1> &param,
@@ -440,34 +444,119 @@ void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
 		}
 	}
 
-	// split into independent layers TODO
+	if (!mean.rows()) {
+		gridSize = 1;
+		layers.resize(1, layer(this));
+		layers[0].itemsMask.assign(param.cols(), true);
+		layers[0].setStructure(param, mean, cov);
+		return;
+	}
+
+	if (!ig.detectIndependence) {
+		layers.resize(1, layer(this));
+		layers[0].itemsMask.assign(param.cols(), true);
+		layers[0].abilitiesMask.assign(mean.rows(), true);
+		layers[0].setStructure(param, mean, cov);
+		return;
+	}
+
+	// obtain the manifest covariance to look for independent blocks
+	int totalVars = param.cols() + mean.rows();
+	Eigen::MatrixXd totalS(totalVars, totalVars);
+	totalS.setIdentity();
+	totalS.bottomRightCorner(mean.rows(), mean.rows()) = cov;
+	//mxPrintMat("totalS", totalS);
+	Eigen::MatrixXd totalA(totalVars, totalVars);
+	totalA.setZero();
+	totalA.block(0, param.cols(), param.cols(), mean.rows()) =
+		param.block(0, 0, mean.rows(), param.cols()).transpose();
+	totalA.diagonal().array() += 1;
+	if (MatrixInvert1(totalA)) Rf_error("Inverse failed"); // copy code into this file TODO
+	//mxPrintMat("totalA", totalA);
+	Eigen::MatrixXd totalCov = totalA * totalS * totalA.transpose();
+	//mxPrintMat("totalCov", totalCov);
+
+	std::vector<int> region;
+	Connectedness::SubgraphType subgraph;
+	Connectedness cc(region, subgraph, param.cols(), false);
+	for (int cx=1; cx < param.cols(); ++cx) {
+		for (int rx=0; rx < cx; ++rx) {
+			double val = fabs(totalCov(rx,cx));
+			if (val < 1e-7) continue;
+			cc.connect(rx, cx);
+			//cc.log();
+		}
+	}
+
 	layers.clear();
-	layers.resize(1, layer(this));
+	layers.resize(cc.numSubgraphs(), layer(this));
 
-	int dim = mean.rows();
-	if (!dim) gridSize = 1;
+	for (int lx=0, rx=0; rx < (int) region.size(); ++rx) {
+		std::set<int> members;
+		if (region[rx] == -1) members.insert(rx);
+		else std::swap(members, subgraph[ region[rx] ]);
+		if (0 == members.size()) continue;
 
-	// subset param, mean, cov, etc
-	layers[0].setStructure(param, mean, cov);
+		layers[lx].itemsMask.assign(param.cols(), false);
+		layers[lx].abilitiesMask.assign(mean.rows(), false);
+		for (auto it : members) {
+			layers[lx].itemsMask[it] = true;
+			for (int ax=0; ax < mean.rows(); ++ax) {
+				if (fabs(totalCov(it, param.cols() + ax)) < 1e-7) continue;
+				layers[lx].abilitiesMask[ax] = true;
+			}
+		}
 
-	totalQuadPoints = 0;
-	int offset = 0;
-	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layers[lx].abilitiesOffset = offset;
-		offset += layers[lx].abilities;
-		totalQuadPoints += layers[lx].totalQuadPoints;
+		layers[lx].setStructure(param, mean, cov);
+		lx += 1;
 	}
 }
 
 template <typename T1, typename T2, typename T3>
 void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
-					 Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
+					 Eigen::MatrixBase<T2> &gmean, Eigen::MatrixBase<T3> &gcov)
 {
+	abilitiesMap.clear();
+	std::string str = string_snprintf("layer:");
+	for (int ax=0; ax < gmean.rows(); ++ax) {
+		if (!abilitiesMask[ax]) continue;
+		abilitiesMap.push_back(ax);
+		str += " ";
+		str += quad->ig.factorNames[ax];
+	}
+	str += ":";
+
+	itemsMap.clear();
+	glItemsMap.resize(param.cols(), -1);
+	for (int ix=0, lx=0; ix < param.cols(); ++ix) {
+		if (!itemsMask[ix]) continue;
+		itemsMap.push_back(ix);
+		glItemsMap[ix] = lx++;
+		str += string_snprintf(" %d", ix);
+	}
+	
+	str += "\n";
+	//mxLogBig(str);
+
+	dataColumns.clear();
+	dataColumns.reserve(numItems());
+	totalOutcomes = 0;
+	for (int ix=0; ix < numItems(); ++ix) {
+		int outcomes = quad->ig.itemOutcomes[ itemsMap[ix] ];
+		itemOutcomes.push_back(outcomes);
+		cumItemOutcomes.push_back(totalOutcomes);
+		totalOutcomes += outcomes;
+		dataColumns.push_back(quad->ig.dataColumns[ itemsMap[ix] ]);
+	}
+
+	Eigen::VectorXd mean;
+	Eigen::MatrixXd cov;
+	globalToLocalDist(gmean, gcov, mean, cov);
+
 	if (mean.size() == 0) {
 		numSpecific = 0;
 		primaryDims = 0;
 		maxDims = 1;
-		abilities = 0;
 		totalQuadPoints = 1;
 		totalPrimaryPoints = 1;
 		weightTableSize = 1;
@@ -481,7 +570,6 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 
 	primaryDims = cov.cols() - numSpecific;
 	maxDims = primaryDims + (numSpecific? 1 : 0);
-	abilities = primaryDims + numSpecific;
 
 	totalQuadPoints = 1;
 	for (int dx=0; dx < maxDims; dx++) {
@@ -512,11 +600,11 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 		if (numCov(fx) == 1) candidate.push_back(fx);
 	}
 	if (candidate.size() > 1) {
-		std::vector<bool> mask(param.cols());
+		std::vector<bool> mask(numItems());
 		for (int cx=candidate.size() - 1; cx >= 0; --cx) {
-			std::vector<bool> loading(param.cols());
-			for (int ix=0; ix < param.cols(); ++ix) {
-				loading[ix] = param(candidate[cx], ix) != 0;
+			std::vector<bool> loading(numItems());
+			for (int ix=0; ix < numItems(); ++ix) {
+				loading[ix] = param(candidate[cx], itemsMap[ix]) != 0;
 			}
 			std::vector<bool> overlap(loading.size());
 			std::transform(loading.begin(), loading.end(),
@@ -540,10 +628,10 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 	numSpecific = orthogonal.size();
 
 	if (numSpecific) {
-		Sgroup.assign(param.cols(), 0);
-		for (int ix=0; ix < param.cols(); ix++) {
+		Sgroup.assign(numItems(), 0);
+		for (int ix=0; ix < numItems(); ix++) {
 			for (int dx=orthogonal[0]; dx < mean.rows(); ++dx) {
-				if (param(dx, ix) != 0) {
+				if (param(dx, itemsMap[ix]) != 0) {
 					Sgroup[ix] = dx - orthogonal[0];
 					continue;
 				}
@@ -692,7 +780,7 @@ void ba81NormalQuad::allocEstep(int numThreads)
 {
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layer &l1 = layers[lx];
-		l1.expected.resize(ig.totalOutcomes * totalQuadPoints, numThreads);
+		l1.expected.resize(ig.totalOutcomes * l1.totalQuadPoints, numThreads);
 		l1.expected.setZero();
 	}
 }
@@ -714,3 +802,9 @@ void ba81NormalQuad::releaseEstep()
 	}
 }
 
+void ifaGroup::setFactorNames(std::vector<const char *> &names)
+{
+	if (int(names.size()) < itemDims) Rf_error("Not enough names");
+	factorNames.resize(itemDims);
+	for (int fx=0; fx < itemDims; ++fx) factorNames[fx] = names[fx];
+}

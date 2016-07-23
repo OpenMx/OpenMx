@@ -254,6 +254,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 				Rf_error("%s join with %s but observed data is sorted",
 					 oo->name, fex->name);
 			}
+			omxDataKeysCompatible(fex->data, oo->data, foreignKey);
 			if (!omxDataColumnIsKey(oo->data, foreignKey)) {
 				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
 					 "Did you forget to use mxData(..., sort=FALSE)?",
@@ -361,29 +362,15 @@ namespace RelationalRAMExpectation {
 	}
 
 	// Similar to connectedness of an undirected graph
-	void state::computeConnected(std::vector<int> &region, ConnectedType &connected)
+	void state::computeConnected(std::vector<int> &region, SubgraphType &connected)
 	{
-		bool ConnectedRegionDiagnostics = verbose() >= 3;
-		region.assign(layout.size(), -1);
-		connected.clear();
+		Connectedness cc(region, connected, layout.size(), verbose() >= 3);
 
 		for (int ax=int(layout.size())-1; ax >= 0; --ax) {
-			if (ConnectedRegionDiagnostics) {
-				Eigen::VectorXi regionMap(layout.size());
-				for (size_t rx=0; rx < layout.size(); ++rx) regionMap[rx] = region[rx];
-				mxPrintMat("region", regionMap);
-			}
+			cc.log();
 			addr &a1 = layout[ax];
 			std::vector< omxMatrix* > &between = a1.getBetween();
 			if (a1.rampartScale == 0.0 || !between.size()) continue;
-			if (region[ax] == -1) {
-				region[ax] = connected.size();
-				connected.resize(connected.size() + 1);
-				connected[ region[ax] ].insert(ax);
-				if (ConnectedRegionDiagnostics) {
-					mxLog("assign %d to region %d", ax, region[ax]);
-				}
-			}
 			for (size_t jx=0; jx < between.size(); ++jx) {
 				omxMatrix *b1 = between[jx];
 				int key = omxKeyDataElement(a1.getData(), a1.row, b1->getJoinKey());
@@ -395,31 +382,7 @@ namespace RelationalRAMExpectation {
 				if (it == rowToLayoutMap.end())
 					Rf_error("Cannot find row %d in %s", row, e1->data->name);
 				int bx = it->second;
-				if (region[bx] == -1) {
-					region[bx] = region[ax];
-					connected[ region[ax] ].insert(bx);
-					if (ConnectedRegionDiagnostics) {
-						mxLog("add %d to region %d", bx, region[ax]);
-					}
-				} else {
-					if (region[bx] > region[ax]) std::swap(region[bx], region[ax]);
-					// as1 > as2
-					if (region[bx] != region[ax]) {
-						if (ConnectedRegionDiagnostics) {
-							mxLog("merge region %d (%d elem) to region %d (%d elem)",
-							      region[ax], (int)connected[region[ax]].size(),
-							      region[bx], (int)connected[region[bx]].size());
-						}
-						// merge to as2
-						std::set<int> &as1set = connected[region[ax]];
-						std::set<int> &as2set = connected[region[bx]];
-						for (std::set<int>::iterator it2 = as1set.begin(); it2 != as1set.end(); ++it2) {
-							region[*it2] = region[bx];
-							as2set.insert(*it2);
-						}
-						as1set.clear();
-					}
-				}
+				cc.connect(ax, bx);
 			}
 		}
 	}
@@ -828,7 +791,7 @@ namespace RelationalRAMExpectation {
 						omxExpectation *ex3 = it->first;
 						omxRAMExpectation *ram3 = (omxRAMExpectation*) ex3->argStruct;
 						omxDefinitionVar &dv = ex3->data->defVars[ it->second ];
-						mxLog("%s at %s[%d,%d] goes from %s to %s => %d",
+						mxLog("%s at %s[%d,%d] goes from %s to %s => %d (0=no cov effect)",
 						      omxDataColumnName(ex3->data, dv.column),
 						      ram3->M->name(), 1+dv.row, 1+dv.col,
 						      from->S->rownames[cx], to->S->rownames[rx],
@@ -943,7 +906,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		std::vector<int> region;
-		ConnectedType connected;
+		SubgraphType connected;
 		computeConnected(region, connected);
 
 		// connected gives the complete dependency information,
@@ -1040,7 +1003,7 @@ namespace RelationalRAMExpectation {
 				placeSet(mit->second, ig);
 				//mxLog("group %d same mean %d -> %d clumpsize %d",
 				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
-				ig->sufficientSets[ssIndex].start = from;
+				ig->sufficientSets[ssIndex].start = from / ig->clumpSize;
 				ig->sufficientSets[ssIndex].length = (ig->placements.size() - from) / ig->clumpSize;
 			}
 			ig->prep(fc);

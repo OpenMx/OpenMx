@@ -12,6 +12,7 @@
 #include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
 //#include <RcppEigenCholmod.h>
+#include "Connectedness.h"
 
 template <typename T1>
 class AsymTool {
@@ -505,6 +506,8 @@ namespace RelationalRAMExpectation {
 		independentGroup &getParent();
 	};
 
+	using namespace UndirectedGraph;
+
 	class state {
 	private:
 		state *parent;
@@ -512,7 +515,7 @@ namespace RelationalRAMExpectation {
 		std::vector< std::vector<int> >  rotationPlan;
 
 	public:
-		typedef std::vector< std::set<int> > ConnectedType;
+		typedef std::vector< std::set<int> > SubgraphType;
 		struct omxExpectation *homeEx;
 		std::set<struct omxExpectation *> allEx;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
@@ -543,7 +546,7 @@ namespace RelationalRAMExpectation {
 		template <typename T> void propagateDefVar(omxRAMExpectation *ram,
 							   Eigen::MatrixBase<T> &transition,
 							   omxRAMExpectation *ram2, bool within);
-		void computeConnected(std::vector<int> &region, ConnectedType &connected);
+		void computeConnected(std::vector<int> &region, SubgraphType &connected);
 	public:
 		~state();
 		void computeCov(FitContext *fc);

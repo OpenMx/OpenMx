@@ -19,6 +19,7 @@
 #define _OMXFIMLFITFUNCTION_H_
 
 #include "omxFitFunction.h"
+#include "omxSadmvnWrapper.h"
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
@@ -55,14 +56,10 @@ typedef struct omxFIMLFitFunction {
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
 		
-	/* Structures for FIMLOrdinalFitFunction Objects */
-	omxMatrix* cor;				// To calculate correlation matrix from covariance
-	Eigen::VectorXd weights;			// Covariance weights to shift parameter estimates
-	omxMatrix* smallThresh;		// Memory reserved for reduced threshold matrix
-	
+	OrdinalLikelihood ol;
+
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
-	omxMatrix* ordRow;		    // Memory reserved for ordinal data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
 	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    
     omxMatrix* ordContCov;      // Memory reserved for ordinal/continuous covariance
@@ -70,11 +67,6 @@ typedef struct omxFIMLFitFunction {
     omxMatrix* reduceCov;       // Memory reserved for computations
     
 	/* Argument space for SADMVN function */
-	double* lThresh;			// Specific list of lower thresholds
-	double* uThresh;			// Specific list of upper thresholds
-	Eigen::VectorXd corList;			// SADMVN-specific list of correlations
-	double* smallCor;			// Reduced SADMVN-specific list of correlations
-	int* Infin;					// Which thresholds to use
 	int maxPts;					// From MxOptions (?)
 	double absEps;				// From MxOptions
 	double relEps;				// From MxOptions

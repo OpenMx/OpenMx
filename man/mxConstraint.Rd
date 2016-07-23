@@ -15,6 +15,7 @@
 
 \name{mxConstraint}
 \alias{mxConstraint}
+\alias{mxConstraintFromString}
 \alias{print,MxConstraint-method}
 \alias{show,MxConstraint-method}
 

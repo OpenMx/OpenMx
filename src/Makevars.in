@@ -6,6 +6,8 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
+CXX_STD = CXX11
+
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
 # UMFPACK is a fast sparse LU decomposition library

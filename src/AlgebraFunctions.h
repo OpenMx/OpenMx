@@ -1752,108 +1752,45 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 		return;
 	}
 
+	EigenVectorAdaptor Emean(means);
+
 	if (lBoundMat->rows > 1 && lBoundMat->cols > 1) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "lbound is neither row nor column vector");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("lbound must be a vector of length %d (not %dx%d)",
+			       Emean.size(), lBoundMat->rows, lBoundMat->cols);
 		return;
 	}
 
 	if (uBoundMat->rows > 1 && uBoundMat->cols > 1) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "ubound is neither row nor column vector");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("ubound must be a vector of length %d (not %dx%d)",
+			       Emean.size(), uBoundMat->rows, uBoundMat->cols);
 		return;
 	}
 
-	int nElements = (cov->cols > 1) ? cov->cols : cov->rows;
-	double *lBounds, *uBounds;
-	Eigen::VectorXd weights;
-	Eigen::VectorXd corList;
-	lBounds = (double*) malloc(nElements * sizeof(double));
-	uBounds = (double*) malloc(nElements * sizeof(double));
-
-	omxStandardizeCovMatrix(cov, corList, weights, fc);
+	OrdinalLikelihood ol;
+	EigenMatrixAdaptor Ecov(cov);
+	ol.setCovariance(Ecov, fc);
+	ol.setMean(Emean);
 
 	if(!R_finite(omxMatrixElement(cov, 0, 0))) {
-		free(uBounds);
-		free(lBounds);
 		omxSetMatrixElement(result, 0, 0, NA_REAL);
 		return;
 	}
 
-	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
-	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
-	// Parameters are:
-	// 	N 		int			# of vars
-	//	Lower	double*		Array of lower bounds
-	//	Upper	double*		Array of upper bounds
-	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
-	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
-	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
-	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
-	//	Error	&double		On return: absolute real Rf_error, 99% confidence
-	//	Value	&double		On return: evaluated value
-	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
-	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
-	double Error;
-	double likelihood;
-	int inform;
-	int numVars = cov->rows;
-	Eigen::VectorXi Infin(cov->rows);
-	int fortranThreadId = omx_absolute_thread_num() + 1;
-
-	for(int i = 0; i < nElements; i++) {
-		lBounds[i] = (omxVectorElement(lBoundMat, i) - omxVectorElement(means, i))/weights[i];
-		uBounds[i] = (omxVectorElement(uBoundMat, i) - omxVectorElement(means, i))/weights[i];
-		Infin[i] = 2; // Default to both thresholds
-		if(uBounds[i] <= lBounds[i]) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Thresholds are not strictly increasing: %3.3f >= %3.3f.", lBounds[i], uBounds[i]);
-			omxRaiseError(errstr);
-			free(errstr);
-			free(uBounds);
-			free(lBounds);
-			return;
-		}
-		if(!R_finite(lBounds[i]) ) {
-			Infin[i] -= 2;	// NA or INF or -INF means no lower threshold.
-		} else {
-
-		}
-		if(!R_finite(uBounds[i]) ) {
-			Infin[i] -= 1; // NA or INF or -INF means no upper threshold.
-		}
-
-	}
-
-
-	double absEps = Global->absEps;
-	double relEps = Global->relEps;
-	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin.data(), corList.data(),
-		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
-
-	if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
-
-	if(inform == 2) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Improper input to sadmvn.");
-		omxRaiseError(errstr);
-		free(errstr);
-		free(uBounds);
-		free(lBounds);
+	EigenVectorAdaptor elb(lBoundMat);
+	if (elb.size() != Emean.size()) {
+		omxRaiseErrorf("lBound vector is length %d, not matching mean vector length %d",
+			       elb.size(), Emean.size());
 		return;
 	}
 
-	free(uBounds);
-	free(lBounds);
+	EigenVectorAdaptor eub(uBoundMat);
+	if (eub.size() != Emean.size()) {
+		omxRaiseErrorf("uBound vector is length %d, not matching mean vector length %d",
+			       eub.size(), Emean.size());
+		return;
+	}
 
-	omxSetMatrixElement(result, 0, 0, likelihood);
-
+	omxSetMatrixElement(result, 0, 0, ol.likelihood(elb, eub));
 }
 
 static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -1861,24 +1798,23 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 	omxMatrix* cov = matList[0];
 	omxMatrix* means = matList[1];
 	int nCols = cov->cols;
-	int i,j,k;
-
 	int totalLevels = 1;
-	omxMatrix **thresholdMats = (omxMatrix **) malloc(nCols * sizeof(omxMatrix*));
-	int *numThresholds = (int*) malloc(nCols * sizeof(int));
-	int *matNums = (int*) malloc(nCols * sizeof(int));
-	int *thresholdCols = (int*) malloc(nCols * sizeof(int));
-	int *currentThresholds = (int*) malloc(nCols * sizeof(int));
+	std::vector<omxMatrix *> thresholdMats;
+	thresholdMats.reserve(nCols);
+	Eigen::ArrayXi numThresholds(nCols);
+	Eigen::ArrayXi matNums(nCols);
+	Eigen::ArrayXi thresholdCols(nCols);
+	Eigen::ArrayXi currentThresholds(nCols);
 
 	int currentMat = 0;
 
-	for(i = currentMat; i < nCols;) {							// Map out the structure of levels.
-	if(OMX_DEBUG_ALGEBRA) {
-		mxLog("All-part multivariate normal integration: Examining threshold column %d.", i);
-	}
-		thresholdMats[currentMat] = matList[currentMat+2];		// Get the thresholds for this covariance column
+	for(int i = 0; i < nCols;) {
+		if(OMX_DEBUG_ALGEBRA) {
+			mxLog("All-part multivariate normal integration: Examining threshold column %d.", i);
+		}
+		thresholdMats.push_back(matList[currentMat+2]);		// Get the thresholds for this covariance column
 
-		for(j = 0; j < thresholdMats[currentMat]->cols; j++) {	// We walk along the columns of this threshold matrix
+		for(int j = 0; j < thresholdMats[currentMat]->cols; j++) {
 			double ubound, lbound = omxMatrixElement(thresholdMats[currentMat], 0, j);
 			if(ISNA(lbound)) {
 				char *errstr = (char*) calloc(250, sizeof(char));
@@ -1890,7 +1826,7 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 
 			thresholdCols[i] = j;
 
-			for(k = 1; k < thresholdMats[currentMat]->rows; k++) {
+			for(int k = 1; k < thresholdMats[currentMat]->rows; k++) {
 				ubound = omxMatrixElement(thresholdMats[currentMat], k, j);
 				if(ISNA(ubound)) {
 					numThresholds[i] = k-1;
@@ -1929,125 +1865,60 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 	/* Conformance checks: */
 	if(result->rows != totalLevels || result->cols != 1) omxResizeMatrix(result, totalLevels, 1);
 
-	Eigen::VectorXd weights;
-	Eigen::VectorXd corList;
+	OrdinalLikelihood ol;
+	EigenVectorAdaptor Emean(means);
+	EigenMatrixAdaptor Ecov(cov);
+	ol.setCovariance(Ecov, fc);
+	ol.setMean(Emean);
 
-	omxStandardizeCovMatrix(cov, corList, weights, fc);
-
-	// SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
-	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
-	// Parameters are:
-	// 	N 		int			# of vars
-	//	Lower	double*		Array of lower bounds
-	//	Upper	double*		Array of upper bounds
-	//	Infin	int*		Array of flags: <0 = (-Inf, Inf) 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
-	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
-	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
-	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
-	//	Error	&double		On return: absolute real Rf_error, 99% confidence
-	//	Value	&double		On return: evaluated value
-	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
-	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
-	double Error;
-	double likelihood;
-	int inform;
-	int numVars = nCols;
-	int* Infin = (int*) malloc(nCols * sizeof(int));
-	double* lBounds = (double*) malloc(nCols * sizeof(double));
-	double* uBounds = (double*) malloc(nCols * sizeof(double));
-	int fortranThreadId = omx_absolute_thread_num() + 1;
+	Eigen::VectorXd lBounds(nCols);
+	Eigen::VectorXd uBounds(nCols);
 
 	/* Set up first row */
-	for(j = (nCols-1); j >= 0; j--) {					// For each threshold set, starting from the fastest
-
-		Infin[j] = 2; 									// Default to using both thresholds
-		lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
-		if(!R_finite(lBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 2;
-		}
-
-		uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
-
-		if(!R_finite(uBounds[j])) { 					// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 1;
-		}
-
-		if(Infin[j] < 0) { Infin[j] = 3; }			// Both bounds infinite.
+	for(int j = (nCols-1); j >= 0; j--) {
+		lBounds[j] = omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]);
+		uBounds[j] = omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]);
 	}
 
-	double absEps = Global->absEps;
-	double relEps = Global->relEps;
-	int MaxPts = Global->maxptsa + Global->maxptsb * cov->rows + Global->maxptsc * cov->rows * cov->rows;
-	F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList.data(), 
-		&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
+	double likelihood = ol.likelihood(lBounds, uBounds);
 
-	if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
-
-	if(inform == 2) {
+	if (likelihood == 0.0) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Improper input to sadmvn.");
 		omxRaiseError(errstr);
 		free(errstr);
-		goto AllIntCleanup;
+		return;
 	}
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
 
-
 	/* And repeat with increments for all other rows. */
-	for(i = 1; i < totalLevels; i++) {
-		for(j = (nCols-1); j >= 0; j--) {							// For each threshold set, starting from the fastest
+	for(int i = 1; i < totalLevels; i++) {
+		for(int j = (nCols-1); j >= 0; j--) {							// For each threshold set, starting from the fastest
 			currentThresholds[j]++;									// Move to the next threshold set.
 			if(currentThresholds[j] > numThresholds[j]) {			// Hit the end; cycle to the next.
 				currentThresholds[j] = 1;
 			}
 
 			/* Update only the rows that need it. */
-			Infin[j] = 2; // Default to both thresholds
-			lBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
-			if(!R_finite(lBounds[j])) {								// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 2;
-			}
-			uBounds[j] = (omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]) - omxVectorElement(means, j))/weights[j];
+			lBounds[j] = omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j]-1, thresholdCols[j]);
+			uBounds[j] = omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]);
 
-			if(!R_finite(uBounds[j])) { 							// Inifinite lower bounds = -Inf to ?
-				Infin[j] -= 1;
-			}
-
-			if(Infin[j] < 0) { Infin[j] = 3; }						// Both bounds infinite.
-
-			if(currentThresholds[j] != 1) {							// If we just cycled, we need to see the next set.
-				break;
-			}
-
+			if (currentThresholds[j] != 1) break;
 		}
 
-		F77_CALL(sadmvn)(&numVars, &(lBounds[0]), &(*uBounds), Infin, corList.data(),
-			&MaxPts, &absEps, &relEps, &Error, &likelihood, &inform, &fortranThreadId);
+		likelihood = ol.likelihood(lBounds, uBounds);
 
-		if(OMX_DEBUG_ALGEBRA) { mxLog("Output of sadmvn is %f, %f, %d.", Error, likelihood, inform); }
-
-		if(inform == 2) {
+		if(likelihood == 0.0) {
 			char *errstr = (char*) calloc(250, sizeof(char));
 			sprintf(errstr, "Improper input to sadmvn.");
 			omxRaiseError(errstr);
 			free(errstr);
-			goto AllIntCleanup;
+			return;
 		}
 
 		omxSetMatrixElement(result, i, 0, likelihood);
 	}
-
-AllIntCleanup:
-	free(Infin);
-	free(lBounds);
-	free(uBounds);
-	free(thresholdMats);
-	free(numThresholds);
-	free(matNums);
-	free(thresholdCols);
-	free(currentThresholds);
 }
 
 static int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {

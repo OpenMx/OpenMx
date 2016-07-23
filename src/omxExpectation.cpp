@@ -117,6 +117,11 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 		}
 	
 		numCols = ox->dataColumns->cols;
+		omxData *data = ox->data;
+		for (int cx=0; cx < numCols; ++cx) {
+			int var = omxVectorElement(ox->dataColumns, cx);
+			data->assertColumnIsData(var);
+		}
 
 		if (R_has_slot(rObj, Rf_install("thresholds"))) {
 			if(OMX_DEBUG) {

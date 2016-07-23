@@ -36,16 +36,6 @@
 #include <R_ext/Lapack.h>
 #include <sys/types.h>
 
-#ifdef WIN32
-
-#else
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-
-#endif
-
 #include <time.h>
 #include <unistd.h>
 #include <string>
@@ -221,6 +211,7 @@ class omxGlobal {
 	bool intervals;
 	double gradientTolerance;
 
+	int maxOrdinalPerBlock;
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;

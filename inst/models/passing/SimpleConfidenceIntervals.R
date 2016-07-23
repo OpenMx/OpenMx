@@ -38,7 +38,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6, lbound=.1, ubound=1,
+			values=.6, lbound=.1, 
 			label="a", 
 			name="X"
 		), 
@@ -47,7 +47,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=sqrt(.6), lbound=sqrt(.1), ubound=1,
+			values=sqrt(.6), lbound=sqrt(.1),
 			label="c", 
 			name="Y"
 		),
@@ -56,7 +56,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=.6, lbound=.1, ubound=1,
+			values=.6, lbound=.1, 
 			label="e", 
 			name="Z"
 		),
@@ -208,7 +208,11 @@ if (mxOption(NULL, 'Default optimizer') == "SLSQP") {
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .04)
+} else {
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
+}
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .005)
 
 twinACEParallel <- omxParallelCI(twinACENoIntervals)
