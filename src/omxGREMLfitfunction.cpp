@@ -296,7 +296,7 @@
 	int istart = threadID * gff->dVlength / nThreadz;
 	int iend = (threadID+1) * gff->dVlength / nThreadz;
 	if(threadID == nThreadz-1){iend = gff->dVlength;}*/
-		for(i=0; i < gff->dVlength; i++){
+		for(i=0; i < gff->dVlength; i++){ //TODO: Make this loop thread-safe and parallelize it.
 			if(gff->dV[i]->rows > Eigy.rows()){dropCasesFromAlgdV(gff->dV[i], oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);}
 		}
 //}
