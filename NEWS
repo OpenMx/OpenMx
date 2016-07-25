@@ -1,86 +1,169 @@
-
-umx 2.6.0 
+OpenMx 2.6.7
 --------------
-### May 2016 R 3.3.0 "Supposedly Educational" release
 
-#### New features include:
-* mxFitFunctionML gains an option to parallel-ize gradient- rather than row-computation.
- * Can decrease run-times by 50% for some models!
+The most important change for users to be aware of is that OpenMx
+whereas previously, OpenMx defaulted to using one less than the number
+of cores, it now defaults to using 2 threads. This change was made at
+the insistence of the CRAN Team to reduce their test-server
+burden. However, the number of threads can be changed via mxOption(),
+with the "Number of Threads" option. As a reminder, multithreading in
+OpenMx is only supported with Linux and with the OpenMx Team's build
+for Mac OS X.
 
-#### Bug fixes and performance tweaks include:
-* 
+New features and bug-fixes include:
 
+The CSOLNP optimizer is now better at calculating confidence intervals.
 
-umx 2.5.2
+It is now possible to augment the GREML fitfunction with an arbitrary
+scalar-valued function, to be evaluated and added to the fitfunction
+value. This can be used to regularize model-fitting with a prior
+loglikelihood. The GREML fitfunction can also use analytic derivatives
+of the augmentation function.
+
+When using SLSQP to optimize the maximum-likelihood fitfunction, it is
+now possible to use multithreading to evaluate the elements of the
+numerical gradient in parallel, by using argument
+rowwiseParallel=FALSE to mxFitFunctionML(). By default, in an analysis
+of raw data, mxFitFunctionML() parallelizes evaluation of the row
+likelihoods, and not the evaluation of the gradient elements.
+
+There is a new mxOption, "Parallel diagnostics", which can be turned
+on (set to "Yes") to make OpenMx provide diagnostic messages about the
+use of multiple threads.
+
+Function mxRestore() now behaves correctly with argument strict=TRUE.
+
+A subtle bug in the GREML fitfunction has been repaired. Under certain
+circumstances, this bug caused analytic derivatives of the covariance
+matrix to fail to be recalculated after changes in the values of the
+free parameters upon which they depend.
+
+Functions dnbinom(), pnbinom(), dpois(), and ppois() (from the stats
+package) are now usable in MxAlgebras.
+
+OpenMx 2.5.2
 --------------
 
 New features include:
-* Regression factor-score estimates are now available for RAM path models via mxFactorScores().
-* mxGenerateData() can now generate data conditional on definition variables.
-* SLSQP is now capable of using an analytic gradient during optimization.
-* Substantial improvements in mxTryHard() and new specialist helpers:
-  * mxTryHardOrig()
-  * mxTryHardSSCT()
-  * mxTryHardWideSearch()
-  * mxTryHardOrdinal()
-* A new function, imxRobustSE(), which calculates robust standard errors for parameter estimates, from the "sandwich estimator."
-* Some functions have been newly made usable in MxAlgebras: the inverse trigonometric functions, the inverse hyperbolic functions, logp2z() (standard-normal quantile function from log probabilities), lgamma1p() (accurate lgamma(x+1) for small x), the Bessel functions, dbeta(), and pbeta(). The latter two are prototypes for making the 'd' and 'p' probability-distribution functions from the 'stats' package usable in MxAlgebras.
+
+Regression factor-score estimates are now available for RAM path models via mxFactorScores().
+
+mxGenerateData() can now generate data conditional on definition variables.
+
+SLSQP is now capable of using an analytic gradient during optimization.
+
+Numerous substantial improvements have been made to mxTryHard(). In
+particular, there are now four additional wrapper
+functions--mxTryHardOrig(), mxTryHardSSCT(), mxTryHardWideSearch(),
+and mxTryHardOrdinal()--which have default values for certain
+arguments that are tailored toward a specific purpose.
+
+A new function, imxRobustSE(), which calculates robust standard errors
+for parameter estimates, from the "sandwich estimator."
+
+Some functions have been newly made usable in MxAlgebras: the inverse
+trigonometric functions, the inverse hyperbolic functions, logp2z()
+(standard-normal quantile function from log probabilities), lgamma1p()
+(accurate lgamma(x+1) for small x), the Bessel functions, dbeta(), and
+pbeta(). The latter two are prototypes for making the 'd' and 'p'
+probability-distribution functions from the 'stats' package usable in
+MxAlgebras.
 
 Bug fixes and performance tweaks include:
-* Two GREML-related bugs have been repaired.
-* LISREL path models now handle means correctly.
-* mxFactorScores() now returns factor scores in original (not sorted) order.
-* Factor-score estimates on factors with nonzero means now work.
-* mxFactorScores() with type="ML" or type="WeightedML" now works
-* Several help pages have been updated, clarified, and made more complete.
-* NPSOL consistently respects the value of the "Major iterations" option.
-* Newton-Raphson optimizer performs better at parameter bounds.
-* mxGenerateData() works with continuous-time state-space models.
+
+Two GREML-related bugs have been repaired. One pertained to the
+behavior of mxGREMLDataHandler() when blockByPheno=FALSE. The other
+pertained to the mxGREML feature's automated handling of missing data
+when some of the derivatives of the 'V' matrix are MxAlgebras.
+
+LISREL path models now handle means correctly.
+
+mxFactorScores() now returns factor scores in row ordering of the
+original raw data, and not in the row ordering of the auto-sorted
+data.
+
+The known issue from the release announcement of v2.3.1, which
+involved factor-score estimates on factors with nonzero means, has
+been resolved.
+
+Using mxFactorScores() with type="ML" or type="WeightedML" no longer
+fails with an error when standard errors are not available from the
+input model.
+
+Several help pages have been updated, clarified, and made more complete.
+
+Changes were made to OpenMx's internal interface with NPSOL to ensure
+that optimizer consistently respects the value of the "Major
+iterations" option.
+
+The behavior of the Newton-Raphson optimizer when it encounters a
+parameter bound has been improved, and should result in fewer
+convergence failures.
+
+mxGenerateData() now works properly with continuous-time state-space
+models.
+
+The sufficient statistic likelihood was adjusted to match the full
+information likelihood value. Prior versions of OpenMx (and all the
+way back to Mx), used a slightly different formula that did not
+correspond exactly to the full information formula.
 
 
-umx 2.3.1
+OpenMx 2.3.1
 --------------
 
-Version 2.3.1 includes a number of new features
-* mxRun() now displays the number of free parameters in the MxModel
-* Multigroup WLS has been implemented.
-* OpenMx now checks whether the Hessian matrix is convex at the solution
-* mxFactorScores() is now compatible with RAM models and multigroup models.
-* coef() is now defined for MxModels, as a wrapper to omxGetParameters().
-* mxCheckIdentification() is now compatible with GREML expectation.
+Version 2.3.1 introduces several new features:
 
-Version 2.3.1 also includes a number of bug-fixes and performance tweaks:
-* Improvements to mxTryHard().
-* Fixes for state-space models.
-* mxGetExpected() more compatible with LISREL.
-* Better handling of start values in SLSQP.
-* Several GREML bugs fixed. In particular, it is now safe to use mxFitFunctionGREML(), and its argument dV.
-* Matrix operations in the GREML backend have been streamlined.
-* Evaluation of GREML analytic derivatives can now be parallelized.
-* Noticeable speed-ups for very large matrices.
-* The NPSOL "warm start" now works correctly.
+When invoked, mxRun() now displays the number of free parameters in
+the MxModel before calling the compiled "backend."
 
-umx 2.2.6
---------------
+OpenMx now checks whether the Hessian matrix is convex at the
+solution, and if it is not, throws a warning (status code 5).
 
-* Available on CRAN.
-* New optimizer: SLSQP
-* New data and model types: WLS, LISREL, GREML
-* Additional helpers:
-* mxMI() Modification indicies for any single-group likelihood-based model.
-* mxGenerateData() Generate data based on a single-group RAM, LISREL, Normal, or State Space model.
-* mxGetExpected() Get the expected means, covariance, or thresholds from a RAM, LISREL, or Normal model.
-* mxCheckIdentification() Check the identification of single or multigroup, RAM, LISREL, Normal, or State Space model.
-* omxRMSEA() Get the RMSEA with confidence interval and test of approximate fit. Also, reported in mxSummary.
-* mxKalmanScores() Get the Kalman latent state scores from a state space model. It can also be adapted for non-ordinal factor scores.
-* mxFactorScores() Estimate latent variable scores from a LISREL factor model via several methods including maximum likelihood and for ordinal data.
-* mxAlgebraFromString() Construct an mxAlgebra from an R expression provided as a character string.
-* mxFitFunctionMultigroup() used to require "modelname.fitfunction", : now "modelname" will work too.
-* Definition variables work correctly with mxFitFunctionRow().
-* Confidence intervals are improved:
-* parameter vector at each confidence limit ("bound") is now available in mxSummary(verbose=T).
-* Improvements to CSOLNP. Note that CSOLNP should still be used with caution
-* mxExpectationStateSpaceContinuousTime()
-* Improvements to mxTryHard().
-* Improvements to the internal interface with NPSOL:
-* Further improvements to WLS are expected in subsequent releases.
+Multigroup WLS has been implemented.
+
+mxFactorScores() is now compatible with RAM models and multigroup
+models.
+
+The S3 generic coef() is now defined for MxModels, as a wrapper to
+omxGetParameters().
+
+mxCheckIdentification() is now compatible with GREML expectation.
+
+Version 2.3.1 also includes a number of bug-fixes and performance
+tweaks:
+
+Various improvements to mxTryHard() have been added.
+
+A few bugs relating to state-space models have been repaired.
+
+mxGetExpected()'s compatibility with LISREL models has been improved.
+
+SLSQP is now able to distinguish between infeasible start values and
+starting at the solution.
+
+Several serious GREML bugs present in version 2.2.6 have been
+fixed. In particular, it is now safe to use mxFitFunctionGREML(), and
+its argument dV.
+
+Matrix operations in the GREML backend have been streamlined.
+
+Evaluation of GREML analytic derivatives can now be parallelized over
+multiple CPUs. Note, however, that doing so increases OpenMx's memory
+demand during those simultaneous evaluations.
+
+Some code involved in the construction and modification of MxMatrix
+objects has been streamlined, providing noticeable speed-ups for very
+large matrices.
+
+The NPSOL "warm start" now works correctly. This feature allows the
+user to use mxComputeGradientDescent() to provide the optimizer with
+the upper-triangular Cholesky factor of the Hessian matrix at the
+start values, which can cut down the number of function evaluations
+the optimizer needs to minimize the fitfunction.
+
+Finally, one known issue with version 2.3.1 is that the factor-score
+estimates returned by mxFactorScores(), when using 'ML' or
+'WeightedML', are deviations from the latent variable's mean. If the
+latent variable does not have a mean of zero, then the score estimates
+must be shifted appropriately in order to be correct.
