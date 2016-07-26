@@ -32,10 +32,6 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
 void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose,
                                   double tolerance);
 
-void CSOLNPOpt_majIter(const char *optionValue);
-
-void CSOLNPOpt_minIter(const char *optionValue);
-
 void CSOLNPOpt_FuncPrecision(const char *optionValue);
 
 #endif // #define _OMX_CSOLNP_SPECIFIC_H

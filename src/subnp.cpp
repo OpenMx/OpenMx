@@ -162,7 +162,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     }
     
     double rho   = fit.ControlRho;
-    int maxit = fit.ControlMajorLimit;
+    int maxit = fit.maxMajorIterations;
     int minit = fit.ControlMinorLimit;
     double delta = fit.ControlFuncPrecision;
     double tol   = fit.ControlTolerance;
