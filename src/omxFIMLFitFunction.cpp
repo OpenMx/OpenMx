@@ -107,6 +107,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxExpectation* expectation = off->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
+	bool failed = false;
+
 	if (data->defVars.size() == 0 && !ofiml->isStateSpace) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(fc, expectation);
@@ -118,7 +120,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			int var = omxVectorElement(dataColumns, j);
 			if (!omxDataColumnIsFactor(data, var)) continue;
 			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
-				checkIncreasing(nextMatrix, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
+				failed |= !thresholdsIncreasing(nextMatrix, thresholdCols[j].column,
+								thresholdCols[j].numThresholds, fc);
 				for(int index = 0; index < numChildren; index++) {
 					FitContext *kid = fc->childList[index];
 					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
@@ -149,7 +152,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		parallelism = data->rows;
 	}
 
-	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 

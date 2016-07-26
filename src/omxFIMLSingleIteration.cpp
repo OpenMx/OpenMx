@@ -208,11 +208,14 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				      dataColumns->cols - numOrdinal, dataColumns->cols - numContinuous, dataColumns->cols);
 			}
 
-			if (thresholdsMat) omxRecompute(thresholdsMat, fc);
-			for(int j=0; j < dataColumns->cols; j++) {
-				int var = omxVectorElement(dataColumns, j);
-				if(!omxDataColumnIsFactor(data, var) || j >= int(thresholdCols.size()) || thresholdCols[j].numThresholds == 0) continue;
-				checkIncreasing(thresholdsMat, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
+			if (thresholdsMat) {
+				omxRecompute(thresholdsMat, fc);
+				for(int j=0; j < dataColumns->cols; j++) {
+					int var = omxVectorElement(dataColumns, j);
+					if (!omxDataColumnIsFactor(data, var)) continue;
+					if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+								  thresholdCols[j].numThresholds, fc)) return true;
+				}
 			}
 			
 			}
