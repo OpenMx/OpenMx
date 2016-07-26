@@ -42,7 +42,6 @@ typedef struct omxFIMLFitFunction {
 	omxMatrix* dataColumns;		// The order of columns in the data matrix
 	omxMatrix* dataRow;			// One row of data
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
-	omxMatrix* rowLogLikelihoods;  // The row-by-row log likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
 	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set

@@ -36,7 +36,6 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	omxFreeMatrix(argStruct->smallCov);
 	omxFreeMatrix(argStruct->RCX);
 	omxFreeMatrix(argStruct->rowLikelihoods);
-	omxFreeMatrix(argStruct->rowLogLikelihoods);
 	delete argStruct;
 }
 
@@ -144,8 +143,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		if(OMX_DEBUG) { if (means) omxPrintMatrix(means, "Means"); }
 	}
 
-	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
-    
 	int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 
 	if (parallelism > data->rows) {
@@ -179,12 +176,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
+			val = log(omxVectorElement(ofiml->rowLikelihoods, i));
 //			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
 		if(OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
-		omxSetMatrixElement(off->matrix, 0, 0, sum);
+		omxSetMatrixElement(off->matrix, 0, 0, -2.0 * sum);
 	}
 }
 
@@ -241,7 +238,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	
 	
 	if(OMX_DEBUG) {

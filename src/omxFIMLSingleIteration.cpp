@@ -78,7 +78,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 		numIdenticalContinuousMissingness = 0, numIdenticalContinuousRows = 0;
 	
 	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
-	omxMatrix *rowLikelihoods, *rowLogLikelihoods;
+	omxMatrix *rowLikelihoods;
 	omxMatrix *ordMeans, *ordCov, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
 	omxData* data;
@@ -103,7 +103,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	
 	returnRowLikelihoods = ofo->returnRowLikelihoods;
 	rowLikelihoods = shared_ofo->rowLikelihoods;		// write-only
-	rowLogLikelihoods = shared_ofo->rowLogLikelihoods;  // write-only
 	
 	omxExpectation* expectation = localobj->expectation;
 	omxMatrix *thresholdsMat = expectation->thresholdsMat;
@@ -507,14 +506,9 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 				}
 			} 
 			else {
-				double logLikelihood = -2 * log(likelihood);       // -2 Log of ordinal likelihood
-				logLikelihood += ((2 * determinant) + Q + (log(2 * M_PI) * numContinuous));    // -2 Log of continuous likelihood
-				logLikelihood *= numIdentical;
-				
 				for(int j = numIdentical + row - 1; j >= row; j--) {  // Populate each successive identical row
-				omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, rowLikelihood);
+					omxSetMatrixElement(rowLikelihoods, omxDataIndex(data, j), 0, rowLikelihood);
 				}
-				omxSetMatrixElement(rowLogLikelihoods, row, 0, logLikelihood);
 				
 				if(OMX_DEBUG_ROWS(row)) { 
 					mxLog("row log Likelihood %3.3f + %3.3f + %3.3f + %3.3f= %3.3f, ", 
