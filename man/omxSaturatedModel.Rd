@@ -54,6 +54,14 @@ The are a few considerations specific to IFA models
 (\link{mxExpectationBA81}).
 The independence model preserves equality constraints among item
 parameters from the original model.
+The saturated model is a multinomial distribution with the proportions
+equal to the proportions in your data. For example, if you have 2
+dichotomous items then there are 4 possible response patterns: 00, 01, 10, 11.
+A multinomial distribution for these 2 items is fully specified by 3
+proportions or 3 parameters: a, b, c, \eqn{1.0-(a+b+c)}.
+Hence, there is no need to optimize the saturated model.
+When there is no missing data,
+the deviance is immediately known as \eqn{-2 * sum(log proportions)}.
 Typical Bayesian priors involve latent
 factors (various densities on the pseudo-guessing lower bound, log norm
 on loading, and uniqueness prior). These priors cannot be included
