@@ -32,4 +32,5 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra);
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop, 
 	int symmetric, int origDim);
 omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* component);
+void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > todrop, int symmetric, int origDim);
 

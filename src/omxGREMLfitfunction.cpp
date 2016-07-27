@@ -285,8 +285,26 @@
  		
  		if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
  		
+		/*If datapoints need to be dropped due to missingness, and we want the analytic Hessian,
+ 		then we need to resize any derivatives of V that come from front-end MxAlgebras
+		 ahead of time,	in order to assure thread-safety of the parallelized code for 
+ 		evaluating the gradient and Hessian (AIM):*/
+ 		if(oge->numcases2drop && wantHess){
+/*#pragma omp parallel num_threads(nThreadz)
+{
+	int threadID = omx_absolute_thread_num();
+	int istart = threadID * gff->dVlength / nThreadz;
+	int iend = (threadID+1) * gff->dVlength / nThreadz;
+	if(threadID == nThreadz-1){iend = gff->dVlength;}*/
+		for(i=0; i < gff->dVlength; i++){ //TODO: Make this loop thread-safe and parallelize it.
+			if(gff->dV[i]->rows > Eigy.rows()){dropCasesFromAlgdV(gff->dV[i], oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);}
+		}
+//}
+ 		}
+ 		
+ 		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
- 		case 2:
+ 		case 2: //bin by row
 #pragma omp parallel num_threads(nThreadz)
 {
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
@@ -342,7 +360,7 @@
 			}}}}
 }
  			break;
- 		case 3:
+ 		case 3: //bin by cell
 #pragma omp parallel num_threads(nThreadz)
 {
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0;
@@ -406,7 +424,7 @@
 		}}
 }
  			break;
- 		default:
+ 		default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
 #pragma omp parallel num_threads(nThreadz)
 {
 	int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
@@ -745,5 +763,4 @@ void omxGREMLFitState::dVupdate_final(){
 		}
 	}
 }
-
-
+ 

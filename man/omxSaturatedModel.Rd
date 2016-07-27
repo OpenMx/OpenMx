@@ -50,8 +50,16 @@ When an MxModel has been run, some effort is made to make the reference models f
 
 In general, it is best practice to give \code{mxRefModels} a model that has already been run.
 
-For IFA models (\link{mxExpectationBA81}), the independence model
-preserves equality constraints among item parameters from the original model.
+The are a few considerations specific to IFA models
+(\link{mxExpectationBA81}).
+The independence model preserves equality constraints among item
+parameters from the original model.
+Typical Bayesian priors involve latent
+factors (various densities on the pseudo-guessing lower bound, log norm
+on loading, and uniqueness prior). These priors cannot be included
+in the independence model because there are no latent factors.
+Therefore, exercise caution when comparing the independence model
+to a model that includes Bayesian priors.
 
 \code{mxRefModels()} is not compatible with \link[OpenMx:mxExpectationGREML]{GREML expectation}, as there is no sensible general definition for a saturated GREML-type model.
 }
