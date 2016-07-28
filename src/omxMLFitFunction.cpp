@@ -16,14 +16,7 @@
 
 #include "omxDefines.h"
 
-#include <stan/math.hpp>
-#include <stan/math/fwd/core.hpp>
-#include <stan/math/fwd/scal/fun/value_of.hpp>
-#include <stan/math/fwd/scal/fun/is_nan.hpp>
-#include <stan/math/fwd/scal/fun/abs.hpp>
-#include <stan/math/fwd/scal/fun/log.hpp>
-#include <stan/math/fwd/mat/fun/multiply.hpp>
-#include <stan/math/mix/mat/functor/hessian.hpp>
+#include <stan/math/mix/mat.hpp>
 #include "multi_normal_sufficient.hpp"
 
 #include "omxExpectation.h"
