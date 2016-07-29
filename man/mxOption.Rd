@@ -53,8 +53,7 @@ strings using the \link{as.character} function.
 
 The \dQuote{Default optimizer} option can only be set globally (i.e., with \code{model=NULL}), and not specifically to a given MxModel.
 
-Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.
-
+Some options only affect certain optimizers.  Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.  Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
 
 The maximum number of major iterations (the option  \dQuote{Major iterations}) 
 for optimization for NPSOL  can be specified either by using a 
@@ -98,14 +97,6 @@ Line search tolerance \tab \var{r}    \tab controls the accuracy with which a st
 Derivative level      \tab [0-3]      \tab see NPSOL manual. \cr
 Hessian               \tab [Yes | No] \tab return the Hessian (Yes) or the transformed Hessian (No). \cr
 Step Limit            \tab \var{r} \tab maximum change in free parameters at first step of linesearch. \cr
-}
-
-CSOLNP-specific options
-
-\tabular{rcl}{
-Major iteration_CSOLNP \tab \var{i} \tab maximum number of major iterations. \cr
-Minor iteration_CSOLNP \tab \var{i} \tab maximum number of minor iterations. \cr
-Function precision_CSOLNP \tab \var{i} \tab a measure of accuracy with which the fitfunction and constraint functions can be computed. \cr
 }
 
 Checkpointing options
@@ -152,7 +143,7 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{mxModel} all uses of mxOption are via an mxModel whose options are set or cleared. 
+See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an mxModel whose options are set or cleared.  See \code{\link{mxComputeGradientDescent}()} for details on how different optimizers are affected by different options.
 }
 
 
