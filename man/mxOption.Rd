@@ -74,6 +74,7 @@ Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violatio
 Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
 Gradient algorithm \tab see list \tab finite difference method, either 'forward' or 'central'. \cr
 Gradient iterations \tab 1:4 \tab the number of Richardson extrapolation iterations\cr
+Gradient step size \tab \var{r} \tab amount of change made to free parameters when numerically calculating gradient\cr
 Analytic Gradients \tab [Yes | No] \tab should the optimizer use analytic gradients (if available)?\cr
 loglikelihoodScale \tab \var{i} \tab factor by which the loglikelihood is scaled. \cr
 Parallel diagnostics \tab [Yes | No] \tab whether to issue diagnostic
