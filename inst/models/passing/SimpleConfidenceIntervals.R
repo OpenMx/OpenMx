@@ -186,8 +186,10 @@ CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 		mxAlgebra(common.E,name="lowerCIe"),
 		mxFitFunctionAlgebra("lowerCIe"))
 
-runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
-runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
+if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
+	runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
+	runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
+}
 
 ci <- twinACEFit$output$confidenceIntervals
 #cat(deparse(round(ci[,'ubound'],4)))
@@ -213,8 +215,8 @@ if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
 #	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .04)
 } else {
 	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .005)
 }
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .005)
 
 twinACEParallel <- omxParallelCI(twinACENoIntervals)
 
