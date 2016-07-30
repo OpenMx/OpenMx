@@ -31,7 +31,7 @@ Description: Facilitates treatment of statistical model specifications
     distribution, categorical threshold, modern test theory, differential
     equations, state space, and many others.
 SystemRequirements: GNU make
-LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH, rpf (>= 0.45)
+LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
 Depends:
 	R (>= 3.0.2),
     digest,

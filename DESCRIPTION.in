@@ -33,7 +33,7 @@ Description: Facilitates treatment of statistical model specifications
     equations, state space, and many others.
 SystemRequirements: GNU make
 License: @LICENSE@
-LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH, rpf (>= 0.45)
+LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
 Depends:
 	R (>= 3.0.2),
     digest,
