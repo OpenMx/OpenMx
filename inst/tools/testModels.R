@@ -23,6 +23,15 @@ if (all(file.exists("inst/models", "models") == c(TRUE,FALSE))) {
 	file.symlink("inst/models", "models")
 }
 
+rexec <- Sys.getenv("REXEC")
+if (rexec == "") rexec <- "R"
+if (system2(rexec, args='--vanilla', stdout=FALSE, stderr=FALSE,
+	    input='library(OpenMx); .Call(OpenMx:::.EigenDebuggingEnabled); q(status=3)') == 3) {
+	cat("**", fill=TRUE)
+	cat("** WARNING: Eigen conformability checking is DISABLED **", fill=TRUE)
+	cat("**", fill=TRUE)
+}
+
 library(OpenMx)
 
 options('mxPrintUnitTests' = FALSE)

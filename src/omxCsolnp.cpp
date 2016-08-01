@@ -28,31 +28,17 @@
 #include "omxBuffer.h"
 
 // move to Global? TODO
-static int majIter = 400;
-static int minIter = 800;
 static double funcPrecision = 1.0e-7;
 
 void omxCSOLNP(GradientOptimizerContext &go)
 {
 	double *est = go.est.data();
 	go.optName = "CSOLNP";
-	go.ControlMajorLimit = majIter;
-	go.ControlMinorLimit = minIter;
 	go.ControlFuncPrecision = funcPrecision;
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
 	go.useGradient = false;  // not implemented yet
 	go.ineqType = omxConstraint::GREATER_THAN;
 	solnp(est, go);
-}
-
-void CSOLNPOpt_majIter(const char *optionValue)
-{
-    majIter = atoi(optionValue);
-}
-
-void CSOLNPOpt_minIter(const char *optionValue)
-{
-    minIter = atoi(optionValue);
 }
 
 void CSOLNPOpt_FuncPrecision(const char *optionValue)

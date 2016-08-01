@@ -272,7 +272,6 @@ class GradientOptimizerContext {
 	int numOptimizerThreads;
 	int maxMajorIterations;
 
-	int ControlMajorLimit;
 	int ControlMinorLimit;
 	double ControlRho;
 	double ControlFuncPrecision;

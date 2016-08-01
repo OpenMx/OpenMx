@@ -342,7 +342,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' OpenMx offers the choice of three optimizers: SLSQP, CSOLNP, and NPSOL.
 ##'
 ##' One of the most important options for SLSQP is
-##' \code{gradientAlgo}. By default, ##' the \code{central} method 
+##' \code{gradientAlgo}. By default, the \code{central} method 
 ##' is used.  This method requires 2 times 
 ##' \code{gradientIterations} function evaluations per parameter 
 ##' per gradient.  The \code{central} method can be much more accurate 
@@ -357,6 +357,12 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' and \code{gradientAlgo}.  CSOLNP always uses the \code{forward} 
 ##' method; NPSOL usually uses the \code{forward} method, but 
 ##' adaptively switches to \code{central} under certain circumstances.
+##' 
+##' SLSQP uses the value of argument \code{gradientStepSize} as-is, 
+##' whereas CSOLNP internally scales it by a factor of 0.01.
+##' NPSOL ignores \code{gradientStepSize}, and instead uses a function
+##' of \link{mxOption} \dQuote{Function precision} to determine its gradient
+##' step size.
 ##' 
 ##' Currently, only SLSQP and NPSOL can use analytic gradients, 
 ##' and only NPSOL uses \code{warmStart}.
@@ -403,7 +409,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=mxOption(NULL, "Gradient iterations"),
-				     gradientStepSize=1e-5) {
+				     gradientStepSize=1e-5) { #<--Change to gradientStepSize=mxOption(NULL, "Gradient step size")
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {

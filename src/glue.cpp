@@ -237,10 +237,6 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->majorIterations = atoi(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Intervals")) {
 				Global->intervals = Rf_asLogical(VECTOR_ELT(options, i));
-			} else if (matchCaseInsensitive(nextOptionName, "Major iteration_CSOLNP")) {
-				CSOLNPOpt_majIter(nextOptionValue);
-			} else if (matchCaseInsensitive(nextOptionName, "Minor iteration_CSOLNP")) {
-				CSOLNPOpt_minIter(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
 				CSOLNPOpt_FuncPrecision(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
@@ -574,6 +570,17 @@ static SEXP omxBackend(SEXP constraints, SEXP matList,
 	}
 }
 
+static SEXP testEigenDebug()
+{
+	Eigen::VectorXd v1(2);
+	if (!std::isfinite(v1[0]) && !std::isfinite(v1[1])) {
+		Eigen::VectorXd v2(3);
+		Eigen::VectorXd v(3);
+		v = v1+v2;  // will call abort() unless EIGEN_NO_DEBUG defined
+	}
+	return Rf_ScalarLogical(false);
+}
+
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 11},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -587,6 +594,7 @@ static R_CallMethodDef callMethods[] = {
 	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},
 	{"untitledNumberReset", (DL_FUNC) &untitledNumberReset, 0},
 	{"untitledNumber", (DL_FUNC) &untitledNumber, 0},
+	{".EigenDebuggingEnabled", (DL_FUNC) testEigenDebug, 0},
 	{NULL, NULL, 0}
 };
 

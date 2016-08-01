@@ -36,7 +36,6 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	omxFreeMatrix(argStruct->smallCov);
 	omxFreeMatrix(argStruct->RCX);
 	omxFreeMatrix(argStruct->rowLikelihoods);
-	omxFreeMatrix(argStruct->rowLogLikelihoods);
 	delete argStruct;
 }
 
@@ -107,6 +106,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxExpectation* expectation = off->expectation;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
+	bool failed = false;
+
 	if (data->defVars.size() == 0 && !ofiml->isStateSpace) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(fc, expectation);
@@ -118,7 +119,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			int var = omxVectorElement(dataColumns, j);
 			if (!omxDataColumnIsFactor(data, var)) continue;
 			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
-				checkIncreasing(nextMatrix, thresholdCols[j].column, thresholdCols[j].numThresholds, fc);
+				failed |= !thresholdsIncreasing(nextMatrix, thresholdCols[j].column,
+								thresholdCols[j].numThresholds, fc);
 				for(int index = 0; index < numChildren; index++) {
 					FitContext *kid = fc->childList[index];
 					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
@@ -141,15 +143,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		if(OMX_DEBUG) { if (means) omxPrintMatrix(means, "Means"); }
 	}
 
-	memset(ofiml->rowLogLikelihoods->data, 0, sizeof(double) * data->rows);
-    
 	int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 
 	if (parallelism > data->rows) {
 		parallelism = data->rows;
 	}
 
-	bool failed = false;
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
@@ -177,12 +176,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			val = omxVectorElement(ofiml->rowLogLikelihoods, i);
+			val = log(omxVectorElement(ofiml->rowLikelihoods, i));
 //			mxLog("%d , %f, %llx\n", i, val, *((unsigned long long*) &val));
 			sum += val;
 		}	
 		if(OMX_DEBUG) {mxLog("Total Likelihood is %3.3f", sum);}
-		omxSetMatrixElement(off->matrix, 0, 0, sum);
+		omxSetMatrixElement(off->matrix, 0, 0, -2.0 * sum);
 	}
 }
 
@@ -239,7 +238,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	newObj->rowLogLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	
 	
 	if(OMX_DEBUG) {

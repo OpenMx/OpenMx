@@ -91,11 +91,15 @@ if [ -r inst/npsol/checksum ]; then
 	*Linux)
 	    omx_os=linux
 	    pick="linux/${omx_arch}/gcc${cxx_version}"
-	    npsol_url="http://openmx.psyc.virginia.edu/packages/npsol/$pick/libnpsol.a"
-	    if [ ! -f src/libnpsol.a ]; then
-		curl -s -o src/libnpsol.a "$npsol_url"
-	    fi
 	    want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ')
+	    npsol_url1="http://openmx.psyc.virginia.edu/packages/npsol/linux/${omx_arch}/$want"
+	    npsol_url2="http://openmx.psyc.virginia.edu/packages/npsol/$pick/libnpsol.a"
+	    if [ ! -f src/libnpsol.a ]; then
+		curl -s -o src/libnpsol.a "$npsol_url1"
+		if grep -s 'HTML document' src/libnpsol.a; then
+		    curl -s -o src/libnpsol.a "$npsol_url2"
+		fi
+	    fi
 	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
 	    if [ "x$got" != "x$want" ]; then
 		rm -f src/libnpsol.a

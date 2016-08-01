@@ -769,7 +769,7 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 	return mad;
 }
 
-void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
+bool thresholdsIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
 {
 	int threshCrossCount = 0;
 	if(count > om->rows) {
@@ -786,7 +786,9 @@ void checkIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
 	if(threshCrossCount > 0) {
 		fc->recordIterationError("Found %d thresholds too close together in column %d.",
 					 threshCrossCount, column+1);
+		return false;
 	}
+	return true;
 }
 
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)

@@ -721,7 +721,10 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 		Rf_error("Got %d starting values for %d parameters",
 		      startingValues.size(), numParam);
 	}
-	memcpy(est, startingValues.data(), sizeof(double) * numParam);
+	if (numParam) {
+		memcpy(est, startingValues.data(), sizeof(double) * numParam);
+	}
+	compositeCIFunction = false;
 }
 
 FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
@@ -2981,8 +2984,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
 	}
 	optName = "?";
 	fitMatrix = NULL;
-	ControlMajorLimit = 0;
-	ControlMinorLimit = 0;
+	ControlMinorLimit = 800;
 	ControlRho = 1.0;
 	ControlFuncPrecision = nan("uninit");
 	ControlTolerance = nan("uninit");
