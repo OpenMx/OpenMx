@@ -274,7 +274,6 @@ class GradientOptimizerContext {
 
 	int ControlMinorLimit;
 	double ControlRho;
-	double ControlFuncPrecision;
 	double ControlTolerance;
 	bool warmStart;
 	bool useGradient;

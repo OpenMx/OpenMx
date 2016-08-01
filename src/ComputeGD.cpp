@@ -236,6 +236,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 		break;
         case OptEngine_NLOPT:
+		rf.gradientStepSize = rf.gradientStepSize * 1e2;
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		omxInvokeNLOPT(rf);
 		rf.finish();

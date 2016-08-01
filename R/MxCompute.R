@@ -409,7 +409,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=mxOption(NULL, "Gradient iterations"),
-				     gradientStepSize=1e-5) { #<--Change to gradientStepSize=mxOption(NULL, "Gradient step size")
+				     gradientStepSize=mxOption(NULL, "Gradient step size")) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
