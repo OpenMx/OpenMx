@@ -31,4 +31,4 @@ factorRaw <- mxRun(mxModel(factorRaw, plan))
 factorCov <- mxRun(mxModel(factorCov, plan))
 
 omxCheckCloseEnough(factorRaw$output$fit, factorCov$output$fit + prod(dim(demoOneFactor))*log(2*pi), 1e-10)
-omxCheckCloseEnough(factorRaw$output$gradient, factorCov$output$gradient, 1e-6)
+omxCheckCloseEnough(factorRaw$output$gradient, factorCov$output$gradient, 1e-5)

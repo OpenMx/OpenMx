@@ -115,6 +115,8 @@ enum omxFFCompute {
 	FF_COMPUTE_FINAL_FIT    = 1<<12
 };
 
+#define GRADIENT_FUDGE_FACTOR (100.0)
+
 typedef struct omxMatrix omxMatrix;
 typedef struct omxState omxState;
 typedef struct omxAlgebra omxAlgebra;

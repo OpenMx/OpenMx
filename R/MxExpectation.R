@@ -135,7 +135,7 @@ setMethod("genericExpRename", "NULL",
 
 setMethod("genericExpGetPrecision", "MxBaseExpectation",
 	function(.Object) {
-		return(list(stepSize=0.0001, iterations=4L))
+		return(list(stepSize=mxOption(NULL, "Gradient step size"), iterations=4L))
 })
 
 setMethod("genericGetExpected", "MxBaseExpectation",
