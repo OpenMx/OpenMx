@@ -299,14 +299,7 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  ret
 })
 
-setMethod("genericExpGetPrecision", "MxExpectationRAM",
-	function(.Object) {
-		if(!single.na(.Object@thresholds)) {
-			return(list(stepSize=0.1, iterations=3L, functionPrecision=1e-9))
-		} else {
-			callNextMethod();
-		}
-})
+setMethod("genericExpGetPrecision", "MxExpectationRAM", NormalExpGetPrecision)
 
 generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	mxObject <- flatModel[[aMatrixName]]
