@@ -241,7 +241,7 @@ class omxGlobal {
 
 	// Will need revision if multiple optimizers are running in parallel
 	std::vector< omxCheckpoint* > checkpointList;
-	FitContext *fc;
+	FitContext *topFc;
 
 	omxGlobal();
 	void deduplicateVarGroups();

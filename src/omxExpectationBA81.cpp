@@ -481,8 +481,8 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->grp.setFactorNames(state->itemParam->rownames);
 
 	{
-		ProtectedSEXP tmp(R_do_slot(rObj, Rf_install(".detectIndependence")));
-		state->grp.detectIndependence = Rf_asLogical(tmp);
+		ProtectedSEXP tmp2(R_do_slot(rObj, Rf_install(".detectIndependence")));
+		state->grp.detectIndependence = Rf_asLogical(tmp2);
 	}
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("EstepItem")));

@@ -373,7 +373,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	std::vector<double> startingValues;
 	globalState->omxProcessFreeVarList(varList, &startingValues);
 	FitContext *fc = new FitContext(globalState, startingValues);
-	Global->fc = fc;
+	Global->topFc = fc;
 	fc->copyParamToModelClean();
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());

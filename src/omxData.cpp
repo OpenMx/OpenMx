@@ -56,7 +56,7 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 		omxRaiseErrorf("Don't know how to create dynamic data with type '%s'", od->getType());
 	}
 
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("verbose")));
+	{ScopedProtect p2(dataLoc, R_do_slot(dataObject, Rf_install("verbose")));
 	od->verbose = Rf_asInteger(dataLoc);
 	}
 }
@@ -82,8 +82,8 @@ void omxData::connectDynamicData(omxState *currentState)
 		return;
 	}
 
-	omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], currentState);
 	if (Rf_length(dataLoc) == 1) {
+		omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], currentState);
 		BA81Expect *other = (BA81Expect *) ex->argStruct;
 		numObs = other->weightSum;
 		addDynamicDataSource(ex);
@@ -145,7 +145,7 @@ void omxData::recompute()
 	}
 }
 
-void omxData::newDataStatic(omxState *state, SEXP dataObject)
+void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
 	omxData *od = this;
 	SEXP dataLoc, dataVal;
@@ -154,22 +154,22 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {mxLog("Processing Data '%s'", od->name);}
 
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("type")));
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("type")));
 	od->_type = CHAR(STRING_ELT(dataLoc,0));
 	if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 	}
 
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install(".isSorted")));
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install(".isSorted")));
 	od->isSorted = Rf_asLogical(dataLoc);
 	}
 	{
-		ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("primaryKey")));
+		ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("primaryKey")));
 		int pk = Rf_asInteger(dataLoc);
 		if (pk != NA_INTEGER) {
 			primaryKey = pk - 1;
 		}
 	}
-	{ScopedProtect pdl(dataLoc, R_do_slot(dataObject, Rf_install("observed")));
+	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {
 		if(OMX_DEBUG) {mxLog("Data is a frame.");}
@@ -228,7 +228,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("means")));
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("means")));
 	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	}
 
@@ -248,7 +248,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("acov")));
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("acov")));
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	}
 
@@ -260,7 +260,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("thresholds")));
+	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholds")));
 	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
 	if (!strEQ(od->obsThresholdsMat->getType(), "matrix")) {
 		Rf_error("Observed thresholds must be constant");
@@ -276,13 +276,13 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 		od->thresholdCols.reserve(od->obsThresholdsMat->cols);
 		int *columns;
 		{
-			ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("thresholdColumns")));
+			ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholdColumns")));
 			columns = INTEGER(dataLoc);
 		}
 
 		int *levels;
 		{
-			ScopedProtect p1(dataVal, R_do_slot(dataObject, Rf_install("thresholdLevels")));
+			ScopedProtect p1(dataVal, R_do_slot(dataObj, Rf_install("thresholdLevels")));
 			levels = INTEGER(dataVal);
 		}
 
@@ -301,14 +301,14 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 
 	if(!strEQ(od->_type, "raw")) {
 		if(OMX_DEBUG) {mxLog("Processing Observation Count.");}
-		ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("numObs")));
+		ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("numObs")));
 		od->numObs = REAL(dataLoc)[0];
 	} else {
 		od->numObs = od->rows;
 		if(OMX_DEBUG) {mxLog("Processing presort metadata.");}
 		/* For raw data, process sorting metadata. */
 		// Process unsorted indices:  // TODO: Generate reverse lookup table
-		{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("indexVector")));
+		{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("indexVector")));
 		od->indexVector = INTEGER(dataLoc);
 		}
 
@@ -316,19 +316,19 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 
 		// Process pre-computed identicality checks
 		if(OMX_DEBUG) {mxLog("Processing definition variable identicality.");}
-		{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("identicalDefVars")));
+		{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("identicalDefVars")));
 		od->identicalDefs = INTEGER(dataLoc);
 		}
 
 		if(Rf_length(dataLoc) == 0 || od->identicalDefs[0] == R_NaInt) od->identicalDefs = NULL;
 		if(OMX_DEBUG) {mxLog("Processing missingness identicality.");}
-		{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("identicalMissingness")));
+		{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("identicalMissingness")));
 		od->identicalMissingness = INTEGER(dataLoc);
 		}
 
 		if(Rf_length(dataLoc) == 0 || od->identicalMissingness[0] == R_NaInt) od->identicalMissingness = NULL;
 		if(OMX_DEBUG) {mxLog("Processing row identicality.");}
-		{ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("identicalRows")));
+		{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("identicalRows")));
 		od->identicalRows = INTEGER(dataLoc);
 		}
 
@@ -347,23 +347,23 @@ void omxData::newDataStatic(omxState *state, SEXP dataObject)
 	}
 }
 
-omxData* omxState::omxNewDataFromMxData(SEXP dataObject, const char *name)
+omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 {
-	if(dataObject == NULL) {
+	if(dataObj == NULL) {
 		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
 	}
 
 	SEXP DataClass;
 	const char* dclass;
-	{ScopedProtect p1(DataClass, STRING_ELT(Rf_getAttrib(dataObject, R_ClassSymbol), 0));
+	{ScopedProtect p1(DataClass, STRING_ELT(Rf_getAttrib(dataObj, R_ClassSymbol), 0));
 		dclass = CHAR(DataClass);
 	}
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData();
 	od->name = name;
 	dataList.push_back(od);
-	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObject);
-	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObject, od);
+	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObj);
+	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
 	else Rf_error("Unknown data class %s", dclass);
 	return od;
 }

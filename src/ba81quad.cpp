@@ -21,7 +21,7 @@
 
 const double ba81NormalQuad::MIN_VARIANCE = 0.01;
 
-ba81NormalQuad::ba81NormalQuad(struct ifaGroup *ig) : ig(*ig)
+ba81NormalQuad::ba81NormalQuad(struct ifaGroup *_ig) : ig(*_ig)
 {
 	setOne(1);
 	layers.resize(1, layer(this));

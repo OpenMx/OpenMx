@@ -388,16 +388,16 @@ omxConfidenceInterval::omxConfidenceInterval()
 	for which bounds are to be calculated, and are cast to ints here for speed.
 	The last two are the upper and lower boundaries for the confidence space (respectively).
 */
-void omxGlobal::omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState)
+void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState)
 {
-	SEXP names = Rf_getAttrib(intervalList, R_NamesSymbol);
+	SEXP names = Rf_getAttrib(iList, R_NamesSymbol);
 	SEXP nextVar;
-	int numIntervals = Rf_length(intervalList);
+	int numIntervals = Rf_length(iList);
 	if(OMX_DEBUG) {mxLog("Found %d Confidence Interval requests.", numIntervals); }
 	Global->intervalList.reserve(numIntervals);
 	for(int index = 0; index < numIntervals; index++) {
 		omxConfidenceInterval *oCI = new omxConfidenceInterval;
-		Rf_protect(nextVar = VECTOR_ELT(intervalList, index));
+		Rf_protect(nextVar = VECTOR_ELT(iList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
 		oCI->matrixNumber = Rf_asInteger(nextVar);

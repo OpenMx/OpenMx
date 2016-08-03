@@ -62,9 +62,9 @@ bool FreeVarGroup::hasSameVars(FreeVarGroup *g2)
 int FreeVarGroup::lookupVar(int matrix, int row, int col)
 {
 	for (size_t vx=0; vx < vars.size(); ++vx) {
-		std::vector<omxFreeVarLocation> &locations = vars[vx]->locations;
-		for (size_t lx=0; lx < locations.size(); lx++) {
-			const omxFreeVarLocation &loc = locations[lx];
+		std::vector<omxFreeVarLocation> &locVec = vars[vx]->locations;
+		for (size_t lx=0; lx < locVec.size(); lx++) {
+			const omxFreeVarLocation &loc = locVec[lx];
 			if (loc.matrix != matrix) continue;
 			if (loc.row == row && loc.col == col) return vx;
 		}
@@ -216,7 +216,7 @@ omxGlobal::omxGlobal()
 	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
-	fc = NULL;
+	topFc = NULL;
 	intervals = true;
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
@@ -426,9 +426,9 @@ omxState::~omxState()
 
 omxGlobal::~omxGlobal()
 {
-	if (fc) {
-		omxState *state = fc->state;
-		delete fc;
+	if (topFc) {
+		omxState *state = topFc->state;
+		delete topFc;
 		delete state;
 	}
 	for (size_t cx=0; cx < intervalList.size(); ++cx) {
@@ -660,8 +660,8 @@ void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double
 	}
 }
 
-UserConstraint::UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2) :
-	super(name)
+UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2) :
+	super(_name)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
