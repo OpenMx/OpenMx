@@ -27,21 +27,13 @@
 #include "omxCsolnp.h"
 #include "omxBuffer.h"
 
-// move to Global? TODO
-static double funcPrecision = 1.0e-7;
-
 void omxCSOLNP(GradientOptimizerContext &go)
 {
 	double *est = go.est.data();
 	go.optName = "CSOLNP";
-	go.ControlFuncPrecision = funcPrecision;
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
 	go.useGradient = false;  // not implemented yet
 	go.ineqType = omxConstraint::GREATER_THAN;
 	solnp(est, go);
 }
 
-void CSOLNPOpt_FuncPrecision(const char *optionValue)
-{
-    funcPrecision = atof(optionValue);
-}

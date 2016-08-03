@@ -18,7 +18,7 @@
 #How can mxTryHard() be improved for ordinal-threshold analyses?
 
 mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
-											scale = 0.25,  initialGradientStepSize = .00001, 
+		      scale = 0.25,  initialGradientStepSize = mxOption(NULL, "Gradient step size"), 
 											initialGradientIterations = as.integer(options()$mxOption$'Gradient iterations'),
 											initialTolerance=as.numeric(options()$mxOption$'Optimality tolerance'), 
 											checkHess = TRUE, fit2beat = Inf, paste = TRUE,

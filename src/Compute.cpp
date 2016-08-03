@@ -2986,7 +2986,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
 	fitMatrix = NULL;
 	ControlMinorLimit = 800;
 	ControlRho = 1.0;
-	ControlFuncPrecision = nan("uninit");
 	ControlTolerance = nan("uninit");
 	useGradient = false;
 	warmStart = false;

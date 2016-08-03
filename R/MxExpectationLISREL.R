@@ -731,14 +731,7 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 })
 
 
-setMethod("genericExpGetPrecision", "MxExpectationLISREL",
-	function(.Object) {
-		if(!single.na(.Object@thresholds)) {
-			return(list(stepSize=0.1, iterations=3L))
-		} else {
-			callNextMethod();
-		}
-})
+setMethod("genericExpGetPrecision", "MxExpectationLISREL", NormalExpGetPrecision)
 
 
 

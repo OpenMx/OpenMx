@@ -299,7 +299,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
-	stepSize = REAL(slotValue)[0];
+	stepSize = GRADIENT_FUDGE_FACTOR(3.0) * REAL(slotValue)[0];
 	if (stepSize <= 0) Rf_error("stepSize must be positive");
 
 	knownHessian = NULL;

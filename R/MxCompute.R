@@ -378,8 +378,8 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @param maxMajorIter maximum number of major iterations
 ##' @param gradientAlgo one of c('forward','central')
-##' @param gradientIterations number of Richardson iterations to use for the gradient (default 2)
-##' @param gradientStepSize the step size for the gradient (default 1e-5)
+##' @param gradientIterations number of Richardson iterations to use for the gradient
+##' @param gradientStepSize the step size for the gradient
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references
@@ -409,7 +409,7 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=mxOption(NULL, "Gradient iterations"),
-				     gradientStepSize=1e-5) { #<--Change to gradientStepSize=mxOption(NULL, "Gradient step size")
+				     gradientStepSize=mxOption(NULL, "Gradient step size")) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1103,7 +1103,9 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' factorModelFit$output$hessian
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
-				      parallel=TRUE, stepSize=0.0001, iterations=4L, verbose=0L,
+				  parallel=TRUE,
+				  stepSize=mxOption(NULL, "Gradient step size"),
+				  iterations=4L, verbose=0L,
 				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE)
 {
 	garbageArguments <- list(...)

@@ -137,7 +137,6 @@ npsolOptions <- list(
     "Step limit" = "2.0",
 	"Hessian" = "Yes",
 # below are not npsol options
-    "Function precision_CSOLNP" = "1.0e-7",
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
 	"Analytic Gradients" = "Yes",
@@ -174,6 +173,7 @@ otherOptions <- list(
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = "central",
     "Gradient iterations" = 1L,
+    "Gradient step size" = 1.0e-7,
     "Parallel diagnostics" = "No"
 )
 

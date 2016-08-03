@@ -235,7 +235,7 @@ Laplace_rgsn_fit1 <- mxTryHard(model=Laplace_rgsn_mod1,scale=10)
 omxCheckCloseEnough(Laplace_rgsn_fit1$output$fit, 64.55, .02)
 omxCheckCloseEnough(Laplace_rgsn_fit1$output$estimate, c(3.21, 1.01, 0.85), .03)
 
-Laplace_rgsn_fit1 <- mxTryHard(model=Laplace_rgsn_mod1,initialGradientStepSize=0.1)
+Laplace_rgsn_fit1 <- mxTryHard(model=Laplace_rgsn_mod1,initialGradientStepSize=0.001)
 omxCheckCloseEnough(Laplace_rgsn_fit1$output$fit, 64.55, .02)
 omxCheckCloseEnough(Laplace_rgsn_fit1$output$estimate, c(3.21, 1.01, 0.85), .03)
 

@@ -237,8 +237,6 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->majorIterations = atoi(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Intervals")) {
 				Global->intervals = Rf_asLogical(VECTOR_ELT(options, i));
-			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
-				CSOLNPOpt_FuncPrecision(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->RAMInverseOpt);
 				//mxLog("inv opt = %s %d", nextOptionValue, Global->RAMInverseOpt);

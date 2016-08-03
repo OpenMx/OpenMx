@@ -13,7 +13,7 @@ Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} unti
 
 \usage{
 mxTryHard(model, extraTries = 10, greenOK = FALSE, loc = 1, scale = 0.25,
-initialGradientStepSize = .00001,
+initialGradientStepSize = mxOption(NULL, "Gradient step size"),
 initialGradientIterations = as.integer(options()$mxOption$'Gradient iterations'),
 initialTolerance=as.numeric(options()$mxOption$'Optimality tolerance'), 
 checkHess = TRUE, fit2beat = Inf, paste = TRUE,	iterationSummary=FALSE, 

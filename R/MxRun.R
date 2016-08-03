@@ -204,7 +204,8 @@ runHelper <- function(model, frontendStart,
 
 		if (defaultComputePlan && is(model@compute, "MxComputeSequence")) {
 			iterations <- Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']])))
-			stepSize <- Reduce(max, c(1e-4, sapply(prec, function(x) x[['stepSize']])))
+			stepSize <- Reduce(max, c(sqrt(.Machine$double.eps),
+						  sapply(prec, function(x) x[['stepSize']])))
 			model <- adjustDefaultNumericDeriv(model, iterations, stepSize)
 			flatModel <- adjustDefaultNumericDeriv(flatModel, iterations, stepSize)
 		}
