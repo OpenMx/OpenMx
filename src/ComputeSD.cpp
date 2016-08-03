@@ -3,6 +3,8 @@
 #include "ComputeSD.h"
 #include "finiteDifferences.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct fit_functional {
 	GradientOptimizerContext &goc;
 

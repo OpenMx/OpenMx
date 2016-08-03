@@ -20,6 +20,8 @@
 #include "RAMInternal.h"
 //#include <Eigen/LU>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
 static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char *what, const char *how)

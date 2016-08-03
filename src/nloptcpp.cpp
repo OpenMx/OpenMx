@@ -12,6 +12,8 @@
 
 #include "nlopt.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 namespace SLSQP {
 
 	struct context {

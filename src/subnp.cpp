@@ -12,6 +12,8 @@
 //using std::cout;
 //using std::endl;
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct CSOLNP {
 
     int flag, flag_NormgZ, minr_rec;

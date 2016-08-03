@@ -31,6 +31,8 @@
 #include "omxFitFunction.h"
 #include "fitMultigroup.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 
 struct omxFitFunctionTableEntry {

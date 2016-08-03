@@ -20,6 +20,8 @@
 #include "omxFIMLFitFunction.h"
 #include "omxSadmvnWrapper.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxSadmvnWrapper(int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform) {
     // SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.

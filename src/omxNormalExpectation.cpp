@@ -19,6 +19,8 @@
 #include "omxDefines.h"
 #include "omxNormalExpectation.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxComputeNormalExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
 	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
 

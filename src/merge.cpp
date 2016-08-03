@@ -57,6 +57,8 @@ static char sccsid[] = "@(#)merge.c	8.2 (Berkeley) 2/14/94";
 #include <string.h>
 #include "merge.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static void setup(unsigned char *, unsigned char *, size_t, size_t, mergesort_cmp_t, void *);
 static void insertionsort(unsigned char *, size_t, size_t, mergesort_cmp_t, void *);
 

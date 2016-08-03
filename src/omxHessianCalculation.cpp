@@ -37,6 +37,8 @@
 #include "Compute.h"
 #include "omxBuffer.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;
 	double stepSize;

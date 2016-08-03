@@ -18,6 +18,8 @@
 #include "Compute.h"
 #include "omxRFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *) {
 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
 

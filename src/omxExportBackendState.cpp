@@ -26,6 +26,8 @@
 #include "glue.h"
 #include "omxExportBackendState.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxState::omxExportResults(MxRList *out, FitContext *fc)
 {
 	SEXP matrices;

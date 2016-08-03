@@ -27,6 +27,8 @@
 #include "omxNPSOLSpecific.h"
 #include "Compute.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
 }

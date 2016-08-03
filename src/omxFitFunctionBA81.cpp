@@ -22,6 +22,8 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct BA81FitState {
 	//private:
 	void copyEstimates(BA81Expect *estate);

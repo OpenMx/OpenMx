@@ -24,6 +24,8 @@
 #include "omxBuffer.h"
 #include "matrix.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 #define USE_EXTERNAL_LIBRPF 1
 
 const struct rpf *Glibrpf_model = NULL;

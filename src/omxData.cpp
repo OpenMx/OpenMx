@@ -29,6 +29,8 @@
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 omxData::omxData() : rownames(0), primaryKey(-1),
 		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),

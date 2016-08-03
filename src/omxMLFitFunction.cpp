@@ -26,6 +26,8 @@
 #include "omxBuffer.h"
 #include "matrix.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static const double MIN_VARIANCE = 1e-6;
 
 struct MLFitState {

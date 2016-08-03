@@ -20,6 +20,8 @@
 #include "omxRowFitFunction.h"
 #include "omxFIMLFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxDestroyRowFitFunction(omxFitFunction *oo) {
 
 	omxRowFitFunction* argStruct = (omxRowFitFunction*)(oo->argStruct);

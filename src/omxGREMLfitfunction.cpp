@@ -24,6 +24,7 @@
 #include <Eigen/Dense>
 #include <Rmath.h>
 
+#pragma GCC diagnostic warning "-Wshadow"
 
  void omxInitGREMLFitFunction(omxFitFunction *oo){
   

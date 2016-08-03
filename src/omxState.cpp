@@ -22,6 +22,8 @@
 #include "Compute.h"
 #include "omxImportFrontendState.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct omxGlobal *Global = NULL;
 
 FreeVarGroup *omxGlobal::findVarGroup(int id)

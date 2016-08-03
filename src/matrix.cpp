@@ -15,6 +15,8 @@ using std::endl;
 #include "matrix.h"
 #include "omxMatrix.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 Matrix::Matrix(omxMatrix *mat)
 : rows(mat->rows), cols(mat->cols), t(mat->data) {}
 

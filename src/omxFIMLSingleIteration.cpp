@@ -20,6 +20,7 @@
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
 
 void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs, 
 	int *numIdenticalContinuousMissingness,

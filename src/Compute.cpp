@@ -31,6 +31,8 @@
 #include "finiteDifferences.h"
 #include <Eigen/Cholesky>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void pda(const double *ar, int rows, int cols);
 
 void FitContext::queue(HessianBlock *hb)

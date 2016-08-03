@@ -19,6 +19,8 @@
 #include "omxBuffer.h"
 #include <algorithm>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct AlgebraFitFunction {
 	omxFitFunction *ff;
 	omxMatrix *algebra;

@@ -22,6 +22,8 @@
 #include "Compute.h"
 #include "matrix.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static const char engineName[] = "NnRn";
 
 class ComputeNR : public omxCompute {
