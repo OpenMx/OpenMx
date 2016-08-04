@@ -22,6 +22,8 @@
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
  
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxInitGREMLExpectation(omxExpectation* ox){
   
   SEXP rObj = ox->rObj;

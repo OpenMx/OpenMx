@@ -39,6 +39,7 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
 
+#pragma GCC diagnostic warning "-Wshadow"
 
 void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }

@@ -16,6 +16,8 @@
 
 #include "omxWLSFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *obsThresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {
     // TODO: vectorize data flattening

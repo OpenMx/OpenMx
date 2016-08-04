@@ -3,10 +3,12 @@
 #include "ComputeSD.h"
 #include "finiteDifferences.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 struct fit_functional {
 	GradientOptimizerContext &goc;
 
-	fit_functional(GradientOptimizerContext &goc) : goc(goc) {};
+	fit_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
 
 	double operator()(double *x, int thrId) const {
 		int mode = 0;
@@ -27,11 +29,13 @@ void omxSD(GradientOptimizerContext &rf)
     rf.setupSimpleBounds();
     rf.informOut = INFORM_UNINITIALIZED;
 
-    int mode = 0;
-    rf.solFun(currEst.data(), &mode);
-    if (mode == -1) {
-	    rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
-	    return;
+    {
+	    int mode = 0;
+	    rf.solFun(currEst.data(), &mode);
+	    if (mode == -1) {
+		    rf.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		    return;
+	    }
     }
     double refFit = rf.getFit();
 

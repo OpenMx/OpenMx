@@ -19,6 +19,8 @@
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 /* FIML Function body */
 void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	if(OMX_DEBUG) { mxLog("Destroying FIML fit function object."); }

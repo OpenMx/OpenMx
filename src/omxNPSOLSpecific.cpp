@@ -28,6 +28,8 @@
 #include "npsolswitch.h"
 #include "omxBuffer.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 template <typename T1>
 void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
 {

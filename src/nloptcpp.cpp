@@ -12,6 +12,8 @@
 
 #include "nlopt.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 namespace SLSQP {
 
 	struct context {
@@ -19,7 +21,7 @@ namespace SLSQP {
 		int origeq;
 		int eqredundent;
 		std::vector<bool> eqmask;
-		context(GradientOptimizerContext &goc) : goc(goc) {
+		context(GradientOptimizerContext &_goc) : goc(_goc) {
 			eqredundent = 0;
 		};
 	};
@@ -27,7 +29,7 @@ namespace SLSQP {
 struct fit_functional {
 	GradientOptimizerContext &goc;
 
-	fit_functional(GradientOptimizerContext &goc) : goc(goc) {};
+	fit_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
 
 	double operator()(double *x, int thrId) const {
 		int mode = 0;
@@ -83,7 +85,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 struct equality_functional {
 	GradientOptimizerContext &goc;
 
-	equality_functional(GradientOptimizerContext &goc) : goc(goc) {};
+	equality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
@@ -151,7 +153,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 struct inequality_functional {
 	GradientOptimizerContext &goc;
 
-	inequality_functional(GradientOptimizerContext &goc) : goc(goc) {};
+	inequality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {

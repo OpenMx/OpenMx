@@ -32,6 +32,8 @@
 
 #include "omxExpectation.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {

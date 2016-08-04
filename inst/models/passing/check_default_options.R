@@ -1,5 +1,5 @@
 library(OpenMx)
 
-omxCheckEquals(imxDetermineDefaultOptimizer(), "SLSQP")
+omxCheckEquals(imxDetermineDefaultOptimizer(), "CSOLNP")
 
 omxCheckEquals(options()[['mxCondenseMatrixSlots']], FALSE)

@@ -30,6 +30,8 @@
 #include "omxMatrix.h"
 #include "omxFitFunction.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 {
 	if (numArgs <= 0) {
@@ -207,8 +209,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 			SEXP algebraArg;
 			{
 				ScopedProtect p1(algebraArg, VECTOR_ELT(algebra, j+1));
-				std::string name = string_snprintf("%s arg %d", om->name(), j);
-				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name);
+				auto name2 = string_snprintf("%s arg %d", om->name(), j);
+				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name2);
 			}
 			if (oa->algArgs[j]->nameStr.size() == 0) {
 				// A bit inefficient but invaluable for debugging

@@ -31,6 +31,8 @@
 #include "finiteDifferences.h"
 #include <Eigen/Cholesky>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void pda(const double *ar, int rows, int cols);
 
 void FitContext::queue(HessianBlock *hb)
@@ -70,8 +72,8 @@ void FitContext::analyzeHessianBlock(HessianBlock *hb)
 		HessianBlock *hb2 = blockByVar[ hb->vars[vx] ];
 		if (!hb2) continue;
 
-		for (size_t vx=0; vx < hb2->vars.size(); ++vx) {
-			blockByVar[ hb2->vars[vx] ] = NULL;
+		for (size_t vx2=0; vx2 < hb2->vars.size(); ++vx2) {
+			blockByVar[ hb2->vars[vx2] ] = NULL;
 		}
 		estNonZero -= hb2->estNonZero();
 
@@ -87,19 +89,19 @@ void FitContext::analyzeHessianBlock(HessianBlock *hb)
 		if (inc) {
 			hb->subBlocks.push_back(hb2);
 		} else {
-			HessianBlock *parent = new HessianBlock;
-			mergeBlocks.push_back(parent);
-			parent->merge = true;
-			parent->vars = hb->vars;
-			parent->vars.insert(parent->vars.end(), hb2->vars.begin(), hb2->vars.end());
-			std::inplace_merge(parent->vars.begin(), parent->vars.begin() + hb->vars.size(), parent->vars.end());
-			int nsize = std::unique(parent->vars.begin(), parent->vars.end()) - parent->vars.begin();
-			parent->vars.resize(nsize);
-			parent->mat.resize(nsize, nsize);
-			parent->mat.triangularView<Eigen::Upper>().setZero();
-			parent->subBlocks.push_back(hb);
-			parent->subBlocks.push_back(hb2);
-			analyzeHessianBlock(parent);
+			HessianBlock *par2 = new HessianBlock;
+			mergeBlocks.push_back(par2);
+			par2->merge = true;
+			par2->vars = hb->vars;
+			par2->vars.insert(par2->vars.end(), hb2->vars.begin(), hb2->vars.end());
+			std::inplace_merge(par2->vars.begin(), par2->vars.begin() + hb->vars.size(), par2->vars.end());
+			int nsize = std::unique(par2->vars.begin(), par2->vars.end()) - par2->vars.begin();
+			par2->vars.resize(nsize);
+			par2->mat.resize(nsize, nsize);
+			par2->mat.triangularView<Eigen::Upper>().setZero();
+			par2->subBlocks.push_back(hb);
+			par2->subBlocks.push_back(hb2);
+			analyzeHessianBlock(par2);
 			return;
 		}
 	}
@@ -727,10 +729,10 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 	compositeCIFunction = false;
 }
 
-FitContext::FitContext(FitContext *parent, FreeVarGroup *varGroup)
+FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 {
-	this->parent = parent;
-	this->varGroup = varGroup;
+	this->parent = _parent;
+	this->varGroup = _varGroup;
 	init();
 
 	state = parent->state;
@@ -784,8 +786,7 @@ void FitContext::updateParent()
 	// rewrite using mapToParent TODO
 
 	if (svars > 0) {
-		size_t s1 = 0;
-		for (size_t d1=0; d1 < dest->vars.size(); ++d1) {
+		for (size_t d1=0, s1 = 0; d1 < dest->vars.size(); ++d1) {
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
 			if (++s1 == svars) break;
@@ -983,8 +984,6 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 
 void FitContext::copyParamToModelClean()
 {
-	size_t numParam = varGroup->vars.size();
-
 	if(numParam == 0) return;
 
 	copyParamToModelInternal(varGroup, state, est);
@@ -1058,7 +1057,6 @@ void FitContext::preInfo()
 
 void FitContext::postInfo()
 {
-	size_t numParam = varGroup->vars.size();
 	switch (infoMethod) {
 	case INFO_METHOD_SANDWICH:{
 		// move into FCDeriv TODO
@@ -1187,7 +1185,7 @@ protected:
 	int verbose;
 
 public:
-	EMAccel(FitContext *fc, int verbose) : fc(fc), verbose(verbose) {
+	EMAccel(FitContext *_fc, int _verbose) : fc(_fc), verbose(_verbose) {
 		numParam = fc->varGroup->vars.size();
 		prevAdj1.assign(numParam, 0);
 		prevAdj2.resize(numParam);
@@ -1239,8 +1237,8 @@ public:
 // other question is whether more Ramsay1975 groups really help or not.
 // nightly/ifa-cai2009.R actually got faster with 1 Ramsay group.
 
-Ramsay1975::Ramsay1975(FitContext *fc, int verbose, double minCaution) :
-	EMAccel(fc, verbose), minCaution(minCaution)
+Ramsay1975::Ramsay1975(FitContext *_fc, int _verbose, double _minCaution) :
+	EMAccel(_fc, _verbose), minCaution(_minCaution)
 {
 	maxCaution = 0.0;
 	caution = 0;
@@ -1334,8 +1332,8 @@ class Varadhan2008 : public EMAccel {
 	Eigen::VectorXd vv;
 
 public:
-	Varadhan2008(FitContext *fc, int verbose) :
-		EMAccel(fc, verbose), rr(&prevAdj2[0], numParam), vv(numParam)
+	Varadhan2008(FitContext *_fc, int _verbose) :
+		EMAccel(_fc, _verbose), rr(&prevAdj2[0], numParam), vv(numParam)
 	{
 		alpha = 0;
 		maxAlpha = 0;
@@ -2252,7 +2250,7 @@ struct estep_jacobian_functional {
 	ComputeEM *em;
 	FitContext *fc;
 
-	estep_jacobian_functional(ComputeEM *em, FitContext *fc) : em(em), fc(fc) {};
+	estep_jacobian_functional(ComputeEM *_em, FitContext *_fc) : em(_em), fc(_fc) {};
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
@@ -2974,8 +2972,8 @@ void GradientOptimizerContext::reset()
 	bestFit = std::numeric_limits<double>::max();
 }
 
-GradientOptimizerContext::GradientOptimizerContext(FitContext *fc, int verbose)
-	: fc(fc), verbose(verbose)
+GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose)
+	: fc(_fc), verbose(_verbose)
 {
 	numFree = 0;
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {

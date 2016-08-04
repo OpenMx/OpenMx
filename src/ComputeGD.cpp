@@ -26,6 +26,8 @@
 #include "glue.h"
 #include "ComputeSD.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 enum OptEngine {
 	OptEngine_NPSOL,
 	OptEngine_CSOLNP,
@@ -366,7 +368,7 @@ class ciConstraintIneq : public omxConstraint {
 	typedef omxConstraint super;
 	omxMatrix *fitMat;
  public:
-	ciConstraintIneq(omxMatrix *fitMat) : super("CI"), fitMat(fitMat)
+	ciConstraintIneq(omxMatrix *_fitMat) : super("CI"), fitMat(_fitMat)
 	{ size=1; opCode = LESS_THAN; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
@@ -385,7 +387,7 @@ class ciConstraintEq : public omxConstraint {
 	typedef omxConstraint super;
 	omxMatrix *fitMat;
  public:
-	ciConstraintEq(omxMatrix *fitMat) : super("CI"), fitMat(fitMat)
+	ciConstraintEq(omxMatrix *_fitMat) : super("CI"), fitMat(_fitMat)
 	{ size=1; opCode = EQUALITY; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {

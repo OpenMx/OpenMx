@@ -107,13 +107,12 @@ errorRecover <- function(script, opt, index) {
 			c('warnRec', 'errors', 'errorRecover', 'opt', 'null', 'files', 'directories', 'runtimes')))
 }
 
-optimizers <- c('SLSQP')
-if (!any(args == 'gctorture') && imxHasNPSOL()) {
-	optimizers <- c(optimizers, 'NPSOL')
-}
+optimizers <- c('CSOLNP')
 if (!any(args == 'gctorture')) {
-	#if (any(args == 'nightly'))  optimizers <- c(optimizers, 'SD')
-	optimizers <- c(optimizers, 'CSOLNP')
+	optimizers <- c(optimizers, 'SLSQP')
+	if (imxHasNPSOL()) {
+		optimizers <- c(optimizers, 'NPSOL')
+	}
 }
 
 for (opt in optimizers) {

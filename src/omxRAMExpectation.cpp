@@ -20,6 +20,8 @@
 #include "RAMInternal.h"
 //#include <Eigen/LU>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component);
 
 static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char *what, const char *how)
@@ -616,7 +618,7 @@ namespace RelationalRAMExpectation {
 
 	struct CompareLib {
 		state &st;
-		CompareLib(state *st) : st(st->getParent()) {};
+		CompareLib(state *_st) : st(_st->getParent()) {};
 
 		// actually stores !missingness
 		template <typename T>
@@ -694,7 +696,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct CompatibleCovCompare : CompareLib {
-		CompatibleCovCompare(state *st) : CompareLib(st) {};
+		CompatibleCovCompare(state *_st) : CompareLib(_st) {};
 
 		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
 		{
@@ -714,7 +716,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct CompatibleMeanCompare : CompareLib {
-		CompatibleMeanCompare(state *st) : CompareLib(st) {};
+		CompatibleMeanCompare(state *_st) : CompareLib(_st) {};
 
 		addr *joinedWith(const addr &la, int jx) const
 		{
@@ -1144,7 +1146,7 @@ namespace RelationalRAMExpectation {
 
 	struct RampartCompareLib {
 		state *st;
-		RampartCompareLib(state *st) : st(st) {};
+		RampartCompareLib(state *_st) : st(_st) {};
 
 		omxExpectation *getJoinModel(const addr *a1) const {
 			omxRAMExpectation *ram = a1->getRAMExpectationReadOnly();
@@ -1223,7 +1225,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct RampartTodoCompare : RampartCompareLib {
-		RampartTodoCompare(state *st) : RampartCompareLib(st) {};
+		RampartTodoCompare(state *_st) : RampartCompareLib(_st) {};
 
 		bool operator() (const addr *lhs, const addr *rhs) const
 		{
@@ -1241,7 +1243,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct RampartClumpCompare : RampartCompareLib {
-		RampartClumpCompare(state *st) : RampartCompareLib(st) {};
+		RampartClumpCompare(state *_st) : RampartCompareLib(_st) {};
 
 		bool clumpCmp(const int lhs, const int rhs) const {
 			const addr *lhsObj = &st->layout[lhs];
@@ -1338,7 +1340,7 @@ namespace RelationalRAMExpectation {
 	template <bool model>
 	struct UnitAccessor {
 		state &st;
-		UnitAccessor(state *st) : st(*st) {};
+		UnitAccessor(state *_st) : st(*_st) {};
 		bool isModel() const { return model; };
 
 		// split into coeff & coeffRef versions TODO
@@ -1470,8 +1472,8 @@ namespace RelationalRAMExpectation {
 		copyParamToModelInternal(fc->varGroup, homeEx->currentState, vec.data());
 
 		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
-			omxRAMExpectation *ram = (omxRAMExpectation*) (*it)->argStruct;
-			ram->ignoreDefVar.assign((*it)->data->defVars.size(), false);
+			omxRAMExpectation *ram2 = (omxRAMExpectation*) (*it)->argStruct;
+			ram2->ignoreDefVar.assign((*it)->data->defVars.size(), false);
 		}
 
 		if (doIdentifyZeroVarPred) identifyZeroVarPred(fc);

@@ -31,6 +31,8 @@
 #include "omxState.h"
 #include <limits>
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 // forward declarations
 static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
 

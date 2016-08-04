@@ -27,6 +27,8 @@
 #include "omxCsolnp.h"
 #include "omxBuffer.h"
 
+#pragma GCC diagnostic warning "-Wshadow"
+
 void omxCSOLNP(GradientOptimizerContext &go)
 {
 	double *est = go.est.data();

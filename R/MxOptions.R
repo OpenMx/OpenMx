@@ -111,9 +111,9 @@ imxDetermineDefaultOptimizer <- function() {
 	engine <- Sys.getenv("IMX_OPT_ENGINE")
 	if (!nchar(engine)) {
 		if (imxHasNPSOL()) {
-			engine <- "SLSQP"
+			engine <- "CSOLNP"
 		} else {
-			engine <- "SLSQP"
+			engine <- "CSOLNP"
 		}
 	}
 	engine
