@@ -19,7 +19,6 @@
 
 #include "omxMatrix.h"
 #include "Compute.h"
-#include <Eigen/Core>
 
 void solnp(double *est, GradientOptimizerContext &fit);
 
