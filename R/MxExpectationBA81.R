@@ -262,16 +262,65 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' @seealso \href{http://cran.r-project.org/package=rpf}{RPF}
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
-##' parameters: Application of an EM algorithm. Psychometrika, 46, 443-459.
+##' parameters: Application of an EM algorithm. \emph{Psychometrika, 46}, 443-459.
 ##'
 ##' Cai, L. (2010). A two-tier full-information item factor analysis
-##' model with applications. Psychometrika, 75, 581-612.
+##' model with applications. \emph{Psychometrika, 75}, 581-612.
 ##'
+##' Pritikin, J. N., Hunter, M. D., & Boker, S. M. (2015). Modular
+##' open-source software for Item Factor Analysis. \emph{Educational and
+##' Psychological Measurement, 75}(3), 458-474
+##'
+##' Pritikin, J. N. & Schmidt, K. M. (in press). Model builder for
+##' Item Factor Analysis with OpenMx. \emph{R Journal}.
+##' 
 ##' Seong, T. J. (1990). Sensitivity of marginal maximum likelihood
 ##' estimation of item and ability parameters to the characteristics
-##' of the prior ability distributions. Applied Psychological
-##' Measurement, 14(3), 299-311.
-
+##' of the prior ability distributions. \emph{Applied Psychological
+##' Measurement, 14}(3), 299-311.
+##'
+##' @examples
+##' library(OpenMx)
+##' library(rpf)
+##' 
+##' numItems <- 14
+##' 
+##' # Create item specifications
+##' spec <- list()
+##' for (ix in 1:numItems) { spec[[ix]] <- rpf.grm(outcomes=sample(2:7, 1)) }
+##' names(spec) <- paste("i", 1:numItems, sep="")
+##' 
+##' # Generate some random "true" parameter values
+##' correct.mat <- mxSimplify2Array(lapply(spec, rpf.rparam))
+##' 
+##' # Generate some example data
+##' data <- rpf.sample(500, spec, correct.mat)
+##' 
+##' # Create a matrix of item parameters with starting values
+##' imat <- mxMatrix(name="item",
+##'                  values=mxSimplify2Array(lapply(spec, rpf.rparam)))
+##' rownames(imat)[1] <- 'f1'
+##' imat$free[!is.na(correct.mat)] <- TRUE
+##' imat$values[!imat$free] <- NA
+##' 
+##' # Create a compute plan
+##' plan <- mxComputeSequence(list(
+##'   mxComputeEM('expectation', 'scores',
+##'               mxComputeNewtonRaphson(), information="oakes1999",
+##'               infoArgs=list(fitfunction='fitfunction')),
+##'   mxComputeHessianQuality(),
+##'   mxComputeStandardError(),
+##'   mxComputeReportDeriv()))
+##' 
+##' # Build the OpenMx model
+##' grmModel <- mxModel(model="grm1", imat,
+##'                     mxData(observed=data, type="raw"),
+##'                     mxExpectationBA81(ItemSpec=spec),
+##'                     mxFitFunctionML(),
+##'                     plan)
+##' 
+##' grmModel <- mxRun(grmModel)
+##' summary(grmModel)
 mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 			      qpoints=49L, qwidth=6.0, mean="mean", cov="cov",
 			      verbose=0L, weightColumn=NA_integer_,
