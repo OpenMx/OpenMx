@@ -4,9 +4,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include "omxDefines.h"
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include "matrix.h"
 #include "omxCsolnp.h"
-#include <Eigen/Dense>
 //#include <iostream>
 //#include <iomanip>
 //using std::cout;

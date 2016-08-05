@@ -30,14 +30,15 @@
 *
 **********************************************************/
 
-#include "omxExpectation.h"
-#include "omxFIMLFitFunction.h"
-#include "omxStateSpaceExpectation.h"
+#include "omxDefines.h"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/LU>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
+#include "omxExpectation.h"
+#include "omxFIMLFitFunction.h"
+#include "omxStateSpaceExpectation.h"
 
 #pragma GCC diagnostic warning "-Wshadow"
 
