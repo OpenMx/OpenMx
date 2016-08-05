@@ -359,7 +359,9 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' adaptively switches to \code{central} under certain circumstances.
 ##' 
 ##' CSOLNP uses the value of argument \code{gradientStepSize} as-is, 
-##' whereas SLSQP internally scales it by a factor of 100.
+##' whereas SLSQP internally scales it by a factor of 100. The
+##' purpose of this transformation is to obtain roughly the same
+##' accuracy given other differences in numerical procedure.
 ##' NPSOL ignores \code{gradientStepSize}, and instead uses a function
 ##' of \link{mxOption} \dQuote{Function precision} to determine its gradient
 ##' step size.
