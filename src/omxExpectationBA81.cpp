@@ -548,12 +548,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	// complain about non-integral rowWeights (EAP can't work) TODO
 
-	const double *colMap; // should be integer TODO
-	{
-	ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("dataColumns")));
-	if (Rf_length(tmp) != numItems) Rf_error("dataColumns must be length %d", numItems);
-	colMap = REAL(tmp);
-	}
+	auto colMap = oo->getDataColumns();
 
 	for (int cx = 0; cx < numItems; cx++) {
 		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);

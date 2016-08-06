@@ -24,7 +24,6 @@ setClass(Class = "MxExpectationBA81",
 	   mean = "MxOptionalCharOrNumber",
 	   cov = "MxOptionalCharOrNumber",
 	     debugInternal="logical",
-	     dataColumns="numeric",
 	   dims = "character",
 	   verbose = "integer",
 	     minItemsPerScore = "integer",
@@ -108,7 +107,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 			  stop(msg, call.=FALSE)
 		  }
 
-		  .Object@dataColumns <- as.numeric(dc)
+		  .Object@dataColumns <- dc
 		  if (!is.na(.Object@weightColumn)) {
 			  wc <- match(.Object@weightColumn, .Object@dims) - 1L
 			  if (is.na(wc)) {

@@ -22,7 +22,6 @@ setClass(Class = "MxExpectationNormal",
 		means = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		dataColumns = "numeric",
 		thresholdColumns = "numeric",
 		thresholdLevels = "numeric",
 		threshnames = "character",
@@ -555,7 +554,7 @@ generateDataColumns <- function(flatModel, covNames, dataName) {
 				"cannot be found in the column names of the data.")
 			stop(msg, call. = FALSE)
 		}
-		retval[[i]] <- index - 1
+		retval[[i]] <- index - 1L
 	}
 	return(retval)
 }

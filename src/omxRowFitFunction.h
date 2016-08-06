@@ -22,30 +22,6 @@
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
 
-typedef struct omxRowFitFunction {
-
-	/* Parts of the R  MxRowFitFunction Object */
-	omxMatrix* rowAlgebra;		// Row-by-row algebra
-	omxMatrix* rowResults;		// Aggregation of row algebra results
-	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
-    omxMatrix* filteredDataRow; // Data row minus NAs
-    omxMatrix* existenceVector; // Set of NAs
-    omxMatrix* dataColumns;		// The order of columns in the data matrix
-
-    /* Contiguous data note for contiguity speedup */
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
-
-	/* Structures determined from info in the MxRowFitFunction Object*/
-	omxMatrix* dataRow;         // One row of data, kept for aliasing only
-	omxData*   data;			// The data
-
-	int numDataRowDeps;         // number of algebra/matrix dependencies
-	int *dataRowDeps;           // indices of algebra/matrix dependencies
-
-} omxRowFitFunction;
-
-
-
 void omxDestroyRowFitFunction(omxFitFunction *oo);
 
 omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numReturns);

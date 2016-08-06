@@ -22,6 +22,28 @@
 
 #pragma GCC diagnostic warning "-Wshadow"
 
+typedef struct omxRowFitFunction {
+
+	/* Parts of the R  MxRowFitFunction Object */
+	omxMatrix* rowAlgebra;		// Row-by-row algebra
+	omxMatrix* rowResults;		// Aggregation of row algebra results
+	omxMatrix* reduceAlgebra;	// Algebra performed after row-by-row computation
+    omxMatrix* filteredDataRow; // Data row minus NAs
+    omxMatrix* existenceVector; // Set of NAs
+    omxMatrix* dataColumns;		// The order of columns in the data matrix
+
+    /* Contiguous data note for contiguity speedup */
+	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
+
+	/* Structures determined from info in the MxRowFitFunction Object*/
+	omxMatrix* dataRow;         // One row of data, kept for aliasing only
+	omxData*   data;			// The data
+
+	int numDataRowDeps;         // number of algebra/matrix dependencies
+	int *dataRowDeps;           // indices of algebra/matrix dependencies
+
+} omxRowFitFunction;
+
 void omxDestroyRowFitFunction(omxFitFunction *oo) {
 
 	omxRowFitFunction* argStruct = (omxRowFitFunction*)(oo->argStruct);
@@ -284,7 +306,8 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	}
 
 	/* Set up data columns */
-	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
+	EigenVectorAdaptor dc(newObj->dataColumns);
+	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
 
 	oo->computeFun = omxCallRowFitFunction;
 	oo->destructFun = omxDestroyRowFitFunction;

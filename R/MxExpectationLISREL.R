@@ -45,7 +45,6 @@ setClass(Class = "MxExpectationLISREL",
 	        numStats = "numeric",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		dataColumns = "numeric", #Used in FIML to grab the correct data elements
 		thresholdColumns = "numeric", #Used in FIML
 		thresholdLevels = "numeric", # Used in FIML
 		threshnames = "character",

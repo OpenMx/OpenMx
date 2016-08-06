@@ -299,24 +299,7 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	    RAMexp->means  = 	NULL;
     }
 
-	RAMexp->studyF(oo->dataColumns);
-}
-
-void omxRAMExpectation::studyF(omxMatrix *dataColumns)
-{
-	EigenMatrixAdaptor eF(F);
-	latentFilter.assign(eF.cols(), false);
-	bool isRaw = dataColumns->cols;
-	if (isRaw) dataCols.resize(eF.rows());
-	if (!eF.rows()) return;
-	for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
-		int dest;
-		double isManifest = eF.col(cx).maxCoeff(&dest);
-		latentFilter[cx] = isManifest;
-		if (isManifest && isRaw) {
-			dataCols[dx++] = omxVectorElement(dataColumns, dest);
-		}
-	}
+	RAMexp->studyF(oo->getDataColumns());
 }
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
@@ -519,7 +502,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		a1.numObsCache = 0;
-		int jCols = expectation->dataColumns->cols;
+		int jCols = expectation->getDataColumns().size();
 		if (jCols) {
 			if (!ram->M) {
 				complainAboutMissingMeans(expectation);
@@ -625,7 +608,7 @@ namespace RelationalRAMExpectation {
 		void getMissingnessPattern(const addr &a1, std::vector<T> &out) const
 		{
 			a1.dataRow(st.smallCol);
-			int jCols = a1.getDataColumns()->cols;
+			int jCols = a1.getDataColumns().size();
 			out.reserve(jCols);
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(st.smallCol, 0, col);
@@ -1113,7 +1096,7 @@ namespace RelationalRAMExpectation {
 			std::string modelName(data->name);
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
-			if (a1.getDataColumns()->cols) {
+			if (a1.getDataColumns().size()) {
 				int prevDx = dx;
 				a1.dataRow(st.smallCol);
 				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
@@ -1159,7 +1142,7 @@ namespace RelationalRAMExpectation {
 		void getMissingnessPattern(const addr *a1, std::vector<T> &out) const
 		{
 			a1->dataRow(st->smallCol);
-			int jCols = a1->getDataColumns()->cols;
+			int jCols = a1->getDataColumns().size();
 			out.reserve(jCols);
 			for (int col=0; col < jCols; ++col) {
 				double val = omxMatrixElement(st->smallCol, 0, col);

@@ -421,7 +421,7 @@ namespace RelationalRAMExpectation {
 			return (omxRAMExpectation*) model->argStruct;
 		};
 		std::vector< omxMatrix* > &getBetween() const;
-		omxMatrix *getDataColumns() const { return model->dataColumns; };
+		const Eigen::Map<Eigen::VectorXi> getDataColumns() const { return model->getDataColumns(); };
 		void dataRow(omxMatrix *out) const;
 	};
 
@@ -599,7 +599,23 @@ class omxRAMExpectation {
 	RelationalRAMExpectation::state *rram;
 	bool forceSingleGroup;
 
-	void studyF(omxMatrix *dc);
+	template <typename T>
+	void studyF(const Eigen::MatrixBase<T> &dataColumns)
+	{
+		EigenMatrixAdaptor eF(F);
+		latentFilter.assign(eF.cols(), false);
+		bool isRaw = dataColumns.size();
+		if (isRaw) dataCols.resize(eF.rows());
+		if (!eF.rows()) return;
+		for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
+			int dest;
+			double isManifest = eF.col(cx).maxCoeff(&dest);
+			latentFilter[cx] = isManifest;
+			if (isManifest && isRaw) {
+				dataCols[dx++] = dataColumns[dest];
+			}
+		}
+	};
 };
 
 namespace RelationalRAMExpectation {

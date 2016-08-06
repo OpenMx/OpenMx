@@ -531,28 +531,6 @@ std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od)
     return od->thresholdCols;
 }
 
-void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data, omxMatrix* colList) {
-
-	contiguous->isContiguous = FALSE;   // Assume not contiguous
-
-	if (data->dataMat == NULL) return; // Data has no matrix elements, so skip.
-
-	omxMatrix* dataMat = data->dataMat;
-	if (dataMat->colMajor) return;      // If data matrix is column-major, there's no continuity
-	
-	int colListLength = colList->cols;              // # of columns in the cov matrix
-	double start = omxVectorElement(colList, 0);    // Data col of first column of the covariance
-	contiguous->start = (int) start;                // That's our starting point.
-	contiguous->length = colListLength;             // And the length is ncol(cov)
-	
-	for(int i = 1; i < colListLength; i++) {        // Make sure that the col list is 
-		double next = omxVectorElement(colList, i); // contiguously increasing in column number
-		if (next != (start + i)) return;            // If it isn't, it's not contiguous data
-	}
-	
-	contiguous->isContiguous = TRUE;    // Passed.  This is contiguous.
-}
-
 void omxContiguousDataRow(omxData *od, int row, int start, int len, omxMatrix* om) {
 	// TODO: Might be better to combine this with omxDataRow to make a single accessor omxDataRow with a second signature that accepts an omxContiguousData argument.
 	if(row >= od->rows) Rf_error("Invalid row");

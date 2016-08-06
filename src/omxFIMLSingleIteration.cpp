@@ -78,7 +78,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0,
 		numIdenticalContinuousMissingness = 0, numIdenticalContinuousRows = 0;
 	
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX, *dataColumns;
+	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX;
 	omxMatrix *rowLikelihoods;
 	omxMatrix *ordMeans, *ordCov, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
@@ -99,19 +99,19 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 	RCX 		= ofo->RCX;
 	
 	data		= ofo->data;
-	dataColumns	= ofo->dataColumns;
 	int numDefs = data->defVars.size();
 	
 	returnRowLikelihoods = ofo->returnRowLikelihoods;
 	rowLikelihoods = shared_ofo->rowLikelihoods;		// write-only
 	
 	omxExpectation* expectation = localobj->expectation;
+	auto dataColumns	= expectation->getDataColumns();
 	omxMatrix *thresholdsMat = expectation->thresholdsMat;
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	OrdinalLikelihood &ol = ofo->ol;
 	ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
-	Eigen::ArrayXi ordBuffer(dataColumns->cols);
+	Eigen::ArrayXi ordBuffer(dataColumns.size());
 	
 	Eigen::VectorXi ordRemove(cov->cols);
 	Eigen::VectorXi contRemove(cov->cols);
@@ -173,8 +173,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			// TODO: If identical ordinal or continuous missingness, ignore only the appropriate columns.
 			numContinuous = 0;
 			numOrdinal = 0;
-			for(int j = 0; j < dataColumns->cols; j++) {
-				int var = omxVectorElement(dataColumns, j);
+			for(int j = 0; j < dataColumns.size(); j++) {
+				int var = dataColumns[j];
 				int value = omxIntDataElement(data, row, var);// Indexing correction means this is the index of the upper bound +1.
 				// TODO: Might save time by preseparating ordinal from continuous.
 				if(std::isnan(value) || value == NA_INTEGER) {  // Value is NA, therefore filter.
@@ -205,13 +205,14 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			
 			if(OMX_DEBUG_ROWS(row)) {
 				mxLog("Removals: %d ordinal, %d continuous out of %d total.",
-				      dataColumns->cols - numOrdinal, dataColumns->cols - numContinuous, dataColumns->cols);
+				      dataColumns.size() - numOrdinal, dataColumns.size() - numContinuous,
+				      dataColumns.size());
 			}
 
 			if (thresholdsMat) {
 				omxRecompute(thresholdsMat, fc);
-				for(int j=0; j < dataColumns->cols; j++) {
-					int var = omxVectorElement(dataColumns, j);
+				for(int j=0; j < dataColumns.size(); j++) {
+					int var = dataColumns[j];
 					if (!omxDataColumnIsFactor(data, var)) continue;
 					if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
 								  thresholdCols[j].numThresholds, fc)) return true;
@@ -465,7 +466,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFi
 			} 
 			else {  
 				int ox=0;
-				for(int j = 0; j < dataColumns->cols; j++) {
+				for(int j = 0; j < dataColumns.size(); j++) {
 					if(ordRemove[j]) continue;         // NA or non-ordinal
 					ordBuffer[ox] = j;
 					ox += 1;
