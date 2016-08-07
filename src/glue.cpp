@@ -413,7 +413,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	globalState->omxCompleteMxFitFunction(algList);
+	globalState->omxCompleteMxFitFunction(algList, fc);
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessMxComputeEntities(computeList, globalState);
@@ -590,7 +590,6 @@ static SEXP testEigenDebug()
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 11},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
-	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},

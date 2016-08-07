@@ -139,7 +139,7 @@ struct multi_normal_deriv {
 static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 {
 	const double Scale = Global->llScale;
-	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
 	omxExpectation* expectation = oo->expectation;
 	omxExpectationCompute(fc, expectation, NULL);

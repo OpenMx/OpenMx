@@ -110,9 +110,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (want & (FF_COMPUTE_INITIAL_FIT)) return;
-
-	if (!off->initialized) Rf_error("FitFunction not initialized");
+	if (!off->initialized) return;
 
 	if (!fc->CI) {
 		off->computeFun(off, want, fc);
@@ -125,9 +123,7 @@ void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
 
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (want & (FF_COMPUTE_INITIAL_FIT)) return;
-
-	if (!off->initialized) Rf_error("FitFunction not initialized");
+	if (!off->initialized) return;
 
 	off->computeFun(off, want, fc);
 	if (fc) fc->wanted |= want;
@@ -135,9 +131,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 
 void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (want & (FF_COMPUTE_INITIAL_FIT)) return;
-
-	if (!off->initialized) Rf_error("FitFunction not initialized");
+	if (!off->initialized) return;
 
 	off->ciFun(off, want, fc);
 	if (fc) fc->wanted |= want;
@@ -294,8 +288,9 @@ void omxChangeFitType(omxFitFunction *oo, const char *fitType)
 	Rf_error("Cannot find fit type '%s'", fitType);
 }
 
-static void defaultCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc)
+static void defaultCIFun(omxFitFunction* oo, int want, FitContext *fc)
 {
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
 	Rf_error("Confidence intervals are not supported for units %d", oo->units);
 }
 
@@ -340,8 +335,9 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 {
 	const omxConfidenceInterval *CI = fc->CI;
+	omxMatrix *fitMat = ff->matrix;
 
-	if (want & FF_COMPUTE_PREOPTIMIZE) {
+	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) {
 		fc->targetFit = (fc->lowerBound? CI->lbound : CI->ubound) + fc->fit;
 		//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 		return;
@@ -350,8 +346,6 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 	if (!(want & FF_COMPUTE_FIT)) {
 		Rf_error("Not implemented yet");
 	}
-
-	omxMatrix *fitMat = ff->matrix;
 
 	// We need to compute the fit here because that's the only way to
 	// check our soft feasibility constraints. If parameters don't

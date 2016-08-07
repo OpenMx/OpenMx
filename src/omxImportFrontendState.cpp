@@ -125,7 +125,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 	}
 }
 
-void omxState::omxCompleteMxFitFunction(SEXP algList)
+void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 {
 	SEXP nextAlgTuple;
 
@@ -141,6 +141,7 @@ void omxState::omxCompleteMxFitFunction(SEXP algList)
 			setFreeVarGroup(fm->fitFunction, Global->findVarGroup(FREEVARGROUP_ALL));
 		}
 		omxCompleteFitFunction(fm);
+		omxFitFunctionComputeAuto(fm->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 

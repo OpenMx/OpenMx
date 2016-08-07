@@ -330,30 +330,17 @@ void omxState::loadDefinitionVariables(bool start)
 	for(int ex = 0; ex < int(dataList.size()); ++ex) {
 		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
-		int row = 0;
-		if (start) {
-			if (e1->rows != 1) {
-				e1->loadFakeData(this, NA_REAL);
-				continue;
-			}
-		} else {
-			// find row=0 in the unsorted data
-			int obs = omxDataNumObs(e1);
-			for (int dx=0; dx < obs; ++dx) {
-				if (omxDataIndex(e1, dx) == 0) {
-					row = dx;
-					break;
-				}
-			}
+		if (start && e1->rows != 1) {
+			e1->loadFakeData(this, NA_REAL);
+			continue;
 		}
-		e1->loadDefVars(this, row);
+		e1->loadDefVars(this, 0);
 	}
 }
 
-omxState::omxState(omxState *src, FitContext *fc)
+omxState::omxState(omxState *src) : clone(true)
 {
 	init();
-	clone = true;
 
 	dataList			= src->dataList;
 		
@@ -380,10 +367,13 @@ omxState::omxState(omxState *src, FitContext *fc)
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList[mx]->copyAttr(src->matrixList[mx]);
 	}
+}
 
+void omxState::initialRecalc(FitContext *fc)
+{
 	omxInitialMatrixAlgebraCompute(fc);
 
-	for(size_t j = 0; j < src->expectationList.size(); j++) {
+	for(size_t j = 0; j < expectationList.size(); j++) {
 		// TODO: Smarter inference for which expectations to duplicate
 		omxCompleteExpectation(expectationList[j]);
 	}
@@ -392,6 +382,7 @@ omxState::omxState(omxState *src, FitContext *fc)
 		omxMatrix *matrix = algebraList[ax];
 		if (!matrix->fitFunction) continue;
 		omxCompleteFitFunction(matrix);
+		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 

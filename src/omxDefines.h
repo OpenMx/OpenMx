@@ -149,6 +149,12 @@ static inline int triangleLoc0(int diag)
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
 }
 
+static inline bool doubleEQ(double d1, double d2)
+{
+	// memcmp is required here because NaN != NaN always
+	return memcmp(&d1, &d2, sizeof(double)) == 0;
+}
+
 #ifdef _OPENMP
 
 #include <omp.h>

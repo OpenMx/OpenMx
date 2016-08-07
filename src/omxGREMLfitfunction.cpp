@@ -146,8 +146,9 @@
 
 
 
- void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc){
- 	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+ void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+ {
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
  	
  	//Recompute Expectation:
  	omxExpectation* expectation = oo->expectation;

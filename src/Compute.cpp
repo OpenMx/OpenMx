@@ -1133,7 +1133,8 @@ void FitContext::createChildren()
 	for(int ii = 0; ii < numThreads; ii++) {
 		//omxManageProtectInsanity mpi;
 		FitContext *kid = new FitContext(this, varGroup);
-		kid->state = new omxState(state, kid);
+		kid->state = new omxState(state);
+		kid->state->initialRecalc(kid);
 		kid->state->setWantStage(FF_COMPUTE_FIT);
 		childList.push_back(kid);
 		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
@@ -2777,9 +2778,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 {
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
-	// memcmp is required here because NaN != NaN always
-	if (fc->infoDefinite != NA_LOGICAL ||
-	    memcmp(&fc->infoCondNum, &NA_REAL, sizeof(double)) != 0) {
+	if (fc->infoDefinite != NA_LOGICAL || !doubleEQ(fc->infoCondNum, NA_REAL)) {
 		if (verbose >= 1) {
 			mxLog("%s: information matrix already determined to be non positive definite; skipping", name);
 		}

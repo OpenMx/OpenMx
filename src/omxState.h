@@ -284,12 +284,13 @@ class omxState {
 	// not copied to sub-states
 	std::vector< omxConstraint* > conList;
 
-	omxState() { init(); clone = false; };
-	omxState(omxState *src, FitContext *fc);
+ 	omxState() : clone(false) { init(); };
+	omxState(omxState *src);
+	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 	void omxProcessMxAlgebraEntities(SEXP algList);
-	void omxCompleteMxFitFunction(SEXP algList);
+	void omxCompleteMxFitFunction(SEXP algList, FitContext *fc);
 	void omxProcessConfidenceIntervals(SEXP intervalList);
 	void omxProcessMxExpectationEntities(SEXP expList);
 	void omxCompleteMxExpectationEntities();

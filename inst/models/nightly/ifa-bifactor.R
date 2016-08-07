@@ -64,9 +64,8 @@ m1 <- mxModel(model="bifactor",
 	      )))
 m1 <- mxRun(m1)
 
-omxCheckCloseEnough(sum(m1$expectation$debug$patternLikelihood), -12629.4, .1)
 omxCheckCloseEnough(fivenum(m1$expectation$debug$patternLikelihood),
-                    c(-15.7575854, -14.9684791, -14.0992631, -12.3467773, -3.5902924 ), 1e-4)
+                    c(-15.75, -14.96, -13.78, -12.34, -3.59), 1e-2)
 omxCheckCloseEnough(sum(m1$expectation$debug$em.expected), 20000, 1)
 omxCheckCloseEnough(fivenum(m1$expectation$debug$em.expected),
                     c(0, 0, 1.8e-06, 0.0034365, 43.2895967), 1e-4)

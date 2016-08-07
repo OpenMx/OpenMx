@@ -66,6 +66,9 @@ wideData[,"t1"][is.na(wideData[,"y1"])] <- -999
 wideData[,"t2"][is.na(wideData[,"y2"])] <- -999
 wideData[,"t3"][is.na(wideData[,"y3"])] <- -999
 
+#Remove rows with missing data
+wideData <- wideData[rowSums(is.na(wideData[,paste0('y',1:3)])) == 0,]
+
 #We're now ready to make our mydata object:
 mydat <- mxData(observed = wideData, type="raw")
 
@@ -147,7 +150,7 @@ Bread <- matrix(0,5,5)#<--The "bread" of the sandwich.
 Meat <- matrix(0,5,5)#<--The "meat" of the sandwich
 #We loop through the 1000 participants, and calculate the cumulative sums of the contributions of each to the 
 #Bread and Meat:
-for(i in 1:1000){
+for(i in 1:nrow(wideData)){
 	ycurr <- mydat$observed[i,5:8] #<--response observations (y variables) for row i.
 	pres <- which(!is.na(ycurr))#<--A "presence vector," indicating which y's are non-missing in row i.
 	ycurr <- matrix(ycurr[pres],nrow=1) #<--Filter out any NAs among the y's.

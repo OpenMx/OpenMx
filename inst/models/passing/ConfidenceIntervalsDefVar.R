@@ -8,6 +8,7 @@ ylab <- paste("y", 1:5, sep="")
 zlab <- paste("z", 1:5, sep="")
 
 colnames(datawide) <- c("id", "x", ylab, zlab)
+datawide$x <- as.numeric(datawide$x)
 latentLab <- c("intcept", "slope")
 
 Alab <- matrix(NA, 8, 8)

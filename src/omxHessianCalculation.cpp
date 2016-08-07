@@ -360,7 +360,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 0;
-	if (parallel) numChildren = fc->childList.size();
+	if (parallel && !fc->openmpUser) numChildren = fc->childList.size();
 
 	if (!fc->haveReferenceFit(fitMat)) return;
 

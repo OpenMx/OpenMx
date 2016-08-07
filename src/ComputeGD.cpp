@@ -271,6 +271,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		      name, engineName, fc->getComputeCount() - beforeEval, fc->inform);
 	}
 
+	if (isErrorRaised()) return;
+
 	// Optimizers can terminate with inconsistent fit and parameters
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
 
