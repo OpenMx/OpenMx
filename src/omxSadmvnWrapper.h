@@ -95,7 +95,7 @@ class OrdinalLikelihood {
 	Eigen::ArrayXd stddev;
 	Eigen::MatrixXd cor;
 	std::vector<block> blocks;
-	omxMatrix *dataColumns;
+	Eigen::VectorXi dataColumns;
 	omxData *data;
 	omxMatrix *thresholdMat;
 	std::vector< omxThresholdColumn > *colInfoPtr;
@@ -106,13 +106,13 @@ class OrdinalLikelihood {
 
 	OrdinalLikelihood()
 	{
-		dataColumns = 0;
 		data = 0;
 		thresholdMat = 0;
 		colInfoPtr = 0;
 	}
 
-	void attach(omxMatrix *dc, omxData *data, omxMatrix *tMat,
+	template <typename T>
+	void attach(const Eigen::MatrixBase<T> &dc, omxData *data, omxMatrix *tMat,
 		    std::vector< omxThresholdColumn > &colInfo)
 	{
 		dataColumns = dc;
@@ -260,7 +260,7 @@ double OrdinalLikelihood::block::likelihood(int row, Eigen::ArrayBase<T1> &ordIn
 	for (int ox=0, vx=0; ox < ordIndices.size(); ++ox) {
 		if (!varMask[ox]) continue;
 		int j = ordIndices[ox];
-		int var = omxVectorElement(ol->dataColumns, j);
+		int var = ol->dataColumns[j];
 		int pick = omxIntDataElement(ol->data, row, var) - 1;
 		double sd = ol->stddev[ox];
 		int tcol = colInfo[j].column;

@@ -54,7 +54,6 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
     
 	if (ox->destructFun) ox->destructFun(ox);
-	omxFreeMatrix(ox->dataColumns);
 	Free(ox);
 }
 
@@ -74,11 +73,6 @@ void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what,
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 {
 	if(component == NULL) return NULL;
-
-	/* Hard-wired expectation components */
-	if(strEQ("dataColumns", component)) {
-		return ox->dataColumns;
-	}
 
 	if(ox->componentFun == NULL) return NULL;
 
@@ -109,76 +103,76 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 	
 	if(rObj == NULL) return;
 
-	if (R_has_slot(rObj, Rf_install("dataColumns"))) {
-		{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
-		ox->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, ox->currentState, 0, 0);
-		}
+	{
+		ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
+		ox->saveDataColumnsInfo(nextMatrix);
+	}
 
-		if(OMX_DEBUG) {
-			omxPrint(ox->dataColumns, "Variable mapping");
-		}
+	if(OMX_DEBUG) {
+		mxPrintMat("Variable mapping", ox->getDataColumns());
+	}
 	
-		numCols = ox->dataColumns->cols;
-		omxData *data = ox->data;
-		for (int cx=0; cx < numCols; ++cx) {
-			int var = omxVectorElement(ox->dataColumns, cx);
-			data->assertColumnIsData(var);
+	auto dc = ox->getDataColumns();
+	numCols = dc.size();
+	omxData *data = ox->data;
+	for (int cx=0; cx < numCols; ++cx) {
+		int var = dc[cx];
+		data->assertColumnIsData(var);
+	}
+
+	if (R_has_slot(rObj, Rf_install("thresholds"))) {
+		if(OMX_DEBUG) {
+			mxLog("Accessing Threshold matrix.");
 		}
+		ScopedProtect p1(threshMatrix, R_do_slot(rObj, Rf_install("thresholds")));
 
-		if (R_has_slot(rObj, Rf_install("thresholds"))) {
+		if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 			if(OMX_DEBUG) {
-				mxLog("Accessing Threshold matrix.");
+				mxLog("Accessing Threshold Mappings.");
 			}
-			ScopedProtect p1(threshMatrix, R_do_slot(rObj, Rf_install("thresholds")));
-
-			if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-				if(OMX_DEBUG) {
-					mxLog("Accessing Threshold Mappings.");
-				}
         
-				ox->thresholdsMat = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
+			ox->thresholdsMat = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
 
-				/* Process the data and threshold mapping structures */
-				/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
-				 * and fill all the thresholds with {NULL, 0, 0}.
-				 * However the current path does not have a lot of overhead. */
-				int* thresholdColumn, *thresholdNumber;
-				{ScopedProtect pc(nextMatrix, R_do_slot(rObj, Rf_install("thresholdColumns")));
+			/* Process the data and threshold mapping structures */
+			/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
+			 * and fill all the thresholds with {NULL, 0, 0}.
+			 * However the current path does not have a lot of overhead. */
+			int* thresholdColumn, *thresholdNumber;
+			{ScopedProtect pc(nextMatrix, R_do_slot(rObj, Rf_install("thresholdColumns")));
 				thresholdColumn = INTEGER(nextMatrix);
-				}
-				{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
-				thresholdNumber = INTEGER(itemList);
-				}
-				ox->thresholds.reserve(numCols);
-				for(index = 0; index < numCols; index++) {
-					if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-						if(OMX_DEBUG) {
-							mxLog("Column %d is continuous.", index);
-						}
-						omxThresholdColumn col;
-						ox->thresholds.push_back(col);
-					} else {
-						omxThresholdColumn col;
-						col.column = thresholdColumn[index];
-						col.numThresholds = thresholdNumber[index];
-						ox->thresholds.push_back(col);
-						if(OMX_DEBUG) {
-							mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-								index, thresholdNumber[index], thresholdColumn[index]);
-						}
-						numOrdinal++;
-					}
-				}
-				if(OMX_DEBUG) {
-					mxLog("%d threshold columns processed.", numOrdinal);
-				}
-				ox->numOrdinal = numOrdinal;
-			} else {
-				if (OMX_DEBUG) {
-					mxLog("No thresholds matrix; not processing thresholds.");
-				}
-				ox->numOrdinal = 0;
 			}
+			{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
+				thresholdNumber = INTEGER(itemList);
+			}
+			ox->thresholds.reserve(numCols);
+			for(index = 0; index < numCols; index++) {
+				if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
+					if(OMX_DEBUG) {
+						mxLog("Column %d is continuous.", index);
+					}
+					omxThresholdColumn col;
+					ox->thresholds.push_back(col);
+				} else {
+					omxThresholdColumn col;
+					col.column = thresholdColumn[index];
+					col.numThresholds = thresholdNumber[index];
+					ox->thresholds.push_back(col);
+					if(OMX_DEBUG) {
+						mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
+						      index, thresholdNumber[index], thresholdColumn[index]);
+					}
+					numOrdinal++;
+				}
+			}
+			if(OMX_DEBUG) {
+				mxLog("%d threshold columns processed.", numOrdinal);
+			}
+			ox->numOrdinal = numOrdinal;
+		} else {
+			if (OMX_DEBUG) {
+				mxLog("No thresholds matrix; not processing thresholds.");
+			}
+			ox->numOrdinal = 0;
 		}
 	}
 }

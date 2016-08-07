@@ -102,10 +102,10 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
 	omxData* data           = ofiml->data;                            //  read-only
-	omxMatrix *dataColumns	= ofiml->dataColumns;
 
 	int returnRowLikelihoods = ofiml->returnRowLikelihoods;   //  read-only
 	omxExpectation* expectation = off->expectation;
+	auto dataColumns	= expectation->getDataColumns();
 	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	bool failed = false;
@@ -117,8 +117,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		
 		omxMatrix* nextMatrix = expectation->thresholdsMat;
 		if (nextMatrix) omxRecompute(nextMatrix, fc);
-		for(int j=0; j < dataColumns->cols; j++) {
-			int var = omxVectorElement(dataColumns, j);
+		for(int j=0; j < dataColumns.size(); j++) {
+			int var = dataColumns[j];
 			if (!omxDataColumnIsFactor(data, var)) continue;
 			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
 				failed |= !thresholdsIncreasing(nextMatrix, thresholdCols[j].column,
@@ -251,14 +251,14 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
 	}
-	newObj->dataColumns = off->expectation->dataColumns;
+	auto dc = off->expectation->getDataColumns();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing Threshold matrix.");
 	}
 	numOrdinal = off->expectation->numOrdinal;
 
-	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, newObj->dataColumns);
+	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
 	
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;

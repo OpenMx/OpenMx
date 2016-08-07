@@ -45,6 +45,8 @@
 /* Expectation structure itself */
 class omxExpectation {					// An Expectation
 	int defVarRow;
+	int numDataColumns;
+	int *dataColumnsPtr;
  public:
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
@@ -67,7 +69,14 @@ class omxExpectation {					// An Expectation
 	bool loadDefVars(int row);
 	int getDefVarRow() const { return defVarRow; };
 
-	omxMatrix* dataColumns;
+	void saveDataColumnsInfo(SEXP vec) {
+		numDataColumns = Rf_length(vec);
+		dataColumnsPtr = INTEGER(vec);
+	}
+	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
+		return Eigen::Map<Eigen::VectorXi>(dataColumnsPtr, numDataColumns);
+	};
+
 	omxMatrix *thresholdsMat;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0

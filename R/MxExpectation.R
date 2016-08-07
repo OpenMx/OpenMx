@@ -34,7 +34,8 @@
 ##' @rdname MxBaseExpectation-class
 setClass(Class = "MxBaseExpectation", 
 	 representation = representation(
-	   data = "MxCharOrNumber",      # filled in during flattening
+		 data = "MxCharOrNumber",      # filled in during flattening
+		 dataColumns = "integer",      # subset and permutation of data columns
 	     .runDims = "character",
 	     output = "list",
 	     debug = "list",
