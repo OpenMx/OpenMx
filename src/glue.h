@@ -105,7 +105,8 @@ void exception_to_try_Rf_error( const std::exception& ex ) __attribute__ ((noret
 
 void getMatrixDims(SEXP r_theta, int *rows, int *cols);
 
-void markAsDataFrame(SEXP list);
+void markAsDataFrame(SEXP list, int rows);
+inline void markAsDataFrame(SEXP list) { markAsDataFrame(list, -1); }
 
 #ifndef M_LN_2PI
 #define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */

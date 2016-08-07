@@ -479,9 +479,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
 
-	SEXP detailRowNames;
-	Rf_protect(detailRowNames = Rf_allocVector(INTSXP, totalIntervals));
-	markAsDataFrame(detail);
+	markAsDataFrame(detail, totalIntervals);
 
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
@@ -557,7 +555,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 				      val, fc.fit - fc.targetFit, better);
 			}
 
-			INTEGER(detailRowNames)[detailRow] = 1 + detailRow;
 			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
 			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
 			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = 1+lower;
@@ -569,8 +566,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 			++detailRow;
 		}
 	}
-
-	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
 
 	mle->copyParamToModel();
 
