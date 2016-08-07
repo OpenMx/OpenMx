@@ -133,6 +133,12 @@ struct EigenVectorAdaptor : Eigen::Map< Eigen::VectorXd > {
 	  Eigen::Map< Eigen::VectorXd >(mat->data, mat->rows * mat->cols) {}
 };
 
+template <typename Scalar>
+struct EigenStdVectorAdaptor : Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > {
+	EigenStdVectorAdaptor(std::vector<Scalar> &vec) :
+	Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> >(vec.data(), vec.size()) {};
+};
+
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.
 // If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState* os);
