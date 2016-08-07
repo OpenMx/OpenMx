@@ -907,28 +907,6 @@ double omxDataDF(omxData *od)
 	return NA_REAL;
 }
 
-SEXP omxData::getRowNames()
-{
-	if (!strEQ(_type, "raw")) Rf_error("getRowNames only works for type=raw data");
-
-	if (!isSorted) return rownames;
-
-	// We could notice if the original order was sorted and in the special
-	// form c(NA, #rows) to avoid recreating the rownames.
-
-	SEXP unsorted;
-	if (Rf_isString(rownames)) {
-		Rf_protect(unsorted = Rf_allocVector(STRSXP, rows));
-		for (int rx=0; rx < rows; rx++) {
-			int dest = omxDataIndex(this, rx);
-			SET_STRING_ELT(unsorted, dest, STRING_ELT(rownames, rx));
-		}
-	} else {
-		Rf_error("Type %d rownames not implemented", TYPEOF(rownames));
-	}
-	return unsorted;
-}
-
 static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 {
 	int numDeps = defVar->numDeps;
