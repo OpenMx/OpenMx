@@ -802,14 +802,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (estate->type == EXPECTATION_AUGMENTED) {
 		buildItemParamMap(oo, fc);
 
-		if (want & FF_COMPUTE_PARAMFLAVOR) {
-			for (size_t px=0; px < state->numFreeParam; ++px) {
-				if (state->paramFlavor[px] == NULL) continue;
-				fc->flavor[px] = state->paramFlavor[px];
-			}
-			return;
-		}
-
 		if (want & FF_COMPUTE_PREOPTIMIZE) {
 			omxExpectationCompute(fc, oo->expectation, NULL);
 			return;

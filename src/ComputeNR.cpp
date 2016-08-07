@@ -326,14 +326,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	fc->inform = INFORM_UNINITIALIZED;
-	fc->flavor.assign(numParam, NULL);
-
-	omxFitFunctionCompute(fitMatrix->fitFunction, FF_COMPUTE_PARAMFLAVOR, fc);
-
-	// flavor used for debug output only
-	for (size_t px=0; px < numParam; ++px) {
-		if (!fc->flavor[px]) fc->flavor[px] = "?";
-	}
 
 	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
 
@@ -352,7 +344,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 	double maxAdj = 0;
 	double maxAdjSigned = 0;
 	int maxAdjParam = -1;
-	const char *maxAdjFlavor = "?";
 
 	if (verbose >= 2) {
 		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
@@ -371,8 +362,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 			} else {
 				const char *pname = "none";
 				if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
-				mxLog("%s: iter %d/%d (prev maxAdj %.3g for %s %s)",
-				      name, iter, maxIter, maxAdjSigned, maxAdjFlavor, pname);
+				mxLog("%s: iter %d/%d (prev maxAdj %.3g for %s)",
+				      name, iter, maxIter, maxAdjSigned, pname);
 			}
 		}
 
@@ -390,7 +381,6 @@ void ComputeNR::computeImpl(FitContext *fc)
 		}
 
 		converged = relImprovement(improvement) < tolerance;
-		if (maxAdjParam >= 0) maxAdjFlavor = fc->flavor[maxAdjParam];
 
 		fc->copyParamToModel();
 
