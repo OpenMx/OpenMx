@@ -86,7 +86,7 @@ tMod <- mxModel("teacher", type="RAM",
                        values=1,free=c(FALSE, rep(TRUE,numIndicators-1))))
 
 sMod <- mxModel("student", type="RAM",
-                mxData(type="raw", observed=studentData, sort=FALSE),
+                mxData(type="raw", observed=studentData),
                 manifestVars = paste0('i', 1:numIndicators),
                 latentVars = "studentSkill",
                 mxPath("studentSkill", arrows=2, labels="studentVar", values=1),

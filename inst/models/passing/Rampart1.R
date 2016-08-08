@@ -84,16 +84,16 @@ student <- relabel(student, "st_")
 
 school <- mxModel(
     school,
-    mxData(school.data, type="raw", primaryKey="id", sort=FALSE))
+    mxData(school.data, type="raw", primaryKey="id"))
 
 teacher <- mxModel(
     teacher, school,
-    mxData(teacher.data, type="raw", primaryKey="id", sort=FALSE),
+    mxData(teacher.data, type="raw", primaryKey="id"),
     mxPath('school.C', 'A', free=FALSE, value=1, joinKey="schoolId"))
 
 student <- mxModel(
     student, teacher,
-    mxData(student.data, type="raw", primaryKey="id", sort=FALSE),
+    mxData(student.data, type="raw", primaryKey="id"),
     mxPath('teacher.C', 'A', free=FALSE, value=1, joinKey="teacherId"))
 
 #student$expectation$verbose <- 1L

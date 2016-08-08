@@ -23,7 +23,7 @@ bModel <- mxModel(
 
 wModel <- mxModel(
     'within', type="RAM", bModel,
-    mxData(type="raw", observed=wData, sort=FALSE),
+    mxData(type="raw", observed=wData),
     manifestVars = paste0('y', 1:4),
     latentVars = c('fw', paste0("xe", 1:2)),
     mxPath("one", paste0('y', 1:4), values=runif(4),

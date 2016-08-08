@@ -39,7 +39,7 @@ level2Model <- mxModel(
 withinModel <- mxModel(
     'withinModel', type='RAM', level2Model,
     manifestVars=paste0('y',1:4), latentVars=c('iw','sw','x'),
-    mxData(ex923, 'raw', sort=FALSE),
+    mxData(ex923, 'raw'),
     mxPath('iw', paste0('y',1:4), free=FALSE, values=1),
     mxPath('sw', paste0('y',1:4), free=FALSE, values=0:3),
     mxPath(paste0('y',1:4), arrows=2),

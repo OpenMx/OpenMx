@@ -118,7 +118,7 @@ perID <- mxModel(
 
 occa <- mxModel(
     "occa", type="RAM", perID, manifestVars="Y", latentVars="lX",
-    mxData(tDataFrame, 'raw', sort=FALSE),
+    mxData(tDataFrame, 'raw'),
     mxPath('Y', arrows=2, values=1),
     mxPath('one', 'Y'),
     mxPath('one', 'lX', labels='data.X', free=FALSE),

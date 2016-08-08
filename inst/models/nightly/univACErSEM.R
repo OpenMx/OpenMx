@@ -64,7 +64,7 @@ bModel <- mxModel(
 
 wModel <- mxModel(
     'within', type="RAM", bModel,
-    mxData(type="raw", observed=wData, sort=FALSE),
+    mxData(type="raw", observed=wData),
     manifestVars = 'bmi',
     latentVars = c("E", "AU"),
     mxPath(from="one", to="bmi", arrows=1, free=TRUE, values=20, labels="mean"),
@@ -128,7 +128,7 @@ bModel2 <- mxModel(
 
 wModel2 <- mxModel(
     'within', type="RAM", bModel2,
-    mxData(type="raw", observed=wData, sort=FALSE),
+    mxData(type="raw", observed=wData),
     manifestVars = 'bmi',
     latentVars = c("E", "AU"),
     mxPath(from="one", to="bmi", arrows=1, free=TRUE,

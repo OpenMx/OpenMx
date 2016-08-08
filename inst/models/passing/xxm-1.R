@@ -18,7 +18,7 @@ tMod <- mxModel("teacher", type="RAM",
 
 sMod <- mxModel("student", type="RAM", tMod,
                 manifestVars = c("y1", "y2"),
-                mxData(type="raw", observed=sData, sort=FALSE),
+                mxData(type="raw", observed=sData),
                 mxPath("one", paste0("y",1:2), values=rnorm(2)),
                 mxPath(c("y1", "y2"), connect = "unique.pairs", arrows=2,
                        labels=paste0("theta", 1:3), values=c(1.1,0,1.2)),

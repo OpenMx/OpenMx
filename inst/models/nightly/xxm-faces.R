@@ -32,7 +32,7 @@ targetModel <- mxModel(
 faces <- mxModel(
   "faces", type="RAM", raterModel, targetModel,
   manifestVars=c("SYM", "PA"),
-  mxData(faces.response, "raw", sort=FALSE),
+  mxData(faces.response, "raw"),
   mxPath("one", c("SYM", "PA")),
   mxPath(c("SYM", "PA"), arrows=2, connect="unique.pairs", values=c(1,0,1)),
   mxPath(paste0('raterModel.', c("SYM", "PA")), c("SYM", "PA"),
