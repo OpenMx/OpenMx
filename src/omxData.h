@@ -140,7 +140,6 @@ class omxData {
 
 	omxData();
 	void newDataStatic(omxState *, SEXP dataObject);
-	SEXP getRowNames();
 	void connectDynamicData(omxState *currentState);
 	void recompute();
 	friend void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey);

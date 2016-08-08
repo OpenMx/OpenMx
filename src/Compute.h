@@ -134,7 +134,6 @@ class FitContext {
 	int fitUnits;
 	double *est;
 	std::vector<bool> profiledOut;
-	std::vector<const char*> flavor;
 	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;

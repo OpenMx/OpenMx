@@ -40,10 +40,18 @@
 #include "npsolswitch.h"
 #include "omxCsolnp.h"
 
-void markAsDataFrame(SEXP list)
+void markAsDataFrame(SEXP list, int rows)
 {
-	SEXP classes;
-	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	if (rows >= 0) {
+		// Use the special form c(NA, #rows) to avoid creating actual
+		// rownames.
+		ProtectedSEXP rownames(Rf_allocVector(INTSXP, 2));
+		INTEGER(rownames)[0] = NA_INTEGER;
+		INTEGER(rownames)[1] = rows;
+		Rf_setAttrib(list, R_RowNamesSymbol, rownames);
+	}
+
+	ProtectedSEXP classes(Rf_allocVector(STRSXP, 1));
 	SET_STRING_ELT(classes, 0, Rf_mkChar("data.frame"));
 	Rf_setAttrib(list, R_ClassSymbol, classes);
 }

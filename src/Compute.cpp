@@ -1223,20 +1223,6 @@ public:
 	virtual bool calcDirection(bool major);
 };
 
-// Some evidence suggests that better performance is obtained when the
-// item parameters and latent distribution parameters are split into
-// separate Ramsay1975 groups with different minimum caution limits,
-//
-// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1.25)); // M-step param
-// ramsay.push_back(new Ramsay1975(fc, 1+int(ramsay.size()), 0, verbose, -1));    // extra param
-//
-// I had this hardcoded for a while, but in making the API more generic,
-// I'm not sure how to allow specification of the Ramsay1975 grouping.
-// One possibility is list(flavor1=c("ItemParam"), flavor2=c("mean","cov"))
-// but this doesn't allow finer grain than matrix-wise assignment. The
-// other question is whether more Ramsay1975 groups really help or not.
-// nightly/ifa-cai2009.R actually got faster with 1 Ramsay group.
-
 Ramsay1975::Ramsay1975(FitContext *_fc, int _verbose, double _minCaution) :
 	EMAccel(_fc, _verbose), minCaution(_minCaution)
 {
@@ -2127,8 +2113,6 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
 				tolerance, accelName, information);
 
-	const char *flavor = "EM";
-	fc->flavor.assign(freeVars, flavor);
 	if (useRamsay) accel = new Ramsay1975(fc, verbose, -1.25);
 	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
 
