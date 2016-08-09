@@ -244,13 +244,13 @@ void omxState::setWantStage(int stage)
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
 
-omxMatrix *omxConfidenceInterval::getMatrix(omxState *st) const
+omxMatrix *ConfidenceInterval::getMatrix(omxState *st) const
 {
 	return st->getMatrixFromIndex(matrixNumber);
 }
 
 struct ciCmp {
-	bool operator() (const omxConfidenceInterval* x, const omxConfidenceInterval* y) const
+	bool operator() (const ConfidenceInterval* x, const ConfidenceInterval* y) const
 	{
 		if (x->matrixNumber != y->matrixNumber) {
 			return x->matrixNumber < y->matrixNumber;
@@ -268,12 +268,12 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 	unpackedConfidenceIntervals = true;
 
 	// take care to preserve order
-	std::vector<omxConfidenceInterval*> tmp;
+	std::vector<ConfidenceInterval*> tmp;
 	std::swap(tmp, intervalList);
-	std::set<omxConfidenceInterval*, ciCmp> uniqueCIs;
+	std::set<ConfidenceInterval*, ciCmp> uniqueCIs;
 
 	for (int ix=0; ix < (int) tmp.size(); ++ix) {
-		omxConfidenceInterval *ci = tmp[ix];
+		ConfidenceInterval *ci = tmp[ix];
 		if (!ci->isWholeAlgebra()) {
 			if (uniqueCIs.count(ci) == 0) {
 				uniqueCIs.insert(ci);
@@ -284,7 +284,7 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 		omxMatrix *mat = ci->getMatrix(currentState);
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
-				omxConfidenceInterval *cell = new omxConfidenceInterval(*ci);
+				ConfidenceInterval *cell = new ConfidenceInterval(*ci);
 				cell->name = string_snprintf("%s[%d,%d]", ci->name.c_str(), 1+rx, 1+cx);
 				cell->row = rx;
 				cell->col = cx;

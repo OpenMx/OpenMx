@@ -457,8 +457,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	int totalIntervals = 0;
 	for(int j = 0; j < numInts; j++) {
-		omxConfidenceInterval *oCI = Global->intervalList[j];
-		totalIntervals += std::isfinite(oCI->lbound) + std::isfinite(oCI->ubound);
+		ConfidenceInterval *oCI = Global->intervalList[j];
+		totalIntervals += std::isfinite(oCI->bound[0]) + std::isfinite(oCI->bound[1]);
 	}
 
 	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
@@ -494,7 +494,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	int detailRow = 0;
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
-		omxConfidenceInterval *currentCI = Global->intervalList[i];
+		ConfidenceInterval *currentCI = Global->intervalList[i];
 
 		omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 		std::string &matName = ciMatrix->nameStr;
@@ -503,19 +503,19 @@ void ComputeCI::computeImpl(FitContext *mle)
 			currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
 		}
 
-		for (int lower=0; lower <= 1; ++lower) {
-			if (lower  && !std::isfinite(currentCI->lbound)) continue;
-			if (!lower && !std::isfinite(currentCI->ubound)) continue;
+		for (int upper=0; upper <= 1; ++upper) {
+			int lower = 1-upper;
+			if (!std::isfinite(currentCI->bound[upper])) continue;
 
 			// Reset to previous optimum
 			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);
 			Est = Mle;
 
-			double *store = lower? &currentCI->min : &currentCI->max;
+			double *store = &currentCI->val[upper];
 
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
-						  lower? "lower" : "upper");
+						  upper? "upper" : "lower");
 
 			if (useInequality) mle->state->conList.push_back(&constrIneq);
 			if (useEquality)   mle->state->conList.push_back(&constrEq);
@@ -537,19 +537,16 @@ void ComputeCI::computeImpl(FitContext *mle)
 			fc.CI = NULL;
 			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
-			double dist = lower? currentCI->lbound : currentCI->ubound;
+			double dist = currentCI->bound[upper];
 			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
 				       ((!useInequality && !useEquality) || fabs(fc.fit - fc.targetFit) < (dist * .05)) &&
 				       ((!std::isfinite(*store) ||
-					 (lower && val < *store) || (!lower && val > *store))));
+					 (lower && val < *store) || (upper && val > *store))));
 
 			if (better) {
 				*store = val;
+				currentCI->code[upper] = fc.inform;
 			}
-
-			int inform = fc.inform;
-			if (lower) currentCI->lCode = inform;
-			else       currentCI->uCode = inform;
 
 			if(verbose >= 1) {
 				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
@@ -575,19 +572,14 @@ void ComputeCI::computeImpl(FitContext *mle)
 	interval.fill(NA_REAL);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
-		omxConfidenceInterval *oCI = Global->intervalList[j];
+		ConfidenceInterval *oCI = Global->intervalList[j];
 		omxMatrix *ciMat = oCI->getMatrix(fitMatrix->currentState);
 		omxRecompute(ciMat, mle);
 		interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
-		if (1) {
-			interval(j, 0) = std::min(oCI->min, interval(j, 1));
-			interval(j, 2) = std::max(oCI->max, interval(j, 1));
-		} else {
-			interval(j, 0) = oCI->min;
-			interval(j, 2) = oCI->max;
-		}
-		intervalCode[j] = oCI->lCode;
-		intervalCode[j + numInts] = oCI->uCode;
+		interval(j, 0) = std::min(oCI->val[ConfidenceInterval::Lower], interval(j, 1));
+		interval(j, 2) = std::max(oCI->val[ConfidenceInterval::Upper], interval(j, 1));
+		intervalCode[j] = oCI->code[ConfidenceInterval::Lower];
+		intervalCode[j + numInts] = oCI->code[ConfidenceInterval::Upper];
 	}
 }
 
@@ -608,7 +600,7 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 	Rf_protect(names = Rf_allocVector(STRSXP, numInt)); //shared between the two matrices
 	for (int nx=0; nx < numInt; ++nx) {
-		omxConfidenceInterval *ci = Global->intervalList[nx];
+		ConfidenceInterval *ci = Global->intervalList[nx];
 		SET_STRING_ELT(names, nx, Rf_mkChar(ci->name.c_str()));
 	}
 	SET_VECTOR_ELT(dimnames, 0, names);

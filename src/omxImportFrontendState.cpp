@@ -369,17 +369,14 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 	Global->deduplicateVarGroups();
 }
 
-omxConfidenceInterval::omxConfidenceInterval()
+ConfidenceInterval::ConfidenceInterval()
 {
 	row = -1;
 	col = -1;
 	varIndex = -1;
-	ubound = R_NaReal;
-	lbound = R_NaReal;
-	max = R_NaReal;
-	min = R_NaReal;
-	lCode = INFORM_UNINITIALIZED;
-	uCode = INFORM_UNINITIALIZED;
+	bound.setConstant(R_NaReal);
+	val.setConstant(R_NaReal);
+	code.setConstant(INFORM_UNINITIALIZED);
 }
 
 /*
@@ -397,15 +394,15 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState
 	if(OMX_DEBUG) {mxLog("Found %d Confidence Interval requests.", numIntervals); }
 	Global->intervalList.reserve(numIntervals);
 	for(int index = 0; index < numIntervals; index++) {
-		omxConfidenceInterval *oCI = new omxConfidenceInterval;
+		ConfidenceInterval *oCI = new ConfidenceInterval;
 		Rf_protect(nextVar = VECTOR_ELT(iList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
 		oCI->matrixNumber = Rf_asInteger(nextVar);
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->lbound = intervalInfo[3];
-		oCI->ubound = intervalInfo[4];
+		oCI->bound[ConfidenceInterval::Lower] = intervalInfo[3];
+		oCI->bound[ConfidenceInterval::Upper] = intervalInfo[4];
 		Global->intervalList.push_back(oCI);
 	}
 }

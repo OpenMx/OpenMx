@@ -47,7 +47,7 @@
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
 typedef struct omxConstraint omxConstraint;
-typedef struct omxConfidenceInterval omxConfidenceInterval;
+struct ConfidenceInterval;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -86,7 +86,7 @@ struct omxFreeVar {
 #define FREEVARGROUP_INVALID -2
 
 struct FreeVarGroup {
-	std::vector<int> id;
+	std::vector<int> id;              // see omxGlobal::deduplicateVarGroups
 	std::vector< omxFreeVar* > vars;
 
 	// see cacheDependencies
@@ -176,18 +176,16 @@ class omxCheckpoint {
 	~omxCheckpoint();
 };
 
-struct omxConfidenceInterval {		// For Confidence interval request
+struct ConfidenceInterval {
+	enum { Lower=0, Upper=1 };
 	std::string name;
 	int matrixNumber;
-	int row, col;					// Location of element to calculate
+	int row, col;		// Location of element to calculate
 	int varIndex;
-	double ubound;					// Fit-space upper boundary
-	double lbound;					// Fit-space lower boundary
-	double max;						// Value at upper bound
-	double min;						// Value at lower bound
-	int lCode;						// Optimizer code at lower bound
-	int uCode;						// Optimizer code at upper bound
-	omxConfidenceInterval();
+	Eigen::Array<double,2,1> bound;		// distance from reference fit
+	Eigen::Array<double,2,1> val;		// parameter value at bound
+	Eigen::Array<int,2,1>    code;		// optimizer code at bound
+	ConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 	omxMatrix *getMatrix(omxState *st) const;
 };
@@ -223,7 +221,7 @@ class omxGlobal {
 
 	int maxStackDepth;
 
-	std::vector< omxConfidenceInterval* > intervalList;
+	std::vector< ConfidenceInterval* > intervalList;
 	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 

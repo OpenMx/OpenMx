@@ -334,11 +334,11 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 
 void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 {
-	const omxConfidenceInterval *CI = fc->CI;
+	const ConfidenceInterval *CI = fc->CI;
 	omxMatrix *fitMat = ff->matrix;
 
 	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) {
-		fc->targetFit = (fc->lowerBound? CI->lbound : CI->ubound) + fc->fit;
+		fc->targetFit = CI->bound[!fc->lowerBound] + fc->fit;
 		//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 		return;
 	}

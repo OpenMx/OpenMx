@@ -147,7 +147,7 @@ class FitContext {
 	std::vector< class FitContext* > childList;
 
 	// for confidence intervals
-	omxConfidenceInterval *CI;
+	ConfidenceInterval *CI;
 	double targetFit;
 	bool lowerBound;
 	bool compositeCIFunction;
