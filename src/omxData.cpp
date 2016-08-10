@@ -348,10 +348,10 @@ void omxFreeData(omxData* od) {
 bool omxDataElementMissing(omxData *od, int row, int col)
 {
 	if(od->dataMat != NULL) {
-		return doubleEQ(omxMatrixElement(od->dataMat, row, col), NA_REAL);
+		return std::isnan(omxMatrixElement(od->dataMat, row, col));
 	}
 	ColumnData &cd = od->rawCols[col];
-	if (cd.realData) return doubleEQ(cd.realData[row], NA_REAL);
+	if (cd.realData) return std::isnan(cd.realData[row]);
 	else return cd.intData[row] == NA_INTEGER;
 }
 

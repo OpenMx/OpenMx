@@ -152,6 +152,7 @@ static inline int triangleLoc0(int diag)
 static inline bool doubleEQ(double d1, double d2)
 {
 	// memcmp is required here because NaN != NaN always
+	// but careful because there is more than 1 bit pattern for NaN
 	return memcmp(&d1, &d2, sizeof(double)) == 0;
 }
 

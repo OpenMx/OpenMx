@@ -132,7 +132,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 	int numOrdinal = 0;
 	
 	while(row < data->rows && (row - rowbegin) < rowcount) {
-		mxLogSetCurrentRow(indexVector[row]);
+		mxLogSetCurrentRow(row);
 		int numIdentical = identicalRows[row];
 		
 		omxDataRow(data, indexVector[row], dataColumns, smallRow);
