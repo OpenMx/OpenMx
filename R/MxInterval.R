@@ -30,21 +30,23 @@ setClass(Class = "MxInterval",
 	representation = representation(
 		reference = "character",
 		lowerdelta = "numeric",
-		upperdelta = "numeric"
+		upperdelta = "numeric",
+		boundAdj = "logical"
 	))
 
 setMethod("initialize", "MxInterval",
-	function(.Object, reference, lowerdelta, upperdelta) {
+	function(.Object, reference, lowerdelta, upperdelta, boundAdj) {
 		.Object@reference <- reference
 		.Object@lowerdelta <- lowerdelta
 		.Object@upperdelta <- upperdelta
+		.Object@boundAdj <- boundAdj
 		return(.Object)
 	}
 )
 
 
-createNewInterval <- function(reference, lowerdelta, upperdelta) {
-	return(new("MxInterval", reference, lowerdelta, upperdelta))
+createNewInterval <- function(reference, lowerdelta, upperdelta, boundAdj) {
+	return(new("MxInterval", reference, lowerdelta, upperdelta, boundAdj))
 }
 
 setMethod("$", "MxInterval", imxExtractSlot)
@@ -63,7 +65,7 @@ expandSingleInterval <- function(interval) {
 		return(interval)
 	} else {
 		return(lapply(references, createNewInterval, 
-			interval@lowerdelta, interval@upperdelta))
+			interval@lowerdelta, interval@upperdelta, interval@boundAdj))
 	}
 }
 
@@ -76,7 +78,11 @@ expandIntervals <- function(intervals) {
 	return(retval)
 }
 
-mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper')) {
+mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'), ..., boundAdj=FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("Values for the '...' argument are not accepted")
+	}
 	if (!is.numeric(interval) || interval < 0 || interval > 1) {
 		stop("'interval' must be a numeric value between 0 and 1")
 	}
@@ -96,10 +102,10 @@ mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'))
 		lowerValue <- as.numeric(NA)
 		upperValue <- qchisq(interval, 1)
 	}
-	return(confidenceIntervalHelper(reference, lowerValue, upperValue))
+	return(confidenceIntervalHelper(reference, lowerValue, upperValue, boundAdj))
 }
 
-confidenceIntervalHelper <- function(reference, lowerdelta, upperdelta) {
+confidenceIntervalHelper <- function(reference, lowerdelta, upperdelta, boundAdj) {
 	if (single.na(lowerdelta)) { lowerdelta <- as.numeric(NA) }
 	if (single.na(upperdelta)) { upperdelta <- as.numeric(NA) }
 	if (!is.character(reference) || length(reference) < 1 || any(is.na(reference))) {
@@ -111,7 +117,7 @@ confidenceIntervalHelper <- function(reference, lowerdelta, upperdelta) {
 	if (!is.na(upperdelta) && (!is.numeric(upperdelta) || length(upperdelta) != 1 || upperdelta < 0)) {
 		stop("'upperdelta' argument must be a non-negative numeric value")
 	}
-	retval <- createNewInterval(reference, lowerdelta, upperdelta)
+	retval <- createNewInterval(reference, lowerdelta, upperdelta, as.logical(boundAdj))
 	return(retval)
 }
 
@@ -146,8 +152,8 @@ generateIntervalList <- function(flatModel, modelname, parameters, labelsData) {
 }
 
 
-makeIntervalReference <- function(entityNumber, row, col, lower, upper) {
-	return(c(entityNumber, row - 1, col - 1, lower, upper))
+makeIntervalReference <- function(entityNumber, row, col, iobj) {
+	return(c(entityNumber, row - 1, col - 1, iobj@lowerdelta, iobj@upperdelta, iobj@boundAdj))
 }
 
 generateIntervalListHelper <- function(interval, flatModel, modelname, 
@@ -160,7 +166,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		location[[1]] <- - location[[1]] - 1
 		retval <- list()
 		retval[[reference]] <-
-		    c(location, interval@lowerdelta, interval@upperdelta)
+		    c(location, interval@lowerdelta, interval@upperdelta, interval@boundAdj)
 		return(retval)
 	}
 	entity <- flatModel[[reference]]
@@ -170,8 +176,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 					       paste("confidence interval", reference))
 		if (is(entity, "MxAlgebra")) {
 			newName <- reference
-			retval[[newName]] <- makeIntervalReference(entityNumber, 0L, 0L, 
-								   interval@lowerdelta, interval@upperdelta)
+			retval[[newName]] <- makeIntervalReference(entityNumber, 0L, 0L, interval)
 		} else {
 		  if(!any(entity@free)){return(retval)}
 			rows <- nrow(entity)
@@ -185,8 +190,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 					} else {
 						newName <- paste(reference, '[', i, ',', j, ']', sep = '')
 					}
-					retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
-										   interval@lowerdelta, interval@upperdelta)
+					retval[[newName]] <- makeIntervalReference(entityNumber, i, j, interval)
 				}
 			}
 		}
@@ -211,8 +215,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		for(i in rows) {
 			for(j in cols) {
 				newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
-				retval[[newName]] <- makeIntervalReference(entityNumber, i, j, 
-									   interval@lowerdelta, interval@upperdelta)
+				retval[[newName]] <- makeIntervalReference(entityNumber, i, j, interval)
 			}
 		}
 		return(retval)
@@ -229,8 +232,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 					if (is.na(label) || label != reference) next
 					entityNumber <- imxLocateIndex(flatModel, entityName, 
 								       paste("confidence interval", reference))
-					retval[[label]] <- makeIntervalReference(entityNumber, i, j, 
-										 interval@lowerdelta, interval@upperdelta)
+					retval[[label]] <- makeIntervalReference(entityNumber, i, j, interval)
 					return(retval)
 				}
 			}
@@ -259,10 +261,12 @@ expandConfidenceIntervals <- function(model, intervals) {
 	return(unlist(expansion))
 }
 
+createSimilarInterval <- function(name, template) {
+	new("MxInterval", name, template@lowerdelta, template@upperdelta, template@boundAdj)
+}
+
 expandConfidenceIntervalsHelper <- function(interval, model) {
 	reference <- interval@reference
-	lowerdelta <- interval@lowerdelta
-	upperdelta <- interval@upperdelta
 	entity <- model[[reference]]
 	retval <- list()
 	if(!is.null(entity)) {
@@ -282,7 +286,7 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 			for(j in 1:cols) {
 				if (free[i, j]) {
 					newName <- paste(reference, '[', i, ',', j, ']', sep = '')
-					retval <- c(retval, new("MxInterval", newName, lowerdelta, upperdelta))
+					retval <- c(retval, createSimilarInterval(newName, interval))
 				}
 			}
 		}
@@ -319,7 +323,7 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 			for(j in cols) {
 				if (free[i, j]) {
 					newName <- paste(entityName, '[', i, ',', j, ']', sep = '')
-					retval <- c(retval, new("MxInterval", newName, lowerdelta, upperdelta))
+					retval <- c(retval, createSimilarInterval(newName, interval))
 				}
 			}
 		}

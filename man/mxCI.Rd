@@ -23,13 +23,17 @@ This function creates a new \link{MxCI} object, which are used to estimate likel
 }
 
 \usage{
-mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"))
+mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"), ..., boundAdj=FALSE)
 }
 
 \arguments{
 \item{reference}{A character vector of free parameters, mxMatrices, mxMatrix elements and mxAlgebras on which confidence intervals are to be estimated, listed by name.}
 \item{interval}{A scalar numeric value indicating the confidence interval to be estimated. Must be between 0 and 1. Defaults to 0.95.}
 \item{type}{A character string indicating whether the upper, lower or both confidence limits are returned. Defaults to "both".}
+\item{...}{Not used.  Forces remaining arguments to be specified by
+  name.}
+\item{boundAdj}{Whether to correct the likelihood-based confidence
+  intervals for box constraints.}
 }
 
 \details{

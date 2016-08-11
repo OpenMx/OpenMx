@@ -177,15 +177,11 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
-	if (grad && goc->verbose >= 2) {
-		if (m == 1) {
-			mxLog("major iteration ineq=%.12f", Eresult[0]);
-		} else {
-			mxPrintMat("major iteration ineq", Eresult);
-		}
-	}
 	inequality_functional ff(*goc);
 	ff(Epoint, Eresult);
+	if (grad && goc->verbose >= 2) {
+		mxPrintMat("major iteration ineq", Eresult);
+	}
 	if (grad) {
 		goc->ineqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,

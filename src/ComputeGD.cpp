@@ -460,7 +460,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	int totalIntervals = 0;
 	for(int j = 0; j < numInts; j++) {
 		ConfidenceInterval *oCI = Global->intervalList[j];
-		totalIntervals += std::isfinite(oCI->bound[0]) + std::isfinite(oCI->bound[1]);
+		totalIntervals += (oCI->bound[0] != 0) + (oCI->bound[1] != 0);
 	}
 
 	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
@@ -507,7 +507,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 		for (int upper=0; upper <= 1; ++upper) {
 			int lower = 1-upper;
-			if (!std::isfinite(currentCI->bound[upper])) continue;
+			if (!(currentCI->bound[upper])) continue;
 
 			// Reset to previous optimum
 			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);

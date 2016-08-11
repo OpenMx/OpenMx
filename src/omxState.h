@@ -43,7 +43,6 @@
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
-typedef struct omxConstraint omxConstraint;
 struct ConfidenceInterval;
 
 #include "omxMatrix.h"
@@ -170,6 +169,7 @@ struct ConfidenceInterval {
 	std::string name;
 	int matrixNumber;
 	int row, col;		// Location of element to calculate
+	bool boundAdj;          // Hu & Neale (2012)
 	int varIndex;
 	Eigen::Array<double,2,1> bound;		// distance from reference fit
 	Eigen::Array<double,2,1> val;		// parameter value at bound

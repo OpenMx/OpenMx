@@ -318,12 +318,12 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
 		fv->lbound = REAL(nextLoc)[0];
 		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
-		if (fv->lbound == 0.0) fv->lbound = 0.0;
+		if (fabs(fv->lbound) == 0.0) fv->lbound = 0.0;
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		fv->ubound = REAL(nextLoc)[0];
 		if (ISNA(fv->ubound)) fv->ubound = INF;
-		if (fv->ubound == 0.0) fv->ubound = -0.0;
+		if (fabs(fv->ubound) == 0.0) fv->ubound = -0.0;
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 2));
 		int groupCount = Rf_length(nextLoc);
@@ -397,8 +397,14 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState
 		oCI->matrixNumber = Rf_asInteger(nextVar);
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->bound[ConfidenceInterval::Lower] = intervalInfo[3];
-		oCI->bound[ConfidenceInterval::Upper] = intervalInfo[4];
+		oCI->bound.setZero();
+		if (std::isfinite(intervalInfo[3])) {
+			oCI->bound[ConfidenceInterval::Lower] = intervalInfo[3];
+		}
+		if (std::isfinite(intervalInfo[4])) {
+			oCI->bound[ConfidenceInterval::Upper] = intervalInfo[4];
+		}
+		oCI->boundAdj = (bool) intervalInfo[5];
 		Global->intervalList.push_back(oCI);
 	}
 }

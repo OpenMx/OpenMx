@@ -232,6 +232,7 @@ class omxCompute {
 	omxCompute();
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
+	void computeWithVarGroup(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();

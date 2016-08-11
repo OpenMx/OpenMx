@@ -1429,15 +1429,20 @@ void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxCompute::compute(FitContext *fc)
 {
-	ComputeInform origInform = fc->getInform();
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
-	narrow->setInform(INFORM_UNINITIALIZED);
-	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
-	computeImpl(narrow);
-	fc->setInform(std::max(origInform, narrow->getInform()));
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
+	computeWithVarGroup(narrow);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+}
+
+void omxCompute::computeWithVarGroup(FitContext *fc)
+{
+	ComputeInform origInform = fc->getInform();
+	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
+	fc->setInform(INFORM_UNINITIALIZED);
+	computeImpl(fc);
+	fc->setInform(std::max(origInform, fc->getInform()));
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
