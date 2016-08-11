@@ -367,12 +367,19 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
 
-class ciConstraintIneq : public omxConstraint {
+class ciConstraint : public omxConstraint {
  private:
 	typedef omxConstraint super;
+public:
 	omxMatrix *fitMat;
+	ciConstraint() : super("CI") {};
+};
+
+class ciConstraintIneq : public ciConstraint {
+ private:
+	typedef ciConstraint super;
  public:
-	ciConstraintIneq(omxMatrix *_fitMat) : super("CI"), fitMat(_fitMat)
+	ciConstraintIneq()
 	{ size=1; opCode = LESS_THAN; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
@@ -386,12 +393,11 @@ class ciConstraintIneq : public omxConstraint {
 	};
 };
 
-class ciConstraintEq : public omxConstraint {
+class ciConstraintEq : public ciConstraint {
  private:
-	typedef omxConstraint super;
-	omxMatrix *fitMat;
+	typedef ciConstraint super;
  public:
-	ciConstraintEq(omxMatrix *_fitMat) : super("CI"), fitMat(_fitMat)
+	ciConstraintEq()
 	{ size=1; opCode = EQUALITY; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
@@ -460,7 +466,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	int totalIntervals = 0;
 	for(int j = 0; j < numInts; j++) {
 		ConfidenceInterval *oCI = Global->intervalList[j];
-		totalIntervals += (oCI->bound[0] != 0) + (oCI->bound[1] != 0);
+		totalIntervals += (oCI->bound != 0.0).count();
 	}
 
 	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
@@ -485,15 +491,23 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	markAsDataFrame(detail, totalIntervals);
 
+	omxState *state = fitMatrix->currentState;
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
 	const int n = int(freeVarGroup->vars.size());
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
 
-	ciConstraintEq constrEq(fitMatrix);
-	ciConstraintIneq constrIneq(fitMatrix);
-
+	ciConstraintEq constrEq;
+	ciConstraintIneq constrIneq;
+	ciConstraint *constr = 0;
+	bool constrained = useInequality || useEquality;
+	if (constrained) {
+		constr = useInequality? (ciConstraint*)&constrIneq : (ciConstraint*)&constrEq;
+		constr->fitMat = fitMatrix;
+		state->conList.push_back(constr);
+	}
+	
 	int detailRow = 0;
 	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
 		ConfidenceInterval *currentCI = Global->intervalList[i];
@@ -501,9 +515,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 		std::string &matName = ciMatrix->nameStr;
 
-		if (useInequality || useEquality) {
-			currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
-		}
+		currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
 
 		for (int upper=0; upper <= 1; ++upper) {
 			int lower = 1-upper;
@@ -519,9 +531,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
 						  upper? "upper" : "lower");
 
-			if (useInequality) mle->state->conList.push_back(&constrIneq);
-			if (useEquality)   mle->state->conList.push_back(&constrEq);
-
 			fc.CI = currentCI;
 			fc.compositeCIFunction = (!useInequality && !useEquality);
 			fc.lowerBound = lower;
@@ -529,9 +538,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 			//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
 			plan->compute(&fc);
-
-			if (useInequality) mle->state->conList.pop_back();
-			if (useEquality)   mle->state->conList.pop_back();
 
 			omxRecompute(ciMatrix, &fc);
 			double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
@@ -569,6 +575,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 			++detailRow;
 		}
 	}
+
+	if (constr) state->conList.pop_back();
 
 	mle->copyParamToModel();
 
