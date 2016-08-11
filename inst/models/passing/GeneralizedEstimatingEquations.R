@@ -66,9 +66,6 @@ wideData[,"t1"][is.na(wideData[,"y1"])] <- -999
 wideData[,"t2"][is.na(wideData[,"y2"])] <- -999
 wideData[,"t3"][is.na(wideData[,"y3"])] <- -999
 
-#Remove rows with missing data
-wideData <- wideData[rowSums(is.na(wideData[,paste0('y',1:3)])) == 0,]
-
 #We're now ready to make our mydata object:
 mydat <- mxData(observed = wideData, type="raw")
 
