@@ -337,13 +337,8 @@ void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 	const ConfidenceInterval *CI = fc->CI;
 	omxMatrix *fitMat = ff->matrix;
 
-	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) {
-		fc->targetFit = CI->bound[!fc->lowerBound] + fc->fit;
-		//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
-		return;
-	}
-
 	if (!(want & FF_COMPUTE_FIT)) {
+		if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
 		Rf_error("Not implemented yet");
 	}
 

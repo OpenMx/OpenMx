@@ -525,7 +525,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 			fc.CI = currentCI;
 			fc.compositeCIFunction = (!useInequality && !useEquality);
 			fc.lowerBound = lower;
-			fc.fit = mle->fit;
+			fc.targetFit = currentCI->bound[!lower] + mle->fit;
+			//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
+
 			plan->compute(&fc);
 
 			if (useInequality) mle->state->conList.pop_back();
