@@ -307,6 +307,9 @@ class ComputeCI : public omxCompute {
 	bool useInequality;
 	bool useEquality;
 
+	void regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
+		       bool constrained, double &val, bool &better);
+	void recordCI(int ii, int lower, FitContext &fc, int detailRow, double val, bool better);
 public:
 	ComputeCI();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -428,8 +431,61 @@ static SEXP makeFactor(SEXP vec, int levels, const char **labels)
 	return vec;
 }
 
-// Optimization: For profile CIs of free parameters, the gradient for
-// the fit is trivial.  Many evaluations could be saved.
+void ComputeCI::recordCI(int ii, int lower, FitContext &fc, int detailRow, double val, bool better)
+{
+	ConfidenceInterval *currentCI = Global->intervalList[ii];
+	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
+	std::string &matName = ciMatrix->nameStr;
+
+	if (better) {
+		currentCI->val[!lower] = val;
+		currentCI->code[!lower] = fc.getInform();
+	}
+
+	if(verbose >= 1) {
+		mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
+		      1+ii, (lower?"lower":"upper"), matName.c_str(), 1+currentCI->row, 1+currentCI->col,
+		      val, fc.fit - fc.targetFit, better);
+	}
+
+	SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
+	REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
+	INTEGER(VECTOR_ELT(detail, 2))[detailRow] = 1+lower;
+	REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
+	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
+	for (int px=0; px < int(fc.numParam); ++px) {
+		REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
+	}
+}
+
+void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
+			  bool constrained, double &val, bool &better)
+{
+	// Reset to previous optimum
+	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
+	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
+	Est = Mle;
+
+	fc.CI = currentCI;
+	fc.compositeCIFunction = !constrained;
+	fc.lowerBound = lower;
+	fc.targetFit = currentCI->bound[!lower] + mle->fit;
+	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
+
+	plan->compute(&fc);
+
+	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
+	omxRecompute(ciMatrix, &fc);
+	val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
+
+	// We check the fit again so we can report it
+	// in the detail data.frame.
+	fc.CI = NULL;
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+
+	double dist = currentCI->bound[!lower];
+	better = (!constrained || fabs(fc.fit - fc.targetFit) < (dist * .05));
+}
 
 void ComputeCI::computeImpl(FitContext *mle)
 {
@@ -495,9 +551,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
-	const int n = int(freeVarGroup->vars.size());
-	Eigen::Map< Eigen::VectorXd > Mle(mle->est, n);
-
 	ciConstraintEq constrEq;
 	ciConstraintIneq constrIneq;
 	ciConstraint *constr = 0;
@@ -509,68 +562,42 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 	
 	int detailRow = 0;
-	for(int i = 0; i < (int) Global->intervalList.size(); i++) {
-		ConfidenceInterval *currentCI = Global->intervalList[i];
+	for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
+		ConfidenceInterval *currentCI = Global->intervalList[ii];
 
 		omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 		std::string &matName = ciMatrix->nameStr;
 
 		currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
 
+		if (currentCI->boundAdj && currentCI->varIndex < 0) {
+			Rf_warning("Cannot adjust confidence interval '%s' "
+				   "for parameter boundaries because an mxAlgebra is "
+				   "involved", currentCI->name.c_str());
+			currentCI->boundAdj = false;
+		}
+		if (currentCI->boundAdj) {
+			omxFreeVar *fv = freeVarGroup->vars[currentCI->varIndex];
+			if (!((fv->lbound == NEG_INF) ^ (fv->ubound == INF))) {
+				Rf_warning("To adjust confidence interval '%s' "
+					   "only 1 bound should be set (upper OR lower)",
+					   currentCI->name.c_str());
+				currentCI->boundAdj = false;
+			}
+		}
+
 		for (int upper=0; upper <= 1; ++upper) {
 			int lower = 1-upper;
 			if (!(currentCI->bound[upper])) continue;
 
-			// Reset to previous optimum
-			Eigen::Map< Eigen::VectorXd > Est(fc.est, n);
-			Est = Mle;
-
-			double *store = &currentCI->val[upper];
-
-			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
+			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI boundAdj=%d",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
-						  upper? "upper" : "lower");
+						  upper? "upper" : "lower", currentCI->boundAdj);
 
-			fc.CI = currentCI;
-			fc.compositeCIFunction = (!useInequality && !useEquality);
-			fc.lowerBound = lower;
-			fc.targetFit = currentCI->bound[!lower] + mle->fit;
-			//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
-
-			plan->compute(&fc);
-
-			omxRecompute(ciMatrix, &fc);
-			double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
-
-			// We check the fit again so we can report it
-			// in the detail data.frame.
-			fc.CI = NULL;
-			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-
-			double dist = currentCI->bound[upper];
-			bool better = (fc.getInform() != INFORM_STARTING_VALUES_INFEASIBLE &&
-				       ((!useInequality && !useEquality) || fabs(fc.fit - fc.targetFit) < (dist * .05)) &&
-				       ((!std::isfinite(*store) ||
-					 (lower && val < *store) || (upper && val > *store))));
-
-			if (better) {
-				*store = val;
-				currentCI->code[upper] = fc.getInform();
-			}
-
-			if(verbose >= 1) {
-				mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
-				      1+i, (lower?"lower":"upper"), matName.c_str(), 1+currentCI->row, 1+currentCI->col,
-				      val, fc.fit - fc.targetFit, better);
-			}
-
-			SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
-			REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
-			INTEGER(VECTOR_ELT(detail, 2))[detailRow] = 1+lower;
-			REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
-			for (int px=0; px < int(fc.numParam); ++px) {
-				REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
-			}
+			double val;
+			bool better;
+			regularCI(mle, fc, currentCI, lower, constrained, val, better);
+			recordCI(ii, lower, fc, detailRow, val, better);
 
 			++detailRow;
 		}
