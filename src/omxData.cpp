@@ -432,8 +432,9 @@ void omxData::assertColumnIsData(int col)
 			   name, cd.name);
 		return;
 	case COLUMNDATA_INTEGER:
-		Rf_error("In data '%s', column '%s' must be an ordered factor or numeric. Please use mxFactor() or as.numeric()",
-			 name, cd.name);
+		Rf_warning("In data '%s', column '%s' must be an ordered factor or numeric. Please use mxFactor() or as.numeric()",
+			   name, cd.name);
+		return;
 	default:
 		Rf_error("In data '%s', column '%s' is an unknown data type", name, cd.name);
 	}
