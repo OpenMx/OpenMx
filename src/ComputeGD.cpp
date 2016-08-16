@@ -309,6 +309,8 @@ class ComputeCI : public omxCompute {
 
 	void regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
 		       bool constrained, double &val, bool &better);
+	void boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
+		       bool constrained, double &val, bool &better);
 	void recordCI(int ii, int lower, FitContext &fc, int detailRow, double val, bool better);
 public:
 	ComputeCI();
@@ -386,13 +388,9 @@ class ciConstraintIneq : public ciConstraint {
 	{ size=1; opCode = LESS_THAN; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
-		double diff = std::max(fit - fc->targetFit, 0.0);
-		if (diff > 100) diff = nan("infeasible");
-		if (ineqType != opCode) diff = -diff;
+		*out = fc->ciobj->evalIneq(fc, fitMat);
+		if (ineqType != opCode) *out = - *out;
 		//mxLog("fit %f diff %f", fit, diff);
-		out[0] = diff;
 	};
 };
 
@@ -404,13 +402,8 @@ class ciConstraintEq : public ciConstraint {
 	{ size=1; opCode = EQUALITY; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
-		double diff = fit - fc->targetFit;
-		diff *= diff;
-		if (fabs(diff) > 100000) diff = nan("infeasible");
+		*out = fc->ciobj->evalEq(fc, fitMat);
 		//mxLog("fit %f diff %f", fit, diff);
-		out[0] = diff;
 	};
 };
 
@@ -443,9 +436,9 @@ void ComputeCI::recordCI(int ii, int lower, FitContext &fc, int detailRow, doubl
 	}
 
 	if(verbose >= 1) {
-		mxLog("CI[%d,%s] %s[%d,%d] val=%f fit-target=%f accepted=%d",
+		mxLog("CI[%d,%s] %s[%d,%d] val=%f fit=%f accepted=%d",
 		      1+ii, (lower?"lower":"upper"), matName.c_str(), 1+currentCI->row, 1+currentCI->col,
-		      val, fc.fit - fc.targetFit, better);
+		      val, fc.fit, better);
 	}
 
 	SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
@@ -458,6 +451,99 @@ void ComputeCI::recordCI(int ii, int lower, FitContext &fc, int detailRow, doubl
 	}
 }
 
+struct regularCIobj : CIobjective {
+	double targetFit;
+	bool lowerBound;
+	bool compositeCIFunction;
+
+	virtual bool gradientKnown()
+	{
+		return CI->varIndex >= 0;
+	}
+
+	virtual void gradient(FitContext *fc, double *gradOut) {
+		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
+		Egrad.setZero();
+		Egrad[ CI->varIndex ] = lowerBound? 1 : -1;
+	}
+
+	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat)
+	{
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		double diff = std::max(fit - targetFit, 0.0);
+		if (diff > 100) diff = nan("infeasible");
+		return diff;
+	}
+
+	virtual double evalEq(FitContext *fc, omxMatrix *fitMat)
+	{
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		double diff = fit - targetFit;
+		diff *= diff;
+		if (fabs(diff) > 100000) diff = nan("infeasible");
+		return diff;
+	}
+
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	{
+		omxMatrix *fitMat = ff->matrix;
+
+		if (!(want & FF_COMPUTE_FIT)) {
+			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
+			Rf_error("Not implemented yet");
+		}
+
+		// We need to compute the fit here because that's the only way to
+		// check our soft feasibility constraints. If parameters don't
+		// change between here and the constraint evaluation then we
+		// should avoid recomputing the fit again in the constraint. TODO
+
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
+		omxRecompute(ciMatrix, fc);
+		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
+		omxResizeMatrix(fitMat, 1, 1);
+
+		if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
+			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			fitMat->data[0] = nan("infeasible");
+			return;
+		}
+
+		if (want & FF_COMPUTE_FIT) {
+			double param = (lowerBound? CIElement : -CIElement);
+			if (compositeCIFunction) {
+				double diff = targetFit - fit;
+				diff *= diff;
+				if (diff > 1e2) {
+					// Ensure there aren't any creative solutions
+					diff = nan("infeasible");
+					return;
+				}
+				fitMat->data[0] = diff + param;
+			} else {
+				fitMat->data[0] = param;
+			}
+			//mxLog("param at %f", fitMat->data[0]);
+		}
+		if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+			// add deriv adjustments here TODO
+		}
+	}
+};
+
+void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
+			  bool constrained, double &val, bool &better)
+{
+	// Reset to previous optimum
+	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
+	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
+	Est = Mle;
+}
+
 void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
 			  bool constrained, double &val, bool &better)
 {
@@ -466,10 +552,12 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 	Est = Mle;
 
-	fc.CI = currentCI;
-	fc.compositeCIFunction = !constrained;
-	fc.lowerBound = lower;
-	fc.targetFit = currentCI->bound[!lower] + mle->fit;
+	regularCIobj ciobj;
+	ciobj.CI = currentCI;
+	ciobj.compositeCIFunction = !constrained;
+	ciobj.lowerBound = lower;
+	ciobj.targetFit = currentCI->bound[!lower] + mle->fit;
+	fc.ciobj = &ciobj;
 	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
 	plan->compute(&fc);
@@ -480,11 +568,11 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 
 	// We check the fit again so we can report it
 	// in the detail data.frame.
-	fc.CI = NULL;
+	fc.ciobj = 0;
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
 	double dist = currentCI->bound[!lower];
-	better = (!constrained || fabs(fc.fit - fc.targetFit) < (dist * .05));
+	better = (!constrained || fabs(fc.fit - ciobj.targetFit) < (dist * .05));
 }
 
 void ComputeCI::computeImpl(FitContext *mle)
@@ -596,7 +684,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 			double val;
 			bool better;
-			regularCI(mle, fc, currentCI, lower, constrained, val, better);
+			if (currentCI->boundAdj) {
+				boundAdjCI(mle, fc, currentCI, lower, constrained, val, better);
+			} else {
+				regularCI(mle, fc, currentCI, lower, constrained, val, better);
+			}
 			recordCI(ii, lower, fc, detailRow, val, better);
 
 			++detailRow;

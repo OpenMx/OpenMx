@@ -668,9 +668,7 @@ void FitContext::init()
 	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
-	CI = NULL;
-	targetFit = nan("uninit");
-	lowerBound = false;
+	ciobj = 0;
 	openmpUser = false;
 	computeCount = 0;
 
@@ -726,7 +724,6 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 	if (numParam) {
 		memcpy(est, startingValues.data(), sizeof(double) * numParam);
 	}
-	compositeCIFunction = false;
 }
 
 FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
@@ -759,12 +756,7 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
-
-	// confidence interval stuff
-	CI = parent->CI;
-	compositeCIFunction = parent->compositeCIFunction;
-	targetFit = parent->targetFit;
-	lowerBound = parent->lowerBound;
+	ciobj = parent->ciobj;
 }
 
 void FitContext::updateParent()
@@ -2998,14 +2990,9 @@ double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 	return fit;
 }
 
-bool GradientOptimizerContext::inConfidenceIntervalProblem() const
+bool GradientOptimizerContext::hasKnownGradient() const
 {
-	return fc->CI && fc->CI->varIndex >= 0;
-}
-
-int GradientOptimizerContext::getConfidenceIntervalVarIndex() const
-{
-	return fc->CI->varIndex;
+	return fc->ciobj && fc->ciobj->gradientKnown();
 }
 
 void GradientOptimizerContext::copyToOptimizer(double *myPars)
@@ -3081,7 +3068,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
-	if (*mode > 0 && !fc->CI && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
 		fc->grad.resize(fc->numParam);
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;

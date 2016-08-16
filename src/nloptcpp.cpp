@@ -62,9 +62,8 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
 	if (goc->getWanted() & FF_COMPUTE_GRADIENT) {
 		Egrad = goc->grad;
-	} else if (goc->inConfidenceIntervalProblem()) {
-		Egrad.setZero();
-		Egrad[ goc->getConfidenceIntervalVarIndex() ] = goc->inConfidenceIntervalLowerBound()? 1 : -1;
+	} else if (goc->hasKnownGradient()) {
+		goc->setKnownGradient(Egrad);
 		goc->grad = Egrad;
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
@@ -220,15 +219,9 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
 
-	if (goc.inConfidenceIntervalProblem()) {
-		nlopt_set_xtol_rel(opt, 5e-3);
-		std::vector<double> tol(goc.numFree, std::numeric_limits<double>::epsilon());
-		nlopt_set_xtol_abs(opt, tol.data());
-	} else {
-		// The *2 is there to roughly equate accuracy with NPSOL.
-		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
-		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
-	}
+	// The *2 is there to roughly equate accuracy with NPSOL.
+	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
+	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
         
 	nlopt_set_min_objective(opt, SLSQP::nloptObjectiveFunction, &goc);
 
