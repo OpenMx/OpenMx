@@ -91,8 +91,11 @@ reportCycle <- function(backedges, destination, modelname) {
 	report <- cycle[!sapply(cycle, hasSquareBrackets)]
 	stop(paste("A cycle has been detected",
 		"in model", omxQuotes(modelname),
-		"involving the following elements:",
-		omxQuotes(report)), call. = FALSE)
+		". It involved the following elements:",
+		omxQuotes(report)),
+        "\nA common trigger for this error is not providing a ",
+		"name string as the first parameter to mxModel."
+		, call. = FALSE)
 }
 
 addFitFunctionDetection <- function(fitfunction, flatModel, dependencies) {
