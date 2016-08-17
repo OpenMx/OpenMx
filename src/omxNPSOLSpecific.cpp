@@ -15,9 +15,6 @@
  */
 
 #include <ctype.h>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
@@ -26,7 +23,6 @@
 #include "omxImportFrontendState.h"
 #include "Compute.h"
 #include "npsolswitch.h"
-#include "omxBuffer.h"
 
 #pragma GCC diagnostic warning "-Wshadow"
 

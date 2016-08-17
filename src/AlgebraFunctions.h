@@ -28,8 +28,6 @@
 **********************************************************/
 
 #include <limits>
-#include <R.h>
-#include <Rmath.h>
 #include "omxMatrix.h"
 #include "merge.h"
 #include "omxSadmvnWrapper.h"

@@ -16,10 +16,6 @@
 
 #include <sys/stat.h>
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
-
 #include "omxDefines.h"
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"

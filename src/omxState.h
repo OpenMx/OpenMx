@@ -28,9 +28,8 @@
 #ifndef _OMXSTATE_H_
 #define _OMXSTATE_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
+#include "omxDefines.h"
+
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
@@ -40,8 +39,6 @@
 #include <unistd.h>
 #include <string>
 #include <stdarg.h>
-
-#include "omxDefines.h"
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;

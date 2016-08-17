@@ -30,6 +30,11 @@
 #include <string.h>
 #include <string>
 
+#define R_NO_REMAP
+#include <Rcpp.h>
+#include <Rmath.h>
+#include <Rinternals.h>
+
 #define MIN_ROWS_PER_THREAD 8
 
 #define OMXINLINE inline

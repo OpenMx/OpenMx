@@ -17,9 +17,6 @@
 #ifndef _OMX_COMPUTE_H_
 #define _OMX_COMPUTE_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 #include "omxDefines.h"
 #include <Eigen/SparseCore>
 #include "glue.h"

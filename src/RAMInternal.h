@@ -7,7 +7,6 @@
 #include <Eigen/Cholesky>
 //#include <Eigen/SparseCholesky>
 #include <Eigen/CholmodSupport>
-#include <Rcpp.h>
 //#include <RcppEigenStubs.h>
 #include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>

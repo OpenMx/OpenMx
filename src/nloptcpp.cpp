@@ -1,9 +1,7 @@
 #include <limits>
 #include <cstdlib>
 #include <ctype.h>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
+#include "omxDefines.h"
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "glue.h"

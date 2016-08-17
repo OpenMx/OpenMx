@@ -14,18 +14,10 @@
  *  limitations under the License.
  */
 
-#include <ctype.h>
-#include <limits>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 #include "omxState.h"
-#include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
 #include "glue.h"
-#include "omxImportFrontendState.h"
 #include "omxCsolnp.h"
-#include "omxBuffer.h"
 
 #pragma GCC diagnostic warning "-Wshadow"
 
