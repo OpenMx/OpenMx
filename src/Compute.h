@@ -90,10 +90,10 @@ struct CIobjective {
 	ConfidenceInterval *CI;
 
 	virtual bool gradientKnown()=0;
-	virtual void gradient(FitContext *fc, double *gradOut)=0;
-	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat)=0;
-	virtual double evalEq(FitContext *fc, omxMatrix *fitMat)=0;
-	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)=0;
+	virtual void gradient(FitContext *fc, double *gradOut) {};
+	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat) { return 0; };
+	virtual double evalEq(FitContext *fc, omxMatrix *fitMat) { return 0; };
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
 };
 
 // The idea of FitContext is to eventually enable fitting from

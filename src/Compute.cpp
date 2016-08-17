@@ -1169,6 +1169,11 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
+void CIobjective::evalFit(omxFitFunction *ff, int want, FitContext *fc)
+{
+	omxFitFunctionCompute(ff, want, fc);
+}
+
 class EMAccel {
 protected:
 	FitContext *fc;
