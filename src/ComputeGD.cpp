@@ -261,9 +261,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
         default: Rf_error("Optimizer %d is not available", engine);
 	}
 
-	fc->setInform(rf.informOut);
-	if (fc->getInform() <= 0 && fc->getComputeCount() - beforeEval == 1) {
+	if (!std::isfinite(fc->fit)) {
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
+	} else {
+		fc->setInform(rf.informOut);
 	}
 
 	if (verbose >= 1) {
