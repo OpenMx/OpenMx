@@ -261,14 +261,14 @@ void omxComputeGD::computeImpl(FitContext *fc)
         default: Rf_error("Optimizer %d is not available", engine);
 	}
 
-	fc->inform = rf.informOut;
-	if (fc->inform <= 0 && fc->getComputeCount() - beforeEval == 1) {
-		fc->inform = INFORM_STARTING_VALUES_INFEASIBLE;
+	fc->setInform(rf.informOut);
+	if (fc->getInform() <= 0 && fc->getComputeCount() - beforeEval == 1) {
+		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 	}
 
 	if (verbose >= 1) {
 		mxLog("%s: engine %s done, iter=%d inform=%d",
-		      name, engineName, fc->getComputeCount() - beforeEval, fc->inform);
+		      name, engineName, fc->getComputeCount() - beforeEval, fc->getInform());
 	}
 
 	if (isErrorRaised()) return;
@@ -446,9 +446,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 	if (!mle->haveReferenceFit(fitMatrix)) return;
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
-	if (mle->inform >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->inform != INFORM_NOT_AT_OPTIMUM) {
+	if (mle->getInform() >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->getInform() != INFORM_NOT_AT_OPTIMUM) {
 		// TODO: allow forcing
-		Rf_warning("Not calculating confidence intervals because of optimizer status %d", mle->inform);
+		Rf_warning("Not calculating confidence intervals because of optimizer status %d", mle->getInform());
 		return;
 	}
 
@@ -538,14 +538,14 @@ void ComputeCI::computeImpl(FitContext *mle)
 			ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
 			double dist = currentCI->bound[upper];
-			bool better = (fc.inform != INFORM_STARTING_VALUES_INFEASIBLE &&
+			bool better = (fc.getInform() != INFORM_STARTING_VALUES_INFEASIBLE &&
 				       ((!useInequality && !useEquality) || fabs(fc.fit - fc.targetFit) < (dist * .05)) &&
 				       ((!std::isfinite(*store) ||
 					 (lower && val < *store) || (upper && val > *store))));
 
 			if (better) {
 				*store = val;
-				currentCI->code[upper] = fc.inform;
+				currentCI->code[upper] = fc.getInform();
 			}
 
 			if(verbose >= 1) {

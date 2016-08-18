@@ -118,6 +118,7 @@ class FitContext {
 
 	std::string IterationError;
 	int computeCount;
+	ComputeInform inform;
 
  public:
 	FreeVarGroup *varGroup;
@@ -139,7 +140,6 @@ class FitContext {
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
 	int iterations;
-	ComputeInform inform;
 	int wanted;
 	std::vector< class FitContext* > childList;
 
@@ -165,13 +165,15 @@ class FitContext {
 	void updateParentAndFree();
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
+	void setInform(int _in) { inform = _in; };
+	int getInform() { return inform; };
 	bool haveReferenceFit(omxMatrix *fitMat) {
 		if (std::isfinite(fit)) return true;
 		if (inform == INFORM_UNINITIALIZED) {
 			omxRecompute(fitMat, this);
 			fit = omxMatrixElement(fitMat, 0, 0);
 			if (std::isfinite(fit)) return true;
-			inform = INFORM_STARTING_VALUES_INFEASIBLE;
+			setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		}
 		if (inform != INFORM_CONVERGED_OPTIMUM &&
 		    inform != INFORM_UNCONVERGED_OPTIMUM) {

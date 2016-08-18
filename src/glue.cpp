@@ -446,7 +446,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		topCompute->compute(fc);
 
 		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit) &&
-		    fc->inform != INFORM_STARTING_VALUES_INFEASIBLE) {
+		    fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
 			std::string diag = fc->getIterationError();
 			omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
 		}
@@ -529,7 +529,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->inform));
+	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->getInform()));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
 
 	if (isErrorRaised()) {

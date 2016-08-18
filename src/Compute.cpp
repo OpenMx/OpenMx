@@ -1429,14 +1429,14 @@ void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxCompute::compute(FitContext *fc)
 {
-	ComputeInform origInform = fc->inform;
+	ComputeInform origInform = fc->getInform();
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
-	narrow->inform = INFORM_UNINITIALIZED;
+	narrow->setInform(INFORM_UNINITIALIZED);
 	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
 	computeImpl(narrow);
-	fc->inform = std::max(origInform, narrow->inform);
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->inform); }
+	fc->setInform(std::max(origInform, narrow->getInform()));
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
@@ -2026,13 +2026,13 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase
 				1+paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
 
 	setExpectationPrediction(fc, predict);
-	int informSave = fc->inform;  // not sure if we want to hide inform here TODO
+	int informSave = fc->getInform();  // not sure if we want to hide inform here TODO
 	fit1->compute(fc);
-	if (fc->inform > INFORM_UNCONVERGED_OPTIMUM) {
-		if (verbose >= 3) mxLog("ComputeEM: probe failed with code %d", fc->inform);
+	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) {
+		if (verbose >= 3) mxLog("ComputeEM: probe failed with code %d", fc->getInform());
 		failed = true;
 	}
-	fc->inform = informSave;
+	fc->setInform(informSave);
 	setExpectationPrediction(fc, "nothing");
 
 	rijWork.col(paramProbeCount[vx]) = (Est - optimum) / offset;
@@ -2132,7 +2132,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			fit1->compute(fc1);
 			mstepIter = fc1->iterations - startIter;
 			totalMstepIter += mstepIter;
-			mstepInform = fc1->inform;
+			mstepInform = fc1->getInform();
 			fc1->updateParentAndFree();
 		}
 
@@ -2208,10 +2208,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
-	fc->inform = converged? mstepInform : INFORM_ITERATION_LIMIT;
+	fc->setInform(converged? mstepInform : INFORM_ITERATION_LIMIT);
 	bestFit = fc->fit;
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f inform %d",
-				EMcycles, maxIter, totalMstepIter, bestFit, fc->inform);
+				EMcycles, maxIter, totalMstepIter, bestFit, fc->getInform());
 
 	if (!converged || information == EMInfoNone) return;
 

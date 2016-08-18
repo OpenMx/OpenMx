@@ -473,7 +473,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", Gc.matrix().norm());
 		}
-		if (fc->inform < INFORM_NOT_AT_OPTIMUM) fc->inform = INFORM_NOT_AT_OPTIMUM;
+		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
 	}
 
 	memcpy(fc->est, optima.data(), sizeof(double) * numParams);
