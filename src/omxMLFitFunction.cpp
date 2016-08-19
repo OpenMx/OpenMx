@@ -23,7 +23,6 @@
 #include "omxFIMLFitFunction.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
-#include "omxBuffer.h"
 #include "matrix.h"
 
 #ifdef SHADOW_DIAG
@@ -294,9 +293,16 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		return;
 	}
 
+	oo->ciFun = loglikelihoodCIFun;
+
+	ProtectedSEXP Rss(R_do_slot(oo->rObj, Rf_install(".stateSpace")));
+	if (strEQ(expectation->expType, "MxExpectationStateSpace") && Rf_asLogical(Rss)) {
+		ssMLFitInit(oo);
+		return;
+	}
+
 	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
 
-	oo->ciFun = loglikelihoodCIFun;
 	oo->computeFun = omxCallMLFitFunction;
 	oo->destructFun = omxDestroyMLFitFunction;
 	oo->addOutput = addOutput;

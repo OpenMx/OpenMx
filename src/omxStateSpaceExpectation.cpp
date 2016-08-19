@@ -585,6 +585,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
 	
 	
+	// re-enable this TODO
 	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
 	//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
 	//m2ll = omxDDOT(y, s); // m2ll = y s THAT IS y^T S y

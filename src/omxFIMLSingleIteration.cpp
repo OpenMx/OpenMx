@@ -381,6 +381,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
 				//EigenMatrixAdaptor EsmallCov(smallCov);
 				//mxPrintMat("smallcov", EsmallCov);
+				//omxPrint(contRow, "contRow");
 				F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
 				Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
 				

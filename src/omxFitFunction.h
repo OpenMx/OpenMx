@@ -126,6 +126,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo);
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 void omxInitGREMLFitFunction(omxFitFunction *oo);
 void InitFellnerFitFunction(omxFitFunction *oo);
+void ssMLFitInit(omxFitFunction* oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);

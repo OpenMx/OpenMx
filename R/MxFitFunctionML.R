@@ -21,7 +21,8 @@ setClass(Class = "MxFitFunctionML",
 	     verbose = "integer",
 	     profileOut="MxOptionalChar",
 	     rowwiseParallel="logical",
-	     .conditionOnOrdinal="logical"
+	     .conditionOnOrdinal="logical",
+	     .stateSpace="logical"
 	 ),
 	 )
 
@@ -36,6 +37,7 @@ setMethod("initialize", "MxFitFunctionML",
 		.Object@profileOut <- profileOut
 		.Object@rowwiseParallel <- rowwiseParallel
 		.Object@.conditionOnOrdinal <- FALSE
+		.Object@.stateSpace <- FALSE
 		return(.Object)
 	}
 )
