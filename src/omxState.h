@@ -205,6 +205,7 @@ class omxGlobal {
 	int majorIterations;
 	bool intervals;
 	double gradientTolerance;
+	int dataTypeWarningCount;
 
 	int maxOrdinalPerBlock;
 	double maxptsa;

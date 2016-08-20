@@ -220,6 +220,7 @@ omxGlobal::omxGlobal()
 	intervals = true;
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
+	dataTypeWarningCount = 0;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
