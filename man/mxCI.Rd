@@ -118,7 +118,8 @@ ci <- mxCI(c("var1", "cov12", "var2"))
 # specify the model
 model <- mxModel(model="Confidence Interval Example",
     data, expect, ci,
-    mxMLObjective("expectedCov", dimnames=c("a", "b")))
+    mxExpectationNormal("expectedCov", dimnames=c("a", "b")),
+    mxFitFunctionML())
 
 # run the model 
 results <- mxRun(model, intervals=TRUE)
@@ -129,5 +130,12 @@ print(summary(results)$CI)
 # view all results
 summary(results)
 
+# remove a specific mxCI from a model
+model <- mxModel(model, remove=TRUE, model$intervals[['cov12']])
+model$intervals
+
+# remove all mxCI from a model
+model <- mxModel(model, remove=TRUE, model$intervals)
+model$intervals
 
 }
