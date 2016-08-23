@@ -78,7 +78,7 @@ expandIntervals <- function(intervals) {
 	return(retval)
 }
 
-mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'), ..., boundAdj=FALSE) {
+mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'), ..., boundAdj=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("Values for the '...' argument are not accepted")
@@ -251,6 +251,7 @@ displayInterval <- function(object) {
 	cat("$reference: ", object@reference, '\n')
 	cat("$lowerdelta: ", object@lowerdelta, '\n')
 	cat("$upperdelta: ", object@upperdelta, '\n')
+	cat("$boundAdj: ", object@boundAdj, '\n')
 }
 
 setMethod("print", "MxInterval", function(x,...) { displayInterval(x) })

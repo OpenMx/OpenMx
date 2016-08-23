@@ -307,11 +307,16 @@ class ComputeCI : public omxCompute {
 	bool useInequality;
 	bool useEquality;
 
+	enum Method {
+		NEALE_MILLER_1997=1,
+		WU_NEALE_2012=2
+	};
+
 	void regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
 		       double &val, bool &better);
 	void regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow);
 	void boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow);
-	void recordCI(ConfidenceInterval *currentCI, int lower, FitContext &fc,
+	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 		      int &detailRow, double val, bool better);
 public:
 	ComputeCI();
@@ -441,7 +446,7 @@ static SEXP makeFactor(SEXP vec, int levels, const char **labels)
 	return vec;
 }
 
-void ComputeCI::recordCI(ConfidenceInterval *currentCI, int lower, FitContext &fc,
+void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 			 int &detailRow, double val, bool better)
 {
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
@@ -466,6 +471,7 @@ void ComputeCI::recordCI(ConfidenceInterval *currentCI, int lower, FitContext &f
 	for (int px=0; px < int(fc.numParam); ++px) {
 		REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
 	}
+	INTEGER(VECTOR_ELT(detail, 4+fc.numParam))[detailRow] = meth;
 	++detailRow;
 }
 
@@ -589,9 +595,9 @@ struct boundAwayCIobj : CIobjective {
 		double pA = Rf_pnorm5(d1,0,1,0,0) + Rf_pnorm5(d2,0,1,0,0);
 		v1 << std::max(d1 - sqrtCrit, 0.0), std::max(d2 - sqrtCrit, 0.0),
 			std::max(logAlpha - log(pA), 0.0);
-		mxPrintMat("v1", v1);
-		mxLog("fit %g sqrtCrit %g d1 %g d2 %g alpha %g pA %g",
-		      fit, sqrtCrit, d1, d2, exp(logAlpha), pA);
+		// mxPrintMat("v1", v1);
+		// mxLog("fit %g sqrtCrit %g d1 %g d2 %g alpha %g pA %g",
+		//       fit, sqrtCrit, d1, d2, exp(logAlpha), pA);
 	}
 
 	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat)
@@ -738,8 +744,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		return;
 	}
 
-	if (true) {	// ------------------------------ away from bound side --
-		mxLog("boundLL %g bestLL %g", boundLL, mle->fit);
+	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
+		//mxLog("boundLL %g bestLL %g", boundLL, mle->fit);
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] away side CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		ciConstraintIneq constr;
@@ -750,7 +756,6 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		baobj.boundLL = boundLL;
 		baobj.bestLL = mle->fit;
 		baobj.logAlpha = log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0));
-		//baobj.logAlpha = Rf_pnorm5(sqrt(currentCI->bound[!side]),0.0,1.0,0,1); TODO remove
 		baobj.sqrtCrit = sqrt(currentCI->bound[!side]);
 		baobj.lower = side;
 		baobj.constrained = true;
@@ -765,10 +770,10 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(currentCI, side, fc, detailRow, val, true);
+		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val, true);
 	}
 
-	if (true) {     // ------------------------------ near to bound side --
+	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] near side CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
@@ -777,7 +782,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		if (d0 < sqrtCrit90) {
 			mxLog("near side is too close to bound");
 			fc.fit = boundLL;
-			recordCI(currentCI, !side, fc, detailRow, bound, true); //too close to bound
+			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, bound, true); //too close to bound
 			return;
 		}
 	
@@ -786,7 +791,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			bool better;
 			double val;
 			regularCI(mle, fc, currentCI, !side, val, better);
-			recordCI(currentCI, !side, fc, detailRow, val, true);
+			recordCI(NEALE_MILLER_1997, currentCI, !side, fc, detailRow, val, true);
 			return;
 		}
 	
@@ -810,7 +815,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(currentCI, !side, fc, detailRow, val, true);
+		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val, true);
 	}
 }
 
@@ -873,7 +878,7 @@ void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		double val;
 		bool better;
 		regularCI(mle, fc, currentCI, lower, val, better);
-		recordCI(currentCI, lower, fc, detailRow, val, better);
+		recordCI(NEALE_MILLER_1997, currentCI, lower, fc, detailRow, val, better);
 	}
 }
 
@@ -915,7 +920,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		totalIntervals += (oCI->bound != 0.0).count();
 	}
 
-	Rf_protect(detail = Rf_allocVector(VECSXP, 4 + mle->numParam));
+	Rf_protect(detail = Rf_allocVector(VECSXP, 5 + mle->numParam));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
 	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
 	const char *sideLabels[] = { "upper", "lower" };
@@ -923,9 +928,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
 		SET_VECTOR_ELT(detail, 3+cx, Rf_allocVector(REALSXP, totalIntervals));
 	}
+	const char *methodLabels[] = { "neale-miller-1997", "wu-neale-2012" };
+	SET_VECTOR_ELT(detail, 4+mle->numParam,
+		       makeFactor(Rf_allocVector(INTSXP, totalIntervals), 2, methodLabels));
 
 	SEXP detailCols;
-	Rf_protect(detailCols = Rf_allocVector(STRSXP, 4 + mle->numParam));
+	Rf_protect(detailCols = Rf_allocVector(STRSXP, 5 + mle->numParam));
 	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
 	SET_STRING_ELT(detailCols, 0, Rf_mkChar("parameter"));
 	SET_STRING_ELT(detailCols, 1, Rf_mkChar("value"));
@@ -934,6 +942,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	for (int nx=0; nx < int(mle->numParam); ++nx) {
 		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
+	SET_STRING_ELT(detailCols, 4 + mle->numParam, Rf_mkChar("method"));
 
 	markAsDataFrame(detail, totalIntervals);
 
@@ -949,17 +958,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 		currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
 
 		if (currentCI->boundAdj && currentCI->varIndex < 0) {
-			Rf_warning("Cannot adjust confidence interval '%s' "
-				   "for parameter boundaries because an mxAlgebra is "
-				   "involved", currentCI->name.c_str());
 			currentCI->boundAdj = false;
 		}
 		if (currentCI->boundAdj) {
 			omxFreeVar *fv = freeVarGroup->vars[currentCI->varIndex];
 			if (!((fv->lbound == NEG_INF) ^ (fv->ubound == INF))) {
-				Rf_warning("To adjust confidence interval '%s' "
-					   "only 1 bound should be set (upper OR lower)",
-					   currentCI->name.c_str());
 				currentCI->boundAdj = false;
 			}
 		}
