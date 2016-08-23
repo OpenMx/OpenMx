@@ -135,15 +135,7 @@ class UserConstraint : public omxConstraint {
  public:
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
 	virtual ~UserConstraint();
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		refresh(fc);
-
-		for(int k = 0; k < size; k++) {
-			double got = pad->data[k];
-			if (opCode != ineqType) got = -got;
-			out[k] = got;
-		}
-	};
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 };
 
 enum omxCheckpointType {

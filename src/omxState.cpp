@@ -668,6 +668,17 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 	}
 }
 
+void UserConstraint::refreshAndGrab(FitContext *fc, Type ineqType, double *out)
+{
+	refresh(fc);
+
+	for(int k = 0; k < size; k++) {
+		double got = pad->data[k];
+		if (opCode != ineqType) got = -got;
+		out[k] = got;
+	}
+}
+
 UserConstraint::~UserConstraint()
 {
 	omxFreeMatrix(pad);

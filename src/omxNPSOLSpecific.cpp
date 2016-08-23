@@ -220,6 +220,9 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 		rf.useBestFit();
 	}
 
+	// With constraints, it's probably garbage,
+	//if (ncnln) rf.grad.setConstant(NA_REAL);
+
     NPSOL_GOpt = NULL;
 }
 

@@ -286,6 +286,7 @@ class GradientOptimizerContext {
 	// TODO remove, better to pass as a parameter so we can avoid copies
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
+	bool CSOLNP_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.
@@ -293,6 +294,7 @@ class GradientOptimizerContext {
 	Eigen::VectorXd est;    //like fc->est but omitting profiled out params
 	Eigen::VectorXd bestEst;
 	Eigen::VectorXd grad;
+	double eqNorm, ineqNorm;
 
 	// output
 	int informOut;

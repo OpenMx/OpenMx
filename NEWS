@@ -1,3 +1,7 @@
+SLSQP will now ignore inactive equality constraints and correctly
+report when inequality constraints cannot be satisfied.
+
+
 OpenMx 2.6.7
 --------------
 

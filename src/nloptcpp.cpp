@@ -103,6 +103,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	equality_functional ff(goc);
 	ff(Epoint, Eresult);
 	if (grad) {
+		goc.eqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
 			    ff, Eresult, Epoint, jacobian);
 		if (ctx.eqmask.size() == 0) {
@@ -112,12 +113,22 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 					bool match = (Eresult[c1] == Eresult[c2] &&
 						      (jacobian.col(c1) == jacobian.col(c2)));
 					if (match && !ctx.eqmask[c2]) {
-						ctx.eqmask[c2] = match;
+						ctx.eqmask[c2] = true;
 						++ctx.eqredundent;
 						if (goc.verbose >= 2) {
 							mxLog("nlopt: eq constraint %d is redundent with %d",
 							      c1, c2);
 						}
+					}
+				}
+			}
+			for (int c1=0; c1 < int(m); ++c1) {
+				if (ctx.eqmask[c1]) continue;
+				if ((jacobian.col(c1).array() == 0.0).all()) {
+					ctx.eqmask[c1] = true;
+					++ctx.eqredundent;
+					if (goc.verbose >= 2) {
+						mxLog("nlopt: eq constraint %d is never active", c1);
 					}
 				}
 			}
@@ -142,8 +153,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 		}
 		++dx;
 	}
-	if (goc.verbose >= 4 && grad) {
-		mxPrintMat("eq result", Uresult);
+	if (goc.verbose >= 3 && grad) {
 		mxPrintMat("eq jacobian", Ujacobian);
 	}
 }
@@ -177,6 +187,7 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	inequality_functional ff(*goc);
 	ff(Epoint, Eresult);
 	if (grad) {
+		goc->ineqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
 			    ff, Eresult, Epoint, jacobian);
 		if (!std::isfinite(Eresult.sum())) {
@@ -272,10 +283,13 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 			goc.informOut = INFORM_ITERATION_LIMIT;
 		}
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		if (goc.getIteration() - priorIterations <= 2) {
+		if (goc.eqNorm > feasibilityTolerance || goc.ineqNorm > feasibilityTolerance) {
+			goc.informOut = INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE;
+		} else if (goc.getIteration() - priorIterations <= 2) {
 			Rf_error("%s: Failed due to singular matrix E or C in LSQ subproblem or "
 				 "rank-deficient equality constraint subproblem or "
-				 "positive directional derivative in line search", goc.optName);
+				 "positive directional derivative in line search "
+				 "(eq %.4g ineq %.4g)", goc.optName, goc.eqNorm, goc.ineqNorm);
 		} else {
 			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 		}

@@ -420,6 +420,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
 		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
+		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
 		conList.push_back(constr);
 	}
 	if(OMX_DEBUG) {

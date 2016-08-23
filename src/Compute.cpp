@@ -2953,6 +2953,8 @@ void GradientOptimizerContext::reset()
 {
 	feasible = false;
 	bestFit = std::numeric_limits<double>::max();
+	eqNorm = 0;
+	ineqNorm = 0;
 }
 
 GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose)
@@ -2976,6 +2978,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
 	numOptimizerThreads = (fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1;
+	CSOLNP_HACK = false;
 	reset();
 }
 
@@ -3143,6 +3146,12 @@ void GradientOptimizerContext::myineqFun()
 
 		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
 		cur += con.size;
+	}
+
+	if (CSOLNP_HACK) {
+		// CSOLNP doesn't know that inequality constraints can be inactive TODO
+	} else {
+		inequality = inequality.array().max(0.0);
 	}
 
 	if (verbose >= 3) {

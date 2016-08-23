@@ -228,6 +228,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		rf.avoidRedundentEvals = true;
+		rf.CSOLNP_HACK = true;
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
