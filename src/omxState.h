@@ -177,6 +177,9 @@ struct ConfidenceInterval {
 	ConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 	omxMatrix *getMatrix(omxState *st) const;
+	bool cmpBoundAndType(const ConfidenceInterval &other) {
+		return (bound != other.bound).any() || boundAdj != other.boundAdj;
+	}
 };
 
 // omxGlobal is for state that is read-only during parallel sections.
