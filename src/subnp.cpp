@@ -1397,10 +1397,22 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
 
     if (optimize_initial_inequality_constraints){
         double total = ineqval.array().min(0).sum();
-        fitVal << fabs(total) - 1e-4, eqval;
+        fitVal(0,0) = fabs(total) - 1e-4;
+	int dx=1;
+	for (int ix=0; ix < eqval.size(); ++ix,++dx) {
+		fitVal(0,dx) = eqval(0,ix);
+	}
     }
     else{
-	    fitVal << objVal, eqval, ineqval;
+	    fitVal.derived().resize(1,1+eqval.size()+ineqval.size());
+	    fitVal(0,0) = objVal(0);
+	    int dx=1;
+	    for (int ix=0; ix < eqval.size(); ++ix,++dx) {
+		    fitVal(0,dx) = eqval(0,ix);
+	    }
+	    for (int ix=0; ix < ineqval.size(); ++ix,++dx) {
+		    fitVal(0,dx) = ineqval(0,ix);
+	    }
     }
 
     if (!std::isfinite(fitVal.sum())) {
