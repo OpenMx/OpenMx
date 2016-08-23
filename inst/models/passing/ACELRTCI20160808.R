@@ -1,6 +1,9 @@
 require(OpenMx)
 require(mvtnorm)
-mxOption(NULL, "Default optimizer", "SLSQP")
+
+#mxOption(NULL, 'Default optimizer', 'SLSQP')
+
+if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 
 # Aug 11, 2016 by Hao Wu
 
@@ -189,7 +192,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
 	      ###### Find an appropriate starting value for LRTLB ############
 
   	    ACEModelTwinC <- mxModel(ACEModelTwinC,mxCI("C",interval=1-2*alpha,type="lower",boundAdj=FALSE));
-	      if (sqrtcrit90<d0/2)  ACEModelTwinC@intervals$C$lowerdelta<-as.double(d0^2/4)
+	      if (sqrtcrit90<d0/2)  ACEModelTwinC$intervals$C$lowerdelta<-as.double(d0^2/4)
     
         fit<-mxRun(ACEModelTwinC,silent=silent,intervals=TRUE);
   	    estLB90<-c(as.matrix(fit$compute$steps[['CI']]$output[['detail']][parameters])[1,]);
@@ -318,7 +321,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
         ###### Find an appropriate starting value for LRTLB ############
     
         ACEModelTwinA <- mxModel(ACEModelTwinA,mxCI("A",interval=1-2*alpha,type="lower",boundAdj=FALSE));
-        if (sqrtcrit90<d0/2)  ACEModelTwinA@intervals$A$lowerdelta<-as.double(d0^2/4)
+        if (sqrtcrit90<d0/2)  ACEModelTwinA$intervals$A$lowerdelta<-as.double(d0^2/4)
     
         fit<-mxRun(ACEModelTwinA,silent=silent,intervals=TRUE);
         estLB90<-c(as.matrix(fit$compute$steps[['CI']]$output[['detail']][parameters])[1,]);
@@ -446,7 +449,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
         ###### Find an appropriate starting value for LRTLB ############
       
         ACEModelTwinE <- mxModel(ACEModelTwinE,mxCI("rMZ",interval=1-2*alpha,type="lower",boundAdj=FALSE));
-        if (sqrtcrit90<d0/2)  ACEModelTwinE@intervals$rMZ$lowerdelta<-as.double(d0^2/4)
+        if (sqrtcrit90<d0/2)  ACEModelTwinE$intervals$rMZ$lowerdelta<-as.double(d0^2/4)
       
         fit<-mxRun(ACEModelTwinE,silent=silent,intervals=TRUE);
         estLB90<-c(as.matrix(fit$compute$steps[['CI']]$output[['detail']][c("value",parameters)])[1,]);
@@ -553,10 +556,12 @@ cmpInterval <- function(model, iname, param, col) {
   m2 <- model
   m2 <- mxModel(m2, remove=TRUE, m2$intervals)
   unadj <- try(mxRun(mxModel(m2, mxCI(param,boundAdj=FALSE)), intervals=TRUE))
+  d1 <- unadj$compute$steps[['CI']]$output$detail
   if (is(unadj, "try-error")) return(rep(NA,3))
   adj <- try(mxRun(mxModel(m2, mxCI(param,boundAdj=TRUE)),
                intervals=TRUE,checkpoint=TRUE))
   if (is(adj, "try-error")) return(rep(NA,3))
+  d2 <- unadj$compute$steps[['CI']]$output$detail
   ref <- ACECI(model)
   c(unadj=unadj$output$confidenceIntervals[param, col],
     adj=adj$output$confidenceIntervals[param, col],
@@ -569,17 +574,19 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.45,.45,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'C.UB', 'c', 'ubound')
+print(got)
 omxCheckCloseEnough(got[1], .17223, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.16244, 2), 1e-4)
 
 ### a = 0.6, c = 0.3, e = 0.1 Test C LB ###
-set.seed(4)
+set.seed(5)
 SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.6,.6,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'C.LB', 'c', 'lbound')
-omxCheckCloseEnough(got[1], 0, 1e-4)
-omxCheckCloseEnough(got[2:3], rep(0.016537, 2), 1e-5)
+print(got)
+omxCheckCloseEnough(got[1], 0.093102, 1e-4)
+omxCheckCloseEnough(got[2:3], rep(0.122418, 2), 1e-4)
 
 ### a = 0, c = 0.9, e = 0.1 Test A UB ###
 set.seed(19)
@@ -587,6 +594,7 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'A.UB', 'a', 'ubound')
+print(got)
 omxCheckCloseEnough(got[1], 0.040689, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.033402, 2), 1e-5)
 
@@ -596,6 +604,7 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.8,.8,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'A.LB', 'a', 'lbound')
+print(got)
 omxCheckCloseEnough(got[1], 0.0687491, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.07511647, 2), 1e-5)
 
@@ -608,5 +617,3 @@ if (FALSE) {
   SigmaMZ0<-array(c(1,0.4,0.4,1),dim=c(2,2));
   SigmaDZ0<-array(c(1,0.3,0.3,1),dim=c(2,2));
 }
-
-

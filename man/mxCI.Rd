@@ -83,6 +83,10 @@ Neale, M. C. & Miller M. B. (1997). The use of likelihood based
 confidence intervals in genetic models.  \emph{Behavior Genetics,
 27}(2), 113-120.
 
+Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals
+and regions for structural equation models.  \emph{Psychometrica,
+80}(4), 1123-1145.
+
 Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a
 bounded parameter. \emph{Behavior genetics, 42}(6), 886-898.
 }

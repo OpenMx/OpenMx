@@ -64,6 +64,8 @@ onecov <- mxModel(onecov, mxAlgebra(expression = A[7, 6], name = "alpha"), mxCI(
 onecov <- mxRun(onecov, intervals=TRUE)
 omxCheckCloseEnough(onecov$output$fit, 775.0977, .01)
 
+d1=onecov$compute$steps[['CI']]$output$detail
+
 #cat(deparse(round(c(onecov$output$confidenceIntervals), 3)))
 omxCheckCloseEnough(c(onecov$output$confidenceIntervals),
                     c(-0.253, 0.102, 0.456), .01)

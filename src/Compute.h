@@ -91,8 +91,8 @@ struct CIobjective {
 
 	virtual bool gradientKnown()=0;
 	virtual void gradient(FitContext *fc, double *gradOut) {};
-	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat) { return 0; };
-	virtual double evalEq(FitContext *fc, omxMatrix *fitMat) { return 0; };
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
+	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
 };
 

@@ -214,11 +214,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			if(defaultComputePlan){
 				steps <- list()
 				if(doIntervals){
+					ciOpt <- mxComputeGradientDescent(
+						nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
+						tolerance=tolerance, maxMajorIter=maxMajorIter)
 					steps <- c(steps,CI=mxComputeConfidenceInterval(
-						plan=mxComputeGradientDescent(
-							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
-							maxMajorIter=maxMajorIter),
-						constraintType=ifelse(relevantOptions[[3]] == 'SLSQP','ineq','none')))
+								 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 				}
 				if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
 				if(SElater){
@@ -255,11 +255,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(defaultComputePlan){
 					steps <- list()
 					if(doIntervals){
+						ciOpt <- mxComputeGradientDescent(
+							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
+							tolerance=tolerance, maxMajorIter=maxMajorIter)
 						steps <- c(steps,CI=mxComputeConfidenceInterval(
-							plan=mxComputeGradientDescent(
-								nudgeZeroStarts=FALSE,gradientIterations=gradientIterations, tolerance=tolerance, 
-								maxMajorIter=maxMajorIter),
-							constraintType=ifelse(relevantOptions[[3]] == 'SLSQP','ineq','none')))
+									 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 					}
 					if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
 					if(SElater){
