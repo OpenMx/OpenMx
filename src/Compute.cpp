@@ -2886,7 +2886,9 @@ void GradientOptimizerContext::copyBounds()
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
 		if (fc->profiledOut[vx]) continue;
 		solLB[px] = varGroup->vars[vx]->lbound;
+		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
 		solUB[px] = varGroup->vars[vx]->ubound;
+		if (!std::isfinite(solUB[px])) solUB[px] = INF;
 		++px;
 	}
 }

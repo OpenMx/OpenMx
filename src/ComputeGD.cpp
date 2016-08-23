@@ -578,7 +578,7 @@ struct bound1CIobj : CIobjective {
 
 struct boundAwayCIobj : CIobjective {
 	double logAlpha, sqrtCrit;
-	double boundLL, bestLL;
+	double unboundedLL, bestLL;
 	int lower;
 	bool constrained;
 
@@ -587,17 +587,17 @@ struct boundAwayCIobj : CIobjective {
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
-		double d1 = sqrt(std::max(fit - boundLL,0.0));
-		double d2 = sqrt(std::max(fit - bestLL, 0.0));
+		double d1 = sqrt(std::max(fit - bestLL, 0.0));
+		double d2 = sqrt(std::max(fit - unboundedLL,0.0));
 		//Rf_pnorm(d1,0,1,0,0) + Rf_pnorm(d2,0,1,0,0) > alpha
 		//d1 < sqrtCrit
 		//d2 < sqrtCrit
 		double pA = Rf_pnorm5(d1,0,1,0,0) + Rf_pnorm5(d2,0,1,0,0);
-		v1 << std::max(d1 - sqrtCrit, 0.0), std::max(d2 - sqrtCrit, 0.0),
+		v1 << std::max(d1 - sqrtCrit, 0.0), std::max(sqrtCrit - d2, 0.0),
 			std::max(logAlpha - log(pA), 0.0);
-		// mxPrintMat("v1", v1);
-		// mxLog("fit %g sqrtCrit %g d1 %g d2 %g alpha %g pA %g",
-		//       fit, sqrtCrit, d1, d2, exp(logAlpha), pA);
+		//mxPrintMat("v1", v1);
+		//mxLog("fit %g sqrtCrit %g d1 %g d2 %g alpha %g pA %g",
+		//fit, sqrtCrit, d1, d2, exp(logAlpha), pA);
 	}
 
 	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat)
@@ -634,7 +634,7 @@ struct boundAwayCIobj : CIobjective {
 		}
 
 		double cval = 0.0;
-		if (constrained) {
+		if (!constrained) {
 			Eigen::Array<double,3,1> v1;
 			computeConstraint(fit, v1);
 			cval = v1.sum()*v1.sum();
@@ -651,9 +651,36 @@ struct boundNearCIobj : CIobjective {
 	double d0, sqrtCrit90, sqrtCrit95, logAlpha;
 	double boundLL, bestLL;
 	int lower;
+	bool constrained;
 
 	virtual bool gradientKnown() { return false; }
 	
+	template <typename T1>
+	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
+	{
+		double lbd = std::max(d0/2, sqrtCrit90); //precompute TODO
+		double ubd = std::min(d0, sqrtCrit95); //precompute TODO
+		double dd = sqrt(std::max(fit - bestLL, 0.0));
+		double pN = Rf_pnorm5(dd,0,1,0,0) + Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
+		// pN > alpha
+		// lbd < dd < ubd
+		v1 << std::max(lbd - dd, 0.0), std::max(dd - ubd, 0.0), std::max(logAlpha - log(pN), 0.0);
+		//mxPrintMat("v1", v1);
+		//mxLog("fit %g dd %g/%g/%g alpha %g pN %g",
+		//fit, lbd, dd, ubd, exp(logAlpha), pN);
+	}
+
+	virtual double evalIneq(FitContext *fc, omxMatrix *fitMat)
+	{
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		Eigen::Array<double,3,1> v1;
+		computeConstraint(fit, v1);
+		double diff = v1.sum();
+		if (diff > 100) diff = nan("infeasible");
+		return diff;
+	}
+
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
 	{
 		omxMatrix *fitMat = ff->matrix;
@@ -676,20 +703,15 @@ struct boundNearCIobj : CIobjective {
 			return;
 		}
 
-		double lbd = std::max(d0/2, sqrtCrit90); //precompute TODO
-		double ubd = std::min(d0, sqrtCrit95); //precompute TODO
-		double dd = sqrt(std::max(fit - bestLL, 0.0));
-		double pN = Rf_pnorm5(dd,0,1,0,0) + Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
-		// pN > alpha
-		// lbd < dd < ubd
-		Eigen::Array<double,3,1> v1;
-		v1 << std::max(lbd - dd, 0.0), std::max(dd - ubd, 0.0), std::max(logAlpha - log(pN), 0.0);
-		//mxPrintMat("v1", v1);
-		//mxLog("fit %g CIElement %g dd %g/%g/%g alpha %g pN %g",
-		//fit, CIElement, lbd, dd, ubd, exp(logAlpha), pN);
-			     
+		double cval = 0.0;
+		if (!constrained) {
+			Eigen::Array<double,3,1> v1;
+			computeConstraint(fit, v1);
+			cval = v1.sum() * v1.sum();
+		}
+
 		double param = (lower? CIElement : -CIElement);
-		fitMat->data[0] = param + v1.sum()*v1.sum();
+		fitMat->data[0] = param  + cval;
 		//mxLog("param at %f", fitMat->data[0]);
 	}
 };
@@ -704,56 +726,52 @@ struct boundNearCIobj : CIobjective {
 // Also look at 13 May 2015 email to pek@yorku.ca
 void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
 {
-	// need to skip some stuff if one bound is not wanted TODO
 	omxState *state = fitMatrix->currentState;
 	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	std::string &matName = ciMatrix->nameStr;
 	omxFreeVar *fv = mle->varGroup->vars[currentCI->varIndex];
-	double bound;
-	int side;
-	if (fv->lbound == NEG_INF) {
-		bound = fv->ubound;
-		side = ConfidenceInterval::Upper;
-	} else {
-		bound = fv->lbound;
-		side = ConfidenceInterval::Lower;
-	}
+	double &bound = fv->lbound == NEG_INF? fv->ubound : fv->lbound;
+	int side = fv->lbound == NEG_INF? ConfidenceInterval::Upper : ConfidenceInterval::Lower;
 
-	// Reset to previous optimum
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
-	Est = Mle;
-
-	Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
-				  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-
-	ciConstraintEq constrEq;
-	constrEq.fitMat = fitMatrix;
-	constrEq.push(state);
-	bound1CIobj ciobj;
-	ciobj.CI = currentCI;
-	ciobj.bound = bound;
-	fc.ciobj = &ciobj;
-	plan->compute(&fc);
-	constrEq.pop();
-
-	// check fc.inform and bail if something went wrong TODO
-	double boundLL = fc.fit;
-	if (false && boundLL - mle->fit > currentCI->bound[side]) {		// TODO remove?
-		regularCI2(mle, fc, currentCI, detailRow);
-		return;
-	}
 
 	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
-		//mxLog("boundLL %g bestLL %g", boundLL, mle->fit);
-		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] away side CI",
+		{
+			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
+						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
+			double bound_save = bound;
+			bound = NA_REAL;
+			Est = Mle;
+			plan->compute(&fc);
+			// check fc.inform and bail if something went wrong TODO
+			bound = bound_save;
+			if (false) {
+				omxRecompute(ciMatrix, &fc);
+				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
+				mxLog("without bound, fit %.8g val %.8g", fc.fit, val);
+			}
+			if (fc.fit - mle->fit > currentCI->bound[!side]) {
+				mxLog("bound does not affect upper CI, no correction needed");
+				bool better;
+				double val;
+				regularCI(mle, fc, currentCI, side, val, better);
+				recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, true);
+				goto part2;
+			}
+		}
+
+		double unboundedLL = fc.fit;
+		//mxLog("unboundedLL %g bestLL %g", unboundedLL, mle->fit);
+
+		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] adjusted away CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		ciConstraintIneq constr;
 		constr.fitMat = fitMatrix;
 		constr.push(state);
 		boundAwayCIobj baobj;
 		baobj.CI = currentCI;
-		baobj.boundLL = boundLL;
+		baobj.unboundedLL = unboundedLL;
 		baobj.bestLL = mle->fit;
 		baobj.logAlpha = log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0));
 		baobj.sqrtCrit = sqrt(currentCI->bound[!side]);
@@ -773,7 +791,23 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val, true);
 	}
 
+ part2:
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
+		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
+					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
+		ciConstraintEq constrEq;
+		constrEq.fitMat = fitMatrix;
+		constrEq.push(state);
+		bound1CIobj ciobj;
+		ciobj.CI = currentCI;
+		ciobj.bound = bound;
+		fc.ciobj = &ciobj;
+		Est = Mle;
+		plan->compute(&fc);
+		constrEq.pop();
+		// check fc.inform and bail if something went wrong TODO
+		double boundLL = fc.fit;
+
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] near side CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
@@ -796,6 +830,9 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		}
 	
 		mxLog("near side getting fancy adjustment");
+		ciConstraintIneq constr;
+		constr.fitMat = fitMatrix;
+		constr.push(state);
 		boundNearCIobj bnobj;
 		bnobj.CI = currentCI;
 		bnobj.d0 = d0;
@@ -805,9 +842,11 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		bnobj.bestLL = mle->fit;
 		bnobj.logAlpha = log(1.0 - Rf_pchisq(currentCI->bound[side], 1, 1, 0));
 		bnobj.lower = !side;
+		bnobj.constrained = true;
 		Est = Mle;
 		fc.ciobj = &bnobj;
 		plan->compute(&fc);
+		constr.pop();
 
 		// check fc.inform and bail if something went wrong TODO
 		omxRecompute(ciMatrix, &fc);
