@@ -1439,7 +1439,7 @@ namespace RelationalRAMExpectation {
 			while (int more = rampartRotate(++level)) {
 				rampartUsage.push_back(more);
 				unlinked += more;
-				if (--maxIter == 0) break;
+				if (maxIter != NA_INTEGER && --maxIter == 0) break;
 			}
 			if (verbose() >= 1) {
 				mxLog("%s: rampart unlinked %d units", homeEx->name, unlinked);

@@ -409,7 +409,7 @@ void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
 {
 	if (!mean) {
 		mean = (double *) R_alloc(itemDims, sizeof(double));
-		memset(mean, 0, itemDims * sizeof(double));
+		if (itemDims) memset(mean, 0, itemDims * sizeof(double));
 	} else {
 		mean = _mean;
 	}
