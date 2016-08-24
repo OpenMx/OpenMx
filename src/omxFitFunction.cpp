@@ -112,7 +112,7 @@ void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (!off->initialized) return;
 
-	if (!fc->CI) {
+	if (!fc->ciobj) {
 		off->computeFun(off, want, fc);
 	} else {
 		off->ciFun(off, want, fc);
@@ -181,7 +181,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		omxFitFunctionComputeAuto(ff, want, fc);
 	} else {
 		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
-		if (fc->CI) Rf_error("CIs cannot be computed for unitless algebra");
+		if (fc->ciobj) Rf_error("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
 	if (doFit) {
@@ -334,55 +334,5 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 
 void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
 {
-	const ConfidenceInterval *CI = fc->CI;
-	omxMatrix *fitMat = ff->matrix;
-
-	if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) {
-		fc->targetFit = CI->bound[!fc->lowerBound] + fc->fit;
-		//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
-		return;
-	}
-
-	if (!(want & FF_COMPUTE_FIT)) {
-		Rf_error("Not implemented yet");
-	}
-
-	// We need to compute the fit here because that's the only way to
-	// check our soft feasibility constraints. If parameters don't
-	// change between here and the constraint evaluation then we
-	// should avoid recomputing the fit again in the constraint. TODO
-
-	omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-	const double fit = totalLogLikelihood(fitMat);
-	omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
-	omxRecompute(ciMatrix, fc);
-	double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
-	omxResizeMatrix(fitMat, 1, 1);
-
-	if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
-		fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-		fitMat->data[0] = nan("infeasible");
-		return;
-	}
-
-	if (want & FF_COMPUTE_FIT) {
-		double param = (fc->lowerBound? CIElement : -CIElement);
-		if (fc->compositeCIFunction) {
-			double diff = fc->targetFit - fit;
-			diff *= diff;
-			if (diff > 1e2) {
-				// Ensure there aren't any creative solutions
-				diff = nan("infeasible");
-				return;
-			}
-			fitMat->data[0] = diff + param;
-		} else {
-			fitMat->data[0] = param;
-		}
-		//mxLog("param at %f", fitMat->data[0]);
-	}
-	if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-		// add deriv adjustments here TODO
-	}
+	fc->ciobj->evalFit(ff, want, fc);
 }
-

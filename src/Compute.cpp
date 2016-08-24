@@ -668,9 +668,7 @@ void FitContext::init()
 	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
-	CI = NULL;
-	targetFit = nan("uninit");
-	lowerBound = false;
+	ciobj = 0;
 	openmpUser = false;
 	computeCount = 0;
 
@@ -726,7 +724,6 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 	if (numParam) {
 		memcpy(est, startingValues.data(), sizeof(double) * numParam);
 	}
-	compositeCIFunction = false;
 }
 
 FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
@@ -759,12 +756,7 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
-
-	// confidence interval stuff
-	CI = parent->CI;
-	compositeCIFunction = parent->compositeCIFunction;
-	targetFit = parent->targetFit;
-	lowerBound = parent->lowerBound;
+	ciobj = parent->ciobj;
 }
 
 void FitContext::updateParent()
@@ -1177,6 +1169,11 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
+void CIobjective::evalFit(omxFitFunction *ff, int want, FitContext *fc)
+{
+	omxFitFunctionCompute(ff, want, fc);
+}
+
 class EMAccel {
 protected:
 	FitContext *fc;
@@ -1429,15 +1426,20 @@ void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxCompute::compute(FitContext *fc)
 {
-	ComputeInform origInform = fc->getInform();
 	FitContext *narrow = fc;
 	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
-	narrow->setInform(INFORM_UNINITIALIZED);
-	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
-	computeImpl(narrow);
-	fc->setInform(std::max(origInform, narrow->getInform()));
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
+	computeWithVarGroup(narrow);
 	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+}
+
+void omxCompute::computeWithVarGroup(FitContext *fc)
+{
+	ComputeInform origInform = fc->getInform();
+	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
+	fc->setInform(INFORM_UNINITIALIZED);
+	computeImpl(fc);
+	fc->setInform(std::max(origInform, fc->getInform()));
+	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
@@ -2884,7 +2886,9 @@ void GradientOptimizerContext::copyBounds()
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
 		if (fc->profiledOut[vx]) continue;
 		solLB[px] = varGroup->vars[vx]->lbound;
+		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
 		solUB[px] = varGroup->vars[vx]->ubound;
+		if (!std::isfinite(solUB[px])) solUB[px] = INF;
 		++px;
 	}
 }
@@ -2993,14 +2997,9 @@ double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 	return fit;
 }
 
-bool GradientOptimizerContext::inConfidenceIntervalProblem() const
+bool GradientOptimizerContext::hasKnownGradient() const
 {
-	return fc->CI && fc->CI->varIndex >= 0;
-}
-
-int GradientOptimizerContext::getConfidenceIntervalVarIndex() const
-{
-	return fc->CI->varIndex;
+	return fc->ciobj && fc->ciobj->gradientKnown();
 }
 
 void GradientOptimizerContext::copyToOptimizer(double *myPars)
@@ -3076,7 +3075,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
-	if (*mode > 0 && !fc->CI && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
 		fc->grad.resize(fc->numParam);
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;

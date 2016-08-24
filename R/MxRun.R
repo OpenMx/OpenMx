@@ -131,8 +131,7 @@ runHelper <- function(model, frontendStart,
 			if (length(intervals) && intervals) {
 				ciOpt <- mxComputeGradientDescent(
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
-				if (ciOpt$engine == "SLSQP") cType <- 'ineq'
-				else cType <- 'none'
+				cType <- ciOpt$defaultCImethod
 				steps <- c(steps, CI=mxComputeConfidenceInterval(
 				    fitfunction=fitNum, constraintType=cType, plan=ciOpt))
 			}

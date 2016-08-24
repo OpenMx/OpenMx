@@ -23,25 +23,40 @@ This function creates a new \link{MxCI} object, which are used to estimate likel
 }
 
 \usage{
-mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"))
+mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"), ..., boundAdj=TRUE)
 }
 
 \arguments{
 \item{reference}{A character vector of free parameters, mxMatrices, mxMatrix elements and mxAlgebras on which confidence intervals are to be estimated, listed by name.}
 \item{interval}{A scalar numeric value indicating the confidence interval to be estimated. Must be between 0 and 1. Defaults to 0.95.}
 \item{type}{A character string indicating whether the upper, lower or both confidence limits are returned. Defaults to "both".}
+\item{...}{Not used.  Forces remaining arguments to be specified by
+  name.}
+\item{boundAdj}{Whether to correct the likelihood-based confidence
+  intervals for a lower or upper bound.}
 }
 
 \details{
 The mxCI function creates \link{MxCI} objects, which can be used as arguments in \link{MxModel} objects. When models containing \link{MxCI} objects are optimized using \link{mxRun} with the \sQuote{intervals} argument set to TRUE, likelihood-based confidence intervals are returned. The likelihood-based confidence intervals calculated by \link{MxCI} objects are symmetric with respect to the change in likelihood in either direction, and are not necessarily symmetric around the parameter estimate. Estimation of confidence intervals requires both that an \link{MxCI} object be included in the model and that the \sQuote{intervals} argument of the \link{mxRun} function is set to TRUE. When estimated, confidence intervals can be accessed in the model output at \code{$output$confidenceIntervals} or by using \link{summary} on a fitted \link{MxModel} object. 
 
-A typical use case is when a parameter estimate is obtained that is at
-or near a lower bound. In this case, there is no point in computing the
-lower part of the CI. Only the upper bound is needed. In all cases,
-a two-sided hypothesis test is assumed. Therefore, the upper bound will
+A typical use case is when a model includes non-linear constraints,
+and hence, standard errors are not available.
+In all cases, a two-sided hypothesis test is assumed.
+Therefore, the upper bound will
 exclude 2.5\% (for interval=0.95) even though only one bound is
 requested. To obtain a one-sided CI for a one-sided hypothesis test,
 interval=0.90 will obtain a 95\% confidence interval.
+
+When a confidence interval is requested for a free parameter (not an
+algebra) constrained by a lower bound or an upper bound (but not both)
+and \code{boundAdj=TRUE} then the Wu & Neale (2012) correction is used.
+This improves the accuracy of the confidence interval when the parameter
+is estimated close to the bound. For example, this correction will be
+activated when a variance with a lower bound of \eqn{10^{-6}} and no
+upper bound that is estimated close to the bound. The sample size, or
+more precisely effective sample size for that particular parameter, will
+determine how close the variance needs to be to the bound at
+\eqn{10^{-6}} to activate the correction.
 
 The likelihood-based confidence intervals returned using \link{MxCI} are obtained by increasing or decreasing the value of each parameter until the -2 log likelihood of the model increases by an amount corresponding to the requested interval. The confidence limit specified by the \sQuote{interval} argument is transformed into a corresponding difference in the model -2 log likelihood based on the likelihood ratio test. Thus, a requested confidence interval for a parameter will first determine the corresponding quantile from the chi-squared distribution with one degree of freedom (a value of 3.841459 when a 95 percent confidence interval is requested). That quantile will be populated into either the \sQuote{lowerdelta} slot, the \sQuote{upperdelta} slot, or both in the output \link{MxCI} object. 
 
@@ -63,6 +78,17 @@ Returns a new \link{MxCI} object. If used as an argument in an \link{MxModel} ob
 
 \references{
 The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation. Additional support for mxCI() can be found on the OpenMx wiki at http://openmx.psyc.virginia.edu/wiki.
+
+Neale, M. C. & Miller M. B. (1997). The use of likelihood based
+confidence intervals in genetic models.  \emph{Behavior Genetics,
+27}(2), 113-120.
+
+Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals
+and regions for structural equation models.  \emph{Psychometrica,
+80}(4), 1123-1145.
+
+Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a
+bounded parameter. \emph{Behavior genetics, 42}(6), 886-898.
 }
 
 \seealso{
@@ -96,7 +122,8 @@ ci <- mxCI(c("var1", "cov12", "var2"))
 # specify the model
 model <- mxModel(model="Confidence Interval Example",
     data, expect, ci,
-    mxMLObjective("expectedCov", dimnames=c("a", "b")))
+    mxExpectationNormal("expectedCov", dimnames=c("a", "b")),
+    mxFitFunctionML())
 
 # run the model 
 results <- mxRun(model, intervals=TRUE)
@@ -107,5 +134,12 @@ print(summary(results)$CI)
 # view all results
 summary(results)
 
+# remove a specific mxCI from a model
+model <- mxModel(model, remove=TRUE, model$intervals[['cov12']])
+model$intervals
+
+# remove all mxCI from a model
+model <- mxModel(model, remove=TRUE, model$intervals)
+model$intervals
 
 }

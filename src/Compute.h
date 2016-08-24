@@ -86,6 +86,16 @@ struct HessianBlock {
 	int estNonZero() const;
 };
 
+struct CIobjective {
+	ConfidenceInterval *CI;
+
+	virtual bool gradientKnown()=0;
+	virtual void gradient(FitContext *fc, double *gradOut) {};
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
+	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
+};
+
 // The idea of FitContext is to eventually enable fitting from
 // multiple starting values in parallel.
 
@@ -144,10 +154,7 @@ class FitContext {
 	std::vector< class FitContext* > childList;
 
 	// for confidence intervals
-	ConfidenceInterval *CI;
-	double targetFit;
-	bool lowerBound;
-	bool compositeCIFunction;
+	CIobjective *ciobj;
 
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
@@ -232,6 +239,7 @@ class omxCompute {
 	omxCompute();
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
+	void computeWithVarGroup(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
@@ -324,9 +332,11 @@ class GradientOptimizerContext {
 	int getIteration() const { return fc->iterations; };
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
-	bool inConfidenceIntervalProblem() const;
-	int getConfidenceIntervalVarIndex() const;
-	bool inConfidenceIntervalLowerBound() const { return fc->lowerBound; };
+	bool hasKnownGradient() const;
+	template <typename T1>
+	void setKnownGradient(Eigen::MatrixBase<T1> &gradOut) {
+		fc->ciobj->gradient(fc, gradOut.derived().data());
+	};
 	omxState *getState() const { return fc->state; };
 };
 

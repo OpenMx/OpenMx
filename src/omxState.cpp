@@ -276,9 +276,13 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 	for (int ix=0; ix < (int) tmp.size(); ++ix) {
 		ConfidenceInterval *ci = tmp[ix];
 		if (!ci->isWholeAlgebra()) {
-			if (uniqueCIs.count(ci) == 0) {
+			auto iter = uniqueCIs.find(ci);
+			if (iter == uniqueCIs.end()) {
 				uniqueCIs.insert(ci);
 				intervalList.push_back(ci);
+			} else if (ci->cmpBoundAndType(**iter)) {
+				Rf_warning("Different confidence intervals '%s' and '%s' refer to the same thing",
+					   ci->name.c_str(), (*iter)->name.c_str());
 			}
 			continue;
 		}
@@ -289,10 +293,15 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 				cell->name = string_snprintf("%s[%d,%d]", ci->name.c_str(), 1+rx, 1+cx);
 				cell->row = rx;
 				cell->col = cx;
-				if (uniqueCIs.count(cell) == 0) {
+				auto iter = uniqueCIs.find(cell);
+				if (iter == uniqueCIs.end()) {
 					uniqueCIs.insert(cell);
 					intervalList.push_back(cell);
 				} else {
+					if (cell->cmpBoundAndType(**iter)) {
+						Rf_warning("Different confidence intervals '%s' and '%s' refer to the same thing",
+							   cell->name.c_str(), (*iter)->name.c_str());
+					}
 					delete cell;
 				}
 			}

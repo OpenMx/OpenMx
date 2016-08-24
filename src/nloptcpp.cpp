@@ -62,9 +62,8 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
 	if (goc->getWanted() & FF_COMPUTE_GRADIENT) {
 		Egrad = goc->grad;
-	} else if (goc->inConfidenceIntervalProblem()) {
-		Egrad.setZero();
-		Egrad[ goc->getConfidenceIntervalVarIndex() ] = goc->inConfidenceIntervalLowerBound()? 1 : -1;
+	} else if (goc->hasKnownGradient()) {
+		goc->setKnownGradient(Egrad);
 		goc->grad = Egrad;
 	} else {
 		if (goc->verbose >= 3) mxLog("fd_gradient start");
@@ -177,15 +176,11 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
-	if (grad && goc->verbose >= 2) {
-		if (m == 1) {
-			mxLog("major iteration ineq=%.12f", Eresult[0]);
-		} else {
-			mxPrintMat("major iteration ineq", Eresult);
-		}
-	}
 	inequality_functional ff(*goc);
 	ff(Epoint, Eresult);
+	if (grad && goc->verbose >= 2) {
+		mxPrintMat("major iteration ineq", Eresult);
+	}
 	if (grad) {
 		goc->ineqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
@@ -224,15 +219,9 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	int eq, ieq;
 	globalState->countNonlinearConstraints(eq, ieq);
 
-	if (goc.inConfidenceIntervalProblem()) {
-		nlopt_set_xtol_rel(opt, 5e-3);
-		std::vector<double> tol(goc.numFree, std::numeric_limits<double>::epsilon());
-		nlopt_set_xtol_abs(opt, tol.data());
-	} else {
-		// The *2 is there to roughly equate accuracy with NPSOL.
-		nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
-		nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
-	}
+	// The *2 is there to roughly equate accuracy with NPSOL.
+	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
+	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
         
 	nlopt_set_min_objective(opt, SLSQP::nloptObjectiveFunction, &goc);
 
