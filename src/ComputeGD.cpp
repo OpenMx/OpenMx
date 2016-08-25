@@ -266,6 +266,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 	} else {
 		fc->setInform(rf.informOut);
+		if (fc->ciobj) fc->ciobj->checkSolution(fc);
 	}
 
 	if (verbose >= 1) {
@@ -305,7 +306,6 @@ class ComputeCI : public omxCompute {
 	SEXP intervals, intervalCodes, detail;
 	const char *ctypeName;
 	bool useInequality;
-	bool useEquality;
 
 	enum Method {
 		NEALE_MILLER_1997=1,
@@ -343,7 +343,6 @@ ComputeCI::ComputeCI()
 	intervalCodes = 0;
 	detail = 0;
 	useInequality = false;
-	useEquality = false;
 }
 
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -358,12 +357,12 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	{
 		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("constraintType")));
 		ctypeName = CHAR(Rf_asChar(slotValue));
+		// really only constrained and unconstrained TODO
 		if (strEQ(ctypeName, "ineq")) {
 			useInequality = true;
 		} else if (strEQ(ctypeName, "eq")) {
-			useEquality = true;
+			useInequality = true;
 		} else if (strEQ(ctypeName, "both")) {
-			useEquality = true;
 			useInequality = true;
 		} else if (strEQ(ctypeName, "none")) {
 			// OK
@@ -568,19 +567,56 @@ struct regularCIobj : CIobjective {
 
 struct bound1CIobj : CIobjective {
 	double bound;
-	double diff;
+	bool constrained;
+	Eigen::Array<double,1,1> eq;
 
-	virtual bool gradientKnown() { return false; }
-	
-	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out)
+	template <typename T1>
+	void computeConstraint(FitContext *fc, omxMatrix *fitMat, double fit, Eigen::ArrayBase<T1> &v1)
 	{
 		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
 		omxRecompute(ciMatrix, fc);
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
-		diff = CIElement - bound;
-		diff *= diff;
-		if (fabs(diff) > 100000) diff = nan("infeasible");
-		*out = diff;
+		v1 << CIElement - bound;
+		eq = v1;
+		//mxPrintMat("v1", v1);
+	}
+
+	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out)
+	{
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		Eigen::Array<double,1,1> v1;
+		computeConstraint(fc, fitMat, fit, v1);
+		*out = v1(0);
+	}
+
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	{
+		omxMatrix *fitMat = ff->matrix;
+
+		if (!(want & FF_COMPUTE_FIT)) {
+			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
+			Rf_error("Not implemented yet");
+		}
+
+		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
+		const double fit = totalLogLikelihood(fitMat);
+		omxResizeMatrix(fitMat, 1, 1);
+
+		if (!std::isfinite(fit)) {
+			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
+			fitMat->data[0] = nan("infeasible");
+			return;
+		}
+
+		double cval = 0.0;
+		if (!constrained) {
+			Eigen::Array<double,1,1> v1;
+			computeConstraint(fc, fitMat, fit, v1);
+			cval = v1(0) * v1(0);
+		}
+
+		fitMat->data[0] = fit + cval;
 	}
 };
 
@@ -591,8 +627,6 @@ struct boundAwayCIobj : CIobjective {
 	bool constrained;
 	Eigen::Array<double, 3, 1> ineq;
 
-	virtual bool gradientKnown() { return false; }
-	
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
@@ -660,16 +694,15 @@ struct boundNearCIobj : CIobjective {
 	int lower;
 	bool constrained;
 	Eigen::Array<double,3,1> ineq;
+	double pN;
 
-	virtual bool gradientKnown() { return false; }
-	
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
 		double lbd = std::max(d0/2, sqrtCrit90); //precompute TODO
 		double ubd = std::min(d0, sqrtCrit95); //precompute TODO
 		double dd = sqrt(std::max(fit - bestLL, 0.0));
-		double pN = Rf_pnorm5(dd,0,1,0,0) + Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
+		pN = Rf_pnorm5(dd,0,1,0,0) + Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
 		// pN > alpha
 		// lbd < dd < ubd
 		v1 << std::max(lbd - dd, 0.0), std::max(dd - ubd, 0.0), std::max(logAlpha - log(pN), 0.0);
@@ -720,6 +753,14 @@ struct boundNearCIobj : CIobjective {
 		double param = (lower? CIElement : -CIElement);
 		fitMat->data[0] = param  + cval;
 		//mxLog("param at %f", fitMat->data[0]);
+	}
+
+	void checkSolution(FitContext *fc)
+	{
+		if (fc->getInform() > 1) return;
+		if (fabs(pN - exp(logAlpha)) > 1e-3) {
+			fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
+		}
 	}
 };
 
@@ -815,32 +856,38 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
  part2:
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		double boundLL;
-		bool boundLLinfeasible = false;
+		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			ciConstraintEq constrEq(1);
-			constrEq.fitMat = fitMatrix;
-			constrEq.push(state);
+			ciConstraintEq constr(1);
+			constr.fitMat = fitMatrix;
+			constr.push(state);
 			bound1CIobj ciobj;
+			ciobj.constrained = useInequality;
 			ciobj.CI = currentCI;
 			ciobj.bound = bound;
 			fc.ciobj = &ciobj;
 			Est = Mle;
 			plan->compute(&fc);
-			constrEq.pop();
-			boundLLinfeasible = ciobj.diff >= sqrt(std::numeric_limits<double>::epsilon());
+			constr.pop();
 			boundLL = fc.fit;
+			if (fabs(ciobj.eq(0)) > 1e-3) {
+				recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
+					 NA_REAL, DIAG_BOUND_INFEASIBLE);
+				return;
+			}
+			//mxPrintMat("bound1", ciobj.ineq);
+			//mxLog("mle %g boundLL %g", mle->fit, boundLL);
 		} else {
 			boundLL = mle->fit;
 		}
 
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] near side CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		double sqrtCrit90 = sqrt(Rf_qchisq(1-(2.0 * (1-Rf_pchisq(currentCI->bound[side], 1, 1, 0))),1,1,0));
 		double d0 = sqrt(std::max(boundLL - mle->fit, 0.0));
-		if (!boundLLinfeasible && d0 < sqrtCrit90) {
+		if (d0 < sqrtCrit90) {
 			fc.fit = boundLL;
 			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, bound, DIAG_SUCCESS);
 			return;
@@ -853,13 +900,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			recordCI(NEALE_MILLER_1997, currentCI, !side, fc, detailRow, val, better);
 			return;
 		}
-	
-		if (boundLLinfeasible) {
-			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
-				 NA_REAL, DIAG_BOUND_INFEASIBLE);
-			return;
-		}
 
+		double alphalevel = 1.0 - Rf_pchisq(currentCI->bound[side], 1, 1, 0);
 		bool useConstr = useInequality;
 		ciConstraintIneq constr(3);
 		constr.fitMat = fitMatrix;
@@ -871,7 +913,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		bnobj.sqrtCrit95 = sqrtCrit95;
 		bnobj.boundLL = boundLL;
 		bnobj.bestLL = mle->fit;
-		bnobj.logAlpha = log(1.0 - Rf_pchisq(currentCI->bound[side], 1, 1, 0));
+		bnobj.logAlpha = log(alphalevel);
 		bnobj.lower = !side;
 		bnobj.constrained = useConstr;
 		Est = Mle;
@@ -882,12 +924,14 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
+		//mxLog("val=%g", val);
+		//mxPrintMat("bn", bnobj.ineq);
 		Diagnostic diag = DIAG_SUCCESS;
 		if (bnobj.ineq[0] > 1e-3) {
 			diag = DIAG_BN_D1;
 		} else if (bnobj.ineq[1] > 1e-2) {
 			diag = DIAG_BN_D2;
-		} else if (bnobj.ineq[2] > 1e-1) {
+		} else if (fabs(bnobj.pN - alphalevel) > 1e-3) {
 			diag = DIAG_ALPHA_LEVEL;
 		}
 		fc.ciobj = 0;
@@ -904,7 +948,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	ciConstraintEq constrEq(1);
 	ciConstraintIneq constrIneq(1);
 	ciConstraint *constr = 0;
-	bool constrained = useInequality || useEquality;
+	bool constrained = useInequality;
 	if (constrained) {
 		constr = useInequality? (ciConstraint*)&constrIneq : (ciConstraint*)&constrEq;
 		constr->fitMat = fitMatrix;
