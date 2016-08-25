@@ -457,6 +457,123 @@ setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="int
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeTryHard",
+	 contains = "BaseCompute",
+	 representation = representation(
+	     plan = "MxCompute",
+	     verbose = "integer",
+	     location = "numeric",
+	     scale = "numeric"))
+
+setMethod("assignId", signature("MxComputeTryHard"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeTryHard"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("qualifyNames", signature("MxComputeTryHard"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeTryHard"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeTryHard",
+	  function(.Object, freeSet, plan, verbose, location, scale) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@plan <- plan
+		  .Object@verbose <- verbose
+		  .Object@location <- location
+		  .Object@scale <- scale
+		  .Object
+	  })
+
+##' Repeatedly attempt a compute plan until successful
+##'
+##' The provided compute plan is run until the status code indicates
+##' success (0 or 1). It gives up after a small number of retries.
+##'
+##' Upon failure, start values are randomly perturbed.  Currently only
+##' the uniform distribution is implemented.  The distribution is
+##' parametrized by arguments \code{location} and \code{scale}.  The
+##' location parameter is the distribution's median.  For the uniform
+##' distribution, \code{scale} is the absolute difference between its
+##' median and extrema (i.e., half the width of the rectangle).  Each
+##' start value is multiplied by a random draw and then added to a
+##' random draw from a distribution with the same \code{scale} but
+##' with a median of zero.
+##' 
+##' @param plan compute plan to optimize the model
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param freeSet names of matrices containing free variables
+##' @param verbose level of debugging output
+##' @param location location of the perturbation distribution
+##' @param scale scale of the perturbation distribution
+##' @seealso
+##' \code{\link{mxTryHard}}
+##' @aliases
+##' MxComputeTryHard-class
+mxComputeTryHard <- function(plan, ..., freeSet=NA_character_, verbose=0L,
+			     location=1.0, scale=0.25)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeTryHard does not accept values for the '...' argument")
+	}
+	verbose <- as.integer(verbose)
+	new("MxComputeTryHard", freeSet, plan, verbose, location, scale)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeTryHard", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod()
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  for (sl in c("verbose","location","scale")) {
+			  if (is.na(slot(Ob, sl))) next
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(
@@ -474,7 +591,7 @@ setMethod("assignId", signature("MxComputeConfidenceInterval"),
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
 		}
-		.Object@id <- id 
+		.Object@id <- id
 		.Object
 	})
 

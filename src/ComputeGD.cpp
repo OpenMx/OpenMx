@@ -1168,3 +1168,80 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	output.add("detail", detail);
 	slots->add("output", output.asR());
 }
+
+// ---------------------------------------------------------------
+
+class ComputeTryH : public omxCompute {
+	typedef omxCompute super;
+	omxCompute *plan;
+	int verbose;
+	double loc;
+	double scale;
+
+public:
+	//ComputeTryH();
+	virtual void initFromFrontend(omxState *, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	//virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+omxCompute *newComputeTryHard()
+{ return new ComputeTryH(); }
+
+void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	{
+		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(Rverbose);
+
+		ProtectedSEXP Rloc(R_do_slot(rObj, Rf_install("location")));
+		loc = Rf_asReal(Rloc);
+		ProtectedSEXP Rscale(R_do_slot(rObj, Rf_install("scale")));
+		scale = Rf_asReal(Rscale);
+	}
+
+	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	SEXP s4class;
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
+	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan->initFromFrontend(globalState, slotValue);
+}
+
+void ComputeTryH::computeImpl(FitContext *fc)
+{
+	using Eigen::Map;
+	using Eigen::ArrayXd;
+	Map< ArrayXd > start(fc->est, fc->numParam);
+	ArrayXd origStart = start;
+
+	int retries = 5;
+
+	GetRNGstate();
+
+	// return record of attempted starting vectors TODO
+
+	plan->compute(fc);
+	while (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM && --retries > 0) {
+		if (verbose >= 1) {
+			mxLog("%s: got inform %d, retry %d", name, fc->getInform(), retries);
+		}
+		fc->setInform(INFORM_UNINITIALIZED);
+
+		start = origStart;
+		for (int vx=0; vx < start.size(); ++vx) {
+			double adj1 = loc + unif_rand() * 2.0 * scale - scale;
+			double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
+			if (verbose >= 2) {
+				mxLog("%d %g %g", vx, adj1, adj2);
+			}
+			start[vx] = start[vx] * adj1 + adj2;
+		}
+
+		plan->compute(fc);
+	}
+
+	PutRNGstate();
+}

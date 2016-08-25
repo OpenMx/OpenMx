@@ -62,6 +62,7 @@ man/imxGenericModelBuilder.Rd
 man/imxGenSwift.Rd
 man/imxGentleResize.Rd
 man/imxGetSlotDisplayNames.Rd
+man/imxHasConstraint.Rd
 man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
@@ -133,6 +134,7 @@ man/mxComputeReportDeriv.Rd
 man/mxComputeReportExpectation.Rd
 man/mxComputeSequence.Rd
 man/mxComputeStandardError.Rd
+man/mxComputeTryHard.Rd
 man/mxDataDynamic.Rd
 man/MxDataFrameOrMatrix-class.Rd
 man/MxDataStatic-class.Rd
