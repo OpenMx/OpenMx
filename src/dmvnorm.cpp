@@ -1,11 +1,6 @@
-#define R_NO_REMAP
-#include <R.h>
-#include <Rmath.h>
-#include <Rinternals.h>
+#include "omxDefines.h"
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-
-#include "omxDefines.h"
 #include <Eigen/Core>
 #include "omxBuffer.h"
 #include "matrix.h"

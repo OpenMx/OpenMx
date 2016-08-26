@@ -128,12 +128,26 @@ mygeerun <- mxRun(mygeemodel)
 #Model summary:
 summary(mygeerun)
 
+#OpenMx developer tests--compare results to those from package 'gee': ###
+#Regression coefficients:
+omxCheckCloseEnough(
+	mygeerun$output$estimate[c("intrcpt","betax1","betax2","betax3","betatime")],
+	c(0.5084808,0.3078977,0.1914246,-0.1113108,0.8389867),
+	epsilon=0.05)
+#Dispersion parameter:
+omxCheckCloseEnough(mygeerun$output$estimate["dispersion"],2.178853,epsilon=0.1)
+#Correlations:
+omxCheckCloseEnough(
+	mygeerun$output$estimate[c("r12","r13","r14","r23","r24","r34")],
+	c(0.3226068,0.2133836,0.1502026,0.1834196,0.1224658,0.05675176),
+	epsilon=0.05)
+
 #Now, we obtain the sandwich estimator of the repeated-sampling covariance matrix of the regression coefficients:
 Bread <- matrix(0,5,5)#<--The "bread" of the sandwich.
 Meat <- matrix(0,5,5)#<--The "meat" of the sandwich
 #We loop through the 1000 participants, and calculate the cumulative sums of the contributions of each to the 
 #Bread and Meat:
-for(i in 1:1000){
+for(i in 1:nrow(wideData)){
 	ycurr <- mydat$observed[i,5:8] #<--response observations (y variables) for row i.
 	pres <- which(!is.na(ycurr))#<--A "presence vector," indicating which y's are non-missing in row i.
 	ycurr <- matrix(ycurr[pres],nrow=1) #<--Filter out any NAs among the y's.
@@ -164,22 +178,9 @@ pchisq(Waldchi2,df=4,lower.tail=F)#<--p-value
 
 
 
-#OpenMx developer tests--compare results to those from package 'gee': ###
-#Regression coefficients:
-omxCheckCloseEnough(
-	mygeerun$output$estimate[c("intrcpt","betax1","betax2","betax3","betatime")],
-	c(0.5084808,0.3078977,0.1914246,-0.1113108,0.8389867),
-	epsilon=0.05)
 #SEs of regression coefficients:
 omxCheckCloseEnough(
 	sqrt(diag(sammich)),
 	c(0.026086291,0.008078779,0.008583959,0.008247869,0.009411659),
 	epsilon=0.005)
-#Dispersion parameter:
-omxCheckCloseEnough(mygeerun$output$estimate["dispersion"],2.178853,epsilon=0.1)
-#Correlations:
-omxCheckCloseEnough(
-	mygeerun$output$estimate[c("r12","r13","r14","r23","r24","r34")],
-	c(0.3226068,0.2133836,0.1502026,0.1834196,0.1224658,0.05675176),
-	epsilon=0.05)
 

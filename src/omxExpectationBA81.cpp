@@ -524,7 +524,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 		rowMap.resize(data->rows);
 		int numUnique = 0;
 		for (int rx=0; rx < data->rows; ) {
-			int rw = omxDataNumIdenticalRows(state->data, rx);
+			int rw = 1;
 			state->grp.rowWeight[numUnique] = rw;
 			rowMap[numUnique] = rx;
 			rx += rw;

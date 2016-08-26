@@ -89,17 +89,17 @@ relabel <- function(m, prefix) {
 
 schMod <- mxModel(relabel(mkSingleFactor(), "school"),
 		  mxData(type="raw", observed=dataEnv$schoolData,
-			 primaryKey="schoolID", sort=FALSE))
+			 primaryKey="schoolID"))
 
 tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
 		  mxData(type="raw", observed=dataEnv$teacherData,
-			 primaryKey="teacherID", sort=FALSE),
+			 primaryKey="teacherID"),
 		  mxPath(from='school.skill', to='skill',
 			 joinKey="schoolID", values=runif(1)))
 
 sMod <- mxModel(relabel(singleFactor, "student"), tMod,
 		mxData(type="raw", observed=dataEnv$studentData,
-		       primaryKey="studentID", sort=FALSE),
+		       primaryKey="studentID"),
 		  mxPath(from='teacher.skill', to='skill',
 			 joinKey="teacherID", values=runif(1)))
 

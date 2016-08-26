@@ -24,15 +24,15 @@ omxCheckError(mxEval(foo, model, compute=TRUE),
 	"during the evaluation of 'foo' in model 'model' : non-conformable arrays"))
 cycle <- mxAlgebra(cycle, 'cycle')
 model <- mxModel('model', cycle)
-omxCheckError(mxRun(model), paste("A cycle has been detected",
-	"in model 'model' involving the following elements:",
-	"'cycle'"))
+omxCheckError(mxRun(model),
+	      "A cycle has been detected in model 'model' . It involved the following elements: 'cycle'
+A common trigger for this error is not providing a name string as the first parameter to mxModel.")
 foo <- mxAlgebra(bar, 'foo')
 bar <- mxAlgebra(foo, 'bar')
 model <- mxModel('model', foo, bar)
-omxCheckError(mxRun(model), paste("A cycle has been detected",
-	"in model 'model' involving the following elements:",
-	"'bar' and 'foo'"))
+omxCheckError(mxRun(model),
+	      "A cycle has been detected in model 'model' . It involved the following elements: 'bar' and 'foo'
+A common trigger for this error is not providing a name string as the first parameter to mxModel.")
 A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 2, 2, name = 'B')
 C <- mxAlgebra(A, 'C')
@@ -67,9 +67,9 @@ model <- mxModel('model', A, B)
 omxCheckError(mxRun(model), paste("The matrix 'model.A' does",
 	"not contain the row name 'bacon'"))
 model <- mxModel('model', mxModel("model2", mxAlgebra(model2.objective, name="Obj"), mxFitFunctionAlgebra("Obj")))
-omxCheckError(mxRun(model), paste("A cycle has been detected in model",
-	"'model' involving the following elements:",
-	"'model2.Obj' and 'model2.fitfunction'"))
+omxCheckError(mxRun(model),
+	      "A cycle has been detected in model 'model' . It involved the following elements: 'model2.Obj' and 'model2.fitfunction'
+A common trigger for this error is not providing a name string as the first parameter to mxModel.")
 mod <- mxModel("amodel", mxMatrix("Full", 4, 1, values=7, name="M"), mxMatrix("Full", 4, 1, values=1:4, name="Thr"))
 omxCheckError(mxEval(M-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
 omxCheckError(mxEval(M[,1]-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M[, 1] - Thr[1, 1]' in model 'amodel' : non-conformable arrays")

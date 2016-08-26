@@ -18,14 +18,11 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
+#include "omxDefines.h"
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 
-#include "omxDefines.h"
 #include "glue.h"
 #include "omxState.h"
 #include "omxMatrix.h"
@@ -413,7 +410,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	globalState->omxCompleteMxFitFunction(algList);
+	globalState->omxCompleteMxFitFunction(algList, fc);
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessMxComputeEntities(computeList, globalState);
@@ -449,7 +446,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		topCompute->compute(fc);
 
 		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit) &&
-		    fc->inform != INFORM_STARTING_VALUES_INFEASIBLE) {
+		    fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
 			std::string diag = fc->getIterationError();
 			omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
 		}
@@ -532,7 +529,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
-	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->inform));
+	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->getInform()));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
 
 	if (isErrorRaised()) {
@@ -590,7 +587,6 @@ static SEXP testEigenDebug()
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 11},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
-	{"findIdenticalRowsData", (DL_FUNC) findIdenticalRowsData, 5},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},

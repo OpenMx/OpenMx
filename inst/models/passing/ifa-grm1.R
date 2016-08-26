@@ -27,9 +27,8 @@ m2 <- mxModel(model="grm1", ip.mat,
 		  mxComputeReportExpectation()
 	      )))
 middle <- mxRun(m2)
-omxCheckCloseEnough(sum(middle$expectation$debug$patternLikelihood), -9742.31, .1)
 omxCheckCloseEnough(fivenum(middle$expectation$debug$patternLikelihood),
-                    c(-34.98313, -22.50933, -19.59691, -16.79153, -6.51683), .001)
+                    c(-34.9831, -22.4835, -19.5530, -16.7558, -6.5168), .001)
 omxCheckCloseEnough(sum(middle$expectation$debug$em.expected), 7000, .01)
 omxCheckCloseEnough(fivenum(middle$expectation$debug$em.expected),
                     c(0, 0, 0.00451, 1.61901, 80.99209), .01)

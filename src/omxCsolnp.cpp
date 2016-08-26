@@ -14,18 +14,10 @@
  *  limitations under the License.
  */
 
-#include <ctype.h>
-#include <limits>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 #include "omxState.h"
-#include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
 #include "glue.h"
-#include "omxImportFrontendState.h"
 #include "omxCsolnp.h"
-#include "omxBuffer.h"
 
 #pragma GCC diagnostic warning "-Wshadow"
 
@@ -35,7 +27,6 @@ void omxCSOLNP(GradientOptimizerContext &go)
 	go.optName = "CSOLNP";
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
 	go.useGradient = false;  // not implemented yet
-	go.ineqType = omxConstraint::GREATER_THAN;
 	solnp(est, go);
 }
 

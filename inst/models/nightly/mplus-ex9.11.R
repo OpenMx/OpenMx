@@ -28,7 +28,7 @@ mkGroup <- function(name, dat) {
     withinModel <- mxModel(
         paste0('within', name), type='RAM', betweenModel,
         manifestVars=paste0('y',1:6), latentVars=c('fw1','fw2'),
-        mxData(dat, 'raw', sort=FALSE),
+        mxData(dat, 'raw'),
         mxPath('fw1', paste0('y',1:3), free=c(FALSE,TRUE,TRUE), values=1, lbound = -1, ubound = 10),
         mxPath('fw2', paste0('y',4:6), free=c(FALSE,TRUE,TRUE), values=1, lbound = -1, ubound = 10),
         mxPath(paste0('y',1:6), arrows=2, values=1),

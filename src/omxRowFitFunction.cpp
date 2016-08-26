@@ -121,13 +121,12 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 		markDataRowDependencies(localobj->matrix->currentState, oro);
 		
 		for(int j = 0; j < dataColumns->cols; j++) {
-			double dataValue = omxVectorElement(dataRow, j);
-			if(std::isnan(dataValue)) {
+			if(omxDataElementMissing(data, row, j)) {
 				toRemove[j] = 1;
-                omxSetVectorElement(existenceVector, j, 0);
+				omxSetVectorElement(existenceVector, j, 0);
 			} else {
 			    toRemove[j] = 0;
-                omxSetVectorElement(existenceVector, j, 1);
+			    omxSetVectorElement(existenceVector, j, 1);
 			}
 		}		
 		
@@ -136,14 +135,15 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 
 		omxRecompute(rowAlgebra, fc);
 
-		omxCopyMatrixToRow(rowAlgebra, omxDataIndex(data, row), rowResults);
+		omxCopyMatrixToRow(rowAlgebra, row, rowResults);
 	}
 	free(toRemove);
 	free(zeros);
 }
 
-static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc) {
-	if (want & (FF_COMPUTE_PREOPTIMIZE)) return;
+static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+{
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.

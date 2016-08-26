@@ -56,9 +56,7 @@ plan <- mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
 	mxComputeConfidenceInterval(
 		plan=mxComputeGradientDescent(
 			fitfunction="GREML_1GRM_1trait.fitfunction", nudgeZeroStarts=FALSE, maxMajorIter=150),
-		fitfunction="GREML_1GRM_1trait.fitfunction",
-		constraintType=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL","none","ineq")
-	),
+		fitfunction="GREML_1GRM_1trait.fitfunction"),
 	mxComputeStandardError(),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()
@@ -168,9 +166,7 @@ plan3 <- mxComputeSequence(freeSet = c("H2","Vp"),steps=list(
 	mxComputeConfidenceInterval(
 		plan=mxComputeGradientDescent(
 			fitfunction="GREML_1GRM_1trait_altparam.fitfunction", nudgeZeroStarts=FALSE, maxMajorIter=150),
-		fitfunction="GREML_1GRM_1trait_altparam.fitfunction",
-		constraintType=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL","none","ineq")
-	),
+		fitfunction="GREML_1GRM_1trait_altparam.fitfunction"),
 	mxComputeStandardError(),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()

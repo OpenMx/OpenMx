@@ -17,13 +17,10 @@
 #ifndef _OMXALGEBRA_H_
 #define _OMXALGEBRA_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h> 
+#include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
-#include "omxDefines.h"
 
 typedef struct omxAlgebra omxAlgebra;
 

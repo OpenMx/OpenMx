@@ -8,6 +8,7 @@ ylab <- paste("y", 1:5, sep="")
 zlab <- paste("z", 1:5, sep="")
 
 colnames(datawide) <- c("id", "x", ylab, zlab)
+datawide$x <- as.numeric(datawide$x)
 latentLab <- c("intcept", "slope")
 
 Alab <- matrix(NA, 8, 8)
@@ -62,6 +63,8 @@ onecov <- mxModel(onecov, mxAlgebra(expression = A[7, 6], name = "alpha"), mxCI(
 
 onecov <- mxRun(onecov, intervals=TRUE)
 omxCheckCloseEnough(onecov$output$fit, 775.0977, .01)
+
+d1=onecov$compute$steps[['CI']]$output$detail
 
 #cat(deparse(round(c(onecov$output$confidenceIntervals), 3)))
 omxCheckCloseEnough(c(onecov$output$confidenceIntervals),

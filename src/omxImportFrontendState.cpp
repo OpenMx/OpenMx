@@ -14,10 +14,6 @@
  *  limitations under the License.
  */
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
-
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -125,7 +121,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 	}
 }
 
-void omxState::omxCompleteMxFitFunction(SEXP algList)
+void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 {
 	SEXP nextAlgTuple;
 
@@ -141,6 +137,7 @@ void omxState::omxCompleteMxFitFunction(SEXP algList)
 			setFreeVarGroup(fm->fitFunction, Global->findVarGroup(FREEVARGROUP_ALL));
 		}
 		omxCompleteFitFunction(fm);
+		omxFitFunctionComputeAuto(fm->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 
@@ -321,12 +318,12 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
 		fv->lbound = REAL(nextLoc)[0];
 		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
-		if (fv->lbound == 0.0) fv->lbound = 0.0;
+		if (fabs(fv->lbound) == 0.0) fv->lbound = 0.0;
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		fv->ubound = REAL(nextLoc)[0];
 		if (ISNA(fv->ubound)) fv->ubound = INF;
-		if (fv->ubound == 0.0) fv->ubound = -0.0;
+		if (fabs(fv->ubound) == 0.0) fv->ubound = -0.0;
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 2));
 		int groupCount = Rf_length(nextLoc);
@@ -368,17 +365,14 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 	Global->deduplicateVarGroups();
 }
 
-omxConfidenceInterval::omxConfidenceInterval()
+ConfidenceInterval::ConfidenceInterval()
 {
 	row = -1;
 	col = -1;
 	varIndex = -1;
-	ubound = R_NaReal;
-	lbound = R_NaReal;
-	max = R_NaReal;
-	min = R_NaReal;
-	lCode = INFORM_UNINITIALIZED;
-	uCode = INFORM_UNINITIALIZED;
+	bound.setConstant(R_NaReal);
+	val.setConstant(R_NaReal);
+	code.setConstant(INFORM_UNINITIALIZED);
 }
 
 /*
@@ -396,15 +390,21 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState
 	if(OMX_DEBUG) {mxLog("Found %d Confidence Interval requests.", numIntervals); }
 	Global->intervalList.reserve(numIntervals);
 	for(int index = 0; index < numIntervals; index++) {
-		omxConfidenceInterval *oCI = new omxConfidenceInterval;
+		ConfidenceInterval *oCI = new ConfidenceInterval;
 		Rf_protect(nextVar = VECTOR_ELT(iList, index));
 		double* intervalInfo = REAL(nextVar);
 		oCI->name = CHAR(Rf_asChar(STRING_ELT(names, index)));
 		oCI->matrixNumber = Rf_asInteger(nextVar);
 		oCI->row = (int) intervalInfo[1];		// Cast to int in C to save memory/Protection ops
 		oCI->col = (int) intervalInfo[2];		// Cast to int in C to save memory/Protection ops
-		oCI->lbound = intervalInfo[3];
-		oCI->ubound = intervalInfo[4];
+		oCI->bound.setZero();
+		if (std::isfinite(intervalInfo[3])) {
+			oCI->bound[ConfidenceInterval::Lower] = intervalInfo[3];
+		}
+		if (std::isfinite(intervalInfo[4])) {
+			oCI->bound[ConfidenceInterval::Upper] = intervalInfo[4];
+		}
+		oCI->boundAdj = (bool) intervalInfo[5];
 		Global->intervalList.push_back(oCI);
 	}
 }
@@ -426,6 +426,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
 		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
+		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
 		conList.push_back(constr);
 	}
 	if(OMX_DEBUG) {

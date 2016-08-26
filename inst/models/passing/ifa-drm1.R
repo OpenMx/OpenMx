@@ -41,7 +41,6 @@ m1 <- mxModel(model="drm1", ip.mat,
 		  mxComputeReportExpectation()
 	      )))
 m2 <- mxRun(m1)
-omxCheckCloseEnough(sum(m2$expectation$debug$patternLikelihood), -2032.9, .1)
 omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
                     c(-7.5454472, -7.3950031, -7.3950031, -6.9391761, -3.5411989), .001)
 omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 5000, .01)

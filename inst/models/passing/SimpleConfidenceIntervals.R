@@ -134,7 +134,6 @@ summary(twinACEFit)
 ci <- twinACEFit$compute$steps[['CI']]$output[['detail']]
 omxCheckTrue(is.factor(ci[['side']]))
 omxCheckEquals(levels(ci[['side']]), c('upper', 'lower'))
-omxCheckEquals(c(unclass(ci[['side']])), rep(c(1,2),3))
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
@@ -201,8 +200,13 @@ if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
         omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
 }
 
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
-omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .02)
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .1)
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .1)
+} else {
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
+	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .02)
+}
 
 if (mxOption(NULL, 'Default optimizer') == "SLSQP") {
   omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))

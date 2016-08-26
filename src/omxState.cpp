@@ -220,6 +220,7 @@ omxGlobal::omxGlobal()
 	intervals = true;
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
+	dataTypeWarningCount = 0;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
@@ -244,13 +245,13 @@ void omxState::setWantStage(int stage)
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
 
-omxMatrix *omxConfidenceInterval::getMatrix(omxState *st) const
+omxMatrix *ConfidenceInterval::getMatrix(omxState *st) const
 {
 	return st->getMatrixFromIndex(matrixNumber);
 }
 
 struct ciCmp {
-	bool operator() (const omxConfidenceInterval* x, const omxConfidenceInterval* y) const
+	bool operator() (const ConfidenceInterval* x, const ConfidenceInterval* y) const
 	{
 		if (x->matrixNumber != y->matrixNumber) {
 			return x->matrixNumber < y->matrixNumber;
@@ -268,30 +269,39 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 	unpackedConfidenceIntervals = true;
 
 	// take care to preserve order
-	std::vector<omxConfidenceInterval*> tmp;
+	std::vector<ConfidenceInterval*> tmp;
 	std::swap(tmp, intervalList);
-	std::set<omxConfidenceInterval*, ciCmp> uniqueCIs;
+	std::set<ConfidenceInterval*, ciCmp> uniqueCIs;
 
 	for (int ix=0; ix < (int) tmp.size(); ++ix) {
-		omxConfidenceInterval *ci = tmp[ix];
+		ConfidenceInterval *ci = tmp[ix];
 		if (!ci->isWholeAlgebra()) {
-			if (uniqueCIs.count(ci) == 0) {
+			auto iter = uniqueCIs.find(ci);
+			if (iter == uniqueCIs.end()) {
 				uniqueCIs.insert(ci);
 				intervalList.push_back(ci);
+			} else if (ci->cmpBoundAndType(**iter)) {
+				Rf_warning("Different confidence intervals '%s' and '%s' refer to the same thing",
+					   ci->name.c_str(), (*iter)->name.c_str());
 			}
 			continue;
 		}
 		omxMatrix *mat = ci->getMatrix(currentState);
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
-				omxConfidenceInterval *cell = new omxConfidenceInterval(*ci);
+				ConfidenceInterval *cell = new ConfidenceInterval(*ci);
 				cell->name = string_snprintf("%s[%d,%d]", ci->name.c_str(), 1+rx, 1+cx);
 				cell->row = rx;
 				cell->col = cx;
-				if (uniqueCIs.count(cell) == 0) {
+				auto iter = uniqueCIs.find(cell);
+				if (iter == uniqueCIs.end()) {
 					uniqueCIs.insert(cell);
 					intervalList.push_back(cell);
 				} else {
+					if (cell->cmpBoundAndType(**iter)) {
+						Rf_warning("Different confidence intervals '%s' and '%s' refer to the same thing",
+							   cell->name.c_str(), (*iter)->name.c_str());
+					}
 					delete cell;
 				}
 			}
@@ -330,30 +340,17 @@ void omxState::loadDefinitionVariables(bool start)
 	for(int ex = 0; ex < int(dataList.size()); ++ex) {
 		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
-		int row = 0;
-		if (start) {
-			if (e1->rows != 1) {
-				e1->loadFakeData(this, NA_REAL);
-				continue;
-			}
-		} else {
-			// find row=0 in the unsorted data
-			int obs = omxDataNumObs(e1);
-			for (int dx=0; dx < obs; ++dx) {
-				if (omxDataIndex(e1, dx) == 0) {
-					row = dx;
-					break;
-				}
-			}
+		if (start && e1->rows != 1) {
+			e1->loadFakeData(this, NA_REAL);
+			continue;
 		}
-		e1->loadDefVars(this, row);
+		e1->loadDefVars(this, 0);
 	}
 }
 
-omxState::omxState(omxState *src, FitContext *fc)
+omxState::omxState(omxState *src) : clone(true)
 {
 	init();
-	clone = true;
 
 	dataList			= src->dataList;
 		
@@ -380,10 +377,13 @@ omxState::omxState(omxState *src, FitContext *fc)
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList[mx]->copyAttr(src->matrixList[mx]);
 	}
+}
 
+void omxState::initialRecalc(FitContext *fc)
+{
 	omxInitialMatrixAlgebraCompute(fc);
 
-	for(size_t j = 0; j < src->expectationList.size(); j++) {
+	for(size_t j = 0; j < expectationList.size(); j++) {
 		// TODO: Smarter inference for which expectations to duplicate
 		omxCompleteExpectation(expectationList[j]);
 	}
@@ -392,6 +392,7 @@ omxState::omxState(omxState *src, FitContext *fc)
 		omxMatrix *matrix = algebraList[ax];
 		if (!matrix->fitFunction) continue;
 		omxCompleteFitFunction(matrix);
+		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 
@@ -673,6 +674,17 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 	size = nrows * ncols;
 	if (size == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
+	}
+}
+
+void UserConstraint::refreshAndGrab(FitContext *fc, Type ineqType, double *out)
+{
+	refresh(fc);
+
+	for(int k = 0; k < size; k++) {
+		double got = pad->data[k];
+		if (opCode != ineqType) got = -got;
+		out[k] = got;
 	}
 }
 

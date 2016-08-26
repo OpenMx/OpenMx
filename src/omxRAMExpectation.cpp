@@ -252,10 +252,6 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 			if (!strEQ(fex->expType, "MxExpectationRAM")) {
 				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
 			}
-			if (omxDataIsSorted(fex->data)) {
-				Rf_error("%s join with %s but observed data is sorted",
-					 oo->name, fex->name);
-			}
 			omxDataKeysCompatible(fex->data, oo->data, foreignKey);
 			if (!omxDataColumnIsKey(oo->data, foreignKey)) {
 				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
@@ -1443,7 +1439,7 @@ namespace RelationalRAMExpectation {
 			while (int more = rampartRotate(++level)) {
 				rampartUsage.push_back(more);
 				unlinked += more;
-				if (--maxIter == 0) break;
+				if (maxIter != NA_INTEGER && --maxIter == 0) break;
 			}
 			if (verbose() >= 1) {
 				mxLog("%s: rampart unlinked %d units", homeEx->name, unlinked);

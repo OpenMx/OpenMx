@@ -29,14 +29,13 @@
 #ifndef _OMXEXPECTATION_H_
 #define _OMXEXPECTATION_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h> 
+//#include <boost/range/iterator_range_core.hpp>
+
+#include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 
-#include "omxDefines.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
 #include "omxData.h"
@@ -75,7 +74,10 @@ class omxExpectation {					// An Expectation
 	}
 	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
 		return Eigen::Map<Eigen::VectorXi>(dataColumnsPtr, numDataColumns);
-	};
+	}
+	//boost::iterator_range<int*> getDataColumnsIter() {
+	//		return boost::iterator_range<int*>(dataColumnsPtr, dataColumnsPtr+numDataColumns);
+	//	};
 
 	omxMatrix *thresholdsMat;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0

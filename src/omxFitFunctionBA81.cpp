@@ -879,13 +879,9 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 			const int numUnique = estate->getNumUnique();
 			if (state->returnRowLikelihoods) {
 				const double OneOverLargest = estate->grp.quad.getReciprocalOfOne();
-				omxData *data = estate->data;
 				for (int rx=0; rx < numUnique; rx++) {
-					int dups = omxDataNumIdenticalRows(data, estate->grp.rowMap[rx]);
-					for (int dup=0; dup < dups; dup++) {
-						int dest = omxDataIndex(data, estate->grp.rowMap[rx]+dup);
-						oo->matrix->data[dest] = patternLik[rx] * OneOverLargest;
-					}
+					int dest = estate->grp.rowMap[rx];
+					oo->matrix->data[dest] = patternLik[rx] * OneOverLargest;
 				}
 			} else {
 				double *rowWeight = estate->grp.rowWeight;

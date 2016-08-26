@@ -48,6 +48,10 @@ omxCheckCloseEnough(fit2$output$confidenceIntervals['cov12','ubound'], c(0.522),
 
 omxCheckCloseEnough(fit1$output$fit, fit2$output$fit, 1e-6)
 
+fit4 <- omxCheckWarning(mxRun(mxModel(cimodel, mxCI('expectedMean[1,1]', interval=runif(1,.9,.95))),
+			      intervals = TRUE, silent=TRUE, checkpoint=FALSE),
+			"Different confidence intervals 'CIExample.expectedMean[1,1]' and 'm1' refer to the same thing")
+
 # ensure the [1,] syntax is supported
 data(demoOneFactor)
 factorModel <- mxModel("One Factor",

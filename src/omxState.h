@@ -28,9 +28,8 @@
 #ifndef _OMXSTATE_H_
 #define _OMXSTATE_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
+#include "omxDefines.h"
+
 #include <R_ext/Rdynload.h>
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
@@ -41,13 +40,10 @@
 #include <string>
 #include <stdarg.h>
 
-#include "omxDefines.h"
-
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
 typedef struct omxFreeVar omxFreeVar;
-typedef struct omxConstraint omxConstraint;
-typedef struct omxConfidenceInterval omxConfidenceInterval;
+struct ConfidenceInterval;
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -86,7 +82,7 @@ struct omxFreeVar {
 #define FREEVARGROUP_INVALID -2
 
 struct FreeVarGroup {
-	std::vector<int> id;
+	std::vector<int> id;              // see omxGlobal::deduplicateVarGroups
 	std::vector< omxFreeVar* > vars;
 
 	// see cacheDependencies
@@ -138,15 +134,7 @@ class UserConstraint : public omxConstraint {
  public:
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
 	virtual ~UserConstraint();
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		refresh(fc);
-
-		for(int k = 0; k < size; k++) {
-			double got = pad->data[k];
-			if (opCode != ineqType) got = -got;
-			out[k] = got;
-		}
-	};
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 };
 
 enum omxCheckpointType {
@@ -176,20 +164,22 @@ class omxCheckpoint {
 	~omxCheckpoint();
 };
 
-struct omxConfidenceInterval {		// For Confidence interval request
+struct ConfidenceInterval {
+	enum { Lower=0, Upper=1 };
 	std::string name;
 	int matrixNumber;
-	int row, col;					// Location of element to calculate
+	int row, col;		// Location of element to calculate
+	bool boundAdj;          // Hu & Neale (2012)
 	int varIndex;
-	double ubound;					// Fit-space upper boundary
-	double lbound;					// Fit-space lower boundary
-	double max;						// Value at upper bound
-	double min;						// Value at lower bound
-	int lCode;						// Optimizer code at lower bound
-	int uCode;						// Optimizer code at upper bound
-	omxConfidenceInterval();
+	Eigen::Array<double,2,1> bound;		// distance from reference fit
+	Eigen::Array<double,2,1> val;		// parameter value at bound
+	Eigen::Array<int,2,1>    code;		// optimizer code at bound
+	ConfidenceInterval();
 	bool isWholeAlgebra() const { return row == -1 && col == -1; }
 	omxMatrix *getMatrix(omxState *st) const;
+	bool cmpBoundAndType(const ConfidenceInterval &other) {
+		return (bound != other.bound).any() || boundAdj != other.boundAdj;
+	}
 };
 
 // omxGlobal is for state that is read-only during parallel sections.
@@ -210,6 +200,7 @@ class omxGlobal {
 	int majorIterations;
 	bool intervals;
 	double gradientTolerance;
+	int dataTypeWarningCount;
 
 	int maxOrdinalPerBlock;
 	double maxptsa;
@@ -223,7 +214,7 @@ class omxGlobal {
 
 	int maxStackDepth;
 
-	std::vector< omxConfidenceInterval* > intervalList;
+	std::vector< ConfidenceInterval* > intervalList;
 	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
 
@@ -284,12 +275,13 @@ class omxState {
 	// not copied to sub-states
 	std::vector< omxConstraint* > conList;
 
-	omxState() { init(); clone = false; };
-	omxState(omxState *src, FitContext *fc);
+ 	omxState() : clone(false) { init(); };
+	omxState(omxState *src);
+	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
 	void omxProcessMxAlgebraEntities(SEXP algList);
-	void omxCompleteMxFitFunction(SEXP algList);
+	void omxCompleteMxFitFunction(SEXP algList, FitContext *fc);
 	void omxProcessConfidenceIntervals(SEXP intervalList);
 	void omxProcessMxExpectationEntities(SEXP expList);
 	void omxCompleteMxExpectationEntities();

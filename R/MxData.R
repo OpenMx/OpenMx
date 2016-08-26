@@ -57,7 +57,7 @@ setClass(Class = "MxDataStatic",
 		identicalDefVars = "integer",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
-		.isSorted = "logical",
+		.isSorted = "logical",  # never sorted anymore, remove slot? TODO
 	     .needSort = "logical",
 	     primaryKey = "MxCharOrNumber",
 		name   = "character"))
@@ -294,11 +294,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 	  function(data, model, defVars, modeloptions) {
-		  if (data@.needSort) {
-			  data <- sortRawData(data, defVars, model@name, modeloptions)
-			  data <- convertIntegerColumns(data)
-		  }
-
 		  if(!is.null(data) && !single.na(data@thresholds)) {
 			  verifyThresholdNames(data@thresholds, data@observed, model@name)
 			  retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(data@observed)[[2]],
@@ -354,96 +349,6 @@ preprocessDatasets <- function(model, defVars, modeloptions) { # DEPRECATED
 
 convertDatasets <- function(datasets, model, flatModel) {
 	lapply(datasets, convertDataForBackend, model=model, flatModel=flatModel)
-}
-
-sortRawData <- function(mxData, defVars, modelname, modeloptions) {
-	if (is.null(mxData)) {
-		return(mxData)
-	}
-	if (mxData@type != "raw") {
-		return(mxData)	
-	}
-	if (!mxData@.needSort) stop("No sort needed")
-
-	observed <- mxData@observed
-	nosort <- as.character(modeloptions[['No Sort Data']])
-	fullname <- paste(modelname, 'data', sep = '.')
-	components <- unlist(strsplit(fullname, imxSeparatorChar, fixed = TRUE))
-	modelname <- components[[1]]
-	if ( length(observed) == 0 ) {
-		mxData@indexVector <- as.integer(NA)
-		mxData@identicalDefVars <- as.integer(NA)
-		mxData@identicalMissingness <- as.integer(NA)
-		mxData@identicalRows <- as.integer(NA)
-	} else if ( modelname %in% nosort ) {
-		mxData@indexVector <- 0:(nrow(observed)-1L)
-		mxData@identicalDefVars <- as.integer(NA)
-		mxData@identicalMissingness <- as.integer(NA)
-		mxData@identicalRows <- as.integer(NA)
-	} else {
-		observedNames <- colnames(observed)	
-		if (is.null(observedNames)) {
-			msg <- paste("The raw data set in model", omxQuotes(modelname),
-				"does not contain column names")
-			stop(msg, call. = FALSE)
-		}
-		if (length(defVars) > 0) {
-			defkeys <- grep(paste('^',modelname,'\\.data\\.',sep=''), names(defVars),value=TRUE)
-			defkeys <- sapply(defkeys, function(x) {
-				unlist(strsplit(x, imxSeparatorChar, fixed = TRUE))[[3]]
-			})
-			names(defkeys) <- NULL
-			defkeys <- defkeys[defkeys %in% observedNames]
-			if (length(defkeys) == 0) {
-				defkeys <- character()
-			}
-			defindex <- match(defkeys, observedNames)
-			otherindex <- setdiff(1:length(observedNames), defindex)
-		} else {
-			defkeys <- character()
-			otherindex <- c(1:length(observedNames))
-		}
-		nacount <- sapply(otherindex, function(x) { sum(is.na(observed[,x])) })
-		otherindex <- otherindex[order(nacount, decreasing=TRUE)]
-		defvectors <- lapply(defkeys, function(x) {observed[,x] })
-		othervectorsNA <- lapply(otherindex, function(x) {!is.na(observed[,x]) })
-		othervectors <- lapply(otherindex, function(x) {observed[,x] })
-		args <- c(defvectors, othervectorsNA, othervectors, 'na.last'=FALSE)
-		indexVector <- do.call('order', args)
-		sortdata <- observed[indexVector,,drop=FALSE]
-		mxData@observed <- sortdata
-		selectMissing <- is.na(sortdata)
-		selectDefvars <- sortdata[, defkeys, drop=FALSE]
-		threeVectors <- .Call(findIdenticalRowsData, sortdata,
-			selectMissing, selectDefvars, length(nacount)==0 || sum(nacount)==0,
-			length(selectDefvars) == 0, PACKAGE = "OpenMx")
-		mxData@indexVector <- indexVector - 1L
-		mxData@identicalRows <- threeVectors[[1]]
-		mxData@identicalMissingness <- threeVectors[[2]]
-		mxData@identicalDefVars <- threeVectors[[3]]
-	}
-	mxData@.needSort <- FALSE
-	mxData@.isSorted <- TRUE
-	return(mxData)
-}
-
-convertIntegerColumns <- function(mxData) {
-	if (is.null(mxData)) return(mxData)
-	if (is.data.frame(mxData@observed)) {
-		dimnames <- dimnames(mxData@observed)
-		mxData@observed <- data.frame(lapply(mxData@observed, convertIntegerSingleColumn))
-		dimnames(mxData@observed) <- dimnames
-	}
-	mxData@numObs <- as.numeric(mxData@numObs)
-	return(mxData)
-}
-
-convertIntegerSingleColumn <- function(column) {
-	if (!is.factor(column) && (is.integer(column) || all(is.na(column)))) {
-		return(as.double(column))
-	} else {
-		return(column)
-	}
 }
 
 checkNumericData <- function(data) {

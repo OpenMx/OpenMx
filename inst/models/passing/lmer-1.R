@@ -13,7 +13,7 @@ if (is.factor(sleepstudy$Subject)) {
 # ------------------- hybrid matrix/path spec
 if(1) {
 m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars = "DayEffect",
-        mxData(type="raw", observed=sleepstudy, sort = FALSE),
+        mxData(type="raw", observed=sleepstudy),
         mxPath(c("one"), "Reaction"),
         mxPath(c("one"), "DayEffect", free=FALSE, labels="data.Days"),
         mxPath("DayEffect", "Reaction"),
@@ -33,7 +33,7 @@ m1 <- mxModel(m1, mxModel(
   mxData(type="raw",
          # no data here, only primary key
          observed=data.frame(Subject=unique(sleepstudy$Subject)),
-         sort=FALSE, primaryKey = "Subject"),
+         primaryKey = "Subject"),
   mxPath(c("intercept", "slope"), arrows=2, values=1),
   mxPath("intercept", "slope", arrows=2, values=.25, labels="cov1")))
 
@@ -60,7 +60,7 @@ omxCheckCloseEnough(logLik(m1), logLik(fm1), 1e-6)
 # ------------------- all path spec
 
 m2 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars = "DayEffect",
-              mxData(type="raw", observed=sleepstudy, sort = FALSE),
+              mxData(type="raw", observed=sleepstudy),
               mxPath(c("one"), "Reaction"),
               mxPath(c("one"), "DayEffect", free=FALSE, labels="data.Days"),
               mxPath("DayEffect", "Reaction", values=1),

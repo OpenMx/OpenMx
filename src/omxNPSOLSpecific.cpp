@@ -15,9 +15,6 @@
  */
 
 #include <ctype.h>
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
@@ -26,7 +23,6 @@
 #include "omxImportFrontendState.h"
 #include "Compute.h"
 #include "npsolswitch.h"
-#include "omxBuffer.h"
 
 #pragma GCC diagnostic warning "-Wshadow"
 
@@ -223,6 +219,9 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 	if (rf.bestEst.size() && ncnln == 0) {
 		rf.useBestFit();
 	}
+
+	// With constraints, it's probably garbage,
+	//if (ncnln) rf.grad.setConstant(NA_REAL);
 
     NPSOL_GOpt = NULL;
 }

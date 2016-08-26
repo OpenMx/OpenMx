@@ -153,8 +153,8 @@ namespace FellnerFitFunction {
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
 
-		if (want & (FF_COMPUTE_PREOPTIMIZE)) {
-			if (fc->isClone()) Rf_error("FF_COMPUTE_PREOPTIMIZE on a clone (thread context)");
+		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
+			if (fc->isClone()) return;
 			
 			setupProfiledParam(oo, fc);
 
@@ -166,7 +166,7 @@ namespace FellnerFitFunction {
 			return;
 		}
 
-		if (!(want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT))) Rf_error("Not implemented");
+		if (!(want & (FF_COMPUTE_FIT))) Rf_error("Not implemented");
 
 		double lpOut = NA_REAL;
 		try {

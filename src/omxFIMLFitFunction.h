@@ -31,9 +31,8 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	int modelNumber;		// Not used
 } omxFIMLRowOutput;
 
-typedef struct omxFIMLFitFunction {
-
-	/* Parts of the R  MxFIMLFitFunction Object */
+struct omxFIMLFitFunction {
+	omxFIMLFitFunction *parent;
 	bool isStateSpace;
 	int rowwiseParallel;
 	omxMatrix* cov;				// Covariance Matrix
@@ -64,19 +63,19 @@ typedef struct omxFIMLFitFunction {
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
     
-	/* Argument space for SADMVN function */
-	int maxPts;					// From MxOptions (?)
-	double absEps;				// From MxOptions
-	double relEps;				// From MxOptions
-
-} omxFIMLFitFunction;
+	std::vector<int> indexVector;
+	std::vector<int> identicalDefs;
+	std::vector<int> identicalMissingness;
+	std::vector<int> identicalRows;
+};
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
 void omxDestroyFIMLFitFunction(omxFitFunction *oo);
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
-bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj, omxFitFunction *sharedobj,
+bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
+				 omxMatrix* output,
 				 int rowbegin, int rowcount);
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */

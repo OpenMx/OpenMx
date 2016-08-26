@@ -17,9 +17,6 @@
 #ifndef _OMX_COMPUTE_H_
 #define _OMX_COMPUTE_H_
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
 #include "omxDefines.h"
 #include <Eigen/SparseCore>
 #include "glue.h"
@@ -89,6 +86,16 @@ struct HessianBlock {
 	int estNonZero() const;
 };
 
+struct CIobjective {
+	ConfidenceInterval *CI;
+
+	virtual bool gradientKnown()=0;
+	virtual void gradient(FitContext *fc, double *gradOut) {};
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
+	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
+};
+
 // The idea of FitContext is to eventually enable fitting from
 // multiple starting values in parallel.
 
@@ -121,6 +128,7 @@ class FitContext {
 
 	std::string IterationError;
 	int computeCount;
+	ComputeInform inform;
 
  public:
 	FreeVarGroup *varGroup;
@@ -142,15 +150,11 @@ class FitContext {
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
 	int iterations;
-	ComputeInform inform;
 	int wanted;
 	std::vector< class FitContext* > childList;
 
 	// for confidence intervals
-	omxConfidenceInterval *CI;
-	double targetFit;
-	bool lowerBound;
-	bool compositeCIFunction;
+	CIobjective *ciobj;
 
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
@@ -168,13 +172,15 @@ class FitContext {
 	void updateParentAndFree();
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
+	void setInform(int _in) { inform = _in; };
+	int getInform() { return inform; };
 	bool haveReferenceFit(omxMatrix *fitMat) {
 		if (std::isfinite(fit)) return true;
 		if (inform == INFORM_UNINITIALIZED) {
 			omxRecompute(fitMat, this);
 			fit = omxMatrixElement(fitMat, 0, 0);
 			if (std::isfinite(fit)) return true;
-			inform = INFORM_STARTING_VALUES_INFEASIBLE;
+			setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		}
 		if (inform != INFORM_CONVERGED_OPTIMUM &&
 		    inform != INFORM_UNCONVERGED_OPTIMUM) {
@@ -233,6 +239,7 @@ class omxCompute {
 	omxCompute();
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
+	void computeWithVarGroup(FitContext *fc);
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
@@ -287,6 +294,7 @@ class GradientOptimizerContext {
 	// TODO remove, better to pass as a parameter so we can avoid copies
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
+	bool CSOLNP_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.
@@ -294,6 +302,7 @@ class GradientOptimizerContext {
 	Eigen::VectorXd est;    //like fc->est but omitting profiled out params
 	Eigen::VectorXd bestEst;
 	Eigen::VectorXd grad;
+	double eqNorm, ineqNorm;
 
 	// output
 	int informOut;
@@ -323,9 +332,11 @@ class GradientOptimizerContext {
 	int getIteration() const { return fc->iterations; };
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
-	bool inConfidenceIntervalProblem() const;
-	int getConfidenceIntervalVarIndex() const;
-	bool inConfidenceIntervalLowerBound() const { return fc->lowerBound; };
+	bool hasKnownGradient() const;
+	template <typename T1>
+	void setKnownGradient(Eigen::MatrixBase<T1> &gradOut) {
+		fc->ciobj->gradient(fc, gradOut.derived().data());
+	};
 	omxState *getState() const { return fc->state; };
 };
 

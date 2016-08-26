@@ -10,10 +10,6 @@ fm1 <- lmer(distance ~ age + (age|Subject) + (0+nsex|Subject) +
 
 library(OpenMx)
 
-if (is.factor(Orthodont$Subject)) {
-    Orthodont$Subject <- as.integer(unclass(Orthodont$Subject))
-}
-
 bySubj <- mxModel(
     model="subj", type="RAM",
     latentVars = c('intercept', paste0(c("age", 'nsex', "nsexage"), "L")),
@@ -28,7 +24,7 @@ ortho <- mxModel(
     model="ortho", bySubj, type="RAM", manifestVars=c("distance"),
     latentVars = c("ageL"),
     mxData(type="raw", observed=Orthodont[,c('distance', 'age',
-			   'Subject', 'nsex', "nsexage")], sort = FALSE),
+			   'Subject', 'nsex', "nsexage")]),
     mxPath(from=c("one"), to="distance"),
     mxPath(from=c("one"), to="ageL", free=FALSE, labels="data.age"),
     mxPath(from="ageL", to="distance"),

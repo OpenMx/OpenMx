@@ -31,7 +31,7 @@ colnames(ip.mat) <- colnames(data)
 rownames(ip.mat) <- c('f1', 'b', 'g', 'u')
 
 m2 <- mxModel(model="drm1", ip.mat,
-              mxData(observed=data, type="raw", sort=FALSE),
+              mxData(observed=data, type="raw"),
               mxExpectationBA81(ItemSpec=items, debugInternal=TRUE),
               mxFitFunctionML(),
 	      mxComputeSequence(list(

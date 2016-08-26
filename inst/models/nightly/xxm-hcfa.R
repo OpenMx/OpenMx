@@ -32,7 +32,7 @@ teacherModel <- mxModel(
 studentModel <- mxModel(
     "studentModel", type="RAM", teacherModel,
     latentVars='eta', manifestVars=paste0('y',1:3),
-    mxData(hcfa.student, 'raw', sort=FALSE),
+    mxData(hcfa.student, 'raw'),
     mxPath('one', paste0('y',1:3)),
     mxPath('eta', paste0('y',1:3), free=c(FALSE,rep(TRUE,2)), values=1),
     mxPath(paste0('y',1:3), arrows=2, values=1),

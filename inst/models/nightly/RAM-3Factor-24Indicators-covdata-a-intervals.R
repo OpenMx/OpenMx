@@ -104,7 +104,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     mxPath(from="one", to=c(latents), 
            arrows=1, free=TRUE, values=.1, 
            labels=meanLabels),
-    mxCI(c('A', 'S')),
+    mxCI(c('A', 'S'), boundAdj=FALSE),
     mxData(observed=cov(YMatrix), means=apply(YMatrix, 2, mean), 
 	numObs=nrow(YMatrix), type="cov")
 )

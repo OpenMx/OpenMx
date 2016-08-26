@@ -111,7 +111,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     fit.myineqFun();
     Eigen::RowVectorXd ineqv_e(fit.inequality.size());
-    ineqv_e= fit.inequality;
+    ineqv_e= -fit.inequality;
 
     Eigen::MatrixXd hessv_e;
     
@@ -184,7 +184,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     fit.myineqFun();
     Eigen::RowVectorXd ineqv_e(nineq);
-    ineqv_e= fit.inequality;
+    ineqv_e= -fit.inequality;
     
     Eigen::MatrixXd lambda_e;
     
@@ -257,7 +257,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     eqv_e = fit.equality;
         
     fit.myineqFun();
-    ineqv_e = fit.inequality;
+    ineqv_e = -fit.inequality;
     
     obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
@@ -313,7 +313,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             fit.solEqBFun();
             eqv_e = fit.equality;
             fit.myineqFun();
-            ineqv_e = fit.inequality;
+            ineqv_e = -fit.inequality;
             obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
             if ( ind[indHasEq] > 0){
@@ -361,7 +361,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         eqv_e = fit.equality;
         funvMatrix_e[0] = funv;
         fit.myineqFun();
-        ineqv_e = fit.inequality;
+        ineqv_e = -fit.inequality;
 
         obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
         
@@ -693,7 +693,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             
             Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
             Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
+            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
             
             obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
             
@@ -864,7 +864,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
         Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
         Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
+        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
         
         obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
         
@@ -929,7 +929,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
                 Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
                 Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-                Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
+                Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
                 
                 obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
                 
@@ -1148,7 +1148,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
         Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
         Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
+        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
         
         obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
         
@@ -1208,7 +1208,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
             Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
             Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= fit.inequality;
+            Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
 
             obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
             
@@ -1397,10 +1397,22 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
 
     if (optimize_initial_inequality_constraints){
         double total = ineqval.array().min(0).sum();
-        fitVal << fabs(total) - 1e-4, eqval;
+        fitVal(0,0) = fabs(total) - 1e-4;
+	int dx=1;
+	for (int ix=0; ix < eqval.size(); ++ix,++dx) {
+		fitVal(0,dx) = eqval(0,ix);
+	}
     }
     else{
-	    fitVal << objVal, eqval, ineqval;
+	    fitVal.derived().resize(1,1+eqval.size()+ineqval.size());
+	    fitVal(0,0) = objVal(0);
+	    int dx=1;
+	    for (int ix=0; ix < eqval.size(); ++ix,++dx) {
+		    fitVal(0,dx) = eqval(0,ix);
+	    }
+	    for (int ix=0; ix < ineqval.size(); ++ix,++dx) {
+		    fitVal(0,dx) = ineqval(0,ix);
+	    }
     }
 
     if (!std::isfinite(fitVal.sum())) {

@@ -37,7 +37,7 @@ perSubject <- mxModel(
 
 reisby <- mxModel(
   "reisby", type="RAM", perSubject,
-  mxData(response, "raw", sort=FALSE),
+  mxData(response, "raw"),
   manifestVars="depression",
   mxPath('depression', arrows=2, values=1),
   mxPath(paste0('perSubject.', c('int','slope')),

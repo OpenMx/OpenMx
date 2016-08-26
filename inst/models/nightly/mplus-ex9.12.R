@@ -23,7 +23,7 @@ betweenModel <- mxModel(
 withinModel <- mxModel(
     'withinModel', type='RAM', betweenModel,
     manifestVars=paste0('y',1:4), latentVars=c('iw','sw','x'),
-    mxData(ex912, 'raw', sort=FALSE),
+    mxData(ex912, 'raw'),
     mxPath('iw', paste0('y',1:4), free=FALSE, values=1),
     mxPath('sw', paste0('y',1:4), free=FALSE, values=0:3),
     mxPath(paste0('y',1:4), arrows=2, labels="yVar"),

@@ -30,6 +30,11 @@
 #include <string.h>
 #include <string>
 
+#define R_NO_REMAP
+#include <Rcpp.h>
+#include <Rmath.h>
+#include <Rinternals.h>
+
 #define MIN_ROWS_PER_THREAD 8
 
 #define OMXINLINE inline
@@ -147,6 +152,13 @@ static inline int triangleLoc1(int diag)
 static inline int triangleLoc0(int diag)
 {
 	return triangleLoc1(diag+1) - 1;  // 0 2 5 9 14 ..
+}
+
+static inline bool doubleEQ(double d1, double d2)
+{
+	// memcmp is required here because NaN != NaN always
+	// but careful because there is more than 1 bit pattern for NaN
+	return memcmp(&d1, &d2, sizeof(double)) == 0;
 }
 
 #ifdef _OPENMP

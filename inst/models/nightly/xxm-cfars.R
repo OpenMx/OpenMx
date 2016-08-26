@@ -20,7 +20,7 @@ l2Model <- mxModel(
 l1Model <- mxModel(
     "l1Model", type="RAM", l2Model,
     manifestVars=paste0('y',1:4), latentVars='eta',
-    mxData(l1, 'raw', sort=FALSE),
+    mxData(l1, 'raw'),
     mxPath('one', paste0('y',1:4)),
     mxPath(c('eta', paste0('y',1:4)), arrows=2, values=1),
     mxPath('eta', paste0('y',1:4), free=c(FALSE, rep(TRUE,3)), values=1),

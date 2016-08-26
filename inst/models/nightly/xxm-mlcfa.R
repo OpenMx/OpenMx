@@ -20,7 +20,7 @@ teacherModel <- mxModel(
 studentModel <- mxModel(
   "studentModel", type="RAM", teacherModel,
   latentVars="psi", manifestVars=indicators,
-  mxData(mlcfa.student, "raw", sort=FALSE),
+  mxData(mlcfa.student, "raw"),
   mxPath("psi", arrows=2, values=1, lbound=1e-2, ubound=5),
   mxPath(indicators, arrows=2, values=1, lbound=1e-4, ubound=3),
   mxPath("psi", indicators, free=c(FALSE, rep(TRUE, 3)),

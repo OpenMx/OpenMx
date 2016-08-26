@@ -71,9 +71,9 @@ if (1) {
 		)))
   m2 <- mxRun(m2)
   omxCheckCloseEnough(fivenum(m2$expectation$debug$patternLikelihood),
-                      c(-6.20509, -4.8708, -3.63479, -2.5941, -1.00029), .01)
+                      c(-6.20, -4.41, -3.62, -2.077, -1.), .01)
   omxCheckCloseEnough(match(fivenum(m2$expectation$debug$patternLikelihood), m2$expectation$debug$patternLikelihood),
-                      c(238L, 71L, 21L, 6L, 2L))
+                      c(82L, 24L, 9L, 5L, 7L))
   omxCheckCloseEnough(sum(m2$expectation$debug$em.expected), 1667, .1)
 }
 
