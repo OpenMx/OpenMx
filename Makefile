@@ -103,19 +103,15 @@ build-prep:
 
 cran-build: build-prep
 	cd build && ./util/prep cran && $(REXEC) CMD build .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 build: build-prep
 	cd build && ./util/prep npsol && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 build-simple: build-prep
 	cd build && ./util/prep npsol && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 srcbuild: build-prep
 	cd build && ./util/prep npsol && $(REXEC) CMD build .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 	@echo 'To generate a PACKAGES file, use:'
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
 
@@ -155,17 +151,14 @@ doc.tar.bz2: html pdf
 	mv docs/build/latex/OpenMx.pdf build/$(VERSION)/OpenMxUserGuide.pdf
 	mv build/OpenMx.pdf build/$(VERSION)
 	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 install: code-style
 	./util/prep npsol
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 cran-install: code-style
 	./util/prep cran
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 rproftest:
 	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
@@ -210,7 +203,6 @@ clean:
 	-rm src/*.dll
 	-rm DESCRIPTION
 	-rm runtimes.csv
-	egrep -v '@[A-Z]+@' DESCRIPTION.in > DESCRIPTION
 
 veryclean: clean
 	-find . -name "*~" -exec rm -f '{}' \;
