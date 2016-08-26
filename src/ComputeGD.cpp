@@ -492,7 +492,6 @@ struct regularCIobj : CIobjective {
 	void computeConstraint(double fit)
 	{
 		diff = fit - targetFit;
-		if (fabs(diff) > 100) diff = nan("infeasible");
 	}
 
 	virtual bool gradientKnown()
@@ -512,14 +511,6 @@ struct regularCIobj : CIobjective {
 		const double fit = totalLogLikelihood(fitMat);
 		computeConstraint(fit);
 		*out = std::max(diff, 0.0);
-	}
-
-	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out)
-	{
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
-		computeConstraint(fit);
-		*out = diff * diff;
 	}
 
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
@@ -543,7 +534,7 @@ struct regularCIobj : CIobjective {
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
 		omxResizeMatrix(fitMat, 1, 1);
 
-		if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
+		if (!std::isfinite(fit)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 			fitMat->data[0] = nan("infeasible");
 			return;
@@ -551,8 +542,9 @@ struct regularCIobj : CIobjective {
 
 		if (want & FF_COMPUTE_FIT) {
 			double param = (lowerBound? CIElement : -CIElement);
+			computeConstraint(fit);
+			if (fabs(diff) > 100) param = nan("infeasible");
 			if (compositeCIFunction) {
-				computeConstraint(fit);
 				fitMat->data[0] = diff*diff + param;
 			} else {
 				fitMat->data[0] = param;
@@ -600,7 +592,7 @@ struct bound1CIobj : CIobjective {
 		}
 
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+		double fit = totalLogLikelihood(fitMat);
 		omxResizeMatrix(fitMat, 1, 1);
 
 		if (!std::isfinite(fit)) {
@@ -610,9 +602,10 @@ struct bound1CIobj : CIobjective {
 		}
 
 		double cval = 0.0;
+		Eigen::Array<double,1,1> v1;
+		computeConstraint(fc, fitMat, fit, v1);
+		if (fabs(v1(0)) > 100) fit = nan("infeasible");
 		if (!constrained) {
-			Eigen::Array<double,1,1> v1;
-			computeConstraint(fc, fitMat, fit, v1);
 			cval = v1(0) * v1(0);
 		}
 
@@ -650,7 +643,6 @@ struct boundAwayCIobj : CIobjective {
 		const double fit = totalLogLikelihood(fitMat);
 		Eigen::Map< Eigen::Array<double,3,1> >v1(out);
 		computeConstraint(fit, v1);
-		if ((v1 > 100).any()) v1.setConstant(nan("infeasible"));
 	}
 
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
@@ -669,20 +661,21 @@ struct boundAwayCIobj : CIobjective {
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
 		omxResizeMatrix(fitMat, 1, 1);
 
-		if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
+		if (!std::isfinite(fit)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
 			fitMat->data[0] = nan("infeasible");
 			return;
 		}
 
+		double param = (lower? CIElement : -CIElement);
 		double cval = 0.0;
+		Eigen::Array<double,3,1> v1;
+		computeConstraint(fit, v1);
+		if ((v1 > 10).any()) param = nan("infeasible");
 		if (!constrained) {
-			Eigen::Array<double,3,1> v1;
-			computeConstraint(fit, v1);
 			cval = v1.sum()*v1.sum();
 		}
 			     
-		double param = (lower? CIElement : -CIElement);
 		fitMat->data[0] = param + cval;
 		//mxLog("param at %f", fitMat->data[0]);
 	}
@@ -721,7 +714,6 @@ struct boundNearCIobj : CIobjective {
 		const double fit = totalLogLikelihood(fitMat);
 		Eigen::Map< Eigen::Array<double,3,1> > v1(out);
 		computeConstraint(fit, v1);
-		if ((v1 > 100).any()) v1.setConstant(nan("infeasible"));
 	}
 
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
@@ -746,14 +738,15 @@ struct boundNearCIobj : CIobjective {
 			return;
 		}
 
+		double param = (lower? CIElement : -CIElement);
 		double cval = 0.0;
+		Eigen::Array<double,3,1> v1;
+		computeConstraint(fit, v1);
+		if ((v1 > 10).any()) param = nan("infeasible");
 		if (!constrained) {
-			Eigen::Array<double,3,1> v1;
-			computeConstraint(fit, v1);
 			cval = v1.sum() * v1.sum();
 		}
 
-		double param = (lower? CIElement : -CIElement);
 		fitMat->data[0] = param  + cval;
 		//mxLog("param at %f", fitMat->data[0]);
 	}
@@ -837,7 +830,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		Est = Mle;
 		fc.ciobj = &baobj;
 		plan->compute(&fc);
-		if (useConstr) constr.pop();
+		constr.pop();
 
 		Diagnostic diag = DIAG_SUCCESS;
 		if (baobj.ineq[0] > 1e-3) {
@@ -922,7 +915,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		Est = Mle;
 		fc.ciobj = &bnobj;
 		plan->compute(&fc);
-		if (useConstr) constr.pop();
+		constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
@@ -948,14 +941,11 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 {
 	omxState *state = fitMatrix->currentState;
 
-	ciConstraintEq constrEq(1);
-	ciConstraintIneq constrIneq(1);
-	ciConstraint *constr = 0;
+	ciConstraintIneq constr(1);
 	bool constrained = useInequality;
 	if (constrained) {
-		constr = useInequality? (ciConstraint*)&constrIneq : (ciConstraint*)&constrEq;
-		constr->fitMat = fitMatrix;
-		constr->push(state);
+		constr.fitMat = fitMatrix;
+		constr.push(state);
 	}
 	
 	// Reset to previous optimum
@@ -972,6 +962,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
 	plan->compute(&fc);
+	constr.pop();
 
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 	omxRecompute(ciMatrix, &fc);
