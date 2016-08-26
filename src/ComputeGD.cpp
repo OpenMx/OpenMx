@@ -689,27 +689,30 @@ struct boundAwayCIobj : CIobjective {
 };
 
 struct boundNearCIobj : CIobjective {
-	double d0, sqrtCrit90, sqrtCrit95, logAlpha;
+	double d0, logAlpha;
 	double boundLL, bestLL;
 	int lower;
 	bool constrained;
 	Eigen::Array<double,3,1> ineq;
 	double pN;
+	double lbd, ubd;
 
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
-		double lbd = std::max(d0/2, sqrtCrit90); //precompute TODO
-		double ubd = std::min(d0, sqrtCrit95); //precompute TODO
 		double dd = sqrt(std::max(fit - bestLL, 0.0));
-		pN = Rf_pnorm5(dd,0,1,0,0) + Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
+		double pN1 = Rf_pnorm5(dd,0,1,0,0);
+		double pN2 = Rf_pnorm5((d0-dd)/2.0+dd*dd/(2*std::max(d0-dd,.001*dd*dd)),0,1,0,0);
+		pN = pN1 + pN2;
 		// pN > alpha
 		// lbd < dd < ubd
 		v1 << std::max(lbd - dd, 0.0), std::max(dd - ubd, 0.0), std::max(logAlpha - log(pN), 0.0);
 		ineq = v1;
-		//mxPrintMat("v1", v1);
-		//mxLog("fit %g dd %g/%g/%g alpha %g pN %g",
-		//fit, lbd, dd, ubd, exp(logAlpha), pN);
+		// mxLog("pN1 %.6g pN2 %.6g d0-dd %.5g dd*dd %.5g expr %.5g",
+		//       pN1, pN2, d0-dd, dd*dd, dd*dd/(2*std::max(d0-dd,.001*dd*dd)));
+		// mxPrintMat("v1", v1);
+		// mxLog("fit %g dd %g/%g/%g alpha %g pN %.6g",
+		//       fit, lbd, dd, ubd, alpha, pN);
 	}
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
@@ -909,8 +912,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		boundNearCIobj bnobj;
 		bnobj.CI = currentCI;
 		bnobj.d0 = d0;
-		bnobj.sqrtCrit90 = sqrtCrit90;
-		bnobj.sqrtCrit95 = sqrtCrit95;
+		bnobj.lbd = std::max(d0/2, sqrtCrit90);
+		bnobj.ubd = std::min(d0, sqrtCrit95);
 		bnobj.boundLL = boundLL;
 		bnobj.bestLL = mle->fit;
 		bnobj.logAlpha = log(alphalevel);
