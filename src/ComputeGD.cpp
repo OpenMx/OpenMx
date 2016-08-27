@@ -330,6 +330,7 @@ public:
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 };
 
 omxCompute *newComputeConfidenceInterval()
@@ -1117,6 +1118,14 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 }
 
+void ComputeCI::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan;
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
 void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (!intervals) return;
@@ -1168,12 +1177,17 @@ class ComputeTryH : public omxCompute {
 	int verbose;
 	double loc;
 	double scale;
+	int maxRetries;
+	int retriesRemain;
+	int invocations;
 
+	static bool satisfied(FitContext *fc);
 public:
 	//ComputeTryH();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
-	//virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 };
 
 omxCompute *newComputeTryHard()
@@ -1193,12 +1207,22 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 		scale = Rf_asReal(Rscale);
 	}
 
+	maxRetries = 5; // make configurable TODO
+	retriesRemain = maxRetries;
+	invocations = 0;
+
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
+}
+
+bool ComputeTryH::satisfied(FitContext *fc)
+{
+	return (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
+		fc->getInform() == INFORM_UNCONVERGED_OPTIMUM);
 }
 
 void ComputeTryH::computeImpl(FitContext *fc)
@@ -1208,16 +1232,17 @@ void ComputeTryH::computeImpl(FitContext *fc)
 	Map< ArrayXd > start(fc->est, fc->numParam);
 	ArrayXd origStart = start;
 
-	int retries = 5;
+	++invocations;
 
 	GetRNGstate();
 
 	// return record of attempted starting vectors TODO
 
+	--retriesRemain;
 	plan->compute(fc);
-	while (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM && --retries > 0) {
+	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 1) {
-			mxLog("%s: got inform %d, retry %d", name, fc->getInform(), retries);
+			mxLog("%s: got inform %d, %d retries remain", name, fc->getInform(), retriesRemain);
 		}
 		fc->setInform(INFORM_UNINITIALIZED);
 
@@ -1231,8 +1256,29 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			start[vx] = start[vx] * adj1 + adj2;
 		}
 
+		--retriesRemain;
 		plan->compute(fc);
+	}
+	if (verbose >= 1) {
+		mxLog("%s: got inform %d after %d retries", name, fc->getInform(),
+		      maxRetries - retriesRemain);
 	}
 
 	PutRNGstate();
+}
+
+void ComputeTryH::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan;
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
+void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
+	MxRList info;
+	info.add("invocations", Rf_ScalarInteger(invocations));
+	info.add("retries", Rf_ScalarInteger(maxRetries - retriesRemain));
+	slots->add("debug", info.asR());
 }

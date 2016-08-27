@@ -506,6 +506,15 @@ setMethod("convertForBackend", signature("MxComputeTryHard"),
 		.Object
 	})
 
+setMethod("updateFromBackend", signature("MxComputeTryHard"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
 setMethod("initialize", "MxComputeTryHard",
 	  function(.Object, freeSet, plan, verbose, location, scale) {
 		  .Object@name <- 'compute'
@@ -682,6 +691,15 @@ mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbos
 	verbose <- as.integer(verbose)
 	new("MxComputeConfidenceInterval", freeSet, plan, verbose, fitfunction, constraintType)
 }
+
+setMethod("updateFromBackend", signature("MxComputeConfidenceInterval"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
 	  function(Ob, indent) {
