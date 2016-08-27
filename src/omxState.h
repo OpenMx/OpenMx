@@ -206,6 +206,7 @@ class omxGlobal {
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;
+	int calcNumIntegrationPoints(int numVars) { return maxptsa + maxptsb * numVars + maxptsc * numVars * numVars; };
 	double absEps;
 	double relEps;
 

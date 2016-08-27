@@ -108,6 +108,11 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols);
 void markAsDataFrame(SEXP list, int rows);
 inline void markAsDataFrame(SEXP list) { markAsDataFrame(list, -1); }
 
+SEXP dtmvnorm_marginal(SEXP xn, SEXP n, SEXP sigma, SEXP lower, SEXP upper);
+SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
+			SEXP Rsigma, SEXP Rlower, SEXP Rupper);
+SEXP mtmvnorm(SEXP sigma, SEXP lower, SEXP upper);
+
 #ifndef M_LN_2PI
 #define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */
 #endif

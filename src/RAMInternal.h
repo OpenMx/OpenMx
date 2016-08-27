@@ -44,8 +44,8 @@ class AsymTool {
 	Eigen::SparseMatrix<double> fullA;
 	Eigen::SparseMatrix<double> IAF;
 
-	AsymTool(std::vector<T1> &latentFilter) :
-	AshallowDepth(-1), signA(-1.0), latentFilter(latentFilter), analyzed(false), hasDeterminedDepth(false),
+	AsymTool(std::vector<T1> &_latentFilter) :
+	AshallowDepth(-1), signA(-1.0), latentFilter(_latentFilter), analyzed(false), hasDeterminedDepth(false),
 		invertCount(0), filterCount(0) {};
 	void resize(int clumpVars, int _clumpObs)
 	{
@@ -151,14 +151,14 @@ template <typename T1> void AsymTool<T1>::filter()
 	if (doubleCheck) {
 		Eigen::MatrixXd denseAF;
 		denseAF.resize(fullA.rows(), clumpObs);
-		int dx=0;
+		int xx=0;
 		for (int cx=0; cx < fullA.cols(); ++cx) {
 			if (!latentFilter[cx]) continue;
-			denseAF.col(dx) = denseA.col(cx);
-			++dx;
+			denseAF.col(xx) = denseA.col(cx);
+			++xx;
 		}
-		if (dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
-					     dx, clumpObs);
+		if (xx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+					     xx, clumpObs);
 
 		// ensure inner iterator works
 		for (int k=0; k< IAF.outerSize(); ++k) {
@@ -187,32 +187,6 @@ template <typename T1> void AsymTool<T1>::filter()
 	++filterCount;
 	//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 }
-
-template<typename _MatrixType, int _UpLo = Eigen::Lower>
-class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
- private:
-	Eigen::MatrixXd ident;
-	Eigen::MatrixXd inverse;
-
- public:
-	typedef Eigen::LDLT<_MatrixType, _UpLo> Base;
-
-	double log_determinant() const {
-		typename Base::Scalar detL = Base::vectorD().array().log().sum();
-		return detL;
-	}
-
-	void refreshInverse()
-	{
-		if (ident.rows() != Base::m_matrix.rows()) {
-			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
-		}
-
-		inverse = Base::solve(ident);
-	};
-
-	const Eigen::MatrixXd &getInverse() const { return inverse; };
-};
 
 /*
 template<typename _MatrixType, int _UpLo = Eigen::Lower>
@@ -479,8 +453,8 @@ namespace RelationalRAMExpectation {
 		// could store coeff extraction plan in addr TODO
 		AsymTool<bool>          asymT;
 
-		independentGroup(class state *st, int size, int clumpSize)
-			: st(*st), clumpSize(clumpSize),
+		independentGroup(class state *_st, int size, int _clumpSize)
+			: st(*_st), clumpSize(_clumpSize),
 			analyzedCov(false), asymT(latentFilter)
 		{ placements.reserve(size); };
 		independentGroup(independentGroup *ig);

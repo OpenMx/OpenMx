@@ -78,7 +78,7 @@ If every attempt at running \code{model} fails, \code{mxTryHard()} returns an ob
 }
 
 \seealso{
-\code{\link{mxRun}()}
+\code{\link{mxRun}()}, \code{\link{mxComputeTryHard}}
 }
 
 \examples{ %Could use a better example...

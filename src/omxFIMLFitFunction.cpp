@@ -213,7 +213,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
 		}
-		off->openmpUser = !ofiml->isStateSpace && ofiml->rowwiseParallel != 0;
+		off->openmpUser = !ofiml->isStateSpace && ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
 		sortData(off, fc);
 		return;
 	}
@@ -379,6 +379,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 	SEXP rObj = off->rObj;
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
+	newObj->condOnOrdinal = Rf_asLogical(R_do_slot(rObj, Rf_install(".conditionOnOrdinal")));
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	

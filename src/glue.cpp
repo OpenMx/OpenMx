@@ -36,6 +36,9 @@
 #include "dmvnorm.h"
 #include "npsolswitch.h"
 #include "omxCsolnp.h"
+#include <Rcpp.h>
+#include <RcppEigen.h>
+#include "omxSadmvnWrapper.h"
 
 void markAsDataFrame(SEXP list, int rows)
 {
@@ -100,6 +103,130 @@ static SEXP do_expm_eigen(SEXP x)
 
     return z;
 }
+
+SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
+			SEXP Rsigma, SEXP Rlower, SEXP Rupper)
+{
+	using Eigen::Map;
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+	using Rcpp::as;
+	const Map<VectorXd> xq(as<Map<VectorXd> >(Rxq));
+	const Map<VectorXd> xr(as<Map<VectorXd> >(Rxr));
+	int qq = Rf_asInteger(Rq) - 1;
+	int rr = Rf_asInteger(Rr) - 1;
+	const Map<MatrixXd> sigma(as<Map<MatrixXd> >(Rsigma));
+	const Map<VectorXd> lower(as<Map<VectorXd> >(Rlower));
+	const Map<VectorXd> upper(as<Map<VectorXd> >(Rupper));
+	VectorXd density(4);
+
+	_dtmvnorm_marginal2(NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
+
+	return Rcpp::wrap(density);
+}
+
+SEXP dtmvnorm_marginal(SEXP Rxn, SEXP Rn, SEXP Rsigma, SEXP Rlower, SEXP Rupper)
+{
+	using Eigen::Map;
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+	using Rcpp::as;
+	const Map<VectorXd> xn(as<Map<VectorXd> >(Rxn));
+	int nn = Rf_asInteger(Rn) - 1;
+	const Map<MatrixXd> sigma(as<Map<MatrixXd> >(Rsigma));
+	const Map<VectorXd> lower(as<Map<VectorXd> >(Rlower));
+	const Map<VectorXd> upper(as<Map<VectorXd> >(Rupper));
+	VectorXd density(2);
+
+	_dtmvnorm_marginal(NA_REAL, xn, nn, sigma, lower, upper, density);
+
+	return Rcpp::wrap(density);
+}
+
+SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
+{
+	using Eigen::Map;
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+	using Rcpp::as;
+	const Map<MatrixXd> sigma(as<Map<MatrixXd> >(Rsigma));
+	const Map<VectorXd> fullLower(as<Map<VectorXd> >(Rlower));
+	const Map<VectorXd> fullUpper(as<Map<VectorXd> >(Rupper));
+
+	VectorXd tmean;
+	MatrixXd tcov;
+	_mtmvnorm(NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
+
+	omxManageProtectInsanity mpi;
+	MxRList result;
+	result.add("tmean", Rcpp::wrap(tmean));
+	result.add("tvar", Rcpp::wrap(tcov));
+	return result.asR();
+}
+
+void omxSadmvnWrapper(int numVars, 
+	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform)
+{
+	// Eigen::Map< Eigen::ArrayXd > elt(lThresh, numVars);
+	// Eigen::Map< Eigen::ArrayXd > eut(uThresh, numVars);
+	// mxPrintMat("lower", elt);
+	// mxPrintMat("upper", eut);
+
+    // SADMVN calls Alan Genz's sadmvn.f--see appropriate file for licensing info.
+   	// TODO: Check with Genz: should we be using sadmvn or sadmvn?
+   	// Parameters are:
+   	// 	N 		int			# of vars
+   	//	Lower	double*		Array of lower bounds
+   	//	Upper	double*		Array of upper bounds
+   	//	Infin	int*		Array of flags: 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
+   	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
+   	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
+   	//	Abseps	double		Absolute Rf_error tolerance.  Yick.
+   	//	Releps	double		Relative Rf_error tolerance.  Use EPSILON.
+   	//	Error	&double		On return: absolute real Rf_error, 99% confidence
+   	//	Value	&double		On return: evaluated value
+   	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
+   	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
+   	double Error;
+	double absEps = Global->absEps;
+	double relEps = Global->relEps;
+	int MaxPts = Global->calcNumIntegrationPoints(numVars);
+	int fortranThreadId = omx_absolute_thread_num() + 1;
+   	/* FOR DEBUGGING PURPOSES */
+    /*	numVars = 2;
+   	lThresh[0] = -2;
+   	uThresh[0] = -1.636364;
+   	Infin[0] = 2;
+   	lThresh[1] = 0;
+   	uThresh[1] = 0;
+   	Infin[1] = 0;
+   	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
+   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
+		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
+
+   	if (0) {
+   		char infinCodes[3][20];
+   		strcpy(infinCodes[0], "(-INF, upper]");
+   		strcpy(infinCodes[1], "[lower, INF)");
+   		strcpy(infinCodes[2], "[lower, upper]");
+   		mxLog("Input to sadmvn is (%d rows):", numVars); //:::DEBUG:::
+		for(int i = 0; i < numVars; i++) {
+			mxLog("Row %d: %f, %f, %d(%s)", i, lThresh[i], uThresh[i], Infin[i], infinCodes[Infin[i]]);
+		}
+
+		mxLog("Cor: (Lower %d x %d):", numVars, numVars); //:::DEBUG:::
+		for(int i = 0; i < numVars*(numVars-1)/2; i++) {
+			// mxLog("Row %d of Cor: ", i);
+			// for(int j = 0; j < i; j++)
+			mxLog(" %f", corList[i]); // (i*(i-1)/2) + j]);
+			// mxLog("");
+		}
+	}
+
+	if(OMX_DEBUG) {
+		mxLog("Output of sadmvn is %f, %f, %d.", Error, *likelihood, *inform); 
+	}
+} 
 
 static SEXP has_NPSOL()
 { return Rf_ScalarLogical(HAS_NPSOL); }
@@ -597,6 +724,9 @@ static R_CallMethodDef callMethods[] = {
 	{"untitledNumberReset", (DL_FUNC) &untitledNumberReset, 0},
 	{"untitledNumber", (DL_FUNC) &untitledNumber, 0},
 	{".EigenDebuggingEnabled", (DL_FUNC) testEigenDebug, 0},
+	{".dtmvnorm.marginal", (DL_FUNC) dtmvnorm_marginal, 5},
+	{".dtmvnorm.marginal2", (DL_FUNC) dtmvnorm_marginal2, 7},
+	{".mtmvnorm", (DL_FUNC) mtmvnorm, 3},
 	{NULL, NULL, 0}
 };
 

@@ -131,9 +131,19 @@ twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
 twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
 summary(twinACEFit)
-ci <- twinACEFit$compute$steps[['CI']]$output[['detail']]
-omxCheckTrue(is.factor(ci[['side']]))
-omxCheckEquals(levels(ci[['side']]), c('upper', 'lower'))
+detail <- twinACEFit$compute$steps[['CI']]$output[['detail']]
+omxCheckTrue(is.factor(detail[['side']]))
+omxCheckEquals(levels(detail[['side']]), c('upper', 'lower'))
+
+ci <- twinACEFit$output$confidenceIntervals
+#cat(deparse(round(ci[,'ubound'],4)))
+omxCheckCloseEnough(ci[-2,'lbound'], c(0.4697, 0.1567), .005)
+
+if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
+  omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .04)
+} else {
+  omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
+}
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
@@ -188,16 +198,6 @@ CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
 	runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
 	runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
-}
-
-ci <- twinACEFit$output$confidenceIntervals
-#cat(deparse(round(ci[,'ubound'],4)))
-omxCheckCloseEnough(ci[-2,'lbound'], c(0.4697, 0.1567), .005)
-
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-        omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .04)
-} else {
-        omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
 }
 
 if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
