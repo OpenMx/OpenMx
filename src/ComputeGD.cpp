@@ -1178,8 +1178,8 @@ class ComputeTryH : public omxCompute {
 	double loc;
 	double scale;
 	int maxRetries;
-	int retriesRemain;
 	int invocations;
+	int numRetries;
 
 	static bool satisfied(FitContext *fc);
 public:
@@ -1207,9 +1207,9 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 		scale = Rf_asReal(Rscale);
 	}
 
-	maxRetries = 5; // make configurable TODO
-	retriesRemain = maxRetries;
+	maxRetries = 3; // make configurable TODO
 	invocations = 0;
+	numRetries = 0;
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1238,7 +1238,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 
 	// return record of attempted starting vectors TODO
 
-	--retriesRemain;
+	int retriesRemain = maxRetries - 1;
 	plan->compute(fc);
 	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 1) {
@@ -1259,6 +1259,8 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		--retriesRemain;
 		plan->compute(fc);
 	}
+
+	numRetries += maxRetries - retriesRemain;
 	if (verbose >= 1) {
 		mxLog("%s: got inform %d after %d retries", name, fc->getInform(),
 		      maxRetries - retriesRemain);
@@ -1279,6 +1281,6 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	MxRList info;
 	info.add("invocations", Rf_ScalarInteger(invocations));
-	info.add("retries", Rf_ScalarInteger(maxRetries - retriesRemain));
+	info.add("retries", Rf_ScalarInteger(numRetries));
 	slots->add("debug", info.asR());
 }

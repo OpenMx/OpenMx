@@ -59,14 +59,14 @@ omxCheckCloseEnough(sum(diff(result[!result$adj,'lbound']) > 0, na.rm = TRUE),
 omxCheckCloseEnough(table(is.na(result[!result$adj,'ubound']))[[1]],
                     100,1)
 omxCheckCloseEnough(sum(diff(result[!result$adj,'ubound']) > 0, na.rm = TRUE),
-                    97, 1)
+                    99, 1)
 omxCheckEquals(fivenum(result[!result$adj, 'retries'])[c(1,3)],
                c(2,2))
 
 omxCheckCloseEnough(table(is.na(result[result$adj,'lbound']))[[1]],
                     100,1)
 omxCheckCloseEnough(sum(diff(result[result$adj,'lbound']) > 0, na.rm = TRUE),
-                    36, 1)
+                    38, 1)
 omxCheckCloseEnough(table(is.na(result[result$adj,'ubound']))[[1]],
                     101,1)
 omxCheckCloseEnough(sum(diff(result[result$adj,'ubound']) > 0, na.rm = TRUE),
