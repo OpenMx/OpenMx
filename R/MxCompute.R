@@ -463,7 +463,8 @@ setClass(Class = "MxComputeTryHard",
 	     plan = "MxCompute",
 	     verbose = "integer",
 	     location = "numeric",
-	     scale = "numeric"))
+	     scale = "numeric",
+	     maxRetries = "integer"))
 
 setMethod("assignId", signature("MxComputeTryHard"),
 	function(.Object, id, defaultFreeSet) {
@@ -516,7 +517,7 @@ setMethod("updateFromBackend", signature("MxComputeTryHard"),
 	})
 
 setMethod("initialize", "MxComputeTryHard",
-	  function(.Object, freeSet, plan, verbose, location, scale) {
+	  function(.Object, freeSet, plan, verbose, location, scale, maxRetries) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -524,6 +525,7 @@ setMethod("initialize", "MxComputeTryHard",
 		  .Object@verbose <- verbose
 		  .Object@location <- location
 		  .Object@scale <- scale
+		  .Object@maxRetries <- maxRetries
 		  .Object
 	  })
 
@@ -548,19 +550,21 @@ setMethod("initialize", "MxComputeTryHard",
 ##' @param verbose level of debugging output
 ##' @param location location of the perturbation distribution
 ##' @param scale scale of the perturbation distribution
+##' @param maxRetries maximum number of plan evaluations per invocation (including the first evaluation)
 ##' @seealso
 ##' \code{\link{mxTryHard}}
 ##' @aliases
 ##' MxComputeTryHard-class
 mxComputeTryHard <- function(plan, ..., freeSet=NA_character_, verbose=0L,
-			     location=1.0, scale=0.25)
+			     location=1.0, scale=0.25, maxRetries=3L)
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeTryHard does not accept values for the '...' argument")
 	}
 	verbose <- as.integer(verbose)
-	new("MxComputeTryHard", freeSet, plan, verbose, location, scale)
+	maxRetries <- as.integer(maxRetries)
+	new("MxComputeTryHard", freeSet, plan, verbose, location, scale, maxRetries)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeTryHard", indent="integer"),
@@ -569,7 +573,7 @@ setMethod("displayCompute", signature(Ob="MxComputeTryHard", indent="integer"),
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "$plan :", '\n')
 		  displayCompute(Ob@plan, indent+1L)
-		  for (sl in c("verbose","location","scale")) {
+		  for (sl in c("verbose","location","scale",'maxRetries')) {
 			  if (is.na(slot(Ob, sl))) next
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {

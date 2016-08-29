@@ -1205,9 +1205,10 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 		loc = Rf_asReal(Rloc);
 		ProtectedSEXP Rscale(R_do_slot(rObj, Rf_install("scale")));
 		scale = Rf_asReal(Rscale);
+		ProtectedSEXP Rretries(R_do_slot(rObj, Rf_install("maxRetries")));
+		maxRetries = Rf_asReal(Rretries);
 	}
 
-	maxRetries = 3; // make configurable TODO
 	invocations = 0;
 	numRetries = 0;
 
