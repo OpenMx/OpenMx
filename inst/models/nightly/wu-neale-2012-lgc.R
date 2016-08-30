@@ -42,7 +42,11 @@ for (rx in 1:nrow(result)) {
                   mxData(cov1, 'cov', mvec, 150))
 
     m1$S$values['slope','slope'] <- .5
-    m1$S$lbound['slope','slope'] <- 0
+    if (result[rx,'adj']) {
+      m1$S$lbound['slope','slope'] <- 0
+    } else {
+      m1$S$lbound['slope','slope'] <- NA
+    }
     m1 <- mxModel(m1, mxCI('vars', boundAdj = result[rx,'adj']))
     m1 <- mxRun(m1, intervals=TRUE, suppressWarnings=TRUE, silent=TRUE)
 
@@ -53,9 +57,9 @@ for (rx in 1:nrow(result)) {
 }
 
 omxCheckCloseEnough(table(is.na(result[!result$adj,'lbound']))[[1]],
-               38,1)
+               100,1)
 omxCheckCloseEnough(sum(diff(result[!result$adj,'lbound']) > 0, na.rm = TRUE),
-                    36, 1)
+                    99, 1)
 omxCheckCloseEnough(table(is.na(result[!result$adj,'ubound']))[[1]],
                     100,1)
 omxCheckCloseEnough(sum(diff(result[!result$adj,'ubound']) > 0, na.rm = TRUE),

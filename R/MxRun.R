@@ -133,7 +133,7 @@ runHelper <- function(model, frontendStart,
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
-					ciOpt <- mxComputeTryHard(plan=ciOpt)
+					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
 				}
 				steps <- c(steps, CI=mxComputeConfidenceInterval(
 							  fitfunction=fitNum, constraintType=cType,
