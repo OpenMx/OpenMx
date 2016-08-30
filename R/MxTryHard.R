@@ -37,11 +37,20 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
 		model@compute <- NULL
 	}
+	lackOfConstraints <- verifyNoConstraints(model)
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
 	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors",
 													base::options()$mxOption$"Default optimizer")
 	if("Calculate Hessian" %in%  names(model@options)){relevantOptions[[1]] <- model@options$"Calculate Hessian"}
 	if("Standard Errors" %in%  names(model@options)){relevantOptions[[2]] <- model@options$"Standard Errors"}
+	if(!lackOfConstraints){
+		relevantOptions[[1]] <- "No"
+		relevantOptions[[2]] <- "No"
+		if(checkHess){
+			warning("argument 'checkHess' coerced to FALSE due to presence of MxConstraints")
+			checkHess <- FALSE
+		}
+	}
 	#If the options call for SEs and/or Hessian, there is no custom compute plan, and the Hessian will not be checked
 	#every fit attempt, then computing SEs and/or Hessian can be put off until the MLE is obtained:
 	SElater <- ifelse( (!checkHess && relevantOptions[[2]]=="Yes" && defaultComputePlan), TRUE, FALSE )
@@ -422,3 +431,13 @@ mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneG
 									 exhaustive=exhaustive,OKstatuscodes=OKstatuscodes,wtgcsv=wtgcsv,...))
 }
 	
+
+
+verifyNoConstraints <- function(model){
+	#TODO: Still not sure how this should work when there are independent submodels, and some submodels have
+	#MxConstraints whereas others do not...:
+	out <- ifelse((length(model@constraints) && !model@independent), 0, 1)
+	if(length(model@submodels)){out <- prod(out,sapply(model@submodels,verifyNoConstraints))}
+	return(out)
+}
+
