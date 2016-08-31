@@ -76,13 +76,13 @@ omxCheckCloseEnough(table(is.na(result[result$adj,'ubound']))[[1]],
 omxCheckCloseEnough(sum(diff(result[result$adj,'ubound']) > 0, na.rm = TRUE),
                     98, 1)
 omxCheckEquals(fivenum(result[result$adj, 'retries'])[c(1,3)],
-               c(2,3))
+               c(2,2))
 
 if (0) {
   library(ggplot2)
   library(gtable)
   library(grid)
-  p1 <- ggplot(result) + geom_ribbon(aes(x=val, ymin=lbound, ymax=ubound, fill=adj), alpha=.3)
+  p1 <- ggplot(result) + geom_ribbon(aes(x=val, ymin=lbound, ymax=ubound, fill=adj), alpha=.3) + ylim(-.02,.1)
   p2 <- ggplot() + geom_point(data=result[,c('val','retries','adj')], aes(x=val, y=retries, color=adj))
   pair <- rbind(ggplotGrob(p1), ggplotGrob(p2), size="first")
   grid.newpage()

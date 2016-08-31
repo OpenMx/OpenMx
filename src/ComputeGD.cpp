@@ -497,7 +497,7 @@ struct regularCIobj : CIobjective {
 
 	virtual bool gradientKnown()
 	{
-		return CI->varIndex >= 0;
+		return CI->varIndex >= 0 && !compositeCIFunction;
 	}
 
 	virtual void gradient(FitContext *fc, double *gradOut) {
@@ -621,6 +621,17 @@ struct boundAwayCIobj : CIobjective {
 	bool constrained;
 	Eigen::Array<double, 3, 1> ineq;
 
+	virtual bool gradientKnown()
+	{
+		return CI->varIndex >= 0 && constrained;
+	}
+
+	virtual void gradient(FitContext *fc, double *gradOut) {
+		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
+		Egrad.setZero();
+		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	}
+
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
@@ -690,6 +701,17 @@ struct boundNearCIobj : CIobjective {
 	Eigen::Array<double,3,1> ineq;
 	double pN;
 	double lbd, ubd;
+
+	virtual bool gradientKnown()
+	{
+		return CI->varIndex >= 0 && constrained;
+	}
+
+	virtual void gradient(FitContext *fc, double *gradOut) {
+		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
+		Egrad.setZero();
+		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	}
 
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
@@ -761,14 +783,6 @@ struct boundNearCIobj : CIobjective {
 	}
 };
 
-// Must be free parameter (not algebra) and only 1 bound set
-// Enable by default? modest performance cost
-// Check against Hau Wu's code
-// Symmetry test with different critical values
-// For paper, growth curve factor variance, ACE
-// Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
-// \emph{Psychometrica.}
-// Also look at 13 May 2015 email to pek@yorku.ca
 void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
 {
 	omxState *state = fitMatrix->currentState;
@@ -781,6 +795,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 
+	bool setNearAtBound = false;
 	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
 		{
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
@@ -795,14 +810,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 				mxLog("without bound, fit %.8g val %.8g", fc.fit, val);
 			}
-			if (fc.fit - mle->fit > currentCI->bound[!side]) {
-				Diagnostic diag;
-				double val;
-				regularCI(mle, fc, currentCI, side, val, diag);
-				recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
-				goto part2;
-			}
-			if (fabs(fc.fit - mle->fit) < sqrt(std::numeric_limits<double>::epsilon())) {
+			setNearAtBound = mle->fit - fc.fit > currentCI->bound[side];
+			if (mle->fit - fc.fit < sqrt(std::numeric_limits<double>::epsilon())) {
 				Diagnostic diag;
 				double val;
 				regularCI(mle, fc, currentCI, side, val, diag);
@@ -854,7 +863,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		double boundLL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
-		if (fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
+		if (!setNearAtBound &&
+		    fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 			ciConstraintEq constr(1);
