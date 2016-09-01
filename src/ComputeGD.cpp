@@ -330,6 +330,7 @@ public:
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 };
 
 omxCompute *newComputeConfidenceInterval()
@@ -496,7 +497,7 @@ struct regularCIobj : CIobjective {
 
 	virtual bool gradientKnown()
 	{
-		return CI->varIndex >= 0;
+		return CI->varIndex >= 0 && !compositeCIFunction;
 	}
 
 	virtual void gradient(FitContext *fc, double *gradOut) {
@@ -620,6 +621,17 @@ struct boundAwayCIobj : CIobjective {
 	bool constrained;
 	Eigen::Array<double, 3, 1> ineq;
 
+	virtual bool gradientKnown()
+	{
+		return CI->varIndex >= 0 && constrained;
+	}
+
+	virtual void gradient(FitContext *fc, double *gradOut) {
+		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
+		Egrad.setZero();
+		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	}
+
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
 	{
@@ -689,6 +701,17 @@ struct boundNearCIobj : CIobjective {
 	Eigen::Array<double,3,1> ineq;
 	double pN;
 	double lbd, ubd;
+
+	virtual bool gradientKnown()
+	{
+		return CI->varIndex >= 0 && constrained;
+	}
+
+	virtual void gradient(FitContext *fc, double *gradOut) {
+		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
+		Egrad.setZero();
+		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	}
 
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
@@ -760,14 +783,6 @@ struct boundNearCIobj : CIobjective {
 	}
 };
 
-// Must be free parameter (not algebra) and only 1 bound set
-// Enable by default? modest performance cost
-// Check against Hau Wu's code
-// Symmetry test with different critical values
-// For paper, growth curve factor variance, ACE
-// Pek, J. & Wu, H. (in press). Profile likelihood-based confidence intervals and regions for structural equation models.
-// \emph{Psychometrica.}
-// Also look at 13 May 2015 email to pek@yorku.ca
 void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
 {
 	omxState *state = fitMatrix->currentState;
@@ -780,6 +795,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 
+	bool setNearAtBound = false;
 	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
 		{
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
@@ -794,14 +810,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 				mxLog("without bound, fit %.8g val %.8g", fc.fit, val);
 			}
-			if (fc.fit - mle->fit > currentCI->bound[!side]) {
-				Diagnostic diag;
-				double val;
-				regularCI(mle, fc, currentCI, side, val, diag);
-				recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
-				goto part2;
-			}
-			if (fabs(fc.fit - mle->fit) < sqrt(std::numeric_limits<double>::epsilon())) {
+			setNearAtBound = mle->fit - fc.fit > currentCI->bound[side];
+			if (mle->fit - fc.fit < sqrt(std::numeric_limits<double>::epsilon())) {
 				Diagnostic diag;
 				double val;
 				regularCI(mle, fc, currentCI, side, val, diag);
@@ -853,7 +863,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		double boundLL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
-		if (fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
+		if (!setNearAtBound &&
+		    fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 			ciConstraintEq constr(1);
@@ -1117,6 +1128,14 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 }
 
+void ComputeCI::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan;
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
 void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (!intervals) return;
@@ -1168,12 +1187,17 @@ class ComputeTryH : public omxCompute {
 	int verbose;
 	double loc;
 	double scale;
+	int maxRetries;
+	int invocations;
+	int numRetries;
 
+	static bool satisfied(FitContext *fc);
 public:
 	//ComputeTryH();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
-	//virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 };
 
 omxCompute *newComputeTryHard()
@@ -1191,7 +1215,12 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 		loc = Rf_asReal(Rloc);
 		ProtectedSEXP Rscale(R_do_slot(rObj, Rf_install("scale")));
 		scale = Rf_asReal(Rscale);
+		ProtectedSEXP Rretries(R_do_slot(rObj, Rf_install("maxRetries")));
+		maxRetries = Rf_asReal(Rretries);
 	}
+
+	invocations = 0;
+	numRetries = 0;
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1201,6 +1230,12 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	plan->initFromFrontend(globalState, slotValue);
 }
 
+bool ComputeTryH::satisfied(FitContext *fc)
+{
+	return (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
+		fc->getInform() == INFORM_UNCONVERGED_OPTIMUM);
+}
+
 void ComputeTryH::computeImpl(FitContext *fc)
 {
 	using Eigen::Map;
@@ -1208,16 +1243,17 @@ void ComputeTryH::computeImpl(FitContext *fc)
 	Map< ArrayXd > start(fc->est, fc->numParam);
 	ArrayXd origStart = start;
 
-	int retries = 5;
+	++invocations;
 
 	GetRNGstate();
 
 	// return record of attempted starting vectors TODO
 
+	int retriesRemain = maxRetries - 1;
 	plan->compute(fc);
-	while (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM && --retries > 0) {
+	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 1) {
-			mxLog("%s: got inform %d, retry %d", name, fc->getInform(), retries);
+			mxLog("%s: got inform %d, %d retries remain", name, fc->getInform(), retriesRemain);
 		}
 		fc->setInform(INFORM_UNINITIALIZED);
 
@@ -1231,8 +1267,31 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			start[vx] = start[vx] * adj1 + adj2;
 		}
 
+		--retriesRemain;
 		plan->compute(fc);
 	}
 
+	numRetries += maxRetries - retriesRemain;
+	if (verbose >= 1) {
+		mxLog("%s: got inform %d after %d retries", name, fc->getInform(),
+		      maxRetries - retriesRemain);
+	}
+
 	PutRNGstate();
+}
+
+void ComputeTryH::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan;
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
+void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
+	MxRList info;
+	info.add("invocations", Rf_ScalarInteger(invocations));
+	info.add("retries", Rf_ScalarInteger(numRetries));
+	slots->add("debug", info.asR());
 }

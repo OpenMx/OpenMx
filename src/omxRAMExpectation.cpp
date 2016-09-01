@@ -43,13 +43,7 @@ static void omxCallRAMExpectation(omxExpectation* oo, FitContext *fc, const char
 		return;
 	}
 
-	omxRecompute(oro->A, fc);
-	omxRecompute(oro->S, fc);
-	omxRecompute(oro->F, fc);
-	if(oro->M != NULL)
-	    omxRecompute(oro->M, fc);
-	    
-	oro->CalculateRAMCovarianceAndMeans();
+	oro->CalculateRAMCovarianceAndMeans(fc);
 }
 
 static void omxDestroyRAMExpectation(omxExpectation* oo) {
@@ -113,6 +107,14 @@ static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
 	if (oro->rram) {
 		RelationalRAMExpectation::state *rram = oro->rram;
 		rram->exportInternalState(dbg);
+	} else {
+		oro->CalculateRAMCovarianceAndMeans(0);
+		EigenMatrixAdaptor Ecov(oro->cov);
+		out.add("covariance", Rcpp::wrap(Ecov));
+		if (oro->means) {
+			EigenVectorAdaptor Emean(oro->means);
+			out.add("mean", Rcpp::wrap(Emean));
+		}
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
@@ -146,10 +148,15 @@ omxMatrix *omxRAMExpectation::getZ(FitContext *fc)
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void omxRAMExpectation::CalculateRAMCovarianceAndMeans()
+void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 {
 	if (F->rows == 0) return;
 
+	omxRecompute(A, fc);
+	omxRecompute(S, fc);
+	omxRecompute(F, fc);
+	if (M) omxRecompute(M, fc);
+	    
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	if(Ax == NULL || I == NULL || Y == NULL || X == NULL) {

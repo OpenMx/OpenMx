@@ -553,7 +553,7 @@ class omxRAMExpectation {
 	};
 
 	omxMatrix *getZ(FitContext *fc);
-	void CalculateRAMCovarianceAndMeans();
+	void CalculateRAMCovarianceAndMeans(FitContext *fc);
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
