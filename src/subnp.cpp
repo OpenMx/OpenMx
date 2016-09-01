@@ -49,6 +49,9 @@ struct CSOLNP {
     template <typename T1, typename T2>
     void subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
                  const Eigen::Array<double, 4, 1> &ctrl, bool ineq_flag, int verbose);
+    
+    template <typename T1, typename T2>
+    void computeGrad_aug(int np, int nc, double funv, Eigen::MatrixBase<T1>&pars, Eigen::MatrixBase<T1>& grad, Eigen::MatrixBase<T2>& yy_e, double rho, Eigen::MatrixBase<T1>& vscale_e, Eigen::MatrixBase<T2>& a_e,Eigen::MatrixBase<T2>& b_e, bool flag);
 
 	enum indParam {
 		indNumParam=0,
@@ -101,6 +104,62 @@ struct fit_ineq_functional {
         int mode = 0;
         double fit = fabs(ineqv_e.array().min(0).sum()) - 1e-4;
         return(fit);
+    }
+};
+
+struct fit_functional_csolnp {
+    GradientOptimizerContext &goc;
+    fit_functional_csolnp(GradientOptimizerContext &goc) : goc(goc) {};
+    template <typename T1, typename T2>
+    double operator()(double* x, int thrId, int np, double* xs, Eigen::MatrixBase<T2>& yy_e, double rho, Eigen::MatrixBase<T1>& vscale_e, Eigen::MatrixBase<T2>& a_e, Eigen::MatrixBase<T2>& b_e, bool flag) const {
+        CSOLNP c_solnp(goc);
+        int mode = 0;
+        double funv = goc.evalFit(x, thrId, &mode);
+        int nineq; int neq; int nc;
+        if (flag){
+            nineq = 0;
+        }
+        else nineq = goc.inequality.size();
+        neq = goc.equality.size();
+        nc = neq + nineq;
+        Eigen::RowVectorXd p_e = Eigen::Map<Eigen::RowVectorXd>(xs, 1, np + nineq);
+        
+        if (mode == -1)
+        {
+            funv = 1e24;
+            mode = 0;
+        }
+        goc.copyFromOptimizer(x);
+        goc.solEqBFun();
+        goc.myineqFun();
+        
+        Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
+        Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
+        Eigen::RowVectorXd eqv_e(neq); eqv_e = goc.equality;
+        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -goc.inequality;
+        int verbose = 0;
+        c_solnp.obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, flag, verbose);
+        Eigen::RowVectorXd secondPart_e;
+        secondPart_e = vscale_e.block(0, 0, 1, nc + 1);
+        firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
+        Eigen::MatrixXd obm_e = firstPart_e;
+        
+        if (nineq > 0.5){
+            obm_e.block(0, neq+1, 1, nc-neq) -= p_e.block(0, 0, 1, nineq);
+        }
+        
+        double obm = obm_e(0, 0);
+        if (nc > 0){
+            Eigen::MatrixXd result_e = obm_e.block(0, 1, 1, nc);
+            result_e -= (a_e * p_e.transpose()).transpose();
+            result_e += b_e;
+            obm_e.block(0, 1, 1, nc) = result_e;
+            double vnormTerm = obm_e.block(0, 1, 1, nc).squaredNorm();
+            double dotProductTerm = yy_e.transpose().row(0).dot(obm_e.block(0, 1, 1, nc).row(0));
+            obm = obm_e(0, 0) - dotProductTerm + rho * vnormTerm;
+        }
+        
+        return obm;
     }
 };
 
@@ -916,74 +975,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     while (minit < maxit){
         minit = minit + 1;
         if (ch > 0){
+            Eigen::RowVectorXd tmpv_e;
+            tmpv_e = p_e.block(0, nineq, 1, npic - nineq);
+            tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
             
-            for (int i=0; i<np; i++){
-                int index = nineq + i;
-                p_e[index] = p_e[index] + delta;
-                Eigen::MatrixXd tmpv_e = p_e.block(0, nineq, 1, npic - nineq).array() * vscale_e.block(0, nc+1, 1, np).array();
-                if (verbose >= 3){
-                    mxLog("9th call is \n");
-                }
-                mode = 0;
-                funv = fit.solFun(tmpv_e.data(), &mode);
-                if (verbose >= 3){
-                    mxLog("funv is: \n");
-                    mxLog("%f", funv);
-                }
-                
-                if (mode == -1)
-                {
-                    funv = 1e24;
-                    mode = 0;
-                }
-                fit.solEqBFun();
-                fit.myineqFun();
-                
-                solnp_nfn = solnp_nfn + 1;
-                
-                Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
-                Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-                Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-                Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
-                
-                obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, ineq_flag, verbose);
-                
-                Eigen::RowVectorXd secondPart_e;
-                secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-                
-                firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
-                obm_e = firstPart_e;
-                
-                if (verbose >= 3){
-                    mxLog("j is: \n");
-                    mxLog("%f", j);
-                }
-                
-                if (ind[indHasIneq] > 0.5){
-                    obm_e.block(0, neq+1, 1, nc-neq) -= p_e.block(0, 0, 1, nineq);
-                }
-                
-                double obm = obm_e(0, 0);
-                if (nc > 0){
-                    Eigen::MatrixXd result_e = obm_e.block(0, 1, 1, nc);
-                    result_e -= (a_e * p_e.transpose()).transpose();
-                    result_e += b_e;
-                    obm_e.block(0, 1, 1, nc) = result_e;
-                    double vnormTerm = obm_e.block(0, 1, 1, nc).squaredNorm();
-                    double dotProductTerm = yy_e.transpose().row(0).dot(obm_e.block(0, 1, 1, nc).row(0));
-                    obm = obm_e(0, 0) - dotProductTerm + rho * vnormTerm;
-                }
-                
-                if (verbose >= 3)   mxLog("obm is: %.20f", obm);
-                
-                g_e[index] = (obm - j)/delta;
-                p_e[index] = p_e[index] - delta;
-                
-                if (verbose >= 3){
-			mxPrintMat("g", g_e);
-			mxPrintMat("p", p_e);
-                }
-            } // end for (i=0; i<np; i++){
+            computeGrad_aug(np, nc, j, p_e, g_e, yy_e, rho, vscale_e, a_e, b_e, ineq_flag);
             
             if (ind[indHasIneq] > 0.5){
                 Eigen::RowVectorXd temp;
@@ -1495,4 +1491,19 @@ void CSOLNP::compute_jacob(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::M
         jacobian.col(i) = jacobian.col(i).array()/vscale.col(i+1).value();
     }
     jacob.block(0, nineq, nineq+neq, np) = jacobian.transpose();
+}
+
+template <typename T1, typename T2>
+void CSOLNP::computeGrad_aug(int np, int nc, double funv, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& grad, Eigen::MatrixBase<T2>& yy_e, double rho, Eigen::MatrixBase<T1>& vscale_e, Eigen::MatrixBase<T2>& a_e, Eigen::MatrixBase<T2>& b_e, bool flag)
+{
+    GradientOptimizerContext *goc = &fit;
+    fit_functional_csolnp ff(*goc);
+    Eigen::Map< Eigen::VectorXd > Epoint(pars.transpose().data(), np+nineq);
+    Eigen::Map< Eigen::VectorXd > Egrad(grad.block(0, nineq, 1, np).transpose().data(), np);
+    double objective = funv;
+    gradient_with_ref_csolnp(goc->gradientAlgo, goc->numOptimizerThreads,
+                             goc->gradientIterations, goc->gradientStepSize,
+                             ff, objective, Epoint, Egrad, nineq, nc, np, yy_e, rho, vscale_e, a_e, b_e, flag);
+    grad.block(0, nineq, 1, np) = Egrad.transpose();
+    
 }

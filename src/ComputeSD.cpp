@@ -2,7 +2,7 @@
 
 #include "ComputeSD.h"
 #include "finiteDifferences.h"
-
+#include "finiteDifferences_csolnp.h"
 #pragma GCC diagnostic warning "-Wshadow"
 
 struct fit_functional {
