@@ -838,6 +838,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		baobj.sqrtCrit = sqrt(currentCI->bound[!side]);
 		baobj.lower = side;
 		baobj.constrained = useConstr;
+		// Could set farBox to the regular UB95, but we'd need to optimize to get it
 		Est = Mle;
 		fc.ciobj = &baobj;
 		plan->compute(&fc);
@@ -923,9 +924,14 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		bnobj.logAlpha = log(alphalevel);
 		bnobj.lower = !side;
 		bnobj.constrained = useConstr;
+		double boxSave = farBox;
+		farBox = Mle[currentCI->varIndex];
 		Est = Mle;
+		// Perspective helps? Optimizer seems to like to start further away
+		Est[currentCI->varIndex] = (9*Mle[currentCI->varIndex] + nearBox) / 10.0;
 		fc.ciobj = &bnobj;
 		plan->compute(&fc);
+		farBox = boxSave;
 		constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
