@@ -70,11 +70,12 @@
 mxSE <- function(x, model, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc){
+		message('Treating first argument as an expression')
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if('character' %in% is(x)){
-		print('Coolio')
+		message('Treating first argument as character named entity in the model')
 	} else {
 		stop("Please, sir.  'x' must be either the name of an entity in the model, or an expression for an MxAlgebra.")
 	}
