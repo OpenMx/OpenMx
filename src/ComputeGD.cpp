@@ -791,7 +791,8 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	std::string &matName = ciMatrix->nameStr;
 	omxFreeVar *fv = mle->varGroup->vars[currentCI->varIndex];
-	double &bound = fv->lbound == NEG_INF? fv->ubound : fv->lbound;
+	double &nearBox = fv->lbound == NEG_INF? fv->ubound : fv->lbound;
+	double &farBox = fv->lbound == NEG_INF? fv->lbound : fv->ubound;
 	int side = fv->lbound == NEG_INF? ConfidenceInterval::Upper : ConfidenceInterval::Lower;
 
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
@@ -802,11 +803,11 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		{
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			double bound_save = bound;
-			bound = NA_REAL;
+			double boxSave = nearBox;
+			nearBox = NA_REAL;
 			Est = Mle;
 			plan->compute(&fc);
-			bound = bound_save;
+			nearBox = boxSave;
 			if (verbose >= 2) {
 				omxRecompute(ciMatrix, &fc);
 				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
@@ -866,7 +867,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		double boundLL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!setNearAtBound &&
-		    fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
+		    fabs(Mle[currentCI->varIndex] - nearBox) > sqrt(std::numeric_limits<double>::epsilon())) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 			ciConstraintEq constr(1);
@@ -875,7 +876,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			bound1CIobj ciobj;
 			ciobj.constrained = useInequality;
 			ciobj.CI = currentCI;
-			ciobj.bound = bound;
+			ciobj.bound = nearBox;
 			fc.ciobj = &ciobj;
 			Est = Mle;
 			plan->compute(&fc);
@@ -898,7 +899,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		double d0 = sqrt(std::max(boundLL - mle->fit, 0.0));
 		if (d0 < sqrtCrit90) {
 			fc.fit = boundLL;
-			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, bound, DIAG_SUCCESS);
+			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox, DIAG_SUCCESS);
 			return;
 		}
 	
