@@ -55,7 +55,7 @@ The \code{verbose} argument changes the printing style for the \code{summary} of
 The \code{Information Criteria} (AIC, BIC) are reported in a table.  The table shows different versions of the information criteria.  Each entry in the table is an AIC or BIC obtained using different penalties.  In particular, the entries of the table do not show the values of different penalties, but rather different versions of AIC and BIC.  For example the AIC is reported with both a Parameters Penalty and a Degrees of Freedom Penalty.  AIC generally takes the form \eqn{Fit + 2*k}.  With the Parameters Penalty \eqn{k} is the number of free parameters:  \eqn{AIC.param = Fit + 2*param}.  With the Degrees of Freedom Penalty, \eqn{k} is minus one times the model degrees of freedom.  So, essentially the penalty is subtracted instead of added: \eqn{AIC.param = Fit - 2*df}.  The Degrees of Freedom penalty was used in Classic Mx.  BIC is defined similarly: \eqn{Fit + k*log(N)} where \eqn{k} is either the number of free parameters or minus one times the model degrees of freedom.  The Sample-Size Adjusted BIC is only defined for the parameters penalty: \eqn{Fit + k*log((N+2)/24)}.  For raw data models, \eqn{Fit} is the minus 2 log likelihood, \eqn{-2LL}.  For covariance data, \eqn{Fit} is the Chi-squared statistic.  The \eqn{-2LL} and saturated likelihood values reported under covariance data are not necessarily meaningful on their own, but their difference yields the Chi-squared value.
 
 The \code{refModels}, \code{SaturatedLikelihood}, \code{SaturatedDoF}, \code{IndependenceLikelihood}, and \code{IndependenceDoF} arguments can be used to obtain further fit statistics (RMSEA, CFI, TLI, Chi-Squared).  For covariance data, saturated and independence models are fitted automatically so all fit indices are reported.  For raw data, these reference models are not estimated to save computational time.  An easy way to make reference models for most cases is provided by the \link{mxRefModels} function.  When the \code{SaturatedLikelihood} or \code{IndependenceLikelihood} arguments are used, the appropriate degrees of freedom are attempted to be calculated by OpenMx.  However, depending on the model, it may sometimes behoove the user to also explicity provide the corresponding \code{SaturatedDoF} and/or \code{IndependenceDoF}.  Again, for the vast majority of cases, the \link{mxRefModels} function handles these situations effectively and conveniently.
-   
+
 The summary function can report Error codes as follows:
    
    \itemize{
@@ -79,6 +79,8 @@ with likelihood-based confidence intervals.
 
 For many raw data models, OpenMx does not automatically report the absolute fit indices (Chi-Squared, CFI, TLI, and RMSEA).  They are available once you fit reference models.  See the example given in \link{mxRefModels}.
 
+With regard to RMSEA, it is important to note that OpenMx does not currently make a multigroup adjustment that some other structural equation modeling programs make.  In particular, we do not multiply the single-group RMSEA by the square root of the number of groups as suggested by Steiger (1998).  The RMSEA we use is based on the model likelihood (and degrees of freedom) as compared to the saturated model likelihood (and degrees of freedom), and we do not feel the adjustment is appropriate in this case.
+
 OpenMx does not recommend using some fit indices.  These are GFI, AGFI, NFI, and SRMR.  The Goodness of Fit Index (GFI) and Adjusted Goodness of Fit Index (AGFI) are not recommended because they are strongly influeced by sample size and have rather high Type I error rates (Sharma, Mukherjee, Kumar, & Dillon, 2005).  The Normed Fit Index (NFI) has no penalty for model complexity.  That is, adding more parameters to a model always improves the NFI, regardless of how useful those parameters are.  Because the Non-Normed Fit Index (NNFI), also known as the Tucker-Lewis Index (TLI), does adjust for model complexity it is used instead.  Lastly, the Standardized Root Mean Square Residual (SRMR) is not reported because it (1) only applies to covariance models, having no direct extension to missing data, (2) has no penalty for model complexity, similar to the NFI, and (3) is positively biased (Hu & Bentler, 1999).
 
 }
@@ -89,6 +91,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 Hu, L., & Bentler, P. M. (1999). Cutoff criteria for fit indexes in covariance structure analysis: Conventional criteria versus new alternatives. \emph{Structural Equation Modeling, 6,} 1-55.
 
 Sharma, S., Mukherjee, S., Kumar, A., & Dillon, W.R. (2005). A simulation study to investigate the use of cutoff values for assessing model fit in covariance structure models. \emph{Journal of Business Research, 58,} 935-43.
+
+Steiger, J. H. (1998). A note on multiple sample extensions of the RMSEA fit index. \emph{Structural Equation Modeling: A Multidisciplinary Journal, 5(4)}, 411–419. DOI: 10.1080/10705519809540115
 }
 
 \examples{
