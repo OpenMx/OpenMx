@@ -798,9 +798,15 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 
-	bool setNearAtBound = false;
+	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
 	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
-		{
+		if (!boundActive) {
+			Diagnostic diag;
+			double val;
+			regularCI(mle, fc, currentCI, side, val, diag);
+			recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
+			goto part2;
+		} else {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 			double boxSave = nearBox;
@@ -812,14 +818,6 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 				omxRecompute(ciMatrix, &fc);
 				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 				mxLog("without bound, fit %.8g val %.8g", fc.fit, val);
-			}
-			setNearAtBound = mle->fit - fc.fit > currentCI->bound[side];
-			if (mle->fit - fc.fit < sqrt(std::numeric_limits<double>::epsilon())) {
-				Diagnostic diag;
-				double val;
-				regularCI(mle, fc, currentCI, side, val, diag);
-				recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
-				goto part2;
 			}
 		}
 
@@ -866,8 +864,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		double boundLL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
-		if (!setNearAtBound &&
-		    fabs(Mle[currentCI->varIndex] - nearBox) > sqrt(std::numeric_limits<double>::epsilon())) {
+		if (!boundActive) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 			ciConstraintEq constr(1);
