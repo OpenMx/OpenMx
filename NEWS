@@ -1,3 +1,7 @@
+The mxSE() function is new. It allows standard errors to be calculated
+for arbitrary named entities (free parameters, matrices, algebras) and
+expressions.
+
 SLSQP will now ignore inactive equality constraints and correctly
 report when inequality constraints cannot be satisfied.
 
