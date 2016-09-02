@@ -24,48 +24,49 @@
 #  It is a frontend-only file that works much like mxEval.
 #------------------------------------------------------------------------------
 
-#' mxSE - Compute standard errors in OpenMx
-#' @description
-#' This function allows you to obtain standard errors for arbitrary
-#' expressions, named entities, and algebras.
-#' @details
-#' x can be the name of an algebra, a bracket address, named entity
-#' or arbitrary expression. It is a frontend-only file that works
-#' much like mxEval.
-#'
-#' @param x the parameter to get SEs on (reference or expression)
-#' @param model the \code{\link{mxModel}} to use.
-#' @param ... further named arguments passed to \code{\link{mxEval}}
-#' @return SE value(s) returned as a matrix.
-#' @export
-#' @family Reporting Functions
-#' @seealso - \code{\link{mxCI}}
-#' @references - \url{https://en.wikipedia.org/wiki/Standard_error}
-#' @examples
-#' library(OpenMx)
-#' data(demoOneFactor)
-#' # ===============================
-#' # = Make and run a 1-factor CFA =
-#' # ===============================
-#' 
-#' latents  = c("G") # the latent factor
-#' manifests = names(demoOneFactor) # manifest variables to be modeled
-#' # ===========================
-#' # = Make and run the model! =
-#' # ===========================
-#' m1 <- mxModel("One Factor", type = "RAM", 
-#' 	manifestVars = manifests, latentVars = latents, 
-#' 	mxPath(from = latents, to = manifests),
-#' 	mxPath(from = manifests, arrows = 2),
-#' 	mxPath(from = latents, arrows = 2, free = FALSE, values = 1),
-#' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500)
-#' )
-#' m1 = mxRun(m1)
-#' mxSE('A', model = m1)
-#' mxSE((A + A) %*% S, model = m1)
-#' mxSE(S, model = m1)
-#' mxSE(A[1,2], model = m1)
-#' mxSE(A[1,6]^2, model = m1)
+
+##' Compute standard errors in OpenMx
+##' 
+##' @description
+##' This function allows you to obtain standard errors for arbitrary
+##' expressions, named entities, and algebras.
+##' 
+##' @details
+##' x can be the name of an algebra, a bracket address, named entity
+##' or arbitrary expression. It is a frontend-only file that works
+##' much like mxEval.
+##'
+##' @param x the parameter to get SEs on (reference or expression)
+##' @param model the \code{\link{mxModel}} to use.
+##' @param ... further named arguments passed to \code{\link{mxEval}}
+##' @return SE value(s) returned as a matrix.
+##' @seealso - \code{\link{mxCI}}
+##' @references - \url{https://en.wikipedia.org/wiki/Standard_error}
+##' @examples
+##' library(OpenMx)
+##' data(demoOneFactor)
+##' # ===============================
+##' # = Make and run a 1-factor CFA =
+##' # ===============================
+##' 
+##' latents  = c("G") # the latent factor
+##' manifests = names(demoOneFactor) # manifest variables to be modeled
+##' # ===========================
+##' # = Make and run the model! =
+##' # ===========================
+##' m1 <- mxModel("One Factor", type = "RAM", 
+##' 	manifestVars = manifests, latentVars = latents, 
+##' 	mxPath(from = latents, to = manifests),
+##' 	mxPath(from = manifests, arrows = 2),
+##' 	mxPath(from = latents, arrows = 2, free = FALSE, values = 1),
+##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+##' )
+##' m1 = mxRun(m1)
+##' mxSE('A', model = m1)
+##' mxSE((A + A) %*% S, model = m1)
+##' mxSE(S, model = m1)
+##' mxSE(A[1,2], model = m1)
+##' mxSE(A[1,6]^2, model = m1)
 mxSE <- function(x, model, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc){

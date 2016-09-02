@@ -155,6 +155,7 @@ man/MxOptionalNumeric-class.Rd
 man/MxRAMGraph-class.Rd
 man/MxRAMMetaData-class.Rd
 man/MxRAMModel-class.Rd
+man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/omxCheckCloseEnough.Rd
