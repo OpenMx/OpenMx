@@ -22,7 +22,9 @@
 #include "Compute.h"
 #include "matrix.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 static const char engineName[] = "NnRn";
 

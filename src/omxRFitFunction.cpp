@@ -18,7 +18,9 @@
 #include "Compute.h"
 #include "omxRFitFunction.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *)
 {

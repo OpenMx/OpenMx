@@ -18,7 +18,9 @@
 #include "omxFIMLFitFunction.h"
 #include "omxLISRELExpectation.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.

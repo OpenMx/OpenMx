@@ -24,7 +24,9 @@
 #include "Compute.h"
 #include "npsolswitch.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 template <typename T1>
 void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)

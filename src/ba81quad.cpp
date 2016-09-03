@@ -17,7 +17,9 @@
 
 #include "ba81quad.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 const double ba81NormalQuad::MIN_VARIANCE = 0.01;
 

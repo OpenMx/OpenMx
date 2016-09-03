@@ -22,7 +22,9 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 struct BA81FitState {
 	//private:

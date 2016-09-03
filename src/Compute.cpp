@@ -32,7 +32,9 @@
 #include "finiteDifferences_csolnp.h"
 #include <Eigen/Cholesky>
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void pda(const double *ar, int rows, int cols);
 

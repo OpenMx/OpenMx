@@ -26,7 +26,9 @@
 #include "glue.h"
 #include "ComputeSD.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 enum OptEngine {
 	OptEngine_NPSOL,

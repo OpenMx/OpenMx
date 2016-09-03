@@ -37,7 +37,9 @@
 #include "Compute.h"
 #include "omxBuffer.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;

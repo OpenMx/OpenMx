@@ -10,7 +10,9 @@
 
 #include "nlopt.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 namespace SLSQP {
 

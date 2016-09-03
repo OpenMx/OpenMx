@@ -19,7 +19,9 @@
 #include "glue.h"
 #include "omxCsolnp.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void omxCSOLNP(GradientOptimizerContext &go)
 {

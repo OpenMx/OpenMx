@@ -6,7 +6,9 @@
 #include "matrix.h"
 #include "glue.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 static const int ERROR_LEN = 80;
 
