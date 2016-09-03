@@ -165,13 +165,13 @@ void gradient_with_ref_csolnp(GradientAlgorithm algo, int numThreads, int order,
 struct forward_difference_jacobi_c {
     template <typename T1, typename T2, typename T3, typename T4>
     void operator()(T1 ff, Eigen::MatrixBase<T4> &refFit, Eigen::MatrixBase<T2> &point,
-                    double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox)
+                    double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox, bool flag)
     {
         double orig = point[px];
         Eigen::VectorXd result(refFit.size());
         for(int k = 0; k < numIter; k++) {
             point[px] = orig + offset;
-            ff(point, result);
+            ff(point, result, flag);
             Gaprox.col(k) = (result - refFit) / offset;
         }
         point[px] = orig;
@@ -181,16 +181,16 @@ struct forward_difference_jacobi_c {
 struct central_difference_jacobi_c {
     template <typename T1, typename T2, typename T3, typename T4>
     void operator()(T1 ff, Eigen::MatrixBase<T4> &refFit, Eigen::MatrixBase<T2> &point,
-                    double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox)
+                    double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox, bool flag)
     {
         double orig = point[px];
         Eigen::VectorXd result1(refFit.size());
         Eigen::VectorXd result2(refFit.size());
         for(int k = 0; k < numIter; k++) {
             point[px] = orig + offset;
-            ff(point, result1);
+            ff(point, result1, flag);
             point[px] = orig - offset;
-            ff(point, result2);
+            ff(point, result2, flag);
             Gaprox.col(k) = (result1 - result2) / (2.0 * offset);
         }
         point[px] = orig;
@@ -199,13 +199,13 @@ struct central_difference_jacobi_c {
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
 void jacobianImpl_c(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &point,
-                  int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut)
+                  int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut, bool flag)
 {
     double offset = eps;
     // TODO evaluate jacobian in parallel
     for (int px=0; px < int(point.size()); ++px) {
         Eigen::MatrixXd Gaprox(ref.size(), numIter);
-        dfn(ff, ref, point, offset, px, numIter, Gaprox);
+        dfn(ff, ref, point, offset, px, numIter, Gaprox, flag);
         for(int m = 1; m < numIter; m++) {						// Richardson Step
             for(int k = 0; k < (numIter - m); k++) {
                 // NumDeriv Hard-wires 4s for r here. Why?
@@ -218,16 +218,16 @@ void jacobianImpl_c(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &p
 
 template <typename T1, typename T2, typename T3, typename T4>
 void fd_jacobian_c(GradientAlgorithm algo, int numIter, double eps, T1 ff, Eigen::MatrixBase<T2> &ref,
-                 Eigen::MatrixBase<T3> &point, Eigen::MatrixBase<T4> &jacobiOut)
+                 Eigen::MatrixBase<T3> &point, Eigen::MatrixBase<T4> &jacobiOut, bool flag)
 {
     switch (algo) {
         case GradientAlgorithm_Forward:{
             forward_difference_jacobi_c dfn;
-            jacobianImpl_c(ff, ref, point, numIter, eps, dfn, jacobiOut);
+            jacobianImpl_c(ff, ref, point, numIter, eps, dfn, jacobiOut, flag);
             break;}
         case GradientAlgorithm_Central:{
             central_difference_jacobi_c dfn;
-            jacobianImpl_c(ff, ref, point, numIter, eps, dfn, jacobiOut);
+            jacobianImpl_c(ff, ref, point, numIter, eps, dfn, jacobiOut, flag);
             break;}
         default: Rf_error("Unknown gradient algorithm %d", algo);
     }
