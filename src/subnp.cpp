@@ -89,8 +89,12 @@ struct constraint_functional {
         goc.copyFromOptimizer(x.derived().data());
         goc.solEqBFun();
         goc.myineqFun();
-	if (flag) result << goc.equality;
-	else result << goc.equality, -goc.inequality;
+        if (goc.inequality.size()) {
+            if (flag) result << goc.equality;
+            else if (goc.equality.size()) result << goc.equality, -goc.inequality;
+            else result << -goc.inequality;
+        }
+        else result << goc.equality;
     }
 };
 
