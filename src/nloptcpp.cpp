@@ -285,7 +285,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 		}
 	} else if (code < 0) {
-		Rf_error("NLOPT fatal error %d", code);
+		Rf_error("NLOPT unrecognized error %d; please report to developers", code);
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
 	} else {
