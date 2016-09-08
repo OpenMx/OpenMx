@@ -10,10 +10,10 @@
 #include "matrix.h"
 #include "omxCsolnp.h"
 #include "finiteDifferences_csolnp.h"
-#include <iostream>
-#include <iomanip>
-using std::cout;
-using std::endl;
+//#include <iostream>
+//#include <iomanip>
+//using std::cout;
+//using std::endl;
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
@@ -46,7 +46,7 @@ struct CSOLNP {
     void compute_grad(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& vscale, Eigen::MatrixBase<T1>& grad, bool flag);
     
     template <typename T1, typename T2>
-    void compute_jacob(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& vscale, Eigen::MatrixBase<T2>&  jacob, bool flag);
+    void compute_jacob(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& vscale, Eigen::MatrixBase<T2>&  jacob);
     
     template <typename T1, typename T2>
     void subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
@@ -85,12 +85,11 @@ struct constraint_functional {
     constraint_functional(GradientOptimizerContext &goc) : goc(goc) {};
     
     template <typename T1, typename T2>
-    void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, bool flag) const {
+    void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
         goc.copyFromOptimizer(x.derived().data());
         goc.solEqBFun();
         goc.myineqFun();
-	if (flag) result << goc.equality;
-	else result << goc.equality, -goc.inequality;
+        result << goc.equality, -goc.inequality;
     }
 };
 
@@ -787,7 +786,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
         
         compute_grad(np, nc, tmpv_e, vscale_e, g_e, ineq_flag);
-        compute_jacob(np, nc, tmpv_e, vscale_e, a_e, ineq_flag);
+        compute_jacob(np, nc, tmpv_e, vscale_e, a_e);
         
         if (mode == -1)
         {
@@ -1474,23 +1473,22 @@ void CSOLNP::compute_grad(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::Ma
     }
     
     Egrad = Egrad/(vscale(0, 0));
-    grad.block(0, nineq, 1, np) = Egrad.transpose().eval();
+    grad.block(0, nineq, 1, np) = Egrad.transpose();
     if (goc->verbose >= 3) {
         mxPrintMat("gradient", Egrad);
     }
 }
 
 template <typename T1, typename T2>
-void CSOLNP::compute_jacob(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& vscale, Eigen::MatrixBase<T2>& jacob, bool flag)
+void CSOLNP::compute_jacob(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::MatrixBase<T1>& vscale, Eigen::MatrixBase<T2>& jacob)
 {
     GradientOptimizerContext *goc = &fit;
     Eigen::Map< Eigen::VectorXd > Epoint(pars.transpose().data(), np);
-    if (flag) nineq = 0;
-    Eigen::VectorXd Eresult(nineq+neq); Eresult.setZero();
+    Eigen::VectorXd Eresult(jacob.rows(), np); Eresult.setZero();
     Eigen::MatrixXd jacobian = jacob.block(0, nineq, nineq+neq, np).transpose();
     constraint_functional ff(*goc);
-    ff(Epoint, Eresult, flag);
-    fd_jacobian_c(GradientAlgorithm_Forward, goc->gradientIterations, goc->gradientStepSize, ff, Eresult, Epoint, jacobian, flag);
+    ff(Epoint, Eresult);
+    fd_jacobian_c(GradientAlgorithm_Forward, goc->gradientIterations, goc->gradientStepSize, ff, Eresult, Epoint, jacobian);
     for (int i = 0; i < nc; i++){
         jacobian.col(i) = jacobian.col(i).array()/vscale.col(i+1).value();
     }
@@ -1508,6 +1506,6 @@ void CSOLNP::computeGrad_aug(int np, int nc, double funv, Eigen::MatrixBase<T1>&
     gradient_with_ref_csolnp(goc->gradientAlgo, goc->numOptimizerThreads,
                              goc->gradientIterations, goc->gradientStepSize,
                              ff, objective, Epoint, Egrad, nineq, nc, np, yy_e, rho, vscale_e, a_e, b_e, flag);
-    grad.block(0, nineq, 1, np) = Egrad.transpose().eval();
+    grad.block(0, nineq, 1, np) = Egrad.transpose();
     
 }
