@@ -29,7 +29,6 @@
 #include "omxBuffer.h"
 #include "omxState.h"
 #include "finiteDifferences.h"
-#include "finiteDifferences_csolnp.h"
 #include <Eigen/Cholesky>
 
 #ifdef SHADOW_DIAG

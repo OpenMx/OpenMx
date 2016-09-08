@@ -2,7 +2,6 @@
 
 #include "ComputeSD.h"
 #include "finiteDifferences.h"
-#include "finiteDifferences_csolnp.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
