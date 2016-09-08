@@ -35,6 +35,7 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 	# http://stackoverflow.com/questions/12598242/global-variables-in-packages-in-r
 	assign("pkg_globals", new.env(), envir=parent.env(environment()))
 	mxSetDefaultOptions()
+	assign("myVersion", packageVersion("OpenMx"), pkg_globals)
 }
 
 .onAttach <- function(libname, pkgname) {
