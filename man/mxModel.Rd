@@ -125,8 +125,8 @@ HSModel <- mxModel(model="Holzinger_and_Swineford_1939", type="RAM",
     mxPath(from="vis" , to="text", arrows=2, free=TRUE),
     mxPath(from="math", to="text", arrows=2, free=TRUE),
 
-    # Allow latent variables to have variance (first fixed  @ 1)
-    mxPath(from=latents, arrows=2, free=c(FALSE,TRUE,TRUE), values=1.0), 
+    # Allow latent variables to have variance
+    mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
     # Manifest have residual variance
     mxPath(from=manifests, arrows=2),   
     # the data to be analysed
