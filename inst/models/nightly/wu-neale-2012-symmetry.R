@@ -110,4 +110,4 @@ diff <- (result[result$sign == 1,c('lbound','ubound')] +
 
 omxCheckCloseEnough(sum(is.na(diff)), 0, 2)
 
-omxCheckCloseEnough(max(abs(diff), na.rm=TRUE), 0, 1e-6)
+omxCheckCloseEnough(max(abs(diff), na.rm=TRUE), 0, 1e-5)

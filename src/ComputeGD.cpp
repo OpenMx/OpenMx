@@ -868,22 +868,37 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		if (!boundActive) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			ciConstraintEq constr(1);
-			constr.fitMat = fitMatrix;
-			constr.push(state);
-			bound1CIobj ciobj;
-			ciobj.constrained = useInequality;
-			ciobj.CI = currentCI;
-			ciobj.bound = nearBox;
-			fc.ciobj = &ciobj;
-			Est = Mle;
-			plan->compute(&fc);
-			constr.pop();
-			boundLL = fc.fit;
-			if (fabs(ciobj.eq(0)) > 1e-3) {
-				recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
-					 NA_REAL, DIAG_BOUND_INFEASIBLE);
-				return;
+			for (int method=0; method < 2; ++method) {
+				if (method == 0) {
+					Est = Mle;
+					Est[currentCI->varIndex] = nearBox; // might be infeasible
+					fc.profiledOut[currentCI->varIndex] = true;
+					plan->compute(&fc);
+					fc.profiledOut[currentCI->varIndex] = false;
+					if (fc.getInform() == 0) {
+						boundLL = fc.fit;
+						break;
+					}
+				} else {
+					// Might work if simple approach failed
+					ciConstraintEq constr(1);
+					constr.fitMat = fitMatrix;
+					constr.push(state);
+					bound1CIobj ciobj;
+					ciobj.constrained = useInequality;
+					ciobj.CI = currentCI;
+					ciobj.bound = nearBox;
+					fc.ciobj = &ciobj;
+					Est = Mle;
+					plan->compute(&fc);
+					constr.pop();
+					boundLL = fc.fit;
+					if (fabs(ciobj.eq(0)) > 1e-3) {
+						recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
+							 NA_REAL, DIAG_BOUND_INFEASIBLE);
+						return;
+					}
+				}
 			}
 			//mxPrintMat("bound1", ciobj.ineq);
 			//mxLog("mle %g boundLL %g", mle->fit, boundLL);
