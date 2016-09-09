@@ -22,7 +22,9 @@
 #include "glue.h"
 #include "omxExportBackendState.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void omxState::omxExportResults(MxRList *out, FitContext *fc)
 {

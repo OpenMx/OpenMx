@@ -29,7 +29,9 @@
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 omxData::omxData() : rownames(0), primaryKey(-1),
 		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),

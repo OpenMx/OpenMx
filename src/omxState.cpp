@@ -22,7 +22,9 @@
 #include "Compute.h"
 #include "omxImportFrontendState.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 struct omxGlobal *Global = NULL;
 

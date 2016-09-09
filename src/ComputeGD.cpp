@@ -26,7 +26,9 @@
 #include "glue.h"
 #include "ComputeSD.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 enum OptEngine {
 	OptEngine_NPSOL,
@@ -789,34 +791,33 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	std::string &matName = ciMatrix->nameStr;
 	omxFreeVar *fv = mle->varGroup->vars[currentCI->varIndex];
-	double &bound = fv->lbound == NEG_INF? fv->ubound : fv->lbound;
+	double &nearBox = fv->lbound == NEG_INF? fv->ubound : fv->lbound;
+	double &farBox = fv->lbound == NEG_INF? fv->lbound : fv->ubound;
 	int side = fv->lbound == NEG_INF? ConfidenceInterval::Upper : ConfidenceInterval::Lower;
 
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 
-	bool setNearAtBound = false;
+	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
 	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
-		{
+		if (!boundActive) {
+			Diagnostic diag;
+			double val;
+			regularCI(mle, fc, currentCI, side, val, diag);
+			recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
+			goto part2;
+		} else {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			double bound_save = bound;
-			bound = NA_REAL;
+			double boxSave = nearBox;
+			nearBox = NA_REAL;
 			Est = Mle;
 			plan->compute(&fc);
-			bound = bound_save;
+			nearBox = boxSave;
 			if (verbose >= 2) {
 				omxRecompute(ciMatrix, &fc);
 				double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 				mxLog("without bound, fit %.8g val %.8g", fc.fit, val);
-			}
-			setNearAtBound = mle->fit - fc.fit > currentCI->bound[side];
-			if (mle->fit - fc.fit < sqrt(std::numeric_limits<double>::epsilon())) {
-				Diagnostic diag;
-				double val;
-				regularCI(mle, fc, currentCI, side, val, diag);
-				recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
-				goto part2;
 			}
 		}
 
@@ -837,6 +838,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		baobj.sqrtCrit = sqrt(currentCI->bound[!side]);
 		baobj.lower = side;
 		baobj.constrained = useConstr;
+		// Could set farBox to the regular UB95, but we'd need to optimize to get it
 		Est = Mle;
 		fc.ciobj = &baobj;
 		plan->compute(&fc);
@@ -863,26 +865,40 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
 		double boundLL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
-		if (!setNearAtBound &&
-		    fabs(Mle[currentCI->varIndex] - bound) > sqrt(std::numeric_limits<double>::epsilon())) {
+		if (!boundActive) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			ciConstraintEq constr(1);
-			constr.fitMat = fitMatrix;
-			constr.push(state);
-			bound1CIobj ciobj;
-			ciobj.constrained = useInequality;
-			ciobj.CI = currentCI;
-			ciobj.bound = bound;
-			fc.ciobj = &ciobj;
-			Est = Mle;
-			plan->compute(&fc);
-			constr.pop();
-			boundLL = fc.fit;
-			if (fabs(ciobj.eq(0)) > 1e-3) {
-				recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
-					 NA_REAL, DIAG_BOUND_INFEASIBLE);
-				return;
+			for (int method=0; method < 2; ++method) {
+				if (method == 0) {
+					Est = Mle;
+					Est[currentCI->varIndex] = nearBox; // might be infeasible
+					fc.profiledOut[currentCI->varIndex] = true;
+					plan->compute(&fc);
+					fc.profiledOut[currentCI->varIndex] = false;
+					if (fc.getInform() == 0) {
+						boundLL = fc.fit;
+						break;
+					}
+				} else {
+					// Might work if simple approach failed
+					ciConstraintEq constr(1);
+					constr.fitMat = fitMatrix;
+					constr.push(state);
+					bound1CIobj ciobj;
+					ciobj.constrained = useInequality;
+					ciobj.CI = currentCI;
+					ciobj.bound = nearBox;
+					fc.ciobj = &ciobj;
+					Est = Mle;
+					plan->compute(&fc);
+					constr.pop();
+					boundLL = fc.fit;
+					if (fabs(ciobj.eq(0)) > 1e-3) {
+						recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
+							 NA_REAL, DIAG_BOUND_INFEASIBLE);
+						return;
+					}
+				}
 			}
 			//mxPrintMat("bound1", ciobj.ineq);
 			//mxLog("mle %g boundLL %g", mle->fit, boundLL);
@@ -896,7 +912,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		double d0 = sqrt(std::max(boundLL - mle->fit, 0.0));
 		if (d0 < sqrtCrit90) {
 			fc.fit = boundLL;
-			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, bound, DIAG_SUCCESS);
+			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox, DIAG_SUCCESS);
 			return;
 		}
 	
@@ -923,9 +939,14 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		bnobj.logAlpha = log(alphalevel);
 		bnobj.lower = !side;
 		bnobj.constrained = useConstr;
+		double boxSave = farBox;
+		farBox = Mle[currentCI->varIndex];
 		Est = Mle;
+		// Perspective helps? Optimizer seems to like to start further away
+		Est[currentCI->varIndex] = (9*Mle[currentCI->varIndex] + nearBox) / 10.0;
 		fc.ciobj = &bnobj;
 		plan->compute(&fc);
+		farBox = boxSave;
 		constr.pop();
 
 		omxRecompute(ciMatrix, &fc);

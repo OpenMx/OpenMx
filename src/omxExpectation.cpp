@@ -32,7 +32,9 @@
 
 #include "omxExpectation.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 

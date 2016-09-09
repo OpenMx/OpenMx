@@ -19,7 +19,9 @@
 #include "omxData.h"
 #include "omxFIMLFitFunction.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 /* FIML Function body */
 void omxDestroyFIMLFitFunction(omxFitFunction *off) {

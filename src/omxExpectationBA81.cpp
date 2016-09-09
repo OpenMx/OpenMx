@@ -24,7 +24,9 @@
 #include "omxBuffer.h"
 #include "matrix.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 #define USE_EXTERNAL_LIBRPF 1
 

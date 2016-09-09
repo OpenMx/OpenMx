@@ -1,3 +1,11 @@
+mxCI() now implements the Wu & Neale (2012) adjustment for parameters
+with upper or lower bounds. Use mxCI(..., boundAdj=FALSE) to disable
+the adjustment.
+
+The mxSE() function is new. It allows standard errors to be calculated
+for arbitrary named entities (free parameters, matrices, algebras) and
+expressions.
+
 SLSQP will now ignore inactive equality constraints and correctly
 report when inequality constraints cannot be satisfied.
 

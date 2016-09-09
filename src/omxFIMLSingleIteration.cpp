@@ -22,7 +22,9 @@
 #include "matrix.h"
 #include <Eigen/Cholesky>
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs, 
 	int *numIdenticalContinuousMissingness,

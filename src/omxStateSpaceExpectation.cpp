@@ -40,7 +40,9 @@
 #include "omxFIMLFitFunction.h"
 #include "omxStateSpaceExpectation.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }

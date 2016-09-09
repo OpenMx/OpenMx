@@ -38,7 +38,9 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 }
 #endif
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 void omxSadmvnWrapper(int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);

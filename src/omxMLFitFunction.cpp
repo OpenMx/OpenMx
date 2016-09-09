@@ -26,7 +26,9 @@
 #include "omxBuffer.h"
 #include "matrix.h"
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 static const double MIN_VARIANCE = 1e-6;
 

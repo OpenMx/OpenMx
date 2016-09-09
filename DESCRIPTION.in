@@ -155,5 +155,6 @@ Collate:
     'MxRobustSE.R'
     'MxAvailableOptimizers.R'
     'MxTryHard.R'
+    'MxSE.R'
     'zzz.R'
 Version: @VERSION@

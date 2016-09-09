@@ -60,7 +60,7 @@ if [ "$cxx_type" = gcc ]; then
     cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
     COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations"
     if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
-	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto"
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DSHADOW_DIAG"
 	COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
 	xcheck_CXXFLAGS="-fsanitize=undefined"
 	xcheck_LDFLAGS="-fsanitize=undefined"

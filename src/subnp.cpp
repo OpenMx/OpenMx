@@ -14,7 +14,9 @@
 //using std::cout;
 //using std::endl;
 
+#ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#endif
 
 struct CSOLNP {
 

@@ -148,6 +148,8 @@ generateIntervalList <- function(flatModel, modelname, parameters, labelsData) {
 		flatModel, modelname, parameters, labelsData)
 	names(retval) <- NULL
 	retval <- unlist(retval, recursive = FALSE)
+	# Might have requested a CI of the same parameter in different submodels
+	retval <- retval[!duplicated(names(retval))]
 	return(retval)
 }
 
