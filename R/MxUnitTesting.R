@@ -280,16 +280,16 @@ omxCheckWarning <- function(expression, message) {
 ##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), .01), tmsg)
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
-	assign("checkErrorState", FALSE, pkg_globals)
+	pkg_globals$checkErrorState <- FALSE
 	tryCatch(eval(inputExpression), error = function(x) {
 		if(!any(trim(x$message) == trim(message))) {
 			stop(paste("An error was thrown with the wrong message:",
 				x$message), call. = FALSE)
 		} else {
-			assign("checkErrorState", TRUE, pkg_globals)
+			pkg_globals$checkErrorState <- TRUE
 		}
 	})
-	if (!get("checkErrorState", pkg_globals)) {
+	if (!pkg_globals$checkErrorState) {
 		stop(paste("No error was observed for the expression",
 			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
 	} else if (getOption("mxPrintUnitTests")) {

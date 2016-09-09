@@ -1,3 +1,6 @@
+pkg_globals <- new.env()
+pkg_globals$myVersion <- packageVersion("OpenMx")
+
 # Copied from Hadley Wickham's memoise package
 
 new_cache <- function() {
