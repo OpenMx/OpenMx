@@ -63,7 +63,7 @@ setMethod("initialize", "MxModel",
 	        .Object@.wasRun <- FALSE
 	        .Object@.modifiedSinceRun <- FALSE
 		if (.hasSlot(.Object, '.version')) {
-			.Object@.version <- get("myVersion", pkg_globals)
+			.Object@.version <- pkg_globals$myVersion
 		}
 		.Object <- imxInitModel(.Object)
 		return(.Object)
