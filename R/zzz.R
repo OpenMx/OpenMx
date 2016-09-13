@@ -34,6 +34,12 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 .onLoad <- function(libname, pkgname) {
 	mxSetDefaultOptions()
 	pkg_globals$myVersion <- packageVersion("OpenMx")
+	if (.Platform$GUI!="Rgui") {
+		.Call(.enableMxLog)
+	} else {
+		packageStartupMessage(paste("Notice: R GUI cannot display verbose output from the OpenMx backend.",
+					    "If you need detail diagnostics then R CMD BATCH is one option."))
+	}
 }
 
 .onAttach <- function(libname, pkgname) {

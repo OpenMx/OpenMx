@@ -320,6 +320,7 @@ void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf,
 std::string string_vsnprintf(const char *fmt, va_list ap);
 
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
+SEXP enableMxLog();
 
 #endif /* _OMXSTATE_H_ */
 
