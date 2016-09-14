@@ -33,10 +33,16 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
 .onLoad <- function(libname, pkgname) {
 	mxSetDefaultOptions()
-	pkg_globals$myVersion <- packageVersion("OpenMx")
 }
 
 .onAttach <- function(libname, pkgname) {
+	pkg_globals$myVersion <- packageVersion("OpenMx")
+	if (.Platform$GUI!="Rgui") {
+		.Call(.enableMxLog)
+	} else {
+		packageStartupMessage(paste("Notice: R GUI cannot display verbose output from the OpenMx backend.",
+					    "If you need detail diagnostics then R CMD BATCH is one option."))
+	}
 	if (!imxHasOpenMP()) {
 		packageStartupMessage("OpenMx is not compiled to take advantage of computers with multiple cores.")
 	} else if (Sys.getenv("OMP_NUM_THREADS") == "") {

@@ -27,6 +27,13 @@
 #endif
 
 struct omxGlobal *Global = NULL;
+static bool mxLogEnabled = false;
+
+SEXP enableMxLog()
+{
+	mxLogEnabled = true;
+	return Rf_ScalarLogical(1);
+}
 
 FreeVarGroup *omxGlobal::findVarGroup(int id)
 {
@@ -507,6 +514,8 @@ void mxLogSetCurrentRow(int row) {}
 
 static ssize_t mxLogWriteSynchronous(const char *outBuf, int len)
 {
+	if (!mxLogEnabled) return len;
+
 	int maxRetries = 20;
 	ssize_t wrote = 0;
 	ssize_t got;

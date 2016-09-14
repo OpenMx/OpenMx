@@ -436,7 +436,7 @@ mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneG
 verifyNoConstraints <- function(model){
 	#TODO: Still not sure how this should work when there are independent submodels, and some submodels have
 	#MxConstraints whereas others do not...:
-	out <- ifelse((length(model@constraints) && !model@independent), 0, 1)
+	out <- ifelse((length(model@constraints)), 0, 1)
 	if(length(model@submodels)){out <- prod(out,sapply(model@submodels,verifyNoConstraints))}
 	return(out)
 }
