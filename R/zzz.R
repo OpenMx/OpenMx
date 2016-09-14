@@ -36,7 +36,6 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 }
 
 .onAttach <- function(libname, pkgname) {
-	pkg_globals$myVersion <- packageVersion("OpenMx")
 	if (.Platform$GUI!="Rgui") {
 		.Call(.enableMxLog)
 	} else {
