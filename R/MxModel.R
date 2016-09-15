@@ -63,6 +63,9 @@ setMethod("initialize", "MxModel",
 	        .Object@.wasRun <- FALSE
 	        .Object@.modifiedSinceRun <- FALSE
 		if (.hasSlot(.Object, '.version')) {
+			if (is.null(pkg_globals$myVersion)) {
+				pkg_globals$myVersion <- packageVersion("OpenMx")
+			}
 			.Object@.version <- pkg_globals$myVersion
 		}
 		.Object <- imxInitModel(.Object)
