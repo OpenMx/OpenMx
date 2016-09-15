@@ -2267,7 +2267,7 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
 	result = fc->grad;
-	R_CheckUserInterrupt();
+	Global->reportProgress("MxComputeEM", fc);
 }
 
 void ComputeEM::Oakes(FitContext *fc)
@@ -3073,7 +3073,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		}
 	}
 
-	if (*mode == 1) fc->iterations += 1;
+	if (*mode == 1) {
+		fc->iterations += 1;
+		Global->reportProgress("MxComputeGradientDescent", fc);
+	}
 	copyFromOptimizer(myPars, fc);
 
 	int want = FF_COMPUTE_FIT;

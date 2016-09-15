@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+#include <time.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <set>
@@ -217,6 +218,11 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
+	silent = true;
+	lastProgressReport = time(0);
+	previousReportLength = 0;
+	previousReportFit = 0;
+	previousComputeCount = 0;
 	mxLogSetCurrentRow(-1);
 	numThreads = 1;
 	analyticGradients = 0;
@@ -436,6 +442,7 @@ omxState::~omxState()
 
 omxGlobal::~omxGlobal()
 {
+	if (previousReportLength) reportProgressStr("");
 	if (topFc) {
 		omxState *state = topFc->state;
 		delete topFc;
@@ -571,6 +578,47 @@ void mxLog(const char* msg, ...)   // thread-safe
 
 	ssize_t wrote = mxLogWriteSynchronous(buf2, len);
 	if (wrote != len) Rf_error("mxLog only wrote %d/%d, errno=%d", wrote, len, errno);
+}
+
+void omxGlobal::reportProgressStr(const char *msg)
+{
+	ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 3));
+	SETCAR(theCall, Rf_install("imxReportProgress"));
+	ProtectedSEXP Rmsg(Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(Rmsg, 0, Rf_mkChar(msg));
+	SETCADR(theCall, Rmsg);
+	SETCADDR(theCall, Rf_ScalarInteger(previousReportLength));
+	Rf_eval(theCall, R_GlobalEnv);
+}
+
+void omxGlobal::reportProgress(const char *context, FitContext *fc)
+{
+	if (omx_absolute_thread_num() != 0) {
+		mxLog("omxGlobal::reportProgress called in a thread context (report this bug to developers)");
+		return;
+	}
+
+	time_t now = time(0);
+	if (silent || now - lastProgressReport < 1 || fc->getComputeCount() == previousComputeCount) {
+		R_CheckUserInterrupt();
+		return;
+	}
+
+	lastProgressReport = now;
+
+	std::string str;
+	if (previousReportFit == 0.0 || previousReportFit == fc->fit) {
+		str = string_snprintf("%s %d %.6g",
+				      context, fc->getComputeCount(), fc->fit);
+	} else {
+		str = string_snprintf("%s %d %.6g %.4g",
+				      context, fc->getComputeCount(), fc->fit, fc->fit - previousReportFit);
+	}
+
+	reportProgressStr(str.c_str());
+	previousReportLength = str.size();
+	previousReportFit = fc->fit;
+	previousComputeCount = fc->getComputeCount();
 }
 
 void diagParallel(int verbose, const char* msg, ...)
