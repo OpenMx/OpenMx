@@ -22,3 +22,8 @@ dimnames(identity) <- list(c('a','b'),c('a','b'))
 data <- mxData(identity, 'cov', numObs = 10)
 model <- mxModel('model', cov, objective, data,  mxFitFunctionML())
 ign <- omxCheckWarning(mxRun(model), "In model 'model' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
+
+dimnames(identity) <- list(c('a','c'),c('a','c'))
+data <- mxData(identity, 'cov', numObs = 10)
+model <- mxModel('model', cov, objective, data,  mxFitFunctionML())
+ign <- omxCheckError(mxRun(model), "The dimnames for the expected covariance matrix ('a' and 'b') and the observed covariance matrix ('a' and 'c') in the Normal expectation function in model 'model' are not identical.")
