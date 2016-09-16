@@ -388,10 +388,10 @@ verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, obj
 		stop(msg, call. = FALSE)
 	}
 	if (!identical(dimnames(covariance), dimnames(data))) {
-		msg <- paste("The dimnames for the expected covariance matrix",
-			"and the observed covariance matrix",
-			"in the", objectiveName, "expectation function in model",
-			omxQuotes(modelname), "are not identical.")
+		msg <- paste0("The dimnames for the expected covariance matrix (", omxQuotes(rownames(covariance)),
+			") and the observed covariance matrix (", omxQuotes(rownames(data)),
+			") in the ", objectiveName, " expectation function in model ",
+			omxQuotes(modelname), " are not identical.")
 		stop(msg, call. = FALSE)		
 	}
 }

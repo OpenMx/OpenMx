@@ -186,8 +186,14 @@ struct ConfidenceInterval {
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
 	std::vector< FreeVarGroup* > freeGroup;
+	time_t lastProgressReport;
+	int previousReportLength;
+	int previousComputeCount;
+	double previousReportFit;
+	void reportProgressStr(const char *msg);
 
  public:
+	bool silent;
 	int numThreads;
 	int parallelDiag;
 	int analyticGradients;
@@ -249,6 +255,7 @@ class omxGlobal {
 	};
 
 	~omxGlobal();
+	void reportProgress(const char *context, FitContext *fc);
 };
 
 // Use a pointer to ensure correct initialization and destruction

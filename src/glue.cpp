@@ -470,7 +470,7 @@ static double internalToUserBound(double val, double inf)
 SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
-		 SEXP defvars)
+		 SEXP defvars, bool silent)
 {
 	SEXP nextLoc;
 
@@ -483,6 +483,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
+	Global->silent = silent;
 
 	/* Create new omxState for current state storage and initialize it. */
 	omxState *globalState = new omxState;
@@ -687,12 +688,13 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 static SEXP omxBackend(SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
 		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
-		SEXP defvars)
+		       SEXP defvars, SEXP Rsilent)
 {
 	try {
 		return omxBackend2(constraints, matList,
 				   varList, algList, expectList, computeList,
-				   data, intervalList, checkpointList, options, defvars);
+				   data, intervalList, checkpointList, options, defvars,
+				   Rf_asLogical(Rsilent));
 	} catch( std::exception& __ex__ ) {
 		exception_to_try_Rf_error( __ex__ );
 	} catch(...) {
@@ -712,7 +714,7 @@ static SEXP testEigenDebug()
 }
 
 static R_CallMethodDef callMethods[] = {
-	{"backend", (DL_FUNC) omxBackend, 11},
+	{"backend", (DL_FUNC) omxBackend, 12},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},

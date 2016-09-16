@@ -44,7 +44,6 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (grad) {
-		R_CheckUserInterrupt();
 		if (goc->maxMajorIterations != -1 && goc->getIteration() >= goc->maxMajorIterations) {
 			nlopt_force_stop(opt);
 		}

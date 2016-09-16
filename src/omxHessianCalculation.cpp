@@ -250,7 +250,7 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 			omxEstimateHessianOnDiagonal(i, hess_work + threadId);
 		}
 
-		R_CheckUserInterrupt();
+		Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
 
 #pragma omp parallel for num_threads(parallelism)
 		for(int i = 0; i < int(todo.size()); i++) {
@@ -259,12 +259,12 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 		}
 	} else {
 		for(int i = 0; i < numParams; i++) {
-			R_CheckUserInterrupt();
+			Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
 			if (hessian && std::isfinite(hessian[i*numParams + i])) continue;
 			omxEstimateHessianOnDiagonal(i, hess_work);
 		}
 		for(int i = 0; i < int(todo.size()); i++) {
-			R_CheckUserInterrupt();
+			Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
 			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work);
 		}
 	}

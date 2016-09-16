@@ -246,7 +246,8 @@ runHelper <- function(model, frontendStart,
 	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
-			data, intervalList, communication, options, defVars, PACKAGE = "OpenMx")
+			data, intervalList, communication, options, defVars,
+			silent, PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)
@@ -323,3 +324,18 @@ updateModelExpectationDims <- function(model, expectations){
 	return(model)
 }
 
+#' Report backend progress
+#'
+#' Prints a show status string to the console without emitting a
+#' newline.
+#'
+#' @param info the character string to print
+#' @param eraseLen the number of characters to erase
+imxReportProgress <- function(info, eraseLen) {
+	origLen = nchar(info)
+	if (origLen < eraseLen) {
+		info <- paste0(info, paste0(rep(' ', eraseLen - nchar(info)), collapse=""))
+	}
+	cat(paste0("\r", info))
+	if (origLen == 0) cat("\r")
+}
