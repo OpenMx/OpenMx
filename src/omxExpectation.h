@@ -58,7 +58,7 @@ class omxExpectation {					// An Expectation
 	// The Fit function should probably just include the structure definition
 	// for the expectation and access fields directly or through object methods.
 	omxMatrix* (*componentFun)(omxExpectation*, const char*);
-	void (*mutateFun)(omxExpectation*, omxFitFunction*, const char*, omxMatrix*);
+	void (*mutateFun)(omxExpectation*, const char*, omxMatrix*);
 
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
@@ -120,7 +120,7 @@ static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox, con
 	
 omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component);
 	
-void omxSetExpectationComponent(omxExpectation *ox, omxFitFunction *off, const char* component, omxMatrix *om);
+void omxSetExpectationComponent(omxExpectation *ox, const char* component, omxMatrix *om);
 
 void omxInitNormalExpectation(omxExpectation *ox);
 void omxInitLISRELExpectation(omxExpectation *ox);

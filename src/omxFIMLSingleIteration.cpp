@@ -142,7 +142,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 		omxDataRow(data, indexVector[row], dataColumns, smallRow);
 		
 		if (ofo->isStateSpace) {
-			omxSetExpectationComponent(expectation, localobj, "y", smallRow);
+			omxSetExpectationComponent(expectation, "y", smallRow);
 		}
 		//If the expectation is a state space model then
 		// set the y attribute of the state space expectation to smallRow.
@@ -156,7 +156,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				if (numVarsFilled || firstRow || ofo->isStateSpace) {
 					if(row == 0 && ofo->isStateSpace) {
 						if(OMX_DEBUG){ mxLog("Resetting State Space state (x) and error cov (P)."); }
-						omxSetExpectationComponent(expectation, localobj, "Reset", NULL);
+						omxSetExpectationComponent(expectation, "Reset", NULL);
 					}
 					omxExpectationCompute(fc, expectation, NULL);
 				}

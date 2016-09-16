@@ -44,6 +44,27 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
+static void omxSetStateSpaceExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
+{
+	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	
+	if(!strcmp("y", component)) {
+		for(int i = 0; i < ose->y->rows; i++) {
+			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
+		}
+		//ose->y = om;
+	}
+	if(!strcmp("Reset", component)) {
+		omxRecompute(ose->x0, NULL);
+		omxRecompute(ose->P0, NULL);
+		omxCopyMatrix(ose->x, ose->x0);
+		omxCopyMatrix(ose->P, ose->P0);
+		if(ose->t != NULL){
+			ose->oldT = 0.0;
+		}
+	}
+}
+
 void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
@@ -103,7 +124,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
 	
 	/* Initialize */
-	omxSetExpectationComponent(ox, NULL, "Reset", NULL); //maybe shoulde be on ose?  after next line?
+	omxSetExpectationComponent(ox, "Reset", NULL); //maybe shoulde be on ose?  after next line?
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
 	if( !(ose->returnScores) ){
@@ -944,26 +965,6 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* 
 	}
 	
 	return retval;
-}
-
-void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
-	
-	if(!strcmp("y", component)) {
-		for(int i = 0; i < ose->y->rows; i++) {
-			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
-		}
-		//ose->y = om;
-	}
-	if(!strcmp("Reset", component)) {
-		omxRecompute(ose->x0, NULL);
-		omxRecompute(ose->P0, NULL);
-		omxCopyMatrix(ose->x, ose->x0);
-		omxCopyMatrix(ose->P, ose->P0);
-		if(ose->t != NULL){
-			ose->oldT = 0.0;
-		}
-	}
 }
 
 

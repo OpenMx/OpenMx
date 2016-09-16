@@ -52,7 +52,5 @@ void omxInitStateSpaceExpectation(omxExpectation* ox);
 
 omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* component);
 
-void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om);
-
 
 #endif /* _OMXSTATESPAACEEXPECTATION_H_ */
