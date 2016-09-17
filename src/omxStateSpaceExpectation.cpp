@@ -650,34 +650,49 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	*/
 	omxCopyMatrix(Z, A);
 	EigenMatrixAdaptor eigenA(Z);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	eigenExpA = eigenA * deltaT;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+//	eigenExpA = eigenA * deltaT;
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
+//	
+//	/* eigenExpA = expm(eigenExpA)  THAT IS eigenExpA = expm(A*deltaT) */
+//	eigenExpA = eigenExpA.exp();
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
+//	
+//	if( !(ose->flagAIsZero) ){
+//		if(OMX_DEBUG) { mxLog("A is not zero, so doing full A inversion."); }
+//		
+//		/* eigenIA = eigenExpA - I*/
+//		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
+//		eigenIA = eigenExpA - I;
+//		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
+//		eigenIA = eigenA.lu().solve(eigenIA);
+//		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
+//		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
+//		/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
+//	} else {
+//		if(OMX_DEBUG) { mxLog("A is zero, so skipping inversion."); }
+//		eigenIA = I*deltaT;
+//		/* Note that eigenIA = integral( expm(A*tau) dtau , from=0, to=deltaT) */
+//		/* When A = 0, this is I*deltaT */
+//		/* When A!= 0, this is A^-1 (expm(A*deltaT) - I) */
+//	}
 	
-	/* eigenExpA = expm(eigenExpA)  THAT IS eigenExpA = expm(A*deltaT) */
-	eigenExpA = eigenExpA.exp();
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
-	if( !(ose->flagAIsZero) ){
-		if(OMX_DEBUG) { mxLog("A is not zero, so doing full A inversion."); }
-		
-		/* eigenIA = eigenExpA - I*/
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
-		eigenIA = eigenExpA - I;
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
-		eigenIA = eigenA.lu().solve(eigenIA);
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-		/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
-	} else {
-		if(OMX_DEBUG) { mxLog("A is zero, so skipping inversion."); }
-		eigenIA = I*deltaT;
-		/* Note that eigenIA = integral( expm(A*tau) dtau , from=0, to=deltaT) */
-		/* When A = 0, this is I*deltaT */
-		/* When A!= 0, this is A^-1 (expm(A*deltaT) - I) */
-	}
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	//PSI << Eigen::MatrixXd::Zero(A->rows, A->rows), Eigen::MatrixXd::Zero(A->rows, A->rows), I, eigenA;
+	PSI << Eigen::MatrixXd::Zero(A->rows, A->rows), I, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
+	PSI = PSI * deltaT;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
+	/* PSI = PSI * deltaT */
+	/* PSI = expm(PSI) */
+	PSI = PSI.exp();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
+	eigenExpA = PSI.block(A->rows, A->cols, A->rows, A->cols);
+	eigenIA = PSI.block(0, A->cols, A->rows, A->cols);
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	
 	
 	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
@@ -706,35 +721,49 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	 Q    A
 	*/
 	EigenMatrixAdaptor eigenQ(Q);
-	PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
-	PSI = PSI * deltaT;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
-	/* PSI = PSI * deltaT */
-	/* PSI = expm(PSI) */
-	PSI = PSI.exp();
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
+//	PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
+//	PSI = PSI * deltaT;
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
+//	/* PSI = PSI * deltaT */
+//	/* PSI = expm(PSI) */
+//	PSI = PSI.exp();
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
 	
 	/* IP = block matrix
 	I
 	P
 	*/
 	EigenMatrixAdaptor eigenP(P);
-	IP << I, eigenP;
-	//IP << eigenP, Eigen::MatrixXd::Identity(rows, rows)
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space IP:\n" << IP << std::endl; }
+//	IP << I, eigenP;
+//	//IP << eigenP, Eigen::MatrixXd::Identity(rows, rows)
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space IP:\n" << IP << std::endl; }
+//	
+//	/* IP = PSI IP */
+//	IP = PSI * IP;
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
+//	
+//	/* eigenIA = block 1 of IP; eigenExpA = block 2 of IP */
+//	eigenP.derived() = IP.block(0, 0, A->rows, A->cols);
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenP << std::endl; }
+//	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
+//	eigenP.derived() = eigenP.transpose().lu().solve(eigenExpA.transpose());
+//	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
+//	/* P = B1 B2^-1  THAT IS  solve B2^T P = B1^T for P */
 	
-	/* IP = PSI IP */
-	IP = PSI * IP;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
 	
-	/* eigenIA = block 1 of IP; eigenExpA = block 2 of IP */
-	eigenP.derived() = IP.block(0, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenP << std::endl; }
-	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
-	eigenP.derived() = eigenP.transpose().lu().solve(eigenExpA.transpose());
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
-	/* P = B1 B2^-1  THAT IS  solve B2^T P = B1^T for P */
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	//PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
+	PSI << -1.0*eigenA.transpose(), eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
+	PSI = PSI * deltaT;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
+	/* PSI = PSI * deltaT */
+	/* PSI = expm(PSI) */
+	PSI = PSI.exp();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
+	eigenIA = eigenExpA.transpose()*PSI.block(0, A->cols, A->rows, A->cols);
+	eigenP.derived() = eigenIA + eigenExpA*eigenP*eigenExpA.transpose();
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	
 	
 	/* SUMMARY */
