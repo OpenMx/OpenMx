@@ -623,6 +623,9 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		xdim <- nrow(A)
 		tx <- matrix(0, xdim, tdim+1)
 		ty <- matrix(0, ydim, tdim)
+		I <- diag(1, nrow=nrow(A))
+		Z <- diag(0, nrow=nrow(A))
+		BLOCK <- matrix(0, nrow=2*nrow(A), ncol=2*ncol(A))
 		
 		tx[,1] <- x0
 		oldT <- 0
@@ -639,22 +642,32 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 			}
 			if(continuousTime){
 				#browser()
-				I <- diag(1, nrow=nrow(A))
 				deltaT <- c(newT - oldT)
 				oldT <- newT
-				# If the A matrix is not all zero, do the full analytic integration
-				if(!identical(all.equal(A, matrix(0, nrow(A), ncol(A))), TRUE)){
-					expA <- OpenMx::expm(A * deltaT)
-					intA <- solve(A) %*% (expA - I)
-				} else {
-					# This is the analytic result when A equals a zero matrix
-					intA <- I*deltaT
-				}
+				# First Block expm for A integral, and expm(A*deltaT)
+				BLOCK[1:(2*nrow(A)), 1:ncol(A)] <- 0
+				BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- I
+				BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+				BLOCK <- OpenMx::expm(BLOCK*deltaT)
+				expA <- BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))]
+				intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+				# Second Block expm for discretized Q
+				BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
+				BLOCK[(nrow(A+1)):(2:nrow(A)), 1:ncol(A)] <- 0
+				BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
+				BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+				BLOCK <- OpenMx::expm(BLOCK*deltaT)
+				Ad <- expA
+				Bd <- intA %*% B
+				Qd <- t(Ad) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 				xp <- expA %*% tx[,i-1] + intA %*% B %*% u
 			} else {
-				xp <- A %*% tx[,i-1] + B %*% u
+				Ad <- A
+				Bd <- B
+				Qd <- Q
 			}
-			tx[,i] <- xp + t(mvtnorm::rmvnorm(1, rep(0, xdim), Q))
+			xp <- Ad %*% tx[,i-1] + Bd %*% u
+			tx[,i] <- xp + t(mvtnorm::rmvnorm(1, rep(0, xdim), Qd))
 			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
 		}
 		ret <- t(ty)
