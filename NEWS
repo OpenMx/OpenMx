@@ -1,3 +1,6 @@
+Continuous time state space models now allow for non-invertible A
+matrices (sometimes called drift or dynamics matrices).
+
 mxCI() now implements the Wu & Neale (2012) adjustment for parameters
 with upper or lower bounds. Use mxCI(..., boundAdj=FALSE) to disable
 the adjustment.
