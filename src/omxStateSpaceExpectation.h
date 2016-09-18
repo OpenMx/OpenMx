@@ -37,7 +37,6 @@ typedef struct {
 	Eigen::MatrixXd I;
 	Eigen::MatrixXd eigenIA;
 	Eigen::MatrixXd PSI;
-	Eigen::MatrixXd IP;
 	Eigen::MatrixXd eigenPreX;
 	
 } omxStateSpaceExpectation;
