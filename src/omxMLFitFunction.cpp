@@ -295,8 +295,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 
 	oo->ciFun = loglikelihoodCIFun;
 
-	ProtectedSEXP Rss(R_do_slot(oo->rObj, Rf_install(".stateSpace")));
-	if (strEQ(expectation->expType, "MxExpectationStateSpace") && Rf_asLogical(Rss)) {
+	if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		ssMLFitInit(oo);
 		return;
 	}
