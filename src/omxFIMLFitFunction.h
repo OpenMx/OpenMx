@@ -33,7 +33,6 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
-	bool isStateSpace;
 	int rowwiseParallel;
 	int condOnOrdinal;
 	omxMatrix* cov;				// Covariance Matrix

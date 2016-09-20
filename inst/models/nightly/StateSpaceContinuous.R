@@ -164,7 +164,7 @@ omxCheckEquals(withinCI, rep(TRUE, length(se)))
 xdim <- 2
 udim <- 1
 ydim <- 1
-tdim <- 100
+tdim <- 200
 set.seed(315)
 tA <- matrix(c(0, -.3, 1, -.7), xdim, xdim)
 tB <- matrix(c(0), xdim, udim)
@@ -248,12 +248,19 @@ omxCheckTrue(rms(mxEval(R, doscr), tR) < .5)
 
 mxEval(Q, doscr)
 tQ
-omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .3)
+omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .9)
 
 
 mxEval(x0, doscr) #poorly estimated, likely due to dynamic error
 x0
+omxCheckTrue(rms(mxEval(x0, doscr)[1,1], x0[1,1]) < .1)
 
+estParam <- coef(doscr)
+truParam <- c(tA[2,], tQ[2,2], tR, x0[1,1])
+estSE <- summary(doscr)$parameters[,6]
+ex3Tvals <- (estParam - truParam) / estSE
+
+omxCheckTrue(all(abs(ex3Tvals) < 1.25))
 
 
 #------------------------------------------------------------------------------
@@ -385,7 +392,7 @@ omxCheckCloseEnough(diag(mxEval(A, srun)), diag(restA), 0.05)
 
 omxCheckCloseEnough(mxEval(C, srun)[tC!=0], restC, 0.01)
 
-omxCheckCloseEnough(diag(mxEval(R, srun)), restR, 0.01)
+omxCheckCloseEnough(diag(mxEval(R, srun)), restR, 0.02)
 
 
 #------------------------------------------------------------------------------

@@ -37,7 +37,6 @@ typedef struct {
 	Eigen::MatrixXd I;
 	Eigen::MatrixXd eigenIA;
 	Eigen::MatrixXd PSI;
-	Eigen::MatrixXd IP;
 	Eigen::MatrixXd eigenPreX;
 	
 } omxStateSpaceExpectation;
@@ -51,8 +50,6 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose);
 void omxInitStateSpaceExpectation(omxExpectation* ox);
 
 omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* component);
-
-void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om);
 
 
 #endif /* _OMXSTATESPAACEEXPECTATION_H_ */

@@ -44,6 +44,27 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
+static void omxSetStateSpaceExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
+{
+	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	
+	if(!strcmp("y", component)) {
+		for(int i = 0; i < ose->y->rows; i++) {
+			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
+		}
+		//ose->y = om;
+	}
+	if(!strcmp("Reset", component)) {
+		omxRecompute(ose->x0, NULL);
+		omxRecompute(ose->P0, NULL);
+		omxCopyMatrix(ose->x, ose->x0);
+		omxCopyMatrix(ose->P, ose->P0);
+		if(ose->t != NULL){
+			ose->oldT = 0.0;
+		}
+	}
+}
+
 void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
@@ -103,7 +124,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
 	
 	/* Initialize */
-	omxSetExpectationComponent(ox, NULL, "Reset", NULL); //maybe shoulde be on ose?  after next line?
+	omxSetExpectationComponent(ox, "Reset", NULL); //maybe shoulde be on ose?  after next line?
 	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
 	
 	if( !(ose->returnScores) ){
@@ -564,6 +585,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
 	
 	
+	// re-enable this TODO
 	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
 	//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
 	//m2ll = omxDDOT(y, s); // m2ll = y s THAT IS y^T S y
@@ -610,7 +632,6 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
 	Eigen::MatrixXd &eigenIA = ose->eigenIA;
 	Eigen::MatrixXd &PSI = ose->PSI;
-	Eigen::MatrixXd &IP = ose->IP;
 	Eigen::MatrixXd &I = ose->I;
 	
 	
@@ -630,33 +651,33 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	omxCopyMatrix(Z, A);
 	EigenMatrixAdaptor eigenA(Z);
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-	eigenExpA = eigenA * deltaT;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
 	
-	/* eigenExpA = expm(eigenExpA)  THAT IS eigenExpA = expm(A*deltaT) */
-	eigenExpA = eigenExpA.exp();
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
 	
-	if( !(ose->flagAIsZero) ){
-		if(OMX_DEBUG) { mxLog("A is not zero, so doing full A inversion."); }
-		
-		/* eigenIA = eigenExpA - I*/
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
-		eigenIA = eigenExpA - I;
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expA - I:\n" << eigenIA << std::endl; }
-		eigenIA = eigenA.lu().solve(eigenIA);
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
-		if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
-		/* eigenIA = A^-1 IA  THAT IS eigenIA = A^-1 (expm(A*deltaT) - I) */
-	} else {
-		if(OMX_DEBUG) { mxLog("A is zero, so skipping inversion."); }
-		eigenIA = I*deltaT;
-		/* Note that eigenIA = integral( expm(A*tau) dtau , from=0, to=deltaT) */
-		/* When A = 0, this is I*deltaT */
-		/* When A!= 0, this is A^-1 (expm(A*deltaT) - I) */
-	}
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	/* PSI = block matrix
+	0  I
+	0  A
+	*/
+	// PSI = expm(PSI * deltaT)
+	// IA = Integral_0^t e^{As} ds 
+	PSI << Eigen::MatrixXd::Zero(A->rows, A->rows), I, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
+	PSI = PSI * deltaT;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI for expA:\n" << PSI << std::endl; }
+	/* PSI = PSI * deltaT */
+	/* PSI = expm(PSI) */
+	PSI = PSI.exp();
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
+	/* eigenExpA = exp(A * deltaT) */
+	eigenExpA = PSI.block(A->rows, A->cols, A->rows, A->cols);
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenExpA:\n" << eigenExpA << std::endl; }
+	eigenIA = PSI.block(0, A->cols, A->rows, A->cols);
+	/* IA = Integral_0^t e^{As} ds */
+	/* When A is invertible this is  A^-1 (expA - I) */
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	
 	
 	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
@@ -680,50 +701,32 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	*/
 	
 	
-	/* PSI = block matrix
-	-A^T  0
-	 Q    A
-	*/
 	EigenMatrixAdaptor eigenQ(Q);
-	PSI << -1.0*eigenA.transpose(), Eigen::MatrixXd::Zero(A->rows, A->rows), eigenQ, eigenA;
+	EigenMatrixAdaptor eigenP(P);
+	
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	PSI << -1.0*eigenA.transpose(), eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
 	PSI = PSI * deltaT;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI:\n" << PSI << std::endl; }
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI for Q and P:\n" << PSI << std::endl; }
 	/* PSI = PSI * deltaT */
 	/* PSI = expm(PSI) */
 	PSI = PSI.exp();
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
-	
-	/* IP = block matrix
-	I
-	P
-	*/
-	EigenMatrixAdaptor eigenP(P);
-	IP << I, eigenP;
-	//IP << eigenP, Eigen::MatrixXd::Identity(rows, rows)
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space IP:\n" << IP << std::endl; }
-	
-	/* IP = PSI IP */
-	IP = PSI * IP;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Blocks:\n" << IP << std::endl; }
-	
-	/* eigenIA = block 1 of IP; eigenExpA = block 2 of IP */
-	eigenP.derived() = IP.block(0, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block1:\n" << eigenP << std::endl; }
-	eigenExpA = IP.block(A->rows, 0, A->rows, A->cols);
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space Block2:\n" << eigenExpA << std::endl; }
-	eigenP.derived() = eigenP.transpose().lu().solve(eigenExpA.transpose());
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
-	/* P = B1 B2^-1  THAT IS  solve B2^T P = B1^T for P */
+	eigenIA = eigenExpA.transpose()*PSI.block(0, A->cols, A->rows, A->cols);
+	eigenP.derived() = eigenIA + eigenExpA*eigenP*eigenExpA.transpose();
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	
 	
 	/* SUMMARY */
-	// PSI = 	-A^T  0
-	//			 Q    A
+	// PSI = 	-A^T  Q
+	//			 0    A
 	// PSI = expm(PSI * deltaT)
-	// IP = 	I
-	// 			P
-	// IP = PSI IP
-	// P = IP[1] IP[2]^-1
+	// IA = t(eigenExpA) * UPPER RIGHT BLOCK OF PSI
+	// IA is the discretized dynamic erro cov Q_d
+	// P = IA + EA * P * t(EA)
+	// with EA = expEigenA
+	// This Prediction for P is the same as with KalmanPredict, but with the 
+	// discretized A and Q.
 	
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << eigenx << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
@@ -896,7 +899,6 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	SSMexp->I = Eigen::MatrixXd::Identity(nx, nx);
 	SSMexp->eigenIA.resize(nx, nx);
 	SSMexp->PSI.resize(2*nx, 2*nx);
-	SSMexp->IP.resize(2*nx, nx);
 	SSMexp->eigenPreX.resize(nx, 1);
 	
 	/* Population of Kalman scores*/
@@ -944,26 +946,6 @@ omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* 
 	}
 	
 	return retval;
-}
-
-void omxSetStateSpaceExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
-	
-	if(!strcmp("y", component)) {
-		for(int i = 0; i < ose->y->rows; i++) {
-			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
-		}
-		//ose->y = om;
-	}
-	if(!strcmp("Reset", component)) {
-		omxRecompute(ose->x0, NULL);
-		omxRecompute(ose->P0, NULL);
-		omxCopyMatrix(ose->x, ose->x0);
-		omxCopyMatrix(ose->P, ose->P0);
-		if(ose->t != NULL){
-			ose->oldT = 0.0;
-		}
-	}
 }
 
 

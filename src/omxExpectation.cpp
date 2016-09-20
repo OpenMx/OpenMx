@@ -81,10 +81,9 @@ omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 	return(ox->componentFun(ox, component));
 }
 
-void omxSetExpectationComponent(omxExpectation* ox, omxFitFunction* off, const char* component, omxMatrix* om) {
-	if(!strcmp(ox->expType, "MxExpectationStateSpace")) {
-		ox->mutateFun(ox, off, component, om);
-	}
+void omxSetExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
+{
+	ox->mutateFun(ox, component, om);
 }
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {

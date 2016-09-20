@@ -176,7 +176,7 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	identicalDefs.assign(data->rows, 1);
 	identicalMissingness.assign(data->rows, 1);
 	identicalRows.assign(data->rows, 1);
-	if (!data->needSort || ofiml->isStateSpace) return;
+	if (!data->needSort) return;
 
 	if (OMX_DEBUG) mxLog("sort %s for %s", data->name, off->name());
 	FIMLCompare cmp;
@@ -215,7 +215,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
 		}
-		off->openmpUser = !ofiml->isStateSpace && ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
+		off->openmpUser = ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
 		sortData(off, fc);
 		return;
 	}
@@ -241,7 +241,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	bool failed = false;
 
-	if (data->defVars.size() == 0 && !ofiml->isStateSpace) {
+	if (data->defVars.size() == 0) {
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(fc, expectation);
 		// MCN Also do the threshold formulae!
@@ -344,7 +344,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->parent = 0;
-	newObj->isStateSpace = strEQ(expectation->expType, "MxExpectationStateSpace");
 
 	int numOrdinal = 0;
 

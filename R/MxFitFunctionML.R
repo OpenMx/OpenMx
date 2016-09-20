@@ -21,8 +21,7 @@ setClass(Class = "MxFitFunctionML",
 	     verbose = "integer",
 	     profileOut="MxOptionalChar",
 	     rowwiseParallel="logical",
-	     .conditionOnOrdinal="logical"
-	 ),
+	     .conditionOnOrdinal="logical"),
 	 )
 
 setMethod("initialize", "MxFitFunctionML",
