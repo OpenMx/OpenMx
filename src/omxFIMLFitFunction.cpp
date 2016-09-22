@@ -282,6 +282,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		parallelism = data->rows;
 	}
 
+	if (ofiml->condOnOrdinal) {
+		failed = condOnOrdinalLikelihood(fc, off);
+	} else {
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
@@ -307,6 +310,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		}
 	} else {
 		failed |= omxFIMLSingleIterationJoint(fc, off, ofiml->rowLikelihoods, 0, data->rows);
+	}
 	}
 	if (failed) {
 		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
