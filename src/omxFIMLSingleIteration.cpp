@@ -14,6 +14,19 @@
  *  limitations under the License.
  */
 
+// only ordinal -> find identical rows
+// only continuous
+//   partition by model covariance (def vars, missingness) -> quadratic prod
+//   partition by model means -> sufficient statistic
+// joint
+//   condition on continuous
+//     find identical continuous rows -> saves on continuous and a little bit for ordinal
+//     detect whole row identical
+//   condition on ordinal
+//     detect identical ordinal -> huge savings
+//     use "only continuous" evaluation strategy
+//       
+// Need to precompute comparisons about what changed from row to row
 
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
@@ -488,6 +501,9 @@ void mvnTrunc(double prob, omxFitFunction *off, Eigen::MatrixBase<T1> &jointMean
 	      Eigen::MatrixBase<T2> &jointCov, int row,
 	      Eigen::MatrixBase<T3> &truncMean, Eigen::MatrixBase<T4> &truncCov)
 {
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+
 	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) off->argStruct);
 	omxExpectation* expectation = off->expectation;
 	EigenMatrixAdaptor tMat(expectation->thresholdsMat);
@@ -495,17 +511,35 @@ void mvnTrunc(double prob, omxFitFunction *off, Eigen::MatrixBase<T1> &jointMean
 	auto &dataColumns	= expectation->getDataColumns();
 	omxData *data = ofo->data;
 	
-	Eigen::VectorXd uThresh(dataColumns.size());
-	Eigen::VectorXd lThresh(dataColumns.size());
-
+	int numOrdinal = 0; // already know TODO
+	std::vector<bool> isOrdinal(dataColumns.size());
 	for(int j = 0; j < dataColumns.size(); j++) {
+		isOrdinal[j] = omxDataColumnIsFactor(data, dataColumns[j]);
+		numOrdinal += isOrdinal[j];
+	}
+
+	struct subset {
+		std::vector<bool> &idx;
+		bool flip;
+		subset(std::vector<bool> &_idx) : idx(_idx), flip(false) {};
+		bool operator()(int nn) { return idx[nn] ^ flip; };
+	} op(isOrdinal);
+
+	MatrixXd V11;  //ord
+	MatrixXd V12(numOrdinal, dataColumns.size() - numOrdinal);
+	MatrixXd V22;  //cont
+
+	subsetCovariance(jointCov, op, numOrdinal, V11);
+	op.flip = true;
+	upperRightCovariance(jointCov, op, V12);
+	subsetCovariance(jointCov, op, dataColumns.size() - numOrdinal, V22);
+
+	// skip if ordinal part is the same TODO
+	Eigen::VectorXd uThresh(numOrdinal);
+	Eigen::VectorXd lThresh(numOrdinal);
+	for(int j = 0, k=0; k < dataColumns.size(); k++) {
+		if (!isOrdinal[k]) continue;
 		int var = dataColumns[j];
-		bool isOrdinal = omxDataColumnIsFactor(data, var);
-		if (!isOrdinal) {
-			lThresh[j] = -std::numeric_limits<double>::infinity();
-			uThresh[j] = std::numeric_limits<double>::infinity();
-			continue;
-		}
 		int pick = omxIntDataElement(data, row, var) - 1;
 		int tcol = colInfo[j].column;
 		if (pick == 0) {
@@ -518,16 +552,41 @@ void mvnTrunc(double prob, omxFitFunction *off, Eigen::MatrixBase<T1> &jointMean
 			lThresh[j] = (tMat(pick-1, tcol) - jointMean[j]);
 			uThresh[j] = (tMat(pick, tcol) - jointMean[j]);
 		}
+		j += 1;
 	}
 
-	_mtmvnorm(prob, jointCov, lThresh, uThresh, truncMean, truncCov);
+	VectorXd xi;
+	MatrixXd U11;
+	_mtmvnorm(prob, V11, lThresh, uThresh, xi, U11);
+	U11 = U11.selfadjointView<Eigen::Upper>();
 
-	// preserve continuous mean
-	for(int j = 0; j < dataColumns.size(); j++) {
-		int var = dataColumns[j];
-		if (omxDataColumnIsFactor(data, var)) continue;
-		truncMean[j] += jointMean[j];
+	MatrixXd invV11 = V11; // cache TODO
+	if (InvertSymmetricPosDef(invV11, 'L')) Rf_error("Non-positive definite");
+	invV11 = invV11.selfadjointView<Eigen::Lower>();
+
+	// Aitken (1934) "Note on Selection from a Multivariate Normal Population"
+	// Or Johnson/Kotz (1972), p.70
+	VectorXd mu2 = xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12;
+	truncMean.derived().resize(dataColumns.size());
+	for (int xx=0, x1=0, x2=0; xx < dataColumns.size(); ++xx) {
+		if (isOrdinal[xx]) {
+			truncMean[xx] = xi[x1++];
+		} else {
+			truncMean[xx] = mu2[x2++] + jointMean[xx];
+		}
 	}
+	truncCov.derived().resize(dataColumns.size(), dataColumns.size());
+	op.flip = false;
+	subsetCovarianceStore(truncCov, op, U11);
+	op.flip = true;
+	MatrixXd tmp = U11.selfadjointView<Eigen::Lower>() * (invV11.selfadjointView<Eigen::Lower>() * V12);
+	upperRightCovarianceStore(truncCov, op, tmp);
+	tmp = (V22 - V12.transpose() * (invV11 -
+					invV11.selfadjointView<Eigen::Lower>() * U11 *
+					invV11.selfadjointView<Eigen::Lower>()) * V12);
+	subsetCovarianceStore(truncCov, op, tmp);
+
+	truncCov = truncCov.template selfadjointView<Eigen::Upper>();
 }
 
 bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
