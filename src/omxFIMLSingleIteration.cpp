@@ -47,25 +47,12 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 	if(*numIdenticalContinuousRows <= 0)
 		*numIdenticalContinuousRows = identicalRows[rowVal];
 
-	*row += numIdentical;
 	*numIdenticalDefs -= numIdentical;
 	*numIdenticalContinuousMissingness -= numIdentical;
 	*numIdenticalContinuousRows -= numIdentical;
 	*numIdenticalOrdinalMissingness -= numIdentical;
 }
 
-
-/**
- * The localobj state cannot be accessed from other threads.
- *
- * All threads can access sharedobj. No synchronization mechanisms are
- * employed to maintain consistency of sharedobj references.
- *
- * Because (1) these functions may be invoked with arbitrary 
- * rowbegin and rowcount values, and (2) the log-likelihood
- * values for all data rows must be calculated (even in cases
- * of errors), this function is forbidden from return()-ing early.
- */
 bool regularByRow::eval()
 {
 	double Q = 0.0;
@@ -183,12 +170,12 @@ bool regularByRow::eval()
 			
 			if(numContinuous <= 0 && numOrdinal <= 0) {
 				// All elements missing.  Skip row.
-				record(1.0);
 				omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 				&numIdenticalContinuousMissingness,
 				&numIdenticalOrdinalMissingness, 
 				&numIdenticalContinuousRows,
 						       shared_ofo, numDefs, numIdentical);
+				record(1.0);
 				continue;
 			}
 			
@@ -274,15 +261,9 @@ bool regularByRow::eval()
 						F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 						
 						if(info != 0) {
-							record(NA_REAL);
 							if (fc) fc->recordIterationError("Expected covariance matrix for continuous variables "
 											 "is not positive-definite in data row %d", indexVector[row]);
-							omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-							&numIdenticalContinuousMissingness,
-							&numIdenticalOrdinalMissingness, 
-							&numIdenticalContinuousRows,
-									       shared_ofo, numDefs, numIdentical);
-							continue;
+							return true;
 						}
 						// Calculate determinant: squared product of the diagonal of the decomposition
 						// For speed, use sum of logs rather than log of product.
@@ -299,13 +280,7 @@ bool regularByRow::eval()
 						omxRaiseErrorf("Cannot invert expected continuous "
 							       "covariance matrix for row %d. Error %d.",
 							       indexVector[row], info);
-						record(NA_REAL);
-						omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-						&numIdenticalContinuousMissingness,
-						&numIdenticalOrdinalMissingness, 
-						&numIdenticalContinuousRows,
-								       shared_ofo, numDefs, numIdentical);
-						continue;
+						return true;
 					}
 				}
 				
@@ -409,21 +384,12 @@ bool regularByRow::eval()
 									 "ordinal variables (20) has been exceeded.  \n"
 									 " Also check that expected covariance matrix is not "
 									 "positive-definite", indexVector[row]);
-					record(NA_REAL);
-					if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-					&numIdenticalContinuousMissingness,
-					&numIdenticalOrdinalMissingness, 
-					&numIdenticalContinuousRows,
-							       shared_ofo, numDefs, numIdentical);
-					continue;
+					return true;
 				}
 			}
 			
 			double rowLikelihood = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
 			
-			record(rowLikelihood);
-				
 			if(OMX_DEBUG_ROWS(row)) { 
 				mxLog("row[%d] log likelihood det %3.3f + q %3.3f + const %3.3f + ord %3.3f = %3.3g", 
 				      indexVector[row], (2.0*determinant), Q, M_LN_2PI * numContinuous, 
@@ -431,12 +397,11 @@ bool regularByRow::eval()
 			}
 
 			omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
-			&numIdenticalContinuousMissingness,
-			&numIdenticalOrdinalMissingness, 
-			&numIdenticalContinuousRows,
+					       &numIdenticalContinuousMissingness,
+					       &numIdenticalOrdinalMissingness, 
+					       &numIdenticalContinuousRows,
 					       shared_ofo, numDefs, numIdentical);
-			continue;
-			
+			record(rowLikelihood);
 	}
 	return FALSE;
 }

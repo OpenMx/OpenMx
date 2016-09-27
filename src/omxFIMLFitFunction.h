@@ -139,6 +139,7 @@ struct mvnByRow {
 			int to = indexVector[row+nid];
 			rl[to] = rowLik;
 		}
+		row += numIdentical;
 		firstRow = false;
 		// incr row? TODO
 	}

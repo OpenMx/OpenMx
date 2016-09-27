@@ -46,8 +46,6 @@ bool ordinalByRow::eval()
 						  thresholdCols[j].numThresholds, fc)) return true;
 		}
 
-		// If all elements missing, skip row TODO
-		
 		int numOrdinal = 0;
 		for(int j = 0; j < dataColumns.size(); j++) {
 			int var = dataColumns[j];
@@ -57,6 +55,10 @@ bool ordinalByRow::eval()
 				numOrdinal += 1;
 				ordRemove[j] = 0;
 			}
+		}
+		if (numOrdinal == 0) {
+			record(1.0);
+			continue;
 		}
 
 		if (true || firstRow) {
@@ -91,14 +93,11 @@ bool ordinalByRow::eval()
 							 "ordinal variables (20) has been exceeded.  \n"
 							 " Also check that expected covariance matrix is not "
 							 "positive-definite", indexVector[row]);
-			record(NA_REAL);
 			if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-			row += identicalRows[row];
-			continue;
+			return true;
 		}
 
 		record(likelihood);
-		row += identicalRows[row];
 	}
 	return false;
 }
@@ -389,7 +388,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				FitContext *kid = fc->childList[i];
 				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 				omxFitFunction *childFit = childMatrix->fitFunction;
-				if (false && expectation->numOrdinal == dataColumns.size()) {
+				if (expectation->numOrdinal == dataColumns.size()) {
 					ordinalByRow batch(kid, childFit, ofiml->rowLikelihoods,
 							   rowbegin, rowcount);
 					failed |= batch.eval();
@@ -400,7 +399,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				}
 			}
 		} else {
-			if (false && expectation->numOrdinal == dataColumns.size()) {
+			if (expectation->numOrdinal == dataColumns.size()) {
 				ordinalByRow batch(fc, off, ofiml->rowLikelihoods,
 						   0, data->rows);
 				failed |= batch.eval();
