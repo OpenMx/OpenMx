@@ -65,30 +65,18 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
  * rowbegin and rowcount values, and (2) the log-likelihood
  * values for all data rows must be calculated (even in cases
  * of errors), this function is forbidden from return()-ing early.
- *
- * As another consequence of (1) and (2), if "rowbegin" is in
- * the middle of a sequence of identical rows, then defer
- * move "rowbegin" to after the sequence of identical rows.
- * Grep for "[[Comment 4]]" in source code.
  */
-bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
-				 omxMatrix *rowLikelihoods, int rowbegin, int rowcount)
+bool regularByRow::eval()
 {
-	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) localobj->argStruct);
-	omxFIMLFitFunction* shared_ofo = ofo->parent? ofo->parent : ofo;
-	
 	double Q = 0.0;
 	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0,
 		numIdenticalContinuousMissingness = 0, numIdenticalContinuousRows = 0;
 	
-	omxMatrix *cov, *means, *smallRow, *smallCov, *smallMeans, *RCX;
+	omxMatrix *smallRow, *smallCov, *smallMeans, *RCX;
 	omxMatrix *ordMeans, *ordCov, *contRow;
 	omxMatrix *halfCov, *reduceCov, *ordContCov;
-	omxData* data;
 	
 	// Locals, for readability.  Compiler should cut through this.
-	cov 		= ofo->cov;
-	means		= ofo->means;
 	smallRow 	= ofo->smallRow;
 	smallCov 	= ofo->smallCov;
 	smallMeans	= ofo->smallMeans;
@@ -100,16 +88,8 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 	ordContCov  = ofo->ordContCov;
 	RCX 		= ofo->RCX;
 	
-	data		= ofo->data;
 	int numDefs = data->defVars.size();
 	
-	omxExpectation* expectation = localobj->expectation;
-	auto dataColumns	= expectation->getDataColumns();
-	omxMatrix *thresholdsMat = expectation->thresholdsMat;
-	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
-
-	OrdinalLikelihood &ol = ofo->ol;
-	ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
 	Eigen::ArrayXi ordBuffer(dataColumns.size());
 	
 	Eigen::VectorXi ordRemove(cov->cols);
@@ -121,21 +101,10 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 	int onei = 1;
 	double likelihood;
 	
-	auto& indexVector = shared_ofo->indexVector;
-	auto& identicalRows = shared_ofo->identicalRows;
-	bool firstRow = true;
-	int row = rowbegin;
-	
-	// [[Comment 4]] moving row starting position
-	if (row > 0) {
-		int prevIdentical = identicalRows[row - 1];
-		row += (prevIdentical - 1);
-	}
-	
 	int numContinuous = 0;
 	int numOrdinal = 0;
 	
-	while(row < data->rows && (row - rowbegin) < rowcount) {
+	while(row < lastrow) {
 		mxLogSetCurrentRow(row);
 		int numIdentical = identicalRows[row];
 		
@@ -214,9 +183,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 			
 			if(numContinuous <= 0 && numOrdinal <= 0) {
 				// All elements missing.  Skip row.
-				for(int nid = 0; nid < numIdentical; nid++) {	
-					omxSetMatrixElement(rowLikelihoods, indexVector[row+nid], 0, 1.0);
-				}
+				record(1.0);
 				omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 				&numIdenticalContinuousMissingness,
 				&numIdenticalOrdinalMissingness, 
@@ -307,9 +274,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 						F77_CALL(dpotrf)(&u, &(smallCov->rows), smallCov->data, &(smallCov->cols), &info);
 						
 						if(info != 0) {
-							for(int nid = 0; nid < numIdentical; nid++) {
-								omxSetMatrixElement(rowLikelihoods, indexVector[row+nid], 0, NA_REAL);
-							}
+							record(NA_REAL);
 							if (fc) fc->recordIterationError("Expected covariance matrix for continuous variables "
 											 "is not positive-definite in data row %d", indexVector[row]);
 							omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
@@ -334,9 +299,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 						omxRaiseErrorf("Cannot invert expected continuous "
 							       "covariance matrix for row %d. Error %d.",
 							       indexVector[row], info);
-						for(int nid = 0; nid < numIdentical; nid++) {
-							omxSetMatrixElement(rowLikelihoods, indexVector[row+nid], 0, NA_REAL);
-						}
+						record(NA_REAL);
 						omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 						&numIdenticalContinuousMissingness,
 						&numIdenticalOrdinalMissingness, 
@@ -446,9 +409,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 									 "ordinal variables (20) has been exceeded.  \n"
 									 " Also check that expected covariance matrix is not "
 									 "positive-definite", indexVector[row]);
-					for(int nid = 0; nid < numIdentical; nid++) {
-						omxSetMatrixElement(rowLikelihoods, indexVector[row+nid], 0, NA_REAL);
-					}
+					record(NA_REAL);
 					if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
 					omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 					&numIdenticalContinuousMissingness,
@@ -461,9 +422,7 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 			
 			double rowLikelihood = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
 			
-			for(int j = numIdentical + row - 1; j >= row; j--) {
-				omxSetMatrixElement(rowLikelihoods, indexVector[j], 0, rowLikelihood);
-			}
+			record(rowLikelihood);
 				
 			if(OMX_DEBUG_ROWS(row)) { 
 				mxLog("row[%d] log likelihood det %3.3f + q %3.3f + const %3.3f + ord %3.3f = %3.3g", 
@@ -471,7 +430,6 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				      log(likelihood), -2.0 * log(rowLikelihood));
 			}
 
-			if(firstRow) firstRow = false;
 			omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 			&numIdenticalContinuousMissingness,
 			&numIdenticalOrdinalMissingness, 

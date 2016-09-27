@@ -191,7 +191,7 @@ std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 
 template <typename T>
-void omxDataRow(omxData *od, int row, Eigen::MatrixBase<T> &colList, omxMatrix* om)
+void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMatrix* om)
 {
 	if (row >= od->rows) Rf_error("Invalid row");
 

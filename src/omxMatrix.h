@@ -468,7 +468,7 @@ void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 			} else {
 				val = mat(j,k);
 			}
-			buf += string_snprintf(" %3.6f", val);
+			buf += string_snprintf(" %3.6g", val);
 		}
 	}
 

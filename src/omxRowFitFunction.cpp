@@ -18,7 +18,6 @@
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include "omxRowFitFunction.h"
-#include "omxFIMLFitFunction.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"

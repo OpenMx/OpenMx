@@ -23,8 +23,88 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
-/* FIML Function body */
-void omxDestroyFIMLFitFunction(omxFitFunction *off) {
+bool ordinalByRow::eval()
+{
+	Eigen::ArrayXi ordBuffer(dataColumns.size());
+	Eigen::VectorXi ordRemove(cov->cols);
+	omxMatrix *ordCov = ofo->ordCov;
+	omxMatrix *ordMeans = ofo->ordMeans;
+
+	while(row < lastrow) {
+		mxLogSetCurrentRow(row);
+
+		bool numVarsFilled = expectation->loadDefVars(indexVector[row]);
+		if (numVarsFilled || firstRow) {
+			omxExpectationCompute(fc, expectation, NULL);
+		}
+
+		omxRecompute(thresholdsMat, fc);
+		for (int j=0; j < dataColumns.size(); j++) {
+			int var = dataColumns[j];
+			if (!omxDataColumnIsFactor(data, var)) continue;
+			if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+						  thresholdCols[j].numThresholds, fc)) return true;
+		}
+
+		// If all elements missing, skip row TODO
+		
+		int numOrdinal = 0;
+		for(int j = 0; j < dataColumns.size(); j++) {
+			int var = dataColumns[j];
+			if (omxDataElementMissing(data, indexVector[row], var)) {
+				ordRemove[j] = 1;
+			} else {
+				numOrdinal += 1;
+				ordRemove[j] = 0;
+			}
+		}
+
+		if (true || firstRow) {
+			omxCopyMatrix(ordCov, cov);
+			omxRemoveRowsAndColumns(ordCov, ordRemove.data(), ordRemove.data());
+
+			EigenMatrixAdaptor EordCov(ordCov);
+			ol.setCovariance(EordCov, fc);
+					
+			int ox=0;
+			for(int j = 0; j < dataColumns.size(); j++) {
+				if(ordRemove[j]) continue;         // NA or non-ordinal
+				ordBuffer[ox] = j;
+				ox += 1;
+			}
+			Eigen::Map< Eigen::ArrayXi > ordColumns(ordBuffer.data(), ox);
+			ol.setColumns(ordColumns);
+
+			// Recalculate ordinal fs
+			omxCopyMatrix(ordMeans, means);
+			omxRemoveElements(ordMeans, ordRemove.data()); 	    // Reduce the row to just ordinal.
+					
+			EigenVectorAdaptor EordMeans(ordMeans);
+			ol.setMean(EordMeans);
+		}
+
+		double likelihood = ol.likelihood(indexVector[row]);
+
+		if (likelihood == 0.0) {
+			if (fc) fc->recordIterationError("Improper value detected by integration routine "
+							 "in data row %d: Most likely the maximum number of "
+							 "ordinal variables (20) has been exceeded.  \n"
+							 " Also check that expected covariance matrix is not "
+							 "positive-definite", indexVector[row]);
+			record(NA_REAL);
+			if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+			row += identicalRows[row];
+			continue;
+		}
+
+		record(likelihood);
+		row += identicalRows[row];
+	}
+	return false;
+}
+
+static void omxDestroyFIMLFitFunction(omxFitFunction *off)
+{
 	if(OMX_DEBUG) { mxLog("Destroying FIML fit function object."); }
 	omxFIMLFitFunction *argStruct = (omxFIMLFitFunction*) (off->argStruct);
 
@@ -43,7 +123,8 @@ void omxDestroyFIMLFitFunction(omxFitFunction *off) {
 	delete argStruct;
 }
 
-void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra) {
+static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
+{
 	if(OMX_DEBUG) { mxLog("Populating FIML Attributes."); }
 	omxFIMLFitFunction *argStruct = ((omxFIMLFitFunction*)off->argStruct);
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
@@ -289,35 +370,54 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	if (ofiml->condOnOrdinal) {
 		failed = condOnOrdinalLikelihood(fc, off);
 	} else {
-	if (parallelism > 1) {
-		int stride = (data->rows / parallelism);
+		if (parallelism > 1) {
+			int stride = (data->rows / parallelism);
 
-		if (OMX_DEBUG) {
-			FitContext *kid = fc->childList[0];
-			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
-			omxFitFunction *childFit = childMatrix->fitFunction;
-			omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
-			if (!ofo->parent) Rf_error("oops");
-		}
+			if (OMX_DEBUG) {
+				FitContext *kid = fc->childList[0];
+				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+				omxFitFunction *childFit = childMatrix->fitFunction;
+				omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
+				if (!ofo->parent) Rf_error("oops");
+			}
 
 #pragma omp parallel for num_threads(parallelism) reduction(||:failed)
-		for(int i = 0; i < parallelism; i++) {
-			FitContext *kid = fc->childList[i];
-			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
-			omxFitFunction *childFit = childMatrix->fitFunction;
-			if (i == parallelism - 1) {
-				failed |= omxFIMLSingleIterationJoint(kid, childFit, ofiml->rowLikelihoods,
-								      stride * i, data->rows - stride * i);
+			for(int i = 0; i < parallelism; i++) {
+				int rowbegin = stride*i;
+				int rowcount = stride;
+				if (i == parallelism-1) rowcount = data->rows - rowbegin;
+				FitContext *kid = fc->childList[i];
+				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+				omxFitFunction *childFit = childMatrix->fitFunction;
+				if (false && expectation->numOrdinal == dataColumns.size()) {
+					ordinalByRow batch(kid, childFit, ofiml->rowLikelihoods,
+							   rowbegin, rowcount);
+					failed |= batch.eval();
+				} else {
+					regularByRow batch(kid, childFit, ofiml->rowLikelihoods,
+							   rowbegin, rowcount);
+					failed |= batch.eval();
+				}
+			}
+		} else {
+			if (false && expectation->numOrdinal == dataColumns.size()) {
+				ordinalByRow batch(fc, off, ofiml->rowLikelihoods,
+						   0, data->rows);
+				failed |= batch.eval();
 			} else {
-				failed |= omxFIMLSingleIterationJoint(kid, childFit, ofiml->rowLikelihoods, stride * i, stride);
+				regularByRow batch(fc, off, ofiml->rowLikelihoods,
+						   0, data->rows);
+				failed |= batch.eval();
 			}
 		}
-	} else {
-		failed |= omxFIMLSingleIterationJoint(fc, off, ofiml->rowLikelihoods, 0, data->rows);
-	}
 	}
 	if (failed) {
-		omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
+		if(!returnRowLikelihoods) {
+			omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
+		} else {
+			EigenArrayAdaptor got(off->matrix);
+			got.setZero(); // not sure if NA_REAL is safe
+		}
 		return;
 	}
 
@@ -334,6 +434,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		omxSetMatrixElement(off->matrix, 0, 0, -2.0 * sum);
 	} else {
 		omxCopyMatrix(off->matrix, ofiml->rowLikelihoods);
+		if (OMX_DEBUG) {
+			omxPrintMatrix(ofiml->rowLikelihoods, "row likelihoods");
+		}
 	}
 }
 

@@ -69,10 +69,11 @@ struct omxFIMLFitFunction {
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
+	std::vector<bool> rowCompareInfo;
 };
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
-void omxDestroyFIMLFitFunction(omxFitFunction *oo);
+
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
@@ -81,5 +82,82 @@ bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				 int rowbegin, int rowcount);
 bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off);
 
+
+struct mvnByRow {
+	omxFIMLFitFunction *ofo;
+	omxFIMLFitFunction *shared_ofo;
+	omxExpectation* expectation;
+	omxData *data;
+	OrdinalLikelihood &ol;
+	std::vector<int> &indexVector;
+	std::vector<int> &identicalRows;
+	int row;
+	int lastrow;
+	bool firstRow;
+	omxMatrix *thresholdsMat;
+	std::vector< omxThresholdColumn > &thresholdCols;
+	omxMatrix *cov;
+	omxMatrix *means;
+	FitContext *fc;
+	const Eigen::Map<Eigen::VectorXi> dataColumns;
+	omxMatrix *rowLikelihoods;
+
+	mvnByRow(FitContext *_fc, omxFitFunction *localobj,
+		 omxMatrix *_rowLikelihoods, int rowbegin, int rowcount)
+	:
+	ofo((omxFIMLFitFunction*) localobj->argStruct),
+		shared_ofo(ofo->parent? ofo->parent : ofo),
+		expectation(localobj->expectation),
+		ol(ofo->ol),
+		indexVector(shared_ofo->indexVector),
+		identicalRows(shared_ofo->identicalRows),
+		thresholdCols(expectation->thresholds),
+		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns)
+	{
+		data = ofo->data;
+		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
+		row = rowbegin;
+		lastrow = rowbegin + rowcount;
+		firstRow = true;
+		thresholdsMat = expectation->thresholdsMat;
+		cov = ofo->cov;
+		means = ofo->means;
+		fc = _fc;
+		rowLikelihoods = _rowLikelihoods;
+
+		if (row > 0) {
+			int prevIdentical = identicalRows[row - 1];
+			row += (prevIdentical - 1);
+		}
+	};
+
+	void record(double rowLik)
+	{
+		int numIdentical = identicalRows[row];
+		EigenVectorAdaptor rl(rowLikelihoods);
+		for(int nid = 0; nid < numIdentical; nid++) {
+			int to = indexVector[row+nid];
+			rl[to] = rowLik;
+		}
+		firstRow = false;
+		// incr row? TODO
+	}
+};
+
+struct ordinalByRow : mvnByRow {
+	typedef mvnByRow super;
+	ordinalByRow(FitContext *_fc, omxFitFunction *localobj,
+		 omxMatrix *_rowLikelihoods, int rowbegin, int rowcount)
+		: super(_fc, localobj, _rowLikelihoods, rowbegin, rowcount) {};
+	bool eval();
+};
+
+struct regularByRow : mvnByRow {
+	typedef mvnByRow super;
+	regularByRow(FitContext *_fc, omxFitFunction *localobj,
+		 omxMatrix *_rowLikelihoods, int rowbegin, int rowcount)
+		: super(_fc, localobj, _rowLikelihoods, rowbegin, rowcount) {};
+	bool eval();
+};
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */
