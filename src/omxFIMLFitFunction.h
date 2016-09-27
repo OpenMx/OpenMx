@@ -31,6 +31,13 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	int modelNumber;		// Not used
 } omxFIMLRowOutput;
 
+enum JointStrategy {
+	JOINT_AUTO,
+	JOINT_CONDCONT,
+	JOINT_CONDORD,
+	JOINT_OLD
+};
+
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
@@ -69,6 +76,7 @@ struct omxFIMLFitFunction {
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
 	std::vector<bool> rowCompareInfo;
+	enum JointStrategy jointStrat;
 };
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
@@ -160,25 +168,25 @@ class mvnByRow {
 	}
 };
 
-struct ordinalByRow : mvnByRow {
+struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
-	ordinalByRow(FitContext *_fc, omxFitFunction *_localobj,
+	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
 		     omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
 		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
-struct regularByRow : mvnByRow {
+struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
-	regularByRow(FitContext *_fc, omxFitFunction *_localobj,
+	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
 		     omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
 		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
-struct jointByRow : mvnByRow {
+struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
-	jointByRow(FitContext *_fc, omxFitFunction *_localobj,
+	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
 		   omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
 		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
 	bool eval();

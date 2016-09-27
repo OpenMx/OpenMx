@@ -23,7 +23,7 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
-bool ordinalByRow::eval()
+bool condContByRow::eval()
 {
 	using Eigen::ArrayXi;
 	using Eigen::VectorXi;
@@ -355,6 +355,27 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	recordGap(data->rows - 1, prevRows, identicalRows);
 }
 
+static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
+			  omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
+{
+	switch (ofiml->jointStrat) {
+	case JOINT_AUTO:
+	case JOINT_OLD:{
+		oldByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
+		return batch.eval();
+	}
+	case JOINT_CONDORD:{
+		condOrdByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
+		return batch.eval();
+	}
+	case JOINT_CONDCONT:{
+		condContByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
+		return batch.eval();
+	}
+	default: Rf_error("oops");
+	}
+}
+
 static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
@@ -457,26 +478,10 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			if (false) {
-				ordinalByRow batch(kid, childFit, ofiml,
-						   rowbegin, rowcount);
-				failed |= batch.eval();
-			} else {
-				jointByRow batch(kid, childFit, ofiml,
-						 rowbegin, rowcount);
-				failed |= batch.eval();
-			}
+			failed |= dispatchByRow(kid, childFit, ofiml, rowbegin, rowcount);
 		}
 	} else {
-		if (false) {
-			ordinalByRow batch(fc, off, ofiml,
-					   0, data->rows);
-			failed |= batch.eval();
-		} else {
-			jointByRow batch(fc, off, ofiml,
-					 0, data->rows);
-			failed |= batch.eval();
-		}
+		failed |= dispatchByRow(fc, off, ofiml, 0, data->rows);
 	}
 
 	if (failed) {
@@ -565,6 +570,18 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 	SEXP rObj = off->rObj;
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
+
+	const char *jointStrat = CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("jointConditionOn"))));
+	if (strEQ(jointStrat, "auto")) {
+		newObj->jointStrat = JOINT_AUTO;
+	} else if (strEQ(jointStrat, "ordinal")) {
+		newObj->jointStrat = JOINT_CONDORD;
+	} else if (strEQ(jointStrat, "continuous")) {
+		newObj->jointStrat = JOINT_CONDCONT;
+	} else if (strEQ(jointStrat, "old")) {
+		newObj->jointStrat = JOINT_OLD;
+	} else { Rf_error("jointConditionOn '%s'?", jointStrat); }
+
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	

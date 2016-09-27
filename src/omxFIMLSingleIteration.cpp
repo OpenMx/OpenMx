@@ -53,7 +53,7 @@ void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs,
 	*numIdenticalOrdinalMissingness -= numIdentical;
 }
 
-bool regularByRow::eval()
+bool oldByRow::eval()
 {
 	double Q = 0.0;
 	int numIdenticalDefs = 0, numIdenticalOrdinalMissingness = 0,
@@ -406,7 +406,7 @@ bool regularByRow::eval()
 	return FALSE;
 }
 
-bool jointByRow::eval()
+bool condOrdByRow::eval()
 {
 	using Eigen::MatrixXd;
 	using Eigen::VectorXd;

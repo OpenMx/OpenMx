@@ -27,7 +27,8 @@
 
 \usage{
 mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
-  as.logical(NA), verbose=0L, profileOut=c(), rowwiseParallel=as.logical(NA))
+  as.logical(NA), verbose=0L, profileOut=c(),
+  rowwiseParallel=as.logical(NA), jointConditionOn = c("auto", "ordinal", "continuous"))
 }
 
 \arguments{
@@ -42,7 +43,9 @@ mxFitFunctionML(vector = FALSE, rowDiagnostics = FALSE, ..., fellner =
    \item{profileOut}{Character vector naming constant coefficients to
      profile out of the likelihood (sometimes known as REML)}
    \item{rowwiseParallel}{For raw data only, whether to use OpenMP to parallelize the
-   evaluation of rows}
+     evaluation of rows}
+   \item{jointConditionOn}{The evaluation strategy when both continuous
+   and ordinal data are present.}
 }
 
 \details{
@@ -50,9 +53,15 @@ Fit functions are functions for which free parameter values are optimized such t
 
 The 'vector' argument is either TRUE or FALSE, and determines whether the objective function returns a column vector of the likelihoods, or a single -2*(log likelihood) value.
 
-The 'rowDiagnostics' arguent is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.
+The 'rowDiagnostics' argument is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.
 
 When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, fitfunction can be referenced in the model and included in algebras as a scalar. The row likelihoods are an attribute of the fit function but are not accessible in the model during optimization.  The row likelihoods are accessible to the user after the model has been run.
+
+By default, \code{jointConditionOn='auto'} and a heuristic will be used
+to select the fastest algorithm. Conditioning the continuous data on
+ordinal will be superior when there are relatively few unique ordinal
+patterns. Otherwise, conditioning the ordinal data on continuous will
+perform better when there are relatively many ordinal patterns.
 
 Usage Notes: 
 
