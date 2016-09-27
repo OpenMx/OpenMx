@@ -57,7 +57,7 @@ bool ordinalByRow::eval()
 			}
 		}
 		if (numOrdinal == 0) {
-			record(1.0);
+			recordRow(1.0);
 			continue;
 		}
 
@@ -97,7 +97,7 @@ bool ordinalByRow::eval()
 			return true;
 		}
 
-		record(likelihood);
+		recordRow(likelihood);
 	}
 	return false;
 }
@@ -389,22 +389,22 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 				omxFitFunction *childFit = childMatrix->fitFunction;
 				if (expectation->numOrdinal == dataColumns.size()) {
-					ordinalByRow batch(kid, childFit, ofiml->rowLikelihoods,
+					ordinalByRow batch(kid, childFit, ofiml,
 							   rowbegin, rowcount);
 					failed |= batch.eval();
 				} else {
-					regularByRow batch(kid, childFit, ofiml->rowLikelihoods,
+					regularByRow batch(kid, childFit, ofiml,
 							   rowbegin, rowcount);
 					failed |= batch.eval();
 				}
 			}
 		} else {
 			if (expectation->numOrdinal == dataColumns.size()) {
-				ordinalByRow batch(fc, off, ofiml->rowLikelihoods,
+				ordinalByRow batch(fc, off, ofiml,
 						   0, data->rows);
 				failed |= batch.eval();
 			} else {
-				regularByRow batch(fc, off, ofiml->rowLikelihoods,
+				regularByRow batch(fc, off, ofiml,
 						   0, data->rows);
 				failed |= batch.eval();
 			}
@@ -421,16 +421,21 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	}
 
 	if(!returnRowLikelihoods) {
-		double sum = 0.0;
-		// floating-point addition is not associative,
-		// so we serialized the following reduction operation.
-		for(int i = 0; i < data->rows; i++) {
-			double val = log(omxVectorElement(ofiml->rowLikelihoods, i));
-			//mxLog("[%d] %g", i, val);
-			sum += val;
-		}	
-		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f", off->name(), sum);}
-		omxSetMatrixElement(off->matrix, 0, 0, -2.0 * sum);
+		if (parallelism > 1) {
+			double sum = 0.0;
+			for(int i = 0; i < parallelism; i++) {
+				FitContext *kid = fc->childList[i];
+				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+				EigenVectorAdaptor got(childMatrix);
+				sum += got[0];
+			}
+			sum *= -2.0;
+			omxSetMatrixElement(off->matrix, 0, 0, sum);
+		} else {
+			EigenVectorAdaptor got(off->matrix);
+			got[0] *= -2.0;
+		}
+		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f", off->name(), off->matrix->data[0]);}
 	} else {
 		omxCopyMatrix(off->matrix, ofiml->rowLikelihoods);
 		if (OMX_DEBUG) {

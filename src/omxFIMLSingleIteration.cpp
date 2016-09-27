@@ -175,7 +175,7 @@ bool regularByRow::eval()
 				&numIdenticalOrdinalMissingness, 
 				&numIdenticalContinuousRows,
 						       shared_ofo, numDefs, numIdentical);
-				record(1.0);
+				recordRow(1.0);
 				continue;
 			}
 			
@@ -401,7 +401,7 @@ bool regularByRow::eval()
 					       &numIdenticalOrdinalMissingness, 
 					       &numIdenticalContinuousRows,
 					       shared_ofo, numDefs, numIdentical);
-			record(rowLikelihood);
+			recordRow(rowLikelihood);
 	}
 	return FALSE;
 }
