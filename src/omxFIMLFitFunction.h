@@ -34,7 +34,6 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
-	int condOnOrdinal;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
@@ -80,8 +79,6 @@ void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				 omxMatrix* output,
 				 int rowbegin, int rowcount);
-bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off);
-
 
 class mvnByRow {
 	omxFitFunction *localobj;
@@ -175,6 +172,14 @@ struct regularByRow : mvnByRow {
 	typedef mvnByRow super;
 	regularByRow(FitContext *_fc, omxFitFunction *_localobj,
 		     omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
+	bool eval();
+};
+
+struct jointByRow : mvnByRow {
+	typedef mvnByRow super;
+	jointByRow(FitContext *_fc, omxFitFunction *_localobj,
+		   omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
 		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
 	bool eval();
 };

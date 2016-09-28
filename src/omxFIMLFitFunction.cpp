@@ -25,76 +25,148 @@
 
 bool ordinalByRow::eval()
 {
-	Eigen::ArrayXi ordBuffer(dataColumns.size());
-	Eigen::VectorXi ordRemove(cov->cols);
-	omxMatrix *ordCov = ofo->ordCov;
-	omxMatrix *ordMeans = ofo->ordMeans;
+	using Eigen::ArrayXi;
+	using Eigen::VectorXi;
+	using Eigen::VectorXd;
+	using Eigen::MatrixXd;
+
+	EigenMatrixAdaptor jointCov(cov);     // refactor TODO
+	EigenVectorAdaptor jointMeans(means);
+
+	std::vector<bool> isOrdinal(dataColumns.size());
+
+	int numOrdinal=0;
+	int numContinuous=0;
+	for(int j = 0; j < dataColumns.size(); j++) {
+		int var = dataColumns[j];
+		isOrdinal[j] = omxDataColumnIsFactor(data, var);
+		if (isOrdinal[j]) numOrdinal += 1;
+		else numContinuous += 1;
+	}
+
+	Eigen::VectorXd cData(numContinuous);
+	VectorXi iData(numOrdinal);
+	ArrayXi ordColBuf(numOrdinal);
+	std::vector<bool> isMissing(dataColumns.size());
+
+	MatrixXd ordCov;
+	MatrixXd contCov;
+	VectorXd contMean;
+	VectorXd ordMean;
+	SimpCholesky< Eigen::MatrixXd >  covDecomp;
 
 	while(row < lastrow) {
 		mxLogSetCurrentRow(row);
+		int sortedRow = indexVector[row];
 
-		bool numVarsFilled = expectation->loadDefVars(indexVector[row]);
+		bool numVarsFilled = expectation->loadDefVars(sortedRow);
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
 		}
 
-		omxRecompute(thresholdsMat, fc);
-		for (int j=0; j < dataColumns.size(); j++) {
-			int var = dataColumns[j];
-			if (!omxDataColumnIsFactor(data, var)) continue;
-			if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-						  thresholdCols[j].numThresholds, fc)) return true;
-		}
-
-		int numOrdinal = 0;
+		int rowOrdinal = 0;
+		int rowContinuous = 0;
 		for(int j = 0; j < dataColumns.size(); j++) {
 			int var = dataColumns[j];
-			if (omxDataElementMissing(data, indexVector[row], var)) {
-				ordRemove[j] = 1;
+			if (isOrdinal[j]) {
+				int value = omxIntDataElement(data, sortedRow, var);
+				isMissing[j] = value == NA_INTEGER;
+				if (!isMissing[j]) {
+					ordColBuf[rowOrdinal] = j;
+					iData[rowOrdinal++] = value;
+				}
 			} else {
-				numOrdinal += 1;
-				ordRemove[j] = 0;
+				double value = omxDoubleDataElement(data, sortedRow, var);
+				isMissing[j] = std::isnan(value);
+				if (!isMissing[j]) cData[rowContinuous++] = value;
 			}
 		}
-		if (numOrdinal == 0) {
-			recordRow(1.0);
-			continue;
+
+		struct subsetOp {
+			std::vector<bool> &isOrdinal;
+			std::vector<bool> &isMissing;
+			bool wantOrdinal;
+			subsetOp(std::vector<bool> &_isOrdinal,
+				 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {
+				wantOrdinal = false;
+			};
+			// true to include
+			bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
+		} op(isOrdinal, isMissing);
+
+		if (rowOrdinal && rowContinuous) {
+			// continuous changed?
+			MatrixXd V12(rowOrdinal, rowContinuous);
+
+			op.wantOrdinal = false;
+			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
+			upperRightCovariance(jointCov, op, V12);
+			op.wantOrdinal = true;
+			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
+			
+			//mxPrintMat("joint cov", jointCov);
+			//mxPrintMat("ord cov", ordCov);
+			//mxPrintMat("ord cont cov", V12);
+			//mxPrintMat("cont cov", contCov);
+
+			covDecomp.compute(contCov);
+			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+			covDecomp.refreshInverse();
+			const Eigen::MatrixXd &icontCov = covDecomp.getInverse();
+
+			MatrixXd ordAdj = V12 * icontCov.selfadjointView<Eigen::Lower>();
+			ordMean += ordAdj * (cData - contMean);
+			ordCov -= ordAdj * V12.transpose();
+		} else if (rowOrdinal) {
+			// if ordinal cov changed
+			op.wantOrdinal = true;
+			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
+		} else if (rowContinuous) {
+			// if continuous cov changed
+			op.wantOrdinal = false;
+			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
+			covDecomp.compute(contCov);
+			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+			covDecomp.refreshInverse();
 		}
 
-		if (true || firstRow) {
-			omxCopyMatrix(ordCov, cov);
-			omxRemoveRowsAndColumns(ordCov, ordRemove.data(), ordRemove.data());
+		double likelihood = 1.0;
 
-			EigenMatrixAdaptor EordCov(ordCov);
-			ol.setCovariance(EordCov, fc);
-					
-			int ox=0;
-			for(int j = 0; j < dataColumns.size(); j++) {
-				if(ordRemove[j]) continue;         // NA or non-ordinal
-				ordBuffer[ox] = j;
-				ox += 1;
+		if (rowContinuous) {
+			Eigen::VectorXd resid = cData - contMean;
+			const Eigen::MatrixXd &iV = covDecomp.getInverse();
+			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+			double cterm = M_LN_2PI * resid.size();
+			double logDet = covDecomp.log_determinant();
+			likelihood *= exp(-0.5 * (iqf + cterm + logDet));
+		}
+
+		if (rowOrdinal) {
+			omxRecompute(thresholdsMat, fc);
+			for (int jx=0; jx < rowOrdinal; jx++) {
+				int j = ordColBuf[jx];
+				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+							  thresholdCols[j].numThresholds, fc)) return true;
 			}
-			Eigen::Map< Eigen::ArrayXi > ordColumns(ordBuffer.data(), ox);
-			ol.setColumns(ordColumns);
 
-			// Recalculate ordinal fs
-			omxCopyMatrix(ordMeans, means);
-			omxRemoveElements(ordMeans, ordRemove.data()); 	    // Reduce the row to just ordinal.
-					
-			EigenVectorAdaptor EordMeans(ordMeans);
-			ol.setMean(EordMeans);
-		}
+			if (true || firstRow) {
+				ol.setCovariance(ordCov, fc);
+				Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
+				ol.setColumns(ordColumns);
+				ol.setMean(ordMean);
+			}
 
-		double likelihood = ol.likelihood(indexVector[row]);
+			likelihood *= ol.likelihood(sortedRow);
 
-		if (likelihood == 0.0) {
-			if (fc) fc->recordIterationError("Improper value detected by integration routine "
-							 "in data row %d: Most likely the maximum number of "
-							 "ordinal variables (20) has been exceeded.  \n"
-							 " Also check that expected covariance matrix is not "
-							 "positive-definite", indexVector[row]);
-			if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
-			return true;
+			if (likelihood == 0.0) {
+				if (fc) fc->recordIterationError("Improper value detected by integration routine "
+								 "in data row %d: Most likely the maximum number of "
+								 "ordinal variables (20) has been exceeded.  \n"
+								 " Also check that expected covariance matrix is not "
+								 "positive-definite", sortedRow);
+				if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+				return true;
+			}
 		}
 
 		recordRow(likelihood);
@@ -297,7 +369,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
 		} else {
-			off->openmpUser = ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
+			off->openmpUser = ofiml->rowwiseParallel != 0;
 			sortData(off, fc);
 		}
 		return;
@@ -366,50 +438,47 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		parallelism = data->rows;
 	}
 
-	if (ofiml->condOnOrdinal) {
-		failed = condOnOrdinalLikelihood(fc, off);
-	} else {
-		if (parallelism > 1) {
-			int stride = (data->rows / parallelism);
+	if (parallelism > 1) {
+		int stride = (data->rows / parallelism);
 
-			if (OMX_DEBUG) {
-				FitContext *kid = fc->childList[0];
-				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
-				omxFitFunction *childFit = childMatrix->fitFunction;
-				omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
-				if (!ofo->parent) Rf_error("oops");
-			}
+		if (OMX_DEBUG) {
+			FitContext *kid = fc->childList[0];
+			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+			omxFitFunction *childFit = childMatrix->fitFunction;
+			omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
+			if (!ofo->parent) Rf_error("oops");
+		}
 
 #pragma omp parallel for num_threads(parallelism) reduction(||:failed)
-			for(int i = 0; i < parallelism; i++) {
-				int rowbegin = stride*i;
-				int rowcount = stride;
-				if (i == parallelism-1) rowcount = data->rows - rowbegin;
-				FitContext *kid = fc->childList[i];
-				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
-				omxFitFunction *childFit = childMatrix->fitFunction;
-				if (expectation->numOrdinal == dataColumns.size()) {
-					ordinalByRow batch(kid, childFit, ofiml,
-							   rowbegin, rowcount);
-					failed |= batch.eval();
-				} else {
-					regularByRow batch(kid, childFit, ofiml,
-							   rowbegin, rowcount);
-					failed |= batch.eval();
-				}
-			}
-		} else {
-			if (expectation->numOrdinal == dataColumns.size()) {
-				ordinalByRow batch(fc, off, ofiml,
-						   0, data->rows);
+		for(int i = 0; i < parallelism; i++) {
+			int rowbegin = stride*i;
+			int rowcount = stride;
+			if (i == parallelism-1) rowcount = data->rows - rowbegin;
+			FitContext *kid = fc->childList[i];
+			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+			omxFitFunction *childFit = childMatrix->fitFunction;
+			if (false) {
+				ordinalByRow batch(kid, childFit, ofiml,
+						   rowbegin, rowcount);
 				failed |= batch.eval();
 			} else {
-				regularByRow batch(fc, off, ofiml,
-						   0, data->rows);
+				jointByRow batch(kid, childFit, ofiml,
+						 rowbegin, rowcount);
 				failed |= batch.eval();
 			}
 		}
+	} else {
+		if (false) {
+			ordinalByRow batch(fc, off, ofiml,
+					   0, data->rows);
+			failed |= batch.eval();
+		} else {
+			jointByRow batch(fc, off, ofiml,
+					 0, data->rows);
+			failed |= batch.eval();
+		}
 	}
+
 	if (failed) {
 		if(!returnRowLikelihoods) {
 			omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
@@ -496,7 +565,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 	SEXP rObj = off->rObj;
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
-	newObj->condOnOrdinal = Rf_asLogical(R_do_slot(rObj, Rf_install(".conditionOnOrdinal")));
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	

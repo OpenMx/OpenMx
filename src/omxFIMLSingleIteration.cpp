@@ -406,66 +406,12 @@ bool regularByRow::eval()
 	return FALSE;
 }
 
-template <typename T1, typename T2, typename T3, typename T4>
-void mvnTrunc(double prob, omxFitFunction *off, Eigen::MatrixBase<T1> &jointMean,
-	      Eigen::MatrixBase<T2> &jointCov, int row,
-	      Eigen::MatrixBase<T3> &truncMean, Eigen::MatrixBase<T4> &truncCov)
+bool jointByRow::eval()
 {
-	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) off->argStruct);
-	omxExpectation* expectation = off->expectation;
-	EigenMatrixAdaptor tMat(expectation->thresholdsMat);
-	std::vector< omxThresholdColumn > &colInfo = expectation->thresholds;
-	auto &dataColumns	= expectation->getDataColumns();
-	omxData *data = ofo->data;
-	
-	Eigen::VectorXd uThresh(dataColumns.size());
-	Eigen::VectorXd lThresh(dataColumns.size());
+	using Eigen::MatrixXd;
+	using Eigen::VectorXd;
 
-	for(int j = 0; j < dataColumns.size(); j++) {
-		int var = dataColumns[j];
-		bool isOrdinal = omxDataColumnIsFactor(data, var);
-		if (!isOrdinal) {
-			lThresh[j] = -std::numeric_limits<double>::infinity();
-			uThresh[j] = std::numeric_limits<double>::infinity();
-			continue;
-		}
-		int pick = omxIntDataElement(data, row, var) - 1;
-		int tcol = colInfo[j].column;
-		if (pick == 0) {
-			lThresh[j] = -std::numeric_limits<double>::infinity();
-			uThresh[j] = (tMat(pick, tcol) - jointMean[j]);
-		} else if (pick == colInfo[j].numThresholds) {
-			lThresh[j] = (tMat(pick-1, tcol) - jointMean[j]);
-			uThresh[j] = std::numeric_limits<double>::infinity();
-		} else {
-			lThresh[j] = (tMat(pick-1, tcol) - jointMean[j]);
-			uThresh[j] = (tMat(pick, tcol) - jointMean[j]);
-		}
-	}
-
-	_mtmvnorm(prob, jointCov, lThresh, uThresh, truncMean, truncCov);
-
-	// preserve continuous mean
-	for(int j = 0; j < dataColumns.size(); j++) {
-		int var = dataColumns[j];
-		if (omxDataColumnIsFactor(data, var)) continue;
-		truncMean[j] += jointMean[j];
-	}
-}
-
-bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
-{
-	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) off->argStruct);
-	omxFIMLFitFunction* shared_ofo = ofo->parent? ofo->parent : ofo;
-	omxExpectation* expectation = off->expectation;
-	omxMatrix *thresholdsMat = expectation->thresholdsMat;
-	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
-	omxData *data = ofo->data;
-	auto &dataColumns	= expectation->getDataColumns();
 	std::vector<bool> isOrdinal(dataColumns.size());
-	EigenVectorAdaptor rowLikelihoods(ofo->rowLikelihoods);
-	OrdinalLikelihood &ol = ofo->ol;
-	ol.attach(dataColumns, data, thresholdsMat, thresholdCols);
 
 	int numOrdinal=0;
 	int numContinuous=0;
@@ -491,13 +437,11 @@ bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
 	Eigen::VectorXd contMean;
 	Eigen::MatrixXd contCov;
 		
-	int patterns = 0;
-	auto& indexVector = shared_ofo->indexVector;
-
-	for (int dinx=0; dinx < data->rows; ++dinx) {
-		int row = indexVector[dinx];
-		bool numVarsFilled = expectation->loadDefVars(row);
-		if (numVarsFilled || dinx == 0) {
+	while(row < lastrow) {
+		mxLogSetCurrentRow(row);
+		int sortedRow = indexVector[row];
+		bool numVarsFilled = expectation->loadDefVars(sortedRow);
+		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
 			// automatically fills in jointMeans, jointCov
 			covDecomp.compute(jointCov);
@@ -509,20 +453,20 @@ bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
 		for(int j = 0; j < dataColumns.size(); j++) {
 			int var = dataColumns[j];
 			if (isOrdinal[j]) {
-				int value = omxIntDataElement(data, row, var);
+				int value = omxIntDataElement(data, sortedRow, var);
 				isMissing[j] = value == NA_INTEGER;
 				if (!isMissing[j]) {
 					ordColBuf[rowOrdinal] = j;
 					iData[rowOrdinal++] = value;
 				}
 			} else {
-				double value = omxDoubleDataElement(data, row, var);
+				double value = omxDoubleDataElement(data, sortedRow, var);
 				isMissing[j] = std::isnan(value);
 				if (!isMissing[j]) cData[rowContinuous++] = value;
 			}
 		}
 
-		if (thresholdsMat && (numVarsFilled || dinx == 0)) {
+		if (thresholdsMat && (numVarsFilled || firstRow)) {
 			omxRecompute(thresholdsMat, fc);
 			for(int j=0; j < dataColumns.size(); j++) {
 				int var = dataColumns[j];
@@ -555,29 +499,91 @@ bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
 			Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
 			ol.setColumns(ordColumns);
 			ol.setMean(ordMean);
-			ordLikelihood = ol.likelihood(row);
+			ordLikelihood = ol.likelihood(sortedRow);
 
 			if (rowContinuous) {
-				//mxPrintMat("ord data", prevOrdData);
-				//mxPrintMat("joint mean", jointMeans);
-				//mxPrintMat("joint cov", jointCov);
-				Eigen::VectorXd truncMean;
-				Eigen::MatrixXd truncCov;
-				mvnTrunc(ordLikelihood, off, jointMeans, jointCov, row, truncMean, truncCov);
-				//mxPrintMat("trunc mean", truncMean);
-				//mxPrintMat("trunc cov", truncCov);
+				VectorXd truncMean;
+				MatrixXd truncCov;
+				MatrixXd V11;  //ord
+				MatrixXd V12(rowOrdinal, rowContinuous);
+				MatrixXd V22;  //cont
+
+				op.wantOrdinal = true;
+				subsetCovariance(jointCov, op, rowOrdinal, V11);
 				op.wantOrdinal = false;
+				upperRightCovariance(jointCov, op, V12);
+				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, V22);
+
+				// skip if ordinal part is the same TODO
+				std::vector< omxThresholdColumn > &colInfo = expectation->thresholds;
+				EigenMatrixAdaptor tMat(thresholdsMat);
+				Eigen::VectorXd uThresh(rowOrdinal);
+				Eigen::VectorXd lThresh(rowOrdinal);
+				for(int jj=0; jj < rowOrdinal; jj++) {
+					int var = dataColumns[ ordColBuf[jj] ];
+					if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) Rf_error("Must be a factor");
+					int pick = omxIntDataElement(data, sortedRow, var) - 1;
+					if (OMX_DEBUG && (pick < 0 || pick > colInfo[var].numThresholds)) Rf_error("Out of range");
+					int tcol = colInfo[var].column;
+					if (pick == 0) {
+						lThresh[jj] = -std::numeric_limits<double>::infinity();
+						uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+					} else if (pick == colInfo[var].numThresholds) {
+						lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
+						uThresh[jj] = std::numeric_limits<double>::infinity();
+					} else {
+						lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
+						uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+					}
+				}
+
+				VectorXd xi;
+				MatrixXd U11;
+				_mtmvnorm(ordLikelihood, V11, lThresh, uThresh, xi, U11);
+				U11 = U11.selfadjointView<Eigen::Upper>();
+
+				MatrixXd invV11 = V11; // cache TODO
+				if (InvertSymmetricPosDef(invV11, 'L')) Rf_error("Non-positive definite");
+				invV11 = invV11.selfadjointView<Eigen::Lower>();
+
+				// Aitken (1934) "Note on Selection from a Multivariate Normal Population"
+				// Or Johnson/Kotz (1972), p.70
+				VectorXd mu2 = xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12; // factor last terms TODO
+				truncMean.derived().resize(dataColumns.size());
+				for (int xx=0, x1=0, x2=0; xx < dataColumns.size(); ++xx) {
+					if (isOrdinal[xx]) {
+						truncMean[xx] = xi[x1++];
+					} else {
+						truncMean[xx] = mu2[x2] + contMean[x2];
+						x2 += 1;
+					}
+				}
+				truncCov.derived().resize(dataColumns.size(), dataColumns.size());
+				op.wantOrdinal = true;
+				subsetCovarianceStore(truncCov, op, U11);
+				op.wantOrdinal = false;
+				MatrixXd tmp = U11.selfadjointView<Eigen::Lower>() * (invV11.selfadjointView<Eigen::Lower>() * V12);
+				upperRightCovarianceStore(truncCov, op, tmp);
+				tmp = (V22 - V12.transpose() * (invV11 -
+								invV11.selfadjointView<Eigen::Lower>() * U11 *
+								invV11.selfadjointView<Eigen::Lower>()) * V12);
+				subsetCovarianceStore(truncCov, op, tmp); // don't need to store it TODO
+
+				truncCov = truncCov.template selfadjointView<Eigen::Upper>();
+
 				subsetNormalDist(truncMean, truncCov, op, rowContinuous, contMean, contCov);
+				// Only need continuous subset; remove extra code TODO
+				//mxPrintMat("cont mean", contMean);
+				//mxPrintMat("cont cov", contCov);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 				covDecomp.refreshInverse();
 			}
-			patterns += 1;
 		}
 
 		double contLikelihood = 1.0;
 		if (rowContinuous) {
-			if (!rowOrdinal && (numVarsFilled || dinx == 0)) {
+			if (!rowOrdinal && (numVarsFilled || firstRow)) {
 				contMean = jointMeans;
 				contCov = jointCov;
 				covDecomp.compute(contCov);
@@ -589,14 +595,13 @@ bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off)
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * resid.size();
 			double logDet = covDecomp.log_determinant();
-			//mxLog("[%d] cont %f %f %f", row, iqf, cterm, logDet);
+			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLikelihood = exp(-0.5 * (iqf + cterm + logDet));
 		}
 
-		rowLikelihoods[row] = ordLikelihood * contLikelihood;
+		recordRow(ordLikelihood * contLikelihood);
 	}
 
-	//mxLog("%d patterns", patterns);
 	return false;
 }
 
