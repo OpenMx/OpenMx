@@ -168,7 +168,7 @@ testdocs:
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
-	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE)
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args nightly
 
 test-failing:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args failing
