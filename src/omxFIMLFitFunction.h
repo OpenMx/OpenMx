@@ -44,24 +44,22 @@ struct omxFIMLFitFunction {
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
-	omxMatrix* dataRow;			// One row of data
+
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
+	omxContiguousData contiguous;		// TODO
 
-//	double* zeros;
+	std::vector<bool> isOrdinal;
+	int numOrdinal;
+	int numContinuous;
+	OrdinalLikelihood ol;
 
 	bool inUse;
 
-	/* Reserved memory for faster calculation */
-	omxMatrix* smallRow;		// Memory reserved for operations on each data row
-	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
-	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
+	enum JointStrategy jointStrat;
 
-	omxMatrix* RCX;				// Memory reserved for computationxs
-		
-	OrdinalLikelihood ol;
+	// --- old stuff below
 
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
@@ -71,12 +69,18 @@ struct omxFIMLFitFunction {
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
     
+	/* Reserved memory for faster calculation */
+	omxMatrix* smallRow;		// Memory reserved for operations on each data row
+	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
+	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
+
+	omxMatrix* RCX;				// Memory reserved for computationxs
+		
 	std::vector<int> indexVector;
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
 	std::vector<bool> rowCompareInfo;
-	enum JointStrategy jointStrat;
 };
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
@@ -109,6 +113,11 @@ class mvnByRow {
 	const Eigen::Map<Eigen::VectorXi> dataColumns;
 	omxMatrix *rowLikelihoods;
 	bool returnRowLikelihoods;
+	std::vector<bool> &isOrdinal;
+	int numOrdinal;
+	int numContinuous;
+	EigenVectorAdaptor jointMeans;
+	EigenMatrixAdaptor jointCov;
 
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
 		 omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
@@ -120,7 +129,10 @@ class mvnByRow {
 		indexVector(shared_ofo->indexVector),
 		identicalRows(shared_ofo->identicalRows),
 		thresholdCols(expectation->thresholds),
-		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns)
+		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
+		isOrdinal(ofiml->isOrdinal),
+		jointMeans(ofo->means),
+		jointCov(ofo->cov)
 	{
 		data = ofo->data;
 		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
@@ -135,6 +147,8 @@ class mvnByRow {
 		returnRowLikelihoods = ofiml->returnRowLikelihoods;
 		localobj = _localobj;
 		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
+		numOrdinal = ofiml->numOrdinal;
+		numContinuous = ofiml->numContinuous;
 
 		if (row > 0) {
 			int prevIdentical = identicalRows[row - 1];

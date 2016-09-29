@@ -88,8 +88,8 @@ bool oldByRow::eval()
 	int onei = 1;
 	double likelihood;
 	
-	int numContinuous = 0;
-	int numOrdinal = 0;
+	int rowContinuous = 0;
+	int rowOrdinal = 0;
 	
 	while(row < lastrow) {
 		mxLogSetCurrentRow(row);
@@ -112,8 +112,8 @@ bool oldByRow::eval()
 			}
 			// Filter down correlation matrix and calculate thresholds.
 			// TODO: If identical ordinal or continuous missingness, ignore only the appropriate columns.
-			numContinuous = 0;
-			numOrdinal = 0;
+			rowContinuous = 0;
+			rowOrdinal = 0;
 			for(int j = 0; j < dataColumns.size(); j++) {
 				int var = dataColumns[j];
 				// TODO: Might save time by preseparating ordinal from continuous.
@@ -126,7 +126,7 @@ bool oldByRow::eval()
 					continue;
 				}
 				else if (omxDataColumnIsFactor(data, var)) {
-					++numOrdinal;
+					++rowOrdinal;
 					ordRemove[j] = 0;
 					contRemove[j] = 1;
 					if(OMX_DEBUG_ROWS(row)) { 
@@ -134,7 +134,7 @@ bool oldByRow::eval()
 					}
 				} 
 				else {
-					++numContinuous;
+					++rowContinuous;
 					ordRemove[j] = 1;
 					contRemove[j] = 0;
 					if(OMX_DEBUG_ROWS(row)) { 
@@ -145,7 +145,7 @@ bool oldByRow::eval()
 			
 			if(OMX_DEBUG_ROWS(row)) {
 				mxLog("Removals: %d ordinal, %d continuous out of %d total.",
-				      dataColumns.size() - numOrdinal, dataColumns.size() - numContinuous,
+				      dataColumns.size() - rowOrdinal, dataColumns.size() - rowContinuous,
 				      dataColumns.size());
 			}
 
@@ -168,7 +168,7 @@ bool oldByRow::eval()
 			//    ordinal and continuous variables.
 			//   Requirement: colNum integer vector
 			
-			if(numContinuous <= 0 && numOrdinal <= 0) {
+			if(rowContinuous <= 0 && rowOrdinal <= 0) {
 				// All elements missing.  Skip row.
 				omxFIMLAdvanceJointRow(&row, &numIdenticalDefs, 
 				&numIdenticalContinuousMissingness,
@@ -198,7 +198,7 @@ bool oldByRow::eval()
 			//  Unprojected covariances only need to reset and re-filter if there are def vars or the appropriate missingness pattern changes
 			//  Also, if each one is not all-missing.
 			
-			if(numContinuous <= 0) {
+			if(rowContinuous <= 0) {
 				// All continuous missingness.  Populate some stuff.
 				Q = 0.0;
 				determinant = 0.0;
@@ -297,7 +297,7 @@ bool oldByRow::eval()
 				F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
 				Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei); //Q is the total mahalanobis distance
 				
-				if(numOrdinal > 0) { // also check numIdenticalDefs?
+				if(rowOrdinal > 0) { // also check numIdenticalDefs?
 					
 					// Precalculate Ordinal things that change with continuous changes
 					// Reserve: 1) Inverse continuous covariance (smallCov)
@@ -372,7 +372,7 @@ bool oldByRow::eval()
 				
 			} // End of continuous likelihood values calculation
 			
-			if(numOrdinal <= 0) {       // No Ordinal Vars at all.
+			if(rowOrdinal <= 0) {       // No Ordinal Vars at all.
 			likelihood = 1;
 			} 
 			else {  
@@ -388,11 +388,11 @@ bool oldByRow::eval()
 				}
 			}
 			
-			double rowLikelihood = pow(2 * M_PI, -.5 * numContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
+			double rowLikelihood = pow(2 * M_PI, -.5 * rowContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
 			
 			if(OMX_DEBUG_ROWS(row)) { 
 				mxLog("row[%d] log likelihood det %3.3f + q %3.3f + const %3.3f + ord %3.3f = %3.3g", 
-				      indexVector[row], (2.0*determinant), Q, M_LN_2PI * numContinuous, 
+				      indexVector[row], (2.0*determinant), Q, M_LN_2PI * rowContinuous, 
 				      log(likelihood), -2.0 * log(rowLikelihood));
 			}
 

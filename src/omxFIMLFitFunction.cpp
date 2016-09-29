@@ -28,25 +28,11 @@ bool condOrdByRow::eval()
 	using Eigen::MatrixXd;
 	using Eigen::VectorXd;
 
-	std::vector<bool> isOrdinal(dataColumns.size());
-
-	int numOrdinal=0;
-	int numContinuous=0;
-	for(int j = 0; j < dataColumns.size(); j++) {
-		int var = dataColumns[j];
-		isOrdinal[j] = omxDataColumnIsFactor(data, var);
-		if (isOrdinal[j]) numOrdinal += 1;
-		else numContinuous += 1;
-	}
-
 	Eigen::VectorXd cData(numContinuous);
 	Eigen::VectorXi iData(numOrdinal);
 	Eigen::VectorXi prevOrdData;
 	Eigen::VectorXi ordColBuf(numOrdinal);
 	std::vector<bool> isMissing(dataColumns.size());
-
-	EigenVectorAdaptor jointMeans(ofo->means);
-	EigenMatrixAdaptor jointCov(ofo->cov);
 
 	SimpCholesky< Eigen::MatrixXd >  covDecomp;
 	double ordLikelihood = 1.0;
@@ -228,20 +214,6 @@ bool condContByRow::eval()
 	using Eigen::VectorXi;
 	using Eigen::VectorXd;
 	using Eigen::MatrixXd;
-
-	EigenMatrixAdaptor jointCov(cov);     // refactor TODO
-	EigenVectorAdaptor jointMeans(means);
-
-	std::vector<bool> isOrdinal(dataColumns.size());
-
-	int numOrdinal=0;
-	int numContinuous=0;
-	for(int j = 0; j < dataColumns.size(); j++) {
-		int var = dataColumns[j];
-		isOrdinal[j] = omxDataColumnIsFactor(data, var);
-		if (isOrdinal[j]) numOrdinal += 1;
-		else numContinuous += 1;
-	}
 
 	Eigen::VectorXd cData(numContinuous);
 	VectorXi iData(numOrdinal);
@@ -734,8 +706,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->inUse = false;
 	newObj->parent = 0;
 
-	int numOrdinal = 0;
-
 	omxMatrix *cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
 		omxRaiseError("No covariance expectation in FIML evaluation.");
@@ -799,7 +769,20 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	if(OMX_DEBUG) {
 		mxLog("Accessing Threshold matrix.");
 	}
-	numOrdinal = off->expectation->numOrdinal;
+
+	std::vector<bool> &isOrdinal = newObj->isOrdinal;
+	isOrdinal.resize(dc.size());
+
+	int numOrdinal=0;
+	int numContinuous=0;
+	for(int j = 0; j < dc.size(); j++) {
+		int var = dc[j];
+		isOrdinal[j] = omxDataColumnIsFactor(newObj->data, var);
+		if (isOrdinal[j]) numOrdinal += 1;
+		else numContinuous += 1;
+	}
+	newObj->numOrdinal = numOrdinal;
+	newObj->numContinuous = numContinuous;
 
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
 	
