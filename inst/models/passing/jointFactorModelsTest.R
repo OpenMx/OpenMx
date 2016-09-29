@@ -57,6 +57,7 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	
 	jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
 	#summary(jointResults1)
+	print(jointResults1$fitfunction$info)
 
 	jointModel2 <- mxModel("ContinuousOrdinalData",
 			       mxData(jointData, "raw"),

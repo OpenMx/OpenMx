@@ -59,6 +59,14 @@ struct omxFIMLFitFunction {
 
 	enum JointStrategy jointStrat;
 
+	// performance counters
+	int expectationComputeCount;
+	int conditionCount;
+	int invertCount;
+	int ordSetupCount;
+	int ordDensityCount;
+	int contDensityCount;
+
 	// --- old stuff below
 
 	/* Structures for JointFIMLFitFunction */
@@ -118,9 +126,10 @@ class mvnByRow {
 	int numContinuous;
 	EigenVectorAdaptor jointMeans;
 	EigenMatrixAdaptor jointCov;
+	omxFIMLFitFunction *ofiml;
 
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
+		 omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
 	:
 	ofo((omxFIMLFitFunction*) _localobj->argStruct),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
@@ -130,7 +139,7 @@ class mvnByRow {
 		identicalRows(shared_ofo->identicalRows),
 		thresholdCols(expectation->thresholds),
 		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
-		isOrdinal(ofiml->isOrdinal),
+		isOrdinal(_ofiml->isOrdinal),
 		jointMeans(ofo->means),
 		jointCov(ofo->cov)
 	{
@@ -143,6 +152,7 @@ class mvnByRow {
 		cov = ofo->cov;
 		means = ofo->means;
 		fc = _fc;
+		ofiml = _ofiml;
 		rowLikelihoods = ofiml->rowLikelihoods;
 		returnRowLikelihoods = ofiml->returnRowLikelihoods;
 		localobj = _localobj;
@@ -185,24 +195,24 @@ class mvnByRow {
 struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
 	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
+		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
 struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
 	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
+		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
 struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
 	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
-		   omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, ofiml, rowbegin, rowcount) {};
+		   omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 

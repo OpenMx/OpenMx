@@ -233,6 +233,8 @@ bool condContByRow::eval()
 		bool numVarsFilled = expectation->loadDefVars(sortedRow);
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
+#pragma omp atomic
+			ofiml->expectationComputeCount += 1;
 		}
 
 		int rowOrdinal = 0;
@@ -280,11 +282,15 @@ bool condContByRow::eval()
 			//mxPrintMat("ord cont cov", V12);
 			//mxPrintMat("cont cov", contCov);
 
+#pragma omp atomic
+			ofiml->invertCount += 1;
 			covDecomp.compute(contCov);
 			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 			covDecomp.refreshInverse();
 			const Eigen::MatrixXd &icontCov = covDecomp.getInverse();
 
+#pragma omp atomic
+			ofiml->conditionCount += 1;
 			MatrixXd ordAdj = V12 * icontCov.selfadjointView<Eigen::Lower>();
 			ordMean += ordAdj * (cData - contMean);
 			ordCov -= ordAdj * V12.transpose();
@@ -296,6 +302,8 @@ bool condContByRow::eval()
 			// if continuous cov changed
 			op.wantOrdinal = false;
 			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
+#pragma omp atomic
+			ofiml->invertCount += 1;
 			covDecomp.compute(contCov);
 			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 			covDecomp.refreshInverse();
@@ -304,6 +312,8 @@ bool condContByRow::eval()
 		double likelihood = 1.0;
 
 		if (rowContinuous) {
+#pragma omp atomic
+			ofiml->contDensityCount += 1;
 			Eigen::VectorXd resid = cData - contMean;
 			const Eigen::MatrixXd &iV = covDecomp.getInverse();
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
@@ -321,12 +331,16 @@ bool condContByRow::eval()
 			}
 
 			if (true || firstRow) {
+#pragma omp atomic
+				ofiml->ordSetupCount += 1;
 				ol.setCovariance(ordCov, fc);
 				Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
 				ol.setColumns(ordColumns);
 				ol.setMean(ordMean);
 			}
 
+#pragma omp atomic
+			ofiml->ordDensityCount += 1;
 			likelihood *= ol.likelihood(sortedRow);
 
 			if (likelihood == 0.0) {
@@ -399,6 +413,19 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 	}
+
+	Rf_setAttrib(algebra, Rf_install("expectationComputeCount"),
+		     Rf_ScalarInteger(argStruct->expectationComputeCount));
+	Rf_setAttrib(algebra, Rf_install("conditionCount"),
+		     Rf_ScalarInteger(argStruct->conditionCount));
+	Rf_setAttrib(algebra, Rf_install("invertCount"),
+		     Rf_ScalarInteger(argStruct->invertCount));
+	Rf_setAttrib(algebra, Rf_install("ordSetupCount"),
+		     Rf_ScalarInteger(argStruct->ordSetupCount));
+	Rf_setAttrib(algebra, Rf_install("ordDensityCount"),
+		     Rf_ScalarInteger(argStruct->ordDensityCount));
+	Rf_setAttrib(algebra, Rf_install("contDensityCount"),
+		     Rf_ScalarInteger(argStruct->contDensityCount));
 }
 
 struct FIMLCompare {
@@ -524,6 +551,8 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	recordGap(data->rows - 1, prevDefs, identicalDefs);
 	recordGap(data->rows - 1, prevMissingness, identicalMissingness);
 	recordGap(data->rows - 1, prevRows, identicalRows);
+
+	//data->omxPrintData("sorted", 1000, indexVector.data());
 }
 
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
@@ -705,6 +734,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->inUse = false;
 	newObj->parent = 0;
+	newObj->expectationComputeCount = 0;
+	newObj->conditionCount = 0;
+	newObj->invertCount = 0;
+	newObj->ordSetupCount = 0;
+	newObj->ordDensityCount = 0;
+	newObj->contDensityCount = 0;
 
 	omxMatrix *cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 

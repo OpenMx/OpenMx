@@ -107,6 +107,8 @@ bool oldByRow::eval()
 				if(OMX_DEBUG_ROWS(row)) { mxLog("Handling Definition Vars."); }
 				bool numVarsFilled = expectation->loadDefVars(indexVector[row]);
 				if (numVarsFilled || firstRow) {
+#pragma omp atomic
+					ofiml->expectationComputeCount += 1;
 					omxExpectationCompute(fc, expectation, NULL);
 				}
 			}
@@ -203,6 +205,9 @@ bool oldByRow::eval()
 				Q = 0.0;
 				determinant = 0.0;
 				if(numIdenticalDefs <= 0 || numIdenticalOrdinalMissingness <= 0 || firstRow) {
+#pragma omp atomic
+					ofiml->ordSetupCount += 1;
+
 					// Recalculate Ordinal covariance matrix
 					omxCopyMatrix(ordCov, cov);
 					omxRemoveRowsAndColumns(ordCov, ordRemove.data(), ordRemove.data());
@@ -248,6 +253,9 @@ bool oldByRow::eval()
 						if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
 					}
 					else {
+#pragma omp atomic
+						ofiml->invertCount += 1;
+
 						/* Calculate derminant and inverse of Censored continuousCov matrix */
 						omxCopyMatrix(smallMeans, means);
 						omxRemoveElements(smallMeans, contRemove.data());
@@ -321,6 +329,8 @@ bool oldByRow::eval()
 						
 						F77_CALL(dsymm)(&l, &u, &(smallCov->rows), &(ordContCov->cols), &oned, smallCov->data, &(smallCov->leading), ordContCov->data, &(ordContCov->leading), &zerod, halfCov->data, &(halfCov->leading));          // halfCov is inverse continuous %*% cont/ord covariance
 						F77_CALL(dgemm)((ordContCov->minority), (halfCov->majority), &(ordContCov->cols), &(halfCov->cols), &(ordContCov->rows), &oned, ordContCov->data, &(ordContCov->leading), halfCov->data, &(halfCov->leading), &zerod, reduceCov->data, &(reduceCov->leading));      // reduceCov is cont/ord^T %*% (contCov^-1 %*% cont/ord)
+#pragma omp atomic
+						ofiml->conditionCount += 1;
 					}
 					
 					if(numIdenticalOrdinalMissingness <= 0 || firstRow) {
@@ -360,6 +370,9 @@ bool oldByRow::eval()
 						}
 						Eigen::Map< Eigen::ArrayXi > ordColumns(ordBuffer.data(), ox);
 						ol.setColumns(ordColumns);
+						
+#pragma omp atomic
+						ofiml->ordSetupCount += 1;
 					}
 					
 					// Projected means must be recalculated if the continuous variables change at all.
@@ -376,6 +389,8 @@ bool oldByRow::eval()
 			likelihood = 1;
 			} 
 			else {  
+#pragma omp atomic
+				ofiml->ordDensityCount += 1;
 				likelihood = ol.likelihood(indexVector[row]);
 
 				if (likelihood == 0.0) {
@@ -388,6 +403,8 @@ bool oldByRow::eval()
 				}
 			}
 			
+#pragma omp atomic
+			ofiml->contDensityCount += 1;
 			double rowLikelihood = pow(2 * M_PI, -.5 * rowContinuous) * (1.0/exp(determinant)) * exp(-.5 * Q) * likelihood;
 			
 			if(OMX_DEBUG_ROWS(row)) { 
