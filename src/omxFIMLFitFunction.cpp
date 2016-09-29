@@ -23,22 +23,36 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
+template <typename T1, typename T2, typename T3, typename T4>
+void upperRightCovariance(const Eigen::MatrixBase<T1> &gcov,
+			  T2 filterTest, T3 includeTest,
+			  Eigen::MatrixBase<T4> &cov)
+{
+	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+		if (filterTest(gcx) || !includeTest(gcx)) continue;
+		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
+			if (filterTest(gcx) || includeTest(grx)) continue;
+			cov(rx,cx) = gcov(grx, gcx);
+			rx += 1;
+		}
+		cx += 1;
+	}
+}
+
 bool condOrdByRow::eval()
 {
+	using Eigen::Map;
 	using Eigen::MatrixXd;
 	using Eigen::VectorXd;
+	using Eigen::VectorXi;
 
-	Eigen::VectorXd cData(numContinuous);
-	Eigen::VectorXi iData(numOrdinal);
 	Eigen::VectorXi prevOrdData;
-	Eigen::VectorXi ordColBuf(numOrdinal);
-	std::vector<bool> isMissing(dataColumns.size());
 
-	SimpCholesky< Eigen::MatrixXd >  covDecomp;
+	SimpCholesky< MatrixXd >  covDecomp;
 	double ordLikelihood = 1.0;
 
-	Eigen::VectorXd contMean;
-	Eigen::MatrixXd contCov;
+	VectorXd contMean;
+	MatrixXd contCov;
 		
 	while(row < lastrow) {
 		mxLogSetCurrentRow(row);
@@ -51,23 +65,9 @@ bool condOrdByRow::eval()
 			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 		}
 
-		int rowOrdinal = 0;
-		int rowContinuous = 0;
-		for(int j = 0; j < dataColumns.size(); j++) {
-			int var = dataColumns[j];
-			if (isOrdinal[j]) {
-				int value = omxIntDataElement(data, sortedRow, var);
-				isMissing[j] = value == NA_INTEGER;
-				if (!isMissing[j]) {
-					ordColBuf[rowOrdinal] = j;
-					iData[rowOrdinal++] = value;
-				}
-			} else {
-				double value = omxDoubleDataElement(data, sortedRow, var);
-				isMissing[j] = std::isnan(value);
-				if (!isMissing[j]) cData[rowContinuous++] = value;
-			}
-		}
+		loadRow(sortedRow);
+		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
+		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
 		if (thresholdsMat && (numVarsFilled || firstRow)) {
 			omxRecompute(thresholdsMat, fc);
@@ -105,16 +105,15 @@ bool condOrdByRow::eval()
 			ordLikelihood = ol.likelihood(sortedRow);
 
 			if (rowContinuous) {
-				VectorXd truncMean;
-				MatrixXd truncCov;
 				MatrixXd V11;  //ord
 				MatrixXd V12(rowOrdinal, rowContinuous);
 				MatrixXd V22;  //cont
 
 				op.wantOrdinal = true;
 				subsetCovariance(jointCov, op, rowOrdinal, V11);
+				upperRightCovariance(jointCov, [&](int xx){ return isMissing[xx]; },
+						     [&](int xx){ return !isOrdinal[xx]; }, V12);
 				op.wantOrdinal = false;
-				upperRightCovariance(jointCov, op, V12);
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, V22);
 
 				// skip if ordinal part is the same TODO
@@ -151,33 +150,15 @@ bool condOrdByRow::eval()
 
 				// Aitken (1934) "Note on Selection from a Multivariate Normal Population"
 				// Or Johnson/Kotz (1972), p.70
-				VectorXd mu2 = xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12; // factor last terms TODO
-				truncMean.derived().resize(dataColumns.size());
-				for (int xx=0, x1=0, x2=0; xx < dataColumns.size(); ++xx) {
-					if (isOrdinal[xx]) {
-						truncMean[xx] = xi[x1++];
-					} else {
-						truncMean[xx] = mu2[x2] + contMean[x2];
-						x2 += 1;
-					}
-				}
-				truncCov.derived().resize(dataColumns.size(), dataColumns.size());
-				op.wantOrdinal = true;
-				subsetCovarianceStore(truncCov, op, U11);
-				op.wantOrdinal = false;
-				MatrixXd tmp = U11.selfadjointView<Eigen::Lower>() * (invV11.selfadjointView<Eigen::Lower>() * V12);
-				upperRightCovarianceStore(truncCov, op, tmp);
-				tmp = (V22 - V12.transpose() * (invV11 -
-								invV11.selfadjointView<Eigen::Lower>() * U11 *
-								invV11.selfadjointView<Eigen::Lower>()) * V12);
-				subsetCovarianceStore(truncCov, op, tmp); // don't need to store it TODO
+				contMean += xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12;
+				contCov = (V22 - V12.transpose() * (invV11 -
+								    invV11.selfadjointView<Eigen::Lower>() * U11 *
+								    invV11.selfadjointView<Eigen::Lower>()) * V12);
 
-				truncCov = truncCov.template selfadjointView<Eigen::Upper>();
-
-				subsetNormalDist(truncMean, truncCov, op, rowContinuous, contMean, contCov);
 				// Only need continuous subset; remove extra code TODO
 				//mxPrintMat("cont mean", contMean);
 				//mxPrintMat("cont cov", contCov);
+
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 				covDecomp.refreshInverse();
@@ -214,11 +195,7 @@ bool condContByRow::eval()
 	using Eigen::VectorXi;
 	using Eigen::VectorXd;
 	using Eigen::MatrixXd;
-
-	Eigen::VectorXd cData(numContinuous);
-	VectorXi iData(numOrdinal);
-	ArrayXi ordColBuf(numOrdinal);
-	std::vector<bool> isMissing(dataColumns.size());
+	using Eigen::Map;
 
 	MatrixXd ordCov;
 	MatrixXd contCov;
@@ -237,23 +214,9 @@ bool condContByRow::eval()
 			ofiml->expectationComputeCount += 1;
 		}
 
-		int rowOrdinal = 0;
-		int rowContinuous = 0;
-		for(int j = 0; j < dataColumns.size(); j++) {
-			int var = dataColumns[j];
-			if (isOrdinal[j]) {
-				int value = omxIntDataElement(data, sortedRow, var);
-				isMissing[j] = value == NA_INTEGER;
-				if (!isMissing[j]) {
-					ordColBuf[rowOrdinal] = j;
-					iData[rowOrdinal++] = value;
-				}
-			} else {
-				double value = omxDoubleDataElement(data, sortedRow, var);
-				isMissing[j] = std::isnan(value);
-				if (!isMissing[j]) cData[rowContinuous++] = value;
-			}
-		}
+		loadRow(sortedRow);
+		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
+		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
 		struct subsetOp {
 			std::vector<bool> &isOrdinal;
@@ -273,7 +236,8 @@ bool condContByRow::eval()
 
 			op.wantOrdinal = false;
 			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
-			upperRightCovariance(jointCov, op, V12);
+			upperRightCovariance(jointCov, [&](int xx){ return isMissing[xx]; },
+					     [&](int xx){ return !isOrdinal[xx]; }, V12);
 			op.wantOrdinal = true;
 			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
 			

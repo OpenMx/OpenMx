@@ -88,8 +88,8 @@ bool oldByRow::eval()
 	int onei = 1;
 	double likelihood;
 	
-	int rowContinuous = 0;
-	int rowOrdinal = 0;
+	rowContinuous = 0;
+	rowOrdinal = 0;
 	
 	while(row < lastrow) {
 		mxLogSetCurrentRow(row);

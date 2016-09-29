@@ -128,6 +128,13 @@ class mvnByRow {
 	EigenMatrixAdaptor jointCov;
 	omxFIMLFitFunction *ofiml;
 
+	int rowOrdinal;
+	int rowContinuous;
+	Eigen::VectorXd cDataBuf;
+	Eigen::VectorXi iDataBuf;
+	Eigen::VectorXi ordColBuf;
+	std::vector<bool> isMissing;
+
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
 		 omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
 	:
@@ -159,12 +166,37 @@ class mvnByRow {
 		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
 		numOrdinal = ofiml->numOrdinal;
 		numContinuous = ofiml->numContinuous;
+		cDataBuf.resize(numContinuous);
+		iDataBuf.resize(numOrdinal);
+		ordColBuf.resize(numOrdinal);
+		isMissing.resize(dataColumns.size());
 
 		if (row > 0) {
 			int prevIdentical = identicalRows[row - 1];
 			row += (prevIdentical - 1);
 		}
 	};
+
+	void loadRow(int r1)
+	{
+		rowOrdinal = 0;
+		rowContinuous = 0;
+		for(int j = 0; j < dataColumns.size(); j++) {
+			int var = dataColumns[j];
+			if (isOrdinal[j]) {
+				int value = omxIntDataElement(data, r1, var);
+				isMissing[j] = value == NA_INTEGER;
+				if (!isMissing[j]) {
+					ordColBuf[rowOrdinal] = j;
+					iDataBuf[rowOrdinal++] = value;
+				}
+			} else {
+				double value = omxDoubleDataElement(data, r1, var);
+				isMissing[j] = std::isnan(value);
+				if (!isMissing[j]) cDataBuf[rowContinuous++] = value;
+			}
+		}
+	}
 
 	void record(double lik)
 	{

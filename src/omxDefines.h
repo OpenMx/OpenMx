@@ -274,21 +274,6 @@ void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 }
 
 template <typename T2, typename T4, typename T5>
-void upperRightCovariance(const Eigen::MatrixBase<T2> &gcov, T5 includeTest,
-			  Eigen::MatrixBase<T4> &cov)
-{
-	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
-		if (!includeTest(gcx)) continue;
-		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
-			if (includeTest(grx)) continue;
-			cov(rx,cx) = gcov(grx, gcx);
-			rx += 1;
-		}
-		cx += 1;
-	}
-}
-
-template <typename T2, typename T4, typename T5>
 void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 		      T5 includeTest, const Eigen::MatrixBase<T4> &cov)
 {
@@ -296,21 +281,6 @@ void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 		if (!includeTest(gcx)) continue;
 		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
 			if (!includeTest(grx)) continue;
-			gcov(grx, gcx) = cov(rx,cx);
-			rx += 1;
-		}
-		cx += 1;
-	}
-}
-
-template <typename T2, typename T4, typename T5>
-void upperRightCovarianceStore(Eigen::MatrixBase<T2> &gcov, T5 includeTest,
-			       const Eigen::MatrixBase<T4> &cov)
-{
-	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
-		if (!includeTest(gcx)) continue;
-		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
-			if (includeTest(grx)) continue;
 			gcov(grx, gcx) = cov(rx,cx);
 			rx += 1;
 		}
