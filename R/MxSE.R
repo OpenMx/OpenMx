@@ -34,12 +34,17 @@
 ##' @details
 ##' x can be the name of an algebra, a bracket address, named entity
 ##' or arbitrary expression. It is a frontend-only file that works
-##' much like mxEval.
+##' much like mxEval. When the \code{details} argument is TRUE, the full
+##' sampling covariance matrix of \code{x} is also returned as part of a list.
+##' The square root of the diagonals of this sampling covariance matrix are
+##' the standard errors.
 ##'
 ##' @param x the parameter to get SEs on (reference or expression)
 ##' @param model the \code{\link{mxModel}} to use.
+##' @param details logical. Whether to provide further details, e.g. the full sampling covariance matrix of x.
 ##' @param ... further named arguments passed to \code{\link{mxEval}}
-##' @return SE value(s) returned as a matrix.
+##' @return SE value(s) returned as a matrix when \code{details} is FALSE.
+##' When \code{details} is TRUE, a list of the SE value(s) and the full sampling covariance matrix.
 ##' @seealso - \code{\link{mxCI}}
 ##' @references - \url{https://en.wikipedia.org/wiki/Standard_error}
 ##' @examples
@@ -67,7 +72,8 @@
 ##' mxSE(S, model = m1)
 ##' mxSE(A[1,2], model = m1)
 ##' mxSE(A[1,6]^2, model = m1)
-mxSE <- function(x, model, ...){
+##' mxSE(A[,6]%^%2, model = m1, details = TRUE)
+mxSE <- function(x, model, details=FALSE, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc){
 		message('Treating first argument as an expression')
@@ -110,6 +116,11 @@ mxSE <- function(x, model, ...){
 	covSparam <- jacTrans %*% covParam %*% t(jacTrans)
 	# dimnames(covSparam) <- list(rownames(zoutMat), colnames(zoutMat))
 	SEs <- sqrt(diag(covSparam))
-	matrix(SEs, nrow = nrow(zoutMat), ncol = ncol(zoutMat))
+	SEsMat <- matrix(SEs, nrow = nrow(zoutMat), ncol = ncol(zoutMat))
+	if(details==TRUE){
+		return(list(SE=SEsMat, Cov=covSparam))
+	} else{
+		return(SEsMat)
+	}
 }
 

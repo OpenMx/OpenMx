@@ -92,7 +92,7 @@ Hu, L., & Bentler, P. M. (1999). Cutoff criteria for fit indexes in covariance s
 
 Sharma, S., Mukherjee, S., Kumar, A., & Dillon, W.R. (2005). A simulation study to investigate the use of cutoff values for assessing model fit in covariance structure models. \emph{Journal of Business Research, 58,} 935-43.
 
-Steiger, J. H. (1998). A note on multiple sample extensions of the RMSEA fit index. \emph{Structural Equation Modeling: A Multidisciplinary Journal, 5(4)}, 411–419. DOI: 10.1080/10705519809540115
+Steiger, J. H. (1998). A note on multiple sample extensions of the RMSEA fit index. \emph{Structural Equation Modeling: A Multidisciplinary Journal, 5(4)}, 411-419. DOI: 10.1080/10705519809540115
 }
 
 \examples{
