@@ -653,14 +653,13 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 				intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 				# Second Block expm for discretized Q
 				BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
-				BLOCK[(nrow(A+1)):(2:nrow(A)), 1:ncol(A)] <- 0
+				BLOCK[(nrow(A)+1):(2*nrow(A)), 1:ncol(A)] <- 0
 				BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
 				BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
 				BLOCK <- OpenMx::expm(BLOCK*deltaT)
 				Ad <- expA
 				Bd <- intA %*% B
 				Qd <- t(Ad) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
-				xp <- expA %*% tx[,i-1] + intA %*% B %*% u
 			} else {
 				Ad <- A
 				Bd <- B
