@@ -240,6 +240,8 @@ setMethod("genericGenerateData", signature("MxExpectationNormal"),
 })
 
 generateNormalData <- function(model, nrows){
+	origData <- NULL
+	if (!is.null(model$data) && model$data$type == 'raw') origData <- model$data$observed
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model)){
 		if(nrows == nrow(model@data@observed)){
@@ -253,9 +255,9 @@ generateNormalData <- function(model, nrows){
 				theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i)
 				theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i)
 				data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
-				data[i,] <- ordinalizeDataHelper(data[i,], theThresh)
+				data[i,] <- ordinalizeDataHelper(data[i,], theThresh, origData=origData)
 			}
-			data <- ordinalizeDataHelper(data, theThresh, cut=FALSE)
+			data <- ordinalizeDataHelper(data, theThresh, cut=FALSE, origData=origData)
 		} else{
 			stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
 		}
@@ -267,22 +269,24 @@ generateNormalData <- function(model, nrows){
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
-		data <- ordinalizeDataHelper(data, theThresh)
+		data <- ordinalizeDataHelper(data, theThresh, origData=origData)
 	}
 	return(data)
 }
 
-ordinalizeDataHelper <- function(data, thresh, cut=TRUE){
+ordinalizeDataHelper <- function(data, thresh, cut=TRUE, origData=NULL) {
 	if( prod(dim(thresh)) != 0){
 		ordvars <- colnames(thresh)
 		for(avar in ordvars){
 			delthr <- thresh[,avar]
-			usethr <- !is.na(delthr)
+			usethr <- 1:sum(!is.na(delthr))  # assumes NA indicates unused threshold
+			if (!is.null(origData)) {
+				usethr <- 1:(length(levels(origData[[avar]])) - 1L)
+			}
 			delthr <- delthr[usethr]
-			if(!is.null(rownames(thresh))){
-				levthr <- rownames(thresh)[usethr]
-			} else {
-				levthr <- 1:(sum(usethr)+1)
+			levthr <- 1L:(length(usethr)+1L)
+			if (!is.null(origData)) {
+				levthr <- levels(origData[[avar]])
 			}
 			if(cut==TRUE){
 				delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
