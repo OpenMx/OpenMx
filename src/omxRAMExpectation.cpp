@@ -1492,6 +1492,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::finalizeData()
 	{
+		if (clumpObs == 0) return;
 		for (int sx=0; sx < int(sufficientSets.size()); ++sx) {
 			RelationalRAMExpectation::sufficientSet &ss = sufficientSets[sx];
 			placement &first = placements[ss.start];
