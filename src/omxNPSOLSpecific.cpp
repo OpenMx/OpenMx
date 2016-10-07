@@ -31,10 +31,10 @@
 template <typename T1>
 void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
 {
-	omxState *globalState = fc->state;
+	omxState *st = fc->state;
 	int l=0;
-	for(int j = 0; j < (int) globalState->conList.size(); j++) {
-		omxConstraint &cs = *globalState->conList[j];
+	for(int j = 0; j < (int) st->conListX.size(); j++) {
+		omxConstraint &cs = *st->conListX[j];
 		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 		l += cs.size;
 	}
@@ -233,9 +233,9 @@ void omxNPSOL(GradientOptimizerContext &rf)
 	Eigen::Map< Eigen::ArrayXd > Est(est, rf.numFree);
 	Eigen::ArrayXd startingPoint = Est;
 
-	omxState *globalState = rf.getState();
+	omxState *st = rf.getState();
 	int equality, inequality;
-	globalState->countNonlinearConstraints(equality, inequality);
+	st->countNonlinearConstraints(equality, inequality);
 
 	omxNPSOL1(est, rf, equality, inequality);
 

@@ -329,9 +329,9 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 	fc->setInform(INFORM_UNINITIALIZED);
 
-	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
+	omxAlgebraPreeval(fitMatrix, fc);
 
-	// omxFitFunctionPreoptimize can change bounds
+	// bounds might have changed
 	lbound.resize(numParam);
 	ubound.resize(numParam);
 	for(int px = 0; px < int(numParam); px++) {

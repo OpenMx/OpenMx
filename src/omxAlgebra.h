@@ -61,6 +61,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc);
 
+void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc);
+
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 
 void omxAlgebraPrint(omxAlgebra *source, const char* d);

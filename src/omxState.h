@@ -123,6 +123,8 @@ class omxConstraint {
 	void refreshAndGrab(FitContext *fc, double *out)
 	{ refreshAndGrab(fc, opCode, out); };
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
+	virtual omxConstraint *duplicate(omxState *dest)=0;
+	virtual void prep(FitContext *fc) {};
 };
 
 class UserConstraint : public omxConstraint {
@@ -130,11 +132,14 @@ class UserConstraint : public omxConstraint {
 	typedef omxConstraint super;
 	omxMatrix *pad;
 	void refresh(FitContext *fc);
+	UserConstraint(const char *name) : super(name) {};
 
  public:
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
 	virtual ~UserConstraint();
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
+	virtual omxConstraint *duplicate(omxState *dest);
+	virtual void prep(FitContext *fc);
 };
 
 enum omxCheckpointType {
@@ -267,7 +272,7 @@ class omxState {
 	void init();
 	static int nextId;
 	int stateId;
-	int wantStage;
+	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
 	bool clone;
  public:
 	int getWantStage() const { return wantStage; }
@@ -279,9 +284,7 @@ class omxState {
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
-
-	// not copied to sub-states
-	std::vector< omxConstraint* > conList;
+	std::vector< omxConstraint* > conListX;
 
  	omxState() : clone(false) { init(); };
 	omxState(omxState *src);
@@ -301,16 +304,17 @@ class omxState {
 	void omxExportResults(MxRList *out, FitContext *fc);
 	~omxState();
 
+	omxMatrix *lookupDuplicate(omxMatrix *element) const;
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
-	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return getMatrixFromIndex(mat->matrixNumber); };
+	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 
 	void countNonlinearConstraints(int &equality, int &inequality)
 	{
 		equality = 0;
 		inequality = 0;
-		for(int j = 0; j < int(conList.size()); j++) {
-			omxConstraint *cs = conList[j];
+		for(int j = 0; j < int(conListX.size()); j++) {
+			omxConstraint *cs = conListX[j];
 			if (cs->opCode == omxConstraint::EQUALITY) {
 				equality += cs->size;
 			} else {

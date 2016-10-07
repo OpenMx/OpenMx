@@ -161,7 +161,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
-	omxFitFunctionPreoptimize(fitMatrix->fitFunction, fc);
+	omxAlgebraPreeval(fitMatrix, fc);
 	if (isErrorRaised()) return;
 
 	size_t numParam = fc->varGroup->vars.size();
@@ -178,12 +178,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren();
+	fc->createChildren(fitMatrix);
 
 	int beforeEval = fc->getComputeCount();
 
-	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g",
-				name, engineName, engine, gradientAlgoName, optimalityTolerance);
+	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g constraints=%d",
+				name, engineName, engine, gradientAlgoName, optimalityTolerance,
+				int(fitMatrix->currentState->conListX.size()));
 
 	//if (fc->ciobj) verbose=2;
 	GradientOptimizerContext rf(fc, verbose);
@@ -217,7 +218,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxNPSOL(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
-		if (rf.hessOut.size() && fitMatrix->currentState->conList.size() == 0) {
+		if (rf.hessOut.size() && fitMatrix->currentState->conListX.size() == 0) {
 			if (!hessChol) {
 				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 			}
@@ -393,6 +394,18 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
 
+class notImplementedConstraint : public omxConstraint {
+	typedef omxConstraint super;
+public:
+	notImplementedConstraint() : super("not implemented") {};
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+		Rf_error("Not implemented");
+	};
+	virtual omxConstraint *duplicate(omxState *dest) {
+		Rf_error("Not implemented");
+	}
+};
+
 class ciConstraint : public omxConstraint {
  private:
 	typedef omxConstraint super;
@@ -405,15 +418,18 @@ public:
 	};
 	void push(omxState *_state) {
 		state = _state;
-		state->conList.push_back(this);
+		state->conListX.push_back(this);
 	};
 	void pop() {
 		if (!state) return;
-		size_t sz = state->conList.size();
-		if (sz && state->conList[sz-1] == this) {
-			state->conList.pop_back();
+		size_t sz = state->conListX.size();
+		if (sz && state->conListX[sz-1] == this) {
+			state->conListX.pop_back();
 		}
 		state = 0;
+	};
+	virtual omxConstraint *duplicate(omxState *dest) {
+		return new notImplementedConstraint();
 	};
 };
 
@@ -1048,6 +1064,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	// Not strictly necessary, but makes it easier to run
 	// mxComputeConfidenceInterval alone without other compute
 	// steps.
+	omxAlgebraPreeval(fitMatrix, mle);
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
 
 	int numInts = (int) Global->intervalList.size();

@@ -254,6 +254,12 @@ omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 	return matnum<0? matrixList[~matnum] : algebraList[matnum];
 }
 
+omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
+{
+	if (!element->hasMatrixNumber) Rf_error("lookupDuplicate without matrix number");
+	return getMatrixFromIndex(element->matrixNumber);
+}
+
 void omxState::setWantStage(int stage)
 {
 	wantStage = stage;
@@ -344,7 +350,7 @@ int omxState::nextId = 0;
 void omxState::init()
 {
 	stateId = ++nextId;
-	wantStage = 0;
+	setWantStage(FF_COMPUTE_INITIAL_FIT);
 }
 
 void omxState::loadDefinitionVariables(bool start)
@@ -392,6 +398,10 @@ omxState::omxState(omxState *src) : clone(true)
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList[mx]->copyAttr(src->matrixList[mx]);
 	}
+
+	for (size_t xx=0; xx < src->conListX.size(); ++xx) {
+		conListX.push_back(src->conListX[xx]->duplicate(this));
+	}
 }
 
 void omxState::initialRecalc(FitContext *fc)
@@ -409,13 +419,17 @@ void omxState::initialRecalc(FitContext *fc)
 		omxCompleteFitFunction(matrix);
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
+
+	for (size_t xx=0; xx < conListX.size(); ++xx) {
+		conListX[xx]->prep(fc);
+	}
 }
 
 omxState::~omxState()
 {
-	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conList.size());}
-	for(int k = 0; k < (int) conList.size(); k++) {
-		delete conList[k];
+	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conListX.size());}
+	for(int k = 0; k < (int) conListX.size(); k++) {
+		delete conListX[k];
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
@@ -719,13 +733,9 @@ void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double
 	}
 }
 
-UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2) :
-	super(_name)
+void UserConstraint::prep(FitContext *fc)
 {
-	omxState *state = fc->state;
-	omxMatrix *args[2] = {arg1, arg2};
-	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
-	state->setWantStage(FF_COMPUTE_INITIAL_FIT);
+	fc->state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 	refresh(fc);
 	int nrows = pad->rows;
 	int ncols = pad->cols;
@@ -733,6 +743,28 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 	if (size == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
 	}
+	omxAlgebraPreeval(pad, fc);
+}
+
+UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2) :
+	super(_name)
+{
+	omxState *state = fc->state;
+	omxMatrix *args[2] = {arg1, arg2};
+	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
+}
+
+omxConstraint *UserConstraint::duplicate(omxState *dest)
+{
+	omxMatrix *args[2] = {
+		dest->lookupDuplicate(pad->algebra->algArgs[0]),
+		dest->lookupDuplicate(pad->algebra->algArgs[1])
+	};
+
+	UserConstraint *uc = new UserConstraint(name);
+	uc->opCode = opCode;
+	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
+	return uc;
 }
 
 void UserConstraint::refreshAndGrab(FitContext *fc, Type ineqType, double *out)

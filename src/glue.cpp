@@ -553,8 +553,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	globalState->loadDefinitionVariables(true);
 
-	globalState->setWantStage(FF_COMPUTE_FIT);
-
 	omxCompute *topCompute = NULL;
 	if (Global->computeList.size()) topCompute = Global->computeList[0];
 

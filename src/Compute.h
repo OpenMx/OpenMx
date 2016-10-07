@@ -160,7 +160,7 @@ class FitContext {
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
-	void createChildren();
+	void createChildren(omxMatrix *alg);
 	void destroyChildren();
 	void allocStderrs();
 	void ensureParamWithinBox(bool nudge);

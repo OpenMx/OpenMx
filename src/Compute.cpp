@@ -993,15 +993,7 @@ void FitContext::copyParamToModelClean()
 omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 {
 	if (element == NULL) return NULL;
-
-	if (!element->hasMatrixNumber) Rf_error("FitContext::lookupDuplicate without matrix number");
-
-	int matrixNumber = element->matrixNumber;
-	if (matrixNumber >= 0) {
-		return(state->algebraList[matrixNumber]);
-	} else {
-		return(state->matrixList[-matrixNumber - 1]);
-	}
+	return state->lookupDuplicate(element);
 }
 	
 double *FitContext::take(int want)
@@ -1085,7 +1077,7 @@ bool FitContext::isClone() const
 	return state->isClone();
 }
 
-void FitContext::createChildren()
+void FitContext::createChildren(omxMatrix *alg)
 {
 	if (Global->numThreads <= 1) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: max threads set to 1");
@@ -1127,7 +1119,7 @@ void FitContext::createChildren()
 		FitContext *kid = new FitContext(this, varGroup);
 		kid->state = new omxState(state);
 		kid->state->initialRecalc(kid);
-		kid->state->setWantStage(FF_COMPUTE_FIT);
+		omxAlgebraPreeval(alg, kid);
 		childList.push_back(kid);
 		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
 	}
@@ -2147,7 +2139,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		setExpectationPrediction(fc, "nothing");
 		if (accel) {
 			if (!lbound.size()) {
-				// omxFitFunctionPreoptimize can change bounds
+				// bounds might have changed
 				lbound.resize(freeVars);
 				ubound.resize(freeVars);
 				for(int px = 0; px < int(freeVars); px++) {
@@ -2728,7 +2720,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
-			omxFitFunctionPreoptimize(algebra->fitFunction, fc);
+			omxAlgebraPreeval(algebra, fc);
 			ComputeFit("Once", algebra, want, fc);
 			if (infoMat) {
 				fc->postInfo();
@@ -2921,12 +2913,12 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 
 void GradientOptimizerContext::setupAllBounds()
 {
-	omxState *globalState = fc->state;
+	omxState *st = fc->state;
 	int n = (int) numFree;
 
 	// treat all constraints as non-linear
 	int eqn, nineqn;
-	globalState->countNonlinearConstraints(eqn, nineqn);
+	st->countNonlinearConstraints(eqn, nineqn);
 	int ncnln = eqn + nineqn;
 	solLB.resize(n + ncnln);
 	solUB.resize(n + ncnln);
@@ -2934,8 +2926,8 @@ void GradientOptimizerContext::setupAllBounds()
 	copyBounds();
 
 	int index = n;
-	for(int constraintIndex = 0; constraintIndex < int(globalState->conList.size()); constraintIndex++) {
-		omxConstraint &cs = *globalState->conList[constraintIndex];
+	for(int constraintIndex = 0; constraintIndex < int(st->conListX.size()); constraintIndex++) {
+		omxConstraint &cs = *st->conListX[constraintIndex];
 		omxConstraint::Type type = cs.opCode;
 		switch(type) {
 		case omxConstraint::LESS_THAN:
@@ -3120,13 +3112,13 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 void GradientOptimizerContext::solEqBFun()
 {
 	const int eq_n = (int) equality.size();
-	omxState *globalState = fc->state;
+	omxState *st = fc->state;
 
 	if (!eq_n) return;
 
 	int cur = 0;
-	for(int j = 0; j < int(globalState->conList.size()); j++) {
-		omxConstraint &con = *globalState->conList[j];
+	for(int j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 
 		con.refreshAndGrab(fc, &equality(cur));
@@ -3143,13 +3135,13 @@ void GradientOptimizerContext::solEqBFun()
 void GradientOptimizerContext::myineqFun()
 {
 	const int ineq_n = (int) inequality.size();
-	omxState *globalState = fc->state;
+	omxState *st = fc->state;
 
 	if (!ineq_n) return;
 
 	int cur = 0;
-	for (int j = 0; j < int(globalState->conList.size()); j++) {
-		omxConstraint &con = *globalState->conList[j];
+	for (int j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
 		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));

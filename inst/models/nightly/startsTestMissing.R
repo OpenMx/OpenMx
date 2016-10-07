@@ -249,6 +249,12 @@ STARTSM <- mxModel("STARTS",
                   matrixStability,
                   algebraSTARTS,
                   stationarityConstraint,
-                  correlatedResiduals)
+                  correlatedResiduals,
+		  mxFitFunctionML(rowwiseParallel=FALSE))
 startsModel <- mxRun(STARTSM)
 omxCheckCloseEnough(startsModel$output$fit, 2718.410, .05)
+
+if (detectCores() > 1) {
+	omxCheckTrue(startsModel$compute$steps[['GD']]$output$maxThreads > 1)
+}
+
