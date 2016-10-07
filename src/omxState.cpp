@@ -598,11 +598,10 @@ void omxGlobal::reportProgress(const char *context, FitContext *fc)
 		return;
 	}
 
+	R_CheckUserInterrupt();
+
 	time_t now = time(0);
-	if (silent || now - lastProgressReport < 1 || fc->getComputeCount() == previousComputeCount) {
-		R_CheckUserInterrupt();
-		return;
-	}
+	if (silent || now - lastProgressReport < 1 || fc->getComputeCount() == previousComputeCount) return;
 
 	lastProgressReport = now;
 
