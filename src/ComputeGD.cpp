@@ -296,7 +296,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	omxPopulateFitFunction(fitMatrix, out);
 
 	MxRList output;
-	output.add("threads", Rf_ScalarInteger(threads));
+	output.add("maxThreads", Rf_ScalarInteger(threads));
 	slots->add("output", output.asR());
 
 	if (engine == OptEngine_NPSOL && hessChol) {

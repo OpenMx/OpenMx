@@ -180,5 +180,5 @@ omxCheckCloseEnough(srun$C$values[srun$C$free], dlmEstC, epsilon=0.001)
 omxCheckCloseEnough(diag(srun$R$values), dlmEstR, epsilon=0.001)
 
 if (detectCores() > 1) {
-  omxCheckTrue(srun$compute$steps[['GD']]$output$threads > 1)
+  omxCheckTrue(srun$compute$steps[['GD']]$output$maxThreads > 1)
 }
