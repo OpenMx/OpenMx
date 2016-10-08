@@ -56,6 +56,7 @@ class omxComputeGD : public omxCompute {
 
 	int warmStartSize;
 	double *warmStart;
+	int threads;
 
 public:
 	omxComputeGD();
@@ -186,6 +187,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	//if (fc->ciobj) verbose=2;
 	GradientOptimizerContext rf(fc, verbose);
+	threads = rf.numOptimizerThreads;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
@@ -292,6 +294,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
+
+	MxRList output;
+	output.add("threads", Rf_ScalarInteger(threads));
+	slots->add("output", output.asR());
 
 	if (engine == OptEngine_NPSOL && hessChol) {
 		out->add("hessianCholesky", hessChol);
