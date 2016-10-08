@@ -774,8 +774,6 @@ void FitContext::updateParent()
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
 	parent->iterations = iterations;
-	parent->computeCount += computeCount;
-	computeCount = 0;
 
 	// rewrite using mapToParent TODO
 
@@ -1148,9 +1146,14 @@ void FitContext::destroyChildren()
 FitContext::~FitContext()
 {
 	destroyChildren();
-	if (parent && parent->state != state) {
-		delete state;
+
+	if (parent) {
+		parent->computeCount += computeCount;
+		computeCount = 0;
+
+		if (parent->state != state) delete state;
 	}
+
 	clearHessian();
 	if (est) delete [] est;
 	if (stderrs) delete [] stderrs;
