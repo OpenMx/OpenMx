@@ -737,6 +737,7 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 
 void UserConstraint::refreshAndGrab(FitContext *fc, Type ineqType, double *out)
 {
+	fc->incrComputeCount();
 	refresh(fc);
 
 	for(int k = 0; k < size; k++) {
