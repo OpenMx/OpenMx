@@ -244,7 +244,7 @@ generateNormalData <- function(model, nrows){
 	if (!is.null(model$data) && model$data$type == 'raw') origData <- model$data$observed
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model)){
-		if(nrows == nrow(model@data@observed)){
+		if(nrows == nrow(origData)){
 			# Generate data row by row
 			theCov <- imxGetExpectationComponent(model, "covariance")
 			data <- matrix(NA, nrow=nrows, ncol=ncol(theCov))
@@ -255,9 +255,11 @@ generateNormalData <- function(model, nrows){
 				theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i)
 				theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i)
 				data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
-				data[i,] <- ordinalizeDataHelper(data[i,], theThresh, origData=origData)
 			}
-			data <- ordinalizeDataHelper(data, theThresh, cut=FALSE, origData=origData)
+			data <- ordinalizeDataHelper(data, theThresh, origData=origData)
+			for (dcol in setdiff(colnames(origData), colnames(data))) {
+				data[[dcol]] <- origData[[dcol]]
+			}
 		} else{
 			stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
 		}
@@ -274,7 +276,7 @@ generateNormalData <- function(model, nrows){
 	return(data)
 }
 
-ordinalizeDataHelper <- function(data, thresh, cut=TRUE, origData=NULL) {
+ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 	if( prod(dim(thresh)) != 0){
 		ordvars <- colnames(thresh)
 		for(avar in ordvars){
@@ -288,11 +290,7 @@ ordinalizeDataHelper <- function(data, thresh, cut=TRUE, origData=NULL) {
 			if (!is.null(origData)) {
 				levthr <- levels(origData[[avar]])
 			}
-			if(cut==TRUE){
-				delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
-			} else{
-				delvar <- data[,avar]
-			}
+			delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)
 			data[,avar] <- mxFactor(delvar, levels=levthr)
 		}
 	}
