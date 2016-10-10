@@ -615,23 +615,23 @@ void omxGlobal::reportProgress(const char *context, FitContext *fc)
 	R_CheckUserInterrupt();
 
 	time_t now = time(0);
-	if (silent || now - lastProgressReport < 1 || fc->getComputeCount() == previousComputeCount) return;
+	if (silent || now - lastProgressReport < 1 || fc->getGlobalComputeCount() == previousComputeCount) return;
 
 	lastProgressReport = now;
 
 	std::string str;
 	if (previousReportFit == 0.0 || previousReportFit == fc->fit) {
 		str = string_snprintf("%s %d %.6g",
-				      context, fc->getComputeCount(), fc->fit);
+				      context, fc->getGlobalComputeCount(), fc->fit);
 	} else {
 		str = string_snprintf("%s %d %.6g %.4g",
-				      context, fc->getComputeCount(), fc->fit, fc->fit - previousReportFit);
+				      context, fc->getGlobalComputeCount(), fc->fit, fc->fit - previousReportFit);
 	}
 
 	reportProgressStr(str.c_str());
 	previousReportLength = str.size();
 	previousReportFit = fc->fit;
-	previousComputeCount = fc->getComputeCount();
+	previousComputeCount = fc->getGlobalComputeCount();
 }
 
 void diagParallel(int verbose, const char* msg, ...)
@@ -828,7 +828,7 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bo
 	const int timeBufSize = 32;
 	char timeBuf[timeBufSize];
 	time_t now = time(NULL); // avoid checking unless we need it
-	int curEval = fc->getComputeCount();
+	int curEval = fc->getGlobalComputeCount();
 
 	bool doit = force;
 	if ((timePerCheckpoint && timePerCheckpoint <= now - lastCheckpoint) ||

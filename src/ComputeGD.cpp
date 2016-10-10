@@ -180,7 +180,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix);
 
-	int beforeEval = fc->getComputeCount();
+	int beforeEval = fc->getLocalComputeCount();
 
 	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g constraints=%d",
 				name, engineName, engine, gradientAlgoName, optimalityTolerance,
@@ -276,7 +276,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (verbose >= 1) {
 		mxLog("%s: engine %s done, iter=%d inform=%d",
-		      name, engineName, fc->getComputeCount() - beforeEval, fc->getInform());
+		      name, engineName, fc->getLocalComputeCount() - beforeEval, fc->getInform());
 	}
 
 	if (isErrorRaised()) return;

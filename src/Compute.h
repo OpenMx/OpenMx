@@ -210,7 +210,8 @@ class FitContext {
 	void postInfo();
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
-	int getComputeCount(); //approximate
+	int getGlobalComputeCount(); //approximate
+	int getLocalComputeCount(); //approximate
 	void incrComputeCount() { ++computeCount; };
 
 	// If !std::isfinite(fit) then IterationError.size() should be nonzero but not all of

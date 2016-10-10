@@ -581,7 +581,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	SEXP evaluations;
 	Rf_protect(evaluations = Rf_allocVector(REALSXP,1));
 
-	REAL(evaluations)[0] = fc->getComputeCount();
+	REAL(evaluations)[0] = fc->getGlobalComputeCount();
 
 	MxRList result;
 

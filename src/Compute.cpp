@@ -795,17 +795,20 @@ void FitContext::updateParent()
 	// pda(parent->est, 1, dvars);
 }
 
-int FitContext::getComputeCount()
+int FitContext::getGlobalComputeCount()
 {
-	if (isClone()) {
-		return parent->getComputeCount();
-	} else {
-		int cc = computeCount;
-		for (size_t cx=0; cx < childList.size(); ++cx) {
-			cc += childList[cx]->computeCount;
-		}
-		return cc;
+	FitContext *fc = this;
+	while (fc->parent) fc = fc->parent;
+	return fc->getLocalComputeCount();
+}
+
+int FitContext::getLocalComputeCount()
+{
+	int cc = computeCount;
+	for (size_t cx=0; cx < childList.size(); ++cx) {
+		cc += childList[cx]->getLocalComputeCount();
 	}
+	return cc;
 }
 
 void FitContext::updateParentAndFree()
