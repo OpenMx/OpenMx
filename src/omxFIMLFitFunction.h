@@ -38,6 +38,18 @@ enum JointStrategy {
 	JOINT_OLD
 };
 
+#if !_OPENMP && OMX_DEBUG
+#define OMX_DEBUG_FIML_STATS 1
+#else
+#define OMX_DEBUG_FIML_STATS 0
+#endif
+
+#if OMX_DEBUG_FIML_STATS
+#define INCR_COUNTER(x) ofiml->x##Count += 1
+#else
+#define INCR_COUNTER(x)
+#endif
+
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
@@ -56,12 +68,20 @@ struct omxFIMLFitFunction {
 	OrdinalLikelihood ol;
 
 	bool inUse;
+	std::vector<int> indexVector;
+	std::vector<bool> sameAsPrevious;
+	std::vector<bool> continuousMissingSame;
+	std::vector<bool> continuousSame;
+	std::vector<bool> missingSameContinuousSame;
+	std::vector<bool> ordinalMissingSame;
+	std::vector<bool> missingSame;
 
 	enum JointStrategy jointStrat;
 
 	// performance counters
 	int expectationComputeCount;
-	int conditionCount;
+	int conditionMeanCount;
+	int conditionCovCount;
 	int invertCount;
 	int ordSetupCount;
 	int ordDensityCount;
@@ -84,11 +104,9 @@ struct omxFIMLFitFunction {
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
 		
-	std::vector<int> indexVector;
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
-	std::vector<bool> rowCompareInfo;
 };
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
@@ -109,7 +127,7 @@ class mvnByRow {
 	omxData *data;
 	OrdinalLikelihood &ol;
 	std::vector<int> &indexVector;
-	std::vector<int> &identicalRows;
+	std::vector<bool> &sameAsPrevious;
 	int row;
 	int lastrow;
 	bool firstRow;
@@ -127,6 +145,7 @@ class mvnByRow {
 	EigenVectorAdaptor jointMeans;
 	EigenMatrixAdaptor jointCov;
 	omxFIMLFitFunction *ofiml;
+	int sortedRow;
 
 	int rowOrdinal;
 	int rowContinuous;
@@ -143,7 +162,7 @@ class mvnByRow {
 		expectation(_localobj->expectation),
 		ol(ofo->ol),
 		indexVector(shared_ofo->indexVector),
-		identicalRows(shared_ofo->identicalRows),
+		sameAsPrevious(shared_ofo->sameAsPrevious),
 		thresholdCols(expectation->thresholds),
 		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
 		isOrdinal(_ofiml->isOrdinal),
@@ -172,26 +191,27 @@ class mvnByRow {
 		isMissing.resize(dataColumns.size());
 
 		if (row > 0) {
-			int prevIdentical = identicalRows[row - 1];
-			row += (prevIdentical - 1);
+			while (row < lastrow && sameAsPrevious[row]) row += 1;
 		}
 	};
 
-	void loadRow(int r1)
+	void loadRow()
 	{
+		mxLogSetCurrentRow(row);
+		sortedRow = indexVector[row];
 		rowOrdinal = 0;
 		rowContinuous = 0;
 		for(int j = 0; j < dataColumns.size(); j++) {
 			int var = dataColumns[j];
 			if (isOrdinal[j]) {
-				int value = omxIntDataElement(data, r1, var);
+				int value = omxIntDataElement(data, sortedRow, var);
 				isMissing[j] = value == NA_INTEGER;
 				if (!isMissing[j]) {
 					ordColBuf[rowOrdinal] = j;
 					iDataBuf[rowOrdinal++] = value;
 				}
 			} else {
-				double value = omxDoubleDataElement(data, r1, var);
+				double value = omxDoubleDataElement(data, sortedRow, var);
 				isMissing[j] = std::isnan(value);
 				if (!isMissing[j]) cDataBuf[rowContinuous++] = value;
 			}
@@ -208,17 +228,41 @@ class mvnByRow {
 
 	void recordRow(double rowLik)
 	{
-		int numIdentical = identicalRows[row];
 		if (returnRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
-			for(int nid = 0; nid < numIdentical; nid++) {
-				int to = indexVector[row+nid];
-				rl[to] = rowLik;
+			rl[sortedRow] = rowLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				rl[ indexVector[row] ] = rowLik;
+				row += 1;
 			}
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
-			rl[0] += numIdentical * log(rowLik);
+			double rowLogLik = log(rowLik);
+			rl[0] += rowLogLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				rl[0] += rowLogLik;
+				row += 1;
+			}
 		}
+		firstRow = false;
+	}
+
+	void recordRowOld(double rowLik) // TODO remove
+	{
+		auto &identicalRows = shared_ofo->identicalRows;
+		int numIdentical = identicalRows[row];
+                if (returnRowLikelihoods) {
+                        EigenVectorAdaptor rl(rowLikelihoods);
+			for(int nid = 0; nid < numIdentical; nid++) {
+				int to = indexVector[row+nid];
+				rl[to] = rowLik;
+                        }
+                } else {
+                        EigenVectorAdaptor rl(localobj->matrix);
+			rl[0] += numIdentical * log(rowLik);
+                }
 		row += numIdentical;
 		firstRow = false;
 	}

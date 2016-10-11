@@ -260,7 +260,7 @@ void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 		      T5 includeTest, int resultSize,
 		      Eigen::MatrixBase<T4> &cov)
 {
-	cov.derived().resize(resultSize, resultSize);
+	cov.derived().resize(resultSize, resultSize); // can avoid reallocation? TODO
 
 	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
 		if (!includeTest(gcx)) continue;
@@ -269,6 +269,19 @@ void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 			cov(rx,cx) = gcov(grx, gcx);
 			rx += 1;
 		}
+		cx += 1;
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void subsetVector(const Eigen::MatrixBase<T1> &gmean, T2 includeTest,
+		  int resultSize, Eigen::MatrixBase<T3> &out)
+{
+	out.derived().resize(resultSize); // can avoid reallocation? TODO
+
+	for (int gcx=0, cx=0; gcx < gmean.size(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		out[cx] = gmean[gcx];
 		cx += 1;
 	}
 }

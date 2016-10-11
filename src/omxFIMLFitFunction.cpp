@@ -55,8 +55,10 @@ bool condOrdByRow::eval()
 	MatrixXd contCov;
 		
 	while(row < lastrow) {
-		mxLogSetCurrentRow(row);
-		int sortedRow = indexVector[row];
+		loadRow();
+		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
+		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
+
 		bool numVarsFilled = expectation->loadDefVars(sortedRow);
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
@@ -64,10 +66,6 @@ bool condOrdByRow::eval()
 			covDecomp.compute(jointCov);
 			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 		}
-
-		loadRow(sortedRow);
-		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
-		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
 		if (thresholdsMat && (numVarsFilled || firstRow)) {
 			omxRecompute(thresholdsMat, fc);
@@ -79,7 +77,7 @@ bool condOrdByRow::eval()
 			}
 		}
 
-		struct subsetOp {
+		struct subsetOp { // factor out TODO
 			std::vector<bool> &isOrdinal;
 			std::vector<bool> &isMissing;
 			bool wantOrdinal;
@@ -168,6 +166,7 @@ bool condOrdByRow::eval()
 		double contLikelihood = 1.0;
 		if (rowContinuous) {
 			if (!rowOrdinal && (numVarsFilled || firstRow)) {
+				// wrong, need to subset TODO
 				contMean = jointMeans;
 				contCov = jointCov;
 				covDecomp.compute(contCov);
@@ -201,22 +200,21 @@ bool condContByRow::eval()
 	MatrixXd contCov;
 	VectorXd contMean;
 	VectorXd ordMean;
+	MatrixXd ordAdj;
 	SimpCholesky< Eigen::MatrixXd >  covDecomp;
+	double contLik = 1.0;
+	double ordLik = 1.0;
 
 	while(row < lastrow) {
-		mxLogSetCurrentRow(row);
-		int sortedRow = indexVector[row];
+		loadRow();
+		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
+		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
 		bool numVarsFilled = expectation->loadDefVars(sortedRow);
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
-#pragma omp atomic
-			ofiml->expectationComputeCount += 1;
+			INCR_COUNTER(expectationCompute);
 		}
-
-		loadRow(sortedRow);
-		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
-		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
 		struct subsetOp {
 			std::vector<bool> &isOrdinal;
@@ -230,60 +228,66 @@ bool condContByRow::eval()
 			bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
 		} op(isOrdinal, isMissing);
 
+		bool newOrdCov = false;
 		if (rowOrdinal && rowContinuous) {
-			// continuous changed?
-			MatrixXd V12(rowOrdinal, rowContinuous);
+			if (!ofiml->continuousMissingSame[row] || firstRow) {
+				INCR_COUNTER(invert);
+				op.wantOrdinal = false;
+				subsetCovariance(jointCov, op, rowContinuous, contCov);
+				covDecomp.compute(contCov);
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				covDecomp.refreshInverse();
+			}
+			if (!ofiml->missingSame[row] || firstRow) {
+				MatrixXd V12(rowOrdinal, rowContinuous);
+				upperRightCovariance(jointCov, [&](int xx){ return isMissing[xx]; },
+						     [&](int xx){ return !isOrdinal[xx]; }, V12);
+				const Eigen::MatrixXd &icontCov = covDecomp.getInverse();
+				ordAdj = V12 * icontCov.selfadjointView<Eigen::Lower>();
 
-			op.wantOrdinal = false;
-			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
-			upperRightCovariance(jointCov, [&](int xx){ return isMissing[xx]; },
-					     [&](int xx){ return !isOrdinal[xx]; }, V12);
-			op.wantOrdinal = true;
-			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
-			
-			//mxPrintMat("joint cov", jointCov);
-			//mxPrintMat("ord cov", ordCov);
-			//mxPrintMat("ord cont cov", V12);
-			//mxPrintMat("cont cov", contCov);
-
-#pragma omp atomic
-			ofiml->invertCount += 1;
-			covDecomp.compute(contCov);
-			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
-			covDecomp.refreshInverse();
-			const Eigen::MatrixXd &icontCov = covDecomp.getInverse();
-
-#pragma omp atomic
-			ofiml->conditionCount += 1;
-			MatrixXd ordAdj = V12 * icontCov.selfadjointView<Eigen::Lower>();
-			ordMean += ordAdj * (cData - contMean);
-			ordCov -= ordAdj * V12.transpose();
+				op.wantOrdinal = true;
+				subsetCovariance(jointCov, op, rowOrdinal, ordCov);
+				ordCov -= ordAdj * V12.transpose();
+				newOrdCov = true;
+				INCR_COUNTER(conditionCov);
+			}
+			if (!ofiml->missingSameContinuousSame[row] || firstRow) {
+				op.wantOrdinal = false;
+				subsetVector(jointMeans, op, rowContinuous, contMean);
+				op.wantOrdinal = true;
+				subsetVector(jointMeans, op, rowOrdinal, ordMean);
+				ordMean += ordAdj * (cData - contMean);
+				INCR_COUNTER(conditionMean);
+			}
 		} else if (rowOrdinal) {
-			// if ordinal cov changed
-			op.wantOrdinal = true;
-			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
+			if (!ofiml->ordinalMissingSame[row] || firstRow) {
+				op.wantOrdinal = true;
+				subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
+				newOrdCov = true;
+			}
 		} else if (rowContinuous) {
-			// if continuous cov changed
-			op.wantOrdinal = false;
-			subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
-#pragma omp atomic
-			ofiml->invertCount += 1;
-			covDecomp.compute(contCov);
-			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
-			covDecomp.refreshInverse();
+			if (!ofiml->continuousMissingSame[row] || firstRow) {
+				op.wantOrdinal = false;
+				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
+				INCR_COUNTER(invert);
+				covDecomp.compute(contCov);
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				covDecomp.refreshInverse();
+			}
 		}
 
-		double likelihood = 1.0;
-
 		if (rowContinuous) {
-#pragma omp atomic
-			ofiml->contDensityCount += 1;
-			Eigen::VectorXd resid = cData - contMean;
-			const Eigen::MatrixXd &iV = covDecomp.getInverse();
-			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * resid.size();
-			double logDet = covDecomp.log_determinant();
-			likelihood *= exp(-0.5 * (iqf + cterm + logDet));
+			if (!ofiml->continuousSame[row] || firstRow) {
+				INCR_COUNTER(contDensity);
+				Eigen::VectorXd resid = cData - contMean;
+				const Eigen::MatrixXd &iV = covDecomp.getInverse();
+				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				double cterm = M_LN_2PI * resid.size();
+				double logDet = covDecomp.log_determinant();
+				contLik = exp(-0.5 * (iqf + cterm + logDet));
+			}
+		} else {
+			contLik = 1.0;
 		}
 
 		if (rowOrdinal) {
@@ -294,20 +298,19 @@ bool condContByRow::eval()
 							  thresholdCols[j].numThresholds, fc)) return true;
 			}
 
-			if (true || firstRow) {
-#pragma omp atomic
-				ofiml->ordSetupCount += 1;
+			if (newOrdCov) {
+				INCR_COUNTER(ordSetup);
 				ol.setCovariance(ordCov, fc);
-				Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
-				ol.setColumns(ordColumns);
-				ol.setMean(ordMean);
 			}
+			Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
+			ol.setColumns(ordColumns);
+			ol.setMean(ordMean);
 
-#pragma omp atomic
-			ofiml->ordDensityCount += 1;
-			likelihood *= ol.likelihood(sortedRow);
+			INCR_COUNTER(ordDensity);
+			ordLik = ol.likelihood(sortedRow);
+			//mxLog("[%d] %.5g", sortedRow, log(ordLik));
 
-			if (likelihood == 0.0) {
+			if (ordLik == 0.0) {
 				if (fc) fc->recordIterationError("Improper value detected by integration routine "
 								 "in data row %d: Most likely the maximum number of "
 								 "ordinal variables (20) has been exceeded.  \n"
@@ -316,9 +319,11 @@ bool condContByRow::eval()
 				if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
 				return true;
 			}
+		} else {
+			ordLik = 1.0;
 		}
 
-		recordRow(likelihood);
+		recordRow(contLik * ordLik);
 	}
 	return false;
 }
@@ -378,18 +383,17 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 	}
 
-	Rf_setAttrib(algebra, Rf_install("expectationComputeCount"),
-		     Rf_ScalarInteger(argStruct->expectationComputeCount));
-	Rf_setAttrib(algebra, Rf_install("conditionCount"),
-		     Rf_ScalarInteger(argStruct->conditionCount));
-	Rf_setAttrib(algebra, Rf_install("invertCount"),
-		     Rf_ScalarInteger(argStruct->invertCount));
-	Rf_setAttrib(algebra, Rf_install("ordSetupCount"),
-		     Rf_ScalarInteger(argStruct->ordSetupCount));
-	Rf_setAttrib(algebra, Rf_install("ordDensityCount"),
-		     Rf_ScalarInteger(argStruct->ordDensityCount));
-	Rf_setAttrib(algebra, Rf_install("contDensityCount"),
-		     Rf_ScalarInteger(argStruct->contDensityCount));
+	if (OMX_DEBUG_FIML_STATS) {
+		MxRList count;
+		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
+		count.add("conditionMean", Rf_ScalarInteger(argStruct->conditionMeanCount));
+		count.add("conditionCov", Rf_ScalarInteger(argStruct->conditionCovCount));
+		count.add("invert", Rf_ScalarInteger(argStruct->invertCount));
+		count.add("ordSetup", Rf_ScalarInteger(argStruct->ordSetupCount));
+		count.add("ordDensity", Rf_ScalarInteger(argStruct->ordDensityCount));
+		count.add("contDensity", Rf_ScalarInteger(argStruct->contDensityCount));
+		Rf_setAttrib(algebra, Rf_install("stats"), count.asR());
+	}
 }
 
 struct FIMLCompare {
@@ -419,7 +423,7 @@ struct FIMLCompare {
 			int col = dc[cx];
 			double lv = omxDoubleDataElement(data, la, col);
 			double rv = omxDoubleDataElement(data, ra, col);
-			if (doubleEQ(lv, rv)) continue;
+			if (lv == rv) continue;
 			return lv < rv;
 		}
 
@@ -441,6 +445,15 @@ struct FIMLCompare {
 		}
 
 		mismatch = false;
+		return false;
+	}
+
+	bool compareMissingnessAndDataPart(bool part, int la, int ra, bool &mismatch) const
+	{
+		int got = compareMissingnessPart(part, la, ra, mismatch);
+		if (mismatch) return got;
+		got = compareDataPart(part, la, ra, mismatch);
+		if (mismatch) return got;
 		return false;
 	}
 
@@ -479,14 +492,26 @@ struct FIMLCompare {
 		bool mismatch;
 		bool got = compareAllDefVars(la, ra, mismatch);
 		if (mismatch) return got;
-		got = compareMissingnessPart(false, la, ra, mismatch);
-		if (mismatch) return got;
-		got = compareDataPart(false,la, ra, mismatch);
-		if (mismatch) return got;
-		got = compareMissingnessPart(true, la, ra, mismatch);
-		if (mismatch) return got;
-		got = compareDataPart(true,la, ra, mismatch);
-		if (mismatch) return got;
+		if (true) {
+			got = compareMissingnessPart(false, la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareMissingnessPart(true, la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareDataPart(false,la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareDataPart(true,la, ra, mismatch);
+			if (mismatch) return got;
+		} else {
+			// TODO DELETE
+			got = compareMissingnessPart(false, la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareDataPart(false,la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareMissingnessPart(true, la, ra, mismatch);
+			if (mismatch) return got;
+			got = compareDataPart(true,la, ra, mismatch);
+			if (mismatch) return got;
+		}
 		return false;
 	}
 };
@@ -508,46 +533,95 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	omxData *data = ofiml->data;
 	indexVector.reserve(data->rows);
 	for (int rx=0; rx < data->rows; ++rx) indexVector.push_back(rx);
+	ofiml->sameAsPrevious.assign(data->rows, false);
 
-	FIMLCompare cmp(off->expectation, false);
+	FIMLCompare cmp(off->expectation, ofiml->jointStrat == JOINT_CONDORD);
 
 	if (data->needSort) {
 		if (OMX_DEBUG) mxLog("sort %s for %s", data->name, off->name());
+		//if (ofiml->jointStrat == JOINT_OLD) cmp.old = true;
+		//cmp.old=true;
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
 		//data->omxPrintData("sorted", 1000, indexVector.data());
 	}
 
-	auto& identicalDefs = ofiml->identicalDefs;
-	auto& identicalMissingness = ofiml->identicalMissingness;
-	auto& identicalRows = ofiml->identicalRows;
-	identicalDefs.resize(data->rows);
-	identicalMissingness.resize(data->rows);
-	identicalRows.resize(data->rows);
+	switch (ofiml->jointStrat) {
+	case JOINT_OLD:{
+		auto& identicalDefs = ofiml->identicalDefs;
+		auto& identicalMissingness = ofiml->identicalMissingness;
+		auto& identicalRows = ofiml->identicalRows;
+		identicalDefs.resize(data->rows);
+		identicalMissingness.resize(data->rows);
+		identicalRows.resize(data->rows);
 
-	int prevDefs=0;
-	int prevMissingness=0;
-	int prevRows=0;
-	for (int rx=1; rx < data->rows; ++rx) {
-		bool mismatch;
-		cmp.compareAllDefVars(indexVector[prevDefs], indexVector[rx], mismatch);
-		if (mismatch) recordGap(rx, prevDefs, identicalDefs);
-		cmp.compareMissingness(indexVector[prevMissingness], indexVector[rx], mismatch);
-		if (mismatch) {
-			recordGap(rx, prevMissingness, identicalMissingness);
+		int prevDefs=0;
+		int prevMissingness=0;
+		int prevRows=0;
+		for (int rx=1; rx < data->rows; ++rx) {
+			bool mismatch;
+			cmp.compareAllDefVars(indexVector[prevDefs], indexVector[rx], mismatch);
+			if (mismatch) recordGap(rx, prevDefs, identicalDefs);
+			cmp.compareMissingness(indexVector[prevMissingness], indexVector[rx], mismatch);
+			if (mismatch) {
+				recordGap(rx, prevMissingness, identicalMissingness);
+			}
+			cmp.compareData(indexVector[prevRows], indexVector[rx], mismatch);
+			if (mismatch) recordGap(rx, prevRows, identicalRows);
 		}
-		cmp.compareData(indexVector[prevRows], indexVector[rx], mismatch);
-		if (mismatch) recordGap(rx, prevRows, identicalRows);
+		recordGap(data->rows - 1, prevDefs, identicalDefs);
+		recordGap(data->rows - 1, prevMissingness, identicalMissingness);
+		recordGap(data->rows - 1, prevRows, identicalRows);
+		identicalRows[data->rows - 1] = 1;
+		if (0) {
+			Eigen::Map< Eigen::VectorXi > m1(identicalDefs.data(), data->rows);
+			Eigen::Map< Eigen::VectorXi > m2(identicalMissingness.data(), data->rows);
+			Eigen::Map< Eigen::VectorXi > m3(identicalRows.data(), data->rows);
+			mxPrintMat("m1", m1);
+			mxPrintMat("m2", m2);
+			mxPrintMat("m3", m3);
+		}
+		break;
+	};
+	case JOINT_AUTO:
+	case JOINT_CONDORD:
+	case JOINT_CONDCONT:{
+		cmp.ordinalFirst = true;
+		ofiml->ordinalMissingSame.assign(data->rows, false);
+		ofiml->continuousMissingSame.assign(data->rows, false);
+		ofiml->missingSameContinuousSame.assign(data->rows, false);
+		ofiml->continuousSame.assign(data->rows, false);
+		ofiml->missingSame.assign(data->rows, false);
+		for (int rx=1; rx < data->rows; ++rx) {
+			bool m1;
+			cmp.compareAllDefVars(indexVector[rx-1], indexVector[rx], m1);
+			if (m1) continue;
+			bool m2;
+			cmp.compareMissingnessPart(false, indexVector[rx-1], indexVector[rx], m2);
+			if (!m2) ofiml->ordinalMissingSame[rx] = true;
+			bool m3;
+			cmp.compareMissingnessPart(true, indexVector[rx-1], indexVector[rx], m3);
+			if (!m3) ofiml->continuousMissingSame[rx] = true;
+			bool m4;
+			cmp.compareMissingness(indexVector[rx-1], indexVector[rx], m4);
+			if (!m4) ofiml->missingSame[rx] = true;
+			bool m5;
+			cmp.compareDataPart(true, indexVector[rx-1], indexVector[rx], m5);
+			if (!m3 && !m5) ofiml->continuousSame[rx] = true;
+			if (!m4 && !m5) ofiml->missingSameContinuousSame[rx] = true;
+			if (m4) continue;
+			bool m6;
+			cmp.compareData(indexVector[rx-1], indexVector[rx], m6);
+			if (m6) continue;
+			ofiml->sameAsPrevious[rx] = true;
+		}
+		break;}
 	}
-	recordGap(data->rows - 1, prevDefs, identicalDefs);
-	recordGap(data->rows - 1, prevMissingness, identicalMissingness);
-	recordGap(data->rows - 1, prevRows, identicalRows);
 }
 
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 			  omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
 {
 	switch (ofiml->jointStrat) {
-	case JOINT_AUTO:
 	case JOINT_OLD:{
 		oldByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
 		return batch.eval();
@@ -556,6 +630,7 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 		condOrdByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
 		return batch.eval();
 	}
+	case JOINT_AUTO:
 	case JOINT_CONDCONT:{
 		condContByRow batch(_fc, _localobj, ofiml, rowbegin, rowcount);
 		return batch.eval();
@@ -603,7 +678,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	bool failed = false;
 
-	if (data->defVars.size() == 0) {
+	if (data->defVars.size() == 0) { // this is hard to maintain/debug, remove it? TODO
 		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
 		omxExpectationRecompute(fc, expectation);
 		// MCN Also do the threshold formulae!
@@ -720,7 +795,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->inUse = false;
 	newObj->parent = 0;
 	newObj->expectationComputeCount = 0;
-	newObj->conditionCount = 0;
+	newObj->conditionMeanCount = 0;
+	newObj->conditionCovCount = 0;
 	newObj->invertCount = 0;
 	newObj->ordSetupCount = 0;
 	newObj->ordDensityCount = 0;
