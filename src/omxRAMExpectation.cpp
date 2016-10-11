@@ -89,8 +89,9 @@ static void refreshUnfilteredCov(omxExpectation *oo)
     eAx.block(0, 0, eAx.rows(), eAx.cols()) = eZ * eS * eZ.transpose();
 }
 
-static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj) {
-    if(OMX_DEBUG) { mxLog("Populating RAM Attributes."); }
+static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj)
+{
+	omxManageProtectInsanity mpi;
 
     refreshUnfilteredCov(oo);
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
