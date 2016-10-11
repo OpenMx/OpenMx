@@ -395,22 +395,28 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 struct FIMLCompare {
 	omxData *data;
 	omxExpectation *ex;
+	std::vector<bool> ordinal;
+	bool ordinalFirst;
 
-	bool compareData(int la, int ra, bool &mismatch) const
+	FIMLCompare(omxExpectation *_ex, bool _ordinalFirst) {
+		ex = _ex;
+		ordinalFirst = _ordinalFirst;
+		data = ex->data;
+
+		auto dc = ex->getDataColumns();
+		ordinal.resize(dc.size());
+		for (int cx=0; cx < dc.size(); ++cx) {
+			ordinal[cx] = omxDataColumnIsFactor(data, cx);
+		}
+	}
+
+	bool compareDataPart(bool part, int la, int ra, bool &mismatch) const
 	{
 		mismatch = true;
 		auto dc = ex->getDataColumns();
 		for (int cx=0; cx < dc.size(); ++cx) {
+			if (part ^ ordinalFirst ^ ordinal[cx]) continue;
 			int col = dc[cx];
-			if (!omxDataColumnIsFactor(data, col)) continue;
-			double lv = omxDoubleDataElement(data, la, col);
-			double rv = omxDoubleDataElement(data, ra, col);
-			if (doubleEQ(lv, rv)) continue;
-			return lv < rv;
-		}
-		for (int cx=0; cx < dc.size(); ++cx) {
-			int col = dc[cx];
-			if (omxDataColumnIsFactor(data, col)) continue;
 			double lv = omxDoubleDataElement(data, la, col);
 			double rv = omxDoubleDataElement(data, ra, col);
 			if (doubleEQ(lv, rv)) continue;
@@ -421,11 +427,12 @@ struct FIMLCompare {
 		return false;
 	}
 
-	bool compareMissingness(int la, int ra, bool &mismatch) const
+	bool compareMissingnessPart(bool part, int la, int ra, bool &mismatch) const
 	{
 		mismatch = true;
 		auto dc = ex->getDataColumns();
 		for (int cx=0; cx < dc.size(); ++cx) {
+			if (part ^ ordinalFirst ^ ordinal[cx]) continue;
 			int col = dc[cx];
 			bool lm = omxDataElementMissing(data, la, col);
 			bool rm = omxDataElementMissing(data, ra, col);
@@ -435,6 +442,20 @@ struct FIMLCompare {
 
 		mismatch = false;
 		return false;
+	}
+
+	bool compareData(int la, int ra, bool &mismatch) const
+	{
+		int got = compareDataPart(false, la, ra, mismatch);
+		if (mismatch) return got;
+		return compareDataPart(true, la, ra, mismatch);
+	}
+
+	bool compareMissingness(int la, int ra, bool &mismatch) const
+	{
+		int got = compareMissingnessPart(false, la, ra, mismatch);
+		if (mismatch) return got;
+		return compareMissingnessPart(true, la, ra, mismatch);
 	}
 
 	bool compareAllDefVars(int la, int ra, bool &mismatch) const
@@ -458,9 +479,13 @@ struct FIMLCompare {
 		bool mismatch;
 		bool got = compareAllDefVars(la, ra, mismatch);
 		if (mismatch) return got;
-		got = compareMissingness(la, ra, mismatch);
+		got = compareMissingnessPart(false, la, ra, mismatch);
 		if (mismatch) return got;
-		got = compareData(la, ra, mismatch);
+		got = compareDataPart(false,la, ra, mismatch);
+		if (mismatch) return got;
+		got = compareMissingnessPart(true, la, ra, mismatch);
+		if (mismatch) return got;
+		got = compareDataPart(true,la, ra, mismatch);
 		if (mismatch) return got;
 		return false;
 	}
@@ -484,19 +509,20 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	indexVector.reserve(data->rows);
 	for (int rx=0; rx < data->rows; ++rx) indexVector.push_back(rx);
 
+	FIMLCompare cmp(off->expectation, false);
+
+	if (data->needSort) {
+		if (OMX_DEBUG) mxLog("sort %s for %s", data->name, off->name());
+		std::sort(indexVector.begin(), indexVector.end(), cmp);
+		//data->omxPrintData("sorted", 1000, indexVector.data());
+	}
+
 	auto& identicalDefs = ofiml->identicalDefs;
 	auto& identicalMissingness = ofiml->identicalMissingness;
 	auto& identicalRows = ofiml->identicalRows;
-	identicalDefs.assign(data->rows, 1);
-	identicalMissingness.assign(data->rows, 1);
-	identicalRows.assign(data->rows, 1);
-	if (!data->needSort) return;
-
-	if (OMX_DEBUG) mxLog("sort %s for %s", data->name, off->name());
-	FIMLCompare cmp;
-	cmp.data = data;
-	cmp.ex = off->expectation;
-	std::sort(indexVector.begin(), indexVector.end(), cmp);
+	identicalDefs.resize(data->rows);
+	identicalMissingness.resize(data->rows);
+	identicalRows.resize(data->rows);
 
 	int prevDefs=0;
 	int prevMissingness=0;
@@ -515,8 +541,6 @@ static void sortData(omxFitFunction *off, FitContext *fc)
 	recordGap(data->rows - 1, prevDefs, identicalDefs);
 	recordGap(data->rows - 1, prevMissingness, identicalMissingness);
 	recordGap(data->rows - 1, prevRows, identicalRows);
-
-	//data->omxPrintData("sorted", 1000, indexVector.data());
 }
 
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
@@ -544,9 +568,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 
-	// TODO: Figure out how to give access to other per-iteration structures.
-	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
-	
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 	if (want & FF_COMPUTE_PREOPTIMIZE) {
 		ofiml->inUse = true;
