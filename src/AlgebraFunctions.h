@@ -60,7 +60,7 @@ static void omxMatrixInvert(FitContext *fc, omxMatrix** matList, int numArgs, om
 	int info = MatrixInvert1(result);
 	if (info) {
 		result->data[0] = nan("singular");
-		// recordIterationError not available here
+		// recordIterationError TODO
 	}
 }
 

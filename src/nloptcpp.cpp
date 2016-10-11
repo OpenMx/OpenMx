@@ -231,12 +231,14 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
         if (eq + ieq) {
 		ctx.origeq = eq;
                 if (ieq > 0){
+			if (goc.verbose >= 2) mxLog("%d inequality constraints", ieq);
 			goc.inequality.resize(ieq);
 			std::vector<double> tol(ieq, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, ieq, SLSQP::nloptInequalityFunction, &goc, tol.data());
                 }
                 
                 if (eq > 0){
+			if (goc.verbose >= 2) mxLog("%d equality constraints", eq);
 			goc.equality.resize(eq);
 			std::vector<double> tol(eq, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());

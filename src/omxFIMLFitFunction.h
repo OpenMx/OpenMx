@@ -46,6 +46,8 @@ struct omxFIMLFitFunction {
 
 //	double* zeros;
 
+	bool inUse;
+
 	/* Reserved memory for faster calculation */
 	omxMatrix* smallRow;		// Memory reserved for operations on each data row
 	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix

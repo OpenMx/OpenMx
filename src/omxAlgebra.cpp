@@ -98,6 +98,17 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	oa->matrix = NULL;
 }
 
+void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
+{
+	if (mat->hasMatrixNumber) mat = fc->lookupDuplicate(mat);
+	omxState *st = mat->currentState;
+	st->setWantStage(FF_COMPUTE_PREOPTIMIZE);
+	omxRecompute(mat, fc);
+	auto ff = mat->fitFunction;
+	if (ff) fc->fitUnits = ff->units;
+	st->setWantStage(FF_COMPUTE_FIT);
+}
+
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;

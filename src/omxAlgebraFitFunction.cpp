@@ -136,7 +136,7 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 		buildParamMap(fc->varGroup);
 	}
 
-	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT)) {
+	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 		if (algebra) {
 			omxRecompute(algebra, fc);
 			ff->matrix->data[0] = algebra->data[0];

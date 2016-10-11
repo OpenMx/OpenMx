@@ -168,12 +168,6 @@ double totalLogLikelihood(omxMatrix *fitMat)
 	}
 }
 
-void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc)
-{
-	omxFitFunctionComputeAuto(off, FF_COMPUTE_PREOPTIMIZE, fc);
-	fc->fitUnits = off->units;
-}
-
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	bool doFit = want & FF_COMPUTE_FIT;

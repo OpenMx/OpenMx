@@ -53,7 +53,10 @@ omxCheckError(mxGenerateData(fit, N-1), 'Definition variable(s) found, but the n
 
 
 fakeData <- mxGenerateData(fit, N)
-fakeData$u <- u
+
+omxCheckEquals(colnames(fakeData), colnames(fit$data$observed))
+omxCheckTrue(all(fakeData$u == u))
+omxCheckEquals(levels(fakeData$y), levels(fit$data$observed$y))
 
 model2 <- mxModel(model, mxData(fakeData, 'raw'))
 fit2 <- mxRun(model2)

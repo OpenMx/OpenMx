@@ -160,7 +160,7 @@ class FitContext {
 	FitContext(omxState *_state, std::vector<double> &startingValues);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
-	void createChildren();
+	void createChildren(omxMatrix *alg);
 	void destroyChildren();
 	void allocStderrs();
 	void ensureParamWithinBox(bool nudge);
@@ -210,7 +210,8 @@ class FitContext {
 	void postInfo();
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
-	int getComputeCount(); //approximate
+	int getGlobalComputeCount(); //approximate
+	int getLocalComputeCount(); //approximate
 	void incrComputeCount() { ++computeCount; };
 
 	// If !std::isfinite(fit) then IterationError.size() should be nonzero but not all of

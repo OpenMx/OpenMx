@@ -1517,7 +1517,7 @@ void CSOLNP::compute_grad(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::Ma
     Eigen::Map< Eigen::VectorXd > Epoint(pars.transpose().data(), np);
     Eigen::Map< Eigen::VectorXd > Egrad(grad.block(0, nineq, 1, np).transpose().data(), np);
     double fit;
-    
+    int numThr = nc? 1 : goc->numOptimizerThreads;    
     if (flag){
 	fit_ineq_functional ff(*goc);
         goc->myineqFun();
@@ -1530,7 +1530,7 @@ void CSOLNP::compute_grad(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::Ma
             mode = 0;
         }
         
-        gradient_with_ref_c(GradientAlgorithm_Forward, goc->numOptimizerThreads, goc->gradientIterations, goc->gradientStepSize, ff, fit, Epoint, Egrad, vscale, flag);
+        gradient_with_ref_c(GradientAlgorithm_Forward, numThr, goc->gradientIterations, goc->gradientStepSize, ff, fit, Epoint, Egrad, vscale, flag);
     }
     else {
         fit_functional ff(*goc);
@@ -1541,7 +1541,7 @@ void CSOLNP::compute_grad(int np, int nc, Eigen::MatrixBase<T1>& pars, Eigen::Ma
             mode = 0;
         }
         
-        gradient_with_ref_c(GradientAlgorithm_Forward, goc->numOptimizerThreads, goc->gradientIterations, goc->gradientStepSize, ff, fit, Epoint, Egrad, vscale, flag);
+        gradient_with_ref_c(GradientAlgorithm_Forward, numThr, goc->gradientIterations, goc->gradientStepSize, ff, fit, Epoint, Egrad, vscale, flag);
     }
     
     grad.block(0, nineq, 1, np) = Egrad.transpose().eval();
@@ -1572,7 +1572,8 @@ void CSOLNP::computeGrad_aug(int np, int nc, double funv, Eigen::MatrixBase<T1>&
     Eigen::Map< Eigen::VectorXd > Epoint(pars.transpose().data(), np+nineq);
     Eigen::Map< Eigen::VectorXd > Egrad(grad.block(0, nineq, 1, np).transpose().data(), np);
     double objective = funv;
-    gradient_with_ref_csolnp(GradientAlgorithm_Forward, goc->numOptimizerThreads,
+    int numThr = nc? 1 : goc->numOptimizerThreads;
+    gradient_with_ref_csolnp(GradientAlgorithm_Forward, numThr,
                              goc->gradientIterations, goc->gradientStepSize,
                              ff, objective, Epoint, Egrad, nineq, nc, np, yy_e, rho, vscale_e, a_e, b_e, flag);
     grad.block(0, nineq, 1, np) = Egrad.transpose().eval();

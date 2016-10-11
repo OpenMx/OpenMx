@@ -19,12 +19,12 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ALGEBRA             # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
 # DEBUG_CXXFLAGS+=-DDEBUGMX_MATRIX              # turn on matrix debugging
 # DEBUG_CXXFLAGS+=-DDEBUGMX_ROWS                # DEBUGMX_ROWS gives per-row output for selected FIML rows
-# DEBUG_CXXFLAGS+=-DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=1  # basic debugging without extra logging
+# DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=5  # basic debugging without extra logging
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
 # DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
 
 PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS)
-PKG_LIBS=$(OPENMP_LDFLAGS) $(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
+PKG_LIBS=$(xcheck_LDFLAGS) $(OPENMP_LDFLAGS) $(COMPILER_LDFLAGS) $(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
 
 all: $(SHLIB) save-gcno
 

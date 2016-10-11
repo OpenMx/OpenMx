@@ -88,7 +88,7 @@ struct omxFitFunction {					// A fit function
 	bool hessianAvailable;
 	FitStatisticUnits units;
 	bool canDuplicate;
-	bool openmpUser; // can decide this in preoptimize
+	bool openmpUser; // can decide this in omxAlgebraPreeval
 
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
@@ -110,8 +110,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
-void omxFitFunctionPreoptimize(omxFitFunction *off, FitContext *fc);
-	
+
 void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);

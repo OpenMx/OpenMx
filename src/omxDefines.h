@@ -99,7 +99,10 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #include <vector>
 
 enum omxFFCompute {
-	FF_COMPUTE_PREOPTIMIZE  = 1<<1,  // delete this TODO
+	// In preoptimize, we determine which fit functions are
+	// actually in use so we can made a decision about the best
+	// multithreading strategy.
+	FF_COMPUTE_PREOPTIMIZE  = 1<<1,
 	FF_COMPUTE_MAXABSCHANGE = 1<<2,
 	FF_COMPUTE_FIT          = 1<<3,
 	FF_COMPUTE_ESTIMATE     = 1<<4,

@@ -127,9 +127,9 @@ runHelper <- function(model, frontendStart,
 		if (!useOptimizer) {
 			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
 		} else {
-			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum))
+			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum, verbose=0L))
 			if (length(intervals) && intervals) {
-				ciOpt <- mxComputeGradientDescent(
+				ciOpt <- mxComputeGradientDescent(verbose=0L,
 				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
@@ -137,7 +137,7 @@ runHelper <- function(model, frontendStart,
 				}
 				steps <- c(steps, CI=mxComputeConfidenceInterval(
 							  fitfunction=fitNum, constraintType=cType,
-							  plan=ciOpt))
+							  verbose=0L, plan=ciOpt))
 			}
 			if (options[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(fitfunction=fitNum))

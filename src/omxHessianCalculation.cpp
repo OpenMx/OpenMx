@@ -274,9 +274,9 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	if (state->conList.size()) {
+	if (state->conListX.size()) {
 		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
-		      state->conList.size());
+		      state->conListX.size());
 	}
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
@@ -356,7 +356,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	optima.resize(numParams);
 	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
 
-	if (parallel) fc->createChildren();
+	omxAlgebraPreeval(fitMat, fc);
+	if (parallel) fc->createChildren(fitMat);
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation

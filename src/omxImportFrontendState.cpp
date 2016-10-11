@@ -419,7 +419,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 	SEXP nextVar, nextLoc;
 	int numConstraints = Rf_length(constraints);
 	if(OMX_DEBUG) {mxLog("Found %d constraints.", numConstraints); }
-	conList.reserve(numConstraints + 1);  // reserve 1 extra for confidence intervals
+	conListX.reserve(numConstraints + 1);  // reserve 1 extra for confidence intervals
 	for(int ci = 0; ci < numConstraints; ci++) {
 		Rf_protect(nextVar = VECTOR_ELT(constraints, ci));
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
@@ -429,7 +429,8 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
-		conList.push_back(constr);
+		constr->prep(fc);
+		conListX.push_back(constr);
 	}
 	if(OMX_DEBUG) {
 		int equality, inequality;

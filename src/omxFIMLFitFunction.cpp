@@ -210,15 +210,19 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	// TODO: Figure out how to give access to other per-iteration structures.
 	// TODO: Current implementation is slow: update by filtering correlations and thresholds.
 	
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
+	if (want & FF_COMPUTE_PREOPTIMIZE) {
+		ofiml->inUse = true;
 		if (fc->isClone()) {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
+		} else {
+			off->openmpUser = ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
+			sortData(off, fc);
 		}
-		off->openmpUser = ofiml->rowwiseParallel != 0 && !ofiml->condOnOrdinal;
-		sortData(off, fc);
 		return;
 	}
+	if (want & FF_COMPUTE_FINAL_FIT && !ofiml->inUse) return;
 
 	if(OMX_DEBUG) mxLog("%s: joint FIML; openmpUser=%d", off->name(), off->openmpUser);
 
@@ -347,6 +351,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
+	newObj->inUse = false;
 	newObj->parent = 0;
 
 	int numOrdinal = 0;
