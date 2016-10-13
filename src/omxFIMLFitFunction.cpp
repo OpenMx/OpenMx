@@ -55,41 +55,11 @@ bool condOrdByRow::eval()
 	MatrixXd contCov;
 		
 	while(row < lastrow) {
-		loadRow();
+		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 
-		bool numVarsFilled = expectation->loadDefVars(sortedRow);
-		if (numVarsFilled || firstRow) {
-			omxExpectationCompute(fc, expectation, NULL);
-			// automatically fills in jointMeans, jointCov
-			covDecomp.compute(jointCov);
-			if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
-		}
-
-		if (thresholdsMat && (numVarsFilled || firstRow)) {
-			omxRecompute(thresholdsMat, fc);
-			for(int j=0; j < dataColumns.size(); j++) {
-				int var = dataColumns[j];
-				if (!omxDataColumnIsFactor(data, var)) continue;
-				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-							  thresholdCols[j].numThresholds, fc)) return true;
-			}
-		}
-
-		struct subsetOp { // factor out TODO
-			std::vector<bool> &isOrdinal;
-			std::vector<bool> &isMissing;
-			bool wantOrdinal;
-			subsetOp(std::vector<bool> &_isOrdinal,
-				 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {};
-			// true to include
-			bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
-		} op(isOrdinal, isMissing);
-
-		bool newOrdData = (rowOrdinal && (prevOrdData.size() != iData.size() ||
-						  (prevOrdData.array() != iData.array()).any() ||
-						  numVarsFilled));
+		bool newOrdData = true; // TODO
 		if (newOrdData) {
 			prevOrdData = iData;
 			Eigen::VectorXd ordMean;
@@ -165,7 +135,7 @@ bool condOrdByRow::eval()
 
 		double contLikelihood = 1.0;
 		if (rowContinuous) {
-			if (!rowOrdinal && (numVarsFilled || firstRow)) {
+			if (!rowOrdinal && (true || firstRow)) { // TODO fix me
 				// wrong, need to subset TODO
 				contMean = jointMeans;
 				contCov = jointCov;
@@ -206,27 +176,9 @@ bool condContByRow::eval()
 	double ordLik = 1.0;
 
 	while(row < lastrow) {
-		loadRow();
+		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
-
-		bool numVarsFilled = expectation->loadDefVars(sortedRow);
-		if (numVarsFilled || firstRow) {
-			omxExpectationCompute(fc, expectation, NULL);
-			INCR_COUNTER(expectationCompute);
-		}
-
-		struct subsetOp {
-			std::vector<bool> &isOrdinal;
-			std::vector<bool> &isMissing;
-			bool wantOrdinal;
-			subsetOp(std::vector<bool> &_isOrdinal,
-				 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {
-				wantOrdinal = false;
-			};
-			// true to include
-			bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
-		} op(isOrdinal, isMissing);
 
 		bool newOrdCov = false;
 		if (rowOrdinal && rowContinuous) {
@@ -291,13 +243,6 @@ bool condContByRow::eval()
 		}
 
 		if (rowOrdinal) {
-			omxRecompute(thresholdsMat, fc);
-			for (int jx=0; jx < rowOrdinal; jx++) {
-				int j = ordColBuf[jx];
-				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-							  thresholdCols[j].numThresholds, fc)) return true;
-			}
-
 			if (newOrdCov) {
 				INCR_COUNTER(ordSetup);
 				ol.setCovariance(ordCov, fc);

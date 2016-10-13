@@ -154,6 +154,16 @@ class mvnByRow {
 	Eigen::VectorXi ordColBuf;
 	std::vector<bool> isMissing;
 
+	struct subsetOp {
+		std::vector<bool> &isOrdinal;
+		std::vector<bool> &isMissing;
+		bool wantOrdinal;
+	subsetOp(std::vector<bool> &_isOrdinal,
+		 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {};
+		// true to include
+		bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
+	} op;
+
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
 		 omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
 	:
@@ -167,7 +177,8 @@ class mvnByRow {
 		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
 		isOrdinal(_ofiml->isOrdinal),
 		jointMeans(ofo->means),
-		jointCov(ofo->cov)
+		jointCov(ofo->cov),
+		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
 		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
@@ -195,7 +206,7 @@ class mvnByRow {
 		}
 	};
 
-	void loadRow()
+	bool loadRow()
 	{
 		mxLogSetCurrentRow(row);
 		sortedRow = indexVector[row];
@@ -216,6 +227,22 @@ class mvnByRow {
 				if (!isMissing[j]) cDataBuf[rowContinuous++] = value;
 			}
 		}
+
+		bool numVarsFilled = expectation->loadDefVars(sortedRow);
+		if (numVarsFilled || firstRow) {
+			omxExpectationCompute(fc, expectation, NULL);
+			INCR_COUNTER(expectationCompute);
+
+			if (rowOrdinal) {
+				omxRecompute(thresholdsMat, fc);
+				for (int jx=0; jx < rowOrdinal; jx++) {
+					int j = ordColBuf[jx];
+					if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+								  thresholdCols[j].numThresholds, fc)) return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	void record(double lik)
