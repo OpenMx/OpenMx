@@ -6,6 +6,12 @@
  * Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * IMPROVED: SLSQP now ignores inactive equality constraints and correctly report when inequality constraints cannot be satisfied.
 
+# OpenMx 2.6.9
+* Stan header compatibility
+
+# OpenMx 2.6.8
+* Under the hood changes
+
 # OpenMx 2.6.7
 * CHANGED: Defaults number of threads = 2. Previously OpenMx used number of cores -1
  * This was done to reduce test-server burden for CRAN.
@@ -16,7 +22,7 @@
 * GREML fit function can also use analytic derivatives of the augmentation function.
 * NEW: SLSQP multithreading to evaluate the numerical gradient.
  * Use mxFitFunctionML(..., rowwiseParallel = FALSE).
- * With raw data, by default mxFitFunctionML() parallelizes evaluation of the row likelihoods, not the gradient elements.
+ * By default with raw data mxFitFunctionML() parallelizes evaluation of the row likelihoods not the gradients.
 * NEW: mxOption, "Parallel diagnostics". Set to "Yes", OpenMx provides diagnostic messages about the use of multiple threads.
 * IMPROVED: mxRestore() now behaves correctly with argument strict = TRUE.
 * FIXED: A subtle bug in the GREML fit function has been repaired.
