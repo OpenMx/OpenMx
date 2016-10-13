@@ -83,3 +83,5 @@
 81    "Poisson CDF"  "ppois"  4 "omxElementPpois"
 82    "Negative-Binomial PMF"  "dnbinom"  5  "omxElementDnbinom"
 83    "Negative-Binomial CDF"  "pnbinom"  6  "omxElementPnbinom"
+84    "Chi-square PDF"  "dchisq"  4  "omxElementDchisq"
+85    "Chi-square CDF"  "pchisq"  5  "omxElementPchisq"
