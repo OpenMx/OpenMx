@@ -16,6 +16,7 @@ satCov$free[5,5] <- FALSE
 
 loadings <- mxMatrix("Full", 1, 5,
 	free=TRUE, values=1, name="L", lbound=0)
+loadings$ubound[1,5] <- 2
 	
 resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
@@ -59,6 +60,14 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	#summary(jointResults1)
 	print(jointResults1$fitfunction$info)
 
+	#cat(deparse(round(coef(jointResults1),3)))
+	c1 <- c(0.609, 0.579, 0.657, 0.606, 0.165, 0.551, 0.499,
+		7.978, 2.069, 0.059, -0.387, 0.116, 0.815, -0.633, -0.285)
+	print(max(abs(coef(jointResults1) - c1)))
+	omxCheckCloseEnough(coef(jointResults1), c1, .002)
+
+	omxCheckCloseEnough(jointResults1$output$Minus2LogLikelihood, 2683.071, 0.2)
+
 	jointModel2 <- mxModel("ContinuousOrdinalData",
 			       mxData(jointData, "raw"),
 			       satCov, means, thresh,
@@ -71,14 +80,6 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	
 	jointResults2 <- mxRun(jointModel2, suppressWarnings = TRUE)
 	#summary(jointResults2)
-
-	#cat(deparse(round(coef(jointResults1),3)))
-	c1 <- c(0.609, 0.579, 0.657, 0.606, 0.165, 0.551, 0.499,
-		7.978, 2.069, 0.059, -0.387, 0.116, 0.815, -0.633, -0.285)
-	print(max(abs(coef(jointResults1) - c1)))
-	omxCheckCloseEnough(coef(jointResults1), c1, .002)
-
-	omxCheckCloseEnough(jointResults1$output$Minus2LogLikelihood, 2683.071, 0.2)
 
 	#cat(deparse(round(coef(jointResults2),3)))
 	c2 <- c(0.923, 0.374, 0.436, 0.367, 0.933, 0.354, 0.48, 0.43,  0.139,
