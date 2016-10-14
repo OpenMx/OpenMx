@@ -60,22 +60,27 @@ bool condOrdByRow::eval()
 	MatrixXd invOrdCov;
 		
 	int ssx = ofiml->sufficientSets.size() + 1;
-	if (useSufficientSets) {
+	if (useSufficientSets && ofiml->sufficientSets.size()) {
 		auto &sufficientSets = ofiml->sufficientSets;
 		sufficientSet ssRef;
 		ssRef.start = row;
-		auto ssxIter = std::lower_bound(sufficientSets.begin(), sufficientSets.end(), ssRef,
-						[](const sufficientSet &s1, const sufficientSet &s2)
-						{return s1.start < s2.start; });
-		if (ssxIter != sufficientSets.end()) {
-			ssx = ssxIter - sufficientSets.begin();
-			if (ssx > 0) {
-				auto &prev = sufficientSets[ssx-1];
-				if (row <= prev.start + prev.length - 1) row = prev.start + prev.length;
-			}
-			//mxLog("row %d ssx %d start %d len %d ", row, ssx,
-			//sufficientSets[ssx].start, sufficientSets[ssx].length);
+		ssx = std::lower_bound(sufficientSets.begin(), sufficientSets.end(), ssRef,
+				       [](const sufficientSet &s1, const sufficientSet &s2)
+				       {return s1.start < s2.start; }) - sufficientSets.begin();
+		if (ssx < int(ofiml->sufficientSets.size())) {
+			auto &cur = sufficientSets[ssx];
+			if (row > cur.start && row <= cur.start + cur.length - 1) row = cur.start + cur.length;
+			//mxLog("row %d ssx %d start %d len %d ", row, ssx, cur.start, cur.length);
 		}
+		if (ssx > 0) {
+			auto &prev = sufficientSets[ssx-1];
+			if (row <= prev.start + prev.length - 1) row = prev.start + prev.length;
+		}
+	}
+
+	if (row >= lastrow) {
+#pragma atomic
+		ofiml->unnecessaryThr += 1;
 	}
 
 	while(row < lastrow) {
@@ -577,13 +582,12 @@ static void addSufficientSet(omxFitFunction *off, int from, int to)
 	ofiml->sufficientSets.push_back(ss1);
 }
 
-static void sortData(omxFitFunction *off, FitContext *fc)
+static void sortData(omxFitFunction *off)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off->argStruct);
 	auto& indexVector = ofiml->indexVector;
-
-	if (fc->isClone() || indexVector.size()) return;
-
+	indexVector.clear();
+	ofiml->sufficientSets.clear();
 	omxData *data = ofiml->data;
 	indexVector.reserve(data->rows);
 	for (int rx=0; rx < data->rows; ++rx) indexVector.push_back(rx);
@@ -723,7 +727,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
 		} else {
 			off->openmpUser = ofiml->rowwiseParallel != 0;
-			sortData(off, fc);
+			if (!ofiml->indexVector.size()) sortData(off);
 		}
 		return;
 	}
@@ -790,7 +794,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	if (parallelism > data->rows) {
 		parallelism = data->rows;
 	}
+	parallelism -= ofiml->unnecessaryThr;
 
+	//mxLog("par=%d", parallelism);
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
@@ -864,6 +870,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
+	newObj->unnecessaryThr = 0;
 	newObj->inUse = false;
 	newObj->parent = 0;
 	newObj->expectationComputeCount = 0;
