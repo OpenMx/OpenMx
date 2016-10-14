@@ -292,6 +292,10 @@ model <- mxModel(model, mxAlgebra(dnbinom(D,D,-1,C,C),name="test84b"))
 model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,C,0),name="test85a"))
 model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,1,0),name="test85b"))
 model <- mxModel(model, mxAlgebra(pnbinom(D,D,-1,C,0,1),name="test85c"))
+model <- mxModel(model, mxAlgebra(dchisq(A,A,A,A),name="test86a"))
+model <- mxModel(model, mxAlgebra(pchisq(A,A,A,A,A),name="test86b"))
+model <- mxModel(model, mxAlgebra(dchisq(D,1,-1,0),name="test87a"))
+model <- mxModel(model, mxAlgebra(pchisq(D,1,-1,0,0),name="test87b"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -557,6 +561,10 @@ omxCheckCloseEnough(model[['test85b']]$result, pnbinom(q=D$values,size=D$values,
 																											 log.p=FALSE), .001)
 omxCheckCloseEnough(model[['test85c']]$result, pnbinom(q=D$values,size=D$values,mu=C$values[1:10],lower.tail=FALSE,
 																											 log.p=TRUE), .001)
+omxCheckCloseEnough(model[['test86a']]$result, dchisq(x=A$values,df=A$values,ncp=A$values,log=TRUE), .001)
+omxCheckCloseEnough(model[['test86b']]$result, pchisq(q=A$values,df=A$values,ncp=A$values,lower.tail=TRUE,log.p=TRUE), .001)
+omxCheckCloseEnough(model[['test87a']]$result, dchisq(x=D$values,df=1), .001)
+omxCheckCloseEnough(model[['test87b']]$result, pchisq(q=D$values,df=1,lower.tail=FALSE), .001)
 
 # Check internal function for definition variables
 m0 <- mxModel()

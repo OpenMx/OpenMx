@@ -147,6 +147,8 @@ Function \tab Arguments \tab Notes \cr
 \code{pnbinom} \tab \code{q,size,prob,mu,lower.tail,log.p} \tab Arguments are handled as with \code{dnbinom()}.\cr
 \code{dpois} \tab \code{x,lambda,log} \tab  \cr
 \code{ppois} \tab \code{q,lambda,lower.tail,log.p} \tab  \cr
+\code{dchisq} \tab \code{x,df,ncp,log} \tab  The algorithm for the non-central chi-square distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central chi-square distribution is used. \cr
+\code{pchisq} \tab \code{q,df,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dchisq()}. \cr
 }
 }
 

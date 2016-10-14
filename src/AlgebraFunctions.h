@@ -1476,6 +1476,68 @@ static void omxElementPnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	}
 }
 
+static void omxElementDchisq(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *df = matList[1];
+	omxMatrix *ncp = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(df);
+	omxEnsureColumnMajor(ncp);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int dfDataSize = df->rows * df->cols;
+	int ncpDataSize = ncp->rows * ncp->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
+			data[j] = Rf_dchisq(data[j],df->data[j%dfDataSize],give_log_arg);
+		}
+		else{
+			data[j] = Rf_dnchisq(data[j],df->data[j%dfDataSize],ncp->data[j%ncpDataSize],give_log_arg);
+		}
+	}
+}
+
+static void omxElementPchisq(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *df = matList[1];
+	omxMatrix *ncp = matList[2];
+	omxMatrix *lower_tail = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(df);
+	omxEnsureColumnMajor(ncp);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int dfDataSize = df->rows * df->cols;
+	int ncpDataSize = ncp->rows * ncp->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
+			data[j] = Rf_pchisq(data[j],df->data[j%dfDataSize],lower_tail_arg,give_log_arg);
+		}
+		else{
+			data[j] = Rf_pnchisq(data[j],df->data[j%dfDataSize],ncp->data[j%ncpDataSize],lower_tail_arg,give_log_arg);
+		}
+	}
+}
+
 static void omxElementBesselI(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
