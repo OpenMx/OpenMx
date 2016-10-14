@@ -300,6 +300,10 @@ model <- mxModel(model, mxAlgebra(dbinom(D,D,A,0),name="test88a"))
 model <- mxModel(model, mxAlgebra(dbinom(D,D,A,1),name="test88b"))
 model <- mxModel(model, mxAlgebra(pbinom(D,D,A,0,0),name="test89a"))
 model <- mxModel(model, mxAlgebra(pbinom(D,D,A,1,1),name="test89b"))
+model <- mxModel(model, mxAlgebra(dcauchy(H,A,D,0),name="test90a"))
+model <- mxModel(model, mxAlgebra(dcauchy(H,A,D,1),name="test90b"))
+model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,0,1),name="test91a"))
+model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,1,0),name="test91b"))
 model <- mxRun(model)
 
 # Check passing tests
@@ -573,6 +577,12 @@ omxCheckCloseEnough(model[['test88a']]$result, dbinom(x=D$values,size=D$values,p
 omxCheckCloseEnough(model[['test88b']]$result, dbinom(x=D$values,size=D$values,prob=A$values[1:10],log=TRUE), .001)
 omxCheckCloseEnough(model[['test89a']]$result, pbinom(q=D$values,size=D$values,prob=A$values[1:10],lower.tail=FALSE,log.p=FALSE), .001)
 omxCheckCloseEnough(model[['test89b']]$result, pbinom(q=D$values,size=D$values,prob=A$values[1:10],lower.tail=TRUE,log.p=TRUE), .001)
+omxCheckCloseEnough(model[['test90a']]$result, dcauchy(x=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],log=FALSE), .001)
+omxCheckCloseEnough(model[['test90b']]$result, dcauchy(x=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],log=TRUE), .001)
+omxCheckCloseEnough(model[['test91a']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=FALSE,log=TRUE), 
+										.001)
+omxCheckCloseEnough(model[['test91b']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=TRUE,log=FALSE), 
+										.001)
 
 # Check internal function for definition variables
 m0 <- mxModel()

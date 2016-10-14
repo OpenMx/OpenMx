@@ -145,6 +145,8 @@ Function \tab Arguments \tab Notes \cr
 \code{pbeta} \tab \code{q,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
 \code{dbinom} \tab \code{x,size,prob,log} \tab  \cr
 \code{pbinom} \tab \code{q,size,prob,lower.tail,log.p} \tab  \cr
+\code{dcauchy} \tab \code{x,location,scale,log} \tab  \cr
+\code{pcauchy} \tab \code{q,location,scale,lower.tail,log.p} \tab  \cr
 \code{dchisq} \tab \code{x,df,ncp,log} \tab  The algorithm for the non-central chi-square distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central chi-square distribution is used. \cr
 \code{pchisq} \tab \code{q,df,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dchisq()}. \cr
 \code{dnbinom} \tab \code{x,size,prob,mu,log} \tab Exactly one of arguments \code{size}, \code{prob}, and \code{mu} should be negative, and therefore ignored.  Otherwise, \code{mu} is ignored, possibly with a warning, and the values of \code{size} and \code{prob} are used, irrespective of whether they are in the parameter space.  If only \code{prob} is negative, the algorithm for the alternative \code{size}-\code{mu} parameterization is used.  If \code{size} is negative, a value for size is calculated as \code{mu*prob/(1-prob)}, and the algorithm for the \code{size}-\code{prob} parameterization is used (note that this approach is ill-advised when \code{prob} is very close to 0 or 1).\cr

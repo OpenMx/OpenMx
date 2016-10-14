@@ -87,3 +87,5 @@
 85    "Chi-square CDF"  "pchisq"  5  "omxElementPchisq"
 86    "Binomial PMF"  "dbinom"  4  "omxElementDbinom"
 87    "Binomial CDF"  "pbinom"  5  "omxElementPbinom"
+88    "Cauchy PDF"  "dcauchy"  4  "omxElementDcauchy"
+89    "Cauchy CDF"  "pcauchy"  5  "omxElementPcauchy"
