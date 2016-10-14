@@ -607,7 +607,7 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
 					}
 				}
 			}
-			buf += "\n";
+			buf += string_snprintf("\t# %d \n", vxv);
 		}
 	}
 

@@ -44,6 +44,7 @@ omxCheckError(mxExpectationNormal("C", "M", dimnames=names(jointData),
                            "perhaps you should check the basement for pods :)")))
 
 for (strat in c('auto', 'ordinal', 'continuous')) {
+	print(paste('***',strat,'***'))
 					# run factor and saturated models
 	jointModel1 <- mxModel("ContinuousOrdinalData",
 			       mxData(jointData, "raw"),

@@ -1385,27 +1385,6 @@ namespace RelationalRAMExpectation {
 		if (debug && buf.size()) mxLogBig(buf);
 	}
 
-	template <typename T1, typename T2, typename T3>
-	void computeMeanCov(const Eigen::MatrixBase<T1> &dataVec, int stride,
-			    Eigen::MatrixBase<T2> &meanOut, Eigen::MatrixBase<T3> &covOut)
-	{
-		if (stride == 0) return;
-		int units = dataVec.size() / stride;
-		meanOut.derived().resize(stride);
-		meanOut.setZero();
-		covOut.derived().resize(stride, stride);
-		covOut.setZero();
-		// read the data only once to minimize memory thrashing
-		for (int ux=0; ux < units; ++ux) {
-			meanOut += dataVec.segment(ux * stride, stride);
-			covOut += (dataVec.segment(ux * stride, stride) *
-				   dataVec.segment(ux * stride, stride).transpose());
-		}
-		meanOut /= units;
-		covOut -= units * meanOut * meanOut.transpose();
-		covOut /= units-1;
-	}
-
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
 		parent = this;

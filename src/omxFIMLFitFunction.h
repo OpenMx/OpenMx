@@ -50,6 +50,13 @@ enum JointStrategy {
 #define INCR_COUNTER(x)
 #endif
 
+struct sufficientSet {
+	int                  start;
+	int                  length;
+	Eigen::MatrixXd      dataCov;
+	Eigen::VectorXd      dataMean;
+};
+
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
@@ -73,8 +80,12 @@ struct omxFIMLFitFunction {
 	std::vector<bool> continuousMissingSame;
 	std::vector<bool> continuousSame;
 	std::vector<bool> missingSameContinuousSame;
+	std::vector<bool> missingSameOrdinalSame;
 	std::vector<bool> ordinalMissingSame;
 	std::vector<bool> missingSame;
+	std::vector<bool> ordinalSame;
+	bool useSufficientSets;
+	std::vector<sufficientSet> sufficientSets;
 
 	enum JointStrategy jointStrat;
 
@@ -146,6 +157,7 @@ class mvnByRow {
 	EigenMatrixAdaptor jointCov;
 	omxFIMLFitFunction *ofiml;
 	int sortedRow;
+	bool useSufficientSets;
 
 	int rowOrdinal;
 	int rowContinuous;
@@ -200,6 +212,7 @@ class mvnByRow {
 		iDataBuf.resize(numOrdinal);
 		ordColBuf.resize(numOrdinal);
 		isMissing.resize(dataColumns.size());
+		useSufficientSets = ofiml->useSufficientSets;
 
 		if (row > 0) {
 			while (row < lastrow && sameAsPrevious[row]) row += 1;
@@ -226,7 +239,9 @@ class mvnByRow {
 				isMissing[j] = std::isnan(value);
 				if (!isMissing[j]) cDataBuf[rowContinuous++] = value;
 			}
+			//mxLog("col %d datacol %d ordinal=%d missing=%d", j, var, int(isOrdinal[j]), int(isMissing[j]));
 		}
+		//mxLog("rowOrdinal %d rowContinuous %d", rowOrdinal, rowContinuous);
 
 		bool numVarsFilled = expectation->loadDefVars(sortedRow);
 		if (numVarsFilled || firstRow) {
@@ -250,7 +265,8 @@ class mvnByRow {
 		if (returnRowLikelihoods) Rf_error("oops");
 
 		EigenVectorAdaptor rl(localobj->matrix);
-		rl[0] += log(lik);
+		rl[0] += lik;
+		firstRow = false;
 	}
 
 	void recordRow(double rowLik)
