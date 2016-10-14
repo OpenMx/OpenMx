@@ -112,7 +112,7 @@ bool condOrdByRow::eval()
 
 				VectorXd xi;
 				MatrixXd U11;
-				_mtmvnorm(ordLik, V11, lThresh, uThresh, xi, U11);
+				if (!_mtmvnorm(ordLik, V11, lThresh, uThresh, xi, U11)) return true;
 				U11 = U11.selfadjointView<Eigen::Upper>();
 
 				MatrixXd invV11 = V11; // cache TODO

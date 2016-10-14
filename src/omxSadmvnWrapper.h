@@ -383,7 +383,7 @@ double OrdinalLikelihood::block::likelihood(int row)
 */
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
+bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 			const Eigen::MatrixBase<T2> &sigma,
 			const Eigen::MatrixBase<T3> &lower, const Eigen::MatrixBase<T4> &upper,
 			Eigen::MatrixBase<T5> &density)
@@ -403,11 +403,11 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 		for (int dx=0; dx < xn.size(); dx++) {
 			density[dx] = Rf_dnorm4(xn[dx], 0, sd, false) / prob;
 		}
-		return;
+		return true;
 	}
 
 	MatrixXd AA = sigma;
-	if (InvertSymmetricPosDef(AA, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(AA, 'L')) return false;
 	
 	MatrixXd A_1;
 	struct subset1 {
@@ -417,7 +417,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 	} op1(nn);
 
 	subsetCovariance(AA, op1, sigma.cols()-1, A_1);
-	if (InvertSymmetricPosDef(A_1, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(A_1, 'L')) return false;
 
 	double c_nn = 1.0/sigma(nn, nn);
 	VectorXd cc(sigma.rows()-1);
@@ -452,6 +452,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 	}
 
 	density.array() /= prob * sqrt(M_2PI * sigma(nn, nn));
+	return true;
 }
 
 /*
@@ -481,7 +482,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 # pmvnorm(corr=) kann ich verwenden
  */
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
+bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
 			 int qq, int rr,
 			 const Eigen::MatrixBase<T3> &sigma,
 			 const Eigen::MatrixBase<T4> &lower, const Eigen::MatrixBase<T5> &upper,
@@ -533,7 +534,7 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 		density[dx] = exp(-0.5 * (M_LN_2PI * 2 + covDecomp.log_determinant() + dist)) / alpha;
 	}
 
-	if (sigma.rows() == 2) return;
+	if (sigma.rows() == 2) return true;
 
 	VectorXd SD = sigma.diagonal().array().sqrt();
 	VectorXd lowerStd = lower.array() / SD.array();
@@ -544,11 +545,11 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 	DiagonalMatrix<double, Eigen::Dynamic> iSD(iSDcoef);
 	MatrixXd RR = iSD * sigma * iSD;
 	MatrixXd RINV = RR;
-	if (InvertSymmetricPosDef(RINV, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(RINV, 'L')) return false;
 	MatrixXd WW;
 	op1.flip = true;
 	subsetCovariance(RINV, op1, RINV.cols()-2, WW);
-	if (InvertSymmetricPosDef(WW, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(WW, 'L')) return false;
 	MatrixXd RQR(WW.rows(), WW.cols());
 	for (int cx=0; cx < WW.cols(); ++cx) {
 		for (int rx=cx; rx < WW.rows(); ++rx) {
@@ -595,6 +596,7 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 		double prob = ol.likelihood(AQR.row(ii), BQR.row(ii));
 		density[ii] *= prob;
 	}
+	return true;
 }
 
 // Translated from tmvtnorm 1.4-10
@@ -604,7 +606,7 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 // are a large number of ordinal patterns.
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
+bool _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 	       const Eigen::MatrixBase<T2> &lower, const Eigen::MatrixBase<T3> &upper,
 	       Eigen::MatrixBase<T4> &xi, Eigen::MatrixBase<T5> &U11)
 {
@@ -623,7 +625,7 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 	for (int qq=0; qq < kk; ++qq) {
 		marginalBounds[0] = lower[qq];
 		marginalBounds[1] = upper[qq];
-		_dtmvnorm_marginal(prob, marginalBounds, qq, sigma, lower, upper, marginalOut);
+		if (!_dtmvnorm_marginal(prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
 		F_a[qq] = marginalOut[0];
 		F_b[qq] = marginalOut[1];
 	}
@@ -638,7 +640,7 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 		for (int ss=qq+1; ss < kk; ++ss) { //row
 			xq << lower[qq], upper[qq], lower[qq], upper[qq];
 			xr << lower[ss], lower[ss], upper[ss], upper[ss];
-			_dtmvnorm_marginal2(prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out);
+			if (!_dtmvnorm_marginal2(prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
 			F2(qq,ss) = (marginal2Out[0] - marginal2Out[1]) - (marginal2Out[2] - marginal2Out[3]);
 		}
 	}
@@ -672,6 +674,7 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 		}
 	}
 	U11 -= xi * xi.transpose();
+	return true;
 }
 
 #endif 
