@@ -263,7 +263,7 @@ namespace FellnerFitFunction {
 						ss.dataMean - ig.expectedVec.segment(ss.start * ig.clumpObs, ig.clumpObs);
 					//mxPrintMat("resid", resid);
 					double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-					double tr1 = (iV.selfadjointView<Eigen::Lower>() * ss.dataCov).trace();
+					double tr1 = trace_prod(iV, ss.dataCov);
 					double logDet = ig.covDecomp.log_determinant();
 					double cterm = M_LN_2PI * ig.clumpObs;
 					if (verbose >= 2) mxLog("iqf %f tr1 %f logDet %f cterm %f", iqf, tr1, logDet, cterm);
