@@ -139,16 +139,18 @@ Functions
 There are also several multiargument functions usable in MxAlgebras, which apply themselves elementwise to the matrix provided as their first argument.  These functions have slightly different usage from their \R counterparts.  Their result is always a matrix with the same dimensions as that provided for their first argument.  Values must be provided for ALL arguments of these functions, in order.  Provide zeroes as logical values of \code{FALSE}, and non-zero numerical values as logical values of \code{TRUE}.  For most of these functions, OpenMx cycles over values of arguments other than the first, by column (i.e., in column-major order), to the length of the first argument.  Notable exceptions are the \code{log}, \code{log.p}, and \code{lower.tail} arguments to probability-distribution-related functions, for which only the [1,1] element is used.  It is recommended that all arguments after the first be either (1) scalars, or (2) matrices with the same dimensions as the first argument.
 \tabular{ccl}{
 Function \tab Arguments \tab Notes \cr
-\code{dbeta} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
-\code{pbeta} \tab \code{q,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
 \code{besselI} & \code{besselK} \tab \code{x,nu,expon.scaled} \tab Note that OpenMx \emph{does} cycle over the elements of \code{expon.scaled}. \cr
 \code{besselJ} & \code{besselY} \tab \code{x,nu} \tab  \cr
+\code{dbeta} \tab \code{x,shape1,shape2,ncp,log} \tab The algorithm for the non-central beta distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central beta distribution is used. \cr
+\code{pbeta} \tab \code{q,shape1,shape2,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dbeta()}.\cr
+\code{dbinom} \tab \code{x,size,prob,log} \tab  \cr
+\code{pbinom} \tab \code{q,size,prob,lower.tail,log.p} \tab  \cr
+\code{dchisq} \tab \code{x,df,ncp,log} \tab  The algorithm for the non-central chi-square distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central chi-square distribution is used. \cr
+\code{pchisq} \tab \code{q,df,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dchisq()}. \cr
 \code{dnbinom} \tab \code{x,size,prob,mu,log} \tab Exactly one of arguments \code{size}, \code{prob}, and \code{mu} should be negative, and therefore ignored.  Otherwise, \code{mu} is ignored, possibly with a warning, and the values of \code{size} and \code{prob} are used, irrespective of whether they are in the parameter space.  If only \code{prob} is negative, the algorithm for the alternative \code{size}-\code{mu} parameterization is used.  If \code{size} is negative, a value for size is calculated as \code{mu*prob/(1-prob)}, and the algorithm for the \code{size}-\code{prob} parameterization is used (note that this approach is ill-advised when \code{prob} is very close to 0 or 1).\cr
 \code{pnbinom} \tab \code{q,size,prob,mu,lower.tail,log.p} \tab Arguments are handled as with \code{dnbinom()}.\cr
 \code{dpois} \tab \code{x,lambda,log} \tab  \cr
 \code{ppois} \tab \code{q,lambda,lower.tail,log.p} \tab  \cr
-\code{dchisq} \tab \code{x,df,ncp,log} \tab  The algorithm for the non-central chi-square distribution is used for non-negative values of \code{ncp}.  Negative \code{ncp} values are ignored, and the algorithm for the central chi-square distribution is used. \cr
-\code{pchisq} \tab \code{q,df,ncp,lower.tail,log.p} \tab Values of \code{ncp} are handled as with \code{dchisq()}. \cr
 }
 }
 

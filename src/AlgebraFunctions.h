@@ -1538,6 +1538,58 @@ static void omxElementPchisq(FitContext *fc, omxMatrix** matList, int numArgs, o
 	}
 }
 
+static void omxElementDbinom(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *n = matList[1];
+	omxMatrix *p = matList[2];
+	omxMatrix *give_log = matList[3];
+	
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(n);
+	omxEnsureColumnMajor(p);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nDataSize = n->rows * n->cols;
+	int pDataSize = p->rows * p->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_dbinom(data[j],n->data[j%nDataSize],p->data[j%pDataSize],give_log_arg);
+	}
+}
+
+static void omxElementPbinom(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *inMat = matList[0];
+	omxMatrix *n = matList[1];
+	omxMatrix *p = matList[2];
+	omxMatrix *lower_tail = matList[3];
+	omxMatrix *give_log = matList[4];
+	
+	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
+	int give_log_arg = (int)(give_log->data[0] != 0);
+	
+	omxEnsureColumnMajor(inMat);
+	omxEnsureColumnMajor(n);
+	omxEnsureColumnMajor(p);
+	
+	int inMatDataSize = inMat->rows * inMat->cols;
+	int nDataSize = n->rows * n->cols;
+	int pDataSize = p->rows * p->cols;
+	
+	omxCopyMatrix(result, inMat);
+	
+	double* data = result->data;
+	for(int j = 0; j < inMatDataSize; j++) {
+		data[j] = Rf_pbinom(data[j],n->data[j%nDataSize],p->data[j%pDataSize],lower_tail_arg,give_log_arg);
+	}
+}
+
 static void omxElementBesselI(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
