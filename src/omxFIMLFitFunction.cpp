@@ -49,7 +49,8 @@ bool condOrdByRow::eval()
 	Eigen::VectorXi prevOrdData;
 
 	SimpCholesky< MatrixXd >  covDecomp;
-	double ordLikelihood = 1.0;
+	double ordLik = 1.0;
+	double contLik = 1.0;
 
 	VectorXd contMean;
 	MatrixXd contCov;
@@ -66,11 +67,13 @@ bool condOrdByRow::eval()
 			Eigen::MatrixXd ordCov;
 			op.wantOrdinal = true;
 			subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
+			INCR_COUNTER(ordSetup);
 			ol.setCovariance(ordCov, fc);
 			Eigen::Map< Eigen::ArrayXi > ordColumns(ordColBuf.data(), rowOrdinal);
 			ol.setColumns(ordColumns);
 			ol.setMean(ordMean);
-			ordLikelihood = ol.likelihood(sortedRow);
+			ordLik = ol.likelihood(sortedRow);
+			INCR_COUNTER(ordDensity);
 
 			if (rowContinuous) {
 				MatrixXd V11;  //ord
@@ -109,7 +112,7 @@ bool condOrdByRow::eval()
 
 				VectorXd xi;
 				MatrixXd U11;
-				_mtmvnorm(ordLikelihood, V11, lThresh, uThresh, xi, U11);
+				_mtmvnorm(ordLik, V11, lThresh, uThresh, xi, U11);
 				U11 = U11.selfadjointView<Eigen::Upper>();
 
 				MatrixXd invV11 = V11; // cache TODO
@@ -118,7 +121,9 @@ bool condOrdByRow::eval()
 
 				// Aitken (1934) "Note on Selection from a Multivariate Normal Population"
 				// Or Johnson/Kotz (1972), p.70
+				INCR_COUNTER(conditionMean);
 				contMean += xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12;
+				INCR_COUNTER(conditionCov);
 				contCov = (V22 - V12.transpose() * (invV11 -
 								    invV11.selfadjointView<Eigen::Lower>() * U11 *
 								    invV11.selfadjointView<Eigen::Lower>()) * V12);
@@ -127,32 +132,33 @@ bool condOrdByRow::eval()
 				//mxPrintMat("cont mean", contMean);
 				//mxPrintMat("cont cov", contCov);
 
+				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 				covDecomp.refreshInverse();
 			}
 		}
 
-		double contLikelihood = 1.0;
 		if (rowContinuous) {
 			if (!rowOrdinal && (true || firstRow)) { // TODO fix me
-				// wrong, need to subset TODO
-				contMean = jointMeans;
-				contCov = jointCov;
+				op.wantOrdinal = false;
+				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
+				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
 				covDecomp.refreshInverse();
 			}
+			INCR_COUNTER(contDensity);
 			Eigen::VectorXd resid = cData - contMean;
 			const Eigen::MatrixXd &iV = covDecomp.getInverse();
 			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * resid.size();
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
-			contLikelihood = exp(-0.5 * (iqf + cterm + logDet));
-		}
+			contLik = exp(-0.5 * (iqf + cterm + logDet));
+		} else { contLik = 1.0; }
 
-		recordRow(ordLikelihood * contLikelihood);
+		recordRow(ordLik * contLik);
 	}
 
 	return false;
