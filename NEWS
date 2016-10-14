@@ -5,6 +5,7 @@
 * IMPROVED: mxCI() Wu & Neale (2012) adjustment for parameters with upper or lower bounds. 
  * Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * IMPROVED: SLSQP now ignores inactive equality constraints and correctly report when inequality constraints cannot be satisfied.
+* FIXED: mxTryHard() now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
 
 # OpenMx 2.6.9
 * Stan header compatibility
