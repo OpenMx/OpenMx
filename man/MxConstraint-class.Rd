@@ -14,32 +14,48 @@
 %   limitations under the License.
 
 \name{MxConstraint-class}
+\Rdversion{1.1}
+\docType{class}
 \alias{MxConstraint-class}
-\alias{MxConstraint}
-\alias{$,MxConstraint-method}
 \alias{$<-,MxConstraint-method}
+\alias{$,MxConstraint-method}
+\alias{imxDeparse,MxConstraint-method}
+\alias{names,MxConstraint-method}
+\alias{print,MxConstraint-method}
+\alias{show,MxConstraint-method}
 
-\title{MxConstraint Class}
+\title{Class \code{"MxConstraint"}}
 
 \description{
    MxConstraint is an S4 class. An MxConstraint object 
    is a \link[=Named-entity]{named entity}. New instances of this class can
-   be created using the function \link{mxConstraint}.
+   be created using the function \code{\link{mxConstraint}()}.
+}
+
+\section{Slots}{
+  \describe{
+    \item{\code{name}:}{Character string; the name of the object.}
+    \item{\code{formula}:}{Object of class \code{"MxAlgebraFormula"}.  The \link{MxAlgebra}-like expression representing the constraint function.}
+    \item{\code{alg1}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
+    \item{\code{alg2}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
+    \item{\code{relation}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
+    \item{\code{jac}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \link{MxAlgebra} representing the Jacobian for the constraint function.}
+    \item{\code{linear}:}{Logical; is the constraint linear in the free parameters?}
+  }
+}
+
+\section{Methods}{
+  \describe{
+    \item{$<-}{\code{signature(x = "MxConstraint")}}
+    \item{$}{\code{signature(x = "MxConstraint")}}
+    \item{imxDeparse}{\code{signature(object = "MxConstraint")}}
+    \item{names}{\code{signature(x = "MxConstraint")}}
+    \item{print}{\code{signature(x = "MxConstraint")}}
+    \item{show}{\code{signature(object = "MxConstraint")}}
+	 }
 }
 
 \details{
-The MxConstraint class has the following slots:
-
-  \tabular{rcl}{
-    \tab \tab \cr
-    name \tab - \tab The name of the object \cr
-    formula \tab - \tab The R expression to be evaluated
-  }
-  
-The \sQuote{name} slot is the name of the MxConstraint object. Use of MxConstraint objects in other functions in the \link{OpenMx} library may require reference by name.
-
-The \sQuote{formula} slot is an expression containing the expression to be evaluated. These objects are operated on or related to one another using one or more operations detailed in the \code{\link{mxConstraint}} help file.
-
 Slots may be referenced with the $ symbol. See the documentation for \link[methods]{Classes} and the examples in the \link{mxConstraint} document for more information.
 }
 
@@ -48,5 +64,11 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 }
 
 \seealso{
-\link{mxConstraint} for the function that creates MxConstraint objects.
+\code{\link{mxConstraint}()} for the function that creates MxConstraint objects.
 }
+
+\examples{
+showClass("MxConstraint")
+}
+
+\keyword{classes}

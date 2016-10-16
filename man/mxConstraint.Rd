@@ -26,21 +26,27 @@ This function creates a new \link{MxConstraint} object.
 }
 
 \usage{
-mxConstraint(expression, name = NA, ...)
+mxConstraint(expression, name=NA, ..., jac=character(0), linear=FALSE)
 }
 
 \arguments{
-   \item{expression}{An R expression of matrix operators and matrix functions.}
+   \item{expression}{The \link{MxAlgebra}-like expression representing the constraint function.}
    \item{name}{An optional character string indicating the name of the object.}
-   \item{...}{Not used.  Helps OpenMx catch bad input to argument 'expression'.}
+   \item{jac}{An optional character string naming the \link{MxAlgebra} representing the Jacobian for the constraint function.}
+   \item{linear}{Logical; is the constraint function linear in the free parameters?  Defaults to \code{FALSE}, which is always a safe choice.  Ignored unless using NPSOL as the optimizer.}
+   \item{...}{Not used.  Helps OpenMx catch bad input to argument \code{expression}, and requires arguments \code{jac} and \code{linear}--meant for advanced users--to be specified by name.}
 }
 
 \details{
-The mxConstraint function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The constraint relation is written identically to how a \link{MxAlgebra} expression would be written.  The outermost operator in this relation must be either \sQuote{<}, \sQuote{==} or \sQuote{>}. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
+The \code{mxConstraint()} function defines relationships between two \link{MxAlgebra} or \link{MxMatrix} objects. They are used to affect the estimation of free parameters in the referenced objects. The constraint relation is written identically to how a \link{MxAlgebra} expression would be written.  The outermost operator in this relation must be either \sQuote{<}, \sQuote{==} or \sQuote{>}. To affect an estimation or optimization, an \link{MxConstraint} object must be included in an \link{MxModel} object with all referenced \link{MxAlgebra} and \link{MxMatrix} objects.
 
-Usage Note: Use of mxConstraint should be avoided where it is possible to achieve the constraint by equating free parameters by label or position in an \link{MxMatrix} or \link{MxAlgebra} object. Including mxConstraints in an mxModel will disable standard errors and the calculation of the final Hessian, and thus should be avoided when standard errors are of importance. Constraints also add computational overhead. If one labels two parameters the same, the optimizer has one fewer parameter to optimize. However, if one uses mxConstraint to do the same thing, both parameters remain estimated and a Lagrangian multiplier is added to maintain the constraint. This constraint also has to have its gradients computed and the order of the Hessian grows as well.  So while both approaches should work, the mxConstraint() will take longer to do so.
+Usage Note: Use of \code{mxConstraint()} should be avoided where it is possible to achieve the constraint by equating free parameters by label or position in an \link{MxMatrix} or \link{MxAlgebra} object. Including mxConstraints in an mxModel will disable standard errors and the calculation of the final Hessian, and thus should be avoided when standard errors are of importance. Constraints also add computational overhead. If one labels two parameters the same, the optimizer has one fewer parameter to optimize. However, if one uses mxConstraint to do the same thing, both parameters remain estimated and a Lagrangian multiplier is added to maintain the constraint. This constraint also has to have its gradients computed and the order of the Hessian grows as well.  So while both approaches should work, the mxConstraint() will take longer to do so.
 
 Alernatives to mxConstraints include using labels, lbound or ubound arguments or algebras. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'labels' matrices. Similarly, parameters may be fixed to an individual element in a \link{MxModel} object or the result of an \link{MxAlgebra} object through labeling. For example, assigning a label of ``name[1,1]`` fixes the value of a parameter at the value in first row and first column of the matrix or algebra ``name``. The mxConstraint function should be used to enforce inequalities that cannot be conveyed using other methods.
+
+Argument \code{jac} is used to provide the name of an \link{MxMatrix} or \link{MxAlgebra} that equals the matrix of first derivatives--the Jacobian--of the constraint function with respect to the free parameters.  Here, the "constraint function" refers to the constraint expression in canonical form, with an arbitrary matrix expression on the left-hand side of the comparator, and a column vector with the same number of rows, and constant with respect to free parameters, on the right-hand side.  Each row of the Jacobian corresponds to a row of the system of equations or inequalities instantiated by the canonical constraint function.  Each column of the Jacobian corresponds to a free parameter of the MxModel; each column must be named with the label of the corresponding free parameter.  %TODO: provide a concrete example
+
+If the constraint function is linear in the free parameters of the MxModel, then \link[=mxComputeGradientDescent]{optimizer NPSOL} can handle the constraint in a more efficient algorithm than for a nonlinear constraint.  Users are cautioned against providing argument \code{linear=TRUE} unless they are quite sure that the constraint function is indeed linear in the free parameters!  Use of argument \code{linear=FALSE} with an actually linear constraint, at worst, makes optimization relatively inefficient.  But, use of argument \code{linear=TRUE} with an actually nonlinear constraint is likely to cause optimization to fail altogether (possibly after much wasted computation).
 }
 
 \value{
