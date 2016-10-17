@@ -17,9 +17,9 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{MxConstraint-class}
+\alias{MxConstraint}
 \alias{$<-,MxConstraint-method}
 \alias{$,MxConstraint-method}
-\alias{imxDeparse,MxConstraint-method}
 \alias{names,MxConstraint-method}
 \alias{print,MxConstraint-method}
 \alias{show,MxConstraint-method}
@@ -48,7 +48,7 @@
   \describe{
     \item{$<-}{\code{signature(x = "MxConstraint")}}
     \item{$}{\code{signature(x = "MxConstraint")}}
-    \item{imxDeparse}{\code{signature(object = "MxConstraint")}}
+    \item{\link{imxDeparse}}{\code{signature(object = "MxConstraint")}}
     \item{names}{\code{signature(x = "MxConstraint")}}
     \item{print}{\code{signature(x = "MxConstraint")}}
     \item{show}{\code{signature(object = "MxConstraint")}}
