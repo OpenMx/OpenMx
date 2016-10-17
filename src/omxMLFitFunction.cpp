@@ -292,7 +292,10 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		return;
 	}
 
-	// hand off GREML here too TODO
+	if (strEQ(expectation->expType, "MxExpectationGREML")) {
+		omxInitGREMLFitFunction(oo);
+		return;
+	}
 
 	oo->ciFun = loglikelihoodCIFun;
 
