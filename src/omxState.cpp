@@ -746,12 +746,14 @@ void UserConstraint::prep(FitContext *fc)
 	omxAlgebraPreeval(pad, fc);
 }
 
-UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2) :
+UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin) :
 	super(_name)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
 	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
+	jacobian = jac;
+	linear = lin;
 }
 
 omxConstraint *UserConstraint::duplicate(omxState *dest)

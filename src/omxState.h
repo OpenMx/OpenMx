@@ -135,11 +135,13 @@ class UserConstraint : public omxConstraint {
 	UserConstraint(const char *name) : super(name) {};
 
  public:
-	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2);
+	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin);
 	virtual ~UserConstraint();
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 	virtual omxConstraint *duplicate(omxState *dest);
 	virtual void prep(FitContext *fc);
+	omxMatrix *jacobian;
+	int linear;
 };
 
 enum omxCheckpointType {

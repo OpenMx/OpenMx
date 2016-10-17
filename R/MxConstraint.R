@@ -96,7 +96,9 @@ convertSingleConstraint <- function(constraint, flatModel) {
 			clist)
 		stop(msg, call.=FALSE)
 	}
-	return(list(index1,index2,index3 - 1))
+	index4 <- imxLocateIndex(flatModel, constraint@jac, constraint@name)
+	lin <- constraint@linear
+	return(list(index1,index2,index3 - 1,index4,lin))
 }
 
 ##' imxConstraintRelations

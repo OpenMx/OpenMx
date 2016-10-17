@@ -426,7 +426,10 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxMatrix *arg1 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
-		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2);
+		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
+		omxMatrix *jac = omxMatrixLookupFromState1(nextLoc, this);
+		int lin = INTEGER(VECTOR_ELT(nextVar,4))[0];
+		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2, jac, lin);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
 		constr->prep(fc);
