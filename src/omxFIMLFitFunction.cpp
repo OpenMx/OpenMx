@@ -926,8 +926,6 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		newObj->jointStrat = JOINT_CONDORD;
 	}
 
-	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
-	
     /* Temporary storage for calculation */
     int covCols = newObj->cov->cols;
 	if(OMX_DEBUG){mxLog("Number of columns found is %d", covCols);}

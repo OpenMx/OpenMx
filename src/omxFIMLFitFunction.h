@@ -67,7 +67,6 @@ struct omxFIMLFitFunction {
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
-	omxContiguousData contiguous;		// TODO
 	int unnecessaryThr;
 
 	std::vector<bool> isOrdinal;
