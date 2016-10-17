@@ -738,7 +738,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	omxMatrix* fitMatrix  = off->matrix;
 	int numChildren = fc? fc->childList.size() : 0;
 
-	omxMatrix *cov 		= ofiml->cov;
 	omxMatrix *means	= ofiml->means;
 	omxData* data           = ofiml->data;                            //  read-only
 
@@ -749,45 +748,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		complainAboutMissingMeans(expectation);
 		return;
 	}
-	auto dataColumns	= expectation->getDataColumns();
-	std::vector< omxThresholdColumn > &thresholdCols = expectation->thresholds;
 
 	bool failed = false;
-
-	if (data->defVars.size() == 0) { // this is hard to maintain/debug, remove it? TODO
-		if(OMX_DEBUG) {mxLog("Precalculating cov and means for all rows.");}
-		omxExpectationRecompute(fc, expectation);
-		// MCN Also do the threshold formulae!
-		
-		omxMatrix* nextMatrix = expectation->thresholdsMat;
-		if (nextMatrix) omxRecompute(nextMatrix, fc);
-		for(int j=0; j < dataColumns.size(); j++) {
-			int var = dataColumns[j];
-			if (!omxDataColumnIsFactor(data, var)) continue;
-			if (j < int(thresholdCols.size()) && thresholdCols[j].numThresholds > 0) { // j is an ordinal column
-				failed |= !thresholdsIncreasing(nextMatrix, thresholdCols[j].column,
-								thresholdCols[j].numThresholds, fc);
-				for(int index = 0; index < numChildren; index++) {
-					FitContext *kid = fc->childList[index];
-					omxMatrix *target = kid->lookupDuplicate(nextMatrix);
-					omxCopyMatrix(target, nextMatrix);
-				}
-			} else {
-				Rf_error("No threshold given for ordinal column '%s'",
-					 omxDataColumnName(data, j));
-			}
-		}
-
-		for(int index = 0; index < numChildren; index++) {
-			FitContext *kid = fc->childList[index];
-			omxMatrix *childFit = kid->lookupDuplicate(fitMatrix);
-			omxFIMLFitFunction* childOfiml = ((omxFIMLFitFunction*) childFit->fitFunction->argStruct);
-			omxCopyMatrix(childOfiml->cov, cov);
-			omxCopyMatrix(childOfiml->means, means);
-		}
-		if(OMX_DEBUG) { omxPrintMatrix(cov, "Cov"); }
-		if(OMX_DEBUG) { if (means) omxPrintMatrix(means, "Means"); }
-	}
 
 	int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 
