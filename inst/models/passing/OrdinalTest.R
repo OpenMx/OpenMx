@@ -45,8 +45,9 @@ omxCheckTrue(all(v2 == vl))
 # Data
 nthresh1 <- 1
 nthresh2 <- 12	
-data <- read.table("data/mddndzf.dat", na.string=".", 
-	col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+cnames <- c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l")
+data <- suppressWarnings(try(read.table("data/mddndzf.dat", na.string=".", col.names=cnames)))
+if (is(data, "try-error")) data <- read.table("models/passing/data/mddndzf.dat", na.string=".", col.names=cnames)
 data[,c(1,3)] <- mxFactor(data[,c(1,3)], c(0 : nthresh2))
 data[,c(2,4)] <- mxFactor(data[,c(2,4)], c(0 : nthresh1))
 

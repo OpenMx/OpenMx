@@ -44,9 +44,10 @@
 /* Expectation structure itself */
 class omxExpectation {					// An Expectation
 	int defVarRow;
+ public:
 	int numDataColumns;
 	int *dataColumnsPtr;
- public:
+
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
 	void (*computeFun)(omxExpectation* ox, FitContext *fc, const char *what, const char *how);

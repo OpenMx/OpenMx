@@ -143,13 +143,13 @@ omxLISRELExpectation.o: Makevars.in omxLISRELExpectation.cpp omxExpectation.h \
  omxDefines.h  \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h Compute.h \
- glue.h omxFIMLFitFunction.h omxSadmvnWrapper.h Connectedness.h \
+ glue.h omxSadmvnWrapper.h Connectedness.h \
  matrix.h omxLISRELExpectation.h
 omxMLFitFunction.o: Makevars.in omxMLFitFunction.cpp omxDefines.h \
  multi_normal_sufficient.hpp omxExpectation.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h Compute.h \
- glue.h omxFIMLFitFunction.h omxSadmvnWrapper.h Connectedness.h \
+ glue.h omxSadmvnWrapper.h Connectedness.h \
  matrix.h omxRAMExpectation.h RAMInternal.h \
  
 omxMatrix.o: Makevars.in omxMatrix.cpp omxMatrix.h  \
@@ -180,7 +180,7 @@ omxRowFitFunction.o: Makevars.in omxRowFitFunction.cpp omxDefines.h \
  omxSymbolTable.h omxMatrix.h  \
   algebraOp.h omxData.h omxAlgebra.h \
  omxState.h omxExpectation.h omxFitFunction.h Compute.h \
- glue.h omxRowFitFunction.h omxFIMLFitFunction.h omxSadmvnWrapper.h \
+ glue.h omxRowFitFunction.h omxSadmvnWrapper.h \
  Connectedness.h \
  matrix.h
 omxState.o: Makevars.in omxState.cpp omxState.h omxDefines.h \
@@ -192,7 +192,7 @@ omxStateSpaceExpectation.o: Makevars.in omxStateSpaceExpectation.cpp omxDefines.
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h omxData.h \
  Compute.h \
- glue.h omxFIMLFitFunction.h omxSadmvnWrapper.h Connectedness.h \
+ glue.h omxSadmvnWrapper.h Connectedness.h \
  matrix.h omxStateSpaceExpectation.h
 omxSymbolTable.o: Makevars.in omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
   omxDefines.h \

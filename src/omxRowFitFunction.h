@@ -20,7 +20,7 @@
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
-#include "omxFIMLFitFunction.h"
+#include "omxFitFunction.h"
 
 void omxDestroyRowFitFunction(omxFitFunction *oo);
 
