@@ -37,7 +37,6 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
 #include "omxExpectation.h"
-#include "omxFIMLFitFunction.h"
 #include "omxStateSpaceExpectation.h"
 
 #ifdef SHADOW_DIAG

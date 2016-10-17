@@ -31,31 +31,74 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 	int modelNumber;		// Not used
 } omxFIMLRowOutput;
 
+enum JointStrategy {
+	JOINT_AUTO,
+	JOINT_CONDCONT,
+	JOINT_CONDORD,
+	JOINT_OLD
+};
+
+#if !_OPENMP && OMX_DEBUG
+#define OMX_DEBUG_FIML_STATS 1
+#else
+#define OMX_DEBUG_FIML_STATS 0
+#endif
+
+#if OMX_DEBUG_FIML_STATS
+#define INCR_COUNTER(x) ofiml->x##Count += 1
+#else
+#define INCR_COUNTER(x)
+#endif
+
+struct sufficientSet {
+	int                  start;
+	int                  length;
+	Eigen::MatrixXd      dataCov;
+	Eigen::VectorXd      dataMean;
+};
+
 struct omxFIMLFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
-	int condOnOrdinal;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
-	omxMatrix* dataRow;			// One row of data
+
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
+	int unnecessaryThr;
 
-//	double* zeros;
+	std::vector<bool> isOrdinal;
+	int numOrdinal;
+	int numContinuous;
+	OrdinalLikelihood ol;
 
 	bool inUse;
+	std::vector<int> indexVector;
+	std::vector<bool> sameAsPrevious;
+	std::vector<bool> continuousMissingSame;
+	std::vector<bool> continuousSame;
+	std::vector<bool> missingSameContinuousSame;
+	std::vector<bool> missingSameOrdinalSame;
+	std::vector<bool> ordinalMissingSame;
+	std::vector<bool> missingSame;
+	std::vector<bool> ordinalSame;
+	bool useSufficientSets;
+	std::vector<sufficientSet> sufficientSets;
 
-	/* Reserved memory for faster calculation */
-	omxMatrix* smallRow;		// Memory reserved for operations on each data row
-	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
-	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
+	enum JointStrategy jointStrat;
 
-	omxMatrix* RCX;				// Memory reserved for computationxs
-		
-	OrdinalLikelihood ol;
+	// performance counters
+	int expectationComputeCount;
+	int conditionMeanCount;
+	int conditionCovCount;
+	int invertCount;
+	int ordSetupCount;
+	int ordDensityCount;
+	int contDensityCount;
+
+	// --- old stuff below
 
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
@@ -65,21 +108,227 @@ struct omxFIMLFitFunction {
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
     
-	std::vector<int> indexVector;
+	/* Reserved memory for faster calculation */
+	omxMatrix* smallRow;		// Memory reserved for operations on each data row
+	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
+	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
+
+	omxMatrix* RCX;				// Memory reserved for computationxs
+		
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
 };
 
 omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
-void omxDestroyFIMLFitFunction(omxFitFunction *oo);
+
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
 bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
 				 omxMatrix* output,
 				 int rowbegin, int rowcount);
-bool condOnOrdinalLikelihood(FitContext *fc, omxFitFunction *off);
 
+class mvnByRow {
+	omxFitFunction *localobj;
+ public:
+	omxFIMLFitFunction *ofo;
+	omxFIMLFitFunction *shared_ofo;
+	omxExpectation* expectation;
+	omxData *data;
+	OrdinalLikelihood &ol;
+	std::vector<int> &indexVector;
+	std::vector<bool> &sameAsPrevious;
+	int row;
+	int lastrow;
+	bool firstRow;
+	omxMatrix *thresholdsMat;
+	std::vector< omxThresholdColumn > &thresholdCols;
+	omxMatrix *cov;
+	omxMatrix *means;
+	FitContext *fc;
+	const Eigen::Map<Eigen::VectorXi> dataColumns;
+	omxMatrix *rowLikelihoods;
+	bool returnRowLikelihoods;
+	std::vector<bool> &isOrdinal;
+	int numOrdinal;
+	int numContinuous;
+	omxFIMLFitFunction *ofiml;
+	int sortedRow;
+	bool useSufficientSets;
+
+	int rowOrdinal;
+	int rowContinuous;
+	Eigen::VectorXd cDataBuf;
+	Eigen::VectorXi iDataBuf;
+	Eigen::VectorXi ordColBuf;
+	std::vector<bool> isMissing;
+
+	struct subsetOp {
+		std::vector<bool> &isOrdinal;
+		std::vector<bool> &isMissing;
+		bool wantOrdinal;
+	subsetOp(std::vector<bool> &_isOrdinal,
+		 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {};
+		// true to include
+		bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
+	} op;
+
+	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
+		 omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+	:
+	ofo((omxFIMLFitFunction*) _localobj->argStruct),
+		shared_ofo(ofo->parent? ofo->parent : ofo),
+		expectation(_localobj->expectation),
+		ol(ofo->ol),
+		indexVector(shared_ofo->indexVector),
+		sameAsPrevious(shared_ofo->sameAsPrevious),
+		thresholdCols(expectation->thresholds),
+		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
+		isOrdinal(_ofiml->isOrdinal),
+		op(isOrdinal, isMissing)
+	{
+		data = ofo->data;
+		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
+		row = rowbegin;
+		lastrow = rowbegin + rowcount;
+		firstRow = true;
+		thresholdsMat = expectation->thresholdsMat;
+		cov = ofo->cov;
+		means = ofo->means;
+		fc = _fc;
+		ofiml = _ofiml;
+		rowLikelihoods = ofiml->rowLikelihoods;
+		returnRowLikelihoods = ofiml->returnRowLikelihoods;
+		localobj = _localobj;
+		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
+		numOrdinal = ofiml->numOrdinal;
+		numContinuous = ofiml->numContinuous;
+		cDataBuf.resize(numContinuous);
+		iDataBuf.resize(numOrdinal);
+		ordColBuf.resize(numOrdinal);
+		isMissing.resize(dataColumns.size());
+		useSufficientSets = ofiml->useSufficientSets;
+
+		if (row > 0) {
+			while (row < lastrow && sameAsPrevious[row]) row += 1;
+		}
+	};
+
+	bool loadRow()
+	{
+		mxLogSetCurrentRow(row);
+		sortedRow = indexVector[row];
+		rowOrdinal = 0;
+		rowContinuous = 0;
+		for(int j = 0; j < dataColumns.size(); j++) {
+			int var = dataColumns[j];
+			if (isOrdinal[j]) {
+				int value = omxIntDataElement(data, sortedRow, var);
+				isMissing[j] = value == NA_INTEGER;
+				if (!isMissing[j]) {
+					ordColBuf[rowOrdinal] = j;
+					iDataBuf[rowOrdinal++] = value;
+				}
+			} else {
+				double value = omxDoubleDataElement(data, sortedRow, var);
+				isMissing[j] = std::isnan(value);
+				if (!isMissing[j]) cDataBuf[rowContinuous++] = value;
+			}
+			//mxLog("col %d datacol %d ordinal=%d missing=%d", j, var, int(isOrdinal[j]), int(isMissing[j]));
+		}
+		//mxLog("rowOrdinal %d rowContinuous %d", rowOrdinal, rowContinuous);
+
+		bool numVarsFilled = expectation->loadDefVars(sortedRow);
+		if (numVarsFilled || firstRow) {
+			omxExpectationCompute(fc, expectation, NULL);
+			INCR_COUNTER(expectationCompute);
+
+			if (rowOrdinal) {
+				omxRecompute(thresholdsMat, fc);
+				for (int jx=0; jx < rowOrdinal; jx++) {
+					int j = ordColBuf[jx];
+					if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+								  thresholdCols[j].numThresholds, fc)) return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	void record(double lik)
+	{
+		if (returnRowLikelihoods) Rf_error("oops");
+
+		EigenVectorAdaptor rl(localobj->matrix);
+		rl[0] += lik;
+		firstRow = false;
+	}
+
+	void recordRow(double rowLik)
+	{
+		if (returnRowLikelihoods) {
+			EigenVectorAdaptor rl(rowLikelihoods);
+			rl[sortedRow] = rowLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				rl[ indexVector[row] ] = rowLik;
+				row += 1;
+			}
+		} else {
+			EigenVectorAdaptor rl(localobj->matrix);
+			double rowLogLik = log(rowLik);
+			rl[0] += rowLogLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				rl[0] += rowLogLik;
+				row += 1;
+			}
+		}
+		firstRow = false;
+	}
+
+	void recordRowOld(double rowLik) // TODO remove
+	{
+		auto &identicalRows = shared_ofo->identicalRows;
+		int numIdentical = identicalRows[row];
+                if (returnRowLikelihoods) {
+                        EigenVectorAdaptor rl(rowLikelihoods);
+			for(int nid = 0; nid < numIdentical; nid++) {
+				int to = indexVector[row+nid];
+				rl[to] = rowLik;
+                        }
+                } else {
+                        EigenVectorAdaptor rl(localobj->matrix);
+			rl[0] += numIdentical * log(rowLik);
+                }
+		row += numIdentical;
+		firstRow = false;
+	}
+};
+
+struct condContByRow : mvnByRow {
+	typedef mvnByRow super;
+	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
+		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+	bool eval();
+};
+
+struct oldByRow : mvnByRow {
+	typedef mvnByRow super;
+	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
+		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+	bool eval();
+};
+
+struct condOrdByRow : mvnByRow {
+	typedef mvnByRow super;
+	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
+		   omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+	bool eval();
+};
 
 #endif /* _OMXFIMLFITFUNCTION_H_ */

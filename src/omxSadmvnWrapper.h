@@ -383,7 +383,7 @@ double OrdinalLikelihood::block::likelihood(int row)
 */
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
+bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 			const Eigen::MatrixBase<T2> &sigma,
 			const Eigen::MatrixBase<T3> &lower, const Eigen::MatrixBase<T4> &upper,
 			Eigen::MatrixBase<T5> &density)
@@ -403,11 +403,11 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 		for (int dx=0; dx < xn.size(); dx++) {
 			density[dx] = Rf_dnorm4(xn[dx], 0, sd, false) / prob;
 		}
-		return;
+		return true;
 	}
 
 	MatrixXd AA = sigma;
-	if (InvertSymmetricPosDef(AA, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(AA, 'L')) return false;
 	
 	MatrixXd A_1;
 	struct subset1 {
@@ -417,7 +417,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 	} op1(nn);
 
 	subsetCovariance(AA, op1, sigma.cols()-1, A_1);
-	if (InvertSymmetricPosDef(A_1, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(A_1, 'L')) return false;
 
 	double c_nn = 1.0/sigma(nn, nn);
 	VectorXd cc(sigma.rows()-1);
@@ -452,6 +452,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 	}
 
 	density.array() /= prob * sqrt(M_2PI * sigma(nn, nn));
+	return true;
 }
 
 /*
@@ -481,7 +482,7 @@ void _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 # pmvnorm(corr=) kann ich verwenden
  */
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
+bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
 			 int qq, int rr,
 			 const Eigen::MatrixBase<T3> &sigma,
 			 const Eigen::MatrixBase<T4> &lower, const Eigen::MatrixBase<T5> &upper,
@@ -533,7 +534,7 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 		density[dx] = exp(-0.5 * (M_LN_2PI * 2 + covDecomp.log_determinant() + dist)) / alpha;
 	}
 
-	if (sigma.rows() == 2) return;
+	if (sigma.rows() == 2) return true;
 
 	VectorXd SD = sigma.diagonal().array().sqrt();
 	VectorXd lowerStd = lower.array() / SD.array();
@@ -544,11 +545,11 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 	DiagonalMatrix<double, Eigen::Dynamic> iSD(iSDcoef);
 	MatrixXd RR = iSD * sigma * iSD;
 	MatrixXd RINV = RR;
-	if (InvertSymmetricPosDef(RINV, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(RINV, 'L')) return false;
 	MatrixXd WW;
 	op1.flip = true;
 	subsetCovariance(RINV, op1, RINV.cols()-2, WW);
-	if (InvertSymmetricPosDef(WW, 'L')) Rf_error("Non-positive definite");
+	if (InvertSymmetricPosDef(WW, 'L')) return false;
 	MatrixXd RQR(WW.rows(), WW.cols());
 	for (int cx=0; cx < WW.cols(); ++cx) {
 		for (int rx=cx; rx < WW.rows(); ++rx) {
@@ -595,16 +596,19 @@ void _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 		double prob = ol.likelihood(AQR.row(ii), BQR.row(ii));
 		density[ii] *= prob;
 	}
+	return true;
 }
 
 // Translated from tmvtnorm 1.4-10
 
-// split Aitken (1934) out so we can handle continuous missing data without recomputing ordinal TODO
+// Could search for independent blocks but maybe not worth it
+// because conditioning on ordinal is not efficient when there
+// are a large number of ordinal patterns.
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
-	       const Eigen::MatrixBase<T2> &fullLower, const Eigen::MatrixBase<T3> &fullUpper,
-	       Eigen::MatrixBase<T4> &tmeanOut, Eigen::MatrixBase<T5> &tcovOut)
+bool _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
+	       const Eigen::MatrixBase<T2> &lower, const Eigen::MatrixBase<T3> &upper,
+	       Eigen::MatrixBase<T4> &xi, Eigen::MatrixBase<T5> &U11)
 {
 	using Eigen::Vector2d;
 	using Eigen::Vector4d;
@@ -612,37 +616,7 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 	using Eigen::MatrixXd;
 	using Eigen::Matrix;
 
-	Matrix<bool, Eigen::Dynamic, 1> idx =
-		(fullLower.array() != -std::numeric_limits<double>::infinity() ||
-		 fullUpper.array() != std::numeric_limits<double>::infinity());
-
-	int kk = idx.count(); //number of truncated variables
-
-	struct subset {
-		Matrix<bool, Eigen::Dynamic, 1> &idx;
-		bool flip;
-		subset(Matrix<bool, Eigen::Dynamic, 1> &_idx) : idx(_idx) {};
-		bool operator()(int nn) { return idx[nn] ^ flip; };
-	} op(idx);
-
-	MatrixXd V11;
-	MatrixXd V12(kk, idx.size() - kk);
-	MatrixXd V22;
-
-	op.flip = false;
-	subsetCovariance(sigma, op, kk, V11);
-	op.flip = true;
-	upperRightCovariance(sigma, op, V12);
-	subsetCovariance(sigma, op, idx.size() - kk, V22);
-
-	VectorXd lower(kk);
-	VectorXd upper(kk);
-	for (int xx=0, kx=0; xx < idx.size(); ++xx) {
-		if (!idx[xx]) continue;
-		lower[kx] = fullLower[xx];
-		upper[kx] = fullUpper[xx];
-		kx += 1;
-	}
+	int kk = sigma.rows();
 
 	Vector2d marginalBounds;
 	Vector2d marginalOut;
@@ -651,11 +625,11 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 	for (int qq=0; qq < kk; ++qq) {
 		marginalBounds[0] = lower[qq];
 		marginalBounds[1] = upper[qq];
-		_dtmvnorm_marginal(prob, marginalBounds, qq, V11, lower, upper, marginalOut);
+		if (!_dtmvnorm_marginal(prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
 		F_a[qq] = marginalOut[0];
 		F_b[qq] = marginalOut[1];
 	}
-	VectorXd xi = V11 * (F_a - F_b);
+	xi = sigma * (F_a - F_b);
 
 	MatrixXd F2(kk,kk);
 	F2.diagonal().setZero();
@@ -666,7 +640,7 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 		for (int ss=qq+1; ss < kk; ++ss) { //row
 			xq << lower[qq], upper[qq], lower[qq], upper[qq];
 			xr << lower[ss], lower[ss], upper[ss], upper[ss];
-			_dtmvnorm_marginal2(prob, xq, xr, qq, ss, V11, lower, upper, marginal2Out);
+			if (!_dtmvnorm_marginal2(prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
 			F2(qq,ss) = (marginal2Out[0] - marginal2Out[1]) - (marginal2Out[2] - marginal2Out[3]);
 		}
 	}
@@ -678,53 +652,29 @@ void _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 		if (!std::isfinite(F_a[kx])) F_a[kx] = 0.0;
 		if (!std::isfinite(F_b[kx])) F_b[kx] = 0.0;
 	};
-	VectorXd F_ab = (F_a - F_b).array() / V11.diagonal().array();
+	VectorXd F_ab = (F_a - F_b).array() / sigma.diagonal().array();
 
-	MatrixXd U11(kk,kk);
+	U11.derived().resize(kk,kk);
 	for (int ii =0; ii < kk; ++ii) {          //col
 		for (int jj =ii; jj < kk; ++jj) { //row
 			double sum = 0.0;
 			for (int sr=0; sr < kk; ++sr) {  //aka qq
-				sum += V11(ii,sr) * V11(jj,sr) * F_ab[sr];
+				sum += sigma(ii,sr) * sigma(jj,sr) * F_ab[sr];
 				if (jj != sr) {
 					double sum2 = 0.0;
 					for (int sc=0; sc < kk; ++sc) {
-						double tt = V11(jj,sc) - V11(sr,sc) * V11(jj,sr) / V11(sr,sr);
+						double tt = sigma(jj,sc) - sigma(sr,sc) * sigma(jj,sr) / sigma(sr,sr);
 						sum2 += tt * F2(sr,sc);
 					}
-					sum2 *= V11(ii,sr);
+					sum2 *= sigma(ii,sr);
 					sum += sum2;
 				}
 			}
-			U11(ii,jj) = V11(ii,jj) + sum;
+			U11(ii,jj) = sigma(ii,jj) + sum;
 		}
 	}
 	U11 -= xi * xi.transpose();
-	U11 = U11.selfadjointView<Eigen::Upper>();
-
-	MatrixXd invV11 = V11;
-	if (InvertSymmetricPosDef(invV11, 'L')) Rf_error("Non-positive definite");
-	invV11 = invV11.selfadjointView<Eigen::Lower>();
-
-	// Aitken (1934) "Note on Slection from a Multivariate Normal Population"
-	// Or Johnson/Kotz (1972), p.70
-	VectorXd mu2 = xi.transpose() * invV11.selfadjointView<Eigen::Lower>() * V12;
-	tmeanOut.derived().resize(idx.size());
-	for (int xx=0, x1=0, x2=0; xx < idx.size(); ++xx) {
-		tmeanOut[xx] = idx[xx]? xi[x1++] : mu2[x2++];
-	}
-	tcovOut.derived().resize(idx.size(), idx.size());
-	op.flip = false;
-	subsetCovarianceStore(tcovOut, op, U11);
-	op.flip = true;
-	MatrixXd tmp = U11.selfadjointView<Eigen::Lower>() * (invV11.selfadjointView<Eigen::Lower>() * V12);
-	upperRightCovarianceStore(tcovOut, op, tmp);
-	tmp = (V22 - V12.transpose() * (invV11 -
-					invV11.selfadjointView<Eigen::Lower>() * U11 *
-					invV11.selfadjointView<Eigen::Lower>()) * V12);
-	subsetCovarianceStore(tcovOut, op, tmp);
-
-	tcovOut = tcovOut.template selfadjointView<Eigen::Upper>();
+	return true;
 }
 
 #endif 
