@@ -153,8 +153,6 @@ class mvnByRow {
 	std::vector<bool> &isOrdinal;
 	int numOrdinal;
 	int numContinuous;
-	EigenVectorAdaptor jointMeans;
-	EigenMatrixAdaptor jointCov;
 	omxFIMLFitFunction *ofiml;
 	int sortedRow;
 	bool useSufficientSets;
@@ -188,8 +186,6 @@ class mvnByRow {
 		thresholdCols(expectation->thresholds),
 		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
 		isOrdinal(_ofiml->isOrdinal),
-		jointMeans(ofo->means),
-		jointCov(ofo->cov),
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;

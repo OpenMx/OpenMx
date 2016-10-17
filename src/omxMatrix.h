@@ -118,6 +118,8 @@ inline double *omxMatrixDataColumnMajor(omxMatrix *mat)
 	return mat->data;
 }
 
+// NOTE: These Eigen wrapper are not thread safe when mixed with omxCopyMatrix
+
 struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
 	EigenMatrixAdaptor(omxMatrix *mat) :
 	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}

@@ -87,6 +87,8 @@ bool condOrdByRow::eval()
 		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
+		EigenVectorAdaptor jointMeans(ofo->means);
+		EigenMatrixAdaptor jointCov(ofo->cov);
 
 		if (rowOrdinal == 0) {
 			ordLik = 1.0;
@@ -184,13 +186,14 @@ bool condOrdByRow::eval()
 				if (ss.start != row) Rf_error("oops");
 				Eigen::VectorXd resid = ss.dataMean - contMean;
 				//mxPrintMat("dataCov", ss.dataCov);
+				//mxPrintMat("contMean", contMean);
 				//mxPrintMat("dataMean", ss.dataMean);
 				//mxPrintMat("resid", resid);
 				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double tr1 = trace_prod(iV, ss.dataCov);
 				double logDet = covDecomp.log_determinant();
 				double cterm = M_LN_2PI * ss.dataMean.size();
-				//mxLog("iqf %f tr1 %f logDet %f cterm %f", iqf, tr1, logDet, cterm);
+				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
 				record(-0.5 * ll + ss.length * log(ordLik));
 				contLik = 1.0;
@@ -234,6 +237,8 @@ bool condContByRow::eval()
 		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
+		EigenVectorAdaptor jointMeans(ofo->means);
+		EigenMatrixAdaptor jointCov(ofo->cov);
 
 		bool newOrdCov = false;
 		if (rowOrdinal && rowContinuous) {
@@ -354,6 +359,8 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 	omxFIMLFitFunction *argStruct = ((omxFIMLFitFunction*)off->argStruct);
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
 	omxMatrix *expCovInt, *expMeanInt;
+
+	omxExpectationCompute(NULL, off->expectation, NULL);
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
 	
