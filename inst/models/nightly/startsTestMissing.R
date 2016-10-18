@@ -254,7 +254,6 @@ STARTSM <- mxModel("STARTS",
 startsModel <- mxRun(STARTSM)
 omxCheckCloseEnough(startsModel$output$fit, 2718.410, .05)
 
-if (detectCores() > 1) {
+if (.Platform$OS.type != 'windows' && detectCores() > 1) {
 	omxCheckTrue(startsModel$compute$steps[['GD']]$output$maxThreads > 1)
 }
-
