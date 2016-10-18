@@ -32,6 +32,7 @@ setMethod("initialize", "MxConstraint",
 		.Object@alg1 <- as.character(NA)
 		.Object@alg2 <- as.character(NA)
 		.Object@relation <- as.character(NA)
+		if(linear && is.null(jac)){stop("linear constraints must be provided with a Jacobian")}
 		.Object@jac <- jac
 		.Object@linear <- linear
 		return(.Object)

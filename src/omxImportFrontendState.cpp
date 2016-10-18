@@ -437,7 +437,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 	}
 	if(OMX_DEBUG) {
 		int equality, inequality;
-		countNonlinearConstraints(equality, inequality);
+		countNonlinearConstraints(equality, inequality, false);
 		mxLog("Found %d equality and %d inequality constraints", equality, inequality);
 	}
 }
