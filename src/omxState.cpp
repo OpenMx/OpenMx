@@ -766,6 +766,8 @@ omxConstraint *UserConstraint::duplicate(omxState *dest)
 	UserConstraint *uc = new UserConstraint(name);
 	uc->opCode = opCode;
 	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
+	uc->jacobian = jacobian;
+	uc->linear = linear;
 	return uc;
 }
 
@@ -789,6 +791,7 @@ UserConstraint::~UserConstraint()
 void UserConstraint::refresh(FitContext *fc)
 {
 	omxRecompute(pad, fc);
+	//omxRecompute(jacobian, fc); //<--Not sure if Jacobian needs to be recomputed every time constraint function does.
 }
 
 omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),

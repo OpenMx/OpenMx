@@ -29,18 +29,57 @@
 #endif
 
 template <typename T1>
-void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut)
+void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T1> &jacobianOut, 
+                                                 Eigen::MatrixBase<T1> &needcIn, int* mode)
 {
 	omxState *st = fc->state;
-	int l=0;
-	for(int j = 0; j < (int) st->conListX.size(); j++) {
-		omxConstraint &cs = *st->conListX[j];
-		cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
-		l += cs.size;
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("constraints", constraintOut);
+	int l=0, j=0, c=0, roffset=0, csize;
+	int nparam = jacobianOut.cols();
+	switch(*mode){
+	case 0:
+		for(j = 0; j < (int) st->conListX.size(); j++) {
+			omxConstraint &cs = *st->conListX[j];
+			if(cs.linear){continue;}
+			if(needcIn(l) > 0){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
+			l += cs.size;
+			if (verbose >= 3) {
+				mxPrintMat("constraints", constraintOut);
+			}
+		}
+		break;
+	case 1:
+		for(j = 0; j < (int) st->conListX.size(); j++) {
+			omxConstraint &cs = *st->conListX[j];
+			if(cs.linear){continue;}
+			if(needcIn(l) > 0){
+				omxRecompute(cs->jacobian, fc);
+				csize = cs.size;
+				for(c=0; c<nparam; c++){
+					for(roffset=0; roffset<csize; roffset++){
+						jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+					}
+				}
+			}
+			l += cs.size;
+		}
+		break;
+	case 2:
+		for(j = 0; j < (int) st->conListX.size(); j++) {
+			omxConstraint &cs = *st->conListX[j];
+			if(cs.linear){continue;}
+			if(needcIn(l) > 0){
+				cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
+				omxRecompute(cs.jacobian, fc);
+				csize = cs.size;
+				for(c=0; c<nparam; c++){
+					for(roffset=0; roffset<csize; roffset++){
+						jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+					}
+				}
+			}
+			l += cs.size;
+		}
+		break;
 	}
 }
 
@@ -77,7 +116,7 @@ void F77_SUB(npsolConstraintFunction)
 		int *ldJ, int *needc, double *x,
 		double *c, double *cJac, int *nstate)
 {
-	if(*mode==1) return;
+	//if(*mode==1) return;
 
 	// "Note that if there are any nonlinear constraints then the
 	// first call to CONFUN will precede the first call to
@@ -85,7 +124,9 @@ void F77_SUB(npsolConstraintFunction)
 
 	NPSOL_GOpt->copyFromOptimizer(x);
 	Eigen::Map< Eigen::VectorXd > cE(c, *ncnln);
-	NPSOL_GOpt->allConstraintsFun(cE);
+	Eigen::Map< Eigen::MatrixXd > cJacE(cJac, *ldJ, *n);
+	Eigen::Map< Eigen::VectorXd > needcE(needc, *ncnln);
+	NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, mode);
 }
 
 static double getNPSOLFeasibilityTolerance()
@@ -94,12 +135,12 @@ static double getNPSOLFeasibilityTolerance()
 	return Global->feasibilityTolerance * 2e-2 / 5e-2;
 }
 
-static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, int inequality)
+static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality, int nl_inequality, int l_equality, int l_inequality)
 {
 	rf.optName = "NPSOL";
 	rf.setupAllBounds();
 	{
-		double ft = (equality+inequality)? getNPSOLFeasibilityTolerance() : 1e-5;
+		double ft = (nl_equality+nl_inequality+l_inequality+l_equality)? getNPSOLFeasibilityTolerance() : 1e-5;
 		std::string opt = string_snprintf("Feasibility tolerance %.8g", ft);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
@@ -124,12 +165,12 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 	//if (NPSOL_fitMatrix) Rf_error("NPSOL is not reentrant");
 	NPSOL_GOpt = &rf;
 
-    int nclin = 0;
+    int nclin = l_equality + l_inequality;
     int nlinwid = std::max(1, nclin);
-    int ncnln = equality + inequality;
+    int ncnln = nl_equality + nl_inequality;
     int nlnwid = std::max(1, ncnln);
  
-	if (ncnln == 0) {
+	if (ncnln + nclin == 0) { //<--We might have to move to a worse fit to satisfy even linear constraints.
 		// ensure we never move to a worse point
 		int mode = 0;
 		double fit = rf.recordFit(rf.est.data(), &mode);
@@ -217,7 +258,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int equality, i
 
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
-	if (rf.bestEst.size() && ncnln == 0) {
+	if (rf.bestEst.size() && ncnln+nclin == 0) {
 		rf.useBestFit();
 	}
 
@@ -234,18 +275,19 @@ void omxNPSOL(GradientOptimizerContext &rf)
 	Eigen::ArrayXd startingPoint = Est;
 
 	omxState *st = rf.getState();
-	int equality, inequality;
-	st->countNonlinearConstraints(equality, inequality);
+	int nl_equality, nl_inequality, l_equality, l_inequality;
+	st->countNonlinearConstraints(nl_equality, nl_inequality, true);
+	st->countLinearConstraints(l_equality, l_inequality);
 
-	omxNPSOL1(est, rf, equality, inequality);
+	omxNPSOL1(est, rf, nl_equality, nl_inequality, l_equality, l_inequality);
 
-	if (equality + inequality == 0) return;
+	if (nl_equality + nl_inequality + l_equality + l_inequality == 0) return;
 
 	const int maxRetries = 10;
 	int retry = 0;
 	double best = std::numeric_limits<double>::max();
 	while (++retry < maxRetries) {
-		Eigen::VectorXd cE(equality + inequality);
+		Eigen::VectorXd cE(nl_equality + nl_inequality);
 		rf.allConstraintsFun(cE);
 
 		double norm = cE.norm();
@@ -261,7 +303,7 @@ void omxNPSOL(GradientOptimizerContext &rf)
 			best = norm;
 		}
 		if (!(cE.array().abs() < getNPSOLFeasibilityTolerance()).all()) {
-			omxNPSOL1(est, rf, equality, inequality);
+			omxNPSOL1(est, rf, nl_equality, nl_inequality, l_equality, l_inequality);
 		} else {
 			break;
 		}
