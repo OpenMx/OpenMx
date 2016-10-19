@@ -118,7 +118,6 @@ class omxConstraint {
 	int size;
 	enum Type opCode;
 	int linear;
-	omxMatrix* jacobian;
 
         omxConstraint(const char *name) : name(name) {};
 	virtual ~omxConstraint() {};
@@ -142,6 +141,8 @@ class UserConstraint : public omxConstraint {
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 	virtual omxConstraint *duplicate(omxState *dest);
 	virtual void prep(FitContext *fc);
+	omxMatrix *jacobian;
+	int linear;
 };
 
 enum omxCheckpointType {
