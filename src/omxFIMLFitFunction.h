@@ -154,6 +154,7 @@ class mvnByRow {
 	int numOrdinal;
 	int numContinuous;
 	omxFIMLFitFunction *ofiml;
+	omxFIMLFitFunction *parent;
 	int sortedRow;
 	bool useSufficientSets;
 
@@ -175,7 +176,7 @@ class mvnByRow {
 	} op;
 
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
 	:
 	ofo((omxFIMLFitFunction*) _localobj->argStruct),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
@@ -198,6 +199,7 @@ class mvnByRow {
 		means = ofo->means;
 		fc = _fc;
 		ofiml = _ofiml;
+		parent = _parent;
 		rowLikelihoods = ofiml->rowLikelihoods;
 		returnRowLikelihoods = ofiml->returnRowLikelihoods;
 		localobj = _localobj;
@@ -310,24 +312,24 @@ class mvnByRow {
 struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
 	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+		      omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
 struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
 	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
 struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
 	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
-		   omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _ofiml, rowbegin, rowcount) {};
+		     omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
 	bool eval();
 };
 
