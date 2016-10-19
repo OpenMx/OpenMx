@@ -2909,7 +2909,7 @@ void GradientOptimizerContext::setupIneqConstraintBounds()
 
 	omxState *globalState = fc->state;
 	int eqn, nineqn;
-	globalState->countNonlinearConstraints(eqn, nineqn, false);
+	globalState->countNonlinearConstraints(eqn, nineqn);
 	equality.resize(eqn);
 	inequality.resize(nineqn);
 };
@@ -2921,7 +2921,7 @@ void GradientOptimizerContext::setupAllBounds()
 
 	// treat all constraints as non-linear
 	int eqn, nineqn;
-	st->countNonlinearConstraints(eqn, nineqn, false);
+	st->countNonlinearConstraints(eqn, nineqn);
 	int ncnln = eqn + nineqn;
 	solLB.resize(n + ncnln);
 	solUB.resize(n + ncnln);

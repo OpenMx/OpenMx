@@ -324,8 +324,7 @@ class GradientOptimizerContext {
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
-	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T1> &jacobianOut, 
-                                               Eigen::MatrixBase<T1> &needcIn, int* mode);
+	template <typename T1> void allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	void useBestFit();
 	void copyToOptimizer(double *myPars);

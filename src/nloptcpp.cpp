@@ -218,7 +218,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
         nlopt_set_upper_bounds(opt, goc.solUB.data());
 
 	int eq, ieq;
-	globalState->countNonlinearConstraints(eq, ieq, false);
+	globalState->countNonlinearConstraints(eq, ieq);
 
 	// The *2 is there to roughly equate accuracy with NPSOL.
 	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);

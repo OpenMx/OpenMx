@@ -117,8 +117,6 @@ class omxConstraint {
 	const char *name;
 	int size;
 	enum Type opCode;
-	int linear;
-	omxMatrix* jacobian;
 
         omxConstraint(const char *name) : name(name) {};
 	virtual ~omxConstraint() {};
@@ -142,6 +140,8 @@ class UserConstraint : public omxConstraint {
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 	virtual omxConstraint *duplicate(omxState *dest);
 	virtual void prep(FitContext *fc);
+	omxMatrix *jacobian;
+	int linear;
 };
 
 enum omxCheckpointType {
@@ -311,31 +311,16 @@ class omxState {
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 
-	void countNonlinearConstraints(int &equality, int &inequality, bool distinguishLinear)
+	void countNonlinearConstraints(int &equality, int &inequality)
 	{
 		equality = 0;
 		inequality = 0;
 		for(int j = 0; j < int(conListX.size()); j++) {
 			omxConstraint *cs = conListX[j];
-			if(distinguishLinear && cs->linear){continue;}
 			if (cs->opCode == omxConstraint::EQUALITY) {
 				equality += cs->size;
 			} else {
 				inequality += cs->size;
-			}
-		}
-	};
-	void countLinearConstraints(int &l_equality, int &l_inequality)
-	{
-		l_equality = 0;
-		l_inequality = 0;
-		for(int j = 0; j < int(conListX.size()); j++) {
-			omxConstraint *cs = conListX[j];
-			if(!cs->linear){continue;}
-			if (cs->opCode == omxConstraint::EQUALITY) {
-				l_equality += cs->size;
-			} else {
-				l_inequality += cs->size;
 			}
 		}
 	};
