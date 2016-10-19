@@ -138,6 +138,8 @@ ordinalData <- mxGenerateData(lis, nSubjects)
 lis <- mxModel(lis, mxData(observed=ordinalData, type='raw'))
 lisr <- mxRun(lis)
 
+omxCheckCloseEnough(lisr$output$fit, 3858.052, .01)
+
 
 # Compute factor scores for the model
 lism <- mxFactorScores(lisr)
@@ -145,7 +147,8 @@ lisw <- mxFactorScores(lisr, 'WeightedML')
 
 omxCheckError(lisreg <- mxFactorScores(lisr, 'Regression'), "Regression factor scores cannot be computed when there are thresholds (ordinal data).")
 
-omxCheckCloseEnough(cor(lism[,,1], lisw[,,1]), .868, 0.02)
+mask <- abs(lism[,,1]) < 5
+omxCheckCloseEnough(cor(lism[mask,,1], lisw[mask,,1]), 1, 0.01)
 
 #pdf('plotOrdinalFactorScores.pdf')
 #plot(lism[,,1], main='Ordinal Factor Scoring Methods', xlab='Sorted Data Row', ylab='Factor Score')
