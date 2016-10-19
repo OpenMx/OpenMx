@@ -118,8 +118,10 @@ class omxConstraint {
 	int size;
 	enum Type opCode;
 	int linear;
+	omxMatrix* jacobian;
 
-        omxConstraint(const char *name) : name(name) {};
+	//Constraints created by backend for CIs use this, the base-class constructor:
+        omxConstraint(const char *name) : name(name), linear(0), jacobian(NULL) {};
 	virtual ~omxConstraint() {};
 	void refreshAndGrab(FitContext *fc, double *out)
 	{ refreshAndGrab(fc, opCode, out); };
@@ -136,13 +138,12 @@ class UserConstraint : public omxConstraint {
 	UserConstraint(const char *name) : super(name) {};
 
  public:
+ 	//Constraints created from frontend MxConstraints use this, the derived-class constructor:
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin);
 	virtual ~UserConstraint();
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 	virtual omxConstraint *duplicate(omxState *dest);
 	virtual void prep(FitContext *fc);
-	omxMatrix *jacobian;
-	int linear;
 };
 
 enum omxCheckpointType {

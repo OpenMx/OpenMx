@@ -28,14 +28,14 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
-template <typename T1>
-void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T1> &jacobianOut, 
-                                                 Eigen::MatrixBase<T1> &needcIn, int* mode)
+template <typename T1, typename T2, typename T3>
+void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, 
+                                                 Eigen::MatrixBase<T3> &needcIn, int mode)
 {
 	omxState *st = fc->state;
 	int l=0, j=0, c=0, roffset=0, csize;
 	int nparam = jacobianOut.cols();
-	switch(*mode){
+	switch(mode){
 	case 0:
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
@@ -51,7 +51,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
-			if(needcIn(l) > 0){
+			if(needcIn(l) > 0 && cs.jacobian != NULL){
 				omxRecompute(cs.jacobian, fc);
 				csize = cs.size;
 				for(c=0; c<nparam; c++){
@@ -69,11 +69,13 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 			if(cs.linear){continue;}
 			if(needcIn(l) > 0){
 				cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
-				omxRecompute(cs.jacobian, fc);
-				csize = cs.size;
-				for(c=0; c<nparam; c++){
-					for(roffset=0; roffset<csize; roffset++){
-						jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+				if(cs.jacobian != NULL){
+					omxRecompute(cs.jacobian, fc);
+					csize = cs.size;
+					for(c=0; c<nparam; c++){
+						for(roffset=0; roffset<csize; roffset++){
+							jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+						}
 					}
 				}
 			}
@@ -125,8 +127,8 @@ void F77_SUB(npsolConstraintFunction)
 	NPSOL_GOpt->copyFromOptimizer(x);
 	Eigen::Map< Eigen::VectorXd > cE(c, *ncnln);
 	Eigen::Map< Eigen::MatrixXd > cJacE(cJac, *ldJ, *n);
-	Eigen::Map< Eigen::VectorXd > needcE(needc, *ncnln);
-	NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, mode);
+	Eigen::Map< Eigen::VectorXi > needcE(needc, *ncnln);
+	NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, *mode);
 }
 
 static double getNPSOLFeasibilityTolerance()
@@ -288,7 +290,13 @@ void omxNPSOL(GradientOptimizerContext &rf)
 	double best = std::numeric_limits<double>::max();
 	while (++retry < maxRetries) {
 		Eigen::VectorXd cE(nl_equality + nl_inequality);
-		rf.allConstraintsFun(cE);
+		Eigen::MatrixXd cJactemp(nl_equality + nl_inequality, rf.est.size());
+		Eigen::VectorXi needctemp(nl_equality + nl_inequality);
+		needctemp.setOnes(nl_equality + nl_inequality);
+		//Eigen::MatrixXd cJacE(cJac, *ldJ, *n);
+		//Eigen::Map< Eigen::VectorXi > needcE(needc, *ncnln);
+		//NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, mode);
+		rf.allConstraintsFun(cE, cJactemp, needctemp, 0);
 
 		double norm = cE.norm();
 		if (rf.verbose >= 1) {
