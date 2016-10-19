@@ -52,7 +52,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
 			if(needcIn(l) > 0){
-				omxRecompute(cs.jacobian, fc);
+				omxRecompute(cs->jacobian, fc);
 				csize = cs.size;
 				for(c=0; c<nparam; c++){
 					for(roffset=0; roffset<csize; roffset++){
