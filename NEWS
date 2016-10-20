@@ -1,4 +1,5 @@
 # OpenMx development
+* IMPROVED: mxGenerateData now succeeds for joint ordinal and continuous data.
 * NEW: mxSE() function. Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun gives feedback about optimization progress
 * IMPROVED: Continuous time state space models now allow non-invertible ("drift" or "dynamics") A matrices.
