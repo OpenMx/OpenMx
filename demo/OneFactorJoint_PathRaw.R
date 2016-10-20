@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-# -----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Program: OneFactorJoint_PathRaw.R  
 # Author: Ryne Estabrook
 # Date: 2014.05.09 
@@ -29,11 +29,12 @@
 #
 # RevisionHistory:
 #      Hermine Maes -- 2014.11.02 piecewise specification
-# -----------------------------------------------------------------------------
-
-require(OpenMx)
+#------------------------------------------------------------------------------
 # Load Library
-# -----------------------------------------------------------------------------
+require(OpenMx)
+
+#------------------------------------------------------------------------------
+# Prepare Data
 
 data(myFADataRaw)
 
@@ -43,9 +44,9 @@ oneFactorJoint$z1 <- mxFactor(oneFactorJoint$z1, levels=c(0, 1))
 oneFactorJoint$z2 <- mxFactor(oneFactorJoint$z2, levels=c(0, 1))
 oneFactorJoint$z3 <- mxFactor(oneFactorJoint$z3, levels=c(0, 1, 2))
 
-# Prepare Data
-# -----------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# Create an MxModel object
 dataRaw      <- mxData( observed=oneFactorJoint, type="raw" )
 # residual variances
 resVars      <- mxPath( from=c("x1","x2","x3","z1","z2","z3"), arrows=2,
@@ -69,15 +70,20 @@ thresholds   <- mxThreshold(vars=c("z1","z2","z3"), nThresh=c(1,1,2),
 oneFactorJointModel <- mxModel("Common Factor Model Path Specification", type="RAM",
                         manifestVars=c("x1","x2","x3","z1","z2","z3"), latentVars="F1",
                         dataRaw, resVars, latVar, means, thresholds, facLoads)
-# Create an MxModel object
-# -----------------------------------------------------------------------------
-                       
-oneFactorJointFit <- mxRun(oneFactorJointModel)
-# Fit the model with mxRun
-# -----------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# Fit the model with mxRun
+oneFactorJointFit <- mxRun(oneFactorJointModel)
+
+#------------------------------------------------------------------------------
+# Print a summary of the results
 summary(oneFactorJointFit)
 coef(oneFactorJointFit)
-# Print a summary of the results
-# -----------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# Generate data from the model
+simulatedData <- mxGenerateData(oneFactorJointModel, 100)
+
+omxCheckEquals(dim(simulatedData), c(100,6) )
+
+#------------------------------------------------------------------------------

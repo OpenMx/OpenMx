@@ -96,7 +96,7 @@ growthCurveModel <- mxModel("Linear Growth Curve Model Matrix Specification",
 growthCurveFit<-mxRun(growthCurveModel, suppressWarnings=TRUE)
 
 summary(growthCurveFit)
-growthCurveFit$output$estimate
+coef(growthCurveFit)
 
 
 omxCheckCloseEnough(growthCurveFit$output$estimate[["meani"]], 9.930, 0.01)

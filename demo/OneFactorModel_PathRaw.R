@@ -70,7 +70,7 @@ oneFactorModel <- mxModel("Common Factor Model Path Specification", type="RAM",
 oneFactorFit <- mxRun(oneFactorModel)      
 
 summary(oneFactorFit)
-oneFactorFit$output$estimate
+coef(oneFactorFit)
 
 omxCheckCloseEnough(oneFactorFit$output$estimate[["l2"]], 0.999, 0.01)
 omxCheckCloseEnough(oneFactorFit$output$estimate[["l3"]], 0.959, 0.01)

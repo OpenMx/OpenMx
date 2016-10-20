@@ -74,7 +74,7 @@ twoFactorModel <- mxModel("Two Factor Model Path Specification", type="RAM",
 twoFactorFit <- mxRun(twoFactorModel)
 
 summary(twoFactorFit)
-twoFactorFit$output$estimate
+coef(twoFactorFit)
 
 omxCheckCloseEnough(twoFactorFit$output$estimate[["l2"]], 0.9723, 0.01)
 omxCheckCloseEnough(twoFactorFit$output$estimate[["l3"]], 0.9313, 0.01)
