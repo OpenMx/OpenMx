@@ -68,7 +68,7 @@ thresholds   <- mxThreshold(vars=c("z1","z2","z3"), nThresh=c(1,1,2),
 
 oneFactorJointModel <- mxModel("Common Factor Model Path Specification", type="RAM",
                         manifestVars=c("x1","x2","x3","z1","z2","z3"), latentVars="F1",
-                        dataRaw, resVars, latVar, means, thresholds)
+                        dataRaw, resVars, latVar, means, thresholds, facLoads)
 # Create an MxModel object
 # -----------------------------------------------------------------------------
                        
@@ -77,7 +77,7 @@ oneFactorJointFit <- mxRun(oneFactorJointModel)
 # -----------------------------------------------------------------------------
 
 summary(oneFactorJointFit)
-oneFactorJointFit$output$estimate
+coef(oneFactorJointFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------
 
