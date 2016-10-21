@@ -134,8 +134,6 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	// TODO: Flatten data only once.
-	flattenDataToVector(oCov, oMeans, obsThresholdsMat, oThresh, oFlat);
 	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
 	
 	omxCopyMatrix(B, oFlat);
