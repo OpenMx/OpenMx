@@ -15,6 +15,8 @@
  */
 
 #include "omxWLSFitFunction.h"
+#include <Eigen/Core>
+// #include <Eigen/Dense>
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
@@ -60,6 +62,43 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
     omxFreeMatrix(owo->P);
 }
 
+
+void standardizeCovMeansThresholds(FitContext *fc, omxMatrix* inCov, omxMatrix* inMeans,
+			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
+			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
+	//omxMatrix* pass[1];
+	//pass[0] = inCov;
+	//omxCovToCor(fc, pass, 1, outCov);
+	
+	Eigen::ArrayXd stddev;
+	EigenMatrixAdaptor egInCov(inCov);
+	EigenMatrixAdaptor egOutCov(outCov);
+	EigenMatrixAdaptor egInThr(inThresholdsMat);
+	EigenMatrixAdaptor egOutThr(outThresholdsMat);
+	EigenMatrixAdaptor egInM(inMeans);
+	EigenMatrixAdaptor egOutM(outMeans);
+	
+	stddev = egInCov.diagonal().array().sqrt();
+	
+	for(int i = 0; i < egInCov.rows(); i++) {
+		egOutM(0, i) = 0; // standardized mean
+		for(int j = 0; j <= i; j++) {
+			// standardize covariance
+			egOutCov(i,j) = egInCov(i, j) / (stddev[i] * stddev[j]);
+			egOutCov(j,i) = egOutCov(i,j);
+		}
+	}
+	// Thresholds rows = thresh
+	// Thresholds cols = variables
+	for(int i = 0; i < egInThr.rows(); i++) { //rows
+		for(int j = 0; j < egInThr.cols(); j++) { //cols
+			// standardize thresholds
+			egOutThr(i, j) = ( egInThr(i, j) - egInM(0, j) ) / stddev[j];
+		}
+	}
+}
+
+
 static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
@@ -87,27 +126,28 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
     int onei    = 1;
 	
 	omxExpectation* expectation = oo->expectation;
-
+	
     /* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
-
+	
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
-
+	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
+	
     // TODO: Flatten data only once.
 	flattenDataToVector(oCov, oMeans, obsThresholdsMat, oThresh, oFlat);
-	flattenDataToVector(eCov, eMeans, expectation->thresholdsMat, eThresh, eFlat);
-
+	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
+	
 	omxCopyMatrix(B, oFlat);
-
+	
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed Vector: "); }
 	if(OMX_DEBUG) {omxPrintMatrix(eFlat, "....WLS Expected Vector: "); }
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 	
-    if(weights != NULL) {
+	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
-        omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
+		omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
     } else {
         // ULS Case: Memcpy faster than dgemv.
 	omxCopyMatrix(P, B);
