@@ -112,9 +112,6 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
 	/* Locals for readability.  Compiler should cut through this. */
-	oCov 		= owo->observedCov;
-	oMeans		= owo->observedMeans;
-	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
 	std::vector< omxThresholdColumn > &eThresh = oo->expectation->thresholds;
@@ -131,7 +128,6 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
 	
-	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
 	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
