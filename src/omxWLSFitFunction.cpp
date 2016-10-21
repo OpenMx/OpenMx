@@ -67,7 +67,7 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 }
 
 
-void standardizeCovMeansThresholds(FitContext *fc, omxMatrix* inCov, omxMatrix* inMeans,
+void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
 			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
 	//omxMatrix* pass[1];
@@ -84,22 +84,41 @@ void standardizeCovMeansThresholds(FitContext *fc, omxMatrix* inCov, omxMatrix* 
 	
 	stddev = egInCov.diagonal().array().sqrt();
 	
+	// standardize covariance
 	for(int i = 0; i < egInCov.rows(); i++) {
-		egOutM(0, i) = 0; // standardized mean
 		for(int j = 0; j <= i; j++) {
-			// standardize covariance
 			egOutCov(i,j) = egInCov(i, j) / (stddev[i] * stddev[j]);
 			egOutCov(j,i) = egOutCov(i,j);
 		}
 	}
-	// Thresholds rows = thresh
-	// Thresholds cols = variables
-	for(int i = 0; i < egInThr.rows(); i++) { //rows
-		for(int j = 0; j < egInThr.cols(); j++) { //cols
-			// standardize thresholds
-			egOutThr(i, j) = ( egInThr(i, j) - egInM(0, j) ) / stddev[j];
+	
+	// standardize mean and thresholds
+	if(inMeans != NULL) {
+		// means
+		for(int i = 0; i < egInM.cols(); i++) {
+			egOutM(0, i) = 0;
+		}
+		
+		// thresholds
+		for(int j = 0; j < int(thresholds.size()); j++) {
+			omxThresholdColumn* thresh = &thresholds[j];
+			for(int k = 0; k < thresh->numThresholds; k++) {
+				egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, thresh->column) ) / stddev[thresh->column];
+			}
+		}
+	} else {
+		// means
+		egOutM = egInM;
+		
+		// thresholds
+		for(int j = 0; j < int(thresholds.size()); j++) {
+			omxThresholdColumn* thresh = &thresholds[j];
+			for(int k = 0; k < thresh->numThresholds; k++) {
+				egOutThr(k, thresh->column) = egInThr(k, thresh->column) / stddev[thresh->column];
+			}
 		}
 	}
+	
 }
 
 
@@ -111,7 +130,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	double sum = 0.0;
 	
-	omxMatrix *oCov, *oMeans, *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
+	omxMatrix *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
 	
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
@@ -134,6 +153,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
+	//if() {} else {}
 	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
 	
 	omxCopyMatrix(B, oFlat);
@@ -329,9 +349,8 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->standardExpectedCov = omxInitMatrix(newObj->expectedCov->rows, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
-	newObj->standardExpectedMeans = omxInitMatrix(1, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
 	newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
-	
+	newObj->standardExpectedMeans = omxInitMatrix(1, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
