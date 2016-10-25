@@ -43,7 +43,9 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 			if(needcIn(l) > 0){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
 			l += cs.size;
 			if (verbose >= 3) {
+				mxLog("mode 0");
 				mxPrintMat("constraints", constraintOut);
+				mxLog("\n");
 			}
 		}
 		break;
@@ -56,11 +58,17 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 				csize = cs.size;
 				for(c=0; c<nparam; c++){
 					for(roffset=0; roffset<csize; roffset++){
-						jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+						//The multiplication by -1 is weird, but apparently necessary(!):
+						jacobianOut(l+roffset,c) = -1 * cs.jacobian->data[c * csize + roffset];
 					}
 				}
 			}
 			l += cs.size;
+			if (verbose >= 3) {
+				mxLog("mode 1");
+				mxPrintMat("Jacobian", jacobianOut);
+				mxLog("\n");
+			}
 		}
 		break;
 	case 2:
@@ -74,12 +82,19 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 					csize = cs.size;
 					for(c=0; c<nparam; c++){
 						for(roffset=0; roffset<csize; roffset++){
-							jacobianOut(l+roffset,c) = cs.jacobian->data[c * csize + roffset];
+							//Likewise here:
+							jacobianOut(l+roffset,c) = -1 * cs.jacobian->data[c * csize + roffset];
 						}
 					}
 				}
 			}
 			l += cs.size;
+			if (verbose >= 3) {
+				mxLog("mode 2");
+				mxPrintMat("constraints", constraintOut);
+				mxPrintMat("Jacobian", jacobianOut);
+				mxLog("\n");
+			}
 		}
 		break;
 	}
@@ -118,7 +133,9 @@ void F77_SUB(npsolConstraintFunction)
 		int *ldJ, int *needc, double *x,
 		double *c, double *cJac, int *nstate)
 {
+	//The line below prevents unnecessary calls to the allConstraintsFun() when no analytic Jacobians are used:
 	//if(*mode==1) return;
+	//TODO: be smart about when to do nothing if mode=1.
 
 	// "Note that if there are any nonlinear constraints then the
 	// first call to CONFUN will precede the first call to
@@ -202,6 +219,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	Eigen::ArrayXXd A(ldA, n);  // maybe transposed?
 	Eigen::VectorXd c(nlnwid);
 	Eigen::MatrixXd cJac(ldJ, n); // maybe transposed?
+	//cJac.setZero();
 	Eigen::VectorXd clambda(nctotl);
 	Eigen::VectorXd w(lenw);
 	Eigen::VectorXi istate(nctotl);
@@ -257,7 +275,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 			istate.data(), c.data(), cJac.data(),
 			clambda.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
 			iw.data(), &leniw, w.data(), &lenw);
-
+	
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
 	if (rf.bestEst.size() && ncnln+nclin == 0) {

@@ -17,10 +17,14 @@ powellmod1 <- mxModel(
 	mxConstraint(X[1,1]^3 + X[1,2]^3 + 1 == 0, name="c3"),
 	mxFitFunctionAlgebra(algebra="powellfunc",gradient="objgrad")
 )
+# powellmod1 <- mxRun(powellmod1,onlyFrontend=T)
+# powellmod1$compute$steps$GD$verbose <- 3L
+# powellmod1$compute$.persist <- TRUE
 powellrun1 <- mxRun(powellmod1)
 powellrun1$fitfunction$result
 powellrun1$output$iterations
 powellrun1$output$evaluations
+summary(powellrun1)
 
 powellmod2 <- mxModel(
 	"PowellBenchmarkWithJacobians",
@@ -44,14 +48,18 @@ powellmod2 <- mxModel(
 	mxAlgebra(cbind(3*X[1,1]^2, 3*X[1,2]^2, 0, 0, 0),name="jac3",dimnames=list(NULL,paste("x",1:5,sep=""))),
 	mxFitFunctionAlgebra(algebra="powellfunc",gradient="objgrad")
 )
+# powellmod2 <- mxRun(powellmod2,onlyFrontend=T)
+# powellmod2$compute$steps$GD$verbose <- 3L
+# powellmod2$compute$.persist <- TRUE
 powellrun2 <- mxRun(powellmod2)
 powellrun2$fitfunction$result
 powellrun2$output$iterations
 powellrun2$output$evaluations
+summary(powellrun2)
 
 #Right now, only NPSOL knows how to use analytic Jacobians:
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
-	#omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
-  omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations)
+	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
+  #omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations)
 }
