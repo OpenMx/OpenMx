@@ -57,9 +57,10 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 				omxRecompute(cs.jacobian, fc);
 				csize = cs.size;
 				for(c=0; c<nparam; c++){
+					if(cs.jacMap[c]<0){continue;}
 					for(roffset=0; roffset<csize; roffset++){
 						//The multiplication by -1 is weird, but apparently necessary(!):
-						jacobianOut(l+roffset,c) = -1 * cs.jacobian->data[c * csize + roffset];
+						jacobianOut(l+roffset,cs.jacMap[c]) = -1 * cs.jacobian->data[c * csize + roffset];
 					}
 				}
 			}
@@ -81,9 +82,10 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 					omxRecompute(cs.jacobian, fc);
 					csize = cs.size;
 					for(c=0; c<nparam; c++){
+						if(cs.jacMap[c]<0){continue;}
 						for(roffset=0; roffset<csize; roffset++){
 							//Likewise here:
-							jacobianOut(l+roffset,c) = -1 * cs.jacobian->data[c * csize + roffset];
+							jacobianOut(l+roffset,cs.jacMap[c]) = -1 * cs.jacobian->data[c * csize + roffset];
 						}
 					}
 				}

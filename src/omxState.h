@@ -119,6 +119,7 @@ class omxConstraint {
 	enum Type opCode;
 	int linear;
 	omxMatrix* jacobian;
+	std::vector<int> jacMap;
 
 	//Constraints created by backend for CIs use this, the base-class constructor:
         omxConstraint(const char *name) : name(name), linear(0), jacobian(NULL) {};

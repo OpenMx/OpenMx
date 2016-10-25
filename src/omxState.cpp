@@ -744,6 +744,14 @@ void UserConstraint::prep(FitContext *fc)
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
 	}
 	omxAlgebraPreeval(pad, fc);
+	if(jacobian){
+		jacMap.resize(jacobian->cols);
+		std::vector<const char*> *jacColNames = &jacobian->colnames;
+		for (size_t nx=0; nx < jacColNames->size(); ++nx) {
+			int to = fc->varGroup->lookupVar((*jacColNames)[nx]);
+			jacMap[nx] = to;
+		}
+	}
 }
 
 UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin) :
