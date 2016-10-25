@@ -102,10 +102,12 @@ powellmod3 <- mxModel(
 # powellmod3$compute$steps$GD$verbose <- 3L
 # powellmod3$compute$.persist <- TRUE
 powellrun3 <- mxRun(powellmod3)
-omxCheckCloseEnough(powellrun2$fitfunction$result, powellrun3$fitfunction$result)
-omxCheckEquals(powellrun2$output$iterations,powellrun3$output$iterations)
-omxCheckEquals(powellrun2$output$evaluations,powellrun3$output$evaluations)
-omxCheckCloseEnough(coef(powellrun2),coef(powellrun3))
+omxCheckCloseEnough(powellrun2$fitfunction$result, powellrun3$fitfunction$result,1e-12)
+if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+	omxCheckEquals(powellrun2$output$iterations,powellrun3$output$iterations)
+	omxCheckEquals(powellrun2$output$evaluations,powellrun3$output$evaluations)
+}
+omxCheckCloseEnough(coef(powellrun2),coef(powellrun3),1e-7)
 summary(powellrun3)
 
 
