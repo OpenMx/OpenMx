@@ -33,8 +33,8 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
                                                  Eigen::MatrixBase<T3> &needcIn, int mode)
 {
 	omxState *st = fc->state;
-	int l=0, j=0, c=0, roffset=0, csize;
-	int nparam = jacobianOut.cols();
+	int l=0, j=0, c=0, roffset=0, csize=0, sgn=0;
+	//int nparam = jacobianOut.cols();
 	switch(mode){
 	case 0:
 		for(j = 0; j < (int) st->conListX.size(); j++) {
@@ -56,23 +56,28 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 			if(needcIn(l) > 0 && cs.jacobian != NULL){
 				omxRecompute(cs.jacobian, fc);
 				csize = cs.size;
-				for(c=0; c<nparam; c++){
+				//For some reason we flip the sign of a constraint function's value in UserConstraint::refreshAndGrab() when it's
+				//an equality constraint--which confuses the heck out of NPSOL...:
+				sgn = (cs.opCode == omxConstraint::EQUALITY) ? -1 : 1;
+				for(c=0; c<cs.jacobian->cols; c++){
 					if(cs.jacMap[c]<0){continue;}
 					for(roffset=0; roffset<csize; roffset++){
-						//The multiplication by -1 is weird, but apparently necessary(!):
-						jacobianOut(l+roffset,cs.jacMap[c]) = -1 * cs.jacobian->data[c * csize + roffset];
+						jacobianOut(l+roffset,cs.jacMap[c]) = sgn * cs.jacobian->data[c * csize + roffset];
 					}
 				}
 			}
 			l += cs.size;
-			if (verbose >= 3) {
-				mxLog("mode 1");
-				mxPrintMat("Jacobian", jacobianOut);
-				mxLog("\n");
-			}
+		}
+		if (verbose >= 3) {
+			mxLog("mode 1");
+			mxPrintMat("Jacobian or -Jacobian", jacobianOut);
+			mxLog("\n");
 		}
 		break;
 	case 2:
+		if(verbose >= 3){
+			mxLog("mode 2");
+		}
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
@@ -81,22 +86,25 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 				if(cs.jacobian != NULL){
 					omxRecompute(cs.jacobian, fc);
 					csize = cs.size;
-					for(c=0; c<nparam; c++){
+					//Likewise here:
+					sgn = (cs.opCode == omxConstraint::EQUALITY) ? -1 : 1;
+					for(c=0; c<cs.jacobian->cols; c++){
 						if(cs.jacMap[c]<0){continue;}
 						for(roffset=0; roffset<csize; roffset++){
 							//Likewise here:
-							jacobianOut(l+roffset,cs.jacMap[c]) = -1 * cs.jacobian->data[c * csize + roffset];
+							jacobianOut(l+roffset,cs.jacMap[c]) = sgn * cs.jacobian->data[c * csize + roffset];
 						}
 					}
 				}
 			}
 			l += cs.size;
 			if (verbose >= 3) {
-				mxLog("mode 2");
 				mxPrintMat("constraints", constraintOut);
-				mxPrintMat("Jacobian", jacobianOut);
-				mxLog("\n");
 			}
+		}
+		if(verbose >= 3){
+			mxPrintMat("Jacobian or -Jacobian", jacobianOut);
+			mxLog("\n");
 		}
 		break;
 	}
@@ -148,6 +156,30 @@ void F77_SUB(npsolConstraintFunction)
 	Eigen::Map< Eigen::MatrixXd > cJacE(cJac, *ldJ, *n);
 	Eigen::Map< Eigen::VectorXi > needcE(needc, *ncnln);
 	NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, *mode);
+}
+
+template <typename T1> 
+void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc)
+{
+	omxState *st = fc->state;
+	int i=0, clm=0, roffset=0, k=0, sgn=0;
+	for(i=0; i < (int) st->conListX.size(); i++){
+		omxConstraint &cs = *st->conListX[i];
+		if(!(cs.linear)){continue;}
+		if(cs.jacobian == NULL){Rf_error("in %s: user must provide all linear MxConstraints with a Jacobian",cs.name);}
+		sgn = (cs.opCode == omxConstraint::EQUALITY) ? -1 : 1;
+		for(clm=0; clm<cs.jacobian->cols; clm++){
+			if(cs.jacMap[clm]<0){continue;}
+			for(roffset=0; roffset<cs.size; roffset++){
+				//Need to multiply by -1 here...?:
+				lcc(k+roffset,cs.jacMap[clm]) = sgn * cs.jacobian->data[clm * cs.size + roffset];
+			}
+		}
+		k += cs.size;
+	}
+	if (verbose >= 3) {
+		mxPrintMat("A", lcc);
+	}
 }
 
 static double getNPSOLFeasibilityTolerance()
@@ -218,10 +250,13 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
         int ldR = n;                // TODO: Test alternative versions of the size of R to see what's best.
  
     /* Allocate arrays */
-	Eigen::ArrayXXd A(ldA, n);  // maybe transposed?
+	Eigen::MatrixXd A(ldA, n);  // maybe transposed?
+	if(nclin){
+		A.setZero();
+		rf.linearConstraintCoefficients(A);
+	}
 	Eigen::VectorXd c(nlnwid);
-	Eigen::MatrixXd cJac(ldJ, n); // maybe transposed?
-	//cJac.setZero();
+	Eigen::MatrixXd cJac(ldJ, n);
 	Eigen::VectorXd clambda(nctotl);
 	Eigen::VectorXd w(lenw);
 	Eigen::VectorXi istate(nctotl);
