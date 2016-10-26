@@ -247,7 +247,7 @@ runHelper <- function(model, frontendStart,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
 			data, intervalList, communication, options, defVars,
-			silent, PACKAGE = "OpenMx")
+			silent || !interactive(), PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
 	model <- updateModelMatrices(model, flatModel, output$matrices)

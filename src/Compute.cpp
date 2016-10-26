@@ -1471,12 +1471,15 @@ class omxComputeSequence : public ComputeContainer {
 class omxComputeIterate : public ComputeContainer {
 	typedef ComputeContainer super;
 	int maxIter;
+	double maxDuration;
 	double tolerance;
+	int iterations;
 	int verbose;
 
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual ~omxComputeIterate();
 };
 
@@ -1737,9 +1740,14 @@ void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 	maxIter = INTEGER(slotValue)[0];
 	}
 
+	{
+		ProtectedSEXP RmaxDur(R_do_slot(rObj, Rf_install("maxDuration")));
+		maxDuration = Rf_asReal(RmaxDur);
+	}
+
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) Rf_error("tolerance must be positive");
+	if (std::isfinite(tolerance) && tolerance <= 0) Rf_error("tolerance must be positive");
 	}
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
@@ -1762,14 +1770,16 @@ void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(slotValue);
 	}
+	iterations = 0;
 }
 
 void omxComputeIterate::computeImpl(FitContext *fc)
 {
-	int iter = 0;
 	double prevFit = 0;
 	double mac = tolerance * 10;
+	time_t startTime = time(0);
 	while (1) {
+		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
@@ -1798,11 +1808,22 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			}
 			prevFit = fc->fit;
 		}
-		if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
-			omxRaiseErrorf("ComputeIterate: neither MAC nor fit available");
+		if (std::isfinite(tolerance)) {
+			if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
+				omxRaiseErrorf("ComputeIterate: neither MAC nor fit available");
+			}
+			if (mac < tolerance) break;
 		}
-		if (isErrorRaised() || ++iter > maxIter || mac < tolerance) break;
+		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
+		if (isErrorRaised() || iterations >= maxIter) break;
 	}
+}
+
+void omxComputeIterate::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
+	MxRList output;
+	output.add("iterations", Rf_ScalarInteger(iterations));
+	slots->add("output", output.asR());
 }
 
 omxComputeIterate::~omxComputeIterate()

@@ -90,6 +90,8 @@ The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/document
 
 Hu, L., & Bentler, P. M. (1999). Cutoff criteria for fit indexes in covariance structure analysis: Conventional criteria versus new alternatives. \emph{Structural Equation Modeling, 6,} 1-55.
 
+Savalei, V. (2012). The relationship between root mean square error of approximation and model misspecification in confirmatory factor analysis models. \emph{Educational and Psychological Measurement, 72}(6), 910-932.
+
 Sharma, S., Mukherjee, S., Kumar, A., & Dillon, W.R. (2005). A simulation study to investigate the use of cutoff values for assessing model fit in covariance structure models. \emph{Journal of Business Research, 58,} 935-43.
 
 Steiger, J. H. (1998). A note on multiple sample extensions of the RMSEA fit index. \emph{Structural Equation Modeling: A Multidisciplinary Journal, 5(4)}, 411-419. DOI: 10.1080/10705519809540115

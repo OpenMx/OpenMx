@@ -276,6 +276,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	}
 	
 	omxWLSFitFunction *newObj = (omxWLSFitFunction*) R_alloc(1, sizeof(omxWLSFitFunction));
+	OMXZERO(newObj, 1);
 	oo->argStruct = (void*)newObj;
 	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	
@@ -349,7 +350,9 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->standardExpectedCov = omxInitMatrix(newObj->expectedCov->rows, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
-	newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
+	if (oo->expectation->thresholdsMat) {
+		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
+	}
 	newObj->standardExpectedMeans = omxInitMatrix(1, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
