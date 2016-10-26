@@ -872,10 +872,11 @@ setClass(Class = "MxComputeIterate",
 	 representation = representation(
 	   maxIter = "integer",
 	   tolerance = "numeric",
-	   verbose = "integer"))
+	   verbose = "integer",
+	   maxDuration = "numeric"))
 
 setMethod("initialize", "MxComputeIterate",
-	  function(.Object, steps, maxIter, tolerance, verbose, freeSet) {
+	  function(.Object, steps, maxIter, tolerance, verbose, freeSet, maxDuration) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
@@ -883,6 +884,7 @@ setMethod("initialize", "MxComputeIterate",
 		  .Object@tolerance <- tolerance
 		  .Object@verbose <- verbose
 		  .Object@freeSet <- freeSet
+		  .Object@maxDuration <- maxDuration
 		  .Object
 	  })
 
@@ -896,9 +898,11 @@ setMethod("initialize", "MxComputeIterate",
 ##' @param tolerance iterates until maximum relative change is less than tolerance
 ##' @param verbose level of debugging output
 ##' @param freeSet Names of matrices containing free variables.
+##' @param maxDuration the maximum amount of time (in seconds) to iterate
 ##' @aliases
 ##' MxComputeIterate-class
-mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_) {
+mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
+			     maxDuration=as.numeric(NA)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeIterate does not accept values for the '...' argument")
@@ -906,7 +910,8 @@ mxComputeIterate <- function(steps, ..., maxIter=500L, tolerance=1e-9, verbose=0
 
 	verbose <- as.integer(verbose)
 	maxIter <- as.integer(maxIter)
-	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance, verbose, freeSet)
+	new("MxComputeIterate", steps=steps, maxIter=maxIter, tolerance=tolerance,
+	    verbose, freeSet, maxDuration)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
@@ -914,6 +919,7 @@ setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "maxIter :", Ob@maxIter, '\n')
+		  cat(sp, "maxDuration :", Ob@maxDuration, '\n')
 		  cat(sp, "tolerance :", Ob@tolerance, '\n')
 		  cat(sp, "verbose :", Ob@verbose, '\n')
 		  for (step in 1:length(Ob@steps)) {
