@@ -349,15 +349,15 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->standardExpectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->standardExpectedCov = omxInitMatrix(newObj->expectedCov->rows, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
+	newObj->standardExpectedCov = omxInitMatrix(ncol, ncol, TRUE, oo->matrix->currentState);
 	if (oo->expectation->thresholdsMat) {
 		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
 	}
-	newObj->standardExpectedMeans = omxInitMatrix(1, newObj->expectedCov->cols, TRUE, oo->matrix->currentState);
+	newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, oo->matrix->currentState);
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
+	
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
-
 
 }
