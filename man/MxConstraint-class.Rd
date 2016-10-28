@@ -40,7 +40,7 @@
     \item{\code{alg2}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
     \item{\code{relation}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
     \item{\code{jac}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \link{MxAlgebra} representing the Jacobian for the constraint function.}
-    \item{\code{linear}:}{Logical; is the constraint linear in the free parameters?}
+    \item{\code{linear}:}{Logical. For internal use.}
   }
 }
 

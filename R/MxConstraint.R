@@ -26,15 +26,15 @@ setClass(Class = "MxConstraint",
 	))
 	
 setMethod("initialize", "MxConstraint",
-	function(.Object, name, formula, jac=character(0), linear=FALSE) {
+	function(.Object, name, formula, jac=character(0)){#, linear=FALSE) {
 		.Object@name <- name
 		.Object@formula <- formula
 		.Object@alg1 <- as.character(NA)
 		.Object@alg2 <- as.character(NA)
 		.Object@relation <- as.character(NA)
-		if(linear && is.null(jac)){stop("linear constraints must be provided with a Jacobian")}
+		#if(linear && is.null(jac)){stop("linear constraints must be provided with a Jacobian")}
 		.Object@jac <- jac
-		.Object@linear <- linear
+		.Object@linear <- FALSE
 		return(.Object)
 	}
 )
@@ -44,11 +44,11 @@ mxConstraintFromString <- function(exprString, name = NA,...) {
 			list(tExp = parse(text=exprString)[[1]])))
 }
 
-mxConstraint <- function(expression, name=NA, ..., jac=character(0), linear=FALSE) {
+mxConstraint <- function(expression, name=NA, ..., jac=character(0)){#, linear=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		# user may have added an illegal parameter, or an illegal symbol in the expression
-		stop("mxConstraint accepts at most only four arguments. Check that you've used only the legal comparators (<, ==, >) in the constraint formula.")
+		stop("mxConstraint accepts at most only three arguments. Check that you've used only the legal comparators (<, ==, >) in the constraint formula.")
 	}
 	
 	if (single.na(name)) {
@@ -73,7 +73,7 @@ mxConstraint <- function(expression, name=NA, ..., jac=character(0), linear=FALS
 	}
     algebraErrorChecking(formula[[2]], "mxConstraint")
     algebraErrorChecking(formula[[3]], "mxConstraint")
-	return(new("MxConstraint", name, formula, jac, linear))
+	return(new("MxConstraint", name, formula, jac))#, linear))
 }
 
 convertConstraints <- function(flatModel) {
@@ -98,7 +98,7 @@ convertSingleConstraint <- function(constraint, flatModel) {
 		stop(msg, call.=FALSE)
 	}
 	index4 <- imxLocateIndex(flatModel, constraint@jac, constraint@name)
-	lin <- constraint@linear
+	lin <- FALSE
 	return(list(index1,index2,index3 - 1,index4,lin))
 }
 
