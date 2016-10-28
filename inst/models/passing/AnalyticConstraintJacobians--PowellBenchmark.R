@@ -256,3 +256,14 @@ powellrun7$fitfunction$result
 powellrun7$output$iterations
 powellrun7$output$evaluations
 summary(powellrun7)
+
+if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+	tbl <- data.frame(
+		c("Yes","Yes","No","No"),c("No","Yes","Yes","No"),
+		c(powellrun1$output$evaluations,powellrun2$output$evaluations,powellrun6$output$evaluations,
+			powellrun7$output$evaluations), row.names=c("powellrun1","powellrun2","powellrun6","powellrun7"),
+		stringsAsFactors=F
+		)
+	colnames(tbl) <- c("Gradient?","Jacobians?","Fitfunction evaluations")
+	print(tbl)
+}
