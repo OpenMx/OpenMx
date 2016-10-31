@@ -74,6 +74,7 @@ struct omxFIMLFitFunction {
 	int numContinuous;
 	OrdinalLikelihood ol;
 
+	int verbose;
 	bool inUse;
 	std::vector<int> indexVector;
 	std::vector<bool> sameAsPrevious;
@@ -164,6 +165,7 @@ class mvnByRow {
 	Eigen::VectorXi iDataBuf;
 	Eigen::VectorXi ordColBuf;
 	std::vector<bool> isMissing;
+	int verbose;
 
 	struct subsetOp {
 		std::vector<bool> &isOrdinal;
@@ -211,6 +213,7 @@ class mvnByRow {
 		ordColBuf.resize(numOrdinal);
 		isMissing.resize(dataColumns.size());
 		useSufficientSets = ofiml->useSufficientSets;
+		verbose = ofiml->verbose;
 
 		if (row > 0) {
 			while (row < lastrow && sameAsPrevious[row]) row += 1;

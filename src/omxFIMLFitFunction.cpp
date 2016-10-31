@@ -233,6 +233,9 @@ bool condContByRow::eval()
 	double contLik = 1.0;
 	double ordLik = 1.0;
 
+	int startRow = row;
+	nanotime_t startTime = get_nanotime();
+
 	while(row < lastrow) {
 		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
@@ -330,6 +333,9 @@ bool condContByRow::eval()
 
 		recordRow(contLik * ordLik);
 	}
+
+	if (verbose >= 2) mxLog("%d-%d %.2fms", startRow, lastrow, (get_nanotime() - startTime)/1000000.0);
+
 	return false;
 }
 
@@ -603,7 +609,8 @@ static void sortData(omxFitFunction *off)
 	FIMLCompare cmp(off->expectation, ofiml->jointStrat == JOINT_CONDORD);
 
 	if (data->needSort) {
-		if (OMX_DEBUG) mxLog("sort %s for %s", data->name, off->name());
+		if (ofiml->verbose >= 1) mxLog("sort %s strategy %d for %s",
+					       data->name, ofiml->jointStrat, off->name());
 		//if (ofiml->jointStrat == JOINT_OLD) cmp.old = true;
 		//cmp.old=true;
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
@@ -885,6 +892,11 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	SEXP rObj = off->rObj;
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 
+	{
+		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+		newObj->verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
+	}
+
 	const char *jointStrat = CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("jointConditionOn"))));
 	if (strEQ(jointStrat, "auto")) {
 		newObj->jointStrat = JOINT_AUTO;
@@ -930,8 +942,12 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->numOrdinal = numOrdinal;
 	newObj->numContinuous = numContinuous;
 
-	if (0 == numOrdinal && newObj->jointStrat == JOINT_AUTO) {
-		newObj->jointStrat = JOINT_CONDORD;
+	if (newObj->jointStrat == JOINT_AUTO) {
+		if (0 == numOrdinal) {
+			newObj->jointStrat = JOINT_CONDORD;
+		} else {
+			newObj->jointStrat = JOINT_CONDCONT;
+		}
 	}
 
     /* Temporary storage for calculation */
