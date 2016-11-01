@@ -850,6 +850,7 @@ namespace RelationalRAMExpectation {
 
 	void state::identifyZeroVarPred(FitContext *fc)
 	{
+		// Maybe too restrictive TODO
 		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) (*it);
 			omxData *data = (*it)->data;
