@@ -234,7 +234,8 @@ bool condContByRow::eval()
 	double ordLik = 1.0;
 
 	int startRow = row;
-	nanotime_t startTime = get_nanotime();
+	nanotime_t startTime = 0;
+	if (verbose >= 2) startTime = get_nanotime();
 
 	while(row < lastrow) {
 		if (!loadRow()) return true;
