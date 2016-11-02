@@ -130,8 +130,11 @@ class FitContext {
 	std::string IterationError;
 	int computeCount;
 	ComputeInform inform;
+	int id;
+	static int nextId;
 
  public:
+	int getId() const { return id; };
 	FreeVarGroup *varGroup;
 	omxState *state;
 	omxState *getParentState() const { return parent->state; };

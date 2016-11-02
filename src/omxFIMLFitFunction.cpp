@@ -23,6 +23,12 @@
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
+nanotime_t omxFIMLFitFunction::getMedianElapsedTime()
+{
+	std::sort(elapsed.begin(), elapsed.end());
+	return elapsed[elapsed.size() / 2];
+}
+
 template <typename T1, typename T2, typename T3, typename T4>
 void upperRightCovariance(const Eigen::MatrixBase<T1> &gcov,
 			  T2 filterTest, T3 includeTest,
@@ -76,11 +82,6 @@ bool condOrdByRow::eval()
 			auto &prev = sufficientSets[ssx-1];
 			if (row <= prev.start + prev.length - 1) row = prev.start + prev.length;
 		}
-	}
-
-	if (row >= lastrow) {
-#pragma atomic
-		ofiml->unnecessaryThr += 1;
 	}
 
 	while(row < lastrow) {
@@ -233,10 +234,6 @@ bool condContByRow::eval()
 	double contLik = 1.0;
 	double ordLik = 1.0;
 
-	int startRow = row;
-	nanotime_t startTime = 0;
-	if (verbose >= 2) startTime = get_nanotime();
-
 	while(row < lastrow) {
 		if (!loadRow()) return true;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
@@ -334,8 +331,6 @@ bool condContByRow::eval()
 
 		recordRow(contLik * ordLik);
 	}
-
-	if (verbose >= 2) mxLog("%d-%d %.2fms", startRow, lastrow, (get_nanotime() - startTime)/1000000.0);
 
 	return false;
 }
@@ -705,30 +700,90 @@ static void sortData(omxFitFunction *off)
 			ofiml->sameAsPrevious[rx] = true;
 		}
 		if (prevSS != -1) addSufficientSet(off, prevSS, data->rows-1);
+		if (ofiml->verbose >= 3) {
+			mxLog("key: row ordinalMissingSame continuousMissingSame missingSameOrdinalSame missingSameContinuousSame continuousSame missingSame ordinalSame");
+			for (int rx=0; rx < data->rows; ++rx) {
+				mxLog("%d %d %d %d %d %d %d %d", rx,
+				      bool(ofiml->ordinalMissingSame[rx]),
+				      bool(ofiml->continuousMissingSame[rx]),
+				      bool(ofiml->missingSameOrdinalSame[rx]),
+				      bool(ofiml->missingSameContinuousSame[rx]),
+				      bool(ofiml->continuousSame[rx]),
+				      bool(ofiml->missingSame[rx]),
+				      bool(ofiml->ordinalSame[rx]));
+			}
+		}
 		break;}
 	}
 }
 
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
-			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml, int rowbegin, int rowcount)
+			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
 {
 	switch (ofiml->jointStrat) {
 	case JOINT_OLD:{
-		oldByRow batch(_fc, _localobj, parent, ofiml, rowbegin, rowcount);
+		oldByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
 	case JOINT_CONDORD:{
-		condOrdByRow batch(_fc, _localobj, parent, ofiml, rowbegin, rowcount);
+		condOrdByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
 	case JOINT_AUTO:
 	case JOINT_CONDCONT:{
-		condContByRow batch(_fc, _localobj, parent, ofiml, rowbegin, rowcount);
+		condContByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
 	default: Rf_error("oops");
 	}
 }
+
+static omxFIMLFitFunction *getChildFIMLObj(FitContext *fc, omxMatrix *fitMatrix, int i)
+{
+	FitContext *kid = fc->childList[i];
+	omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
+	omxFitFunction *childFit = childMatrix->fitFunction;
+	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
+	return ofo;
+}
+
+static void recalcRowBegin(FitContext *fc, omxMatrix *fitMatrix, int parallelism)
+{
+	if (parallelism == 1) {
+		omxFIMLFitFunction *ff = ((omxFIMLFitFunction*)fitMatrix->fitFunction->argStruct);
+		ff->rowBegin = 0;
+	} else {
+		int begin = 0;
+		for(int i = 0; i < parallelism; i++) {
+			omxFIMLFitFunction *ff = getChildFIMLObj(fc, fitMatrix, i);
+			//mxLog("%d--%d", begin, ff->rowCount);
+			ff->rowBegin = begin;
+			begin += ff->rowCount;
+		}
+	}
+}
+
+static void setParallelism(FitContext *fc, omxData *data, omxFIMLFitFunction *parent,
+			   omxMatrix *fitMatrix, int parallelism)
+{
+	if (parallelism == 1) {
+		omxFIMLFitFunction *ff = ((omxFIMLFitFunction*)fitMatrix->fitFunction->argStruct);
+		ff->rowCount = data->rows;
+	} else {
+		int stride = (data->rows / parallelism);
+
+		for(int i = 0; i < parallelism; i++) {
+			omxFIMLFitFunction *ff = getChildFIMLObj(fc, fitMatrix, i);
+			int rowcount = stride;
+			if (i == parallelism-1) rowcount = data->rows - stride*i;
+			ff->rowCount = rowcount;
+		}
+	}
+	recalcRowBegin(fc, fitMatrix, parallelism);
+	parent->curParallelism = parallelism;
+}
+
+#define ELAPSED_HISTORY_SIZE 5
 
 static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 {
@@ -740,6 +795,8 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		if (fc->isClone()) {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction->argStruct;
+			ofiml->elapsed.resize(ELAPSED_HISTORY_SIZE);
+			ofiml->curElapsed = NA_INTEGER;
 		} else {
 			off->openmpUser = ofiml->rowwiseParallel != 0;
 			if (!ofiml->indexVector.size()) sortData(off);
@@ -751,7 +808,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	if(OMX_DEBUG) mxLog("%s: joint FIML; openmpUser=%d", off->name(), off->openmpUser);
 
 	omxMatrix* fitMatrix  = off->matrix;
-	int numChildren = fc? fc->childList.size() : 0;
 
 	omxMatrix *means	= ofiml->means;
 	omxData* data           = ofiml->data;                            //  read-only
@@ -767,38 +823,79 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	bool failed = false;
 
-	int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
-
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (parent->curParallelism > 1 && fc->childList.size() == 0) {
+		setParallelism(fc, data, parent, fitMatrix, 1);
 	}
-	parallelism -= ofiml->unnecessaryThr;
+	if (parent->curParallelism == 0 ||
+	    (fc->childList.size() && parent->child0Id != fc->childList[0]->getId())) {
+		int numChildren = fc? fc->childList.size() : 0;
+		int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
+		if (OMX_DEBUG_FIML_STATS) parallelism = 1;
+		if (parallelism > data->rows) parallelism = data->rows;
+		setParallelism(fc, data, parent, fitMatrix, parallelism);
+		if (fc->childList.size()) {
+			parent->child0Id = fc->childList[0]->getId();
+		} else {
+			parent->child0Id = 0;
+		}
+		parent->curElapsed = 0;
+	}
 
-	//mxLog("par=%d", parallelism);
-	if (parallelism > 1) {
-		int stride = (data->rows / parallelism);
+	nanotime_t startTime = 0;
+	if (ofiml->verbose >= 2) {
+		startTime = get_nanotime();
+		mxLog("%s eval with par=%d", off->name(), parent->curParallelism);
+	}
 
+	bool reduceParallelism = false;
+	if (parent->curParallelism > 1) {
 		if (OMX_DEBUG) {
-			FitContext *kid = fc->childList[0];
-			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
-			omxFitFunction *childFit = childMatrix->fitFunction;
-			omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
+			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, 0);
 			if (!ofo->parent) Rf_error("oops");
 		}
 
-#pragma omp parallel for num_threads(parallelism) reduction(||:failed)
-		for(int i = 0; i < parallelism; i++) {
-			int rowbegin = stride*i;
-			int rowcount = stride;
-			if (i == parallelism-1) rowcount = data->rows - rowbegin;
+#pragma omp parallel for num_threads(parent->curParallelism) reduction(||:failed)
+		for(int i = 0; i < parent->curParallelism; i++) {
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			failed |= dispatchByRow(kid, childFit, parent, ofiml, rowbegin, rowcount);
+			failed |= dispatchByRow(kid, childFit, parent, ofiml);
+		}
+		parent->curElapsed = (parent->curElapsed+1) % ELAPSED_HISTORY_SIZE;
+		if (parent->curElapsed == 0) {
+			std::vector<nanotime_t> elapsed;
+			elapsed.reserve(parent->curParallelism);
+			for (int tx=0; tx < parent->curParallelism; ++tx) {
+				omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
+				elapsed.push_back(ofo->getMedianElapsedTime());
+			}
+			auto mm = std::minmax_element(elapsed.begin(), elapsed.end());
+			int minT = mm.first - elapsed.begin();
+			int maxT = mm.second - elapsed.begin();
+			if (*mm.first < 1000000) { // 1ms
+				reduceParallelism = true;
+			} else {
+				double imbalance = (*mm.second - *mm.first) / (5.0 * (*mm.second + *mm.first));
+				imbalance = std::min(imbalance, 0.2);
+				omxFIMLFitFunction *minC = getChildFIMLObj(fc, fitMatrix, minT);
+				omxFIMLFitFunction *maxC = getChildFIMLObj(fc, fitMatrix, maxT);
+				int toMove = maxC->rowCount * imbalance;
+				if (toMove > 0) {
+					if (ofiml->verbose >= 2) {
+						mxLog("transfer work %d (%.2f%%) from thread %d to %d",
+						      toMove, imbalance*100, maxT, minT);
+					}
+					minC->rowCount += toMove;
+					maxC->rowCount -= toMove;
+					recalcRowBegin(fc, fitMatrix, parent->curParallelism);
+				}
+			}
 		}
 	} else {
-		failed |= dispatchByRow(fc, off, parent, ofiml, 0, data->rows);
+		failed |= dispatchByRow(fc, off, parent, ofiml);
 	}
+
+	if (ofiml->verbose >= 2) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
 
 	if (failed) {
 		if(!returnRowLikelihoods) {
@@ -811,9 +908,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	}
 
 	if(!returnRowLikelihoods) {
-		if (parallelism > 1) {
+		if (parent->curParallelism > 1) {
 			double sum = 0.0;
-			for(int i = 0; i < parallelism; i++) {
+			for(int i = 0; i < parent->curParallelism; i++) {
 				FitContext *kid = fc->childList[i];
 				omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 				EigenVectorAdaptor got(childMatrix);
@@ -832,6 +929,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxPrintMatrix(ofiml->rowLikelihoods, "row likelihoods");
 		}
 	}
+	if (reduceParallelism) {
+		setParallelism(fc, data, parent, fitMatrix, parent->curParallelism - 1);
+		if (ofiml->verbose >= 2) {
+			mxLog("reducing number of threads to %d", parent->curParallelism);
+		}
+	}
 }
 
 void omxInitFIMLFitFunction(omxFitFunction* off)
@@ -848,7 +951,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	}
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
-	newObj->unnecessaryThr = 0;
+	newObj->curParallelism = 0;
+	newObj->child0Id = 0;
 	newObj->inUse = false;
 	newObj->parent = 0;
 	newObj->expectationComputeCount = 0;

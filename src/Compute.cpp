@@ -655,8 +655,11 @@ int HessianBlock::estNonZero() const
 	}
 }
 
+int FitContext::nextId=0;
+
 void FitContext::init()
 {
+	id = ++nextId;
 	numParam = varGroup->vars.size();
 	wanted = 0;
 	mac = parent? parent->mac : 0;
