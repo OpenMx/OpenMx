@@ -798,8 +798,16 @@ void FitContext::updateParent()
 int FitContext::getGlobalComputeCount()
 {
 	FitContext *fc = this;
-	while (fc->parent) fc = fc->parent;
-	return fc->getLocalComputeCount();
+	if (fc->parent && fc->parent->childList.size()) {
+		// Kids for multithreading only appear as leaves of tree
+		fc = fc->parent;
+	}
+	int cc = fc->getLocalComputeCount();
+	while (fc->parent) {
+		fc = fc->parent;
+		cc += fc->getLocalComputeCount();
+	}
+	return cc;
 }
 
 int FitContext::getLocalComputeCount()
