@@ -68,7 +68,7 @@ struct omxFIMLFitFunction {
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
 
-	int child0Id;
+	omxState *origState;
 	int curParallelism;
 	int rowBegin;
 	int rowCount;

@@ -738,11 +738,17 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 	}
 }
 
-static omxFIMLFitFunction *getChildFIMLObj(FitContext *fc, omxMatrix *fitMatrix, int i)
+static omxFitFunction *getChildFitObj(FitContext *fc, omxMatrix *fitMatrix, int i)
 {
 	FitContext *kid = fc->childList[i];
 	omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 	omxFitFunction *childFit = childMatrix->fitFunction;
+	return childFit;
+}
+
+static omxFIMLFitFunction *getChildFIMLObj(FitContext *fc, omxMatrix *fitMatrix, int i)
+{
+	omxFitFunction *childFit = getChildFitObj(fc, fitMatrix, i);
 	omxFIMLFitFunction* ofo = ((omxFIMLFitFunction*) childFit->argStruct);
 	return ofo;
 }
@@ -826,18 +832,19 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	if (parent->curParallelism > 1 && fc->childList.size() == 0) {
 		setParallelism(fc, data, parent, fitMatrix, 1);
 	}
-	if (parent->curParallelism == 0 ||
-	    (fc->childList.size() && parent->child0Id != fc->childList[0]->getId())) {
+
+	omxState *childState = 0;
+	if (fc->childList.size()) {
+		omxFitFunction *ff = getChildFitObj(fc, fitMatrix, 0);
+		childState = ff->matrix->currentState;
+	}
+	if (parent->curParallelism == 0 || parent->origState != childState) {
 		int numChildren = fc? fc->childList.size() : 0;
 		int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 		if (OMX_DEBUG_FIML_STATS) parallelism = 1;
 		if (parallelism > data->rows) parallelism = data->rows;
 		setParallelism(fc, data, parent, fitMatrix, parallelism);
-		if (fc->childList.size()) {
-			parent->child0Id = fc->childList[0]->getId();
-		} else {
-			parent->child0Id = 0;
-		}
+		parent->origState = childState;
 		parent->curElapsed = 0;
 	}
 
@@ -952,7 +959,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->curParallelism = 0;
-	newObj->child0Id = 0;
+	newObj->origState = 0;
 	newObj->inUse = false;
 	newObj->parent = 0;
 	newObj->expectationComputeCount = 0;
