@@ -34,13 +34,12 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 {
 	omxState *st = fc->state;
 	int l=0, j=0, c=0, roffset=0, csize=0, sgn=0;
-	//int nparam = jacobianOut.cols();
 	switch(mode){
 	case 0:
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
-			if(needcIn(l) > 0){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
+			if(needcIn(l) > 0 || !usingAnalyticJacobian){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
 			l += cs.size;
 			if (verbose >= 3) {
 				mxLog("mode 0");
@@ -81,7 +80,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
-			if(needcIn(l) > 0){
+			if(needcIn(l) > 0 || !usingAnalyticJacobian){
 				cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 				if(cs.jacobian != NULL){
 					omxRecompute(cs.jacobian, fc);
@@ -144,8 +143,7 @@ void F77_SUB(npsolConstraintFunction)
 		double *c, double *cJac, int *nstate)
 {
 	//The line below prevents unnecessary calls to the allConstraintsFun() when no analytic Jacobians are used:
-	//if(*mode==1) return;
-	//TODO: be smart about when to do nothing if mode=1.
+	if( !(NPSOL_GOpt->usingAnalyticJacobian) && *mode==1){return;}
 
 	// "Note that if there are any nonlinear constraints then the
 	// first call to CONFUN will precede the first call to
@@ -179,6 +177,19 @@ void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1
 	}
 	if (verbose >= 3) {
 		mxPrintMat("A", lcc);
+	}
+}
+
+void GradientOptimizerContext::checkForAnalyticJacobians()
+{
+	usingAnalyticJacobian = false;
+	omxState *st = fc->state;
+	for(int i=0; i < (int) st->conListX.size(); i++){
+		omxConstraint &cs = *st->conListX[i];
+		if(cs.jacobian){
+			usingAnalyticJacobian = true;
+			return;
+		}
 	}
 }
 
@@ -335,6 +346,8 @@ void omxNPSOL(GradientOptimizerContext &rf)
 	int nl_equality, nl_inequality, l_equality, l_inequality;
 	st->countNonlinearConstraints(nl_equality, nl_inequality, true);
 	st->countLinearConstraints(l_equality, l_inequality);
+	
+	rf.checkForAnalyticJacobians();
 
 	omxNPSOL1(est, rf, nl_equality, nl_inequality, l_equality, l_inequality);
 
