@@ -67,13 +67,21 @@ struct omxFIMLFitFunction {
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
-	int unnecessaryThr;
+
+	omxState *origState;
+	int curParallelism;
+	int rowBegin;
+	int rowCount;
+	int curElapsed;
+	std::vector<nanotime_t> elapsed;
+	nanotime_t getMedianElapsedTime();
 
 	std::vector<bool> isOrdinal;
 	int numOrdinal;
 	int numContinuous;
 	OrdinalLikelihood ol;
 
+	int verbose;
 	bool inUse;
 	std::vector<int> indexVector;
 	std::vector<bool> sameAsPrevious;
@@ -125,10 +133,6 @@ omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numR
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
-bool omxFIMLSingleIterationJoint(FitContext *fc, omxFitFunction *localobj,
-				 omxMatrix* output,
-				 int rowbegin, int rowcount);
-
 class mvnByRow {
 	omxFitFunction *localobj;
  public:
@@ -164,6 +168,8 @@ class mvnByRow {
 	Eigen::VectorXi iDataBuf;
 	Eigen::VectorXi ordColBuf;
 	std::vector<bool> isMissing;
+	int verbose;
+	nanotime_t startTime;
 
 	struct subsetOp {
 		std::vector<bool> &isOrdinal;
@@ -176,7 +182,7 @@ class mvnByRow {
 	} op;
 
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
+		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
 	:
 	ofo((omxFIMLFitFunction*) _localobj->argStruct),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
@@ -191,8 +197,8 @@ class mvnByRow {
 	{
 		data = ofo->data;
 		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
-		row = rowbegin;
-		lastrow = rowbegin + rowcount;
+		row = ofo->rowBegin;
+		lastrow = ofo->rowBegin + ofo->rowCount;
 		firstRow = true;
 		thresholdsMat = expectation->thresholdsMat;
 		cov = ofo->cov;
@@ -211,9 +217,22 @@ class mvnByRow {
 		ordColBuf.resize(numOrdinal);
 		isMissing.resize(dataColumns.size());
 		useSufficientSets = ofiml->useSufficientSets;
+		verbose = ofiml->verbose;
+
+		if (fc->isClone()) {  // rowwise parallel
+			startTime = get_nanotime();
+		}
 
 		if (row > 0) {
 			while (row < lastrow && sameAsPrevious[row]) row += 1;
+		}
+	};
+
+	~mvnByRow() {
+		if (fc->isClone()) {  // rowwise parallel
+			double el1 = get_nanotime() - startTime;
+			ofo->elapsed[shared_ofo->curElapsed] = el1;
+			if (verbose >= 3) mxLog("%d--%d %.2fms", ofo->rowBegin, ofo->rowCount, el1/1000000.0);
 		}
 	};
 
@@ -312,24 +331,24 @@ class mvnByRow {
 struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
 	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
-		      omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
+		      omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
+		: super(_fc, _localobj, _parent, _ofiml) {};
 	bool eval();
 };
 
 struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
 	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
+		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
+		: super(_fc, _localobj, _parent, _ofiml) {};
 	bool eval();
 };
 
 struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
 	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml, int rowbegin, int rowcount)
-		: super(_fc, _localobj, _parent, _ofiml, rowbegin, rowcount) {};
+		     omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
+		: super(_fc, _localobj, _parent, _ofiml) {};
 	bool eval();
 };
 

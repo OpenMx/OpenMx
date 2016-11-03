@@ -181,6 +181,7 @@ rr2 <- mxFactorScores(factorRamRun, 'Regression')
 rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
 
 
+# Compare RAM factor scores to LISREL
 omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
 omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1)
 omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
@@ -190,6 +191,12 @@ rms <- function(x, y){sqrt(mean((x-y)^2))}
 omxCheckCloseEnough(rms(rr1[,,1], r1[,,1]), 0, .1)
 omxCheckCloseEnough(rms(rr2[,,1], r2[,,1]), 0, .1)
 omxCheckCloseEnough(rms(rr3[,,1], r3[,,1]), 0, .1)
+
+
+# Compare RAM standard errors to LISREL
+omxCheckCloseEnough(rms(rr1[,,2], r1[,,2]), 0, .001)
+omxCheckCloseEnough(rms(rr2[,,2], r2[,,2]), 0, .001)
+omxCheckCloseEnough(rms(rr3[,,2], r3[,,2]), 0, .001)
 
 
 #------------------------------------------------------------------------------
