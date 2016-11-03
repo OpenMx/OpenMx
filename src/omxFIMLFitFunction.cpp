@@ -833,18 +833,18 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		setParallelism(fc, data, parent, fitMatrix, 1);
 	}
 
-	omxState *childState = 0;
+	int childStateId = 0;
 	if (fc->childList.size()) {
 		omxFitFunction *ff = getChildFitObj(fc, fitMatrix, 0);
-		childState = ff->matrix->currentState;
+		childStateId = ff->matrix->currentState->getId();
 	}
-	if (parent->curParallelism == 0 || parent->origState != childState) {
+	if (parent->curParallelism == 0 || parent->origStateId != childStateId) {
 		int numChildren = fc? fc->childList.size() : 0;
 		int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 		if (OMX_DEBUG_FIML_STATS) parallelism = 1;
 		if (parallelism > data->rows) parallelism = data->rows;
 		setParallelism(fc, data, parent, fitMatrix, parallelism);
-		parent->origState = childState;
+		parent->origStateId = childStateId;
 		parent->curElapsed = 0;
 	}
 
@@ -959,7 +959,7 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 
 	omxFIMLFitFunction *newObj = new omxFIMLFitFunction;
 	newObj->curParallelism = 0;
-	newObj->origState = 0;
+	newObj->origStateId = 0;
 	newObj->inUse = false;
 	newObj->parent = 0;
 	newObj->expectationComputeCount = 0;
