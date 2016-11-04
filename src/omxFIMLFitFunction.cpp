@@ -997,6 +997,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 		mxLog("Accessing data source.");
 	}
 	newObj->data = off->expectation->data;
+	newObj->rowBegin = 0;
+	newObj->rowCount = newObj->data->rows;
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
