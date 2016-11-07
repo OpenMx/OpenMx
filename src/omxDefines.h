@@ -47,7 +47,7 @@ typedef uint64_t nanotime_t;
 #elif defined(sun) || defined(__sun) || defined(_AIX)
 #include "nanotimer_rtposix.h"
 #else /* Unsupported OS */
-#error "Unsupported OS."
+inline nanotime_t get_nanotime(void) { return 0; }
 #endif
 
 #define MIN_ROWS_PER_THREAD 8
