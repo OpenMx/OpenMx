@@ -103,11 +103,8 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 		omxManageProtectInsanity protectManager;
 		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
-			SEXP fitFunctionClass;
-			ScopedProtect p1(fitFunctionClass, STRING_ELT(Rf_getAttrib(nextAlgTuple, R_ClassSymbol), 0));
-			const char *fitType = CHAR(fitFunctionClass);
 			omxMatrix *fm = algebraList[index];
-			omxFillMatrixFromMxFitFunction(fm, fitType, index, nextAlgTuple);
+			omxFillMatrixFromMxFitFunction(fm, index, nextAlgTuple);
 			fm->nameStr = CHAR(STRING_ELT(algListNames, index));
 		} else {								// This is an algebra spec.
 			SEXP dimnames, formula;
