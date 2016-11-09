@@ -168,7 +168,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 		omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
 	} else {
 		// ULS Case: Memcpy faster than dgemv.
-	omxCopyMatrix(P, B);
+		omxCopyMatrix(P, B);
 	}
 	
 	sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
