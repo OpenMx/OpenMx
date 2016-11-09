@@ -505,6 +505,7 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 	}
 	INTEGER(VECTOR_ELT(detail, 4+fc.numParam))[detailRow] = meth;
 	INTEGER(VECTOR_ELT(detail, 5+fc.numParam))[detailRow] = diag;
+	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = 1 + fc.getInform();
 	++detailRow;
 }
 
@@ -800,7 +801,9 @@ struct boundNearCIobj : CIobjective {
 
 	void checkSolution(FitContext *fc)
 	{
-		if (fc->getInform() > 1) return;
+		if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM &&
+		    fc->getInform() != INFORM_ITERATION_LIMIT) return;
+
 		if (fabs(pN - exp(logAlpha)) > 1e-3) {
 			fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 		}
@@ -1090,7 +1093,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		totalIntervals += (oCI->bound != 0.0).count();
 	}
 
-	int numDetailCols = 6 + mle->numParam;
+	int numDetailCols = 7 + mle->numParam;
 	Rf_protect(detail = Rf_allocVector(VECSXP, numDetailCols));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
 	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
@@ -1112,6 +1115,21 @@ void ComputeCI::computeImpl(FitContext *mle)
 	SET_VECTOR_ELT(detail, 5+mle->numParam,
 		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
 				  OMX_STATIC_ARRAY_SIZE(diagLabels), diagLabels));
+	const char *statusCodeLabels[] = { // see ComputeInform type
+		"OK", "OK/green",
+		"infeasible linear constraint",
+		"infeasible non-linear constraint",
+		"iteration limit",
+		"not convex",
+		"nonzero gradient",
+		"bad deriv",
+		"?",
+		"internal error",
+		"infeasible start"
+	};
+	SET_VECTOR_ELT(detail, 6+mle->numParam,
+		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
+				  OMX_STATIC_ARRAY_SIZE(statusCodeLabels), statusCodeLabels));
 
 	SEXP detailCols;
 	Rf_protect(detailCols = Rf_allocVector(STRSXP, numDetailCols));
@@ -1125,6 +1143,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	}
 	SET_STRING_ELT(detailCols, 4 + mle->numParam, Rf_mkChar("method"));
 	SET_STRING_ELT(detailCols, 5 + mle->numParam, Rf_mkChar("diagnostic"));
+	SET_STRING_ELT(detailCols, 6 + mle->numParam, Rf_mkChar("statusCode"));
 
 	markAsDataFrame(detail, totalIntervals);
 
@@ -1277,7 +1296,8 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 bool ComputeTryH::satisfied(FitContext *fc)
 {
 	return (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
-		fc->getInform() == INFORM_UNCONVERGED_OPTIMUM);
+		fc->getInform() == INFORM_UNCONVERGED_OPTIMUM ||
+		fc->getInform() == INFORM_ITERATION_LIMIT);
 }
 
 void ComputeTryH::computeImpl(FitContext *fc)
