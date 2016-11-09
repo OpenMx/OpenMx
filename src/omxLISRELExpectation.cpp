@@ -15,7 +15,6 @@
  */
 
 #include "omxExpectation.h"
-#include "omxFIMLFitFunction.h"
 #include "omxLISRELExpectation.h"
 
 #ifdef SHADOW_DIAG

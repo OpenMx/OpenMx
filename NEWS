@@ -1,4 +1,7 @@
 # OpenMx development
+* IMPROVED: Dynamically balance work between threads using empirical elapsed times when evaluating raw data in a row-wise parallel manner.
+* IMPROVED: For normal SEM models (including RAM and LISREL), raw continuous data will often be evaluated as fast as covariance data instead of being much slower.
+* IMPROVED: mxGenerateData now succeeds for joint ordinal and continuous data.
 * NEW: mxSE() function. Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun gives feedback about optimization progress
 * IMPROVED: Continuous time state space models now allow non-invertible ("drift" or "dynamics") A matrices.

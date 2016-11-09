@@ -35,6 +35,21 @@
 #include <Rmath.h>
 #include <Rinternals.h>
 
+// Cut & paste from microbenchmark package (BSD license)
+typedef uint64_t nanotime_t;
+
+#if defined(WIN32)
+#include "nanotimer_windows.h"
+#elif defined(__MACH__) || defined(__APPLE__)
+#include "nanotimer_macosx.h"
+#elif defined(linux) || defined(__linux) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#include "nanotimer_gettime.h"
+#elif defined(sun) || defined(__sun) || defined(_AIX)
+#include "nanotimer_rtposix.h"
+#else /* Unsupported OS */
+inline nanotime_t get_nanotime(void) { return 0; }
+#endif
+
 #define MIN_ROWS_PER_THREAD 8
 
 #define OMXINLINE inline
@@ -260,7 +275,7 @@ void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 		      T5 includeTest, int resultSize,
 		      Eigen::MatrixBase<T4> &cov)
 {
-	cov.derived().resize(resultSize, resultSize);
+	cov.derived().resize(resultSize, resultSize); // can avoid reallocation? TODO
 
 	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
 		if (!includeTest(gcx)) continue;
@@ -273,17 +288,15 @@ void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 	}
 }
 
-template <typename T2, typename T4, typename T5>
-void upperRightCovariance(const Eigen::MatrixBase<T2> &gcov, T5 includeTest,
-			  Eigen::MatrixBase<T4> &cov)
+template <typename T1, typename T2, typename T3>
+void subsetVector(const Eigen::MatrixBase<T1> &gmean, T2 includeTest,
+		  int resultSize, Eigen::MatrixBase<T3> &out)
 {
-	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
+	out.derived().resize(resultSize); // can avoid reallocation? TODO
+
+	for (int gcx=0, cx=0; gcx < gmean.size(); gcx++) {
 		if (!includeTest(gcx)) continue;
-		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
-			if (includeTest(grx)) continue;
-			cov(rx,cx) = gcov(grx, gcx);
-			rx += 1;
-		}
+		out[cx] = gmean[gcx];
 		cx += 1;
 	}
 }
@@ -296,21 +309,6 @@ void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 		if (!includeTest(gcx)) continue;
 		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
 			if (!includeTest(grx)) continue;
-			gcov(grx, gcx) = cov(rx,cx);
-			rx += 1;
-		}
-		cx += 1;
-	}
-}
-
-template <typename T2, typename T4, typename T5>
-void upperRightCovarianceStore(Eigen::MatrixBase<T2> &gcov, T5 includeTest,
-			       const Eigen::MatrixBase<T4> &cov)
-{
-	for (int gcx=0, cx=0; gcx < gcov.cols(); gcx++) {
-		if (!includeTest(gcx)) continue;
-		for (int grx=0, rx=0; grx < gcov.rows(); grx++) {
-			if (includeTest(grx)) continue;
 			gcov(grx, gcx) = cov(rx,cx);
 			rx += 1;
 		}

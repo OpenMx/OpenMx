@@ -31,6 +31,10 @@ typedef struct omxWLSFitFunction {
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
+	omxMatrix* standardExpectedCov;
+	omxMatrix* standardExpectedMeans;
+	omxMatrix* standardExpectedThresholds;
+	omxMatrix* standardExpectedFlattened;
 	int n;
 
 } omxWLSFitFunction;

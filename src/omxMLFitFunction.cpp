@@ -20,7 +20,6 @@
 #include "multi_normal_sufficient.hpp"
 
 #include "omxExpectation.h"
-#include "omxFIMLFitFunction.h"
 #include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 #include "matrix.h"
@@ -290,6 +289,11 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	omxExpectation *expectation = oo->expectation;
 	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
 		omxInitFitFunctionBA81(oo);
+		return;
+	}
+
+	if (strEQ(expectation->expType, "MxExpectationGREML")) {
+		omxInitGREMLFitFunction(oo);
 		return;
 	}
 

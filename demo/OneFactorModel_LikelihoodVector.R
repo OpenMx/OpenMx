@@ -97,7 +97,7 @@ oneFactorModel <- mxModel("parent",
 oneFactorFit <- mxRun(oneFactorModel)      
 
 summary(oneFactorFit)
-oneFactorFit$output$estimate
+coef(oneFactorFit)
 
 
 omxCheckCloseEnough(oneFactorFit$output$estimate[["l2"]], 0.999, 0.01)

@@ -96,6 +96,6 @@ oneFactorOrdinalFit <- mxRun(oneFactorOrdinalModel)
 # -----------------------------------------------------------------------------
 
 summary(oneFactorOrdinalFit)
-oneFactorOrdinalFit$output$estimate
+coef(oneFactorOrdinalFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------

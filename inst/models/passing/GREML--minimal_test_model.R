@@ -85,11 +85,11 @@ testmod3 <- mxModel(
 
 testrun3 <- mxRun(testmod3)
 
-omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,1])*99/100,epsilon=10^-5)
+omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun3$expectation$b,mean(dat[,1]),epsilon=10^-5)
-omxCheckCloseEnough(testrun3$expectation$bcov,(var(dat[,1])*99/100)/100,epsilon=10^-5)
+omxCheckCloseEnough(testrun3$expectation$bcov,(var(dat[,1]))/100,epsilon=10^-5)
 #MLfit from testrun should match fit of testrun3:
-omxCheckCloseEnough(testrun3$output$minimum, testrun$fitfunction$MLfit, epsilon=10^-2)
+omxCheckCloseEnough(testrun3$output$minimum, testrun$output$fit, epsilon=10^-2)
 
 testrun3summ <- summary(testrun3)
 #FIML fitfunction doesn't know how to tell the frontend that a GREML analysis involves only 1 observation:
@@ -102,4 +102,4 @@ omxCheckEquals(testrun3summ$degreesOfFreedom,98)
 #Check GREML-specific part of summary() output:
 omxCheckEquals(testrun3summ$GREMLfixeff$name,"x")
 omxCheckCloseEnough(testrun3summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
-omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])*99/100/100),epsilon=10^-5)
+omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])/100),epsilon=10^-5)

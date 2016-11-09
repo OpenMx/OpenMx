@@ -438,7 +438,13 @@ void omxData::assertColumnIsData(int col)
 	case COLUMNDATA_INTEGER:
 		cd.type = COLUMNDATA_NUMERIC;
 		cd.realData = (double*) R_alloc(rows, sizeof(double));
-		for (int rx=0; rx < rows; ++rx) cd.realData[rx] = cd.intData[rx];
+		for (int rx=0; rx < rows; ++rx) {
+			if (cd.intData[rx] == NA_INTEGER) {
+				cd.realData[rx] = NA_REAL;
+			} else {
+				cd.realData[rx] = cd.intData[rx];
+			}
+		}
 		cd.intData = 0;
 		return;
 	default:
@@ -607,7 +613,7 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
 					}
 				}
 			}
-			buf += "\n";
+			buf += string_snprintf("\t# %d \n", vxv);
 		}
 	}
 

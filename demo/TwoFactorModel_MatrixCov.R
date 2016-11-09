@@ -143,7 +143,7 @@ twoFactorModel <- mxModel("Two Factor Model Matrix Specification",
 twoFactorFit <- mxRun(twoFactorModel)
 
 summary(twoFactorFit)
-twoFactorFit$output$estimate
+coef(twoFactorFit)
 
 omxCheckCloseEnough(twoFactorFit$output$estimate[["l2"]], 0.9720, 0.01)
 omxCheckCloseEnough(twoFactorFit$output$estimate[["l3"]], 0.9310, 0.01)

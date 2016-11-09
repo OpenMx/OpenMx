@@ -481,7 +481,7 @@ dubSum2  <- summary(dubFit2)
 
 omxCheckCloseEnough(contSum1$Minus2LogLikelihood, contSum1A$Minus2LogLikelihood, .0000001)
 omxCheckCloseEnough(ordSum1$Minus2LogLikelihood, ordSum1A$Minus2LogLikelihood, .0000001)
-omxCheckCloseEnough(contSum2$Minus2LogLikelihood + ordSum2$Minus2LogLikelihood, allSum2$Minus2LogLikelihood, .001)
+omxCheckCloseEnough(contSum2$Minus2LogLikelihood + ordSum2$Minus2LogLikelihood, allSum2$Minus2LogLikelihood, .01)
 omxCheckCloseEnough(2* allSum2$Minus2LogLikelihood, dubSum2$Minus2LogLikelihood, .001)
 
 # Step 13: Tests

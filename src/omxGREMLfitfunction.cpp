@@ -32,8 +32,7 @@
   
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   SEXP rObj = oo->rObj;
-  SEXP dV, dVnames, aug, augGrad, augHess;
-  int i=0;
+  SEXP augGrad, augHess;
   
   oo->units = FIT_UNITS_MINUS2LL;
   oo->computeFun = omxCallGREMLFitFunction;
@@ -67,39 +66,41 @@
   newObj->varGroup = NULL;
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
+  newObj->dVlength = 0;
   
   //Augmentation:
-  {
-  ScopedProtect p1(aug, R_do_slot(rObj, Rf_install("aug")));
-  if(Rf_length(aug)){
-  	int* augint = INTEGER(aug);
-  	newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
-  }
-  else{newObj->aug = NULL;}
+  newObj->aug = 0;
+  if (R_has_slot(rObj, Rf_install("aug"))) {
+	  ProtectedSEXP aug(R_do_slot(rObj, Rf_install("aug")));
+	  if(Rf_length(aug)){
+		  int* augint = INTEGER(aug);
+		  newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
+	  }
   }
   
   //Derivatives of V:
-  {
-  ScopedProtect p1(dV, R_do_slot(rObj, Rf_install("dV")));
-  ScopedProtect p2(dVnames, R_do_slot(rObj, Rf_install("dVnames")));
-  newObj->dVlength = Rf_length(dV);  
-  newObj->dV.resize(newObj->dVlength);
-  newObj->indyAlg.resize(newObj->dVlength);
-  newObj->dVnames.resize(newObj->dVlength);
-  newObj->origdVdim.resize(newObj->dVlength);
-	if(newObj->dVlength){
-    if(!newObj->usingGREMLExpectation){
-      //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
-      Rf_error("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
-    }
-    if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
-		int* dVint = INTEGER(dV);
-    for(i=0; i < newObj->dVlength; i++){
-      newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
-      SEXP elem;
-      {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
-			newObj->dVnames[i] = CHAR(elem);}
-	}}
+  if (R_has_slot(rObj, Rf_install("dV"))) {
+	  ProtectedSEXP dV(R_do_slot(rObj, Rf_install("dV")));
+	  ProtectedSEXP dVnames(R_do_slot(rObj, Rf_install("dVnames")));
+	  newObj->dVlength = Rf_length(dV);  
+	  newObj->dV.resize(newObj->dVlength);
+	  newObj->indyAlg.resize(newObj->dVlength);
+	  newObj->dVnames.resize(newObj->dVlength);
+	  newObj->origdVdim.resize(newObj->dVlength);
+	  if(newObj->dVlength){
+		  if(!newObj->usingGREMLExpectation){
+			  //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
+			  Rf_error("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
+		  }
+		  if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
+		  int* dVint = INTEGER(dV);
+		  for(int i=0; i < newObj->dVlength; i++){
+			  newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
+			  SEXP elem;
+			  {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
+				  newObj->dVnames[i] = CHAR(elem);}
+		  }
+	  }
   }
   
   if(newObj->dVlength){
@@ -109,7 +110,7 @@
     newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
-    for(i=0; i < newObj->dVlength; i++){
+    for(int i=0; i < newObj->dVlength; i++){
     	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the 
     	dimension of V (implying downsizing due to missing observations):*/
       if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||

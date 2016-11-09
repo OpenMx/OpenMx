@@ -849,6 +849,7 @@ qualifyNamesFormula <- function(formula, modelname, namespace) {
 qualifyNamesConstraint <- function(constraint, modelname, namespace) {
 	constraint@name <- imxIdentifier(modelname, constraint@name)
 	constraint@formula <- qualifyNamesFormula(constraint@formula, modelname, namespace)
+	constraint@jac <- imxConvertIdentifier(constraint@jac[1], modelname, namespace)
 	return(constraint)
 }
 

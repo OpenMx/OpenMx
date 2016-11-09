@@ -118,6 +118,8 @@ inline double *omxMatrixDataColumnMajor(omxMatrix *mat)
 	return mat->data;
 }
 
+// NOTE: These Eigen wrapper are not thread safe when mixed with omxCopyMatrix
+
 struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
 	EigenMatrixAdaptor(omxMatrix *mat) :
 	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
@@ -468,7 +470,7 @@ void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 			} else {
 				val = mat(j,k);
 			}
-			buf += string_snprintf(" %3.6f", val);
+			buf += string_snprintf(" %3.6g", val);
 		}
 	}
 
@@ -480,6 +482,37 @@ void mxPrintMat(const char *name, const Eigen::DenseBase<T> &mat)
 				       mat.rows(), mat.cols());
 	}
 	mxLogBig(buf);
+}
+
+template <typename T1, typename T2, typename T3>
+void computeMeanCov(const Eigen::MatrixBase<T1> &dataVec, int stride,
+		    Eigen::MatrixBase<T2> &meanOut, Eigen::MatrixBase<T3> &covOut)
+{
+	if (stride == 0) return;
+	int units = dataVec.size() / stride;
+	meanOut.derived().resize(stride);
+	meanOut.setZero();
+	covOut.derived().resize(stride, stride);
+	covOut.setZero();
+	// read the data only once to minimize memory thrashing
+	for (int ux=0; ux < units; ++ux) {
+		meanOut += dataVec.segment(ux * stride, stride);
+		covOut += (dataVec.segment(ux * stride, stride) *
+			   dataVec.segment(ux * stride, stride).transpose());
+	}
+	meanOut /= units;
+	covOut -= units * meanOut * meanOut.transpose();
+	covOut /= units-1;
+}
+
+template <typename T1, typename T2>
+double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &t2)
+{
+	double sum = 0.0;
+	for (int rx=0; rx < t1.rows(); ++rx) {
+		sum += t1.row(rx) * t2.col(rx);
+	}
+	return sum;
 }
 
 #endif /* _OMXMATRIX_H_ */
