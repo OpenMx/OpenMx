@@ -494,7 +494,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	size_t numParam = fc->varGroup->vars.size();
 	if (excludeVars.size()) {
 		fc->profiledOut.assign(fc->numParam, false);
-		for (auto vx : excludeVars) fc->profiledOut[vx] = true;
+		for (auto vx : excludeVars) {
+			fc->profiledOut[vx] = true;
+			if (OMX_DEBUG + verbose >= 1) mxLog("excludeVar %s", fc->varGroup->vars[vx]->name);
+		}
 	}
 	if (fc->profiledOut.size()) {
 		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
