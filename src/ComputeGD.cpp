@@ -960,7 +960,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 						 NA_REAL, diag);
 					return;
 				}
-				mxLog("got2 %.4g", fc.fit);
+				//mxLog("got2 %.4g", fc.fit);
 			}
 			//mxPrintMat("bound1", ciobj.ineq);
 			//mxLog("mle %g boundLL %g", mle->fit, boundLL);
