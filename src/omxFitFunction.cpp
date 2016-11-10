@@ -106,7 +106,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	omxFitFunction *ff = src->fitFunction;
 	if(ff == NULL) return;
 
-	omxFillMatrixFromMxFitFunction(tgt, ff->fitType, src->matrixNumber, ff->rObj);
+	omxFillMatrixFromMxFitFunction(tgt, src->matrixNumber, ff->rObj);
 	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
 }
 
@@ -195,8 +195,8 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 void defaultAddOutput(omxFitFunction* oo, MxRList *out)
 {}
 
-omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
-					  omxExpectation *expect, omxMatrix *matrix, bool rowLik)
+static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
+						 omxExpectation *expect, omxMatrix *matrix, bool rowLik)
 {
 	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
 	OMXZERO(obj, 1);
@@ -241,20 +241,20 @@ omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
 	return obj;
 }
 
-void omxFillMatrixFromMxFitFunction(omxMatrix* om, const char *fitType, int matrixNumber, SEXP rObj)
+void omxFillMatrixFromMxFitFunction(omxMatrix* om, int matrixNumber, SEXP rObj)
 {
 	om->hasMatrixNumber = TRUE;
 	om->matrixNumber = matrixNumber;
 
-	SEXP slotValue;
+	ProtectedSEXP fitFunctionClass(STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
+	const char *fitType = CHAR(fitFunctionClass);
+
 	omxExpectation *expect = NULL;
-	{
-		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("expectation")));
-		if (Rf_length(slotValue) == 1) {
-			int expNumber = Rf_asInteger(slotValue);
-			if(expNumber != NA_INTEGER) {
-				expect = omxExpectationFromIndex(expNumber, om->currentState);
-			}
+	ProtectedSEXP slotValue(R_do_slot(rObj, Rf_install("expectation")));
+	if (Rf_length(slotValue) == 1) {
+		int expNumber = Rf_asInteger(slotValue);
+		if(expNumber != NA_INTEGER) {
+			expect = omxExpectationFromIndex(expNumber, om->currentState);
 		}
 	}
 
