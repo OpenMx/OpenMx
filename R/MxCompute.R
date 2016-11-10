@@ -277,7 +277,8 @@ setClass(Class = "MxComputeGradientDescent",
 	   engine = "character",
 	     availableEngines = "character",
 	     tolerance = "numeric",
-	     nudgeZeroStarts = "logical",
+	   nudgeZeroStarts = "logical",
+	   .excludeVars = "MxOptionalChar",
 	   verbose = "integer",
 	     maxMajorIter = "integer",
 	     gradientAlgo = "character",
@@ -327,6 +328,7 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
 		  }
+		  .Object@.excludeVars <- c()
 		  .Object
 	  })
 
