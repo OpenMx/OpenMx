@@ -322,6 +322,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 class ComputeCI : public omxCompute {
 	typedef omxCompute super;
+	typedef CIobjective::Diagnostic Diagnostic;
 	omxCompute *plan;
 	omxMatrix *fitMatrix;
 	int verbose;
@@ -332,13 +333,6 @@ class ComputeCI : public omxCompute {
 	enum Method {
 		NEALE_MILLER_1997=1,
 		WU_NEALE_2012
-	};
-	enum Diagnostic {
-		DIAG_SUCCESS=1,
-		DIAG_ALPHA_LEVEL,
-		DIAG_BA_D1, DIAG_BA_D2,
-		DIAG_BN_D1, DIAG_BN_D2,
-		DIAG_BOUND_INFEASIBLE
 	};
 
 	void regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
@@ -497,15 +491,15 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 	std::string &matName = ciMatrix->nameStr;
 
-	if (diag == DIAG_SUCCESS) {
+	if (diag == CIobjective::DIAG_SUCCESS) {
 		currentCI->val[!lower] = val;
 		currentCI->code[!lower] = fc.getInform();
 	}
 
 	if(verbose >= 1) {
-		mxLog("CI[%s,%s] %s[%d,%d] val=%f fit=%f accepted=%d",
+		mxLog("CI[%s,%s] %s[%d,%d] val=%f fit=%f status=%d accepted=%d",
 		      currentCI->name.c_str(), (lower?"lower":"upper"), matName.c_str(),
-		      1+currentCI->row, 1+currentCI->col, val, fc.fit, diag);
+		      1+currentCI->row, 1+currentCI->col, val, fc.fit, fc.getInform(), diag);
 	}
 
 	SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
@@ -594,6 +588,15 @@ struct regularCIobj : CIobjective {
 			// add deriv adjustments here TODO
 		}
 	}
+
+	virtual Diagnostic getDiag()
+	{
+		Diagnostic diag = DIAG_SUCCESS;
+		if (fabs(diff) > 1e-1) {
+			diag = DIAG_ALPHA_LEVEL;
+		}
+		return diag;
+	}
 };
 
 struct bound1CIobj : CIobjective {
@@ -649,6 +652,15 @@ struct bound1CIobj : CIobjective {
 		}
 
 		fitMat->data[0] = fit + cval;
+	}
+
+	virtual Diagnostic getDiag()
+	{
+		Diagnostic diag = DIAG_SUCCESS;
+		if (fabs(eq(0)) > 1e-3) {
+			diag = DIAG_BOUND_INFEASIBLE;
+		}
+		return diag;
 	}
 };
 
@@ -728,6 +740,19 @@ struct boundAwayCIobj : CIobjective {
 			     
 		fitMat->data[0] = param + cval;
 		//mxLog("param at %f", fitMat->data[0]);
+	}
+
+	virtual Diagnostic getDiag()
+	{
+		Diagnostic diag = DIAG_SUCCESS;
+		if (ineq[0] > 1e-3) {
+			diag = DIAG_BA_D1;
+		} else if (ineq[1] > 1e-3) {
+			diag = DIAG_BA_D2;
+		} else if (ineq[2] > 1e-1) {
+			diag = DIAG_ALPHA_LEVEL;
+		}
+		return diag;
 	}
 };
 
@@ -812,14 +837,17 @@ struct boundNearCIobj : CIobjective {
 		//mxLog("param at %f", fitMat->data[0]);
 	}
 
-	void checkSolution(FitContext *fc)
+	virtual Diagnostic getDiag()
 	{
-		if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM &&
-		    fc->getInform() != INFORM_ITERATION_LIMIT) return;
-
-		if (fabs(pN - exp(logAlpha)) > 1e-3) {
-			fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
+		Diagnostic diag = DIAG_SUCCESS;
+		if (ineq[0] > 1e-3) {
+			diag = DIAG_BN_D1;
+		} else if (ineq[1] > 1e-2) {
+			diag = DIAG_BN_D2;
+		} else if (fabs(pN - exp(logAlpha)) > 1e-3) {
+			diag = DIAG_ALPHA_LEVEL;
 		}
+		return diag;
 	}
 };
 
@@ -882,61 +910,57 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		plan->compute(&fc);
 		constr.pop();
 
-		Diagnostic diag = DIAG_SUCCESS;
-		if (baobj.ineq[0] > 1e-3) {
-			diag = DIAG_BA_D1;
-		} else if (baobj.ineq[1] > 1e-3) {
-			diag = DIAG_BA_D2;
-		} else if (baobj.ineq[2] > 1e-1) {
-			diag = DIAG_ALPHA_LEVEL;
-		}
-
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val, diag);
+		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val,
+			 baobj.getDiag());
 	}
 
  part2:
 	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
-		double boundLL;
+		double boundLL = NA_REAL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!boundActive) {
 			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] at-bound CI",
 						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
-			for (int method=0; method < 2; ++method) {
-				if (method == 0) {
-					Est = Mle;
-					Est[currentCI->varIndex] = nearBox; // might be infeasible
-					fc.profiledOut[currentCI->varIndex] = true;
-					plan->compute(&fc);
-					fc.profiledOut[currentCI->varIndex] = false;
-					if (fc.getInform() == 0) {
-						boundLL = fc.fit;
-						break;
-					}
-				} else {
-					// Might work if simple approach failed
-					ciConstraintEq constr(1);
-					constr.fitMat = fitMatrix;
-					constr.push(state);
-					bound1CIobj ciobj;
-					ciobj.constrained = useInequality;
-					ciobj.CI = currentCI;
-					ciobj.bound = nearBox;
-					fc.ciobj = &ciobj;
-					Est = Mle;
-					plan->compute(&fc);
-					constr.pop();
-					boundLL = fc.fit;
-					if (fabs(ciobj.eq(0)) > 1e-3) {
-						recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
-							 NA_REAL, DIAG_BOUND_INFEASIBLE);
-						return;
-					}
+			Est = Mle;
+			Est[currentCI->varIndex] = nearBox; // might be infeasible
+			fc.profiledOut[currentCI->varIndex] = true;
+			plan->compute(&fc);
+			fc.profiledOut[currentCI->varIndex] = false;
+			if (fc.getInform() == 0) {
+				boundLL = fc.fit;
+			}
+
+			if (verbose >= 2) {
+				mxLog("%s[%d, %d]=%.2f (at bound) fit %.2f status %d",
+				      matName.c_str(), currentCI->row + 1, currentCI->col + 1,
+				      nearBox, fc.fit, fc.getInform());
+			}
+			if (!std::isfinite(boundLL)) {
+				// Might work if simple approach failed
+				ciConstraintEq constr(1);
+				constr.fitMat = fitMatrix;
+				constr.push(state);
+				bound1CIobj ciobj;
+				ciobj.constrained = useInequality;
+				ciobj.CI = currentCI;
+				ciobj.bound = nearBox;
+				fc.ciobj = &ciobj;
+				Est = Mle;
+				plan->compute(&fc);
+				constr.pop();
+				boundLL = fc.fit;
+				Diagnostic diag = ciobj.getDiag();
+				if (diag != CIobjective::DIAG_SUCCESS) {
+					recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
+						 NA_REAL, diag);
+					return;
 				}
+				mxLog("got2 %.4g", fc.fit);
 			}
 			//mxPrintMat("bound1", ciobj.ineq);
 			//mxLog("mle %g boundLL %g", mle->fit, boundLL);
@@ -948,9 +972,11 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		double sqrtCrit90 = sqrt(Rf_qchisq(1-(2.0 * (1-Rf_pchisq(currentCI->bound[side], 1, 1, 0))),1,1,0));
 		double d0 = sqrt(std::max(boundLL - mle->fit, 0.0));
+		//mxLog("d0 %.4g sqrtCrit90 %.4g d0/2 %.4g", d0, sqrtCrit90, d0/2.0);
 		if (d0 < sqrtCrit90) {
 			fc.fit = boundLL;
-			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox, DIAG_SUCCESS);
+			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox,
+				 CIobjective::DIAG_SUCCESS);
 			return;
 		}
 	
@@ -992,17 +1018,10 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		//mxLog("val=%g", val);
 		//mxPrintMat("bn", bnobj.ineq);
-		Diagnostic diag = DIAG_SUCCESS;
-		if (bnobj.ineq[0] > 1e-3) {
-			diag = DIAG_BN_D1;
-		} else if (bnobj.ineq[1] > 1e-2) {
-			diag = DIAG_BN_D2;
-		} else if (fabs(bnobj.pN - alphalevel) > 1e-3) {
-			diag = DIAG_ALPHA_LEVEL;
-		}
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val, diag);
+		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val,
+			 bnobj.getDiag());
 	}
 }
 
@@ -1043,8 +1062,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	fc.ciobj = 0;
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
-	diag = DIAG_SUCCESS;
-	if (fabs(ciobj.diff) > 1e-1) diag = DIAG_ALPHA_LEVEL;
+	diag = ciobj.getDiag();
 }
 
 void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
@@ -1266,6 +1284,9 @@ class ComputeTryH : public omxCompute {
 	int maxRetries;
 	int invocations;
 	int numRetries;
+	Eigen::ArrayXd bestEst;
+	int bestStatus;
+	double bestFit;
 
 	static bool satisfied(FitContext *fc);
 public:
@@ -1317,40 +1338,66 @@ void ComputeTryH::computeImpl(FitContext *fc)
 {
 	using Eigen::Map;
 	using Eigen::ArrayXd;
-	Map< ArrayXd > start(fc->est, fc->numParam);
-	ArrayXd origStart = start;
+	Map< ArrayXd > curEst(fc->est, fc->numParam);
+	ArrayXd origStart = curEst;
+	bestEst = curEst;
 
 	++invocations;
 
 	GetRNGstate();
 
-	// return record of attempted starting vectors TODO
+	// return record of attempted starting vectors? TODO
 
 	int retriesRemain = maxRetries - 1;
-	plan->compute(fc);
-	while (!satisfied(fc) && retriesRemain > 0) {
-		if (verbose >= 1) {
-			mxLog("%s: got inform %d, %d retries remain", name, fc->getInform(), retriesRemain);
-		}
-		fc->setInform(INFORM_UNINITIALIZED);
+	if (verbose >= 1) {
+		mxLog("%s: at most %d attempts (Welcome)", name, retriesRemain);
+	}
 
-		start = origStart;
-		for (int vx=0; vx < start.size(); ++vx) {
+	bestStatus = INFORM_UNINITIALIZED;
+	bestFit = NA_REAL;
+	fc->setInform(INFORM_UNINITIALIZED);
+	plan->compute(fc);
+	if (fc->getInform() != INFORM_UNINITIALIZED && fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
+		bestStatus = fc->getInform();
+		bestEst = curEst;
+		bestFit = fc->fit;
+	}
+
+	while (!satisfied(fc) && retriesRemain > 0) {
+		if (verbose >= 2) {
+			mxLog("%s: fit %.2f inform %d, %d retries remain", name, fc->fit,
+			      fc->getInform(), retriesRemain);
+		}
+
+		curEst = origStart;
+		for (int vx=0; vx < curEst.size(); ++vx) {
 			double adj1 = loc + unif_rand() * 2.0 * scale - scale;
 			double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
-			if (verbose >= 2) {
+			if (verbose >= 3) {
 				mxLog("%d %g %g", vx, adj1, adj2);
 			}
-			start[vx] = start[vx] * adj1 + adj2;
+			curEst[vx] = curEst[vx] * adj1 + adj2;
 		}
 
 		--retriesRemain;
+
+		fc->setInform(INFORM_UNINITIALIZED);
 		plan->compute(fc);
+		if (fc->getInform() != INFORM_UNINITIALIZED && fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE &&
+		    (bestStatus == INFORM_UNINITIALIZED || fc->getInform() < bestStatus)) {
+			bestStatus = fc->getInform();
+			bestEst = curEst;
+			bestFit = fc->fit;
+		}
 	}
+
+	fc->setInform(bestStatus);
+	curEst = bestEst;
+	fc->fit = bestFit;
 
 	numRetries += maxRetries - retriesRemain;
 	if (verbose >= 1) {
-		mxLog("%s: got inform %d after %d retries", name, fc->getInform(),
+		mxLog("%s: fit %.2f inform %d after %d attempt(s)", name, fc->fit, fc->getInform(),
 		      maxRetries - retriesRemain);
 	}
 

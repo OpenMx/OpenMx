@@ -1182,6 +1182,15 @@ void CIobjective::evalFit(omxFitFunction *ff, int want, FitContext *fc)
 	omxFitFunctionCompute(ff, want, fc);
 }
 
+void CIobjective::checkSolution(FitContext *fc)
+{
+	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) return;
+
+	if (getDiag() != DIAG_SUCCESS) {
+		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
+	}
+}
+
 class EMAccel {
 protected:
 	FitContext *fc;

@@ -89,12 +89,21 @@ struct HessianBlock {
 struct CIobjective {
 	ConfidenceInterval *CI;
 
+	enum Diagnostic {
+		DIAG_SUCCESS=1,
+		DIAG_ALPHA_LEVEL,
+		DIAG_BA_D1, DIAG_BA_D2,
+		DIAG_BN_D1, DIAG_BN_D2,
+		DIAG_BOUND_INFEASIBLE
+	};
+
 	virtual bool gradientKnown() { return false; };
 	virtual void gradient(FitContext *fc, double *gradOut) {};
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
-	virtual void checkSolution(FitContext *fc) {};
+	virtual void checkSolution(FitContext *fc);
+	virtual Diagnostic getDiag() = 0;
 };
 
 // The idea of FitContext is to eventually enable fitting from
