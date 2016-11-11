@@ -222,6 +222,7 @@ setMethod("names", "MxModel",
 )
 
 .DollarNames.MxModel <- function(x, pattern) {   # .DollarNames is an S3 Generic
+	if (missing(pattern)) pattern <- ''
 		submodels <- names(x@submodels)
 		locals <- generateLocalNames(x)
 		slots <- imxGetSlotDisplayNames(x, slotList=visibleMxModelSlots)
