@@ -47,7 +47,7 @@ twinACEModel <- mxModel("twinACE",
 			nrow=1, 
 			ncol=1, 
 			free=TRUE,  
-			values=sqrt(.6), lbound=sqrt(.1),
+			values=sqrt(.6),
 			label="c", 
 			name="Y"
 		),
@@ -132,18 +132,14 @@ twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
 
 summary(twinACEFit)
 detail <- twinACEFit$compute$steps[['CI']]$output[['detail']]
+print(detail)
 omxCheckTrue(is.factor(detail[['side']]))
 omxCheckEquals(levels(detail[['side']]), c('upper', 'lower'))
 
 ci <- twinACEFit$output$confidenceIntervals
 #cat(deparse(round(ci[,'ubound'],4)))
-omxCheckCloseEnough(ci[-2,'lbound'], c(0.4697, 0.1567), .005)
-
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-  omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .04)
-} else {
-  omxCheckCloseEnough(ci[,'ubound'], c(0.6012, 0.132, 0.2001), .005)
-}
+omxCheckCloseEnough(ci[-2,'lbound'], c(0.556, 0.1537), .01)
+omxCheckCloseEnough(ci[,'ubound'], c(0.683, 0.052, 0.1956), .005)
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
@@ -195,32 +191,19 @@ CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 		mxAlgebra(common.E,name="lowerCIe"),
 		mxFitFunctionAlgebra("lowerCIe"))
 
-if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
-	runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
-	runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
-}
+runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
+runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
 
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .1)
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .1)
-} else {
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .001)
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .02)
-}
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(common.A, runCIalower), .01)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .01)
 
-if (mxOption(NULL, 'Default optimizer') == "SLSQP") {
-  omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
-}
+# Can go either way
+#omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
-if (mxOption(NULL, 'Default optimizer') == "CSOLNP") {
-# Usually 0.1566 but values as low as 0.03244 observed!
-#	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .04)
-} else {
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
-	omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .005)
-}
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)
+omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'ubound'], mxEval(common.E, runCIeupper), .005)
 
 twinACEParallel <- omxParallelCI(twinACENoIntervals)
 

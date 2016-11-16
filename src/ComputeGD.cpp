@@ -341,6 +341,7 @@ class ComputeCI : public omxCompute {
 	void boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow);
 	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 		      int &detailRow, double val, Diagnostic diag);
+	void checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI, Diagnostic &diag);
 public:
 	ComputeCI();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -915,8 +916,9 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val,
-			 baobj.getDiag());
+		Diagnostic diag = baobj.getDiag();
+		checkOtherBoxConstraints(fc, currentCI, diag);
+		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val, diag);
 	}
 
  part2:
@@ -975,8 +977,9 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		//mxLog("d0 %.4g sqrtCrit90 %.4g d0/2 %.4g", d0, sqrtCrit90, d0/2.0);
 		if (d0 < sqrtCrit90) {
 			fc.fit = boundLL;
-			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox,
-				 CIobjective::DIAG_SUCCESS);
+			Diagnostic diag = CIobjective::DIAG_SUCCESS;
+			checkOtherBoxConstraints(fc, currentCI, diag);
+			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox, diag);
 			return;
 		}
 	
@@ -1020,8 +1023,35 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		//mxPrintMat("bn", bnobj.ineq);
 		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val,
-			 bnobj.getDiag());
+		Diagnostic diag = bnobj.getDiag();
+		checkOtherBoxConstraints(fc, currentCI, diag);
+		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val, diag);
+	}
+}
+
+void ComputeCI::checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI,
+					 Diagnostic &diag)
+{
+	if (diag != CIobjective::DIAG_SUCCESS) return;
+	double eps = sqrt(std::numeric_limits<double>::epsilon());
+	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
+	for(int px = 0; px < int(fc.numParam); px++) {
+		if (px == currentCI->varIndex) continue;
+		bool active=false;
+		if (fabs(Est[px] - fc.varGroup->vars[px]->lbound) < eps) {
+			if (verbose >= 2)
+				mxLog("Param %s at lbound %f", fc.varGroup->vars[px]->name, Est[px]);
+			active=true;
+		}
+		if (fabs(Est[px] - fc.varGroup->vars[px]->ubound) < eps) {
+			if (verbose >= 2)
+				mxLog("Param %s at ubound %f", fc.varGroup->vars[px]->name, Est[px]);
+			active=true;
+		}
+		if (active) {
+			diag = CIobjective::DIAG_BOXED;
+			break;
+		}
 	}
 }
 
@@ -1036,7 +1066,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 		constr.fitMat = fitMatrix;
 		constr.push(state);
 	}
-	
+
 	// Reset to previous optimum
 	Eigen::Map< Eigen::VectorXd > Mle(mle->est, mle->numParam);
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
@@ -1063,6 +1093,27 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
 
 	diag = ciobj.getDiag();
+
+	if (diag == CIobjective::DIAG_SUCCESS) {
+		double eps = sqrt(std::numeric_limits<double>::epsilon());
+		for(int px = 0; px < int(fc.numParam); px++) {
+			bool active=false;
+			if (fabs(Est[px] - fc.varGroup->vars[px]->lbound) < eps) {
+				if (verbose >= 2)
+					mxLog("Param %s at lbound %f", fc.varGroup->vars[px]->name, Est[px]);
+				active=true;
+			}
+			if (fabs(Est[px] - fc.varGroup->vars[px]->ubound) < eps) {
+				if (verbose >= 2)
+					mxLog("Param %s at ubound %f", fc.varGroup->vars[px]->name, Est[px]);
+				active=true;
+			}
+			if (active) {
+				diag = CIobjective::DIAG_BOXED;
+				break;
+			}
+		}
+	}
 }
 
 void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
@@ -1141,7 +1192,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		"success", "alpha level not reached",
 		"bound-away mle distance", "bound-away unbounded distance",
 		"bound-near lower distance", "bound-near upper distance",
-		"bound infeasible"
+		"bound infeasible", "active box constraint"
 	};
 	SET_VECTOR_ELT(detail, 5+mle->numParam,
 		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
