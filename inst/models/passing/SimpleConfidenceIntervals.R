@@ -14,6 +14,9 @@
 #   limitations under the License.
 
 require(OpenMx)
+
+if (mxOption(NULL,"Default optimizer") == 'CSOLNP') stop("SKIP")
+
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
 #Prepare Data
@@ -143,14 +146,16 @@ omxCheckCloseEnough(ci[,'ubound'], c(0.683, 0.052, 0.1956), .005)
 
 iterateMxRun <- function(model, maxIterations) {
   model <- mxOption(model, "Optimality tolerance", 1e-6)
-	return(iterateMxRunHelper(mxRun(model), maxIterations, 1))
+  return(iterateMxRunHelper(mxRun(mxModel(model, mxComputeGradientDescent(maxMajorIter=150L))),
+				  maxIterations, 1))
 }
 
 iterateMxRunHelper <- function(model, maxIterations, iteration) {
 	if (length(model$output) > 0 && model$output$status[[1]] == 0) {
 		return(model)
 	} else if (iteration < maxIterations) {
-		return(iterateMxRunHelper(mxRun(model), maxIterations, iteration + 1))
+		return(iterateMxRunHelper(mxRun(mxModel(model, mxComputeGradientDescent(maxMajorIter=150L))),
+					  maxIterations, iteration + 1))
 	} else {
 		return(model)
 	}
