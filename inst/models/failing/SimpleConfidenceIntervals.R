@@ -15,7 +15,14 @@
 
 require(OpenMx)
 
-if (mxOption(NULL,"Default optimizer") == 'CSOLNP') stop("SKIP")
+# j repeatedly gets set to a large value at subnp.cpp line 893.
+#
+# This is the same algorithmic problem with RSOLNP and CSOLNP we talked
+# about some time ago. So, CSOLNP needs boundaries for some problems to
+# get to the optimum. If you remove the boundary, it will get stuck in a
+# loop.
+
+if (mxOption(NULL,"Default optimizer") != 'CSOLNP') stop("SKIP")
 
 #mxOption(NULL, "Default optimizer", "NPSOL")
 

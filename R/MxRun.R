@@ -130,7 +130,7 @@ runHelper <- function(model, frontendStart,
 			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum, verbose=0L))
 			if (length(intervals) && intervals) {
 				ciOpt <- mxComputeGradientDescent(verbose=0L,
-				    fitfunction=fitNum, nudgeZeroStarts=FALSE, maxMajorIter=150)
+				    fitfunction=fitNum, nudgeZeroStarts=FALSE)
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
 					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)

@@ -94,7 +94,8 @@ struct CIobjective {
 		DIAG_ALPHA_LEVEL,
 		DIAG_BA_D1, DIAG_BA_D2,
 		DIAG_BN_D1, DIAG_BN_D2,
-		DIAG_BOUND_INFEASIBLE
+		DIAG_BOUND_INFEASIBLE,
+		DIAG_BOXED
 	};
 
 	virtual bool gradientKnown() { return false; };

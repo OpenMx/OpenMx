@@ -150,7 +150,7 @@ summarizeInfo <- function(fitModel, method) {
   if (fitModel$output$status$code != 0) {
     summarizeInfo1(NA, emstat, NULL, NULL,
                    fitModel$output$cpuTime, method)
-    return
+    return()
   }
 
   H <- fitModel$output$hessian

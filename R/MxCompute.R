@@ -557,6 +557,9 @@ setMethod("initialize", "MxComputeTryHard",
 ##' \code{\link{mxTryHard}}
 ##' @aliases
 ##' MxComputeTryHard-class
+##' @references
+##' Shanno, D. F. (1985). On Broyden-Fletcher-Goldfarb-Shanno method. \emph{Journal of
+##' Optimization Theory and Applications, 46}(1), 87–94.
 mxComputeTryHard <- function(plan, ..., freeSet=NA_character_, verbose=0L,
 			     location=1.0, scale=0.25, maxRetries=3L)
 {
