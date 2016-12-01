@@ -55,6 +55,10 @@ The \dQuote{Default optimizer} option can only be set globally (i.e., with \code
 
 Some options only affect certain optimizers.  Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.  Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
 
+For a block of \code{n} ordinal variables, the maximum number of integration points that OpenMx may use to calculate multivariate-normal probability integrals is given by
+\code{mvnMaxPointsA + mvnMaxPointsB*n + mvnMaxPointsC*n*n}
+
+
 The maximum number of major iterations (the option  \dQuote{Major iterations}) 
 for optimization for NPSOL  can be specified either by using a 
 numeric value (such as 50, 1000, etc) or by specifying a user-defined function.
@@ -128,8 +132,8 @@ to evaluate together \cr
 mvnMaxPointsA \tab \var{i} \tab base number of integration points \cr
 mvnMaxPointsB \tab \var{i} \tab number of integration points per row \cr
 mvnMaxPointsC \tab \var{i} \tab number of integration points per rows^2 \cr
-mvnAbsEps     \tab \var{i} \tab absolute tolerance \cr
-mvnRelEps     \tab \var{i} \tab relative tolerance \cr
+mvnAbsEps     \tab \var{i} \tab absolute error tolerance \cr
+mvnRelEps     \tab \var{i} \tab relative error tolerance \cr
 }
 
 }
