@@ -53,7 +53,11 @@ strings using the \link{as.character} function.
 
 The \dQuote{Default optimizer} option can only be set globally (i.e., with \code{model=NULL}), and not specifically to a given MxModel.
 
-Some options only affect certain optimizers.  Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.  Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
+Some options only affect certain optimizers.  Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.  Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).  Note that NPSOL's criterion for returning a status code of 0 versus 1 for a given solution depends partly on \dQuote{Optimality tolerance}.
+
+For a block of \code{n} ordinal variables, the maximum number of integration points that OpenMx may use to calculate multivariate-normal probability integrals is given by
+\code{mvnMaxPointsA + mvnMaxPointsB*n + mvnMaxPointsC*n*n}
+
 
 The maximum number of major iterations (the option  \dQuote{Major iterations}) 
 for optimization for NPSOL  can be specified either by using a 
@@ -71,7 +75,7 @@ Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used
 for optimization. Default value is taken from the environment variable
 OMP_NUM_THREADS or, if that is not set, 2. \cr
 Feasibility tolerance \tab \var{r} \tab the maximum acceptable absolute violations in linear and nonlinear constraints. \cr
-Optimality tolerance \tab \var{r} \tab the maximum acceptable difference in fit. \cr
+Optimality tolerance \tab \var{r} \tab the accuracy with which the final iterate approximates a solution to the optimization problem; roughly, the number of reliable significant figures that the fitfunction value should have at the solution. \cr
 Gradient algorithm \tab see list \tab finite difference method, either 'forward' or 'central'. \cr
 Gradient iterations \tab 1:4 \tab the number of Richardson extrapolation iterations\cr
 Gradient step size \tab \var{r} \tab amount of change made to free parameters when numerically calculating gradient\cr
@@ -128,8 +132,8 @@ to evaluate together \cr
 mvnMaxPointsA \tab \var{i} \tab base number of integration points \cr
 mvnMaxPointsB \tab \var{i} \tab number of integration points per row \cr
 mvnMaxPointsC \tab \var{i} \tab number of integration points per rows^2 \cr
-mvnAbsEps     \tab \var{i} \tab absolute tolerance \cr
-mvnRelEps     \tab \var{i} \tab relative tolerance \cr
+mvnAbsEps     \tab \var{i} \tab absolute error tolerance \cr
+mvnRelEps     \tab \var{i} \tab relative error tolerance \cr
 }
 
 }

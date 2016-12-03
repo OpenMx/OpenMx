@@ -68,5 +68,28 @@ round( simpModFit$eC$values , 4 )
 round( obsMat , 3 )
 
 ########################################################################
+# WLS version works fine
+
+wdat <- mxDataWLS(datS)
+wimpMod <- mxModel('Datmod',
+### Expected covariance matrix (variance==1 due to binary variables)
+  mxMatrix(type='Stand',nrow=4,ncol=4,free=T,values=.3,name='eC'),
+### Expected Means 
+  mxMatrix(type='Full',nrow=1,ncol=4,free=F,values=0,name='eM'),
+### Expected thresholds
+  mxMatrix(type='Full',nrow=1,ncol=4,free=T,values=3,name='eT'),
+    wdat,
+    mxExpectationNormal(covariance='eC',thresholds='eT',threshnames=varNames,dimnames=varNames),
+    mxFitFunctionWLS()
+  )
+wimpModFit <- mxRun(wimpMod)
+
+# Modelled correlations
+round( mxEval(eC, wimpModFit) , 4 )
+# Compare with independently calculated tetrachoric correlations
+round( obsMat , 3 )
+
+
+########################################################################
 ########################################################################
 ########################################################################
