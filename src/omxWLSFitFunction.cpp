@@ -77,10 +77,6 @@ void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 	Eigen::ArrayXd stddev;
 	EigenMatrixAdaptor egInCov(inCov);
 	EigenMatrixAdaptor egOutCov(outCov);
-	EigenMatrixAdaptor egInThr(inThresholdsMat);
-	EigenMatrixAdaptor egOutThr(outThresholdsMat);
-	EigenMatrixAdaptor egInM(inMeans);
-	EigenMatrixAdaptor egOutM(outMeans);
 	
 	stddev = egInCov.diagonal().array().sqrt();
 	
@@ -94,31 +90,40 @@ void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 	
 	// standardize mean and thresholds
 	if(inMeans != NULL) {
+		EigenMatrixAdaptor egInM(inMeans);
+		EigenMatrixAdaptor egOutM(outMeans);
 		// means
 		for(int i = 0; i < egInM.cols(); i++) {
 			egOutM(0, i) = 0;
 		}
 		
 		// thresholds
-		for(int j = 0; j < int(thresholds.size()); j++) {
-			omxThresholdColumn* thresh = &thresholds[j];
-			for(int k = 0; k < thresh->numThresholds; k++) {
-				egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, thresh->column) ) / stddev[thresh->column];
+		if(inThresholdsMat != NULL){
+			EigenMatrixAdaptor egInThr(inThresholdsMat);
+			EigenMatrixAdaptor egOutThr(outThresholdsMat);
+			for(int j = 0; j < int(thresholds.size()); j++) {
+				omxThresholdColumn* thresh = &thresholds[j];
+				for(int k = 0; k < thresh->numThresholds; k++) {
+					egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, thresh->column) ) / stddev[thresh->column];
+				}
 			}
 		}
 	} else {
 		// means
-		egOutM = egInM;
+		//omxCopyMatrix(outMeans, inMeans); //egOutM = egInM;
 		
 		// thresholds
-		for(int j = 0; j < int(thresholds.size()); j++) {
-			omxThresholdColumn* thresh = &thresholds[j];
-			for(int k = 0; k < thresh->numThresholds; k++) {
-				egOutThr(k, thresh->column) = egInThr(k, thresh->column) / stddev[thresh->column];
+		if(inThresholdsMat != NULL){
+			EigenMatrixAdaptor egInThr(inThresholdsMat);
+			EigenMatrixAdaptor egOutThr(outThresholdsMat);
+			for(int j = 0; j < int(thresholds.size()); j++) {
+				omxThresholdColumn* thresh = &thresholds[j];
+				for(int k = 0; k < thresh->numThresholds; k++) {
+					egOutThr(k, thresh->column) = egInThr(k, thresh->column) / stddev[thresh->column];
+				}
 			}
 		}
 	}
-	
 }
 
 
@@ -131,6 +136,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	double sum = 0.0;
 	
 	omxMatrix *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
+	omxMatrix *seCov, *seMeans, *seThresholdsMat, *seFlat;
 	
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
@@ -143,6 +149,10 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	weights		= owo->weights;
 	B			= owo->B;
 	P			= owo->P;
+	seCov		= owo->standardExpectedCov;
+	seMeans		= owo->standardExpectedMeans;
+	seThresholdsMat = owo->standardExpectedThresholds;
+	seFlat		= owo->standardExpectedFlattened;
 	int onei	= 1;
 	
 	omxExpectation* expectation = oo->expectation;
@@ -153,7 +163,8 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	//if() {} else {}
+	standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
+			seCov, seMeans, seThresholdsMat);
 	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
 	
 	omxCopyMatrix(B, oFlat);

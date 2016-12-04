@@ -50,7 +50,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		useWeight <- U
 	}
 	
-	#Step 2: Create the U MATRIX
+	#  Step 2: Create the U MATRIX
 	for(j in 1:numColsStar){
 		for(i in j:numColsStar){
 			ind <- c(M[i,], M[j,])
