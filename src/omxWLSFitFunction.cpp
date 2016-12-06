@@ -165,7 +165,11 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
 			seCov, seMeans, seThresholdsMat);
-	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
+	if(expThresholdsMat != NULL){
+		flattenDataToVector(seCov, seMeans, seThresholdsMat, eThresh, eFlat);
+	} else {
+		flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
+	}
 	
 	omxCopyMatrix(B, oFlat);
 	
@@ -364,7 +368,9 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	if (oo->expectation->thresholdsMat) {
 		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
 	}
-	newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, oo->matrix->currentState);
+	if(means){
+		newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, oo->matrix->currentState);
+	}
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
