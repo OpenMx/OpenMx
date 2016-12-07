@@ -86,6 +86,8 @@ wimpModFit <- mxRun(wimpMod)
 
 # Modelled correlations
 round( mxEval(eC, wimpModFit) , 4 )
+# WLS Data correlations
+round(wimpMod$data$observed, 4)
 # Compare with independently calculated tetrachoric correlations
 round( obsMat , 3 )
 
