@@ -70,7 +70,8 @@ summary(thresholdModelrun, refModels=thresholdSaturated)
 
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
-	mxExpectationNormal(covariance="impliedCovs", dimnames = fruitynames, thresholds="thresholdMatrix"),
+	mxMatrix('Zero', nrow=1, ncol=nVariables, name='impliedMeans'),
+	mxExpectationNormal(covariance="impliedCovs", means='NA', dimnames = fruitynames, thresholds="thresholdMatrix"),
 	mxFitFunctionWLS())
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
@@ -150,7 +151,9 @@ omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .0
 omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .05)
 
 
-
+# new style for model 2
+wmod2a <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS())
+wrun2a <- mxRun(wmod2a)
 
 
 
