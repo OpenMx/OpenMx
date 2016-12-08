@@ -146,6 +146,21 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		return(v)
 })
 
+setMethod("genericGetExpectedStandard", signature("BaseExpectationNormal"),
+	function(.Object, model, defvar.row=1) {
+		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row)
+		cov <- ret[['covariance']]
+		mns <- ret[['means']]
+		if (is.null(mns)) stop("mns is null")
+		thr <- ret[['thresholds']]
+		if (is.null(thr)) stop("thresholds is null")
+		thr <- matrix( (c(thr) - rep(mns, each=nrow(thr)) ) / rep(sqrt(diag(cov)), each=nrow(thr)), nrow=nrow(thr), ncol=ncol(thr) )
+		mns <- mns - mns
+		cov <- cov2cor(cov)
+		v <- c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
+		return(v)
+})
+
 imxGetExpectationComponent <- function(model, component, defvar.row=1)
 {
 	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
@@ -158,6 +173,8 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1)
 		got
 	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model$expectation, model, defvar.row)
+	} else if (length(component) == 1 && component == 'standard') {
+		genericGetExpectedStandard(model$expectation, model, defvar.row)
 	} else {
 		got <- genericGetExpected(model$expectation, model, component, defvar.row)
 		if (length(got) == 1) {
@@ -184,9 +201,9 @@ sse <- function(x){sum(x^2)}
 #' @param defvar.row which row to use for definition variables
 #' @return a matrix with manifests in the rows and original parameters in the columns
 #' @seealso \link{mxGetExpected}
-omxManifestModelByParameterJacobian <- function(model, defvar.row=1) {
+omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standard=FALSE) {
 	theParams <- omxGetParameters(model)
-	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row)
+	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standard=standard)
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
@@ -222,10 +239,14 @@ mxCheckIdentification <- function(model, details=TRUE){
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
-.mat2param <- function(x, model, defvar.row=1){
+.mat2param <- function(x, model, defvar.row=1, standard=FALSE){
   paramNames <- names(omxGetParameters(model))
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-  got <- mxGetExpected(model, 'vector', defvar.row)
+  if(!standard){
+    got <- mxGetExpected(model, 'vector', defvar.row)
+  } else {
+    got <- mxGetExpected(model, 'standard', defvar.row)
+  }
   got
 }
 
