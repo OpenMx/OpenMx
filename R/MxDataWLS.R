@@ -613,6 +613,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	retVal <- mxData(pcMatrix, type="acov", numObs=n, 
 		acov=diag(1), fullWeight=NA, thresholds=thresh)
 	retVal@fullWeight <- fw
+	#retVal@means <- matrix(meanEst, nrow=1)
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}
