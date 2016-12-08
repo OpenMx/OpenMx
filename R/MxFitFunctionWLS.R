@@ -85,9 +85,9 @@ setMethod("genericFitFunConvert", "MxFitFunctionWLS",
 		}
 		.Object@expectation <- expectIndex
 		eobj <- flatModel@expectations[[1L+expectIndex]]
-		if(!single.na(eobj@thresholds)){
-			checkWLSIdentification(model, eobj)
-		}
+		#if(!single.na(eobj@thresholds)){
+		#	checkWLSIdentification(model, eobj)
+		#}
 		return(.Object)
 })
 
@@ -221,6 +221,7 @@ imxWlsStandardErrors <- function(model){
 	# Does the data have @fullWeight
 	theParams <- omxGetParameters(model)
 	d <- omxManifestModelByParameterJacobian(model)
+	#d <- omxManifestModelByParameterJacobian(model, standard=TRUE)
 	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sV <- list()
