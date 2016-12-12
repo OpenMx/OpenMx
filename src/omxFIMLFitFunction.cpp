@@ -409,6 +409,13 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 	}
 
+	const char *jointLabels[] = {
+		"auto", "continuous", "ordinal", "old"
+	};
+	Rf_setAttrib(algebra, Rf_install("jointConditionOn"),
+		     makeFactor(Rf_ScalarInteger(1+argStruct->jointStrat),
+				OMX_STATIC_ARRAY_SIZE(jointLabels), jointLabels));
+
 	if (OMX_DEBUG_FIML_STATS) {
 		MxRList count;
 		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
@@ -428,9 +435,9 @@ struct FIMLCompare {
 	std::vector<bool> ordinal;
 	bool ordinalFirst;
 
-	FIMLCompare(omxExpectation *_ex, bool _ordinalFirst) {
+	FIMLCompare(omxExpectation *_ex) {
 		ex = _ex;
-		ordinalFirst = _ordinalFirst;
+		ordinalFirst = true;
 		data = ex->data;
 
 		auto dc = ex->getDataColumns();
@@ -620,13 +627,35 @@ static void sortData(omxFitFunction *off)
 	for (int rx=0; rx < data->rows; ++rx) indexVector.push_back(rx);
 	ofiml->sameAsPrevious.assign(data->rows, false);
 
-	FIMLCompare cmp(off->expectation, ofiml->jointStrat == JOINT_CONDORD);
+	FIMLCompare cmp(off->expectation);
+
+	if (ofiml->jointStrat == JOINT_AUTO) {
+		cmp.ordinalFirst = true;
+		std::sort(indexVector.begin(), indexVector.end(), cmp);
+
+		int numUnique = data->rows;
+		for (int rx=1; rx < data->rows; ++rx) {
+			bool m1;
+			cmp.compareAllDefVars(indexVector[rx-1], indexVector[rx], m1);
+			bool m2;
+			cmp.compareMissingnessPart(false, indexVector[rx-1], indexVector[rx], m2);
+			bool m7;
+			cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
+			if (!m1 && !m2 && !m7) --numUnique;
+		}
+		if (numUnique < data->rows/11) {
+			ofiml->jointStrat = JOINT_CONDORD;
+		} else {
+			ofiml->jointStrat = JOINT_CONDCONT;
+		}
+	}
+
+	cmp.ordinalFirst = ofiml->jointStrat == JOINT_CONDORD;
 
 	if (data->needSort) {
 		if (ofiml->verbose >= 1) mxLog("sort %s strategy %d for %s",
 					       data->name, ofiml->jointStrat, off->name());
-		//if (ofiml->jointStrat == JOINT_OLD) cmp.old = true;
-		//cmp.old=true;
+		// Maybe already sorted by JOINT_AUTO, but not a big waste to resort
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
 		//data->omxPrintData("sorted", 1000, indexVector.data());
 	}
@@ -1074,12 +1103,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->numOrdinal = numOrdinal;
 	newObj->numContinuous = numContinuous;
 
-	if (newObj->jointStrat == JOINT_AUTO) {
-		if (0 == numOrdinal) {
-			newObj->jointStrat = JOINT_CONDORD;
-		} else {
-			newObj->jointStrat = JOINT_CONDCONT;
-		}
+	if (newObj->jointStrat == JOINT_AUTO && 0 == numOrdinal) {
+		newObj->jointStrat = JOINT_CONDORD;
 	}
 
     /* Temporary storage for calculation */

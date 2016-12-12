@@ -468,23 +468,6 @@ class ciConstraintEq : public ciConstraint {
 	};
 };
 
-static SEXP makeFactor(SEXP vec, int levels, const char **labels)
-{
-	SEXP classes;
-	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
-	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
-	Rf_setAttrib(vec, R_ClassSymbol, classes);
-
-	SEXP Rlev;
-	Rf_protect(Rlev = Rf_allocVector(STRSXP, levels));
-	for (int lx=0; lx < levels; ++lx) {
-		SET_STRING_ELT(Rlev, lx, Rf_mkChar(labels[lx]));
-	}
-
-	Rf_setAttrib(vec, Rf_install("levels"), Rlev);
-	return vec;
-}
-
 void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 			 int &detailRow, double val, Diagnostic diag)
 {

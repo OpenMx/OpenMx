@@ -56,6 +56,23 @@ void markAsDataFrame(SEXP list, int rows)
 	Rf_setAttrib(list, R_ClassSymbol, classes);
 }
 
+SEXP makeFactor(SEXP vec, int levels, const char **labels)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
+	Rf_setAttrib(vec, R_ClassSymbol, classes);
+
+	SEXP Rlev;
+	Rf_protect(Rlev = Rf_allocVector(STRSXP, levels));
+	for (int lx=0; lx < levels; ++lx) {
+		SET_STRING_ELT(Rlev, lx, Rf_mkChar(labels[lx]));
+	}
+
+	Rf_setAttrib(vec, Rf_install("levels"), Rlev);
+	return vec;
+}
+
 static SEXP do_logm_eigen(SEXP x)
 {
     SEXP dims, z;
