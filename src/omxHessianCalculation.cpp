@@ -357,7 +357,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
 
 	omxAlgebraPreeval(fitMat, fc);
-	if (parallel) fc->createChildren(fitMat);
+	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
 	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
 	// TODO: Allow more than one hessian value for calculation
