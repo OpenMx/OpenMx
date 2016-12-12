@@ -71,7 +71,7 @@ summary(thresholdModelrun, refModels=thresholdSaturated)
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
 	mxMatrix('Zero', nrow=1, ncol=nVariables, name='impliedMeans'),
-	mxExpectationNormal(covariance="impliedCovs", means='NA', dimnames = fruitynames, thresholds="thresholdMatrix"),
+	mxExpectationNormal(covariance="impliedCovs", means='impliedMeans', dimnames = fruitynames, thresholds="thresholdMatrix"),
 	mxFitFunctionWLS())
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
@@ -126,7 +126,8 @@ wmod2 <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS(),
 	mxAlgebra(UnitVector %x% t(sqrt(diag2vec(impliedCovs))), name='theStandardDeviations'),
 	mxAlgebra(UnitVector %x% M, name='theM'),
 	mxAlgebra( (Thresh-theM)/theStandardDeviations, name='newThresh'),
-	mxExpectationNormal(covariance='newCov', thresholds='newThresh', dimnames = fruitynames) #N.B. means left out on purpose
+	mxMatrix('Zero', 1, nVariables, name='MZ'),
+	mxExpectationNormal(covariance='newCov', means='MZ', thresholds='newThresh', dimnames = fruitynames) #N.B. means left out on purpose
 )
 
 
@@ -155,5 +156,5 @@ omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .0
 wmod2a <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS())
 wrun2a <- mxRun(wmod2a)
 
-
+cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a))
 

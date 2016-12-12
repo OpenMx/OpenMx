@@ -342,9 +342,6 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 
 univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
 	### put the means in!
-	# means are missing for ordinal data, so 
-	meanHess <- NULL
-	meanJac <- NULL
 	
 	### Use normLogLik function to get ML estimates of univariate
 	# means and variances.
@@ -560,11 +557,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		w2 <- covHess %*% solve(t(pcJac)%*%pcJac) %*% covHess
 		w <- wlsContinuousOnlyHelper(cd)
 	}
-	# TODO: something still must be done about the means!
-	# To replicate old behavior set
+	# Now doing something about the means!
+	# To replicate old behavior set,
 	# The following two lines should be deleted.
-	meanJac <- NULL
-	meanHess <- NULL
+	#meanJac <- NULL
+	#meanHess <- NULL
 	# even though these might not be NULL and have been processed earlier.
 	fullJac  <- cbind(pcJac, meanJac, threshJac)
 	if( nvar > 0 ){
@@ -613,7 +610,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	retVal <- mxData(pcMatrix, type="acov", numObs=n, 
 		acov=diag(1), fullWeight=NA, thresholds=thresh)
 	retVal@fullWeight <- fw
-	#retVal@means <- matrix(meanEst, nrow=1)
+	retVal@means <- matrix(meanEst, nrow=1)
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}

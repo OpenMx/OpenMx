@@ -219,20 +219,26 @@ imxWlsStandardErrors <- function(model){
 	# Is it a WLS fit function
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
+	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
 	theParams <- omxGetParameters(model)
-	d <- omxManifestModelByParameterJacobian(model)
-	#d <- omxManifestModelByParameterJacobian(model, standard=TRUE)
-	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sV <- list()
 		sW <- list()
+		sD <- c()
 		for(amod in submNames){
 			sV[[amod]] <- model[[amod]]$data$acov
-			sW[[amod]] <- ginv(model[[amod]]$data$fullWeight)
+			sW[[amod]] <- MASS::ginv(model[[amod]]$data$fullWeight)
+			sD[[amod]] <- single.na(model[[amod]]$data$thresholds)
 		}
+		if( !(all(sD == TRUE) || all(sD == FALSE)) ){
+			stop("I feel like I'm getting mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
+		}
+		d <- omxManifestModelByParameterJacobian(model, standard=ifelse(!any(sD), TRUE, FALSE))
 		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
 	} else {
+		d <- omxManifestModelByParameterJacobian(model, standard=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
 		V <- model$data$acov #used weight matrix
 		W <- MASS::ginv(model$data$fullWeight)
 	}
@@ -251,7 +257,9 @@ imxWlsStandardErrors <- function(model){
 imxWlsChiSquare <- function(model, J=NA){
 	samp.param <- mxGetExpected(model, 'vector')
 	theParams <- omxGetParameters(model)
-	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+	numOrdinal <- 0
+	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
+	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sW <- list()
 		expd.param <- c()
@@ -259,7 +267,12 @@ imxWlsChiSquare <- function(model, J=NA){
 			cov <- model[[amod]]$data$observed
 			mns <- model[[amod]]$data$means
 			thr <- model[[amod]]$data$thresholds
-			expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+			if(!single.na(thr)){
+				expd.param <- c(expd.param, .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE))
+				numOrdinal <- numOrdinal + ncol(thr)
+			} else {
+				expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+			}
 			sW[[amod]] <- MASS::ginv(model[[amod]]$data$fullWeight)
 		}
 		W <- Matrix::bdiag(sW)
@@ -267,20 +280,26 @@ imxWlsChiSquare <- function(model, J=NA){
 		cov <- model$data$observed
 		mns <- model$data$means
 		thr <- model$data$thresholds
-		expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+		if(!single.na(thr)){
+			expd.param <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
+			numOrdinal <- numOrdinal + ncol(thr)
+		} else {
+			expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
+		}
 		W <- MASS::ginv(model$data$fullWeight)
 	}
 	
 	e <- samp.param - expd.param
 	
 	if(single.na(J)){
+		# TODO Heal this interface for uses with standardization, outside the mxRun context
 		jac <- omxManifestModelByParameterJacobian(model)
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	if(prod(dim(jacOC)) > 0){
 		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
-	df <- qr(jacOC)$rank
+	df <- qr(jacOC)$rank - numOrdinal #subtract the number of ordinal means
 	return(list(Chi=x2, ChiDoF=df))
 }
 

@@ -154,12 +154,20 @@ setMethod("genericGetExpectedStandard", signature("BaseExpectationNormal"),
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
 		if (is.null(thr)) stop("thresholds is null")
-		thr <- matrix( (c(thr) - rep(mns, each=nrow(thr)) ) / rep(sqrt(diag(cov)), each=nrow(thr)), nrow=nrow(thr), ncol=ncol(thr) )
-		mns <- mns - mns
-		cov <- cov2cor(cov)
-		v <- c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
+		v <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
 		return(v)
 })
+
+.standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
+	thresholds <- matrix( (c(thresholds) - rep(means, each=nrow(thresholds)) ) / rep(sqrt(diag(cov)), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
+	means <- means - means
+	cov <- cov2cor(cov)
+	if(!vector){
+		return(list(cov=cov, means=means, thresholds=thresholds))
+	} else {
+		return(c(vech(cov), means[!is.na(means)], thresholds[!is.na(thresholds)]))
+	}
+}
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1)
 {
