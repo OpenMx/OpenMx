@@ -535,12 +535,26 @@ namespace RelationalRAMExpectation {
 	};
 };
 
+struct quadraticContext {
+	// prohibit regressions among the latents that participate in the quadratic term? not allowed by lisrel
+	// need to reorder & shrink the quadratic to non-zero entries
+	omxMatrix *quadratic;
+	int dest;
+	int numInput;
+	int rank;
+	std::vector<bool> input;
+	Eigen::MatrixXd A;   // t(chol(covariance of input variables))
+	Eigen::MatrixXd Ad;
+	Eigen::RowVectorXd qShift;
+};
+
 typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
 
 class omxRAMExpectation : public omxExpectation {
 	typedef omxExpectation super;
 	bool trivialF;
 	unsigned Zversion;
+	unsigned Sversion;
 	omxMatrix *_Z;
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector< omxThresholdColumn > thresholds;
@@ -550,7 +564,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> ignoreDefVar;
 	std::vector<bool> latentFilter; // false when latent
 
- 	omxRAMExpectation() : trivialF(false), Zversion(0), _Z(0) {};
+ 	omxRAMExpectation() : trivialF(false), Zversion(0), Sversion(0), _Z(0) {};
 	virtual ~omxRAMExpectation();
 
 	omxMatrix *getZ(FitContext *fc);
@@ -558,7 +572,7 @@ class omxRAMExpectation : public omxExpectation {
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *X, *Y, *Ax;
+	omxMatrix *Y, *Ax;
 
 	int verbose;
 	int numIters;
@@ -570,12 +584,19 @@ class omxRAMExpectation : public omxExpectation {
 	double n;
 	double *work;
 	int lwork;
+	int numLatents;
+
+	std::vector<bool> isQuadraticDest;
+	std::vector< quadraticContext > quadratic;
+	omxMatrix *abscissa;
 
 	std::vector< omxMatrix* > between;
 	RelationalRAMExpectation::state *rram;
 	bool forceSingleGroup;
 
 	void studyF();
+	std::vector<int> varToLatentMap;
+	std::vector<int> latentToVarMap;
 
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);

@@ -58,7 +58,6 @@ omxRAMExpectation::~omxRAMExpectation()
 	}
 
 	omxFreeMatrix(argStruct->I);
-	omxFreeMatrix(argStruct->X);
 	omxFreeMatrix(argStruct->Y);
 	omxFreeMatrix(argStruct->Ax);
 	omxFreeMatrix(_Z);
@@ -86,14 +85,14 @@ static void refreshUnfilteredCov(omxExpectation *oo)
 
 void omxRAMExpectation::populateAttr(SEXP robj)
 {
-    refreshUnfilteredCov(this);
     omxRAMExpectation* oro = this;
 	
-	{
-		ProtectedSEXP expCovExt(Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
-		memcpy(REAL(expCovExt), Ax->data, sizeof(double) * Ax->rows * Ax->cols);
-		Rf_setAttrib(robj, Rf_install("UnfilteredExpCov"), expCovExt);
-	}
+    if (quadratic.size() == 0) {
+	    refreshUnfilteredCov(this);
+	    ProtectedSEXP expCovExt(Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
+	    memcpy(REAL(expCovExt), Ax->data, sizeof(double) * Ax->rows * Ax->cols);
+	    Rf_setAttrib(robj, Rf_install("UnfilteredExpCov"), expCovExt);
+    }
 	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(data)));
 
 	MxRList out;
@@ -115,7 +114,6 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 	Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 }
 
-// reimplement inverse using eigen::sparsematrix TODO
 omxMatrix *omxRAMExpectation::getZ(FitContext *fc)
 {
 	if (Zversion != omxGetMatrixVersion(A)) {
@@ -151,16 +149,33 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	omxRecompute(F, fc);
 	if (M) omxRecompute(M, fc);
 	    
+	if (Sversion != omxGetMatrixVersion(S)) {
+		for (auto &qc : quadratic) {
+			EigenMatrixAdaptor eS(S);
+			subsetCovariance(eS, [&](int xx){  // only need lower triangle TODO
+					int lx = varToLatentMap[xx];
+					return lx >= 0 && qc.input[lx];
+				}, qc.numInput, qc.A);
+
+			Eigen::LDLT< Eigen::MatrixXd > chol(qc.A);
+			qc.Ad = chol.vectorD().array().sqrt().matrix().asDiagonal();
+			qc.Ad = chol.matrixL() * qc.Ad;
+			qc.Ad = chol.transpositionsP().transpose() * qc.Ad;
+			//mxPrintMat("PLD", qc.Ad);
+		}
+		Sversion = omxGetMatrixVersion(S);
+	}
+
+	for (auto &qc : quadratic) {
+		omxRecompute(qc.quadratic, fc);
+	}
+
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
-	if(Ax == NULL || I == NULL || Y == NULL || X == NULL) {
+	if(Ax == NULL || I == NULL || Y == NULL) {
 		Rf_error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
-	if(cov == NULL && means == NULL) {
-		return; // We're not populating anything, so why bother running the calculation?
-	}
-	
 	omxMatrix *Z = getZ(NULL);
 	EigenMatrixAdaptor eZ(Z);
 	EigenMatrixAdaptor eY(Y);
@@ -170,18 +185,83 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 		dx += 1;
 	}
 
-	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
-
-	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, cov);
-	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
-	
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(cov, "....RAM: Model-implied Covariance Matrix:");}
-	
-	if(M != NULL && means != NULL) {
-		// F77_CALL(omxunsafedgemv)(Y->majority, &(Y->rows), &(Y->cols), &oned, Y->data, &(Y->leading), M->data, &onei, &zerod, means->data, &onei);
-		omxDGEMV(FALSE, 1.0, Y, M, 0.0, means);
+	if (means) {
+		EigenVectorAdaptor Emeans(means);
+		EigenVectorAdaptor eM(M);
+		if (abscissa) {
+			Eigen::VectorXd M2 = eM;
+			EigenVectorAdaptor Eabscissa(abscissa);
+			for (auto &qc : quadratic) {
+				Eigen::VectorXd z1(qc.numInput);
+				z1.setZero();
+				z1.head(qc.rank) = Eabscissa.head(qc.rank);  // segment TODO
+				Eigen::VectorXd meanAdj = qc.Ad * z1;
+				for (int lx=0, ax=0; lx < numLatents; ++lx) {
+					if (!qc.input[lx]) continue;
+					meanAdj[ax++] += M2[ latentToVarMap[lx] ];
+				}
+				EigenMatrixAdaptor Equad(qc.quadratic);
+				Eigen::MatrixXd qCoef;
+				subsetCovariance(Equad, [&](int xx){ return qc.input[xx]; }, qc.numInput, qCoef);
+				qc.qShift = meanAdj.transpose() * qCoef;   // what if no means model? TODO
+				M2[ qc.dest ] += qc.qShift * meanAdj;
+				for (int lx=0, ax=0; lx < numLatents; ++lx) {
+					if (!qc.input[lx]) continue;
+					M2[ latentToVarMap[lx] ] = meanAdj[ax++];
+				}
+			}
+			Emeans.derived().noalias() = eY * M2;
+		} else {
+			Emeans.derived().noalias() = eY * eM;
+		}
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(means, "....RAM: Model-implied Means Vector:");}
 	}
+
+	EigenMatrixAdaptor eS(S);
+	if (quadratic.size()) {
+		EigenMatrixAdaptor eA(A);
+		for (auto qc : quadratic) {
+			for (int lx=0, ax=0; lx < numLatents; ++lx) {
+				if (!qc.input[lx]) continue;
+				eA(qc.dest, latentToVarMap[lx]) += qc.qShift[ax];
+				ax += 1;
+			}
+		}
+		omxShallowInverse(fc, numIters, A, _Z, Ax, I);
+		for (int rx=0, dx=0; rx < eZ.rows(); ++rx) {
+			if (!latentFilter[rx]) continue;
+			eY.row(dx) = eZ.row(rx);
+			dx += 1;
+		}
+		// undo adjustment
+		for (auto qc : quadratic) {
+			for (int lx=0, ax=0; lx < numLatents; ++lx) {
+				if (!qc.input[lx]) continue;
+				eA(qc.dest, latentToVarMap[lx]) -= qc.qShift[ax];
+				ax += 1;
+			}
+		}
+		omxMarkClean(A); // mark dependencies stale
+
+		Eigen::MatrixXd adjS = eS;
+		for (auto &qc : quadratic) {
+			Eigen::MatrixXd icov(qc.numInput, qc.numInput);
+			icov.setZero();
+			icov.bottomRightCorner(qc.rank, qc.rank) = qc.Ad.bottomRightCorner(qc.rank, qc.rank);
+			icov = icov * icov.transpose();
+			subsetCovarianceStore(adjS, [&](int xx) {
+					int lx = varToLatentMap[xx];
+					return lx >= 0 && qc.input[lx];
+				}, icov);
+		}
+		EigenMatrixAdaptor Ecov(cov);
+		Ecov.derived().noalias() = eY * adjS.selfadjointView<Eigen::Lower>() * eY.transpose();
+	} else {
+		EigenMatrixAdaptor Ecov(cov);
+		Ecov.derived().noalias() = eY * eS.selfadjointView<Eigen::Lower>() * eY.transpose();
+	}
+
+	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(cov, "....RAM: Model-implied Covariance Matrix:");}
 }
 
 omxExpectation *omxInitRAMExpectation() { return new omxRAMExpectation; }
@@ -278,6 +358,55 @@ void omxRAMExpectation::init() {
 		}
 	}
 
+	studyF();
+	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
+	//EigenStdVectorAdaptor<int> vtl(varToLatentMap);
+	//mxPrintMat("vtl", vtl);
+
+	numLatents = F->cols - F->rows;
+	isQuadraticDest.assign(numLatents, false);
+
+	ProtectedSEXP Rquadra(R_do_slot(rObj, Rf_install("quadratic")));
+	if (Rf_length(Rquadra)) {
+		if (!Rf_isInteger(Rquadra)) Rf_error("%s: quadratic must be an integer vector", oo->name);
+		quadratic.reserve(Rf_length(Rquadra));
+		int *qnumber = INTEGER(Rquadra);
+		ProtectedSEXP Rdest(R_do_slot(rObj, Rf_install("quadraticDest")));
+		int *dest = INTEGER(Rdest);
+		for (int jx=0; jx < Rf_length(Rquadra); ++jx) {
+			quadraticContext qc;
+			qc.dest = dest[jx];
+			isQuadraticDest[ varToLatentMap[qc.dest] ] = true;
+			//mxLog("dest = %s", F->colnames[qc.dest]);
+			qc.quadratic = currentState->getMatrixFromIndex(qnumber[jx]);
+			EigenMatrixAdaptor qu(qc.quadratic);
+			qc.rank = 0;
+			Eigen::VectorXd rowSums = qu.rowwise().sum(); // need to permute first? TODO
+			for (int sx=0; sx < rowSums.size(); ++sx) if (rowSums[sx]) qc.rank += 1;
+			quadratic.push_back(qc);
+		}
+		for (int jx=0; jx < Rf_length(Rquadra); ++jx) {
+			quadraticContext &qc = quadratic[jx];
+			qc.numInput = 0;
+			qc.input.assign(numLatents, false);
+			// search for nonzero entries TODO
+			for (int lx=0; lx < numLatents; ++lx) {
+				bool yes = !isQuadraticDest[lx];
+				qc.input[lx] = yes;
+				if (yes) qc.numInput += 1;
+			}
+			qc.A.resize(qc.numInput, qc.numInput);
+		}
+	}
+
+	abscissa = 0;
+	ProtectedSEXP Rabscissa(R_do_slot(rObj, Rf_install("abscissa")));
+	if (quadratic.size()) {
+		if (Rf_length(Rabscissa) != 1) Rf_error("%s: abscissa is required for quadratic effects", oo->name);
+		if (!Rf_isInteger(Rabscissa)) Rf_error("%s: abscissa must be an integer vector", oo->name);
+		abscissa = currentState->getMatrixFromIndex(INTEGER(Rabscissa)[0]);
+	}
+
 	l = RAMexp->F->rows;
 	k = RAMexp->A->cols;
 
@@ -294,7 +423,6 @@ void omxRAMExpectation::init() {
 	RAMexp->Ax->rownames = RAMexp->S->rownames;
 	RAMexp->Ax->colnames = RAMexp->S->colnames;
 	RAMexp->Y = 	omxInitMatrix(l, k, TRUE, currentState);
-	RAMexp->X = 	omxInitMatrix(l, k, TRUE, currentState);
 	
 	RAMexp->cov = 		omxInitMatrix(l, l, TRUE, currentState);
 
@@ -303,9 +431,6 @@ void omxRAMExpectation::init() {
 	} else {
 	    RAMexp->means  = 	NULL;
     }
-
-	RAMexp->studyF();
-	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
 }
 
 void omxRAMExpectation::studyF()
@@ -313,10 +438,18 @@ void omxRAMExpectation::studyF()
 	auto dataColumns = super::getDataColumns();
 	auto origThresholdInfo = super::getThresholdInfo();
 	EigenMatrixAdaptor eF(F);
+	varToLatentMap.assign(eF.cols(), -1);
 	latentFilter.assign(eF.cols(), false);
+	latentToVarMap.resize(eF.cols() - eF.rows());
 	dataCols.resize(eF.rows());
-	if (!eF.rows()) return;  // no manifests
-	for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
+	if (!eF.rows()) {  // no manifests
+		for (int cx=0; cx < eF.cols(); ++cx) {
+			varToLatentMap[cx] = cx;
+			latentToVarMap[cx] = cx;
+		}
+		return;
+	}
+	for (int cx =0, dx=0, lx=0; cx < eF.cols(); ++cx) {
 		int dest;
 		double isManifest = eF.col(cx).maxCoeff(&dest);
 		latentFilter[cx] = isManifest;
@@ -329,6 +462,10 @@ void omxRAMExpectation::studyF()
 				thresholds.push_back(adj);
 			}
 			dx += 1;
+		} else {
+			varToLatentMap[cx] = lx;
+			latentToVarMap[lx] = cx;
+			lx += 1;
 		}
 	}
 }

@@ -19,6 +19,9 @@ setClass(Class = "MxExpectationRAM",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber",
 		M = "MxCharOrNumber",
+		quadratic = "MxOptionalCharOrNumber",
+		quadraticDest = "integer",
+		abscissa = "MxOptionalCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		thresholdColumns = "numeric",
@@ -42,7 +45,7 @@ setClass(Class = "MxExpectationRAM",
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 between, verbose, data = as.integer(NA), name = 'expectation') {
+		 between, quadratic, abscissa, verbose, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -55,6 +58,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
 		.Object@between <- between
+		.Object@quadratic <- quadratic
+		.Object@abscissa <- abscissa
 		.Object@verbose <- verbose
 		.Object@.rampartCycleLimit <- as.integer(NA)
 		.Object@.rampartUnitLimit <- as.integer(NA)
@@ -68,7 +73,8 @@ setMethod("initialize", "MxExpectationRAM",
 
 setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds, .Object@between)
+		sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@quadratic,
+			     .Object@abscissa, .Object@thresholds, .Object@between)
 	sources <- sources[!is.na(sources)]
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
@@ -81,6 +87,8 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace, TRUE)
 		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace, TRUE)
 		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace, TRUE)
+		.Object@quadratic <- imxConvertIdentifier(.Object@quadratic, modelname, namespace, TRUE)
+		.Object@abscissa <- imxConvertIdentifier(.Object@abscissa, modelname, namespace, TRUE)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, 
 					     imxConvertIdentifier, modelname, namespace)
@@ -95,6 +103,7 @@ setMethod("genericExpRename", signature("MxExpectationRAM"),
 		.Object@F <- renameReference(.Object@F, oldname, newname)
 		.Object@M <- renameReference(.Object@M, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
+		# .Object@between quadratic abscissa TODO
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
 		return(.Object)
 })
@@ -104,7 +113,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
 		name <- .Object@name
 		aMatrix <- .Object@A
-		sMatrix <- .Object@S
 		fMatrix <- .Object@F
 		mMatrix <- .Object@M
 		data <- .Object@data
@@ -154,7 +162,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 						     omxQuotes(colnames(upperA)[!upperMatch]))
 					stop(msg, call. = FALSE)
 				}
-				imxLocateIndex(flatModel, bName, name)
+				bName
 			})
 		}
 		hasMeanModel <- !is.na(mMatrix)
@@ -185,7 +193,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				omxQuotes(modelname), "does not contain colnames")
 			stop(msg, call. = FALSE)
 		}
-		sMatrix <- flatModel[[sMatrix]]
+		sMatrix <- flatModel[[.Object@S]]
 		if (!is.null(sMatrix)) {
 			if (!is(sMatrix, "MxAlgebra") &&
 			    all(diag(sMatrix$values) == 0) && all(diag(sMatrix$free) == FALSE) &&
@@ -220,6 +228,50 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 					"in model", 
 					omxQuotes(modelname), "do not contain identical",
 					"names.")
+				stop(msg, call. = FALSE)
+			}
+		}
+		if (length(.Object@quadratic)) {
+			qDest <- names(.Object@quadratic)
+			if (any(duplicated(qDest))) {
+				msg <- paste("More than 1 quadratic effects matrix specified for",
+					     omxQuotes(qDest[duplicated(qDest)]))
+				stop(msg, call. = FALSE)
+			}
+			pnum <- match(qDest, colnames(fMatrix))
+			if (any(is.na(pnum))) {
+				msg <- paste("Quadratic effect destination",
+					     omxQuotes(qDest[is.na(pnum)]),
+					     "unrecognized")
+				stop(msg, call. = FALSE)
+			}
+			.Object@quadraticDest <- pnum - 1L
+		}
+		for (oMatrix in .Object@quadratic) {
+			oMatrix <- flatModel[[oMatrix]]
+			latents <- setdiff(colnames(fMatrix), rownames(fMatrix))
+			for (dx in 1:2) {
+				if (!identical(latents, dimnames(oMatrix)[[dx]])) {
+					msg <- paste("Dimnames[[", dx, "]] of quadratic",
+						     "matrix must be identical to",
+						     "the list of latent variables:", omxQuotes(latents))
+					stop(msg, call. = FALSE)
+				}
+			}
+			# May need to skip these checks if oMatrix is an algebra TODO
+			if (any(oMatrix$values[lower.tri(oMatrix$values, diag=FALSE)] != 0)) {
+				msg <- paste("Quadratic matrix must be upper",
+					     "triangular.")
+				stop(msg, call. = FALSE)
+			}
+			if (any(oMatrix$free[lower.tri(oMatrix$free, diag=FALSE)])) {
+				msg <- paste("Quadratic matrix can only be free in upper",
+					     "triangle.")
+				stop(msg, call. = FALSE)
+			}
+			if (any(!is.na(oMatrix$labels[lower.tri(oMatrix$labels, diag=FALSE)]))) {
+				msg <- paste("Quadratic matrix can only be labelled in upper",
+					     "triangle.")
 				stop(msg, call. = FALSE)
 			}
 		}
@@ -273,12 +325,11 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 setMethod("genericNameToNumber", signature("MxExpectationRAM"),
 	  function(.Object, flatModel, model) {
 		  name <- .Object@name
-		  data <- .Object@data
-		  .Object@data <- imxLocateIndex(flatModel, data, name)
-		  .Object@A <- imxLocateIndex(flatModel, .Object@A, name)
-		  .Object@S <- imxLocateIndex(flatModel, .Object@S, name)
-		  .Object@F <- imxLocateIndex(flatModel, .Object@F, name)
-		  .Object@M <- imxLocateIndex(flatModel, .Object@M, name)
+		  qdest <- names(.Object@quadratic)
+		  for (sl in c('data', 'A', 'S', 'F', 'M', 'quadratic', 'abscissa', 'between')) {
+			  slot(.Object, sl) <- imxLocateIndex(flatModel, slot(.Object, sl), name)
+		  }
+		  names(.Object@quadratic) <- qdest
 		  .Object
 	  })
 
@@ -512,7 +563,8 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., between=NULL, verbose=0L) {
+			     threshnames = dimnames, ..., between=NULL, quadratic=NULL, abscissa = NULL,
+			     verbose=0L) {
 
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
@@ -555,7 +607,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	}
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
-		   between, as.integer(verbose)))
+		   between, quadratic, abscissa, as.integer(verbose)))
 }
 
 displayMxExpectationRAM <- function(expectation) {
@@ -580,6 +632,12 @@ displayMxExpectationRAM <- function(expectation) {
 	}
 	if (length(expectation@between)) {
 		cat("$between :", omxQuotes(expectation@between), fill=TRUE)
+	}
+	if (length(expectation@quadratic)) {
+		cat("$quadratic :", omxQuotes(expectation@quadratic), fill=TRUE)
+	}
+	if (length(expectation@abscissa)) {
+		cat("$abscissa :", omxQuotes(expectation@abscissa), fill=TRUE)
 	}
 	invisible(expectation)
 }
