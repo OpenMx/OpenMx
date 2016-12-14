@@ -326,6 +326,24 @@ class mvnByRow {
 		row += numIdentical;
 		firstRow = false;
 	}
+
+	void reportBadOrdLik()
+	{
+		if (fc) fc->recordIterationError("Improper value detected by integration routine "
+						 "in data '%s' row %d: Most likely the maximum number of "
+						 "ordinal variables (20) has been exceeded.  \n"
+						 " Also check whether the expected covariance matrix is "
+						 "positive-definite",
+						 data->name, sortedRow);
+		if (verbose >= 1) ol.log();
+	}
+
+	void reportBadContLik()
+	{
+		if (fc) fc->recordIterationError("Continuous covariance "
+						 "is not positive definite in data '%s' row %d",
+						 data->name, sortedRow);
+	}
 };
 
 struct condContByRow : mvnByRow {

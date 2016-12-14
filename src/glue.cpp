@@ -571,10 +571,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
 
-		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit) &&
-		    fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
+		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit)) {
 			std::string diag = fc->getIterationError();
-			omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+			if (diag.size()) {
+				omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+			}
 		}
 	}
 

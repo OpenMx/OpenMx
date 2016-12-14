@@ -105,6 +105,10 @@ bool condOrdByRow::eval()
 			}
 			if (!parent->ordinalSame[row] || firstRow) {
 				ordLik = ol.likelihood(sortedRow);
+				if (ordLik == 0.0) {
+					reportBadOrdLik();
+					return true;
+				}
 				INCR_COUNTER(ordDensity);
 			}
 
@@ -136,12 +140,18 @@ bool condOrdByRow::eval()
 						}
 					}
 
-					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) return true;
+					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
+						reportBadOrdLik();
+						return true;
+					}
 					U11 = U11.selfadjointView<Eigen::Upper>();
 				}
 				if (!parent->ordinalMissingSame[row] || firstRow) {
 					invOrdCov = ordCov;
-					if (InvertSymmetricPosDef(invOrdCov, 'L')) Rf_error("Non-positive definite");
+					if (InvertSymmetricPosDef(invOrdCov, 'L')) {
+						reportBadOrdLik();
+						return true;
+					}
 					invOrdCov = invOrdCov.selfadjointView<Eigen::Lower>();
 				}
 				if (!parent->missingSameOrdinalSame[row] || firstRow) {
@@ -160,7 +170,10 @@ bool condOrdByRow::eval()
 					INCR_COUNTER(invert);
 					covDecomp.compute(contCov);
 					if (covDecomp.info() != Eigen::Success ||
-					    !(covDecomp.vectorD().array() > 0.0).all()) return true;
+					    !(covDecomp.vectorD().array() > 0.0).all()) {
+						reportBadContLik();
+						return true;
+					}
 					covDecomp.refreshInverse();
 					INCR_COUNTER(conditionMean);
 					contMean += xi.transpose() * invOrdCov.selfadjointView<Eigen::Lower>() * V12;
@@ -174,7 +187,10 @@ bool condOrdByRow::eval()
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 
@@ -248,7 +264,10 @@ bool condContByRow::eval()
 				op.wantOrdinal = false;
 				subsetCovariance(jointCov, op, rowContinuous, contCov);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 			if (!parent->missingSame[row] || firstRow) {
@@ -284,7 +303,10 @@ bool condContByRow::eval()
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 		}
@@ -317,12 +339,7 @@ bool condContByRow::eval()
 			//mxLog("[%d] %.5g", sortedRow, log(ordLik));
 
 			if (ordLik == 0.0) {
-				if (fc) fc->recordIterationError("Improper value detected by integration routine "
-								 "in data row %d: Most likely the maximum number of "
-								 "ordinal variables (20) has been exceeded.  \n"
-								 " Also check that expected covariance matrix is not "
-								 "positive-definite", sortedRow);
-				if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+				reportBadOrdLik();
 				return true;
 			}
 		} else {

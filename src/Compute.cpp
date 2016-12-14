@@ -894,7 +894,9 @@ std::string FitContext::getIterationError()
 
 		std::string result;
 		for (size_t cx=0; cx < childList.size(); ++cx) {
-			result += string_snprintf("%d: %s\n", int(cx), childList[cx]->IterationError.c_str());
+			auto &str = childList[cx]->IterationError;
+			if (!str.size()) continue;
+			result += string_snprintf("%d: %s\n", int(cx), str.c_str());
 		}
 		return result;
 	} else {
@@ -1140,6 +1142,8 @@ void FitContext::createChildren(omxMatrix *alg)
 
 void FitContext::destroyChildren()
 {
+	if (0 == childList.size()) return;
+	IterationError = getIterationError();
 	for (int cx=0; cx < int(childList.size()); ++cx) {
 		delete childList[cx];
 	}
