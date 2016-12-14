@@ -222,10 +222,6 @@ void omxSadmvnWrapper(int numVars,
 			// mxLog("");
 		}
 	}
-
-	if(OMX_DEBUG) {
-		mxLog("Output of sadmvn is %f, %f, %d.", Error, *likelihood, *inform); 
-	}
 } 
 
 static SEXP has_NPSOL()

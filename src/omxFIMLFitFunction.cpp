@@ -227,7 +227,7 @@ bool condOrdByRow::eval()
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
 		} else { contLik = 1.0; }
 
-		recordRow(ordLik * contLik);
+		recordRow(contLik, ordLik);
 	}
 
 	return false;
@@ -346,7 +346,7 @@ bool condContByRow::eval()
 			ordLik = 1.0;
 		}
 
-		recordRow(contLik * ordLik);
+		recordRow(contLik, ordLik);
 	}
 
 	return false;
@@ -436,7 +436,8 @@ struct FIMLCompare {
 		auto dc = ex->getDataColumns();
 		ordinal.resize(dc.size());
 		for (int cx=0; cx < dc.size(); ++cx) {
-			ordinal[cx] = omxDataColumnIsFactor(data, cx);
+			ordinal[cx] = omxDataColumnIsFactor(data, dc[cx]);
+			//mxLog("%d is ordinal=%d", cx, int(ordinal[cx]));
 		}
 	}
 
@@ -720,7 +721,7 @@ static void sortData(omxFitFunction *off)
 		if (ofiml->verbose >= 3) {
 			mxLog("key: row ordinalMissingSame continuousMissingSame missingSameOrdinalSame missingSameContinuousSame continuousSame missingSame ordinalSame");
 			for (int rx=0; rx < data->rows; ++rx) {
-				mxLog("%d %d %d %d %d %d %d %d", rx,
+				mxLog("row=%d sortedrow=%d %d %d %d %d %d %d %d", rx, indexVector[rx],
 				      bool(ofiml->ordinalMissingSame[rx]),
 				      bool(ofiml->continuousMissingSame[rx]),
 				      bool(ofiml->missingSameOrdinalSame[rx]),

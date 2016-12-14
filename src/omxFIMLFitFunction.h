@@ -286,8 +286,12 @@ class mvnByRow {
 		firstRow = false;
 	}
 
-	void recordRow(double rowLik)
+	void recordRow(double contLik, double ordLik)
 	{
+		double rowLik = ordLik * contLik;
+		if (OMX_DEBUG_ROWS(sortedRow)) {
+			mxLog("%d/%d ordLik %g contLik %g = rowLik %g", row, sortedRow, ordLik, contLik, rowLik);
+		}
 		if (returnRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
 			rl[sortedRow] = rowLik;
