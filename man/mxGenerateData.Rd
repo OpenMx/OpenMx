@@ -20,7 +20,7 @@
 \title{Generate data based on an MxModel object}
 
 \description{
-This function creates a randomly sampled data set based on the model.
+This function creates a randomly generated data set based on the model.
 }
 
 \usage{
@@ -36,7 +36,7 @@ mxGenerateData(model, nrows, returnModel=FALSE)
 }
 
 \details{
-This function looks inside the MxModel object to extract the model-implied means and covariance.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
+This function looks inside the MxModel object to extract the model-implied means and covariance.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.  Please note that this function samples data from the model-implied distribution(s); it does not sample from the data object in the model.  That is, this function generates new data rather than pulling data that already exist from the model.
 
 Thresholds and ordinal data are implemented by generating continuous data and then using \link{cut} and \link{mxFactor} to break the continous data at the thresholds into an ordered factor.
 
