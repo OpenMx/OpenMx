@@ -45,7 +45,8 @@ regModel1 <- mxModel("JointSimpleRegressionTest",
 	mxMatrix("Full", 1, 1, free=TRUE, 
 		labels="threshY", dimnames=list(NA, "y"), 
 		name="thresh"),
-	mxFitFunctionML(),mxExpectationNormal("cov", "mean", dimnames = names(testData), thresholds="thresh", threshnames="y")
+	mxFitFunctionML(jointConditionOn='continuous'),
+	mxExpectationNormal("cov", "mean", dimnames = names(testData), thresholds="thresh", threshnames="y")
 	)
 # now a logistic regression
 regModel2 <- mxModel(regModel1, iaMat2, name="JointLogisticRegressionTest")
@@ -59,8 +60,10 @@ summary(regResults1)
 summary(regResults2)
 
 # check the likelihoods
-omxCheckCloseEnough(regResults1$output$Minus2LogLikelihood, 1789.092, 0.01)
-omxCheckCloseEnough(regResults2$output$Minus2LogLikelihood, 1789.092, 0.01)
+condOnContinuous <- 1789.092
+condOnOrdinal <- 1791.779
+omxCheckCloseEnough(regResults1$output$Minus2LogLikelihood, condOnContinuous, 0.01)
+omxCheckCloseEnough(regResults2$output$Minus2LogLikelihood, condOnContinuous, 0.01)
 
 # check the parameters
 omxCheckCloseEnough(regResults1$output$estimate, c(0.847, 0.282, -0.036, 0.062), 0.001)

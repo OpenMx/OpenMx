@@ -105,6 +105,10 @@ bool condOrdByRow::eval()
 			}
 			if (!parent->ordinalSame[row] || firstRow) {
 				ordLik = ol.likelihood(sortedRow);
+				if (ordLik == 0.0) {
+					reportBadOrdLik();
+					return true;
+				}
 				INCR_COUNTER(ordDensity);
 			}
 
@@ -136,12 +140,18 @@ bool condOrdByRow::eval()
 						}
 					}
 
-					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) return true;
+					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
+						reportBadOrdLik();
+						return true;
+					}
 					U11 = U11.selfadjointView<Eigen::Upper>();
 				}
 				if (!parent->ordinalMissingSame[row] || firstRow) {
 					invOrdCov = ordCov;
-					if (InvertSymmetricPosDef(invOrdCov, 'L')) Rf_error("Non-positive definite");
+					if (InvertSymmetricPosDef(invOrdCov, 'L')) {
+						reportBadOrdLik();
+						return true;
+					}
 					invOrdCov = invOrdCov.selfadjointView<Eigen::Lower>();
 				}
 				if (!parent->missingSameOrdinalSame[row] || firstRow) {
@@ -160,7 +170,10 @@ bool condOrdByRow::eval()
 					INCR_COUNTER(invert);
 					covDecomp.compute(contCov);
 					if (covDecomp.info() != Eigen::Success ||
-					    !(covDecomp.vectorD().array() > 0.0).all()) return true;
+					    !(covDecomp.vectorD().array() > 0.0).all()) {
+						reportBadContLik();
+						return true;
+					}
 					covDecomp.refreshInverse();
 					INCR_COUNTER(conditionMean);
 					contMean += xi.transpose() * invOrdCov.selfadjointView<Eigen::Lower>() * V12;
@@ -174,7 +187,10 @@ bool condOrdByRow::eval()
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 
@@ -211,7 +227,7 @@ bool condOrdByRow::eval()
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
 		} else { contLik = 1.0; }
 
-		recordRow(ordLik * contLik);
+		recordRow(contLik, ordLik);
 	}
 
 	return false;
@@ -248,7 +264,10 @@ bool condContByRow::eval()
 				op.wantOrdinal = false;
 				subsetCovariance(jointCov, op, rowContinuous, contCov);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 			if (!parent->missingSame[row] || firstRow) {
@@ -284,7 +303,10 @@ bool condContByRow::eval()
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
-				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return true;
+				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+					reportBadContLik();
+					return true;
+				}
 				covDecomp.refreshInverse();
 			}
 		}
@@ -317,19 +339,14 @@ bool condContByRow::eval()
 			//mxLog("[%d] %.5g", sortedRow, log(ordLik));
 
 			if (ordLik == 0.0) {
-				if (fc) fc->recordIterationError("Improper value detected by integration routine "
-								 "in data row %d: Most likely the maximum number of "
-								 "ordinal variables (20) has been exceeded.  \n"
-								 " Also check that expected covariance matrix is not "
-								 "positive-definite", sortedRow);
-				if(OMX_DEBUG) {mxLog("Improper input to sadmvn in row likelihood.  Skipping Row.");}
+				reportBadOrdLik();
 				return true;
 			}
 		} else {
 			ordLik = 1.0;
 		}
 
-		recordRow(contLik * ordLik);
+		recordRow(contLik, ordLik);
 	}
 
 	return false;
@@ -392,6 +409,13 @@ static void omxPopulateFIMLAttributes(omxFitFunction *off, SEXP algebra)
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 	}
 
+	const char *jointLabels[] = {
+		"auto", "continuous", "ordinal", "old"
+	};
+	Rf_setAttrib(algebra, Rf_install("jointConditionOn"),
+		     makeFactor(Rf_ScalarInteger(1+argStruct->jointStrat),
+				OMX_STATIC_ARRAY_SIZE(jointLabels), jointLabels));
+
 	if (OMX_DEBUG_FIML_STATS) {
 		MxRList count;
 		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
@@ -411,15 +435,16 @@ struct FIMLCompare {
 	std::vector<bool> ordinal;
 	bool ordinalFirst;
 
-	FIMLCompare(omxExpectation *_ex, bool _ordinalFirst) {
+	FIMLCompare(omxExpectation *_ex) {
 		ex = _ex;
-		ordinalFirst = _ordinalFirst;
+		ordinalFirst = true;
 		data = ex->data;
 
 		auto dc = ex->getDataColumns();
 		ordinal.resize(dc.size());
 		for (int cx=0; cx < dc.size(); ++cx) {
-			ordinal[cx] = omxDataColumnIsFactor(data, cx);
+			ordinal[cx] = omxDataColumnIsFactor(data, dc[cx]);
+			//mxLog("%d is ordinal=%d", cx, int(ordinal[cx]));
 		}
 	}
 
@@ -602,13 +627,35 @@ static void sortData(omxFitFunction *off)
 	for (int rx=0; rx < data->rows; ++rx) indexVector.push_back(rx);
 	ofiml->sameAsPrevious.assign(data->rows, false);
 
-	FIMLCompare cmp(off->expectation, ofiml->jointStrat == JOINT_CONDORD);
+	FIMLCompare cmp(off->expectation);
+
+	if (ofiml->jointStrat == JOINT_AUTO) {
+		cmp.ordinalFirst = true;
+		std::sort(indexVector.begin(), indexVector.end(), cmp);
+
+		int numUnique = data->rows;
+		for (int rx=1; rx < data->rows; ++rx) {
+			bool m1;
+			cmp.compareAllDefVars(indexVector[rx-1], indexVector[rx], m1);
+			bool m2;
+			cmp.compareMissingnessPart(false, indexVector[rx-1], indexVector[rx], m2);
+			bool m7;
+			cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
+			if (!m1 && !m2 && !m7) --numUnique;
+		}
+		if (numUnique < data->rows/11) {
+			ofiml->jointStrat = JOINT_CONDORD;
+		} else {
+			ofiml->jointStrat = JOINT_CONDCONT;
+		}
+	}
+
+	cmp.ordinalFirst = ofiml->jointStrat == JOINT_CONDORD;
 
 	if (data->needSort) {
 		if (ofiml->verbose >= 1) mxLog("sort %s strategy %d for %s",
 					       data->name, ofiml->jointStrat, off->name());
-		//if (ofiml->jointStrat == JOINT_OLD) cmp.old = true;
-		//cmp.old=true;
+		// Maybe already sorted by JOINT_AUTO, but not a big waste to resort
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
 		//data->omxPrintData("sorted", 1000, indexVector.data());
 	}
@@ -703,7 +750,7 @@ static void sortData(omxFitFunction *off)
 		if (ofiml->verbose >= 3) {
 			mxLog("key: row ordinalMissingSame continuousMissingSame missingSameOrdinalSame missingSameContinuousSame continuousSame missingSame ordinalSame");
 			for (int rx=0; rx < data->rows; ++rx) {
-				mxLog("%d %d %d %d %d %d %d %d", rx,
+				mxLog("row=%d sortedrow=%d %d %d %d %d %d %d %d", rx, indexVector[rx],
 				      bool(ofiml->ordinalMissingSame[rx]),
 				      bool(ofiml->continuousMissingSame[rx]),
 				      bool(ofiml->missingSameOrdinalSame[rx]),
@@ -1056,12 +1103,8 @@ void omxInitFIMLFitFunction(omxFitFunction* off)
 	newObj->numOrdinal = numOrdinal;
 	newObj->numContinuous = numContinuous;
 
-	if (newObj->jointStrat == JOINT_AUTO) {
-		if (0 == numOrdinal) {
-			newObj->jointStrat = JOINT_CONDORD;
-		} else {
-			newObj->jointStrat = JOINT_CONDCONT;
-		}
+	if (newObj->jointStrat == JOINT_AUTO && 0 == numOrdinal) {
+		newObj->jointStrat = JOINT_CONDORD;
 	}
 
     /* Temporary storage for calculation */

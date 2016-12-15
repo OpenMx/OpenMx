@@ -56,6 +56,23 @@ void markAsDataFrame(SEXP list, int rows)
 	Rf_setAttrib(list, R_ClassSymbol, classes);
 }
 
+SEXP makeFactor(SEXP vec, int levels, const char **labels)
+{
+	SEXP classes;
+	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
+	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
+	Rf_setAttrib(vec, R_ClassSymbol, classes);
+
+	SEXP Rlev;
+	Rf_protect(Rlev = Rf_allocVector(STRSXP, levels));
+	for (int lx=0; lx < levels; ++lx) {
+		SET_STRING_ELT(Rlev, lx, Rf_mkChar(labels[lx]));
+	}
+
+	Rf_setAttrib(vec, Rf_install("levels"), Rlev);
+	return vec;
+}
+
 static SEXP do_logm_eigen(SEXP x)
 {
     SEXP dims, z;
@@ -221,10 +238,6 @@ void omxSadmvnWrapper(int numVars,
 			mxLog(" %f", corList[i]); // (i*(i-1)/2) + j]);
 			// mxLog("");
 		}
-	}
-
-	if(OMX_DEBUG) {
-		mxLog("Output of sadmvn is %f, %f, %d.", Error, *likelihood, *inform); 
 	}
 } 
 
@@ -571,10 +584,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
 
-		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit) &&
-		    fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
+		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit)) {
 			std::string diag = fc->getIterationError();
-			omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+			if (diag.size()) {
+				omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+			}
 		}
 	}
 

@@ -101,6 +101,15 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 			}
 		}
 
+		void log()
+		{
+			mxPrintMat("lThresh", lThresh);
+			mxPrintMat("uThresh", uThresh);
+			mxPrintMat("Infin", Infin);
+			mxPrintMat("mean", mean);
+			mxPrintMat("corList", corList);
+		}
+
 		inline void loadRow(int row);
 		inline double likelihood(int row);
 		template <typename T1, typename T2>
@@ -284,6 +293,16 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		}
 		return lk;
 	};
+
+	void log()
+	{
+		mxPrintMat("stddev", stddev);
+		//mxPrintMat("cor", cor);  //garbage in here?
+		mxLog("split into %d block(s):", (int)blocks.size());
+		for (int bx=0; bx < (int)blocks.size(); ++bx) {
+			blocks[bx].log();
+		}
+	}
 };
 
 template <typename T1, typename T2>
