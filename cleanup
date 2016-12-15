@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Per https://cran.r-project.org/doc/manuals/R-exts.html#Configure-and-cleanup
+
+rm -f src/Makevars
