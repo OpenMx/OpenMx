@@ -20,7 +20,7 @@
 \title{Generate data based on an MxModel object}
 
 \description{
-This function creates a randomly sampled data set based on the model.
+This function returns a new (simulated) data set based on the model-implied distribution provided.
 }
 
 \usage{
