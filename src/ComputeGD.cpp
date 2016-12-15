@@ -215,8 +215,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 	if (warmStart) {
 		if (warmStartSize != int(numParam)) {
-			Rf_warning("warmStart size %d does not match number of free parameters %d (ignored)",
-				   warmStartSize, numParam);
+			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
+				   name, warmStartSize, numParam);
 		} else {
 			Eigen::Map< Eigen::MatrixXd > hessWrap(warmStart, numParam, numParam);
 			rf.hessOut = hessWrap;

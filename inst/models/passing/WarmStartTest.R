@@ -59,5 +59,5 @@ m3 <- mxModel(
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("x")),
 	mxFitFunctionML()
 )
-omxCheckWarning(mxRun(m3),"warmStart size 1 does not match number of free parameters 2 (ignored)")
+omxCheckWarning(mxRun(m3),"MxComputeGradientDescent: warmStart size 1 does not match number of free parameters 2 (ignored)")
 
