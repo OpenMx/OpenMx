@@ -49,7 +49,7 @@ Alternatively, the checkpoint file can be manually loaded as a data.frame in R. 
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{

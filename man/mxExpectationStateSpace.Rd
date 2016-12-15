@@ -127,7 +127,7 @@ R.E. Kalman  (1960).  A New Approach to Linear Filtering and Prediction Problems
 
 G. Petris  (2010).  An R Package for Dynamic Linear Models.  \emph{Journal of Statistical Software, 36}, 1-16.
 
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{

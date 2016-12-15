@@ -130,7 +130,7 @@ omxCheckTrue <- function(a) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 ##' @examples
 ##' omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.5)
 ##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
@@ -217,7 +217,7 @@ tryCatch.W <- function(expr) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 ##' @examples
 ##' msg <- paste("Objective functions like mxFIMLObjective()",
 ##'		"have been deprecated in favor of expectation and fit functions.\n",
@@ -265,7 +265,7 @@ omxCheckWarning <- function(expression, message) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 ##' @examples
 ##' A <- mxMatrix('Full', 1, 1, labels = 'data.foo', free = TRUE, name = 'A')
 ##' model <- mxModel('model', A)

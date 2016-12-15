@@ -40,7 +40,7 @@ omxBrownie(quantity=1, walnuts=TRUE)
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \seealso{

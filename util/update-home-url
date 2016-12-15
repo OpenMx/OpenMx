@@ -1,0 +1,8 @@
+#!/bin/sh
+
+from='http://openmx.psyc.virginia.edu'
+to='http://openmx.ssri.psu.edu'
+
+perl -i -pe "s,$from,$to,g" man/*.Rd docs/substVersion docs/source/*.rst R/MxUnitTesting.R R/MxModel.R DESCRIPTION.in
+
+echo Also adjust the docs/build/html rule in the Makefile

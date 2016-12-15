@@ -54,7 +54,7 @@ For state space models (i.e. models with an \link{mxExpectationStateSpace} or \l
 
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{
