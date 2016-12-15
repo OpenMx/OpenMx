@@ -1228,7 +1228,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param verbose Level of debugging output.
 ##' @param knownHessian an optional matrix of known Hessian entries
 ##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
-##' @param hessian whether to estimate the Hessian
+##' @param hessian whether to estimate the Hessian. If FALSE then only the gradient is estimated.
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
