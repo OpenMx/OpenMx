@@ -1,3 +1,4 @@
+libraries <- rownames(installed.packages())
 if (!all(c("emx","gmp") %in% libraries)) stop("SKIP")
 
 library(OpenMx)
