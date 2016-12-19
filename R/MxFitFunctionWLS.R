@@ -234,11 +234,11 @@ imxWlsStandardErrors <- function(model){
 		if( !(all(sD == TRUE) || all(sD == FALSE)) ){
 			stop("I feel like I'm getting mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
 		}
-		d <- omxManifestModelByParameterJacobian(model, standard=ifelse(!any(sD), TRUE, FALSE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(!any(sD), TRUE, FALSE))
 		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
 	} else {
-		d <- omxManifestModelByParameterJacobian(model, standard=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
 		V <- model$data$acov #used weight matrix
 		W <- MASS::ginv(model$data$fullWeight)
 	}

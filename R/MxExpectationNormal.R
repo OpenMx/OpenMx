@@ -146,7 +146,7 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		return(v)
 })
 
-setMethod("genericGetExpectedStandard", signature("BaseExpectationNormal"),
+setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	function(.Object, model, defvar.row=1) {
 		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row)
 		cov <- ret[['covariance']]
@@ -181,8 +181,8 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1)
 		got
 	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model$expectation, model, defvar.row)
-	} else if (length(component) == 1 && component == 'standard') {
-		genericGetExpectedStandard(model$expectation, model, defvar.row)
+	} else if (length(component) == 1 && component == 'standVector') {
+		genericGetExpectedStandVector(model$expectation, model, defvar.row)
 	} else {
 		got <- genericGetExpected(model$expectation, model, component, defvar.row)
 		if (length(got) == 1) {
@@ -207,11 +207,12 @@ sse <- function(x){sum(x^2)}
 #'
 #' @param model an mxModel
 #' @param defvar.row which row to use for definition variables
+#' @param standardize logical, whether or not to standardize the parameters
 #' @return a matrix with manifests in the rows and original parameters in the columns
 #' @seealso \link{mxGetExpected}
-omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standard=FALSE) {
+omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize=FALSE) {
 	theParams <- omxGetParameters(model)
-	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standard=standard)
+	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
@@ -247,13 +248,13 @@ mxCheckIdentification <- function(model, details=TRUE){
 	return(list(status=stat, jacobian=jac, non_identified_parameters=nidp))
 }
 
-.mat2param <- function(x, model, defvar.row=1, standard=FALSE){
+.mat2param <- function(x, model, defvar.row=1, standardize=FALSE){
   paramNames <- names(omxGetParameters(model))
   model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-  if(!standard){
+  if(!standardize){
     got <- mxGetExpected(model, 'vector', defvar.row)
   } else {
-    got <- mxGetExpected(model, 'standard', defvar.row)
+    got <- mxGetExpected(model, 'standVector', defvar.row)
   }
   got
 }

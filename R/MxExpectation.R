@@ -94,9 +94,9 @@ setGeneric("genericGetExpectedVector",
 	return(standardGeneric("genericGetExpectedVector"))
 })
 
-setGeneric("genericGetExpectedStandard",
+setGeneric("genericGetExpectedStandVector",
 	function(.Object, model, defvar.row) {
-	return(standardGeneric("genericGetExpectedStandard"))
+	return(standardGeneric("genericGetExpectedStandVector"))
 })
 
 setMethod("genericExpAddEntities", "MxBaseExpectation",
@@ -150,7 +150,7 @@ setMethod("genericGetExpected", "MxBaseExpectation",
 setMethod("genericGetExpectedVector", "MxBaseExpectation",
 	function(.Object, model, defvar.row) stop("Not implemented"))
 
-setMethod("genericGetExpectedStandard", "MxBaseExpectation",
+setMethod("genericGetExpectedStandVector", "MxBaseExpectation",
 	function(.Object, model, defvar.row) stop("Not implemented"))
 
 setMethod("$", "MxBaseExpectation", imxExtractSlot)
