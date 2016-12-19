@@ -50,6 +50,9 @@ If component 'standVector' is requested then the same parameter structure as
 are returned as correlations, the means are returned as zeros, and the
 thresholds are returned as z-scores.  For the thresholds the z-scores
 are computed by using the model-implied means and variances.
+
+Note that capitalization is ignored for the 'standVector' option, so 'standvector'
+is also acceptable.
 }
 
 \value{

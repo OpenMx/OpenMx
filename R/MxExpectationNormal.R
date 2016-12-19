@@ -181,7 +181,7 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1)
 		got
 	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model$expectation, model, defvar.row)
-	} else if (length(component) == 1 && component == 'standVector') {
+	} else if (length(component) == 1 && tolower(component) == 'standvector') {
 		genericGetExpectedStandVector(model$expectation, model, defvar.row)
 	} else {
 		got <- genericGetExpected(model$expectation, model, component, defvar.row)
