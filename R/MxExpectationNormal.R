@@ -203,7 +203,12 @@ sse <- function(x){sum(x^2)}
 #' RAM and LISREL models, the manifest model contains only the
 #' manifest variables with free means, covariance, and thresholds.
 #'
+#' @details
 #' The Jacobian is estimated by the central finite difference.
+#' 
+#' If the \code{standardize} argument is TRUE, then the Jacobian is for the standardized model.
+#' For Normal expectations the standardized manifest model has the covariances returned as correlations, the variances returned as ones, the means returned as zeros, and the thresholds are returned as z-scores.
+#' For the thresholds the z-scores are computed by using the model-implied means and variances.
 #'
 #' @param model an mxModel
 #' @param defvar.row which row to use for definition variables
