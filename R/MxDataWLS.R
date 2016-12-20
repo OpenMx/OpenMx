@@ -417,8 +417,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	}
 	
 	# separate ordinal and continuous variables (temporary)
-	od <- data[,ords]
-	cd <- data[,!ords]
+	od <- data[,ords,drop=FALSE]
+	cd <- data[,!ords,drop=FALSE]
 	
 	if(ncol(od) > 0 && ncol(cd) > 0 && type=="WLS"){
 		msg <- paste("Both ordinal and coninuous variables found with type='WLS'.\n",

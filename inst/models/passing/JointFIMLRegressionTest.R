@@ -68,3 +68,10 @@ omxCheckCloseEnough(regResults2$output$Minus2LogLikelihood, condOnContinuous, 0.
 # check the parameters
 omxCheckCloseEnough(regResults1$output$estimate, c(0.847, 0.282, -0.036, 0.062), 0.001)
 omxCheckCloseEnough(regResults2$output$estimate, c(1.592, 1.001, -0.036, 0.117), 0.01)
+
+# Simulate similar data
+test2Data <- mxGenerateData(testData, 500)
+reg2Results1 <- mxRun(mxModel(regModel1, mxData(test2Data, "raw")))
+sum2 <- fivenum(abs(reg2Results1$output$estimate - regResults1$output$estimate))
+omxCheckTrue(sum2[1] > 0)
+omxCheckTrue(sum2[5] < .1)

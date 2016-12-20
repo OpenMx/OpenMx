@@ -414,17 +414,41 @@ generateRelationalData <- function(model, returnModel) {
 	}
 }
 
-mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE) {
+mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE) {
+	if (is(model, 'data.frame')) {
+		wlsData <- mxDataWLS(model)
+		fake <- mxModel("fake",
+				wlsData,
+				mxMatrix(values=wlsData$thresholds, name="thresh"),
+				mxMatrix(values=as.matrix(nearPD(wlsData$observed)$mat), name="cov"),
+				mxMatrix(values=wlsData$means, name="mean"),
+				mxExpectationNormal(thresholds = "thresh", covariance = "cov", means = "mean"))
+		return(mxGenerateData(fake, nrows, returnModel))
+	}
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
-		if (missing(nrows)) nrows <- nrow(model@data@observed)
+		origData <- NULL
+		if (!is.null(model@data)) {
+			origData <- model@data@observed
+			if (missing(nrows)) nrows <- nrow(origData)
+		}
 		data <- genericGenerateData(model$expectation, model, nrows)
+		if (use.miss && !is.null(origData)) {
+			del <- is.na(origData)
+			if (nrows != nrow(origData)) {
+				del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),]
+			}
+			data[del] <- NA
+		}
 		if (returnModel) {
 			mxModel(model, mxData(as.data.frame(data), "raw"))
 		} else {
 			as.data.frame(data)
 		}
 	} else {
+		if (!use.miss) {
+			stop("use.miss=FALSE is not implemented for relational models")
+		}
 		if (!missing(nrows)) {
 			stop("Specification of the number of rows is not supported for relational models")
 		}
