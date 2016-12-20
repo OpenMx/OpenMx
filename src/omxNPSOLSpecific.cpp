@@ -317,12 +317,12 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
-	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, A.data(),
-			rf.solLB.data(), rf.solUB.data(), (void*)F77_SUB(npsolConstraintFunction),
-			(void*) F77_SUB(npsolObjectiveFunction), &rf.informOut, &iter_out,
-			istate.data(), c.data(), cJac.data(),
-			clambda.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
-			iw.data(), &leniw, w.data(), &lenw);
+	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, 
+          A.data(), rf.solLB.data(), rf.solUB.data(), 
+          (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction), 
+          &rf.informOut, &iter_out, istate.data(), 
+          c.data(), cJac.data(), clambda.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
+          iw.data(), &leniw, w.data(), &lenw);
 	
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
