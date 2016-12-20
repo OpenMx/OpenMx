@@ -328,6 +328,11 @@ class GradientOptimizerContext {
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
+	
+	Eigen::VectorXd constraintFunVals;
+	Eigen::MatrixXd constraintJacobian;
+	Eigen::VectorXd LagrMultipliers;
+	Eigen::VectorXi constraintStates;
 
 	double solFun(double *myPars, int* mode);
 	double evalFit(double *myPars, int thrId, int *mode);

@@ -266,16 +266,16 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 		A.setZero();
 		rf.linearConstraintCoefficients(A);
 	}
-	Eigen::VectorXd c(nlnwid);
-	Eigen::MatrixXd cJac(ldJ, n);
-	Eigen::VectorXd clambda(nctotl);
+	rf.constraintFunVals.resize(nlnwid);//Eigen::VectorXd c(nlnwid);
+	rf.constraintJacobian.resize(ldJ, n);//Eigen::MatrixXd cJac(ldJ, n);
+	rf.LagrMultipliers.resize(nctotl);//Eigen::VectorXd clambda(nctotl);
 	Eigen::VectorXd w(lenw);
-	Eigen::VectorXi istate(nctotl);
+	rf.constraintStates.resize(nctotl);//Eigen::VectorXi istate(nctotl);
 	Eigen::VectorXi iw(leniw);
  
 	if (rf.warmStart) {
-		istate.setZero();
-		clambda.setZero();
+		rf.constraintStates.setZero();
+		rf.LagrMultipliers.setZero();
 	}
 
     /*  F77_CALL(npsol)
@@ -320,8 +320,8 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, 
           A.data(), rf.solLB.data(), rf.solUB.data(), 
           (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction), 
-          &rf.informOut, &iter_out, istate.data(), 
-          c.data(), cJac.data(), clambda.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
+          &rf.informOut, &iter_out, rf.constraintStates.data(), 
+          rf.constraintFunVals.data(), rf.constraintJacobian.data(), rf.LagrMultipliers.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
           iw.data(), &leniw, w.data(), &lenw);
 	
 	// NPSOL can return the wrong fit and estimates, but hard to
