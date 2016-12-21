@@ -240,6 +240,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
 			fc->wanted |= FF_COMPUTE_HESSIAN;
 		}
+		fc->constraintFunVals = rf.constraintFunValsOut;
+		fc->constraintJacobian = rf.constraintJacobianOut;
+		fc->LagrMultipliers = rf.LagrMultipliersOut;
+		fc->constraintStates = rf.constraintStatesOut;
 #endif
 		break;}
         case OptEngine_CSOLNP:
@@ -307,11 +311,33 @@ void omxComputeGD::computeImpl(FitContext *fc)
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
-
+	
 	MxRList output;
+	SEXP cv, cjac, lambdas, cstates;
+	
 	output.add("maxThreads", Rf_ScalarInteger(threads));
+	if( fc->constraintFunVals.size() ){
+		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
+		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
+		output.add("constraintFunctionValues", cv);
+	}
+	if( fc->constraintJacobian.size() ){
+		Rf_protect(cjac = Rf_allocMatrix( REALSXP, fc->constraintJacobian.rows(), fc->constraintJacobian.cols() ));
+		memcpy( REAL(cjac), fc->constraintJacobian.data(), sizeof(double) * fc->constraintJacobian.rows() * fc->constraintJacobian.cols() );
+		output.add("constraintJacobian", cjac);
+	}
+	if( fc->LagrMultipliers.size() ){
+		Rf_protect(lambdas = Rf_allocVector( REALSXP, fc->LagrMultipliers.size() ));
+		memcpy( REAL(lambdas), fc->LagrMultipliers.data(), sizeof(double) * fc->LagrMultipliers.size() );
+		output.add("LagrangeMultipliers", lambdas);
+	}
+	if( fc->constraintStates.size() ){
+		Rf_protect(cstates = Rf_allocVector( INTSXP, fc->constraintStates.size() ));
+		memcpy( INTEGER(cstates), fc->constraintStates.data(), sizeof(int) * fc->constraintStates.size() );
+		output.add("istate", cstates); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+	}
 	slots->add("output", output.asR());
-
+	
 	if (engine == OptEngine_NPSOL && hessChol) {
 		out->add("hessianCholesky", hessChol);
 	}

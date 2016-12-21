@@ -266,16 +266,16 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 		A.setZero();
 		rf.linearConstraintCoefficients(A);
 	}
-	rf.constraintFunVals.resize(nlnwid);//Eigen::VectorXd c(nlnwid);
-	rf.constraintJacobian.resize(ldJ, n);//Eigen::MatrixXd cJac(ldJ, n);
-	rf.LagrMultipliers.resize(nctotl);//Eigen::VectorXd clambda(nctotl);
+	rf.constraintFunValsOut.resize(nlnwid);//Eigen::VectorXd c(nlnwid);
+	rf.constraintJacobianOut.resize(ldJ, n);//Eigen::MatrixXd cJac(ldJ, n);
+	rf.LagrMultipliersOut.resize(nctotl);//Eigen::VectorXd clambda(nctotl);
 	Eigen::VectorXd w(lenw);
-	rf.constraintStates.resize(nctotl);//Eigen::VectorXi istate(nctotl);
+	rf.constraintStatesOut.resize(nctotl);//Eigen::VectorXi istate(nctotl);
 	Eigen::VectorXi iw(leniw);
  
 	if (rf.warmStart) {
-		rf.constraintStates.setZero();
-		rf.LagrMultipliers.setZero();
+		rf.constraintStatesOut.setZero();
+		rf.LagrMultipliersOut.setZero();
 	}
 
     /*  F77_CALL(npsol)
@@ -320,9 +320,24 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, 
           A.data(), rf.solLB.data(), rf.solUB.data(), 
           (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction), 
-          &rf.informOut, &iter_out, rf.constraintStates.data(), 
-          rf.constraintFunVals.data(), rf.constraintJacobian.data(), rf.LagrMultipliers.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
+          &rf.informOut, &iter_out, rf.constraintStatesOut.data(), 
+          rf.constraintFunValsOut.data(), rf.constraintJacobianOut.data(), rf.LagrMultipliersOut.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
           iw.data(), &leniw, w.data(), &lenw);
+	
+	/*We tell NPSOL that all of the MxConstraints are nonlinear, because NPSOL's special handling of linear constraints doesn't seem to
+	work as documented.  However, nlinwid = max(1,nclin), and nctotl = n + nlinwid + nlnwid, so arrays that are sized to nctotl will always
+	have at least one element that NPSOL never uses.  Obviously, if ncnln==0, the only constraints will be box constraints, and there will be a
+	lot of unused elements in the constraint-related arrays:*/
+	if(ncnln==0){
+		rf.constraintFunValsOut.conservativeResize(0);
+		rf.constraintJacobianOut.conservativeResize(0,0);
+		rf.LagrMultipliersOut.conservativeResize(n);
+		rf.constraintStatesOut.conservativeResize(n);
+	}
+	else{
+		rf.LagrMultipliersOut.conservativeResize(n+ncnln);
+		rf.constraintStatesOut.conservativeResize(n+ncnln);
+	}
 	
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
