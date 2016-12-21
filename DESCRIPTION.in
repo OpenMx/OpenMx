@@ -69,7 +69,6 @@ Collate:
     'MxAlgebraFunctions.R'
     'MxExponential.R'
     'MxMatrix.R'
-    'misc_helpers.R'
     'DiagMatrix.R'
     'FullMatrix.R'
     'IdenMatrix.R'
