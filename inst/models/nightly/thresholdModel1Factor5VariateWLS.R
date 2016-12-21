@@ -148,7 +148,7 @@ cbind(omxGetParameters(trun2), omxGetParameters(wrun2))
 plot(omxGetParameters(trun2), omxGetParameters(wrun2))
 abline(a=0, b=1)
 
-omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .03)
+omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .035)
 omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .05)
 
 
@@ -157,4 +157,9 @@ wmod2a <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS())
 wrun2a <- mxRun(wmod2a)
 
 cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a))
+
+# Check that old/hard stadardization and new/easy standardization give the same
+#  answer.
+omxCheckCloseEnough(omxGetParameters(wrun2), omxGetParameters(wrun2a), 1e-4)
+
 
