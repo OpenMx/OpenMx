@@ -619,6 +619,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	retVal@observed <- pcMatrix
 	retVal@fullWeight <- fw
 	retVal@means <- matrix(meanEst, nrow=1)
+	dimnames(retVal@means) <- list(NULL, names(data))
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}

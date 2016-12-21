@@ -159,14 +159,31 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
-	thresholds <- matrix( (c(thresholds) - rep(means, each=nrow(thresholds)) ) / rep(sqrt(diag(cov)), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
-	means <- means - means
-	cov <- cov2cor(cov)
+	if(is.null(colnames(means))){ mnames <- names(means) } else {mnames <- colnames(means)}
+	ordInd <- match(colnames(thresholds), mnames)
+	thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
+	means[,ordInd] <- means[,ordInd] - means[,ordInd]
+	cov <- .ordinalCov2Cor(cov, ordInd)
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
 		return(c(vech(cov), means[!is.na(means)], thresholds[!is.na(thresholds)]))
 	}
+}
+
+.ordinalCov2Cor <- function(cov, ordInd){
+	dim <- ncol(cov)
+	egOutCov <- matrix(0, nrow=dim, ncol=dim)
+	stddev <- sqrt(diag(cov))
+	stddev[ordInd] <- 1
+	for(i in 1:dim) {
+		for(j in 1:i) {
+			egOutCov[i,j] = egInCov[i, j] / (stddev[i] * stddev[j]);
+			egOutCov[j,i] = egOutCov[i,j]
+		}
+	}
+	diag(egOutCov)[ordInd] <- 1
+	return(egOutCov)
 }
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1)
