@@ -353,7 +353,6 @@ namespace RelationalRAMExpectation {
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
-		bool rotationLeader;
 
 		// clump indexes into the layout for models that
 		// are considered a compound component of this model.
@@ -562,6 +561,7 @@ class omxRAMExpectation {
 	int verbose;
 	int numIters;
 	int rampart;
+	bool useSufficientSets;
 	bool rampartEnabled() { return rampart == NA_INTEGER || rampart > 0; };
 	double logDetObserved;
 	double n;

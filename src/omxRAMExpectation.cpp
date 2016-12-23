@@ -246,6 +246,12 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install(".rampart")));
 	RAMexp->rampart = Rf_asInteger(Rrampart);
 
+	RAMexp->useSufficientSets = true;
+	if (R_has_slot(rObj, Rf_install(".useSufficientSets"))) {
+		ProtectedSEXP Rss(R_do_slot(rObj, Rf_install(".useSufficientSets")));
+		RAMexp->useSufficientSets = Rf_asLogical(Rss);
+	}
+
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {
 		if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
@@ -477,7 +483,6 @@ namespace RelationalRAMExpectation {
 		a1.ig = 0;
 		as1.parent1 = NA_INTEGER;
 		as1.fk1 = NA_INTEGER;
-		as1.rotationLeader = false;
 		as1.numJoins = 0;
 		as1.numKids = 0;
 		a1.rampartScale = 1.0;
@@ -643,6 +648,10 @@ namespace RelationalRAMExpectation {
 				if (lmp[lx] == rmp[lx]) continue;
 				return int(lmp[lx]) < int(rmp[lx]);
 			}
+
+			mismatch = la.rampartScale != ra.rampartScale;
+			if (mismatch) return la.rampartScale < ra.rampartScale;
+
 			mismatch = false;
 			return false;
 		}
@@ -733,6 +742,12 @@ namespace RelationalRAMExpectation {
 				if (!lp && !rp) continue;
 				bool got = compareDeep(*lp, *rp, mismatch);
 				if (mismatch) return got;
+			}
+
+			// rampartScale also affects covariance so no need to check here
+			if (la.rampartScale != ra.rampartScale) {
+				mismatch = true;
+				return la.rampartScale < ra.rampartScale;
 			}
 
 			bool got = compareAllDefVars(la, ra, mismatch);
@@ -960,20 +975,7 @@ namespace RelationalRAMExpectation {
 			for (std::set<std::vector<int> >::iterator px = it->second.begin();
 			     px != it->second.end(); ++px) {
 				const std::vector<int> &clump = *px;
-				// Hm, it is probably impossible for a group of clumps
-				// that have identical covariance to include both clumps that
-				// are leaders and not leaders.
-				bool leader=false;
-				for (size_t cx=0; cx < clump.size(); ++cx) {
-					leader |= layoutSetup[ clump[cx] ].rotationLeader;
-				}
-				if (leader) {
-					for (size_t cx=0; cx < clump.size(); ++cx) {
-						ig->place(clump[cx]);
-					}
-				} else {
-					cmm[ clump ].insert(clump);
-				}
+				cmm[ clump ].insert(clump);
 			}
 
 			int ssCount = 0;
@@ -988,15 +990,20 @@ namespace RelationalRAMExpectation {
 			ig->sufficientSets.resize(ssCount);
 			int ssIndex = 0;
 			for (CompatibleMeanMapType::iterator mit = cmm.begin();
-			     mit != cmm.end(); ++mit, ++ssIndex) {
+			     mit != cmm.end(); ++mit) {
 				if (mit->second.size() == 1) continue;
 				int from = ig->placements.size();
 				placeSet(mit->second, ig);
-				//mxLog("group %d same mean %d -> %d clumpsize %d",
-				//groupNum, from, int(ig->placements.size() - 1), int(it->second.begin()->size()));
+				if (verbose() >= 3) {
+					mxLog("group %d same mean %d -> %d clumpsize %d",
+					      int(group.size()), from, int(ig->placements.size() - 1),
+					      int(it->second.begin()->size()));
+				}
 				ig->sufficientSets[ssIndex].start = from / ig->clumpSize;
 				ig->sufficientSets[ssIndex].length = (ig->placements.size() - from) / ig->clumpSize;
+				++ssIndex;
 			}
+			if (!ram->useSufficientSets) ig->sufficientSets.clear();
 			ig->prep(fc);
 			group.push_back(ig);
 		}
@@ -1256,7 +1263,6 @@ namespace RelationalRAMExpectation {
 		// get covariance and sort by mahalanobis distance TODO
 		rotationPlan.push_back(t1);
 		addrSetup &specimen = layoutSetup[ t1[0] ];
-		specimen.rotationLeader = true;
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
 			t2.reserve(t1.size());
