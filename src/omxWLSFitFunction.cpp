@@ -93,13 +93,22 @@ void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 		if(inThresholdsMat != NULL){
 			EigenMatrixAdaptor egInThr(inThresholdsMat);
 			EigenMatrixAdaptor egOutThr(outThresholdsMat);
+			if(OMX_DEBUG) {
+				mxLog("Expected thresholds have size %d.", int(thresholds.size()));
+			}
 			for(int j = 0; j < int(thresholds.size()); j++) {
 				omxThresholdColumn* thresh = &thresholds[j];
-				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, thresh->column) ) / stddev[thresh->column];
+				if(OMX_DEBUG) {
+					mxLog("Data column %d has %d thresholds.", j, thresh->numThresholds);
+					mxLog("It is threshold column %d", thresh->column);
 				}
-				egOutM(0, thresh->column) = 0.0;
-				stddevUse[thresh->column] = stddev[thresh->column];
+				for(int k = 0; k < thresh->numThresholds; k++) {
+					egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, j) ) / stddev[j];
+				}
+				if(thresh->numThresholds > 0){
+					egOutM(0, j) = 0.0;
+					stddevUse[j] = stddev[j];
+				}
 			}
 		}
 	} else {
