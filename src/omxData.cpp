@@ -285,15 +285,18 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			levels = INTEGER(dataVal);
 		}
 
-		for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
-			omxThresholdColumn tc;
-			tc.column = columns[i];
-			tc.numThresholds = levels[i];
-			od->thresholdCols.push_back(tc);
-			od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
-			if(OMX_DEBUG) {
-				mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-				      i, levels[i], columns[i]);
+		//for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
+		for(int i = 0; i < od->cols; i++) {
+			if(levels[i] > 0){
+				omxThresholdColumn tc;
+				tc.column = columns[i];
+				tc.numThresholds = levels[i];
+				od->thresholdCols.push_back(tc);
+				od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
+				if(OMX_DEBUG) {
+					mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
+					      i, levels[i], columns[i]);
+				}
 			}
 		}
 	}
