@@ -418,6 +418,10 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  dataMean;
 	};
 
+	// This is not really the best organization. It would be better to
+	// partition the work into equal size covariance matrices then by
+	// identical covariance matrices and then by identical means.
+
 	class independentGroup {
 	private:
 		class state &st;
