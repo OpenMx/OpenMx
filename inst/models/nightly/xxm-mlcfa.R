@@ -60,4 +60,4 @@ f2 <- omxSetParameters(studentModel, labels=names(coef(studentModel)),
                           1.1687, 1.2239, 0.6455,  # teacher loadings
                           46.0726, 47.0572, 46.4774, 48.0057, # indicator means
                           0.5651))  # teacher psi
-omxCheckCloseEnough(max(abs(coef(f2) - coef(altFit))), 0, 1e-4)
+omxCheckCloseEnough(max(abs(coef(f2) - coef(altFit))), 0, 1e-2)

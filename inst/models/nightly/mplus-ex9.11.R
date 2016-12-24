@@ -45,7 +45,7 @@ cfa <- mxModel(
 
 cfa$withinGroup2$betweenGroup2$M$free[1,c('fb1','fb2')] <- TRUE
 
-cfa <- mxRun(cfa)
+cfa <- mxTryHard(cfa)
 omxCheckCloseEnough(cfa$output$fit, 49853.908, 1e-2)
 # Mplus -24926.956 * -2 = 49853.91
 
