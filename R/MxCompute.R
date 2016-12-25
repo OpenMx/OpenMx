@@ -559,7 +559,7 @@ setMethod("initialize", "MxComputeTryHard",
 ##' MxComputeTryHard-class
 ##' @references
 ##' Shanno, D. F. (1985). On Broyden-Fletcher-Goldfarb-Shanno method. \emph{Journal of
-##' Optimization Theory and Applications, 46}(1), 87–94.
+##' Optimization Theory and Applications, 46}(1), 87-94.
 mxComputeTryHard <- function(plan, ..., freeSet=NA_character_, verbose=0L,
 			     location=1.0, scale=0.25, maxRetries=3L)
 {
@@ -1228,7 +1228,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param verbose Level of debugging output.
 ##' @param knownHessian an optional matrix of known Hessian entries
 ##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
-##' @param hessian whether to estimate the Hessian
+##' @param hessian whether to estimate the Hessian. If FALSE then only the gradient is estimated.
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples

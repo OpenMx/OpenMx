@@ -29,7 +29,7 @@ Argument \code{aug} is intended to allow users to provide penalty functions or p
 Returns a new object of class \code{\link{MxFitFunctionGREML}}.
 }
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \seealso{

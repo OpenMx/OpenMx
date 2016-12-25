@@ -21,8 +21,8 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Dieter", "Kraft", role="cph"),
     person("Stefan", "Wilhelm", role="cph"),
     person("Manjunath B G", role="cph"))
-URL: http://openmx.psyc.virginia.edu, https://github.com/OpenMx/OpenMx
-BugReports: http://openmx.psyc.virginia.edu/forums
+URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
+BugReports: http://openmx.ssri.psu.edu/forums
 Description: Facilitates treatment of statistical model specifications
     as things that can be generated and manipulated programmatically.
     Structural equation models may be specified with reticular action model matrices or paths,
@@ -69,7 +69,6 @@ Collate:
     'MxAlgebraFunctions.R'
     'MxExponential.R'
     'MxMatrix.R'
-    'misc_helpers.R'
     'DiagMatrix.R'
     'FullMatrix.R'
     'IdenMatrix.R'

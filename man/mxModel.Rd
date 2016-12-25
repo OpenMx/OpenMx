@@ -61,7 +61,7 @@ Returns a new \link{MxModel} object. \link{MxModel} objects must include an obje
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \seealso{

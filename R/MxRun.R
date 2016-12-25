@@ -125,7 +125,8 @@ runHelper <- function(model, frontendStart,
 		compute <- NULL
 		fitNum <- paste(model@name, 'fitfunction', sep=".")
 		if (!useOptimizer) {
-			compute <- mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE)
+			compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+							  RE=mxComputeReportExpectation()))
 		} else {
 			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum, verbose=0L))
 			if (length(intervals) && intervals) {

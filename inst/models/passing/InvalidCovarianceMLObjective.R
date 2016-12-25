@@ -21,7 +21,8 @@ identity <- diag(2)
 dimnames(identity) <- list(c('a','b'),c('a','b'))
 data <- mxData(identity, 'cov', numObs = 10)
 model <- mxModel('model', cov, objective, data,  mxFitFunctionML())
-ign <- omxCheckWarning(mxRun(model), "In model 'model' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
+ign <- omxCheckWarning(omxCheckError(mxRun(model), "The job for model 'model' exited abnormally with the error message: fit is not finite (model.fitfunction: stan::prob::multi_normal_sufficient_log: LDLT_Factor of covariance parameter is not positive definite. last conditional variance is 0.)"),
+		       "In model 'model' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
 
 dimnames(identity) <- list(c('a','c'),c('a','c'))
 data <- mxData(identity, 'cov', numObs = 10)

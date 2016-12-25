@@ -141,7 +141,7 @@ html:
 	mv build/OpenMx/html/* docs/source/static/Rdoc
 	mv build/OpenMx/demo/* docs/source/static/demo
 	cd docs && make html
-	cd docs/build/html && perl -pi -e 's,http://openmx\.psyc\.virginia.edu/svn/trunk/demo/,_static/demo/,g' *.html
+	cd docs/build/html && perl -pi -e 's,http://openmx\.ssri\.psu\.edu/svn/trunk/demo/,_static/demo/,g' *.html
 	cd docs/build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
 
 doc.tar.bz2: html pdf

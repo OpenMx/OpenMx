@@ -32,6 +32,7 @@ setClass(Class = "MxExpectationRAM",
 	    between = "MxOptionalCharOrNumber",
 	    verbose = "integer",
 	    .rampart = "integer",
+	    .useSufficientSets = "logical",
 	    .forceSingleGroup = "logical",
 	    .ignoreDefVarsHack = "logical", #remove TODO
 	    .identifyZeroVarPred = "logical"
@@ -58,6 +59,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.forceSingleGroup <- FALSE
 		.Object@.ignoreDefVarsHack <- FALSE  # remove TODO
 		.Object@.identifyZeroVarPred <- TRUE
+		.Object@.useSufficientSets <- TRUE
 		return(.Object)
 	}
 )

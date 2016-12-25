@@ -91,6 +91,8 @@ obsAcov <- matrix(c(
 	),
 	11, 11, byrow=TRUE)
 obsAcov <- round(obsAcov, 6)
+obsAcov <- cbind(obsAcov[,1:6], matrix(0, 11, 3), obsAcov[,7:11])
+obsAcov <- rbind(obsAcov[1:6,], matrix(0, 3, 14), obsAcov[7:11,])
 
 obsThr <- matrix(c(
  0.02506887, 0.02506891, 0.1509692,
@@ -98,7 +100,10 @@ obsThr <- matrix(c(
 	2, 3, byrow=TRUE)
 dimnames(obsThr) <- list(NULL, letters[(27-nvar):26])
 
-obsWDat <- mxData(observed=obsCor, type='acov', thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov, numObs=nrow(cDat))
+obsMns <- as.numeric(matrix(0, 1, 3))
+names(obsMns) <- dimnames(obsCor)[[2]]
+
+obsWDat <- mxData(observed=obsCor, type='acov', means=obsMns, thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov, numObs=nrow(cDat))
 
 #------------------------------
 # Make WLS saturated model
@@ -108,9 +113,10 @@ theDims <- list(c('x', 'y', 'z'), c('x', 'y', 'z'))
 satwls2 <- mxModel(name="ExpNormWLSSat",
 	mxMatrix("Symm", 3, 3, values=c(1, .8, .8, 1, .8, 1), free=c(FALSE,TRUE,TRUE,FALSE,TRUE,FALSE), dimnames=theDims, name="satCov"),
 	mxMatrix("Full", 2, 3, values=c(0, NA, 0, .8, 0, .8), free=c(TRUE,FALSE,TRUE,TRUE,TRUE,TRUE), name="thresholdMatrix"),
+	mxMatrix('Zero', nrow=1, ncol=3, name='meansMatrix'),
 	obsWDat,
 	mxFitFunctionWLS(),
-	mxExpectationNormal(covariance="satCov", thresholds="thresholdMatrix", dimnames=theDims[[1]])
+	mxExpectationNormal(covariance="satCov", means='meansMatrix', thresholds="thresholdMatrix", dimnames=theDims[[1]])
 )
 
 #satwls2 <- mxOption(satwls2, "Calculate Hessian", "No")

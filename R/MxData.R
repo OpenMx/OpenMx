@@ -293,16 +293,16 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 	  })
 
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
-	  function(data, model, defVars, modeloptions) {
-		  if(!is.null(data) && !single.na(data@thresholds)) {
-			  verifyThresholdNames(data@thresholds, data@observed, model@name)
-			  retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(data@observed)[[2]],
+		function(data, model, defVars, modeloptions) {
+			if(!is.null(data) && !single.na(data@thresholds)) {
+				verifyThresholdNames(data@thresholds, data@observed, model@name)
+				retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(data@observed)[[2]],
 								 thresholdsMatrix=data@thresholds)
-			  data@thresholdColumns <- retval[[1]]
-			  data@thresholdLevels <- retval[[2]]
-		  }
-		  data
-	  })
+				data@thresholdColumns <- retval[[1]]
+				data@thresholdLevels <- retval[[2]]
+			}
+			data
+		})
 
 setMethod("summarize", signature("MxDataStatic"),
 	  function(data) {

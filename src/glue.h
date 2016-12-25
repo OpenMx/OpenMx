@@ -107,6 +107,7 @@ void exception_to_try_Rf_error( const std::exception& ex ) __attribute__ ((noret
 
 void getMatrixDims(SEXP r_theta, int *rows, int *cols);
 
+SEXP makeFactor(SEXP vec, int levels, const char **labels);
 void markAsDataFrame(SEXP list, int rows);
 inline void markAsDataFrame(SEXP list) { markAsDataFrame(list, -1); }
 

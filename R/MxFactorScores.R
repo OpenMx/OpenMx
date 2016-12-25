@@ -92,7 +92,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 								sep=""))
 			}
 		}
-	} else if(type=='Regression'){
+	} else if(tolower(type)=='regression'){
 		if(!single.na(model$expectation$thresholds)){
 			stop('Regression factor scores cannot be computed when there are thresholds (ordinal data).')
 		}

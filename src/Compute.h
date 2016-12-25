@@ -163,6 +163,10 @@ class FitContext {
 	int iterations;
 	int wanted;
 	std::vector< class FitContext* > childList;
+	Eigen::VectorXd constraintFunVals;
+	Eigen::MatrixXd constraintJacobian;
+	Eigen::VectorXd LagrMultipliers;
+	Eigen::VectorXi constraintStates;
 
 	// for confidence intervals
 	CIobjective *ciobj;
@@ -328,6 +332,11 @@ class GradientOptimizerContext {
 	void setupSimpleBounds();          // NLOPT style
 	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
+	
+	Eigen::VectorXd constraintFunValsOut;
+	Eigen::MatrixXd constraintJacobianOut;
+	Eigen::VectorXd LagrMultipliersOut;
+	Eigen::VectorXi constraintStatesOut;
 
 	double solFun(double *myPars, int* mode);
 	double evalFit(double *myPars, int thrId, int *mode);

@@ -2,6 +2,9 @@
 
 set -o errexit
 
+wwwHome=openmx.psyc.virginia.edu
+#wwwHome=openmx.ssri.psu.edu
+
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
     tmp2=/tmp/openmx.$$.out
@@ -92,8 +95,8 @@ if [ -r inst/npsol/checksum ]; then
 	    omx_os=linux
 	    pick="linux/${omx_arch}/gcc${cxx_version}"
 	    want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ')
-	    npsol_url1="http://openmx.psyc.virginia.edu/packages/npsol/linux/${omx_arch}/$want"
-	    npsol_url2="http://openmx.psyc.virginia.edu/packages/npsol/$pick/libnpsol.a"
+	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
+	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
 		curl -s -o src/libnpsol.a "$npsol_url1"
 		if grep -s 'HTML document' src/libnpsol.a; then
@@ -106,7 +109,7 @@ if [ -r inst/npsol/checksum ]; then
 		npsol_library="src"
 	    elif [ "x$got" != "x$want" ]; then
 		rm -f src/libnpsol.a
-		echo "WARNING: Ignoring bad libnpsol.a from $npsol_url"
+		echo "WARNING: Ignoring bad libnpsol.a from $npsol_url1"
 	    else
 		npsol_library="src"
 	    fi

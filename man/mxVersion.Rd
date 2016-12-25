@@ -33,7 +33,7 @@ mxVersion(model = NULL, verbose = TRUE)
   \item{verbose}{Whether to print version information to the console (default = TRUE)}
 }
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{

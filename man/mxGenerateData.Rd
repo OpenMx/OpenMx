@@ -20,23 +20,31 @@
 \title{Generate data based on an MxModel object}
 
 \description{
-This function creates a randomly sampled data set based on the model.
+This function returns a new (simulated) data set based on the model-implied distribution provided.
 }
 
 \usage{
-mxGenerateData(model, nrows, returnModel=FALSE)
+mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE)
 }
 
 
 \arguments{
-   \item{model}{An MxModel object upon which the data are generated.}
+   \item{model}{A data.frame or MxModel object upon which the data are generated.}
    \item{nrows}{Numeric. The number of rows of data to generate.}
    \item{returnModel}{Logical. Return data.frames if FALSE or model
-   populated with new data if TRUE.}
+     populated with new data if TRUE.}
+   \item{use.miss}{Logical. Whether to approximate the missingness
+   pattern of the original data.}
 }
 
 \details{
-This function looks inside the MxModel object to extract the model-implied means and covariance.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
+When given a data.frame as a model, the model is assumed to be
+saturated multivariate Gaussian and the expected distribution
+is obtained using \link{mxDataWLS}.
+When given an MxModel, 
+the model-implied means and covariance are extracted.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
+
+Please note that this function samples data from the model-implied distribution(s); it does not sample from the data object in the model.  That is, this function generates new data rather than pulling data that already exist from the model.
 
 Thresholds and ordinal data are implemented by generating continuous data and then using \link{cut} and \link{mxFactor} to break the continous data at the thresholds into an ordered factor.
 
@@ -52,7 +60,7 @@ For state space models (i.e. models with an \link{mxExpectationStateSpace} or \l
 
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{
@@ -86,7 +94,7 @@ ssRun <- mxRun(ssModel)
 
 # Compare parameters estimated from random data to
 #  their true generating values
-cbind(Rand=omxGetParameters(ssRun), Gen=omxGetParameters(ssModel))
+cbind(Rand = omxGetParameters(ssRun), Gen = omxGetParameters(ssModel))
 # Note the parameters should be "close" (up to sampling error)
 # to the generating values
 

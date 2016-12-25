@@ -216,9 +216,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	if (warmStart) {
 		if (warmStartSize != int(numParam)) {
 			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
-				   warmStartSize, numParam);
+				   name, warmStartSize, numParam);
 		} else {
-			// Not sure if this code path works, need test TODO
 			Eigen::Map< Eigen::MatrixXd > hessWrap(warmStart, numParam, numParam);
 			rf.hessOut = hessWrap;
 			rf.warmStart = true;
@@ -241,6 +240,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
 			fc->wanted |= FF_COMPUTE_HESSIAN;
 		}
+		fc->constraintFunVals = rf.constraintFunValsOut;
+		fc->constraintJacobian = rf.constraintJacobianOut;
+		fc->LagrMultipliers = rf.LagrMultipliersOut;
+		fc->constraintStates = rf.constraintStatesOut;
 #endif
 		break;}
         case OptEngine_CSOLNP:
@@ -308,11 +311,33 @@ void omxComputeGD::computeImpl(FitContext *fc)
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
-
+	
 	MxRList output;
+	SEXP cv, cjac, lambdas, cstates;
+	
 	output.add("maxThreads", Rf_ScalarInteger(threads));
+	if( fc->constraintFunVals.size() ){
+		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
+		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
+		output.add("constraintFunctionValues", cv);
+	}
+	if( fc->constraintJacobian.size() ){
+		Rf_protect(cjac = Rf_allocMatrix( REALSXP, fc->constraintJacobian.rows(), fc->constraintJacobian.cols() ));
+		memcpy( REAL(cjac), fc->constraintJacobian.data(), sizeof(double) * fc->constraintJacobian.rows() * fc->constraintJacobian.cols() );
+		output.add("constraintJacobian", cjac);
+	}
+	if( fc->LagrMultipliers.size() ){
+		Rf_protect(lambdas = Rf_allocVector( REALSXP, fc->LagrMultipliers.size() ));
+		memcpy( REAL(lambdas), fc->LagrMultipliers.data(), sizeof(double) * fc->LagrMultipliers.size() );
+		output.add("LagrangeMultipliers", lambdas);
+	}
+	if( fc->constraintStates.size() ){
+		Rf_protect(cstates = Rf_allocVector( INTSXP, fc->constraintStates.size() ));
+		memcpy( INTEGER(cstates), fc->constraintStates.data(), sizeof(int) * fc->constraintStates.size() );
+		output.add("istate", cstates); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+	}
 	slots->add("output", output.asR());
-
+	
 	if (engine == OptEngine_NPSOL && hessChol) {
 		out->add("hessianCholesky", hessChol);
 	}
@@ -468,23 +493,6 @@ class ciConstraintEq : public ciConstraint {
 		//mxLog("fit %f diff %f", fit, diff);
 	};
 };
-
-static SEXP makeFactor(SEXP vec, int levels, const char **labels)
-{
-	SEXP classes;
-	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
-	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
-	Rf_setAttrib(vec, R_ClassSymbol, classes);
-
-	SEXP Rlev;
-	Rf_protect(Rlev = Rf_allocVector(STRSXP, levels));
-	for (int lx=0; lx < levels; ++lx) {
-		SET_STRING_ELT(Rlev, lx, Rf_mkChar(labels[lx]));
-	}
-
-	Rf_setAttrib(vec, Rf_install("levels"), Rlev);
-	return vec;
-}
 
 void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 			 int &detailRow, double val, Diagnostic diag)

@@ -353,7 +353,6 @@ namespace RelationalRAMExpectation {
 		int numJoins;
 		int parent1;  // first parent
 		int fk1;      // first foreign key
-		bool rotationLeader;
 
 		// clump indexes into the layout for models that
 		// are considered a compound component of this model.
@@ -418,6 +417,10 @@ namespace RelationalRAMExpectation {
 		Eigen::MatrixXd                  dataCov;
 		Eigen::VectorXd                  dataMean;
 	};
+
+	// This is not really the best organization. It would be better to
+	// partition the work into equal size covariance matrices then by
+	// identical covariance matrices and then by identical means.
 
 	class independentGroup {
 	private:
@@ -562,6 +565,7 @@ class omxRAMExpectation {
 	int verbose;
 	int numIters;
 	int rampart;
+	bool useSufficientSets;
 	bool rampartEnabled() { return rampart == NA_INTEGER || rampart > 0; };
 	double logDetObserved;
 	double n;

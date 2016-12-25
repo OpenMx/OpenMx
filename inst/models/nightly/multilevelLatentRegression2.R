@@ -144,18 +144,20 @@ if (0) {
 fit1 <- mxRun(sMod)
 summary(fit1)
 
-omxCheckCloseEnough(fit1$output$fit, 17212.46, .01)
+omxCheckCloseEnough(fit1$output$fit, 17839.59, .01)
 omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .01)
 ed <- fit1$expectation$debug
 omxCheckCloseEnough(ed$rampartUsage, c(902, 97, 21))
-omxCheckCloseEnough(ed$numGroups, 8L)
+omxCheckCloseEnough(ed$numGroups, 48L)
 omxCheckCloseEnough(
-    sapply(unique(ed$layout$group),
-	   function(x) nrow(ed$layout[ed$layout$group==x,]) %/% ed[[paste0('g',x)]]$clumpSize),
-    c(1L, 805L, 97L, 94L, 15L, 4L, 6L, 3L))
+    sapply(sprintf("g%02d", 1:48),
+	   function(x) nrow(ed[[x]]$layout) %/% ed[[x]]$clumpSize),
+    c(97L, 805L, 1L, 1L, 1L, 12L, 9L, 7L, 7L, 12L, 7L, 5L, 5L, 3L,  8L, 4L, 3L, 1L, 4L,
+      1L, 1L, 3L, 1L, 1L, 1L, 1L, 1L, 2L, 1L, 1L,  1L, 1L, 1L, 1L, 1L, 1L, 2L, 1L, 1L,
+      1L, 1L, 1L, 1L, 1L, 1L, 1L,  1L, 1L))
 
 plan <- mxComputeSequence(list(
-    mxComputeOnce('expectation', 'distribution', 'flat'),
+    mxComputeOnce('fitfunction', 'fit'),
     mxComputeReportExpectation()
 ))
 slow <- sMod
@@ -168,6 +170,7 @@ omxCheckCloseEnough(
     sapply(unique(ed$layout$group),
 	   function(x) nrow(ed$layout[ed$layout$group==x,]) %/% ed[[paste0('g',x)]]$clumpSize),
 		    rep(1L,5))
+fit1$output$fit - slowEx$output$fit # -2013, very strange
 
 if (0) { # this takes about 1.5 hours
 	#options(width=120)

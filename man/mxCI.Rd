@@ -77,7 +77,7 @@ Returns a new \link{MxCI} object. If used as an argument in an \link{MxModel} ob
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation. Additional support for mxCI() can be found on the OpenMx wiki at http://openmx.psyc.virginia.edu/wiki.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation. Additional support for mxCI() can be found on the OpenMx wiki at http://openmx.ssri.psu.edu/wiki.
 
 Neale, M. C. & Miller M. B. (1997). The use of likelihood based
 confidence intervals in genetic models.  \emph{Behavior Genetics,

@@ -70,7 +70,8 @@ summary(thresholdModelrun, refModels=thresholdSaturated)
 
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
-	mxExpectationNormal(covariance="impliedCovs", dimnames = fruitynames, thresholds="thresholdMatrix"),
+	mxMatrix('Zero', nrow=1, ncol=nVariables, name='impliedMeans'),
+	mxExpectationNormal(covariance="impliedCovs", means='impliedMeans', dimnames = fruitynames, thresholds="thresholdMatrix"),
 	mxFitFunctionWLS())
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
@@ -125,7 +126,8 @@ wmod2 <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS(),
 	mxAlgebra(UnitVector %x% t(sqrt(diag2vec(impliedCovs))), name='theStandardDeviations'),
 	mxAlgebra(UnitVector %x% M, name='theM'),
 	mxAlgebra( (Thresh-theM)/theStandardDeviations, name='newThresh'),
-	mxExpectationNormal(covariance='newCov', thresholds='newThresh', dimnames = fruitynames) #N.B. means left out on purpose
+	mxMatrix('Zero', 1, nVariables, name='MZ'),
+	mxExpectationNormal(covariance='newCov', means='MZ', thresholds='newThresh', dimnames = fruitynames) #N.B. means left out on purpose
 )
 
 
@@ -146,11 +148,18 @@ cbind(omxGetParameters(trun2), omxGetParameters(wrun2))
 plot(omxGetParameters(trun2), omxGetParameters(wrun2))
 abline(a=0, b=1)
 
-omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .03)
+omxCheckCloseEnough(rms(omxGetParameters(trun2), omxGetParameters(wrun2)), 0, .035)
 omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .05)
 
 
+# new style for model 2
+wmod2a <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS())
+wrun2a <- mxRun(wmod2a)
 
+cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a))
 
+# Check that old/hard stadardization and new/easy standardization give the same
+#  answer.
+omxCheckCloseEnough(omxGetParameters(wrun2), omxGetParameters(wrun2a), 1e-4)
 
 

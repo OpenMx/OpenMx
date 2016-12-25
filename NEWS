@@ -1,4 +1,6 @@
 # OpenMx development
+* INCOMPATIBLE CHANGE: By default, mxGenerateData will approximate the missingness pattern of the original data. This can be turned off with use.miss=FALSE to get the previous behavior.
+* IMPROVED: mxGenerateData will assume a saturated multivariate Gaussian model if a data.frame is passed instead of a model.
 * NEW: mxSE() function. Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun gives feedback about optimization progress
 * SPEEDUP: In many cases, continuous data now evaluated as fast as covariance data instead of being much slower (SEM models including RAM and LISREL).

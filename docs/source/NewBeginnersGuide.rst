@@ -1,12 +1,12 @@
 Beginners Guide to OpenMx
 =========================
 
-This document is a basic introduction to OpenMx.  It assumes that the reader has installed the R statistical programming language [http://www.r-project.org/] and the OpenMx library for R [http://openmx.psyc.virginia.edu].  Detailed introductions to R can be found on the internet.  We recommend [http://faculty.washington.edu/tlumley/Rcourse] for a short course but Google search for 'introduction to R' provides many options.
+This document is a basic introduction to OpenMx.  It assumes that the reader has installed the R statistical programming language [http://www.r-project.org/] and the OpenMx library for R [http://openmx.ssri.psu.edu].  Detailed introductions to R can be found on the internet.  We recommend [http://faculty.washington.edu/tlumley/Rcourse] for a short course but Google search for 'introduction to R' provides many options.
 
 The OpenMx scripts for the examples in this guide are available in the following files:
 
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorPathDemo.R
-* http://openmx.psyc.virginia.edu/repoview/1/trunk/demo/OneFactorMatrixDemo.R
+* http://openmx.ssri.psu.edu/repoview/1/trunk/demo/OneFactorPathDemo.R
+* http://openmx.ssri.psu.edu/repoview/1/trunk/demo/OneFactorMatrixDemo.R
 * http://www.vipbg.vcu.edu/OpenMx/html/NewBeginnersGuide.R
 
 .. _BasicIntroduction:

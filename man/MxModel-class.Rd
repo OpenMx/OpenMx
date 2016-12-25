@@ -103,7 +103,7 @@ The \sQuote{output} slot contains a list of output added to the model by the \li
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \seealso{

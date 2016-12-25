@@ -608,7 +608,7 @@ modelModifyFilter <- function(model, entries, action) {
 	if (any(namedEntityFilter) && action == 'remove') {
 		stop(paste("Cannot use named entities when remove = TRUE.",
 			"Instead give the name of the entity when removing it.",
-			"See http://openmx.psyc.virginia.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
+			"See http://openmx.ssri.psu.edu/wiki/mxmodel-help#Remove_an_object_from_a_model"))
 	}
 	if (any(characterFilter) && action == 'add') {
 		stop(paste("I don't know what to do with the following strings",

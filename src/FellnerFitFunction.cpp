@@ -254,20 +254,28 @@ namespace FellnerFitFunction {
 							resid.segment(cx*ig.clumpObs, ig.clumpObs));
 					}
 					double cterm = M_LN_2PI * ig.getParent().dataVec.size();
-					if (verbose >= 2) mxLog("log det %f iqf %f cterm %f", logDet, iqf, cterm);
+					if (verbose + !std::isfinite(iqf) >= 2) {
+						mxLog("group[%d] log det %f iqf %f cterm %f",
+						      int(1+gx), logDet, iqf, cterm);
+					}
 					lp += logDet + iqf + cterm;
 				}
-				for (int sx=0; sx < (int)ig.getParent().sufficientSets.size(); ++sx) {
-					RelationalRAMExpectation::sufficientSet &ss = ig.getParent().sufficientSets[sx];
-					Eigen::VectorXd resid =
-						ss.dataMean - ig.expectedVec.segment(ss.start * ig.clumpObs, ig.clumpObs);
-					//mxPrintMat("resid", resid);
-					double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-					double tr1 = trace_prod(iV, ss.dataCov);
+				if (ig.getParent().sufficientSets.size()) {
 					double logDet = ig.covDecomp.log_determinant();
 					double cterm = M_LN_2PI * ig.clumpObs;
-					if (verbose >= 2) mxLog("iqf %f tr1 %f logDet %f cterm %f", iqf, tr1, logDet, cterm);
-					lp += ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
+					for (int sx=0; sx < (int)ig.getParent().sufficientSets.size(); ++sx) {
+						RelationalRAMExpectation::sufficientSet &ss = ig.getParent().sufficientSets[sx];
+						Eigen::VectorXd resid =
+							ss.dataMean - ig.expectedVec.segment(ss.start * ig.clumpObs, ig.clumpObs);
+						//mxPrintMat("resid", resid);
+						double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+						double tr1 = trace_prod(iV, ss.dataCov);
+						if (verbose + !std::isfinite(iqf) >= 2) {
+							mxLog("group[%d] ss[%d] iqf %f tr1 %f logDet %f cterm %f",
+							      int(1+gx), (1+sx), iqf, tr1, logDet, cterm);
+						}
+						lp += ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
+					}
 				}
 			}
 			lpOut = lp;

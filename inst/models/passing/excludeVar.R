@@ -28,7 +28,7 @@ for (vx in 1:length(orig)) {
   m1 <- mxRun(mxModel(m1, mxComputeGradientDescent()), silent = TRUE)
 	
   plan <- mxComputeGradientDescent()
-  plan@.excludeVars <- names(orig)[vx]
+  plan$.excludeVars <- names(orig)[vx]
   
   m2 <- mxRun(mxModel(factorCov, plan), silent = TRUE)
   omxCheckCloseEnough(m1$output$fit, m2$output$fit, 1e-4)

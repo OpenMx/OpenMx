@@ -99,6 +99,7 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	pcThresh[is.na(pcThresh)] <- Inf
 	
 	# make the frequency counts
+	# table() drops missing values
 	dataTable <- table(rawData)
 	# was 'dataTableTall'
 	dtt <- data.frame(
@@ -138,7 +139,7 @@ rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mod
 	sigma <- matrix(c(vars[1], k, k, vars[2]), 2, 2)
 	lik <- apply(rawData, 1, mvtnorm::dmvnorm, means, sigma)
 	
-	if (return=="model"){ return( (- 1 - useMinusTwo)*sum(log(lik)) ) }
+	if (return=="model"){ return( (- 1 - useMinusTwo)*sum(log(lik), na.rm=TRUE) ) }
 	if (return=="individual") { return( (-1-useMinusTwo)*log(lik) ) }
 	}
 
@@ -170,12 +171,12 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	
 	llO <- rep(NA, length(llC))
 	for (i in 1:(length(thresh)+1)){
-		llO[sel==i] <- levProb[sel==i, i]
+		llO[sel %in% i] <- levProb[sel %in% i, i]
 	}
 	llO <- log(llO)
 	
 	if(return=="model"){
-		return((- 1 - useMinusTwo) * sum(llC+llO))
+		return((- 1 - useMinusTwo) * sum(llC+llO, na.rm=TRUE))
 	} else if(return=="individual"){
 		return((- 1 - useMinusTwo) * (llC+llO))
 	}
@@ -188,7 +189,7 @@ normLogLik <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 		return(ret)
 	}
 	if(return=="model"){
-		return( sum(ret) )
+		return( sum(ret, na.rm=TRUE) )
 	}
 }
 
@@ -224,7 +225,7 @@ normLogLikHess <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 		return(ret)
 	}
 	if(return=="model"){
-		return( apply(ret, 2, sum) )
+		return( apply(ret, 2, sum, na.rm=TRUE) )
 	}
 }
 # Note for the multivariate case
@@ -312,25 +313,25 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 		for (i in 1:nvar){
 			a <- proc.time()
 			# threshold & jacobian
-			startVals <- qnorm(cumsum(table(data[,i]))/sum(!is.na(data[,i])))
+			startVals <- qnorm(cumsum(table(od[,i]))/sum(!is.na(od[,i])))
 			if (length(startVals)>2){
 				uni <- optim(startVals[1:(length(startVals) - 1)], 
-					threshLogLik, return="model", rawData=data[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
-				} else {
+					threshLogLik, return="model", rawData=od[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
+			} else {
 				tHold <- optimize(threshLogLik, lower=-6.28, upper=6.28,
-					return="model", rawData=data[,i])
+					return="model", rawData=od[,i])
 				hHold <- numDeriv::hessian(threshLogLik, x=tHold$minimum, 
-					return="model", rawData=data[,i])
+					return="model", rawData=od[,i])
 				uni <- list(par=tHold$minimum, hessian=hHold)
-				}
+			}
 			# assign thresholds
 			thresh[1:(nlevel[i] - 1),i] <- uni$par
 			# assign hessians
 			threshHess[[i]] <- uni$hessian
 			# get jacobian
-			jac <- numDeriv::jacobian(func=threshLogLik, x=uni$par, rawData=data[,i])
+			jac <- numDeriv::jacobian(func=threshLogLik, x=uni$par, rawData=od[,i])
 			# assign jacobian
-			threshJac[[i]] <- jac[unclass(data[,i]),]
+			threshJac[[i]] <- jac[unclass(od[,i]),]
 			proc.time() - a
 			}
 		threshJac <- matrix(unlist(threshJac), nrow=n)
@@ -342,9 +343,6 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 
 univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
 	### put the means in!
-	# means are missing for ordinal data, so 
-	meanHess <- NULL
-	meanJac <- NULL
 	
 	### Use normLogLik function to get ML estimates of univariate
 	# means and variances.
@@ -419,8 +417,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	}
 	
 	# separate ordinal and continuous variables (temporary)
-	od <- data[,ords]
-	cd <- data[,!ords]
+	od <- data[,ords,drop=FALSE]
+	cd <- data[,!ords,drop=FALSE]
 	
 	if(ncol(od) > 0 && ncol(cd) > 0 && type=="WLS"){
 		msg <- paste("Both ordinal and coninuous variables found with type='WLS'.\n",
@@ -467,11 +465,15 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				pcThresh <- NULL
 			} else if( ordPair == 1 ) { # Joint variables
 				logLikFUN <- psLogLik
-				pcThresh <- matrix(thresh[,ifelse(ords[i], i, j)], ncol=1)
+				# Find correct ordinal column
+				tcols <- as.numeric(na.omit(match(names(ords)[c(i,j)], colnames(thresh))))
+				pcThresh <- matrix(thresh[,tcols], ncol=1)
 				pcThresh <- pcThresh[!is.na(pcThresh),]
 			} else if( ordPair == 2 ) { # Ordinal variables
 				logLikFUN <- pcLogLik
-				pcThresh <- matrix(thresh[,c(i,j)], ncol=2)
+				# Find correct ordinal column
+				tcols <- as.numeric(na.omit(match(names(ords)[c(i,j)], colnames(thresh))))
+				pcThresh <- matrix(thresh[,tcols], ncol=2)
 			} else stop(paste("Cannot determine variable type for columns", i, "and" , j))
 			pcMeans <- c(meanEst[i], meanEst[j])
 			pcVars <- c(varEst[i], varEst[j])
@@ -560,11 +562,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		w2 <- covHess %*% solve(t(pcJac)%*%pcJac) %*% covHess
 		w <- wlsContinuousOnlyHelper(cd)
 	}
-	# TODO: something still must be done about the means!
-	# To replicate old behavior set
+	# Now doing something about the means!
+	# To replicate old behavior set,
 	# The following two lines should be deleted.
-	meanJac <- NULL
-	meanHess <- NULL
+	#meanJac <- NULL
+	#meanHess <- NULL
 	# even though these might not be NULL and have been processed earlier.
 	fullJac  <- cbind(pcJac, meanJac, threshJac)
 	if( nvar > 0 ){
@@ -610,9 +612,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	if(fullWeight==TRUE){
 		fw <- wls
 	} else {fw <- NA}
-	retVal <- mxData(pcMatrix, type="acov", numObs=n, 
+	dummy <- diag(1, nrow=nrow(pcMatrix))
+	dimnames(dummy) <- dimnames(pcMatrix)
+	retVal <- mxData(dummy, type="acov", numObs=n, 
 		acov=diag(1), fullWeight=NA, thresholds=thresh)
+	retVal@observed <- pcMatrix
 	retVal@fullWeight <- fw
+	retVal@means <- matrix(meanEst, nrow=1)
+	dimnames(retVal@means) <- list(NULL, names(data))
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}

@@ -44,6 +44,15 @@ is requested, the components will be returned as a list.
 
 If component 'vector' is requested then the non-redundent coefficients
 of the expected manifest distribution will be returned as a vector.
+
+If component 'standVector' is requested then the same parameter structure as
+'vector' is returned, but it is standardized.  For Normal expectations the covariances
+are returned as correlations, the means are returned as zeros, and the
+thresholds are returned as z-scores.  For the thresholds the z-scores
+are computed by using the model-implied means and variances.
+
+Note that capitalization is ignored for the 'standVector' option, so 'standvector'
+is also acceptable.
 }
 
 \value{
@@ -52,7 +61,7 @@ See details.
 
 
 \references{
-The OpenMx User's guide can be found at http://openmx.psyc.virginia.edu/documentation.
+The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{

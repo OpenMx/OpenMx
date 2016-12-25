@@ -45,8 +45,9 @@ cfa <- mxModel(
 
 cfa$withinGroup2$betweenGroup2$M$free[1,c('fb1','fb2')] <- TRUE
 
-cfa <- mxRun(cfa)
-omxCheckCloseEnough(cfa$output$fit, 49922.16, 1e-2)
+cfa <- mxTryHard(cfa)
+omxCheckCloseEnough(cfa$output$fit, 49853.908, 1e-2)
+# Mplus -24926.956 * -2 = 49853.91
 
 cfa$withinGroup1$expectation$.rampart <- 0L
 cfa$withinGroup2$expectation$.rampart <- 0L
@@ -54,7 +55,7 @@ cfa <- mxRun(mxModel(cfa,
 		    mxComputeSequence(list(
 			mxComputeOnce('fitfunction', 'fit'),
 			mxComputeReportExpectation()))))
-omxCheckCloseEnough(cfa$output$fit, 49926.38, 1e-2) # same location without Rampart
+omxCheckCloseEnough(cfa$output$fit, 49853.908, 1e-2) # same location without Rampart
 
 # Here is the MPlus solution
 f1 <- omxSetParameters(cfa, labels=names(coef(cfa)),
@@ -81,13 +82,13 @@ f1 <- mxRun(mxModel(f1,
 			mxComputeReportExpectation()))))
 omxCheckCloseEnough(f1$output$fit, 49853.91, 1e-2)
 
-f1$withinGroup1$expectation$.rampart <- 1L
-f1$withinGroup2$expectation$.rampart <- 1L
+f1$withinGroup1$expectation$.rampart <- NA_integer_
+f1$withinGroup2$expectation$.rampart <- NA_integer_
 f1 <- mxRun(mxModel(f1,
 		    mxComputeSequence(list(
 			mxComputeOnce('fitfunction', 'fit'),
 			mxComputeReportExpectation()))))
-omxCheckCloseEnough(f1$output$fit, 49992.94, 1e-2)  # doesn't look best anymore!
+omxCheckCloseEnough(f1$output$fit, 49853.91, 1e-2)
 
 if (0) { # double check everything
 	ed = f1$withinGroup2$expectation$debug

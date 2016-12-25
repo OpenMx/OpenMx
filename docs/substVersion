@@ -13,4 +13,4 @@ long=$(echo -n "$vtemplate")
 
 cat source/conf.py.in | sed s/@SHORTVERSION@/$short/ | sed s/@LONGVERSION@/$long/ > source/conf.py
 
-perl -pi -e "s,http://openmx.psyc.virginia.edu/docs/OpenMx/latest/,http://openmx.psyc.virginia.edu/docs/OpenMx/$long/," source/*.rst
+perl -pi -e "s,http://openmx.ssri.psu.edu/docs/OpenMx/latest/,http://openmx.ssri.psu.edu/docs/OpenMx/$long/," source/*.rst

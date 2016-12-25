@@ -79,32 +79,35 @@ void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 	EigenMatrixAdaptor egOutCov(outCov);
 	
 	stddev = egInCov.diagonal().array().sqrt();
+	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
 	
-	// standardize covariance
-	for(int i = 0; i < egInCov.rows(); i++) {
-		for(int j = 0; j <= i; j++) {
-			egOutCov(i,j) = egInCov(i, j) / (stddev[i] * stddev[j]);
-			egOutCov(j,i) = egOutCov(i,j);
-		}
-	}
 	
 	// standardize mean and thresholds
 	if(inMeans != NULL) {
 		EigenMatrixAdaptor egInM(inMeans);
 		EigenMatrixAdaptor egOutM(outMeans);
 		// means
-		for(int i = 0; i < egInM.cols(); i++) {
-			egOutM(0, i) = 0;
-		}
+		egOutM = egInM;
 		
 		// thresholds
 		if(inThresholdsMat != NULL){
 			EigenMatrixAdaptor egInThr(inThresholdsMat);
 			EigenMatrixAdaptor egOutThr(outThresholdsMat);
+			if(OMX_DEBUG) {
+				mxLog("Expected thresholds have size %d.", int(thresholds.size()));
+			}
 			for(int j = 0; j < int(thresholds.size()); j++) {
 				omxThresholdColumn* thresh = &thresholds[j];
+				if(OMX_DEBUG) {
+					mxLog("Data column %d has %d thresholds.", j, thresh->numThresholds);
+					mxLog("It is threshold column %d", thresh->column);
+				}
 				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, thresh->column) ) / stddev[thresh->column];
+					egOutThr(k, thresh->column) = ( egInThr(k, thresh->column) - egInM(0, j) ) / stddev[j];
+				}
+				if(thresh->numThresholds > 0){
+					egOutM(0, j) = 0.0;
+					stddevUse[j] = stddev[j];
 				}
 			}
 		}
@@ -121,9 +124,19 @@ void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 				for(int k = 0; k < thresh->numThresholds; k++) {
 					egOutThr(k, thresh->column) = egInThr(k, thresh->column) / stddev[thresh->column];
 				}
+				stddevUse[thresh->column] = stddev[thresh->column];
 			}
 		}
 	}
+	
+	// standardize covariance
+	for(int i = 0; i < egInCov.rows(); i++) {
+		for(int j = 0; j <= i; j++) {
+			egOutCov(i,j) = egInCov(i, j) / (stddevUse[i] * stddevUse[j]);
+			egOutCov(j,i) = egOutCov(i,j);
+		}
+	}
+	
 }
 
 
