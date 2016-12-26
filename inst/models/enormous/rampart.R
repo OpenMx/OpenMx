@@ -1,9 +1,6 @@
 library(OpenMx)
 library(mvtnorm)
 
-#set.seed(1)  # $\theta_1$
-set.seed(3)   # $\theta_2$
-
 numIndicators <- 5
 
 numSchools <- 7
@@ -24,15 +21,6 @@ genStructure <- function(upper, fanout, keyname) {
 	lowerData
 }
 
-dataEnv <- new.env()
-
-assign("schoolData", data.frame(schoolID=1:numSchools,
-				skill=rnorm(numSchools)), envir=dataEnv)
-assign("teacherData", genStructure(dataEnv$schoolData,
-				   numTeachers, 'teacherID'), envir=dataEnv)
-assign("studentData", genStructure(dataEnv$teacherData,
-				   numStudents, 'studentID'), envir=dataEnv)
-
 createIndicators <- function(latentSkill, indicatorMean, indicatorVariance) {
     if (missing(indicatorMean)) {
         indicatorMean <- runif(numIndicators,min=-1,max=1)
@@ -51,14 +39,6 @@ createIndicators <- function(latentSkill, indicatorMean, indicatorVariance) {
     as.data.frame(ind)
 }
 
-for (tbl in paste0(c('school', 'teacher', 'student'), 'Data')) {
-    dataEnv[[tbl]] <- cbind(dataEnv[[tbl]],
-			    createIndicators(dataEnv[[tbl]]$skill))
-}
-
-dataEnv$studentData$i1[runif(nrow(dataEnv$studentData)) > .8] <- NA
-#teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
-
 mkSingleFactor <- function(latent=c()) {
 	mxModel('template', type='RAM',
 		manifestVars = paste0('i', 1:numIndicators),
@@ -76,8 +56,6 @@ mkSingleFactor <- function(latent=c()) {
 		)
 }
 
-singleFactor <- mkSingleFactor(NULL)
-			
 relabel <- function(m, prefix) {
   for (mat in c("A","S")) {
     lab <- m[[mat]]$labels
@@ -87,31 +65,55 @@ relabel <- function(m, prefix) {
   mxModel(m, name=prefix)
 }
 
-schMod <- mxModel(relabel(mkSingleFactor(), "school"),
-		  mxData(type="raw", observed=dataEnv$schoolData,
-			 primaryKey="schoolID"))
+createSimulationDistribution <- function(seed) {
+	set.seed(seed)
+	dataEnv <- new.env()
 
-tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
-		  mxData(type="raw", observed=dataEnv$teacherData,
-			 primaryKey="teacherID"),
-		  mxPath(from='school.skill', to='skill',
-			 joinKey="schoolID", values=runif(1)))
+	assign("schoolData", data.frame(schoolID=1:numSchools,
+					skill=rnorm(numSchools)), envir=dataEnv)
+	assign("teacherData", genStructure(dataEnv$schoolData,
+					   numTeachers, 'teacherID'), envir=dataEnv)
+	assign("studentData", genStructure(dataEnv$teacherData,
+					   numStudents, 'studentID'), envir=dataEnv)
 
-sMod <- mxModel(relabel(singleFactor, "student"), tMod,
-		mxData(type="raw", observed=dataEnv$studentData,
-		       primaryKey="studentID"),
-		  mxPath(from='teacher.skill', to='skill',
-			 joinKey="teacherID", values=runif(1)))
+	for (tbl in paste0(c('school', 'teacher', 'student'), 'Data')) {
+		dataEnv[[tbl]] <- cbind(dataEnv[[tbl]],
+					createIndicators(dataEnv[[tbl]]$skill))
+	}
+
+	dataEnv$studentData$i1[runif(nrow(dataEnv$studentData)) > .8] <- NA
+					#teacherData$i4[runif(nrow(teacherData)) > .8] <- NA
+
+	singleFactor <- mkSingleFactor(NULL)
+	
+	schMod <- mxModel(relabel(mkSingleFactor(), "school"),
+			  mxData(type="raw", observed=dataEnv$schoolData,
+				 primaryKey="schoolID"))
+
+	tMod <- mxModel(relabel(singleFactor, "teacher"), schMod,
+			mxData(type="raw", observed=dataEnv$teacherData,
+			       primaryKey="teacherID"),
+			mxPath(from='school.skill', to='skill',
+			       joinKey="schoolID", values=runif(1)))
+
+	sMod <- mxModel(relabel(singleFactor, "student"), tMod,
+			mxData(type="raw", observed=dataEnv$studentData,
+			       primaryKey="studentID"),
+			mxPath(from='teacher.skill', to='skill',
+			       joinKey="teacherID", values=runif(1)))
+	sMod
+}
 
 interest <- c('wallTime', 'infoDefinite',
 	      'conditionNumber', 'fit', 'timestamp')
 
+rda <- "/tmp/rampart-sim.rda"
+
 if (1) {
-    result <- expand.grid(rampart=c(TRUE,FALSE), rep=1:200, gradient=NA)
-    for (e1 in names(coef(sMod))) result[[e1]] <- NA
+    result <- expand.grid(rampart=c(TRUE,FALSE), rep=1:200, gradient=NA, simSeed=c(1,3))
     for (i1 in interest) result[[i1]] <- NA
 } else {
-    load("/tmp/rampart.rda")
+    load(rda)
 }
 
 plan <- mxComputeSequence(list(
@@ -121,6 +123,8 @@ plan <- mxComputeSequence(list(
     mxComputeReportDeriv()
 ))
 
+curSim <- 0
+sMod <- NULL
 for (rrow in 1:nrow(result)) {
     if (!is.na(result[rrow, 'wallTime'])) next
 #    if (!result[rrow, 'rampart']) next
@@ -132,6 +136,10 @@ for (rrow in 1:nrow(result)) {
         next
     }
 
+    if (curSim != result[rrow, 'simSeed']) {
+	    sMod <-createSimulationDistribution(result[rrow, 'simSeed'])
+    }
+
     set.seed(result[rrow, 'rep'])
     trial <- mxGenerateData(sMod, returnModel=TRUE)
 
@@ -139,15 +147,17 @@ for (rrow in 1:nrow(result)) {
         trial$expectation$.rampart <- as.integer(NA)
     } else {
         trial$expectation$.rampart <- 0L
-        trial$fitfunction$parallel <- TRUE
     }
     trialFit <- mxRun(mxModel(trial, plan))
 
+    if (is.null(result[[ names(coef(trialFit))[1] ]])) {
+	    for (e1 in names(coef(sMod))) result[[e1]] <- NA
+    }
     result[rrow, names(coef(trialFit))] <- coef(trialFit)
     result[rrow, interest] <- trialFit$output[interest]
     result[rrow, 'gradient'] <- max(abs(trialFit$output$gradient))
 
-    save(result, file="/tmp/rampart.rda")
+    save(result, file=rda)
 }
 
 sum(!is.na(result[result$rampart==TRUE, 'conditionNumber']))
