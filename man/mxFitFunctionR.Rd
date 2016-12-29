@@ -54,6 +54,8 @@ The initial default value for the persistant state information is NA.
 Throwing an exception (via stop) from inside fitfun may result
 in unpredictable behavior. You may want to wrap your code in
 tryCatch while experimenting.
+
+fitfun should not call R functions that use OpenMx's compiled backend, including (but not limited to) \code{\link{omxMnor}()}, because doing so can crash R.
 }
 
 \value{
