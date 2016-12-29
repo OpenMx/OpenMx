@@ -194,9 +194,9 @@ smodf <- mxModel(name='state space scoring', smodf,
 
 srunf <- mxRun(smodf)
 
-# Slots xPredicted, xUpdated, xSmoothed, PPredicted, PUpdated, PSmoothed
-#  should not be 0x0
-str(srunf$expectation)
+ex <- srunf$expectation
+for (sl in c('xPredicted', 'xUpdated', 'xSmoothed', 'PPredicted', 'PUpdated', 'PSmoothed')) {
+  omxCheckTrue(all(dim(slot(ex,sl)) != c(0,0)))
+}
 
-dim(srunf$expectation$xPredicted)
 
