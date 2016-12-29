@@ -182,3 +182,21 @@ omxCheckCloseEnough(diag(srun$R$values), dlmEstR, epsilon=0.001)
 if (.Platform$OS.type != 'windows' && detectCores() > 1) {
   omxCheckTrue(srun$compute$steps[['GD']]$output$maxThreads > 1)
 }
+
+#------------------------------------------------------------------------------
+# Check computation of factor scores in backend
+# For an example that does not require a previously run model
+#  just use smod in place of srun in the line below.
+#  That would just compute factor scores from the starting values.
+smodf <- omxSetParameters(srun, free=FALSE, labels=names(coef(srun)))
+smodf <- mxModel(name='state space scoring', smodf,
+	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='P', u='u', scores=TRUE))
+
+srunf <- mxRun(smodf)
+
+# Slots xPredicted, xUpdated, xSmoothed, PPredicted, PUpdated, PSmoothed
+#  should not be 0x0
+str(srunf$expectation)
+
+dim(srunf$expectation$xPredicted)
+
