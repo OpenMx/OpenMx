@@ -1509,7 +1509,8 @@ convertComputes <- function(flatModel, model) {
 
 updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
-	if(model@compute@.persistOnce){
+	if(.hasSlot(model@compute, '.persistOnce') && .hasSlot(model@compute, '.persist') && 
+		 model@compute@.persistOnce){
 		model@compute@.persistOnce <- FALSE
 		model@compute@.persist <- FALSE
 	}
