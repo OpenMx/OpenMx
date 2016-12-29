@@ -70,6 +70,7 @@ round( obsMat , 3 )
 ########################################################################
 # WLS version works fine
 
+a <- Sys.time()
 wdat <- mxDataWLS(datS)
 wimpMod <- mxModel('Datmod',
 ### Expected covariance matrix (variance==1 due to binary variables)
@@ -83,6 +84,8 @@ wimpMod <- mxModel('Datmod',
     mxFitFunctionWLS()
   )
 wimpModFit <- mxRun(wimpMod)
+b <- Sys.time()
+b - a
 
 # Modelled correlations
 round( mxEval(eC, wimpModFit) , 4 )
