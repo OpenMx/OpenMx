@@ -21,7 +21,14 @@
 #------------------------------------------------------------------------------
 
 
-mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
+requireMinManifests <- function(row) {
+	stop(paste("mxFactorScores: row", row, "has missing data.",
+		   "Hence, you must specify minManifests"),
+	     call. = FALSE)
+}
+
+mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minManifests=as.integer(NA))
+{
 	if(length(unlist(strsplit(model@name, split=' ', fixed=TRUE))) > 1){
 		message(paste('The model called', omxQuotes(model@name), 'has spaces in the model name.  I cannot handle models with spaces in the model name, so I removed them before getting factor scores.'))
 		model <- mxRename(model, paste(unlist(strsplit(model@name, split=' ', fixed=TRUE)), collapse=''))
@@ -31,7 +38,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		ret <- list()
 		for(amod in submNames){
-			ret[[amod]] <- mxFactorScores(model[[amod]], type)
+			ret[[amod]] <- mxFactorScores(model[[amod]], type, minManifests)
 		}
 		return(ret)
 	}
@@ -76,20 +83,39 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 			work <- wup
 		}
 		work@data <- NULL
+		plan <- list(GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
+		if (tolower(mxOption(NULL,"Standard Errors")) == "yes") {
+			plan <- c(plan,
+				  ND=mxComputeNumericDeriv(),
+				  SE=mxComputeStandardError())
+		}
+		plan <- mxComputeSequence(plan)
 		for(i in 1:nrows){
-			if(type[1]=='ML'){
-				fit <- mxModel(model=work, name=paste(work@name, i, "of", nrows, sep="_"), mxData(model$data$observed[i,,drop=FALSE], 'raw'))
-			} else if(type[1]=='WeightedML'){
-				work@submodels[[1]]@data <- mxData(model$data$observed[i,,drop=FALSE], 'raw')
-				fit <- mxModel(model=work, name=paste(work@name, i, "of", nrows, sep="_"))
-			}
-			fit <- mxRun(fit, silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
-			res[i,,1] <- omxGetParameters(fit) #params
-			if(length(fit$output$standardErrors)){res[i,,2] <- fit$output$standardErrors} #SEs
-			else if(i==1){
-				warning(
-					paste("factor-score standard errors not available from MxModel '",model$name,"' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)",
-								sep=""))
+			rawData <- model$data$observed[i,,drop=FALSE]
+			missing <- is.na(rawData)
+			anyMissing = any(missing)
+			if (anyMissing && is.na(minManifests)) requireMinManifests(i)
+			if (anyMissing && sum(!missing) < minManifests) {
+				res[i,,1] <- NA
+				res[i,,2] <- NA
+			} else {
+				modelName <- paste(work@name, i, "of", nrows, sep="_")
+				if(type[1]=='ML'){
+					fit <- mxModel(model=work, name=modelName, mxData(rawData, 'raw'))
+				} else if(type[1]=='WeightedML'){
+					work@submodels[[1]]@data <- mxData(rawData, 'raw')
+					fit <- mxModel(model=work, name=modelName)
+				}
+				fit <- mxRun(mxModel(fit, plan),
+					     silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
+				res[i,,1] <- omxGetParameters(fit) #params
+				if(length(fit$output$standardErrors)){res[i,,2] <- fit$output$standardErrors} #SEs
+				else if(i==1){
+					msg <- paste0("factor-score standard errors not available from MxModel '",
+						     model$name,"' because calculating SEs is turned off for that ",
+						     "model (possibly due to one or more MxConstraints)")
+					warning(msg, sep="")
+				}
 			}
 		}
 	} else if(tolower(type)=='regression'){
@@ -98,7 +124,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression')){
 		}
 		if(!(classExpect %in% "MxExpectationLISREL")){
 			#stop('Regression factor scores are only possible for LISREL expectations.')
-			res <- RAMrfs(model,res)
+			res <- RAMrfs(model, res, minManifests)
 		} else{
 			ss <- mxModel(model=model,
 				mxMatrix('Zero', nksi, nksi, name='stateSpaceA'),
@@ -168,7 +194,7 @@ ramFactorScoreHelper <- function(model){
 	return(work)
 }
 
-RAMrfs <- function(model,res){
+RAMrfs <- function(model, res, minManifests) {
 	i <- j <- 1
 	manvars <- model@manifestVars
 	latvars <- model@latentVars
@@ -194,21 +220,29 @@ RAMrfs <- function(model,res){
 			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
 		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],nrow=1)
-		if(all(is.na(dat[i,manvars]))){
-			res[i:j,,1] <- latmeans
-			res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
-		}
-		else{
-			obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% 
+		missing <- is.na(dat[i,manvars])
+		anyMissing <- any(missing)
+		if (anyMissing && is.na(minManifests)) requireMinManifests(i)
+		if (anyMissing && sum(!missing) < minManifests) {
+				res[i:j,,1] <- NA
+				res[i:j,,2] <- NA
+		} else {
+			if(all(missing)){
+				res[i:j,,1] <- latmeans
+				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
+			}
+			else{
+				obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% 
 				matrix(mxGetExpected(model,"means",defvar.row=i)[,which(!is.na(dat[i,manvars]))],nrow=1)
-			dat.curr <- as.matrix(dat[i:j,manvars.curr])
-			if(i==j){dat.curr <- matrix(dat.curr,nrow=1)} #<--Annoying...
-			res[i:j,,1] <- ( (dat.curr - obsmeans) %*%
-											 	(solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars]) ) + latmeans
-			indeterminateVariance <- unfilt[latvars,latvars] - 
-				(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
-				 	unfilt[manvars.curr,latvars])
-			res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
+				dat.curr <- as.matrix(dat[i:j,manvars.curr])
+				if(i==j){dat.curr <- matrix(dat.curr,nrow=1)} #<--Annoying...
+				res[i:j,,1] <- ( (dat.curr - obsmeans) %*%
+						 (solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars]) ) + latmeans
+				indeterminateVariance <- unfilt[latvars,latvars] - 
+					(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
+					 unfilt[manvars.curr,latvars])
+				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
+			}
 		}
 		i <- j+1
 		j <- i
