@@ -1527,7 +1527,7 @@ imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)
 
 
 omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE, 
-																	options=options()$mxOption){
+																	optionList=options()$mxOption){
 	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
 	compute <- NULL
 	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")
@@ -1538,17 +1538,17 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 		steps <- list(GD=mxComputeGradientDescent(
 			fitfunction=fitNum,
 			verbose=0L,	
-			gradientAlgo=options[['Gradient algorithm']],
-			gradientIterations=options[['Gradient iterations']],
-			gradientStepSize=options[['Gradient step size']]))
+			gradientAlgo=optionList[['Gradient algorithm']],
+			gradientIterations=optionList[['Gradient iterations']],
+			gradientStepSize=optionList[['Gradient step size']]))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
 					fitfunction=fitNum, 
 					nudgeZeroStarts=FALSE,
-					gradientAlgo=options[['Gradient algorithm']],
-					gradientIterations=options[['Gradient iterations']],
-					gradientStepSize=options[['Gradient step size']])
+					gradientAlgo=optionList[['Gradient algorithm']],
+					gradientIterations=optionList[['Gradient iterations']],
+					gradientStepSize=optionList[['Gradient step size']])
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
 					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
@@ -1558,12 +1558,12 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 					constraintType=cType,
 					verbose=0L, plan=ciOpt))
 			}
-			if (options[["Calculate Hessian"]] == "Yes") {
+			if (optionList[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(
 					fitfunction=fitNum, 
-					stepSize=options[['Gradient step size']]))
+					stepSize=optionList[['Gradient step size']]))
 			}
-			if (options[["Standard Errors"]] == "Yes") {
+			if (optionList[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
 			}
 			compute <- mxComputeSequence(c(steps,
