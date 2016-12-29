@@ -1527,7 +1527,7 @@ imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)
 
 
 omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE, 
-																	options=option()$mxOption){
+																	options=options()$mxOption){
 	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
 	compute <- NULL
 	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")
