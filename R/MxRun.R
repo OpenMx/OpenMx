@@ -231,8 +231,9 @@ runHelper <- function(model, frontendStart,
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
 	if (numParam == 0 && defaultComputePlan && !is.null(model@fitfunction)) {
-		compute <- mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
-					 'fit', .is.bestfit=TRUE)
+		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
+								   'fit', .is.bestfit=TRUE),
+						  RE=mxComputeReportExpectation()))
 		compute@.persist <- FALSE
 		compute <- assignId(compute, 1L, '.')
 		model@compute <- compute

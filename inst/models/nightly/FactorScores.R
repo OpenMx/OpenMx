@@ -236,8 +236,11 @@ factorModel.miss <- mxModel("OneFactor",
 											 mxPath(from='one', to=manifests),
 											 mxData(observed=demoOneFactor.miss, type="raw"))
 factorRamRun.miss <- mxRun(factorModel.miss)
-regs <- mxFactorScores(model=factorRamRun.miss,"Regression")
-omxCheckEquals(regs[100,1,1],0)
-omxCheckEquals(regs[100,1,2],1)
-omxCheckTrue(cor(regs[,,1], rr2[,,1]) > 0.95)
-
+for (type in c("Regression", "WeightedML", "ML")) {
+  omxCheckError(mxFactorScores(model=factorRamRun.miss,type),
+                "mxFactorScores: row 8 has missing data. Hence, you must specify minManifests")
+}
+regs <- mxFactorScores(model=factorRamRun.miss,"Regression", minManifests=3)
+omxCheckTrue(is.na(regs[100,1,1]))
+omxCheckTrue(is.na(regs[100,1,2]))
+omxCheckTrue(cor(regs[,,1], rr2[,,1], use="complete.obs") > 0.95)
