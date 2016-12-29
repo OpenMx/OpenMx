@@ -1534,12 +1534,13 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 	if (!useOptimizer) {
 		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
 																			RE=mxComputeReportExpectation()))
-		steps = list(GD=mxComputeGradientDescent(
+		} else{
+		steps <- list(GD=mxComputeGradientDescent(
 			fitfunction=fitNum,
 			verbose=0L,	
 			gradientAlgo=options[['Gradient algorithm']],
 			gradientIterations=options[['Gradient iterations']],
-			gradientStepSize=options[['Gradient step size']])
+			gradientStepSize=options[['Gradient step size']]))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
@@ -1560,7 +1561,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			if (options[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(
 					fitfunction=fitNum, 
-					stepSize=options[['Gradient step size']])
+					stepSize=options[['Gradient step size']]))
 			}
 			if (options[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
