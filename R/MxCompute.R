@@ -1523,3 +1523,66 @@ updateModelCompute <- function(model, computes) {
 ##'
 ##' @param mat the matrix to invert
 imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)
+
+
+
+omxDefaultComputePlan <- function(model=NULL, intervals=FALSE, checkpoint=FALSE, useOptimizer=TRUE){
+	#The plan is for this function to be able to accept an MxModel as value for argument 'model', and return
+	#said model with the default compute plan in its 'compute' slot.  
+	
+	# if(model){
+	# 	#Note that mxRun() counts the number of constraints in the flattened model here...:
+	# 	options <- generateOptionsList(model, 1-verifyNoConstraints(model), useOptimizer)
+	# 	options[['intervals']] <- intervals
+	# 	
+	# 	compute <- NULL
+	# 	fitNum <- paste(model@name, 'fitfunction', sep=".")
+	#		etc,etc,etc...
+	# }
+	#		
+	# else{
+	compute <- NULL
+	#fitNum <- paste(model@name, 'fitfunction', sep=".")
+	if (!useOptimizer) {
+		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+																			RE=mxComputeReportExpectation()))
+	} else {
+		steps = list(GD=mxComputeGradientDescent(
+			#fitfunction=fitNum,
+			verbose=0L,	
+			gradientAlgo=mxOption(NULL,'Gradient algorithm'),
+			gradientIterations=mxOption(NULL,'Gradient iterations'),
+			gradientStepSize=mxOption(NULL,'Gradient step size'))
+		if (intervals){
+			ciOpt <- mxComputeGradientDescent(
+				verbose=0L,
+				#fitfunction=fitNum, 
+				nudgeZeroStarts=FALSE,
+				gradientAlgo=mxOption(NULL,'Gradient algorithm'),
+				gradientIterations=mxOption(NULL,'Gradient iterations'),
+				gradientStepSize=mxOption(NULL,'Gradient step size'))
+			cType <- ciOpt$defaultCImethod
+			if (cType == 'ineq') {
+				ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+			}
+			steps <- c(steps, CI=mxComputeConfidenceInterval(
+				#fitfunction=fitNum, 
+				constraintType=cType,
+				verbose=0L, plan=ciOpt))
+		}
+		if (mxOption(NULL,"Calculate Hessian") == "Yes") {
+			steps <- c(steps, ND=mxComputeNumericDeriv(
+				#fitfunction=fitNum, 
+				stepSize=mxOption(NULL,'Gradient step size'))
+		}
+		if (mxOption(NULL,"Standard Errors") == "Yes") {
+			steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
+		}
+		compute <- mxComputeSequence(c(steps,
+																	 RD=mxComputeReportDeriv(),
+																	 RE=mxComputeReportExpectation()))
+	}
+	compute@.persist <- FALSE
+	model@compute <- compute
+	#}
+}
