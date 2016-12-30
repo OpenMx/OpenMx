@@ -29,8 +29,6 @@
 #ifndef _OMXEXPECTATION_H_
 #define _OMXEXPECTATION_H_
 
-//#include <boost/range/iterator_range_core.hpp>
-
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
@@ -44,9 +42,10 @@
 /* Expectation structure itself */
 class omxExpectation {					// An Expectation
 	int defVarRow;
+	int *dataColumnsPtr;
+
  public:
 	int numDataColumns;
-	int *dataColumnsPtr;
 
 	void (*initFun)(omxExpectation *ox);
 	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
@@ -60,6 +59,7 @@ class omxExpectation {					// An Expectation
 	// for the expectation and access fields directly or through object methods.
 	omxMatrix* (*componentFun)(omxExpectation*, const char*);
 	void (*mutateFun)(omxExpectation*, const char*, omxMatrix*);
+	int *(*dataColumnFun)(omxExpectation *);
 
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
@@ -73,12 +73,12 @@ class omxExpectation {					// An Expectation
 		numDataColumns = Rf_length(vec);
 		dataColumnsPtr = INTEGER(vec);
 	}
-	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
+	const Eigen::Map<Eigen::VectorXi> getDataColumnsInternal() {
 		return Eigen::Map<Eigen::VectorXi>(dataColumnsPtr, numDataColumns);
 	}
-	//boost::iterator_range<int*> getDataColumnsIter() {
-	//		return boost::iterator_range<int*>(dataColumnsPtr, dataColumnsPtr+numDataColumns);
-	//	};
+	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
+		return Eigen::Map<Eigen::VectorXi>(this->dataColumnFun(this), numDataColumns);
+	}
 
 	omxMatrix *thresholdsMat;
 	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
@@ -95,6 +95,8 @@ class omxExpectation {					// An Expectation
 
 	bool canDuplicate;
 	bool dynamicDataSource;
+
+	friend int *defaultDataColumnFun(omxExpectation *ex);
 };
 
 omxExpectation *

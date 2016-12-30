@@ -191,7 +191,7 @@ class mvnByRow {
 		indexVector(shared_ofo->indexVector),
 		sameAsPrevious(shared_ofo->sameAsPrevious),
 		thresholdCols(expectation->thresholds),
-		dataColumns(expectation->dataColumnsPtr, expectation->numDataColumns),
+		dataColumns(expectation->getDataColumns()),
 		isOrdinal(_ofiml->isOrdinal),
 		op(isOrdinal, isMissing)
 	{

@@ -252,6 +252,9 @@ void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 	(*ox->setVarGroup)(ox, fvg);
 }
 
+int *defaultDataColumnFun(omxExpectation *ex)
+{ return ex->dataColumnsPtr; }
+
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
@@ -276,6 +279,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	expect->currentState = os;
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
+	expect->dataColumnFun = defaultDataColumnFun;
 
 	return expect;
 }
