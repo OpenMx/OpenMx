@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 Joshua Nathaniel Pritikin and contributors
+ * Copyright 2012-2017 Joshua Nathaniel Pritikin and contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
