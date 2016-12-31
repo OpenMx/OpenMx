@@ -135,7 +135,18 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			resDel <- mxKalmanScores(ss)
 			res[,,1] <- resDel$xUpdated[-1,, drop=FALSE]
 			res[,,2] <- apply(resDel$PUpdated[,,-1, drop=FALSE], 3, function(x){sqrt(diag(x))})
-	}} else {
+			
+			# Kill the rows with too much missing data
+			useCols <- dimnames(ss[[ss$expectation$C]])[[1]]
+			rawData <- model$data$observed[ , useCols, drop=FALSE]
+			missing <- is.na(rawData)
+			anyMissing <- any(missing)
+			howMissing <- apply(!missing, 1, sum)
+			if (anyMissing && is.na(minManifests)) requireMinManifests(which(howMissing < ncol(rawData))[1])
+			res[howMissing < minManifests, , 1] <- NA
+			res[howMissing < minManifests, , 2] <- NA
+		}
+	} else {
 		stop('Unknown type argument to mxFactorScores')
 	}
 	dimnames(res) <- list(1:dim(res)[1], factorNames, c('Scores', 'StandardErrors'))
