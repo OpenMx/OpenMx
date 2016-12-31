@@ -122,43 +122,45 @@ runHelper <- function(model, frontendStart,
 		warning("mxRun(..., useOptimizer=FALSE) ignored due to custom compute plan")
 	}
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
-		compute <- NULL
-		fitNum <- paste(model@name, 'fitfunction', sep=".")
-		if (!useOptimizer) {
-			compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
-							  RE=mxComputeReportExpectation()))
-		} else {
-			steps = list(GD=mxComputeGradientDescent(
-				fitfunction=fitNum, verbose=0L,
-				gradientAlgo=options[['Gradient algorithm']], gradientIterations=options[['Gradient iterations']],
-				gradientStepSize=options[['Gradient step size']]))
-			if (length(intervals) && intervals) {
-				ciOpt <- mxComputeGradientDescent(verbose=0L,
-				    fitfunction=fitNum, nudgeZeroStarts=FALSE,
-				    gradientAlgo=options[['Gradient algorithm']], 
-				    gradientIterations=options[['Gradient iterations']],
-				    gradientStepSize=options[['Gradient step size']])
-				cType <- ciOpt$defaultCImethod
-				if (cType == 'ineq') {
-					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
-				}
-				steps <- c(steps, CI=mxComputeConfidenceInterval(
-							  fitfunction=fitNum, constraintType=cType,
-							  verbose=0L, plan=ciOpt))
-			}
-			if (options[["Calculate Hessian"]] == "Yes") {
-				steps <- c(steps, ND=mxComputeNumericDeriv(
-					fitfunction=fitNum, 
-					stepSize=options[['Gradient step size']]))
-			}
-			if (options[["Standard Errors"]] == "Yes") {
-				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
-			}
-			compute <- mxComputeSequence(c(steps,
-						       RD=mxComputeReportDeriv(),
-						       RE=mxComputeReportExpectation()))
-		}
-		compute@.persist <- FALSE
+		compute <- omxDefaultComputePlan(modelName=model@name, intervals=(length(intervals) && intervals),
+					useOptimizer=useOptimizer, optionList=options)
+		# compute <- NULL
+		# fitNum <- paste(model@name, 'fitfunction', sep=".")
+		# if (!useOptimizer) {
+		# 	compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+		# 					  RE=mxComputeReportExpectation()))
+		# } else {
+		# 	steps = list(GD=mxComputeGradientDescent(
+		# 		fitfunction=fitNum, verbose=0L,
+		# 		gradientAlgo=options[['Gradient algorithm']], gradientIterations=options[['Gradient iterations']],
+		# 		gradientStepSize=options[['Gradient step size']]))
+		# 	if (length(intervals) && intervals) {
+		# 		ciOpt <- mxComputeGradientDescent(verbose=0L,
+		# 		    fitfunction=fitNum, nudgeZeroStarts=FALSE,
+		# 		    gradientAlgo=options[['Gradient algorithm']], 
+		# 		    gradientIterations=options[['Gradient iterations']],
+		# 		    gradientStepSize=options[['Gradient step size']])
+		# 		cType <- ciOpt$defaultCImethod
+		# 		if (cType == 'ineq') {
+		# 			ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+		# 		}
+		# 		steps <- c(steps, CI=mxComputeConfidenceInterval(
+		# 					  fitfunction=fitNum, constraintType=cType,
+		# 					  verbose=0L, plan=ciOpt))
+		# 	}
+		# 	if (options[["Calculate Hessian"]] == "Yes") {
+		# 		steps <- c(steps, ND=mxComputeNumericDeriv(
+		# 			fitfunction=fitNum, 
+		# 			stepSize=options[['Gradient step size']]))
+		# 	}
+		# 	if (options[["Standard Errors"]] == "Yes") {
+		# 		steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
+		# 	}
+		# 	compute <- mxComputeSequence(c(steps,
+		# 				       RD=mxComputeReportDeriv(),
+		# 				       RE=mxComputeReportExpectation()))
+		# }
+		# compute@.persist <- FALSE
 		model@compute <- compute
 	}
 	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
