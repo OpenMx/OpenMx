@@ -62,11 +62,12 @@ struct omxContiguousData {
 };
 
 struct omxThresholdColumn {
-	int column;				// Which column has the thresholds
+	int dColumn;			// Which column in the matrix/data.frame
+	int column;			// Which column in the thresholds matrix
 	int numThresholds;		// And how many thresholds
 
-	// for continuous variables, this structure is preserved all zero
-	omxThresholdColumn() : column(0), numThresholds(0) {};
+	// for continuous variables, numThresholds=0
+	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
 };
 
 enum ColumnDataType {

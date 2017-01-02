@@ -1,5 +1,7 @@
 library(OpenMx)
 
+mxOption(NULL, "Standard Errors", "No")
+
 numManifestsPerLatent <- 5
 
 mkModel <- function(shuffle, fellner) {
@@ -79,4 +81,94 @@ if (0) {
   # permute data to F input order
   all(rownames(fit1$F)[ match(man1, rownames(fit1$F)) ] == man1)
   all(match(man1, rownames(fit1$F)) == map1[!is.na(map1)])
+}
+
+# ----------------------------------------
+
+jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
+jointData <- read.table("data/jointdata.txt", header=TRUE)
+
+jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
+				 levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
+
+wlsData <- mxDataWLS(jointData, type='DLS')
+
+mkModel <- function(shuffle, wls) {
+	myData <- jointData
+	if (shuffle) {
+		myData <- myData[, sample.int(ncol(myData), ncol(myData))]
+	}
+
+	thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="Th")
+
+	thresh$free[,1] <- c(TRUE, FALSE, FALSE)
+	thresh$values[,1] <- c(0, NA, NA)
+	thresh$labels[,1] <- c("z2t1", NA, NA)
+
+	thresh$free[,2] <- TRUE
+	thresh$values[,2] <- c(-1, 0, 1)
+	thresh$labels[,2] <- c("z4t1", "z4t2", "z4t3")
+
+	thresh$free[,3] <- c(TRUE, TRUE, FALSE)
+	thresh$values[,3] <- c(-1, 1, NA)
+	thresh$labels[,3] <- c("z5t1", "z5t2", NA)
+
+	colnames(thresh) <- paste0('z',c(2,4,5))
+
+	manifestVars <- colnames(myData)
+	if (shuffle) manifestVars <- sample(manifestVars, length(manifestVars))
+
+	latentVars <- 'l1'
+	allVars <- c(manifestVars, latentVars)
+	if (shuffle) allVars <- sample(allVars, length(allVars))
+  
+	Fval <- diag(length(manifestVars))[,match(allVars, manifestVars)]
+	Fval[is.na(Fval)] <- 0
+  
+	freeMean <- !sapply(myData, is.factor)[match(allVars,colnames(myData))]
+	freeMean <- !is.na(freeMean) & freeMean
+
+	ta1 <- mxModel(
+		model="tangle", thresh,
+		mxMatrix("Full", length(manifestVars), length(allVars),
+			 values=Fval,
+			 dimnames=list(manifestVars, allVars), name="F"),
+		mxMatrix("Symm", length(allVars), length(allVars),
+			 values=diag(length(allVars)),
+			 free=diag(length(allVars)) == 1,
+			 dimnames=list(allVars, allVars), name="S"),
+		mxMatrix("Full", length(allVars), length(allVars),
+			 values=0,
+			 dimnames=list(allVars, allVars), name="A"),
+		mxMatrix("Full", 1, length(allVars),
+			 free=freeMean, #values=runif(length(allVars), -.1,.1),#remove TODO
+			 dimnames=list(NULL, allVars), name="M"),
+		mxExpectationRAM(M="M", thresholds="Th"),
+		mxComputeGradientDescent())
+#		mxComputeOnce('fitfunction', 'fit'))
+  
+	lvar <- 'l1'
+	ivar <- manifestVars
+	ta1$A$values[ivar, lvar] <- 1
+	ta1$A$lbound[ivar, lvar] <- 0
+	ta1$A$free[ivar, lvar] <- TRUE
+	ta1$S$free[lvar,lvar] <- FALSE
+	ta1$M$values[1,'z1'] <- c(.1)
+
+	if (wls) {
+		ta1 <- mxModel(ta1, wlsData, mxFitFunctionWLS())
+	} else {
+		ta1 <- mxModel(ta1, mxData(myData, type="raw"), mxFitFunctionML(jointConditionOn = "continuous"))
+	}
+
+	ta1
+}
+
+for (wls in c(FALSE,TRUE)) {
+	fit1 <- mxRun(mkModel(FALSE, wls))  # MLE=2683.071 when wls=false
+	fit2 <- mxRun(mkModel(TRUE, wls))
+	fit3 <- mxRun(mkModel(TRUE, wls))
+
+	omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-4)
+	omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-4)
 }

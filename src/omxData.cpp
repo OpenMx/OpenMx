@@ -289,6 +289,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		for(int i = 0; i < od->cols; i++) {
 			if(levels[i] > 0){
 				omxThresholdColumn tc;
+				tc.dColumn = i;
 				tc.column = columns[i];
 				tc.numThresholds = levels[i];
 				od->thresholdCols.push_back(tc);

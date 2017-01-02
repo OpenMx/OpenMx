@@ -155,6 +155,7 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 					ox->thresholds.push_back(col);
 				} else {
 					omxThresholdColumn col;
+					col.dColumn = index;
 					col.column = thresholdColumn[index];
 					col.numThresholds = thresholdNumber[index];
 					ox->thresholds.push_back(col);
