@@ -14,15 +14,33 @@
  *  limitations under the License.
  */
 
-#include "omxWLSFitFunction.h"
+#include "omxData.h"
 #include <Eigen/Core>
 // #include <Eigen/Dense>
+
+struct omxWLSFitFunction {
+
+	omxMatrix* observedCov;
+	omxMatrix* observedMeans;
+	omxMatrix* expectedCov;
+	omxMatrix* expectedMeans;
+	omxMatrix* observedFlattened;
+	omxMatrix* expectedFlattened;
+	omxMatrix* weights;
+	omxMatrix* P;
+	omxMatrix* B;
+	omxMatrix* standardExpectedCov;
+	omxMatrix* standardExpectedMeans;
+	omxMatrix* standardExpectedThresholds;
+	int n;
+
+};
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
 
-void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *obsThresholdMat,
+static void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *obsThresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {
 	// TODO: vectorize data flattening
 	// if(OMX_DEBUG) { mxLog("Flattening out data vectors: cov 0x%x, mean 0x%x, thresh 0x%x[n=%d] ==> 0x%x", 
@@ -50,7 +68,7 @@ void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *obsThresho
 	}
 }
 
-void omxDestroyWLSFitFunction(omxFitFunction *oo) {
+static void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 	
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
 	if(oo->argStruct == NULL) return;
@@ -58,7 +76,6 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
 	omxFreeMatrix(owo->observedFlattened);
 	omxFreeMatrix(owo->expectedFlattened);
-	omxFreeMatrix(owo->standardExpectedFlattened);
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
 	omxFreeMatrix(owo->standardExpectedCov);
@@ -67,7 +84,7 @@ void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 }
 
 
-void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
+static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
 			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
 	//omxMatrix* pass[1];
@@ -149,7 +166,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	double sum = 0.0;
 	
 	omxMatrix *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
-	omxMatrix *seCov, *seMeans, *seThresholdsMat, *seFlat;
+	omxMatrix *seCov, *seMeans, *seThresholdsMat;
 	
 	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
@@ -165,7 +182,6 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	seCov		= owo->standardExpectedCov;
 	seMeans		= owo->standardExpectedMeans;
 	seThresholdsMat = owo->standardExpectedThresholds;
-	seFlat		= owo->standardExpectedFlattened;
 	int onei	= 1;
 	
 	omxExpectation* expectation = oo->expectation;
@@ -207,7 +223,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 }
 
-void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
+static void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating WLS Attributes."); }
 	
 	omxWLSFitFunction *argStruct = ((omxWLSFitFunction*)oo->argStruct);
@@ -269,7 +285,7 @@ void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
 }
 
-void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
+static void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 	
 	/* Set FitFunction Calls to WLS FitFunction Calls */
 	oo->computeFun = omxCallWLSFitFunction;
@@ -374,7 +390,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	/* Temporary storage for calculation */
 	newObj->observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->standardExpectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
 	newObj->standardExpectedCov = omxInitMatrix(ncol, ncol, TRUE, oo->matrix->currentState);

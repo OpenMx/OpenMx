@@ -200,7 +200,7 @@ omxSymbolTable.o: Makevars omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
  omxAlgebra.h omxState.h omxExpectation.h omxFitFunction.h Compute.h \
  glue.h Connectedness.h \
  matrix.h
-omxWLSFitFunction.o: Makevars omxWLSFitFunction.cpp omxWLSFitFunction.h omxData.h \
+omxWLSFitFunction.o: Makevars omxWLSFitFunction.cpp  omxData.h \
  omxDefines.h  \
  omxAlgebra.h omxSymbolTable.h omxMatrix.h algebraOp.h omxState.h \
  omxExpectation.h omxFitFunction.h Compute.h \
