@@ -203,7 +203,7 @@ generateThresholdColumns <- function(flatModel, model, labelsData, covarianceCol
 			numThresholds <- length(levels(datasource[, oneThresholdName])) - 1
 		} else {
 			numThresholds <- sum(!is.na(flatModel@datasets[[dataName]]@thresholds[, oneThresholdName]))
-			# Note: this requires NA to be the indicator for an ingorable threshold
+			# Note: this requires NA to be the indicator for an ignorable threshold
 		}
 		columnIndex <- match(oneThresholdName, covarianceColumnNames)
 		thresholdColumns[[columnIndex]] <- as.integer(i - 1)
