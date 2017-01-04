@@ -34,6 +34,7 @@ struct omxWLSFitFunction {
 	omxMatrix* standardExpectedThresholds;
 	int n;
 
+	omxWLSFitFunction() :standardExpectedMeans(0), standardExpectedThresholds(0) {};
 };
 
 #ifdef SHADOW_DIAG
