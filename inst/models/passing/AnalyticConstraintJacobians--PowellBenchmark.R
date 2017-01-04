@@ -79,6 +79,54 @@ summary(powellrun2)
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
 	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
+	
+	#At the solution, bounds should not be active, and equality constraints should be satisfied:
+	omxCheckEquals(powellrun1$compute$steps$GD$output$istate,c(0,0,0,0,0,3,3,3))
+	omxCheckEquals(powellrun2$compute$steps$GD$output$istate,c(0,0,0,0,0,3,3,3))
+	
+	#The numerical and analytic Jacobians should agree closely:
+	omxCheckCloseEnough(a=powellrun1$compute$steps$GD$output$constraintJacobian,b=powellrun2$compute$steps$GD$output$constraintJacobian,
+											epsilon=1e-5)
+	
+	#Check naming of constraint-related information:
+	omxCheckEquals(
+		names(powellrun1$compute$steps$GD$output$constraintFunctionValues),
+		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		rownames(powellrun1$compute$steps$GD$output$constraintJacobian),
+		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun1$compute$steps$GD$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(
+		names(powellrun1$compute$steps$GD$output$LagrangeMultipliers),
+		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkNoJacobians.c1[1,1]",
+			"PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		names(powellrun1$compute$steps$GD$output$istate),
+		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkNoJacobians.c1[1,1]",
+			"PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		names(powellrun2$compute$steps$GD$output$constraintFunctionValues),
+		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		rownames(powellrun2$compute$steps$GD$output$constraintJacobian),
+		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun2$compute$steps$GD$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(
+		names(powellrun2$compute$steps$GD$output$LagrangeMultipliers),
+		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkWithJacobians.c1[1,1]",
+			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		names(powellrun2$compute$steps$GD$output$istate),
+		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkWithJacobians.c1[1,1]",
+			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
 }
 
 
@@ -122,6 +170,7 @@ omxCheckCloseEnough(powellrun2$fitfunction$result, powellrun3$fitfunction$result
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 	omxCheckEquals(powellrun2$output$iterations,powellrun3$output$iterations)
 	omxCheckEquals(powellrun2$output$evaluations,powellrun3$output$evaluations)
+	omxCheckEquals(powellrun2$compute$steps$GD$output$constraintJacobian, powellrun3$compute$steps$GD$output$constraintJacobian)
 }
 omxCheckCloseEnough(coef(powellrun2),coef(powellrun3),1e-7)
 summary(powellrun3)

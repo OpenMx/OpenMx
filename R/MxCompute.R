@@ -305,6 +305,41 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 		.Object
 	})
 
+setMethod(
+	"updateFromBackend", signature("MxComputeGradientDescent"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		#SLSQP and CSOLNP will likely require slightly different definitions for this method:
+		if(.Object@engine=="NPSOL" && length(.Object@output$constraintNames)){
+			cfvNames <- character(length(.Object@output$constraintFunctionValues))
+			#names(.Object@output$LagrangeMultipliers)[1:length(.Object@output$paramNames)] <- paste(.Object@output$paramNames,"bound",sep=".")
+			#names(.Object@output$istate)[1:length(.Object@output$paramNames)] <- paste(.Object@output$paramNames,"bound",sep=".")
+			colnames(.Object@output$constraintJacobian)  <- .Object@output$paramNames
+			#cjrownames <- character(length=nrow(.Object@output$constraintJacobian))
+			#rownames(.Object@output$constraintJacobian) <- as.character(1:nrow(.Object@output$constraintJacobian))
+			#print(.Object@output$constraintJacobian)
+			cjr <- 1
+			for(i in 1 : length(.Object@output$constraintNames)){
+				for(co in 1 : .Object@output$constraintCols[i]){
+					for(ro in 1 : .Object@output$constraintRows[i]){
+						pastename <- paste(.Object@output$constraintNames[i],"[",ro,",",co,"]",sep="")
+						cfvNames[cjr] <- pastename
+						cjr <- cjr+1
+					}
+				}
+			}
+			names(.Object@output$constraintFunctionValues) <- cfvNames
+			rownames(.Object@output$constraintJacobian) <- cfvNames
+			names(.Object@output$LagrangeMultipliers) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
+			names(.Object@output$istate) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
+			.Object@output$paramNames <- NULL
+			.Object@output$constraintNames <- NULL
+			.Object@output$constraintRows <- NULL
+			.Object@output$constraintCols <- NULL
+		}
+		.Object
+	})
+
 setMethod("initialize", "MxComputeGradientDescent",
 	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
 		   nudgeZeroStarts, maxMajorIter, gradientAlgo, gradientIterations, gradientStepSize) {

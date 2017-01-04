@@ -737,8 +737,8 @@ void UserConstraint::prep(FitContext *fc)
 {
 	fc->state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 	refresh(fc);
-	int nrows = pad->rows;
-	int ncols = pad->cols;
+	nrows = pad->rows;
+	ncols = pad->cols;
 	size = nrows * ncols;
 	if (size == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);

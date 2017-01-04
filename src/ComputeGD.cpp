@@ -315,9 +315,30 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	omxPopulateFitFunction(fitMatrix, out);
 	
 	MxRList output;
-	SEXP cv, cjac, lambdas, cstates;
+	SEXP pn, cn, cr, cc, cv, cjac, lambdas, cstates;
+	size_t i=0;
 	
 	output.add("maxThreads", Rf_ScalarInteger(threads));
+	if( fc->varGroup->vars.size() ){
+		Rf_protect(pn = Rf_allocVector( STRSXP, fc->varGroup->vars.size() ));
+		for(i=0; i < fc->varGroup->vars.size(); i++){
+			SET_STRING_ELT( pn, i, Rf_mkChar(fc->varGroup->vars[i]->name) );
+		}
+		output.add("paramNames", pn);
+	}
+	if( fc->state->conListX.size() ){
+		Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
+		Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+		Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+		for(i=0; i < fc->state->conListX.size(); i++){
+			SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
+			INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
+			INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
+		}
+		output.add("constraintNames", cn);
+		output.add("constraintRows", cr);
+		output.add("constraintCols", cc);
+	}
 	if( fc->constraintFunVals.size() ){
 		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
