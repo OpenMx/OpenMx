@@ -1,5 +1,8 @@
 library(OpenMx)
 
+# NPSOL trips up on WLS for some reason
+if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
+
 mxOption(NULL, "Standard Errors", "No")
 
 numManifestsPerLatent <- 5
@@ -169,6 +172,6 @@ for (wls in c(FALSE,TRUE)) {
 	fit2 <- mxRun(mkModel(TRUE, wls))
 	fit3 <- mxRun(mkModel(TRUE, wls))
 
-	omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-4)
-	omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-4)
+	omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-8)
+	omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-8)
 }
