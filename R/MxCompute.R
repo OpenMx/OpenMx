@@ -312,12 +312,7 @@ setMethod(
 		#SLSQP and CSOLNP will likely require slightly different definitions for this method:
 		if(.Object@engine=="NPSOL" && length(.Object@output$constraintNames)){
 			cfvNames <- character(length(.Object@output$constraintFunctionValues))
-			#names(.Object@output$LagrangeMultipliers)[1:length(.Object@output$paramNames)] <- paste(.Object@output$paramNames,"bound",sep=".")
-			#names(.Object@output$istate)[1:length(.Object@output$paramNames)] <- paste(.Object@output$paramNames,"bound",sep=".")
 			colnames(.Object@output$constraintJacobian)  <- .Object@output$paramNames
-			#cjrownames <- character(length=nrow(.Object@output$constraintJacobian))
-			#rownames(.Object@output$constraintJacobian) <- as.character(1:nrow(.Object@output$constraintJacobian))
-			#print(.Object@output$constraintJacobian)
 			cjr <- 1
 			for(i in 1 : length(.Object@output$constraintNames)){
 				for(co in 1 : .Object@output$constraintCols[i]){
