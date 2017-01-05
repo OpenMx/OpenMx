@@ -1486,8 +1486,7 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(
-	     independent="logical",
-	     .persistOnce="logical"
+	     independent="logical"
 	     ))
 
 setMethod("initialize", "MxComputeSequence",
@@ -1497,7 +1496,6 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
-		  .Object@.persistOnce <- FALSE
 		  .Object
 	  })
 
@@ -1574,10 +1572,6 @@ convertComputes <- function(flatModel, model) {
 
 updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
-	if(model@compute@.persistOnce){
-		model@compute@.persistOnce <- FALSE
-		model@compute@.persist <- FALSE
-	}
 	updateFromBackend(model@compute, computes)
 }
 
