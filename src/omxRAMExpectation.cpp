@@ -16,7 +16,6 @@
 
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
-#include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 //#include <Eigen/LU>
 
