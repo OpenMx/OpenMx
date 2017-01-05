@@ -124,7 +124,7 @@ static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
 	
 	// standardize mean and thresholds
-	if(inMeans != NULL) {
+	if(inMeans) {
 		EigenMatrixAdaptor egInM(inMeans);
 		EigenMatrixAdaptor egOutM(outMeans);
 		// means
@@ -154,26 +154,8 @@ static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 				}
 			}
 		}
-	} else {
-		// means
-		//omxCopyMatrix(outMeans, inMeans); //egOutM = egInM;
-		
-		// thresholds
-		if(inThresholdsMat != NULL){
-			EigenMatrixAdaptor egInThr(inThresholdsMat);
-			EigenMatrixAdaptor egOutThr(outThresholdsMat);
-			for(int j = 0; j < int(thresholds.size()); j++) {
-				omxThresholdColumn* thresh = &thresholds[j];
-				// thresh->column should probably be thresh->dColumn as above
-				// This code path is untested and maybe should be deleted. TODO
-				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) = egInThr(k, thresh->column) / stddev[thresh->column];
-				}
-				stddevUse[thresh->column] = stddev[thresh->column];
-			}
-		}
 	}
-	
+
 	// standardize covariance
 	for(int i = 0; i < egInCov.rows(); i++) {
 		for(int j = 0; j <= i; j++) {
@@ -387,6 +369,11 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	std::sort(eThresh.begin(), eThresh.end(),
 		  [](omxThresholdColumn &a, omxThresholdColumn &b) -> bool
 		  { return a.dColumn < b.dColumn; });
+
+	if (eThresh.size() && !means) {
+		omxRaiseError("Means are required when the data include ordinal measurements");
+		return;
+	}
 
 	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
 	
