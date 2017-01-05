@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2016 The OpenMx Project
+ *  Copyright 2007-2017 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -62,11 +62,12 @@ struct omxContiguousData {
 };
 
 struct omxThresholdColumn {
-	int column;				// Which column has the thresholds
+	int dColumn;			// Which column in the matrix/data.frame
+	int column;			// Which column in the thresholds matrix
 	int numThresholds;		// And how many thresholds
 
-	// for continuous variables, this structure is preserved all zero
-	omxThresholdColumn() : column(0), numThresholds(0) {};
+	// for continuous variables, numThresholds=0
+	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
 };
 
 enum ColumnDataType {

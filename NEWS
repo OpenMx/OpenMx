@@ -1,23 +1,24 @@
 # OpenMx development
+* NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
+* NEW: mxRun Now gives feedback about optimization progress.
 * INCOMPATIBLE CHANGE: By default, mxGenerateData will approximate the missingness pattern of the original data. This can be turned off with use.miss=FALSE to get the previous behavior.
-* IMPROVED: mxGenerateData will assume a saturated multivariate Gaussian model if a data.frame is passed instead of a model.
-* NEW: mxSE() function. Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
-* NEW: mxRun gives feedback about optimization progress
+* IMPROVED: mxGenerateData can now take a data.frame instead of a model (returns data based on a saturated multivariate Gaussian model).
 * SPEEDUP: In many cases, continuous data now evaluated as fast as covariance data instead of being much slower (SEM models including RAM and LISREL).
-* IMPROVED: Confidence interval diagnostics. See summary(..., verbose = TRUE)
+* IMPROVED: Confidence interval diagnostics. See summary(..., verbose = TRUE).
 * IMPROVED: Dynamically balance work between threads using empirical elapsed times when evaluating raw data in a row-wise parallel manner.
 * IMPROVED: mxGenerateData now succeeds for joint ordinal and continuous data.
 * IMPROVED: Continuous time state space models now allow non-invertible ("drift" or "dynamics") A matrices.
 * IMPROVED: mxCI() Wu & Neale (2012) adjustment for parameters with upper or lower bounds. 
 	* Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * IMPROVED: SLSQP now ignores inactive equality constraints and correctly report when inequality constraints cannot be satisfied.
-* FIXED: mxTryHard() now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
+* FIXED: mxRefModels Now handles models with one data variable.
+* FIXED: mxTryHard Now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
 
 # OpenMx 2.6.9
-* UPDATED: Stan header compatibility
+* UPDATED: Stan header compatibility.
 
 # OpenMx 2.6.8
-* IMPROVED: Under the hood changes
+* IMPROVED: Under the hood changes.
 
 # OpenMx 2.6.7
 * CHANGED: Default number of threads = 2. Previously OpenMx used (number of cores - 1)
@@ -55,8 +56,8 @@
 * FIXED: Two mxGREMLDataHandler() behavior when blockByPheno = FALSE.
 * FIXED: mxGREML automated handling of missing data when derivatives of the 'V' matrix are MxAlgebras.
 * FIXED: LISREL path models now handle means correctly.
-* IMPROVED: mxFactorScores() factor scores returned in original order
 * FIXED: Factor-score estimates on factors with nonzero means resolved.
+* IMPROVED: mxFactorScores() factor scores returned in original order
 * IMPROVED mxFactorScores() no longer fails when SE are not available in the input model with type="ML" or type="WeightedML"
 * IMPROVED: Several help pages have been updated, clarified, and made more complete.
 * IMPROVED: Internal interface with NPSOL ensures optimizer consistently respects the "Major iterations" option.

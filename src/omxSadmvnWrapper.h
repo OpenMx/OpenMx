@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2016 The OpenMx Project
+ *  Copyright 2007-2017 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -155,6 +155,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 	template <typename T1>
 	void setCovariance(Eigen::MatrixBase<T1> &cov, FitContext *fc)
 	{
+		//mxPrintMat("setCovariance", cov);
 		setCovarianceUnsafe(cov);
 
 		for(int i = 1; i < cov.rows(); i++) {
@@ -262,6 +263,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 	template <typename T1>
 	void setMean(Eigen::MatrixBase<T1> &meanIn)
 	{
+		//mxPrintMat("setMean", meanIn);
 		for (int bx=0; bx < (int)blocks.size(); ++bx) {
 			blocks[bx].setMean(meanIn);
 		}
@@ -270,6 +272,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 	template <typename T1>
 	void setColumns(Eigen::ArrayBase<T1> &colIn)
 	{
+		//mxPrintMat("setColumns", colIn);
 		ordColumns = colIn;
 	};
 

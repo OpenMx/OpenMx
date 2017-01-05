@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2016 The OpenMx Project
+#   Copyright 2007-2017 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ require(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
-factorModel <- mxModel("OneFactor", 
+factorModelL <- mxModel("OneFactor", 
                        type="LISREL",
                        manifestVars=list(exo=manifests), 
                        latentVars=list(exo=latents),
@@ -31,12 +31,12 @@ factorModel <- mxModel("OneFactor",
                        mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
                        mxPath(from='one', to=manifests),
                        mxData(observed=demoOneFactor, type="raw"))
-summary(factorRun <- mxRun(factorModel))
+summary(factorRunL <- mxRun(factorModelL))
 
 
-r1 <- mxFactorScores(factorRun, 'ML')
-r2 <- mxFactorScores(factorRun, 'Regression')
-r3 <- mxFactorScores(factorRun, 'WeightedML')
+r1 <- mxFactorScores(factorRunL, 'ML')
+r2 <- mxFactorScores(factorRunL, 'Regression')
+r3 <- mxFactorScores(factorRunL, 'WeightedML')
 
 
 omxCheckCloseEnough(cor(r1[,,1], r2[,,1]), 1)
@@ -64,10 +64,10 @@ omxCheckCloseEnough(coef(lmR), c(0, 1), 0.03)
 #factorRun <- mxOption(factorRun,"Standard Errors","No")
 mxOption(NULL,"Standard Errors","No")
 omxCheckWarning(
-	mxFactorScores(factorRun,"ML"),
+	mxFactorScores(factorRunL,"ML"),
 	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
 omxCheckWarning(
-	mxFactorScores(factorRun,"WeightedML"),
+	mxFactorScores(factorRunL,"WeightedML"),
 	"factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
 mxOption(NULL,"Standard Errors","Yes")
 
@@ -236,8 +236,25 @@ factorModel.miss <- mxModel("OneFactor",
 											 mxPath(from='one', to=manifests),
 											 mxData(observed=demoOneFactor.miss, type="raw"))
 factorRamRun.miss <- mxRun(factorModel.miss)
-regs <- mxFactorScores(model=factorRamRun.miss,"Regression")
-omxCheckEquals(regs[100,1,1],0)
-omxCheckEquals(regs[100,1,2],1)
-omxCheckTrue(cor(regs[,,1], rr2[,,1]) > 0.95)
+for (type in c("Regression", "WeightedML", "ML")) {
+  omxCheckError(mxFactorScores(model=factorRamRun.miss,type),
+                "mxFactorScores: row 8 has missing data. Hence, you must specify minManifests")
+}
+regs <- mxFactorScores(model=factorRamRun.miss,"Regression", minManifests=3)
+omxCheckTrue(is.na(regs[100,1,1]))
+omxCheckTrue(is.na(regs[100,1,2]))
+omxCheckTrue(cor(regs[,,1], rr2[,,1], use="complete.obs") > 0.95)
+
+#Ensure regression LISREL scoring does not fail in the presence of missing data:
+factorModelL.miss <- mxModel(name="OneFactor", factorModelL,
+						mxData(observed=demoOneFactor.miss, type="raw"))
+factorRunL.miss <- mxRun(factorModelL.miss)
+for (type in c("Regression", "WeightedML", "ML")) {
+  omxCheckError(mxFactorScores(model=factorRunL.miss,type),
+                "mxFactorScores: row 8 has missing data. Hence, you must specify minManifests")
+}
+regsl <- mxFactorScores(model=factorRunL.miss,"Regression", minManifests=3)
+omxCheckTrue(is.na(regsl[100,1,1]))
+omxCheckTrue(is.na(regsl[100,1,2]))
+omxCheckTrue(cor(regsl[,,1], r2[,,1], use="complete.obs") > 0.95)
 

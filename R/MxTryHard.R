@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2016 The OpenMx Project
+#   Copyright 2007-2017 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,9 +40,10 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	lackOfConstraints <- verifyNoConstraints(model)
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
 	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors",
-													base::options()$mxOption$"Default optimizer")
+													base::options()$mxOption$"Default optimizer", base::options()$mxOption$"Gradient algorithm")
 	if("Calculate Hessian" %in%  names(model@options)){relevantOptions[[1]] <- model@options$"Calculate Hessian"}
 	if("Standard Errors" %in%  names(model@options)){relevantOptions[[2]] <- model@options$"Standard Errors"}
+	if("Gradient algorithm" %in%  names(model@options)){relevantOptions[[4]] <- model@options$"Gradient algorithm"}
 	if(!lackOfConstraints){
 		relevantOptions[[1]] <- "No"
 		relevantOptions[[2]] <- "No"
@@ -133,7 +134,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			steps <- list(GD=mxComputeGradientDescent(
 				verbose=verbose, gradientStepSize = gradientStepSize, 
 				nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
-				maxMajorIter=maxMajorIter))
+				maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]]))
 			if(checkHess){steps <- c(steps,ND=mxComputeNumericDeriv(),SE=mxComputeStandardError())}
 			model <- OpenMx::mxModel(
 				model,
@@ -225,7 +226,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(doIntervals){
 					ciOpt <- mxComputeGradientDescent(
 						nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
-						tolerance=tolerance, maxMajorIter=maxMajorIter)
+						tolerance=tolerance, maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]])
 					steps <- c(steps,CI=mxComputeConfidenceInterval(
 								 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 				}
@@ -266,7 +267,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					if(doIntervals){
 						ciOpt <- mxComputeGradientDescent(
 							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
-							tolerance=tolerance, maxMajorIter=maxMajorIter)
+							tolerance=tolerance, maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]])
 						steps <- c(steps,CI=mxComputeConfidenceInterval(
 									 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 					}

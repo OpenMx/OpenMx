@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2016 The OpenMx Project
+%   Copyright 2007-2017 The OpenMx Project
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@ The initial default value for the persistant state information is NA.
 Throwing an exception (via stop) from inside fitfun may result
 in unpredictable behavior. You may want to wrap your code in
 tryCatch while experimenting.
+
+fitfun should not call R functions that use OpenMx's compiled backend, including (but not limited to) \code{\link{omxMnor}()}, because doing so can crash R.
 }
 
 \value{

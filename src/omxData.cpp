@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2016 The OpenMx Project
+ *  Copyright 2007-2017 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -289,6 +289,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		for(int i = 0; i < od->cols; i++) {
 			if(levels[i] > 0){
 				omxThresholdColumn tc;
+				tc.dColumn = i;
 				tc.column = columns[i];
 				tc.numThresholds = levels[i];
 				od->thresholdCols.push_back(tc);

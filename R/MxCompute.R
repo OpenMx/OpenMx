@@ -1421,7 +1421,8 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(
-	     independent="logical"
+	     independent="logical",
+	     .persistOnce="logical"
 	     ))
 
 setMethod("initialize", "MxComputeSequence",
@@ -1431,6 +1432,7 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
+		  .Object@.persistOnce <- FALSE
 		  .Object
 	  })
 
@@ -1507,6 +1509,11 @@ convertComputes <- function(flatModel, model) {
 
 updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
+	if(.hasSlot(model@compute, '.persistOnce') && .hasSlot(model@compute, '.persist') && 
+		 model@compute@.persistOnce){
+		model@compute@.persistOnce <- FALSE
+		model@compute@.persist <- FALSE
+	}
 	updateFromBackend(model@compute, computes)
 }
 
@@ -1516,3 +1523,56 @@ updateModelCompute <- function(model, computes) {
 ##'
 ##' @param mat the matrix to invert
 imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)
+
+
+
+omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE, 
+																	optionList=options()$mxOption){
+	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
+	compute <- NULL
+	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")
+	if (!useOptimizer) {
+		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+																			RE=mxComputeReportExpectation()))
+		} else{
+		steps <- list(GD=mxComputeGradientDescent(
+			fitfunction=fitNum,
+			verbose=0L,	
+			gradientAlgo=optionList[['Gradient algorithm']],
+			gradientIterations=optionList[['Gradient iterations']],
+			gradientStepSize=optionList[['Gradient step size']]))
+			if (intervals){
+				ciOpt <- mxComputeGradientDescent(
+					verbose=0L,
+					fitfunction=fitNum, 
+					nudgeZeroStarts=FALSE,
+					gradientAlgo=optionList[['Gradient algorithm']],
+					gradientIterations=optionList[['Gradient iterations']],
+					gradientStepSize=optionList[['Gradient step size']])
+				cType <- ciOpt$defaultCImethod
+				if (cType == 'ineq') {
+					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+				}
+				steps <- c(steps, CI=mxComputeConfidenceInterval(
+					fitfunction=fitNum, 
+					constraintType=cType,
+					verbose=0L, plan=ciOpt))
+			}
+			if (optionList[["Calculate Hessian"]] == "Yes") {
+				steps <- c(steps, ND=mxComputeNumericDeriv(
+					fitfunction=fitNum, 
+					stepSize=optionList[['Gradient step size']]))
+			}
+			if (optionList[["Standard Errors"]] == "Yes") {
+				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
+			}
+			compute <- mxComputeSequence(c(steps,
+																		 RD=mxComputeReportDeriv(),
+																		 RE=mxComputeReportExpectation()))
+	}
+	#The default compute plan does not persist; users who are going to modify a default compute plan
+	#will also need to modify the '.persist' slot:
+	compute@.persist <- FALSE
+	return(compute)
+}
+

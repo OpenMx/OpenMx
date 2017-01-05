@@ -393,7 +393,10 @@ namespace RelationalRAMExpectation {
 			return (omxRAMExpectation*) model->argStruct;
 		};
 		std::vector< omxMatrix* > &getBetween() const;
-		const Eigen::Map<Eigen::VectorXi> getDataColumns() const { return model->getDataColumns(); };
+		const Eigen::Map<Eigen::VectorXi> getDataColumns() const {
+			const Eigen::Map<Eigen::VectorXi> vec(model->dataColumnFun(model), model->numDataColumns);
+			return vec;
+		};
 		void dataRow(omxMatrix *out) const;
 	};
 

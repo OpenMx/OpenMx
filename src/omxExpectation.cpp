@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2016 The OpenMx Project
+ *  Copyright 2007-2017 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -155,6 +155,7 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 					ox->thresholds.push_back(col);
 				} else {
 					omxThresholdColumn col;
+					col.dColumn = index;
 					col.column = thresholdColumn[index];
 					col.numThresholds = thresholdNumber[index];
 					ox->thresholds.push_back(col);
@@ -251,6 +252,9 @@ void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 	(*ox->setVarGroup)(ox, fvg);
 }
 
+int *defaultDataColumnFun(omxExpectation *ex)
+{ return ex->dataColumnsPtr; }
+
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
@@ -275,6 +279,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	expect->currentState = os;
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
+	expect->dataColumnFun = defaultDataColumnFun;
 
 	return expect;
 }

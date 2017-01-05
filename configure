@@ -127,7 +127,10 @@ if [ -r inst/npsol/checksum ]; then
     esac
 fi
 
-echo "### Generated $(date)" > src/Makevars
+if [ -e src/Makevars ]; then
+    mv -f src/Makevars src/Makevars.old
+fi
+echo "### Generated from Makevars.in" > src/Makevars
 echo >> src/Makevars
 
 if [ ! -e inst/no-npsol -a -n "${npsol_library+1}" ]; then
@@ -170,3 +173,7 @@ echo >> src/Makevars
 echo "# ---- appending Makevars.in ----" >> src/Makevars
 echo >> src/Makevars
 cat src/Makevars.in >> src/Makevars
+
+if [ -e src/Makevars.old ] && cmp -s src/Makevars src/Makevars.old; then
+    mv src/Makevars.old src/Makevars
+fi

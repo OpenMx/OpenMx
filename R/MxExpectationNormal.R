@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2016 The OpenMx Project
+#   Copyright 2007-2017 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -622,20 +622,16 @@ generateDataColumns <- function(flatModel, covNames, dataName) {
 	retval <- c()
 	if (length(covNames) == 0) return(retval)
 	dataColumnNames <- colnames(flatModel@datasets[[dataName]]@observed)
-	for(i in 1:length(covNames)) {
-		targetName <- covNames[[i]]
-		index <- match(targetName, dataColumnNames)
-		if(is.na(index)) {
-			msg <- paste("The column name", omxQuotes(targetName),
-				"in the expected covariance matrix",
-				"of the expectation function in model",
-				omxQuotes(flatModel@name),
-				"cannot be found in the column names of the data.")
-			stop(msg, call. = FALSE)
-		}
-		retval[[i]] <- index - 1L
+	retval <- match(covNames, dataColumnNames)
+	if (any(is.na(retval))) {
+		msg <- paste("The column name(s)", omxQuotes(covNames[is.na(retval)]),
+			     "in the expected covariance matrix",
+			     "of the expectation function in model",
+			     omxQuotes(flatModel@name),
+			     "cannot be found in the column names of the data.")
+		stop(msg, call. = FALSE)
 	}
-	return(retval)
+	return(retval - 1L)
 }
 
 

@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2016 The OpenMx Project
+%   Copyright 2007-2017 The OpenMx Project
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -24,13 +24,15 @@ This function creates the factor scores and their standard errors under differen
 }
 
 \usage{
-mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'))
+mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'), minManifests=as.integer(NA))
 }
 
 
 \arguments{
    \item{model}{An MxModel object with either an MxExpectationLISREL or MxExpectationRAM}
    \item{type}{The type of factor scores to compute}
+   \item{minManifests}{Set scores to NA when there are less than
+   minManifests non-NA manifest variables}
 }
 
 \details{
@@ -39,6 +41,14 @@ This is a helper function to compute or estimate factor scores along with their 
 In many cases, especially for ordinal data or missing data, the weighted ML scores are to be preferred over alternatives (Estabrook & Neale, 2013). For example, when using ordinal data, a person whose observations are all in the highest ordinal category theoretically has an 'ML' factor score of positive infinity. A similar situation arises for a person whose observations are all in the lowest ordinal category: their 'ML' factor score is theoretically negative infinity. Weighted ML factor scores in these cases remain reasonable.
 
 For type='Regression', with LISREL expectation, factor scores are computed based on a simple formula.  This formula is equivalent to the formula for the Kalman updated scores in a state space model with zero dynamics (Priestly & Subba Rao, 1975).  Thus, to compute the regression factor scores, the appropriate state space model is set-up and the \link{mxKalmanScores} function is used to produce the factor scores and their standard errors.  With RAM expectation, factor scores are predicted from the non-missing manifest variables for each row of the raw data, using a general linear prediction formula analytically equivalent to that used with LISREL expectation.  The standard errors for regression-predicted RAM factor scores are the square roots of the indeterminate variances of the latent variables, given the data row's missing-data pattern and the values of any relevant definition variables.  The RAM and LISREL methods for computing regression factor scores with their standard errors are analytically identical. They produce the same score and standard error estimates.
+
+If you have missing data then you must specify \code{minManifests}.
+This option will set scores to NA when there are too few items to make an accurate score estimate.
+If you are using the scores as point estimates without considering the standard error then you should set minManifests as high as you can tolerate.
+This will increase the amount of missing data but scores will be more accurate.
+If you are carefully considering the standard errors of the scores then
+you can set minManifests to 0.
+When set to 0, all NA rows are scored to the prior distribution.
 
 Note that for compatibility with \code{\link{factanal}}, type='regression' is also acceptable.
 }

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2016 The OpenMx Project
+#   Copyright 2007-2017 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -122,35 +122,45 @@ runHelper <- function(model, frontendStart,
 		warning("mxRun(..., useOptimizer=FALSE) ignored due to custom compute plan")
 	}
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
-		compute <- NULL
-		fitNum <- paste(model@name, 'fitfunction', sep=".")
-		if (!useOptimizer) {
-			compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
-							  RE=mxComputeReportExpectation()))
-		} else {
-			steps = list(GD=mxComputeGradientDescent(fitfunction=fitNum, verbose=0L))
-			if (length(intervals) && intervals) {
-				ciOpt <- mxComputeGradientDescent(verbose=0L,
-				    fitfunction=fitNum, nudgeZeroStarts=FALSE)
-				cType <- ciOpt$defaultCImethod
-				if (cType == 'ineq') {
-					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
-				}
-				steps <- c(steps, CI=mxComputeConfidenceInterval(
-							  fitfunction=fitNum, constraintType=cType,
-							  verbose=0L, plan=ciOpt))
-			}
-			if (options[["Calculate Hessian"]] == "Yes") {
-				steps <- c(steps, ND=mxComputeNumericDeriv(fitfunction=fitNum))
-			}
-			if (options[["Standard Errors"]] == "Yes") {
-				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
-			}
-			compute <- mxComputeSequence(c(steps,
-						       RD=mxComputeReportDeriv(),
-						       RE=mxComputeReportExpectation()))
-		}
-		compute@.persist <- FALSE
+		compute <- omxDefaultComputePlan(modelName=model@name, intervals=(length(intervals) && intervals),
+					useOptimizer=useOptimizer, optionList=options)
+		# compute <- NULL
+		# fitNum <- paste(model@name, 'fitfunction', sep=".")
+		# if (!useOptimizer) {
+		# 	compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+		# 					  RE=mxComputeReportExpectation()))
+		# } else {
+		# 	steps = list(GD=mxComputeGradientDescent(
+		# 		fitfunction=fitNum, verbose=0L,
+		# 		gradientAlgo=options[['Gradient algorithm']], gradientIterations=options[['Gradient iterations']],
+		# 		gradientStepSize=options[['Gradient step size']]))
+		# 	if (length(intervals) && intervals) {
+		# 		ciOpt <- mxComputeGradientDescent(verbose=0L,
+		# 		    fitfunction=fitNum, nudgeZeroStarts=FALSE,
+		# 		    gradientAlgo=options[['Gradient algorithm']], 
+		# 		    gradientIterations=options[['Gradient iterations']],
+		# 		    gradientStepSize=options[['Gradient step size']])
+		# 		cType <- ciOpt$defaultCImethod
+		# 		if (cType == 'ineq') {
+		# 			ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+		# 		}
+		# 		steps <- c(steps, CI=mxComputeConfidenceInterval(
+		# 					  fitfunction=fitNum, constraintType=cType,
+		# 					  verbose=0L, plan=ciOpt))
+		# 	}
+		# 	if (options[["Calculate Hessian"]] == "Yes") {
+		# 		steps <- c(steps, ND=mxComputeNumericDeriv(
+		# 			fitfunction=fitNum, 
+		# 			stepSize=options[['Gradient step size']]))
+		# 	}
+		# 	if (options[["Standard Errors"]] == "Yes") {
+		# 		steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
+		# 	}
+		# 	compute <- mxComputeSequence(c(steps,
+		# 				       RD=mxComputeReportDeriv(),
+		# 				       RE=mxComputeReportExpectation()))
+		# }
+		# compute@.persist <- FALSE
 		model@compute <- compute
 	}
 	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
@@ -223,8 +233,9 @@ runHelper <- function(model, frontendStart,
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
 	if (numParam == 0 && defaultComputePlan && !is.null(model@fitfunction)) {
-		compute <- mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
-					 'fit', .is.bestfit=TRUE)
+		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
+								   'fit', .is.bestfit=TRUE),
+						  RE=mxComputeReportExpectation()))
 		compute@.persist <- FALSE
 		compute <- assignId(compute, 1L, '.')
 		model@compute <- compute
@@ -271,7 +282,7 @@ runHelper <- function(model, frontendStart,
 		names(parameters), output)
 	
 	theFitUnits <- model$output$fitUnits
-	if( length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
+	if(options[["Standard Errors"]] == "Yes" && length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
 		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
