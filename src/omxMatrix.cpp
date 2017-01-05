@@ -60,7 +60,31 @@ void omxPrintMatrix(omxMatrix *source, const char* header) // make static TODO
 	EigenMatrixAdaptor Esrc(source);
 	if (!header) header = source->name();
 	if (!header) header = "?";
-	mxPrintMat(header, Esrc);
+
+	std::string buf;
+	auto &rownames = source->rownames;
+	auto &colnames = source->colnames;
+	if (rownames.size() || colnames.size()) {
+		buf += ", dimnames=list(";
+		if (!rownames.size()) {
+			buf += "NULL";
+		} else {
+			buf += "c(";
+			for (auto &nn : rownames) buf += string_snprintf("'%s', ", nn);
+			buf += "),";
+		}
+		buf += " ";
+		if (!colnames.size()) {
+			buf += "NULL";
+		} else {
+			buf += "c(";
+			for (auto &nn : colnames) buf += string_snprintf("'%s', ", nn);
+			buf += ")";
+		}
+		buf += ")";
+	}
+
+	mxPrintMatX(header, Esrc, buf);
 }
 
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxState* os) {
