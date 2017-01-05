@@ -198,7 +198,7 @@ bool omxNeedsUpdate(omxMatrix *matrix);
 
 OMXINLINE static bool omxMatrixIsDirty(omxMatrix *om) { return om->cleanVersion != om->version; }
 OMXINLINE static bool omxMatrixIsClean(omxMatrix *om) { return om->cleanVersion == om->version; }
-OMXINLINE static int omxGetMatrixVersion(omxMatrix *om) { return om->version; }
+OMXINLINE static unsigned omxGetMatrixVersion(omxMatrix *om) { return om->version; }
 
 static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
     return (mat->algebra == NULL && mat->fitFunction == NULL);

@@ -84,8 +84,8 @@ class BA81Expect {
 	omxMatrix *estLatentMean;
 	omxMatrix *estLatentCov;
 
-	int itemParamVersion;
-	int latentParamVersion;
+	unsigned itemParamVersion;
+	unsigned latentParamVersion;
 	enum expectation_type type;
 	int verbose;
 	bool debugInternal;

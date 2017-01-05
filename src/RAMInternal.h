@@ -542,7 +542,7 @@ typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
 
 class omxRAMExpectation {
 	bool trivialF;
-	int Zversion;
+	unsigned Zversion;
 	omxMatrix *_Z;
  public:
 	std::vector< dvScoreboardSetType > dvScoreboard;
