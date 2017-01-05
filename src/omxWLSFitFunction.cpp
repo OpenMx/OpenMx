@@ -358,7 +358,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	newObj->n = omxDataNumObs(dataMat);
 	
 	auto dc = oo->expectation->getDataColumns();
-	auto &origThresh = oo->expectation->thresholds;
+	auto &origThresh = oo->expectation->getThresholdInfo();
 	auto &eThresh = newObj->eThresh;
 	for (auto &th : origThresh) {
 		if (th.numThresholds == 0) continue;

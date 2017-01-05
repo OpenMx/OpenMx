@@ -43,6 +43,7 @@
 class omxExpectation {					// An Expectation
 	int defVarRow;
 	int *dataColumnsPtr;
+	std::vector< omxThresholdColumn > thresholds;
 
  public:
 	int numDataColumns;
@@ -60,6 +61,7 @@ class omxExpectation {					// An Expectation
 	omxMatrix* (*componentFun)(omxExpectation*, const char*);
 	void (*mutateFun)(omxExpectation*, const char*, omxMatrix*);
 	int *(*dataColumnFun)(omxExpectation *);
+	std::vector< omxThresholdColumn > &(*thresholdInfoFun)(omxExpectation *);
 
 	SEXP rObj;																	// Original r Object Pointer
 	void* argStruct;															// Arguments needed for Expectation function
@@ -79,10 +81,13 @@ class omxExpectation {					// An Expectation
 	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
 		return Eigen::Map<Eigen::VectorXi>(this->dataColumnFun(this), numDataColumns);
 	}
+	std::vector< omxThresholdColumn > &getThresholdInfo() {
+		return this->thresholdInfoFun(this);
+	}
 
 	omxMatrix *thresholdsMat;
-	std::vector< omxThresholdColumn > thresholds;  // if any ordinal, size() == # of columns otherwise 0
 	int numOrdinal;  // number of thresholds with matrix != 0
+	void loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber);
 	
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
@@ -97,6 +102,7 @@ class omxExpectation {					// An Expectation
 	bool dynamicDataSource;
 
 	friend int *defaultDataColumnFun(omxExpectation *ex);
+	friend std::vector< omxThresholdColumn > &defaultThresholdInfoFun(omxExpectation *ex);
 };
 
 omxExpectation *

@@ -544,6 +544,7 @@ class omxRAMExpectation {
 	bool trivialF;
 	unsigned Zversion;
 	omxMatrix *_Z;
+	std::vector< omxThresholdColumn > thresholds;
  public:
 	std::vector< dvScoreboardSetType > dvScoreboard;
 	Eigen::VectorXd hasVariance;
@@ -596,6 +597,8 @@ class omxRAMExpectation {
 			}
 		}
 	};
+
+	std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 };
 
 namespace RelationalRAMExpectation {

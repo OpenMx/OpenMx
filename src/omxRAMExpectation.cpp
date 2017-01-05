@@ -189,6 +189,18 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	}
 }
 
+static std::vector< omxThresholdColumn > &getThresholdInfo(omxExpectation *oo)
+{
+	omxRAMExpectation *ram = (omxRAMExpectation*) (oo->argStruct);
+	return ram->getThresholdInfo();
+}
+
+static void logThresholdInfo(std::vector< omxThresholdColumn > &ti)
+{
+	mxLog("threshold info 0..%d:", int(ti.size()));
+	for (auto &th : ti) th.log();
+}
+
 void omxInitRAMExpectation(omxExpectation* oo) {
 	
 	omxState* currentState = oo->currentState;	
