@@ -1635,9 +1635,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 																		 RD=mxComputeReportDeriv(),
 																		 RE=mxComputeReportExpectation()))
 	}
-	#The default compute plan does not persist; users who are going to modify a default compute plan
-	#will also need to modify the '.persist' slot:
-	compute@.persist <- FALSE
+	compute@.persist <- TRUE
 	return(compute)
 }
 

@@ -124,6 +124,7 @@ runHelper <- function(model, frontendStart,
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
 		compute <- omxDefaultComputePlan(modelName=model@name, intervals=(length(intervals) && intervals),
 					useOptimizer=useOptimizer, optionList=options)
+		compute@.persist <- FALSE
 		model@compute <- compute
 	}
 	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
