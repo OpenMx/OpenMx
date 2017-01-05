@@ -287,17 +287,16 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 		//for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
 		for(int i = 0; i < od->cols; i++) {
-			if(levels[i] > 0){
-				omxThresholdColumn tc;
-				tc.dColumn = i;
-				tc.column = columns[i];
-				tc.numThresholds = levels[i];
-				od->thresholdCols.push_back(tc);
-				od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
-				if(OMX_DEBUG) {
-					mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-					      i, levels[i], columns[i]);
-				}
+			if (levels[i] == NA_INTEGER) continue;
+			omxThresholdColumn tc;
+			tc.dColumn = i;
+			tc.column = columns[i];
+			tc.numThresholds = levels[i];
+			od->thresholdCols.push_back(tc);
+			od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
+			if(OMX_DEBUG) {
+				mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
+				      name, i, levels[i], columns[i]);
 			}
 		}
 	}
@@ -403,7 +402,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 		return omxGetExpectationComponent(ex, "covariance");
 	}
 
-	Rf_error("%s: type='cov' data must be in matrix storage", od->name);
+	Rf_error("%s: type='%s' data must be in matrix storage", od->name, od->_type);
 }
 
 omxMatrix* omxDataAcov(omxData *od)

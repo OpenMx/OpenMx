@@ -20,11 +20,8 @@
 
 struct omxWLSFitFunction {
 
-	std::vector< omxThresholdColumn > eThresh; // with column mapped by expectation's dataColumns
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
-	omxMatrix* expectedCovPermuted;
-	omxMatrix* expectedMeansPermuted;
 	omxMatrix* expectedCov;
 	omxMatrix* expectedMeans;
 	omxMatrix* observedFlattened;
@@ -38,24 +35,6 @@ struct omxWLSFitFunction {
 	int n;
 
 	omxWLSFitFunction() :standardExpectedMeans(0), standardExpectedThresholds(0) {};
-
-	void permuteExpectation(omxExpectation *expectation) {
-		auto dc = expectation->getDataColumns();
-		if (!dc.size()) {
-			omxCopyMatrix(expectedCov, expectedCovPermuted);
-			if (expectedMeans) omxCopyMatrix(expectedMeans, expectedMeansPermuted);
-			return;
-		}
-		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> perm(dc);
-		EigenMatrixAdaptor Ecovp(expectedCovPermuted);
-		EigenMatrixAdaptor Ecov(expectedCov);
-		Ecov.derived() = perm * Ecovp * perm.transpose();
-		if (expectedMeans) {
-			EigenVectorAdaptor Emeanp(expectedMeansPermuted);
-			EigenVectorAdaptor Emean(expectedMeans);
-			Emean.derived() = perm * Emeanp;
-		}
-	}
 };
 
 #ifdef SHADOW_DIAG
@@ -96,8 +75,9 @@ static void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 	if(oo->argStruct == NULL) return;
 	
 	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
-	omxFreeMatrix(owo->expectedCov);
-	omxFreeMatrix(owo->expectedMeans);
+	omxFreeMatrix(owo->observedCov);
+	omxFreeMatrix(owo->observedMeans);
+	omxFreeMatrix(owo->weights);
 	omxFreeMatrix(owo->observedFlattened);
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
@@ -183,7 +163,7 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	/* Locals for readability.  Compiler should cut through this. */
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
-	auto &eThresh   = owo->eThresh;
+	auto &eThresh   = oo->expectation->getThresholdInfo();
 	oFlat		= owo->observedFlattened;
 	eFlat		= owo->expectedFlattened;
 	weights		= owo->weights;
@@ -199,7 +179,6 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	/* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
-	owo->permuteExpectation(expectation);
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
@@ -306,6 +285,7 @@ static void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
 
 void omxInitWLSFitFunction(omxFitFunction* oo) {
 	
+	omxState *currentState = oo->matrix->currentState;
 	omxMatrix *cov, *means, *weights;
 	
 	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
@@ -335,48 +315,107 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	
 	/* Get Expectation Elements */
-	newObj->expectedCovPermuted = omxGetExpectationComponent(oo->expectation, "cov");
-	int esize = newObj->expectedCovPermuted->rows;
-	newObj->expectedCov = omxInitMatrix(esize, esize, TRUE, oo->matrix->currentState);
-	newObj->expectedMeansPermuted = omxGetExpectationComponent(oo->expectation, "means");
-	newObj->expectedMeans = 0;
-	if (newObj->expectedMeansPermuted) {
-		newObj->expectedMeans = omxInitMatrix(1, esize, TRUE, oo->matrix->currentState);
-	}
-	newObj->permuteExpectation(oo->expectation);
-	
-	// FIXME: threshold structure should be asked for by omxGetExpectationComponent
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 	
 	/* Read and set expected means, variances, and weights */
-	cov = omxDataCovariance(dataMat);
-	means = omxDataMeans(dataMat);
-	weights = omxDataAcov(dataMat);
+	cov = omxCreateCopyOfMatrix(omxDataCovariance(dataMat), currentState);
+	means = omxCreateCopyOfMatrix(omxDataMeans(dataMat), currentState);
+	weights = omxCreateCopyOfMatrix(omxDataAcov(dataMat), currentState);
+
+	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(oo->expectation->data);
+	std::vector< omxThresholdColumn > oThresh = origThresh;
 	
+	auto dc = oo->expectation->getDataColumns();
+	if (dc.size()) {
+		Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+		for (int cx=0; cx < int(dc.size()); ++cx) {
+		 	invDataColumns[dc[cx]] = cx;
+		}
+		//mxPrintMat("invDataColumns", invDataColumns);
+		//Eigen::VectorXi invDataColumns = dc;
+		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
+		EigenMatrixAdaptor Ecov(cov);
+		Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+		if (means) {
+			EigenVectorAdaptor Emean(means);
+			Emean.derived() = (pm * Emean).eval();
+		}
+
+		Eigen::MatrixXi mm(dc.size(), dc.size());
+		for (int cx=0, en=0; cx < dc.size(); ++cx) {
+			for (int rx=cx; rx < dc.size(); ++rx) {
+				mm(rx,cx) = en;
+				en += 1;
+			}
+		}
+		mm = mm.selfadjointView<Eigen::Lower>();
+		mm = (pm * mm * pm.transpose()).eval();
+		//mxPrintMat("mm", mm);
+
+		Eigen::VectorXi tstart(origThresh.size() + 1);
+		tstart[0] = 0;
+		int totalThresholds = 0;
+		for (int tx=0; tx < int(origThresh.size()); ++tx) {
+			totalThresholds += origThresh[tx].numThresholds;
+			tstart[tx+1] = totalThresholds;
+		}
+
+		Eigen::VectorXi wperm(triangleLoc1(dc.size()) + dc.size() + totalThresholds);
+
+		for (int cx=0, en=0; cx < dc.size(); ++cx) {
+			for (int rx=cx; rx < dc.size(); ++rx) {
+				wperm[en] = mm(rx,cx);
+				en += 1;
+			}
+		}
+
+		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
+
+		std::vector<int> newOrder;
+		newOrder.reserve(origThresh.size());
+		for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
+
+		std::sort(newOrder.begin(), newOrder.end(),
+			  [&](const int &a, const int &b) -> bool
+			  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
+
+		//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
+
+		int thStart = triangleLoc1(dc.size()) + dc.size();
+		for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
+			int oldIndex = newOrder[t1];
+			auto &th = oThresh[oldIndex];
+			for (int t2=0; t2 < th.numThresholds; ++t2) {
+				wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
+				dest += 1;
+			}
+		}
+
+		for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
+		std::sort(oThresh.begin(), oThresh.end(),
+			  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
+			  { return a.dColumn < b.dColumn; });
+
+		//mxPrintMat("wperm", wperm);
+		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
+		EigenMatrixAdaptor Eweights(weights);
+		Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
+		//mxPrintMat("ew", Eweights);
+	}
+
 	newObj->observedCov = cov;
 	newObj->observedMeans = means;
 	newObj->weights = weights;
 	newObj->n = omxDataNumObs(dataMat);
 	
-	auto dc = oo->expectation->getDataColumns();
-	auto &origThresh = oo->expectation->getThresholdInfo();
-	auto &eThresh = newObj->eThresh;
-	for (auto &th : origThresh) {
-		if (th.numThresholds == 0) continue;
-		omxThresholdColumn adj = th;
-		adj.dColumn = dc[th.dColumn];
-		eThresh.push_back(adj);
-	}
-	std::sort(eThresh.begin(), eThresh.end(),
-		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
-		  { return a.dColumn < b.dColumn; });
+	auto &eThresh = oo->expectation->getThresholdInfo();
 
 	if (eThresh.size() && !means) {
 		omxRaiseError("Means are required when the data include ordinal measurements");
 		return;
 	}
 
-	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
-	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
@@ -419,16 +458,16 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	// FIXME: More Rf_error checking for incoming Fit Functions
 	
 	/* Temporary storage for calculation */
-	newObj->observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->P = omxInitMatrix(1, vectorSize, TRUE, oo->matrix->currentState);
-	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, oo->matrix->currentState);
-	newObj->standardExpectedCov = omxInitMatrix(ncol, ncol, TRUE, oo->matrix->currentState);
+	newObj->observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	newObj->P = omxInitMatrix(1, vectorSize, TRUE, currentState);
+	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	newObj->standardExpectedCov = omxInitMatrix(ncol, ncol, TRUE, currentState);
 	if (oo->expectation->thresholdsMat) {
-		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, oo->matrix->currentState);
+		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, currentState);
 	}
 	if(means){
-		newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, oo->matrix->currentState);
+		newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, currentState);
 	}
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	

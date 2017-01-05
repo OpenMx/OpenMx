@@ -170,9 +170,13 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	}
 	
 	omxMatrix *Z = getZ(NULL);
-	
-	/* Cov = FZSZ'F' */
-	omxDGEMM(FALSE, FALSE, 1.0, F, Z, 0.0, Y);
+	EigenMatrixAdaptor eZ(Z);
+	EigenMatrixAdaptor eY(Y);
+	for (int rx=0, dx=0; rx < eZ.rows(); ++rx) {
+		if (!latentFilter[rx]) continue;
+		eY.row(dx) = eZ.row(rx);
+		dx += 1;
+	}
 
 	omxDGEMM(FALSE, FALSE, 1.0, Y, S, 0.0, X);
 
@@ -188,16 +192,16 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	}
 }
 
+static int *getDataColumn(omxExpectation* oo)
+{
+	omxRAMExpectation *ram = (omxRAMExpectation*) (oo->argStruct);
+	return ram->getDataColumnsPtr();
+}
+
 static std::vector< omxThresholdColumn > &getThresholdInfo(omxExpectation *oo)
 {
 	omxRAMExpectation *ram = (omxRAMExpectation*) (oo->argStruct);
 	return ram->getThresholdInfo();
-}
-
-static void logThresholdInfo(std::vector< omxThresholdColumn > &ti)
-{
-	mxLog("threshold info 0..%d:", int(ti.size()));
-	for (auto &th : ti) th.log();
 }
 
 void omxInitRAMExpectation(omxExpectation* oo) {
@@ -215,11 +219,16 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	omxRAMExpectation *RAMexp = new omxRAMExpectation(Zmat);
 	RAMexp->rram = 0;
 	
+	auto origDataColumns = oo->getDataColumns();
+	auto origThresholdInfo = oo->getThresholdInfo();
+
 	/* Set Expectation Calls and Structures */
 	oo->computeFun = omxCallRAMExpectation;
 	oo->destructFun = omxDestroyRAMExpectation;
 	oo->componentFun = omxGetRAMExpectationComponent;
 	oo->populateAttrFun = omxPopulateRAMAttributes;
+	oo->dataColumnFun = getDataColumn;
+	oo->thresholdInfoFun = getThresholdInfo;
 	oo->argStruct = (void*) RAMexp;
 	oo->canDuplicate = true;
 	
@@ -322,7 +331,8 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	    RAMexp->means  = 	NULL;
     }
 
-	RAMexp->studyF(oo->getDataColumns());
+	RAMexp->studyF(origDataColumns, origThresholdInfo);
+	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
 }
 
 static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* component) {
@@ -352,8 +362,7 @@ namespace RelationalRAMExpectation {
 
 	void omxDataRow(omxExpectation *model, int frow, omxMatrix *smallCol)
 	{
-		omxRAMExpectation *ram = (omxRAMExpectation*) model->argStruct;
-		omxDataRow(model->data, frow, ram->dataCols, smallCol);
+		omxDataRow(model->data, frow, model->getDataColumns(), smallCol);
 	}
 
 	int addr::numVars() const
@@ -1120,7 +1129,8 @@ namespace RelationalRAMExpectation {
 			std::string modelName(data->name);
 			modelName = modelName.substr(0, modelName.size() - 4); // remove "data" suffix
 
-			if (a1.getDataColumns().size()) {
+			auto dc = a1.getDataColumns();
+			if (dc.size()) {
 				int prevDx = dx;
 				a1.dataRow(st.smallCol);
 				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
@@ -1131,7 +1141,7 @@ namespace RelationalRAMExpectation {
 					if (!yes) continue;
 					latentFilter[ pl.modelStart + vx ] = true;
 					std::string dname =
-						modelName + omxDataColumnName(data, ram->dataCols[col]);
+						modelName + omxDataColumnName(data, dc[col]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
 					if (a1.getExpNum() == st.homeEx->expNum) dataColumn[ dx ] = col;

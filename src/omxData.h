@@ -185,6 +185,7 @@ inline int omxKeyDataElement(omxData *od, int row, int col)
 	return cd.intData[row];
 }
 
+inline bool omxDataHasMatrix(omxData *od) { return od->dataMat != 0; }
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
 omxMatrix* omxDataAcov(omxData *od);

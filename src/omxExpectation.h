@@ -75,11 +75,10 @@ class omxExpectation {					// An Expectation
 		numDataColumns = Rf_length(vec);
 		dataColumnsPtr = INTEGER(vec);
 	}
-	const Eigen::Map<Eigen::VectorXi> getDataColumnsInternal() {
-		return Eigen::Map<Eigen::VectorXi>(dataColumnsPtr, numDataColumns);
-	}
-	const Eigen::Map<Eigen::VectorXi> getDataColumns() {
-		return Eigen::Map<Eigen::VectorXi>(this->dataColumnFun(this), numDataColumns);
+
+	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
+	const Eigen::Map<DataColumnType> getDataColumns() {
+		return Eigen::Map<DataColumnType>(this->dataColumnFun(this), numDataColumns);
 	}
 	std::vector< omxThresholdColumn > &getThresholdInfo() {
 		return this->thresholdInfoFun(this);
