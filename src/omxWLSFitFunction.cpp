@@ -367,7 +367,7 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		eThresh.push_back(adj);
 	}
 	std::sort(eThresh.begin(), eThresh.end(),
-		  [](omxThresholdColumn &a, omxThresholdColumn &b) -> bool
+		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
 		  { return a.dColumn < b.dColumn; });
 
 	if (eThresh.size() && !means) {
