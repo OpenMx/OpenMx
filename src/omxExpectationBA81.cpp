@@ -166,9 +166,9 @@ void BA81Estep<T>::recordTable(class ifaGroup *state)
 	state->quad.prepExpectedTable();
 }
 
-static int getLatentVersion(BA81Expect *state)
+static unsigned getLatentVersion(BA81Expect *state)
 {
-	int vv = 1;  // to ensure it doesn't match on the first test
+	unsigned vv = 1;  // to ensure it doesn't match on the first test
 	if (state->_latentMeanOut) vv += omxGetMatrixVersion(state->_latentMeanOut);
 	if (state->_latentCovOut) vv += omxGetMatrixVersion(state->_latentCovOut);
 	return vv;

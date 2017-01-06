@@ -542,8 +542,9 @@ typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
 
 class omxRAMExpectation {
 	bool trivialF;
-	int Zversion;
+	unsigned Zversion;
 	omxMatrix *_Z;
+	std::vector< omxThresholdColumn > thresholds;
  public:
 	std::vector< dvScoreboardSetType > dvScoreboard;
 	Eigen::VectorXd hasVariance;
@@ -596,6 +597,8 @@ class omxRAMExpectation {
 			}
 		}
 	};
+
+	std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 };
 
 namespace RelationalRAMExpectation {

@@ -170,7 +170,7 @@ omxCheckCloseEnough(powellrun2$fitfunction$result, powellrun3$fitfunction$result
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 	omxCheckEquals(powellrun2$output$iterations,powellrun3$output$iterations)
 	omxCheckEquals(powellrun2$output$evaluations,powellrun3$output$evaluations)
-	omxCheckEquals(powellrun2$compute$steps$GD$output$constraintJacobian, powellrun3$compute$steps$GD$output$constraintJacobian)
+	omxCheckCloseEnough(powellrun2$compute$steps$GD$output$constraintJacobian, powellrun3$compute$steps$GD$output$constraintJacobian)
 }
 omxCheckCloseEnough(coef(powellrun2),coef(powellrun3),1e-7)
 summary(powellrun3)

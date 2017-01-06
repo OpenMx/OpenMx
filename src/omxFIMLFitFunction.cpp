@@ -114,7 +114,7 @@ bool condOrdByRow::eval()
 
 			if (rowContinuous) {
 				if (!parent->ordinalSame[row] || firstRow) {
-					std::vector< omxThresholdColumn > &colInfo = expectation->thresholds;
+					std::vector< omxThresholdColumn > &colInfo = expectation->getThresholdInfo();
 					EigenMatrixAdaptor tMat(thresholdsMat);
 					VectorXd uThresh(rowOrdinal);
 					VectorXd lThresh(rowOrdinal);

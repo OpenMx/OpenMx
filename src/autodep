@@ -150,7 +150,7 @@ omxMLFitFunction.o: Makevars omxMLFitFunction.cpp omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h Compute.h \
  glue.h omxSadmvnWrapper.h Connectedness.h \
- matrix.h omxRAMExpectation.h RAMInternal.h \
+ matrix.h  RAMInternal.h \
  
 omxMatrix.o: Makevars omxMatrix.cpp omxMatrix.h  \
   omxDefines.h \
@@ -170,7 +170,7 @@ omxNormalExpectation.o: Makevars omxNormalExpectation.cpp omxExpectation.h \
 omxRAMExpectation.o: Makevars omxRAMExpectation.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h Compute.h \
- glue.h omxRAMExpectation.h RAMInternal.h \
+ glue.h RAMInternal.h \
  Connectedness.h
 omxRFitFunction.o: Makevars omxRFitFunction.cpp glue.h omxState.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \

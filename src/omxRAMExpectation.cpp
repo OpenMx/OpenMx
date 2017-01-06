@@ -16,7 +16,6 @@
 
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
-#include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 //#include <Eigen/LU>
 
@@ -187,6 +186,18 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 		omxDGEMV(FALSE, 1.0, Y, M, 0.0, means);
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(means, "....RAM: Model-implied Means Vector:");}
 	}
+}
+
+static std::vector< omxThresholdColumn > &getThresholdInfo(omxExpectation *oo)
+{
+	omxRAMExpectation *ram = (omxRAMExpectation*) (oo->argStruct);
+	return ram->getThresholdInfo();
+}
+
+static void logThresholdInfo(std::vector< omxThresholdColumn > &ti)
+{
+	mxLog("threshold info 0..%d:", int(ti.size()));
+	for (auto &th : ti) th.log();
 }
 
 void omxInitRAMExpectation(omxExpectation* oo) {

@@ -17,6 +17,10 @@
 	* Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * FIXED: mxRefModels Now handles models with one data variable.
 * FIXED: mxTryHard Now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
+* SPEEDUP: Evaluation of the GREML fitfunction's derivatives is now faster.
+* NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).
+* NEW: Constraint diagnostics exported to frontend (presently with NPSOL only).
+* NEW: omxDefaultComputePlan()
 
 # OpenMx 2.6.9
 * UPDATED: Stan header compatibility.

@@ -310,28 +310,63 @@ setMethod(
 	function(.Object, computes) {
 		.Object <- callNextMethod()
 		#SLSQP and CSOLNP will likely require slightly different definitions for this method:
-		if(.Object@engine=="NPSOL" && length(.Object@output$constraintNames)){
-			cfvNames <- character(length(.Object@output$constraintFunctionValues))
-			colnames(.Object@output$constraintJacobian)  <- .Object@output$paramNames
-			cjr <- 1
-			for(i in 1 : length(.Object@output$constraintNames)){
-				for(co in 1 : .Object@output$constraintCols[i]){
-					for(ro in 1 : .Object@output$constraintRows[i]){
-						pastename <- paste(.Object@output$constraintNames[i],"[",ro,",",co,"]",sep="")
-						cfvNames[cjr] <- pastename
-						cjr <- cjr+1
+		if(.Object@engine=="NPSOL"){
+			cas <- as.numeric(length(.Object@output$paramNames)>0) + 2*as.numeric(length(.Object@output$constraintNames)>0) +
+				4*as.numeric(length(.Object@output$constraintFunctionValues)>0)
+			#If cas==0, nothing to name.
+			if(cas==1){#<--yes free parameters, no constraint names, no constraint values
+				names(.Object@output$LagrangeMultipliers) <- paste(.Object@output$paramNames,"bound",sep=".")
+				names(.Object@output$istate) <- paste(.Object@output$paramNames,"bound",sep=".")
+			} #Nothing to name if cas==2.
+			else if(cas==3){ #<--yes free parameters, yes constraint names, no constraint values (a corner case, but we test it)
+				names(.Object@output$LagrangeMultipliers) <- paste(.Object@output$paramNames,"bound",sep=".")
+				names(.Object@output$istate) <- paste(.Object@output$paramNames,"bound",sep=".")
+			}
+			#cas==4 (no free parameters, no constraint names, yes constraint values) should be impossible, but has no names to assign in any event
+			else if (cas==5){#<--yes free parameters, no constraint names, yes constraint values--should be impossible...?
+				names(.Object@output$LagrangeMultipliers) <- paste(.Object@output$paramNames,"bound",sep=".")
+				names(.Object@output$istate) <- paste(.Object@output$paramNames,"bound",sep=".")
+			}
+			else if(cas==6){ #<--no free parameters, yes constraint names, yes constraint values
+				cfvNames <- character(length(.Object@output$constraintFunctionValues))
+				cjr <- 1
+				for(i in 1 : length(.Object@output$constraintNames)){
+					for(co in 1 : .Object@output$constraintCols[i]){
+						for(ro in 1 : .Object@output$constraintRows[i]){
+							pastename <- paste(.Object@output$constraintNames[i],"[",ro,",",co,"]",sep="")
+							cfvNames[cjr] <- pastename
+							cjr <- cjr+1
+						}
 					}
 				}
+				names(.Object@output$constraintFunctionValues) <- cfvNames
+				names(.Object@output$LagrangeMultipliers) <- cfvNames
+				names(.Object@output$istate) <- cfvNames
 			}
-			names(.Object@output$constraintFunctionValues) <- cfvNames
-			rownames(.Object@output$constraintJacobian) <- cfvNames
-			names(.Object@output$LagrangeMultipliers) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
-			names(.Object@output$istate) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
-			.Object@output$paramNames <- NULL
-			.Object@output$constraintNames <- NULL
-			.Object@output$constraintRows <- NULL
-			.Object@output$constraintCols <- NULL
+			else if(cas==7){ #<--yes to all 3
+				cfvNames <- character(length(.Object@output$constraintFunctionValues))
+				colnames(.Object@output$constraintJacobian)  <- .Object@output$paramNames
+				cjr <- 1
+				for(i in 1 : length(.Object@output$constraintNames)){
+					for(co in 1 : .Object@output$constraintCols[i]){
+						for(ro in 1 : .Object@output$constraintRows[i]){
+							pastename <- paste(.Object@output$constraintNames[i],"[",ro,",",co,"]",sep="")
+							cfvNames[cjr] <- pastename
+							cjr <- cjr+1
+						}
+					}
+				}
+				names(.Object@output$constraintFunctionValues) <- cfvNames
+				rownames(.Object@output$constraintJacobian) <- cfvNames
+				names(.Object@output$LagrangeMultipliers) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
+				names(.Object@output$istate) <- c(paste(.Object@output$paramNames,"bound",sep="."), cfvNames)
+			}
 		}
+		#Might as well clear these:
+		.Object@output$paramNames <- NULL
+		.Object@output$constraintNames <- NULL
+		.Object@output$constraintRows <- NULL
+		.Object@output$constraintCols <- NULL
 		.Object
 	})
 
@@ -1451,8 +1486,7 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(
-	     independent="logical",
-	     .persistOnce="logical"
+	     independent="logical"
 	     ))
 
 setMethod("initialize", "MxComputeSequence",
@@ -1462,7 +1496,6 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
-		  .Object@.persistOnce <- FALSE
 		  .Object
 	  })
 
@@ -1539,11 +1572,6 @@ convertComputes <- function(flatModel, model) {
 
 updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
-	if(.hasSlot(model@compute, '.persistOnce') && .hasSlot(model@compute, '.persist') && 
-		 model@compute@.persistOnce){
-		model@compute@.persistOnce <- FALSE
-		model@compute@.persist <- FALSE
-	}
 	updateFromBackend(model@compute, computes)
 }
 
@@ -1600,9 +1628,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 																		 RD=mxComputeReportDeriv(),
 																		 RE=mxComputeReportExpectation()))
 	}
-	#The default compute plan does not persist; users who are going to modify a default compute plan
-	#will also need to modify the '.persist' slot:
-	compute@.persist <- FALSE
+	compute@.persist <- TRUE
 	return(compute)
 }
 

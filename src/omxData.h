@@ -68,6 +68,8 @@ struct omxThresholdColumn {
 
 	// for continuous variables, numThresholds=0
 	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
+
+	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
 };
 
 enum ColumnDataType {
