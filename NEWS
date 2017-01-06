@@ -1,6 +1,9 @@
-# OpenMx development
+# OpenMx 2.7.0: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun Now gives feedback about optimization progress.
+* CHANGE: CSOLNP is now the default optimizer.
+	* Change this with mxOption(NULL, "Default optimizer", "CSOLNP|NPSOL|SLSQP")
+	* NPSOL is available from the custom build at http://openmx.ssri.psu.edu/installing-openmx 
 * SPEEDUP: In many cases, continuous data now evaluated as fast as covariance data instead of being much slower (SEM models including RAM and LISREL).
 * IMPROVED: mxGenerateData can now take a data.frame instead of a model (returns data based on a saturated multivariate Gaussian model).
 * IMPROVED: mxGenerateData now succeeds for joint ordinal and continuous data.
