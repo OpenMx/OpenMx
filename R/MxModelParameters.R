@@ -363,6 +363,7 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 	return(theValues[!duplicated(theNames)])
 }
 
+#N.B. this function seems to fail when 'amatrix' has condensed slots:
 setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
 	labels <- amatrix@labels
 	locations <- which(labels %in% names)
