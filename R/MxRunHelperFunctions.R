@@ -112,7 +112,7 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 			#Assuming that "empty" constraints have no function values...
 			constraintNames <- constraintNames[!emptyConstraints]
 			constraintRows <- GDstep@output$constraintRows[!emptyConstraints]
-			constraintCols <- GDstep@output$constraintRows[!emptyConstraints]
+			constraintCols <- GDstep@output$constraintCols[!emptyConstraints]
 		}
 		if(length(constraintNames) && length(constraintRows) && length(constraintCols)){
 			for(i in 1:length(constraintNames)){
