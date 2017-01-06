@@ -243,7 +243,7 @@ runHelper <- function(model, frontendStart,
 	model <- imxReplaceModels(model, independents)
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
-		names(parameters), output)
+		names(parameters), names(constraints), model@compute, output)
 	
 	theFitUnits <- model$output$fitUnits
 	if(options[["Standard Errors"]] == "Yes" && length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){

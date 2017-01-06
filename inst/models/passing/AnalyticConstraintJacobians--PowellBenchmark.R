@@ -90,40 +90,40 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 	
 	#Check naming of constraint-related information:
 	omxCheckEquals(
-		names(powellrun1$compute$steps$GD$output$constraintFunctionValues),
+		names(powellrun1$output$constraintFunctionValues),
 		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
 	)
 	omxCheckEquals(
-		rownames(powellrun1$compute$steps$GD$output$constraintJacobian),
+		rownames(powellrun1$output$constraintJacobian),
 		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
 	)
-	omxCheckEquals(colnames(powellrun1$compute$steps$GD$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(colnames(powellrun1$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
 	omxCheckEquals(
-		names(powellrun1$compute$steps$GD$output$LagrangeMultipliers),
+		names(powellrun1$output$LagrangeMultipliers),
 		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkNoJacobians.c1[1,1]",
 			"PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
 	)
 	omxCheckEquals(
-		names(powellrun1$compute$steps$GD$output$istate),
+		names(powellrun1$output$istate),
 		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkNoJacobians.c1[1,1]",
 			"PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
 	)
 	omxCheckEquals(
-		names(powellrun2$compute$steps$GD$output$constraintFunctionValues),
+		names(powellrun2$output$constraintFunctionValues),
 		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
 	omxCheckEquals(
-		rownames(powellrun2$compute$steps$GD$output$constraintJacobian),
+		rownames(powellrun2$output$constraintJacobian),
 		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
-	omxCheckEquals(colnames(powellrun2$compute$steps$GD$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(colnames(powellrun2$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
 	omxCheckEquals(
-		names(powellrun2$compute$steps$GD$output$LagrangeMultipliers),
+		names(powellrun2$output$LagrangeMultipliers),
 		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkWithJacobians.c1[1,1]",
 			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
 	omxCheckEquals(
-		names(powellrun2$compute$steps$GD$output$istate),
+		names(powellrun2$output$istate),
 		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkWithJacobians.c1[1,1]",
 			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)

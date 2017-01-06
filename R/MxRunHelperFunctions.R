@@ -59,7 +59,8 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 
 
 nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
-		algebraNames, parameterNames, output) {
+		algebraNames, parameterNames, constraintNames, computeSeq, 
+		output) {
 	output$mxVersion <- mxVersion(verbose=FALSE)
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
@@ -84,6 +85,75 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	if (length(output$standardErrors) == length(parameterNames)) {
 		rownames(output$standardErrors) <- parameterNames
+	}
+	GDsteps <- computeSeq$steps[sapply(computeSeq$steps,function(x){is(x,"MxComputeGradientDescent")})]
+	if(length(GDsteps)){
+		lastGDstep <- GDsteps[[length(GDsteps)]] #<--If a custom compute plan has more than one GD step, use the last one
+		output <- nameGDOptimizerConstraintOutput(parameterNames, constraintNames, lastGDstep, output)
+	}
+	return(output)
+}
+
+nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep, output){
+	if(GDstep@engine=="NPSOL"){
+		
+		#Initialize variables:
+		cfvNames <- NULL
+		lmNames <- NULL
+		cjr <- 1
+		constraintRows <- NULL
+		constraintCols <- NULL
+		
+		#Filter extraneous elements and generate vectors of names:
+		paramNames <- paramNames[!(paramNames %in% GDstep@.excludeVars)] #<--Probably not necessary...
+		if(length(paramNames)){lmNames <- paste(paramNames,"bound",sep=".")}
+		if(length(constraintNames) && length(GDstep@output$constraintRows && length(GDstep@output$constraintCols))){
+			emptyConstraints <- (GDstep@output$constraintRows==0 | GDstep@output$constraintCols==0)
+			#Assuming that "empty" constraints have no function values...
+			constraintNames <- constraintNames[!emptyConstraints]
+			constraintRows <- GDstep@output$constraintRows[!emptyConstraints]
+			constraintCols <- GDstep@output$constraintRows[!emptyConstraints]
+		}
+		if(length(constraintNames) && length(constraintRows) && length(constraintCols)){
+			for(i in 1:length(constraintNames)){
+				for(co in 1:constraintCols[i]){
+					for(ro in 1:constraintRows[i]){
+						cfvNames <- c(cfvNames, paste(constraintNames[i],"[",ro,",",co,"]",sep=""))
+						cjr <- cjr+1
+					}
+				}
+			}
+			lmNames <- c(lmNames, cfvNames)
+		}
+		
+		#Assign names to components, and components to 'output' list:
+		if(length(GDstep@output$constraintFunctionValues)){
+			if(length(GDstep@output$constraintFunctionValues)==length(cfvNames)){
+				names(GDstep@output$constraintFunctionValues) <- cfvNames
+			}
+			output$constraintFunctionValues <- GDstep@output$constraintFunctionValues
+		}
+		if(length(GDstep@output$constraintJacobian)){
+			if(ncol(GDstep@output$constraintJacobian) && ncol(GDstep@output$constraintJacobian)==length(paramNames)){
+				colnames(GDstep@output$constraintJacobian) <- paramNames
+			}
+			if(nrow(GDstep@output$constraintJacobian) && nrow(GDstep@output$constraintJacobian)==length(cfvNames)){
+				rownames(GDstep@output$constraintJacobian) <- cfvNames
+			}
+			output$constraintJacobian <- GDstep@output$constraintJacobian
+		}
+		if(length(GDstep@output$LagrangeMultipliers)){
+			if(length(GDstep@output$LagrangeMultipliers)==length(lmNames)){
+				names(GDstep@output$LagrangeMultipliers) <- lmNames
+			}
+			output$LagrangeMultipliers <- GDstep@output$LagrangeMultipliers
+		}
+		if(length(GDstep@output$istate)){
+			if(length(GDstep@output$istate)==length(lmNames)){
+				names(GDstep@output$istate) <- lmNames
+			}
+			output$istate <- GDstep@output$istate
+		}
 	}
 	return(output)
 }
