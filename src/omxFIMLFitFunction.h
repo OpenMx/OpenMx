@@ -333,12 +333,8 @@ class mvnByRow {
 
 	void reportBadOrdLik()
 	{
-		if (fc) fc->recordIterationError("Improper value detected by integration routine "
-						 "in data '%s' row %d: Most likely the maximum number of "
-						 "ordinal variables (20) has been exceeded.  \n"
-						 " Also check whether the expected covariance matrix is "
-						 "positive-definite",
-						 data->name, sortedRow);
+		if (fc) fc->recordIterationError("Invalid result produced by ordinal integration routine "
+						 "in data '%s' row %d", data->name, sortedRow);
 		if (verbose >= 1) ol.log();
 	}
 
