@@ -459,18 +459,22 @@ void mxPrintMatX(const char *name, const Eigen::DenseBase<T> &mat, std::string &
 	int rr = mat.rows();
 	int cc = mat.cols();
 	if (transpose) std::swap(rr,cc);
-	for(int j = 0; j < rr; j++) {
-		buf += "\n";
-		for(int k = 0; k < cc; k++) {
-			if (first) first=false;
-			else buf += ",";
-			double val;
-			if (transpose) {
-				val = mat(k,j);
-			} else {
-				val = mat(j,k);
+	if (!mat.derived().data()) {
+		buf += "\nNULL";
+	} else {
+		for(int j = 0; j < rr; j++) {
+			buf += "\n";
+			for(int k = 0; k < cc; k++) {
+				if (first) first=false;
+				else buf += ",";
+				double val;
+				if (transpose) {
+					val = mat(k,j);
+				} else {
+					val = mat(j,k);
+				}
+				buf += string_snprintf(" %3.6g", val);
 			}
-			buf += string_snprintf(" %3.6g", val);
 		}
 	}
 
