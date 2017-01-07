@@ -24,7 +24,8 @@ This function creates the factor scores and their standard errors under differen
 }
 
 \usage{
-mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'), minManifests=as.integer(NA))
+mxFactorScores(model, type=c('ML', 'WeightedML', 'Regression'),
+ minManifests=as.integer(NA))
 }
 
 
