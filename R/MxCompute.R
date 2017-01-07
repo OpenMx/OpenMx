@@ -1421,8 +1421,7 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(
-	     independent="logical",
-	     .persistOnce="logical"
+	     independent="logical"
 	     ))
 
 setMethod("initialize", "MxComputeSequence",
@@ -1432,7 +1431,6 @@ setMethod("initialize", "MxComputeSequence",
 		  .Object@steps <- steps
 		  .Object@freeSet <- freeSet
 		  .Object@independent <- independent
-		  .Object@.persistOnce <- FALSE
 		  .Object
 	  })
 
@@ -1509,11 +1507,6 @@ convertComputes <- function(flatModel, model) {
 
 updateModelCompute <- function(model, computes) {
 	if (is.null(model@compute)) return()
-	if(.hasSlot(model@compute, '.persistOnce') && .hasSlot(model@compute, '.persist') && 
-		 model@compute@.persistOnce){
-		model@compute@.persistOnce <- FALSE
-		model@compute@.persist <- FALSE
-	}
 	updateFromBackend(model@compute, computes)
 }
 
@@ -1570,9 +1563,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 																		 RD=mxComputeReportDeriv(),
 																		 RE=mxComputeReportExpectation()))
 	}
-	#The default compute plan does not persist; users who are going to modify a default compute plan
-	#will also need to modify the '.persist' slot:
-	compute@.persist <- FALSE
+	compute@.persist <- TRUE
 	return(compute)
 }
 

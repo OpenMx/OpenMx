@@ -587,12 +587,13 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
         if (maxRows >= 0 && maxRows < upto) upto = maxRows;
 
 	if (od->rawCols.size()) {
-		for(int j = 0; j < od->cols; j++) {
-			ColumnData &cd = od->rawCols[j];
+		for (auto &cd : od->rawCols) {
+			buf += " ";
+			buf += cd.name;
 			if (cd.intData) {
-				buf += " I";
+				buf += "[I]";
 			} else {
-				buf += " N";
+				buf += "[N]";
 			}
 		}
 		buf += "\n";

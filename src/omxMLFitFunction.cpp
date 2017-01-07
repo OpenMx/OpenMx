@@ -20,7 +20,6 @@
 #include "multi_normal_sufficient.hpp"
 
 #include "omxExpectation.h"
-#include "omxRAMExpectation.h"
 #include "RAMInternal.h"
 #include "matrix.h"
 

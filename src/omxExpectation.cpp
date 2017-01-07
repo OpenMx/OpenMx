@@ -97,9 +97,38 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 	return ox;
 }
 
+void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber)
+{
+	numOrdinal = 0;
+	thresholds.reserve(numCols);
+	for(int index = 0; index < numCols; index++) {
+		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
+			if(OMX_DEBUG) {
+				mxLog("Column %d is continuous.", index);
+			}
+			omxThresholdColumn col;
+			thresholds.push_back(col);
+		} else {
+			omxThresholdColumn col;
+			col.dColumn = index;
+			col.column = thresholdColumn[index];
+			col.numThresholds = thresholdNumber[index];
+			thresholds.push_back(col);
+			if(OMX_DEBUG) {
+				mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
+				      index, thresholdNumber[index], thresholdColumn[index]);
+			}
+			numOrdinal++;
+		}
+	}
+	if(OMX_DEBUG) {
+		mxLog("%d threshold columns processed.", numOrdinal);
+	}
+}
+
 static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 {
-	int index, numCols, numOrdinal=0;
+	int numCols;
 	SEXP nextMatrix, itemList, threshMatrix; 
 	
 	if(rObj == NULL) return;
@@ -145,31 +174,7 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 			{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
 				thresholdNumber = INTEGER(itemList);
 			}
-			ox->thresholds.reserve(numCols);
-			for(index = 0; index < numCols; index++) {
-				if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-					if(OMX_DEBUG) {
-						mxLog("Column %d is continuous.", index);
-					}
-					omxThresholdColumn col;
-					ox->thresholds.push_back(col);
-				} else {
-					omxThresholdColumn col;
-					col.dColumn = index;
-					col.column = thresholdColumn[index];
-					col.numThresholds = thresholdNumber[index];
-					ox->thresholds.push_back(col);
-					if(OMX_DEBUG) {
-						mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-						      index, thresholdNumber[index], thresholdColumn[index]);
-					}
-					numOrdinal++;
-				}
-			}
-			if(OMX_DEBUG) {
-				mxLog("%d threshold columns processed.", numOrdinal);
-			}
-			ox->numOrdinal = numOrdinal;
+			ox->loadThresholds(numCols, thresholdColumn, thresholdNumber);
 		} else {
 			if (OMX_DEBUG) {
 				mxLog("No thresholds matrix; not processing thresholds.");
@@ -255,6 +260,9 @@ void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 int *defaultDataColumnFun(omxExpectation *ex)
 { return ex->dataColumnsPtr; }
 
+std::vector< omxThresholdColumn > &defaultThresholdInfoFun(omxExpectation *ex)
+{ return ex->thresholds; }
+
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
@@ -280,6 +288,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
 	expect->dataColumnFun = defaultDataColumnFun;
+	expect->thresholdInfoFun = defaultThresholdInfoFun;
 
 	return expect;
 }

@@ -115,7 +115,7 @@ class omxConstraint {
 	};
 
 	const char *name;
-	int size;
+	int size, nrows, ncols;
 	enum Type opCode;
 	int linear;
 	omxMatrix* jacobian;

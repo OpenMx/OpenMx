@@ -147,7 +147,7 @@ class mvnByRow {
 	int lastrow;
 	bool firstRow;
 	omxMatrix *thresholdsMat;
-	std::vector< omxThresholdColumn > &thresholdCols;
+	const std::vector< omxThresholdColumn > &thresholdCols;
 	omxMatrix *cov;
 	omxMatrix *means;
 	FitContext *fc;
@@ -190,13 +190,13 @@ class mvnByRow {
 		ol(ofo->ol),
 		indexVector(shared_ofo->indexVector),
 		sameAsPrevious(shared_ofo->sameAsPrevious),
-		thresholdCols(expectation->thresholds),
+		thresholdCols(expectation->getThresholdInfo()),
 		dataColumns(expectation->getDataColumns()),
 		isOrdinal(_ofiml->isOrdinal),
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
-		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->thresholds);
+		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->getThresholdInfo());
 		row = ofo->rowBegin;
 		lastrow = ofo->rowBegin + ofo->rowCount;
 		firstRow = true;
