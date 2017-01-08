@@ -30,6 +30,9 @@
 mxMI <- function(model, matrices=NA, full=TRUE){
 	if(single.na(matrices)){
 		matrices <- names(model$matrices) #names of them rather
+		if (is(model$expectation, "MxExpectationRAM")) {
+			matrices <- setdiff(matrices, model$expectation$F)
+		}
 	}
 	param <- omxGetParameters(model)
 	param.names <- names(param)
