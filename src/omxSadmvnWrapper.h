@@ -375,8 +375,14 @@ double OrdinalLikelihood::block::likelihood(int row)
 	omxSadmvnWrapper(varMap.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	if (inform == 1) mxLog("Sadmvn error larger than epsilon");
-	if (inform == 2) {
+	if (inform == 1 && OMX_DEBUG) mxLog("Sadmvn error larger than epsilon");
+	if (ordLik == 0.0 || inform == 2) {
+		if (OMX_DEBUG) {
+			// Need to report this back to the user TODO
+			mxPrintMat("corList", corList);
+			mxPrintMat("lthresh", lThresh);
+			mxPrintMat("uthresh", uThresh);
+		}
 		return 0.0;
 	}
 	return ordLik;
