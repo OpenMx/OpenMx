@@ -104,11 +104,8 @@ bool condOrdByRow::eval()
 				ol.setMean(ordMean);
 			}
 			if (!parent->ordinalSame[row] || firstRow) {
-				ordLik = ol.likelihood(sortedRow);
-				if (ordLik == 0.0) {
-					reportBadOrdLik();
-					return true;
-				}
+				ordLik = ol.likelihood(fc, sortedRow);
+				if (ordLik == 0.0) return true;
 				INCR_COUNTER(ordDensity);
 			}
 
@@ -335,13 +332,9 @@ bool condContByRow::eval()
 			ol.setMean(ordMean);
 
 			INCR_COUNTER(ordDensity);
-			ordLik = ol.likelihood(sortedRow);
+			ordLik = ol.likelihood(fc, sortedRow);
+			if (ordLik == 0.0) return true;
 			//mxLog("[%d] %.5g", sortedRow, log(ordLik));
-
-			if (ordLik == 0.0) {
-				reportBadOrdLik();
-				return true;
-			}
 		} else {
 			ordLik = 1.0;
 		}

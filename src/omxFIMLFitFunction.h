@@ -333,7 +333,7 @@ class mvnByRow {
 
 	void reportBadOrdLik()
 	{
-		if (fc) fc->recordIterationError("Invalid result produced by ordinal integration routine "
+		if (fc) fc->recordIterationError("Ordinal covariance is not positive definite "
 						 "in data '%s' row %d", data->name, sortedRow);
 		if (verbose >= 1) ol.log();
 	}
