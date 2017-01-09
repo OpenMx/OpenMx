@@ -329,8 +329,8 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	have at least one element that NPSOL never uses.  Obviously, if ncnln==0, the only constraints will be box constraints, and there will be a
 	lot of unused elements in the constraint-related arrays:*/
 	if(ncnln==0){
-		rf.constraintFunValsOut.conservativeResize(0);
-		rf.constraintJacobianOut.conservativeResize(0,0);
+		rf.constraintFunValsOut.resize(0);
+		rf.constraintJacobianOut.resize(0,0);
 		rf.LagrMultipliersOut.conservativeResize(n);
 		rf.constraintStatesOut.conservativeResize(n);
 	}
