@@ -111,7 +111,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		}
 
 		inline void loadRow(int row);
-		inline double likelihood(int row);
+		inline double likelihood(FitContext *fc, int row);
 		template <typename T1, typename T2>
 		double likelihood(const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound);
 	};
@@ -276,11 +276,11 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		ordColumns = colIn;
 	};
 
-	inline double likelihood(int row)
+	inline double likelihood(FitContext *fc, int row)
 	{
 		double lk = 1.0;
 		for (int bx=0; bx < int(blocks.size()); ++bx) {
-			lk *= blocks[bx].likelihood(row);  // log space instead?
+			lk *= blocks[bx].likelihood(fc, row);  // log space instead?
 		}
 		return lk;
 	};
@@ -367,7 +367,7 @@ void OrdinalLikelihood::block::loadRow(int row)
 	}
 }
 
-double OrdinalLikelihood::block::likelihood(int row)
+double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 {
 	loadRow(row);
 	int inform;
@@ -377,12 +377,20 @@ double OrdinalLikelihood::block::likelihood(int row)
 			 Infin.data(), &ordLik, &inform);
 	if (inform == 1 && OMX_DEBUG) mxLog("Sadmvn error larger than epsilon");
 	if (ordLik == 0.0 || inform == 2) {
-		if (OMX_DEBUG) {
-			// Need to report this back to the user TODO
-			mxPrintMat("corList", corList);
-			mxPrintMat("lthresh", lThresh);
-			mxPrintMat("uthresh", uThresh);
+		Eigen::MatrixXd corMat(varMap.size(), varMap.size());
+		corMat.setIdentity();
+		for (int cx=0, lx=0; cx < int(varMap.size())-1; ++cx) {
+			for (int rx=cx+1; rx < int(varMap.size()); ++rx) {
+				corMat(rx,cx) = corList[lx];
+				lx+=1;
+			}
 		}
+		corMat = corMat.selfadjointView<Eigen::Lower>();
+		std::string empty = std::string("");
+		std::string buf = mxStringifyMatrix("cor", corMat, empty);
+		buf += mxStringifyMatrix("lower", lThresh, empty);
+		buf += mxStringifyMatrix("upper", uThresh, empty);
+		if (fc) fc->recordIterationError("Multivariate normal integration failure:\n%s", buf.c_str());
 		return 0.0;
 	}
 	return ordLik;
