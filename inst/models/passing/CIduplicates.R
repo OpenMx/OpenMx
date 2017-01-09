@@ -29,8 +29,10 @@ m1 <- mxModel("m1", type="RAM",
 m1$S$lbound <- .1
 m1 = mxRun(m1)
 
-tmp = mxRun(mxModel(m1, mxCI(c("x1_resid","S[1,1]"), boundAdj=FALSE)), intervals = T)
+set.seed(170109)
+tmp <- mxTryHard(mxModel(m1, mxCI(c("x1_resid","S[1,1]"), boundAdj=FALSE)), intervals = T)
 omxCheckCloseEnough(nrow(tmp$output$confidenceIntervals), 1)
 
 omxCheckCloseEnough(tmp$output$confidenceIntervals[1, c('lbound', 'ubound')],
                     c(.280, .430), .01)
+
