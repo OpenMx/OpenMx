@@ -102,21 +102,20 @@ void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thre
 	numOrdinal = 0;
 	thresholds.reserve(numCols);
 	for(int index = 0; index < numCols; index++) {
+		omxThresholdColumn col;
+		col.dColumn = index;
 		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
 			if(OMX_DEBUG) {
 				mxLog("Column %d is continuous.", index);
 			}
-			omxThresholdColumn col;
 			thresholds.push_back(col);
 		} else {
-			omxThresholdColumn col;
-			col.dColumn = index;
 			col.column = thresholdColumn[index];
 			col.numThresholds = thresholdNumber[index];
 			thresholds.push_back(col);
 			if(OMX_DEBUG) {
-				mxLog("Column %d is ordinal with %d thresholds in threshold column %d.", 
-				      index, thresholdNumber[index], thresholdColumn[index]);
+				mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
+				      name, index, thresholdNumber[index], thresholdColumn[index]);
 			}
 			numOrdinal++;
 		}
@@ -128,33 +127,31 @@ void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thre
 
 static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 {
-	int numCols;
-	SEXP nextMatrix, itemList, threshMatrix; 
+	int numCols=0;
 	
 	if(rObj == NULL) return;
 
-	{
-		ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
-		ox->saveDataColumnsInfo(nextMatrix);
-	}
-
-	if(OMX_DEBUG) {
-		mxPrintMat("Variable mapping", ox->getDataColumns());
-	}
-	
-	auto dc = ox->getDataColumns();
-	numCols = dc.size();
 	omxData *data = ox->data;
-	for (int cx=0; cx < numCols; ++cx) {
-		int var = dc[cx];
-		data->assertColumnIsData(var);
+	bool isRaw = strEQ(omxDataType(data), "raw");
+	if (isRaw || omxDataHasMatrix(data)) {
+		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
+		numCols = Rf_length(Rdc);
+		ox->saveDataColumnsInfo(Rdc);
+		if(OMX_DEBUG) mxPrintMat("Variable mapping", ox->getDataColumns());
+		if (isRaw) {
+			auto dc = ox->getDataColumns();
+			for (int cx=0; cx < numCols; ++cx) {
+				int var = dc[cx];
+				data->assertColumnIsData(var);
+			}
+		}
 	}
 
 	if (R_has_slot(rObj, Rf_install("thresholds"))) {
 		if(OMX_DEBUG) {
 			mxLog("Accessing Threshold matrix.");
 		}
-		ScopedProtect p1(threshMatrix, R_do_slot(rObj, Rf_install("thresholds")));
+		ProtectedSEXP threshMatrix(R_do_slot(rObj, Rf_install("thresholds")));
 
 		if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 			if(OMX_DEBUG) {
@@ -168,12 +165,11 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 			 * and fill all the thresholds with {NULL, 0, 0}.
 			 * However the current path does not have a lot of overhead. */
 			int* thresholdColumn, *thresholdNumber;
-			{ScopedProtect pc(nextMatrix, R_do_slot(rObj, Rf_install("thresholdColumns")));
-				thresholdColumn = INTEGER(nextMatrix);
-			}
-			{ScopedProtect pi(itemList, R_do_slot(rObj, Rf_install("thresholdLevels")));
-				thresholdNumber = INTEGER(itemList);
-			}
+			ProtectedSEXP nextMatrix (R_do_slot(rObj, Rf_install("thresholdColumns")));
+			thresholdColumn = INTEGER(nextMatrix);
+			ProtectedSEXP itemList(R_do_slot(rObj, Rf_install("thresholdLevels")));
+			thresholdNumber = INTEGER(itemList);
+
 			ox->loadThresholds(numCols, thresholdColumn, thresholdNumber);
 		} else {
 			if (OMX_DEBUG) {

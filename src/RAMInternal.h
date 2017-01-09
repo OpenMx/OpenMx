@@ -393,8 +393,9 @@ namespace RelationalRAMExpectation {
 			return (omxRAMExpectation*) model->argStruct;
 		};
 		std::vector< omxMatrix* > &getBetween() const;
-		const Eigen::Map<Eigen::VectorXi> getDataColumns() const {
-			const Eigen::Map<Eigen::VectorXi> vec(model->dataColumnFun(model), model->numDataColumns);
+		typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
+		const Eigen::Map<DataColumnType> getDataColumns() const {
+			const Eigen::Map<DataColumnType> vec(model->dataColumnFun(model), model->numDataColumns);
 			return vec;
 		};
 		void dataRow(omxMatrix *out) const;
@@ -544,15 +545,13 @@ class omxRAMExpectation {
 	bool trivialF;
 	unsigned Zversion;
 	omxMatrix *_Z;
+	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector< omxThresholdColumn > thresholds;
  public:
 	std::vector< dvScoreboardSetType > dvScoreboard;
 	Eigen::VectorXd hasVariance;
 	std::vector<bool> ignoreDefVar;
 	std::vector<bool> latentFilter; // false when latent
-
-	// composition of F permutation and expectation->dataColumns
-	Eigen::VectorXi dataCols;
 
  	omxRAMExpectation(omxMatrix *Z) : trivialF(false), Zversion(0), _Z(Z) {};
 	~omxRAMExpectation() {
@@ -581,22 +580,32 @@ class omxRAMExpectation {
 	bool forceSingleGroup;
 
 	template <typename T>
-	void studyF(const Eigen::MatrixBase<T> &dataColumns)
+	void studyF(const Eigen::MatrixBase<T> &dataColumns,
+		    std::vector< omxThresholdColumn > &origThresholdInfo)
 	{
 		EigenMatrixAdaptor eF(F);
 		latentFilter.assign(eF.cols(), false);
-		bool isRaw = dataColumns.size();
-		if (isRaw) dataCols.resize(eF.rows());
-		if (!eF.rows()) return;
+		dataCols.resize(eF.rows());
+		if (!eF.rows()) return;  // no manifests
 		for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
 			int dest;
 			double isManifest = eF.col(cx).maxCoeff(&dest);
 			latentFilter[cx] = isManifest;
-			if (isManifest && isRaw) {
-				dataCols[dx++] = dataColumns[dest];
+			if (isManifest) {
+				int newDest = dataColumns.size()? dataColumns[dest] : dest;
+				dataCols[dx] = newDest;
+				if (origThresholdInfo.size()) {
+					omxThresholdColumn adj = origThresholdInfo[dest];
+					adj.dColumn = dx;
+					thresholds.push_back(adj);
+				}
+				dx += 1;
 			}
 		}
 	};
+	int *getDataColumnsPtr() const {
+		return (int*) dataCols.data();
+	}
 
 	std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 };

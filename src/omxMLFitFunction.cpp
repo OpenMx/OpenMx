@@ -31,6 +31,7 @@ static const double MIN_VARIANCE = 1e-6;
 
 struct MLFitState {
 
+	bool copiedData;
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
 	omxMatrix* expectedCov;
@@ -44,6 +45,10 @@ static void omxDestroyMLFitFunction(omxFitFunction *oo) {
 
 	if(OMX_DEBUG) {mxLog("Freeing ML Fit Function.");}
 	MLFitState* omlo = ((MLFitState*)oo->argStruct);
+	if (omlo->copiedData) {
+		omxFreeMatrix(omlo->observedCov);
+		omxFreeMatrix(omlo->observedMeans);
+	}
 	delete omlo;
 }
 
@@ -366,12 +371,26 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	oo->populateAttrFun = omxPopulateMLAttributes;
 	oo->canDuplicate = true;
 
-	if(OMX_DEBUG) { mxLog("Processing Observed Covariance."); }
 	newObj->observedCov = omxDataCovariance(dataMat);
-	if(OMX_DEBUG) { mxLog("Processing Observed Means."); }
 	newObj->observedMeans = omxDataMeans(dataMat);
+	newObj->copiedData = false;
+
+	auto dc = oo->expectation->getDataColumns();
+	if (dc.size()) {
+		newObj->copiedData = true;
+		newObj->observedCov = omxCreateCopyOfMatrix(newObj->observedCov, oo->matrix->currentState);
+		newObj->observedMeans = omxCreateCopyOfMatrix(newObj->observedMeans, oo->matrix->currentState);
+		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(dc);
+		EigenMatrixAdaptor Ecov(newObj->observedCov);
+		Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+		if (newObj->observedMeans) {
+			EigenVectorAdaptor Emean(newObj->observedMeans);
+			Emean.derived() = (pm * Emean).eval();
+		}
+	}
+
 	if(OMX_DEBUG && newObj->observedMeans == NULL) { mxLog("ML: No Observed Means."); }
-	if(OMX_DEBUG) { mxLog("Processing n."); }
+
 	newObj->n = omxDataNumObs(dataMat);
 
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");

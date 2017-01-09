@@ -128,6 +128,14 @@ static void omxFreeInternalMatrixData(omxMatrix * om)
 	om->data = NULL;
 }
 
+omxMatrix *omxCreateCopyOfMatrix(omxMatrix *orig, omxState *os)
+{
+	if (!orig) return 0;
+	omxMatrix *copy = omxInitMatrix(0, 0, 1, os);
+	omxCopyMatrix(copy, orig);
+	return copy;
+}
+
 void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	/* Copy a matrix.  NOTE: Matrix maintains its algebra bindings. */
 

@@ -721,11 +721,11 @@ FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
 	profiledOut.assign(numParam, false);
 
 	state = _state;
-	if (startingValues.size() != numParam) {
-		Rf_error("Got %d starting values for %d parameters",
-		      startingValues.size(), numParam);
-	}
 	if (numParam) {
+		if (startingValues.size() != numParam) {
+			Rf_error("Got %d starting values for %d parameters",
+				 startingValues.size(), numParam);
+		}
 		memcpy(est, startingValues.data(), sizeof(double) * numParam);
 	}
 }

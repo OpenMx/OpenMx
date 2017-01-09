@@ -179,7 +179,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' Response models \eqn{\mathrm{Pr}(\mathrm{pick}=x_{ij} |
 ##' \xi_j,\theta_i)}{Pr(pick=x[i,j] | \xi[j],\theta[i])}
 ##' are not implemented in OpenMx, but are imported
-##' from the \href{http://cran.r-project.org/package=rpf}{RPF}
+##' from the \href{https://cran.r-project.org/package=rpf}{RPF}
 ##' package. You must pass a list of models obtained from the RPF
 ##' package in the `ItemSpec' argument. All item models must use the
 ##' same number of latent factors although some of these factor
@@ -258,7 +258,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' E-step. This option is mainly of use for debugging derivatives.
 ##' @param debugInternal when enabled, some of the internal tables are
 ##' returned in $debug. This is mainly of use to developers.
-##' @seealso \href{http://cran.r-project.org/package=rpf}{RPF}
+##' @seealso \href{https://cran.r-project.org/package=rpf}{RPF}
 ##' @references
 ##' Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 ##' parameters: Application of an EM algorithm. \emph{Psychometrika, 46}, 443-459.

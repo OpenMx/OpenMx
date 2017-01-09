@@ -8,7 +8,8 @@ Construct default compute plan
 This function generates a default compute plan, where "default compute plan" refers to an object of class \link[=mxComputeSequence]{MxComputeSequence} which is appropriate for use in a wide variety of cases.  The exact specification of the plan will depend upon the arguments provided to \code{omxDefaultComputePlan()}.
 }
 \usage{
-omxDefaultComputePlan(modelName=NULL, intervals=FALSE, useOptimizer=TRUE, optionList=options()$mxOption)
+omxDefaultComputePlan(modelName=NULL, intervals=FALSE,
+  useOptimizer=TRUE, optionList=options()$mxOption)
 }
 
 \arguments{

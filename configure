@@ -45,6 +45,7 @@ fi
 
 REXEC=${R_HOME}/bin/R
 
+echo 'NOTE: ./configure is not an autoconf generated script.'
 echo 'Change default C/C++ compiler and default compile flags by editing ~/.R/Makevars'
 
 CXX=$($REXEC CMD config CXX)
