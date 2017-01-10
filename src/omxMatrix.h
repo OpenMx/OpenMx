@@ -449,7 +449,7 @@ void expm_eigen(int n, double *rz, double *out);
 void logm_eigen(int n, double *rz, double *out);
 
 template <typename T>
-void mxPrintMatX(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
+std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
 {
 	std::string buf;
 	bool transpose = mat.rows() > mat.cols();
@@ -488,6 +488,13 @@ void mxPrintMatX(const char *name, const Eigen::DenseBase<T> &mat, std::string &
 	buf += ")";
 	if (transpose) buf += ")";
 	buf += "\n";
+	return buf;
+}
+
+template <typename T>
+void mxPrintMatX(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
+{
+	std::string buf = mxStringifyMatrix(name, mat, xtra);
 	mxLogBig(buf);
 }
 

@@ -388,16 +388,8 @@ bool oldByRow::eval()
 			} 
 			else {  
 				INCR_COUNTER(ordDensity);
-				likelihood = ol.likelihood(indexVector[row]);
-
-				if (likelihood == 0.0) {
-					if (fc) fc->recordIterationError("Improper value detected by integration routine "
-									 "in data row %d: Most likely the maximum number of "
-									 "ordinal variables (20) has been exceeded.  \n"
-									 " Also check that expected covariance matrix is not "
-									 "positive-definite", indexVector[row]);
-					return true;
-				}
+				likelihood = ol.likelihood(fc, indexVector[row]);
+				if (likelihood == 0.0) return true;
 			}
 			
 			INCR_COUNTER(contDensity);
