@@ -636,7 +636,10 @@ static void sortData(omxFitFunction *off)
 			cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
 			if (!m1 && !m2 && !m7) --numUnique;
 		}
-		if (numUnique < data->rows/11) {
+		double rowsPerOrdinalPattern = data->rows / (double)numUnique;
+		// magic numbers from logistic regression
+		double prediction = -4.73 + 0.48 * rowsPerOrdinalPattern - 0.06 * ofiml->numContinuous;
+		if (prediction > 0.0) {
 			ofiml->jointStrat = JOINT_CONDORD;
 		} else {
 			ofiml->jointStrat = JOINT_CONDCONT;
