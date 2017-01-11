@@ -47,31 +47,34 @@ setReplaceMethod("$", "MxThreshold",
 
 setMethod("names", "MxThreshold", slotNames)
 
-##' omxNormalQuantiles
+##' mxNormalQuantiles
 ##'
 ##' Get quantiles from a normal distribution
 ##' 
 ##' @param nBreaks the number of thresholds, or a vector of the number of thresholds
 ##' @param mean the mean of the underlying normal distribution
 ##' @param sd the standard deviation of the underlying normal distribution
+##' @aliases omxNormalQuantiles
 ##' @return
 ##' a vector of quantiles
 ##' @examples
-##' omxNormalQuantiles(3)
-##' omxNormalQuantiles(3, mean=7)
-##' omxNormalQuantiles(2, mean=1, sd=3)
-omxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
+##' mxNormalQuantiles(3)
+##' mxNormalQuantiles(3, mean=7)
+##' mxNormalQuantiles(2, mean=1, sd=3)
+mxNormalQuantiles <- function(nBreaks, mean=0, sd=1) {
 	if(length(nBreaks) > 1) {
-		return(unlist(mapply(omxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))
+		return(unlist(mapply(mxNormalQuantiles, nBreaks=nBreaks, mean=mean, sd=sd)))
 	}
 	if(is.na(nBreaks)) {
 		return(as.numeric(NA))
 	}
 	if(nBreaks < 0) {
-		stop("Error in omxNormalQuantiles: You must request at least one quantile.")
+		stop("Error in mxNormalQuantiles: You must request at least one quantile.")
 	}
 	return(qnorm(seq(0,1,length.out=nBreaks+2)[1:nBreaks+1], mean=mean, sd=sd))
 }
+
+omxNormalQuantiles <-mxNormalQuantiles
 
 thresholdCheckLengths <- function(nThresh, starts, free, values, labels, lbounds, ubounds, varName) {
   
