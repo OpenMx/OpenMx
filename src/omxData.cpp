@@ -199,11 +199,15 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				}
 				cd.intData = INTEGER(rcol);
 				cd.type = COLUMNDATA_INTEGER;
-			} else {
+			} else if (Rf_isNumeric(rcol)) {
 				if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
 				cd.realData = REAL(rcol);
 				cd.type = COLUMNDATA_NUMERIC;
 				od->numNumeric++;
+			} else {
+				if(OMX_DEBUG) {mxLog("Column[%d] %s is type %s (ignored)",
+						     j, colname, Rf_type2char(TYPEOF(rcol)));}
+				cd.type = COLUMNDATA_INVALID;
 			}
 			od->rawCols.push_back(cd);
 		}
