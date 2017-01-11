@@ -116,19 +116,20 @@ bool condOrdByRow::eval()
 					VectorXd uThresh(rowOrdinal);
 					VectorXd lThresh(rowOrdinal);
 					for(int jj=0; jj < rowOrdinal; jj++) {
-						int var = dataColumns[ ordColBuf[jj] ];
+						int col = ordColBuf[jj];
+						int var = dataColumns[col];
 						if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) {
 							Rf_error("Must be a factor");
 						}
 						int pick = omxIntDataElement(data, sortedRow, var) - 1;
-						if (OMX_DEBUG && (pick < 0 || pick > colInfo[var].numThresholds)) {
+						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							Rf_error("Out of range");
 						}
-						int tcol = colInfo[var].column;
+						int tcol = colInfo[col].column;
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
 							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
-						} else if (pick == colInfo[var].numThresholds) {
+						} else if (pick == colInfo[col].numThresholds) {
 							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
