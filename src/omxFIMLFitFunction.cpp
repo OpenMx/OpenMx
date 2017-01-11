@@ -139,7 +139,7 @@ bool condOrdByRow::eval()
 					}
 
 					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
-						reportBadOrdLik();
+						reportBadOrdLik(1);
 						return true;
 					}
 					U11 = U11.selfadjointView<Eigen::Upper>();
@@ -147,7 +147,7 @@ bool condOrdByRow::eval()
 				if (!parent->ordinalMissingSame[row] || firstRow) {
 					invOrdCov = ordCov;
 					if (InvertSymmetricPosDef(invOrdCov, 'L')) {
-						reportBadOrdLik();
+						reportBadOrdLik(2);
 						return true;
 					}
 					invOrdCov = invOrdCov.selfadjointView<Eigen::Lower>();
@@ -223,6 +223,10 @@ bool condOrdByRow::eval()
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
+			if (contLik == 0.0) {
+				reportBadContRow(resid, iV);
+				return true;
+			}
 		} else { contLik = 1.0; }
 
 		recordRow(contLik, ordLik);
@@ -318,6 +322,10 @@ bool condContByRow::eval()
 				double cterm = M_LN_2PI * resid.size();
 				double logDet = covDecomp.log_determinant();
 				contLik = exp(-0.5 * (iqf + cterm + logDet));
+				if (contLik == 0.0) {
+					reportBadContRow(resid, iV);
+					return true;
+				}
 			}
 		} else {
 			contLik = 1.0;
