@@ -363,14 +363,14 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 	return(theValues[!duplicated(theNames)])
 }
 
-#N.B. this function seems to fail when 'amatrix' has condensed slots:
+#Need to use $ instead of @ accessor for all slots that can be condensed:
 setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
 	labels <- amatrix@labels
 	locations <- which(labels %in% names)
 	indices <- match(labels[locations], names)
 	if (!is.null(free)) {
 		index2 <- ((indices - 1) %% length(free)) + 1
-		amatrix@free[locations] <- as.logical(free[index2])
+		amatrix$free[locations] <- as.logical(free[index2])
 	}
 	if (!is.null(values)) {
 		index2 <- ((indices - 1) %% length(values)) + 1
@@ -378,15 +378,15 @@ setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound,
 	}
 	if (!is.null(newlabels)) {
 		index2 <- ((indices - 1) %% length(newlabels)) + 1
-		amatrix@labels[locations] <- as.character(newlabels[index2])
+		amatrix$labels[locations] <- as.character(newlabels[index2])
 	}
 	if (!is.null(lbound)) {
 		index2 <- ((indices - 1) %% length(lbound)) + 1
-		amatrix@lbound[locations] <- as.numeric(lbound[index2])
+		amatrix$lbound[locations] <- as.numeric(lbound[index2])
 	}
 	if (!is.null(ubound)) {
 		index2 <- ((indices - 1) %% length(ubound)) + 1
-		amatrix@ubound[locations] <- as.numeric(ubound[index2])
+		amatrix$ubound[locations] <- as.numeric(ubound[index2])
 	}
 	return(amatrix)
 }
@@ -406,9 +406,9 @@ setSquareBracketsHelper <- function(model, squarebrackets, labels,
 			isSymmetric <- imxSymmetricMatrix(amatrix)
 			if (!is.null(free)) {
 				index2 <- ((nextbracket - 1) %% length(free)) + 1
-				amatrix@free[row,col] <- as.logical(free[index2])
+				amatrix$free[row,col] <- as.logical(free[index2])
 				if (isSymmetric) {
-					amatrix@free[col,row] <- as.logical(free[index2])
+					amatrix$free[col,row] <- as.logical(free[index2])
 				}
 			}
 			if (!is.null(values)) {
@@ -420,23 +420,23 @@ setSquareBracketsHelper <- function(model, squarebrackets, labels,
 			}
 			if (!is.null(newlabels)) {
 				index2 <- ((nextbracket - 1) %% length(newlabels)) + 1
-				amatrix@labels[row,col] <- as.character(newlabels[index2])
+				amatrix$labels[row,col] <- as.character(newlabels[index2])
 				if (isSymmetric) {
-					amatrix@labels[col,row] <- as.character(newlabels[index2])
+					amatrix$labels[col,row] <- as.character(newlabels[index2])
 				}
 			}
 			if (!is.null(lbound)) {
 				index2 <- ((nextbracket - 1) %% length(lbound)) + 1
-				amatrix@lbound[row,col] <- as.numeric(lbound[index2])
+				amatrix$lbound[row,col] <- as.numeric(lbound[index2])
 				if (isSymmetric) {
-					amatrix@lbound[col,row] <- as.numeric(lbound[index2])
+					amatrix$lbound[col,row] <- as.numeric(lbound[index2])
 				}
 			}
 			if (!is.null(ubound)) {
 				index2 <- ((nextbracket - 1) %% length(ubound)) + 1
-				amatrix@ubound[row,col] <- as.numeric(ubound[index2])
+				amatrix$ubound[row,col] <- as.numeric(ubound[index2])
 				if (isSymmetric) {
-					amatrix@ubound[col,row] <- as.numeric(ubound[index2])
+					amatrix$ubound[col,row] <- as.numeric(ubound[index2])
 				}
 			}
 			model[[matrixname]] <- amatrix

@@ -7,6 +7,8 @@ require(OpenMx)
 require(rpf)
 #library(mvtnorm)
 
+options(mxCondenseMatrixSlots=TRUE) #<--For regression testing
+
 set.seed(7)
 correct.LL <- 48990.17
 
