@@ -1,4 +1,4 @@
-# OpenMx 2.7.0: Lots of NEWs
+# OpenMx 2.7.3: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun Now gives feedback about optimization progress.
 * NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).
@@ -8,7 +8,9 @@
 	* Change this with mxOption(NULL, "Default optimizer", "CSOLNP|NPSOL|SLSQP")
 	* NPSOL is available from the custom build at http://openmx.ssri.psu.edu/installing-openmx 
 * SPEEDUP: In many cases, continuous data now evaluated as fast as covariance data instead of being much slower (SEM models including RAM and LISREL).
+* SPEEDUP: F (means) matrix is optimised more efficiently.
 * SPEEDUP: Evaluation of the GREML fitfunction's derivatives is now faster.
+* IMPROVED: Error reporting is improved!
 * IMPROVED: mxGenerateData can now take a data.frame instead of a model (returns data based on a saturated multivariate Gaussian model).
 * IMPROVED: mxGenerateData now succeeds for joint ordinal and continuous data.
 * INCOMPATIBLE CHANGE: mxGenerateData by default now approximates the missingness pattern of the original data. This can be turned off with use.miss=FALSE to get the previous behavior.
