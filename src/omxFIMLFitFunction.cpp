@@ -169,7 +169,7 @@ bool condOrdByRow::eval()
 					covDecomp.compute(contCov);
 					if (covDecomp.info() != Eigen::Success ||
 					    !(covDecomp.vectorD().array() > 0.0).all()) {
-						reportBadContLik();
+						reportBadContLik(1, contCov);
 						return true;
 					}
 					covDecomp.refreshInverse();
@@ -186,7 +186,7 @@ bool condOrdByRow::eval()
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(2, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();
@@ -267,7 +267,7 @@ bool condContByRow::eval()
 				subsetCovariance(jointCov, op, rowContinuous, contCov);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(3, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();
@@ -306,7 +306,7 @@ bool condContByRow::eval()
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(4, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();

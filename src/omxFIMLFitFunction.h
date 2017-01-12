@@ -350,11 +350,14 @@ class mvnByRow {
 						 data->name, sortedRow, buf.c_str());
 	}
 
-	void reportBadContLik()
+	template <typename T1>
+	void reportBadContLik(int loc, const Eigen::MatrixBase<T1> &badCov)
 	{
-		if (fc) fc->recordIterationError("Continuous covariance "
-						 "is not positive definite in data '%s' row %d",
-						 data->name, sortedRow);
+		std::string empty = std::string("");
+		std::string buf = mxStringifyMatrix("covariance", badCov, empty);
+		if (fc) fc->recordIterationError("Continuous covariance (loc%d) "
+						 "is not positive definite in data '%s' row %d. Detail:\n%s",
+						 loc, data->name, sortedRow, buf.c_str());
 	}
 };
 
