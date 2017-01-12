@@ -169,3 +169,20 @@ omxCheckCloseEnough(expectSE,
 omxCheckCloseEnough(1435.9409, oneFactorCov2Out$output$minimum, 0.001)
 
 
+# ---------------
+
+oneFactorCov3 <- mxModel("Forgot variance",
+    type="RAM",
+    manifestVars=indicators,
+    latentVars=latents,
+    mxPath(from=latents, to=indicators, 
+           arrows=1, connect="all.pairs",
+           free=TRUE, values=.2, 
+           labels=loadingLabels),
+    mxPath(from=latents, to=c("x1"),
+           arrows=1, 
+           free=FALSE, values=1),
+    mxData(observed=cov(factorExample1), type="cov", numObs=500))
+
+omxCheckError(mxRun(oneFactorCov3, suppressWarnings=TRUE),
+	      "The S matrix associated with the RAM expectation function in model 'Forgot variance' is fixed to zero on the diagonal. Your model must allow some variance.");
