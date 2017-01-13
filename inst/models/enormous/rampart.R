@@ -163,14 +163,15 @@ for (rrow in 1:nrow(result)) {
 sum(!is.na(result[result$rampart==TRUE, 'conditionNumber']))
 sum(!is.na(result[result$rampart==FALSE, 'conditionNumber']))
 
-cnMask <- (result$conditionNumber <
-	       median(result$conditionNumber, na.rm=TRUE) +
-		   5 * mad(result$conditionNumber, na.rm=TRUE))
-bothOkay <- cnMask[result$rampart==TRUE] & cnMask[result$rampart==FALSE]
-length(which(bothOkay))
+cnThreshold <- median(result$conditionNumber, na.rm=TRUE) +
+  5 * mad(result$conditionNumber, na.rm=TRUE)
+cnMask <- (!is.na(result$fit) & !is.na(result$conditionNumber) &
+             result$conditionNumber < cnThreshold)
+cnMask[is.na(cnMask)] <- FALSE
+cnMask[result$rampart==TRUE] <- cnMask[result$rampart==TRUE] & cnMask[result$rampart==FALSE]
 
-good <- result[result$rep %in% which(bothOkay),]
-good[,c("rep",'rampart', "conditionNumber", 'gradient')]
+good <- result[cnMask,]
+#good[,c("rep",'rampart', "conditionNumber", 'gradient')]
 
 cor(good[good$rampart==TRUE,"conditionNumber"],
     good[good$rampart==FALSE,"conditionNumber"])
