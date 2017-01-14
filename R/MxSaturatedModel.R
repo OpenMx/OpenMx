@@ -78,9 +78,6 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			ordinalLevels <- lapply(obsdata[,ordinalCols], levels)
 			numOrdinal <- sum(ordinalCols)
 			numOrdinalLevels <- sapply(ordinalLevels, length)
-			isBinary <- numOrdinalLevels %in% 2
-			binnam <- ordnam[isBinary]
-			numBinary <- sum(isBinary)
 			maxLevels <- max(numOrdinalLevels)
 			numThresholds <- maxLevels-1
 			startcov <- t(chol(diag(1, numVar)))
