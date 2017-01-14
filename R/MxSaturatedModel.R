@@ -92,10 +92,12 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		startcov <- 0.3
 		indepcov <- 0.3
 		startmea <- 3.0
+		ordinalCols <- rep(FALSE, numVar)
 	}
 
 	ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
 			  values=startcov, free=TRUE, name="ltCov")
+	diag(ltCov$free) <- !ordinalCols
 	satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
 	saturatedModel <- mxModel(name=paste("Saturated", modelName),
 				  datasource,
@@ -122,10 +124,12 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		if(any(ordinalCols)) {
 			thrdnam <- paste(rep(ordnam, each=numThresholds), 'ThrDev', 1:numThresholds, sep='')
 			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
+			thrdM <- rbind(numOrdinalLevels-1, numThresholds - numOrdinalLevels+1)
+			thrdfre <- apply(thrdM, 2, rep, x=c(TRUE, FALSE))
 			thresholdDeviations <- mxMatrix("Full", 
 					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 					values=.2,
-					free = TRUE,
+					free = thrdfre,
 					labels=thrdnam,
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
 					dimnames = list(c(), varnam[ordinalCols]),
@@ -141,7 +145,7 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 				saturatedMeans, thresholdDeviations, unitLower, saturatedThresholds,
 				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix")
 			)
-			if(any(isBinary)){
+			if(0){#if(any(isBinary)){
 				Iblock <- diag(1, numBinary)
 				colnames(Iblock) <- binnam
 				Zblock <- matrix(0, nrow=numBinary, ncol=numVar-numBinary)
