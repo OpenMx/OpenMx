@@ -420,13 +420,6 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	od <- data[,ords,drop=FALSE]
 	cd <- data[,!ords,drop=FALSE]
 	
-	if(ncol(od) > 0 && ncol(cd) > 0 && type=="WLS"){
-		msg <- paste("Both ordinal and coninuous variables found with type='WLS'.\n",
-			"There is currently a bug that produces biased estimates in this case.\n",
-			"Try using type='ULS' or type='DLS'. There is no bug there.\n")
-		warning(msg, call.=FALSE)
-	}
-	
 	# thresholds, their hessians & their jacobians
 	utsList <- univariateThresholdStatisticsHelper(od, data, nvar, n, ntvar, useMinusTwo)
 	thresh <- utsList[[1]]
