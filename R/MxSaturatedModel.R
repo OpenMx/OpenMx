@@ -145,31 +145,6 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 				saturatedMeans, thresholdDeviations, unitLower, saturatedThresholds,
 				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix")
 			)
-			if(0){#if(any(isBinary)){
-				Iblock <- diag(1, numBinary)
-				colnames(Iblock) <- binnam
-				Zblock <- matrix(0, nrow=numBinary, ncol=numVar-numBinary)
-				colnames(Zblock) <- varnam[!(varnam %in% binnam)]
-				binaryFilterValues <- cbind(Iblock, Zblock)
-				binaryFilterValues <- binaryFilterValues[,varnam]
-				BinaryVarianceFilteringMatrix <- NULL  # avoid CRAN check warning
-				binaryFilter <- mxMatrix('Full', nrow=numBinary, ncol=numVar, values=binaryFilterValues, free=FALSE, name='BinaryVarianceFilteringMatrix')
-				BinaryVarianceFilteringAlgebra <- NULL  # avoid CRAN check warning
-				binaryAlgebraSat <- mxAlgebra(
-					BinaryVarianceFilteringMatrix %*% diag2vec(satCov), name='BinaryVarianceFilteringAlgebra')
-				binaryAlgebraInd <- mxAlgebra(
-					BinaryVarianceFilteringMatrix %*% diag2vec(indCov), name='BinaryVarianceFilteringAlgebra')
-				BinaryConstantVectorOfOnes <- NULL  # avoid CRAN check warning
-				binaryConstant <- mxMatrix('Full', nrow=numBinary, ncol=1, values=1, free=FALSE, name='BinaryConstantVectorOfOnes')
-				binaryConstraint <- mxConstraint(
-					BinaryConstantVectorOfOnes == BinaryVarianceFilteringAlgebra, name='BinaryVarianceConstraint')
-				saturatedModel <- mxModel(saturatedModel,
-					binaryFilter, binaryAlgebraSat, binaryConstant, binaryConstraint
-				)
-				independenceModel <- mxModel(independenceModel,
-					binaryFilter, binaryAlgebraInd, binaryConstant, binaryConstraint
-				)
-			}
 		}
 	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
