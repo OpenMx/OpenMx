@@ -106,7 +106,7 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 				  mxExpectationNormal("satCov"),
 				  mxFitFunctionML())
 
-	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=TRUE,
+	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=!ordinalCols,
 			   name="indCov", dimnames=list(varnam, varnam))
 	independenceModel <- mxModel(name=paste("Independence", modelName),
 				     datasource, indCov,
