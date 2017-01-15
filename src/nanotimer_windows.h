@@ -1,6 +1,6 @@
 #include <windows.h>
 
-inline nanotime_t get_nanotime(void) {
+nanotime_t get_nanotime(void) {
     LARGE_INTEGER time_var, frequency;
     QueryPerformanceCounter(&time_var);
     QueryPerformanceFrequency(&frequency);
