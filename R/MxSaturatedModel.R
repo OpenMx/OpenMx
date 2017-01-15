@@ -92,19 +92,32 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		ordinalCols <- rep(FALSE, numVar)
 	}
 
-	ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
-			  values=startcov, free=TRUE, name="ltCov")
-	diag(ltCov$free) <- !ordinalCols
-	satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
+	# For all continuous data, use the Cholesky decomposition
+	#  but for joint and all-ordinal use a symmetric matrix
+	# This allows one to "contrain" the total variance of ordinal variables
+	#  to 1 without using mxConstraint.
+	if(!any(ordinalCols)){
+		ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
+				values=startcov, free=TRUE, name="ltCov")
+		diag(ltCov$lbound) <- 0
+		satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
+	} else {
+		ltCov <- NULL
+		satFre <- matrix(as.logical(diag(!ordinalCols, numVar)), numVar, numVar)
+		satFre[lower.tri(satFre, diag=FALSE)] <- TRUE
+		satCov <- mxMatrix(type="Symm", nrow=numVar, ncol=numVar,
+				values=startcov, free=satFre[lower.tri(satFre, diag=TRUE)], name="satCov",
+				dimnames=list(varnam, varnam))
+	}
 	saturatedModel <- mxModel(name=paste("Saturated", modelName),
-				  datasource,
-				  ltCov,
-				  satCov,
-				  mxExpectationNormal("satCov"),
-				  mxFitFunctionML())
+					datasource,
+					ltCov,
+					satCov,
+					mxExpectationNormal("satCov"),
+					mxFitFunctionML())
 
 	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=!ordinalCols,
-			   name="indCov", dimnames=list(varnam, varnam))
+				lbound=0, name="indCov", dimnames=list(varnam, varnam))
 	independenceModel <- mxModel(name=paste("Independence", modelName),
 				     datasource, indCov,
 				     mxExpectationNormal("indCov"), mxFitFunctionML())
