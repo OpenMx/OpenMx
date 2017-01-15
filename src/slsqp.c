@@ -2482,7 +2482,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 			 unsigned m, nlopt_constraint *fc,
 			 unsigned p, nlopt_constraint *h,
 			 const double *lb, const double *ub,
-			 double *theSpot, double *minf,
+			 double *theSpot, double *minf, nlopt_slsqp_wdump *wkspc,
 			 nlopt_stopping *stop)
 {
      slsqpb_state state = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,NULL};
@@ -2522,6 +2522,29 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      cgradtmp = major.par + n;
      w = cgradtmp + max_cdim*n;
      jw = (int *) (w + len_w);
+     
+     wkspc->realwkspc = (double*)realloc(wkspc->realwkspc, ((w+len_w)-work)*sizeof(double));
+     wkspc->M = mpi;
+     wkspc->lengths[0] = c-cgrad; //length of constraint Jacobian, with some uninitialized "padding"
+     wkspc->lengths[1] = grad-c; //length of constraint function-value vector(?)
+     wkspc->lengths[2] = n+1; //length of gradient, with some unitialized padding
+     wkspc->lengths[3] = n; //length of current parameter values(?)
+     wkspc->lengths[4] = n; //length of parameter values, from most recent minor iteration(?)
+     wkspc->lengths[5] = n; //length of parameter values, from most recent major iteration(?)
+     wkspc->lengths[6] = w-cgradtmp; //length of resized/rearranged constraint Jacobian(?)
+     wkspc->lengths[7] = len_w; //length of 'w':
+     /* *                   THE FIRST M+N+N*N1/2 - 1 ELEMENTS OF W MUST NOT BE    * */
+     /* *                   CHANGED BETWEEN SUBSEQUENT CALLS OF SLSQP.        * */
+     /* *                   ON RETURN W(0) ... W(M-1) CONTAIN THE MULTIPLIERS   * */
+     /* *                   ASSOCIATED WITH THE GENERAL CONSTRAINTS, WHILE    * */
+     /* *                   W(M) ... W(M + N(N+1)/2 - 1) STORE THE CHOLESKY FACTOR* */
+     /* *                   L*D*L(T) OF THE APPROXIMATE HESSIAN OF THE        * */
+     /* *                   LAGRANGIAN COLUMNWISE DENSE AS LOWER TRIANGULAR   * */
+     /* *                   UNIT MATRIX L WITH D IN ITS 'DIAGONAL' and        * */
+     /* *                ?? W(M+N(N+1)/2+N+1 ... W(M+N(N+1)/2+N+2+M+2N-1)       * */
+     /* *                   CONTAIN THE MULTIPLIERS ASSOCIATED WITH ALL       * */
+     /* *                   ALL CONSTRAINTS OF THE QUADRATIC PROGRAM FINDING  * */
+     /* *                   THE SEARCH DIRECTION TO THE SOLUTION X*           * */
      
      goto eval_f_and_grad; /* eval before calling slsqp the first time */
 
@@ -2684,6 +2707,9 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      } while (ret == NLOPT_SUCCESS);
 
 done:
+	
+	wkspc->realwkspc = (double*)memcpy(wkspc->realwkspc, work, ((w+len_w)-work)*sizeof(double));
+	
      if (!nlopt_isinf(major.fval)) {
 	     estimate_return(&major, minf, theSpot);
      } else if (!nlopt_isinf(minor.fval)) {

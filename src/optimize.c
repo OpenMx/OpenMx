@@ -394,10 +394,10 @@ static nlopt_result nlopt_optimize_(nlopt_opt opt, double *x, double *minf)
 
      switch (algorithm) {
 	 case NLOPT_LD_SLSQP:
-	      return nlopt_slsqp(n, f, f_data,
-				 opt->m, opt->fc,
-				 opt->p, opt->h,
-				 lb, ub, x, minf, &stop);
+	 	return nlopt_slsqp(n, f, f_data,
+                      opt->m, opt->fc,
+                      opt->p, opt->h,
+                      lb, ub, x, minf, opt->work, &stop);
 				     
 	 default:
 	      return NLOPT_INVALID_ARGS;

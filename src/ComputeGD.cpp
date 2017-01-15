@@ -246,6 +246,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->constraintJacobian = rf.constraintJacobianOut;
 		fc->LagrMultipliers = rf.LagrMultipliersOut;
 		fc->constraintStates = rf.constraintStatesOut;
+		//LagrHessian?
 #endif
 		break;}
         case OptEngine_CSOLNP:
@@ -267,6 +268,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxInvokeNLOPT(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
+		fc->constraintFunVals = rf.constraintFunValsOut;
+		fc->LagrMultipliers = rf.LagrMultipliersOut;
+		fc->constraintJacobian = rf.constraintJacobianOut;
+		fc->LagrHessian = rf.LagrHessianOut;
 		break;
         case OptEngine_SD:{
 		fc->copyParamToModel();
@@ -315,7 +320,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	omxPopulateFitFunction(fitMatrix, out);
 	
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, cjac, lambdas, cstates;
+	SEXP pn, cn, cr, cc, cv, cjac, lambdas, cstates, lagrhess;
 	size_t i=0;
 	
 	output.add("maxThreads", Rf_ScalarInteger(threads));
@@ -358,6 +363,11 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		Rf_protect(cstates = Rf_allocVector( INTSXP, fc->constraintStates.size() ));
 		memcpy( INTEGER(cstates), fc->constraintStates.data(), sizeof(int) * fc->constraintStates.size() );
 		output.add("istate", cstates); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+	}
+	if( fc->LagrHessian.size() ){
+		Rf_protect(lagrhess = Rf_allocMatrix( REALSXP, fc->LagrHessian.rows(), fc->LagrHessian.cols() ));
+		memcpy( REAL(lagrhess), fc->LagrHessian.data(), sizeof(double) * fc->LagrHessian.rows() * fc->LagrHessian.cols() );
+		output.add("LagrHessian", lagrhess);
 	}
 	slots->add("output", output.asR());
 	
