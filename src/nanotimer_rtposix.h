@@ -13,6 +13,6 @@
 # include <sys/time.h>
 
 /* short an sweet! */
-inline nanotime_t get_nanotime(void) {
+nanotime_t get_nanotime(void) {
     return gethrtime();
 }

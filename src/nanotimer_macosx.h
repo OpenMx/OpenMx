@@ -1,7 +1,7 @@
 #include <mach/mach_time.h>
 
 /* see http://developer.apple.com/library/mac/#qa/qa2004/qa1398.html */
-inline nanotime_t get_nanotime(void) {
+nanotime_t get_nanotime(void) {
     uint64_t time;
     mach_timebase_info_data_t info;
     

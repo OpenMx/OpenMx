@@ -32,6 +32,9 @@
 
 # Load Libraries
 require(OpenMx)
+#mxOption(NULL, "Number of Threads", 8L)
+#mxOption(NULL, "Default optimizer", "NPSOL")
+set.seed(1)
 
 "%&%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
 
@@ -145,7 +148,7 @@ for (i in 1:(nregime^nocc))
 
     temp <- mxModel(name=paste("Regime",i,sep=""), temp)
     modelNames[i] <- paste("Regime",i,sep="")
-    modelList[i] <- temp
+    modelList[i] <- list(temp)
 }
 # -----------------------------------------------------------------------------
 # Now we construct the weight matrix algebra
@@ -205,14 +208,18 @@ rsgcmmDiffT <- mxOption(rsgcmmDiffT, 'Checkpoint Count', 1)
 #rsgcmm <- mxOption(rsgcmm, "Standard Errors", "No")
 #rsgcmm <- mxOption(rsgcmm, "Calculate Hessian", "No")
 
-rsgcmmDiffTFit <- mxRun(rsgcmmDiffT, unsafe=TRUE)
+rsgcmmDiffTFit <- mxTryHard(rsgcmmDiffT)
 
 summary(rsgcmmDiffTFit)
+
+# CSOLNP 10095
+# SLSQP 9933.171 
+# NPSOL 9962.865 
 
 # -----------------------------------------------------------------------------
 
 # Check results to see if they are within specified bounds
-#omxCheckCloseEnough(rsgcmmDiffTFit$output$Minus2LogLikelihood, 9918.364, 0.1)
+omxCheckCloseEnough(rsgcmmDiffTFit$output$Minus2LogLikelihood, 9933, 170)
 #omxCheckCloseEnough(max(mxEval(rsgcmmFit$output$transitionProbs, rsgcmmFit)), 0.4790, 0.01)
 #omxCheckCloseEnough(min(mxEval(rsgcmmFit$output$transitionProbs, rsgcmmFit)), 0.1608, 0.01)
 ## -----------------------------------------------------------------------------

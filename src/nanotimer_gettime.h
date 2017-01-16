@@ -2,7 +2,7 @@
 
 static const nanotime_t nanoseconds_in_second = 1000000000LL;
 
-inline nanotime_t get_nanotime(void) {
+nanotime_t get_nanotime(void) {
     struct timespec time_var;
 
     /* Possible other values we could have used are CLOCK_MONOTONIC,

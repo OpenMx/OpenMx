@@ -13,7 +13,7 @@ for (np in seq(2,200,2)) {
   numPatInclude <- c(numPatInclude, np)
 }
 
-todo <- expand.grid(numPat=numPatInclude,
+todo <- expand.grid(numPat=numPatInclude, numContinuous=c(1L,100L),
                     numUnique=NA, strat=NA)
 
 for (trial in 1:nrow(todo)) {
@@ -29,7 +29,7 @@ for (trial in 1:nrow(todo)) {
   }
   exampleData <- as.data.frame(exampleData)
   
-  numContinuous <- 1L
+  numContinuous <- todo[trial,'numContinuous']
   
   manifests <- c(paste0("o", 1:numOrdinal), paste0("c", 1:numContinuous))
   
@@ -69,5 +69,6 @@ for (trial in 1:nrow(todo)) {
 }
 
 omxCheckTrue(todo$numUnique <= todo$numPat)
-omxCheckEquals(todo[1000/11 < todo$numUnique, 'strat'], 'continuous')
-omxCheckEquals(todo[1000/11 > todo$numUnique, 'strat'], 'ordinal')
+pred <- -4.73 + 0.48 * 1000/todo$numUnique - 0.06 * todo$numContinuous
+omxCheckEquals(todo[pred<0, 'strat'], 'continuous')
+omxCheckEquals(todo[pred>0, 'strat'], 'ordinal')

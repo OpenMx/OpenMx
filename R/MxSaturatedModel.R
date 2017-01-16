@@ -78,9 +78,6 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			ordinalLevels <- lapply(obsdata[,ordinalCols], levels)
 			numOrdinal <- sum(ordinalCols)
 			numOrdinalLevels <- sapply(ordinalLevels, length)
-			isBinary <- numOrdinalLevels %in% 2
-			binnam <- ordnam[isBinary]
-			numBinary <- sum(isBinary)
 			maxLevels <- max(numOrdinalLevels)
 			numThresholds <- maxLevels-1
 			startcov <- t(chol(diag(1, numVar)))
@@ -92,20 +89,35 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		startcov <- 0.3
 		indepcov <- 0.3
 		startmea <- 3.0
+		ordinalCols <- rep(FALSE, numVar)
 	}
 
-	ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
-			  values=startcov, free=TRUE, name="ltCov")
-	satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
+	# For all continuous data, use the Cholesky decomposition
+	#  but for joint and all-ordinal use a symmetric matrix
+	# This allows one to "contrain" the total variance of ordinal variables
+	#  to 1 without using mxConstraint.
+	if(!any(ordinalCols)){
+		ltCov <- mxMatrix(type="Lower", nrow=numVar, ncol=numVar,
+				values=startcov, free=TRUE, name="ltCov")
+		diag(ltCov$lbound) <- 0
+		satCov <- mxAlgebra(name="satCov", expression= ltCov %*% t(ltCov), dimnames=list(varnam, varnam))
+	} else {
+		ltCov <- NULL
+		satFre <- matrix(as.logical(diag(!ordinalCols, numVar)), numVar, numVar)
+		satFre[lower.tri(satFre, diag=FALSE)] <- TRUE
+		satCov <- mxMatrix(type="Symm", nrow=numVar, ncol=numVar,
+				values=startcov, free=satFre[lower.tri(satFre, diag=TRUE)], name="satCov",
+				dimnames=list(varnam, varnam))
+	}
 	saturatedModel <- mxModel(name=paste("Saturated", modelName),
-				  datasource,
-				  ltCov,
-				  satCov,
-				  mxExpectationNormal("satCov"),
-				  mxFitFunctionML())
+					datasource,
+					ltCov,
+					satCov,
+					mxExpectationNormal("satCov"),
+					mxFitFunctionML())
 
-	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=TRUE,
-			   name="indCov", dimnames=list(varnam, varnam))
+	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=!ordinalCols,
+				lbound=0, name="indCov", dimnames=list(varnam, varnam))
 	independenceModel <- mxModel(name=paste("Independence", modelName),
 				     datasource, indCov,
 				     mxExpectationNormal("indCov"), mxFitFunctionML())
@@ -122,10 +134,12 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 		if(any(ordinalCols)) {
 			thrdnam <- paste(rep(ordnam, each=numThresholds), 'ThrDev', 1:numThresholds, sep='')
 			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
+			thrdM <- rbind(numOrdinalLevels-1, numThresholds - numOrdinalLevels+1)
+			thrdfre <- apply(thrdM, 2, rep, x=c(TRUE, FALSE))
 			thresholdDeviations <- mxMatrix("Full", 
 					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 					values=.2,
-					free = TRUE,
+					free = thrdfre,
 					labels=thrdnam,
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
 					dimnames = list(c(), varnam[ordinalCols]),
@@ -141,31 +155,6 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 				saturatedMeans, thresholdDeviations, unitLower, saturatedThresholds,
 				mxExpectationNormal("indCov", "satMea", thresholds="thresholdMatrix")
 			)
-			if(any(isBinary)){
-				Iblock <- diag(1, numBinary)
-				colnames(Iblock) <- binnam
-				Zblock <- matrix(0, nrow=numBinary, ncol=numVar-numBinary)
-				colnames(Zblock) <- varnam[!(varnam %in% binnam)]
-				binaryFilterValues <- cbind(Iblock, Zblock)
-				binaryFilterValues <- binaryFilterValues[,varnam]
-				BinaryVarianceFilteringMatrix <- NULL  # avoid CRAN check warning
-				binaryFilter <- mxMatrix('Full', nrow=numBinary, ncol=numVar, values=binaryFilterValues, free=FALSE, name='BinaryVarianceFilteringMatrix')
-				BinaryVarianceFilteringAlgebra <- NULL  # avoid CRAN check warning
-				binaryAlgebraSat <- mxAlgebra(
-					BinaryVarianceFilteringMatrix %*% diag2vec(satCov), name='BinaryVarianceFilteringAlgebra')
-				binaryAlgebraInd <- mxAlgebra(
-					BinaryVarianceFilteringMatrix %*% diag2vec(indCov), name='BinaryVarianceFilteringAlgebra')
-				BinaryConstantVectorOfOnes <- NULL  # avoid CRAN check warning
-				binaryConstant <- mxMatrix('Full', nrow=numBinary, ncol=1, values=1, free=FALSE, name='BinaryConstantVectorOfOnes')
-				binaryConstraint <- mxConstraint(
-					BinaryConstantVectorOfOnes == BinaryVarianceFilteringAlgebra, name='BinaryVarianceConstraint')
-				saturatedModel <- mxModel(saturatedModel,
-					binaryFilter, binaryAlgebraSat, binaryConstant, binaryConstraint
-				)
-				independenceModel <- mxModel(independenceModel,
-					binaryFilter, binaryAlgebraInd, binaryConstant, binaryConstraint
-				)
-			}
 		}
 	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))

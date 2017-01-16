@@ -282,6 +282,7 @@ class mvnByRow {
 		if (returnRowLikelihoods) Rf_error("oops");
 
 		EigenVectorAdaptor rl(localobj->matrix);
+		//mxLog("%g += record(%g)", rl[0], lik);
 		rl[0] += lik;
 		firstRow = false;
 	}
@@ -331,18 +332,32 @@ class mvnByRow {
 		firstRow = false;
 	}
 
-	void reportBadOrdLik()
+	void reportBadOrdLik(int loc)
 	{
 		if (fc) fc->recordIterationError("Ordinal covariance is not positive definite "
-						 "in data '%s' row %d", data->name, sortedRow);
+						 "in data '%s' row %d (loc%d)", data->name, sortedRow, loc);
 		if (verbose >= 1) ol.log();
 	}
 
-	void reportBadContLik()
+	template <typename T1, typename T2>
+	void reportBadContRow(const Eigen::MatrixBase<T1> &resid, const Eigen::MatrixBase<T2> &icov)
 	{
-		if (fc) fc->recordIterationError("Continuous covariance "
-						 "is not positive definite in data '%s' row %d",
-						 data->name, sortedRow);
+		std::string empty = std::string("");
+		std::string buf = mxStringifyMatrix("resid", resid, empty);
+		buf += mxStringifyMatrix("inverse covariance", icov, empty);
+		if (fc) fc->recordIterationError("In data '%s' row %d continuous variables are too"
+						 " far from the model implied distribution. Details:\n%s",
+						 data->name, sortedRow, buf.c_str());
+	}
+
+	template <typename T1>
+	void reportBadContLik(int loc, const Eigen::MatrixBase<T1> &badCov)
+	{
+		std::string empty = std::string("");
+		std::string buf = mxStringifyMatrix("covariance", badCov, empty);
+		if (fc) fc->recordIterationError("Continuous covariance (loc%d) "
+						 "is not positive definite in data '%s' row %d. Detail:\n%s",
+						 loc, data->name, sortedRow, buf.c_str());
 	}
 };
 

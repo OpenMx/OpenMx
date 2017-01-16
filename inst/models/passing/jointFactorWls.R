@@ -164,13 +164,15 @@ ref <- mxRefModels(jointModel1, run=TRUE)
 
 (swls <- summary(jointWlsResults))
 
-#TODO Find out whose chi-squared degrees of freedom are correct
-sref$ChiDoF
-shan$ChiDoF
-swls$ChiDoF
+# Compare chi-squared degrees of freedom
+omxCheckTrue(sref$ChiDoF == shan$ChiDoF)
+omxCheckTrue(shan$ChiDoF == swls$ChiDoF)
 
 
-#TODO Compare Chi-squared values too
+# Compare Chi-squared values too
+omxCheckCloseEnough(sref$Chi, shan$Chi, 1e-3)
+omxCheckWithinPercentError(shan$Chi, swls$Chi, 28)
+
 
 
 #------------------------------------------------------------------------------

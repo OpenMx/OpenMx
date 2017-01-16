@@ -434,7 +434,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 			if (missing(nrows)) nrows <- nrow(origData)
 		}
 		data <- genericGenerateData(model$expectation, model, nrows)
-		if (use.miss && !is.null(origData)) {
+		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])
 			if (nrows != nrow(origData)) {
 				del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]

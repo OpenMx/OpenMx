@@ -116,19 +116,20 @@ bool condOrdByRow::eval()
 					VectorXd uThresh(rowOrdinal);
 					VectorXd lThresh(rowOrdinal);
 					for(int jj=0; jj < rowOrdinal; jj++) {
-						int var = dataColumns[ ordColBuf[jj] ];
+						int col = ordColBuf[jj];
+						int var = dataColumns[col];
 						if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) {
 							Rf_error("Must be a factor");
 						}
 						int pick = omxIntDataElement(data, sortedRow, var) - 1;
-						if (OMX_DEBUG && (pick < 0 || pick > colInfo[var].numThresholds)) {
+						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							Rf_error("Out of range");
 						}
-						int tcol = colInfo[var].column;
+						int tcol = colInfo[col].column;
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
 							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
-						} else if (pick == colInfo[var].numThresholds) {
+						} else if (pick == colInfo[col].numThresholds) {
 							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
@@ -138,7 +139,7 @@ bool condOrdByRow::eval()
 					}
 
 					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
-						reportBadOrdLik();
+						reportBadOrdLik(1);
 						return true;
 					}
 					U11 = U11.selfadjointView<Eigen::Upper>();
@@ -146,7 +147,7 @@ bool condOrdByRow::eval()
 				if (!parent->ordinalMissingSame[row] || firstRow) {
 					invOrdCov = ordCov;
 					if (InvertSymmetricPosDef(invOrdCov, 'L')) {
-						reportBadOrdLik();
+						reportBadOrdLik(2);
 						return true;
 					}
 					invOrdCov = invOrdCov.selfadjointView<Eigen::Lower>();
@@ -168,7 +169,7 @@ bool condOrdByRow::eval()
 					covDecomp.compute(contCov);
 					if (covDecomp.info() != Eigen::Success ||
 					    !(covDecomp.vectorD().array() > 0.0).all()) {
-						reportBadContLik();
+						reportBadContLik(1, contCov);
 						return true;
 					}
 					covDecomp.refreshInverse();
@@ -185,7 +186,7 @@ bool condOrdByRow::eval()
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(2, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();
@@ -222,6 +223,10 @@ bool condOrdByRow::eval()
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
+			if (contLik == 0.0) {
+				reportBadContRow(resid, iV);
+				return true;
+			}
 		} else { contLik = 1.0; }
 
 		recordRow(contLik, ordLik);
@@ -262,7 +267,7 @@ bool condContByRow::eval()
 				subsetCovariance(jointCov, op, rowContinuous, contCov);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(3, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();
@@ -301,7 +306,7 @@ bool condContByRow::eval()
 				INCR_COUNTER(invert);
 				covDecomp.compute(contCov);
 				if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
-					reportBadContLik();
+					reportBadContLik(4, contCov);
 					return true;
 				}
 				covDecomp.refreshInverse();
@@ -317,6 +322,10 @@ bool condContByRow::eval()
 				double cterm = M_LN_2PI * resid.size();
 				double logDet = covDecomp.log_determinant();
 				contLik = exp(-0.5 * (iqf + cterm + logDet));
+				if (contLik == 0.0) {
+					reportBadContRow(resid, iV);
+					return true;
+				}
 			}
 		} else {
 			contLik = 1.0;
@@ -636,7 +645,10 @@ static void sortData(omxFitFunction *off)
 			cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
 			if (!m1 && !m2 && !m7) --numUnique;
 		}
-		if (numUnique < data->rows/11) {
+		double rowsPerOrdinalPattern = data->rows / (double)numUnique;
+		// magic numbers from logistic regression
+		double prediction = -4.73 + 0.48 * rowsPerOrdinalPattern - 0.06 * ofiml->numContinuous;
+		if (prediction > 0.0) {
 			ofiml->jointStrat = JOINT_CONDORD;
 		} else {
 			ofiml->jointStrat = JOINT_CONDCONT;

@@ -169,6 +169,7 @@ class FitContext {
 	Eigen::MatrixXd constraintJacobian;
 	Eigen::VectorXd LagrMultipliers;
 	Eigen::VectorXi constraintStates;
+	Eigen::MatrixXd LagrHessian;
 
 	// for confidence intervals
 	CIobjective *ciobj;
@@ -339,6 +340,7 @@ class GradientOptimizerContext {
 	Eigen::MatrixXd constraintJacobianOut;
 	Eigen::VectorXd LagrMultipliersOut;
 	Eigen::VectorXi constraintStatesOut;
+	Eigen::MatrixXd LagrHessianOut;
 
 	double solFun(double *myPars, int* mode);
 	double evalFit(double *myPars, int thrId, int *mode);

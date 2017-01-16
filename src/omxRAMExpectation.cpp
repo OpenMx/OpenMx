@@ -1227,6 +1227,12 @@ namespace RelationalRAMExpectation {
 				return true;
 			}
 
+			bool mismatch = lhs->rampartScale != rhs->rampartScale;
+			if (mismatch) {
+				result = lhs->rampartScale < rhs->rampartScale;
+				return true;
+			}
+
 			const addrSetup *lhss = &st->layoutSetup[lhs - &st->layout[0]];
 			const addrSetup *rhss = &st->layoutSetup[rhs - &st->layout[0]];
 			if (lhss->clump.size() != rhss->clump.size()) {

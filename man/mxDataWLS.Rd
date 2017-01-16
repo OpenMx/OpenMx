@@ -45,10 +45,12 @@ The mxDataWLS function creates an \link{MxData} object, which can be used in
 an \code{MxData} object to be used in a model to fit with weighted least squares.
 
 Both Ordinal and continuous data are supported.  A combination of these data 
-types succeeds without error, but when using 'WLS' or 'DLS' the answers
-appear incorrect.  The 'ULS' estimates for joint ordinal and continuous data
-appear accurate.  Consequently, do not use this function for joint 
-problems unless \code{type='ULS'}.
+types also succeeds. Early tests suggested that full 'WLS' might be biased in 
+this joint ordinal and continuous case, whereas 'ULS' and 'DLS' were unbiased.
+However further investigation revealed that all of these were unbiased when the model is correct, but full
+'WLS' is highly sensitive to model misspecification. Full 'WLS' can heavily weight the
+fourth-order moments of the distribution, so small deviations between the observed 
+fourth-order moments and those implied by the model can lead to poor estimates.
 }
 
 \value{

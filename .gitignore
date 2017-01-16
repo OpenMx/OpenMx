@@ -148,6 +148,7 @@ man/MxInterval-class.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
+man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
 man/MxOptionalLogical-class.Rd
@@ -169,7 +170,6 @@ man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
-man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
