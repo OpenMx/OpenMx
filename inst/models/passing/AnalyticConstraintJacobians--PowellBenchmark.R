@@ -127,6 +127,40 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 		c("x1.bound","x2.bound","x3.bound","x4.bound","x5.bound","PowellBenchmarkWithJacobians.c1[1,1]",
 			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
+} else if(mxOption(NULL,"Default optimizer")=="SLSQP"){
+	#Check naming of constraint-related information:
+	omxCheckEquals(
+		names(powellrun1$output$constraintFunctionValues),
+		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		rownames(powellrun1$output$constraintJacobian),
+		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]","PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun1$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(
+		names(powellrun1$output$LagrangeMultipliers),
+		c("PowellBenchmarkNoJacobians.c1[1,1]","PowellBenchmarkNoJacobians.c2[1,1]",
+			"PowellBenchmarkNoJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun1$output$LagrHessian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(rownames(powellrun1$output$LagrHessian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(
+		names(powellrun2$output$constraintFunctionValues),
+		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(
+		rownames(powellrun2$output$constraintJacobian),
+		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun2$output$constraintJacobian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(
+		names(powellrun2$output$LagrangeMultipliers),
+		c("PowellBenchmarkWithJacobians.c1[1,1]","PowellBenchmarkWithJacobians.c2[1,1]",
+			"PowellBenchmarkWithJacobians.c3[1,1]")
+	)
+	omxCheckEquals(colnames(powellrun2$output$LagrHessian), c("x1","x2","x3","x4","x5"))
+	omxCheckEquals(rownames(powellrun2$output$LagrHessian), c("x1","x2","x3","x4","x5"))
 }
 
 
