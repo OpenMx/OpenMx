@@ -282,15 +282,15 @@ combineDefaultOptions <- function(input) {
 ##' \sQuote{Function precision}--respectively, 1.0e-7, 1L, and 1e-14.
 ##' 
 ##' @param optionName Character string naming the \link{mxOption} for which a numeric or integer value is wanted.
-##' @param optionsList List of options; defaults to list of global \link{mxOption}s.
-imxAutoOptionValue <- function(optionName, optionsList=options()$mxOption){
-	#First, check to see if the option already has a valid global value (possibly in string form), and if so, return that:
-	numcast <- try(suppressWarnings(as.numeric(optionsList$optionName)),silent=TRUE)
+##' @param optionList List of options; defaults to list of global \link{mxOption}s.
+imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
+	#First, check to see if the option already has a valid value (possibly in string form), and if so, return that:
+	numcast <- try(suppressWarnings(as.numeric(optionList[[optionName]])),silent=TRUE)
 	if(!length(numcast)){
 		#NULL numcast is most likely to result from either (1) misspelled optionName, 
-		#or (2) user providing non-default value for optionsList that lacks an element named optionName.
+		#or (2) user providing non-default value for optionList that lacks an element named optionName.
 		#Throwing an error seems the best behavior in this case.
-		stop(paste("extracting element ",optionName," from argument 'optionsList' resulted in NULL"),sep="")
+		stop(paste("extracting element '",optionName,"' from argument 'optionList' resulted in NULL"),sep="")
 	}
 	#numcast will be try-error for e.g. NPSOL option "Major iterations" (on-load default is a function);
 	if("try-error" %in% class(numcast)){return(mxOption(NULL,optionName))}
