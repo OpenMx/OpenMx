@@ -1532,16 +1532,16 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			fitfunction=fitNum,
 			verbose=0L,	
 			gradientAlgo=optionList[['Gradient algorithm']],
-			gradientIterations=optionList[['Gradient iterations']],
-			gradientStepSize=optionList[['Gradient step size']]))
+			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
 					fitfunction=fitNum, 
 					nudgeZeroStarts=FALSE,
 					gradientAlgo=optionList[['Gradient algorithm']],
-					gradientIterations=optionList[['Gradient iterations']],
-					gradientStepSize=optionList[['Gradient step size']])
+					gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+					gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
 					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
