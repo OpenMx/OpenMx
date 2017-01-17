@@ -1554,7 +1554,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			if (optionList[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(
 					fitfunction=fitNum, 
-					stepSize=imxAutoOptionValue('Gradient step size',optionList))
+					stepSize=imxAutoOptionValue('Gradient step size',optionList)))
 			}
 			if (optionList[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
