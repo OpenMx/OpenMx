@@ -174,7 +174,6 @@ runHelper <- function(model, frontendStart,
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, dependencies)
 
 	if (length(expectations)) {
-		#prec <- lapply(expectations, genericExpGetPrecision)
 		prec <- lapply(expectations, function(x){getPrecisionPerExpectation(x,options)})
 
 		functionPrecision <- Reduce(max, c(imxAutoOptionValue("Function precision",options),

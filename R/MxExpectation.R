@@ -79,11 +79,6 @@ setGeneric("genericExpConvertEntities",
 	return(standardGeneric("genericExpConvertEntities"))
 })
 
-# setGeneric("genericExpGetPrecision",
-# 	function(.Object) {
-# 	return(standardGeneric("genericExpGetPrecision"))
-# })
-
 setGeneric("genericGetExpected",
 	function(.Object, model, what, defvar.row) {
 	return(standardGeneric("genericGetExpected"))
@@ -138,11 +133,6 @@ setMethod("genericExpRename", "NULL",
 	function(.Object, oldname, newname) {
 		return(NULL)
 })
-
-# setMethod("genericExpGetPrecision", "MxBaseExpectation",
-# 	function(.Object) {
-# 		return(list(stepSize=mxOption(NULL, "Gradient step size"), iterations=4L))
-# })
 
 setMethod("genericGetExpected", "MxBaseExpectation",
 	function(.Object, model, what, defvar.row) stop("Not implemented"))
