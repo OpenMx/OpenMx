@@ -1533,7 +1533,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			verbose=0L,	
 			gradientAlgo=optionList[['Gradient algorithm']],
 			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
-			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList)))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
