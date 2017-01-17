@@ -126,7 +126,7 @@ npsolOptions <- list(
 	"Minor print level" = "0",
 	"Print file" = "0",
 	"Summary file" = "0",
-	"Function precision" = "Auto"#"1e-14",
+	"Function precision" = "Auto",#"1e-14"
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "5e-2",
@@ -172,12 +172,9 @@ otherOptions <- list(
     "mvnRelEps" = 0,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = "central",
-    "Gradient iterations" = 1L,
-    "Gradient step size" = 1.0e-7,
+    "Gradient iterations" = "Auto",#1L,
+    "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",
-    "Gradient iterations" = "Auto"#1L,
-    "Gradient step size" = "Auto"#1.0e-7,
-    "Parallel diagnostics" = "No"
     "Debug protect stack" = "No"
 )
 
