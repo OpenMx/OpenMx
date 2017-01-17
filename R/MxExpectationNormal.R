@@ -85,16 +85,16 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 		return(.Object)
 })
 
-NormalExpGetPrecision <- function(.Object) {
-	if(!single.na(.Object@thresholds)) {
-		return(list(stepSize=mxOption(NULL, "Gradient step size")*1e3,
-			    iterations=3L, functionPrecision=1e-9))
-	} else {
-		callNextMethod();
-	}
-}
+# NormalExpGetPrecision <- function(.Object) {
+# 	if(!single.na(.Object@thresholds)) {
+# 		return(list(stepSize=mxOption(NULL, "Gradient step size")*1e3,
+# 			    iterations=3L, functionPrecision=1e-9))
+# 	} else {
+# 		callNextMethod();
+# 	}
+# }
 
-setMethod("genericExpGetPrecision", "MxExpectationNormal", NormalExpGetPrecision)
+# setMethod("genericExpGetPrecision", "MxExpectationNormal", NormalExpGetPrecision)
 
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1) {

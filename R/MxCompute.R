@@ -415,8 +415,8 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
-				     gradientIterations=mxOption(NULL, "Gradient iterations"),
-				     gradientStepSize=mxOption(NULL, "Gradient step size")) {
+				     gradientIterations=imxAutoOptionValue("Gradient iterations"),
+				     gradientStepSize=imxAutoOptionValue("Gradient step size")) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1251,7 +1251,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				  parallel=TRUE,
-				  stepSize=mxOption(NULL, "Gradient step size"),
+				  stepSize=imxAutoOptionValue("Gradient step size"),
 				  iterations=4L, verbose=0L,
 				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE)
 {

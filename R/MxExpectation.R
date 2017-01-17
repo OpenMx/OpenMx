@@ -79,10 +79,10 @@ setGeneric("genericExpConvertEntities",
 	return(standardGeneric("genericExpConvertEntities"))
 })
 
-setGeneric("genericExpGetPrecision",
-	function(.Object) {
-	return(standardGeneric("genericExpGetPrecision"))
-})
+# setGeneric("genericExpGetPrecision",
+# 	function(.Object) {
+# 	return(standardGeneric("genericExpGetPrecision"))
+# })
 
 setGeneric("genericGetExpected",
 	function(.Object, model, what, defvar.row) {
@@ -139,10 +139,10 @@ setMethod("genericExpRename", "NULL",
 		return(NULL)
 })
 
-setMethod("genericExpGetPrecision", "MxBaseExpectation",
-	function(.Object) {
-		return(list(stepSize=mxOption(NULL, "Gradient step size"), iterations=4L))
-})
+# setMethod("genericExpGetPrecision", "MxBaseExpectation",
+# 	function(.Object) {
+# 		return(list(stepSize=mxOption(NULL, "Gradient step size"), iterations=4L))
+# })
 
 setMethod("genericGetExpected", "MxBaseExpectation",
 	function(.Object, model, what, defvar.row) stop("Not implemented"))
@@ -207,4 +207,40 @@ expectationFunctionConvertEntities <- function(flatModel, namespace, labelsData)
 	}
 
 	return(flatModel)
+}
+
+#By the time this function is called, the optionsList will contain any locally set mxOptions:
+getPrecisionPerExpectation <- function(expectation, optionsList){
+	
+	#Assume a value for an option is needed if the option's current value is NA when coerced to numeric
+	#(which will be the case if the current value is "Auto"):
+	needStepSize <- is.na(suppressWarnings(as.numeric(optionsList$"Gradient step size")))
+	needIters <- is.na(suppressWarnings(as.integer(optionsList$"Gradient iterations")))
+	needFuncPrec <- is.na(suppressWarnings(as.numeric(optionsList$"Function precision")))
+	
+	#Do we have an ordinal-thresholds expectation?:
+	isOrdThresh <- (class(expectation) %in% c("MxExpectationNormal","MxExpectationLISREL","MxExpectationRAM")) && 
+		!single.na(expectation@thresholds)
+	
+	if(needStepSize){
+		if(isOrdThresh){stepSize <- 1.0e-4} #<--Default value, times 1e3
+		else{stepSize <- 1.0e-7} #<--Default value
+	} 
+	else{stepSize <- as.numeric(optionsList$"Gradient step size")}
+	
+	if(needIters){
+		#Neither 3L nor 4L agrees with the default value of 1L...but this how the definitions for 
+		#generic method "genericExpGetPrecision" were written...:
+		if(isOrdThresh){iterations <- 3L}
+		else{iterations <- 4L}
+	}
+	else{iterations <- as.integer(optionsList$"Gradient iterations")}
+	
+	if(needFuncPrec){
+		if(isOrdThresh){functionPrecision <- 1e-9}
+		else{functionPrecision <- 1e-14} #<--Default value
+	}
+	else{functionPrecision <- as.numeric(optionsList$"Function precision")}
+	
+	return(list(stepSize=stepSize, iterations=iterations, functionPrecision=functionPrecision))
 }
