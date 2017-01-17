@@ -177,7 +177,7 @@ runHelper <- function(model, frontendStart,
 		#prec <- lapply(expectations, genericExpGetPrecision)
 		prec <- lapply(expectations, function(x){getPrecisionPerExpectation(x,options)})
 
-		functionPrecision <- Reduce(max, c(as.numeric(options[['Function precision']]),
+		functionPrecision <- Reduce(max, c(imxAutoOptionValue("Function precision",options),
 						   sapply(prec, function(x) x[['functionPrecision']])))
 		options[['Function precision']] <- as.character(functionPrecision)
 
