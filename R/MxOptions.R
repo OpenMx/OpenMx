@@ -174,7 +174,8 @@ otherOptions <- list(
     "Gradient algorithm" = "central",
     "Gradient iterations" = 1L,
     "Gradient step size" = 1.0e-7,
-    "Parallel diagnostics" = "No"
+    "Parallel diagnostics" = "No",
+    "Debug protect stack" = "No"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
