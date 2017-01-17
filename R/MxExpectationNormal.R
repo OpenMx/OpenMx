@@ -357,7 +357,7 @@ generateRelationalData <- function(model, returnModel) {
 	))
 
 	modelE <- mxModel(model, plan)
-	modelE$expectation$.rampart <- 0L
+	modelE$expectation$.rampartCycleLimit <- 0L
 	modelE <- mxRun(modelE, silent=TRUE)
 	dataEnv <- new.env()
 	for (dName in names(modelE@runstate$datalist)) {

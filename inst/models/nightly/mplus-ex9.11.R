@@ -49,8 +49,8 @@ cfa <- mxTryHard(cfa)
 omxCheckCloseEnough(cfa$output$fit, 49853.908, 1e-2)
 # Mplus -24926.956 * -2 = 49853.91
 
-cfa$withinGroup1$expectation$.rampart <- 0L
-cfa$withinGroup2$expectation$.rampart <- 0L
+cfa$withinGroup1$expectation$.rampartCycleLimit <- 0L
+cfa$withinGroup2$expectation$.rampartCycleLimit <- 0L
 cfa <- mxRun(mxModel(cfa,
 		    mxComputeSequence(list(
 			mxComputeOnce('fitfunction', 'fit'),
@@ -74,16 +74,16 @@ f1 <- omxSetParameters(cfa, labels=names(coef(cfa)),
                             -.015, .096                              # group 2 fb means
                                  ))
 
-f1$withinGroup1$expectation$.rampart <- 0L
-f1$withinGroup2$expectation$.rampart <- 0L
+f1$withinGroup1$expectation$.rampartCycleLimit <- 0L
+f1$withinGroup2$expectation$.rampartCycleLimit <- 0L
 f1 <- mxRun(mxModel(f1,
 		    mxComputeSequence(list(
 			mxComputeOnce('fitfunction', 'fit'),
 			mxComputeReportExpectation()))))
 omxCheckCloseEnough(f1$output$fit, 49853.91, 1e-2)
 
-f1$withinGroup1$expectation$.rampart <- NA_integer_
-f1$withinGroup2$expectation$.rampart <- NA_integer_
+f1$withinGroup1$expectation$.rampartCycleLimit <- NA_integer_
+f1$withinGroup2$expectation$.rampartCycleLimit <- NA_integer_
 f1 <- mxRun(mxModel(f1,
 		    mxComputeSequence(list(
 			mxComputeOnce('fitfunction', 'fit'),

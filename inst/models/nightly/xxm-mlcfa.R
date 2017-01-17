@@ -49,7 +49,7 @@ if(0) {
 }
 
 f1 <- studentModel
-f1$expectation$.rampart <- 0L
+f1$expectation$.rampartCycleLimit <- 0L
 f1 <- mxRun(mxModel(f1, mxComputeOnce('fitfunction', 'fit')))
 omxCheckCloseEnough(f1$output$fit, 14463.33, 1e-2)
 

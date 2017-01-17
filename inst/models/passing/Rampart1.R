@@ -98,7 +98,7 @@ student <- mxModel(
 
 #student$expectation$verbose <- 1L
 
-student$expectation$.rampart <- 0L
+student$expectation$.rampartCycleLimit <- 0L
 pt1 <- mxRun(mxModel(
     student,
     mxComputeSequence(list(
@@ -108,7 +108,7 @@ pt1 <- mxRun(mxModel(
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()))))
 
-student$expectation$.rampart <- as.integer(NA)
+student$expectation$.rampartCycleLimit <- as.integer(NA)
 pt2 <- mxRun(mxModel(
     student,
     mxComputeSequence(list(

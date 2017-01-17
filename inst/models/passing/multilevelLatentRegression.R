@@ -124,7 +124,7 @@ map$free['studentSkill', 'teacherSkill'] <- TRUE
 map$labels['studentSkill', 'teacherSkill'] <- 'regr'
 container$student$Z <- map
 
-container$student$expectation$.rampart <- 0L
+container$student$expectation$.rampartCycleLimit <- 0L
 pt1 <- mxRun(mxModel(container,
 			 mxComputeSequence(list(
 			     mxComputeOnce('fitfunction', 'fit'),
@@ -132,7 +132,7 @@ pt1 <- mxRun(mxModel(container,
 			     mxComputeReportDeriv(),
 			     mxComputeReportExpectation()))))
 
-container$student$expectation$.rampart <- as.integer(NA)
+container$student$expectation$.rampartCycleLimit <- as.integer(NA)
 pt2 <- mxRun(mxModel(container,
 			 mxComputeSequence(list(
 			     mxComputeOnce('fitfunction', 'fit'),

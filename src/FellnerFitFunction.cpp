@@ -185,11 +185,14 @@ namespace FellnerFitFunction {
 				parent = (state*) pfitMat->fitFunction->argStruct;
 			}
 
+			//mxLog("%s: compute fit", oo->name());
+
 			SimpCholesky< Eigen::MatrixXd > covDecomp;
 			bool haveMean = false;
 			double lp = 0.0;
 			for (size_t gx=0; gx < rram.group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram.group[gx];
+				double lp1 = 0.0;
 
 				if (computeCov(*rram.group[gx], fc, covDecomp)) {
 					throw std::runtime_error("Cholesky decomposition failed");
@@ -220,7 +223,7 @@ namespace FellnerFitFunction {
 						fc->est[ parent->olsVarNum[px] ] = param[px];
 						fc->varGroup->vars[ parent->olsVarNum[px] ]->copyToState(ram->M->currentState, param[px]);
 					}
-					lp += remlAdj - M_LN_2PI * parent->numProfiledOut;
+					lp1 += remlAdj - M_LN_2PI * parent->numProfiledOut;
 				}
 
 				if (!haveMean) {
@@ -237,6 +240,7 @@ namespace FellnerFitFunction {
 				//mxPrintMat("expectedVec", ig.expectedVec);
 
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
+				double logDet = covDecomp.log_determinant();
 				//mxPrintMat("iV", iV);
 				int clumps = ig.numLooseClumps();
 				if (clumps) {
@@ -245,7 +249,6 @@ namespace FellnerFitFunction {
 						ig.getParent().dataVec.segment(0,residLen) - ig.expectedVec.segment(0,residLen);
 					//mxPrintMat("resid", resid);
 
-					double logDet = clumps * covDecomp.log_determinant();
 				// Eigen::Map< Eigen::MatrixXd > iV(covDecomp.getInverseData(),
 				// 				 ig.fullCov.rows(), ig.fullCov.rows());
 					double iqf = 0.0;
@@ -257,12 +260,11 @@ namespace FellnerFitFunction {
 					double cterm = M_LN_2PI * residLen;
 					if (verbose + !std::isfinite(iqf) >= 2) {
 						mxLog("group[%d] log det %f iqf %f cterm %f",
-						      int(1+gx), logDet, iqf, cterm);
+						      int(1+gx), clumps * logDet, iqf, cterm);
 					}
-					lp += logDet + iqf + cterm;
+					lp1 += clumps * logDet + iqf + cterm;
 				}
 				if (ig.getParent().sufficientSets.size()) {
-					double logDet = covDecomp.log_determinant();
 					double cterm = M_LN_2PI * ig.clumpObs;
 					for (int sx=0; sx < (int)ig.getParent().sufficientSets.size(); ++sx) {
 						RelationalRAMExpectation::sufficientSet &ss = ig.getParent().sufficientSets[sx];
@@ -275,11 +277,15 @@ namespace FellnerFitFunction {
 							mxLog("group[%d] ss[%d] iqf %f tr1 %f logDet %f cterm %f",
 							      int(1+gx), (1+sx), iqf, tr1, logDet, cterm);
 						}
-						lp += ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
+						lp1 += ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
 					}
 				}
+				ig.fit = lp1;
+				lp += lp1;
+				//mxLog("%s: group[%d] lp1 %.6g lp %.6g", oo->name(), int(1+gx), lp1, lp);
 			}
 			lpOut = lp;
+			//mxLog("%s: total lp %.7g", oo->name(), lpOut);
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
 		}

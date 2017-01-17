@@ -1,4 +1,8 @@
-# OpenMx 2.7.3: Lots of NEWs
+# OpenMx bleed
+* FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization. If you are using 2.7.x then you have avoid problems with expectation$.useSufficientSets = FALSE.
+* IMPROVED: Rampart uses much less memory on large datasets.
+
+# OpenMx 2.7.x: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun Now gives feedback about optimization progress.
 * NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).

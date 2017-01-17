@@ -459,6 +459,7 @@ namespace RelationalRAMExpectation {
 
 		// could store coeff extraction plan in addr TODO
 		AsymTool<bool>          asymT;
+		double                           fit;  // most recent fit for debugging
 
 		independentGroup(class state *_st, int size, int _clumpSize)
 			: st(*_st), clumpSize(_clumpSize),
@@ -567,9 +568,10 @@ class omxRAMExpectation {
 
 	int verbose;
 	int numIters;
-	int rampart;
+	int rampartCycleLimit;
+	int rampartUnitLimit;
 	bool useSufficientSets;
-	bool rampartEnabled() { return rampart == NA_INTEGER || rampart > 0; };
+	bool rampartEnabled() { return rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0; };
 	double logDetObserved;
 	double n;
 	double *work;
