@@ -307,7 +307,6 @@ void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 template<typename _MatrixType, int _UpLo = Eigen::Lower>
 class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
  private:
-	Eigen::MatrixXd ident;
 	Eigen::MatrixXd inverse;
 
  public:
@@ -320,11 +319,8 @@ class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
 
 	void refreshInverse()
 	{
-		if (ident.rows() != Base::m_matrix.rows()) {
-			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
-		}
-
-		inverse = Base::solve(ident);
+		inverse.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
+		inverse = Base::solve(inverse);
 	};
 
 	const Eigen::MatrixXd &getInverse() const { return inverse; };

@@ -453,7 +453,7 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullCov;
 		bool                             analyzedCov;
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
-		SimpCholesky< Eigen::MatrixXd >  covDecomp;
+		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // false when latent or missing
 

@@ -1649,38 +1649,41 @@ namespace RelationalRAMExpectation {
 	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
 		dbg.add("clumpSize", Rf_ScalarInteger(clumpSize));
-		if (expectedVec.size()) {
-			SEXP m1 = Rcpp::wrap(expectedVec);
-			Rf_protect(m1);
-			Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
-			out.add("mean", m1);
-		}
-		if (fullCov.nonZeros()) {
-			out.add("covariance", Rcpp::wrap(fullCov));
-		}
-
-		SEXP fmean = Rcpp::wrap(fullMean);
-		dbg.add("fullMean", fmean);
-		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		if (0) {
-			fmean = Rcpp::wrap(rawFullMean);
-			dbg.add("rawFullMean", fmean);
+		if (clumpObs < 500) {
+			// Can crash R because vectors are too long.
+			// Maybe could allow more, but clumpObs==4600 is too much.
+			if (expectedVec.size()) {
+				SEXP m1 = Rcpp::wrap(expectedVec);
+				Rf_protect(m1);
+				Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
+				out.add("mean", m1);
+			}
+			if (fullCov.nonZeros()) {
+				out.add("covariance", Rcpp::wrap(fullCov));
+			}
+			SEXP fmean = Rcpp::wrap(fullMean);
+			dbg.add("fullMean", fmean);
 			Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+			if (0) {
+				fmean = Rcpp::wrap(rawFullMean);
+				dbg.add("rawFullMean", fmean);
+				Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+			}
+			Eigen::SparseMatrix<double> A = getInputMatrix();
+			dbg.add("A", Rcpp::wrap(A));
+			if (0) {
+				// regularize internal representation
+				Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
+				dbg.add("filteredA", Rcpp::wrap(fAcopy));
+			}
+			Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
+			dbg.add("S", Rcpp::wrap(fullSymS));
+			dbg.add("latentFilter", Rcpp::wrap(latentFilter));
+			SEXP dv = Rcpp::wrap(dataVec);
+			Rf_protect(dv);
+			Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
+			dbg.add("dataVec", dv);
 		}
-		Eigen::SparseMatrix<double> A = getInputMatrix();
-		dbg.add("A", Rcpp::wrap(A));
-		if (0) {
-			// regularize internal representation
-			Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
-			dbg.add("filteredA", Rcpp::wrap(fAcopy));
-		}
-		Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
-		dbg.add("S", Rcpp::wrap(fullSymS));
-		dbg.add("latentFilter", Rcpp::wrap(latentFilter));
-		SEXP dv = Rcpp::wrap(dataVec);
-		Rf_protect(dv);
-		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
-		dbg.add("dataVec", dv);
 
 		SEXP aIndex, modelStart, obsStart;
 		Rf_protect(aIndex = Rf_allocVector(INTSXP, placements.size()));
