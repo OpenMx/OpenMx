@@ -469,7 +469,7 @@ namespace RelationalRAMExpectation {
 			independentGroup &par = getParent();
 			int loose = par.placements.size() / clumpSize;
 			if (par.sufficientSets.size()) {
-				loose = par.sufficientSets[0].start / clumpSize;
+				loose = par.sufficientSets[0].start;
 			}
 			return loose;
 		};

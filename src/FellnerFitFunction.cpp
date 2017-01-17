@@ -254,7 +254,7 @@ namespace FellnerFitFunction {
 							iV.selfadjointView<Eigen::Lower>() *
 							resid.segment(cx*ig.clumpObs, ig.clumpObs));
 					}
-					double cterm = M_LN_2PI * ig.getParent().dataVec.size();
+					double cterm = M_LN_2PI * residLen;
 					if (verbose + !std::isfinite(iqf) >= 2) {
 						mxLog("group[%d] log det %f iqf %f cterm %f",
 						      int(1+gx), logDet, iqf, cterm);

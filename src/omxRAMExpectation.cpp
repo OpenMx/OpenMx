@@ -1508,7 +1508,7 @@ namespace RelationalRAMExpectation {
 		if (clumpObs == 0) return;
 		for (int sx=0; sx < int(sufficientSets.size()); ++sx) {
 			RelationalRAMExpectation::sufficientSet &ss = sufficientSets[sx];
-			placement &first = placements[ss.start];
+			placement &first = placements[ss.start * clumpSize];
 			computeMeanCov(dataVec.segment(first.obsStart, ss.length * clumpObs),
 				       clumpObs, ss.dataMean, ss.dataCov);
 		}
