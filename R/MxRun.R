@@ -175,7 +175,7 @@ runHelper <- function(model, frontendStart,
 
 	if (length(expectations)) {
 		#prec <- lapply(expectations, genericExpGetPrecision)
-		prec <- lapply(expecations, function(x){getPrecisionPerExpectation(x,options)})
+		prec <- lapply(expectations, function(x){getPrecisionPerExpectation(x,options)})
 
 		functionPrecision <- Reduce(max, c(as.numeric(options[['Function precision']]),
 						   sapply(prec, function(x) x[['functionPrecision']])))
