@@ -19,7 +19,7 @@
 
 mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
 		      scale = 0.25,  initialGradientStepSize = imxAutoOptionValue("Gradient step size"), 
-											initialGradientIterations = imxAutoOptionValues('Gradient iterations'),
+											initialGradientIterations = imxAutoOptionValue('Gradient iterations'),
 											initialTolerance=as.numeric(mxOption(NULL,'Optimality tolerance')), 
 											checkHess = TRUE, fit2beat = Inf, paste = TRUE,
 											iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
