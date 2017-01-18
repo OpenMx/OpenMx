@@ -2,9 +2,12 @@ set print thread-events off
 dir src
 set breakpoint pending on
 b Rf_error
-b Rf_errorcall  # used for some out of memory conditions
+# Rf_errorcall is used for some out of memory conditions
+b Rf_errorcall
 # _omxRaiseError is not necessarily an error; optimizer can test non-pd covariance matrices during search
 b _omxRaiseError
+# FitContext::recordIterationError is used for soft feasibility constraints
+b FitContext::recordIterationError
 catch throw
 # Hints:
 # Use Rf_PrintValue(SEXP) to pretty print R data from gdb
