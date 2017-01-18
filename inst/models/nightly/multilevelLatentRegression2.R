@@ -149,7 +149,7 @@ sMod <- buildModel(5,4,3,5, rep(TRUE,3), .2)
 
 checkSinglePoint(sMod, 0)
 
-fit1 <- mxRun(sMod)
+fit1 <- mxTryHard(sMod)
 summary(fit1)
 
 omxCheckCloseEnough(fit1$output$fit, 17144.43, .01)
