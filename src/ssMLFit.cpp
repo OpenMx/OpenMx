@@ -83,7 +83,7 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 			}
 		}
 		if (!numCont) {
-			omxSetMatrixElement(rowLikelihoods, row, 0, 0.0);
+			omxSetMatrixElement(rowLikelihoods, row, 0, 1.0);
 			continue;
 		}
 
@@ -135,7 +135,6 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
 			double prob = omxVectorElement(state->rowLikelihoods, i);
-			if (prob == 0) continue;
 			//mxLog("[%d] %g", i, -2.0 * log(prob));
 			sum += log(prob);
 		}	
