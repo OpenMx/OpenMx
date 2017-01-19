@@ -27,6 +27,7 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	labelsData <- imxGenerateLabels(model)
 	env <- parent.frame()
 	if (compute) {
+		model <- imxPreprocessModel(model)
 		expression <- formulaEliminateObjectiveFunctions(expression)
 		namespace <- imxGenerateNamespace(model)
 		model <- imxFlattenModel(model, namespace)
