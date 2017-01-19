@@ -44,7 +44,7 @@ definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row =
 	if (dataSet@.isSorted) {
 		defvar.row <- match(defvar.row - 1L, dataSet$indexVector)
 	}
-	return(dataSet@observed[defvar.row, components[[3]], drop=FALSE])
+	return(dataSet@observed[defvar.row, components[[3]]])
 }
 
 populateDefInitialValues <- function(flatModel) {
