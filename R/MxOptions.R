@@ -283,6 +283,7 @@ combineDefaultOptions <- function(input) {
 ##' 
 ##' @param optionName Character string naming the \link{mxOption} for which a numeric or integer value is wanted.
 ##' @param optionList List of options; defaults to list of global \link{mxOption}s.
+##' imxAutoOptionValue
 imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 	#First, check to see if the option already has a valid value (possibly in string form), and if so, return that:
 	numcast <- try(suppressWarnings(as.numeric(optionList[[optionName]])),silent=TRUE)
@@ -293,7 +294,7 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		stop(paste("extracting element '",optionName,"' from argument 'optionList' resulted in NULL"),sep="")
 	}
 	#numcast will be try-error for e.g. NPSOL option "Major iterations" (on-load default is a function);
-	if("try-error" %in% class(numcast)){return(mxOption(NULL,optionName))}
+	if("try-error" %in% class(numcast)){return(optionList[[optionName]])}
 	if(length(numcast) && !is.na(numcast)){
 		if(optionName=="Gradient iterations"){numcast <- as.integer(numcast)}
 		return(numcast)
