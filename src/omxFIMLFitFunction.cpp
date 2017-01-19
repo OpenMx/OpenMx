@@ -224,7 +224,7 @@ bool condOrdByRow::eval()
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
 			if (contLik == 0.0) {
-				reportBadContRow(resid, iV);
+				reportBadContRow(cData, resid, contCov);
 				return true;
 			}
 		} else { contLik = 1.0; }
@@ -323,7 +323,7 @@ bool condContByRow::eval()
 				double logDet = covDecomp.log_determinant();
 				contLik = exp(-0.5 * (iqf + cterm + logDet));
 				if (contLik == 0.0) {
-					reportBadContRow(resid, iV);
+					reportBadContRow(cData, resid, contCov);
 					return true;
 				}
 			}

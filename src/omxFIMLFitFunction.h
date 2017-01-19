@@ -159,7 +159,7 @@ class mvnByRow {
 	int numContinuous;
 	omxFIMLFitFunction *ofiml;
 	omxFIMLFitFunction *parent;
-	int sortedRow;
+	int sortedRow;  // it's really the unsorted row (row in the original data); rename TODO
 	bool useSufficientSets;
 
 	int rowOrdinal;
@@ -335,19 +335,22 @@ class mvnByRow {
 	void reportBadOrdLik(int loc)
 	{
 		if (fc) fc->recordIterationError("Ordinal covariance is not positive definite "
-						 "in data '%s' row %d (loc%d)", data->name, sortedRow, loc);
+						 "in data '%s' row %d (loc%d)", data->name, 1+sortedRow, loc);
 		if (verbose >= 1) ol.log();
 	}
 
-	template <typename T1, typename T2>
-	void reportBadContRow(const Eigen::MatrixBase<T1> &resid, const Eigen::MatrixBase<T2> &icov)
+	template <typename T1, typename T2, typename T3>
+	void reportBadContRow(const Eigen::MatrixBase<T1> &cdata, const Eigen::MatrixBase<T2> &resid,
+			      const Eigen::MatrixBase<T3> &icov)
 	{
 		std::string empty = std::string("");
-		std::string buf = mxStringifyMatrix("resid", resid, empty);
-		buf += mxStringifyMatrix("inverse covariance", icov, empty);
+		std::string buf;
+		buf += mxStringifyMatrix("data", cdata, empty);
+		buf += mxStringifyMatrix("resid", resid, empty);
+		buf += mxStringifyMatrix("covariance", icov, empty);
 		if (fc) fc->recordIterationError("In data '%s' row %d continuous variables are too"
 						 " far from the model implied distribution. Details:\n%s",
-						 data->name, sortedRow, buf.c_str());
+						 data->name, 1+sortedRow, buf.c_str());
 	}
 
 	template <typename T1>
@@ -355,9 +358,9 @@ class mvnByRow {
 	{
 		std::string empty = std::string("");
 		std::string buf = mxStringifyMatrix("covariance", badCov, empty);
-		if (fc) fc->recordIterationError("Continuous covariance (loc%d) "
+		if (fc) fc->recordIterationError("The continuous part of the model implied covariance (loc%d) "
 						 "is not positive definite in data '%s' row %d. Detail:\n%s",
-						 loc, data->name, sortedRow, buf.c_str());
+						 loc, data->name, 1+sortedRow, buf.c_str());
 	}
 };
 
