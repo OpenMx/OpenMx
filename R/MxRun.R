@@ -188,6 +188,7 @@ runHelper <- function(model, frontendStart,
 			flatModel <- adjustDefaultNumericDeriv(flatModel, iterations, stepSize)
 		}
 	}
+	else{options[["Function precision"]] <- as.character(imxAutoOptionValue("Function precision",options))}
 
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
