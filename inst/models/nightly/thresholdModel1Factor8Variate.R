@@ -79,7 +79,7 @@ thresholdModel <- mxModel("thresholdModel",
             mxData(observed=ordinalData, type='raw')
 )
 
-summary(thresholdModelrun <- mxRun(thresholdModel))
+summary(thresholdModelrun <- mxTryHardOrdinal(thresholdModel, extraTries=1L))
 omxCheckCloseEnough(thresholdModelrun$output$fit, 9764.721, .1)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
