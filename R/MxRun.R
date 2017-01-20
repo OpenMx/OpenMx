@@ -186,7 +186,7 @@ runHelper <- function(model, frontendStart,
 				Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']]))),
 				as.integer(options[["Gradient iterations"]]))
 			stepSize <- ifelse(
-				is.na(suppressWarnings(as.numeric(options[["Gradient step size"]])))
+				is.na(suppressWarnings(as.numeric(options[["Gradient step size"]]))),
 				Reduce(max, c(sqrt(.Machine$double.eps),sapply(prec, function(x) x[['stepSize']]))),
 				as.numeric(options[["Gradient step size"]]))
 			model <- adjustDefaultNumericDeriv(model, iterations, stepSize)
