@@ -30,13 +30,15 @@ m1 <- mxModel("example", type="RAM",
 
 m1$S$values[,] <- diag(6)
 omxCheckWarning(omxCheckError(mxRun(m1),
-              "The job for model 'example' exited abnormally with the error message: fit is not finite (In data 'example.data' row 883 continuous variables are too far from the model implied distribution. Details:
+              "The job for model 'example' exited abnormally with the error message: fit is not finite (In data 'example.data' row 884 continuous variables are too far from the model implied distribution. Details:
+data = t( matrix(c(    # 4x1
+  86, 1.5999,  44, 1.5999), byrow=TRUE, nrow=1, ncol=4))
 resid = t( matrix(c(    # 4x1
  85.9, 1.4999, 43.9, 1.4999), byrow=TRUE, nrow=1, ncol=4))
-inverse covariance =  matrix(c(    # 4x4
- 1.03415, -0.0769577, -0.0769577, -0.0769577
-, -0.0769577, 1.03415, -0.0769577, -0.0769577
-, -0.0769577, -0.0769577, 1.03415, -0.0769577
-, -0.0769577, -0.0769577, -0.0769577, 1.03415), byrow=TRUE, nrow=4, ncol=4)
+covariance =  matrix(c(    # 4x4
+ 0.986224, 0.0862239, 0.0862239, 0.0862239
+, 0.0862239, 0.986224, 0.0862239, 0.0862239
+, 0.0862239, 0.0862239, 0.986224, 0.0862239
+, 0.0862239, 0.0862239, 0.0862239, 0.986224), byrow=TRUE, nrow=4, ncol=4)
 )"),
 "In model 'example' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
