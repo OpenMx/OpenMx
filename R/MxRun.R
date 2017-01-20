@@ -181,9 +181,14 @@ runHelper <- function(model, frontendStart,
 		options[['Function precision']] <- as.character(functionPrecision)
 
 		if (defaultComputePlan && is(model@compute, "MxComputeSequence")) {
-			iterations <- Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']])))
-			stepSize <- Reduce(max, c(sqrt(.Machine$double.eps),
-						  sapply(prec, function(x) x[['stepSize']])))
+			iterations <- ifelse(
+				is.na(suppressWarnings(as.numeric(options[["Gradient iterations"]]))),
+				Reduce(min, c(4L, sapply(prec, function(x) x[['iterations']]))),
+				as.integer(options[["Gradient iterations"]]))
+			stepSize <- ifelse(
+				is.na(suppressWarnings(as.numeric(options[["Gradient step size"]])))
+				Reduce(max, c(sqrt(.Machine$double.eps),sapply(prec, function(x) x[['stepSize']]))),
+				as.numeric(options[["Gradient step size"]]))
 			model <- adjustDefaultNumericDeriv(model, iterations, stepSize)
 			flatModel <- adjustDefaultNumericDeriv(flatModel, iterations, stepSize)
 		}
