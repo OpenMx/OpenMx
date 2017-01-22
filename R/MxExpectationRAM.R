@@ -31,7 +31,8 @@ setClass(Class = "MxExpectationRAM",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
 	    verbose = "integer",
-	    .rampart = "integer",
+	    .rampartCycleLimit = "integer",
+	    .rampartUnitLimit = "integer",
 	    .useSufficientSets = "logical",
 	    .forceSingleGroup = "logical",
 	    .ignoreDefVarsHack = "logical", #remove TODO
@@ -55,7 +56,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@UnfilteredExpCov <- matrix()
 		.Object@between <- between
 		.Object@verbose <- verbose
-		.Object@.rampart <- as.integer(NA)
+		.Object@.rampartCycleLimit <- as.integer(NA)
+		.Object@.rampartUnitLimit <- as.integer(NA)
 		.Object@.forceSingleGroup <- FALSE
 		.Object@.ignoreDefVarsHack <- FALSE  # remove TODO
 		.Object@.identifyZeroVarPred <- TRUE
@@ -311,8 +313,6 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  }
 		  ret
 })
-
-setMethod("genericExpGetPrecision", "MxExpectationRAM", NormalExpGetPrecision)
 
 generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
 	mxObject <- flatModel[[aMatrixName]]

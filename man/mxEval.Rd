@@ -34,7 +34,8 @@ mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1,
 \arguments{
    \item{expression}{An arbitrary R expression.}
    \item{model}{The model in which to evaluate the expression.}
-   \item{compute}{If TRUE then compute the value of algebra expressions.}
+   \item{compute}{If TRUE then compute the value of algebra expressions
+   and populate square bracket substitutions.}
    \item{show}{If TRUE then print the translated expression.}
    \item{defvar.row}{The row number for definition variables when compute=TRUE; defaults to 1.  When compute=FALSE, values for definition variables are always taken from the first (i.e., first before any automated sorting is done) row of the raw data.}
    \item{cache}{An R environment of matrix values used to speedup computation.}
@@ -47,7 +48,13 @@ The argument \sQuote{expression} is an arbitrary R expression.  Any named entiti
 
 The \code{mxEvalByName} function is a wrapper around \code{mxEval} that takes a character instead of an R expression.
 
-If \sQuote{compute} is FALSE, then MxAlgebra expressions return their current values as they have been computed by the optimization call (using \link{mxRun}). If the \sQuote{compute} argument is TRUE, then MxAlgebra expressions will be calculated in R.  Any references to an objective function that has not yet been calculated will return a 1 x 1 matrix with a value of NA.
+If \sQuote{compute} is FALSE, then MxAlgebra expressions return their
+current values as they have been computed by the optimization call
+(using \link{mxRun}). If the \sQuote{compute} argument is TRUE, then
+MxAlgebra expressions will be calculated in R and square bracket
+substitutions will be performed.  Any references to an objective
+function that has not yet been calculated will return a 1 x 1 matrix
+with a value of NA.
 
 The \sQuote{cache} is used to speedup calculation by storing previously computing values. The cache is a list of matrices, such that names(cache) must all be of the form \dQuote{modelname.entityname}. Setting \sQuote{cacheBack} 
 to TRUE will return the pair list(value, cache) where value is the result of the mxEval() computation and cache is the updated cache.}

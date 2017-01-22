@@ -85,17 +85,6 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 		return(.Object)
 })
 
-NormalExpGetPrecision <- function(.Object) {
-	if(!single.na(.Object@thresholds)) {
-		return(list(stepSize=mxOption(NULL, "Gradient step size")*1e3,
-			    iterations=3L, functionPrecision=1e-9))
-	} else {
-		callNextMethod();
-	}
-}
-
-setMethod("genericExpGetPrecision", "MxExpectationNormal", NormalExpGetPrecision)
-
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1) {
 		ret <- list()
@@ -357,7 +346,7 @@ generateRelationalData <- function(model, returnModel) {
 	))
 
 	modelE <- mxModel(model, plan)
-	modelE$expectation$.rampart <- 0L
+	modelE$expectation$.rampartCycleLimit <- 0L
 	modelE <- mxRun(modelE, silent=TRUE)
 	dataEnv <- new.env()
 	for (dName in names(modelE@runstate$datalist)) {

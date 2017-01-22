@@ -263,8 +263,11 @@ void omxInitRAMExpectation(omxExpectation* oo) {
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", RAMexp->numIters); }
 	}
 
-	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install(".rampart")));
-	RAMexp->rampart = Rf_asInteger(Rrampart);
+	ProtectedSEXP Rrampart(R_do_slot(rObj, Rf_install(".rampartCycleLimit")));
+	RAMexp->rampartCycleLimit = Rf_asInteger(Rrampart);
+
+	ProtectedSEXP RrampartLimit(R_do_slot(rObj, Rf_install(".rampartUnitLimit")));
+	RAMexp->rampartUnitLimit = Rf_asInteger(RrampartLimit);
 
 	RAMexp->useSufficientSets = true;
 	if (R_has_slot(rObj, Rf_install(".useSufficientSets"))) {
@@ -1307,7 +1310,10 @@ namespace RelationalRAMExpectation {
 		RampartMap todo(RampartTodoCompare(this));
 		int unlinked = 0;
 
-		for (size_t ax=0; ax < layout.size(); ++ax) {
+		int loopTo = layout.size();
+		int rampartUnitLimit = ((omxRAMExpectation*) homeEx->argStruct)->rampartUnitLimit;
+		if (rampartUnitLimit != NA_INTEGER) loopTo = std::min(rampartUnitLimit, loopTo);
+		for (int ax=0; ax < loopTo; ++ax) {
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped) continue;
@@ -1455,7 +1461,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (ram->rampartEnabled()) {
-			int maxIter = ram->rampart;
+			int maxIter = ram->rampartCycleLimit;
 			int unlinked = 0;
 			int level = -1; // mainly for debugging
 			while (int more = rampartRotate(++level)) {
@@ -1508,7 +1514,7 @@ namespace RelationalRAMExpectation {
 		if (clumpObs == 0) return;
 		for (int sx=0; sx < int(sufficientSets.size()); ++sx) {
 			RelationalRAMExpectation::sufficientSet &ss = sufficientSets[sx];
-			placement &first = placements[ss.start];
+			placement &first = placements[ss.start * clumpSize];
 			computeMeanCov(dataVec.segment(first.obsStart, ss.length * clumpObs),
 				       clumpObs, ss.dataMean, ss.dataCov);
 		}
@@ -1649,38 +1655,44 @@ namespace RelationalRAMExpectation {
 	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
 		dbg.add("clumpSize", Rf_ScalarInteger(clumpSize));
-		if (expectedVec.size()) {
-			SEXP m1 = Rcpp::wrap(expectedVec);
-			Rf_protect(m1);
-			Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
-			out.add("mean", m1);
-		}
-		if (fullCov.nonZeros()) {
-			out.add("covariance", Rcpp::wrap(fullCov));
-		}
+		dbg.add("clumpObs", Rf_ScalarInteger(clumpObs));
+		dbg.add("numLooseClumps", Rf_ScalarInteger(numLooseClumps()));
 
-		SEXP fmean = Rcpp::wrap(fullMean);
-		dbg.add("fullMean", fmean);
-		Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
-		if (0) {
-			fmean = Rcpp::wrap(rawFullMean);
-			dbg.add("rawFullMean", fmean);
+		if (clumpObs < 500) {
+			// Can crash R because vectors are too long.
+			// Maybe could allow more, but clumpObs==4600 is too much.
+			if (expectedVec.size()) {
+				SEXP m1 = Rcpp::wrap(expectedVec);
+				Rf_protect(m1);
+				Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
+				out.add("mean", m1);
+			}
+			if (fullCov.nonZeros()) {
+				out.add("covariance", Rcpp::wrap(fullCov));
+			}
+			SEXP fmean = Rcpp::wrap(fullMean);
+			dbg.add("fullMean", fmean);
 			Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+			if (0) {
+				fmean = Rcpp::wrap(rawFullMean);
+				dbg.add("rawFullMean", fmean);
+				Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
+			}
+			Eigen::SparseMatrix<double> A = getInputMatrix();
+			dbg.add("A", Rcpp::wrap(A));
+			if (0) {
+				// regularize internal representation
+				Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
+				dbg.add("filteredA", Rcpp::wrap(fAcopy));
+			}
+			Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
+			dbg.add("S", Rcpp::wrap(fullSymS));
+			dbg.add("latentFilter", Rcpp::wrap(latentFilter));
+			SEXP dv = Rcpp::wrap(dataVec);
+			Rf_protect(dv);
+			Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
+			dbg.add("dataVec", dv);
 		}
-		Eigen::SparseMatrix<double> A = getInputMatrix();
-		dbg.add("A", Rcpp::wrap(A));
-		if (0) {
-			// regularize internal representation
-			Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
-			dbg.add("filteredA", Rcpp::wrap(fAcopy));
-		}
-		Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
-		dbg.add("S", Rcpp::wrap(fullSymS));
-		dbg.add("latentFilter", Rcpp::wrap(latentFilter));
-		SEXP dv = Rcpp::wrap(dataVec);
-		Rf_protect(dv);
-		Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
-		dbg.add("dataVec", dv);
 
 		SEXP aIndex, modelStart, obsStart;
 		Rf_protect(aIndex = Rf_allocVector(INTSXP, placements.size()));
@@ -1691,11 +1703,22 @@ namespace RelationalRAMExpectation {
 			INTEGER(modelStart)[mx] = 1 + placements[mx].modelStart;
 			INTEGER(obsStart)[mx] = 1 + placements[mx].obsStart;
 		}
-		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("aIndex")=aIndex,
-							  Rcpp::Named("modelStart")=modelStart,
-							  Rcpp::Named("obsStart")=obsStart));
+		SEXP layoutColNames, layoutDF;
+		int numLayoutCols = 3;
+		Rf_protect(layoutColNames = Rf_allocVector(STRSXP, numLayoutCols));
+		SET_STRING_ELT(layoutColNames, 0, Rf_mkChar("aIndex"));
+		SET_STRING_ELT(layoutColNames, 1, Rf_mkChar("modelStart"));
+		SET_STRING_ELT(layoutColNames, 2, Rf_mkChar("obsStart"));
+		Rf_protect(layoutDF = Rf_allocVector(VECSXP, numLayoutCols));
+		Rf_setAttrib(layoutDF, R_NamesSymbol, layoutColNames);
+		SET_VECTOR_ELT(layoutDF, 0, aIndex);
+		SET_VECTOR_ELT(layoutDF, 1, modelStart);
+		SET_VECTOR_ELT(layoutDF, 2, obsStart);
+		markAsDataFrame(layoutDF, placements.size());
+		dbg.add("layout", layoutDF);
 
 		dbg.add("numSufficientSets", Rcpp::wrap(int(sufficientSets.size())));
+		dbg.add("fit", Rcpp::wrap(fit));
 
 		int digits = ceilf(log10f(sufficientSets.size()));
 		std::string fmt = string_snprintf("ss%%0%dd", digits);
@@ -1746,7 +1769,7 @@ namespace RelationalRAMExpectation {
 
 		int digits = ceilf(log10f(group.size()));
 		std::string fmt = string_snprintf("g%%0%dd", digits);
-		for (size_t gx=0; gx < group.size(); ++gx) {
+		for (size_t gx=0; gx < std::min(group.size(),size_t(64)); ++gx) {
 			independentGroup &ig = *group[gx];
 			MxRList info;
 			ig.exportInternalState(info, info);

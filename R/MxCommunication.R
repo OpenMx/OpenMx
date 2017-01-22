@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#TODO: This function only uses local options; should it use global options as well?:
 generateCommunicationList <- function(model, checkpoint, useSocket, options) {
 	if (mxOption(model,'Always Checkpoint') == "Yes") {
 		checkpoint <- TRUE

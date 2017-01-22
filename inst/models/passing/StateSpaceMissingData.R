@@ -136,3 +136,18 @@ liFactorMissParam <- summary(liMissRun)$parameters[1:10, c(5, 6)]
 
 omxCheckCloseEnough(ssFactorMissParam, liFactorMissParam, epsilon=0.01)
 
+
+#------------------------------------------------------------------------------
+# Ensure we ignore all-missing rows
+
+demoOneFactorMiss[10,] <- NA
+
+ssFactorAllMiss <- mxModel(
+	ssModel, name="As Factor",
+	mxMatrix("Full", 1, 1, FALSE, 0, name="A"),
+	mxData(observed=demoOneFactorMiss, type="raw"))
+
+ssFactorAllMissRun <- mxRun(ssFactorAllMiss)
+
+param <- summary(ssFactorAllMissRun)$parameters[1:10, c(5, 6)]
+omxCheckCloseEnough(param, liFactorMissParam, epsilon=0.01)

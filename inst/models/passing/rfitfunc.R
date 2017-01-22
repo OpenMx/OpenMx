@@ -52,7 +52,7 @@ model <- mxModel(name="count",
 		 mxFitFunctionR(count, 1))
 if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
         model <- omxCheckWarning(mxRun(model, silent=TRUE),
-                         "In model 'count' Optimizer returned a non-zero status code 5. The Hessian at the solution does not appear to be convex (Mx status RED).")
+                         "In model 'count' Optimizer returned a non-zero status code 5. The Hessian at the solution does not appear to be convex. See ?mxCheckIdentification for possible diagnosis (Mx status RED).")
 } else {
         model <- omxCheckWarning(mxRun(model, silent=TRUE),
                          "In model 'count' Optimizer returned a non-zero status code 6. The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)")

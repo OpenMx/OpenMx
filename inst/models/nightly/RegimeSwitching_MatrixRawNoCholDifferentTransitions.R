@@ -208,7 +208,7 @@ rsgcmmDiffT <- mxOption(rsgcmmDiffT, 'Checkpoint Count', 1)
 #rsgcmm <- mxOption(rsgcmm, "Standard Errors", "No")
 #rsgcmm <- mxOption(rsgcmm, "Calculate Hessian", "No")
 
-rsgcmmDiffTFit <- mxTryHard(rsgcmmDiffT)
+rsgcmmDiffTFit <- mxTryHard(rsgcmmDiffT, extraTries=4)
 
 summary(rsgcmmDiffTFit)
 

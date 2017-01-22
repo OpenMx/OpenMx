@@ -82,7 +82,10 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 				++numCont;
 			}
 		}
-		if (!numCont) continue;
+		if (!numCont) {
+			omxSetMatrixElement(rowLikelihoods, row, 0, 1.0);
+			continue;
+		}
 
 		omxMatrix *smallMeans = omxGetExpectationComponent(expectation, "means");
 		omxRemoveElements(smallMeans, contRemove.data());
@@ -91,9 +94,12 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 		//Get covInfo from state space expectation
 		int info = (int) omxGetExpectationComponent(expectation, "covInfo")->data[0];
 		if(info!=0) {
-			if (fc) fc->recordIterationError("Expected covariance matrix is "
-							 "not positive-definite in data row %d",
-							 row);
+			EigenMatrixAdaptor Ecov(smallCov);
+			std::string empty = std::string("");
+			std::string buf = mxStringifyMatrix("covariance", Ecov, empty);
+			if (fc) fc->recordIterationError("%s: expected covariance matrix is "
+							 "not positive-definite in data row %d; Details:\n%s",
+							 oo->name(), row, buf.c_str());
 			omxSetMatrixElement(oo->matrix, 0, 0, NA_REAL);
 			return;
 		}
@@ -128,9 +134,9 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
 		for(int i = 0; i < data->rows; i++) {
-			double val = log(omxVectorElement(state->rowLikelihoods, i));
-			//mxLog("[%d] %g", i, -2.0 * val);
-			sum += val;
+			double prob = omxVectorElement(state->rowLikelihoods, i);
+			//mxLog("[%d] %g", i, -2.0 * log(prob));
+			sum += log(prob);
 		}	
 		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f", oo->name(), sum);}
 		omxSetMatrixElement(oo->matrix, 0, 0, -2.0 * sum);

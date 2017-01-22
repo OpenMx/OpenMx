@@ -730,7 +730,6 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 })
 
 
-setMethod("genericExpGetPrecision", "MxExpectationLISREL", NormalExpGetPrecision)
 
 
 

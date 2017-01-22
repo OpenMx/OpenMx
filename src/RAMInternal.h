@@ -453,12 +453,13 @@ namespace RelationalRAMExpectation {
 		Eigen::SparseMatrix<double>      fullCov;
 		bool                             analyzedCov;
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
-		SimpCholesky< Eigen::MatrixXd >  covDecomp;
+		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // false when latent or missing
 
 		// could store coeff extraction plan in addr TODO
 		AsymTool<bool>          asymT;
+		double                           fit;  // most recent fit for debugging
 
 		independentGroup(class state *_st, int size, int _clumpSize)
 			: st(*_st), clumpSize(_clumpSize),
@@ -469,7 +470,7 @@ namespace RelationalRAMExpectation {
 			independentGroup &par = getParent();
 			int loose = par.placements.size() / clumpSize;
 			if (par.sufficientSets.size()) {
-				loose = par.sufficientSets[0].start / clumpSize;
+				loose = par.sufficientSets[0].start;
 			}
 			return loose;
 		};
@@ -567,9 +568,10 @@ class omxRAMExpectation {
 
 	int verbose;
 	int numIters;
-	int rampart;
+	int rampartCycleLimit;
+	int rampartUnitLimit;
 	bool useSufficientSets;
-	bool rampartEnabled() { return rampart == NA_INTEGER || rampart > 0; };
+	bool rampartEnabled() { return rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0; };
 	double logDetObserved;
 	double n;
 	double *work;

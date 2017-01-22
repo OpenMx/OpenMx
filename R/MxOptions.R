@@ -126,7 +126,7 @@ npsolOptions <- list(
 	"Minor print level" = "0",
 	"Print file" = "0",
 	"Summary file" = "0",
-	"Function precision" = "1e-14",
+	"Function precision" = "Auto",#"1e-14"
 	"Optimality tolerance" = "6.3e-12",
 	"Infinite bound size" = "1.0e+15",
 	"Feasibility tolerance" = "5e-2",
@@ -172,9 +172,10 @@ otherOptions <- list(
     "mvnRelEps" = 0,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = "central",
-    "Gradient iterations" = 1L,
-    "Gradient step size" = 1.0e-7,
-    "Parallel diagnostics" = "No"
+    "Gradient iterations" = "Auto",#1L,
+    "Gradient step size" = "Auto",#1.0e-7,
+    "Parallel diagnostics" = "No",
+    "Debug protect stack" = "No"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
@@ -267,4 +268,41 @@ combineDefaultOptions <- function(input) {
       input[names(input)[!(names(input) %in% namesHandled)]]
   }
 	return(options)
+}
+
+
+##' imxAutoOptionValue
+##' 
+##' Convert "Auto" placeholders in global mxOptions to actual default values.
+##' 
+##' This is an internal function exported for documentation purposes.
+##' Its primary purpose is to convert the on-load value of "Auto"to
+##' valid values for \link{mxOption}s \sQuote{Gradient step size},
+##' \sQuote{Gradient iterations}, and 
+##' \sQuote{Function precision}--respectively, 1.0e-7, 1L, and 1e-14.
+##' 
+##' @param optionName Character string naming the \link{mxOption} for which a numeric or integer value is wanted.
+##' @param optionList List of options; defaults to list of global \link{mxOption}s.
+##' imxAutoOptionValue
+imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
+	#First, check to see if the option already has a valid value (possibly in string form), and if so, return that:
+	numcast <- try(suppressWarnings(as.numeric(optionList[[optionName]])),silent=TRUE)
+	if(!length(numcast)){
+		#NULL numcast is most likely to result from either (1) misspelled optionName, 
+		#or (2) user providing non-default value for optionList that lacks an element named optionName.
+		#Throwing an error seems the best behavior in this case.
+		stop(paste("extracting element '",optionName,"' from argument 'optionList' resulted in NULL"),sep="")
+	}
+	#numcast will be try-error for e.g. NPSOL option "Major iterations" (on-load default is a function);
+	if("try-error" %in% class(numcast)){return(optionList[[optionName]])}
+	if(length(numcast) && !is.na(numcast)){
+		if(optionName=="Gradient iterations"){numcast <- as.integer(numcast)}
+		return(numcast)
+	}
+	#Otherwise, convert to default value for the three motivating cases: 
+	else{
+		if(optionName=="Gradient step size"){return(1.0e-7)}
+		if(optionName=="Gradient iterations"){return(1L)}
+		if(optionName=="Function precision"){return(1e-14)}
+	}
 }

@@ -415,8 +415,8 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
 				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
-				     gradientIterations=mxOption(NULL, "Gradient iterations"),
-				     gradientStepSize=mxOption(NULL, "Gradient step size")) {
+				     gradientIterations=imxAutoOptionValue("Gradient iterations"),
+				     gradientStepSize=imxAutoOptionValue("Gradient step size")) {
 
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1251,7 +1251,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 
 mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 				  parallel=TRUE,
-				  stepSize=mxOption(NULL, "Gradient step size"),
+				  stepSize=imxAutoOptionValue("Gradient step size"),
 				  iterations=4L, verbose=0L,
 				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE)
 {
@@ -1532,16 +1532,16 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			fitfunction=fitNum,
 			verbose=0L,	
 			gradientAlgo=optionList[['Gradient algorithm']],
-			gradientIterations=optionList[['Gradient iterations']],
-			gradientStepSize=optionList[['Gradient step size']]))
+			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList)))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
 					fitfunction=fitNum, 
 					nudgeZeroStarts=FALSE,
 					gradientAlgo=optionList[['Gradient algorithm']],
-					gradientIterations=optionList[['Gradient iterations']],
-					gradientStepSize=optionList[['Gradient step size']])
+					gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+					gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
 					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
@@ -1554,7 +1554,7 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 			if (optionList[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(
 					fitfunction=fitNum, 
-					stepSize=optionList[['Gradient step size']]))
+					stepSize=imxAutoOptionValue('Gradient step size',optionList)))
 			}
 			if (optionList[["Standard Errors"]] == "Yes") {
 				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
