@@ -238,19 +238,36 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 		goc.LagrMultipliersOut[i] = realwkspc[Wst+i];
 	}
 	
-	for(i=M; i<M+(n*n1/2); i++){
-		if(ro==co){
-			Dmat(ro,co) = realwkspc[Wst+i];
-			Lmat(ro,co) = 1.0;
+	if(M){
+		for(i=M; i<M+(n*n1/2); i++){
+			if(ro==co){
+				Dmat(ro,co) = realwkspc[Wst+i];
+				Lmat(ro,co) = 1.0;
+			}
+			else{Lmat(ro,co) = realwkspc[Wst+i];}
+			ro++;
+			if(ro==n){
+				co++;
+				ro = co;
+			}
 		}
-		else{Lmat(ro,co) = realwkspc[Wst+i];}
-		ro++;
-		if(ro==n){
-			co++;
-			ro = co;
-		}
+		goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
 	}
-	goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
+	else{
+		for(i=1; i<1+(n*n1/2); i++){
+			if(ro==co){
+				Dmat(ro,co) = realwkspc[Wst+i];
+				Lmat(ro,co) = 1.0;
+			}
+			else{Lmat(ro,co) = realwkspc[Wst+i];}
+			ro++;
+			if(ro==n){
+				co++;
+				ro = co;
+			}
+		}
+		goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
+	}
 }
 
 };
