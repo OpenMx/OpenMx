@@ -153,6 +153,7 @@ class FitContext {
 	double mac;
 	double fit;
 	int fitUnits;
+	int skippedRows;
 	double *est;
 	std::vector<bool> profiledOut;
 	Eigen::VectorXd grad;
@@ -343,7 +344,6 @@ class GradientOptimizerContext {
 	Eigen::MatrixXd LagrHessianOut;
 
 	double solFun(double *myPars, int* mode);
-	double evalFit(double *myPars, int thrId, int *mode);
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun();
 	void myineqFun();
@@ -368,7 +368,55 @@ class GradientOptimizerContext {
 		fc->ciobj->gradient(fc, gradOut.derived().data());
 	};
 	omxState *getState() const { return fc->state; };
+
+	template <typename T1, typename T2>
+	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint,
+				      Eigen::MatrixBase<T2> &Egrad);
 };
+
+template <typename T1, typename T2>
+void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint,
+							Eigen::MatrixBase<T2> &Egrad)
+{
+	if (getWanted() & FF_COMPUTE_GRADIENT) {
+		Egrad = grad;
+		return;
+	} else if (hasKnownGradient()) {
+		setKnownGradient(Egrad);
+		grad = Egrad;
+		return;
+	}
+
+	// fc assumed to hold the reference fit
+	double refFit = fc->fit;
+	int skippedRows = fc->skippedRows;
+
+	// save execution time
+	// if faster than threshold, reduce by 1 thread TODO
+
+	gradient_with_ref(gradientAlgo, numOptimizerThreads,
+			  gradientIterations, gradientStepSize,
+			  [&](double *myPars, int thrId)->double{
+				  FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+				  Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+				  copyFromOptimizer(myPars, fc2);
+				  int want = FF_COMPUTE_FIT;
+				  ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
+				  double fit = fc2->fit;
+				  if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
+					  fit = nan("infeasible");
+				  }
+				  return fit;
+			  }, refFit, Epoint, Egrad);
+	grad = Egrad;
+}
+
+inline double addSkippedRowPenalty(double orig, int skipped) // orig does not have * Global->llScale
+{
+	orig -= skipped * 100;
+	orig += orig * skipped;
+	return orig;
+}
 
 template <typename T1>
 void GradientOptimizerContext::checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst)

@@ -173,6 +173,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 {
 	bool doFit = want & FF_COMPUTE_FIT;
 	fc->incrComputeCount();
+	fc->skippedRows = 0;
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
 		omxFitFunctionComputeAuto(ff, want, fc);
@@ -188,7 +189,8 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		}
 		Global->checkpointPostfit(callerName, fc, fc->est, false);
 		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation, fit=%.12g", fitMat->name(), fc->fit);
+			mxLog("%s: completed evaluation, fit=%.12g skippedRows=%d",
+			      fitMat->name(), fc->fit, fc->skippedRows);
 		}
 	}
 }

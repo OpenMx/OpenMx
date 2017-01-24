@@ -1,39 +1,70 @@
 #ifndef _finiteDifferences_H_
 #define _finiteDifferences_H_
 
+#include <limits>
+
 // See http://en.wikipedia.org/wiki/Finite_difference
 
-struct forward_difference_grad {
+template <class Derived>
+struct finite_difference_grad {
+	double refFit;
+	int thrId;
+	double *point;
+	double orig;
+
 	template <typename T1>
-	void operator()(T1 ff, double refFit, int thrId, double *point,
+	double approx(T1 ff, double offset, int px)
+	{
+		return static_cast<Derived *>(this)->approx(ff, offset, px);
+	}
+
+	template <typename T1>
+	void operator()(T1 ff, double _refFit, int _thrId, double *_point,
 			double offset, int px, int numIter, double *Gaprox)
 	{
-		double orig = point[px];
-		for(int k = 0; k < numIter; k++) {
-			point[px] = orig + offset;
-			Gaprox[k] = (ff(point, thrId) - refFit) / offset;
+		refFit = _refFit;
+		thrId = _thrId;
+		point = _point;
+		orig = point[px];
+
+		for(int k = 0; k < numIter;) {
+			double grad = 0;
+			if (offset > std::numeric_limits<double>::epsilon()) {
+				grad = approx(ff, offset, px);
+			}
 			offset *= .5;
+			if (!std::isfinite(grad)) {
+				if (OMX_DEBUG) mxLog("finite differences[%d]: retry with offset %.4g",
+						     px, offset);
+				continue;
+			}
+			Gaprox[k] = grad;
+			k += 1;
 		}
 		point[px] = orig;
 	};
 };
 
-struct central_difference_grad {
+struct forward_difference_grad : finite_difference_grad<forward_difference_grad> {
 	template <typename T1>
-	void operator()(T1 ff, double refFit, int thrId, double *point,
-			double offset, int px, int numIter, double *Gaprox)
+	double approx(T1 ff, double offset, int px)
 	{
-		double orig = point[px];
-		for(int k = 0; k < numIter; k++) {
-			point[px] = orig + offset;
-			double f1 = ff(point, thrId);
-			point[px] = orig - offset;
-			double f2 = ff(point, thrId);
-			Gaprox[k] = (f1 - f2) / (2.0 * offset);
-			offset *= .5;
-		}
-		point[px] = orig;
-	};
+		point[px] = orig + offset;
+		double f1 = ff(point, thrId);
+		return (f1 - refFit) / offset;
+	}
+};
+
+struct central_difference_grad  : finite_difference_grad<central_difference_grad> {
+	template <typename T1>
+	double approx(T1 ff, double offset, int px)
+	{
+		point[px] = orig + offset;
+		double f1 = ff(point, thrId);
+		point[px] = orig - offset;
+		double f2 = ff(point, thrId);
+		return (f1 - f2) / (2.0 * offset);
+	}
 };
 
 template <typename T1, typename T2, typename T3, typename T4>
@@ -41,7 +72,6 @@ void gradientImpl(T1 ff, int numThreads, double refFit, Eigen::MatrixBase<T2> &p
 		  const double eps, T4 dfn, Eigen::MatrixBase<T3> &gradOut)
 {
 	Eigen::MatrixXd grid(numIter, point.size());
-	numThreads = std::min(numThreads, point.size()); // could break work into smaller pieces TODO
 	Eigen::MatrixXd thrPoint(point.size(), numThreads);
 	thrPoint.colwise() = point;
 
@@ -50,8 +80,9 @@ void gradientImpl(T1 ff, int numThreads, double refFit, Eigen::MatrixBase<T2> &p
 		int thrId = omp_get_thread_num();
 		int thrSelect = numThreads==1? -1 : thrId;
 		double offset = std::max(fabs(point[px] * eps), eps);
-		dfn(ff, refFit, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px, numIter, &grid.coeffRef(0,px));
-		for(int m = 1; m < numIter; m++) {						// Richardson Step
+		dfn[thrId](ff, refFit, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px, numIter, &grid.coeffRef(0,px));
+		// push down TODO
+		for(int m = 1; m < numIter; m++) {	// Richardson Step
 			for(int k = 0; k < (numIter - m); k++) {
 				// NumDeriv Hard-wires 4s for r here. Why?
 				grid(k,px) = (grid(k+1,px) * pow(4.0, m) - grid(k,px))/(pow(4.0, m)-1);
@@ -65,13 +96,14 @@ template <typename T1, typename T2, typename T3>
 void gradient_with_ref(GradientAlgorithm algo, int numThreads, int order, double eps, T1 ff, double refFit,
 		       Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
 {
+	numThreads = std::min(numThreads, point.size()); // could break work into smaller pieces TODO
 	switch (algo) {
 	case GradientAlgorithm_Forward:{
-		forward_difference_grad dfn;
+		std::vector<forward_difference_grad> dfn(numThreads);
 		gradientImpl(ff, numThreads, refFit, point, order, eps, dfn, gradOut);
 		break;}
 	case GradientAlgorithm_Central:{
-		central_difference_grad dfn;
+		std::vector<central_difference_grad> dfn(numThreads);
 		gradientImpl(ff, numThreads, refFit, point, order, eps, dfn, gradOut);
 		break;}
 	default: Rf_error("Unknown gradient algorithm %d", algo);

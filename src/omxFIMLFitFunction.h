@@ -278,19 +278,50 @@ class mvnByRow {
 		return true;
 	}
 
-	void record(double lik)
+	void record(double lik, int rows)
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
+		if (lik == 0.0) {
+			fc->skippedRows += rows;
+		} else {
+			EigenVectorAdaptor rl(localobj->matrix);
+			//mxLog("%g += record(%g)", rl[0], lik);
+			rl[0] += lik;
+		}
+		firstRow = false;
+		row += rows;
+	}
 
-		EigenVectorAdaptor rl(localobj->matrix);
-		//mxLog("%g += record(%g)", rl[0], lik);
-		rl[0] += lik;
+	void skipRow()
+	{
+		int oldRow = row;
+		if (returnRowLikelihoods) {
+			EigenVectorAdaptor rl(rowLikelihoods);
+			double rowLik = 0.0;
+			rl[sortedRow] = rowLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				int index = indexVector[row];
+				rl[index] = rowLik;
+				row += 1;
+			}
+		} else {
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				row += 1;
+			}
+		}
+		fc->skippedRows += row - oldRow;
 		firstRow = false;
 	}
 
 	void recordRow(double contLik, double ordLik)
 	{
 		double rowLik = ordLik * contLik;
+		if (rowLik == 0.0) {
+			skipRow();
+			return;
+		}
 		if (OMX_DEBUG_ROWS(sortedRow)) {
 			mxLog("%d/%d ordLik %g contLik %g = rowLik %g", row, sortedRow, ordLik, contLik, rowLik);
 		}

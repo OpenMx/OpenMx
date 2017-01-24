@@ -664,6 +664,7 @@ void FitContext::init()
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
 	fitUnits = parent? parent->fitUnits : FIT_UNITS_UNINITIALIZED;
+	skippedRows = 0;
 	est = new double[numParam];
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
@@ -772,6 +773,7 @@ void FitContext::updateParent()
 	parent->wanted |= wanted;
 	parent->fit = fit;
 	parent->fitUnits = fitUnits;
+	parent->skippedRows = skippedRows;
 	parent->mac = mac;
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
@@ -877,7 +879,7 @@ void FitContext::resetIterationError()
 
 void FitContext::recordIterationError(const char* msg, ...)
 {
-	// could record the parameter vector here for a better error message TODO
+	// Can avoid overhead of setting error if one is already set TODO
 	va_list ap;
 	va_start(ap, msg);
 	IterationError = string_vsnprintf(msg, ap);
@@ -2260,7 +2262,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f inform %d",
 				EMcycles, maxIter, totalMstepIter, bestFit, fc->getInform());
 
-	if (!converged || information == EMInfoNone) return;
+	if (!converged || fc->skippedRows || information == EMInfoNone) return;
 
 	optimum.resize(freeVars);
 	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
@@ -3034,7 +3036,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 {
 	double fit = solFun(myPars, mode);
-	if (std::isfinite(fit) && fit < bestFit) {
+	if (std::isfinite(fit) && fit < bestFit && !fc->skippedRows) {
 		bestFit = fit;
 		Eigen::Map< Eigen::VectorXd > pvec(myPars, fc->numParam);
 		bestEst = pvec;
@@ -3088,22 +3090,6 @@ void GradientOptimizerContext::finish()
 		++px;
 	}
 	fc->copyParamToModel();
-}
-
-double GradientOptimizerContext::evalFit(double *myPars, int thrId, int *mode)
-{
-	FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
-	Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
-	copyFromOptimizer(myPars, fc2);
-	int want = FF_COMPUTE_FIT;
-	ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
-	if (fc2->outsideFeasibleSet() || isErrorRaised()) {
-		*mode = -1;
-	}
-	if (verbose >= 3) {
-		mxLog("fit %f (mode %d)", fc2->fit, *mode);
-	}
-	return fc2->fit;
 }
 
 double GradientOptimizerContext::solFun(double *myPars, int* mode)

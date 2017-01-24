@@ -584,10 +584,17 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
 
-		if ((fc->wanted & FF_COMPUTE_FIT) && !std::isfinite(fc->fit)) {
-			std::string diag = fc->getIterationError();
-			if (diag.size()) {
-				omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+		if (fc->wanted & FF_COMPUTE_FIT) {
+			if (!std::isfinite(fc->fit)) {
+				std::string diag = fc->getIterationError();
+				if (diag.size()) {
+					omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+				} else if (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
+					   fc->getInform() == INFORM_UNCONVERGED_OPTIMUM) {
+					omxRaiseErrorf("fit is not finite");
+				}
+			} else if (fc->skippedRows) {
+				Rf_warning("%d rows obtained probability of exactly zero", fc->skippedRows);
 			}
 		}
 	}

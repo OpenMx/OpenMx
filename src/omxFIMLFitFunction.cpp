@@ -105,7 +105,6 @@ bool condOrdByRow::eval()
 			}
 			if (!parent->ordinalSame[row] || firstRow) {
 				ordLik = ol.likelihood(fc, sortedRow);
-				if (ordLik == 0.0) return true;
 				INCR_COUNTER(ordDensity);
 			}
 
@@ -138,7 +137,8 @@ bool condOrdByRow::eval()
 						}
 					}
 
-					if (!_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
+					if (ordLik == 0.0 ||
+					    !_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
 						reportBadOrdLik(1);
 						return true;
 					}
@@ -199,6 +199,10 @@ bool condOrdByRow::eval()
 				INCR_COUNTER(contDensity);
 				sufficientSet &ss = parent->sufficientSets[ssx++];
 				if (ss.start != row) Rf_error("oops");
+				if (ordLik == 0.0) {
+					record(0, ss.length);
+					continue;
+				}
 				Eigen::VectorXd resid = ss.dataMean - contMean;
 				//mxPrintMat("dataCov", ss.dataCov);
 				//mxPrintMat("contMean", contMean);
@@ -210,9 +214,8 @@ bool condOrdByRow::eval()
 				double cterm = M_LN_2PI * ss.dataMean.size();
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
-				record(-0.5 * ll + ss.length * log(ordLik));
+				record(-0.5 * ll + ss.length * log(ordLik), ss.length);
 				contLik = 1.0;
-				row += ss.length;
 				continue;
 			}
 
@@ -223,10 +226,7 @@ bool condOrdByRow::eval()
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLik = exp(-0.5 * (iqf + cterm + logDet));
-			if (contLik == 0.0) {
-				reportBadContRow(cData, resid, contCov);
-				return true;
-			}
+			if (contLik == 0.0) reportBadContRow(cData, resid, contCov);
 		} else { contLik = 1.0; }
 
 		recordRow(contLik, ordLik);
@@ -324,7 +324,6 @@ bool condContByRow::eval()
 				contLik = exp(-0.5 * (iqf + cterm + logDet));
 				if (contLik == 0.0) {
 					reportBadContRow(cData, resid, contCov);
-					return true;
 				}
 			}
 		} else {
@@ -342,7 +341,6 @@ bool condContByRow::eval()
 
 			INCR_COUNTER(ordDensity);
 			ordLik = ol.likelihood(fc, sortedRow);
-			if (ordLik == 0.0) return true;
 			//mxLog("[%d] %.5g", sortedRow, log(ordLik));
 		} else {
 			ordLik = 1.0;
@@ -879,6 +877,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		return;
 	}
 
+	int startSkippedRows = fc->skippedRows;
 	bool failed = false;
 
 	if (parent->curParallelism > 1 && fc->childList.size() == 0) {
@@ -913,6 +912,10 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			if (!ofo->parent) Rf_error("oops");
 		}
 
+		for (int i = 0; i < parent->curParallelism; i++) {
+			FitContext *kid = fc->childList[i];
+			kid->skippedRows = 0;
+		}
 #pragma omp parallel for num_threads(parent->curParallelism) reduction(||:failed)
 		for(int i = 0; i < parent->curParallelism; i++) {
 			FitContext *kid = fc->childList[i];
@@ -920,6 +923,11 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			failed |= dispatchByRow(kid, childFit, parent, ofiml);
 		}
+		for (int i = 0; i < parent->curParallelism; i++) {
+			FitContext *kid = fc->childList[i];
+			fc->skippedRows += kid->skippedRows;
+		}
+
 		parent->curElapsed = (parent->curElapsed+1) % ELAPSED_HISTORY_SIZE;
 		if (parent->curElapsed == 0) {
 			std::vector<nanotime_t> elapsed;
@@ -956,6 +964,11 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 
 	if (ofiml->verbose >= 2) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
 
+	int ourSkippedRows = fc->skippedRows - startSkippedRows;
+	if (ourSkippedRows == data->rows) {
+		// all rows skipped
+		failed = true;
+	}
 	if (failed) {
 		if(!returnRowLikelihoods) {
 			omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
@@ -975,13 +988,13 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				EigenVectorAdaptor got(childMatrix);
 				sum += got[0];
 			}
-			sum *= -2.0;
 			omxSetMatrixElement(off->matrix, 0, 0, sum);
-		} else {
-			EigenVectorAdaptor got(off->matrix);
-			got[0] *= -2.0;
 		}
-		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f", off->name(), off->matrix->data[0]);}
+		EigenVectorAdaptor got(off->matrix);
+		got[0] = addSkippedRowPenalty(got[0], ourSkippedRows);
+		got[0] *= Global->llScale;
+		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f skipped %d",
+				     off->name(), off->matrix->data[0], ourSkippedRows);}
 	} else {
 		omxCopyMatrix(off->matrix, ofiml->rowLikelihoods);
 		if (OMX_DEBUG) {
