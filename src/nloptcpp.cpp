@@ -6,6 +6,7 @@
 #include "omxMatrix.h"
 #include "glue.h"
 #include "nloptcpp.h"
+#include "Compute.h"
 #include "finiteDifferences.h"
 
 #include "nlopt.h"
