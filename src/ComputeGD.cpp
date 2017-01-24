@@ -232,7 +232,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxNPSOL(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
-		if (rf.hessOut.size() ){//&& fitMatrix->currentState->conListX.size() == 0) {
+		if (rf.hessOut.size() ){
 			if (!hessChol) {
 				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
 			}
