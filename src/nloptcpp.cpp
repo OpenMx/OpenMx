@@ -52,8 +52,9 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	if (!grad) return fit;
 	
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
+	goc->numericalGradientWithRef(Epoint);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
-	goc->numericalGradientWithRef(Epoint, Egrad);
+	Egrad = goc->grad;
 	if (goc->verbose >= 3) {
 		mxPrintMat("gradient", Egrad);
 	}

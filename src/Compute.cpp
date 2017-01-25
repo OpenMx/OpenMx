@@ -3008,14 +3008,26 @@ void GradientOptimizerContext::reset()
 	ineqNorm = 0;
 }
 
-GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose)
-	: fc(_fc), verbose(_verbose)
+int GradientOptimizerContext::countNumFree()
 {
-	numFree = 0;
+	int nf = 0;
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
 		if (fc->profiledOut[vx]) continue;
-		++numFree;
+		++nf;
 	}
+	return nf;
+}
+
+GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
+						   enum GradientAlgorithm _gradientAlgo,
+						   int _gradientIterations,
+						   double _gradientStepSize)
+	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
+	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
+	  gradientStepSize(_gradientStepSize),
+	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
+	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
+{
 	optName = "?";
 	fitMatrix = NULL;
 	ControlMinorLimit = 800;
@@ -3028,7 +3040,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
-	numOptimizerThreads = (fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1;
 	CSOLNP_HACK = false;
 	reset();
 }

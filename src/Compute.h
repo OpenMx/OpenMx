@@ -277,9 +277,12 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-class GradientOptimizerContext {
+#include "finiteDifferences.h"
+
+class GradientOptimizerContext { // move to ComputeGD.h TODO
  private:
 	void copyBounds();
+	int countNumFree();
 
 	// We need to hide this from the optimizer because
 	// some parameters might be profiled out and should
@@ -288,8 +291,15 @@ class GradientOptimizerContext {
 
  public:
 	const int verbose;
-	int numFree;          // how many parameters are not profiled out
+	const int numFree;    // how many parameters are not profiled out
 	const char *optName;  // filled in by the optimizer
+
+	// Maybe the optimizer should not have information about
+	// how the gradient is approximated?
+	enum GradientAlgorithm gradientAlgo;
+	int gradientIterations;
+	double gradientStepSize;
+
 	bool feasible;
 	bool avoidRedundentEvals;
 	Eigen::VectorXd prevPoint;
@@ -305,9 +315,6 @@ class GradientOptimizerContext {
 	bool warmStart;
 	bool useGradient;
 	int ineqType;
-	enum GradientAlgorithm gradientAlgo;
-	int gradientIterations;
-	double gradientStepSize;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
@@ -330,7 +337,10 @@ class GradientOptimizerContext {
 	Eigen::VectorXd gradOut;
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
-	GradientOptimizerContext(FitContext *fc, int verbose);
+	GradientOptimizerContext(FitContext *fc, int verbose,
+				 enum GradientAlgorithm _gradientAlgo,
+				 int _gradientIterations,
+				 double _gradientStepSize);
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
@@ -369,21 +379,19 @@ class GradientOptimizerContext {
 	};
 	omxState *getState() const { return fc->state; };
 
-	template <typename T1, typename T2>
-	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint,
-				      Eigen::MatrixBase<T2> &Egrad);
+	GradientWithRef gwrContext;
+
+	template <typename T1>
+	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint);
 };
 
-template <typename T1, typename T2>
-void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint,
-							Eigen::MatrixBase<T2> &Egrad)
+template <typename T1>
+void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint)
 {
 	if (getWanted() & FF_COMPUTE_GRADIENT) {
-		Egrad = grad;
 		return;
 	} else if (hasKnownGradient()) {
-		setKnownGradient(Egrad);
-		grad = Egrad;
+		setKnownGradient(grad);
 		return;
 	}
 
@@ -391,24 +399,18 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 	double refFit = fc->fit;
 	int skippedRows = fc->skippedRows;
 
-	// save execution time
-	// if faster than threshold, reduce by 1 thread TODO
-
-	gradient_with_ref(gradientAlgo, numOptimizerThreads,
-			  gradientIterations, gradientStepSize,
-			  [&](double *myPars, int thrId)->double{
-				  FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
-				  Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
-				  copyFromOptimizer(myPars, fc2);
-				  int want = FF_COMPUTE_FIT;
-				  ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
-				  double fit = fc2->fit;
-				  if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
-					  fit = nan("infeasible");
-				  }
-				  return fit;
-			  }, refFit, Epoint, Egrad);
-	grad = Egrad;
+	gwrContext([&](double *myPars, int thrId)->double{
+			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+			copyFromOptimizer(myPars, fc2);
+			int want = FF_COMPUTE_FIT;
+			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
+			double fit = fc2->fit;
+			if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
+				fit = nan("infeasible");
+			}
+			return fit;
+		}, refFit, Epoint, grad);
 }
 
 inline double addSkippedRowPenalty(double orig, int skipped) // orig does not have * Global->llScale

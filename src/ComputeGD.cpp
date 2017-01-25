@@ -202,14 +202,13 @@ void omxComputeGD::computeImpl(FitContext *fc)
 				int(fitMatrix->currentState->conListX.size()));
 
 	//if (fc->ciobj) verbose=2;
-	GradientOptimizerContext rf(fc, verbose);
+	double effectiveGradientStepSize = gradientStepSize;
+	if (engine == OptEngine_NLOPT) effectiveGradientStepSize *= GRADIENT_FUDGE_FACTOR(2.0);
+	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize);
 	threads = rf.numOptimizerThreads;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	rf.useGradient = useGradient;
-	rf.gradientAlgo = gradientAlgo;
-	rf.gradientIterations = gradientIterations;
-	rf.gradientStepSize = gradientStepSize;
 	if (maxIter == -1) {
 		rf.maxMajorIterations = -1;
 	} else {
@@ -263,7 +262,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 		break;
         case OptEngine_NLOPT:
-		rf.gradientStepSize = rf.gradientStepSize * GRADIENT_FUDGE_FACTOR(2.0);
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		omxInvokeNLOPT(rf);
 		rf.finish();
