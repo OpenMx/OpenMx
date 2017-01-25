@@ -27,10 +27,290 @@
 #include "npsolswitch.h"
 #include "glue.h"
 #include "ComputeSD.h"
+#include "ComputeGD.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
 #endif
+
+void GradientOptimizerContext::copyBounds()
+{
+	FreeVarGroup *varGroup = fc->varGroup;
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		solLB[px] = varGroup->vars[vx]->lbound;
+		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
+		solUB[px] = varGroup->vars[vx]->ubound;
+		if (!std::isfinite(solUB[px])) solUB[px] = INF;
+		++px;
+	}
+}
+
+void GradientOptimizerContext::setupSimpleBounds()
+{
+	solLB.resize(numFree);
+	solUB.resize(numFree);
+	copyBounds();
+}
+
+void GradientOptimizerContext::setupIneqConstraintBounds()
+{
+	solLB.resize(numFree);
+	solUB.resize(numFree);
+	copyBounds();
+
+	omxState *globalState = fc->state;
+	int eqn, nineqn;
+	globalState->countNonlinearConstraints(eqn, nineqn, false);
+	equality.resize(eqn);
+	inequality.resize(nineqn);
+};
+
+void GradientOptimizerContext::setupAllBounds()
+{
+	omxState *st = fc->state;
+	int n = (int) numFree;
+
+	// treat all constraints as non-linear
+	int eqn, nineqn;
+	st->countNonlinearConstraints(eqn, nineqn, false);
+	int ncnln = eqn + nineqn;
+	solLB.resize(n + ncnln);
+	solUB.resize(n + ncnln);
+
+	copyBounds();
+
+	int index = n;
+	for(int constraintIndex = 0; constraintIndex < int(st->conListX.size()); constraintIndex++) {
+		omxConstraint &cs = *st->conListX[constraintIndex];
+		omxConstraint::Type type = cs.opCode;
+		switch(type) {
+		case omxConstraint::LESS_THAN:
+		case omxConstraint::GREATER_THAN:
+			for(int offset = 0; offset < cs.size; offset++) {
+				solLB[index] = NEG_INF;
+				solUB[index] = -0.0;
+				index++;
+			}
+			break;
+		case omxConstraint::EQUALITY:
+			for(int offset = 0; offset < cs.size; offset++) {
+				solLB[index] = -0.0;
+				solUB[index] = 0.0;
+				index++;
+			}
+			break;
+		default:
+			Rf_error("Unknown constraint type %d", type);
+		}
+	}
+}
+
+void GradientOptimizerContext::reset()
+{
+	feasible = false;
+	bestFit = std::numeric_limits<double>::max();
+	eqNorm = 0;
+	ineqNorm = 0;
+}
+
+int GradientOptimizerContext::countNumFree()
+{
+	int nf = 0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		++nf;
+	}
+	return nf;
+}
+
+GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
+						   enum GradientAlgorithm _gradientAlgo,
+						   int _gradientIterations,
+						   double _gradientStepSize)
+	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
+	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
+	  gradientStepSize(_gradientStepSize),
+	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
+	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
+{
+	optName = "?";
+	fitMatrix = NULL;
+	ControlMinorLimit = 800;
+	ControlRho = 1.0;
+	ControlTolerance = nan("uninit");
+	useGradient = false;
+	warmStart = false;
+	ineqType = omxConstraint::LESS_THAN;
+	avoidRedundentEvals = false;
+	est.resize(numFree);
+	grad.resize(numFree);
+	copyToOptimizer(est.data());
+	CSOLNP_HACK = false;
+	reset();
+}
+
+double GradientOptimizerContext::recordFit(double *myPars, int* mode)
+{
+	double fit = solFun(myPars, mode);
+	if (std::isfinite(fit) && fit < bestFit && !fc->skippedRows) {
+		bestFit = fit;
+		Eigen::Map< Eigen::VectorXd > pvec(myPars, fc->numParam);
+		bestEst = pvec;
+	}
+	return fit;
+}
+
+bool GradientOptimizerContext::hasKnownGradient() const
+{
+	return fc->ciobj && fc->ciobj->gradientKnown();
+}
+
+void GradientOptimizerContext::copyToOptimizer(double *myPars)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		myPars[px] = fc->est[vx];
+		++px;
+	}
+}
+
+void GradientOptimizerContext::useBestFit()
+{
+	fc->fit = bestFit;
+	est = bestEst;
+	// restore gradient too? TODO
+}
+
+void GradientOptimizerContext::copyFromOptimizer(double *myPars, FitContext *fc2)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc2->profiledOut.size(); ++vx) {
+		if (fc2->profiledOut[vx]) continue;
+		fc2->est[vx] = myPars[px];
+		++px;
+	}
+	fc2->copyParamToModel();
+}
+
+void GradientOptimizerContext::finish()
+{
+	fc->grad.resize(fc->numParam);
+	fc->grad.setConstant(nan("unset"));
+
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		fc->est[vx] = est[px];
+		fc->grad[vx] = grad[px];
+		++px;
+	}
+	fc->copyParamToModel();
+}
+
+double GradientOptimizerContext::solFun(double *myPars, int* mode)
+{
+	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
+	if (feasible && avoidRedundentEvals && *mode == prevMode) {
+		if (Est == prevPoint) {
+			return fc->fit;
+		}
+	}
+
+	if (*mode == 1) {
+		fc->iterations += 1;
+		Global->reportProgress("MxComputeGradientDescent", fc);
+	}
+	copyFromOptimizer(myPars, fc);
+
+	int want = FF_COMPUTE_FIT;
+	// eventually want to permit analytic gradient during CI
+	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
+		fc->grad.resize(fc->numParam);
+		fc->grad.setZero();
+		want |= FF_COMPUTE_GRADIENT;
+	}
+	ComputeFit(optName, fitMatrix, want, fc);
+
+	if (fc->outsideFeasibleSet() || isErrorRaised()) {
+		*mode = -1;
+	} else {
+		feasible = true;
+		if (avoidRedundentEvals) {
+			prevPoint = Est;
+			prevMode = *mode;
+		}
+		if (want & FF_COMPUTE_GRADIENT) {
+			int px=0;
+			for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+				if (fc->profiledOut[vx]) continue;
+				grad[px++] = fc->grad[vx];
+			}
+		}
+	}
+
+	if (verbose >= 3) {
+		mxLog("fit %f (mode %d)", fc->fit, *mode);
+	}
+
+	return fc->fit;
+};
+
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
+void GradientOptimizerContext::solEqBFun()
+{
+	const int eq_n = (int) equality.size();
+	omxState *st = fc->state;
+
+	if (!eq_n) return;
+
+	int cur = 0;
+	for(int j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode != omxConstraint::EQUALITY) continue;
+
+		con.refreshAndGrab(fc, &equality(cur));
+		cur += con.size;
+	}
+
+	if (verbose >= 3) {
+		mxPrintMat("equality", equality);
+	}
+};
+
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
+void GradientOptimizerContext::myineqFun()
+{
+	const int ineq_n = (int) inequality.size();
+	omxState *st = fc->state;
+
+	if (!ineq_n) return;
+
+	int cur = 0;
+	for (int j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode == omxConstraint::EQUALITY) continue;
+
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+		cur += con.size;
+	}
+
+	if (CSOLNP_HACK) {
+		// CSOLNP doesn't know that inequality constraints can be inactive TODO
+	} else {
+		inequality = inequality.array().max(0.0);
+	}
+
+	if (verbose >= 3) {
+		mxPrintMat("inequality", inequality);
+	}
+};
+
+// ------------------------------------------------------------
 
 enum OptEngine {
 	OptEngine_NPSOL,

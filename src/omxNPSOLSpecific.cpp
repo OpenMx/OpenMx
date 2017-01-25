@@ -19,9 +19,9 @@
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "omxMatrix.h"
-#include "glue.h"
 #include "omxImportFrontendState.h"
 #include "Compute.h"
+#include "ComputeGD.h"
 #include "npsolswitch.h"
 
 #ifdef SHADOW_DIAG

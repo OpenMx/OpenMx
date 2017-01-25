@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include "matrix.h"
 #include "omxCsolnp.h"
+#include "ComputeGD.h"
 //#include <iostream>
 //#include <iomanip>
 //using std::cout;
@@ -1422,4 +1423,13 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
 		return;
     }
     if (verbose >= 4) mxPrintMat("fitVal", fitVal);
+}
+
+void omxCSOLNP(GradientOptimizerContext &go)
+{
+	double *est = go.est.data();
+	go.optName = "CSOLNP";
+	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
+	go.useGradient = false;  // not implemented yet
+	solnp(est, go);
 }

@@ -7,7 +7,7 @@
 #include "glue.h"
 #include "nloptcpp.h"
 #include "Compute.h"
-#include "finiteDifferences.h"
+#include "ComputeGD.h"
 
 #include "nlopt.h"
 #include "slsqp.h"

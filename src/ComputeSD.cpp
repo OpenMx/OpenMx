@@ -1,7 +1,7 @@
 /* Steepest Descent optimizer for unconstrained problems*/
 
+#include "ComputeGD.h"
 #include "ComputeSD.h"
-#include "finiteDifferences.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
