@@ -30,6 +30,7 @@
 
 #include "omxFitFunction.h"
 #include "fitMultigroup.h"
+#include "Compute.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"

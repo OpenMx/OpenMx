@@ -26,6 +26,7 @@
 #include <Eigen/Cholesky>
 #include <RcppEigenWrap.h>
 #include "matrix.h"
+#include "Compute.h"
 
 #ifdef  __cplusplus
 extern "C" {

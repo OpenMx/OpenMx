@@ -6,6 +6,7 @@
 #include "omxMatrix.h"
 #include "glue.h"
 #include "nloptcpp.h"
+#include "Compute.h"
 #include "finiteDifferences.h"
 
 #include "nlopt.h"
@@ -238,6 +239,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 		goc.LagrMultipliersOut[i] = realwkspc[Wst+i];
 	}
 	
+	M = M>0 ? M : 1;
 	for(i=M; i<M+(n*n1/2); i++){
 		if(ro==co){
 			Dmat(ro,co) = realwkspc[Wst+i];

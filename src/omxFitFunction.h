@@ -39,7 +39,6 @@
 #include "omxData.h"
 #include "omxState.h"
 #include "omxExpectation.h"
-#include "Compute.h"
 
 typedef struct {
 	char label[250];

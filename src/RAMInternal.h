@@ -379,15 +379,11 @@ namespace RelationalRAMExpectation {
 			return tmp;
 		};
 		void setModel(omxExpectation *ex) { model=ex; };
-		omxExpectation *getModel(FitContext *fc) {
-			return omxExpectationFromIndex(model->expNum, fc->state);
-		};
+		omxExpectation *getModel(FitContext *fc);
 		int getExpNum() const { return model->expNum; };
 		omxData *getData() const { return model->data; };
 		std::vector<bool> &getIgnoreDefVar();
-		omxRAMExpectation *getRAMExpectation(FitContext *fc) {
-			return (omxRAMExpectation*) getModel(fc)->argStruct;
-		};
+		omxRAMExpectation *getRAMExpectation(FitContext *fc);
 		omxRAMExpectation *getRAMExpectationReadOnly() const {
 			// NOTE: not per-thread!
 			return (omxRAMExpectation*) model->argStruct;

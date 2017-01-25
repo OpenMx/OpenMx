@@ -17,6 +17,7 @@
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
+#include "Compute.h"
 //#include <Eigen/LU>
 
 #ifdef SHADOW_DIAG
@@ -90,8 +91,6 @@ static void refreshUnfilteredCov(omxExpectation *oo)
 
 static void omxPopulateRAMAttributes(omxExpectation *oo, SEXP robj)
 {
-	omxManageProtectInsanity mpi;
-
     refreshUnfilteredCov(oo);
 	omxRAMExpectation* oro = (omxRAMExpectation*) (oo->argStruct);
 	omxMatrix* Ax= oro->Ax;
@@ -357,6 +356,16 @@ static omxMatrix* omxGetRAMExpectationComponent(omxExpectation* ox, const char* 
 }
 
 namespace RelationalRAMExpectation {
+
+	omxExpectation *addr::getModel(FitContext *fc)
+	{
+		return omxExpectationFromIndex(model->expNum, fc->state);
+	}
+
+	omxRAMExpectation *addr::getRAMExpectation(FitContext *fc)
+	{
+		return (omxRAMExpectation*) getModel(fc)->argStruct;
+	};
 
 	std::vector< omxMatrix* > &addr::getBetween() const
 	{
