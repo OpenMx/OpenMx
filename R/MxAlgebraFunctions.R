@@ -364,6 +364,31 @@ lgamma1p <- function(x){
 	return(retVal)
 }
 
+#These two functions accept a different number of arguments from their 'stats' counterparts.  Therefore, they need to have different symbols.
+#Otherwise, collisions result when they appear in expressions passed to mxEval():
+omxDnbinom <- function(x,size,prob,mu,give_log){
+	x <- as.matrix(x)
+	size <- as.matrix(size)
+	prob <- as.matrix(prob)
+	mu <- as.matrix(mu)
+	give_log <- as.matrix(give_log)
+	retval <- .Call(callAlgebra, list(x,size,prob,mu,give_log), imxLookupSymbolTable("omxDnbinom"), 
+									generateOptionsList(NULL, 0, FALSE))
+	return(retval)
+}
+omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
+	q <- as.matrix(q)
+	size <- as.matrix(size)
+	prob <- as.matrix(prob)
+	mu <- as.matrix(mu)
+	lower_tail <- as.matrix(lower_tail)
+	give_log <- as.matrix(give_log)
+	retval <- .Call(callAlgebra, list(q,size,prob,mu,lower_tail,give_log), imxLookupSymbolTable("omxPnbinom"), 
+									generateOptionsList(NULL, 0, FALSE))
+	return(retval)
+}
+
+
 ##' A C implementation of dmvnorm
 ##'
 ##' This API is visible to permit testing. Please do not use.
