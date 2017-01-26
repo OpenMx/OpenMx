@@ -170,6 +170,7 @@ man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
+man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
