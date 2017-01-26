@@ -147,6 +147,8 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			int want = FF_COMPUTE_FIT;
 			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
 			double fit = fc2->fit;
+			// Really should require the same rows, not just the same
+			// number of rows.
 			if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
 				fit = nan("infeasible");
 			}

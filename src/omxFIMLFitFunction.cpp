@@ -877,7 +877,6 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		return;
 	}
 
-	int startSkippedRows = fc->skippedRows;
 	bool failed = false;
 
 	if (parent->curParallelism > 1 && fc->childList.size() == 0) {
@@ -900,10 +899,12 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 	}
 
 	nanotime_t startTime = 0;
-	if (ofiml->verbose >= 2) {
+	if (ofiml->verbose >= 3) {
 		startTime = get_nanotime();
 		mxLog("%s eval with par=%d", off->name(), parent->curParallelism);
 	}
+
+	ofiml->skippedRows = 0;
 
 	bool reduceParallelism = false;
 	if (parent->curParallelism > 1) {
@@ -912,9 +913,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			if (!ofo->parent) Rf_error("oops");
 		}
 
-		for (int i = 0; i < parent->curParallelism; i++) {
-			FitContext *kid = fc->childList[i];
-			kid->skippedRows = 0;
+		for (int tx=0; tx < parent->curParallelism; ++tx) {
+			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
+			ofo->skippedRows = 0;
 		}
 #pragma omp parallel for num_threads(parent->curParallelism) reduction(||:failed)
 		for(int i = 0; i < parent->curParallelism; i++) {
@@ -923,9 +924,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			failed |= dispatchByRow(kid, childFit, parent, ofiml);
 		}
-		for (int i = 0; i < parent->curParallelism; i++) {
-			FitContext *kid = fc->childList[i];
-			fc->skippedRows += kid->skippedRows;
+		for (int tx = 0; tx < parent->curParallelism; tx++) {
+			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
+			ofiml->skippedRows += ofo->skippedRows;
 		}
 
 		parent->curElapsed = (parent->curElapsed+1) % ELAPSED_HISTORY_SIZE;
@@ -948,7 +949,7 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 				omxFIMLFitFunction *maxC = getChildFIMLObj(fc, fitMatrix, maxT);
 				int toMove = maxC->rowCount * imbalance;
 				if (toMove > 0) {
-					if (ofiml->verbose >= 2) {
+					if (ofiml->verbose >= 3) {
 						mxLog("transfer work %d (%.2f%%) from thread %d to %d",
 						      toMove, imbalance*100, maxT, minT);
 					}
@@ -962,10 +963,9 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 		failed |= dispatchByRow(fc, off, parent, ofiml);
 	}
 
-	if (ofiml->verbose >= 2) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
+	if (ofiml->verbose >= 3) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
 
-	int ourSkippedRows = fc->skippedRows - startSkippedRows;
-	if (ourSkippedRows == data->rows) {
+	if (!returnRowLikelihoods && ofiml->skippedRows == data->rows) {
 		// all rows skipped
 		failed = true;
 	}
@@ -990,11 +990,14 @@ static void CallFIMLFitFunction(omxFitFunction *off, int want, FitContext *fc)
 			}
 			omxSetMatrixElement(off->matrix, 0, 0, sum);
 		}
+		fc->skippedRows += ofiml->skippedRows;
 		EigenVectorAdaptor got(off->matrix);
-		got[0] = addSkippedRowPenalty(got[0], ourSkippedRows);
+		got[0] = addSkippedRowPenalty(got[0], ofiml->skippedRows);
 		got[0] *= Global->llScale;
-		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f skipped %d",
-				     off->name(), off->matrix->data[0], ourSkippedRows);}
+		if(ofiml->verbose + OMX_DEBUG >= 2) {
+			mxLog("%s: total likelihood is %3.3f skipped %d",
+			      off->name(), off->matrix->data[0], ofiml->skippedRows);
+		}
 	} else {
 		omxCopyMatrix(off->matrix, ofiml->rowLikelihoods);
 		if (OMX_DEBUG) {

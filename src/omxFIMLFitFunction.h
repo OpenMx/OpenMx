@@ -69,6 +69,7 @@ struct omxFIMLFitFunction {
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
 
+	int skippedRows;
 	int origStateId;
 	int curParallelism;
 	int rowBegin;
@@ -282,7 +283,7 @@ class mvnByRow {
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
 		if (lik == 0.0) {
-			fc->skippedRows += rows;
+			ofiml->skippedRows += rows;
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			//mxLog("%g += record(%g)", rl[0], lik);
@@ -311,7 +312,7 @@ class mvnByRow {
 				row += 1;
 			}
 		}
-		fc->skippedRows += row - oldRow;
+		ofiml->skippedRows += row - oldRow;
 		firstRow = false;
 	}
 

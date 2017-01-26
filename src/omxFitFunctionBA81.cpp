@@ -901,11 +901,11 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 					fit = addSkippedRowPenalty(got, estate->grp.excludedPatterns);
 					fit *= Global->llScale;
 				}
+				fc->skippedRows += estate->grp.excludedPatterns;
 				if (estate->verbose >= 1) mxLog("%s: observed fit %.4f (%d/%d excluded)",
 								oo->name(), fit, estate->grp.excludedPatterns, numUnique);
 				oo->matrix->data[0] = fit;
 			}
-			fc->skippedRows += estate->grp.excludedPatterns;
 		}
 	} else {
 		Rf_error("%s: Predict nothing or scores before computing %d", oo->name(), want);
