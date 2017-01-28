@@ -483,7 +483,15 @@ setMethod("show", "MxExpectationStateSpace", function(object) {
 
 
 #--------------------------------------------------------------------
-KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P){
+KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, ct=FALSE, dt=0){
+	if(ct){
+		I <- diag(1, nrow=nrow(A))
+		out <- kalmanDiscretize(A, B, Q, dt, I)
+		A <- out$Ad
+		B <- out$Bd
+		Q <- out$Qd
+	}
+	
 	x <- A %*% x + B %*% u
 	P <- A %*% P %*% t(A) + Q
 	x.pred <- x
@@ -510,7 +518,7 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P){
 		const <- length(rf)*log(2*pi)
 		m2ll <- log(det(S)) + t(rf) %*% Sinv %*% rf + const
 		
-		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.upda, P.upda=P.upda, m2ll=m2ll, L=exp(m2ll/-2) ))
+		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.upda, P.upda=P.upda, m2ll=m2ll, L=exp(m2ll/-2), A=A ))
 	}
 }
 
@@ -523,8 +531,17 @@ mxKalmanScores <- function(model, data=NA){
 	}
 	x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
 	P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
+	A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
+	B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
+	C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
+	D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
+	Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
+	R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
+	u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
+	
 	
 	hasDefVars <- imxHasDefinitionVariable(model)
+	continuousTime <- !single.na(model@expectation@t)
 	
 	X.pred <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.upda <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
@@ -532,45 +549,46 @@ mxKalmanScores <- function(model, data=NA){
 	X.upda[1,] <- x0
 	P.pred <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
 	P.upda <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
+	A.disc <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)))
 	P.pred[,,1] <- P0
 	P.upda[,,1] <- P0
 	m2ll <- numeric(nrow(data)+1)
 	m2ll[1] <- 0
 	L <- numeric(nrow(data)+1)
 	L[1] <- 1
+	oldT <- 0
+	newT <- 0
 	for(i in 1:nrow(data)){
-		if(i==1 || hasDefVars){
-			tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cacheBack=TRUE)
-			A <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			B <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			C <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			D <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			Q <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			R <- tem[[1]]
-			tem <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-			u <- tem[[1]]
+		if(hasDefVars){
+			A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i)
+			B <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i)
+			C <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i)
+			D <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i)
+			Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i)
+			R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i)
+			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i)
+			newT <- mxEvalByName(model@expectation@t, model, compute=TRUE, defvar.row=i)
 		}
 		
-		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[,,i])
+		deltaT <- newT - oldT
+		oldT <- newT
+		
+		res <- KalmanFilter(A=A, B=B, C=C, D=D, Q=Q, R=R, x=matrix(X.upda[i,]), y=matrix(unlist(data[i,rownames(C)])), u=u, P=P.upda[,,i], continuousTime, deltaT)
+		
 		X.pred[i+1,] <- res$x.pred
 		X.upda[i+1,] <- res$x.upda
 		P.pred[,,i+1] <- res$P.pred
 		P.upda[,,i+1] <- res$P.upda
 		m2ll[i+1] <- res$m2ll
 		L[i+1] <- res$L
+		A.disc[,,i] <- res$A
 	}
 	X.smoo <- matrix(0, nrow=nrow(data)+1, ncol=nrow(x0))
 	X.smoo[nrow(data)+1,] <- X.upda[nrow(data)+1, ]
 	P.smoo <- array(0, dim=c(nrow(x0), nrow(x0), nrow(data)+1))
 	P.smoo[,,nrow(data)+1] <- P.upda[,,nrow(data)+1]
 	for(i in nrow(data):1){
-		tem <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i, cache=tem[[2]], cacheBack=TRUE)
-		A <- tem[[1]]
+		A <- A.disc[,,i]
 		SGain <- P.upda[,,i] %*% A %*% solve(P.pred[,,i+1])
 		X.smoo[i,] <- matrix(X.upda[i,]) + SGain %*% matrix(X.smoo[i+1,] - X.pred[i+1,])
 		P.smoo[,,i] <- P.upda[,,i] + SGain %*% (P.smoo[,,i+1] - P.pred[,,i+1]) %*% t(SGain)
@@ -625,7 +643,6 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		ty <- matrix(0, ydim, tdim)
 		I <- diag(1, nrow=nrow(A))
 		Z <- diag(0, nrow=nrow(A))
-		BLOCK <- matrix(0, nrow=2*nrow(A), ncol=2*ncol(A))
 		
 		tx[,1] <- x0
 		oldT <- 0
@@ -644,22 +661,10 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 				#browser()
 				deltaT <- c(newT - oldT)
 				oldT <- newT
-				# First Block expm for A integral, and expm(A*deltaT)
-				BLOCK[1:(2*nrow(A)), 1:ncol(A)] <- 0
-				BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- I
-				BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
-				BLOCK <- OpenMx::expm(BLOCK*deltaT)
-				expA <- BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))]
-				intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
-				# Second Block expm for discretized Q
-				BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
-				BLOCK[(nrow(A)+1):(2*nrow(A)), 1:ncol(A)] <- 0
-				BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
-				BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
-				BLOCK <- OpenMx::expm(BLOCK*deltaT)
-				Ad <- expA
-				Bd <- intA %*% B
-				Qd <- t(Ad) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+				kd <- kalmanDiscretize(A, B, Q, deltaT, I)
+				Ad <- kd$Ad
+				Bd <- kd$Bd
+				Qd <- kd$Qd
 			} else {
 				Ad <- A
 				Bd <- B
@@ -675,4 +680,31 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 	}
 )
 
+kalmanDiscretize <- function(A, B, Q, deltaT, I){
+	if(length(deltaT) > 1){
+		stop('Found bad time argument for continuous time state space model.')
+	}
+	deltaT <- c(deltaT)
+	
+	BLOCK <- matrix(0, nrow=2*nrow(A), ncol=2*ncol(A))
+	
+	# First Block expm for A integral, and expm(A*deltaT)
+	BLOCK[1:(2*nrow(A)), 1:ncol(A)] <- 0
+	BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- I
+	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+	BLOCK <- OpenMx::expm(BLOCK*deltaT)
+	expA <- BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))]
+	intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+	
+	# Second Block expm for discretized Q
+	BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
+	BLOCK[(nrow(A)+1):(2*nrow(A)), 1:ncol(A)] <- 0
+	BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
+	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+	BLOCK <- OpenMx::expm(BLOCK*deltaT)
+	
+	Bd <- intA %*% B
+	Qd <- t(expA) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+	return(list(Ad=expA, Bd=Bd, Qd=Qd))
+}
 
