@@ -20,6 +20,7 @@
 
 #include "omxFitFunction.h"
 #include "omxSadmvnWrapper.h"
+#include "Compute.h"
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
@@ -68,6 +69,7 @@ struct omxFIMLFitFunction {
 	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
 	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
 
+	int skippedRows;
 	int origStateId;
 	int curParallelism;
 	int rowBegin;
@@ -277,19 +279,50 @@ class mvnByRow {
 		return true;
 	}
 
-	void record(double lik)
+	void record(double lik, int rows)
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
+		if (lik == 0.0) {
+			ofiml->skippedRows += rows;
+		} else {
+			EigenVectorAdaptor rl(localobj->matrix);
+			//mxLog("%g += record(%g)", rl[0], lik);
+			rl[0] += lik;
+		}
+		firstRow = false;
+		row += rows;
+	}
 
-		EigenVectorAdaptor rl(localobj->matrix);
-		//mxLog("%g += record(%g)", rl[0], lik);
-		rl[0] += lik;
+	void skipRow()
+	{
+		int oldRow = row;
+		if (returnRowLikelihoods) {
+			EigenVectorAdaptor rl(rowLikelihoods);
+			double rowLik = 0.0;
+			rl[sortedRow] = rowLik;
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				int index = indexVector[row];
+				rl[index] = rowLik;
+				row += 1;
+			}
+		} else {
+			row += 1;
+			while (row < data->rows && sameAsPrevious[row]) {
+				row += 1;
+			}
+		}
+		ofiml->skippedRows += row - oldRow;
 		firstRow = false;
 	}
 
 	void recordRow(double contLik, double ordLik)
 	{
 		double rowLik = ordLik * contLik;
+		if (rowLik == 0.0) {
+			skipRow();
+			return;
+		}
 		if (OMX_DEBUG_ROWS(sortedRow)) {
 			mxLog("%d/%d ordLik %g contLik %g = rowLik %g", row, sortedRow, ordLik, contLik, rowLik);
 		}

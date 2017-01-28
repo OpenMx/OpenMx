@@ -6,7 +6,8 @@
 #include "omxMatrix.h"
 #include "glue.h"
 #include "nloptcpp.h"
-#include "finiteDifferences.h"
+#include "Compute.h"
+#include "ComputeGD.h"
 
 #include "nlopt.h"
 #include "slsqp.h"
@@ -26,17 +27,6 @@ struct context {
 	context(GradientOptimizerContext &_goc) : goc(_goc) {
 		eqredundent = 0;
 	};
-};
-
-struct fit_functional {
-	GradientOptimizerContext &goc;
-	
-	fit_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
-	
-	double operator()(double *x, int thrId) const {
-		int mode = 0;
-		return goc.evalFit(x, thrId, &mode);
-	}
 };
 
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
@@ -62,20 +52,9 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	if (!grad) return fit;
 	
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
+	goc->numericalGradientWithRef(Epoint);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
-	if (goc->getWanted() & FF_COMPUTE_GRADIENT) {
-		Egrad = goc->grad;
-	} else if (goc->hasKnownGradient()) {
-		goc->setKnownGradient(Egrad);
-		goc->grad = Egrad;
-	} else {
-		if (goc->verbose >= 3) mxLog("fd_gradient start");
-		fit_functional ff(*goc);
-		gradient_with_ref(goc->gradientAlgo, goc->numOptimizerThreads,
-                    goc->gradientIterations, goc->gradientStepSize,
-                    ff, fit, Epoint, Egrad);
-		goc->grad = Egrad;
-	}
+	Egrad = goc->grad;
 	if (goc->verbose >= 3) {
 		mxPrintMat("gradient", Egrad);
 	}
@@ -238,6 +217,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 		goc.LagrMultipliersOut[i] = realwkspc[Wst+i];
 	}
 	
+	M = M>0 ? M : 1;
 	for(i=M; i<M+(n*n1/2); i++){
 		if(ro==co){
 			Dmat(ro,co) = realwkspc[Wst+i];

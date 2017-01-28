@@ -30,6 +30,7 @@
 #include "unsupported/Eigen/MatrixFunctions"
 #include "omxState.h"
 #include <limits>
+#include "Compute.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"

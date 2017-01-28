@@ -153,6 +153,7 @@ class FitContext {
 	double mac;
 	double fit;
 	int fitUnits;
+	int skippedRows;
 	double *est;
 	std::vector<bool> profiledOut;
 	Eigen::VectorXd grad;
@@ -276,114 +277,12 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
 SEXP sparseInvert_wrapper(SEXP mat);
 
-class GradientOptimizerContext {
- private:
-	void copyBounds();
-
-	// We need to hide this from the optimizer because
-	// some parameters might be profiled out and should
-	// not be subject to optimization.
-	FitContext *fc;
-
- public:
-	const int verbose;
-	int numFree;          // how many parameters are not profiled out
-	const char *optName;  // filled in by the optimizer
-	bool feasible;
-	bool avoidRedundentEvals;
-	Eigen::VectorXd prevPoint;
-	int prevMode;
-	void *extraData;
-	omxMatrix *fitMatrix;
-	int numOptimizerThreads;
-	int maxMajorIterations;
-
-	int ControlMinorLimit;
-	double ControlRho;
-	double ControlTolerance;
-	bool warmStart;
-	bool useGradient;
-	int ineqType;
-	enum GradientAlgorithm gradientAlgo;
-	int gradientIterations;
-	double gradientStepSize;
-
-	Eigen::VectorXd solLB;
-	Eigen::VectorXd solUB;
-
-	// TODO remove, better to pass as a parameter so we can avoid copies
-	Eigen::VectorXd equality;
-	Eigen::VectorXd inequality;
-	bool CSOLNP_HACK;
-
-	// NPSOL has bugs and can return the wrong fit & estimates
-	// even when optimization proceeds correctly.
-	double bestFit;
-	Eigen::VectorXd est;    //like fc->est but omitting profiled out params
-	Eigen::VectorXd bestEst;
-	Eigen::VectorXd grad;
-	double eqNorm, ineqNorm;
-
-	// output
-	int informOut;
-	Eigen::VectorXd gradOut;
-	Eigen::MatrixXd hessOut;  // in-out for warmstart
-
-	GradientOptimizerContext(FitContext *fc, int verbose);
-	void reset();
-
-	void setupSimpleBounds();          // NLOPT style
-	void setupIneqConstraintBounds();  // CSOLNP style
-	void setupAllBounds();             // NPSOL style
-	
-	Eigen::VectorXd constraintFunValsOut;
-	Eigen::MatrixXd constraintJacobianOut;
-	Eigen::VectorXd LagrMultipliersOut;
-	Eigen::VectorXi constraintStatesOut;
-	Eigen::MatrixXd LagrHessianOut;
-
-	double solFun(double *myPars, int* mode);
-	double evalFit(double *myPars, int thrId, int *mode);
-	double recordFit(double *myPars, int* mode);
-	void solEqBFun();
-	void myineqFun();
-	template <typename T1, typename T2, typename T3> void allConstraintsFun(
-			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
-	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
-	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
-	bool usingAnalyticJacobian;
-	void checkForAnalyticJacobians();
-	void useBestFit();
-	void copyToOptimizer(double *myPars);
-	void copyFromOptimizer(double *myPars, FitContext *fc2);
-	void copyFromOptimizer(double *myPars) { copyFromOptimizer(myPars, fc); };
-	void finish();
-	double getFit() const { return fc->fit; };
-	int getIteration() const { return fc->iterations; };
-	int getWanted() const { return fc->wanted; };
-	void setWanted(int nw) { fc->wanted = nw; };
-	bool hasKnownGradient() const;
-	template <typename T1>
-	void setKnownGradient(Eigen::MatrixBase<T1> &gradOut) {
-		fc->ciobj->gradient(fc, gradOut.derived().data());
-	};
-	omxState *getState() const { return fc->state; };
-};
-
-template <typename T1>
-void GradientOptimizerContext::checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst)
+inline double addSkippedRowPenalty(double orig, int skipped) // orig does not have * Global->llScale
 {
-	if(verbose < 4) return;
-
-	for (int index = 0; index < int(fc->numParam); index++) {
-		if(nextEst[index] == solLB[index])
-			mxLog("paramter %i hit lower bound %f", index, solLB[index]);
-		if(nextEst[index] == solUB[index])
-			mxLog("paramter %i hit upper bound %f", index, solUB[index]);
-	}
+	orig -= skipped * 100;
+	orig += orig * skipped;
+	return orig;
 }
-
-typedef void (*GradientOptimizerType)(double *, GradientOptimizerContext &);
 
 template <typename T>
 void printSparse(Eigen::SparseMatrixBase<T> &sm) {

@@ -22,6 +22,7 @@
 #include "omxExpectation.h"
 #include "RAMInternal.h"
 #include "matrix.h"
+#include "Compute.h"
 
 #ifdef SHADOW_DIAG
 #pragma GCC diagnostic warning "-Wshadow"

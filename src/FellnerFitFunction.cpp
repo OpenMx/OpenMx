@@ -28,6 +28,7 @@
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
 #include <Eigen/Cholesky>
+#include "Compute.h"
 
 namespace FellnerFitFunction {
 	struct state {

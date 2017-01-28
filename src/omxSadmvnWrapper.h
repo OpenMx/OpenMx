@@ -26,6 +26,7 @@
 #include <Eigen/Cholesky>
 #include <RcppEigenWrap.h>
 #include "matrix.h"
+#include "Compute.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -390,7 +391,8 @@ double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 		std::string buf = mxStringifyMatrix("cor", corMat, empty);
 		buf += mxStringifyMatrix("lower", lThresh, empty);
 		buf += mxStringifyMatrix("upper", uThresh, empty);
-		if (fc) fc->recordIterationError("Multivariate normal integration failure:\n%s", buf.c_str());
+		if (fc) fc->recordIterationError("Multivariate normal integration failure in row %d:\n%s",
+						 1+row, buf.c_str());
 		return 0.0;
 	}
 	return ordLik;
