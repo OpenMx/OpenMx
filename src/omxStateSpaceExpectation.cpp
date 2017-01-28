@@ -164,6 +164,8 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 	Rf_protect(xsmoo = Rf_allocMatrix(REALSXP, nt+1, nx));
 	Rf_protect(psmoo = Rf_allocMatrix(REALSXP, nt+1, np));
 	
+	Eigen::MatrixXd Adisc = Eigen::MatrixXd::Zero(nt, nx*nx);
+	
 	
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Setting zeroth row ..."); }
 	// Set first row of xpred to x0
@@ -200,9 +202,23 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		/* Run Kalman prediction */
 		if(ose->t == NULL){
 			omxKalmanPredict(ose);
+			EigenMatrixAdaptor eigenExpA(ose->A);
+			// Copy discrete version of A
+			for(int j = 0; j < nx; j++){
+				for(int i = 0; i < nx; i++){
+					Adisc(row-1, j*nx + i) = omxMatrixElement(ose->A, i, j);
+				}
+			}
 		} else {
 			omxKalmanBucyPredict(ose);
+			// Copy discrete version of A
+			for(int j = 0; j < nx; j++){
+				for(int i = 0; i < nx; i++){
+					Adisc(row-1, j*nx + i) = ose->eigenExpA(i, j);
+				}
+			}
 		}
+		
 		
 		// Copy latent state
 		for(int col = 0; col < nx; col++)
@@ -264,7 +280,7 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
 	}
 	
-	/* TODO Add Backward pass through data for Kalman smoother*/
+	/* Backward pass through data for Kalman smoother*/
 	// Initialize end of smoothed latents to last updated latents
 	// P = last updated P
 	// x = last updated x
@@ -305,13 +321,13 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		for(int col = 0; col < nx; col++)
 			omxSetMatrixElement(ose->z, col, 0, REAL(xupda)[col * (nt+1) + row]);
 		
-		// Copy eigenExpA = predicted P from later row of ppred
+		// Copy I = predicted P from later row of ppred
 		counter = 0;
 		for(int i = 0; i < nx; i++) {
 			for(int j = i; j < nx; j++) {
 				double next = REAL(ppred)[counter * (nt+1) + row + 1];
-				ose->eigenExpA(i, j) = next;
-				ose->eigenExpA(j, i) = next;
+				ose->I(i, j) = next;
+				ose->I(j, i) = next;
 				counter++;
 			}
 		}
@@ -319,6 +335,15 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		// Copy eigenPreX = predicted x from later row of xpred
 		for(int col = 0; col < nx; col++)
 			ose->eigenPreX(col, 0) =  REAL(xpred)[col * (nt+1) + row + 1];
+		
+		if(OMX_DEBUG_ALGEBRA) { mxLog("Copying discretized dynamics ..."); }
+		// Copy discrete version of A
+		// eigenExpA = Adisc
+		for(int j = 0; j < nx; j++){
+			for(int i = 0; i < nx; i++){
+				ose->eigenExpA(i, j) = Adisc(row, j*nx + i);
+			}
+		}
 		
 		// Run Smoother
 		omxRauchTungStriebelSmooth(ose);
@@ -721,7 +746,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	//			 0    A
 	// PSI = expm(PSI * deltaT)
 	// IA = t(eigenExpA) * UPPER RIGHT BLOCK OF PSI
-	// IA is the discretized dynamic erro cov Q_d
+	// IA is the discretized dynamic error cov Q_d
 	// P = IA + EA * P * t(EA)
 	// with EA = expEigenA
 	// This Prediction for P is the same as with KalmanPredict, but with the 
@@ -751,12 +776,13 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	/* Eigen Matrix reference setting */
 	Eigen::MatrixXd &eigenPreX = ose->eigenPreX;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space x predicted:\n" << eigenPreX << std::endl; }
-	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
-	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space P predicted:\n" << eigenExpA << std::endl; }
+	Eigen::MatrixXd &eigenPPred = ose->I;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space P predicted:\n" << eigenPPred << std::endl; }
 	Eigen::MatrixXd &eigenIA = ose->eigenIA; // Storage for Sg (RTS smoother gain matrix)
+	Eigen::MatrixXd &eigenA = ose->eigenExpA;
+	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space:A (discretized):\n" << eigenA << std::endl; }
 	
 	/* Eigen Adaptor copies (not really copies, more like wrappers) */
-	EigenMatrixAdaptor eigenA(A);
 	EigenMatrixAdaptor eigenx(x);
 	EigenMatrixAdaptor eigenz(z);
 	EigenMatrixAdaptor eigenP(P);
@@ -767,7 +793,7 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	// Sg = Pui * A * Ppi+1 ^-1
 	// eigenIA = Z * A * eigenExpA^-1
 	// Possible typo above, A should be A^T
-	eigenIA = eigenExpA.lu().solve( eigenA * eigenZ ).transpose();
+	eigenIA = eigenPPred.lu().solve( eigenA.transpose() * eigenZ ).transpose();
 	// try also
 	//eigenIA = eigenExpA.ldlt().solve( eigenA.transpose() * eigenZ ).transpose();
 	// with #include <Eigen/Cholesky>
@@ -780,7 +806,7 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	/* Smooth the latent covariance */
 	// Psi = Pui + Sg * (Psi+1 - Ppi+1) * Sg^T
 	// P = Z + eigenIA * (P - eigenExpA) * eigenIA^T
-	eigenP.derived() = eigenZ + eigenIA * (eigenP - eigenExpA) * eigenIA.transpose();
+	eigenP.derived() = eigenZ + eigenIA * (eigenP - eigenPPred) * eigenIA.transpose();
 	
 	// TODO add eigenPreX to struct and initialize
 }
