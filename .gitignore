@@ -34,6 +34,7 @@ man/BaseCompute-class.Rd
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
 man/imxAddDependency.Rd
+man/imxAutoOptionValue.Rd
 man/imxCheckMatrices.Rd
 man/imxCheckVariables.Rd
 man/imxConDecMatrixSlots.Rd
@@ -171,7 +172,6 @@ man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
-man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
