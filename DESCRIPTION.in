@@ -156,5 +156,6 @@ Collate:
     'MxAvailableOptimizers.R'
     'MxTryHard.R'
     'MxSE.R'
+    'MxAutoStart.R'
     'zzz.R'
 Version: @VERSION@

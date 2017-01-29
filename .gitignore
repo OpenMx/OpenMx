@@ -113,6 +113,7 @@ man/imxVerifyReference.Rd
 man/logm.Rd
 man/MxAlgebraFormula-class.Rd
 man/mxAlgebraFromString.Rd
+man/mxAutoStart.Rd
 man/mxAvailableOptimizers.Rd
 man/MxBaseExpectation-class.Rd
 man/MxBaseFitFunction-class.Rd
