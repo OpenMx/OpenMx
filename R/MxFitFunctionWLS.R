@@ -122,8 +122,6 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 
 setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 	function(.Object, job, flatJob, labelsData) {
-		job <- mxOption(job, "Calculate Hessian", "No")
-		job <- mxOption(job, "Standard Errors", "No")
 		return(job)
 })
 
