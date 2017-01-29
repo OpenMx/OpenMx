@@ -44,7 +44,7 @@ m1sr <- mxRun(m1s)
 badStart <- coef(m1)
 
 
-errmsg <- "The job for model 'One Factor' exited abnormally with the error message: fit is not finite (Continuous covariance (loc2) is not positive definite in data 'One Factor.data' row 110. Detail:
+errmsg <- "The job for model 'One Factor' exited abnormally with the error message: fit is not finite (The continuous part of the model implied covariance (loc2) is not positive definite in data 'One Factor.data' row 111. Detail:
 covariance =  matrix(c(    # 5x5
  -0.19, 0.01, 0.01, 0.01, 0.01
 , 0.01, -0.19, 0.01, 0.01, 0.01
