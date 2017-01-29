@@ -83,6 +83,18 @@ thresholdModelrun <- mxRun(thresholdModel)
 thresholdSaturated <- mxRefModels(thresholdModelrun, run=TRUE)
 summary(thresholdModelrun, refModels=thresholdSaturated)
 
+a <- Sys.time()
+thresholdModelAuto <- mxAutoStart(thresholdModel)
+b <- Sys.time()
+b-a #about 2 seconds on my laptop
+
+thresholdModelAutoRun <- mxRun(thresholdModelAuto)
+
+(b-a) + summary(thresholdModelAutoRun)$wallTime
+summary(thresholdModelrun)$wallTime
+# 37 sec for the automatic start values time plus the estimation time from the auto starts
+# 64 sec for the estimation time from the user starts
+# auto starts provides a net boost in performance
 
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
@@ -102,10 +114,14 @@ wls.T <- mxEval(thresholdMatrix, thresholdModelWLSrun) #should be all quants
 ml.L <- mxEval(L, thresholdModelrun) #should be all 0.7
 ml.T <- mxEval(thresholdMatrix, thresholdModelrun) #should be all quants
 
+auto.L <- mxEval(L, thresholdModelAuto)
+auto.T <- mxEval(thresholdMatrix, thresholdModelAuto)
+
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
 omxCheckTrue(rms(wls.L, .7) < 0.05)
 rms(ml.L, .7)
+omxCheckTrue(rms(ml.L, auto.L) < 0.05)
 
 omxCheckTrue(rms(wls.T, quants) < 0.08)
 rms(ml.T, quants)
