@@ -601,16 +601,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 			acov=diag(1), fullWeight=NA, thresholds=thresh)
 		retVal2@acov <- satModel$output$hessian
 	}
-	
-	if(fullWeight==TRUE){
-		fw <- wls
-	} else {fw <- NA}
 	dummy <- diag(1, nrow=nrow(pcMatrix))
 	dimnames(dummy) <- dimnames(pcMatrix)
 	retVal <- mxData(dummy, type="acov", numObs=n, 
 		acov=diag(1), fullWeight=NA, thresholds=thresh)
 	retVal@observed <- pcMatrix
-	retVal@fullWeight <- fw
+	if(fullWeight==TRUE){
+		retVal@fullWeight <- wls
+	}
 	retVal@means <- matrix(meanEst, nrow=1)
 	dimnames(retVal@means) <- list(NULL, names(data))
 	if (type=="ULS"){
