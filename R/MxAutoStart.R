@@ -21,9 +21,9 @@
 ##' @param model The MxModel for which starting values are desired
 ##' 
 ##' @details
-##' This function automatically picks very good starting values for many models (RAM, LISREL, Normal).
+##' This function automatically picks very good starting values for many models (RAM, LISREL, Normal), including multiple group versions of these.
 ##' It works for models with algebras. Models of continuous, ordinal, and joint ordinal-continous variables are also acceptable.
-##' However, it does not currently work for multiple group models, models with definition variables, state space models, and item factor analysis models.
+##' However, it does not currently work for models with definition variables, state space models, and item factor analysis models.
 ##' 
 ##' The method used to obtain new starting values is quite simple. The user's model is changed to an unweighted least squares (ULS) model. The ULS model is estimated and its final point estimates are returned as the new starting values.
 ##' 
@@ -55,29 +55,28 @@
 ##' m1s <- mxAutoStart(m1)
 ##' mxGetExpected(m1s, 'covariance')
 mxAutoStart <- function(model){
-	if(is.null(model@data)){
-		stop("Your model doesn't have any data?  Sad.")
-	}
-	if(is.null(model@fitfunction) || ("MxFitFunctionMultiGroup" %in% is(model@fitfunction) )){
-		stop("I don't work with null or multigroup fit functions.  I'm holding out for more $$$.")
+	if(is.null(model@fitfunction)){
+		stop("I don't work with null fit functions.")
 	}
 	if(imxHasDefinitionVariable(model)){
 		stop("Definition variables found. Automatic start values are not implemented for models with definition variables.\nNo plans have been made to add these soon.")
 	}
-	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'))
-	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
-	useVars <- dimnames(exps$covariance)[[1]]
-	data <- model$data$observed[,useVars]
-	hasOrdinal <- any(sapply(data, is.ordered))
-	I <- diag(1, wsize)
-	if(!hasOrdinal){
-		mdata <- mxData(observed=I, type='acov', numObs=nrow(data), 
-			acov=I, fullWeight=I, means=colMeans(data))
-		mdata@observed <- cov(data, use='pair')
+	
+	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
+	
+	if( isMultiGroupModel ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		sD <- list()
+		wmodel <- model
+		for(amod in submNames){
+			sD[[amod]] <- autoStartDataHelper(model[[amod]])
+			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), sD[[amod]], mxFitFunctionWLS())
+		}
+		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
 	} else {
-		mdata <- mxDataWLS(data, type="ULS", fullWeight=FALSE)
+		mdata <- autoStartDataHelper(model)
+		wmodel <- mxModel(model, name='AutoStart', mdata, mxFitFunctionWLS())
 	}
-	wmodel <- mxModel(model, name='AutoStart', mdata, mxFitFunctionWLS())
 	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
 	wmodel <- mxOption(wmodel, "Standard Errors", "No")
 	wmodel <- mxRun(wmodel, silent=TRUE)
@@ -90,7 +89,25 @@ mxAutoStart <- function(model){
 
 #------------------------------------------------------------------------------
 
-
+autoStartDataHelper <- function(model){
+	if(is.null(model@data)){
+		stop(paste("Your model named", model@name, "doesn't have any data?  Sad."))
+	}
+	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'))
+	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
+	useVars <- dimnames(exps$covariance)[[1]]
+	data <- model$data$observed[,useVars]
+	hasOrdinal <- any(sapply(data, is.ordered))
+	I <- diag(1, wsize)
+	if(!hasOrdinal){
+		mdata <- mxData(observed=I, type='acov', numObs=nrow(data), 
+			acov=I, fullWeight=I, means=colMeans(data, na.rm=TRUE))
+		mdata@observed <- cov(data, use='pair')
+	} else {
+		mdata <- mxDataWLS(data, type="ULS", fullWeight=FALSE)
+	}
+	return(mdata)
+}
 
 
 
