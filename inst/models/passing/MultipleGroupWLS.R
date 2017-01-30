@@ -65,6 +65,6 @@ autGroup <- mxModel("group", autModel1, autModel2, mxFitFunctionMultigroup(c("au
 autStart <- mxAutoStart(autGroup)
 
 # Starting values from mxAutoStart are close to the final estimates from multigroup WLS
-omxCheckClosEnough(coef(autStart)[names(coef(twoGroup))], coef(twoGroup), 1e-3)
+omxCheckCloseEnough(coef(autStart)[names(coef(twoGroup))], coef(twoGroup), 1e-3)
 
 
