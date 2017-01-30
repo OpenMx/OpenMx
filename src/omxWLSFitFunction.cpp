@@ -92,9 +92,6 @@ static void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
 			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
-	//omxMatrix* pass[1];
-	//pass[0] = inCov;
-	//omxCovToCor(fc, pass, 1, outCov);
 	
 	Eigen::ArrayXd stddev;
 	EigenMatrixAdaptor egInCov(inCov);
@@ -182,9 +179,9 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
-			seCov, seMeans, seThresholdsMat);
 	if(expThresholdsMat != NULL){
+		standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
+			seCov, seMeans, seThresholdsMat);
 		flattenDataToVector(seCov, seMeans, seThresholdsMat, eThresh, eFlat);
 	} else {
 		flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
