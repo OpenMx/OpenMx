@@ -1,4 +1,6 @@
 # OpenMx bleed
+* NEW: mxAutoStart Get automatic starting values.
+* FIXED: mxKalmanScores are now correct for continuous time state space models.
 * FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization. If you are using 2.7.x then you have avoid problems with expectation$.useSufficientSets = FALSE.
 * IMPROVED: Rampart uses much less memory on large datasets.
 
