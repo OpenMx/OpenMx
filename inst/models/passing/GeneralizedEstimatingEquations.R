@@ -184,3 +184,11 @@ omxCheckCloseEnough(
 	c(0.026086291,0.008078779,0.008583959,0.008247869,0.009411659),
 	epsilon=0.005)
 
+
+#Test imxRobustSE:
+mygeemodel2 <- mxOption(mygeemodel,"Calculate Hessian","Yes")
+mygeemodel2 <- mxOption(mygeemodel2,"Standard Errors","Yes")
+
+mygeerun2 <- mxRun(mygeemodel2)
+rse <- imxRobustSE(mygeerun2)
+omxCheckCloseEnough(sqrt(diag(sammich)),rse[1:5],epsilon=0.005)
