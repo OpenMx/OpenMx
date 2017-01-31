@@ -279,8 +279,14 @@ SEXP sparseInvert_wrapper(SEXP mat);
 
 inline double addSkippedRowPenalty(double orig, int skipped) // orig does not have * Global->llScale
 {
-	orig -= skipped * 100;
-	orig += orig * skipped;
+	orig -= 745 * skipped;  // a bit more than log(4.94066e-324) per row
+	//
+	// This is a good approximation of infinity because the
+	// log of any number represented as a double will be
+	// of smaller magnitude.
+	//
+	// http://www.cplusplus.com/forum/general/53760/
+	//
 	return orig;
 }
 

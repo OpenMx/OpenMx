@@ -1,8 +1,6 @@
 library(OpenMx)
 library(mvtnorm)
 
-if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
-
 set.seed(1)
 nVar <- 3
 Data1<-rmvnorm(2000, mean=rep(0,nVar), sigma=50*diag(nVar))
@@ -20,6 +18,7 @@ for (condOn in c('ordinal', 'continuous')) {
 		      mxExpectationNormal("expCov", "expMean", dimnames=selVars),
 		      mxFitFunctionML(jointConditionOn=condOn))
 	m1$expCov$free[,] <- m1$expCov$values != 0
+#	m1$fitfunction$verbose <- 2L
 	# Need to retry lots of times because it's hard to take the
 	# gradient with the same number of skipped rows.
 	m1fit <- mxTryHard(m1, extraTries = 39)

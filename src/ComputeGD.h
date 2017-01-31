@@ -138,7 +138,6 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 
 	// fc assumed to hold the reference fit
 	double refFit = fc->fit;
-	int skippedRows = fc->skippedRows;
 
 	gwrContext([&](double *myPars, int thrId)->double{
 			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
@@ -149,7 +148,7 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			double fit = fc2->fit;
 			// Really should require the same rows, not just the same
 			// number of rows.
-			if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
+			if (fc2->outsideFeasibleSet()) {
 				fit = nan("infeasible");
 			}
 			return fit;
