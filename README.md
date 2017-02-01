@@ -1,4 +1,4 @@
-# OpenMx
+# OpenMx ![Build Status](https://travis-ci.org/OpenMx/OpenMx.svg?branch=master)
 
 A Structural Equation Modeling package encouraging users to treat model
 specifications as something able to be generated and manipulated programmatically.
