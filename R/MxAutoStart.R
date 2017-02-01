@@ -71,7 +71,7 @@ mxAutoStart <- function(model){
 		sD <- list()
 		wmodel <- model
 		for(amod in submNames){
-			sD[[amod]] <- autoStartDataHelper(model[[amod]])
+			sD[[amod]] <- autoStartDataHelper(model, subname=amod)
 			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), sD[[amod]], mxFitFunctionWLS())
 		}
 		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
@@ -91,14 +91,14 @@ mxAutoStart <- function(model){
 
 #------------------------------------------------------------------------------
 
-autoStartDataHelper <- function(model){
-	if(is.null(model@data)){
-		stop(paste("Your model named", model@name, "doesn't have any data?  Sad."))
+autoStartDataHelper <- function(model, subname=model@name){
+	if(is.null(model[[subname]]@data)){
+		stop(paste("Your model named", model[[subname]]@name, "doesn't have any data?  Sad."))
 	}
-	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'))
+	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'), subname=subname)
 	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
 	useVars <- dimnames(exps$covariance)[[1]]
-	data <- model$data$observed[,useVars]
+	data <- model[[subname]]$data$observed[,useVars]
 	hasOrdinal <- any(sapply(data, is.ordered))
 	I <- diag(1, wsize)
 	if(!hasOrdinal){
