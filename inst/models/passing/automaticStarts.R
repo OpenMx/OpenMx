@@ -43,6 +43,7 @@ m1sr <- mxRun(m1s)
 
 badStart <- coef(m1)
 
+mxOption(NULL, "Number of Threads", 1) # otherwise error message changes
 
 errmsg <- "The job for model 'One Factor' exited abnormally with the error message: fit is not finite (The continuous part of the model implied covariance (loc2) is not positive definite in data 'One Factor.data' row 111. Detail:
 covariance =  matrix(c(    # 5x5
