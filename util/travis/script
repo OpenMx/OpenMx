@@ -2,20 +2,24 @@
 
 set -o errexit
 
-make install
+fold_start() {
+  echo -e "travis_fold:start:$1\033[33;1m$2\033[0m"
+}
 
-echo "TRAVIS_EVENT_TYPE=$TRAVIS_EVENT_TYPE"
+fold_end() {
+  echo -e "\ntravis_fold:end:$1\r"
+}
+
+echo "IMX_OPT_ENGINE=$IMX_OPT_ENGINE"
+#echo "TRAVIS_EVENT_TYPE=$TRAVIS_EVENT_TYPE"
+
+fold_start make.install "make install"
+make install
+fold_end make.install
 
 if [ "x$TRAVIS_EVENT_TYPE" = xcron ]; then
     make torture
     make nightly
-
-    echo "Looks good! Updating stable branch"
-    git fetch origin stable
-    git checkout -b stable FETCH_HEAD
-    git merge --no-ff -m "Nightly tests passed" master
-    git push origin HEAD:stable
 else
     make test
-    make cran-check
 fi

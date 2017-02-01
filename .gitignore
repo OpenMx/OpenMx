@@ -19,6 +19,7 @@
 /oprofile_data
 /src/npsolswitch.h
 /src/Makevars.win
+/src/libnpsol.a
 /inst/no-npsol
 /inst/CITATION
 /DESCRIPTION

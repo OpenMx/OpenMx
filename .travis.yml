@@ -1,3 +1,5 @@
+os: linux
+dist: trusty
 addons:
   apt:
     sources:
@@ -6,7 +8,8 @@ addons:
     - gcc-5
     - g++-5
     - gfortran-5
-cache: packages
+cache:
+- packages
 sudo: false
 latex: false
 language: r
@@ -17,5 +20,11 @@ install:
 - mkdir -p ~/.R && cp ./util/gcc5.conf ~/.R/Makevars
 - R --no-save -f ./util/update-dependencies.R
 script: ./util/travis/script
+after_success: ./util/travis/nightly-success
 env:
-- OMP_NUM_THREADS=2 IMX_SAFE=1
+- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=NPSOL
+- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=CSOLNP
+- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=SLSQP
+branches:
+  except:
+  - stable   # already tested

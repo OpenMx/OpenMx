@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -ev
+
+if [ "x$TRAVIS_EVENT_TYPE" = xcron ]; then
+    echo "Looks good! Updating stable branch"
+    git fetch origin stable
+    git checkout -b stable FETCH_HEAD
+    git merge --no-ff -m "Nightly tests passed" master
+    git push origin HEAD:stable
+fi
