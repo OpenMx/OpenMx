@@ -13,13 +13,9 @@ language: r
 r:
 - release
 #- devel
-#before_install:
-#- sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 install:
 - mkdir -p ~/.R && cp ./util/gcc5.conf ~/.R/Makevars
 - R --no-save -f ./util/update-dependencies.R
 script: ./util/travis/script
-#
-# http://stackoverflow.com/questions/25567391/change-c-compiler-for-cmake-under-travisci
 env:
 - OMP_NUM_THREADS=2 IMX_SAFE=1
