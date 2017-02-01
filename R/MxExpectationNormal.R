@@ -86,10 +86,10 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 })
 
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
-	function(.Object, model, what, defvar.row=1) {
+	function(.Object, model, what, defvar.row=1, subname=model@name) {
 		ret <- list()
 		if ('covariance' %in% what) {
-			covname <- .Object@covariance
+			covname <- paste(subname, .Object@covariance, sep=".")
 			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			dnames <- .Object$dims
 			if(!single.na(dnames)){
@@ -101,6 +101,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		if ('means' %in% what) {
 			meanname <- .Object@means
 			if(!single.na(meanname)){
+				meanname <- paste(subname, meanname, sep=".")
 				mean <- mxEvalByName(meanname, model, compute=TRUE, defvar.row=defvar.row)
 				dnames <- .Object$dims
 				if(!single.na(dnames)){
@@ -112,6 +113,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		if ('thresholds' %in% what) {
 			thrname <- .Object@thresholds
 			if(!single.na(thrname)){
+				thrname <- paste(subname, thrname, sep=".")
 				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
 				tnames <- .Object$threshnames
 				if(!single.na(tnames)){
@@ -124,8 +126,8 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	})
 
 setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
-	function(.Object, model, defvar.row=1) {
-		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row)
+	function(.Object, model, defvar.row=1, subname=model@name) {
+		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname)
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
@@ -136,8 +138,8 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 })
 
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
-	function(.Object, model, defvar.row=1) {
-		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row)
+	function(.Object, model, defvar.row=1, subname=model@name) {
+		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname)
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
@@ -176,22 +178,22 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	return(egOutCov)
 }
 
-imxGetExpectationComponent <- function(model, component, defvar.row=1)
+imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=model@name)
 {
-	if(is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup") ){
+	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
 		for(amod in submNames){
-			got[[amod]] <- imxGetExpectationComponent(model[[amod]], component, defvar.row=1)
+			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row=1, subname=amod)
 		}
 		if(component=='vector'){got <- unlist(got)}
 		got
 	} else if (length(component) == 1 && component == 'vector') {
-		genericGetExpectedVector(model$expectation, model, defvar.row)
+		genericGetExpectedVector(model[[subname]]$expectation, model, defvar.row, subname)
 	} else if (length(component) == 1 && tolower(component) == 'standvector') {
-		genericGetExpectedStandVector(model$expectation, model, defvar.row)
+		genericGetExpectedStandVector(model[[subname]]$expectation, model, defvar.row, subname)
 	} else {
-		got <- genericGetExpected(model$expectation, model, component, defvar.row)
+		got <- genericGetExpected(model[[subname]]$expectation, model, component, defvar.row, subname)
 		if (length(got) == 1) {
 			got[[1]]
 		} else {

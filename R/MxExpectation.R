@@ -80,17 +80,17 @@ setGeneric("genericExpConvertEntities",
 })
 
 setGeneric("genericGetExpected",
-	function(.Object, model, what, defvar.row) {
+	function(.Object, model, what, defvar.row, subname) {
 	return(standardGeneric("genericGetExpected"))
 })
 
 setGeneric("genericGetExpectedVector",
-	function(.Object, model, defvar.row) {
+	function(.Object, model, defvar.row, subname) {
 	return(standardGeneric("genericGetExpectedVector"))
 })
 
 setGeneric("genericGetExpectedStandVector",
-	function(.Object, model, defvar.row) {
+	function(.Object, model, defvar.row, subname) {
 	return(standardGeneric("genericGetExpectedStandVector"))
 })
 
@@ -135,13 +135,13 @@ setMethod("genericExpRename", "NULL",
 })
 
 setMethod("genericGetExpected", "MxBaseExpectation",
-	function(.Object, model, what, defvar.row) stop("Not implemented"))
+	function(.Object, model, what, defvar.row, subname) stop("Not implemented"))
 
 setMethod("genericGetExpectedVector", "MxBaseExpectation",
-	function(.Object, model, defvar.row) stop("Not implemented"))
+	function(.Object, model, defvar.row, subname) stop("Not implemented"))
 
 setMethod("genericGetExpectedStandVector", "MxBaseExpectation",
-	function(.Object, model, defvar.row) stop("Not implemented"))
+	function(.Object, model, defvar.row, subname) stop("Not implemented"))
 
 setMethod("$", "MxBaseExpectation", imxExtractSlot)
 
