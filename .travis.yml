@@ -22,4 +22,4 @@ script: ./util/travis/script
 #
 # http://stackoverflow.com/questions/25567391/change-c-compiler-for-cmake-under-travisci
 env:
-- OMP_NUM_THREADS=4 INSTALLMAKEFLAGS='-j 4' IMX_SAFE=1
+- OMP_NUM_THREADS=2 IMX_SAFE=1
