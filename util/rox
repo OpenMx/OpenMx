@@ -9,6 +9,10 @@ if [ ! -x util/rox ]; then
   exit 1
 fi
 
+echo "** roxygen2 is temporarily disabled until"
+echo "** https://github.com/klutometis/roxygen/issues/568 is fixed."
+exit 0
+
 # Version=0.4
 # descVersion=$(grep Version DESCRIPTION | cut -d ' ' -f 2)
 # if [ "$descVersion" != "$Version" ]; then
