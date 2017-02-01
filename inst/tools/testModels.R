@@ -13,6 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+beginTravisFold <- function(key, text) {
+  cat(paste0("travis_fold:start:",key,"\033[33;1m",text,"\033[0m"),fill=T)
+}
+
+endTravisFold <- function(key) {
+  cat(paste0("\ntravis_fold:end:",key,"\r"),fill=T)
+}
+
 args <- commandArgs(trailingOnly = TRUE)
 if (any(args == 'gctorture')) {
 	gctorture(TRUE)
@@ -116,6 +124,7 @@ if (!any(args == 'gctorture')) {
 }
 
 for (opt in optimizers) {
+	beginTravisFold(opt, paste("TEST", opt, paste(directories, collapse=" ")))
 	errors[[opt]] <- list()
 	warnRec[[opt]] <- list()
 	if (length(files) > 0) {
@@ -123,6 +132,7 @@ for (opt in optimizers) {
 			errorRecover(files[[i]], opt, i)
 		}
 	}
+	endTravisFold(opt)
 }	
 
 sink(type = 'output')
