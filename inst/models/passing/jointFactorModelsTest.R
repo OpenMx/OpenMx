@@ -65,7 +65,7 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	c1 <- c(0.609, 0.579, 0.657, 0.606, 0.165, 0.551, 0.499,
 		7.978, 2.069, 0.059, -0.387, 0.116, 0.815, -0.633, -0.285)
 	print(max(abs(coef(jointResults1) - c1)))
-	omxCheckCloseEnough(coef(jointResults1), c1, 0.004)
+	omxCheckCloseEnough(coef(jointResults1), c1, 0.005)
 
 	omxCheckCloseEnough(jointResults1$output$Minus2LogLikelihood, 2683.071, 0.2)
 
@@ -86,7 +86,7 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	c2 <- c(0.923, 0.374, 0.436, 0.367, 0.933, 0.354, 0.48, 0.43,  0.139,
 		0.266, 0.083, 0.201, 7.978, 2.07, 0.065, -0.413, 0.127,  0.874, -0.872, -0.394)
 	print(max(abs(coef(jointResults2) - c2)))
-	omxCheckCloseEnough(coef(jointResults2), c2, .004)
+	omxCheckCloseEnough(coef(jointResults2), c2, 0.005)
 	
 	omxCheckCloseEnough(jointResults2$output$Minus2LogLikelihood, 2674.235, 0.1)
 }
