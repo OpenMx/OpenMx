@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -o errexit
+set -v
+
+ls build
+
+scp build/OpenMx_*.tgz jpritikinlocal@openmx.psyc.virginia.edu:/var/openmx/OpenMx2/packages/bin/macosx/travis/

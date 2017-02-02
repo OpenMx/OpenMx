@@ -1,6 +1,10 @@
 #!/bin/bash
 
 set -o errexit
+set -v
+
+export _R_CHECK_FORCE_SUGGESTS_=0
+export OMP_NUM_THREADS=2
 
 fold_start() {
   echo -e "travis_fold:start:$1\033[33;1m$2\033[0m"
@@ -10,16 +14,41 @@ fold_end() {
   echo -e "\ntravis_fold:end:$1\r"
 }
 
-echo "IMX_OPT_ENGINE=$IMX_OPT_ENGINE"
+do_cran_check() {
+    make cran-check &
+
+    # https://github.com/travis-ci/travis-ci/issues/4190#issuecomment-169987525
+    local minutes=0
+    local limit=30
+    while kill -0 $! >/dev/null 2>&1; do
+	echo -n -e " \b" # never leave evidences!
+	if [ $minutes == $limit ]; then break; fi
+	local minutes=$((minutes+1))
+	sleep 60
+    done
+}
+
+#echo "IMX_OPT_ENGINE=$IMX_OPT_ENGINE"
 #echo "TRAVIS_EVENT_TYPE=$TRAVIS_EVENT_TYPE"
 
-fold_start make.install "make install"
-make install
-fold_end make.install
+if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
+    if [ "x$MODE" = xtest ]; then
+	fold_start make.install "make install"
+	IMX_SAFE=1 make install
+	fold_end make.install
+    fi
 
-if [ "x$TRAVIS_EVENT_TYPE" = xcron ]; then
-    make torture
-    make nightly
-else
-    make test
+    if [ "x$MODE" = xtest ]; then
+	make test
+    elif [ "x$MODE" = xcran-check ]; then
+	do_cran_check
+    fi
+elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
+    if [ "x$MODE" = xbuild ]; then
+	git fetch --unshallow  # need tags for correct version
+	make build
+	pushd build && tar zxf OpenMx_*.tgz && popd
+	pushd build/OpenMx/libs && ../../../util/libtastic.py -r -id OpenMx.so /usr/local/ && popd
+	pushd build && tar zcf OpenMx_*.tgz OpenMx && popd
+    fi
 fi

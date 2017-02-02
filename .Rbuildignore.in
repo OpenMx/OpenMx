@@ -3,12 +3,12 @@
 ^build
 ^support
 ^CONTRIBUTING$
-.gitignore
-.gitattributes
+^.git.*$
 ^inst/npsol
 ^inst/CITATION.in
 ^.dir-locals.el
 ^.gdbinit
+^.travis.yml$
 .*\.log$
 oprofile_data
 annotated
@@ -19,6 +19,7 @@ cachegrind.out.*
 ^dotest
 ^dotest.patch
 ^runtimes.csv
+^revdep
 ^util
 ^src/Makevars.win.in
 ^src/Makevars$

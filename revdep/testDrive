@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+if [ ! -x revdep/testDrive ]; then
+  echo "$0 must be run from the top of the package directory"
+  exit 1
+fi
+
+git submodule update --init --recursive --depth=50
+
+pkgs="ctsem lvnet metasem semtree umx"
+
+R --no-save -f util/update-dependencies.R --args \
+  $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pkgs)
+
+pushd revdep
+
+for pk in $pkgs; do
+    R CMD build "$pk"
+    R CMD check ${pk}_*.tar.gz
+done

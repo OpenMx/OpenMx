@@ -1,6 +1,7 @@
-os: linux
-dist: trusty
+os:
+- linux
 addons:
+  ssh_known_hosts: openmx.psyc.virginia.edu
   apt:
     sources:
     - ubuntu-toolchain-r-test
@@ -8,23 +9,39 @@ addons:
     - gcc-5
     - g++-5
     - gfortran-5
-cache:
-- packages
+matrix:
+  include:
+  - os: osx
+    osx_image: xcode7.3
+    env:
+    - MODE=build
+dist: trusty
 sudo: false
-latex: false
+cache: packages
+latex: true
 language: r
-r:
-- release
-#- devel
 install:
-- mkdir -p ~/.R && cp ./util/gcc5.conf ~/.R/Makevars
+- mkdir -p ~/.R
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./util/gcc5.conf ~/.R/Makevars; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./util/travis/install-macos; fi
 - R --no-save -f ./util/update-dependencies.R --args ./DESCRIPTION.in
-script: ./util/travis/script
-after_success: ./util/travis/nightly-success
+script: "./util/travis/script"
 env:
-- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=NPSOL
-- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=CSOLNP
-- OMP_NUM_THREADS=2 IMX_SAFE=1 IMX_OPT_ENGINE=SLSQP
+  matrix:
+  - MODE=test IMX_OPT_ENGINE=NPSOL
+  - MODE=test IMX_OPT_ENGINE=CSOLNP
+  - MODE=test IMX_OPT_ENGINE=SLSQP
+#  - MODE=cran-check  # blocked on roxygen2 bug
 branches:
   except:
   - stable   # already tested
+before_deploy:
+- openssl aes-256-cbc -K $encrypted_8548c8dde734_key -iv $encrypted_8548c8dde734_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+- eval "$(ssh-agent -s)"
+- chmod 600 /tmp/deploy_rsa
+- ssh-add /tmp/deploy_rsa
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: ./util/travis/deploy
+  on: master
