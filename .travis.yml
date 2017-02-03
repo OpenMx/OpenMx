@@ -18,7 +18,7 @@ r:
 #- devel
 install:
 - mkdir -p ~/.R && cp ./util/gcc5.conf ~/.R/Makevars
-- R --no-save -f ./util/update-dependencies.R
+- R --no-save -f ./util/update-dependencies.R --args ./DESCRIPTION.in
 script: ./util/travis/script
 after_success: ./util/travis/nightly-success
 env:
