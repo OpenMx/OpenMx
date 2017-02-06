@@ -16,15 +16,15 @@ matrix:
     env:
     - MODE=build
 dist: trusty
-sudo: false
-cache: packages
+sudo: required
 latex: true
 language: r
+before_install:
+- sudo apt-get install -yq --no-install-suggests --no-install-recommends r-cran-digest r-cran-rcpp r-cran-rcppeigen r-cran-stanheaders r-cran-bh r-cran-rpf r-cran-mvtnorm r-cran-numderiv r-cran-roxygen2 r-cran-snowfall r-cran-lme4
 install:
 - mkdir -p ~/.R
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./util/gcc5.conf ~/.R/Makevars; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./util/travis/install-macos; fi
-- R --no-save -f ./util/update-dependencies.R --args ./DESCRIPTION.in
 script: "./util/travis/script"
 env:
   matrix:
