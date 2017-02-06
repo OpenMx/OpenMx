@@ -111,7 +111,11 @@ fit = mxRun(model)
 #Extract various fitted results
 MZc = mxEval(mz.expCov,  fit); # Same effect as expCovMZ$matrices$fit
 DZc = mxEval(dz.expCov,  fit);
+GEc = mxGetExpected(fit, 'covariance')
+omxCheckCloseEnough(list(MZc, DZc), GEc, 1e-10)
 M   = mxEval(mz.expMeanMZ, fit);
+GEM = mxGetExpected(fit, 'means')
+omxCheckCloseEnough(M, GEM[[1]], 1e-10)
 A   = mxEval(mz.A, fit);
 C   = mxEval(mz.C, fit);
 E   = mxEval(mz.E, fit);
