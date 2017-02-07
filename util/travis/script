@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -v
 
 export _R_CHECK_FORCE_SUGGESTS_=0
 export OMP_NUM_THREADS=2
@@ -45,7 +44,7 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
     if [ "x$MODE" = xbuild ]; then
-	git fetch --unshallow  # need tags for correct version
+	git fetch --unshallow  # need tags to compute version string
 	make build
 	pushd build && tar zxf OpenMx_*.tgz && popd
 	pushd build/OpenMx/libs && ../../../util/libtastic.py -r -id OpenMx.so /usr/local/ && popd

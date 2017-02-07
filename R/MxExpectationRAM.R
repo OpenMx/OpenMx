@@ -264,6 +264,9 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			.Object@thresholdColumns <- as.integer(NA)
 			.Object@thresholdLevels <- as.integer(NA)
 		}
+		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
+			.Object@dims <- translatedNames
+		}
 		return(.Object)
 })
 
