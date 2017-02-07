@@ -23,7 +23,12 @@ Questionnaires were mailed to 5,967 pairs age 18 years and over. These data cons
  
 It is a wide dataset, with two individuals per line. Families are identified by the variable \dQuote{fam}.
 
-Data include zygosity (zyg), along with heights in metres, weights in kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1} and \dQuote{htwt2}), as well as the log of this variable, stored here as bm1 and bm2. The logged values are more closely normally distributed.
+Data include zygosity (zyg), along with heights in metres, weights in
+kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1}
+and \dQuote{htwt2}), as well as the 7 times the log of this variable,
+stored here as bmi1 and bmi2. The logged values are more closely
+normally distributed and scaling by 7 put them into a similar range
+as the original variable.
 
 For convenience, zyg is broken out into separate \dQuote{zygosity} and \dQuote{cohort} factors. \dQuote{zygosity} is coded as a 5-level factor.
 }
@@ -48,8 +53,8 @@ Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feindgold, L. M., & Eyse
     \item{\code{ht2}}{Height of twin 2 (m)}
     \item{\code{htwt1}}{Raw BMI of twin 1 (kg/m^2)}
     \item{\code{htwt2}}{Raw BMI of twin 2 (kg/m^2)}
-    \item{\code{bmi1}}{log(BMI) of twin 1}
-    \item{\code{bmi2}}{log(BMI) of twin 2}
+    \item{\code{bmi1}}{7*log(BMI) of twin 1}
+    \item{\code{bmi2}}{7*log(BMI) of twin 2}
     \item{\code{cohort}}{Either \dQuote{younger} or \dQuote{older}}
     \item{\code{zygosity}}{Zygosity factor with levels: MZFF, MZMM, DZFF, DZMM, DZOS}
     \item{\code{age1}}{Age of Twin 1}
