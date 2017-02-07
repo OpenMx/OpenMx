@@ -17,3 +17,4 @@ sudo rm -rf /usr/local/include/c++
 sudo tar -zxvf /tmp/gcc.tar.gz -C /
 sudo tar -zxvf /tmp/gfort.tar.gz -C /
 
+R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in
