@@ -2,4 +2,6 @@
 
 set -o errexit
 
+if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
+
 scp build/OpenMx_*.tgz jpritikinlocal@openmx.psyc.virginia.edu:/var/openmx/OpenMx2/packages/bin/macosx/travis/
