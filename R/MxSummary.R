@@ -431,6 +431,8 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 	if (is.null(retval$independenceDoF)) {
 		retval$IndependenceDoF <- NA
 	}
+	retval[['saturatedParameters']] <- retval[['observedStatistics']] - retval[['saturatedDoF']]
+	retval[['independenceParameters']] <- retval[['observedStatistics']] - retval[['independenceDoF']]
 	# calculate fit statistics
 	retval <- fitStatistics(model, useSubmodels, retval)
 	return(retval)
@@ -501,7 +503,7 @@ print.summary.mxmodel <- function(x,...) {
     print(x$GREMLfixeff)
     cat("\n")
   }
-	cat("observed statistics: ", x$observedStatistics, '\n')
+	#cat("observed statistics: ", x$observedStatistics, '\n')
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
 		for(i in 1:length(constraints)) {
@@ -512,13 +514,26 @@ print.summary.mxmodel <- function(x,...) {
 				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
 		}
 	}
-	cat("estimated parameters: ", x$estimatedParameters, '\n')
-	cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
-	cat("fit value (", x$fitUnits, "units ): ", x$Minus2LogLikelihood, '\n')
-	if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
-		cat("saturated fit value (", x$fitUnits, "units ): ", x$SaturatedLikelihood, '\n')
-	}
-	cat("number of observations: ", x$numObs, '\n')
+	#cat("estimated parameters: ", x$estimatedParameters, '\n')
+	#cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
+	#cat("fit value (", x$fitUnits, "units ): ", x$Minus2LogLikelihood, '\n')
+	#if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
+	#	cat("saturated fit value (", x$fitUnits, "units ): ", x$SaturatedLikelihood, '\n')
+	#}
+	cat('Model Statistics:', '\n')
+	EP <- matrix(
+		c(x$numObs, x$estimatedParameters, x$saturatedParameters, x$independenceParameters,
+		x$observedStatistics, x$degreesOfFreedom, x$saturatedDoF, x$independenceDoF,
+		NA, x$Minus2LogLikelihood, x$SaturatedLikelihood, x$IndependenceLikelihood),
+		nrow=4, ncol=3,
+		dimnames=list(
+			c('    Observed:', '       Model:', '   Saturated:', 'Independence:'),
+			c(' |  Parameters', ' |  Degrees of Freedom', paste0(' |  Fit (', x$fitUnits, ' units)'))
+		)
+	)
+	print(EP)
+	cat('\n')
+	#cat("number of observations: ", x$numObs, '\n')
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
 		if (!x$infoDefinite) {
 			cat("\n** Information matrix is not positive definite (not at a candidate optimum).\n  Be suspicious of these results. At minimum, do not trust the standard errors.\n\n")
