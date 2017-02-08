@@ -96,11 +96,17 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 		int info = (int) omxGetExpectationComponent(expectation, "covInfo")->data[0];
 		if(info!=0) {
 			EigenMatrixAdaptor Ecov(smallCov);
-			std::string empty = std::string("");
-			std::string buf = mxStringifyMatrix("covariance", Ecov, empty);
-			if (fc) fc->recordIterationError("%s: expected covariance matrix is "
-							 "not positive-definite in data row %d; Details:\n%s",
-							 oo->name(), row, buf.c_str());
+			if (Ecov.rows() > 50) {
+				if (fc) fc->recordIterationError("%s: expected covariance matrix is "
+								 "not positive-definite in data row %d",
+								 oo->name(), row);
+			} else {
+				std::string empty = std::string("");
+				std::string buf = mxStringifyMatrix("covariance", Ecov, empty);
+				if (fc) fc->recordIterationError("%s: expected covariance matrix is "
+								 "not positive-definite in data row %d; Details:\n%s",
+								 oo->name(), row, buf.c_str());
+			}
 			omxSetMatrixElement(oo->matrix, 0, 0, NA_REAL);
 			return;
 		}

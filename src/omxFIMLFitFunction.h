@@ -376,24 +376,36 @@ class mvnByRow {
 	void reportBadContRow(const Eigen::MatrixBase<T1> &cdata, const Eigen::MatrixBase<T2> &resid,
 			      const Eigen::MatrixBase<T3> &icov)
 	{
-		std::string empty = std::string("");
-		std::string buf;
-		buf += mxStringifyMatrix("data", cdata, empty);
-		buf += mxStringifyMatrix("resid", resid, empty);
-		buf += mxStringifyMatrix("covariance", icov, empty);
-		if (fc) fc->recordIterationError("In data '%s' row %d continuous variables are too"
-						 " far from the model implied distribution. Details:\n%s",
-						 data->name, 1+sortedRow, buf.c_str());
+		if (cdata.size() > 50) {
+			if (fc) fc->recordIterationError("In data '%s' row %d continuous variables are too"
+							 " far from the model implied distribution",
+							 data->name, 1+sortedRow);
+		} else {
+			std::string empty = std::string("");
+			std::string buf;
+			buf += mxStringifyMatrix("data", cdata, empty);
+			buf += mxStringifyMatrix("resid", resid, empty);
+			buf += mxStringifyMatrix("covariance", icov, empty);
+			if (fc) fc->recordIterationError("In data '%s' row %d continuous variables are too"
+							 " far from the model implied distribution. Details:\n%s",
+							 data->name, 1+sortedRow, buf.c_str());
+		}
 	}
 
 	template <typename T1>
 	void reportBadContLik(int loc, const Eigen::MatrixBase<T1> &badCov)
 	{
-		std::string empty = std::string("");
-		std::string buf = mxStringifyMatrix("covariance", badCov, empty);
-		if (fc) fc->recordIterationError("The continuous part of the model implied covariance (loc%d) "
-						 "is not positive definite in data '%s' row %d. Detail:\n%s",
-						 loc, data->name, 1+sortedRow, buf.c_str());
+		if (badCov.rows() > 50) {
+			if (fc) fc->recordIterationError("The continuous part of the model implied covariance (loc%d) "
+							 "is not positive definite in data '%s' row %d",
+							 loc, data->name, 1+sortedRow);
+		} else {
+			std::string empty = std::string("");
+			std::string buf = mxStringifyMatrix("covariance", badCov, empty);
+			if (fc) fc->recordIterationError("The continuous part of the model implied covariance (loc%d) "
+							 "is not positive definite in data '%s' row %d. Detail:\n%s",
+							 loc, data->name, 1+sortedRow, buf.c_str());
+		}
 	}
 };
 

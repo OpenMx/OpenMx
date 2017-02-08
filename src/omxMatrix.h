@@ -452,6 +452,13 @@ template <typename T>
 std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
 {
 	std::string buf;
+
+	if (mat.rows() * mat.cols() > 1000) {
+		buf = string_snprintf("%s is too large to print # %dx%d",
+				name, mat.rows(), mat.cols());
+		return buf;
+	}
+
 	bool transpose = mat.rows() > mat.cols();
 	buf += string_snprintf("%s = %s matrix(c(    # %dx%d",
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
