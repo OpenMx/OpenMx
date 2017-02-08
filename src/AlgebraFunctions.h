@@ -2046,14 +2046,6 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 
 	double likelihood = ol.likelihood(lBounds, uBounds);
 
-	if (likelihood == 0.0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Improper input to sadmvn.");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
-
 	omxSetMatrixElement(result, 0, 0, likelihood);
 
 	/* And repeat with increments for all other rows. */
@@ -2072,14 +2064,6 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 		}
 
 		likelihood = ol.likelihood(lBounds, uBounds);
-
-		if(likelihood == 0.0) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Improper input to sadmvn.");
-			omxRaiseError(errstr);
-			free(errstr);
-			return;
-		}
 
 		omxSetMatrixElement(result, i, 0, likelihood);
 	}
