@@ -8,6 +8,7 @@
 #include "nloptcpp.h"
 #include "Compute.h"
 #include "ComputeGD.h"
+//#include <Rmath.h>
 
 #include "nlopt.h"
 #include "slsqp.h"
@@ -69,8 +70,18 @@ struct equality_functional {
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.solEqBFun();
+		goc.solEqBFun(false);
 		result = goc.equality;
+	}
+	
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		goc.copyFromOptimizer(x.derived().data());
+		goc.analyticEqJacTmp.resize(jacobian.cols(), jacobian.rows());
+		goc.solEqBFun(true);
+		result = goc.equality;
+		jacobian = goc.analyticEqJacTmp.transpose();
+		
 	}
 };
 
@@ -82,7 +93,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	Eigen::VectorXd Eresult(ctx.origeq);
 	Eigen::MatrixXd jacobian(n, ctx.origeq);
 	equality_functional ff(goc);
-	ff(Epoint, Eresult);
+	ff(Epoint, Eresult, jacobian);
 	if (grad) {
 		goc.eqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,

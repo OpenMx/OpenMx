@@ -181,7 +181,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     Eigen::MatrixXd constraint_e;
     
-    fit.solEqBFun();
+    fit.solEqBFun(false);
     Eigen::RowVectorXd eqv_e(neq);
     eqv_e = fit.equality;
     
@@ -256,7 +256,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Eigen::MatrixXd ob_e(1, 1 + neq + nineq);
     Eigen::RowVectorXd funvMatrix_e(1);
     funvMatrix_e[0] = funv;
-    fit.solEqBFun();
+    fit.solEqBFun(false);
     eqv_e = fit.equality;
         
     fit.myineqFun();
@@ -313,7 +313,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             temp = p_e.block(0, nineq, 1, np);
             funv = fit.solFun(temp.data(), &mode);
             funvMatrix_e[0] = funv;
-            fit.solEqBFun();
+            fit.solEqBFun(false);
             eqv_e = fit.equality;
             fit.myineqFun();
             ineqv_e = -fit.inequality;
@@ -360,7 +360,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         solnp_nfn = solnp_nfn + 1;
 
-        fit.solEqBFun();
+        fit.solEqBFun(false);
         eqv_e = fit.equality;
         funvMatrix_e[0] = funv;
         fit.myineqFun();
@@ -687,7 +687,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             }
             funv = fit.solFun(tmpv_e.data(), &mode);
             
-            fit.solEqBFun();
+            fit.solEqBFun(false);
             fit.myineqFun();
             
             solnp_nfn = solnp_nfn + 1;
@@ -859,7 +859,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             mode = 0;
         }
         
-        fit.solEqBFun();
+        fit.solEqBFun(false);
         
         fit.myineqFun();
         
@@ -924,7 +924,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     funv = 1e24;
                     mode = 0;
                 }
-                fit.solEqBFun();
+                fit.solEqBFun(false);
                 fit.myineqFun();
                 
                 solnp_nfn = solnp_nfn + 1;
@@ -1143,7 +1143,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             mode = 0;
         }
         
-        fit.solEqBFun();
+        fit.solEqBFun(false);
         fit.myineqFun();
         
         solnp_nfn = solnp_nfn + 1;
@@ -1204,7 +1204,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 mode = 0;
             }
             
-            fit.solEqBFun();
+            fit.solEqBFun(false);
             fit.myineqFun();
             
             solnp_nfn = solnp_nfn + 1;

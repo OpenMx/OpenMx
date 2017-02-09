@@ -96,7 +96,7 @@ class GradientOptimizerContext {
 
 	double solFun(double *myPars, int* mode);
 	double recordFit(double *myPars, int* mode);
-	void solEqBFun();
+	void solEqBFun(bool wantAJ);
 	void myineqFun();
 	template <typename T1, typename T2, typename T3> void allConstraintsFun(
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
@@ -104,6 +104,8 @@ class GradientOptimizerContext {
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
 	bool usingAnalyticJacobian;
 	void checkForAnalyticJacobians();
+	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
+	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
 	void copyFromOptimizer(double *myPars, FitContext *fc2);

@@ -15,7 +15,7 @@
 
 
 library(OpenMx)
-#mxOption(NULL,"Default optimizer","NPSOL")
+#mxOption(NULL,"Default optimizer","SLSQP")
 
 powellmod1 <- mxModel(
 	"PowellBenchmarkNoJacobians",
@@ -75,7 +75,6 @@ powellrun2$output$evaluations
 summary(powellrun2)
 
 
-#Right now, only NPSOL knows how to use analytic Jacobians:
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
 	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
@@ -128,6 +127,19 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
 } else if(mxOption(NULL,"Default optimizer")=="SLSQP"){
+	#Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
+	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
+	
+	#At the solution, equality constraints should be satisfied within feasibility tolerance:
+	omxCheckCloseEnough(powellrun1$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
+											as.numeric(mxOption(NULL,"Feasibility tolerance")))
+	omxCheckCloseEnough(powellrun2$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
+											as.numeric(mxOption(NULL,"Feasibility tolerance")))
+	
+	#The numerical and analytic Jacobians should agree closely:
+	omxCheckCloseEnough(a=powellrun1$compute$steps$GD$output$constraintJacobian,b=powellrun2$compute$steps$GD$output$constraintJacobian,
+											epsilon=1e-5)
+	
 	#Check naming of constraint-related information:
 	omxCheckEquals(
 		names(powellrun1$output$constraintFunctionValues),
@@ -356,7 +368,7 @@ powellrun7$output$iterations
 powellrun7$output$evaluations
 summary(powellrun7)
 
-if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+if(mxOption(NULL,"Default optimizer") %in% c("NPSOL","SLSQP")){
 	tbl <- data.frame(
 		c("Yes","Yes","No","No"),c("No","Yes","Yes","No"),
 		c(powellrun1$output$evaluations,powellrun2$output$evaluations,powellrun6$output$evaluations,

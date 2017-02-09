@@ -180,19 +180,6 @@ void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1
 	}
 }
 
-void GradientOptimizerContext::checkForAnalyticJacobians()
-{
-	usingAnalyticJacobian = false;
-	omxState *st = fc->state;
-	for(int i=0; i < (int) st->conListX.size(); i++){
-		omxConstraint &cs = *st->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
-	}
-}
-
 static double getNPSOLFeasibilityTolerance()
 {
 	// convert units (who knows what the units are)

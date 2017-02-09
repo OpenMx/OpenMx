@@ -260,20 +260,43 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 
 // NOTE: All non-linear constraints are applied regardless of free
 // variable group.
-void GradientOptimizerContext::solEqBFun()
+void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobian"
 {
 	const int eq_n = (int) equality.size();
 	omxState *st = fc->state;
 
 	if (!eq_n) return;
-
-	int cur = 0;
-	for(int j = 0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode != omxConstraint::EQUALITY) continue;
-
-		con.refreshAndGrab(fc, &equality(cur));
-		cur += con.size;
+	
+	analyticEqJacTmp.setConstant(analyticEqJacTmp.rows(),analyticEqJacTmp.cols(),NA_REAL);
+	
+	if(wantAJ && usingAnalyticJacobian){
+		int cur = 0, c=0, roffset=0;
+		for(int j = 0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode != omxConstraint::EQUALITY) continue;
+			
+			con.refreshAndGrab(fc, &equality(cur));
+			if(con.jacobian != NULL){
+				omxRecompute(con.jacobian, fc);
+				for(c=0; c<con.jacobian->cols; c++){
+					if(con.jacMap[c]<0){continue;}
+					for(roffset=0; roffset<con.size; roffset++){
+						analyticEqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
+					}
+				}
+			}
+			cur += con.size;
+		}
+	}
+	else{
+		int cur = 0;
+		for(int j = 0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode != omxConstraint::EQUALITY) continue;
+			
+			con.refreshAndGrab(fc, &equality(cur));
+			cur += con.size;
+		}
 	}
 
 	if (verbose >= 3) {
@@ -309,6 +332,19 @@ void GradientOptimizerContext::myineqFun()
 		mxPrintMat("inequality", inequality);
 	}
 };
+
+void GradientOptimizerContext::checkForAnalyticJacobians()
+{
+	usingAnalyticJacobian = false;
+	omxState *st = fc->state;
+	for(int i=0; i < (int) st->conListX.size(); i++){
+		omxConstraint &cs = *st->conListX[i];
+		if(cs.jacobian){
+			usingAnalyticJacobian = true;
+			return;
+		}
+	}
+}
 
 // ------------------------------------------------------------
 
@@ -543,6 +579,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
         case OptEngine_NLOPT:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
+		rf.checkForAnalyticJacobians();
 		omxInvokeNLOPT(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
@@ -555,7 +592,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		fc->copyParamToModel();
 		rf.setupSimpleBounds();
 		rf.setupIneqConstraintBounds();
-		rf.solEqBFun();
+		rf.solEqBFun(false);
 		rf.myineqFun();
 		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
 			omxSD(rf);   // unconstrained problems
